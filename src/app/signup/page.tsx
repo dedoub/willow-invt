@@ -217,7 +217,7 @@ export default function SignupPage() {
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-sky-300/50" />
                   <Input
                     id="signupCode"
-                    type="text"
+                    type="password"
                     placeholder={t.auth.signup.signupCodePlaceholder}
                     value={signupCode}
                     onChange={(e) => setSignupCode(e.target.value)}

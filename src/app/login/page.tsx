@@ -167,19 +167,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Signup Link */}
-            <div className="mt-6 text-center">
-              <p className="text-sky-100/70">
-                {t.auth.login.noAccount}{' '}
-                <Link
-                  href="/signup"
-                  className="text-sky-400 hover:text-sky-300 font-medium transition-colors"
-                >
-                  {t.auth.login.signup}
-                </Link>
-              </p>
-            </div>
-          </div>
+                      </div>
         </div>
       </div>
     </div>
