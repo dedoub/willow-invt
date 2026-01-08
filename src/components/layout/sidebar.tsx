@@ -5,65 +5,53 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useIsAdmin } from '@/lib/auth-context'
+import { useI18n } from '@/lib/i18n'
 import {
   LayoutDashboard,
   Settings,
   Users,
   ChevronLeft,
   ChevronRight,
-  FileText,
-  BarChart3,
   FolderOpen,
+  Globe,
 } from 'lucide-react'
-
-interface NavItem {
-  title: string
-  href: string
-  icon: React.ReactNode
-  adminOnly?: boolean
-}
-
-const navItems: NavItem[] = [
-  {
-    title: 'Dashboard',
-    href: '/',
-    icon: <LayoutDashboard className="h-5 w-5" />,
-  },
-  {
-    title: 'Projects',
-    href: '/projects',
-    icon: <FolderOpen className="h-5 w-5" />,
-  },
-  {
-    title: 'Reports',
-    href: '/reports',
-    icon: <FileText className="h-5 w-5" />,
-  },
-  {
-    title: 'Analytics',
-    href: '/analytics',
-    icon: <BarChart3 className="h-5 w-5" />,
-  },
-]
-
-const adminItems: NavItem[] = [
-  {
-    title: 'Users',
-    href: '/admin/users',
-    icon: <Users className="h-5 w-5" />,
-    adminOnly: true,
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: <Settings className="h-5 w-5" />,
-  },
-]
 
 export function Sidebar() {
   const pathname = usePathname()
   const isAdmin = useIsAdmin()
   const [collapsed, setCollapsed] = useState(false)
+  const { t, language, setLanguage, supportedLanguages } = useI18n()
+
+  const navItems = [
+    {
+      title: t.sidebar.dashboard,
+      href: '/',
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      title: t.sidebar.projects,
+      href: '/projects',
+      icon: <FolderOpen className="h-5 w-5" />,
+    },
+  ]
+
+  const adminItems = [
+    {
+      title: t.sidebar.users,
+      href: '/admin/users',
+      icon: <Users className="h-5 w-5" />,
+      adminOnly: true,
+    },
+    {
+      title: t.sidebar.settings,
+      href: '/settings',
+      icon: <Settings className="h-5 w-5" />,
+    },
+  ]
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'ko' ? 'en' : 'ko')
+  }
 
   return (
     <aside
@@ -75,7 +63,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b border-slate-700 px-4">
         {!collapsed && (
-          <Link href="/" className="text-xl font-bold text-emerald-400">
+          <Link href="/" className="text-xl font-bold text-sky-400">
             Willow
           </Link>
         )}
@@ -106,7 +94,7 @@ export function Sidebar() {
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                 pathname === item.href
-                  ? 'bg-emerald-600 text-white'
+                  ? 'bg-sky-600 text-white'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white',
                 collapsed && 'justify-center'
               )}
@@ -145,10 +133,27 @@ export function Sidebar() {
         )}
       </nav>
 
-      {/* Footer */}
+      {/* Language toggle & Footer */}
+      <div className="border-t border-slate-700 p-2">
+        <button
+          onClick={toggleLanguage}
+          className={cn(
+            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white',
+            collapsed && 'justify-center'
+          )}
+        >
+          <Globe className="h-5 w-5" />
+          {!collapsed && (
+            <span>
+              {supportedLanguages.find((l) => l.code === language)?.flag}{' '}
+              {supportedLanguages.find((l) => l.code === language)?.name}
+            </span>
+          )}
+        </button>
+      </div>
       {!collapsed && (
         <div className="border-t border-slate-700 p-4">
-          <p className="text-xs text-slate-500">v1.0.0</p>
+          <p className="text-xs text-slate-500">{t.sidebar.version}</p>
         </div>
       )}
     </aside>

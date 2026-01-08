@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-context'
+import { useI18n } from '@/lib/i18n'
 import { useRouter } from 'next/navigation'
 import {
   DropdownMenu,
@@ -18,8 +19,9 @@ interface HeaderProps {
   title?: string
 }
 
-export function Header({ title = 'Dashboard' }: HeaderProps) {
+export function Header({ title }: HeaderProps) {
   const { user, logout } = useAuth()
+  const { t } = useI18n()
   const router = useRouter()
   const { theme, setTheme } = useTheme()
 
@@ -48,9 +50,20 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
     }
   }
 
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return t.users.roles.admin
+      case 'editor':
+        return t.users.roles.editor
+      default:
+        return t.users.roles.viewer
+    }
+  }
+
   return (
     <header className="flex h-16 items-center justify-between border-b bg-background px-6">
-      <h1 className="text-xl font-semibold">{title}</h1>
+      <h1 className="text-xl font-semibold">{title || t.dashboard.title}</h1>
 
       <div className="flex items-center gap-4">
         {/* Theme toggle */}
@@ -70,7 +83,7 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 rounded-lg p-2 hover:bg-accent">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-emerald-600 text-white">
+                <AvatarFallback className="bg-sky-600 text-white">
                   {user ? getInitials(user.name) : 'U'}
                 </AvatarFallback>
               </Avatar>
@@ -81,7 +94,7 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
                     user?.role || ''
                   )}`}
                 >
-                  {user?.role}
+                  {getRoleLabel(user?.role || 'viewer')}
                 </span>
               </div>
             </button>
@@ -96,12 +109,12 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push('/profile')}>
               <User className="mr-2 h-4 w-4" />
-              Profile
+              {t.common.profile}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-red-600">
               <LogOut className="mr-2 h-4 w-4" />
-              Logout
+              {t.common.logout}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

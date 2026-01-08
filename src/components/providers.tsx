@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
 import { useState } from 'react'
 import { AuthProvider } from '@/lib/auth-context'
+import { I18nProvider } from '@/lib/i18n'
 import { Toaster } from 'sonner'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -28,8 +29,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         <AuthProvider>
-          {children}
-          <Toaster position="top-right" richColors />
+          <I18nProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+          </I18nProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
