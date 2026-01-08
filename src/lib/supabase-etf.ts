@@ -12,6 +12,17 @@ export const willowDb = createClient(willowUrl, willowAnonKey)
 
 // ============ 타입 정의 ============
 
+// 티어드 수수료 구조
+export interface FeeTier {
+  upTo: number  // AUM 상한선 (예: 500000000 = $500M), 0이면 무제한
+  bps: number   // basis points (예: 7 = 0.07%)
+}
+
+export interface FeeStructure {
+  minFee: number      // 연간 최소수수료
+  tiers: FeeTier[]    // 티어 배열 (upTo 기준 오름차순)
+}
+
 // Akros DB에서 가져오는 AUM 데이터
 export interface AUMData {
   symbol: string
@@ -32,10 +43,14 @@ export interface ETFProduct {
   fund_url: string | null
   listing_date: string | null
   bank: string
+  // 레거시 단일 수수료 필드 (하위호환)
   platform_min_fee: number
   platform_fee_percent: number
   pm_min_fee: number
   pm_fee_percent: number
+  // 새로운 티어드 수수료 구조
+  platform_fee_tiers: FeeStructure | null
+  pm_fee_tiers: FeeStructure | null
   currency: string
   notes: string | null
   is_active: boolean
@@ -50,10 +65,14 @@ export interface ETFProductInput {
   fund_url?: string
   listing_date?: string
   bank?: string
+  // 레거시 단일 수수료 필드 (하위호환)
   platform_min_fee?: number
   platform_fee_percent?: number
   pm_min_fee?: number
   pm_fee_percent?: number
+  // 새로운 티어드 수수료 구조
+  platform_fee_tiers?: FeeStructure
+  pm_fee_tiers?: FeeStructure
   currency?: string
   notes?: string
   is_active?: boolean
@@ -69,10 +88,14 @@ export interface ETFDisplayData {
   bank: string
   aum: number | null
   flow: number | null
+  // 레거시 필드 (하위호환)
   platformMinFee: number
   platformFeePercent: number
   pmMinFee: number
   pmFeePercent: number
+  // 티어드 수수료 구조
+  platformFeeTiers: FeeStructure | null
+  pmFeeTiers: FeeStructure | null
   platformMonthlyFee: number
   pmMonthlyFee: number
   totalMonthlyFee: number
@@ -82,6 +105,75 @@ export interface ETFDisplayData {
   date: string | null
   notes: string | null
   isActive: boolean
+}
+
+// ============ 수수료 계산 함수 ============
+
+/**
+ * 티어드 수수료 구조를 기반으로 연간 수수료 계산
+ * 예: KDEF Platform - $90k min OR 7bps on first $500M, 6bps on $500M-$1B
+ *
+ * @param aum - 평균 AUM (달러)
+ * @param feeStructure - 수수료 구조 (minFee와 tiers 배열)
+ * @returns 연간 수수료 (달러)
+ */
+export function calculateTieredFee(aum: number, feeStructure: FeeStructure | null): number {
+  if (!feeStructure) return 0
+
+  const { minFee, tiers } = feeStructure
+
+  // 티어가 없으면 최소수수료만 반환
+  if (!tiers || tiers.length === 0) {
+    return minFee
+  }
+
+  // 티어 정렬 (upTo 기준 오름차순, 0은 마지막으로)
+  const sortedTiers = [...tiers].sort((a, b) => {
+    if (a.upTo === 0) return 1
+    if (b.upTo === 0) return -1
+    return a.upTo - b.upTo
+  })
+
+  let totalFee = 0
+  let remainingAum = aum
+  let previousThreshold = 0
+
+  for (const tier of sortedTiers) {
+    if (remainingAum <= 0) break
+
+    // 현재 티어에서 적용되는 AUM 범위 계산
+    let tierAum: number
+    if (tier.upTo === 0) {
+      // upTo가 0이면 무제한 (나머지 전체에 적용)
+      tierAum = remainingAum
+    } else {
+      // 현재 티어의 상한선까지의 AUM
+      const tierCeiling = tier.upTo - previousThreshold
+      tierAum = Math.min(remainingAum, tierCeiling)
+    }
+
+    // 해당 티어의 수수료 계산 (bps를 퍼센트로 변환: 7bps = 0.07% = 0.0007)
+    const tierFee = tierAum * (tier.bps / 10000)
+    totalFee += tierFee
+
+    remainingAum -= tierAum
+    if (tier.upTo > 0) {
+      previousThreshold = tier.upTo
+    }
+  }
+
+  // 최소수수료와 계산된 수수료 중 큰 값 반환
+  return Math.max(minFee, totalFee)
+}
+
+/**
+ * 레거시 단일 수수료 구조를 티어드 구조로 변환
+ */
+export function convertLegacyToTieredFee(minFee: number, feePercent: number): FeeStructure {
+  return {
+    minFee,
+    tiers: feePercent > 0 ? [{ upTo: 0, bps: feePercent * 100 }] : []
+  }
 }
 
 // ============ Akros DB 함수 (AUM 데이터) ============
@@ -189,10 +281,8 @@ export async function fetchHistoricalData(
   const etfInfo = new Map<string, {
     endDate: Date
     listingDate: Date | null
-    platformMinFee: number
-    platformFeePercent: number
-    pmMinFee: number
-    pmFeePercent: number
+    platformFeeTiers: FeeStructure
+    pmFeeTiers: FeeStructure
   }>()
 
   for (const product of products) {
@@ -200,13 +290,17 @@ export async function fetchHistoricalData(
     const endDate = listingDate ? new Date(listingDate) : new Date()
     if (listingDate) endDate.setMonth(endDate.getMonth() + 36)
 
+    // 티어드 수수료 구조 (없으면 레거시에서 변환)
+    const platformMinFee = Number(product.platform_min_fee) || 0
+    const platformFeePercent = Number(product.platform_fee_percent) || 0
+    const pmMinFee = Number(product.pm_min_fee) || 0
+    const pmFeePercent = Number(product.pm_fee_percent) || 0
+
     etfInfo.set(product.symbol, {
       endDate,
       listingDate,
-      platformMinFee: Number(product.platform_min_fee) || 0,
-      platformFeePercent: Number(product.platform_fee_percent) || 0,
-      pmMinFee: Number(product.pm_min_fee) || 0,
-      pmFeePercent: Number(product.pm_fee_percent) || 0,
+      platformFeeTiers: product.platform_fee_tiers || convertLegacyToTieredFee(platformMinFee, platformFeePercent),
+      pmFeeTiers: product.pm_fee_tiers || convertLegacyToTieredFee(pmMinFee, pmFeePercent),
     })
   }
 
@@ -229,9 +323,11 @@ export async function fetchHistoricalData(
 
     const aum = row.market_cap || 0
 
-    // 월수수료 계산 (개별 ETF 기준)
-    const platformMonthlyFee = Math.max(info.platformMinFee / 12, (aum * info.platformFeePercent) / 100 / 12)
-    const pmMonthlyFee = Math.max(info.pmMinFee / 12, (aum * info.pmFeePercent) / 100 / 12)
+    // 티어드 수수료 계산 (연간 → 월간)
+    const platformAnnualFee = calculateTieredFee(aum, info.platformFeeTiers)
+    const pmAnnualFee = calculateTieredFee(aum, info.pmFeeTiers)
+    const platformMonthlyFee = platformAnnualFee / 12
+    const pmMonthlyFee = pmAnnualFee / 12
     const monthlyFee = (platformMonthlyFee + pmMonthlyFee) * 0.25
 
     // 잔여개월 계산
@@ -309,10 +405,14 @@ export async function createETFProduct(input: ETFProductInput): Promise<ETFProdu
       fund_url: input.fund_url || null,
       listing_date: input.listing_date || null,
       bank: input.bank || 'ETC',
-      platform_min_fee: input.platform_min_fee || 0,
+      // 레거시 필드 (하위호환)
+      platform_min_fee: input.platform_fee_tiers?.minFee ?? input.platform_min_fee ?? 0,
       platform_fee_percent: input.platform_fee_percent || 0,
-      pm_min_fee: input.pm_min_fee || 0,
+      pm_min_fee: input.pm_fee_tiers?.minFee ?? input.pm_min_fee ?? 0,
       pm_fee_percent: input.pm_fee_percent || 0,
+      // 티어드 수수료 구조
+      platform_fee_tiers: input.platform_fee_tiers || { minFee: input.platform_min_fee || 0, tiers: [] },
+      pm_fee_tiers: input.pm_fee_tiers || { minFee: input.pm_min_fee || 0, tiers: [] },
       currency: input.currency || 'USD',
       notes: input.notes || null,
       is_active: input.is_active !== false,
@@ -337,10 +437,20 @@ export async function updateETFProduct(id: number, input: Partial<ETFProductInpu
   if (input.fund_url !== undefined) updateData.fund_url = input.fund_url
   if (input.listing_date !== undefined) updateData.listing_date = input.listing_date
   if (input.bank !== undefined) updateData.bank = input.bank
+  // 레거시 필드 (하위호환)
   if (input.platform_min_fee !== undefined) updateData.platform_min_fee = input.platform_min_fee
   if (input.platform_fee_percent !== undefined) updateData.platform_fee_percent = input.platform_fee_percent
   if (input.pm_min_fee !== undefined) updateData.pm_min_fee = input.pm_min_fee
   if (input.pm_fee_percent !== undefined) updateData.pm_fee_percent = input.pm_fee_percent
+  // 티어드 수수료 구조
+  if (input.platform_fee_tiers !== undefined) {
+    updateData.platform_fee_tiers = input.platform_fee_tiers
+    updateData.platform_min_fee = input.platform_fee_tiers.minFee // 레거시 동기화
+  }
+  if (input.pm_fee_tiers !== undefined) {
+    updateData.pm_fee_tiers = input.pm_fee_tiers
+    updateData.pm_min_fee = input.pm_fee_tiers.minFee // 레거시 동기화
+  }
   if (input.currency !== undefined) updateData.currency = input.currency
   if (input.notes !== undefined) updateData.notes = input.notes
   if (input.is_active !== undefined) updateData.is_active = input.is_active
@@ -394,24 +504,25 @@ export async function fetchETFDisplayData(bank?: string): Promise<ETFDisplayData
   const displayData: ETFDisplayData[] = products.map(product => {
     const aum = aumMap.get(product.symbol)
 
-    // null/undefined 처리
+    // 레거시 필드 처리
     const platformMinFee = Number(product.platform_min_fee) || 0
     const platformFeePercent = Number(product.platform_fee_percent) || 0
     const pmMinFee = Number(product.pm_min_fee) || 0
     const pmFeePercent = Number(product.pm_fee_percent) || 0
 
+    // 티어드 수수료 구조 (없으면 레거시에서 변환)
+    const platformFeeTiers = product.platform_fee_tiers || convertLegacyToTieredFee(platformMinFee, platformFeePercent)
+    const pmFeeTiers = product.pm_fee_tiers || convertLegacyToTieredFee(pmMinFee, pmFeePercent)
+
     // 최근 1개월 평균 AUM 사용
     const avgAum = aum?.avgMonthlyAum || 0
 
-    // Platform 월수수료 계산: Max(연간 Min Fee / 12, 평균 AUM × Fee% / 100 / 12)
-    const platformMonthlyFee = aum
-      ? Math.max(platformMinFee / 12, (avgAum * platformFeePercent) / 100 / 12)
-      : platformMinFee / 12
+    // 티어드 수수료 계산 (연간 수수료를 월간으로 변환)
+    const platformAnnualFee = calculateTieredFee(avgAum, platformFeeTiers)
+    const pmAnnualFee = calculateTieredFee(avgAum, pmFeeTiers)
 
-    // PM 월수수료 계산: Max(연간 Min Fee / 12, 평균 AUM × Fee% / 100 / 12)
-    const pmMonthlyFee = aum
-      ? Math.max(pmMinFee / 12, (avgAum * pmFeePercent) / 100 / 12)
-      : pmMinFee / 12
+    const platformMonthlyFee = platformAnnualFee / 12
+    const pmMonthlyFee = pmAnnualFee / 12
 
     // 총 월수수료 (Platform + PM)의 25%가 최종 수수료
     const totalMonthlyFee = (platformMonthlyFee + pmMonthlyFee) * 0.25
@@ -501,6 +612,8 @@ export async function fetchETFDisplayData(bank?: string): Promise<ETFDisplayData
       platformFeePercent,
       pmMinFee,
       pmFeePercent,
+      platformFeeTiers,
+      pmFeeTiers,
       platformMonthlyFee,
       pmMonthlyFee,
       totalMonthlyFee,

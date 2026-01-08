@@ -155,13 +155,13 @@ export const ko = {
   // ETF
   etf: {
     title: 'ETF 리스트',
-    description: '윌로우인베스트먼트가 상품출시 컨설팅 제공',
+    description: '상품출시 컨설팅 ETF 관리',
     totalAum: '총 AUM',
     totalMonthlyFee: '총 월수수료',
     totalRemainingFee: '총 잔여수수료',
     etfCount: '{count}개 ETF 기준',
-    feeFormula: 'Base + (Platform + PM) × 25%',
-    remainingFeeDesc: '상장 이후 36개월 간 수수료 발생',
+    feeFormula: '직전 1개월 평균 AUM 대비',
+    remainingFeeDesc: '최근 AUM 기준',
     remainingMonths: '{months}개월',
     addEtf: 'ETF 추가',
     editEtf: 'ETF 수정',
@@ -193,6 +193,10 @@ export const ko = {
       feeRatioPlaceholder: '예: 0.05',
       currency: 'Currency',
       notes: 'Notes',
+      addTier: '티어 추가',
+      tierThreshold: '상한선',
+      tierBps: 'Bps',
+      tierHint: '0 또는 비워두면 무제한. M(백만), B(십억) 지원.',
     },
     actions: {
       edit: '수정',

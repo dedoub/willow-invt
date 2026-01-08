@@ -19,6 +19,8 @@ import {
   ETFProductInput,
   HistoricalDataPoint,
   ETFDocument,
+  FeeStructure,
+  FeeTier,
 } from '@/lib/supabase-etf'
 import {
   DollarSign,
@@ -238,6 +240,127 @@ function Sparkline({ data, id }: { data: SparklineData[]; id: string }) {
 }
 
 // ETF 추가/수정 모달
+// 티어드 수수료 입력 컴포넌트
+function TieredFeeInput({
+  label,
+  feeStructure,
+  onChange,
+  t,
+}: {
+  label: string
+  feeStructure: FeeStructure
+  onChange: (feeStructure: FeeStructure) => void
+  t: ReturnType<typeof useI18n>['t']
+}) {
+  const addTier = () => {
+    const newTiers = [...feeStructure.tiers, { upTo: 0, bps: 0 }]
+    onChange({ ...feeStructure, tiers: newTiers })
+  }
+
+  const removeTier = (index: number) => {
+    const newTiers = feeStructure.tiers.filter((_, i) => i !== index)
+    onChange({ ...feeStructure, tiers: newTiers })
+  }
+
+  const updateTier = (index: number, field: keyof FeeTier, value: number) => {
+    const newTiers = [...feeStructure.tiers]
+    newTiers[index] = { ...newTiers[index], [field]: value }
+    onChange({ ...feeStructure, tiers: newTiers })
+  }
+
+  const formatThreshold = (value: number): string => {
+    if (value === 0) return ''
+    if (value >= 1000000000) return `${value / 1000000000}B`
+    if (value >= 1000000) return `${value / 1000000}M`
+    return String(value)
+  }
+
+  const parseThreshold = (input: string): number => {
+    const cleaned = input.trim().toUpperCase()
+    if (!cleaned) return 0
+
+    const match = cleaned.match(/^([\d.]+)\s*([BMK])?$/)
+    if (!match) return parseFloat(cleaned) || 0
+
+    const num = parseFloat(match[1])
+    const suffix = match[2]
+
+    if (suffix === 'B') return num * 1000000000
+    if (suffix === 'M') return num * 1000000
+    if (suffix === 'K') return num * 1000
+    return num
+  }
+
+  return (
+    <div className="rounded-lg border border-slate-200 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-sm font-semibold text-slate-700">{label}</label>
+        <button
+          type="button"
+          onClick={addTier}
+          className="flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700"
+        >
+          <Plus className="h-3 w-3" />
+          {t.etf.form.addTier || 'Add Tier'}
+        </button>
+      </div>
+
+      {/* Min Fee */}
+      <div className="mb-3">
+        <label className="block text-xs text-muted-foreground mb-1">{t.etf.form.minFee}</label>
+        <input
+          type="number"
+          value={feeStructure.minFee || ''}
+          onChange={(e) => onChange({ ...feeStructure, minFee: parseFloat(e.target.value) || 0 })}
+          className="w-full rounded-lg border px-3 py-2 text-sm"
+          placeholder="e.g. 90000"
+          step="1000"
+        />
+      </div>
+
+      {/* Tiers */}
+      {feeStructure.tiers.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex gap-2 text-xs text-muted-foreground">
+            <span className="flex-1">{t.etf.form.tierThreshold || 'Up To'}</span>
+            <span className="w-16">{t.etf.form.tierBps || 'Bps'}</span>
+            <span className="w-6"></span>
+          </div>
+          {feeStructure.tiers.map((tier, index) => (
+            <div key={index} className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={formatThreshold(tier.upTo)}
+                onChange={(e) => updateTier(index, 'upTo', parseThreshold(e.target.value))}
+                className="flex-1 min-w-0 rounded border px-2 py-1.5 text-sm"
+                placeholder={tier.upTo === 0 ? '∞' : 'e.g. 500M'}
+              />
+              <input
+                type="number"
+                value={tier.bps || ''}
+                onChange={(e) => updateTier(index, 'bps', parseFloat(e.target.value) || 0)}
+                className="w-16 rounded border px-2 py-1.5 text-sm"
+                placeholder="7"
+                step="0.5"
+              />
+              <button
+                type="button"
+                onClick={() => removeTier(index)}
+                className="flex-shrink-0 p-1 text-slate-400 hover:text-red-500"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          <p className="text-xs text-muted-foreground mt-1">
+            {t.etf.form.tierHint || 'Use 0 or empty for unlimited. Supports M (million), B (billion).'}
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ETFModal({
   isOpen,
   onClose,
@@ -258,10 +381,8 @@ function ETFModal({
     fund_name: '',
     fund_url: '',
     listing_date: '',
-    platform_min_fee: 0,
-    platform_fee_percent: 0,
-    pm_min_fee: 0,
-    pm_fee_percent: 0,
+    platform_fee_tiers: { minFee: 0, tiers: [] },
+    pm_fee_tiers: { minFee: 0, tiers: [] },
     currency: 'USD',
     notes: '',
   })
@@ -273,10 +394,8 @@ function ETFModal({
         fund_name: editData.fundName,
         fund_url: editData.fundUrl || '',
         listing_date: editData.listingDate || '',
-        platform_min_fee: editData.platformMinFee,
-        platform_fee_percent: editData.platformFeePercent,
-        pm_min_fee: editData.pmMinFee,
-        pm_fee_percent: editData.pmFeePercent,
+        platform_fee_tiers: editData.platformFeeTiers || { minFee: editData.platformMinFee, tiers: [] },
+        pm_fee_tiers: editData.pmFeeTiers || { minFee: editData.pmMinFee, tiers: [] },
         currency: editData.currency,
         notes: editData.notes || '',
       })
@@ -286,10 +405,8 @@ function ETFModal({
         fund_name: '',
         fund_url: '',
         listing_date: '',
-        platform_min_fee: 0,
-        platform_fee_percent: 0,
-        pm_min_fee: 0,
-        pm_fee_percent: 0,
+        platform_fee_tiers: { minFee: 0, tiers: [] },
+        pm_fee_tiers: { minFee: 0, tiers: [] },
         currency: 'USD',
         notes: '',
       })
@@ -299,8 +416,8 @@ function ETFModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-xl bg-white p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-2xl rounded-xl bg-white p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">{editData ? t.etf.editEtf : t.etf.addEtf}</h3>
           <button onClick={onClose} className="rounded p-1 hover:bg-slate-100">
@@ -309,118 +426,82 @@ function ETFModal({
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">{t.etf.form.symbol} *</label>
-            <input
-              type="text"
-              value={formData.symbol}
-              onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
-              placeholder={t.etf.form.symbolPlaceholder}
-              disabled={!!editData}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">{t.etf.form.fundName} *</label>
-            <input
-              type="text"
-              value={formData.fund_name}
-              onChange={(e) => setFormData({ ...formData, fund_name: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
-              placeholder={t.etf.form.fundNamePlaceholder}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">{t.etf.form.fundUrl}</label>
-            <input
-              type="url"
-              value={formData.fund_url}
-              onChange={(e) => setFormData({ ...formData, fund_url: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
-              placeholder="https://..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">{t.etf.form.listingDate}</label>
-            <input
-              type="date"
-              value={formData.listing_date}
-              onChange={(e) => setFormData({ ...formData, listing_date: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
-            />
-          </div>
-
-          {/* Platform Fee Section */}
-          <div className="rounded-lg border border-slate-200 p-3">
-            <label className="block text-sm font-semibold mb-2 text-slate-700">{t.etf.form.platform}</label>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">{t.etf.form.minFee}</label>
-                <input
-                  type="number"
-                  value={formData.platform_min_fee}
-                  onChange={(e) => setFormData({ ...formData, platform_min_fee: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                  step="0.01"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">{t.etf.form.feeRatio}</label>
-                <input
-                  type="number"
-                  value={formData.platform_fee_percent}
-                  onChange={(e) => setFormData({ ...formData, platform_fee_percent: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                  step="0.001"
-                  placeholder={t.etf.form.feeRatioPlaceholder}
-                />
-              </div>
+          {/* Row 1: Symbol + Fund Name */}
+          <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">{t.etf.form.symbol} *</label>
+              <input
+                type="text"
+                value={formData.symbol}
+                onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+                placeholder={t.etf.form.symbolPlaceholder}
+                disabled={!!editData}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t.etf.form.fundName} *</label>
+              <input
+                type="text"
+                value={formData.fund_name}
+                onChange={(e) => setFormData({ ...formData, fund_name: e.target.value })}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+                placeholder={t.etf.form.fundNamePlaceholder}
+              />
             </div>
           </div>
 
-          {/* PM Fee Section */}
-          <div className="rounded-lg border border-slate-200 p-3">
-            <label className="block text-sm font-semibold mb-2 text-slate-700">{t.etf.form.pm}</label>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">{t.etf.form.minFee}</label>
-                <input
-                  type="number"
-                  value={formData.pm_min_fee}
-                  onChange={(e) => setFormData({ ...formData, pm_min_fee: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                  step="0.01"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">{t.etf.form.feeRatio}</label>
-                <input
-                  type="number"
-                  value={formData.pm_fee_percent}
-                  onChange={(e) => setFormData({ ...formData, pm_fee_percent: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                  step="0.001"
-                  placeholder={t.etf.form.feeRatioPlaceholder}
-                />
-              </div>
+          {/* Row 2: Fund URL + Listing Date + Currency */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_100px] gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">{t.etf.form.fundUrl}</label>
+              <input
+                type="url"
+                value={formData.fund_url}
+                onChange={(e) => setFormData({ ...formData, fund_url: e.target.value })}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+                placeholder="https://..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t.etf.form.listingDate}</label>
+              <input
+                type="date"
+                value={formData.listing_date}
+                onChange={(e) => setFormData({ ...formData, listing_date: e.target.value })}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t.etf.form.currency}</label>
+              <select
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+              >
+                <option value="USD">USD</option>
+                <option value="KRW">KRW</option>
+              </select>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">{t.etf.form.currency}</label>
-            <select
-              value={formData.currency}
-              onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
-            >
-              <option value="USD">USD</option>
-              <option value="KRW">KRW</option>
-            </select>
+          {/* Row 3: Platform Fee + PM Fee (2 columns) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <TieredFeeInput
+              label={t.etf.form.platform}
+              feeStructure={formData.platform_fee_tiers || { minFee: 0, tiers: [] }}
+              onChange={(feeStructure) => setFormData({ ...formData, platform_fee_tiers: feeStructure })}
+              t={t}
+            />
+            <TieredFeeInput
+              label={t.etf.form.pm}
+              feeStructure={formData.pm_fee_tiers || { minFee: 0, tiers: [] }}
+              onChange={(feeStructure) => setFormData({ ...formData, pm_fee_tiers: feeStructure })}
+              t={t}
+            />
           </div>
 
+          {/* Row 4: Notes (full width) */}
           <div>
             <label className="block text-sm font-medium mb-1">{t.etf.form.notes}</label>
             <textarea
@@ -904,31 +985,31 @@ export default function ETCPage() {
         <CardContent>
           {isLoadingETFs ? (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-max">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-sm text-muted-foreground">
-                    <th className="pb-3 font-medium">{t.etf.columns.symbol}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.fundName}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.listingDate}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.aum}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.monthFlow}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.monthlyFee}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.remainingFee}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.date}</th>
+                  <tr className="border-b border-slate-200 text-left text-sm text-muted-foreground whitespace-nowrap">
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.symbol}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.fundName}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.listingDate}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.aum}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.monthFlow}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.monthlyFee}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.remainingFee}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.date}</th>
                     <th className="pb-3 font-medium">{t.etf.columns.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...Array(5)].map((_, i) => (
-                    <tr key={i} className="border-b border-slate-200 last:border-0 animate-pulse">
-                      <td className="py-3"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
-                      <td className="py-3"><div className="h-4 w-32 bg-slate-200 rounded" /></td>
-                      <td className="py-3"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                      <td className="py-3"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                      <td className="py-3"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
-                      <td className="py-3"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                      <td className="py-3"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                      <td className="py-3"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                    <tr key={i} className="border-b border-slate-200 last:border-0 animate-pulse whitespace-nowrap">
+                      <td className="py-3 pr-4"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
+                      <td className="py-3 pr-4"><div className="h-4 w-32 bg-slate-200 rounded" /></td>
+                      <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                      <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                      <td className="py-3 pr-4"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
+                      <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                      <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                      <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
                       <td className="py-3">
                         <div className="flex items-center gap-1">
                           <div className="h-6 w-6 bg-slate-200 rounded" />
@@ -945,25 +1026,25 @@ export default function ETCPage() {
             <div className="text-center py-8 text-muted-foreground">{t.etf.noData}</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-max">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-sm text-muted-foreground">
-                    <th className="pb-3 font-medium">{t.etf.columns.symbol}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.fundName}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.listingDate}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.aum}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.monthFlow}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.monthlyFee}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.remainingFee}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.date}</th>
+                  <tr className="border-b border-slate-200 text-left text-sm text-muted-foreground whitespace-nowrap">
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.symbol}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.fundName}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.listingDate}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.aum}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.monthFlow}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.monthlyFee}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.remainingFee}</th>
+                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.date}</th>
                     <th className="pb-3 font-medium">{t.etf.columns.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {etfs.map((etf) => (
-                    <tr key={etf.id} className="border-b border-slate-200 last:border-0">
-                      <td className="py-3 font-mono font-medium">{etf.symbol}</td>
-                      <td className="py-3 text-sm max-w-[200px] truncate" title={etf.fundName}>
+                    <tr key={etf.id} className="border-b border-slate-200 last:border-0 whitespace-nowrap">
+                      <td className="py-3 pr-4 font-mono font-medium">{etf.symbol}</td>
+                      <td className="py-3 pr-4 text-sm max-w-[200px] truncate" title={etf.fundName}>
                         {etf.fundUrl ? (
                           <a
                             href={etf.fundUrl}
@@ -977,20 +1058,20 @@ export default function ETCPage() {
                           etf.fundName
                         )}
                       </td>
-                      <td className="py-3 text-sm text-muted-foreground">{etf.listingDate || '-'}</td>
-                      <td className="py-3">{formatAUM(etf.aum, etf.currency)}</td>
-                      <td className={`py-3 ${(etf.flow || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      <td className="py-3 pr-4 text-sm text-muted-foreground">{etf.listingDate || '-'}</td>
+                      <td className="py-3 pr-4">{formatAUM(etf.aum, etf.currency)}</td>
+                      <td className={`py-3 pr-4 ${(etf.flow || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                         {formatFlow(etf.flow, etf.currency)}
                       </td>
-                      <td className="py-3 font-medium">{formatAUM(etf.totalMonthlyFee, etf.currency)}</td>
-                      <td className="py-3">
+                      <td className="py-3 pr-4 font-medium">{formatAUM(etf.totalMonthlyFee, etf.currency)}</td>
+                      <td className="py-3 pr-4">
                         {etf.remainingFee !== null ? (
                           <span title={t.etf.remainingMonths.replace('{months}', String(etf.remainingMonths))}>
                             {formatAUM(etf.remainingFee, etf.currency)}
                           </span>
                         ) : '-'}
                       </td>
-                      <td className="py-3 text-sm text-muted-foreground">{etf.date || '-'}</td>
+                      <td className="py-3 pr-4 text-sm text-muted-foreground">{etf.date || '-'}</td>
                       <td className="py-3">
                         <div className="flex items-center gap-1">
                           <button

@@ -155,13 +155,13 @@ export const en = {
   // ETF
   etf: {
     title: 'ETF List',
-    description: 'Product launch consulting by Willow Investments',
+    description: 'Product launch consulting ETF management',
     totalAum: 'Total AUM',
     totalMonthlyFee: 'Total Monthly Fee',
     totalRemainingFee: 'Total Remaining Fee',
     etfCount: '{count} ETFs',
-    feeFormula: 'Base + (Platform + PM) × 25%',
-    remainingFeeDesc: '36 months fee after listing',
+    feeFormula: 'Based on 1-month avg AUM',
+    remainingFeeDesc: 'Based on recent AUM',
     remainingMonths: '{months} months',
     addEtf: 'Add ETF',
     editEtf: 'Edit ETF',
@@ -193,6 +193,10 @@ export const en = {
       feeRatioPlaceholder: 'e.g. 0.05',
       currency: 'Currency',
       notes: 'Notes',
+      addTier: 'Add Tier',
+      tierThreshold: 'Up To',
+      tierBps: 'Bps',
+      tierHint: 'Use 0 or empty for unlimited. Supports M (million), B (billion).',
     },
     actions: {
       edit: 'Edit',
