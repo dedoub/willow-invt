@@ -16,20 +16,21 @@ interface StatCardProps {
   value: string
   description: string
   icon: React.ReactNode
+  bgColor: string
   trend?: {
     value: number
     isPositive: boolean
   }
 }
 
-function StatCard({ title, value, description, icon, trend }: StatCardProps) {
+function StatCard({ title, value, description, icon, bgColor, trend }: StatCardProps) {
   return (
-    <Card>
+    <Card className={bgColor}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <div className="rounded-lg bg-muted p-2">{icon}</div>
+        <div className="rounded-lg bg-white/50 p-2">{icon}</div>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
@@ -63,28 +64,32 @@ export default function DashboardPage() {
       title: 'Total Investment',
       value: '$2,450,000',
       description: 'from last month',
-      icon: <DollarSign className="h-4 w-4 text-emerald-600" />,
+      icon: <DollarSign className="h-4 w-4 text-slate-600" />,
+      bgColor: 'bg-slate-100',
       trend: { value: 12.5, isPositive: true },
     },
     {
       title: 'Active Projects',
       value: '24',
       description: 'across all portfolios',
-      icon: <FolderOpen className="h-4 w-4 text-blue-600" />,
+      icon: <FolderOpen className="h-4 w-4 text-slate-600" />,
+      bgColor: 'bg-slate-100',
       trend: { value: 4.2, isPositive: true },
     },
     {
       title: 'Team Members',
       value: '12',
       description: 'active users',
-      icon: <Users className="h-4 w-4 text-purple-600" />,
+      icon: <Users className="h-4 w-4 text-slate-600" />,
+      bgColor: 'bg-slate-100',
       trend: { value: 2, isPositive: true },
     },
     {
       title: 'ROI',
       value: '18.2%',
       description: 'year to date',
-      icon: <BarChart3 className="h-4 w-4 text-orange-600" />,
+      icon: <BarChart3 className="h-4 w-4 text-slate-600" />,
+      bgColor: 'bg-slate-100',
       trend: { value: 3.1, isPositive: true },
     },
   ]
@@ -110,7 +115,7 @@ export default function DashboardPage() {
 
       {/* Recent activity section */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="bg-slate-100">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Latest updates from your portfolio</CardDescription>
@@ -125,13 +130,13 @@ export default function DashboardPage() {
               ].map((activity, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
+                  className="flex items-center justify-between pb-3 last:pb-0"
                 >
                   <div>
                     <p className="text-sm font-medium">{activity.title}</p>
                     <p className="text-xs text-muted-foreground">{activity.time}</p>
                   </div>
-                  <div className="rounded-full bg-muted px-2 py-1 text-xs">
+                  <div className="rounded-full bg-white px-2 py-1 text-xs">
                     {activity.type}
                   </div>
                 </div>
@@ -140,7 +145,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-slate-100">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Common tasks and shortcuts</CardDescription>
@@ -155,7 +160,7 @@ export default function DashboardPage() {
               ].map((action, index) => (
                 <button
                   key={index}
-                  className="flex items-center gap-2 rounded-lg border p-3 text-sm font-medium transition-colors hover:bg-muted"
+                  className="flex items-center gap-2 rounded-lg bg-white p-3 text-sm font-medium transition-colors hover:bg-slate-100"
                 >
                   {action.icon}
                   {action.label}

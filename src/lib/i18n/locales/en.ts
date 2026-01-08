@@ -58,7 +58,7 @@ export const en = {
   // Brand
   brand: {
     name: 'Willow Investments',
-    tagline: 'Manage your projects and team efficiently',
+    tagline: 'Consistency beats intensity.',
   },
 
   // Sidebar
@@ -68,6 +68,19 @@ export const en = {
     users: 'Users',
     settings: 'Settings',
     version: 'Willow Dashboard v1.0',
+    // Menu sections
+    etfIndexing: 'ETF/Indexing',
+    etc: 'ETC',
+    akros: 'Akros',
+    monoRApps: 'MonoR Apps',
+    voiceCards: 'VoiceCards',
+    reviewNotes: 'ReviewNotes',
+    tenSoftworks: 'Ten Softworks',
+    concepts: 'Concepts',
+    openProjects: 'Open Projects',
+    closedProjects: 'Closed Projects',
+    others: 'Others',
+    jangbigo: 'Jangbigo',
   },
 
   // Header
@@ -137,5 +150,78 @@ export const en = {
     general: 'General',
     language: 'Language',
     theme: 'Theme',
+  },
+
+  // ETF
+  etf: {
+    title: 'ETF List',
+    description: 'Product launch consulting by Willow Investments',
+    totalAum: 'Total AUM',
+    totalMonthlyFee: 'Total Monthly Fee',
+    totalRemainingFee: 'Total Remaining Fee',
+    etfCount: '{count} ETFs',
+    feeFormula: 'Base + (Platform + PM) × 25%',
+    remainingFeeDesc: '36 months fee after listing',
+    remainingMonths: '{months} months',
+    addEtf: 'Add ETF',
+    editEtf: 'Edit ETF',
+    noData: 'No ETF data',
+    columns: {
+      symbol: 'Symbol',
+      fundName: 'Fund Name',
+      listingDate: 'Listing',
+      aum: 'AUM',
+      monthFlow: '1M Flow',
+      minFee: 'Min Fee',
+      feeRatio: 'Fee Ratio',
+      monthlyFee: 'Monthly Fee',
+      remainingFee: 'Remaining Fee',
+      date: 'Date',
+      actions: 'Actions',
+    },
+    form: {
+      symbol: 'Symbol',
+      symbolPlaceholder: 'e.g. KDEF',
+      fundName: 'Fund Name',
+      fundNamePlaceholder: 'e.g. PLUS Korea Defense ETF',
+      fundUrl: 'Fund URL',
+      listingDate: 'Listing Date',
+      platform: 'Platform',
+      pm: 'PM',
+      minFee: 'Min Fee ($)',
+      feeRatio: 'Fee Ratio (%)',
+      feeRatioPlaceholder: 'e.g. 0.05',
+      currency: 'Currency',
+      notes: 'Notes',
+    },
+    actions: {
+      edit: 'Edit',
+      delete: 'Delete',
+      documents: 'Documents',
+      download: 'Download',
+    },
+    confirmDelete: 'Are you sure you want to delete {symbol}?',
+  },
+
+  // Documents
+  documents: {
+    title: '{symbol} Documents',
+    upload: 'Upload File',
+    uploading: 'Uploading...',
+    noDocuments: 'No documents registered',
+    uploadFailed: 'Upload failed: {error}',
+    uploadError: 'An error occurred while uploading the file.',
+    downloadFailed: 'Failed to create download URL.',
+    deleteFailed: 'Delete failed.',
+    confirmDelete: 'Are you sure you want to delete {fileName}?',
+    close: 'Close',
+  },
+
+  // Time
+  time: {
+    justNow: 'Just now',
+    minutesAgo: '{minutes} min ago',
+    hoursAgo: '{hours} hours ago',
+    daysAgo: '{days} days ago',
   },
 } as const

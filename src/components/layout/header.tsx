@@ -83,7 +83,7 @@ export function Header({ title }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 rounded-lg p-2 hover:bg-accent">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-sky-600 text-white">
+                <AvatarFallback className="bg-brand-500 text-white">
                   {user ? getInitials(user.name) : 'U'}
                 </AvatarFallback>
               </Avatar>

@@ -8,6 +8,15 @@ import { Header } from './header'
 
 const PUBLIC_PATHS = ['/login', '/signup']
 
+// 경로별 타이틀 매핑
+const getPageTitle = (pathname: string): string | undefined => {
+  const titleMap: Record<string, string> = {
+    '/etf/etc': 'ETF/Indexing - ETC',
+    '/etf/akros': 'ETF/Indexing - Akros',
+  }
+  return titleMap[pathname]
+}
+
 interface LayoutWrapperProps {
   children: React.ReactNode
 }
@@ -18,6 +27,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const router = useRouter()
 
   const isPublicPath = PUBLIC_PATHS.includes(pathname)
+  const pageTitle = getPageTitle(pathname)
 
   useEffect(() => {
     if (!isLoading) {
@@ -53,7 +63,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header />
+        <Header title={pageTitle} />
         <main className="flex-1 overflow-auto bg-muted/30 p-6">
           <div className="animate-fade-in">{children}</div>
         </main>

@@ -58,7 +58,7 @@ export const ko = {
   // 브랜딩
   brand: {
     name: 'Willow Investments',
-    tagline: '프로젝트와 팀을 효율적으로 관리하세요',
+    tagline: 'Consistency beats intensity.',
   },
 
   // 사이드바
@@ -68,6 +68,19 @@ export const ko = {
     users: '사용자',
     settings: '설정',
     version: 'Willow Dashboard v1.0',
+    // 메뉴 섹션
+    etfIndexing: 'ETF/Indexing',
+    etc: 'ETC',
+    akros: '아크로스',
+    monoRApps: '모노알 앱스',
+    voiceCards: '보이스카드',
+    reviewNotes: '리뷰노트',
+    tenSoftworks: '텐소프트웍스',
+    concepts: '컨셉 시연',
+    openProjects: '진행 프로젝트',
+    closedProjects: '완료 프로젝트',
+    others: '기타',
+    jangbigo: '장비고',
   },
 
   // 헤더
@@ -137,5 +150,78 @@ export const ko = {
     general: '일반',
     language: '언어',
     theme: '테마',
+  },
+
+  // ETF
+  etf: {
+    title: 'ETF 리스트',
+    description: '윌로우인베스트먼트가 상품출시 컨설팅 제공',
+    totalAum: '총 AUM',
+    totalMonthlyFee: '총 월수수료',
+    totalRemainingFee: '총 잔여수수료',
+    etfCount: '{count}개 ETF 기준',
+    feeFormula: 'Base + (Platform + PM) × 25%',
+    remainingFeeDesc: '상장 이후 36개월 간 수수료 발생',
+    remainingMonths: '{months}개월',
+    addEtf: 'ETF 추가',
+    editEtf: 'ETF 수정',
+    noData: 'ETF 데이터가 없습니다',
+    columns: {
+      symbol: '심볼',
+      fundName: '펀드명',
+      listingDate: '상장일',
+      aum: 'AUM',
+      monthFlow: '1M 순판매',
+      minFee: '최소수수료',
+      feeRatio: '수수료율',
+      monthlyFee: '월수수료',
+      remainingFee: '잔여수수료',
+      date: '기준일',
+      actions: '관리',
+    },
+    form: {
+      symbol: 'Symbol',
+      symbolPlaceholder: '예: KDEF',
+      fundName: 'Fund Name',
+      fundNamePlaceholder: '예: PLUS Korea Defense ETF',
+      fundUrl: 'Fund URL',
+      listingDate: 'Listing Date',
+      platform: 'Platform',
+      pm: 'PM',
+      minFee: 'Min Fee ($)',
+      feeRatio: 'Fee Ratio (%)',
+      feeRatioPlaceholder: '예: 0.05',
+      currency: 'Currency',
+      notes: 'Notes',
+    },
+    actions: {
+      edit: '수정',
+      delete: '삭제',
+      documents: '문서',
+      download: '다운로드',
+    },
+    confirmDelete: '{symbol}을(를) 삭제하시겠습니까?',
+  },
+
+  // 문서
+  documents: {
+    title: '{symbol} 문서',
+    upload: '파일 업로드',
+    uploading: '업로드 중...',
+    noDocuments: '등록된 문서가 없습니다',
+    uploadFailed: '업로드 실패: {error}',
+    uploadError: '파일 업로드 중 오류가 발생했습니다.',
+    downloadFailed: '다운로드 URL 생성에 실패했습니다.',
+    deleteFailed: '삭제에 실패했습니다.',
+    confirmDelete: '{fileName}을(를) 삭제하시겠습니까?',
+    close: '닫기',
+  },
+
+  // 시간
+  time: {
+    justNow: '방금 전',
+    minutesAgo: '{minutes}분 전',
+    hoursAgo: '{hours}시간 전',
+    daysAgo: '{days}일 전',
   },
 } as const

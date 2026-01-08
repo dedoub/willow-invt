@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { useIsAdmin } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n'
@@ -12,26 +13,76 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  FolderOpen,
+  ChevronDown,
   Globe,
+  TrendingUp,
+  Smartphone,
+  Building2,
+  MoreHorizontal,
 } from 'lucide-react'
+
+interface MenuItem {
+  title: string
+  href: string
+}
+
+interface MenuSection {
+  title: string
+  icon: React.ReactNode
+  items: MenuItem[]
+}
 
 export function Sidebar() {
   const pathname = usePathname()
   const isAdmin = useIsAdmin()
   const [collapsed, setCollapsed] = useState(false)
   const { t, language, setLanguage, supportedLanguages } = useI18n()
+  const [expandedSections, setExpandedSections] = useState<string[]>(['etfIndexing', 'monoRApps', 'tenSoftworks', 'others'])
 
-  const navItems = [
+  const toggleSection = (sectionKey: string) => {
+    setExpandedSections(prev =>
+      prev.includes(sectionKey)
+        ? prev.filter(k => k !== sectionKey)
+        : [...prev, sectionKey]
+    )
+  }
+
+  const menuSections: (MenuSection & { key: string })[] = [
     {
-      title: t.sidebar.dashboard,
-      href: '/',
-      icon: <LayoutDashboard className="h-5 w-5" />,
+      key: 'etfIndexing',
+      title: t.sidebar.etfIndexing,
+      icon: <TrendingUp className="h-5 w-5" />,
+      items: [
+        { title: t.sidebar.etc, href: '/etf/etc' },
+        { title: t.sidebar.akros, href: '/etf/akros' },
+      ],
     },
     {
-      title: t.sidebar.projects,
-      href: '/projects',
-      icon: <FolderOpen className="h-5 w-5" />,
+      key: 'monoRApps',
+      title: t.sidebar.monoRApps,
+      icon: <Smartphone className="h-5 w-5" />,
+      items: [
+        { title: t.sidebar.voiceCards, href: '/monor/voicecards' },
+        { title: t.sidebar.reviewNotes, href: '/monor/reviewnotes' },
+      ],
+    },
+    {
+      key: 'tenSoftworks',
+      title: t.sidebar.tenSoftworks,
+      icon: <Building2 className="h-5 w-5" />,
+      items: [
+        { title: t.sidebar.concepts, href: '/tensoftworks/concepts' },
+        { title: t.sidebar.openProjects, href: '/tensoftworks/open' },
+        { title: t.sidebar.closedProjects, href: '/tensoftworks/closed' },
+      ],
+    },
+    {
+      key: 'others',
+      title: t.sidebar.others,
+      icon: <MoreHorizontal className="h-5 w-5" />,
+      items: [
+        { title: t.sidebar.jangbigo, href: '/others/jangbigo' },
+      ],
     },
   ]
 
@@ -56,58 +107,113 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'flex flex-col bg-slate-900 text-white transition-all duration-300',
+        'flex flex-col bg-slate-900 text-white transition-all duration-300 overflow-hidden',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-slate-700 px-4">
-        {!collapsed && (
-          <Link href="/" className="text-xl font-bold text-sky-400">
-            Willow
+      <div className={cn(
+        "flex h-16 items-center px-4 overflow-hidden",
+        collapsed ? "justify-center" : "justify-between"
+      )}>
+        {!collapsed ? (
+          <Link href="/">
+            <Image src="/willow-text.png" alt="Willow Investments" width={120} height={22} priority />
+          </Link>
+        ) : (
+          <Link href="/">
+            <Image src="/leaf-icon.png" alt="Willow" width={28} height={28} priority />
           </Link>
         )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="rounded p-1.5 hover:bg-slate-800"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-5 w-5" />
-          ) : (
+        {!collapsed && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="rounded p-1.5 hover:bg-slate-800"
+          >
             <ChevronLeft className="h-5 w-5" />
-          )}
-        </button>
+          </button>
+        )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2">
-        <div className="mb-4">
-          {!collapsed && (
-            <p className="mb-2 px-3 text-xs font-semibold uppercase text-slate-400">
-              General
-            </p>
-          )}
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                pathname === item.href
-                  ? 'bg-sky-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white',
-                collapsed && 'justify-center'
-              )}
-            >
-              {item.icon}
-              {!collapsed && <span>{item.title}</span>}
-            </Link>
-          ))}
+      {/* Collapsed toggle button */}
+      {collapsed && (
+        <div className="flex justify-center p-2">
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="rounded p-1.5 hover:bg-slate-800"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
+      )}
+
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
+        {/* Dashboard */}
+        <Link
+          href="/"
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+            pathname === '/'
+              ? 'bg-brand-600 text-white'
+              : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+            collapsed && 'justify-center'
+          )}
+        >
+          <LayoutDashboard className="h-5 w-5" />
+          {!collapsed && <span>{t.sidebar.dashboard}</span>}
+        </Link>
+
+        {/* Menu Sections */}
+        {menuSections.map((section) => (
+          <div key={section.key} className="mt-2">
+            {collapsed ? (
+              <div className="flex justify-center py-2">
+                {section.icon}
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => toggleSection(section.key)}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {section.icon}
+                    <span>{section.title}</span>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 transition-transform',
+                      expandedSections.includes(section.key) && 'rotate-180'
+                    )}
+                  />
+                </button>
+                {expandedSections.includes(section.key) && (
+                  <div className="ml-4 mt-1 space-y-1 border-l border-slate-700 pl-4">
+                    {section.items.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          'block rounded-lg px-3 py-1.5 text-sm transition-colors',
+                          pathname === item.href
+                            ? 'bg-brand-600 text-white'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                        )}
+                      >
+                        {item.title}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ))}
 
         {/* Admin section */}
         {isAdmin && (
-          <div className="border-t border-slate-700 pt-4">
+          <div className="pt-4 mt-4">
             {!collapsed && (
               <p className="mb-2 px-3 text-xs font-semibold uppercase text-slate-400">
                 Admin
@@ -120,7 +226,7 @@ export function Sidebar() {
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                   pathname === item.href
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-brand-700 text-white'
                     : 'text-slate-300 hover:bg-slate-800 hover:text-white',
                   collapsed && 'justify-center'
                 )}
@@ -134,7 +240,7 @@ export function Sidebar() {
       </nav>
 
       {/* Language toggle & Footer */}
-      <div className="border-t border-slate-700 p-2">
+      <div className="p-2">
         <button
           onClick={toggleLanguage}
           className={cn(
@@ -152,7 +258,7 @@ export function Sidebar() {
         </button>
       </div>
       {!collapsed && (
-        <div className="border-t border-slate-700 p-4">
+        <div className="p-4">
           <p className="text-xs text-slate-500">{t.sidebar.version}</p>
         </div>
       )}
