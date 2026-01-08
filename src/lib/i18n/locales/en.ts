@@ -29,6 +29,7 @@ export const en = {
       noAccount: "Don't have an account?",
       signup: 'Sign up',
       error: 'Login failed',
+      contactInfo: 'Contact',
     },
     signup: {
       title: 'Create account',
@@ -56,7 +57,7 @@ export const en = {
 
   // Brand
   brand: {
-    name: 'Willow Dashboard',
+    name: 'Willow Investments',
     tagline: 'Manage your projects and team efficiently',
   },
 

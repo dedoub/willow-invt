@@ -167,7 +167,19 @@ export default function LoginPage() {
               </Button>
             </form>
 
-                      </div>
+            {/* Contact Info */}
+            <div className="mt-6 text-center">
+              <p className="text-sky-100/70">
+                {t.auth.login.contactInfo}:{' '}
+                <a
+                  href="mailto:contact@willowinvt.com"
+                  className="text-sky-400 hover:text-sky-300 font-medium transition-colors"
+                >
+                  contact@willowinvt.com
+                </a>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

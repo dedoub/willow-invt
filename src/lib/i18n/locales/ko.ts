@@ -29,6 +29,7 @@ export const ko = {
       noAccount: '계정이 없으신가요?',
       signup: '가입하기',
       error: '로그인에 실패했습니다',
+      contactInfo: '문의',
     },
     signup: {
       title: '계정 만들기',
@@ -56,7 +57,7 @@ export const ko = {
 
   // 브랜딩
   brand: {
-    name: 'Willow Dashboard',
+    name: 'Willow Investments',
     tagline: '프로젝트와 팀을 효율적으로 관리하세요',
   },
 
