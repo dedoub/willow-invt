@@ -228,4 +228,27 @@ export const en = {
     hoursAgo: '{hours} hours ago',
     daysAgo: '{days} days ago',
   },
+
+  // Gmail
+  gmail: {
+    title: 'Email Communication',
+    notConnectedMessage: 'Connect Gmail to view emails',
+    connect: 'Connect Gmail',
+    connecting: 'Connecting...',
+    disconnect: 'Disconnect',
+    disconnectConfirm: 'Are you sure you want to disconnect Gmail?',
+    connected: 'Connected',
+    notConnected: 'Not connected',
+    syncing: 'Loading emails...',
+    noEmails: 'No emails',
+    newEmail: 'New Email',
+    settings: 'Gmail Settings',
+    connectionStatus: 'Connection Status',
+    watchLabel: 'Watch Label',
+    totalEmails: 'Total Emails',
+    subLabelHint: 'Sub-labels are used for categorization (example)',
+    filterAll: 'All',
+    inbound: 'Received',
+    outbound: 'Sent',
+  },
 } as const

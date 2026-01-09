@@ -1,0 +1,210 @@
+// Gmail API 서비스 라이브러리
+
+// ============ 타입 정의 ============
+
+export interface ParsedEmail {
+  id: string
+  threadId: string
+  from: string
+  fromName: string
+  to: string
+  subject: string
+  snippet: string
+  body: string
+  bodyHtml: string
+  date: string
+  labels: string[]
+  isRead: boolean
+  hasAttachments: boolean
+  attachments: EmailAttachment[]
+  // 추가 필드
+  category: string | null  // 하위 라벨 기반 카테고리 (예: "키움", "삼성")
+  direction: 'inbound' | 'outbound'  // 수신/발신
+}
+
+export interface EmailFetchResult {
+  emails: ParsedEmail[]
+  categories: string[]  // 사용 가능한 카테고리 목록
+  parentLabel: string
+}
+
+export interface EmailAttachment {
+  filename: string
+  mimeType: string
+  size: number
+  attachmentId: string
+}
+
+export interface EmailSyncStatus {
+  lastSyncAt: string | null
+  totalEmails: number
+  newEmailsCount: number
+  isConnected: boolean
+}
+
+export interface SendEmailParams {
+  to: string
+  subject: string
+  body: string
+  bodyHtml?: string
+  cc?: string
+  bcc?: string
+  replyTo?: string
+  attachments?: File[]
+}
+
+export interface GmailTokens {
+  access_token: string
+  refresh_token: string
+  expires_at: number
+}
+
+// ============ Gmail Service Class ============
+
+class GmailService {
+  private syncStatus: EmailSyncStatus = {
+    lastSyncAt: null,
+    totalEmails: 0,
+    newEmailsCount: 0,
+    isConnected: false,
+  }
+  private pollingInterval: NodeJS.Timeout | null = null
+
+  // 연결 상태 확인
+  async checkConnection(): Promise<boolean> {
+    try {
+      const res = await fetch('/api/gmail/status')
+      if (res.ok) {
+        const data = await res.json()
+        this.syncStatus.isConnected = data.isConnected
+        return data.isConnected
+      }
+      return false
+    } catch {
+      this.syncStatus.isConnected = false
+      return false
+    }
+  }
+
+  // OAuth 인증 시작
+  async startAuth(): Promise<string> {
+    const res = await fetch('/api/gmail/auth')
+    if (!res.ok) throw new Error('Failed to get auth URL')
+    const data = await res.json()
+    return data.authUrl
+  }
+
+  // 라벨별 이메일 조회 (기본: 무제한, 1년치)
+  async fetchEmailsByLabel(label: string, maxResults = 0, daysBack = 365): Promise<EmailFetchResult> {
+    try {
+      const res = await fetch(`/api/gmail/emails?label=${encodeURIComponent(label)}&maxResults=${maxResults}&daysBack=${daysBack}`)
+      if (!res.ok) {
+        if (res.status === 401) {
+          this.syncStatus.isConnected = false
+          throw new Error('Not authenticated')
+        }
+        throw new Error('Failed to fetch emails')
+      }
+      const data = await res.json()
+      this.syncStatus.lastSyncAt = new Date().toISOString()
+      this.syncStatus.totalEmails = data.emails.length
+      this.syncStatus.isConnected = true
+      return {
+        emails: data.emails,
+        categories: data.categories || [],
+        parentLabel: data.parentLabel || label,
+      }
+    } catch (error) {
+      console.error('Error fetching emails:', error)
+      throw error
+    }
+  }
+
+  // 이메일 발송
+  async sendEmail(params: SendEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    try {
+      const formData = new FormData()
+      formData.append('to', params.to)
+      formData.append('subject', params.subject)
+      formData.append('body', params.body)
+      if (params.bodyHtml) formData.append('bodyHtml', params.bodyHtml)
+      if (params.cc) formData.append('cc', params.cc)
+      if (params.bcc) formData.append('bcc', params.bcc)
+      if (params.replyTo) formData.append('replyTo', params.replyTo)
+
+      if (params.attachments) {
+        params.attachments.forEach((file, index) => {
+          formData.append(`attachment_${index}`, file)
+        })
+      }
+
+      const res = await fetch('/api/gmail/send', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Failed to send email' }
+      }
+      return { success: true, messageId: data.messageId }
+    } catch (error) {
+      console.error('Error sending email:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+
+  // 이메일 상세 조회
+  async getEmail(messageId: string): Promise<ParsedEmail | null> {
+    try {
+      const res = await fetch(`/api/gmail/emails/${messageId}`)
+      if (!res.ok) return null
+      return await res.json()
+    } catch {
+      return null
+    }
+  }
+
+  // 폴링 시작
+  startPolling(label: string, intervalMs = 5 * 60 * 1000) {
+    this.stopPolling()
+    this.pollingInterval = setInterval(async () => {
+      try {
+        await this.fetchEmailsByLabel(label)
+      } catch (error) {
+        console.error('Polling error:', error)
+      }
+    }, intervalMs)
+  }
+
+  // 폴링 중지
+  stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval)
+      this.pollingInterval = null
+    }
+  }
+
+  // 동기화 상태 반환
+  getSyncStatus(): EmailSyncStatus {
+    return { ...this.syncStatus }
+  }
+
+  // 연결 해제
+  async disconnect(): Promise<boolean> {
+    try {
+      const res = await fetch('/api/gmail/disconnect', { method: 'POST' })
+      if (res.ok) {
+        this.syncStatus.isConnected = false
+        this.stopPolling()
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+}
+
+// 싱글톤 인스턴스
+export const gmailService = new GmailService()

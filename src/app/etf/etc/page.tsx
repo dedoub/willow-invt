@@ -39,7 +39,7 @@ import {
   Settings,
   Loader2,
   X,
-  Calendar,
+  PiggyBank,
   Archive,
   Download,
   Upload,
@@ -98,6 +98,26 @@ function formatRelativeTime(dateString: string, t: ReturnType<typeof useI18n>['t
   if (diffMins < 60) return t.time.minutesAgo.replace('{minutes}', String(diffMins))
   if (diffHours < 24) return t.time.hoursAgo.replace('{hours}', String(diffHours))
   return t.time.daysAgo.replace('{days}', String(diffDays))
+}
+
+// 카테고리별 색상 자동 지정
+const CATEGORY_COLORS = [
+  { bg: 'bg-blue-100', text: 'text-blue-700', button: 'bg-blue-500' },
+  { bg: 'bg-purple-100', text: 'text-purple-700', button: 'bg-purple-500' },
+  { bg: 'bg-emerald-100', text: 'text-emerald-700', button: 'bg-emerald-500' },
+  { bg: 'bg-amber-100', text: 'text-amber-700', button: 'bg-amber-500' },
+  { bg: 'bg-rose-100', text: 'text-rose-700', button: 'bg-rose-500' },
+  { bg: 'bg-cyan-100', text: 'text-cyan-700', button: 'bg-cyan-500' },
+  { bg: 'bg-indigo-100', text: 'text-indigo-700', button: 'bg-indigo-500' },
+  { bg: 'bg-orange-100', text: 'text-orange-700', button: 'bg-orange-500' },
+  { bg: 'bg-teal-100', text: 'text-teal-700', button: 'bg-teal-500' },
+  { bg: 'bg-pink-100', text: 'text-pink-700', button: 'bg-pink-500' },
+]
+
+function getCategoryColor(category: string, categories: string[]) {
+  const index = categories.indexOf(category)
+  if (index === -1) return CATEGORY_COLORS[0]
+  return CATEGORY_COLORS[index % CATEGORY_COLORS.length]
 }
 
 // 스파크라인 차트 (범용)
@@ -752,7 +772,10 @@ export default function ETCPage() {
   const { t } = useI18n()
   const [etfs, setEtfs] = useState<ETFDisplayData[]>([])
   const [isLoadingETFs, setIsLoadingETFs] = useState(true)
-  const [emailFilter, setEmailFilter] = useState<'all' | 'fee' | 'product'>('all')
+  const [emailFilter, setEmailFilter] = useState<string>('all')  // 'all' 또는 카테고리명
+  const [availableCategories, setAvailableCategories] = useState<string[]>([])  // 사용 가능한 카테고리 목록
+  const [emailPage, setEmailPage] = useState(1)  // 이메일 페이지네이션
+  const emailsPerPage = 10  // 페이지당 이메일 수
   const [expandedInvoice, setExpandedInvoice] = useState<number | null>(null)
 
   // Modal 상태
@@ -774,6 +797,9 @@ export default function ETCPage() {
   })
   const [isSyncing, setIsSyncing] = useState(false)
   const [showGmailSettings, setShowGmailSettings] = useState(false)
+  const [gmailLabel, setGmailLabel] = useState('ETC')
+  const [labelInput, setLabelInput] = useState('ETC')
+  const [isConnecting, setIsConnecting] = useState(false)
 
   // 히스토리컬 데이터
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
@@ -836,12 +862,22 @@ export default function ETCPage() {
     }
   }
 
+  // localStorage에서 라벨 불러오기
+  useEffect(() => {
+    const savedLabel = localStorage.getItem('gmail_label_etf_etc')
+    if (savedLabel) {
+      setGmailLabel(savedLabel)
+      setLabelInput(savedLabel)
+    }
+  }, [])
+
   // Gmail 초기화
   useEffect(() => {
     const initGmail = async () => {
       const isConnected = await gmailService.checkConnection()
+      setSyncStatus(prev => ({ ...prev, isConnected }))
       if (isConnected) {
-        gmailService.startPolling('ETC-Bank', 5 * 60 * 1000)
+        gmailService.startPolling(gmailLabel, 5 * 60 * 1000)
         await syncEmails()
       }
     }
@@ -849,13 +885,14 @@ export default function ETCPage() {
     return () => {
       gmailService.stopPolling()
     }
-  }, [])
+  }, [gmailLabel])
 
   const syncEmails = async () => {
     setIsSyncing(true)
     try {
-      const fetchedEmails = await gmailService.fetchEmailsByLabel('ETC-Bank')
-      setEmails(fetchedEmails)
+      const result = await gmailService.fetchEmailsByLabel(gmailLabel)
+      setEmails(result.emails)
+      setAvailableCategories(result.categories)
       setSyncStatus(gmailService.getSyncStatus())
     } catch (error) {
       console.error('Failed to sync emails:', error)
@@ -864,7 +901,44 @@ export default function ETCPage() {
     }
   }
 
-  const filteredEmails = emailFilter === 'all' ? emails : emails.filter((email) => email.type === emailFilter)
+  const handleGmailConnect = async () => {
+    setIsConnecting(true)
+    try {
+      const authUrl = await gmailService.startAuth()
+      window.location.href = authUrl
+    } catch (error) {
+      console.error('Failed to start Gmail auth:', error)
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  const handleGmailDisconnect = async () => {
+    if (!confirm(t.gmail.disconnectConfirm)) return
+    await gmailService.disconnect()
+    setSyncStatus(prev => ({ ...prev, isConnected: false }))
+    setEmails([])
+  }
+
+  const handleLabelSave = () => {
+    if (labelInput.trim()) {
+      setGmailLabel(labelInput.trim())
+      localStorage.setItem('gmail_label_etf_etc', labelInput.trim())
+      setShowGmailSettings(false)
+      syncEmails()
+    }
+  }
+
+  const filteredEmails = emailFilter === 'all' ? emails : emails.filter((email) => email.category === emailFilter)
+
+  // 페이지네이션 계산
+  const totalEmailPages = Math.ceil(filteredEmails.length / emailsPerPage)
+  const paginatedEmails = filteredEmails.slice((emailPage - 1) * emailsPerPage, emailPage * emailsPerPage)
+
+  // 필터 변경 시 페이지 초기화
+  useEffect(() => {
+    setEmailPage(1)
+  }, [emailFilter])
 
   return (
     <div className="space-y-6">
@@ -930,7 +1004,7 @@ export default function ETCPage() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.etf.totalRemainingFee}</CardTitle>
             <div className="rounded-lg bg-white/50 p-2">
-              <Calendar className="h-4 w-4 text-slate-600" />
+              <PiggyBank className="h-4 w-4 text-slate-600" />
             </div>
           </CardHeader>
           <CardContent>
@@ -1179,7 +1253,7 @@ export default function ETCPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  이메일 커뮤니케이션
+                  {t.gmail.title}
                   {syncStatus.isConnected ? (
                     <CheckCircle className="h-4 w-4 text-emerald-500" />
                   ) : (
@@ -1187,7 +1261,7 @@ export default function ETCPage() {
                   )}
                 </CardTitle>
                 <CardDescription>
-                  Gmail 연동 · 라벨: ETC-Bank
+                  Gmail · {t.gmail.watchLabel}: {gmailLabel}
                   {syncStatus.lastSyncAt && (
                     <span className="ml-2">· {formatRelativeTime(syncStatus.lastSyncAt, t)}</span>
                   )}
@@ -1196,7 +1270,7 @@ export default function ETCPage() {
               <div className="flex gap-2">
                 <button
                   onClick={syncEmails}
-                  disabled={isSyncing}
+                  disabled={isSyncing || !syncStatus.isConnected}
                   className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50"
                 >
                   <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -1209,84 +1283,193 @@ export default function ETCPage() {
                 </button>
                 <button className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
                   <Mail className="h-4 w-4" />
-                  새 이메일
+                  {t.gmail.newEmail}
                 </button>
               </div>
             </div>
 
             {showGmailSettings && (
               <div className="mt-4 rounded-lg bg-white p-4">
-                <h4 className="font-medium text-sm mb-3">Gmail 연동 설정</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">연결 상태</span>
-                    <span className={syncStatus.isConnected ? 'text-emerald-600' : 'text-amber-600'}>
-                      {syncStatus.isConnected ? '연결됨' : '연결 필요'}
-                    </span>
+                <h4 className="font-medium text-sm mb-3">{t.gmail.settings}</h4>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{t.gmail.connectionStatus}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={syncStatus.isConnected ? 'text-emerald-600' : 'text-amber-600'}>
+                        {syncStatus.isConnected ? t.gmail.connected : t.gmail.notConnected}
+                      </span>
+                      {syncStatus.isConnected ? (
+                        <button
+                          onClick={handleGmailDisconnect}
+                          className="text-xs text-red-500 hover:text-red-600"
+                        >
+                          {t.gmail.disconnect}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleGmailConnect}
+                          disabled={isConnecting}
+                          className="text-xs bg-slate-900 text-white px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-50"
+                        >
+                          {isConnecting ? t.gmail.connecting : t.gmail.connect}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{t.gmail.watchLabel}</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={labelInput}
+                        onChange={(e) => setLabelInput(e.target.value)}
+                        className="font-mono bg-slate-100 px-2 py-1 rounded text-sm w-32"
+                        placeholder="ETC"
+                      />
+                      <button
+                        onClick={handleLabelSave}
+                        disabled={labelInput === gmailLabel}
+                        className="text-xs bg-slate-900 text-white px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-50"
+                      >
+                        {t.common.save}
+                      </button>
+                    </div>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">감시 라벨</span>
-                    <span className="font-mono bg-slate-100 px-2 py-0.5 rounded">ETC-Bank</span>
+                    <span className="text-muted-foreground">{t.gmail.totalEmails}</span>
+                    <span>{syncStatus.totalEmails}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">총 이메일</span>
-                    <span>{syncStatus.totalEmails}개</span>
+                  <div className="pt-2 border-t border-slate-100 text-xs text-muted-foreground">
+                    <p>💡 {t.gmail.subLabelHint}:</p>
+                    <p className="font-mono mt-1">{gmailLabel}/키움, {gmailLabel}/삼성</p>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="flex gap-2 mt-4">
-              {[
-                { key: 'all', label: '전체' },
-                { key: 'fee', label: '수수료' },
-                { key: 'product', label: '상품' },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setEmailFilter(tab.key as 'all' | 'fee' | 'product')}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                    emailFilter === tab.key ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="flex gap-2 mt-4 flex-wrap">
+              <button
+                onClick={() => setEmailFilter('all')}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  emailFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {t.gmail.filterAll}
+              </button>
+              {availableCategories.map((category) => {
+                const color = getCategoryColor(category, availableCategories)
+                return (
+                  <button
+                    key={category}
+                    onClick={() => setEmailFilter(category)}
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                      emailFilter === category
+                        ? `${color.button} text-white`
+                        : `${color.bg} ${color.text} hover:opacity-80`
+                    }`}
+                  >
+                    {category}
+                  </button>
+                )
+              })}
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {filteredEmails.length === 0 ? (
+              {!syncStatus.isConnected ? (
+                <div className="text-center py-8">
+                  <Mail className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                  <p className="text-muted-foreground mb-4">{t.gmail.notConnectedMessage}</p>
+                  <button
+                    onClick={handleGmailConnect}
+                    disabled={isConnecting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    {isConnecting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {t.gmail.connecting}
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4" />
+                        {t.gmail.connect}
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : filteredEmails.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  {isSyncing ? '이메일을 불러오는 중...' : '이메일이 없습니다'}
+                  {isSyncing ? t.gmail.syncing : t.gmail.noEmails}
                 </div>
               ) : (
-                filteredEmails.map((email) => (
-                  <div key={email.id} className="rounded-lg bg-white p-3 cursor-pointer hover:bg-slate-50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <Mail
-                          className={`h-5 w-5 mt-0.5 ${
-                            email.direction === 'outbound' ? 'text-blue-500' : 'text-slate-400'
-                          }`}
-                        />
-                        <div>
-                          <p className="font-medium text-sm">{email.subject}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {email.direction === 'outbound' ? '발신' : '수신'} · {formatDate(email.date)}
-                          </p>
+                <>
+                  {paginatedEmails.map((email) => (
+                    <div key={email.id} className="rounded-lg bg-white p-3 cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <Mail
+                            className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
+                              email.direction === 'outbound' ? 'text-blue-500' : 'text-slate-400'
+                            }`}
+                          />
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{email.subject}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {email.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound} · {formatDate(email.date)}
+                            </p>
+                          </div>
                         </div>
+                        {email.category && (
+                          <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${getCategoryColor(email.category, availableCategories).bg} ${getCategoryColor(email.category, availableCategories).text}`}>
+                            {email.category}
+                          </span>
+                        )}
                       </div>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs ${
-                          email.type === 'fee' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                        }`}
-                      >
-                        {email.type === 'fee' ? '수수료' : '상품'}
-                      </span>
                     </div>
-                  </div>
-                ))
+                  ))}
+                  {/* 페이지네이션 */}
+                  {totalEmailPages > 1 && (
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
+                      <p className="text-xs text-muted-foreground">
+                        {filteredEmails.length}개 중 {(emailPage - 1) * emailsPerPage + 1}-{Math.min(emailPage * emailsPerPage, filteredEmails.length)}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEmailPage(1)}
+                          disabled={emailPage === 1}
+                          className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          «
+                        </button>
+                        <button
+                          onClick={() => setEmailPage(p => Math.max(1, p - 1))}
+                          disabled={emailPage === 1}
+                          className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          ‹
+                        </button>
+                        <span className="px-3 py-1 text-xs font-medium">
+                          {emailPage} / {totalEmailPages}
+                        </span>
+                        <button
+                          onClick={() => setEmailPage(p => Math.min(totalEmailPages, p + 1))}
+                          disabled={emailPage === totalEmailPages}
+                          className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          ›
+                        </button>
+                        <button
+                          onClick={() => setEmailPage(totalEmailPages)}
+                          disabled={emailPage === totalEmailPages}
+                          className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          »
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </CardContent>

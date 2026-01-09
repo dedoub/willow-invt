@@ -228,4 +228,27 @@ export const ko = {
     hoursAgo: '{hours}시간 전',
     daysAgo: '{days}일 전',
   },
+
+  // Gmail
+  gmail: {
+    title: '이메일 커뮤니케이션',
+    notConnectedMessage: 'Gmail을 연결하여 이메일을 확인하세요',
+    connect: 'Gmail 연결',
+    connecting: '연결 중...',
+    disconnect: '연결 해제',
+    disconnectConfirm: 'Gmail 연결을 해제하시겠습니까?',
+    connected: '연결됨',
+    notConnected: '연결 필요',
+    syncing: '이메일을 불러오는 중...',
+    noEmails: '이메일이 없습니다',
+    newEmail: '새 이메일',
+    settings: 'Gmail 연동 설정',
+    connectionStatus: '연결 상태',
+    watchLabel: '감시 라벨',
+    totalEmails: '총 이메일',
+    subLabelHint: '하위 라벨로 분류됩니다 (예시)',
+    filterAll: '전체',
+    inbound: '수신',
+    outbound: '발신',
+  },
 } as const
