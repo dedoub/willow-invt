@@ -1,5 +1,229 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { getGmailClient, parseEmail } from '@/lib/gmail-server'
+import { analyzeEmails as analyzeEmailsSummary, type EmailForAnalysis as GeminiEmailForAnalysis } from '@/lib/gemini-server'
+import {
+  filterUnanalyzedEmails,
+  analyzeEmail,
+  saveEmailMetadata,
+  saveEmailEmbedding,
+  type EmailForAnalysis,
+} from '@/lib/email-analysis'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SECRET_KEY!
+)
+
+// 현재 사용자 ID 가져오기
+async function getCurrentUserId(): Promise<string | null> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('auth_token')?.value
+  if (!token) return null
+
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString())
+    return payload.email || payload.sub || null
+  } catch {
+    return null
+  }
+}
+
+// 전체 요약 분석 재생성 및 저장
+async function regenerateOverallSummary(
+  userId: string,
+  label: string,
+  emails: Array<{
+    id: string
+    from: string
+    fromName?: string
+    to: string
+    subject: string
+    body: string
+    date: string
+    direction: 'inbound' | 'outbound'
+    category?: string | null
+  }>
+) {
+  try {
+    if (emails.length === 0) {
+      console.log('[Gmail] No emails to generate summary')
+      return
+    }
+
+    console.log(`[Gmail] Regenerating overall summary for ${emails.length} emails`)
+
+    // Gemini용 이메일 데이터 변환
+    const emailsForSummary: GeminiEmailForAnalysis[] = emails.slice(0, 100).map(email => ({
+      id: email.id,
+      from: email.from,
+      fromName: email.fromName,
+      to: email.to,
+      subject: email.subject,
+      body: email.body,
+      date: email.date,
+      category: email.category,
+      direction: email.direction,
+    }))
+
+    // Gemini로 전체 요약 분석
+    const summaryResult = await analyzeEmailsSummary(emailsForSummary, label)
+
+    // DB에 저장
+    const { error: analysisError } = await supabase
+      .from('email_analysis')
+      .upsert({
+        user_id: userId,
+        label,
+        analysis_data: summaryResult,
+        generated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id,label',
+      })
+
+    if (analysisError) {
+      console.error('[Gmail] Failed to save summary:', analysisError)
+      return
+    }
+
+    console.log('[Gmail] Overall summary regenerated and saved')
+  } catch (error) {
+    console.error('[Gmail] Summary regeneration error:', error)
+  }
+}
+
+// 딜레이 함수
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+// Rate limit 에러 확인
+function isRateLimitError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return error.message.includes('429') || error.message.includes('Too Many Requests') || error.message.includes('quota')
+  }
+  return false
+}
+
+// 백그라운드 분석 함수 (비동기로 실행, 응답을 기다리지 않음)
+async function triggerBackgroundAnalysis(
+  userId: string,
+  label: string,
+  emails: Array<{
+    id: string
+    threadId?: string
+    from: string
+    fromName?: string
+    to: string
+    subject: string
+    body: string
+    date: string
+    direction: 'inbound' | 'outbound'
+    labels?: string[]
+    category?: string | null
+  }>
+) {
+  try {
+    // 최근 30일 이메일만 분석 대상으로 필터링
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const recentEmails = emails.filter(e => new Date(e.date) >= thirtyDaysAgo)
+
+    if (recentEmails.length === 0) {
+      console.log('[Gmail] No recent emails (within 30 days) to analyze')
+      return
+    }
+
+    const messageIds = recentEmails.map(e => e.id)
+    const unanalyzedIds = await filterUnanalyzedEmails(userId, messageIds)
+
+    if (unanalyzedIds.length === 0) {
+      console.log('[Gmail] All recent emails already analyzed')
+      return
+    }
+
+    console.log(`[Gmail] Found ${unanalyzedIds.length} unanalyzed emails (from ${recentEmails.length} recent emails)`)
+
+    // 최근 이메일부터 정렬 후 최대 10개만 분석 (유료 플랜)
+    const emailsToAnalyze = recentEmails
+      .filter(e => unanalyzedIds.includes(e.id))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 10)
+
+    let analyzedCount = 0
+    let rateLimited = false
+
+    for (const email of emailsToAnalyze) {
+      if (rateLimited) break
+
+      try {
+        const emailForAnalysis: EmailForAnalysis = {
+          id: email.id,
+          threadId: email.threadId,
+          from: email.from,
+          fromName: email.fromName,
+          to: email.to,
+          subject: email.subject,
+          body: email.body,
+          date: email.date,
+          direction: email.direction,
+          labels: email.labels,
+        }
+
+        const analysis = await analyzeEmail(emailForAnalysis)
+
+        // 분석 결과 유효성 검사
+        if (!analysis || !analysis.messageId || !analysis.summary) {
+          console.warn(`[Gmail] Invalid analysis result for email ${email.id}, skipping`)
+          continue
+        }
+
+        await saveEmailMetadata(userId, analysis, {
+          subject: email.subject,
+          fromEmail: email.from,
+          fromName: email.fromName,
+          toEmail: email.to,
+          date: email.date,
+          direction: email.direction,
+          labels: email.labels,
+        })
+
+        await saveEmailEmbedding(userId, analysis, {
+          subject: email.subject,
+          fromName: email.fromName,
+          fromEmail: email.from,
+        })
+
+        console.log(`[Gmail] Analyzed email: ${email.id}`)
+        analyzedCount++
+
+        // Rate limit 방지를 위한 딜레이 (유료 플랜: 1초)
+        if (analyzedCount < emailsToAnalyze.length) {
+          await delay(1000)
+        }
+      } catch (error) {
+        if (isRateLimitError(error)) {
+          console.warn('[Gmail] Rate limit hit, stopping analysis')
+          rateLimited = true
+        } else {
+          console.error(`[Gmail] Failed to analyze email ${email.id}:`, error)
+        }
+      }
+    }
+
+    console.log(`[Gmail] Background analysis completed (${analyzedCount} emails)`)
+
+    // 새로운 이메일이 분석되었으면 전체 요약도 갱신 (rate limit 안 걸렸을 때만)
+    if (analyzedCount > 0 && !rateLimited) {
+      // 요약 생성도 rate limit 될 수 있으므로 딜레이 추가 (유료 플랜: 2초)
+      await delay(2000)
+      await regenerateOverallSummary(userId, label, emails)
+    }
+  } catch (error) {
+    console.error('[Gmail] Background analysis error:', error)
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -151,6 +375,8 @@ export async function GET(request: NextRequest) {
 
         return {
           ...parsed,
+          threadId: msgRes.data.threadId || undefined,
+          labels: msgLabels,
           category,
           direction,
         }
@@ -172,6 +398,32 @@ export async function GET(request: NextRequest) {
       .filter((c): c is string => c !== null)
 
     console.log('[Gmail] Available categories:', availableCategories)
+
+    // 자동 분석 트리거 (백그라운드에서 실행)
+    const autoAnalyze = searchParams.get('autoAnalyze') !== 'false'
+    const userId = await getCurrentUserId()
+
+    if (autoAnalyze && userId && emails.length > 0) {
+      // 분석용 데이터 준비
+      const emailsForAnalysis = emails.map(email => ({
+        id: email.id,
+        threadId: email.threadId,
+        from: email.from || '',
+        fromName: email.fromName || undefined,
+        to: email.to || '',
+        subject: email.subject || '',
+        body: email.body || '',
+        date: email.date || new Date().toISOString(),
+        direction: email.direction as 'inbound' | 'outbound',
+        labels: email.labels,
+        category: email.category,
+      }))
+
+      // 백그라운드 분석 트리거 (응답을 기다리지 않음)
+      triggerBackgroundAnalysis(userId, label, emailsForAnalysis).catch(err => {
+        console.error('[Gmail] Background analysis trigger failed:', err)
+      })
+    }
 
     return NextResponse.json({
       emails,

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useI18n } from '@/lib/i18n'
 import { gmailService, ParsedEmail, EmailSyncStatus, OverallAnalysisResult, SavedTodo, SavedAnalysis } from '@/lib/gmail'
+import type { Invoice, LineItem, InvoiceStatus, InvoiceItemType } from '@/lib/invoice'
+import { ITEM_TEMPLATES, MONTH_NAMES, DEFAULT_CLIENT, formatInvoiceDate as formatInvoiceDateUtil, formatAmount } from '@/lib/invoice'
 import {
   fetchETFDisplayData,
   createETFProduct,
@@ -33,6 +35,8 @@ import {
   Mail,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   RefreshCw,
   CheckCircle,
   AlertCircle,
@@ -53,14 +57,29 @@ import {
   Pin,
   StickyNote,
   Paperclip,
+  Receipt,
+  Check,
+  Clock,
+  Ban,
 } from 'lucide-react'
 import { useRef } from 'react'
 
-const dummyInvoices = [
-  { id: 1, month: '2024-12', amount: 3078834, status: 'sent', sentAt: '2025-01-05' },
-  { id: 2, month: '2024-11', amount: 2945000, status: 'paid', sentAt: '2024-12-05' },
-  { id: 3, month: '2024-10', amount: 3120500, status: 'paid', sentAt: '2024-11-05' },
-]
+// Invoice status colors
+const INVOICE_STATUS_COLORS: Record<InvoiceStatus, { bg: string; text: string; icon: typeof Check }> = {
+  draft: { bg: 'bg-slate-100', text: 'text-slate-600', icon: FileText },
+  sent: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Send },
+  paid: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: Check },
+  overdue: { bg: 'bg-red-100', text: 'text-red-700', icon: AlertCircle },
+  cancelled: { bg: 'bg-slate-200', text: 'text-slate-500', icon: Ban },
+}
+
+const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  draft: '작성중',
+  sent: '발송됨',
+  paid: '입금완료',
+  overdue: '연체',
+  cancelled: '취소',
+}
 
 function formatCurrency(value: number, currency: string = 'USD') {
   if (currency === 'USD') {
@@ -888,7 +907,7 @@ function EmailDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-3xl rounded-xl bg-white max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="w-full max-w-3xl rounded-xl bg-white h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-start justify-between p-4 border-b border-slate-200 flex-shrink-0">
           <div className="flex-1 min-w-0 pr-4">
@@ -1313,9 +1332,28 @@ export default function ETCPage() {
   const [emailFilter, setEmailFilter] = useState<string>('all')  // 'all' 또는 카테고리명
   const [emailSearch, setEmailSearch] = useState('')  // 이메일 검색어
   const [availableCategories, setAvailableCategories] = useState<string[]>([])  // 사용 가능한 카테고리 목록
+  const [relatedEmailIds, setRelatedEmailIds] = useState<string[]>([])  // 관련 이메일 ID 필터
   const [emailPage, setEmailPage] = useState(1)  // 이메일 페이지네이션
-  const [emailsPerPage, setEmailsPerPage] = useState(30)  // 페이지당 이메일 수
-  const [expandedInvoice, setExpandedInvoice] = useState<number | null>(null)
+  const [emailsPerPage, setEmailsPerPage] = useState(5)  // 페이지당 이메일 수
+
+  // 인보이스 상태
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(true)
+  const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null)
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
+  const [isSavingInvoice, setIsSavingInvoice] = useState(false)
+  const [isSendingInvoice, setIsSendingInvoice] = useState<string | null>(null)
+
+  // 인보이스 생성 폼 상태
+  const [invoiceFormDate, setInvoiceFormDate] = useState('')
+  const [invoiceFormAttention, setInvoiceFormAttention] = useState<string>(DEFAULT_CLIENT.attention)
+  const [invoiceFormItemType, setInvoiceFormItemType] = useState<InvoiceItemType>('monthly_fee')
+  const [invoiceFormMonth, setInvoiceFormMonth] = useState(new Date().getMonth())
+  const [invoiceFormYear, setInvoiceFormYear] = useState(new Date().getFullYear())
+  const [invoiceFormCustomDesc, setInvoiceFormCustomDesc] = useState('')
+  const [invoiceFormAmount, setInvoiceFormAmount] = useState('')
+  const [invoiceFormNotes, setInvoiceFormNotes] = useState('')
 
   // Modal 상태
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -1352,6 +1390,8 @@ export default function ETCPage() {
   const [showAiAnalysis, setShowAiAnalysis] = useState(false)
   const [savedTodos, setSavedTodos] = useState<SavedTodo[]>([])
   const [savedAnalysis, setSavedAnalysis] = useState<SavedAnalysis | null>(null)
+  const [categorySlideIndex, setCategorySlideIndex] = useState(0)
+  const [dragStartX, setDragStartX] = useState<number | null>(null)
 
   // AI 컨텍스트 설정 상태
   const [aiContextText, setAiContextText] = useState('')
@@ -1438,6 +1478,186 @@ export default function ETCPage() {
       console.error('Failed to delete ETF:', error)
     }
   }
+
+  // 인보이스 함수들
+  const loadInvoices = async () => {
+    setIsLoadingInvoices(true)
+    try {
+      const res = await fetch('/api/invoices')
+      if (res.ok) {
+        const data = await res.json()
+        setInvoices(data.invoices || [])
+      }
+    } catch (error) {
+      console.error('Failed to load invoices:', error)
+    } finally {
+      setIsLoadingInvoices(false)
+    }
+  }
+
+  const resetInvoiceForm = () => {
+    setInvoiceFormDate(new Date().toISOString().split('T')[0])
+    setInvoiceFormAttention(DEFAULT_CLIENT.attention)
+    setInvoiceFormItemType('monthly_fee')
+    setInvoiceFormMonth(new Date().getMonth())
+    setInvoiceFormYear(new Date().getFullYear())
+    setInvoiceFormCustomDesc('')
+    setInvoiceFormAmount('')
+    setInvoiceFormNotes('')
+    setEditingInvoice(null)
+  }
+
+  const openNewInvoiceModal = () => {
+    resetInvoiceForm()
+    setIsInvoiceModalOpen(true)
+  }
+
+  const getInvoiceItemDescription = (): string => {
+    if (invoiceFormItemType === 'custom') {
+      return invoiceFormCustomDesc
+    }
+    const template = ITEM_TEMPLATES.find(t => t.type === invoiceFormItemType)
+    if (!template) return ''
+    return template.descriptionTemplate
+      .replace('{month}', MONTH_NAMES[invoiceFormMonth])
+      .replace('{year}', String(invoiceFormYear))
+  }
+
+  const handleSaveInvoice = async () => {
+    const amount = parseFloat(invoiceFormAmount)
+    if (!invoiceFormDate || isNaN(amount) || amount <= 0) {
+      alert('날짜와 금액을 입력해주세요.')
+      return
+    }
+
+    const description = getInvoiceItemDescription()
+    if (!description) {
+      alert('항목 설명을 입력해주세요.')
+      return
+    }
+
+    setIsSavingInvoice(true)
+    try {
+      const lineItems: LineItem[] = [{
+        description,
+        qty: null,
+        unitPrice: null,
+        amount,
+      }]
+
+      const payload = {
+        invoice_date: invoiceFormDate,
+        attention: invoiceFormAttention,
+        line_items: lineItems,
+        notes: invoiceFormNotes || undefined,
+      }
+
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        setIsInvoiceModalOpen(false)
+        resetInvoiceForm()
+        await loadInvoices()
+      } else {
+        const err = await res.json()
+        alert(`저장 실패: ${err.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Failed to save invoice:', error)
+      alert('인보이스 저장에 실패했습니다.')
+    } finally {
+      setIsSavingInvoice(false)
+    }
+  }
+
+  const handleDownloadPdf = async (invoiceId: string) => {
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/pdf`)
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = res.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'invoice.pdf'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      } else {
+        alert('PDF 다운로드에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Failed to download PDF:', error)
+      alert('PDF 다운로드에 실패했습니다.')
+    }
+  }
+
+  const handleSendInvoice = async (invoiceId: string) => {
+    if (!confirm('인보이스를 이메일로 발송하시겠습니까?')) return
+
+    setIsSendingInvoice(invoiceId)
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: DEFAULT_CLIENT.email }),
+      })
+
+      if (res.ok) {
+        alert('인보이스가 발송되었습니다.')
+        await loadInvoices()
+      } else {
+        const err = await res.json()
+        alert(`발송 실패: ${err.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Failed to send invoice:', error)
+      alert('인보이스 발송에 실패했습니다.')
+    } finally {
+      setIsSendingInvoice(null)
+    }
+  }
+
+  const handleUpdateInvoiceStatus = async (invoiceId: string, status: InvoiceStatus) => {
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+
+      if (res.ok) {
+        await loadInvoices()
+      }
+    } catch (error) {
+      console.error('Failed to update invoice status:', error)
+    }
+  }
+
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    if (!confirm('이 인보이스를 삭제하시겠습니까?')) return
+
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'DELETE',
+      })
+
+      if (res.ok) {
+        await loadInvoices()
+      }
+    } catch (error) {
+      console.error('Failed to delete invoice:', error)
+    }
+  }
+
+  // 인보이스 로드
+  useEffect(() => {
+    loadInvoices()
+  }, [])
 
   // 업무 위키 함수들
   const loadWikiNotes = async () => {
@@ -1558,7 +1778,7 @@ export default function ETCPage() {
     }
   }, [gmailLabel])
 
-  // 저장된 분석 로드 (24시간 이상 지났으면 자동 재분석)
+  // 저장된 분석 로드
   const loadSavedAnalysis = async () => {
     try {
       const result = await gmailService.getSavedAnalysis(gmailLabel)
@@ -1566,37 +1786,10 @@ export default function ETCPage() {
         if (result.analysis) {
           setSavedAnalysis(result.analysis)
           setAiAnalysis(result.analysis.analysis_data)
+          setCategorySlideIndex(0)
           setShowAiAnalysis(true)
-
-          // 분석이 24시간 이상 지났으면 자동으로 새로 분석
-          const generatedAt = new Date(result.analysis.generated_at)
-          const now = new Date()
-          const hoursSinceAnalysis = (now.getTime() - generatedAt.getTime()) / (1000 * 60 * 60)
-
-          if (hoursSinceAnalysis >= 24) {
-            console.log(`[AI] Analysis is ${Math.round(hoursSinceAnalysis)} hours old, auto-refreshing...`)
-            // 약간의 딜레이 후 자동 분석 실행 (페이지 로드 완료 후)
-            setTimeout(async () => {
-              if (!syncStatus.isConnected) return
-              setIsAnalyzing(true)
-              try {
-                const analysisResult = await gmailService.analyzeEmails(gmailLabel, 30)
-                if (analysisResult) {
-                  setAiAnalysis(analysisResult)
-                  setShowAiAnalysis(true)
-                  const savedResult = await gmailService.saveAnalysis(gmailLabel, analysisResult)
-                  if (savedResult) {
-                    setSavedAnalysis(savedResult.analysis)
-                    setSavedTodos(savedResult.todos)
-                  }
-                }
-              } catch (error) {
-                console.error('Auto-analysis failed:', error)
-              } finally {
-                setIsAnalyzing(false)
-              }
-            }, 2000)
-          }
+          // 저장되지 않은 todos 동기화
+          await syncUnsavedTodos(result.analysis.analysis_data, result.todos)
         }
         setSavedTodos(result.todos)
       }
@@ -1697,12 +1890,15 @@ export default function ETCPage() {
       const result = await gmailService.analyzeEmails(gmailLabel, 30)
       if (result) {
         setAiAnalysis(result)
+        setCategorySlideIndex(0)
         setShowAiAnalysis(true)
         // 분석 결과 저장
         const savedResult = await gmailService.saveAnalysis(gmailLabel, result)
         if (savedResult) {
           setSavedAnalysis(savedResult.analysis)
           setSavedTodos(savedResult.todos)
+          // 저장되지 않은 todos 추가 동기화
+          await syncUnsavedTodos(result, savedResult.todos)
         }
       }
     } catch (error) {
@@ -1727,6 +1923,66 @@ export default function ETCPage() {
     }
   }
 
+  // AI 분석에서 생성된 todos를 DB에 동기화 (completed: false로 저장)
+  const syncUnsavedTodos = async (analysisData: OverallAnalysisResult, currentSavedTodos: SavedTodo[]) => {
+    const unsavedTodos: Array<{
+      category: string
+      task: string
+      priority: 'high' | 'medium' | 'low'
+      dueDate?: string
+      relatedEmailIds?: string[]
+    }> = []
+
+    // 저장되지 않은 todos 찾기
+    for (const cat of analysisData.categories || []) {
+      for (const todo of cat.todos || []) {
+        const existsInSaved = currentSavedTodos.some(
+          st => st.category === cat.category && st.task === todo.task
+        )
+        if (!existsInSaved) {
+          unsavedTodos.push({
+            category: cat.category,
+            task: todo.task,
+            priority: todo.priority,
+            dueDate: todo.dueDate,
+            relatedEmailIds: todo.relatedEmailIds,
+          })
+        }
+      }
+    }
+
+    // 저장되지 않은 todos를 DB에 저장
+    if (unsavedTodos.length > 0) {
+      const newSavedTodos: SavedTodo[] = []
+      for (const todo of unsavedTodos) {
+        try {
+          const res = await fetch('/api/gmail/todos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              label: gmailLabel,
+              category: todo.category,
+              task: todo.task,
+              priority: todo.priority,
+              due_date: todo.dueDate,
+              related_email_ids: todo.relatedEmailIds,
+              completed: false,
+            }),
+          })
+          if (res.ok) {
+            const created = await res.json()
+            newSavedTodos.push(created)
+          }
+        } catch (error) {
+          console.error('Failed to sync todo:', error)
+        }
+      }
+      if (newSavedTodos.length > 0) {
+        setSavedTodos(prev => [...prev, ...newSavedTodos])
+      }
+    }
+  }
+
   // 우선순위 색상
   const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
     switch (priority) {
@@ -1740,8 +1996,15 @@ export default function ETCPage() {
     return t.gmail.priority[priority]
   }
 
+  // 관련 이메일 필터 적용 (최우선)
+  const relatedFilteredEmails = relatedEmailIds.length > 0
+    ? emails.filter((email) => relatedEmailIds.includes(email.id))
+    : emails
+
   // 카테고리 필터 적용
-  const categoryFilteredEmails = emailFilter === 'all' ? emails : emails.filter((email) => email.category === emailFilter)
+  const categoryFilteredEmails = emailFilter === 'all'
+    ? relatedFilteredEmails
+    : relatedFilteredEmails.filter((email) => email.category === emailFilter)
 
   // 검색 필터 적용
   const filteredEmails = emailSearch.trim()
@@ -1757,6 +2020,20 @@ export default function ETCPage() {
       })
     : categoryFilteredEmails
 
+  // 관련 이메일 필터 클리어 함수
+  const clearRelatedFilter = () => {
+    setRelatedEmailIds([])
+    setEmailPage(1)
+  }
+
+  // 관련 이메일 필터 설정 함수
+  const showRelatedEmails = (emailIds: string[]) => {
+    setRelatedEmailIds(emailIds)
+    setEmailFilter('all')
+    setEmailSearch('')
+    setEmailPage(1)
+  }
+
   // 페이지네이션 계산
   const totalEmailPages = Math.ceil(filteredEmails.length / emailsPerPage)
   const paginatedEmails = filteredEmails.slice((emailPage - 1) * emailsPerPage, emailPage * emailsPerPage)
@@ -1764,7 +2041,7 @@ export default function ETCPage() {
   // 필터/검색 변경 시 페이지 초기화
   useEffect(() => {
     setEmailPage(1)
-  }, [emailFilter, emailSearch])
+  }, [emailFilter, emailSearch, relatedEmailIds])
 
   return (
     <div className="space-y-6">
@@ -2015,66 +2292,296 @@ export default function ETCPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+                <Receipt className="h-5 w-5" />
                 인보이스
               </CardTitle>
               <CardDescription>월별 수수료 인보이스 관리</CardDescription>
             </div>
-            <button className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
+            <button
+              onClick={openNewInvoiceModal}
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">생성</span>
             </button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
-              {dummyInvoices.map((invoice) => (
-                <div key={invoice.id} className="rounded-lg bg-white p-3">
-                  <div
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => setExpandedInvoice(expandedInvoice === invoice.id ? null : invoice.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-slate-400" />
-                      <div>
-                        <p className="font-medium text-sm">{invoice.month}</p>
-                        <p className="text-xs text-muted-foreground">{formatCurrency(invoice.amount, 'KRW')}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs ${
-                          invoice.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                        }`}
+            <div className="space-y-2 max-h-[350px] overflow-y-auto">
+              {isLoadingInvoices ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                </div>
+              ) : invoices.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                  <p className="text-sm">인보이스가 없습니다</p>
+                  <p className="text-xs">새 인보이스를 생성해보세요</p>
+                </div>
+              ) : (
+                invoices.map((invoice) => {
+                  const statusStyle = INVOICE_STATUS_COLORS[invoice.status]
+                  const StatusIcon = statusStyle.icon
+                  const firstItem = (invoice.line_items as LineItem[])[0]
+                  return (
+                    <div key={invoice.id} className="rounded-lg bg-white p-3">
+                      <div
+                        className="flex items-center justify-between cursor-pointer"
+                        onClick={() => setExpandedInvoice(expandedInvoice === invoice.id ? null : invoice.id)}
                       >
-                        {invoice.status === 'paid' ? '완료' : '대기'}
-                      </span>
-                      {expandedInvoice === invoice.id ? (
-                        <ChevronUp className="h-4 w-4 text-slate-400" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                        <div className="flex items-center gap-3">
+                          <Receipt className="h-4 w-4 text-slate-400" />
+                          <div>
+                            <p className="font-medium text-sm">{invoice.invoice_no}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatInvoiceDateUtil(invoice.invoice_date)} · {formatCurrency(invoice.total_amount, 'USD')}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-full px-2 py-0.5 text-xs flex items-center gap-1 ${statusStyle.bg} ${statusStyle.text}`}>
+                            <StatusIcon className="h-3 w-3" />
+                            {INVOICE_STATUS_LABELS[invoice.status]}
+                          </span>
+                          {expandedInvoice === invoice.id ? (
+                            <ChevronUp className="h-4 w-4 text-slate-400" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-slate-400" />
+                          )}
+                        </div>
+                      </div>
+                      {expandedInvoice === invoice.id && (
+                        <div className="mt-2 pt-2 border-t border-slate-100 space-y-2">
+                          {/* 항목 상세 */}
+                          <div className="text-xs text-muted-foreground">
+                            {firstItem?.description}
+                          </div>
+
+                          {/* 액션 버튼 */}
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDownloadPdf(invoice.id) }}
+                              className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-medium hover:bg-slate-200"
+                            >
+                              <Download className="h-3 w-3" />
+                              PDF
+                            </button>
+                            {invoice.status === 'draft' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id) }}
+                                disabled={isSendingInvoice === invoice.id}
+                                className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                {isSendingInvoice === invoice.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Send className="h-3 w-3" />
+                                )}
+                                발송
+                              </button>
+                            )}
+                            {invoice.status === 'sent' && (
+                              <>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id) }}
+                                  disabled={isSendingInvoice === invoice.id}
+                                  className="flex items-center gap-1 rounded bg-slate-200 px-2 py-1 text-xs font-medium hover:bg-slate-300 disabled:opacity-50"
+                                >
+                                  {isSendingInvoice === invoice.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Send className="h-3 w-3" />
+                                  )}
+                                  재발송
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleUpdateInvoiceStatus(invoice.id, 'paid') }}
+                                  className="flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+                                >
+                                  <Check className="h-3 w-3" />
+                                  입금확인
+                                </button>
+                              </>
+                            )}
+                            {invoice.status === 'draft' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(invoice.id) }}
+                                className="flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-200"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                삭제
+                              </button>
+                            )}
+                          </div>
+
+                          {/* 발송 정보 */}
+                          {invoice.sent_at && (
+                            <p className="text-xs text-muted-foreground">
+                              발송: {new Date(invoice.sent_at).toLocaleDateString('ko-KR')} → {invoice.sent_to_email}
+                            </p>
+                          )}
+                          {invoice.paid_at && (
+                            <p className="text-xs text-emerald-600">
+                              입금: {new Date(invoice.paid_at).toLocaleDateString('ko-KR')}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
-                  </div>
-                  {expandedInvoice === invoice.id && (
-                    <div className="mt-2 pt-2 border-t border-slate-100">
-                      <div className="flex gap-2">
-                        <button className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-medium hover:bg-slate-200">
-                          <Download className="h-3 w-3" />
-                          PDF
-                        </button>
-                        <button className="flex items-center gap-1 rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800">
-                          <Send className="h-3 w-3" />
-                          재발송
-                        </button>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">발송: {invoice.sentAt}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                  )
+                })
+              )}
             </div>
           </CardContent>
         </Card>
+
+        {/* Invoice Creation Modal */}
+        {isInvoiceModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setIsInvoiceModalOpen(false)} />
+            <div className="relative bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
+              <button
+                onClick={() => setIsInvoiceModalOpen(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <h2 className="text-lg font-bold mb-4">새 인보이스</h2>
+
+              <div className="space-y-4">
+                {/* Invoice Date */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Invoice Date</label>
+                  <input
+                    type="date"
+                    value={invoiceFormDate}
+                    onChange={(e) => setInvoiceFormDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+
+                {/* Attention */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Attention</label>
+                  <input
+                    type="text"
+                    value={invoiceFormAttention}
+                    onChange={(e) => setInvoiceFormAttention(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+
+                {/* Item Type */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">항목 유형</label>
+                  <select
+                    value={invoiceFormItemType}
+                    onChange={(e) => setInvoiceFormItemType(e.target.value as InvoiceItemType)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  >
+                    {ITEM_TEMPLATES.map((template) => (
+                      <option key={template.type} value={template.type}>
+                        {template.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Month/Year for preset types */}
+                {invoiceFormItemType !== 'custom' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">월</label>
+                      <select
+                        value={invoiceFormMonth}
+                        onChange={(e) => setInvoiceFormMonth(parseInt(e.target.value))}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      >
+                        {MONTH_NAMES.map((name, idx) => (
+                          <option key={idx} value={idx}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">연도</label>
+                      <select
+                        value={invoiceFormYear}
+                        onChange={(e) => setInvoiceFormYear(parseInt(e.target.value))}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      >
+                        {[2024, 2025, 2026, 2027].map((year) => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Description */}
+                {invoiceFormItemType === 'custom' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">항목 설명</label>
+                    <input
+                      type="text"
+                      value={invoiceFormCustomDesc}
+                      onChange={(e) => setInvoiceFormCustomDesc(e.target.value)}
+                      placeholder="예: Consulting Fee - Q1 2026"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    />
+                  </div>
+                )}
+
+                {/* Preview Description */}
+                {invoiceFormItemType !== 'custom' && (
+                  <div className="p-2 bg-slate-50 rounded text-sm text-slate-600">
+                    {getInvoiceItemDescription()}
+                  </div>
+                )}
+
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">금액 (USD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={invoiceFormAmount}
+                    onChange={(e) => setInvoiceFormAmount(e.target.value)}
+                    placeholder="2083.33"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">메모 (선택)</label>
+                  <textarea
+                    value={invoiceFormNotes}
+                    onChange={(e) => setInvoiceFormNotes(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-6">
+                <button
+                  onClick={() => setIsInvoiceModalOpen(false)}
+                  className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSaveInvoice}
+                  disabled={isSavingInvoice}
+                  className="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSavingInvoice && <Loader2 className="h-4 w-4 animate-spin" />}
+                  저장
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Work Wiki Section */}
         <Card className="bg-slate-100 w-full lg:w-1/2">
@@ -2461,6 +2968,20 @@ export default function ETCPage() {
                     {filteredEmails.length}개 검색됨
                   </p>
                 )}
+                {relatedEmailIds.length > 0 && (
+                  <div className="flex items-center justify-between mt-2 px-2 py-1.5 bg-blue-50 rounded-lg border border-blue-100">
+                    <p className="text-xs text-blue-700">
+                      {t.gmail.showingRelatedEmails.replace('{count}', String(relatedEmailIds.length))}
+                    </p>
+                    <button
+                      onClick={clearRelatedFilter}
+                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    >
+                      <X className="h-3 w-3" />
+                      {t.gmail.clearRelatedFilter}
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -2630,29 +3151,91 @@ export default function ETCPage() {
 
                 {/* Overall Summary */}
                 <div className="bg-white rounded-lg p-3 mb-4">
-                  <h5 className="text-sm font-medium text-slate-700 mb-2">{t.gmail.overallSummary}</h5>
-                  <p className="text-sm text-slate-600">{aiAnalysis.overallSummary}</p>
+                  <h5 className="text-xs font-medium text-slate-700 mb-2">{t.gmail.overallSummary}</h5>
+                  <p className="text-xs text-slate-600">{aiAnalysis.overallSummary}</p>
                 </div>
 
-                {/* Categories */}
-                <div className="space-y-4">
-                  {aiAnalysis.categories.map((cat) => {
-                    const color = getCategoryColor(cat.category, availableCategories)
-                    return (
-                      <div key={cat.category} className="bg-white rounded-lg p-3">
+                {/* Categories Carousel */}
+                {aiAnalysis.categories.length > 0 && (() => {
+                  const currentIndex = Math.min(categorySlideIndex, aiAnalysis.categories.length - 1)
+                  const cat = aiAnalysis.categories[currentIndex]
+                  const color = getCategoryColor(cat.category, availableCategories)
+
+                  return (
+                    <div>
+                      {/* Navigation Header */}
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          onClick={() => setCategorySlideIndex(Math.max(0, currentIndex - 1))}
+                          disabled={currentIndex === 0}
+                          className="p-1 rounded hover:bg-white/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ChevronLeft className="h-4 w-4 text-purple-600" />
+                        </button>
+
+                        {/* Dot Indicators */}
+                        <div className="flex items-center gap-1">
+                          {aiAnalysis.categories.map((c, idx) => (
+                            <button
+                              key={c.category}
+                              onClick={() => setCategorySlideIndex(idx)}
+                              className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                                idx === currentIndex ? 'bg-purple-600' : 'bg-purple-300 hover:bg-purple-400'
+                              }`}
+                            />
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => setCategorySlideIndex(Math.min(aiAnalysis.categories.length - 1, currentIndex + 1))}
+                          disabled={currentIndex === aiAnalysis.categories.length - 1}
+                          className="p-1 rounded hover:bg-white/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ChevronRight className="h-4 w-4 text-purple-600" />
+                        </button>
+                      </div>
+
+                      {/* Category Card */}
+                      <div
+                        className="bg-white rounded-lg p-3 cursor-grab active:cursor-grabbing select-none"
+                        onTouchStart={(e) => setDragStartX(e.touches[0].clientX)}
+                        onTouchEnd={(e) => {
+                          if (dragStartX === null) return
+                          const diff = e.changedTouches[0].clientX - dragStartX
+                          if (diff > 50) {
+                            setCategorySlideIndex(Math.max(0, currentIndex - 1))
+                          } else if (diff < -50) {
+                            setCategorySlideIndex(Math.min(aiAnalysis.categories.length - 1, currentIndex + 1))
+                          }
+                          setDragStartX(null)
+                        }}
+                        onMouseDown={(e) => setDragStartX(e.clientX)}
+                        onMouseUp={(e) => {
+                          if (dragStartX === null) return
+                          const diff = e.clientX - dragStartX
+                          if (diff > 50) {
+                            setCategorySlideIndex(Math.max(0, currentIndex - 1))
+                          } else if (diff < -50) {
+                            setCategorySlideIndex(Math.min(aiAnalysis.categories.length - 1, currentIndex + 1))
+                          }
+                          setDragStartX(null)
+                        }}
+                        onMouseLeave={() => setDragStartX(null)}
+                      >
                         <div className="flex items-center gap-2 mb-2">
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${color.bg} ${color.text}`}>
                             {cat.category}
                           </span>
                           <span className="text-xs text-slate-500">{cat.emailCount} emails</span>
+                          <span className="text-[10px] text-slate-400 ml-auto">{currentIndex + 1}/{aiAnalysis.categories.length}</span>
                         </div>
-                        <p className="text-sm text-slate-600 mb-3">{cat.summary}</p>
+                        <p className="text-xs text-slate-600 mb-3">{cat.summary}</p>
 
                         {/* Recent Topics */}
                         {cat.recentTopics && cat.recentTopics.length > 0 && (
-                          <div className="mb-3 flex flex-wrap gap-1.5">
+                          <div className="mb-2 flex flex-wrap gap-1">
                             {cat.recentTopics.map((topic, idx) => (
-                              <span key={idx} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">
+                              <span key={idx} className="px-1.5 py-px bg-slate-100 text-slate-600 rounded text-[10px]">
                                 {topic}
                               </span>
                             ))}
@@ -2673,13 +3256,17 @@ export default function ETCPage() {
                                     <span className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap flex-shrink-0 ${getPriorityColor(issue.priority)}`}>
                                       {getPriorityLabel(issue.priority)}
                                     </span>
-                                    <span className="text-sm font-medium text-slate-700">{issue.title}</span>
+                                    <span className="text-xs font-medium text-slate-700">{issue.title}</span>
                                   </div>
                                   <p className="text-xs text-slate-500">{issue.description}</p>
                                   {issue.relatedEmailIds.length > 0 && (
-                                    <p className="text-xs text-slate-400 mt-1">
+                                    <button
+                                      onClick={() => showRelatedEmails(issue.relatedEmailIds)}
+                                      className="text-xs text-blue-500 hover:text-blue-700 hover:underline mt-1 flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Mail className="h-3 w-3" />
                                       {t.gmail.relatedEmails.replace('{count}', String(issue.relatedEmailIds.length))}
-                                    </p>
+                                    </button>
                                   )}
                                 </div>
                               ))}
@@ -2690,7 +3277,6 @@ export default function ETCPage() {
                         {/* Todos - DB에서 가져온 savedTodos 사용 */}
                         {(() => {
                           const categoryTodos = savedTodos.filter(t => t.category === cat.category)
-                          // 완료되지 않은 항목 + 최근 완료된 항목 (최근 5개)
                           const incompleteTodos = categoryTodos.filter(t => !t.completed)
                           const completedTodos = categoryTodos
                             .filter(t => t.completed)
@@ -2721,7 +3307,7 @@ export default function ETCPage() {
                                         <span className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap flex-shrink-0 ${getPriorityColor(todo.priority)}`}>
                                           {getPriorityLabel(todo.priority)}
                                         </span>
-                                        <span className={`text-sm text-slate-700 ${todo.completed ? 'line-through text-slate-400' : ''}`}>
+                                        <span className={`text-xs text-slate-700 ${todo.completed ? 'line-through text-slate-400' : ''}`}>
                                           {todo.task}
                                         </span>
                                       </div>
@@ -2734,22 +3320,26 @@ export default function ETCPage() {
                               </div>
                             </div>
                           ) : cat.todos.length > 0 ? (
-                            // savedTodos가 없을 때 aiAnalysis.todos 표시 (fallback)
                             <div>
                               <h6 className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1">
                                 <ListTodo className="h-3 w-3" />
                                 {t.gmail.todoList}
+                                <span className="text-slate-400 font-normal">(동기화 중...)</span>
                               </h6>
                               <div className="space-y-2">
                                 {cat.todos.map((todo, idx) => (
-                                  <div key={idx} className="bg-slate-50 rounded p-2 flex items-start gap-2">
-                                    <input type="checkbox" className="mt-1 rounded flex-shrink-0" disabled />
+                                  <div key={idx} className="bg-slate-50 rounded p-2 flex items-start gap-2 opacity-50">
+                                    <input
+                                      type="checkbox"
+                                      className="mt-1 rounded flex-shrink-0"
+                                      disabled
+                                    />
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-start gap-2">
                                         <span className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap flex-shrink-0 ${getPriorityColor(todo.priority)}`}>
                                           {getPriorityLabel(todo.priority)}
                                         </span>
-                                        <span className="text-sm text-slate-700">{todo.task}</span>
+                                        <span className="text-xs text-slate-700">{todo.task}</span>
                                       </div>
                                       {todo.dueDate && (
                                         <p className="text-xs text-slate-400 mt-1">Due: {todo.dueDate}</p>
@@ -2766,9 +3356,9 @@ export default function ETCPage() {
                           <p className="text-xs text-slate-400 italic">{t.gmail.noIssues}</p>
                         )}
                       </div>
-                    )
-                  })}
-                </div>
+                    </div>
+                  )
+                })()}
 
                 <p className="text-xs text-purple-400 mt-3 text-right">
                   Generated: {new Date(aiAnalysis.generatedAt).toLocaleString()}

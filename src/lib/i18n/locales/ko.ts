@@ -290,6 +290,8 @@ export const ko = {
       low: '낮음',
     },
     relatedEmails: '관련 이메일 {count}건',
+    showingRelatedEmails: '관련 이메일 {count}건 표시 중',
+    clearRelatedFilter: '필터 해제',
     analysisScope: '최근 {days}일',
     // AI 컨텍스트 설정
     aiContextSettings: 'AI 분석 컨텍스트',

@@ -290,6 +290,8 @@ export const en = {
       low: 'Low',
     },
     relatedEmails: '{count} related emails',
+    showingRelatedEmails: 'Showing {count} related emails',
+    clearRelatedFilter: 'Clear filter',
     analysisScope: 'Last {days} days',
     // AI Context Settings
     aiContextSettings: 'AI Analysis Context',

@@ -16,12 +16,12 @@ function getGeminiClient() {
 export interface EmailForAnalysis {
   id: string
   from: string
-  fromName: string
+  fromName?: string
   to: string
   subject: string
   body: string
   date: string
-  category: string | null
+  category?: string | null
   direction: 'inbound' | 'outbound'
 }
 
@@ -57,7 +57,13 @@ export async function analyzeEmails(
   customContext?: string
 ): Promise<OverallAnalysisResult> {
   const genAI = getGeminiClient()
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    generationConfig: {
+      maxOutputTokens: 8192,  // 요약 분석은 더 긴 출력 필요
+      temperature: 0.1,       // 일관된 JSON 출력
+    }
+  })
 
   // 카테고리별로 이메일 그룹화
   const emailsByCategory = new Map<string, EmailForAnalysis[]>()
@@ -162,7 +168,16 @@ ${emailsContext}
         jsonStr = jsonStr.split('```')[1].split('```')[0]
       }
 
-      const parsed = JSON.parse(jsonStr.trim())
+      // 잘린 JSON 복구 시도
+      jsonStr = jsonStr.trim()
+      let parsed
+      try {
+        parsed = JSON.parse(jsonStr)
+      } catch {
+        console.warn(`[Gemini] Attempting to repair truncated JSON for ${category}`)
+        const repaired = repairTruncatedJson(jsonStr)
+        parsed = JSON.parse(repaired)
+      }
       console.log(`[Gemini] Parsed successfully for ${category}`)
 
       categoryResults.push({
@@ -219,4 +234,57 @@ ${categoryResults.map(r => `
     categories: categoryResults,
     overallSummary,
   }
+}
+
+/**
+ * 잘린 JSON 문자열 복구 시도
+ */
+function repairTruncatedJson(json: string): string {
+  let repaired = json.trim()
+
+  // 열린 문자열 닫기
+  const openQuotes = (repaired.match(/"/g) || []).length
+  if (openQuotes % 2 !== 0) {
+    const lastQuoteIdx = repaired.lastIndexOf('"')
+    const afterQuote = repaired.substring(lastQuoteIdx + 1)
+    if (!afterQuote.includes(':') && !afterQuote.includes(',') && !afterQuote.includes('}') && !afterQuote.includes(']')) {
+      repaired = repaired + '"'
+    }
+  }
+
+  // 열린 배열/객체 카운트
+  let openBraces = 0
+  let openBrackets = 0
+  let inString = false
+
+  for (let i = 0; i < repaired.length; i++) {
+    const char = repaired[i]
+    const prevChar = i > 0 ? repaired[i - 1] : ''
+
+    if (char === '"' && prevChar !== '\\') {
+      inString = !inString
+    } else if (!inString) {
+      if (char === '{') openBraces++
+      else if (char === '}') openBraces--
+      else if (char === '[') openBrackets++
+      else if (char === ']') openBrackets--
+    }
+  }
+
+  // 마지막 불완전한 값 제거
+  repaired = repaired.replace(/,\s*$/, '')
+
+  // 열린 배열 닫기
+  while (openBrackets > 0) {
+    repaired += ']'
+    openBrackets--
+  }
+
+  // 열린 객체 닫기
+  while (openBraces > 0) {
+    repaired += '}'
+    openBraces--
+  }
+
+  return repaired
 }
