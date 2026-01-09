@@ -43,6 +43,9 @@ import {
   Archive,
   Download,
   Upload,
+  Reply,
+  ReplyAll,
+  Forward,
 } from 'lucide-react'
 import { useRef } from 'react'
 
@@ -98,6 +101,32 @@ function formatRelativeTime(dateString: string, t: ReturnType<typeof useI18n>['t
   if (diffMins < 60) return t.time.minutesAgo.replace('{minutes}', String(diffMins))
   if (diffHours < 24) return t.time.hoursAgo.replace('{hours}', String(diffHours))
   return t.time.daysAgo.replace('{days}', String(diffDays))
+}
+
+// HTML 엔티티 디코딩 (일반 텍스트용)
+function decodeHtmlEntities(text: string): string {
+  const textarea = document.createElement('textarea')
+  textarea.innerHTML = text
+  return textarea.value
+}
+
+// HTML 콘텐츠 이중 인코딩 해제 (이메일 HTML용)
+function decodeDoubleEncodedHtml(html: string): string {
+  // &amp;lt; -> &lt; -> < 등의 이중 인코딩 처리
+  let decoded = html
+  // 이중 인코딩 패턴 감지 및 해제 (최대 2번 반복)
+  for (let i = 0; i < 2; i++) {
+    if (decoded.includes('&amp;')) {
+      decoded = decoded
+        .replace(/&amp;lt;/g, '&lt;')
+        .replace(/&amp;gt;/g, '&gt;')
+        .replace(/&amp;amp;/g, '&amp;')
+        .replace(/&amp;quot;/g, '&quot;')
+        .replace(/&amp;#39;/g, '&#39;')
+        .replace(/&amp;nbsp;/g, '&nbsp;')
+    }
+  }
+  return decoded
 }
 
 // 카테고리별 색상 자동 지정
@@ -768,6 +797,445 @@ function DocumentModal({
   )
 }
 
+// 이메일 상세 모달
+function EmailDetailModal({
+  email,
+  onClose,
+  onReply,
+  categories,
+  t,
+}: {
+  email: ParsedEmail | null
+  onClose: () => void
+  onReply?: (mode: 'reply' | 'replyAll' | 'forward') => void
+  categories: string[]
+  t: ReturnType<typeof useI18n>['t']
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [iframeHeight, setIframeHeight] = useState(300)
+
+  // iframe에 HTML 콘텐츠 로드 및 높이 자동 조절
+  useEffect(() => {
+    if (email?.bodyHtml && iframeRef.current) {
+      const iframe = iframeRef.current
+      const doc = iframe.contentDocument
+      if (doc) {
+        doc.open()
+        // 이중 인코딩된 HTML 엔티티 해제
+        const decodedHtml = decodeDoubleEncodedHtml(email.bodyHtml)
+        doc.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <base target="_blank">
+            <style>
+              * { box-sizing: border-box; }
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+                color: #333;
+                margin: 0;
+                padding: 16px;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+              }
+              img { max-width: 100%; height: auto; }
+              a { color: #0066cc; }
+              table { max-width: 100%; border-collapse: collapse; }
+              pre, code { white-space: pre-wrap; word-wrap: break-word; }
+              blockquote { margin: 0 0 0 10px; padding-left: 10px; border-left: 2px solid #ccc; }
+            </style>
+          </head>
+          <body>${decodedHtml}</body>
+          </html>
+        `)
+        doc.close()
+
+        // 높이 자동 조절
+        const updateHeight = () => {
+          if (doc.body) {
+            const newHeight = Math.max(300, doc.body.scrollHeight + 32)
+            setIframeHeight(newHeight)
+          }
+        }
+
+        // 즉시 + 지연 후 높이 계산 (이미지 로딩 대기)
+        updateHeight()
+        setTimeout(updateHeight, 100)
+        setTimeout(updateHeight, 500)
+      }
+    }
+  }, [email?.bodyHtml])
+
+  if (!email) return null
+
+  const categoryColor = email.category ? getCategoryColor(email.category, categories) : null
+
+  // 첨부파일 다운로드
+  const handleDownloadAttachment = (attachment: { filename: string; mimeType: string; attachmentId: string }) => {
+    const url = `/api/gmail/attachments/${email.id}/${attachment.attachmentId}?filename=${encodeURIComponent(attachment.filename)}&mimeType=${encodeURIComponent(attachment.mimeType)}`
+    window.open(url, '_blank')
+  }
+
+  // 파일 크기 포맷
+  const formatAttachmentSize = (bytes: number) => {
+    if (bytes === 0) return '-'
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-3xl rounded-xl bg-white max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-start justify-between p-4 border-b border-slate-200 flex-shrink-0">
+          <div className="flex-1 min-w-0 pr-4">
+            <div className="flex items-center gap-2 mb-2">
+              {email.category && categoryColor && (
+                <span className={`rounded-full px-2 py-0.5 text-xs ${categoryColor.bg} ${categoryColor.text}`}>
+                  {email.category}
+                </span>
+              )}
+              <span className={`rounded-full px-2 py-0.5 text-xs ${
+                email.direction === 'outbound' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {email.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound}
+              </span>
+            </div>
+            <h3 className="text-lg font-semibold break-words">{email.subject || '(제목 없음)'}</h3>
+          </div>
+          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 flex-shrink-0">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Meta info */}
+        <div className="px-4 py-3 bg-slate-50 text-sm space-y-1 border-b border-slate-200 flex-shrink-0">
+          <div className="flex">
+            <span className="w-20 text-muted-foreground flex-shrink-0">{t.gmail.from}:</span>
+            <span className="font-medium break-all">{email.fromName || email.from}</span>
+          </div>
+          <div className="flex">
+            <span className="w-20 text-muted-foreground flex-shrink-0">{t.gmail.to}:</span>
+            <span className="break-all">{email.to}</span>
+          </div>
+          <div className="flex">
+            <span className="w-20 text-muted-foreground flex-shrink-0">{t.gmail.date}:</span>
+            <span>{formatDate(email.date)}</span>
+          </div>
+        </div>
+
+        {/* Attachments */}
+        {email.hasAttachments && email.attachments.length > 0 && (
+          <div className="px-4 py-3 border-b border-slate-200 flex-shrink-0">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="h-4 w-4 text-slate-500" />
+              <span className="text-sm font-medium">{email.attachments.length} {t.gmail.attachments}</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {email.attachments.map((attachment, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleDownloadAttachment(attachment)}
+                  className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm hover:bg-slate-200 transition-colors"
+                >
+                  <Download className="h-4 w-4 text-slate-600" />
+                  <span className="max-w-[200px] truncate">{attachment.filename}</span>
+                  <span className="text-xs text-muted-foreground">({formatAttachmentSize(attachment.size)})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Body - 스크롤 가능한 영역 */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {email.bodyHtml ? (
+            <iframe
+              ref={iframeRef}
+              className="w-full border-0"
+              style={{ height: `${iframeHeight}px`, minHeight: '300px' }}
+              sandbox="allow-same-origin allow-popups"
+              title="Email content"
+            />
+          ) : (
+            <div className="p-4">
+              <pre className="whitespace-pre-wrap text-sm font-sans">{decodeHtmlEntities(email.body || email.snippet)}</pre>
+            </div>
+          )}
+        </div>
+
+        {/* Footer with actions */}
+        <div className="p-4 border-t border-slate-200 flex-shrink-0">
+          <div className="flex gap-2">
+            <button
+              onClick={() => onReply && onReply('reply')}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              <Reply className="h-4 w-4" />
+              {t.gmail.reply}
+            </button>
+            <button
+              onClick={() => onReply && onReply('replyAll')}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            >
+              <ReplyAll className="h-4 w-4" />
+              {t.gmail.replyAll}
+            </button>
+            <button
+              onClick={() => onReply && onReply('forward')}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            >
+              <Forward className="h-4 w-4" />
+              {t.gmail.forward}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 이메일 작성 타입
+type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
+
+interface ComposeEmailData {
+  to: string
+  cc: string
+  bcc: string
+  subject: string
+  body: string
+}
+
+// 이메일 작성 모달
+function ComposeEmailModal({
+  isOpen,
+  onClose,
+  mode,
+  originalEmail,
+  t,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  mode: ComposeMode
+  originalEmail: ParsedEmail | null
+  t: ReturnType<typeof useI18n>['t']
+}) {
+  const [formData, setFormData] = useState<ComposeEmailData>({
+    to: '',
+    cc: '',
+    bcc: '',
+    subject: '',
+    body: '',
+  })
+  const [isSending, setIsSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // 모달이 열릴 때 폼 초기화
+  useEffect(() => {
+    if (isOpen && originalEmail) {
+      const replyPrefix = mode === 'forward' ? 'Fwd: ' : 'Re: '
+      const subjectHasPrefix = originalEmail.subject.startsWith('Re:') || originalEmail.subject.startsWith('Fwd:')
+      const newSubject = subjectHasPrefix ? originalEmail.subject : replyPrefix + originalEmail.subject
+
+      // 인용 본문 생성
+      const quotedBody = `\n\n-------- Original Message --------\nFrom: ${originalEmail.fromName || originalEmail.from}\nDate: ${originalEmail.date}\nSubject: ${originalEmail.subject}\n\n${originalEmail.body || originalEmail.snippet}`
+
+      if (mode === 'reply') {
+        setFormData({
+          to: originalEmail.from,
+          cc: '',
+          bcc: '',
+          subject: newSubject,
+          body: quotedBody,
+        })
+      } else if (mode === 'replyAll') {
+        // Reply All: 원래 발신자 + CC에 있던 모든 수신자
+        const allRecipients = [originalEmail.from]
+        if (originalEmail.to) {
+          // 자신의 이메일은 제외하고 추가 (to 필드에 있던 다른 사람들)
+          const toList = originalEmail.to.split(',').map(e => e.trim()).filter(e => e)
+          allRecipients.push(...toList)
+        }
+        setFormData({
+          to: originalEmail.from,
+          cc: allRecipients.slice(1).join(', '),
+          bcc: '',
+          subject: newSubject,
+          body: quotedBody,
+        })
+      } else if (mode === 'forward') {
+        setFormData({
+          to: '',
+          cc: '',
+          bcc: '',
+          subject: newSubject,
+          body: quotedBody,
+        })
+      }
+    } else if (isOpen && mode === 'new') {
+      setFormData({
+        to: '',
+        cc: '',
+        bcc: '',
+        subject: '',
+        body: '',
+      })
+    }
+    setError(null)
+  }, [isOpen, mode, originalEmail])
+
+  const handleSend = async () => {
+    if (!formData.to.trim()) {
+      setError(t.gmail.errorNoRecipient)
+      return
+    }
+    if (!formData.subject.trim()) {
+      setError(t.gmail.errorNoSubject)
+      return
+    }
+
+    setIsSending(true)
+    setError(null)
+
+    try {
+      const result = await gmailService.sendEmail({
+        to: formData.to,
+        subject: formData.subject,
+        body: formData.body,
+        cc: formData.cc || undefined,
+        bcc: formData.bcc || undefined,
+      })
+
+      if (result.success) {
+        onClose()
+      } else {
+        setError(result.error || t.gmail.sendFailed)
+      }
+    } catch (err) {
+      setError(t.gmail.sendFailed)
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  if (!isOpen) return null
+
+  const getTitle = () => {
+    switch (mode) {
+      case 'reply': return t.gmail.reply
+      case 'replyAll': return t.gmail.replyAll
+      case 'forward': return t.gmail.forward
+      default: return t.gmail.newEmail
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-2xl rounded-xl bg-white max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 flex-shrink-0">
+          <h3 className="text-lg font-semibold">{getTitle()}</h3>
+          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-1">{t.gmail.to} *</label>
+            <input
+              type="email"
+              value={formData.to}
+              onChange={(e) => setFormData({ ...formData, to: e.target.value })}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+              placeholder="recipient@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">{t.gmail.cc}</label>
+            <input
+              type="text"
+              value={formData.cc}
+              onChange={(e) => setFormData({ ...formData, cc: e.target.value })}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+              placeholder="cc@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">{t.gmail.bcc}</label>
+            <input
+              type="text"
+              value={formData.bcc}
+              onChange={(e) => setFormData({ ...formData, bcc: e.target.value })}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+              placeholder="bcc@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">{t.gmail.subject} *</label>
+            <input
+              type="text"
+              value={formData.subject}
+              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+              placeholder={t.gmail.subjectPlaceholder}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">{t.gmail.body}</label>
+            <textarea
+              value={formData.body}
+              onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+              className="w-full rounded-lg border px-3 py-2 text-sm min-h-[200px] font-mono"
+              placeholder={t.gmail.bodyPlaceholder}
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-slate-200 flex-shrink-0">
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="flex-1 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            >
+              {t.common.cancel}
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={isSending}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+            >
+              {isSending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {t.gmail.send}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ETCPage() {
   const { t } = useI18n()
   const [etfs, setEtfs] = useState<ETFDisplayData[]>([])
@@ -789,6 +1257,7 @@ export default function ETCPage() {
 
   // Gmail 관련 상태
   const [emails, setEmails] = useState<ParsedEmail[]>([])
+  const [selectedEmail, setSelectedEmail] = useState<ParsedEmail | null>(null)
   const [syncStatus, setSyncStatus] = useState<EmailSyncStatus>({
     lastSyncAt: null,
     totalEmails: 0,
@@ -800,6 +1269,11 @@ export default function ETCPage() {
   const [gmailLabel, setGmailLabel] = useState('ETC')
   const [labelInput, setLabelInput] = useState('ETC')
   const [isConnecting, setIsConnecting] = useState(false)
+
+  // 이메일 작성 모달 상태
+  const [isComposeOpen, setIsComposeOpen] = useState(false)
+  const [composeMode, setComposeMode] = useState<'new' | 'reply' | 'replyAll' | 'forward'>('new')
+  const [composeOriginalEmail, setComposeOriginalEmail] = useState<ParsedEmail | null>(null)
 
   // 히스토리컬 데이터
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
@@ -1281,7 +1755,14 @@ export default function ETCPage() {
                 >
                   <Settings className="h-4 w-4" />
                 </button>
-                <button className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                <button
+                  onClick={() => {
+                    setComposeMode('new')
+                    setComposeOriginalEmail(null)
+                    setIsComposeOpen(true)
+                  }}
+                  className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
                   <Mail className="h-4 w-4" />
                   {t.gmail.newEmail}
                 </button>
@@ -1405,7 +1886,11 @@ export default function ETCPage() {
               ) : (
                 <>
                   {paginatedEmails.map((email) => (
-                    <div key={email.id} className="rounded-lg bg-white p-3 cursor-pointer hover:bg-slate-50">
+                    <div
+                      key={email.id}
+                      className="rounded-lg bg-white p-3 cursor-pointer hover:bg-slate-50"
+                      onClick={() => setSelectedEmail(email)}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0 flex-1">
                           <Mail
@@ -1497,6 +1982,32 @@ export default function ETCPage() {
           setDocumentETF(null)
         }}
         etf={documentETF}
+        t={t}
+      />
+
+      {/* Email Detail Modal */}
+      <EmailDetailModal
+        email={selectedEmail}
+        onClose={() => setSelectedEmail(null)}
+        onReply={(mode) => {
+          setComposeMode(mode)
+          setComposeOriginalEmail(selectedEmail)
+          setSelectedEmail(null)
+          setIsComposeOpen(true)
+        }}
+        categories={availableCategories}
+        t={t}
+      />
+
+      {/* Compose Email Modal */}
+      <ComposeEmailModal
+        isOpen={isComposeOpen}
+        onClose={() => {
+          setIsComposeOpen(false)
+          setComposeOriginalEmail(null)
+        }}
+        mode={composeMode}
+        originalEmail={composeOriginalEmail}
         t={t}
       />
     </div>
