@@ -19,6 +19,7 @@ import {
   Smartphone,
   Building2,
   MoreHorizontal,
+  X,
 } from 'lucide-react'
 
 interface MenuItem {
@@ -32,7 +33,12 @@ interface MenuSection {
   items: MenuItem[]
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean
+  onMobileClose?: () => void
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const isAdmin = useIsAdmin()
   const [collapsed, setCollapsed] = useState(false)
@@ -108,36 +114,48 @@ export function Sidebar() {
     <aside
       className={cn(
         'flex flex-col bg-slate-900 text-white transition-all duration-300 overflow-hidden',
-        collapsed ? 'w-16' : 'w-64'
+        // Desktop: normal sidebar
+        'hidden md:flex',
+        collapsed ? 'md:w-16' : 'md:w-64',
+        // Mobile: fixed overlay when open
+        mobileOpen && 'fixed inset-y-0 left-0 z-50 flex w-64'
       )}
     >
       {/* Logo */}
       <div className={cn(
         "flex h-16 items-center px-4 overflow-hidden",
-        collapsed ? "justify-center" : "justify-between"
+        collapsed ? "md:justify-center" : "justify-between"
       )}>
         {!collapsed ? (
-          <Link href="/">
+          <Link href="/" onClick={onMobileClose}>
             <Image src="/willow-text.png" alt="Willow Investments" width={120} height={22} priority />
           </Link>
         ) : (
-          <Link href="/">
+          <Link href="/" onClick={onMobileClose}>
             <Image src="/leaf-icon.png" alt="Willow" width={28} height={28} priority />
           </Link>
         )}
+        {/* Desktop collapse button */}
         {!collapsed && (
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="rounded p-1.5 hover:bg-slate-800"
+            className="hidden md:block rounded p-1.5 hover:bg-slate-800"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
         )}
+        {/* Mobile close button */}
+        <button
+          onClick={onMobileClose}
+          className="md:hidden rounded p-1.5 hover:bg-slate-800"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
-      {/* Collapsed toggle button */}
+      {/* Collapsed toggle button (desktop only) */}
       {collapsed && (
-        <div className="flex justify-center p-2">
+        <div className="hidden md:flex justify-center p-2">
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="rounded p-1.5 hover:bg-slate-800"

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGmailClient, createMimeMessage } from '@/lib/gmail-server'
+import { getGmailClient, createMimeMessage, EmailAttachmentData } from '@/lib/gmail-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +18,22 @@ export async function POST(request: NextRequest) {
     const cc = formData.get('cc') as string | null
     const bcc = formData.get('bcc') as string | null
     const replyTo = formData.get('replyTo') as string | null
+
+    // 첨부파일 처리
+    const attachments: EmailAttachmentData[] = []
+    const files = formData.getAll('attachments') as File[]
+
+    for (const file of files) {
+      if (file && file.size > 0) {
+        const arrayBuffer = await file.arrayBuffer()
+        const base64Data = Buffer.from(arrayBuffer).toString('base64')
+        attachments.push({
+          filename: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          data: base64Data,
+        })
+      }
+    }
 
     if (!to || !subject || !body) {
       return NextResponse.json(
@@ -40,6 +56,7 @@ export async function POST(request: NextRequest) {
       bcc: bcc || undefined,
       replyTo: replyTo || undefined,
       from: from || undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
     })
 
     // 이메일 발송

@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
 
@@ -25,9 +25,15 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const { user, isLoading } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const isPublicPath = PUBLIC_PATHS.includes(pathname)
   const pageTitle = getPageTitle(pathname)
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     if (!isLoading) {
@@ -61,10 +67,17 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   // Authenticated - show full layout
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+      {/* Mobile overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+      <Sidebar mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header title={pageTitle} />
-        <main className="flex-1 overflow-auto bg-muted/30 p-6">
+        <Header title={pageTitle} onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
+        <main className="flex-1 overflow-auto bg-muted/30 p-4 md:p-6">
           <div className="animate-fade-in">{children}</div>
         </main>
       </div>

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getOAuth2Client } from '@/lib/gmail-server'
-
-const GMAIL_TOKEN_COOKIE = 'gmail_tokens'
+import { google } from 'googleapis'
+import { getOAuth2Client, saveTokens } from '@/lib/gmail-server'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -36,25 +35,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/etf/etc?gmail_error=no_access_token`)
     }
 
-    // 토큰 데이터 생성
-    const tokenData = {
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token || '',
-      expires_at: tokens.expiry_date || Date.now() + 3600 * 1000,
+    // Gmail 이메일 주소 가져오기
+    oauth2Client.setCredentials(tokens)
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
+    let gmailEmail = ''
+    try {
+      const profile = await gmail.users.getProfile({ userId: 'me' })
+      gmailEmail = profile.data.emailAddress || ''
+    } catch (e) {
+      console.error('Failed to get Gmail profile:', e)
     }
 
-    // 리다이렉트 응답 생성 후 쿠키 설정
-    const response = NextResponse.redirect(`${baseUrl}/etf/etc?gmail_connected=true`)
-
-    response.cookies.set(GMAIL_TOKEN_COOKIE, JSON.stringify(tokenData), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30일
-      path: '/',
+    // 토큰을 DB에 저장
+    await saveTokens({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || undefined,
+      expiry_date: tokens.expiry_date || undefined,
+      gmail_email: gmailEmail,
     })
 
-    return response
+    return NextResponse.redirect(`${baseUrl}/etf/etc?gmail_connected=true`)
   } catch (err) {
     console.error('Error exchanging code for tokens:', err)
     const errorMessage = err instanceof Error ? err.message : 'unknown'

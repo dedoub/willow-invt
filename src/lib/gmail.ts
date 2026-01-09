@@ -8,6 +8,7 @@ export interface ParsedEmail {
   from: string
   fromName: string
   to: string
+  cc: string  // 참조
   subject: string
   snippet: string
   body: string
@@ -57,6 +58,64 @@ export interface GmailTokens {
   access_token: string
   refresh_token: string
   expires_at: number
+}
+
+// AI 분석 결과 타입
+export interface EmailAnalysisResult {
+  category: string
+  summary: string
+  recentTopics: string[]
+  issues: Array<{
+    title: string
+    description: string
+    priority: 'high' | 'medium' | 'low'
+    relatedEmailIds: string[]
+  }>
+  todos: Array<{
+    task: string
+    dueDate?: string
+    priority: 'high' | 'medium' | 'low'
+    relatedEmailIds: string[]
+  }>
+  emailCount: number
+}
+
+export interface OverallAnalysisResult {
+  generatedAt: string
+  categories: EmailAnalysisResult[]
+  overallSummary: string
+}
+
+// DB에 저장된 Todo 타입
+export interface SavedTodo {
+  id: string
+  user_id: string
+  label: string
+  category: string
+  task: string
+  due_date: string | null
+  priority: 'high' | 'medium' | 'low'
+  related_email_ids: string[]
+  completed: boolean
+  source_analysis_id: string | null
+  created_at: string
+  completed_at: string | null
+}
+
+// DB에서 가져온 분석 결과
+export interface SavedAnalysis {
+  id: string
+  user_id: string
+  label: string
+  analysis_data: OverallAnalysisResult
+  generated_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AnalysisResponse {
+  analysis: SavedAnalysis | null
+  todos: SavedTodo[]
 }
 
 // ============ Gmail Service Class ============
@@ -133,8 +192,8 @@ class GmailService {
       if (params.replyTo) formData.append('replyTo', params.replyTo)
 
       if (params.attachments) {
-        params.attachments.forEach((file, index) => {
-          formData.append(`attachment_${index}`, file)
+        params.attachments.forEach((file) => {
+          formData.append('attachments', file)
         })
       }
 
@@ -202,6 +261,96 @@ class GmailService {
       return false
     } catch {
       return false
+    }
+  }
+
+  // AI 이메일 분석
+  async analyzeEmails(label: string, daysBack = 30): Promise<OverallAnalysisResult | null> {
+    try {
+      const res = await fetch('/api/gmail/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label, daysBack }),
+      })
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          this.syncStatus.isConnected = false
+          throw new Error('Not authenticated')
+        }
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to analyze emails')
+      }
+
+      return await res.json()
+    } catch (error) {
+      console.error('Error analyzing emails:', error)
+      throw error
+    }
+  }
+
+  // 저장된 분석 결과 가져오기
+  async getSavedAnalysis(label: string): Promise<AnalysisResponse | null> {
+    try {
+      const res = await fetch(`/api/gmail/analysis?label=${encodeURIComponent(label)}`)
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          return null
+        }
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to fetch analysis')
+      }
+
+      return await res.json()
+    } catch (error) {
+      console.error('Error fetching saved analysis:', error)
+      return null
+    }
+  }
+
+  // 분석 결과 저장하기
+  async saveAnalysis(label: string, analysisData: OverallAnalysisResult): Promise<AnalysisResponse | null> {
+    try {
+      const res = await fetch('/api/gmail/analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label, analysisData }),
+      })
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Not authenticated')
+        }
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to save analysis')
+      }
+
+      return await res.json()
+    } catch (error) {
+      console.error('Error saving analysis:', error)
+      throw error
+    }
+  }
+
+  // Todo 완료 상태 토글
+  async toggleTodoCompleted(todoId: string, completed: boolean): Promise<SavedTodo | null> {
+    try {
+      const res = await fetch(`/api/gmail/todos/${todoId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to update todo')
+      }
+
+      return await res.json()
+    } catch (error) {
+      console.error('Error updating todo:', error)
+      throw error
     }
   }
 }

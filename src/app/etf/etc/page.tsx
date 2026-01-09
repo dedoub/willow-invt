@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useI18n } from '@/lib/i18n'
-import { gmailService, ParsedEmail, EmailSyncStatus } from '@/lib/gmail'
+import { gmailService, ParsedEmail, EmailSyncStatus, OverallAnalysisResult, SavedTodo, SavedAnalysis } from '@/lib/gmail'
 import {
   fetchETFDisplayData,
   createETFProduct,
@@ -46,6 +46,13 @@ import {
   Reply,
   ReplyAll,
   Forward,
+  Sparkles,
+  ListTodo,
+  AlertTriangle,
+  BookOpen,
+  Pin,
+  StickyNote,
+  Paperclip,
 } from 'lucide-react'
 import { useRef } from 'react'
 
@@ -812,9 +819,8 @@ function EmailDetailModal({
   t: ReturnType<typeof useI18n>['t']
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [iframeHeight, setIframeHeight] = useState(300)
 
-  // iframe에 HTML 콘텐츠 로드 및 높이 자동 조절
+  // iframe에 HTML 콘텐츠 로드
   useEffect(() => {
     if (email?.bodyHtml && iframeRef.current) {
       const iframe = iframeRef.current
@@ -832,17 +838,22 @@ function EmailDetailModal({
             <base target="_blank">
             <style>
               * { box-sizing: border-box; }
+              html, body {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+              }
               body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 font-size: 14px;
                 line-height: 1.6;
                 color: #333;
-                margin: 0;
                 padding: 16px;
                 word-wrap: break-word;
                 overflow-wrap: break-word;
+                overflow-y: auto;
               }
-              img { max-width: 100%; height: auto; }
+              img { max-width: 100%; height: auto; display: block; }
               a { color: #0066cc; }
               table { max-width: 100%; border-collapse: collapse; }
               pre, code { white-space: pre-wrap; word-wrap: break-word; }
@@ -853,19 +864,6 @@ function EmailDetailModal({
           </html>
         `)
         doc.close()
-
-        // 높이 자동 조절
-        const updateHeight = () => {
-          if (doc.body) {
-            const newHeight = Math.max(300, doc.body.scrollHeight + 32)
-            setIframeHeight(newHeight)
-          }
-        }
-
-        // 즉시 + 지연 후 높이 계산 (이미지 로딩 대기)
-        updateHeight()
-        setTimeout(updateHeight, 100)
-        setTimeout(updateHeight, 500)
       }
     }
   }, [email?.bodyHtml])
@@ -953,17 +951,16 @@ function EmailDetailModal({
         )}
 
         {/* Body - 스크롤 가능한 영역 */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 min-h-0 overflow-hidden">
           {email.bodyHtml ? (
             <iframe
               ref={iframeRef}
-              className="w-full border-0"
-              style={{ height: `${iframeHeight}px`, minHeight: '300px' }}
+              className="w-full h-full border-0"
               sandbox="allow-same-origin allow-popups"
               title="Email content"
             />
           ) : (
-            <div className="p-4">
+            <div className="p-4 h-full overflow-y-auto">
               <pre className="whitespace-pre-wrap text-sm font-sans">{decodeHtmlEntities(email.body || email.snippet)}</pre>
             </div>
           )}
@@ -1032,8 +1029,10 @@ function ComposeEmailModal({
     subject: '',
     body: '',
   })
+  const [attachments, setAttachments] = useState<File[]>([])
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 모달이 열릴 때 폼 초기화
   useEffect(() => {
@@ -1086,8 +1085,32 @@ function ComposeEmailModal({
         body: '',
       })
     }
+    setAttachments([])
     setError(null)
   }, [isOpen, mode, originalEmail])
+
+  // 파일 선택 핸들러
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files) {
+      setAttachments(prev => [...prev, ...Array.from(files)])
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // 파일 제거 핸들러
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // 파일 크기 포맷
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  }
 
   const handleSend = async () => {
     if (!formData.to.trim()) {
@@ -1109,6 +1132,7 @@ function ComposeEmailModal({
         body: formData.body,
         cc: formData.cc || undefined,
         bcc: formData.bcc || undefined,
+        attachments: attachments.length > 0 ? attachments : undefined,
       })
 
       if (result.success) {
@@ -1206,6 +1230,52 @@ function ComposeEmailModal({
               placeholder={t.gmail.bodyPlaceholder}
             />
           </div>
+
+          {/* 첨부파일 */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium">{t.gmail.attachments}</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                id="compose-file-input"
+              />
+              <label
+                htmlFor="compose-file-input"
+                className="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-700 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                {t.gmail.addAttachment}
+              </label>
+            </div>
+            {attachments.length > 0 && (
+              <div className="space-y-2">
+                {attachments.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                      <span className="text-sm truncate">{file.name}</span>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                        ({formatFileSize(file.size)})
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveAttachment(index)}
+                      className="rounded p-1 hover:bg-slate-200 flex-shrink-0"
+                    >
+                      <X className="h-4 w-4 text-slate-500" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Footer */}
@@ -1241,9 +1311,10 @@ export default function ETCPage() {
   const [etfs, setEtfs] = useState<ETFDisplayData[]>([])
   const [isLoadingETFs, setIsLoadingETFs] = useState(true)
   const [emailFilter, setEmailFilter] = useState<string>('all')  // 'all' 또는 카테고리명
+  const [emailSearch, setEmailSearch] = useState('')  // 이메일 검색어
   const [availableCategories, setAvailableCategories] = useState<string[]>([])  // 사용 가능한 카테고리 목록
   const [emailPage, setEmailPage] = useState(1)  // 이메일 페이지네이션
-  const emailsPerPage = 10  // 페이지당 이메일 수
+  const [emailsPerPage, setEmailsPerPage] = useState(30)  // 페이지당 이메일 수
   const [expandedInvoice, setExpandedInvoice] = useState<number | null>(null)
 
   // Modal 상태
@@ -1275,8 +1346,34 @@ export default function ETCPage() {
   const [composeMode, setComposeMode] = useState<'new' | 'reply' | 'replyAll' | 'forward'>('new')
   const [composeOriginalEmail, setComposeOriginalEmail] = useState<ParsedEmail | null>(null)
 
+  // AI 분석 상태
+  const [aiAnalysis, setAiAnalysis] = useState<OverallAnalysisResult | null>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [showAiAnalysis, setShowAiAnalysis] = useState(false)
+  const [savedTodos, setSavedTodos] = useState<SavedTodo[]>([])
+  const [savedAnalysis, setSavedAnalysis] = useState<SavedAnalysis | null>(null)
+
   // 히스토리컬 데이터
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
+
+  // 업무 위키 상태
+  interface WikiNote {
+    id: string
+    user_id: string
+    section: string
+    title: string
+    content: string
+    category: string | null
+    is_pinned: boolean
+    created_at: string
+    updated_at: string
+  }
+  const [wikiNotes, setWikiNotes] = useState<WikiNote[]>([])
+  const [isLoadingWiki, setIsLoadingWiki] = useState(true)
+  const [isAddingNote, setIsAddingNote] = useState(false)
+  const [editingNote, setEditingNote] = useState<WikiNote | null>(null)
+  const [newNoteTitle, setNewNoteTitle] = useState('')
+  const [newNoteContent, setNewNoteContent] = useState('')
 
   // ETF 데이터 로드
   const loadETFData = async () => {
@@ -1336,6 +1433,98 @@ export default function ETCPage() {
     }
   }
 
+  // 업무 위키 함수들
+  const loadWikiNotes = async () => {
+    setIsLoadingWiki(true)
+    try {
+      const res = await fetch('/api/wiki?section=etf-etc')
+      if (res.ok) {
+        const data = await res.json()
+        setWikiNotes(data)
+      }
+    } catch (error) {
+      console.error('Failed to load wiki notes:', error)
+    } finally {
+      setIsLoadingWiki(false)
+    }
+  }
+
+  const handleAddNote = async () => {
+    if (!newNoteTitle.trim() || !newNoteContent.trim()) return
+
+    try {
+      const res = await fetch('/api/wiki', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          section: 'etf-etc',
+          title: newNoteTitle.trim(),
+          content: newNoteContent.trim(),
+        }),
+      })
+      if (res.ok) {
+        setNewNoteTitle('')
+        setNewNoteContent('')
+        setIsAddingNote(false)
+        await loadWikiNotes()
+      }
+    } catch (error) {
+      console.error('Failed to add wiki note:', error)
+    }
+  }
+
+  const handleUpdateNote = async (note: WikiNote) => {
+    try {
+      const res = await fetch(`/api/wiki/${note.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: note.title,
+          content: note.content,
+        }),
+      })
+      if (res.ok) {
+        setEditingNote(null)
+        await loadWikiNotes()
+      }
+    } catch (error) {
+      console.error('Failed to update wiki note:', error)
+    }
+  }
+
+  const handleDeleteNote = async (id: string) => {
+    if (!confirm('이 메모를 삭제하시겠습니까?')) return
+
+    try {
+      const res = await fetch(`/api/wiki/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        await loadWikiNotes()
+      }
+    } catch (error) {
+      console.error('Failed to delete wiki note:', error)
+    }
+  }
+
+  const handleTogglePin = async (note: WikiNote) => {
+    try {
+      const res = await fetch(`/api/wiki/${note.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_pinned: !note.is_pinned }),
+      })
+      if (res.ok) {
+        await loadWikiNotes()
+      }
+    } catch (error) {
+      console.error('Failed to toggle pin:', error)
+    }
+  }
+
+  // 위키 노트 로드
+  useEffect(() => {
+    loadWikiNotes()
+  }, [])
+
   // localStorage에서 라벨 불러오기
   useEffect(() => {
     const savedLabel = localStorage.getItem('gmail_label_etf_etc')
@@ -1353,6 +1542,8 @@ export default function ETCPage() {
       if (isConnected) {
         gmailService.startPolling(gmailLabel, 5 * 60 * 1000)
         await syncEmails()
+        // 저장된 분석 로드
+        await loadSavedAnalysis()
       }
     }
     initGmail()
@@ -1360,6 +1551,23 @@ export default function ETCPage() {
       gmailService.stopPolling()
     }
   }, [gmailLabel])
+
+  // 저장된 분석 로드
+  const loadSavedAnalysis = async () => {
+    try {
+      const result = await gmailService.getSavedAnalysis(gmailLabel)
+      if (result) {
+        if (result.analysis) {
+          setSavedAnalysis(result.analysis)
+          setAiAnalysis(result.analysis.analysis_data)
+          setShowAiAnalysis(true)
+        }
+        setSavedTodos(result.todos)
+      }
+    } catch (error) {
+      console.error('Failed to load saved analysis:', error)
+    }
+  }
 
   const syncEmails = async () => {
     setIsSyncing(true)
@@ -1403,16 +1611,83 @@ export default function ETCPage() {
     }
   }
 
-  const filteredEmails = emailFilter === 'all' ? emails : emails.filter((email) => email.category === emailFilter)
+  // AI 이메일 분석
+  const handleAnalyzeEmails = async () => {
+    if (!syncStatus.isConnected) return
+    setIsAnalyzing(true)
+    try {
+      // Gemini로 분석
+      const result = await gmailService.analyzeEmails(gmailLabel, 30)
+      if (result) {
+        setAiAnalysis(result)
+        setShowAiAnalysis(true)
+        // 분석 결과 저장
+        const savedResult = await gmailService.saveAnalysis(gmailLabel, result)
+        if (savedResult) {
+          setSavedAnalysis(savedResult.analysis)
+          setSavedTodos(savedResult.todos)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to analyze emails:', error)
+      alert(t.gmail.analysisError)
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  // Todo 완료 상태 토글
+  const handleTodoToggle = async (todoId: string, currentCompleted: boolean) => {
+    try {
+      const updated = await gmailService.toggleTodoCompleted(todoId, !currentCompleted)
+      if (updated) {
+        setSavedTodos(prev => prev.map(todo =>
+          todo.id === todoId ? updated : todo
+        ))
+      }
+    } catch (error) {
+      console.error('Failed to toggle todo:', error)
+    }
+  }
+
+  // 우선순위 색상
+  const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
+    switch (priority) {
+      case 'high': return 'bg-red-100 text-red-700'
+      case 'medium': return 'bg-amber-100 text-amber-700'
+      case 'low': return 'bg-slate-100 text-slate-600'
+    }
+  }
+
+  const getPriorityLabel = (priority: 'high' | 'medium' | 'low') => {
+    return t.gmail.priority[priority]
+  }
+
+  // 카테고리 필터 적용
+  const categoryFilteredEmails = emailFilter === 'all' ? emails : emails.filter((email) => email.category === emailFilter)
+
+  // 검색 필터 적용
+  const filteredEmails = emailSearch.trim()
+    ? categoryFilteredEmails.filter((email) => {
+        const searchLower = emailSearch.toLowerCase()
+        return (
+          email.subject.toLowerCase().includes(searchLower) ||
+          email.body.toLowerCase().includes(searchLower) ||
+          email.from.toLowerCase().includes(searchLower) ||
+          email.fromName.toLowerCase().includes(searchLower) ||
+          email.to.toLowerCase().includes(searchLower)
+        )
+      })
+    : categoryFilteredEmails
 
   // 페이지네이션 계산
   const totalEmailPages = Math.ceil(filteredEmails.length / emailsPerPage)
   const paginatedEmails = filteredEmails.slice((emailPage - 1) * emailsPerPage, emailPage * emailsPerPage)
 
-  // 필터 변경 시 페이지 초기화
+  // 필터/검색 변경 시 페이지 초기화
   useEffect(() => {
     setEmailPage(1)
-  }, [emailFilter])
+  }, [emailFilter, emailSearch])
 
   return (
     <div className="space-y-6">
@@ -1656,22 +1931,25 @@ export default function ETCPage() {
         </CardContent>
       </Card>
 
-      {/* Invoice & Email Section */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Invoice & Work Wiki Section - Side by Side */}
+      <div className="flex flex-col lg:flex-row gap-4">
         {/* Invoice Section */}
-        <Card className="bg-slate-100">
+        <Card className="bg-slate-100 w-full lg:w-1/2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>인보이스</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                인보이스
+              </CardTitle>
               <CardDescription>월별 수수료 인보이스 관리</CardDescription>
             </div>
-            <button className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
-              <FileText className="h-4 w-4" />
-              인보이스 생성
+            <button className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">생성</span>
             </button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {dummyInvoices.map((invoice) => (
                 <div key={invoice.id} className="rounded-lg bg-white p-3">
                   <div
@@ -1679,19 +1957,19 @@ export default function ETCPage() {
                     onClick={() => setExpandedInvoice(expandedInvoice === invoice.id ? null : invoice.id)}
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-slate-400" />
+                      <FileText className="h-4 w-4 text-slate-400" />
                       <div>
-                        <p className="font-medium">{invoice.month} 인보이스</p>
-                        <p className="text-sm text-muted-foreground">{formatCurrency(invoice.amount, 'KRW')}</p>
+                        <p className="font-medium text-sm">{invoice.month}</p>
+                        <p className="text-xs text-muted-foreground">{formatCurrency(invoice.amount, 'KRW')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span
-                        className={`rounded-full px-2 py-1 text-xs ${
+                        className={`rounded-full px-2 py-0.5 text-xs ${
                           invoice.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                         }`}
                       >
-                        {invoice.status === 'paid' ? '입금완료' : '발송완료'}
+                        {invoice.status === 'paid' ? '완료' : '대기'}
                       </span>
                       {expandedInvoice === invoice.id ? (
                         <ChevronUp className="h-4 w-4 text-slate-400" />
@@ -1701,18 +1979,18 @@ export default function ETCPage() {
                     </div>
                   </div>
                   {expandedInvoice === invoice.id && (
-                    <div className="mt-3 pt-3 border-t border-slate-100">
+                    <div className="mt-2 pt-2 border-t border-slate-100">
                       <div className="flex gap-2">
-                        <button className="flex items-center gap-1 rounded bg-slate-100 px-3 py-1.5 text-xs font-medium hover:bg-slate-200">
-                          <FileText className="h-3 w-3" />
-                          PDF 다운로드
+                        <button className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-medium hover:bg-slate-200">
+                          <Download className="h-3 w-3" />
+                          PDF
                         </button>
-                        <button className="flex items-center gap-1 rounded bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800">
+                        <button className="flex items-center gap-1 rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800">
                           <Send className="h-3 w-3" />
-                          이메일 재발송
+                          재발송
                         </button>
                       </div>
-                      <p className="mt-2 text-xs text-muted-foreground">발송일: {invoice.sentAt}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">발송: {invoice.sentAt}</p>
                     </div>
                   )}
                 </div>
@@ -1721,245 +1999,667 @@ export default function ETCPage() {
           </CardContent>
         </Card>
 
-        {/* Email Section */}
-        <Card className="bg-slate-100">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  {t.gmail.title}
-                  {syncStatus.isConnected ? (
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-amber-500" />
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  Gmail · {t.gmail.watchLabel}: {gmailLabel}
-                  {syncStatus.lastSyncAt && (
-                    <span className="ml-2">· {formatRelativeTime(syncStatus.lastSyncAt, t)}</span>
-                  )}
-                </CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={syncEmails}
-                  disabled={isSyncing || !syncStatus.isConnected}
-                  className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                </button>
-                <button
-                  onClick={() => setShowGmailSettings(!showGmailSettings)}
-                  className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200"
-                >
-                  <Settings className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    setComposeMode('new')
-                    setComposeOriginalEmail(null)
-                    setIsComposeOpen(true)
-                  }}
-                  className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-                >
-                  <Mail className="h-4 w-4" />
-                  {t.gmail.newEmail}
-                </button>
-              </div>
+        {/* Work Wiki Section */}
+        <Card className="bg-slate-100 w-full lg:w-1/2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                업무 위키
+              </CardTitle>
+              <CardDescription>참고자료 및 메모</CardDescription>
             </div>
-
-            {showGmailSettings && (
-              <div className="mt-4 rounded-lg bg-white p-4">
-                <h4 className="font-medium text-sm mb-3">{t.gmail.settings}</h4>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">{t.gmail.connectionStatus}</span>
-                    <div className="flex items-center gap-2">
-                      <span className={syncStatus.isConnected ? 'text-emerald-600' : 'text-amber-600'}>
-                        {syncStatus.isConnected ? t.gmail.connected : t.gmail.notConnected}
-                      </span>
-                      {syncStatus.isConnected ? (
-                        <button
-                          onClick={handleGmailDisconnect}
-                          className="text-xs text-red-500 hover:text-red-600"
-                        >
-                          {t.gmail.disconnect}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handleGmailConnect}
-                          disabled={isConnecting}
-                          className="text-xs bg-slate-900 text-white px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-50"
-                        >
-                          {isConnecting ? t.gmail.connecting : t.gmail.connect}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">{t.gmail.watchLabel}</span>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={labelInput}
-                        onChange={(e) => setLabelInput(e.target.value)}
-                        className="font-mono bg-slate-100 px-2 py-1 rounded text-sm w-32"
-                        placeholder="ETC"
-                      />
-                      <button
-                        onClick={handleLabelSave}
-                        disabled={labelInput === gmailLabel}
-                        className="text-xs bg-slate-900 text-white px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-50"
-                      >
-                        {t.common.save}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t.gmail.totalEmails}</span>
-                    <span>{syncStatus.totalEmails}</span>
-                  </div>
-                  <div className="pt-2 border-t border-slate-100 text-xs text-muted-foreground">
-                    <p>💡 {t.gmail.subLabelHint}:</p>
-                    <p className="font-mono mt-1">{gmailLabel}/키움, {gmailLabel}/삼성</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2 mt-4 flex-wrap">
-              <button
-                onClick={() => setEmailFilter('all')}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                  emailFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {t.gmail.filterAll}
-              </button>
-              {availableCategories.map((category) => {
-                const color = getCategoryColor(category, availableCategories)
-                return (
-                  <button
-                    key={category}
-                    onClick={() => setEmailFilter(category)}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                      emailFilter === category
-                        ? `${color.button} text-white`
-                        : `${color.bg} ${color.text} hover:opacity-80`
-                    }`}
-                  >
-                    {category}
-                  </button>
-                )
-              })}
-            </div>
+            <button
+              onClick={() => setIsAddingNote(true)}
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">메모</span>
+            </button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {!syncStatus.isConnected ? (
-                <div className="text-center py-8">
-                  <Mail className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-                  <p className="text-muted-foreground mb-4">{t.gmail.notConnectedMessage}</p>
-                  <button
-                    onClick={handleGmailConnect}
-                    disabled={isConnecting}
-                    className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-                  >
-                    {isConnecting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        {t.gmail.connecting}
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="h-4 w-4" />
-                        {t.gmail.connect}
-                      </>
-                    )}
-                  </button>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {/* 새 메모 추가 폼 */}
+              {isAddingNote && (
+                <div className="rounded-lg bg-white p-3 border-2 border-purple-200">
+                  <input
+                    type="text"
+                    value={newNoteTitle}
+                    onChange={(e) => setNewNoteTitle(e.target.value)}
+                    placeholder="제목"
+                    className="w-full text-sm font-medium mb-2 px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300"
+                  />
+                  <textarea
+                    value={newNoteContent}
+                    onChange={(e) => setNewNoteContent(e.target.value)}
+                    placeholder="내용을 입력하세요..."
+                    rows={3}
+                    className="w-full text-sm px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+                  />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button
+                      onClick={() => {
+                        setIsAddingNote(false)
+                        setNewNoteTitle('')
+                        setNewNoteContent('')
+                      }}
+                      className="px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleAddNote}
+                      disabled={!newNoteTitle.trim() || !newNoteContent.trim()}
+                      className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      저장
+                    </button>
+                  </div>
                 </div>
-              ) : filteredEmails.length === 0 ? (
+              )}
+
+              {/* 위키 노트 목록 */}
+              {isLoadingWiki ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                </div>
+              ) : wikiNotes.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  {isSyncing ? t.gmail.syncing : t.gmail.noEmails}
+                  <StickyNote className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                  <p className="text-sm">메모가 없습니다</p>
+                  <p className="text-xs">새 메모를 추가해보세요</p>
                 </div>
               ) : (
-                <>
-                  {paginatedEmails.map((email) => (
-                    <div
-                      key={email.id}
-                      className="rounded-lg bg-white p-3 cursor-pointer hover:bg-slate-50"
-                      onClick={() => setSelectedEmail(email)}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0 flex-1">
-                          <Mail
-                            className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
-                              email.direction === 'outbound' ? 'text-blue-500' : 'text-slate-400'
-                            }`}
-                          />
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{email.subject}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {email.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound} · {formatDate(email.date)}
-                            </p>
+                wikiNotes.map((note) => (
+                  <div key={note.id} className="rounded-lg bg-white p-3">
+                    {editingNote?.id === note.id ? (
+                      <div>
+                        <input
+                          type="text"
+                          value={editingNote.title}
+                          onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
+                          className="w-full text-sm font-medium mb-2 px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300"
+                        />
+                        <textarea
+                          value={editingNote.content}
+                          onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
+                          rows={3}
+                          className="w-full text-sm px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                          <button
+                            onClick={() => setEditingNote(null)}
+                            className="px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded"
+                          >
+                            취소
+                          </button>
+                          <button
+                            onClick={() => handleUpdateNote(editingNote)}
+                            className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
+                          >
+                            저장
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {note.is_pinned && <Pin className="h-3 w-3 text-amber-500" />}
+                            <p className="font-medium text-sm">{note.title}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleTogglePin(note)}
+                              className={`p-1 rounded hover:bg-slate-100 ${note.is_pinned ? 'text-amber-500' : 'text-slate-400'}`}
+                            >
+                              <Pin className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => setEditingNote(note)}
+                              className="p-1 rounded hover:bg-slate-100 text-slate-400"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteNote(note.id)}
+                              className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-red-500"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
                           </div>
                         </div>
-                        {email.category && (
-                          <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${getCategoryColor(email.category, availableCategories).bg} ${getCategoryColor(email.category, availableCategories).text}`}>
-                            {email.category}
-                          </span>
-                        )}
+                        <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap line-clamp-3">{note.content}</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {new Date(note.updated_at).toLocaleDateString('ko-KR')}
+                        </p>
                       </div>
-                    </div>
-                  ))}
-                  {/* 페이지네이션 */}
-                  {totalEmailPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
-                      <p className="text-xs text-muted-foreground">
-                        {filteredEmails.length}개 중 {(emailPage - 1) * emailsPerPage + 1}-{Math.min(emailPage * emailsPerPage, filteredEmails.length)}
-                      </p>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setEmailPage(1)}
-                          disabled={emailPage === 1}
-                          className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          «
-                        </button>
-                        <button
-                          onClick={() => setEmailPage(p => Math.max(1, p - 1))}
-                          disabled={emailPage === 1}
-                          className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          ‹
-                        </button>
-                        <span className="px-3 py-1 text-xs font-medium">
-                          {emailPage} / {totalEmailPages}
-                        </span>
-                        <button
-                          onClick={() => setEmailPage(p => Math.min(totalEmailPages, p + 1))}
-                          disabled={emailPage === totalEmailPages}
-                          className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          ›
-                        </button>
-                        <button
-                          onClick={() => setEmailPage(totalEmailPages)}
-                          disabled={emailPage === totalEmailPages}
-                          className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          »
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </>
+                    )}
+                  </div>
+                ))
               )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Email Section - Full Width, 2 Columns */}
+      <Card className="bg-slate-100">
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                {t.gmail.title}
+                {syncStatus.isConnected ? (
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-amber-500" />
+                )}
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                Gmail · {t.gmail.watchLabel}: {gmailLabel}
+                {syncStatus.lastSyncAt && (
+                  <span className="ml-2">· {formatRelativeTime(syncStatus.lastSyncAt, t)}</span>
+                )}
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={syncEmails}
+                disabled={isSyncing || !syncStatus.isConnected}
+                className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={handleAnalyzeEmails}
+                disabled={isAnalyzing || !syncStatus.isConnected}
+                className="flex items-center gap-2 rounded-lg bg-purple-100 px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-200 disabled:opacity-50"
+              >
+                {isAnalyzing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">{isAnalyzing ? t.gmail.analyzing : t.gmail.aiAnalysis}</span>
+              </button>
+              <button
+                onClick={() => setShowGmailSettings(!showGmailSettings)}
+                className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200"
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => {
+                  setComposeMode('new')
+                  setComposeOriginalEmail(null)
+                  setIsComposeOpen(true)
+                }}
+                className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                <Mail className="h-4 w-4" />
+                <span className="hidden sm:inline">{t.gmail.newEmail}</span>
+              </button>
+            </div>
+          </div>
+
+          {showGmailSettings && (
+            <div className="mt-4 rounded-lg bg-white p-4">
+              <h4 className="font-medium text-sm mb-3">{t.gmail.settings}</h4>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">{t.gmail.connectionStatus}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={syncStatus.isConnected ? 'text-emerald-600' : 'text-amber-600'}>
+                      {syncStatus.isConnected ? t.gmail.connected : t.gmail.notConnected}
+                    </span>
+                    {syncStatus.isConnected ? (
+                      <button
+                        onClick={handleGmailDisconnect}
+                        className="text-xs text-red-500 hover:text-red-600"
+                      >
+                        {t.gmail.disconnect}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleGmailConnect}
+                        disabled={isConnecting}
+                        className="text-xs bg-slate-900 text-white px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-50"
+                      >
+                        {isConnecting ? t.gmail.connecting : t.gmail.connect}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">{t.gmail.watchLabel}</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={labelInput}
+                      onChange={(e) => setLabelInput(e.target.value)}
+                      className="font-mono bg-slate-100 px-2 py-1 rounded text-sm w-32"
+                      placeholder="ETC"
+                    />
+                    <button
+                      onClick={handleLabelSave}
+                      disabled={labelInput === gmailLabel}
+                      className="text-xs bg-slate-900 text-white px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      {t.common.save}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t.gmail.totalEmails}</span>
+                  <span>{syncStatus.totalEmails}</span>
+                </div>
+                <div className="pt-2 border-t border-slate-100 text-xs text-muted-foreground">
+                  <p>💡 {t.gmail.subLabelHint}:</p>
+                  <p className="font-mono mt-1">{gmailLabel}/키움, {gmailLabel}/삼성</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            {/* Left Column: Filter Buttons & Email List */}
+            <div className="w-full lg:w-1/2">
+              <div className="flex gap-2 mb-4 flex-wrap">
+                <button
+                  onClick={() => setEmailFilter('all')}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    emailFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {t.gmail.filterAll}
+                </button>
+                {availableCategories.map((category) => {
+                  const color = getCategoryColor(category, availableCategories)
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => setEmailFilter(category)}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                        emailFilter === category
+                          ? `${color.button} text-white`
+                          : `${color.bg} ${color.text} hover:opacity-80`
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* 검색 입력 */}
+              <div className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={emailSearch}
+                    onChange={(e) => setEmailSearch(e.target.value)}
+                    placeholder={t.header.searchPlaceholder}
+                    className="w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm pl-9 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  />
+                  <svg
+                    className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  {emailSearch && (
+                    <button
+                      onClick={() => setEmailSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                {emailSearch && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {filteredEmails.length}개 검색됨
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {!syncStatus.isConnected ? (
+                  <div className="text-center py-8">
+                    <Mail className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                    <p className="text-muted-foreground mb-4">{t.gmail.notConnectedMessage}</p>
+                    <button
+                      onClick={handleGmailConnect}
+                      disabled={isConnecting}
+                      className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      {isConnecting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {t.gmail.connecting}
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-4 w-4" />
+                          {t.gmail.connect}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : filteredEmails.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {isSyncing ? t.gmail.syncing : t.gmail.noEmails}
+                  </div>
+                ) : (
+                  <>
+                    {paginatedEmails.map((email) => (
+                      <div
+                        key={email.id}
+                        className="rounded-lg bg-white p-3 cursor-pointer hover:bg-slate-50"
+                        onClick={() => setSelectedEmail(email)}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0 flex-1">
+                            <Mail
+                              className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
+                                email.direction === 'outbound' ? 'text-blue-500' : 'text-slate-400'
+                              }`}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm truncate">{email.subject}</p>
+                                {email.attachments && email.attachments.length > 0 && (
+                                  <Paperclip className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                                )}
+                              </div>
+                              {/* 보낸사람, 받는사람, 참조 */}
+                              <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
+                                <p className="truncate">
+                                  <span className="text-slate-400">From:</span> {email.fromName || email.from}
+                                </p>
+                                <p className="truncate">
+                                  <span className="text-slate-400">To:</span> {email.to}
+                                </p>
+                                {email.cc && (
+                                  <p className="truncate">
+                                    <span className="text-slate-400">Cc:</span> {email.cc}
+                                  </p>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {email.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound} · {formatDate(email.date)}
+                              </p>
+                              {/* 본문 미리보기 */}
+                              <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                                {email.body.replace(/\n+/g, ' ').trim() || '(내용 없음)'}
+                              </p>
+                            </div>
+                          </div>
+                          {email.category && (
+                            <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${getCategoryColor(email.category, availableCategories).bg} ${getCategoryColor(email.category, availableCategories).text}`}>
+                              {email.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {/* 페이지네이션 */}
+                    {filteredEmails.length > 0 && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 mt-4">
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground whitespace-nowrap">
+                            {filteredEmails.length}개 중 {(emailPage - 1) * emailsPerPage + 1}-{Math.min(emailPage * emailsPerPage, filteredEmails.length)}
+                          </p>
+                          <select
+                            value={emailsPerPage}
+                            onChange={(e) => {
+                              setEmailsPerPage(Number(e.target.value))
+                              setEmailPage(1)
+                            }}
+                            className="text-xs bg-white border border-slate-200 rounded px-1.5 py-0.5"
+                          >
+                            <option value={10}>10개</option>
+                            <option value={20}>20개</option>
+                            <option value={30}>30개</option>
+                            <option value={50}>50개</option>
+                            <option value={100}>100개</option>
+                          </select>
+                        </div>
+                        {totalEmailPages > 1 && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setEmailPage(1)}
+                              disabled={emailPage === 1}
+                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              «
+                            </button>
+                            <button
+                              onClick={() => setEmailPage(p => Math.max(1, p - 1))}
+                              disabled={emailPage === 1}
+                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              ‹
+                            </button>
+                            <span className="px-2 sm:px-3 py-1 text-xs font-medium">
+                              {emailPage}/{totalEmailPages}
+                            </span>
+                            <button
+                              onClick={() => setEmailPage(p => Math.min(totalEmailPages, p + 1))}
+                              disabled={emailPage === totalEmailPages}
+                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              ›
+                            </button>
+                            <button
+                              onClick={() => setEmailPage(totalEmailPages)}
+                              disabled={emailPage === totalEmailPages}
+                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              »
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column: AI Analysis */}
+            <div className="w-full lg:w-1/2">
+            {/* AI Analysis Panel */}
+            {showAiAnalysis && aiAnalysis ? (
+              <div className="rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium text-purple-900 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    {t.gmail.aiAnalysis}
+                    <span className="text-xs text-purple-600 font-normal">
+                      ({t.gmail.analysisScope.replace('{days}', '30')})
+                    </span>
+                  </h4>
+                  <button
+                    onClick={() => setShowAiAnalysis(false)}
+                    className="text-purple-400 hover:text-purple-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Overall Summary */}
+                <div className="bg-white rounded-lg p-3 mb-4">
+                  <h5 className="text-sm font-medium text-slate-700 mb-2">{t.gmail.overallSummary}</h5>
+                  <p className="text-sm text-slate-600">{aiAnalysis.overallSummary}</p>
+                </div>
+
+                {/* Categories */}
+                <div className="space-y-4">
+                  {aiAnalysis.categories.map((cat) => {
+                    const color = getCategoryColor(cat.category, availableCategories)
+                    return (
+                      <div key={cat.category} className="bg-white rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${color.bg} ${color.text}`}>
+                            {cat.category}
+                          </span>
+                          <span className="text-xs text-slate-500">{cat.emailCount} emails</span>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-3">{cat.summary}</p>
+
+                        {/* Recent Topics */}
+                        {cat.recentTopics && cat.recentTopics.length > 0 && (
+                          <div className="mb-3 flex flex-wrap gap-1.5">
+                            {cat.recentTopics.map((topic, idx) => (
+                              <span key={idx} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">
+                                {topic}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Issues */}
+                        {cat.issues.length > 0 && (
+                          <div className="mb-3">
+                            <h6 className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              {t.gmail.issues}
+                            </h6>
+                            <div className="space-y-2">
+                              {cat.issues.map((issue, idx) => (
+                                <div key={idx} className="bg-slate-50 rounded p-2">
+                                  <div className="flex items-start gap-2 mb-1">
+                                    <span className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap flex-shrink-0 ${getPriorityColor(issue.priority)}`}>
+                                      {getPriorityLabel(issue.priority)}
+                                    </span>
+                                    <span className="text-sm font-medium text-slate-700">{issue.title}</span>
+                                  </div>
+                                  <p className="text-xs text-slate-500">{issue.description}</p>
+                                  {issue.relatedEmailIds.length > 0 && (
+                                    <p className="text-xs text-slate-400 mt-1">
+                                      {t.gmail.relatedEmails.replace('{count}', String(issue.relatedEmailIds.length))}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Todos - DB에서 가져온 savedTodos 사용 */}
+                        {(() => {
+                          const categoryTodos = savedTodos.filter(t => t.category === cat.category)
+                          // 완료되지 않은 항목 + 최근 완료된 항목 (최근 5개)
+                          const incompleteTodos = categoryTodos.filter(t => !t.completed)
+                          const completedTodos = categoryTodos
+                            .filter(t => t.completed)
+                            .sort((a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime())
+                            .slice(0, 3)
+                          const displayTodos = [...incompleteTodos, ...completedTodos]
+
+                          return displayTodos.length > 0 ? (
+                            <div>
+                              <h6 className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1">
+                                <ListTodo className="h-3 w-3" />
+                                {t.gmail.todoList}
+                                <span className="text-slate-400 font-normal">
+                                  ({incompleteTodos.length}{completedTodos.length > 0 ? ` + ${completedTodos.length} done` : ''})
+                                </span>
+                              </h6>
+                              <div className="space-y-2">
+                                {displayTodos.map((todo) => (
+                                  <div key={todo.id} className={`bg-slate-50 rounded p-2 flex items-start gap-2 ${todo.completed ? 'opacity-60' : ''}`}>
+                                    <input
+                                      type="checkbox"
+                                      checked={todo.completed}
+                                      onChange={() => handleTodoToggle(todo.id, todo.completed)}
+                                      className="mt-1 rounded flex-shrink-0 cursor-pointer"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-start gap-2">
+                                        <span className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap flex-shrink-0 ${getPriorityColor(todo.priority)}`}>
+                                          {getPriorityLabel(todo.priority)}
+                                        </span>
+                                        <span className={`text-sm text-slate-700 ${todo.completed ? 'line-through text-slate-400' : ''}`}>
+                                          {todo.task}
+                                        </span>
+                                      </div>
+                                      {todo.due_date && (
+                                        <p className="text-xs text-slate-400 mt-1">Due: {todo.due_date}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : cat.todos.length > 0 ? (
+                            // savedTodos가 없을 때 aiAnalysis.todos 표시 (fallback)
+                            <div>
+                              <h6 className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1">
+                                <ListTodo className="h-3 w-3" />
+                                {t.gmail.todoList}
+                              </h6>
+                              <div className="space-y-2">
+                                {cat.todos.map((todo, idx) => (
+                                  <div key={idx} className="bg-slate-50 rounded p-2 flex items-start gap-2">
+                                    <input type="checkbox" className="mt-1 rounded flex-shrink-0" disabled />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-start gap-2">
+                                        <span className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap flex-shrink-0 ${getPriorityColor(todo.priority)}`}>
+                                          {getPriorityLabel(todo.priority)}
+                                        </span>
+                                        <span className="text-sm text-slate-700">{todo.task}</span>
+                                      </div>
+                                      {todo.dueDate && (
+                                        <p className="text-xs text-slate-400 mt-1">Due: {todo.dueDate}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null
+                        })()}
+
+                        {cat.issues.length === 0 && cat.todos.length === 0 && savedTodos.filter(t => t.category === cat.category).length === 0 && (
+                          <p className="text-xs text-slate-400 italic">{t.gmail.noIssues}</p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <p className="text-xs text-purple-400 mt-3 text-right">
+                  Generated: {new Date(aiAnalysis.generatedAt).toLocaleString()}
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Sparkles className="h-12 w-12 mx-auto mb-3 text-purple-200" />
+                <p className="mb-2">{t.gmail.noAnalysis}</p>
+                <button
+                  onClick={handleAnalyzeEmails}
+                  disabled={isAnalyzing || !syncStatus.isConnected}
+                  className="inline-flex items-center gap-2 rounded-lg bg-purple-100 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-200 disabled:opacity-50"
+                >
+                  {isAnalyzing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {isAnalyzing ? t.gmail.analyzing : t.gmail.analyzeEmails}
+                </button>
+              </div>
+            )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ETF Modal */}
       <ETFModal
