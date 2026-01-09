@@ -208,6 +208,8 @@ CREATE TABLE IF NOT EXISTS willow_invoices (
     -- Sending info
     sent_to_email VARCHAR(255),
     gmail_message_id VARCHAR(255),  -- Sent email ID
+    sent_to_etc_at TIMESTAMP WITH TIME ZONE,  -- ETC 발송 시간
+    sent_to_bank_at TIMESTAMP WITH TIME ZONE,  -- 은행 발송 시간
 
     -- Notes
     notes TEXT,
@@ -222,6 +224,8 @@ CREATE INDEX IF NOT EXISTS idx_invoices_user ON willow_invoices(user_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON willow_invoices(status);
 CREATE INDEX IF NOT EXISTS idx_invoices_date ON willow_invoices(invoice_date DESC);
 CREATE INDEX IF NOT EXISTS idx_invoices_invoice_no ON willow_invoices(invoice_no);
+CREATE INDEX IF NOT EXISTS idx_invoices_sent_etc ON willow_invoices(sent_to_etc_at) WHERE sent_to_etc_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_invoices_sent_bank ON willow_invoices(sent_to_bank_at) WHERE sent_to_bank_at IS NOT NULL;
 
 -- Trigger for updated_at
 DROP TRIGGER IF EXISTS update_willow_invoices_updated_at ON willow_invoices;

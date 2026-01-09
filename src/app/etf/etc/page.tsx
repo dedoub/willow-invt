@@ -61,24 +61,52 @@ import {
   Check,
   Clock,
   Ban,
+  Building,
 } from 'lucide-react'
 import { useRef } from 'react'
 
+// Extended invoice status type (includes partial sent states)
+type ExtendedInvoiceStatus = InvoiceStatus | 'sent_etc' | 'sent_bank'
+
 // Invoice status colors
-const INVOICE_STATUS_COLORS: Record<InvoiceStatus, { bg: string; text: string; icon: typeof Check }> = {
+const INVOICE_STATUS_COLORS: Record<ExtendedInvoiceStatus, { bg: string; text: string; icon: typeof Check }> = {
   draft: { bg: 'bg-slate-100', text: 'text-slate-600', icon: FileText },
-  sent: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Send },
+  sent_etc: { bg: 'bg-blue-100', text: 'text-blue-700', icon: Send },
+  sent_bank: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Send },
+  sent: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: Send },
   paid: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: Check },
   overdue: { bg: 'bg-red-100', text: 'text-red-700', icon: AlertCircle },
   cancelled: { bg: 'bg-slate-200', text: 'text-slate-500', icon: Ban },
 }
 
-const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+const INVOICE_STATUS_LABELS: Record<ExtendedInvoiceStatus, string> = {
   draft: '작성중',
-  sent: '발송됨',
+  sent_etc: 'ETC 발송됨',
+  sent_bank: '은행 발송됨',
+  sent: '발송완료',
   paid: '입금완료',
   overdue: '연체',
   cancelled: '취소',
+}
+
+// 실제 발송 상태 기반으로 effective status 계산
+function getEffectiveInvoiceStatus(invoice: Invoice): ExtendedInvoiceStatus {
+  if (invoice.status === 'paid' || invoice.status === 'cancelled' || invoice.status === 'overdue') {
+    return invoice.status
+  }
+  // 둘 다 발송했으면 'sent'
+  if (invoice.sent_to_etc_at && invoice.sent_to_bank_at) {
+    return 'sent'
+  }
+  // ETC만 발송
+  if (invoice.sent_to_etc_at) {
+    return 'sent_etc'
+  }
+  // 은행만 발송
+  if (invoice.sent_to_bank_at) {
+    return 'sent_bank'
+  }
+  return 'draft'
 }
 
 function formatCurrency(value: number, currency: string = 'USD') {
@@ -1033,12 +1061,18 @@ function ComposeEmailModal({
   onClose,
   mode,
   originalEmail,
+  initialData,
+  initialAttachments,
+  onSendSuccess,
   t,
 }: {
   isOpen: boolean
   onClose: () => void
   mode: ComposeMode
   originalEmail: ParsedEmail | null
+  initialData?: Partial<ComposeEmailData>
+  initialAttachments?: File[]
+  onSendSuccess?: () => void
   t: ReturnType<typeof useI18n>['t']
 }) {
   const [formData, setFormData] = useState<ComposeEmailData>({
@@ -1097,16 +1131,19 @@ function ComposeEmailModal({
       }
     } else if (isOpen && mode === 'new') {
       setFormData({
-        to: '',
-        cc: '',
-        bcc: '',
-        subject: '',
-        body: '',
+        to: initialData?.to || '',
+        cc: initialData?.cc || '',
+        bcc: initialData?.bcc || '',
+        subject: initialData?.subject || '',
+        body: initialData?.body || '',
       })
+      setAttachments(initialAttachments || [])
+      setError(null)
+      return
     }
     setAttachments([])
     setError(null)
-  }, [isOpen, mode, originalEmail])
+  }, [isOpen, mode, originalEmail, initialData, initialAttachments])
 
   // 파일 선택 핸들러
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1155,6 +1192,7 @@ function ComposeEmailModal({
       })
 
       if (result.success) {
+        onSendSuccess?.()
         onClose()
       } else {
         setError(result.error || t.gmail.sendFailed)
@@ -1341,6 +1379,8 @@ export default function ETCPage() {
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(true)
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null)
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+  const [invoicePage, setInvoicePage] = useState(1)
+  const INVOICES_PER_PAGE = 5
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
   const [isSavingInvoice, setIsSavingInvoice] = useState(false)
   const [isSendingInvoice, setIsSendingInvoice] = useState<string | null>(null)
@@ -1348,12 +1388,25 @@ export default function ETCPage() {
   // 인보이스 생성 폼 상태
   const [invoiceFormDate, setInvoiceFormDate] = useState('')
   const [invoiceFormAttention, setInvoiceFormAttention] = useState<string>(DEFAULT_CLIENT.attention)
-  const [invoiceFormItemType, setInvoiceFormItemType] = useState<InvoiceItemType>('monthly_fee')
-  const [invoiceFormMonth, setInvoiceFormMonth] = useState(new Date().getMonth())
-  const [invoiceFormYear, setInvoiceFormYear] = useState(new Date().getFullYear())
-  const [invoiceFormCustomDesc, setInvoiceFormCustomDesc] = useState('')
-  const [invoiceFormAmount, setInvoiceFormAmount] = useState('')
   const [invoiceFormNotes, setInvoiceFormNotes] = useState('')
+  // 다중 항목 지원
+  interface InvoiceFormItem {
+    id: string
+    itemType: InvoiceItemType
+    month: number
+    year: number
+    customDesc: string
+    amount: string
+  }
+  const createEmptyItem = (): InvoiceFormItem => ({
+    id: crypto.randomUUID(),
+    itemType: 'monthly_fee',
+    month: new Date().getMonth(),
+    year: new Date().getFullYear(),
+    customDesc: '',
+    amount: '',
+  })
+  const [invoiceFormItems, setInvoiceFormItems] = useState<InvoiceFormItem[]>([createEmptyItem()])
 
   // Modal 상태
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -1383,6 +1436,9 @@ export default function ETCPage() {
   const [isComposeOpen, setIsComposeOpen] = useState(false)
   const [composeMode, setComposeMode] = useState<'new' | 'reply' | 'replyAll' | 'forward'>('new')
   const [composeOriginalEmail, setComposeOriginalEmail] = useState<ParsedEmail | null>(null)
+  const [composeInitialData, setComposeInitialData] = useState<Partial<ComposeEmailData> | undefined>(undefined)
+  const [composeInitialAttachments, setComposeInitialAttachments] = useState<File[] | undefined>(undefined)
+  const [pendingInvoiceSend, setPendingInvoiceSend] = useState<{ invoiceId: string; recipientType: 'etc' | 'bank' } | null>(null)
 
   // AI 분석 상태
   const [aiAnalysis, setAiAnalysis] = useState<OverallAnalysisResult | null>(null)
@@ -1498,12 +1554,8 @@ export default function ETCPage() {
   const resetInvoiceForm = () => {
     setInvoiceFormDate(new Date().toISOString().split('T')[0])
     setInvoiceFormAttention(DEFAULT_CLIENT.attention)
-    setInvoiceFormItemType('monthly_fee')
-    setInvoiceFormMonth(new Date().getMonth())
-    setInvoiceFormYear(new Date().getFullYear())
-    setInvoiceFormCustomDesc('')
-    setInvoiceFormAmount('')
     setInvoiceFormNotes('')
+    setInvoiceFormItems([createEmptyItem()])
     setEditingInvoice(null)
   }
 
@@ -1512,39 +1564,65 @@ export default function ETCPage() {
     setIsInvoiceModalOpen(true)
   }
 
-  const getInvoiceItemDescription = (): string => {
-    if (invoiceFormItemType === 'custom') {
-      return invoiceFormCustomDesc
+  const getItemDescription = (item: InvoiceFormItem): string => {
+    if (item.itemType === 'custom') {
+      return item.customDesc
     }
-    const template = ITEM_TEMPLATES.find(t => t.type === invoiceFormItemType)
+    const template = ITEM_TEMPLATES.find(t => t.type === item.itemType)
     if (!template) return ''
     return template.descriptionTemplate
-      .replace('{month}', MONTH_NAMES[invoiceFormMonth])
-      .replace('{year}', String(invoiceFormYear))
+      .replace('{month}', MONTH_NAMES[item.month])
+      .replace('{year}', String(item.year))
+  }
+
+  const updateFormItem = (id: string, updates: Partial<InvoiceFormItem>) => {
+    setInvoiceFormItems(items => items.map(item =>
+      item.id === id ? { ...item, ...updates } : item
+    ))
+  }
+
+  const addFormItem = () => {
+    setInvoiceFormItems(items => [...items, createEmptyItem()])
+  }
+
+  const removeFormItem = (id: string) => {
+    setInvoiceFormItems(items => items.filter(item => item.id !== id))
   }
 
   const handleSaveInvoice = async () => {
-    const amount = parseFloat(invoiceFormAmount)
-    if (!invoiceFormDate || isNaN(amount) || amount <= 0) {
-      alert('날짜와 금액을 입력해주세요.')
+    if (!invoiceFormDate) {
+      alert('날짜를 입력해주세요.')
       return
     }
 
-    const description = getInvoiceItemDescription()
-    if (!description) {
-      alert('항목 설명을 입력해주세요.')
+    // Validate all items
+    const lineItems: LineItem[] = []
+    for (const item of invoiceFormItems) {
+      const amount = parseFloat(item.amount)
+      if (isNaN(amount) || amount <= 0) {
+        alert('모든 항목의 금액을 올바르게 입력해주세요.')
+        return
+      }
+      const description = getItemDescription(item)
+      if (!description) {
+        alert('모든 항목의 설명을 입력해주세요.')
+        return
+      }
+      lineItems.push({
+        description,
+        qty: null,
+        unitPrice: null,
+        amount,
+      })
+    }
+
+    if (lineItems.length === 0) {
+      alert('최소 하나의 항목을 추가해주세요.')
       return
     }
 
     setIsSavingInvoice(true)
     try {
-      const lineItems: LineItem[] = [{
-        description,
-        qty: null,
-        unitPrice: null,
-        amount,
-      }]
-
       const payload = {
         invoice_date: invoiceFormDate,
         attention: invoiceFormAttention,
@@ -1596,29 +1674,108 @@ export default function ETCPage() {
     }
   }
 
-  const handleSendInvoice = async (invoiceId: string) => {
-    if (!confirm('인보이스를 이메일로 발송하시겠습니까?')) return
+  const handleSendInvoice = async (invoiceId: string, recipientType: 'etc' | 'bank') => {
+    // Find the invoice to get details
+    const invoice = invoices.find(inv => inv.id === invoiceId)
+    if (!invoice) return
 
     setIsSendingInvoice(invoiceId)
     try {
-      const res = await fetch(`/api/invoices/${invoiceId}/send`, {
-        method: 'POST',
+      // Fetch the PDF
+      const res = await fetch(`/api/invoices/${invoiceId}/pdf`)
+      if (!res.ok) {
+        alert('PDF 생성에 실패했습니다.')
+        return
+      }
+
+      const blob = await res.blob()
+      const filename = `Willow_Invoice_${invoice.invoice_no.replace('#', '')}_${invoice.invoice_date.replace(/-/g, '')}.pdf`
+      const pdfFile = new File([blob], filename, { type: 'application/pdf' })
+
+      // Prepare email content based on recipient type
+      let emailTo: string
+      let emailSubject: string
+      let emailBody: string
+
+      // Get item name from first line item
+      const itemName = invoice.line_items?.[0]?.description || 'services'
+
+      if (recipientType === 'etc') {
+        emailTo = 'kyle@exchangetradedconcepts.com'
+        emailSubject = `Willow Investments - ${itemName}`
+        emailBody = `Hi Kyle,
+
+Attached is my invoice for the ${itemName}.
+
+Please let me know once the payment is made so I can inform my bank.
+
+Thank you.
+
+
+Best,
+
+Dongwook`
+      } else {
+        emailTo = 'ysjmto@shinhan.com'
+        emailSubject = `윌로우인베스트먼트 외화인보이스 - ${invoice.invoice_no}`
+        emailBody = `안녕하세요.
+
+당사 추가 외화 인보이스 첨부와 같이 보내 드립니다.
+
+이에 확인 부탁 드립니다.
+
+감사합니다.
+
+김동욱 드림 (010-9629-1025)`
+      }
+
+      // Set initial compose data and open modal
+      setComposeInitialData({
+        to: emailTo,
+        subject: emailSubject,
+        body: emailBody,
+      })
+      setComposeInitialAttachments([pdfFile])
+      setPendingInvoiceSend({ invoiceId, recipientType })
+      setComposeMode('new')
+      setComposeOriginalEmail(null)
+      setIsComposeOpen(true)
+    } catch (error) {
+      console.error('Failed to prepare invoice email:', error)
+      alert('인보이스 이메일 준비에 실패했습니다.')
+    } finally {
+      setIsSendingInvoice(null)
+    }
+  }
+
+  // 인보이스 이메일 발송 성공 시 상태 업데이트
+  const handleInvoiceEmailSent = async () => {
+    if (!pendingInvoiceSend) return
+
+    const { invoiceId, recipientType } = pendingInvoiceSend
+    const now = new Date().toISOString()
+
+    try {
+      const updateData: Record<string, string> = {}
+      if (recipientType === 'etc') {
+        updateData.sent_to_etc_at = now
+      } else {
+        updateData.sent_to_bank_at = now
+      }
+
+      const res = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: DEFAULT_CLIENT.email }),
+        body: JSON.stringify(updateData),
       })
 
       if (res.ok) {
-        alert('인보이스가 발송되었습니다.')
         await loadInvoices()
-      } else {
-        const err = await res.json()
-        alert(`발송 실패: ${err.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Failed to send invoice:', error)
-      alert('인보이스 발송에 실패했습니다.')
+      console.error('Failed to update invoice status:', error)
     } finally {
-      setIsSendingInvoice(null)
+      setPendingInvoiceSend(null)
     }
   }
 
@@ -2306,20 +2463,29 @@ export default function ETCPage() {
             </button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-[350px] overflow-y-auto">
-              {isLoadingInvoices ? (
-                <div className="text-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                </div>
-              ) : invoices.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                  <p className="text-sm">인보이스가 없습니다</p>
-                  <p className="text-xs">새 인보이스를 생성해보세요</p>
-                </div>
-              ) : (
-                invoices.map((invoice) => {
-                  const statusStyle = INVOICE_STATUS_COLORS[invoice.status]
+            {(() => {
+              const totalPages = Math.ceil(invoices.length / INVOICES_PER_PAGE)
+              const paginatedInvoices = invoices.slice(
+                (invoicePage - 1) * INVOICES_PER_PAGE,
+                invoicePage * INVOICES_PER_PAGE
+              )
+              return (
+                <>
+                  <div className="space-y-2">
+                    {isLoadingInvoices ? (
+                      <div className="text-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                      </div>
+                    ) : invoices.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                        <p className="text-sm">인보이스가 없습니다</p>
+                        <p className="text-xs">새 인보이스를 생성해보세요</p>
+                      </div>
+                    ) : (
+                      paginatedInvoices.map((invoice) => {
+                  const effectiveStatus = getEffectiveInvoiceStatus(invoice)
+                  const statusStyle = INVOICE_STATUS_COLORS[effectiveStatus]
                   const StatusIcon = statusStyle.icon
                   const firstItem = (invoice.line_items as LineItem[])[0]
                   return (
@@ -2340,7 +2506,7 @@ export default function ETCPage() {
                         <div className="flex items-center gap-2">
                           <span className={`rounded-full px-2 py-0.5 text-xs flex items-center gap-1 ${statusStyle.bg} ${statusStyle.text}`}>
                             <StatusIcon className="h-3 w-3" />
-                            {INVOICE_STATUS_LABELS[invoice.status]}
+                            {INVOICE_STATUS_LABELS[effectiveStatus]}
                           </span>
                           {expandedInvoice === invoice.id ? (
                             <ChevronUp className="h-4 w-4 text-slate-400" />
@@ -2360,52 +2526,68 @@ export default function ETCPage() {
                           <div className="flex flex-wrap gap-2">
                             <button
                               onClick={(e) => { e.stopPropagation(); handleDownloadPdf(invoice.id) }}
-                              className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-medium hover:bg-slate-200"
+                              className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-medium hover:bg-slate-200 cursor-pointer"
                             >
                               <Download className="h-3 w-3" />
                               PDF
                             </button>
-                            {invoice.status === 'draft' && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id) }}
-                                disabled={isSendingInvoice === invoice.id}
-                                className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                              >
-                                {isSendingInvoice === invoice.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Send className="h-3 w-3" />
-                                )}
-                                발송
-                              </button>
-                            )}
-                            {invoice.status === 'sent' && (
+                            {effectiveStatus !== 'paid' && effectiveStatus !== 'cancelled' && (
                               <>
+                                {/* ETC 발송 버튼 */}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id) }}
+                                  onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'etc') }}
                                   disabled={isSendingInvoice === invoice.id}
-                                  className="flex items-center gap-1 rounded bg-slate-200 px-2 py-1 text-xs font-medium hover:bg-slate-300 disabled:opacity-50"
+                                  className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
+                                    invoice.sent_to_etc_at
+                                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                                  }`}
                                 >
                                   {isSendingInvoice === invoice.id ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : invoice.sent_to_etc_at ? (
+                                    <Check className="h-3 w-3" />
                                   ) : (
                                     <Send className="h-3 w-3" />
                                   )}
-                                  재발송
+                                  ETC 발송
                                 </button>
+                                {/* 은행 발송 버튼 */}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); handleUpdateInvoiceStatus(invoice.id, 'paid') }}
-                                  className="flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+                                  onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'bank') }}
+                                  disabled={isSendingInvoice === invoice.id}
+                                  className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
+                                    invoice.sent_to_bank_at
+                                      ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                      : 'bg-amber-600 text-white hover:bg-amber-700'
+                                  }`}
                                 >
-                                  <Check className="h-3 w-3" />
-                                  입금확인
+                                  {isSendingInvoice === invoice.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : invoice.sent_to_bank_at ? (
+                                    <Building className="h-3 w-3" />
+                                  ) : (
+                                    <Send className="h-3 w-3" />
+                                  )}
+                                  은행 발송
                                 </button>
+                                {/* 입금확인 버튼 - 최소 하나 발송 완료 시 */}
+                                {(invoice.sent_to_etc_at || invoice.sent_to_bank_at) && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleUpdateInvoiceStatus(invoice.id, 'paid') }}
+                                    className="flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 cursor-pointer"
+                                  >
+                                    <Check className="h-3 w-3" />
+                                    입금확인
+                                  </button>
+                                )}
                               </>
                             )}
-                            {invoice.status === 'draft' && (
+                            {/* 삭제 버튼 - 미발송 상태에서만 */}
+                            {!invoice.sent_to_etc_at && !invoice.sent_to_bank_at && effectiveStatus !== 'paid' && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(invoice.id) }}
-                                className="flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-200"
+                                className="flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-200 cursor-pointer"
                               >
                                 <Trash2 className="h-3 w-3" />
                                 삭제
@@ -2413,17 +2595,24 @@ export default function ETCPage() {
                             )}
                           </div>
 
-                          {/* 발송 정보 */}
-                          {invoice.sent_at && (
-                            <p className="text-xs text-muted-foreground">
-                              발송: {new Date(invoice.sent_at).toLocaleDateString('ko-KR')} → {invoice.sent_to_email}
-                            </p>
-                          )}
-                          {invoice.paid_at && (
-                            <p className="text-xs text-emerald-600">
-                              입금: {new Date(invoice.paid_at).toLocaleDateString('ko-KR')}
-                            </p>
-                          )}
+                          {/* 발송 정보 - 한 줄로 표시 */}
+                          <div className="flex flex-wrap gap-3 text-xs">
+                            <span className={invoice.sent_to_etc_at ? 'text-blue-600' : 'text-muted-foreground'}>
+                              ETC: {invoice.sent_to_etc_at
+                                ? new Date(invoice.sent_to_etc_at).toLocaleDateString('ko-KR')
+                                : '미발송'}
+                            </span>
+                            <span className={invoice.sent_to_bank_at ? 'text-amber-600' : 'text-muted-foreground'}>
+                              은행: {invoice.sent_to_bank_at
+                                ? new Date(invoice.sent_to_bank_at).toLocaleDateString('ko-KR')
+                                : '미발송'}
+                            </span>
+                            <span className={invoice.paid_at ? 'text-emerald-600' : 'text-muted-foreground'}>
+                              입금: {invoice.paid_at
+                                ? new Date(invoice.paid_at).toLocaleDateString('ko-KR')
+                                : '미확인'}
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2431,7 +2620,53 @@ export default function ETCPage() {
                 })
               )}
             </div>
-          </CardContent>
+            {/* Pagination controls */}
+            {invoices.length > 0 && (
+              <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
+                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                  {invoices.length}개 중 {(invoicePage - 1) * INVOICES_PER_PAGE + 1}-{Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)}
+                </p>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setInvoicePage(1)}
+                      disabled={invoicePage === 1}
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      «
+                    </button>
+                    <button
+                      onClick={() => setInvoicePage(p => Math.max(1, p - 1))}
+                      disabled={invoicePage === 1}
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ‹
+                    </button>
+                    <span className="px-2 py-1 text-xs font-medium">
+                      {invoicePage}/{totalPages}
+                    </span>
+                    <button
+                      onClick={() => setInvoicePage(p => Math.min(totalPages, p + 1))}
+                      disabled={invoicePage === totalPages}
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ›
+                    </button>
+                    <button
+                      onClick={() => setInvoicePage(totalPages)}
+                      disabled={invoicePage === totalPages}
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      »
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )
+      })()}
+        </CardContent>
         </Card>
 
         {/* Invoice Creation Modal */}
@@ -2471,84 +2706,109 @@ export default function ETCPage() {
                   />
                 </div>
 
-                {/* Item Type */}
+                {/* Line Items */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">항목 유형</label>
-                  <select
-                    value={invoiceFormItemType}
-                    onChange={(e) => setInvoiceFormItemType(e.target.value as InvoiceItemType)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  >
-                    {ITEM_TEMPLATES.map((template) => (
-                      <option key={template.type} value={template.type}>
-                        {template.label}
-                      </option>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium">항목</label>
+                    <button
+                      type="button"
+                      onClick={addFormItem}
+                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    >
+                      <Plus className="h-3 w-3" />
+                      항목 추가
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {invoiceFormItems.map((item, index) => (
+                      <div key={item.id} className="p-3 bg-slate-50 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-slate-500">항목 {index + 1}</span>
+                          {invoiceFormItems.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeFormItem(item.id)}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                        {/* Item Type */}
+                        <select
+                          value={item.itemType}
+                          onChange={(e) => updateFormItem(item.id, { itemType: e.target.value as InvoiceItemType })}
+                          className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        >
+                          {ITEM_TEMPLATES.map((template) => (
+                            <option key={template.type} value={template.type}>
+                              {template.label}
+                            </option>
+                          ))}
+                        </select>
+                        {/* Month/Year for preset types */}
+                        {item.itemType !== 'custom' && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <select
+                              value={item.month}
+                              onChange={(e) => updateFormItem(item.id, { month: parseInt(e.target.value) })}
+                              className="px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                              {MONTH_NAMES.map((name, idx) => (
+                                <option key={idx} value={idx}>{name}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={item.year}
+                              onChange={(e) => updateFormItem(item.id, { year: parseInt(e.target.value) })}
+                              className="px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                              {[2024, 2025, 2026, 2027].map((year) => (
+                                <option key={year} value={year}>{year}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        {/* Custom Description */}
+                        {item.itemType === 'custom' && (
+                          <input
+                            type="text"
+                            value={item.customDesc}
+                            onChange={(e) => updateFormItem(item.id, { customDesc: e.target.value })}
+                            placeholder="항목 설명"
+                            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          />
+                        )}
+                        {/* Preview */}
+                        {item.itemType !== 'custom' && (
+                          <div className="text-xs text-slate-500 bg-white px-2 py-1 rounded">
+                            {getItemDescription(item)}
+                          </div>
+                        )}
+                        {/* Amount */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-slate-500">$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={item.amount}
+                            onChange={(e) => updateFormItem(item.id, { amount: e.target.value })}
+                            placeholder="2083.33"
+                            className="flex-1 px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          />
+                        </div>
+                      </div>
                     ))}
-                  </select>
-                </div>
-
-                {/* Month/Year for preset types */}
-                {invoiceFormItemType !== 'custom' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">월</label>
-                      <select
-                        value={invoiceFormMonth}
-                        onChange={(e) => setInvoiceFormMonth(parseInt(e.target.value))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-                      >
-                        {MONTH_NAMES.map((name, idx) => (
-                          <option key={idx} value={idx}>{name}</option>
-                        ))}
-                      </select>
+                  </div>
+                  {/* Total */}
+                  {invoiceFormItems.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center">
+                      <span className="text-sm font-medium">합계</span>
+                      <span className="text-sm font-bold">
+                        ${invoiceFormItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">연도</label>
-                      <select
-                        value={invoiceFormYear}
-                        onChange={(e) => setInvoiceFormYear(parseInt(e.target.value))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-                      >
-                        {[2024, 2025, 2026, 2027].map((year) => (
-                          <option key={year} value={year}>{year}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {/* Custom Description */}
-                {invoiceFormItemType === 'custom' && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">항목 설명</label>
-                    <input
-                      type="text"
-                      value={invoiceFormCustomDesc}
-                      onChange={(e) => setInvoiceFormCustomDesc(e.target.value)}
-                      placeholder="예: Consulting Fee - Q1 2026"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-                    />
-                  </div>
-                )}
-
-                {/* Preview Description */}
-                {invoiceFormItemType !== 'custom' && (
-                  <div className="p-2 bg-slate-50 rounded text-sm text-slate-600">
-                    {getInvoiceItemDescription()}
-                  </div>
-                )}
-
-                {/* Amount */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">금액 (USD)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={invoiceFormAmount}
-                    onChange={(e) => setInvoiceFormAmount(e.target.value)}
-                    placeholder="2083.33"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  />
+                  )}
                 </div>
 
                 {/* Notes */}
@@ -2909,10 +3169,10 @@ export default function ETCPage() {
           <div className="flex flex-col lg:flex-row gap-6 items-start">
             {/* Left Column: Filter Buttons & Email List */}
             <div className="w-full lg:w-1/2">
-              <div className="flex gap-2 mb-4 flex-wrap">
+              <div className="flex gap-1.5 mb-4 flex-wrap">
                 <button
                   onClick={() => setEmailFilter('all')}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
                     emailFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -2924,7 +3184,7 @@ export default function ETCPage() {
                     <button
                       key={category}
                       onClick={() => setEmailFilter(category)}
-                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                      className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
                         emailFilter === category
                           ? `${color.button} text-white`
                           : `${color.bg} ${color.text} hover:opacity-80`
@@ -3431,9 +3691,15 @@ export default function ETCPage() {
         onClose={() => {
           setIsComposeOpen(false)
           setComposeOriginalEmail(null)
+          setComposeInitialData(undefined)
+          setComposeInitialAttachments(undefined)
+          setPendingInvoiceSend(null)
         }}
         mode={composeMode}
         originalEmail={composeOriginalEmail}
+        initialData={composeInitialData}
+        initialAttachments={composeInitialAttachments}
+        onSendSuccess={handleInvoiceEmailSent}
         t={t}
       />
     </div>

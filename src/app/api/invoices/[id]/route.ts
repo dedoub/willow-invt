@@ -61,6 +61,8 @@ export async function PATCH(
     if (body.notes !== undefined) updateData.notes = body.notes
     if (body.sent_to_email !== undefined) updateData.sent_to_email = body.sent_to_email
     if (body.gmail_message_id !== undefined) updateData.gmail_message_id = body.gmail_message_id
+    if (body.sent_to_etc_at !== undefined) updateData.sent_to_etc_at = body.sent_to_etc_at
+    if (body.sent_to_bank_at !== undefined) updateData.sent_to_bank_at = body.sent_to_bank_at
 
     // Handle line_items update (recalculate total)
     if (body.line_items !== undefined) {
