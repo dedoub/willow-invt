@@ -233,3 +233,35 @@ CREATE TRIGGER update_willow_invoices_updated_at
     BEFORE UPDATE ON willow_invoices
     FOR EACH ROW
     EXECUTE FUNCTION willow_update_updated_at_column();
+
+-- ============================================
+-- Work Wiki Table (업무 위키)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS work_wiki (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    section VARCHAR(50) NOT NULL DEFAULT 'etf-etc',
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    category VARCHAR(50),
+    is_pinned BOOLEAN DEFAULT false,
+    attachments JSONB,  -- 첨부파일 메타데이터 [{name, url, size, type}]
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_work_wiki_user ON work_wiki(user_id);
+CREATE INDEX IF NOT EXISTS idx_work_wiki_section ON work_wiki(section);
+CREATE INDEX IF NOT EXISTS idx_work_wiki_pinned ON work_wiki(is_pinned DESC);
+
+-- Trigger for updated_at
+DROP TRIGGER IF EXISTS update_work_wiki_updated_at ON work_wiki;
+CREATE TRIGGER update_work_wiki_updated_at
+    BEFORE UPDATE ON work_wiki
+    FOR EACH ROW
+    EXECUTE FUNCTION willow_update_updated_at_column();
+
+-- Add attachments column if table already exists
+-- ALTER TABLE work_wiki ADD COLUMN IF NOT EXISTS attachments JSONB;

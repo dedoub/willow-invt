@@ -1459,6 +1459,13 @@ export default function ETCPage() {
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
 
   // 업무 위키 상태
+  interface WikiAttachment {
+    name: string
+    url: string
+    size: number
+    type: string
+  }
+
   interface WikiNote {
     id: string
     user_id: string
@@ -1467,6 +1474,7 @@ export default function ETCPage() {
     content: string
     category: string | null
     is_pinned: boolean
+    attachments: WikiAttachment[] | null
     created_at: string
     updated_at: string
   }
@@ -1476,6 +1484,12 @@ export default function ETCPage() {
   const [editingNote, setEditingNote] = useState<WikiNote | null>(null)
   const [newNoteTitle, setNewNoteTitle] = useState('')
   const [newNoteContent, setNewNoteContent] = useState('')
+  const [newNoteFiles, setNewNoteFiles] = useState<File[]>([])
+  const [isDraggingWiki, setIsDraggingWiki] = useState(false)
+  const [isUploadingWiki, setIsUploadingWiki] = useState(false)
+  const [wikiSearch, setWikiSearch] = useState('')
+  const [wikiPage, setWikiPage] = useState(1)
+  const WIKI_PER_PAGE = 5
 
   // ETF 데이터 로드
   const loadETFData = async () => {
@@ -1836,6 +1850,25 @@ Dongwook`
     if (!newNoteTitle.trim() || !newNoteContent.trim()) return
 
     try {
+      setIsUploadingWiki(true)
+      let attachments: WikiAttachment[] | null = null
+
+      // 파일이 있으면 먼저 업로드
+      if (newNoteFiles.length > 0) {
+        const formData = new FormData()
+        newNoteFiles.forEach(file => formData.append('files', file))
+
+        const uploadRes = await fetch('/api/wiki/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json()
+          attachments = uploadData.files
+        }
+      }
+
       const res = await fetch('/api/wiki', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1843,16 +1876,20 @@ Dongwook`
           section: 'etf-etc',
           title: newNoteTitle.trim(),
           content: newNoteContent.trim(),
+          attachments,
         }),
       })
       if (res.ok) {
         setNewNoteTitle('')
         setNewNoteContent('')
+        setNewNoteFiles([])
         setIsAddingNote(false)
         await loadWikiNotes()
       }
     } catch (error) {
       console.error('Failed to add wiki note:', error)
+    } finally {
+      setIsUploadingWiki(false)
     }
   }
 
@@ -2200,6 +2237,26 @@ Dongwook`
     setEmailPage(1)
   }, [emailFilter, emailSearch, relatedEmailIds])
 
+  // 위키 검색 필터 적용
+  const filteredWikiNotes = wikiSearch.trim()
+    ? wikiNotes.filter((note) => {
+        const searchLower = wikiSearch.toLowerCase()
+        return (
+          note.title.toLowerCase().includes(searchLower) ||
+          note.content.toLowerCase().includes(searchLower)
+        )
+      })
+    : wikiNotes
+
+  // 위키 페이지네이션 계산
+  const totalWikiPages = Math.ceil(filteredWikiNotes.length / WIKI_PER_PAGE)
+  const paginatedWikiNotes = filteredWikiNotes.slice((wikiPage - 1) * WIKI_PER_PAGE, wikiPage * WIKI_PER_PAGE)
+
+  // 위키 검색 변경 시 페이지 초기화
+  useEffect(() => {
+    setWikiPage(1)
+  }, [wikiSearch])
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -2300,7 +2357,7 @@ Dongwook`
             <button
               onClick={loadETFData}
               disabled={isLoadingETFs}
-              className="flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200"
+              className="flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 cursor-pointer"
             >
               <RefreshCw className={`h-4 w-4 ${isLoadingETFs ? 'animate-spin' : ''}`} />
             </button>
@@ -2309,7 +2366,7 @@ Dongwook`
                 setEditingETF(null)
                 setIsModalOpen(true)
               }}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               {t.etf.addEtf}
@@ -2413,7 +2470,7 @@ Dongwook`
                               setEditingETF(etf)
                               setIsModalOpen(true)
                             }}
-                            className="rounded p-1 hover:bg-slate-200"
+                            className="rounded p-1 hover:bg-slate-200 cursor-pointer"
                             title={t.etf.actions.edit}
                           >
                             <Pencil className="h-4 w-4 text-slate-600" />
@@ -2423,12 +2480,12 @@ Dongwook`
                               setDocumentETF(etf)
                               setIsDocModalOpen(true)
                             }}
-                            className="rounded p-1 hover:bg-slate-200"
+                            className="rounded p-1 hover:bg-slate-200 cursor-pointer"
                             title={t.etf.actions.documents}
                           >
                             <Archive className="h-4 w-4 text-slate-600" />
                           </button>
-                          <button onClick={() => handleDeleteETF(etf)} className="rounded p-1 hover:bg-slate-200" title={t.etf.actions.delete}>
+                          <button onClick={() => handleDeleteETF(etf)} className="rounded p-1 hover:bg-slate-200 cursor-pointer" title={t.etf.actions.delete}>
                             <Trash2 className="h-4 w-4 text-slate-600" />
                           </button>
                         </div>
@@ -2456,7 +2513,7 @@ Dongwook`
             </div>
             <button
               onClick={openNewInvoiceModal}
-              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">생성</span>
@@ -2855,17 +2912,68 @@ Dongwook`
             </div>
             <button
               onClick={() => setIsAddingNote(true)}
-              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">메모</span>
             </button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {/* 검색 입력 */}
+            <div className="mb-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={wikiSearch}
+                  onChange={(e) => setWikiSearch(e.target.value)}
+                  placeholder="메모 검색..."
+                  className="w-full rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-sm pl-8 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                />
+                <svg
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                {wikiSearch && (
+                  <button
+                    onClick={() => setWikiSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              {wikiSearch && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {filteredWikiNotes.length}개 검색됨
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2 max-h-[250px] overflow-y-auto">
               {/* 새 메모 추가 폼 */}
               {isAddingNote && (
-                <div className="rounded-lg bg-white p-3 border-2 border-purple-200">
+                <div
+                  className={`rounded-lg bg-white p-3 border-2 transition-colors ${
+                    isDraggingWiki ? 'border-purple-400 bg-purple-50' : 'border-purple-200'
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setIsDraggingWiki(true)
+                  }}
+                  onDragLeave={() => setIsDraggingWiki(false)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setIsDraggingWiki(false)
+                    const files = Array.from(e.dataTransfer.files)
+                    if (files.length > 0) {
+                      setNewNoteFiles(prev => [...prev, ...files])
+                    }
+                  }}
+                >
                   <input
                     type="text"
                     value={newNoteTitle}
@@ -2880,12 +2988,61 @@ Dongwook`
                     rows={3}
                     className="w-full text-sm px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
                   />
+
+                  {/* 파일 첨부 영역 */}
+                  <div className="mt-2">
+                    <div className={`border border-dashed rounded p-2 text-center transition-colors ${
+                      isDraggingWiki ? 'border-purple-400 bg-purple-50' : 'border-slate-300'
+                    }`}>
+                      <input
+                        type="file"
+                        id="wiki-file-input"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || [])
+                          if (files.length > 0) {
+                            setNewNoteFiles(prev => [...prev, ...files])
+                          }
+                          e.target.value = ''
+                        }}
+                      />
+                      <label
+                        htmlFor="wiki-file-input"
+                        className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-purple-600"
+                      >
+                        <Paperclip className="h-3 w-3" />
+                        <span>파일 첨부 (드래그 또는 클릭)</span>
+                      </label>
+                    </div>
+
+                    {/* 첨부된 파일 목록 */}
+                    {newNoteFiles.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {newNoteFiles.map((file, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 rounded px-2 py-1">
+                            <Paperclip className="h-3 w-3 text-slate-400" />
+                            <span className="flex-1 truncate">{file.name}</span>
+                            <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                            <button
+                              onClick={() => setNewNoteFiles(prev => prev.filter((_, i) => i !== idx))}
+                              className="text-slate-400 hover:text-red-500"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex justify-end gap-2 mt-2">
                     <button
                       onClick={() => {
                         setIsAddingNote(false)
                         setNewNoteTitle('')
                         setNewNoteContent('')
+                        setNewNoteFiles([])
                       }}
                       className="px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded"
                     >
@@ -2893,10 +3050,11 @@ Dongwook`
                     </button>
                     <button
                       onClick={handleAddNote}
-                      disabled={!newNoteTitle.trim() || !newNoteContent.trim()}
-                      className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
+                      disabled={!newNoteTitle.trim() || !newNoteContent.trim() || isUploadingWiki}
+                      className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
                     >
-                      저장
+                      {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin" />}
+                      {isUploadingWiki ? '저장 중...' : '저장'}
                     </button>
                   </div>
                 </div>
@@ -2907,14 +3065,14 @@ Dongwook`
                 <div className="text-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
                 </div>
-              ) : wikiNotes.length === 0 ? (
+              ) : filteredWikiNotes.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <StickyNote className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                  <p className="text-sm">메모가 없습니다</p>
-                  <p className="text-xs">새 메모를 추가해보세요</p>
+                  <p className="text-sm">{wikiSearch ? '검색 결과가 없습니다' : '메모가 없습니다'}</p>
+                  <p className="text-xs">{wikiSearch ? '다른 검색어를 입력해보세요' : '새 메모를 추가해보세요'}</p>
                 </div>
               ) : (
-                wikiNotes.map((note) => (
+                paginatedWikiNotes.map((note) => (
                   <div key={note.id} className="rounded-lg bg-white p-3">
                     {editingNote?.id === note.id ? (
                       <div>
@@ -2955,25 +3113,42 @@ Dongwook`
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleTogglePin(note)}
-                              className={`p-1 rounded hover:bg-slate-100 ${note.is_pinned ? 'text-amber-500' : 'text-slate-400'}`}
+                              className={`p-1 rounded hover:bg-slate-100 cursor-pointer ${note.is_pinned ? 'text-amber-500' : 'text-slate-400'}`}
                             >
                               <Pin className="h-3 w-3" />
                             </button>
                             <button
                               onClick={() => setEditingNote(note)}
-                              className="p-1 rounded hover:bg-slate-100 text-slate-400"
+                              className="p-1 rounded hover:bg-slate-100 text-slate-400 cursor-pointer"
                             >
                               <Pencil className="h-3 w-3" />
                             </button>
                             <button
                               onClick={() => handleDeleteNote(note.id)}
-                              className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-red-500"
+                              className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-red-500 cursor-pointer"
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>
                           </div>
                         </div>
                         <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap line-clamp-3">{note.content}</p>
+                        {/* 첨부파일 표시 */}
+                        {note.attachments && note.attachments.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {note.attachments.map((att, idx) => (
+                              <a
+                                key={idx}
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 rounded px-1.5 py-0.5 text-slate-600"
+                              >
+                                <Paperclip className="h-2.5 w-2.5" />
+                                <span className="max-w-[100px] truncate">{att.name}</span>
+                              </a>
+                            ))}
+                          </div>
+                        )}
                         <p className="text-xs text-muted-foreground mt-2">
                           {new Date(note.updated_at).toLocaleDateString('ko-KR')}
                         </p>
@@ -2983,6 +3158,50 @@ Dongwook`
                 ))
               )}
             </div>
+
+            {/* 페이지네이션 */}
+            {filteredWikiNotes.length > 0 && (
+              <div className="flex items-center justify-between pt-3 border-t border-slate-200 mt-3">
+                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                  {filteredWikiNotes.length}개 중 {(wikiPage - 1) * WIKI_PER_PAGE + 1}-{Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)}
+                </p>
+                {totalWikiPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setWikiPage(1)}
+                      disabled={wikiPage === 1}
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      «
+                    </button>
+                    <button
+                      onClick={() => setWikiPage(p => Math.max(1, p - 1))}
+                      disabled={wikiPage === 1}
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ‹
+                    </button>
+                    <span className="px-2 py-1 text-xs font-medium">
+                      {wikiPage}/{totalWikiPages}
+                    </span>
+                    <button
+                      onClick={() => setWikiPage(p => Math.min(totalWikiPages, p + 1))}
+                      disabled={wikiPage === totalWikiPages}
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ›
+                    </button>
+                    <button
+                      onClick={() => setWikiPage(totalWikiPages)}
+                      disabled={wikiPage === totalWikiPages}
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      »
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -3011,14 +3230,14 @@ Dongwook`
               <button
                 onClick={syncEmails}
                 disabled={isSyncing || !syncStatus.isConnected}
-                className="flex items-center justify-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                className="flex items-center justify-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
               </button>
               <button
                 onClick={handleAnalyzeEmails}
                 disabled={isAnalyzing || !syncStatus.isConnected}
-                className="flex items-center justify-center gap-2 rounded-lg bg-purple-100 px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-200 disabled:opacity-50"
+                className="flex items-center justify-center gap-2 rounded-lg bg-purple-100 px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-200 disabled:opacity-50 cursor-pointer"
               >
                 {isAnalyzing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -3029,7 +3248,7 @@ Dongwook`
               </button>
               <button
                 onClick={() => setShowGmailSettings(!showGmailSettings)}
-                className="flex items-center justify-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200"
+                className="flex items-center justify-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 cursor-pointer"
               >
                 <Settings className="h-4 w-4" />
               </button>
@@ -3039,7 +3258,7 @@ Dongwook`
                   setComposeOriginalEmail(null)
                   setIsComposeOpen(true)
                 }}
-                className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
               >
                 <Mail className="h-4 w-4" />
                 <span className="hidden sm:inline">{t.gmail.newEmail}</span>
@@ -3172,7 +3391,7 @@ Dongwook`
               <div className="flex gap-1.5 mb-4 flex-wrap">
                 <button
                   onClick={() => setEmailFilter('all')}
-                  className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
+                  className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer ${
                     emailFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -3184,7 +3403,7 @@ Dongwook`
                     <button
                       key={category}
                       onClick={() => setEmailFilter(category)}
-                      className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
+                      className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer ${
                         emailFilter === category
                           ? `${color.button} text-white`
                           : `${color.bg} ${color.text} hover:opacity-80`
