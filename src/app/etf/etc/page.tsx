@@ -2280,111 +2280,119 @@ export default function ETCPage() {
             </div>
           </div>
 
+          {/* Gmail 설정 모달 */}
           {showGmailSettings && (
-            <div className="mt-4 rounded-lg bg-white p-4">
-              <h4 className="font-medium text-sm mb-3">{t.gmail.settings}</h4>
-              <div className="space-y-2.5 text-sm">
-                <div className="flex justify-between items-center h-7">
-                  <span className="text-muted-foreground">{t.gmail.connectionStatus}</span>
-                  <div className="flex items-center gap-1.5">
-                    {syncStatus.isConnected ? (
-                      <>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                          {t.gmail.connected}
-                        </span>
-                        <button
-                          onClick={handleGmailDisconnect}
-                          className="text-xs px-2 py-0.5 rounded-full text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 transition-colors"
-                        >
-                          {t.gmail.disconnect}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                          {t.gmail.notConnected}
-                        </span>
-                        <button
-                          onClick={handleGmailConnect}
-                          disabled={isConnecting}
-                          className="text-xs bg-slate-900 text-white px-2.5 py-0.5 rounded-full hover:bg-slate-800 disabled:opacity-50 transition-colors"
-                        >
-                          {isConnecting ? t.gmail.connecting : t.gmail.connect}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-between items-center h-7">
-                  <span className="text-muted-foreground">{t.gmail.watchLabel}</span>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={labelInput}
-                      onChange={(e) => setLabelInput(e.target.value)}
-                      className="font-mono bg-slate-100 px-2 py-0.5 rounded text-xs w-24 border border-slate-200 focus:outline-none focus:border-slate-400"
-                      placeholder="ETC"
-                    />
-                    <button
-                      onClick={handleLabelSave}
-                      disabled={labelInput === gmailLabel}
-                      className="text-xs bg-slate-900 text-white px-2.5 py-0.5 rounded hover:bg-slate-800 disabled:opacity-50 transition-colors"
-                    >
-                      {t.common.save}
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center h-7">
-                  <span className="text-muted-foreground">{t.gmail.totalEmails}</span>
-                  <span>{syncStatus.totalEmails}</span>
-                </div>
-                <div className="pt-2 border-t border-slate-100 text-xs text-muted-foreground">
-                  <p>💡 {t.gmail.subLabelHint}:</p>
-                  <p className="font-mono mt-1">{gmailLabel}/키움, {gmailLabel}/삼성</p>
-                </div>
-
-                {/* AI 컨텍스트 설정 */}
-                <div className="pt-3 mt-3 border-t border-slate-100">
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50" onClick={() => setShowGmailSettings(false)} />
+              <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-base">{t.gmail.settings}</h4>
                   <button
-                    onClick={() => setShowAiContextSettings(!showAiContextSettings)}
-                    className="flex items-center justify-between w-full text-left"
+                    onClick={() => setShowGmailSettings(false)}
+                    className="p-1 hover:bg-slate-100 rounded-full transition-colors"
                   >
-                    <span className="text-sm font-medium">{t.gmail.aiContextSettings || 'AI 분석 컨텍스트'}</span>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${showAiContextSettings ? 'rotate-180' : ''}`} />
+                    <X className="h-4 w-4" />
                   </button>
-                  {showAiContextSettings && (
-                    <div className="mt-3 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">{t.gmail.aiContextEnabled || '컨텍스트 사용'}</span>
-                        <button
-                          onClick={() => setAiContextEnabled(!aiContextEnabled)}
-                          className={`relative w-10 h-5 rounded-full transition-colors ${aiContextEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                        >
-                          <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${aiContextEnabled ? 'translate-x-5' : ''}`} />
-                        </button>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-muted-foreground mb-1">
-                          {t.gmail.aiContextDescription || 'AI가 이메일 분석 시 참고할 배경 정보를 입력하세요'}
-                        </label>
-                        <textarea
-                          value={aiContextText}
-                          onChange={(e) => setAiContextText(e.target.value)}
-                          placeholder={t.gmail.aiContextPlaceholder || '예: 저는 ETF 인덱싱 사업부에서 일하고 있습니다. 주요 거래처는 키움증권, 삼성자산운용입니다. 현재 진행 중인 프로젝트는...'}
-                          className="w-full rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-slate-300"
-                        />
-                      </div>
+                </div>
+                <div className="space-y-4 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{t.gmail.connectionStatus}</span>
+                    <div className="flex items-center gap-1.5">
+                      {syncStatus.isConnected ? (
+                        <>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            {t.gmail.connected}
+                          </span>
+                          <button
+                            onClick={handleGmailDisconnect}
+                            className="text-xs px-2 py-0.5 rounded-full text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 transition-colors"
+                          >
+                            {t.gmail.disconnect}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            {t.gmail.notConnected}
+                          </span>
+                          <button
+                            onClick={handleGmailConnect}
+                            disabled={isConnecting}
+                            className="text-xs bg-slate-900 text-white px-2.5 py-0.5 rounded-full hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                          >
+                            {isConnecting ? t.gmail.connecting : t.gmail.connect}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{t.gmail.watchLabel}</span>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={labelInput}
+                        onChange={(e) => setLabelInput(e.target.value)}
+                        className="font-mono bg-slate-100 px-2 py-1 rounded text-xs w-24 border border-slate-200 focus:outline-none focus:border-slate-400"
+                        placeholder="ETC"
+                      />
                       <button
-                        onClick={handleSaveAiContext}
-                        disabled={isSavingAiContext}
-                        className="w-full text-xs bg-slate-900 text-white px-3 py-2 rounded hover:bg-slate-800 disabled:opacity-50"
+                        onClick={handleLabelSave}
+                        disabled={labelInput === gmailLabel}
+                        className="text-xs bg-slate-900 text-white px-2.5 py-1 rounded hover:bg-slate-800 disabled:opacity-50 transition-colors"
                       >
-                        {isSavingAiContext ? t.common.saving || '저장 중...' : t.common.save}
+                        {t.common.save}
                       </button>
                     </div>
-                  )}
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{t.gmail.totalEmails}</span>
+                    <span className="font-medium">{syncStatus.totalEmails}</span>
+                  </div>
+
+                  {/* AI 컨텍스트 설정 */}
+                  <div className="pt-4 border-t border-slate-100">
+                    <button
+                      onClick={() => setShowAiContextSettings(!showAiContextSettings)}
+                      className="flex items-center justify-between w-full text-left"
+                    >
+                      <span className="font-medium">{t.gmail.aiContextSettings}</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${showAiContextSettings ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showAiContextSettings && (
+                      <div className="mt-3 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground text-xs">{t.gmail.aiContextEnabled}</span>
+                          <button
+                            onClick={() => setAiContextEnabled(!aiContextEnabled)}
+                            className={`relative w-10 h-5 rounded-full transition-colors ${aiContextEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                          >
+                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${aiContextEnabled ? 'translate-x-5' : ''}`} />
+                          </button>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-foreground mb-1">
+                            {t.gmail.aiContextDescription}
+                          </label>
+                          <textarea
+                            value={aiContextText}
+                            onChange={(e) => setAiContextText(e.target.value)}
+                            placeholder={t.gmail.aiContextPlaceholder}
+                            className="w-full rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-slate-300"
+                          />
+                        </div>
+                        <button
+                          onClick={handleSaveAiContext}
+                          disabled={isSavingAiContext}
+                          className="w-full text-xs bg-slate-900 text-white px-3 py-2 rounded hover:bg-slate-800 disabled:opacity-50"
+                        >
+                          {isSavingAiContext ? t.common.saving : t.common.save}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
