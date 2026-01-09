@@ -7,6 +7,7 @@ export const en = {
     cancel: 'Cancel',
     confirm: 'Confirm',
     save: 'Save',
+    saving: 'Saving...',
     delete: 'Delete',
     edit: 'Edit',
     search: 'Search',
@@ -290,5 +291,10 @@ export const en = {
     },
     relatedEmails: '{count} related emails',
     analysisScope: 'Last {days} days',
+    // AI Context Settings
+    aiContextSettings: 'AI Analysis Context',
+    aiContextEnabled: 'Use Context',
+    aiContextDescription: 'Enter background information for AI to reference during email analysis',
+    aiContextPlaceholder: 'e.g. I work in the ETF Indexing division. Key counterparties include Kiwoom Securities, Samsung Asset Management. Current ongoing projects are...',
   },
 } as const

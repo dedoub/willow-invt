@@ -180,6 +180,12 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching emails:', error)
-    return NextResponse.json({ error: 'Failed to fetch emails' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : ''
+    console.error('Error details:', { message: errorMessage, stack: errorStack })
+    return NextResponse.json({
+      error: 'Failed to fetch emails',
+      details: errorMessage
+    }, { status: 500 })
   }
 }

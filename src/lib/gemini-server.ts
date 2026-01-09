@@ -53,7 +53,8 @@ export interface OverallAnalysisResult {
 // 이메일 분석 수행
 export async function analyzeEmails(
   emails: EmailForAnalysis[],
-  parentLabel: string
+  parentLabel: string,
+  customContext?: string
 ): Promise<OverallAnalysisResult> {
   const genAI = getGeminiClient()
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
@@ -89,10 +90,20 @@ ${email.body.substring(0, 500)}${email.body.length > 500 ? '...' : ''}
 `
     }).join('\n---\n')
 
+    // 커스텀 컨텍스트 추가
+    const contextSection = customContext
+      ? `
+사용자 제공 배경 정보:
+${customContext}
+
+이 배경 정보를 참고하여 더 정확한 분석을 수행해주세요.
+`
+      : ''
+
     const prompt = `
 당신은 금융/투자 업계의 비즈니스 이메일 분석 전문가입니다.
 "${category}" 거래처와의 이메일 커뮤니케이션을 분석하여 실행 가능한 인사이트를 제공해주세요.
-
+${contextSection}
 분석할 이메일들:
 ${emailsContext}
 

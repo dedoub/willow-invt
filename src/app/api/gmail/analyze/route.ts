@@ -1,6 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getGmailClient, parseEmail } from '@/lib/gmail-server'
 import { analyzeEmails, EmailForAnalysis } from '@/lib/gemini-server'
+import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SECRET_KEY!
+)
+
+// 현재 사용자 ID 가져오기
+async function getCurrentUserId(): Promise<string | null> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('auth_token')?.value
+  if (!token) return null
+
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString())
+    return payload.email || payload.sub || null
+  } catch {
+    return null
+  }
+}
+
+// AI 컨텍스트 설정 조회
+async function getAIContextSettings(): Promise<{ context_text: string; is_enabled: boolean } | null> {
+  const userId = await getCurrentUserId()
+  if (!userId) return null
+
+  const { data } = await supabase
+    .from('ai_context_settings')
+    .select('context_text, is_enabled')
+    .eq('user_id', userId)
+    .single()
+
+  return data
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +49,12 @@ export async function POST(request: NextRequest) {
     if (!gmail) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
+
+    // AI 컨텍스트 설정 조회
+    const contextSettings = await getAIContextSettings()
+    const customContext = contextSettings?.is_enabled && contextSettings?.context_text
+      ? contextSettings.context_text
+      : undefined
 
     const body = await request.json()
     const label = body.label || 'INBOX'
@@ -131,8 +172,8 @@ export async function POST(request: NextRequest) {
       })
     )
 
-    // Gemini로 분석 수행
-    const analysisResult = await analyzeEmails(emailsForAnalysis, label)
+    // Gemini로 분석 수행 (커스텀 컨텍스트 전달)
+    const analysisResult = await analyzeEmails(emailsForAnalysis, label, customContext)
 
     return NextResponse.json(analysisResult)
   } catch (error) {

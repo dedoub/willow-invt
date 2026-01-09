@@ -1353,6 +1353,12 @@ export default function ETCPage() {
   const [savedTodos, setSavedTodos] = useState<SavedTodo[]>([])
   const [savedAnalysis, setSavedAnalysis] = useState<SavedAnalysis | null>(null)
 
+  // AI 컨텍스트 설정 상태
+  const [aiContextText, setAiContextText] = useState('')
+  const [aiContextEnabled, setAiContextEnabled] = useState(true)
+  const [isSavingAiContext, setIsSavingAiContext] = useState(false)
+  const [showAiContextSettings, setShowAiContextSettings] = useState(false)
+
   // 히스토리컬 데이터
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
 
@@ -1552,7 +1558,7 @@ export default function ETCPage() {
     }
   }, [gmailLabel])
 
-  // 저장된 분석 로드
+  // 저장된 분석 로드 (24시간 이상 지났으면 자동 재분석)
   const loadSavedAnalysis = async () => {
     try {
       const result = await gmailService.getSavedAnalysis(gmailLabel)
@@ -1561,6 +1567,36 @@ export default function ETCPage() {
           setSavedAnalysis(result.analysis)
           setAiAnalysis(result.analysis.analysis_data)
           setShowAiAnalysis(true)
+
+          // 분석이 24시간 이상 지났으면 자동으로 새로 분석
+          const generatedAt = new Date(result.analysis.generated_at)
+          const now = new Date()
+          const hoursSinceAnalysis = (now.getTime() - generatedAt.getTime()) / (1000 * 60 * 60)
+
+          if (hoursSinceAnalysis >= 24) {
+            console.log(`[AI] Analysis is ${Math.round(hoursSinceAnalysis)} hours old, auto-refreshing...`)
+            // 약간의 딜레이 후 자동 분석 실행 (페이지 로드 완료 후)
+            setTimeout(async () => {
+              if (!syncStatus.isConnected) return
+              setIsAnalyzing(true)
+              try {
+                const analysisResult = await gmailService.analyzeEmails(gmailLabel, 30)
+                if (analysisResult) {
+                  setAiAnalysis(analysisResult)
+                  setShowAiAnalysis(true)
+                  const savedResult = await gmailService.saveAnalysis(gmailLabel, analysisResult)
+                  if (savedResult) {
+                    setSavedAnalysis(savedResult.analysis)
+                    setSavedTodos(savedResult.todos)
+                  }
+                }
+              } catch (error) {
+                console.error('Auto-analysis failed:', error)
+              } finally {
+                setIsAnalyzing(false)
+              }
+            }, 2000)
+          }
         }
         setSavedTodos(result.todos)
       }
@@ -1610,6 +1646,47 @@ export default function ETCPage() {
       syncEmails()
     }
   }
+
+  // AI 컨텍스트 설정 로드
+  const loadAiContextSettings = async () => {
+    try {
+      const res = await fetch('/api/gmail/context-settings')
+      if (res.ok) {
+        const data = await res.json()
+        setAiContextText(data.context_text || '')
+        setAiContextEnabled(data.is_enabled !== false)
+      }
+    } catch (error) {
+      console.error('Failed to load AI context settings:', error)
+    }
+  }
+
+  // AI 컨텍스트 설정 저장
+  const handleSaveAiContext = async () => {
+    setIsSavingAiContext(true)
+    try {
+      const res = await fetch('/api/gmail/context-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          context_text: aiContextText,
+          is_enabled: aiContextEnabled,
+        }),
+      })
+      if (res.ok) {
+        setShowAiContextSettings(false)
+      }
+    } catch (error) {
+      console.error('Failed to save AI context settings:', error)
+    } finally {
+      setIsSavingAiContext(false)
+    }
+  }
+
+  // AI 컨텍스트 설정 로드 useEffect
+  useEffect(() => {
+    loadAiContextSettings()
+  }, [])
 
   // AI 이메일 분석
   const handleAnalyzeEmails = async () => {
@@ -2163,18 +2240,18 @@ export default function ETCPage() {
                 )}
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
               <button
                 onClick={syncEmails}
                 disabled={isSyncing || !syncStatus.isConnected}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                className="flex items-center justify-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50"
               >
                 <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
               </button>
               <button
                 onClick={handleAnalyzeEmails}
                 disabled={isAnalyzing || !syncStatus.isConnected}
-                className="flex items-center gap-2 rounded-lg bg-purple-100 px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-200 disabled:opacity-50"
+                className="flex items-center justify-center gap-2 rounded-lg bg-purple-100 px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-200 disabled:opacity-50"
               >
                 {isAnalyzing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -2185,7 +2262,7 @@ export default function ETCPage() {
               </button>
               <button
                 onClick={() => setShowGmailSettings(!showGmailSettings)}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200"
+                className="flex items-center justify-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200"
               >
                 <Settings className="h-4 w-4" />
               </button>
@@ -2195,7 +2272,7 @@ export default function ETCPage() {
                   setComposeOriginalEmail(null)
                   setIsComposeOpen(true)
                 }}
-                className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
               >
                 <Mail className="h-4 w-4" />
                 <span className="hidden sm:inline">{t.gmail.newEmail}</span>
@@ -2206,57 +2283,108 @@ export default function ETCPage() {
           {showGmailSettings && (
             <div className="mt-4 rounded-lg bg-white p-4">
               <h4 className="font-medium text-sm mb-3">{t.gmail.settings}</h4>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between items-center">
+              <div className="space-y-2.5 text-sm">
+                <div className="flex justify-between items-center h-7">
                   <span className="text-muted-foreground">{t.gmail.connectionStatus}</span>
-                  <div className="flex items-center gap-2">
-                    <span className={syncStatus.isConnected ? 'text-emerald-600' : 'text-amber-600'}>
-                      {syncStatus.isConnected ? t.gmail.connected : t.gmail.notConnected}
-                    </span>
+                  <div className="flex items-center gap-1.5">
                     {syncStatus.isConnected ? (
-                      <button
-                        onClick={handleGmailDisconnect}
-                        className="text-xs text-red-500 hover:text-red-600"
-                      >
-                        {t.gmail.disconnect}
-                      </button>
+                      <>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          {t.gmail.connected}
+                        </span>
+                        <button
+                          onClick={handleGmailDisconnect}
+                          className="text-xs px-2 py-0.5 rounded-full text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 transition-colors"
+                        >
+                          {t.gmail.disconnect}
+                        </button>
+                      </>
                     ) : (
-                      <button
-                        onClick={handleGmailConnect}
-                        disabled={isConnecting}
-                        className="text-xs bg-slate-900 text-white px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-50"
-                      >
-                        {isConnecting ? t.gmail.connecting : t.gmail.connect}
-                      </button>
+                      <>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          {t.gmail.notConnected}
+                        </span>
+                        <button
+                          onClick={handleGmailConnect}
+                          disabled={isConnecting}
+                          className="text-xs bg-slate-900 text-white px-2.5 py-0.5 rounded-full hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                        >
+                          {isConnecting ? t.gmail.connecting : t.gmail.connect}
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center h-7">
                   <span className="text-muted-foreground">{t.gmail.watchLabel}</span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <input
                       type="text"
                       value={labelInput}
                       onChange={(e) => setLabelInput(e.target.value)}
-                      className="font-mono bg-slate-100 px-2 py-1 rounded text-sm w-32"
+                      className="font-mono bg-slate-100 px-2 py-0.5 rounded text-xs w-24 border border-slate-200 focus:outline-none focus:border-slate-400"
                       placeholder="ETC"
                     />
                     <button
                       onClick={handleLabelSave}
                       disabled={labelInput === gmailLabel}
-                      className="text-xs bg-slate-900 text-white px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-50"
+                      className="text-xs bg-slate-900 text-white px-2.5 py-0.5 rounded hover:bg-slate-800 disabled:opacity-50 transition-colors"
                     >
                       {t.common.save}
                     </button>
                   </div>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center h-7">
                   <span className="text-muted-foreground">{t.gmail.totalEmails}</span>
                   <span>{syncStatus.totalEmails}</span>
                 </div>
                 <div className="pt-2 border-t border-slate-100 text-xs text-muted-foreground">
                   <p>💡 {t.gmail.subLabelHint}:</p>
                   <p className="font-mono mt-1">{gmailLabel}/키움, {gmailLabel}/삼성</p>
+                </div>
+
+                {/* AI 컨텍스트 설정 */}
+                <div className="pt-3 mt-3 border-t border-slate-100">
+                  <button
+                    onClick={() => setShowAiContextSettings(!showAiContextSettings)}
+                    className="flex items-center justify-between w-full text-left"
+                  >
+                    <span className="text-sm font-medium">{t.gmail.aiContextSettings || 'AI 분석 컨텍스트'}</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${showAiContextSettings ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showAiContextSettings && (
+                    <div className="mt-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">{t.gmail.aiContextEnabled || '컨텍스트 사용'}</span>
+                        <button
+                          onClick={() => setAiContextEnabled(!aiContextEnabled)}
+                          className={`relative w-10 h-5 rounded-full transition-colors ${aiContextEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                        >
+                          <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${aiContextEnabled ? 'translate-x-5' : ''}`} />
+                        </button>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">
+                          {t.gmail.aiContextDescription || 'AI가 이메일 분석 시 참고할 배경 정보를 입력하세요'}
+                        </label>
+                        <textarea
+                          value={aiContextText}
+                          onChange={(e) => setAiContextText(e.target.value)}
+                          placeholder={t.gmail.aiContextPlaceholder || '예: 저는 ETF 인덱싱 사업부에서 일하고 있습니다. 주요 거래처는 키움증권, 삼성자산운용입니다. 현재 진행 중인 프로젝트는...'}
+                          className="w-full rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-slate-300"
+                        />
+                      </div>
+                      <button
+                        onClick={handleSaveAiContext}
+                        disabled={isSavingAiContext}
+                        className="w-full text-xs bg-slate-900 text-white px-3 py-2 rounded hover:bg-slate-800 disabled:opacity-50"
+                      >
+                        {isSavingAiContext ? t.common.saving || '저장 중...' : t.common.save}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

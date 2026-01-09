@@ -162,7 +162,9 @@ class GmailService {
           this.syncStatus.isConnected = false
           throw new Error('Not authenticated')
         }
-        throw new Error('Failed to fetch emails')
+        const errorData = await res.json().catch(() => ({}))
+        console.error('Email fetch error response:', errorData)
+        throw new Error(errorData.details || 'Failed to fetch emails')
       }
       const data = await res.json()
       this.syncStatus.lastSyncAt = new Date().toISOString()

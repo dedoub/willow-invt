@@ -7,6 +7,7 @@ export const ko = {
     cancel: '취소',
     confirm: '확인',
     save: '저장',
+    saving: '저장 중...',
     delete: '삭제',
     edit: '수정',
     search: '검색',
@@ -290,5 +291,10 @@ export const ko = {
     },
     relatedEmails: '관련 이메일 {count}건',
     analysisScope: '최근 {days}일',
+    // AI 컨텍스트 설정
+    aiContextSettings: 'AI 분석 컨텍스트',
+    aiContextEnabled: '컨텍스트 사용',
+    aiContextDescription: 'AI가 이메일 분석 시 참고할 배경 정보를 입력하세요',
+    aiContextPlaceholder: '예: 저는 ETF 인덱싱 사업부에서 일하고 있습니다. 주요 거래처는 키움증권, 삼성자산운용입니다. 현재 진행 중인 프로젝트는...',
   },
 } as const
