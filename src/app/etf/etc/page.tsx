@@ -79,15 +79,8 @@ const INVOICE_STATUS_COLORS: Record<ExtendedInvoiceStatus, { bg: string; text: s
   cancelled: { bg: 'bg-slate-200', text: 'text-slate-500', icon: Ban },
 }
 
-const INVOICE_STATUS_LABELS: Record<ExtendedInvoiceStatus, string> = {
-  draft: '작성중',
-  sent_etc: 'ETC 발송됨',
-  sent_bank: '은행 발송됨',
-  sent: '발송완료',
-  paid: '입금완료',
-  overdue: '연체',
-  cancelled: '취소',
-}
+// INVOICE_STATUS_LABELS는 컴포넌트 내부에서 t 객체를 사용하여 동적으로 생성됨
+// getInvoiceStatusLabel(status, t) 함수 사용
 
 // 실제 발송 상태 기반으로 effective status 계산
 function getEffectiveInvoiceStatus(invoice: Invoice): ExtendedInvoiceStatus {
@@ -951,7 +944,7 @@ function EmailDetailModal({
                 {email.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound}
               </span>
             </div>
-            <h3 className="text-lg font-semibold break-words">{email.subject || '(제목 없음)'}</h3>
+            <h3 className="text-lg font-semibold break-words">{email.subject || t.gmail.noSubject}</h3>
           </div>
           <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 flex-shrink-0">
             <X className="h-5 w-5" />
@@ -1365,6 +1358,21 @@ function ComposeEmailModal({
 
 export default function ETCPage() {
   const { t } = useI18n()
+
+  // 인보이스 상태 라벨 헬퍼 함수
+  const getInvoiceStatusLabel = (status: ExtendedInvoiceStatus): string => {
+    const labels: Record<ExtendedInvoiceStatus, string> = {
+      draft: t.invoice.status.draft,
+      sent_etc: t.invoice.status.sent_etc,
+      sent_bank: t.invoice.status.sent_bank,
+      sent: t.invoice.status.sent,
+      paid: t.invoice.status.paid,
+      overdue: t.invoice.status.overdue,
+      cancelled: t.invoice.status.cancelled,
+    }
+    return labels[status]
+  }
+
   const [etfs, setEtfs] = useState<ETFDisplayData[]>([])
   const [isLoadingETFs, setIsLoadingETFs] = useState(true)
   const [emailFilter, setEmailFilter] = useState<string>('all')  // 'all' 또는 카테고리명
@@ -1656,11 +1664,12 @@ export default function ETCPage() {
         await loadInvoices()
       } else {
         const err = await res.json()
-        alert(`저장 실패: ${err.error || 'Unknown error'}`)
+        console.error('Save failed:', err.error)
+        alert(t.invoice.saveFailed)
       }
     } catch (error) {
       console.error('Failed to save invoice:', error)
-      alert('인보이스 저장에 실패했습니다.')
+      alert(t.invoice.saveFailed)
     } finally {
       setIsSavingInvoice(false)
     }
@@ -1680,11 +1689,11 @@ export default function ETCPage() {
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
       } else {
-        alert('PDF 다운로드에 실패했습니다.')
+        alert(t.invoice.downloadFailed)
       }
     } catch (error) {
       console.error('Failed to download PDF:', error)
-      alert('PDF 다운로드에 실패했습니다.')
+      alert(t.invoice.downloadFailed)
     }
   }
 
@@ -1698,7 +1707,7 @@ export default function ETCPage() {
       // Fetch the PDF
       const res = await fetch(`/api/invoices/${invoiceId}/pdf`)
       if (!res.ok) {
-        alert('PDF 생성에 실패했습니다.')
+        alert(t.invoice.pdfFailed)
         return
       }
 
@@ -1756,7 +1765,7 @@ Dongwook`
       setIsComposeOpen(true)
     } catch (error) {
       console.error('Failed to prepare invoice email:', error)
-      alert('인보이스 이메일 준비에 실패했습니다.')
+      alert(t.invoice.emailFailed)
     } finally {
       setIsSendingInvoice(null)
     }
@@ -1810,7 +1819,7 @@ Dongwook`
   }
 
   const handleDeleteInvoice = async (invoiceId: string) => {
-    if (!confirm('이 인보이스를 삭제하시겠습니까?')) return
+    if (!confirm(t.invoice.deleteConfirm)) return
 
     try {
       const res = await fetch(`/api/invoices/${invoiceId}`, {
@@ -1913,7 +1922,7 @@ Dongwook`
   }
 
   const handleDeleteNote = async (id: string) => {
-    if (!confirm('이 메모를 삭제하시겠습니까?')) return
+    if (!confirm(t.wiki.deleteConfirm)) return
 
     try {
       const res = await fetch(`/api/wiki/${id}`, { method: 'DELETE' })
@@ -2507,16 +2516,16 @@ Dongwook`
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
-                인보이스
+                {t.invoice.title}
               </CardTitle>
-              <CardDescription>월별 수수료 인보이스 관리</CardDescription>
+              <CardDescription>{t.invoice.description}</CardDescription>
             </div>
             <button
               onClick={openNewInvoiceModal}
               className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">생성</span>
+              <span className="hidden sm:inline">{t.invoice.create}</span>
             </button>
           </CardHeader>
           <CardContent>
@@ -2536,8 +2545,8 @@ Dongwook`
                     ) : invoices.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                        <p className="text-sm">인보이스가 없습니다</p>
-                        <p className="text-xs">새 인보이스를 생성해보세요</p>
+                        <p className="text-sm">{t.invoice.noInvoices}</p>
+                        <p className="text-xs">{t.invoice.createHint}</p>
                       </div>
                     ) : (
                       paginatedInvoices.map((invoice) => {
@@ -2563,7 +2572,7 @@ Dongwook`
                         <div className="flex items-center gap-2">
                           <span className={`rounded-full px-2 py-0.5 text-xs flex items-center gap-1 ${statusStyle.bg} ${statusStyle.text}`}>
                             <StatusIcon className="h-3 w-3" />
-                            {INVOICE_STATUS_LABELS[effectiveStatus]}
+                            {getInvoiceStatusLabel(effectiveStatus)}
                           </span>
                           {expandedInvoice === invoice.id ? (
                             <ChevronUp className="h-4 w-4 text-slate-400" />
@@ -2647,7 +2656,7 @@ Dongwook`
                                 className="flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-200 cursor-pointer"
                               >
                                 <Trash2 className="h-3 w-3" />
-                                삭제
+                                {t.common.delete}
                               </button>
                             )}
                           </div>
@@ -2738,12 +2747,12 @@ Dongwook`
                 <X className="h-5 w-5" />
               </button>
 
-              <h2 className="text-lg font-bold mb-4">새 인보이스</h2>
+              <h2 className="text-lg font-bold mb-4">{t.invoice.new}</h2>
 
               <div className="space-y-4">
                 {/* Invoice Date */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Invoice Date</label>
+                  <label className="block text-sm font-medium mb-1">{t.invoice.invoiceDate}</label>
                   <input
                     type="date"
                     value={invoiceFormDate}
@@ -2754,7 +2763,7 @@ Dongwook`
 
                 {/* Attention */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Attention</label>
+                  <label className="block text-sm font-medium mb-1">{t.invoice.attention}</label>
                   <input
                     type="text"
                     value={invoiceFormAttention}
@@ -2766,21 +2775,21 @@ Dongwook`
                 {/* Line Items */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium">항목</label>
+                    <label className="block text-sm font-medium">{t.invoice.items}</label>
                     <button
                       type="button"
                       onClick={addFormItem}
                       className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
                     >
                       <Plus className="h-3 w-3" />
-                      항목 추가
+                      {t.invoice.addItem}
                     </button>
                   </div>
                   <div className="space-y-3">
                     {invoiceFormItems.map((item, index) => (
                       <div key={item.id} className="p-3 bg-slate-50 rounded-lg space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-slate-500">항목 {index + 1}</span>
+                          <span className="text-xs font-medium text-slate-500">{t.invoice.itemNumber.replace('{number}', String(index + 1))}</span>
                           {invoiceFormItems.length > 1 && (
                             <button
                               type="button"
@@ -2832,7 +2841,7 @@ Dongwook`
                             type="text"
                             value={item.customDesc}
                             onChange={(e) => updateFormItem(item.id, { customDesc: e.target.value })}
-                            placeholder="항목 설명"
+                            placeholder={t.invoice.itemDescription}
                             className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
                           />
                         )}
@@ -2860,7 +2869,7 @@ Dongwook`
                   {/* Total */}
                   {invoiceFormItems.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center">
-                      <span className="text-sm font-medium">합계</span>
+                      <span className="text-sm font-medium">{t.invoice.total}</span>
                       <span className="text-sm font-bold">
                         ${invoiceFormItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
@@ -2870,7 +2879,7 @@ Dongwook`
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">메모 (선택)</label>
+                  <label className="block text-sm font-medium mb-1">{t.invoice.notes}</label>
                   <textarea
                     value={invoiceFormNotes}
                     onChange={(e) => setInvoiceFormNotes(e.target.value)}
@@ -2885,7 +2894,7 @@ Dongwook`
                   onClick={() => setIsInvoiceModalOpen(false)}
                   className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
                 >
-                  취소
+                  {t.common.cancel}
                 </button>
                 <button
                   onClick={handleSaveInvoice}
@@ -2893,7 +2902,7 @@ Dongwook`
                   className="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 flex items-center gap-2"
                 >
                   {isSavingInvoice && <Loader2 className="h-4 w-4 animate-spin" />}
-                  저장
+                  {t.common.save}
                 </button>
               </div>
             </div>
@@ -2906,16 +2915,16 @@ Dongwook`
             <div>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5" />
-                업무 위키
+                {t.wiki.title}
               </CardTitle>
-              <CardDescription>참고자료 및 메모</CardDescription>
+              <CardDescription>{t.wiki.description}</CardDescription>
             </div>
             <button
               onClick={() => setIsAddingNote(true)}
               className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">메모</span>
+              <span className="hidden sm:inline">{t.wiki.addNote}</span>
             </button>
           </CardHeader>
           <CardContent>
@@ -2926,7 +2935,7 @@ Dongwook`
                   type="text"
                   value={wikiSearch}
                   onChange={(e) => setWikiSearch(e.target.value)}
-                  placeholder="메모 검색..."
+                  placeholder={t.wiki.searchPlaceholder}
                   className="w-full rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-sm pl-8 focus:outline-none focus:ring-2 focus:ring-slate-300"
                 />
                 <svg
@@ -2948,7 +2957,7 @@ Dongwook`
               </div>
               {wikiSearch && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  {filteredWikiNotes.length}개 검색됨
+                  {t.wiki.searchCount.replace('{count}', String(filteredWikiNotes.length))}
                 </p>
               )}
             </div>
@@ -2978,13 +2987,13 @@ Dongwook`
                     type="text"
                     value={newNoteTitle}
                     onChange={(e) => setNewNoteTitle(e.target.value)}
-                    placeholder="제목"
+                    placeholder={t.wiki.titlePlaceholder}
                     className="w-full text-sm font-medium mb-2 px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300"
                   />
                   <textarea
                     value={newNoteContent}
                     onChange={(e) => setNewNoteContent(e.target.value)}
-                    placeholder="내용을 입력하세요..."
+                    placeholder={t.wiki.contentPlaceholder}
                     rows={3}
                     className="w-full text-sm px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
                   />
@@ -3054,7 +3063,7 @@ Dongwook`
                       className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
                     >
                       {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin" />}
-                      {isUploadingWiki ? '저장 중...' : '저장'}
+                      {isUploadingWiki ? t.common.saving : t.common.save}
                     </button>
                   </div>
                 </div>
@@ -3068,8 +3077,8 @@ Dongwook`
               ) : filteredWikiNotes.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <StickyNote className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                  <p className="text-sm">{wikiSearch ? '검색 결과가 없습니다' : '메모가 없습니다'}</p>
-                  <p className="text-xs">{wikiSearch ? '다른 검색어를 입력해보세요' : '새 메모를 추가해보세요'}</p>
+                  <p className="text-sm">{wikiSearch ? t.wiki.noSearchResults : t.wiki.noNotes}</p>
+                  <p className="text-xs">{t.wiki.addNoteHint}</p>
                 </div>
               ) : (
                 paginatedWikiNotes.map((note) => (
@@ -3444,7 +3453,7 @@ Dongwook`
                 </div>
                 {emailSearch && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    {filteredEmails.length}개 검색됨
+                    {t.gmail.searchResultCount.replace('{count}', String(filteredEmails.length))}
                   </p>
                 )}
                 {relatedEmailIds.length > 0 && (
@@ -3515,14 +3524,14 @@ Dongwook`
                               {/* 보낸사람, 받는사람, 참조 */}
                               <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
                                 <p className="truncate">
-                                  <span className="text-slate-400">From:</span> {email.fromName || email.from}
+                                  <span className="text-slate-400">{t.gmail.from}:</span> {email.fromName || email.from}
                                 </p>
                                 <p className="truncate">
-                                  <span className="text-slate-400">To:</span> {email.to}
+                                  <span className="text-slate-400">{t.gmail.to}:</span> {email.to}
                                 </p>
                                 {email.cc && (
                                   <p className="truncate">
-                                    <span className="text-slate-400">Cc:</span> {email.cc}
+                                    <span className="text-slate-400">{t.gmail.cc}:</span> {email.cc}
                                   </p>
                                 )}
                               </div>
@@ -3531,7 +3540,7 @@ Dongwook`
                               </p>
                               {/* 본문 미리보기 */}
                               <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                                {email.body.replace(/\n+/g, ' ').trim() || '(내용 없음)'}
+                                {email.body.replace(/\n+/g, ' ').trim() || t.gmail.noContent}
                               </p>
                             </div>
                           </div>
@@ -3548,7 +3557,7 @@ Dongwook`
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 mt-4">
                         <div className="flex items-center gap-2">
                           <p className="text-xs text-muted-foreground whitespace-nowrap">
-                            {filteredEmails.length}개 중 {(emailPage - 1) * emailsPerPage + 1}-{Math.min(emailPage * emailsPerPage, filteredEmails.length)}
+                            {t.gmail.showingRange.replace('{total}', String(filteredEmails.length)).replace('{start}', String((emailPage - 1) * emailsPerPage + 1)).replace('{end}', String(Math.min(emailPage * emailsPerPage, filteredEmails.length)))}
                           </p>
                           <select
                             value={emailsPerPage}
@@ -3558,11 +3567,11 @@ Dongwook`
                             }}
                             className="text-xs bg-white border border-slate-200 rounded px-1.5 py-0.5"
                           >
-                            <option value={10}>10개</option>
-                            <option value={20}>20개</option>
-                            <option value={30}>30개</option>
-                            <option value={50}>50개</option>
-                            <option value={100}>100개</option>
+                            <option value={10}>{t.gmail.emailCount.replace('{count}', '10')}</option>
+                            <option value={20}>{t.gmail.emailCount.replace('{count}', '20')}</option>
+                            <option value={30}>{t.gmail.emailCount.replace('{count}', '30')}</option>
+                            <option value={50}>{t.gmail.emailCount.replace('{count}', '50')}</option>
+                            <option value={100}>{t.gmail.emailCount.replace('{count}', '100')}</option>
                           </select>
                         </div>
                         {totalEmailPages > 1 && (
@@ -3769,7 +3778,7 @@ Dongwook`
                                 <ListTodo className="h-3 w-3" />
                                 {t.gmail.todoList}
                                 <span className="text-slate-400 font-normal">
-                                  ({incompleteTodos.length}{completedTodos.length > 0 ? ` + ${completedTodos.length} done` : ''})
+                                  ({incompleteTodos.length}{completedTodos.length > 0 ? ` + ${t.gmail.completedCount.replace('{count}', String(completedTodos.length))}` : ''})
                                 </span>
                               </h6>
                               <div className="space-y-2">
@@ -3791,7 +3800,7 @@ Dongwook`
                                         </span>
                                       </div>
                                       {todo.due_date && (
-                                        <p className="text-xs text-slate-400 mt-1">Due: {todo.due_date}</p>
+                                        <p className="text-xs text-slate-400 mt-1">{t.gmail.dueDate}: {todo.due_date}</p>
                                       )}
                                     </div>
                                   </div>
@@ -3803,7 +3812,7 @@ Dongwook`
                               <h6 className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1">
                                 <ListTodo className="h-3 w-3" />
                                 {t.gmail.todoList}
-                                <span className="text-slate-400 font-normal">(동기화 중...)</span>
+                                <span className="text-slate-400 font-normal">({t.gmail.syncing2})</span>
                               </h6>
                               <div className="space-y-2">
                                 {cat.todos.map((todo, idx) => (
@@ -3821,7 +3830,7 @@ Dongwook`
                                         <span className="text-xs text-slate-700">{todo.task}</span>
                                       </div>
                                       {todo.dueDate && (
-                                        <p className="text-xs text-slate-400 mt-1">Due: {todo.dueDate}</p>
+                                        <p className="text-xs text-slate-400 mt-1">{t.gmail.dueDate}: {todo.dueDate}</p>
                                       )}
                                     </div>
                                   </div>
@@ -3840,7 +3849,7 @@ Dongwook`
                 })()}
 
                 <p className="text-xs text-purple-400 mt-3 text-right">
-                  Generated: {new Date(aiAnalysis.generatedAt).toLocaleString()}
+                  {t.gmail.generated}: {new Date(aiAnalysis.generatedAt).toLocaleString()}
                 </p>
               </div>
             ) : (
