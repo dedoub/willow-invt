@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // Akros DB - 서버 사이드에서 service role key 사용
-const akrosUrl = 'https://iiicccnrnwdfawsvbacu.supabase.co'
-
-const akrosServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpaWNjY25ybndkZmF3c3ZiYWN1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTE0ODY4MSwiZXhwIjoyMDU2NzI0NjgxfQ.N1NgeWeZ16Lqhcxz_2ZRtefwEzDdsF1WwOM0xGHnX4k'
+const akrosUrl = process.env.AKROS_SUPABASE_URL!
+const akrosServiceKey = process.env.AKROS_SUPABASE_SERVICE_KEY!
 const akrosDb = createClient(akrosUrl, akrosServiceKey)
 
 export async function GET() {

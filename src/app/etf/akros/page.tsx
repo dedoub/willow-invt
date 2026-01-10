@@ -2480,7 +2480,7 @@ Dongwook`
             </button>
             <button
               onClick={() => window.open('https://supernova.index.engineering', '_blank')}
-              className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
+              className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
             >
               Supernova
               <ExternalLink className="h-4 w-4" />
