@@ -47,7 +47,7 @@ export function getAuthUrl(): string {
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
-    prompt: 'consent',
+    prompt: 'select_account consent', // 항상 계정 선택 화면 표시
   })
 }
 
