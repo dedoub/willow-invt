@@ -1357,7 +1357,8 @@ function ComposeEmailModal({
 }
 
 export default function ETCPage() {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
+  const locale = language === 'ko' ? 'ko-KR' : 'en-US'
 
   // 인보이스 상태 라벨 헬퍼 함수
   const getInvoiceStatusLabel = (status: ExtendedInvoiceStatus): string => {
@@ -2690,7 +2691,10 @@ Dongwook`
             {invoices.length > 0 && (
               <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
                 <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  {invoices.length}개 중 {(invoicePage - 1) * INVOICES_PER_PAGE + 1}-{Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)}
+                  {t.invoice.showingRange
+                    .replace('{total}', String(invoices.length))
+                    .replace('{start}', String((invoicePage - 1) * INVOICES_PER_PAGE + 1))
+                    .replace('{end}', String(Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)))}
                 </p>
                 {totalPages > 1 && (
                   <div className="flex items-center gap-1">
@@ -3021,7 +3025,7 @@ Dongwook`
                         className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-purple-600"
                       >
                         <Paperclip className="h-3 w-3" />
-                        <span>파일 첨부 (드래그 또는 클릭)</span>
+                        <span>{t.wiki.fileAttach}</span>
                       </label>
                     </div>
 
@@ -3055,7 +3059,7 @@ Dongwook`
                       }}
                       className="px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded"
                     >
-                      취소
+                      {t.common.cancel}
                     </button>
                     <button
                       onClick={handleAddNote}
@@ -3102,13 +3106,13 @@ Dongwook`
                             onClick={() => setEditingNote(null)}
                             className="px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded"
                           >
-                            취소
+                            {t.common.cancel}
                           </button>
                           <button
                             onClick={() => handleUpdateNote(editingNote)}
                             className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
                           >
-                            저장
+                            {t.common.save}
                           </button>
                         </div>
                       </div>
@@ -3172,7 +3176,10 @@ Dongwook`
             {filteredWikiNotes.length > 0 && (
               <div className="flex items-center justify-between pt-3 border-t border-slate-200 mt-3">
                 <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  {filteredWikiNotes.length}개 중 {(wikiPage - 1) * WIKI_PER_PAGE + 1}-{Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)}
+                  {t.wiki.showingRange
+                    .replace('{total}', String(filteredWikiNotes.length))
+                    .replace('{start}', String((wikiPage - 1) * WIKI_PER_PAGE + 1))
+                    .replace('{end}', String(Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)))}
                 </p>
                 {totalWikiPages > 1 && (
                   <div className="flex items-center gap-1">
@@ -3849,7 +3856,7 @@ Dongwook`
                 })()}
 
                 <p className="text-xs text-purple-400 mt-3 text-right">
-                  {t.gmail.generated}: {new Date(aiAnalysis.generatedAt).toLocaleString()}
+                  {t.gmail.generated}: {new Date(aiAnalysis.generatedAt).toLocaleString(locale)}
                 </p>
               </div>
             ) : (

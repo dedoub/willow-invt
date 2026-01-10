@@ -332,6 +332,7 @@ export const ko = {
     downloadFailed: 'PDF 다운로드에 실패했습니다.',
     emailFailed: '인보이스 이메일 준비에 실패했습니다.',
     deleteConfirm: '이 인보이스를 삭제하시겠습니까?',
+    showingRange: '{total}개 중 {start}-{end}',
     status: {
       draft: '작성중',
       sent_etc: 'ETC 발송됨',
@@ -357,5 +358,7 @@ export const ko = {
     contentPlaceholder: '내용을 입력하세요...',
     deleteConfirm: '이 메모를 삭제하시겠습니까?',
     fileDrop: '파일을 여기에 드롭하세요',
+    fileAttach: '파일 첨부 (드래그 또는 클릭)',
+    showingRange: '{total}개 중 {start}-{end}',
   },
 } as const

@@ -332,6 +332,7 @@ export const en = {
     downloadFailed: 'Failed to download PDF.',
     emailFailed: 'Failed to prepare invoice email.',
     deleteConfirm: 'Delete this invoice?',
+    showingRange: '{start}-{end} of {total}',
     status: {
       draft: 'Draft',
       sent_etc: 'Sent to ETC',
@@ -357,5 +358,7 @@ export const en = {
     contentPlaceholder: 'Enter content...',
     deleteConfirm: 'Delete this note?',
     fileDrop: 'Drop files here',
+    fileAttach: 'Attach files (drag or click)',
+    showingRange: '{start}-{end} of {total}',
   },
 } as const
