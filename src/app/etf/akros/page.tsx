@@ -2471,21 +2471,19 @@ Dongwook`
             <CardDescription>{t.etf.description}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href="https://supernova.index.engineering"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
-            >
-              Supernova
-              <ExternalLink className="h-4 w-4" />
-            </a>
             <button
               onClick={loadETFData}
               disabled={isLoadingETFs}
               className="flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 cursor-pointer"
             >
               <RefreshCw className={`h-4 w-4 ${isLoadingETFs ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={() => window.open('https://supernova.index.engineering', '_blank')}
+              className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
+            >
+              Supernova
+              <ExternalLink className="h-4 w-4" />
             </button>
           </div>
         </CardHeader>
