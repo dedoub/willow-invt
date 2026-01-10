@@ -156,9 +156,12 @@ export const ko = {
 
   // ETF
   etf: {
-    title: 'ETF 리스트',
-    description: '상품출시 컨설팅 ETF 관리',
+    title: '상품 리스트',
+    description: '아크로스 지수 추종 상품',
     totalAum: '총 AUM',
+    totalProducts: '총 상품',
+    totalArr: '연 매출액',
+    refDate: '{date} 기준',
     totalMonthlyFee: '총 월수수료',
     totalRemainingFee: '총 잔여수수료',
     etfCount: '{count}개 ETF 기준',
@@ -170,6 +173,7 @@ export const ko = {
     noData: 'ETF 데이터가 없습니다',
     columns: {
       symbol: '심볼',
+      country: '국가',
       fundName: '펀드명',
       listingDate: '상장일',
       aum: 'AUM',

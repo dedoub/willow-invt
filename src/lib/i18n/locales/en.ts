@@ -156,9 +156,12 @@ export const en = {
 
   // ETF
   etf: {
-    title: 'ETF List',
-    description: 'Product launch consulting ETF management',
+    title: 'Product List',
+    description: 'Akros Index Tracking Products',
     totalAum: 'Total AUM',
+    totalProducts: 'Total Products',
+    totalArr: 'Total ARR',
+    refDate: 'as of {date}',
     totalMonthlyFee: 'Total Monthly Fee',
     totalRemainingFee: 'Total Remaining Fee',
     etfCount: '{count} ETFs',
@@ -170,6 +173,7 @@ export const en = {
     noData: 'No ETF data',
     columns: {
       symbol: 'Symbol',
+      country: 'Country',
       fundName: 'Fund Name',
       listingDate: 'Listing',
       aum: 'AUM',

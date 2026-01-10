@@ -17,12 +17,17 @@ import {
   uploadETFDocument,
   getDocumentDownloadUrl,
   deleteETFDocument,
+  fetchAllTimeSeriesData,
+  fetchYearLaunches,
+  fetchAkrosProducts,
   ETFDisplayData,
   ETFProductInput,
   HistoricalDataPoint,
   ETFDocument,
   FeeStructure,
   FeeTier,
+  TimeSeriesData,
+  AkrosProduct,
 } from '@/lib/supabase-etf'
 import {
   DollarSign,
@@ -61,6 +66,7 @@ import {
   Check,
   Clock,
   Ban,
+  Package,
   Building,
 } from 'lucide-react'
 import { useRef } from 'react'
@@ -116,8 +122,52 @@ function formatAUM(value: number | null, currency: string = 'USD') {
     if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`
     return `$${value.toFixed(0)}`
   }
-  if (value >= 100000000) return `${(value / 100000000).toFixed(1)}억원`
+  if (currency === 'AUD') {
+    if (value >= 1000000) return `A$${(value / 1000000).toFixed(2)}M`
+    if (value >= 1000) return `A$${(value / 1000).toFixed(1)}K`
+    return `A$${value.toFixed(0)}`
+  }
+  if (currency === 'KRW') {
+    // 이미 억원 단위 데이터 - 천단위 콤마, 소수점 없음
+    return `${Math.round(value).toLocaleString('ko-KR')}억원`
+  }
   return formatCurrency(value, currency)
+}
+
+// 억원 단위 포맷 (time_series_data용)
+function formatAumKRW(value: number): string {
+  return new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(value) + '억원'
+}
+
+// ARR 포맷 (KRW는 소수점 1자리)
+function formatARR(value: number | null, currency: string = 'USD') {
+  if (value === null) return '-'
+  if (currency === 'USD') {
+    if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`
+    if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`
+    return `$${value.toFixed(0)}`
+  }
+  if (currency === 'AUD') {
+    if (value >= 1000000) return `A$${(value / 1000000).toFixed(2)}M`
+    if (value >= 1000) return `A$${(value / 1000).toFixed(1)}K`
+    return `A$${value.toFixed(0)}`
+  }
+  if (currency === 'KRW') {
+    // 이미 억원 단위 데이터 - 소수점 1자리
+    return `${value.toFixed(1)}억원`
+  }
+  return formatCurrency(value, currency)
+}
+
+// USD 포맷 (백만달러 단위)
+function formatUSD(value: number): string {
+  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}m`
+}
+
+// 기준일 포맷
+function formatRefDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
 }
 
 function formatFlow(value: number | null, currency: string = 'USD') {
@@ -127,6 +177,15 @@ function formatFlow(value: number | null, currency: string = 'USD') {
     if (Math.abs(value) >= 1000000) return `${prefix}$${(value / 1000000).toFixed(2)}M`
     if (Math.abs(value) >= 1000) return `${prefix}$${(value / 1000).toFixed(1)}K`
     return `${prefix}$${value.toFixed(0)}`
+  }
+  if (currency === 'AUD') {
+    if (Math.abs(value) >= 1000000) return `${prefix}A$${(value / 1000000).toFixed(2)}M`
+    if (Math.abs(value) >= 1000) return `${prefix}A$${(value / 1000).toFixed(1)}K`
+    return `${prefix}A$${value.toFixed(0)}`
+  }
+  if (currency === 'KRW') {
+    // 이미 억원 단위 데이터 (소수점 없이)
+    return `${prefix}${Math.round(value)}억원`
   }
   return `${prefix}${formatCurrency(value, currency)}`
 }
@@ -237,6 +296,14 @@ function Sparkline({ data, id }: { data: SparklineData[]; id: string }) {
   const gradientId = trend === 'up' ? gradientUpId : gradientDownId
 
   const formatTooltipValue = (value: number) => {
+    // ts- 로 시작하는 id는 time_series_data
+    if (id.startsWith('ts-')) {
+      if (id === 'ts-products') {
+        return `${value.toLocaleString()}개`
+      }
+      return `${value.toLocaleString()}억원`
+    }
+    // 기본값: USD
     if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`
     if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`
     return `$${value.toFixed(0)}`
@@ -1375,6 +1442,9 @@ export default function AkrosPage() {
   }
 
   const [etfs, setEtfs] = useState<ETFDisplayData[]>([])
+  const [akrosProducts, setAkrosProducts] = useState<AkrosProduct[]>([])
+  const [productPage, setProductPage] = useState(1)
+  const [productsPerPage, setProductsPerPage] = useState(10)
   const [isLoadingETFs, setIsLoadingETFs] = useState(true)
   const [emailFilter, setEmailFilter] = useState<string>('all')  // 'all' 또는 카테고리명
   const [emailSearch, setEmailSearch] = useState('')  // 이메일 검색어
@@ -1467,6 +1537,12 @@ export default function AkrosPage() {
   // 히스토리컬 데이터
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
 
+  // Akros Total 메트릭 (time_series_data)
+  const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData | null>(null)
+  const [allTimeSeriesData, setAllTimeSeriesData] = useState<TimeSeriesData[]>([])
+  const [yearLaunches, setYearLaunches] = useState<number>(0)
+  const currentYear = new Date().getFullYear()
+
   // 업무 위키 상태
   interface WikiAttachment {
     name: string
@@ -1507,10 +1583,25 @@ export default function AkrosPage() {
       const data = await fetchETFDisplayData('Akros')
       setEtfs(data)
 
+      // Akros 상품 목록 로드 (product_meta + product_figures)
+      const akrosData = await fetchAkrosProducts()
+      setAkrosProducts(akrosData)
+
       // 히스토리컬 데이터 로드
       const products = await fetchETFProducts('Akros')
       const historical = await fetchHistoricalData(products, 180)
       setHistoricalData(historical)
+
+      // Akros Total 메트릭 (time_series_data) 로드
+      const allTsData = await fetchAllTimeSeriesData()
+      setAllTimeSeriesData(allTsData)
+      if (allTsData.length > 0) {
+        setTimeSeriesData(allTsData[allTsData.length - 1]) // 최신 데이터
+      }
+
+      // 올해 출시 상품 수 로드
+      const launches = await fetchYearLaunches(new Date().getFullYear())
+      setYearLaunches(launches)
     } catch (error) {
       console.error('Failed to load ETF data:', error)
     } finally {
@@ -2269,8 +2360,9 @@ Dongwook`
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
+      {/* Summary Cards - Akros Total Metrics */}
       <div className="grid gap-4 md:grid-cols-3">
+        {/* Total AUM (KRW) */}
         <Card className="bg-slate-100">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.etf.totalAum}</CardTitle>
@@ -2290,18 +2382,56 @@ Dongwook`
             ) : (
               <div className="flex items-end justify-between">
                 <div>
-                  <div className="text-2xl font-bold">{formatAUM(totalAUM, 'USD')}</div>
-                  <p className="text-xs text-muted-foreground">{t.etf.etfCount.replace('{count}', String(etfs.length))}</p>
+                  <div className="text-2xl font-bold">
+                    {timeSeriesData ? formatAumKRW(timeSeriesData.total_aum_krw) : '-'}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {timeSeriesData ? formatUSD(timeSeriesData.total_aum_usd) : '-'}
+                  </p>
                 </div>
-                <Sparkline data={historicalData.map(d => ({ date: d.date, value: d.totalAum }))} id="aum" />
+                <Sparkline data={allTimeSeriesData.map(d => ({ date: d.date, value: d.total_aum_krw }))} id="ts-aum" />
               </div>
             )}
           </CardContent>
         </Card>
 
+        {/* Total Products */}
         <Card className="bg-slate-100">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t.etf.totalMonthlyFee}</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.etf.totalProducts}</CardTitle>
+            <div className="rounded-lg bg-white/50 p-2">
+              <Package className="h-4 w-4 text-slate-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoadingETFs ? (
+              <div className="flex items-end justify-between animate-pulse">
+                <div className="space-y-2">
+                  <div className="h-7 w-16 bg-slate-300 rounded" />
+                  <div className="h-3 w-20 bg-slate-200 rounded" />
+                </div>
+                <div className="h-10 w-24 bg-slate-200 rounded" />
+              </div>
+            ) : (
+              <div className="flex items-end justify-between">
+                <div>
+                  <div className="text-2xl font-bold">
+                    {timeSeriesData ? timeSeriesData.total_products : '-'}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {currentYear}년 {yearLaunches}개 출시
+                  </p>
+                </div>
+                <Sparkline data={allTimeSeriesData.map(d => ({ date: d.date, value: d.total_products }))} id="ts-products" />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Total ARR (KRW) */}
+        <Card className="bg-slate-100">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.etf.totalArr}</CardTitle>
             <div className="rounded-lg bg-white/50 p-2">
               <DollarSign className="h-4 w-4 text-slate-600" />
             </div>
@@ -2310,78 +2440,42 @@ Dongwook`
             {isLoadingETFs ? (
               <div className="flex items-end justify-between animate-pulse">
                 <div className="space-y-2">
-                  <div className="h-7 w-24 bg-slate-300 rounded" />
-                  <div className="h-3 w-36 bg-slate-200 rounded" />
-                </div>
-                <div className="h-10 w-24 bg-slate-200 rounded" />
-              </div>
-            ) : (
-              <div className="flex items-end justify-between">
-                <div>
-                  <div className="text-2xl font-bold">{formatAUM(totalMonthlyFee, 'USD')}</div>
-                  <p className="text-xs text-muted-foreground">{t.etf.feeFormula}</p>
-                </div>
-                <Sparkline data={historicalData.map(d => ({ date: d.date, value: d.totalMonthlyFee }))} id="fee" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-100">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t.etf.totalRemainingFee}</CardTitle>
-            <div className="rounded-lg bg-white/50 p-2">
-              <PiggyBank className="h-4 w-4 text-slate-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoadingETFs ? (
-              <div className="flex items-end justify-between animate-pulse">
-                <div className="space-y-2">
                   <div className="h-7 w-28 bg-slate-300 rounded" />
-                  <div className="h-3 w-40 bg-slate-200 rounded" />
+                  <div className="h-3 w-20 bg-slate-200 rounded" />
                 </div>
                 <div className="h-10 w-24 bg-slate-200 rounded" />
               </div>
             ) : (
               <div className="flex items-end justify-between">
                 <div>
-                  <div className="text-2xl font-bold">{formatAUM(totalRemainingFee, 'USD')}</div>
-                  <p className="text-xs text-muted-foreground">{t.etf.remainingFeeDesc}</p>
+                  <div className="text-2xl font-bold">
+                    {timeSeriesData ? formatAumKRW(timeSeriesData.total_arr_krw) : '-'}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {timeSeriesData ? formatUSD(timeSeriesData.total_arr_usd) : '-'}
+                  </p>
                 </div>
-                <Sparkline data={historicalData.map(d => ({ date: d.date, value: d.totalRemainingFee }))} id="remaining" />
+                <Sparkline data={allTimeSeriesData.map(d => ({ date: d.date, value: d.total_arr_krw }))} id="ts-arr" />
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* ETF List Table */}
+      {/* Product List Table */}
       <Card className="bg-slate-100">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle>{t.etf.title}</CardTitle>
             <CardDescription>{t.etf.description}</CardDescription>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button
-              onClick={loadETFData}
-              disabled={isLoadingETFs}
-              className="flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 cursor-pointer"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoadingETFs ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={() => {
-                setEditingETF(null)
-                setIsModalOpen(true)
-              }}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              {t.etf.addEtf}
-            </button>
-          </div>
+          <button
+            onClick={loadETFData}
+            disabled={isLoadingETFs}
+            className="flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 cursor-pointer"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoadingETFs ? 'animate-spin' : ''}`} />
+          </button>
         </CardHeader>
         <CardContent>
           {isLoadingETFs ? (
@@ -2394,10 +2488,7 @@ Dongwook`
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.listingDate}</th>
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.aum}</th>
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.monthFlow}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.monthlyFee}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.remainingFee}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.date}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.actions}</th>
+                    <th className="pb-3 font-medium">ARR</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2408,103 +2499,112 @@ Dongwook`
                       <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
                       <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
                       <td className="py-3 pr-4"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
-                      <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                      <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                      <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-1">
-                          <div className="h-6 w-6 bg-slate-200 rounded" />
-                          <div className="h-6 w-6 bg-slate-200 rounded" />
-                          <div className="h-6 w-6 bg-slate-200 rounded" />
-                        </div>
-                      </td>
+                      <td className="py-3"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          ) : etfs.length === 0 ? (
+          ) : akrosProducts.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">{t.etf.noData}</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-max">
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-sm text-muted-foreground whitespace-nowrap">
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.symbol}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.fundName}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.listingDate}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.aum}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.monthFlow}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.monthlyFee}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.remainingFee}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.date}</th>
-                    <th className="pb-3 font-medium">{t.etf.columns.actions}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {etfs.map((etf) => (
-                    <tr key={etf.id} className="border-b border-slate-200 last:border-0 whitespace-nowrap">
-                      <td className="py-3 pr-4 font-mono font-medium">{etf.symbol}</td>
-                      <td className="py-3 pr-4 text-sm max-w-[200px] truncate" title={etf.fundName}>
-                        {etf.fundUrl ? (
-                          <a
-                            href={etf.fundUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {etf.fundName}
-                          </a>
-                        ) : (
-                          etf.fundName
-                        )}
-                      </td>
-                      <td className="py-3 pr-4 text-sm text-muted-foreground">{etf.listingDate || '-'}</td>
-                      <td className="py-3 pr-4">{formatAUM(etf.aum, etf.currency)}</td>
-                      <td className={`py-3 pr-4 ${(etf.flow || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {formatFlow(etf.flow, etf.currency)}
-                      </td>
-                      <td className="py-3 pr-4 font-medium">{formatAUM(etf.totalMonthlyFee, etf.currency)}</td>
-                      <td className="py-3 pr-4">
-                        {etf.remainingFee !== null ? (
-                          <span title={t.etf.remainingMonths.replace('{months}', String(etf.remainingMonths))}>
-                            {formatAUM(etf.remainingFee, etf.currency)}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="py-3 pr-4 text-sm text-muted-foreground">{etf.date || '-'}</td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => {
-                              setEditingETF(etf)
-                              setIsModalOpen(true)
-                            }}
-                            className="rounded p-1 hover:bg-slate-200 cursor-pointer"
-                            title={t.etf.actions.edit}
-                          >
-                            <Pencil className="h-4 w-4 text-slate-600" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setDocumentETF(etf)
-                              setIsDocModalOpen(true)
-                            }}
-                            className="rounded p-1 hover:bg-slate-200 cursor-pointer"
-                            title={t.etf.actions.documents}
-                          >
-                            <Archive className="h-4 w-4 text-slate-600" />
-                          </button>
-                          <button onClick={() => handleDeleteETF(etf)} className="rounded p-1 hover:bg-slate-200 cursor-pointer" title={t.etf.actions.delete}>
-                            <Trash2 className="h-4 w-4 text-slate-600" />
-                          </button>
-                        </div>
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-max">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-left text-sm text-muted-foreground whitespace-nowrap">
+                      <th className="pb-3 pr-6 font-medium">{t.etf.columns.symbol}</th>
+                      <th className="pb-3 pr-6 font-medium">{t.etf.columns.country}</th>
+                      <th className="pb-3 pr-6 font-medium">{t.etf.columns.fundName}</th>
+                      <th className="pb-3 pr-6 font-medium">{t.etf.columns.listingDate}</th>
+                      <th className="pb-3 pr-6 font-medium">{t.etf.columns.aum}</th>
+                      <th className="pb-3 pr-6 font-medium">{t.etf.columns.monthFlow}</th>
+                      <th className="pb-3 font-medium">ARR</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {akrosProducts
+                      .slice((productPage - 1) * productsPerPage, productPage * productsPerPage)
+                      .map((product) => (
+                      <tr key={product.symbol} className="border-b border-slate-200 last:border-0 whitespace-nowrap">
+                        <td className="py-3 pr-6 font-mono font-medium max-w-[100px] truncate" title={product.symbol}>{product.symbol}</td>
+                        <td className="py-3 pr-6 text-sm">{product.country}</td>
+                        <td className="py-3 pr-6 text-sm min-w-[220px]" title={product.product_name}>
+                          {product.product_name_local || product.product_name}
+                        </td>
+                        <td className="py-3 pr-6 text-sm text-muted-foreground">{product.listing_date || '-'}</td>
+                        <td className="py-3 pr-6">{formatAUM(product.market_cap, product.currency)}</td>
+                        <td className={`py-3 pr-6 ${product.product_flow >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {formatFlow(product.product_flow, product.currency)}
+                        </td>
+                        <td className="py-3 font-medium">{formatARR(product.arr, product.currency)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* 페이지네이션 */}
+              {akrosProducts.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 mt-4">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      {t.gmail.showingRange
+                        .replace('{total}', String(akrosProducts.length))
+                        .replace('{start}', String((productPage - 1) * productsPerPage + 1))
+                        .replace('{end}', String(Math.min(productPage * productsPerPage, akrosProducts.length)))}
+                    </p>
+                    <select
+                      value={productsPerPage}
+                      onChange={(e) => {
+                        setProductsPerPage(Number(e.target.value))
+                        setProductPage(1)
+                      }}
+                      className="text-xs bg-white border border-slate-200 rounded px-1.5 py-0.5"
+                    >
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                  {Math.ceil(akrosProducts.length / productsPerPage) > 1 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setProductPage(1)}
+                        disabled={productPage === 1}
+                        className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        «
+                      </button>
+                      <button
+                        onClick={() => setProductPage(p => Math.max(1, p - 1))}
+                        disabled={productPage === 1}
+                        className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ‹
+                      </button>
+                      <span className="px-2 sm:px-3 py-1 text-xs font-medium">
+                        {productPage}/{Math.ceil(akrosProducts.length / productsPerPage)}
+                      </span>
+                      <button
+                        onClick={() => setProductPage(p => Math.min(Math.ceil(akrosProducts.length / productsPerPage), p + 1))}
+                        disabled={productPage === Math.ceil(akrosProducts.length / productsPerPage)}
+                        className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ›
+                      </button>
+                      <button
+                        onClick={() => setProductPage(Math.ceil(akrosProducts.length / productsPerPage))}
+                        disabled={productPage === Math.ceil(akrosProducts.length / productsPerPage)}
+                        className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        »
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

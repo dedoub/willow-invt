@@ -729,3 +729,101 @@ export async function deleteETFDocument(
 
   return true
 }
+
+// ============ Time Series 데이터 (Akros Total 메트릭) ============
+
+export interface TimeSeriesData {
+  date: string
+  total_aum_krw: number
+  total_aum_usd: number
+  total_products: number
+  total_arr_krw: number
+  total_arr_usd: number
+}
+
+// 최신 Time Series 데이터 가져오기
+export async function fetchLatestTimeSeriesData(): Promise<TimeSeriesData | null> {
+  const { data, error } = await akrosDb
+    .from('time_series_data')
+    .select('*')
+    .order('date', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (error) {
+    console.error('Error fetching time series data:', error)
+    return null
+  }
+
+  return data as TimeSeriesData
+}
+
+// 전체 Time Series 데이터 가져오기 (차트용)
+export async function fetchAllTimeSeriesData(): Promise<TimeSeriesData[]> {
+  const { data, error } = await akrosDb
+    .from('time_series_data')
+    .select('*')
+    .order('date', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching time series data:', error)
+    return []
+  }
+
+  return (data || []) as TimeSeriesData[]
+}
+
+// 올해 출시 상품 수 가져오기
+export async function fetchYearLaunches(year: number): Promise<number> {
+  const startDate = `${year}-01-01`
+  const endDate = `${year}-12-31`
+
+  const { data, error } = await akrosDb
+    .from('product_meta')
+    .select('symbol, listing_date, index_provider')
+    .gte('listing_date', startDate)
+    .lte('listing_date', endDate)
+    .ilike('index_provider', '%akros%')
+
+  if (error) {
+    console.error('Error fetching year launches:', error)
+    return 0
+  }
+
+  return data?.length || 0
+}
+
+// ============ Akros 상품 목록 ============
+
+export interface AkrosProduct {
+  symbol: string
+  product_name: string
+  product_name_local: string
+  country: string
+  product_type: string
+  product_issuer: string
+  index_provider: string
+  market_cap: number
+  currency: string
+  listing_date: string
+  product_flow: number
+  arr: number
+  index_fee: number
+  index_fee_min: number
+}
+
+// Akros 상품 목록 가져오기 (API 라우트를 통해 서버 사이드에서 조회)
+export async function fetchAkrosProducts(): Promise<AkrosProduct[]> {
+  try {
+    const response = await fetch('/api/akros-products')
+    if (!response.ok) {
+      console.error('Failed to fetch Akros products:', response.status)
+      return []
+    }
+    const data = await response.json()
+    return data.products || []
+  } catch (error) {
+    console.error('Error fetching Akros products:', error)
+    return []
+  }
+}
