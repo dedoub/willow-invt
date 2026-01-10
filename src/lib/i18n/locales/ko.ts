@@ -1,4 +1,10 @@
 export const ko = {
+  // 페이지 타이틀
+  pageTitles: {
+    etcPage: 'ETF/Indexing - ETC',
+    akrosPage: 'ETF/Indexing - 아크로스',
+  },
+
   // 공통
   common: {
     loading: '로딩 중...',

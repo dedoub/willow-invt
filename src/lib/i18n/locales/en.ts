@@ -1,4 +1,10 @@
 export const en = {
+  // Page Titles
+  pageTitles: {
+    etcPage: 'ETF/Indexing - ETC',
+    akrosPage: 'ETF/Indexing - Akros',
+  },
+
   // Common
   common: {
     loading: 'Loading...',
