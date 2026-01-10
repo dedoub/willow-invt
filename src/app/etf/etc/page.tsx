@@ -2928,7 +2928,7 @@ Dongwook`
               className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">{t.wiki.addNote}</span>
+              <span className="hidden sm:inline">{t.invoice.create}</span>
             </button>
           </CardHeader>
           <CardContent>
@@ -2966,7 +2966,7 @@ Dongwook`
               )}
             </div>
 
-            <div className="space-y-2 max-h-[250px] overflow-y-auto">
+            <div className="space-y-2">
               {/* 새 메모 추가 폼 */}
               {isAddingNote && (
                 <div
@@ -3078,13 +3078,13 @@ Dongwook`
                 <div className="text-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
                 </div>
-              ) : filteredWikiNotes.length === 0 ? (
+              ) : filteredWikiNotes.length === 0 && !isAddingNote ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <StickyNote className="h-8 w-8 mx-auto mb-2 text-slate-300" />
                   <p className="text-sm">{wikiSearch ? t.wiki.noSearchResults : t.wiki.noNotes}</p>
                   <p className="text-xs">{t.wiki.addNoteHint}</p>
                 </div>
-              ) : (
+              ) : filteredWikiNotes.length > 0 ? (
                 paginatedWikiNotes.map((note) => (
                   <div key={note.id} className="rounded-lg bg-white p-3">
                     {editingNote?.id === note.id ? (
@@ -3169,7 +3169,7 @@ Dongwook`
                     )}
                   </div>
                 ))
-              )}
+              ) : null}
             </div>
 
             {/* 페이지네이션 */}
