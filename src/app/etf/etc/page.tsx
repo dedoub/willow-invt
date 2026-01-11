@@ -1457,6 +1457,8 @@ export default function ETCPage() {
   const [savedAnalysis, setSavedAnalysis] = useState<SavedAnalysis | null>(null)
   const [categorySlideIndex, setCategorySlideIndex] = useState(0)
   const [dragStartX, setDragStartX] = useState<number | null>(null)
+  const [dragDeltaX, setDragDeltaX] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
 
   // AI 컨텍스트 설정 상태
   const [aiContextText, setAiContextText] = useState('')
@@ -3693,7 +3695,20 @@ Dongwook`
                       {/* Category Card */}
                       <div
                         className="bg-white rounded-lg p-3 cursor-grab active:cursor-grabbing select-none"
-                        onTouchStart={(e) => setDragStartX(e.touches[0].clientX)}
+                        style={{
+                          transform: isDragging ? `translateX(${dragDeltaX}px)` : 'translateX(0)',
+                          transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+                        }}
+                        onTouchStart={(e) => {
+                          setDragStartX(e.touches[0].clientX)
+                          setIsDragging(true)
+                          setDragDeltaX(0)
+                        }}
+                        onTouchMove={(e) => {
+                          if (dragStartX === null) return
+                          const diff = e.touches[0].clientX - dragStartX
+                          setDragDeltaX(diff)
+                        }}
                         onTouchEnd={(e) => {
                           if (dragStartX === null) return
                           const diff = e.changedTouches[0].clientX - dragStartX
@@ -3703,8 +3718,19 @@ Dongwook`
                             setCategorySlideIndex(Math.min(aiAnalysis.categories.length - 1, currentIndex + 1))
                           }
                           setDragStartX(null)
+                          setDragDeltaX(0)
+                          setIsDragging(false)
                         }}
-                        onMouseDown={(e) => setDragStartX(e.clientX)}
+                        onMouseDown={(e) => {
+                          setDragStartX(e.clientX)
+                          setIsDragging(true)
+                          setDragDeltaX(0)
+                        }}
+                        onMouseMove={(e) => {
+                          if (dragStartX === null || !isDragging) return
+                          const diff = e.clientX - dragStartX
+                          setDragDeltaX(diff)
+                        }}
                         onMouseUp={(e) => {
                           if (dragStartX === null) return
                           const diff = e.clientX - dragStartX
@@ -3714,8 +3740,16 @@ Dongwook`
                             setCategorySlideIndex(Math.min(aiAnalysis.categories.length - 1, currentIndex + 1))
                           }
                           setDragStartX(null)
+                          setDragDeltaX(0)
+                          setIsDragging(false)
                         }}
-                        onMouseLeave={() => setDragStartX(null)}
+                        onMouseLeave={() => {
+                          if (isDragging) {
+                            setDragStartX(null)
+                            setDragDeltaX(0)
+                            setIsDragging(false)
+                          }
+                        }}
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${color.bg} ${color.text}`}>
