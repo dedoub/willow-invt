@@ -133,10 +133,10 @@
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - thin style */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -144,12 +144,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.7 0 0);
-  border-radius: 4px;
+  background: oklch(0.5 0 0 / 0.5);
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.6 0 0);
+  background: oklch(0.5 0 0 / 0.8);
 }
 
 /* Animations */

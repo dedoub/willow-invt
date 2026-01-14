@@ -390,7 +390,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                   </span>
                 ))}
                 {project.inProgressByMember.length > 2 && (
-                  <span className="text-[8px] text-blue-500">+{project.inProgressByMember.length - 2}</span>
+                  <span className="text-[8px] text-blue-500 dark:text-blue-400">+{project.inProgressByMember.length - 2}</span>
                 )}
               </div>
             )}
@@ -413,7 +413,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                   </span>
                 ))}
                 {project.completedByMember.length > 2 && (
-                  <span className="text-[8px] text-emerald-500">+{project.completedByMember.length - 2}</span>
+                  <span className="text-[8px] text-emerald-500 dark:text-emerald-400">+{project.completedByMember.length - 2}</span>
                 )}
               </div>
             )}
@@ -453,7 +453,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                   {project.description ? (
                     <p className="text-[10px] text-slate-600 dark:text-slate-300 line-clamp-3">{project.description}</p>
                   ) : (
-                    <p className="text-[10px] text-slate-400">-</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500">-</p>
                   )}
                 </div>
                 {/* 서비스 URL */}
@@ -472,7 +472,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                       </a>
                     ))
                   ) : (
-                    <p className="text-[10px] text-slate-400">-</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500">-</p>
                   )}
                 </div>
               </div>
@@ -488,7 +488,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                 <div className="space-y-1">
                   {project.schedules.slice(0, 3).map(schedule => (
                     <div key={schedule.id} className="flex items-center gap-1.5 text-xs">
-                      <span className="text-slate-400 w-9 flex-shrink-0 text-[10px]">
+                      <span className="text-slate-400 dark:text-slate-500 w-9 flex-shrink-0 text-[10px]">
                         {formatDate(schedule.start_date)}
                       </span>
                       <span className="truncate text-slate-600 dark:text-slate-300">{schedule.title}</span>
@@ -496,7 +496,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                   ))}
                 </div>
               ) : (
-                <p className="text-[10px] text-slate-400">-</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">-</p>
               )}
             </div>
 
@@ -517,13 +517,13 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                     </span>
                   ))}
                   {project.docs.length > 4 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-400">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500">
                       +{project.docs.length - 4}
                     </span>
                   )}
                 </div>
               ) : (
-                <p className="text-[10px] text-slate-400">-</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">-</p>
               )}
             </div>
 
@@ -537,7 +537,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                 <div className="text-[10px] text-slate-600 dark:text-slate-300">
                   {project.members.filter(m => m.is_manager).map(m => m.name).join(', ')}
                   {project.members.filter(m => !m.is_manager).length > 0 && (
-                    <span className="text-slate-400"> 외 {project.members.filter(m => !m.is_manager).length}명</span>
+                    <span className="text-slate-400 dark:text-slate-500"> 외 {project.members.filter(m => !m.is_manager).length}명</span>
                   )}
                 </div>
               </div>
@@ -587,7 +587,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                 })}
               </div>
             ) : (
-              <p className="text-[10px] text-slate-400">-</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">-</p>
             )}
           </div>
         </div>
@@ -620,7 +620,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                       {priorityLabel}
                     </span>
                     {todo.due_date && (
-                      <span className="text-[9px] text-slate-400 flex-shrink-0">
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 flex-shrink-0">
                         {formatDate(todo.due_date)}
                       </span>
                     )}

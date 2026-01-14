@@ -167,7 +167,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
+      <nav className="flex-1 space-y-1 p-2 overflow-y-auto sidebar-nav">
         {/* Dashboard */}
         <Link
           href="/"
