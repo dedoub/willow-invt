@@ -3,6 +3,10 @@ export const en = {
   pageTitles: {
     etcPage: 'ETF/Indexing - ETC',
     akrosPage: 'ETF/Indexing - Akros',
+    tenswActive: 'Tensoftworks - Active Projects',
+    tenswManaged: 'Tensoftworks - Managed Projects',
+    tenswPoc: 'Tensoftworks - POC',
+    tenswClosed: 'Tensoftworks - Closed Projects',
   },
 
   // Common
@@ -84,8 +88,9 @@ export const en = {
     voiceCards: 'VoiceCards',
     reviewNotes: 'ReviewNotes',
     tenSoftworks: 'Ten Softworks',
-    concepts: 'Concepts',
-    openProjects: 'Open Projects',
+    pocProjects: 'POC Projects',
+    activeProjects: 'Active Projects',
+    managedProjects: 'Managed Projects',
     closedProjects: 'Closed Projects',
     others: 'Others',
     jangbigo: 'Jangbigo',

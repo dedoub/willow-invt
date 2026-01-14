@@ -3,6 +3,10 @@ export const ko = {
   pageTitles: {
     etcPage: 'ETF/Indexing - ETC',
     akrosPage: 'ETF/Indexing - 아크로스',
+    tenswActive: '텐소프트웍스 - 진행 프로젝트',
+    tenswManaged: '텐소프트웍스 - 관리 프로젝트',
+    tenswPoc: '텐소프트웍스 - POC',
+    tenswClosed: '텐소프트웍스 - 종료 프로젝트',
   },
 
   // 공통
@@ -84,9 +88,10 @@ export const ko = {
     voiceCards: '보이스카드',
     reviewNotes: '리뷰노트',
     tenSoftworks: '텐소프트웍스',
-    concepts: '컨셉 시연',
-    openProjects: '진행 프로젝트',
-    closedProjects: '완료 프로젝트',
+    pocProjects: 'POC 프로젝트',
+    activeProjects: '진행 프로젝트',
+    managedProjects: '관리 프로젝트',
+    closedProjects: '종료 프로젝트',
     others: '기타',
     jangbigo: '장비고',
   },

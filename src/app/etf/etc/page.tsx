@@ -178,16 +178,16 @@ function decodeDoubleEncodedHtml(html: string): string {
 
 // 카테고리별 색상 자동 지정
 const CATEGORY_COLORS = [
-  { bg: 'bg-blue-100', text: 'text-blue-700', button: 'bg-blue-500' },
-  { bg: 'bg-purple-100', text: 'text-purple-700', button: 'bg-purple-500' },
-  { bg: 'bg-emerald-100', text: 'text-emerald-700', button: 'bg-emerald-500' },
-  { bg: 'bg-amber-100', text: 'text-amber-700', button: 'bg-amber-500' },
-  { bg: 'bg-rose-100', text: 'text-rose-700', button: 'bg-rose-500' },
-  { bg: 'bg-cyan-100', text: 'text-cyan-700', button: 'bg-cyan-500' },
-  { bg: 'bg-indigo-100', text: 'text-indigo-700', button: 'bg-indigo-500' },
-  { bg: 'bg-orange-100', text: 'text-orange-700', button: 'bg-orange-500' },
-  { bg: 'bg-teal-100', text: 'text-teal-700', button: 'bg-teal-500' },
-  { bg: 'bg-pink-100', text: 'text-pink-700', button: 'bg-pink-500' },
+  { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-300', button: 'bg-blue-500' },
+  { bg: 'bg-purple-100 dark:bg-purple-900/50', text: 'text-purple-700 dark:text-purple-300', button: 'bg-purple-500' },
+  { bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-300', button: 'bg-emerald-500' },
+  { bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-300', button: 'bg-amber-500' },
+  { bg: 'bg-rose-100 dark:bg-rose-900/50', text: 'text-rose-700 dark:text-rose-300', button: 'bg-rose-500' },
+  { bg: 'bg-cyan-100 dark:bg-cyan-900/50', text: 'text-cyan-700 dark:text-cyan-300', button: 'bg-cyan-500' },
+  { bg: 'bg-indigo-100 dark:bg-indigo-900/50', text: 'text-indigo-700 dark:text-indigo-300', button: 'bg-indigo-500' },
+  { bg: 'bg-orange-100 dark:bg-orange-900/50', text: 'text-orange-700 dark:text-orange-300', button: 'bg-orange-500' },
+  { bg: 'bg-teal-100 dark:bg-teal-900/50', text: 'text-teal-700 dark:text-teal-300', button: 'bg-teal-500' },
+  { bg: 'bg-pink-100 dark:bg-pink-900/50', text: 'text-pink-700 dark:text-pink-300', button: 'bg-pink-500' },
 ]
 
 function getCategoryColor(category: string, categories: string[]) {
@@ -2273,11 +2273,11 @@ Dongwook`
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-slate-100">
+        <Card className="bg-slate-100 dark:bg-slate-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.etf.totalAum}</CardTitle>
-            <div className="rounded-lg bg-white/50 p-2">
-              <TrendingUp className="h-4 w-4 text-slate-600" />
+            <div className="rounded-lg bg-white/50 dark:bg-white/10 p-2">
+              <TrendingUp className="h-4 w-4 text-slate-600 dark:text-slate-400" />
             </div>
           </CardHeader>
           <CardContent>
@@ -2301,11 +2301,11 @@ Dongwook`
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-100">
+        <Card className="bg-slate-100 dark:bg-slate-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.etf.totalMonthlyFee}</CardTitle>
-            <div className="rounded-lg bg-white/50 p-2">
-              <DollarSign className="h-4 w-4 text-slate-600" />
+            <div className="rounded-lg bg-white/50 dark:bg-white/10 p-2">
+              <DollarSign className="h-4 w-4 text-slate-600 dark:text-slate-400" />
             </div>
           </CardHeader>
           <CardContent>
@@ -2329,11 +2329,11 @@ Dongwook`
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-100">
+        <Card className="bg-slate-100 dark:bg-slate-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.etf.totalRemainingFee}</CardTitle>
-            <div className="rounded-lg bg-white/50 p-2">
-              <PiggyBank className="h-4 w-4 text-slate-600" />
+            <div className="rounded-lg bg-white/50 dark:bg-white/10 p-2">
+              <PiggyBank className="h-4 w-4 text-slate-600 dark:text-slate-400" />
             </div>
           </CardHeader>
           <CardContent>
@@ -2359,7 +2359,7 @@ Dongwook`
       </div>
 
       {/* ETF List Table */}
-      <Card className="bg-slate-100">
+      <Card className="bg-slate-100 dark:bg-slate-800">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle>{t.etf.title}</CardTitle>
@@ -2369,7 +2369,7 @@ Dongwook`
             <button
               onClick={loadETFData}
               disabled={isLoadingETFs}
-              className="flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 cursor-pointer"
+              className="flex items-center justify-center gap-2 rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer"
             >
               <RefreshCw className={`h-4 w-4 ${isLoadingETFs ? 'animate-spin' : ''}`} />
             </button>
@@ -2378,7 +2378,7 @@ Dongwook`
                 setEditingETF(null)
                 setIsModalOpen(true)
               }}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               {t.etf.addEtf}
@@ -2514,7 +2514,7 @@ Dongwook`
       {/* Invoice & Work Wiki Section - Side by Side */}
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Invoice Section */}
-        <Card className="bg-slate-100 w-full lg:w-1/2">
+        <Card className="bg-slate-100 dark:bg-slate-800 w-full lg:w-1/2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
@@ -2558,7 +2558,7 @@ Dongwook`
                   const StatusIcon = statusStyle.icon
                   const firstItem = (invoice.line_items as LineItem[])[0]
                   return (
-                    <div key={invoice.id} className="rounded-lg bg-white p-3">
+                    <div key={invoice.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
                       <div
                         className="flex items-center justify-between cursor-pointer"
                         onClick={() => setExpandedInvoice(expandedInvoice === invoice.id ? null : invoice.id)}
@@ -2916,7 +2916,7 @@ Dongwook`
         )}
 
         {/* Work Wiki Section */}
-        <Card className="bg-slate-100 w-full lg:w-1/2">
+        <Card className="bg-slate-100 dark:bg-slate-800 w-full lg:w-1/2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
@@ -2942,7 +2942,7 @@ Dongwook`
                   value={wikiSearch}
                   onChange={(e) => setWikiSearch(e.target.value)}
                   placeholder={t.wiki.searchPlaceholder}
-                  className="w-full rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-sm pl-8 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  className="w-full rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 text-sm pl-8 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-500"
                 />
                 <svg
                   className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"
@@ -2972,8 +2972,8 @@ Dongwook`
               {/* 새 메모 추가 폼 */}
               {isAddingNote && (
                 <div
-                  className={`rounded-lg bg-white p-3 border-2 transition-colors ${
-                    isDraggingWiki ? 'border-purple-400 bg-purple-50' : 'border-purple-200'
+                  className={`rounded-lg bg-white dark:bg-slate-700 p-3 border-2 transition-colors ${
+                    isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-purple-200 dark:border-purple-800'
                   }`}
                   onDragOver={(e) => {
                     e.preventDefault()
@@ -3088,7 +3088,7 @@ Dongwook`
                 </div>
               ) : filteredWikiNotes.length > 0 ? (
                 paginatedWikiNotes.map((note) => (
-                  <div key={note.id} className="rounded-lg bg-white p-3">
+                  <div key={note.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
                     {editingNote?.id === note.id ? (
                       <div>
                         <input
@@ -3128,19 +3128,19 @@ Dongwook`
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleTogglePin(note)}
-                              className={`p-1 rounded hover:bg-slate-100 cursor-pointer ${note.is_pinned ? 'text-amber-500' : 'text-slate-400'}`}
+                              className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${note.is_pinned ? 'text-amber-500' : 'text-slate-400'}`}
                             >
                               <Pin className="h-3 w-3" />
                             </button>
                             <button
                               onClick={() => setEditingNote(note)}
-                              className="p-1 rounded hover:bg-slate-100 text-slate-400 cursor-pointer"
+                              className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 cursor-pointer"
                             >
                               <Pencil className="h-3 w-3" />
                             </button>
                             <button
                               onClick={() => handleDeleteNote(note.id)}
-                              className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-red-500 cursor-pointer"
+                              className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 hover:text-red-500 cursor-pointer"
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>
@@ -3156,7 +3156,7 @@ Dongwook`
                                 href={att.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 rounded px-1.5 py-0.5 text-slate-600"
+                                className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
                               >
                                 <Paperclip className="h-2.5 w-2.5" />
                                 <span className="max-w-[100px] truncate">{att.name}</span>
@@ -3225,7 +3225,7 @@ Dongwook`
       </div>
 
       {/* Email Section - Full Width, 2 Columns */}
-      <Card className="bg-slate-100">
+      <Card className="bg-slate-100 dark:bg-slate-800">
         <CardHeader className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -3248,14 +3248,14 @@ Dongwook`
               <button
                 onClick={syncEmails}
                 disabled={isSyncing || !syncStatus.isConnected}
-                className="flex items-center justify-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50 cursor-pointer"
+                className="flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
               </button>
               <button
                 onClick={handleAnalyzeEmails}
                 disabled={isAnalyzing || !syncStatus.isConnected}
-                className="flex items-center justify-center gap-2 rounded-lg bg-purple-100 px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-200 disabled:opacity-50 cursor-pointer"
+                className="flex items-center justify-center gap-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 px-3 py-2 text-sm font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 disabled:opacity-50 cursor-pointer"
               >
                 {isAnalyzing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -3266,7 +3266,7 @@ Dongwook`
               </button>
               <button
                 onClick={() => setShowGmailSettings(!showGmailSettings)}
-                className="flex items-center justify-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 cursor-pointer"
+                className="flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer"
               >
                 <Settings className="h-4 w-4" />
               </button>
@@ -3288,12 +3288,12 @@ Dongwook`
           {showGmailSettings && (
             <div className="fixed inset-0 z-50 flex items-center justify-center">
               <div className="absolute inset-0 bg-black/50" onClick={() => setShowGmailSettings(false)} />
-              <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
+              <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-semibold text-base">{t.gmail.settings}</h4>
                   <button
                     onClick={() => setShowGmailSettings(false)}
-                    className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -3410,7 +3410,7 @@ Dongwook`
                 <button
                   onClick={() => setEmailFilter('all')}
                   className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer ${
-                    emailFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'
+                    emailFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                   }`}
                 >
                   {t.gmail.filterAll}
@@ -3441,7 +3441,7 @@ Dongwook`
                     value={emailSearch}
                     onChange={(e) => setEmailSearch(e.target.value)}
                     placeholder={t.header.searchPlaceholder}
-                    className="w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm pl-9 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                    className="w-full rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-2 text-sm pl-9 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-500"
                   />
                   <svg
                     className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
@@ -3513,7 +3513,7 @@ Dongwook`
                     {paginatedEmails.map((email) => (
                       <div
                         key={email.id}
-                        className="rounded-lg bg-white p-3 cursor-pointer hover:bg-slate-50"
+                        className="rounded-lg bg-white dark:bg-slate-700 p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600"
                         onClick={() => setSelectedEmail(email)}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -3574,7 +3574,7 @@ Dongwook`
                               setEmailsPerPage(Number(e.target.value))
                               setEmailPage(1)
                             }}
-                            className="text-xs bg-white border border-slate-200 rounded px-1.5 py-0.5"
+                            className="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5"
                           >
                             <option value={10}>{t.gmail.emailCount.replace('{count}', '10')}</option>
                             <option value={20}>{t.gmail.emailCount.replace('{count}', '20')}</option>
@@ -3647,9 +3647,9 @@ Dongwook`
                 </div>
 
                 {/* Overall Summary */}
-                <div className="bg-white rounded-lg p-3 mb-4">
-                  <h5 className="text-xs font-medium text-slate-700 mb-2">{t.gmail.overallSummary}</h5>
-                  <p className="text-xs text-slate-600">{aiAnalysis.overallSummary}</p>
+                <div className="bg-white dark:bg-slate-700 rounded-lg p-3 mb-4">
+                  <h5 className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{t.gmail.overallSummary}</h5>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">{aiAnalysis.overallSummary}</p>
                 </div>
 
                 {/* Categories Carousel */}
@@ -3694,7 +3694,7 @@ Dongwook`
 
                       {/* Category Card */}
                       <div
-                        className="bg-white rounded-lg p-3 cursor-grab active:cursor-grabbing select-none"
+                        className="bg-white dark:bg-slate-700 rounded-lg p-3 cursor-grab active:cursor-grabbing select-none"
                         style={{
                           transform: isDragging ? `translateX(${dragDeltaX}px)` : 'translateX(0)',
                           transition: isDragging ? 'none' : 'transform 0.3s ease-out',

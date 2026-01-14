@@ -27,6 +27,10 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     const titleMap: Record<string, string> = {
       '/etf/etc': t.pageTitles.etcPage,
       '/etf/akros': t.pageTitles.akrosPage,
+      '/tensoftworks/active': t.pageTitles.tenswActive,
+      '/tensoftworks/managed': t.pageTitles.tenswManaged,
+      '/tensoftworks/poc': t.pageTitles.tenswPoc,
+      '/tensoftworks/closed': t.pageTitles.tenswClosed,
     }
     return titleMap[path]
   }
