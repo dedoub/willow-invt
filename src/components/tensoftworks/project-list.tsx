@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ProjectCard, TenswProject } from './project-card'
+import { useI18n } from '@/lib/i18n/context'
 import { Loader2 } from 'lucide-react'
 
 type ProjectStatus = 'poc' | 'active' | 'managed' | 'closed'
@@ -11,6 +12,7 @@ interface ProjectListProps {
 }
 
 export function ProjectList({ status }: ProjectListProps) {
+  const { t } = useI18n()
   const [projects, setProjects] = useState<TenswProject[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +28,7 @@ export function ProjectList({ status }: ProjectListProps) {
         setProjects(data.projects || [])
       } catch (err) {
         console.error('Error fetching projects:', err)
-        setError('프로젝트를 불러오는데 실패했습니다.')
+        setError(t.common.error)
       } finally {
         setLoading(false)
       }
@@ -68,7 +70,7 @@ export function ProjectList({ status }: ProjectListProps) {
   if (filteredProjects.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <p className="text-muted-foreground">프로젝트가 없습니다.</p>
+        <p className="text-muted-foreground">{t.tensoftworks.noProjects}</p>
       </div>
     )
   }

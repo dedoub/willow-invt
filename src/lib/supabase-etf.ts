@@ -780,10 +780,9 @@ export async function fetchYearLaunches(year: number): Promise<number> {
 
   const { data, error } = await akrosDb
     .from('product_meta')
-    .select('symbol, listing_date, index_provider')
+    .select('symbol, listing_date')
     .gte('listing_date', startDate)
     .lte('listing_date', endDate)
-    .ilike('index_provider', '%akros%')
 
   if (error) {
     console.error('Error fetching year launches:', error)

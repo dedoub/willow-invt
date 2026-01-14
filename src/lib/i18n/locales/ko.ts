@@ -376,4 +376,64 @@ export const ko = {
     fileAttach: '파일 첨부 (드래그 또는 클릭)',
     showingRange: '{total}개 중 {start}-{end}',
   },
+
+  // 텐소프트웍스 프로젝트
+  tensoftworks: {
+    noProjects: '프로젝트가 없습니다',
+    // 상태 라벨
+    status: {
+      active: '진행',
+      managed: '관리',
+      closed: '종료',
+      poc: 'POC',
+    },
+    // 통계 라벨
+    stats: {
+      waiting: '대기',
+      inProgress: '진행',
+      completed: '완료',
+      progress: '진행률',
+    },
+    // 섹션 헤더
+    sections: {
+      info: '정보',
+      schedule: '일정',
+      documents: '문서',
+      members: '멤버',
+      activity: '알림',
+      todos: '할일',
+    },
+    // 우선순위
+    priority: {
+      critical: '긴급',
+      high: '높음',
+      medium: '보통',
+      low: '낮음',
+    },
+    // 활동 유형
+    activityType: {
+      created: '할일 생성',
+      assigned: '할일 배정',
+      started: '작업 시작',
+      completed: '할일 완료',
+      discarded: '할일 폐기',
+      analysis: 'AI 분석',
+      docCreated: '문서 등록',
+      scheduleCreated: '일정 등록',
+      scheduleUpdated: '일정 수정',
+      scheduleCompleted: '일정 완료',
+    },
+    // 문서 타입
+    docType: {
+      spec: '기획',
+      api: 'API',
+      design: '설계',
+      database: 'DB',
+      guide: '가이드',
+      note: '메모',
+    },
+    // 기타
+    membersOther: '외 {count}명',
+    dueDate: '마감',
+  },
 } as const

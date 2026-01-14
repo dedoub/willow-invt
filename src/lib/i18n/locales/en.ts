@@ -376,4 +376,64 @@ export const en = {
     fileAttach: 'Attach files (drag or click)',
     showingRange: '{start}-{end} of {total}',
   },
+
+  // Tensoftworks Projects
+  tensoftworks: {
+    noProjects: 'No projects',
+    // Status labels
+    status: {
+      active: 'Active',
+      managed: 'Managed',
+      closed: 'Closed',
+      poc: 'POC',
+    },
+    // Stats labels
+    stats: {
+      waiting: 'Waiting',
+      inProgress: 'In Progress',
+      completed: 'Done',
+      progress: 'Progress',
+    },
+    // Section headers
+    sections: {
+      info: 'Info',
+      schedule: 'Schedule',
+      documents: 'Docs',
+      members: 'Members',
+      activity: 'Activity',
+      todos: 'Todos',
+    },
+    // Priority
+    priority: {
+      critical: 'Critical',
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+    },
+    // Activity types
+    activityType: {
+      created: 'Todo Created',
+      assigned: 'Todo Assigned',
+      started: 'Work Started',
+      completed: 'Todo Completed',
+      discarded: 'Todo Discarded',
+      analysis: 'AI Analysis',
+      docCreated: 'Doc Created',
+      scheduleCreated: 'Schedule Created',
+      scheduleUpdated: 'Schedule Updated',
+      scheduleCompleted: 'Schedule Completed',
+    },
+    // Document types
+    docType: {
+      spec: 'Spec',
+      api: 'API',
+      design: 'Design',
+      database: 'DB',
+      guide: 'Guide',
+      note: 'Note',
+    },
+    // Other
+    membersOther: '+{count} more',
+    dueDate: 'Due',
+  },
 } as const

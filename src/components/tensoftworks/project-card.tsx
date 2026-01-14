@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { useI18n } from '@/lib/i18n/context'
 import {
   Clock,
   CheckCircle2,
@@ -158,7 +159,7 @@ const formatDate = (dateString: string) => {
 }
 
 // 상대 시간 포맷팅
-const formatRelativeTime = (dateString: string) => {
+const formatRelativeTime = (dateString: string, timeT: { justNow: string; minutesAgo: string; hoursAgo: string; daysAgo: string }) => {
   const date = new Date(dateString)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -166,35 +167,48 @@ const formatRelativeTime = (dateString: string) => {
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
 
-  if (diffMins < 1) return '방금'
-  if (diffMins < 60) return `${diffMins}분 전`
-  if (diffHours < 24) return `${diffHours}시간 전`
-  return `${diffDays}일 전`
+  if (diffMins < 1) return timeT.justNow
+  if (diffMins < 60) return timeT.minutesAgo.replace('{minutes}', String(diffMins))
+  if (diffHours < 24) return timeT.hoursAgo.replace('{hours}', String(diffHours))
+  return timeT.daysAgo.replace('{days}', String(diffDays))
 }
 
 // 활동 유형별 설정
-const getActivityConfig = (type: string) => {
+type ActivityTypeTranslations = {
+  created: string
+  assigned: string
+  started: string
+  completed: string
+  discarded: string
+  analysis: string
+  docCreated: string
+  scheduleCreated: string
+  scheduleUpdated: string
+  scheduleCompleted: string
+}
+
+const getActivityConfig = (type: string, activityT: ActivityTypeTranslations) => {
   switch (type) {
     case 'created':
-      return { icon: <Plus className="h-2.5 w-2.5" />, color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400', label: '할일 생성' }
+      return { icon: <Plus className="h-2.5 w-2.5" />, color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400', label: activityT.created }
     case 'assigned':
-      return { icon: <Users className="h-2.5 w-2.5" />, color: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400', label: '할일 배정' }
+      return { icon: <Users className="h-2.5 w-2.5" />, color: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400', label: activityT.assigned }
     case 'started':
-      return { icon: <Zap className="h-2.5 w-2.5" />, color: 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400', label: '작업 시작' }
+      return { icon: <Zap className="h-2.5 w-2.5" />, color: 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400', label: activityT.started }
     case 'completed':
-      return { icon: <CheckCircle2 className="h-2.5 w-2.5" />, color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400', label: '할일 완료' }
+      return { icon: <CheckCircle2 className="h-2.5 w-2.5" />, color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400', label: activityT.completed }
     case 'discarded':
-      return { icon: <Ban className="h-2.5 w-2.5" />, color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400', label: '할일 폐기' }
+      return { icon: <Ban className="h-2.5 w-2.5" />, color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400', label: activityT.discarded }
     case 'analysis':
-      return { icon: <Brain className="h-2.5 w-2.5" />, color: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400', label: 'AI 분석' }
+      return { icon: <Brain className="h-2.5 w-2.5" />, color: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400', label: activityT.analysis }
     case 'doc_created':
-      return { icon: <FileText className="h-2.5 w-2.5" />, color: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400', label: '문서 등록' }
+      return { icon: <FileText className="h-2.5 w-2.5" />, color: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400', label: activityT.docCreated }
     case 'schedule_created':
-      return { icon: <Calendar className="h-2.5 w-2.5" />, color: 'bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-400', label: '일정 등록' }
+      return { icon: <Calendar className="h-2.5 w-2.5" />, color: 'bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-400', label: activityT.scheduleCreated }
     case 'schedule_updated':
-      return { icon: <Calendar className="h-2.5 w-2.5" />, color: 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-400', label: '일정 수정' }
+      return { icon: <Calendar className="h-2.5 w-2.5" />, color: 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-400', label: activityT.scheduleUpdated }
     case 'schedule_completed':
-      return { icon: <Calendar className="h-2.5 w-2.5" />, color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400', label: '일정 완료' }
+      return { icon: <Calendar className="h-2.5 w-2.5" />, color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400', label: activityT.scheduleCompleted }
     default:
       return { icon: <Bell className="h-2.5 w-2.5" />, color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400', label: type }
   }
@@ -210,20 +224,9 @@ const getPriorityColor = (priority: string) => {
   }
 }
 
-// 문서 타입 라벨
-const getDocTypeLabel = (docType: string) => {
-  const labels: Record<string, string> = {
-    spec: '기획',
-    api: 'API',
-    design: '설계',
-    database: 'DB',
-    guide: '가이드',
-    note: '메모',
-  }
-  return labels[docType] || docType
-}
-
 export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) {
+  const { t } = useI18n()
+  const tensw = t.tensoftworks
   const { stats } = project
   const IconComponent = PROJECT_ICONS[project.icon || 'folder'] || Folder
 
@@ -256,10 +259,10 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'active': return '진행'
-      case 'managed': return '관리'
-      case 'closed': return '종료'
-      case 'poc': return 'POC'
+      case 'active': return tensw.status.active
+      case 'managed': return tensw.status.managed
+      case 'closed': return tensw.status.closed
+      case 'poc': return tensw.status.poc
       default: return status
     }
   }
@@ -365,7 +368,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
           {/* 배정 대기 */}
           <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/30">
             <div className="flex items-center justify-between mb-1">
-              <div className="text-[9px] text-amber-700 dark:text-amber-400">대기</div>
+              <div className="text-[9px] text-amber-700 dark:text-amber-400">{tensw.stats.waiting}</div>
               <div className="rounded bg-amber-100 dark:bg-amber-800/50 p-0.5">
                 <Clock className="h-2.5 w-2.5 text-amber-600 dark:text-amber-400" />
               </div>
@@ -376,7 +379,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
           {/* 진행 중 */}
           <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30">
             <div className="flex items-center justify-between mb-1">
-              <div className="text-[9px] text-blue-700 dark:text-blue-400">진행</div>
+              <div className="text-[9px] text-blue-700 dark:text-blue-400">{tensw.stats.inProgress}</div>
               <div className="rounded bg-blue-100 dark:bg-blue-800/50 p-0.5">
                 <Loader2 className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400" />
               </div>
@@ -399,7 +402,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
           {/* 완료 */}
           <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30">
             <div className="flex items-center justify-between mb-1">
-              <div className="text-[9px] text-emerald-700 dark:text-emerald-400">완료</div>
+              <div className="text-[9px] text-emerald-700 dark:text-emerald-400">{tensw.stats.completed}</div>
               <div className="rounded bg-emerald-100 dark:bg-emerald-800/50 p-0.5">
                 <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-400" />
               </div>
@@ -422,7 +425,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
           {/* 진행률 */}
           <div className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-700">
             <div className="flex items-center justify-between mb-1">
-              <div className="text-[9px] text-slate-500 dark:text-slate-400">진행률</div>
+              <div className="text-[9px] text-slate-500 dark:text-slate-400">{tensw.stats.progress}</div>
               <div className="rounded bg-white/50 dark:bg-white/10 p-0.5">
                 <TrendingUp className="h-2.5 w-2.5 text-slate-600 dark:text-slate-400" />
               </div>
@@ -445,7 +448,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                 <Info className="h-3 w-3" />
-                <span>정보</span>
+                <span>{tensw.sections.info}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {/* 설명 */}
@@ -482,7 +485,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                 <Calendar className="h-3 w-3" />
-                <span>일정</span>
+                <span>{tensw.sections.schedule}</span>
               </div>
               {hasSchedules ? (
                 <div className="space-y-1">
@@ -504,7 +507,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                 <FileText className="h-3 w-3" />
-                <span>문서</span>
+                <span>{tensw.sections.documents}</span>
               </div>
               {hasDocs ? (
                 <div className="flex flex-wrap gap-1">
@@ -532,12 +535,12 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                   <Users className="h-3 w-3" />
-                  <span>멤버</span>
+                  <span>{tensw.sections.members}</span>
                 </div>
                 <div className="text-[10px] text-slate-600 dark:text-slate-300">
                   {project.members.filter(m => m.is_manager).map(m => m.name).join(', ')}
                   {project.members.filter(m => !m.is_manager).length > 0 && (
-                    <span className="text-slate-400 dark:text-slate-500"> 외 {project.members.filter(m => !m.is_manager).length}명</span>
+                    <span className="text-slate-400 dark:text-slate-500"> {tensw.membersOther.replace('{count}', String(project.members.filter(m => !m.is_manager).length))}</span>
                   )}
                 </div>
               </div>
@@ -548,12 +551,12 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
               <Activity className="h-3 w-3" />
-              <span>알림</span>
+              <span>{tensw.sections.activity}</span>
             </div>
             {hasActivity ? (
               <div className="space-y-1.5">
                 {project.recentActivity.slice(0, 3).map(activity => {
-                  const config = getActivityConfig(activity.type)
+                  const config = getActivityConfig(activity.type, tensw.activityType)
                   const priorityDot = activity.priority === 'critical' ? 'bg-red-500' :
                     activity.priority === 'high' ? 'bg-orange-500' :
                     activity.priority === 'medium' ? 'bg-yellow-500' : 'bg-slate-400'
@@ -574,11 +577,11 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[9px] opacity-70">
-                          {formatRelativeTime(activity.created_at)}
+                          {formatRelativeTime(activity.created_at, t.time)}
                         </span>
                         {activity.due_date && (
                           <span className="text-[9px] opacity-70">
-                            · 마감 {formatDate(activity.due_date)}
+                            · {tensw.dueDate} {formatDate(activity.due_date)}
                           </span>
                         )}
                       </div>
@@ -597,7 +600,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
               <ListTodo className="h-3 w-3" />
-              <span>할일</span>
+              <span>{tensw.sections.todos}</span>
             </div>
             <div className="space-y-1 min-w-0">
               {project.todos.map(todo => {
@@ -605,9 +608,9 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                   todo.priority === 'high' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-400' :
                   todo.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400' :
                   'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                const priorityLabel = todo.priority === 'critical' ? '긴급' :
-                  todo.priority === 'high' ? '높음' :
-                  todo.priority === 'medium' ? '보통' : '낮음'
+                const priorityLabel = todo.priority === 'critical' ? tensw.priority.critical :
+                  todo.priority === 'high' ? tensw.priority.high :
+                  todo.priority === 'medium' ? tensw.priority.medium : tensw.priority.low
                 return (
                   <div key={todo.id} className="flex items-center gap-1.5 text-xs">
                     {todo.readable_id && (

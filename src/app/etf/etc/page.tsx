@@ -513,10 +513,10 @@ function ETFModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-xl bg-white p-6 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">{editData ? t.etf.editEtf : t.etf.addEtf}</h3>
-          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100">
+          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -737,13 +737,13 @@ function DocumentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-lg rounded-xl bg-white p-6">
+      <div className="w-full max-w-lg rounded-xl bg-white dark:bg-slate-800 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold">{t.documents.title.replace('{symbol}', etf.symbol)}</h3>
             <p className="text-sm text-muted-foreground">{etf.fundName}</p>
           </div>
-          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100">
+          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -928,9 +928,9 @@ function EmailDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-3xl rounded-xl bg-white h-[80vh] flex flex-col overflow-hidden">
+      <div className="w-full max-w-3xl rounded-xl bg-white dark:bg-slate-800 h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-start justify-between p-4 border-b border-slate-200 flex-shrink-0">
+        <div className="flex items-start justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <div className="flex-1 min-w-0 pr-4">
             <div className="flex items-center gap-2 mb-2">
               {email.category && categoryColor && (
@@ -1210,11 +1210,11 @@ function ComposeEmailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-xl bg-white max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 flex-shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <h3 className="text-lg font-semibold">{getTitle()}</h3>
-          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100">
+          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -2745,10 +2745,10 @@ Dongwook`
         {isInvoiceModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={() => setIsInvoiceModalOpen(false)} />
-            <div className="relative bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
+            <div className="relative bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
               <button
                 onClick={() => setIsInvoiceModalOpen(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -2853,7 +2853,7 @@ Dongwook`
                         )}
                         {/* Preview */}
                         {item.itemType !== 'custom' && (
-                          <div className="text-xs text-slate-500 bg-white px-2 py-1 rounded">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-2 py-1 rounded">
                             {getItemDescription(item)}
                           </div>
                         )}
