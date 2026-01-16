@@ -541,10 +541,15 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
                   <Users className="h-4 w-4" />
                   <span>{tensw.sections.members}</span>
                 </div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">
-                  {project.members.filter(m => m.is_manager).map(m => m.name).join(', ')}
+                <div className="flex flex-wrap gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  {project.members.filter(m => m.is_manager).map(m => (
+                    <span key={m.id} className="inline-flex items-center gap-1">
+                      {m.name}
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400">{tensw.manager}</span>
+                    </span>
+                  ))}
                   {project.members.filter(m => !m.is_manager).length > 0 && (
-                    <span className="text-slate-400 dark:text-slate-500"> {tensw.membersOther.replace('{count}', String(project.members.filter(m => !m.is_manager).length))}</span>
+                    <span className="text-slate-400 dark:text-slate-500">{tensw.membersOther.replace('{count}', String(project.members.filter(m => !m.is_manager).length))}</span>
                   )}
                 </div>
               </div>

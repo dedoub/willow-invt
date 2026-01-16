@@ -436,5 +436,6 @@ export const en = {
     // Other
     membersOther: '+{count} more',
     dueDate: 'Due',
+    manager: 'Manager',
   },
 } as const

@@ -436,5 +436,6 @@ export const ko = {
     // 기타
     membersOther: '외 {count}명',
     dueDate: '마감',
+    manager: '관리자',
   },
 } as const
