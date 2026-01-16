@@ -98,7 +98,7 @@ export function Header({ title, onMobileMenuToggle }: HeaderProps) {
                   {user ? getInitials(user.name) : 'U'}
                 </AvatarFallback>
               </Avatar>
-              <div className="hidden text-left md:block">
+              <div className="hidden md:flex items-center gap-2">
                 <p className="text-sm font-medium">{user?.name}</p>
                 <span
                   className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${getRoleBadgeColor(

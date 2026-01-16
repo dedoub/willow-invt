@@ -188,6 +188,76 @@ export async function GET() {
       .gte('updated_at', sevenDaysAgo.toISOString())
       .order('updated_at', { ascending: false })
 
+    // Get project repos for GitHub commits
+    const { data: allRepos } = await supabase
+      .from('tensw_project_repos')
+      .select('id, project_id, name, url')
+      .in('project_id', projectIds)
+
+    // Fetch GitHub commits for each repo
+    interface CommitData {
+      project_id: string
+      sha: string
+      message: string
+      author: string
+      date: string
+      repo: string
+      url: string
+    }
+    const allCommits: CommitData[] = []
+    const githubToken = process.env.GITHUB_TOKEN
+
+    if (allRepos && allRepos.length > 0) {
+      const reposByProject = new Map<string, typeof allRepos>()
+      allRepos.forEach(repo => {
+        const list = reposByProject.get(repo.project_id) || []
+        list.push(repo)
+        reposByProject.set(repo.project_id, list)
+      })
+
+      for (const [projectId, repos] of reposByProject) {
+        for (const repo of repos.slice(0, 2)) { // Max 2 repos per project
+          try {
+            const urlMatch = repo.url.match(/github\.com\/([^/]+)\/([^/]+)/)
+            if (!urlMatch) continue
+
+            const [, owner, repoName] = urlMatch
+            const cleanRepoName = repoName.replace(/\.git$/, '')
+
+            const headers: Record<string, string> = {
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'Willow-Dashboard',
+            }
+            if (githubToken) {
+              headers['Authorization'] = `Bearer ${githubToken}`
+            }
+
+            const response = await fetch(
+              `https://api.github.com/repos/${owner}/${cleanRepoName}/commits?per_page=3&since=${sevenDaysAgo.toISOString()}`,
+              { headers, next: { revalidate: 300 } }
+            )
+
+            if (response.ok) {
+              const commits = await response.json()
+              for (const commit of commits) {
+                allCommits.push({
+                  project_id: projectId,
+                  sha: commit.sha,
+                  message: commit.commit.message.split('\n')[0].substring(0, 80),
+                  author: commit.commit.author.name,
+                  date: commit.commit.author.date,
+                  repo: cleanRepoName,
+                  url: commit.html_url,
+                })
+              }
+            }
+          } catch (err) {
+            console.error(`Error fetching commits for repo ${repo.name}:`, err)
+          }
+        }
+      }
+    }
+
     // Collect all user IDs for name lookup
     const userIds = new Set<string>()
     recentLogs.forEach(l => { if (l.changed_by) userIds.add(l.changed_by) })
@@ -378,6 +448,21 @@ export async function GET() {
               due_date: null,
             })
           }
+        })
+
+      // GitHub commits
+      allCommits
+        .filter(c => c.project_id === project.id)
+        .forEach(commit => {
+          allActivities.push({
+            id: `commit-${commit.sha.substring(0, 7)}`,
+            type: 'commit',
+            title: `[${commit.repo}] ${commit.message}`,
+            created_at: commit.date,
+            changed_by: commit.author,
+            priority: null,
+            due_date: null,
+          })
         })
 
       // Sort by created_at desc and take top 5
