@@ -389,7 +389,7 @@ export const ko = {
     },
     // 통계 라벨
     stats: {
-      waiting: '대기',
+      waiting: '배정',
       inProgress: '진행',
       completed: '완료',
       progress: '진행률',
@@ -422,6 +422,7 @@ export const ko = {
       scheduleCreated: '일정 등록',
       scheduleUpdated: '일정 수정',
       scheduleCompleted: '일정 완료',
+      commit: '커밋',
     },
     // 문서 타입
     docType: {

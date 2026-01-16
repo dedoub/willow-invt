@@ -389,7 +389,7 @@ export const en = {
     },
     // Stats labels
     stats: {
-      waiting: 'Waiting',
+      waiting: 'Assigned',
       inProgress: 'In Progress',
       completed: 'Done',
       progress: 'Progress',
@@ -422,6 +422,7 @@ export const en = {
       scheduleCreated: 'Schedule Created',
       scheduleUpdated: 'Schedule Updated',
       scheduleCompleted: 'Schedule Completed',
+      commit: 'Commit',
     },
     // Document types
     docType: {
