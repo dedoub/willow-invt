@@ -114,7 +114,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'flex flex-col bg-slate-900 text-white transition-all duration-300 overflow-hidden',
+        'flex flex-col bg-slate-950 text-white transition-all duration-300 overflow-hidden',
         // Desktop: normal sidebar
         'hidden md:flex',
         collapsed ? 'md:w-16' : 'md:w-64',

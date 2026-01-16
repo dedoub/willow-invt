@@ -612,14 +612,14 @@ function ETFModal({
         <div className="flex gap-2 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            className="flex-1 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
           >
             {t.common.cancel}
           </button>
           <button
             onClick={() => onSave(formData)}
             disabled={isSaving || !formData.symbol || !formData.fund_name}
-            className="flex-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50"
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editData ? t.common.edit : t.etf.addEtf}
           </button>
@@ -759,7 +759,7 @@ function DocumentModal({
           />
           <label
             htmlFor="file-upload"
-            className={`flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 px-4 py-3 text-sm font-medium cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 px-4 py-3 text-sm font-medium cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isUploading ? (
               <>
@@ -791,7 +791,7 @@ function DocumentModal({
             documents.map((doc) => (
               <div
                 key={doc.fullPath}
-                className="flex items-center justify-between rounded-lg bg-slate-50 p-3"
+                className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-700 p-3"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <FileText className="h-5 w-5 text-slate-400 flex-shrink-0" />
@@ -808,21 +808,21 @@ function DocumentModal({
                   <button
                     onClick={() => handleDownload(doc.name)}
                     disabled={downloadingFile === doc.name}
-                    className="rounded p-1.5 hover:bg-slate-200 disabled:opacity-50"
+                    className="rounded p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50"
                     title={t.etf.actions.download}
                   >
                     {downloadingFile === doc.name ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <Download className="h-4 w-4 text-slate-600" />
+                      <Download className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                     )}
                   </button>
                   <button
                     onClick={() => handleDelete(doc.name)}
-                    className="rounded p-1.5 hover:bg-slate-200"
+                    className="rounded p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600"
                     title={t.common.delete}
                   >
-                    <Trash2 className="h-4 w-4 text-slate-600" />
+                    <Trash2 className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                   </button>
                 </div>
               </div>
@@ -834,7 +834,7 @@ function DocumentModal({
         <div className="mt-6">
           <button
             onClick={onClose}
-            className="w-full rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            className="w-full rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
           >
             {t.documents.close}
           </button>
@@ -939,20 +939,20 @@ function EmailDetailModal({
                 </span>
               )}
               <span className={`rounded-full px-2 py-0.5 text-xs ${
-                email.direction === 'outbound' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                email.direction === 'outbound' ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
               }`}>
                 {email.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound}
               </span>
             </div>
             <h3 className="text-lg font-semibold break-words">{email.subject || t.gmail.noSubject}</h3>
           </div>
-          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 flex-shrink-0">
+          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Meta info */}
-        <div className="px-4 py-3 bg-slate-50 text-sm space-y-1 border-b border-slate-200 flex-shrink-0">
+        <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700/50 text-sm space-y-1 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <div className="flex">
             <span className="w-20 text-muted-foreground flex-shrink-0">{t.gmail.from}:</span>
             <span className="font-medium break-all">{email.fromName || email.from}</span>
@@ -969,9 +969,9 @@ function EmailDetailModal({
 
         {/* Attachments */}
         {email.hasAttachments && email.attachments.length > 0 && (
-          <div className="px-4 py-3 border-b border-slate-200 flex-shrink-0">
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
             <div className="flex items-center gap-2 mb-2">
-              <FileText className="h-4 w-4 text-slate-500" />
+              <FileText className="h-4 w-4 text-slate-500 dark:text-slate-400" />
               <span className="text-sm font-medium">{email.attachments.length} {t.gmail.attachments}</span>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -979,9 +979,9 @@ function EmailDetailModal({
                 <button
                   key={idx}
                   onClick={() => handleDownloadAttachment(attachment)}
-                  className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm hover:bg-slate-200 transition-colors"
+                  className="flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                 >
-                  <Download className="h-4 w-4 text-slate-600" />
+                  <Download className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                   <span className="max-w-[200px] truncate">{attachment.filename}</span>
                   <span className="text-xs text-muted-foreground">({formatAttachmentSize(attachment.size)})</span>
                 </button>
@@ -1007,25 +1007,25 @@ function EmailDetailModal({
         </div>
 
         {/* Footer with actions */}
-        <div className="p-4 border-t border-slate-200 flex-shrink-0">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
           <div className="flex gap-2">
             <button
               onClick={() => onReply && onReply('reply')}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600"
             >
               <Reply className="h-4 w-4" />
               {t.gmail.reply}
             </button>
             <button
               onClick={() => onReply && onReply('replyAll')}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
             >
               <ReplyAll className="h-4 w-4" />
               {t.gmail.replyAll}
             </button>
             <button
               onClick={() => onReply && onReply('forward')}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
             >
               <Forward className="h-4 w-4" />
               {t.gmail.forward}
@@ -1306,7 +1306,7 @@ function ComposeEmailModal({
                 {attachments.map((file, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
+                    className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-700 px-3 py-2"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <FileText className="h-4 w-4 text-slate-400 flex-shrink-0" />
@@ -1319,7 +1319,7 @@ function ComposeEmailModal({
                       onClick={() => handleRemoveAttachment(index)}
                       className="rounded p-1 hover:bg-slate-200 flex-shrink-0"
                     >
-                      <X className="h-4 w-4 text-slate-500" />
+                      <X className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                     </button>
                   </div>
                 ))}
@@ -1329,18 +1329,18 @@ function ComposeEmailModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 flex-shrink-0">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="flex-1 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50"
+              className="flex-1 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
             >
               {t.common.cancel}
             </button>
             <button
               onClick={handleSend}
               disabled={isSending}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50"
             >
               {isSending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -2194,7 +2194,7 @@ Dongwook`
     switch (priority) {
       case 'high': return 'bg-red-100 text-red-700'
       case 'medium': return 'bg-amber-100 text-amber-700'
-      case 'low': return 'bg-slate-100 text-slate-600'
+      case 'low': return 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
     }
   }
 
@@ -2390,7 +2390,7 @@ Dongwook`
             <div className="overflow-x-auto">
               <table className="w-full min-w-max">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-sm text-muted-foreground whitespace-nowrap">
+                  <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-sm text-muted-foreground whitespace-nowrap">
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.symbol}</th>
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.fundName}</th>
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.listingDate}</th>
@@ -2404,7 +2404,7 @@ Dongwook`
                 </thead>
                 <tbody>
                   {[...Array(5)].map((_, i) => (
-                    <tr key={i} className="border-b border-slate-200 last:border-0 animate-pulse whitespace-nowrap">
+                    <tr key={i} className="border-b border-slate-200 dark:border-slate-700 last:border-0 animate-pulse whitespace-nowrap">
                       <td className="py-3 pr-4"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
                       <td className="py-3 pr-4"><div className="h-4 w-32 bg-slate-200 rounded" /></td>
                       <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
@@ -2431,7 +2431,7 @@ Dongwook`
             <div className="overflow-x-auto">
               <table className="w-full min-w-max">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-sm text-muted-foreground whitespace-nowrap">
+                  <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-sm text-muted-foreground whitespace-nowrap">
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.symbol}</th>
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.fundName}</th>
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.listingDate}</th>
@@ -2445,7 +2445,7 @@ Dongwook`
                 </thead>
                 <tbody>
                   {etfs.map((etf) => (
-                    <tr key={etf.id} className="border-b border-slate-200 last:border-0 whitespace-nowrap">
+                    <tr key={etf.id} className="border-b border-slate-200 dark:border-slate-700 last:border-0 whitespace-nowrap">
                       <td className="py-3 pr-4 font-mono font-medium">{etf.symbol}</td>
                       <td className="py-3 pr-4 text-sm max-w-[200px] truncate" title={etf.fundName}>
                         {etf.fundUrl ? (
@@ -2485,7 +2485,7 @@ Dongwook`
                             className="rounded p-1 hover:bg-slate-200 cursor-pointer"
                             title={t.etf.actions.edit}
                           >
-                            <Pencil className="h-4 w-4 text-slate-600" />
+                            <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                           </button>
                           <button
                             onClick={() => {
@@ -2495,10 +2495,10 @@ Dongwook`
                             className="rounded p-1 hover:bg-slate-200 cursor-pointer"
                             title={t.etf.actions.documents}
                           >
-                            <Archive className="h-4 w-4 text-slate-600" />
+                            <Archive className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                           </button>
                           <button onClick={() => handleDeleteETF(etf)} className="rounded p-1 hover:bg-slate-200 cursor-pointer" title={t.etf.actions.delete}>
-                            <Trash2 className="h-4 w-4 text-slate-600" />
+                            <Trash2 className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                           </button>
                         </div>
                       </td>
@@ -2525,7 +2525,7 @@ Dongwook`
             </div>
             <button
               onClick={openNewInvoiceModal}
-              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
+              className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">{t.invoice.create}</span>
@@ -2691,7 +2691,7 @@ Dongwook`
             </div>
             {/* Pagination controls */}
             {invoices.length > 0 && (
-              <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
+              <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                 <p className="text-xs text-muted-foreground whitespace-nowrap">
                   {t.invoice.showingRange
                     .replace('{total}', String(invoices.length))
@@ -2703,14 +2703,14 @@ Dongwook`
                     <button
                       onClick={() => setInvoicePage(1)}
                       disabled={invoicePage === 1}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       «
                     </button>
                     <button
                       onClick={() => setInvoicePage(p => Math.max(1, p - 1))}
                       disabled={invoicePage === 1}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       ‹
                     </button>
@@ -2720,14 +2720,14 @@ Dongwook`
                     <button
                       onClick={() => setInvoicePage(p => Math.min(totalPages, p + 1))}
                       disabled={invoicePage === totalPages}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       ›
                     </button>
                     <button
                       onClick={() => setInvoicePage(totalPages)}
                       disabled={invoicePage === totalPages}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       »
                     </button>
@@ -2763,7 +2763,7 @@ Dongwook`
                     type="date"
                     value={invoiceFormDate}
                     onChange={(e) => setInvoiceFormDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
                   />
                 </div>
 
@@ -2774,7 +2774,7 @@ Dongwook`
                     type="text"
                     value={invoiceFormAttention}
                     onChange={(e) => setInvoiceFormAttention(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
                   />
                 </div>
 
@@ -2810,7 +2810,7 @@ Dongwook`
                         <select
                           value={item.itemType}
                           onChange={(e) => updateFormItem(item.id, { itemType: e.target.value as InvoiceItemType })}
-                          className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
                         >
                           {ITEM_TEMPLATES.map((template) => (
                             <option key={template.type} value={template.type}>
@@ -2824,7 +2824,7 @@ Dongwook`
                             <select
                               value={item.month}
                               onChange={(e) => updateFormItem(item.id, { month: parseInt(e.target.value) })}
-                              className="px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                              className="px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
                             >
                               {MONTH_NAMES.map((name, idx) => (
                                 <option key={idx} value={idx}>{name}</option>
@@ -2833,7 +2833,7 @@ Dongwook`
                             <select
                               value={item.year}
                               onChange={(e) => updateFormItem(item.id, { year: parseInt(e.target.value) })}
-                              className="px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                              className="px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
                             >
                               {[2024, 2025, 2026, 2027].map((year) => (
                                 <option key={year} value={year}>{year}</option>
@@ -2848,7 +2848,7 @@ Dongwook`
                             value={item.customDesc}
                             onChange={(e) => updateFormItem(item.id, { customDesc: e.target.value })}
                             placeholder={t.invoice.itemDescription}
-                            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
                           />
                         )}
                         {/* Preview */}
@@ -2866,7 +2866,7 @@ Dongwook`
                             value={item.amount}
                             onChange={(e) => updateFormItem(item.id, { amount: e.target.value })}
                             placeholder="2083.33"
-                            className="flex-1 px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            className="flex-1 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
                           />
                         </div>
                       </div>
@@ -2890,7 +2890,7 @@ Dongwook`
                     value={invoiceFormNotes}
                     onChange={(e) => setInvoiceFormNotes(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500 resize-none"
                   />
                 </div>
               </div>
@@ -2927,7 +2927,7 @@ Dongwook`
             </div>
             <button
               onClick={() => setIsAddingNote(true)}
-              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
+              className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">{t.invoice.create}</span>
@@ -2955,7 +2955,7 @@ Dongwook`
                 {wikiSearch && (
                   <button
                     onClick={() => setWikiSearch('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -2994,14 +2994,14 @@ Dongwook`
                     value={newNoteTitle}
                     onChange={(e) => setNewNoteTitle(e.target.value)}
                     placeholder={t.wiki.titlePlaceholder}
-                    className="w-full text-sm font-medium mb-2 px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    className="w-full text-sm font-medium mb-2 px-2 py-1 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-500"
                   />
                   <textarea
                     value={newNoteContent}
                     onChange={(e) => setNewNoteContent(e.target.value)}
                     placeholder={t.wiki.contentPlaceholder}
                     rows={3}
-                    className="w-full text-sm px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+                    className="w-full text-sm px-2 py-1 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-500 resize-none"
                   />
 
                   {/* 파일 첨부 영역 */}
@@ -3095,13 +3095,13 @@ Dongwook`
                           type="text"
                           value={editingNote.title}
                           onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
-                          className="w-full text-sm font-medium mb-2 px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300"
+                          className="w-full text-sm font-medium mb-2 px-2 py-1 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-500"
                         />
                         <textarea
                           value={editingNote.content}
                           onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
                           rows={3}
-                          className="w-full text-sm px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+                          className="w-full text-sm px-2 py-1 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-500 resize-none"
                         />
                         <div className="flex justify-end gap-2 mt-2">
                           <button
@@ -3188,14 +3188,14 @@ Dongwook`
                     <button
                       onClick={() => setWikiPage(1)}
                       disabled={wikiPage === 1}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       «
                     </button>
                     <button
                       onClick={() => setWikiPage(p => Math.max(1, p - 1))}
                       disabled={wikiPage === 1}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       ‹
                     </button>
@@ -3205,14 +3205,14 @@ Dongwook`
                     <button
                       onClick={() => setWikiPage(p => Math.min(totalWikiPages, p + 1))}
                       disabled={wikiPage === totalWikiPages}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       ›
                     </button>
                     <button
                       onClick={() => setWikiPage(totalWikiPages)}
                       disabled={wikiPage === totalWikiPages}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       »
                     </button>
@@ -3276,7 +3276,7 @@ Dongwook`
                   setComposeOriginalEmail(null)
                   setIsComposeOpen(true)
                 }}
-                className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 cursor-pointer"
+                className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
               >
                 <Mail className="h-4 w-4" />
                 <span className="hidden sm:inline">{t.gmail.newEmail}</span>
@@ -3454,7 +3454,7 @@ Dongwook`
                   {emailSearch && (
                     <button
                       onClick={() => setEmailSearch('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -3489,7 +3489,7 @@ Dongwook`
                     <button
                       onClick={handleGmailConnect}
                       disabled={isConnecting}
-                      className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50"
                     >
                       {isConnecting ? (
                         <>
@@ -3563,7 +3563,7 @@ Dongwook`
                     ))}
                     {/* 페이지네이션 */}
                     {filteredEmails.length > 0 && (
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 mt-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                         <div className="flex items-center gap-2">
                           <p className="text-xs text-muted-foreground whitespace-nowrap">
                             {t.gmail.showingRange.replace('{total}', String(filteredEmails.length)).replace('{start}', String((emailPage - 1) * emailsPerPage + 1)).replace('{end}', String(Math.min(emailPage * emailsPerPage, filteredEmails.length)))}
@@ -3588,14 +3588,14 @@ Dongwook`
                             <button
                               onClick={() => setEmailPage(1)}
                               disabled={emailPage === 1}
-                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               «
                             </button>
                             <button
                               onClick={() => setEmailPage(p => Math.max(1, p - 1))}
                               disabled={emailPage === 1}
-                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               ‹
                             </button>
@@ -3605,14 +3605,14 @@ Dongwook`
                             <button
                               onClick={() => setEmailPage(p => Math.min(totalEmailPages, p + 1))}
                               disabled={emailPage === totalEmailPages}
-                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               ›
                             </button>
                             <button
                               onClick={() => setEmailPage(totalEmailPages)}
                               disabled={emailPage === totalEmailPages}
-                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               »
                             </button>
@@ -3629,18 +3629,18 @@ Dongwook`
             <div className="w-full lg:w-1/2">
             {/* AI Analysis Panel */}
             {showAiAnalysis && aiAnalysis ? (
-              <div className="rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 p-4">
+              <div className="rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 border border-purple-200 dark:border-purple-800 p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium text-purple-900 flex items-center gap-2">
+                  <h4 className="font-medium text-purple-900 dark:text-purple-200 flex items-center gap-2">
                     <Sparkles className="h-4 w-4" />
                     {t.gmail.aiAnalysis}
-                    <span className="text-xs text-purple-600 font-normal">
+                    <span className="text-xs text-purple-600 dark:text-purple-400 font-normal">
                       ({t.gmail.analysisScope.replace('{days}', '30')})
                     </span>
                   </h4>
                   <button
                     onClick={() => setShowAiAnalysis(false)}
-                    className="text-purple-400 hover:text-purple-600"
+                    className="text-purple-400 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -3665,9 +3665,9 @@ Dongwook`
                         <button
                           onClick={() => setCategorySlideIndex(Math.max(0, currentIndex - 1))}
                           disabled={currentIndex === 0}
-                          className="p-1 rounded hover:bg-white/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-1 rounded hover:bg-white/50 dark:hover:bg-slate-600/50 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
-                          <ChevronLeft className="h-4 w-4 text-purple-600" />
+                          <ChevronLeft className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                         </button>
 
                         {/* Dot Indicators */}
@@ -3677,7 +3677,7 @@ Dongwook`
                               key={c.category}
                               onClick={() => setCategorySlideIndex(idx)}
                               className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                                idx === currentIndex ? 'bg-purple-600' : 'bg-purple-300 hover:bg-purple-400'
+                                idx === currentIndex ? 'bg-purple-600 dark:bg-purple-400' : 'bg-purple-300 dark:bg-purple-700 hover:bg-purple-400 dark:hover:bg-purple-500'
                               }`}
                             />
                           ))}
@@ -3686,9 +3686,9 @@ Dongwook`
                         <button
                           onClick={() => setCategorySlideIndex(Math.min(aiAnalysis.categories.length - 1, currentIndex + 1))}
                           disabled={currentIndex === aiAnalysis.categories.length - 1}
-                          className="p-1 rounded hover:bg-white/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-1 rounded hover:bg-white/50 dark:hover:bg-slate-600/50 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
-                          <ChevronRight className="h-4 w-4 text-purple-600" />
+                          <ChevronRight className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                         </button>
                       </div>
 
@@ -3755,16 +3755,16 @@ Dongwook`
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${color.bg} ${color.text}`}>
                             {cat.category}
                           </span>
-                          <span className="text-xs text-slate-500">{cat.emailCount} emails</span>
-                          <span className="text-[10px] text-slate-400 ml-auto">{currentIndex + 1}/{aiAnalysis.categories.length}</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">{cat.emailCount} emails</span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-auto">{currentIndex + 1}/{aiAnalysis.categories.length}</span>
                         </div>
-                        <p className="text-xs text-slate-600 mb-3">{cat.summary}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">{cat.summary}</p>
 
                         {/* Recent Topics */}
                         {cat.recentTopics && cat.recentTopics.length > 0 && (
                           <div className="mb-2 flex flex-wrap gap-1">
                             {cat.recentTopics.map((topic, idx) => (
-                              <span key={idx} className="px-1.5 py-px bg-slate-100 text-slate-600 rounded text-[10px]">
+                              <span key={idx} className="px-1.5 py-px bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded text-[10px]">
                                 {topic}
                               </span>
                             ))}
@@ -3774,24 +3774,24 @@ Dongwook`
                         {/* Issues */}
                         {cat.issues.length > 0 && (
                           <div className="mb-3">
-                            <h6 className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1">
+                            <h6 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1">
                               <AlertTriangle className="h-3 w-3" />
                               {t.gmail.issues}
                             </h6>
                             <div className="space-y-2">
                               {cat.issues.map((issue, idx) => (
-                                <div key={idx} className="bg-slate-50 rounded p-2">
+                                <div key={idx} className="bg-slate-50 dark:bg-slate-600 rounded p-2">
                                   <div className="flex items-start gap-2 mb-1">
                                     <span className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap flex-shrink-0 ${getPriorityColor(issue.priority)}`}>
                                       {getPriorityLabel(issue.priority)}
                                     </span>
-                                    <span className="text-xs font-medium text-slate-700">{issue.title}</span>
+                                    <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{issue.title}</span>
                                   </div>
-                                  <p className="text-xs text-slate-500">{issue.description}</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-300">{issue.description}</p>
                                   {issue.relatedEmailIds.length > 0 && (
                                     <button
                                       onClick={() => showRelatedEmails(issue.relatedEmailIds)}
-                                      className="text-xs text-blue-500 hover:text-blue-700 hover:underline mt-1 flex items-center gap-1 cursor-pointer"
+                                      className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline mt-1 flex items-center gap-1 cursor-pointer"
                                     >
                                       <Mail className="h-3 w-3" />
                                       {t.gmail.relatedEmails.replace('{count}', String(issue.relatedEmailIds.length))}
@@ -3815,16 +3815,16 @@ Dongwook`
 
                           return displayTodos.length > 0 ? (
                             <div>
-                              <h6 className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1">
+                              <h6 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1">
                                 <ListTodo className="h-3 w-3" />
                                 {t.gmail.todoList}
-                                <span className="text-slate-400 font-normal">
+                                <span className="text-slate-400 dark:text-slate-500 font-normal">
                                   ({incompleteTodos.length}{completedTodos.length > 0 ? ` + ${t.gmail.completedCount.replace('{count}', String(completedTodos.length))}` : ''})
                                 </span>
                               </h6>
                               <div className="space-y-2">
                                 {displayTodos.map((todo) => (
-                                  <div key={todo.id} className={`bg-slate-50 rounded p-2 flex items-start gap-2 ${todo.completed ? 'opacity-60' : ''}`}>
+                                  <div key={todo.id} className={`bg-slate-50 dark:bg-slate-600 rounded p-2 flex items-start gap-2 ${todo.completed ? 'opacity-60' : ''}`}>
                                     <input
                                       type="checkbox"
                                       checked={todo.completed}
@@ -3836,12 +3836,12 @@ Dongwook`
                                         <span className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap flex-shrink-0 ${getPriorityColor(todo.priority)}`}>
                                           {getPriorityLabel(todo.priority)}
                                         </span>
-                                        <span className={`text-xs text-slate-700 ${todo.completed ? 'line-through text-slate-400' : ''}`}>
+                                        <span className={`text-xs text-slate-700 dark:text-slate-200 ${todo.completed ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>
                                           {todo.task}
                                         </span>
                                       </div>
                                       {todo.due_date && (
-                                        <p className="text-xs text-slate-400 mt-1">{t.gmail.dueDate}: {todo.due_date}</p>
+                                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t.gmail.dueDate}: {todo.due_date}</p>
                                       )}
                                     </div>
                                   </div>
@@ -3850,14 +3850,14 @@ Dongwook`
                             </div>
                           ) : cat.todos.length > 0 ? (
                             <div>
-                              <h6 className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1">
+                              <h6 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1">
                                 <ListTodo className="h-3 w-3" />
                                 {t.gmail.todoList}
-                                <span className="text-slate-400 font-normal">({t.gmail.syncing2})</span>
+                                <span className="text-slate-400 dark:text-slate-500 font-normal">({t.gmail.syncing2})</span>
                               </h6>
                               <div className="space-y-2">
                                 {cat.todos.map((todo, idx) => (
-                                  <div key={idx} className="bg-slate-50 rounded p-2 flex items-start gap-2 opacity-50">
+                                  <div key={idx} className="bg-slate-50 dark:bg-slate-600 rounded p-2 flex items-start gap-2 opacity-50">
                                     <input
                                       type="checkbox"
                                       className="mt-1 rounded flex-shrink-0"
@@ -3868,10 +3868,10 @@ Dongwook`
                                         <span className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap flex-shrink-0 ${getPriorityColor(todo.priority)}`}>
                                           {getPriorityLabel(todo.priority)}
                                         </span>
-                                        <span className="text-xs text-slate-700">{todo.task}</span>
+                                        <span className="text-xs text-slate-700 dark:text-slate-200">{todo.task}</span>
                                       </div>
                                       {todo.dueDate && (
-                                        <p className="text-xs text-slate-400 mt-1">{t.gmail.dueDate}: {todo.dueDate}</p>
+                                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t.gmail.dueDate}: {todo.dueDate}</p>
                                       )}
                                     </div>
                                   </div>
