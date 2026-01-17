@@ -1,8 +1,8 @@
 export const en = {
   // Page Titles
   pageTitles: {
-    etcPage: 'ETF/Indexing - ETC',
-    akrosPage: 'ETF/Indexing - Akros',
+    etcPage: 'ETF/Index - ETC',
+    akrosPage: 'ETF/Index - Akros',
     tenswActive: 'Tensoftworks - Active Projects',
     tenswManaged: 'Tensoftworks - Managed Projects',
     tenswPoc: 'Tensoftworks - POC',
@@ -82,7 +82,7 @@ export const en = {
     settings: 'Settings',
     version: 'Willow Dashboard v1.0',
     // Menu sections
-    etfIndexing: 'ETF/Indexing',
+    etfIndexing: 'ETF/Index',
     etc: 'ETC',
     akros: 'Akros',
     monoRApps: 'MonoR Apps',

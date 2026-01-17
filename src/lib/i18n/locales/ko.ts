@@ -1,8 +1,8 @@
 export const ko = {
   // 페이지 타이틀
   pageTitles: {
-    etcPage: 'ETF/Indexing - ETC',
-    akrosPage: 'ETF/Indexing - 아크로스',
+    etcPage: 'ETF/Index - ETC',
+    akrosPage: 'ETF/Index - 아크로스',
     tenswActive: '텐소프트웍스 - 진행 프로젝트',
     tenswManaged: '텐소프트웍스 - 관리 프로젝트',
     tenswPoc: '텐소프트웍스 - POC',
@@ -82,7 +82,7 @@ export const ko = {
     settings: '설정',
     version: 'Willow Dashboard v1.0',
     // 메뉴 섹션
-    etfIndexing: 'ETF/Indexing',
+    etfIndexing: 'ETF/Index',
     etc: 'ETC',
     akros: '아크로스',
     monoRApps: '모노알 앱스',
