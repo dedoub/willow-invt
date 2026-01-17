@@ -8,6 +8,7 @@ export const ko = {
     tenswPoc: '텐소프트웍스 - POC',
     tenswClosed: '텐소프트웍스 - 종료 프로젝트',
     usersPage: '사용자 관리',
+    ryuhaStudyPage: '류하 학습관리',
   },
 
   // 공통
@@ -95,6 +96,7 @@ export const ko = {
     closedProjects: '종료 프로젝트',
     others: '기타',
     jangbigo: '장비고',
+    ryuhaStudy: '류하 학습관리',
   },
 
   // 헤더

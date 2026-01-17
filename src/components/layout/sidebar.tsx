@@ -85,7 +85,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       key: 'others',
       title: t.sidebar.others,
       icon: <MoreHorizontal className="h-5 w-5" />,
-      items: [],
+      items: [
+        { title: t.sidebar.ryuhaStudy, href: '/others/ryuha-study' },
+      ],
     },
   ]
 

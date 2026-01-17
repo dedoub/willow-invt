@@ -8,6 +8,7 @@ export const en = {
     tenswPoc: 'Tensoftworks - POC',
     tenswClosed: 'Tensoftworks - Closed Projects',
     usersPage: 'User Management',
+    ryuhaStudyPage: 'Ryuha Study',
   },
 
   // Common
@@ -95,6 +96,7 @@ export const en = {
     closedProjects: 'Closed Projects',
     others: 'Others',
     jangbigo: 'Jangbigo',
+    ryuhaStudy: 'Ryuha Study',
   },
 
   // Header

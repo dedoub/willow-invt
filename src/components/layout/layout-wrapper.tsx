@@ -32,6 +32,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
       '/tensoftworks/poc': t.pageTitles.tenswPoc,
       '/tensoftworks/closed': t.pageTitles.tenswClosed,
       '/admin/users': t.pageTitles.usersPage,
+      '/others/ryuha-study': t.pageTitles.ryuhaStudyPage,
     }
     return titleMap[path]
   }
