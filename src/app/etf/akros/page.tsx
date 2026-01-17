@@ -173,22 +173,23 @@ function formatRefDate(dateStr: string): string {
 
 function formatFlow(value: number | null, currency: string = 'USD') {
   if (value === null) return '-'
-  const prefix = value >= 0 ? '+' : ''
+  const sign = value >= 0 ? '+' : '-'
+  const absValue = Math.abs(value)
   if (currency === 'USD') {
-    if (Math.abs(value) >= 1000000) return `${prefix}$${(value / 1000000).toFixed(2)}M`
-    if (Math.abs(value) >= 1000) return `${prefix}$${(value / 1000).toFixed(1)}K`
-    return `${prefix}$${value.toFixed(0)}`
+    if (absValue >= 1000000) return `${sign}$${(absValue / 1000000).toFixed(2)}M`
+    if (absValue >= 1000) return `${sign}$${(absValue / 1000).toFixed(1)}K`
+    return `${sign}$${absValue.toFixed(0)}`
   }
   if (currency === 'AUD') {
-    if (Math.abs(value) >= 1000000) return `${prefix}A$${(value / 1000000).toFixed(2)}M`
-    if (Math.abs(value) >= 1000) return `${prefix}A$${(value / 1000).toFixed(1)}K`
-    return `${prefix}A$${value.toFixed(0)}`
+    if (absValue >= 1000000) return `${sign}A$${(absValue / 1000000).toFixed(2)}M`
+    if (absValue >= 1000) return `${sign}A$${(absValue / 1000).toFixed(1)}K`
+    return `${sign}A$${absValue.toFixed(0)}`
   }
   if (currency === 'KRW') {
     // 이미 억원 단위 데이터 (소수점 없이)
-    return `${prefix}${Math.round(value)}억원`
+    return `${sign}${Math.round(absValue).toLocaleString()}억원`
   }
-  return `${prefix}${formatCurrency(value, currency)}`
+  return `${sign}${formatCurrency(absValue, currency)}`
 }
 
 function formatDate(dateString: string) {

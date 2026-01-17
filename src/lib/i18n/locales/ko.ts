@@ -7,6 +7,7 @@ export const ko = {
     tenswManaged: '텐소프트웍스 - 관리 프로젝트',
     tenswPoc: '텐소프트웍스 - POC',
     tenswClosed: '텐소프트웍스 - 종료 프로젝트',
+    usersPage: '사용자 관리',
   },
 
   // 공통
@@ -142,15 +143,23 @@ export const ko = {
     description: '사용자를 관리합니다',
     new: '새 사용자',
     noData: '사용자가 없습니다',
+    activeUsers: '활성 사용자',
+    inactiveUsers: '비활성 사용자',
+    roleDistribution: '역할별 분포',
     roles: {
       admin: '관리자',
       editor: '편집자',
       viewer: '뷰어',
     },
+    status: {
+      active: '활성',
+      inactive: '비활성',
+    },
     columns: {
       name: '이름',
       email: '이메일',
       role: '역할',
+      status: '상태',
       lastLogin: '마지막 로그인',
       actions: '관리',
     },

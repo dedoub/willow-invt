@@ -22,9 +22,13 @@ interface HeaderProps {
 
 export function Header({ title, onMobileMenuToggle }: HeaderProps) {
   const { user, logout } = useAuth()
-  const { t } = useI18n()
+  const { t, language, setLanguage } = useI18n()
   const router = useRouter()
   const { theme, setTheme } = useTheme()
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'ko' ? 'en' : 'ko')
+  }
 
   const handleLogout = async () => {
     await logout()
@@ -76,7 +80,15 @@ export function Header({ title, onMobileMenuToggle }: HeaderProps) {
         <h1 className="text-lg md:text-xl font-semibold truncate">{title || t.dashboard.title}</h1>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
+        {/* Language toggle */}
+        <button
+          onClick={toggleLanguage}
+          className="rounded-lg px-2 py-1.5 hover:bg-accent text-sm font-medium"
+        >
+          {language === 'ko' ? '한글' : 'EN'}
+        </button>
+
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

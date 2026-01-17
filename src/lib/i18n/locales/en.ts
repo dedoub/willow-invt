@@ -7,6 +7,7 @@ export const en = {
     tenswManaged: 'Tensoftworks - Managed Projects',
     tenswPoc: 'Tensoftworks - POC',
     tenswClosed: 'Tensoftworks - Closed Projects',
+    usersPage: 'User Management',
   },
 
   // Common
@@ -142,15 +143,23 @@ export const en = {
     description: 'Manage users',
     new: 'New User',
     noData: 'No users found',
+    activeUsers: 'Active Users',
+    inactiveUsers: 'Inactive Users',
+    roleDistribution: 'Role Distribution',
     roles: {
       admin: 'Admin',
       editor: 'Editor',
       viewer: 'Viewer',
     },
+    status: {
+      active: 'Active',
+      inactive: 'Inactive',
+    },
     columns: {
       name: 'Name',
       email: 'Email',
       role: 'Role',
+      status: 'Status',
       lastLogin: 'Last Login',
       actions: 'Actions',
     },

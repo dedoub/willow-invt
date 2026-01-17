@@ -31,6 +31,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
       '/tensoftworks/managed': t.pageTitles.tenswManaged,
       '/tensoftworks/poc': t.pageTitles.tenswPoc,
       '/tensoftworks/closed': t.pageTitles.tenswClosed,
+      '/admin/users': t.pageTitles.usersPage,
     }
     return titleMap[path]
   }

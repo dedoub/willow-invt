@@ -9,12 +9,10 @@ import { useIsAdmin } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n'
 import {
   LayoutDashboard,
-  Settings,
   Users,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Globe,
   TrendingUp,
   Smartphone,
   Building2,
@@ -42,7 +40,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const isAdmin = useIsAdmin()
   const [collapsed, setCollapsed] = useState(false)
-  const { t, language, setLanguage, supportedLanguages } = useI18n()
+  const { t } = useI18n()
   const [expandedSections, setExpandedSections] = useState<string[]>(['etfIndexing', 'monoRApps', 'tenSoftworks', 'others'])
 
   const toggleSection = (sectionKey: string) => {
@@ -87,9 +85,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       key: 'others',
       title: t.sidebar.others,
       icon: <MoreHorizontal className="h-5 w-5" />,
-      items: [
-        { title: t.sidebar.jangbigo, href: '/others/jangbigo' },
-      ],
+      items: [],
     },
   ]
 
@@ -100,16 +96,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       icon: <Users className="h-5 w-5" />,
       adminOnly: true,
     },
-    {
-      title: t.sidebar.settings,
-      href: '/settings',
-      icon: <Settings className="h-5 w-5" />,
-    },
   ]
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'ko' ? 'en' : 'ko')
-  }
 
   return (
     <aside
@@ -258,24 +245,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         )}
       </nav>
 
-      {/* Language toggle & Footer */}
-      <div className="p-2">
-        <button
-          onClick={toggleLanguage}
-          className={cn(
-            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white',
-            collapsed && 'justify-center'
-          )}
-        >
-          <Globe className="h-5 w-5" />
-          {!collapsed && (
-            <span>
-              {supportedLanguages.find((l) => l.code === language)?.flag}{' '}
-              {supportedLanguages.find((l) => l.code === language)?.name}
-            </span>
-          )}
-        </button>
-      </div>
+      {/* Footer */}
       {!collapsed && (
         <div className="p-4">
           <p className="text-xs text-slate-500">{t.sidebar.version}</p>
