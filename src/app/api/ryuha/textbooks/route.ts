@@ -5,22 +5,13 @@ export async function GET(request: Request) {
   try {
     const supabase = getServiceSupabase()
     const { searchParams } = new URL(request.url)
-    const startDate = searchParams.get('startDate')
-    const endDate = searchParams.get('endDate')
     const subjectId = searchParams.get('subjectId')
 
     let query = supabase
-      .from('ryuha_schedules')
-      .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*))')
-      .order('schedule_date')
-      .order('start_time')
+      .from('ryuha_textbooks')
+      .select('*, subject:ryuha_subjects(*), chapters:ryuha_chapters(count)')
+      .order('order_index')
 
-    if (startDate) {
-      query = query.gte('schedule_date', startDate)
-    }
-    if (endDate) {
-      query = query.lte('schedule_date', endDate)
-    }
     if (subjectId) {
       query = query.eq('subject_id', subjectId)
     }
@@ -30,8 +21,8 @@ export async function GET(request: Request) {
     if (error) throw error
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching schedules:', error)
-    return NextResponse.json({ error: 'Failed to fetch schedules' }, { status: 500 })
+    console.error('Error fetching textbooks:', error)
+    return NextResponse.json({ error: 'Failed to fetch textbooks' }, { status: 500 })
   }
 }
 
@@ -41,16 +32,16 @@ export async function POST(request: Request) {
     const body = await request.json()
 
     const { data, error } = await supabase
-      .from('ryuha_schedules')
+      .from('ryuha_textbooks')
       .insert(body)
-      .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*))')
+      .select('*, subject:ryuha_subjects(*)')
       .single()
 
     if (error) throw error
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error creating schedule:', error)
-    return NextResponse.json({ error: 'Failed to create schedule' }, { status: 500 })
+    console.error('Error creating textbook:', error)
+    return NextResponse.json({ error: 'Failed to create textbook' }, { status: 500 })
   }
 }
 
@@ -61,17 +52,17 @@ export async function PUT(request: Request) {
     const { id, ...updates } = body
 
     const { data, error } = await supabase
-      .from('ryuha_schedules')
+      .from('ryuha_textbooks')
       .update(updates)
       .eq('id', id)
-      .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*))')
+      .select('*, subject:ryuha_subjects(*)')
       .single()
 
     if (error) throw error
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error updating schedule:', error)
-    return NextResponse.json({ error: 'Failed to update schedule' }, { status: 500 })
+    console.error('Error updating textbook:', error)
+    return NextResponse.json({ error: 'Failed to update textbook' }, { status: 500 })
   }
 }
 
@@ -86,14 +77,14 @@ export async function DELETE(request: Request) {
     }
 
     const { error } = await supabase
-      .from('ryuha_schedules')
+      .from('ryuha_textbooks')
       .delete()
       .eq('id', id)
 
     if (error) throw error
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting schedule:', error)
-    return NextResponse.json({ error: 'Failed to delete schedule' }, { status: 500 })
+    console.error('Error deleting textbook:', error)
+    return NextResponse.json({ error: 'Failed to delete textbook' }, { status: 500 })
   }
 }
