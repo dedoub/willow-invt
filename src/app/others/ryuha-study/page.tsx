@@ -302,6 +302,13 @@ export default function RyuhaStudyPage() {
     }
     return 'week'
   })
+  const [progressExpanded, setProgressExpanded] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ryuha-progress-expanded')
+      return saved !== 'false'
+    }
+    return true
+  })
   const [currentDate, setCurrentDate] = useState(new Date())
   const [subjects, setSubjects] = useState<RyuhaSubject[]>([])
   const [textbooks, setTextbooks] = useState<RyuhaTextbook[]>([])
@@ -434,6 +441,11 @@ export default function RyuhaStudyPage() {
   useEffect(() => {
     localStorage.setItem('ryuha-calendar-view', viewMode)
   }, [viewMode])
+
+  // Save progressExpanded to localStorage
+  useEffect(() => {
+    localStorage.setItem('ryuha-progress-expanded', String(progressExpanded))
+  }, [progressExpanded])
 
   // Date helpers
   const getWeekStart = (date: Date) => {
@@ -1037,6 +1049,30 @@ export default function RyuhaStudyPage() {
                                   )}
                                 >
                                   {chapter.name}
+                                  {chapter.target_date && chapter.status !== 'completed' && (() => {
+                                    const today = new Date()
+                                    today.setHours(0, 0, 0, 0)
+                                    const target = new Date(chapter.target_date)
+                                    target.setHours(0, 0, 0, 0)
+                                    const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+                                    let colorClass = 'text-muted-foreground'
+                                    if (diffDays < 0) colorClass = 'text-red-500'
+                                    else if (diffDays === 0) colorClass = 'text-red-500'
+                                    else if (diffDays <= 3) colorClass = 'text-orange-500'
+
+                                    const label = diffDays < 0
+                                      ? `D+${Math.abs(diffDays)}`
+                                      : diffDays === 0
+                                        ? 'D-Day'
+                                        : `D-${diffDays}`
+
+                                    return (
+                                      <span className={cn('text-xs flex-shrink-0', colorClass)} title={`목표: ${chapter.target_date}`}>
+                                        {label}
+                                      </span>
+                                    )
+                                  })()}
                                   {hasSchedules && (
                                     <span title="일정 있음">
                                       <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
@@ -1071,14 +1107,6 @@ export default function RyuhaStudyPage() {
                                 >
                                   <Pencil className="h-2.5 w-2.5" />
                                 </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-5 w-5 text-destructive opacity-30 hover:opacity-100"
-                                  onClick={() => deleteChapter(chapter.id)}
-                                >
-                                  <Trash2 className="h-2.5 w-2.5" />
-                                </Button>
                               </div>
                             )
                           })}
@@ -1110,14 +1138,25 @@ export default function RyuhaStudyPage() {
         <div className="lg:col-span-2 order-1 lg:order-2 space-y-4">
           {/* Progress Summary */}
           <Card className="bg-slate-100 dark:bg-slate-800">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <GraduationCap className="h-4 w-4" />
-                진행 현황
-              </CardTitle>
+            <CardHeader
+              className="pb-3 cursor-pointer"
+              onClick={() => setProgressExpanded(!progressExpanded)}
+            >
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4" />
+                  진행 현황
+                </CardTitle>
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 text-muted-foreground transition-transform',
+                    !progressExpanded && '-rotate-90'
+                  )}
+                />
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4">
+            {progressExpanded && <CardContent>
+              <div className="grid grid-cols-2 gap-4">
                 {subjects.map((subject) => {
                   const subjectTextbooks = textbooks.filter((t) => t.subject_id === subject.id)
                   const subjectChapters = chapters.filter((c) =>
@@ -1125,27 +1164,67 @@ export default function RyuhaStudyPage() {
                   )
                   const completed = subjectChapters.filter((c) => c.status === 'completed').length
                   const total = subjectChapters.length
-                  const percent = total > 0 ? Math.round((completed / total) * 100) : 0
+                  const actualPercent = total > 0 ? Math.round((completed / total) * 100) : 0
+
+                  // Calculate target progress (chapters that should be done by today based on target_date)
+                  const today = new Date()
+                  today.setHours(0, 0, 0, 0)
+                  const shouldBeCompleted = subjectChapters.filter((c) => {
+                    if (!c.target_date) return false
+                    const target = new Date(c.target_date)
+                    target.setHours(0, 0, 0, 0)
+                    return target <= today
+                  }).length
+                  const targetPercent = total > 0 ? Math.round((shouldBeCompleted / total) * 100) : 0
+                  const diff = actualPercent - targetPercent
 
                   return (
-                    <div key={subject.id} className="space-y-1">
+                    <div key={subject.id} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
-                        <span>{subject.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span>{subject.name}</span>
+                          {total > 0 && (
+                            <span
+                              className={cn(
+                                'text-xs font-medium',
+                                diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-500' : 'text-muted-foreground'
+                              )}
+                            >
+                              {diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : '±0%'}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-muted-foreground text-xs">
-                          {completed}/{total} ({percent}%)
+                          {completed}/{total}
                         </span>
                       </div>
-                      <div className="h-2 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${percent}%`, backgroundColor: subject.color }}
-                        />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground w-8">목표</span>
+                          <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all opacity-40"
+                              style={{ width: `${targetPercent}%`, backgroundColor: subject.color }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground w-8">실제</span>
+                          <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ width: `${actualPercent}%`, backgroundColor: subject.color }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
+                        </div>
                       </div>
                     </div>
                   )
                 })}
               </div>
-            </CardContent>
+            </CardContent>}
           </Card>
 
           {/* Calendar */}
@@ -1469,8 +1548,8 @@ export default function RyuhaStudyPage() {
               </Label>
             </div>
           </div>
-          <DialogFooter>
-            {editingSchedule && (
+          <DialogFooter className="flex-row justify-between sm:justify-between">
+            {editingSchedule ? (
               <Button
                 variant="destructive"
                 onClick={() => {
@@ -1480,13 +1559,17 @@ export default function RyuhaStudyPage() {
               >
                 삭제
               </Button>
+            ) : (
+              <div />
             )}
-            <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
-              취소
-            </Button>
-            <Button onClick={saveSchedule} disabled={!scheduleForm.title || saving}>
-              {saving ? '저장 중...' : '저장'}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={saveSchedule} disabled={!scheduleForm.title || saving}>
+                {saving ? '저장 중...' : '저장'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1597,13 +1680,28 @@ export default function RyuhaStudyPage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setChapterDialogOpen(false)}>
-              취소
-            </Button>
-            <Button onClick={saveChapter} disabled={!chapterForm.name || saving}>
-              {saving ? '저장 중...' : '저장'}
-            </Button>
+          <DialogFooter className="flex-row justify-between sm:justify-between">
+            {editingChapter ? (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  deleteChapter(editingChapter.id)
+                  setChapterDialogOpen(false)
+                }}
+              >
+                삭제
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setChapterDialogOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={saveChapter} disabled={!chapterForm.name || saving}>
+                {saving ? '저장 중...' : '저장'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
