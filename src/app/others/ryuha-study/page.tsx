@@ -350,9 +350,12 @@ function DroppableDay({
     <div className="min-h-[280px]">
       <div
         className={cn(
-          'text-center py-1.5 rounded-t-lg font-medium text-xs',
-          isToday ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-200 dark:bg-slate-700'
+          'text-center py-1.5 rounded-t-lg font-medium text-xs cursor-pointer transition-colors',
+          isToday
+            ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100'
+            : 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600'
         )}
+        onClick={onClick}
       >
         <div>{dayLabel}</div>
         <div className="text-base">{day.getDate()}</div>
