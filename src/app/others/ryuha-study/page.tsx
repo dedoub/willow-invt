@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  Copy,
   GraduationCap,
   Loader2,
   Pencil,
@@ -39,9 +40,12 @@ import {
   BookMarked,
   ListOrdered,
   Settings,
+  Search,
+  StickyNote,
+  ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule } from '@/types/ryuha'
+import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule, RyuhaDailyMemo } from '@/types/ryuha'
 import {
   DndContext,
   DragEndEvent,
@@ -55,6 +59,14 @@ import {
 } from '@dnd-kit/core'
 
 type ViewMode = 'week' | 'month'
+
+// Format date to YYYY-MM-DD in local timezone (KST)
+const formatDateLocal = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 // Draggable Schedule Card Component
 function DraggableScheduleCard({
@@ -71,18 +83,22 @@ function DraggableScheduleCard({
     data: { schedule },
   })
 
+  // Determine display color: subject color takes priority, then custom color
+  const displayColor = schedule.subject?.color || schedule.color
+  const subjectColor = schedule.subject?.color
+
   const style = transform
     ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        borderLeft: schedule.subject ? `3px solid ${schedule.subject.color}` : undefined,
-        backgroundColor: !schedule.is_completed && schedule.subject?.color
-          ? `${schedule.subject.color}20`
+        borderLeft: subjectColor ? `3px solid ${subjectColor}` : undefined,
+        backgroundColor: !schedule.is_completed && displayColor
+          ? `${displayColor}20`
           : undefined,
       }
     : {
-        borderLeft: schedule.subject ? `3px solid ${schedule.subject.color}` : undefined,
-        backgroundColor: !schedule.is_completed && schedule.subject?.color
-          ? `${schedule.subject.color}20`
+        borderLeft: subjectColor ? `3px solid ${subjectColor}` : undefined,
+        backgroundColor: !schedule.is_completed && displayColor
+          ? `${displayColor}20`
           : undefined,
       }
 
@@ -97,7 +113,7 @@ function DraggableScheduleCard({
         isDragging && 'opacity-50',
         schedule.is_completed
           ? 'bg-muted line-through text-muted-foreground'
-          : !schedule.subject && 'bg-slate-300/50 dark:bg-slate-600/50'
+          : !displayColor && 'bg-slate-300/50 dark:bg-slate-600/50'
       )}
     >
       <div className="flex items-start gap-1">
@@ -126,10 +142,29 @@ function DraggableScheduleCard({
           {schedule.title}
         </span>
       </div>
-      {schedule.start_time && (
+      {schedule.end_date && (
+        <div className="text-muted-foreground flex items-center gap-1 mt-0.5">
+          <Calendar className="h-2.5 w-2.5" />
+          {schedule.schedule_date.slice(5).replace('-', '/')} - {schedule.end_date.slice(5).replace('-', '/')}
+        </div>
+      )}
+      {(schedule.start_time || schedule.end_time) && (
         <div className="text-muted-foreground flex items-center gap-1 mt-0.5">
           <Clock className="h-2.5 w-2.5" />
-          {schedule.start_time.slice(0, 5)}
+          {schedule.start_time?.slice(0, 5) || ''}
+          {schedule.start_time && schedule.end_time && ' - '}
+          {schedule.end_time?.slice(0, 5) || ''}
+        </div>
+      )}
+      {schedule.homework_deadline && (
+        <div className={cn(
+          'flex items-center gap-1 mt-0.5 text-[10px]',
+          schedule.homework_completed ? 'text-green-600' : 'text-orange-600'
+        )}>
+          <ClipboardList className="h-2.5 w-2.5" />
+          <span>
+            과제 {schedule.homework_completed ? '완료' : `마감: ${schedule.homework_deadline.slice(5).replace('-', '/')}`}
+          </span>
         </div>
       )}
     </div>
@@ -150,7 +185,7 @@ function DroppableDay({
   children: React.ReactNode
   onClick: () => void
 }) {
-  const dateStr = day.toISOString().split('T')[0]
+  const dateStr = formatDateLocal(day)
   const { isOver, setNodeRef } = useDroppable({
     id: `day-${dateStr}`,
     data: { date: day, dateStr },
@@ -170,8 +205,8 @@ function DroppableDay({
       <div
         ref={setNodeRef}
         className={cn(
-          'border border-t-0 rounded-b-lg p-2 space-y-1 min-h-[240px] cursor-pointer transition-colors',
-          isOver ? 'bg-slate-900/10 border-slate-900 dark:bg-white/10 dark:border-white' : 'hover:bg-muted/50'
+          'rounded-b-lg p-2 space-y-1 min-h-[120px] cursor-pointer transition-colors bg-white dark:bg-slate-900',
+          isOver ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
         )}
         onClick={onClick}
       >
@@ -193,7 +228,7 @@ function DroppableMonthDay({
   children: React.ReactNode
   onClick: () => void
 }) {
-  const dateStr = day?.toISOString().split('T')[0] || ''
+  const dateStr = day ? formatDateLocal(day) : ''
   const { isOver, setNodeRef } = useDroppable({
     id: day ? `day-${dateStr}` : `empty-${Math.random()}`,
     data: { date: day, dateStr },
@@ -204,7 +239,7 @@ function DroppableMonthDay({
     <div
       ref={setNodeRef}
       className={cn(
-        'min-h-[100px] border rounded p-1',
+        'min-h-[80px] border rounded p-1',
         day ? 'cursor-pointer' : 'bg-muted/20',
         day && !isOver && 'hover:bg-muted/50',
         isOver && 'bg-slate-900/10 border-slate-900 dark:bg-white/10 dark:border-white',
@@ -232,21 +267,27 @@ function DraggableMonthScheduleCard({
     data: { schedule },
   })
 
+  // Determine display color: subject color takes priority, then custom color
+  const displayColor = schedule.subject?.color || schedule.color
+  const subjectColor = schedule.subject?.color
+
   const style = transform
     ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
         zIndex: 50,
+        borderLeft: subjectColor ? `2px solid ${subjectColor}` : undefined,
         backgroundColor: schedule.is_completed
           ? undefined
-          : schedule.subject?.color
-            ? `${schedule.subject.color}25`
+          : displayColor
+            ? `${displayColor}25`
             : undefined,
       }
     : {
+        borderLeft: subjectColor ? `2px solid ${subjectColor}` : undefined,
         backgroundColor: schedule.is_completed
           ? undefined
-          : schedule.subject?.color
-            ? `${schedule.subject.color}25`
+          : displayColor
+            ? `${displayColor}25`
             : undefined,
       }
 
@@ -261,7 +302,7 @@ function DraggableMonthScheduleCard({
         isDragging && 'opacity-50',
         schedule.is_completed
           ? 'bg-muted text-muted-foreground line-through'
-          : !schedule.subject?.color && 'bg-slate-200 dark:bg-slate-700'
+          : !displayColor && 'bg-slate-200 dark:bg-slate-700'
       )}
     >
       <button
@@ -278,6 +319,15 @@ function DraggableMonthScheduleCard({
           <Circle className="h-2.5 w-2.5" />
         )}
       </button>
+      {schedule.end_date && (
+        <Calendar className="h-2.5 w-2.5 flex-shrink-0 text-muted-foreground" />
+      )}
+      {schedule.homework_deadline && (
+        <ClipboardList className={cn(
+          'h-2.5 w-2.5 flex-shrink-0',
+          schedule.homework_completed ? 'text-green-600' : 'text-orange-600'
+        )} />
+      )}
       <span
         className="truncate flex-1"
         onClick={(e) => {
@@ -316,10 +366,22 @@ export default function RyuhaStudyPage() {
   const [schedules, setSchedules] = useState<RyuhaSchedule[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [selectedSubject, setSelectedSubject] = useState<string | null>(null)
-  const [expandedTextbooks, setExpandedTextbooks] = useState<string[]>([])
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ryuha-selected-subject')
+    }
+    return null
+  })
+  const [expandedTextbooks, setExpandedTextbooks] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ryuha-expanded-textbooks')
+      return saved ? JSON.parse(saved) : []
+    }
+    return []
+  })
   const [chaptersWithSchedules, setChaptersWithSchedules] = useState<Set<string>>(new Set())
   const [activeSchedule, setActiveSchedule] = useState<RyuhaSchedule | null>(null)
+  const [memos, setMemos] = useState<Map<string, RyuhaDailyMemo>>(new Map())
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -339,19 +401,27 @@ export default function RyuhaStudyPage() {
   const [editingTextbook, setEditingTextbook] = useState<RyuhaTextbook | null>(null)
   const [editingChapter, setEditingChapter] = useState<RyuhaChapter | null>(null)
   const [editingSubject, setEditingSubject] = useState<RyuhaSubject | null>(null)
+  const [memoDialogOpen, setMemoDialogOpen] = useState(false)
+  const [editingMemoDate, setEditingMemoDate] = useState<string>('')
+  const [memoContent, setMemoContent] = useState('')
 
   // Form states
   const [scheduleForm, setScheduleForm] = useState({
     title: '',
     description: '',
     schedule_date: '',
+    end_date: '',
     start_time: '',
     end_time: '',
     type: 'self_study' as 'homework' | 'self_study',
+    color: '',
     subject_id: '',
     textbook_id: '',
     chapter_id: '',
     email_reminder: false,
+    has_homework: false,
+    homework_content: '',
+    homework_deadline: '',
   })
 
   const [textbookForm, setTextbookForm] = useState({
@@ -409,6 +479,21 @@ export default function RyuhaStudyPage() {
     setChaptersWithSchedules(chapterIds)
   }, [])
 
+  const fetchMemos = useCallback(async () => {
+    try {
+      const { startDate, endDate } = getDateRange()
+      const res = await fetch(`/api/ryuha/memos?startDate=${startDate}&endDate=${endDate}`)
+      const data = await res.json()
+      const memoMap = new Map<string, RyuhaDailyMemo>()
+      if (Array.isArray(data)) {
+        data.forEach((memo: RyuhaDailyMemo) => memoMap.set(memo.memo_date, memo))
+      }
+      setMemos(memoMap)
+    } catch (error) {
+      console.error('Error fetching memos:', error)
+    }
+  }, [currentDate, viewMode])
+
   const getDateRange = () => {
     if (viewMode === 'week') {
       const start = getWeekStart(currentDate)
@@ -431,11 +516,12 @@ export default function RyuhaStudyPage() {
         fetchChapters(),
         fetchSchedules(),
         fetchChaptersWithSchedules(),
+        fetchMemos(),
       ])
       setLoading(false)
     }
     loadData()
-  }, [fetchSubjects, fetchTextbooks, fetchChapters, fetchSchedules, fetchChaptersWithSchedules])
+  }, [fetchSubjects, fetchTextbooks, fetchChapters, fetchSchedules, fetchChaptersWithSchedules, fetchMemos])
 
   // Save viewMode to localStorage
   useEffect(() => {
@@ -447,6 +533,20 @@ export default function RyuhaStudyPage() {
     localStorage.setItem('ryuha-progress-expanded', String(progressExpanded))
   }, [progressExpanded])
 
+  // Save selectedSubject to localStorage
+  useEffect(() => {
+    if (selectedSubject) {
+      localStorage.setItem('ryuha-selected-subject', selectedSubject)
+    } else {
+      localStorage.removeItem('ryuha-selected-subject')
+    }
+  }, [selectedSubject])
+
+  // Save expandedTextbooks to localStorage
+  useEffect(() => {
+    localStorage.setItem('ryuha-expanded-textbooks', JSON.stringify(expandedTextbooks))
+  }, [expandedTextbooks])
+
   // Date helpers
   const getWeekStart = (date: Date) => {
     const d = new Date(date)
@@ -455,7 +555,7 @@ export default function RyuhaStudyPage() {
     return new Date(d.setDate(diff))
   }
 
-  const formatDate = (date: Date) => date.toISOString().split('T')[0]
+  const formatDate = formatDateLocal
 
   const getWeekDays = () => {
     const start = getWeekStart(currentDate)
@@ -485,7 +585,32 @@ export default function RyuhaStudyPage() {
   }
 
   const getSchedulesForDate = (date: Date) => {
-    return schedules.filter((s) => s.schedule_date === formatDate(date))
+    const dateStr = formatDate(date)
+    return schedules
+      .filter((s) => {
+        // Single-day schedule
+        if (!s.end_date) {
+          return s.schedule_date === dateStr
+        }
+        // Multi-day schedule: check if date is within range
+        return dateStr >= s.schedule_date && dateStr <= s.end_date
+      })
+      .sort((a, b) => {
+        // Items without start_time come first
+        if (!a.start_time && b.start_time) return -1
+        if (a.start_time && !b.start_time) return 1
+        // Then sort by start_time
+        if (a.start_time && b.start_time) {
+          return a.start_time.localeCompare(b.start_time)
+        }
+        return 0
+      })
+  }
+
+  // Get homework deadline items for a specific date
+  const getHomeworkForDate = (date: Date) => {
+    const dateStr = formatDate(date)
+    return schedules.filter((s) => s.homework_deadline === dateStr)
   }
 
   // Toggle textbook expansion
@@ -504,13 +629,18 @@ export default function RyuhaStudyPage() {
         title: schedule.title,
         description: schedule.description || '',
         schedule_date: schedule.schedule_date,
+        end_date: schedule.end_date || '',
         start_time: schedule.start_time || '',
         end_time: schedule.end_time || '',
         type: schedule.type,
+        color: schedule.color || '',
         subject_id: schedule.subject_id || '',
         textbook_id: chapter?.textbook_id || '',
         chapter_id: schedule.chapter_id || '',
         email_reminder: schedule.email_reminder,
+        has_homework: !!(schedule.homework_content || schedule.homework_deadline),
+        homework_content: schedule.homework_content || '',
+        homework_deadline: schedule.homework_deadline || '',
       })
     } else {
       setEditingSchedule(null)
@@ -518,13 +648,18 @@ export default function RyuhaStudyPage() {
         title: '',
         description: '',
         schedule_date: date ? formatDate(date) : formatDate(new Date()),
+        end_date: '',
         start_time: '',
         end_time: '',
         type: 'self_study',
+        color: '',
         subject_id: '',
         textbook_id: '',
         chapter_id: '',
         email_reminder: false,
+        has_homework: false,
+        homework_content: '',
+        homework_deadline: '',
       })
     }
     setScheduleDialogOpen(true)
@@ -538,12 +673,16 @@ export default function RyuhaStudyPage() {
         title: scheduleForm.title,
         description: scheduleForm.description || null,
         schedule_date: scheduleForm.schedule_date,
+        end_date: scheduleForm.end_date || null,
         start_time: scheduleForm.start_time || null,
         end_time: scheduleForm.end_time || null,
         type: scheduleForm.type,
+        color: scheduleForm.subject_id ? null : (scheduleForm.color || null),
         subject_id: scheduleForm.subject_id || null,
         chapter_id: scheduleForm.chapter_id || null,
         email_reminder: scheduleForm.email_reminder,
+        homework_content: scheduleForm.has_homework ? (scheduleForm.homework_content || null) : null,
+        homework_deadline: scheduleForm.has_homework ? (scheduleForm.homework_deadline || null) : null,
       }
 
       if (editingSchedule) {
@@ -587,6 +726,15 @@ export default function RyuhaStudyPage() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: schedule.id, is_completed: !schedule.is_completed }),
+    })
+    fetchSchedules()
+  }
+
+  const toggleHomeworkComplete = async (schedule: RyuhaSchedule) => {
+    await fetch('/api/ryuha/schedules', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: schedule.id, homework_completed: !schedule.homework_completed }),
     })
     fetchSchedules()
   }
@@ -847,6 +995,37 @@ export default function RyuhaStudyPage() {
     fetchChapters()
   }
 
+  // Memo CRUD
+  const openMemoDialog = (date: Date) => {
+    const dateStr = formatDate(date)
+    const existingMemo = memos.get(dateStr)
+    setEditingMemoDate(dateStr)
+    setMemoContent(existingMemo?.content || '')
+    setMemoDialogOpen(true)
+  }
+
+  const saveMemo = async () => {
+    if (saving || !editingMemoDate) return
+
+    // If content is empty, delete the memo
+    if (!memoContent.trim()) {
+      await fetch(`/api/ryuha/memos?date=${editingMemoDate}`, { method: 'DELETE' })
+    } else {
+      await fetch('/api/ryuha/memos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memo_date: editingMemoDate, content: memoContent.trim() }),
+      })
+    }
+
+    setMemoDialogOpen(false)
+    await fetchMemos()
+  }
+
+  const getMemoForDate = (date: Date) => {
+    return memos.get(formatDate(date))
+  }
+
   // Filtered data
   const filteredTextbooks = selectedSubject
     ? textbooks.filter((t) => t.subject_id === selectedSubject)
@@ -877,14 +1056,24 @@ export default function RyuhaStudyPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <BookMarked className="h-4 w-4" />
-                  교재 & 진도
+                  과목 및 교재
                 </CardTitle>
-                <button
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                  onClick={() => openTextbookDialog()}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                    onClick={() => openTextbookDialog()}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    교재 추가
+                  </button>
+                  <button
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                    onClick={() => openSubjectDialog()}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    과목 추가
+                  </button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -915,15 +1104,6 @@ export default function RyuhaStudyPage() {
                     {subject.name}
                   </Badge>
                 ))}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 ml-1 opacity-30 hover:opacity-100"
-                  onClick={() => openSubjectDialog()}
-                  title="과목 관리"
-                >
-                  <Settings className="h-3.5 w-3.5" />
-                </Button>
               </div>
 
               {/* Textbooks list */}
@@ -1105,7 +1285,7 @@ export default function RyuhaStudyPage() {
                                   className="h-5 w-5 opacity-30 hover:opacity-100"
                                   onClick={() => openChapterDialog(textbook.id, chapter)}
                                 >
-                                  <Pencil className="h-2.5 w-2.5" />
+                                  <Search className="h-2.5 w-2.5" />
                                 </Button>
                               </div>
                             )
@@ -1139,7 +1319,7 @@ export default function RyuhaStudyPage() {
           {/* Progress Summary */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader
-              className="pb-3 cursor-pointer"
+              className={cn("cursor-pointer", progressExpanded ? "pb-3" : "-mb-2")}
               onClick={() => setProgressExpanded(!progressExpanded)}
             >
               <div className="flex items-center justify-between">
@@ -1295,24 +1475,95 @@ export default function RyuhaStudyPage() {
               >
                 {viewMode === 'week' ? (
                   <div className="grid grid-cols-7 gap-2">
-                    {getWeekDays().map((day, idx) => (
-                      <DroppableDay
-                        key={day.toISOString()}
-                        day={day}
-                        isToday={day.toDateString() === new Date().toDateString()}
-                        dayLabel={weekDays[idx]}
-                        onClick={() => openScheduleDialog(day)}
-                      >
-                        {getSchedulesForDate(day).map((schedule) => (
-                          <DraggableScheduleCard
-                            key={schedule.id}
-                            schedule={schedule}
-                            onToggleComplete={() => toggleScheduleComplete(schedule)}
-                            onEdit={() => openScheduleDialog(undefined, schedule)}
-                          />
-                        ))}
-                      </DroppableDay>
-                    ))}
+                    {getWeekDays().map((day, idx) => {
+                      const memo = getMemoForDate(day)
+                      return (
+                        <DroppableDay
+                          key={day.toISOString()}
+                          day={day}
+                          isToday={day.toDateString() === new Date().toDateString()}
+                          dayLabel={weekDays[idx]}
+                          onClick={() => openScheduleDialog(day)}
+                        >
+                          {/* Memo section */}
+                          <div
+                            className={cn(
+                              'mb-1 p-1 rounded text-[10px] cursor-pointer transition-colors',
+                              memo
+                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200'
+                                : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openMemoDialog(day)
+                            }}
+                          >
+                            <div className="flex items-start gap-1">
+                              <StickyNote className="h-2.5 w-2.5 mt-0.5 flex-shrink-0" />
+                              {memo ? (
+                                <span className="line-clamp-2 whitespace-pre-wrap">{memo.content}</span>
+                              ) : (
+                                <span className="opacity-50">메모</span>
+                              )}
+                            </div>
+                          </div>
+                          {/* Homework deadline items - displayed first */}
+                          {getHomeworkForDate(day).map((schedule) => (
+                            <div
+                              key={`hw-${schedule.id}`}
+                              className={cn(
+                                'text-xs p-1.5 rounded border-l-2 border-orange-500',
+                                schedule.homework_completed
+                                  ? 'bg-muted line-through text-muted-foreground'
+                                  : 'bg-orange-100 dark:bg-orange-900/30'
+                              )}
+                            >
+                              <div className="flex items-start gap-1">
+                                <button
+                                  className="mt-0.5 flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleHomeworkComplete(schedule)
+                                  }}
+                                >
+                                  {schedule.homework_completed ? (
+                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Circle className="h-3 w-3 text-orange-600" />
+                                  )}
+                                </button>
+                                <span
+                                  className="flex-1 cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    openScheduleDialog(undefined, schedule)
+                                  }}
+                                >
+                                  <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
+                                    <ClipboardList className="h-2.5 w-2.5" />
+                                    <span className="font-medium">과제</span>
+                                  </div>
+                                  <div className="text-muted-foreground">{schedule.title}</div>
+                                  {schedule.homework_content && (
+                                    <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
+                                      {schedule.homework_content}
+                                    </div>
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          {getSchedulesForDate(day).map((schedule) => (
+                            <DraggableScheduleCard
+                              key={schedule.id}
+                              schedule={schedule}
+                              onToggleComplete={() => toggleScheduleComplete(schedule)}
+                              onEdit={() => openScheduleDialog(undefined, schedule)}
+                            />
+                          ))}
+                        </DroppableDay>
+                      )
+                    })}
                   </div>
                 ) : (
                 <div>
@@ -1324,20 +1575,73 @@ export default function RyuhaStudyPage() {
                       ))}
                     </div>
                     <div className="grid grid-cols-7 gap-1">
-                      {getMonthDays().map((day, idx) => (
-                        <DroppableMonthDay
-                          key={idx}
-                          day={day}
-                          isToday={day?.toDateString() === new Date().toDateString()}
-                          onClick={() => day && openScheduleDialog(day)}
-                        >
-                          {day && (
-                            <>
-                              <div className="text-sm font-medium mb-1">{day.getDate()}</div>
-                              <div className="space-y-0.5">
-                                {getSchedulesForDate(day)
-                                  .slice(0, 3)
-                                  .map((schedule) => (
+                      {getMonthDays().map((day, idx) => {
+                        const memo = day ? getMemoForDate(day) : null
+                        return (
+                          <DroppableMonthDay
+                            key={idx}
+                            day={day}
+                            isToday={day?.toDateString() === new Date().toDateString()}
+                            onClick={() => day && openScheduleDialog(day)}
+                          >
+                            {day && (
+                              <>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm font-medium">{day.getDate()}</span>
+                                  <button
+                                    className={cn(
+                                      'p-0.5 rounded transition-colors',
+                                      memo
+                                        ? 'text-amber-600 dark:text-amber-400'
+                                        : 'text-muted-foreground/30 hover:text-muted-foreground'
+                                    )}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openMemoDialog(day)
+                                    }}
+                                    title={memo ? memo.content : '메모 추가'}
+                                  >
+                                    <StickyNote className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                <div className="space-y-0.5">
+                                  {/* Homework deadline items - displayed first */}
+                                  {getHomeworkForDate(day).map((schedule) => (
+                                    <div
+                                      key={`hw-${schedule.id}`}
+                                      className={cn(
+                                        'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
+                                        schedule.homework_completed
+                                          ? 'bg-muted text-muted-foreground line-through'
+                                          : 'bg-orange-100 dark:bg-orange-900/30'
+                                      )}
+                                    >
+                                      <button
+                                        className="flex-shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          toggleHomeworkComplete(schedule)
+                                        }}
+                                      >
+                                        {schedule.homework_completed ? (
+                                          <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
+                                        ) : (
+                                          <Circle className="h-2.5 w-2.5 text-orange-600" />
+                                        )}
+                                      </button>
+                                      <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
+                                      <span
+                                        className="truncate flex-1 cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          openScheduleDialog(undefined, schedule)
+                                        }}
+                                      >
+                                        {schedule.title}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {getSchedulesForDate(day).map((schedule) => (
                                     <DraggableMonthScheduleCard
                                       key={schedule.id}
                                       schedule={schedule}
@@ -1345,47 +1649,47 @@ export default function RyuhaStudyPage() {
                                       onToggleComplete={() => toggleScheduleComplete(schedule)}
                                     />
                                   ))}
-                                {getSchedulesForDate(day).length > 3 && (
-                                  <div className="text-[10px] text-muted-foreground">
-                                    +{getSchedulesForDate(day).length - 3}
-                                  </div>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </DroppableMonthDay>
-                      ))}
+                                </div>
+                              </>
+                            )}
+                          </DroppableMonthDay>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
                 <DragOverlay>
-                  {activeSchedule && (
-                    <div
-                      className={cn(
-                        'text-xs p-1.5 rounded shadow-lg',
-                        activeSchedule.is_completed
-                          ? 'bg-muted line-through text-muted-foreground'
-                          : !activeSchedule.subject && 'bg-slate-300/50 dark:bg-slate-600/50'
-                      )}
-                      style={{
-                        borderLeft: activeSchedule.subject
-                          ? `3px solid ${activeSchedule.subject.color}`
-                          : undefined,
-                        backgroundColor: !activeSchedule.is_completed && activeSchedule.subject?.color
-                          ? `${activeSchedule.subject.color}20`
-                          : undefined,
-                      }}
-                    >
-                      <div className="flex items-center gap-1">
-                        {activeSchedule.is_completed ? (
-                          <CheckCircle2 className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <Circle className="h-3 w-3" />
+                  {activeSchedule && (() => {
+                    const displayColor = activeSchedule.subject?.color || activeSchedule.color
+                    const subjectColor = activeSchedule.subject?.color
+                    return (
+                      <div
+                        className={cn(
+                          'text-xs p-1.5 rounded shadow-lg',
+                          activeSchedule.is_completed
+                            ? 'bg-muted line-through text-muted-foreground'
+                            : !displayColor && 'bg-slate-300/50 dark:bg-slate-600/50'
                         )}
-                        <span>{activeSchedule.title}</span>
+                        style={{
+                          borderLeft: subjectColor
+                            ? `3px solid ${subjectColor}`
+                            : undefined,
+                          backgroundColor: !activeSchedule.is_completed && displayColor
+                            ? `${displayColor}20`
+                            : undefined,
+                        }}
+                      >
+                        <div className="flex items-center gap-1">
+                          {activeSchedule.is_completed ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Circle className="h-3 w-3" />
+                          )}
+                          <span>{activeSchedule.title}</span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )
+                  })()}
                 </DragOverlay>
               </DndContext>
             </CardContent>
@@ -1410,7 +1714,7 @@ export default function RyuhaStudyPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>날짜</Label>
+                <Label>시작일</Label>
                 <Input
                   type="date"
                   value={scheduleForm.schedule_date}
@@ -1420,21 +1724,16 @@ export default function RyuhaStudyPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>유형</Label>
-                <Select
-                  value={scheduleForm.type}
-                  onValueChange={(v) =>
-                    setScheduleForm({ ...scheduleForm, type: v as 'homework' | 'self_study' })
+                <Label>종료일</Label>
+                <Input
+                  type="date"
+                  value={scheduleForm.end_date}
+                  onChange={(e) =>
+                    setScheduleForm({ ...scheduleForm, end_date: e.target.value })
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="self_study">자기학습</SelectItem>
-                    <SelectItem value="homework">학원숙제</SelectItem>
-                  </SelectContent>
-                </Select>
+                  min={scheduleForm.schedule_date}
+                  placeholder="없음"
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -1462,7 +1761,7 @@ export default function RyuhaStudyPage() {
               <Select
                 value={scheduleForm.subject_id}
                 onValueChange={(v) =>
-                  setScheduleForm({ ...scheduleForm, subject_id: v, textbook_id: '', chapter_id: '' })
+                  setScheduleForm({ ...scheduleForm, subject_id: v, textbook_id: '', chapter_id: '', color: '' })
                 }
               >
                 <SelectTrigger>
@@ -1477,6 +1776,31 @@ export default function RyuhaStudyPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Color picker - only when no subject selected */}
+            {!scheduleForm.subject_id && (
+              <div className="space-y-2">
+                <Label>색상</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280'].map((color) => (
+                    <button
+                      key={color || 'none'}
+                      type="button"
+                      className={cn(
+                        'w-7 h-7 rounded-full border-2 transition-all',
+                        scheduleForm.color === color
+                          ? 'border-slate-900 dark:border-white scale-110'
+                          : 'border-transparent hover:scale-105',
+                        !color && 'bg-slate-200 dark:bg-slate-700'
+                      )}
+                      style={color ? { backgroundColor: color } : undefined}
+                      onClick={() => setScheduleForm({ ...scheduleForm, color })}
+                      title={color || '없음'}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {scheduleForm.subject_id && (
               <div className="space-y-2">
@@ -1547,18 +1871,75 @@ export default function RyuhaStudyPage() {
                 이메일 알림 받기
               </Label>
             </div>
+
+            {/* Homework section */}
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="has_homework"
+                  checked={scheduleForm.has_homework}
+                  onCheckedChange={(checked) =>
+                    setScheduleForm({ ...scheduleForm, has_homework: checked as boolean })
+                  }
+                />
+                <Label htmlFor="has_homework" className="text-sm font-medium">
+                  사전 과제 있음
+                </Label>
+              </div>
+              {scheduleForm.has_homework && (
+                <>
+                  <div className="space-y-2">
+                    <Label>과제 마감일</Label>
+                    <Input
+                      type="date"
+                      value={scheduleForm.homework_deadline}
+                      onChange={(e) =>
+                        setScheduleForm({ ...scheduleForm, homework_deadline: e.target.value })
+                      }
+                      max={scheduleForm.schedule_date}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>과제 내용</Label>
+                    <Textarea
+                      value={scheduleForm.homework_content}
+                      onChange={(e) => setScheduleForm({ ...scheduleForm, homework_content: e.target.value })}
+                      placeholder="과제 내용을 입력하세요"
+                      rows={2}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           <DialogFooter className="flex-row justify-between sm:justify-between">
             {editingSchedule ? (
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  deleteSchedule(editingSchedule.id)
-                  setScheduleDialogOpen(false)
-                }}
-              >
-                삭제
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    deleteSchedule(editingSchedule.id)
+                    setScheduleDialogOpen(false)
+                  }}
+                >
+                  삭제
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Clear editingSchedule and dates to create a copy
+                    setEditingSchedule(null)
+                    setScheduleForm((prev) => ({
+                      ...prev,
+                      schedule_date: '',
+                      end_date: '',
+                    }))
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  복사
+                </Button>
+              </div>
             ) : (
               <div />
             )}
@@ -1801,6 +2182,36 @@ export default function RyuhaStudyPage() {
             </Button>
             <Button onClick={saveSubject} disabled={!subjectForm.name || saving}>
               {saving ? '저장 중...' : editingSubject ? '저장' : '추가'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Memo Dialog */}
+      <Dialog open={memoDialogOpen} onOpenChange={setMemoDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="h-4 w-4" />
+              {editingMemoDate && `${editingMemoDate.slice(5).replace('-', '/')} 메모`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={memoContent}
+              onChange={(e) => setMemoContent(e.target.value)}
+              placeholder="이 날짜에 대한 메모를 입력하세요..."
+              rows={4}
+              className="resize-none"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMemoDialogOpen(false)}>
+              취소
+            </Button>
+            <Button onClick={saveMemo}>
+              저장
             </Button>
           </DialogFooter>
         </DialogContent>

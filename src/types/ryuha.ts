@@ -38,17 +38,30 @@ export interface RyuhaSchedule {
   title: string
   description: string | null
   schedule_date: string
+  end_date: string | null
   start_time: string | null
   end_time: string | null
   type: 'homework' | 'self_study'
+  color: string | null
   subject_id: string | null
   chapter_id: string | null
   is_completed: boolean
   email_reminder: boolean
   reminder_sent: boolean
+  homework_content: string | null
+  homework_deadline: string | null
+  homework_completed: boolean
   created_at: string
   subject?: RyuhaSubject
   chapter?: RyuhaChapter
+}
+
+export interface RyuhaDailyMemo {
+  id: string
+  memo_date: string
+  content: string
+  created_at: string
+  updated_at: string
 }
 
 // Legacy - 기존 호환성 유지
