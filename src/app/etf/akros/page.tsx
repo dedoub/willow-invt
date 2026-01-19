@@ -1527,6 +1527,7 @@ export default function AkrosPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showAiAnalysis, setShowAiAnalysis] = useState(false)
   const [savedTodos, setSavedTodos] = useState<SavedTodo[]>([])
+  const [togglingTodoIds, setTogglingTodoIds] = useState<Set<string>>(new Set())
   const [savedAnalysis, setSavedAnalysis] = useState<SavedAnalysis | null>(null)
   const [categorySlideIndex, setCategorySlideIndex] = useState(0)
   const [dragStartX, setDragStartX] = useState<number | null>(null)
@@ -2211,6 +2212,8 @@ Dongwook`
 
   // Todo 완료 상태 토글
   const handleTodoToggle = async (todoId: string, currentCompleted: boolean) => {
+    if (togglingTodoIds.has(todoId)) return
+    setTogglingTodoIds(prev => new Set(prev).add(todoId))
     try {
       const updated = await gmailService.toggleTodoCompleted(todoId, !currentCompleted)
       if (updated) {
@@ -2220,6 +2223,12 @@ Dongwook`
       }
     } catch (error) {
       console.error('Failed to toggle todo:', error)
+    } finally {
+      setTogglingTodoIds(prev => {
+        const next = new Set(prev)
+        next.delete(todoId)
+        return next
+      })
     }
   }
 
@@ -3938,12 +3947,16 @@ Dongwook`
                               <div className="space-y-2">
                                 {displayTodos.map((todo) => (
                                   <div key={todo.id} className={`bg-slate-50 dark:bg-slate-600 rounded p-2 flex items-start gap-2 ${todo.completed ? 'opacity-60' : ''}`}>
-                                    <input
-                                      type="checkbox"
-                                      checked={todo.completed}
-                                      onChange={() => handleTodoToggle(todo.id, todo.completed)}
-                                      className="mt-1 rounded flex-shrink-0 cursor-pointer"
-                                    />
+                                    {togglingTodoIds.has(todo.id) ? (
+                                      <Loader2 className="mt-1 h-4 w-4 flex-shrink-0 animate-spin text-slate-400" />
+                                    ) : (
+                                      <input
+                                        type="checkbox"
+                                        checked={todo.completed}
+                                        onChange={() => handleTodoToggle(todo.id, todo.completed)}
+                                        className="mt-1 rounded flex-shrink-0 cursor-pointer"
+                                      />
+                                    )}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-start gap-2">
                                         <span className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap flex-shrink-0 ${getPriorityColor(todo.priority)}`}>
