@@ -80,11 +80,8 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="mb-4">
-              <Image src="/leaf-icon.png" alt="Willow Investments" width={80} height={80} />
-            </div>
-            <h1 className="text-2xl font-bold text-white">{t.brand.name}</h1>
+          <div className="lg:hidden flex justify-center mb-8">
+            <Image src="/willow-text.png" alt="Willow Investments" width={280} height={50} />
           </div>
 
           {/* Login Card */}
