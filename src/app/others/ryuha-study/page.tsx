@@ -2893,7 +2893,7 @@ export default function RyuhaStudyPage() {
                             review_completed: false,
                           }),
                         })
-                        await fetchData()
+                        await loadData()
                         setChapterDialogOpen(false)
                       } catch (error) {
                         console.error('Error resetting chapter status:', error)
