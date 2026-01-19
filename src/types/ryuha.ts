@@ -54,6 +54,7 @@ export interface RyuhaSchedule {
   created_at: string
   subject?: RyuhaSubject
   chapter?: RyuhaChapter
+  homework_items?: RyuhaHomeworkItem[]
 }
 
 export interface RyuhaDailyMemo {
@@ -62,6 +63,17 @@ export interface RyuhaDailyMemo {
   content: string
   created_at: string
   updated_at: string
+}
+
+export interface RyuhaHomeworkItem {
+  id: string
+  schedule_id: string
+  content: string
+  deadline: string
+  is_completed: boolean
+  completed_at: string | null
+  order_index: number
+  created_at: string
 }
 
 // Legacy - 기존 호환성 유지

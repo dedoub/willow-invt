@@ -46,7 +46,7 @@ import {
   ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule, RyuhaDailyMemo } from '@/types/ryuha'
+import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule, RyuhaDailyMemo, RyuhaHomeworkItem } from '@/types/ryuha'
 import {
   DndContext,
   DragEndEvent,
@@ -69,15 +69,122 @@ const formatDateLocal = (date: Date) => {
   return `${year}-${month}-${day}`
 }
 
+// Skeleton for Textbooks Panel
+function TextbooksPanelSkeleton() {
+  return (
+    <Card className="bg-slate-100 dark:bg-slate-800 animate-pulse">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="h-5 w-24 bg-slate-300 dark:bg-slate-600 rounded" />
+          <div className="flex gap-2">
+            <div className="h-7 w-20 bg-slate-300 dark:bg-slate-600 rounded-lg" />
+            <div className="h-7 w-20 bg-slate-300 dark:bg-slate-600 rounded-lg" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {/* Subject filter skeleton */}
+        <div className="flex flex-wrap gap-1">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-6 w-16 bg-slate-300 dark:bg-slate-600 rounded-full" />
+          ))}
+        </div>
+        {/* Textbooks skeleton */}
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="border dark:border-slate-700 rounded-lg overflow-hidden">
+            <div className="p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 bg-slate-300 dark:bg-slate-600 rounded" />
+                <div className="h-4 w-32 bg-slate-300 dark:bg-slate-600 rounded" />
+              </div>
+              <div className="h-4 w-16 bg-slate-300 dark:bg-slate-600 rounded" />
+            </div>
+            <div className="px-3 pb-3 space-y-2">
+              {[...Array(3)].map((_, j) => (
+                <div key={j} className="flex items-center gap-2 p-1.5">
+                  <div className="h-5 w-14 bg-slate-300 dark:bg-slate-600 rounded" />
+                  <div className="h-4 flex-1 bg-slate-300 dark:bg-slate-600 rounded" />
+                  <div className="h-5 w-16 bg-slate-300 dark:bg-slate-600 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+// Skeleton for Calendar Panel
+function CalendarPanelSkeleton() {
+  return (
+    <Card className="bg-slate-100 dark:bg-slate-800 animate-pulse">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="h-5 w-20 bg-slate-300 dark:bg-slate-600 rounded" />
+          <div className="flex gap-2">
+            <div className="h-7 w-12 bg-slate-300 dark:bg-slate-600 rounded-lg" />
+            <div className="h-7 w-12 bg-slate-300 dark:bg-slate-600 rounded-lg" />
+            <div className="h-7 w-20 bg-slate-300 dark:bg-slate-600 rounded-lg" />
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-2 mt-2">
+          <div className="h-7 w-7 bg-slate-300 dark:bg-slate-600 rounded" />
+          <div className="h-5 w-32 bg-slate-300 dark:bg-slate-600 rounded" />
+          <div className="h-7 w-7 bg-slate-300 dark:bg-slate-600 rounded" />
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        {/* Week view skeleton */}
+        <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+          {[...Array(7)].map((_, i) => (
+            <div key={i} className="rounded-lg overflow-hidden">
+              <div className="text-center py-2 bg-slate-200 dark:bg-slate-700">
+                <div className="h-3 w-6 mx-auto bg-slate-300 dark:bg-slate-600 rounded mb-1" />
+                <div className="h-5 w-5 mx-auto bg-slate-300 dark:bg-slate-600 rounded" />
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-2 min-h-[120px] space-y-2">
+                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded" />
+                {i % 2 === 0 && (
+                  <>
+                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded" />
+                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded" />
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Full page skeleton
+function RyuhaStudyPageSkeleton() {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-1 order-2 lg:order-1">
+        <TextbooksPanelSkeleton />
+      </div>
+      <div className="lg:col-span-2 order-1 lg:order-2">
+        <CalendarPanelSkeleton />
+      </div>
+    </div>
+  )
+}
+
 // Draggable Schedule Card Component
 function DraggableScheduleCard({
   schedule,
   onToggleComplete,
   onEdit,
+  isToggling = false,
 }: {
   schedule: RyuhaSchedule
   onToggleComplete: () => void
   onEdit: () => void
+  isToggling?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: schedule.id,
@@ -122,11 +229,14 @@ function DraggableScheduleCard({
           className="mt-0.5 flex-shrink-0"
           onClick={(e) => {
             e.stopPropagation()
-            onToggleComplete()
+            if (!isToggling) onToggleComplete()
           }}
           onPointerDown={(e) => e.stopPropagation()}
+          disabled={isToggling}
         >
-          {schedule.is_completed ? (
+          {isToggling ? (
+            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+          ) : schedule.is_completed ? (
             <CheckCircle2 className="h-3 w-3 text-green-600" />
           ) : (
             <Circle className="h-3 w-3" />
@@ -157,7 +267,23 @@ function DraggableScheduleCard({
           {schedule.end_time?.slice(0, 5) || ''}
         </div>
       )}
-      {schedule.homework_deadline && (
+      {schedule.homework_items && schedule.homework_items.length > 0 && (
+        <div className="mt-0.5 space-y-0.5">
+          {schedule.homework_items.map((item, idx) => (
+            <div key={item.id || idx} className={cn(
+              'flex items-center gap-1 text-[10px]',
+              item.is_completed ? 'text-green-600' : 'text-orange-600'
+            )}>
+              <ClipboardList className="h-2.5 w-2.5" />
+              <span>
+                과제{schedule.homework_items!.length > 1 ? ` ${idx + 1}` : ''}: {item.is_completed ? '완료' : item.deadline.slice(5).replace('-', '/')}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Legacy single homework field support */}
+      {!schedule.homework_items?.length && schedule.homework_deadline && (
         <div className={cn(
           'flex items-center gap-1 mt-0.5 text-[10px]',
           schedule.homework_completed ? 'text-green-600' : 'text-orange-600'
@@ -258,10 +384,12 @@ function DraggableMonthScheduleCard({
   schedule,
   onEdit,
   onToggleComplete,
+  isToggling = false,
 }: {
   schedule: RyuhaSchedule
   onEdit: () => void
   onToggleComplete: () => void
+  isToggling?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: schedule.id,
@@ -310,11 +438,14 @@ function DraggableMonthScheduleCard({
         className="flex-shrink-0"
         onClick={(e) => {
           e.stopPropagation()
-          onToggleComplete()
+          if (!isToggling) onToggleComplete()
         }}
         onPointerDown={(e) => e.stopPropagation()}
+        disabled={isToggling}
       >
-        {schedule.is_completed ? (
+        {isToggling ? (
+          <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />
+        ) : schedule.is_completed ? (
           <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
         ) : (
           <Circle className="h-2.5 w-2.5" />
@@ -323,7 +454,14 @@ function DraggableMonthScheduleCard({
       {schedule.end_date && (
         <Calendar className="h-2.5 w-2.5 flex-shrink-0 text-muted-foreground" />
       )}
-      {schedule.homework_deadline && (
+      {(schedule.homework_items?.length ?? 0) > 0 && (
+        <ClipboardList className={cn(
+          'h-2.5 w-2.5 flex-shrink-0',
+          schedule.homework_items!.every(item => item.is_completed) ? 'text-green-600' : 'text-orange-600'
+        )} />
+      )}
+      {/* Legacy single homework field support */}
+      {!schedule.homework_items?.length && schedule.homework_deadline && (
         <ClipboardList className={cn(
           'h-2.5 w-2.5 flex-shrink-0',
           schedule.homework_completed ? 'text-green-600' : 'text-orange-600'
@@ -383,6 +521,7 @@ export default function RyuhaStudyPage() {
   const [chaptersWithSchedules, setChaptersWithSchedules] = useState<Set<string>>(new Set())
   const [activeSchedule, setActiveSchedule] = useState<RyuhaSchedule | null>(null)
   const [memos, setMemos] = useState<Map<string, RyuhaDailyMemo>>(new Map())
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -407,6 +546,12 @@ export default function RyuhaStudyPage() {
   const [memoContent, setMemoContent] = useState('')
 
   // Form states
+  interface HomeworkItemForm {
+    id?: string
+    content: string
+    deadline: string
+    is_completed?: boolean
+  }
   const [scheduleForm, setScheduleForm] = useState({
     title: '',
     description: '',
@@ -421,8 +566,7 @@ export default function RyuhaStudyPage() {
     chapter_id: '',
     email_reminder: false,
     has_homework: false,
-    homework_content: '',
-    homework_deadline: '',
+    homework_items: [] as HomeworkItemForm[],
   })
 
   const [textbookForm, setTextbookForm] = useState({
@@ -609,9 +753,31 @@ export default function RyuhaStudyPage() {
   }
 
   // Get homework deadline items for a specific date
-  const getHomeworkForDate = (date: Date) => {
+  interface HomeworkForDate {
+    schedule: RyuhaSchedule
+    item?: RyuhaHomeworkItem
+    isLegacy: boolean
+  }
+  const getHomeworkForDate = (date: Date): HomeworkForDate[] => {
     const dateStr = formatDate(date)
-    return schedules.filter((s) => s.homework_deadline === dateStr)
+    const result: HomeworkForDate[] = []
+
+    for (const schedule of schedules) {
+      // Check new homework_items
+      if (schedule.homework_items?.length) {
+        for (const item of schedule.homework_items) {
+          if (item.deadline === dateStr) {
+            result.push({ schedule, item, isLegacy: false })
+          }
+        }
+      }
+      // Check legacy homework_deadline
+      else if (schedule.homework_deadline === dateStr) {
+        result.push({ schedule, isLegacy: true })
+      }
+    }
+
+    return result
   }
 
   // Toggle textbook expansion
@@ -626,6 +792,17 @@ export default function RyuhaStudyPage() {
     if (schedule) {
       setEditingSchedule(schedule)
       const chapter = chapters.find((c) => c.id === schedule.chapter_id)
+      // Convert homework_items to form format, or use legacy fields
+      const homeworkItems: HomeworkItemForm[] = schedule.homework_items?.length
+        ? schedule.homework_items.map(item => ({
+            id: item.id,
+            content: item.content,
+            deadline: item.deadline,
+            is_completed: item.is_completed,
+          }))
+        : (schedule.homework_content || schedule.homework_deadline)
+          ? [{ content: schedule.homework_content || '', deadline: schedule.homework_deadline || '' }]
+          : []
       setScheduleForm({
         title: schedule.title,
         description: schedule.description || '',
@@ -639,9 +816,8 @@ export default function RyuhaStudyPage() {
         textbook_id: chapter?.textbook_id || '',
         chapter_id: schedule.chapter_id || '',
         email_reminder: schedule.email_reminder,
-        has_homework: !!(schedule.homework_content || schedule.homework_deadline),
-        homework_content: schedule.homework_content || '',
-        homework_deadline: schedule.homework_deadline || '',
+        has_homework: homeworkItems.length > 0,
+        homework_items: homeworkItems,
       })
     } else {
       setEditingSchedule(null)
@@ -659,8 +835,7 @@ export default function RyuhaStudyPage() {
         chapter_id: '',
         email_reminder: false,
         has_homework: false,
-        homework_content: '',
-        homework_deadline: '',
+        homework_items: [],
       })
     }
     setScheduleDialogOpen(true)
@@ -682,22 +857,75 @@ export default function RyuhaStudyPage() {
         subject_id: scheduleForm.subject_id || null,
         chapter_id: scheduleForm.chapter_id || null,
         email_reminder: scheduleForm.email_reminder,
-        homework_content: scheduleForm.has_homework ? (scheduleForm.homework_content || null) : null,
-        homework_deadline: scheduleForm.has_homework ? (scheduleForm.homework_deadline || null) : null,
+        // Clear legacy fields since we're using homework_items now
+        homework_content: null,
+        homework_deadline: null,
       }
 
+      let scheduleId: string
       if (editingSchedule) {
         await fetch('/api/ryuha/schedules', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingSchedule.id, ...payload }),
         })
+        scheduleId = editingSchedule.id
       } else {
-        await fetch('/api/ryuha/schedules', {
+        const res = await fetch('/api/ryuha/schedules', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
+        const newSchedule = await res.json()
+        scheduleId = newSchedule.id
+      }
+
+      // Handle homework items
+      if (scheduleForm.has_homework && scheduleForm.homework_items.length > 0) {
+        const existingIds = new Set(editingSchedule?.homework_items?.map(h => h.id) || [])
+        const formIds = new Set(scheduleForm.homework_items.filter(h => h.id).map(h => h.id!))
+
+        // Delete removed items
+        for (const existingId of existingIds) {
+          if (!formIds.has(existingId)) {
+            await fetch(`/api/ryuha/homework-items?id=${existingId}`, { method: 'DELETE' })
+          }
+        }
+
+        // Create or update items
+        for (let i = 0; i < scheduleForm.homework_items.length; i++) {
+          const item = scheduleForm.homework_items[i]
+          if (item.id && existingIds.has(item.id)) {
+            // Update existing
+            await fetch('/api/ryuha/homework-items', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: item.id,
+                content: item.content,
+                deadline: item.deadline,
+                order_index: i,
+              }),
+            })
+          } else {
+            // Create new
+            await fetch('/api/ryuha/homework-items', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                schedule_id: scheduleId,
+                content: item.content,
+                deadline: item.deadline,
+                order_index: i,
+              }),
+            })
+          }
+        }
+      } else if (editingSchedule?.homework_items?.length) {
+        // If has_homework is false but there were existing items, delete them all
+        for (const item of editingSchedule.homework_items) {
+          await fetch(`/api/ryuha/homework-items?id=${item.id}`, { method: 'DELETE' })
+        }
       }
 
       // Auto-update chapter to "in_progress" when schedule is created with chapter_id
@@ -723,21 +951,66 @@ export default function RyuhaStudyPage() {
   }
 
   const toggleScheduleComplete = async (schedule: RyuhaSchedule) => {
-    await fetch('/api/ryuha/schedules', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: schedule.id, is_completed: !schedule.is_completed }),
-    })
-    fetchSchedules()
+    if (togglingIds.has(schedule.id)) return
+    setTogglingIds(prev => new Set(prev).add(schedule.id))
+    try {
+      await fetch('/api/ryuha/schedules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: schedule.id, is_completed: !schedule.is_completed }),
+      })
+      await fetchSchedules()
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev)
+        next.delete(schedule.id)
+        return next
+      })
+    }
   }
 
   const toggleHomeworkComplete = async (schedule: RyuhaSchedule) => {
-    await fetch('/api/ryuha/schedules', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: schedule.id, homework_completed: !schedule.homework_completed }),
-    })
-    fetchSchedules()
+    const hwId = `hw-${schedule.id}`
+    if (togglingIds.has(hwId)) return
+    setTogglingIds(prev => new Set(prev).add(hwId))
+    try {
+      await fetch('/api/ryuha/schedules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: schedule.id, homework_completed: !schedule.homework_completed }),
+      })
+      await fetchSchedules()
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev)
+        next.delete(hwId)
+        return next
+      })
+    }
+  }
+
+  const toggleHomeworkItemComplete = async (item: RyuhaHomeworkItem) => {
+    const hwItemId = `hwi-${item.id}`
+    if (togglingIds.has(hwItemId)) return
+    setTogglingIds(prev => new Set(prev).add(hwItemId))
+    try {
+      await fetch('/api/ryuha/homework-items', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: item.id,
+          is_completed: !item.is_completed,
+          completed_at: !item.is_completed ? new Date().toISOString() : null,
+        }),
+      })
+      await fetchSchedules()
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev)
+        next.delete(hwItemId)
+        return next
+      })
+    }
   }
 
   const deleteSchedule = async (id: string) => {
@@ -890,6 +1163,9 @@ export default function RyuhaStudyPage() {
   }
 
   const toggleChapterStatus = async (chapter: RyuhaChapter) => {
+    const chapterId = `chapter-${chapter.id}`
+    if (togglingIds.has(chapterId)) return
+
     const hasSchedules = chaptersWithSchedules.has(chapter.id)
 
     // Determine next status based on whether chapter has schedules
@@ -913,23 +1189,44 @@ export default function RyuhaStudyPage() {
       return
     }
 
-    const completed_at = nextStatus === 'completed' ? new Date().toISOString() : null
+    setTogglingIds(prev => new Set(prev).add(chapterId))
+    try {
+      const completed_at = nextStatus === 'completed' ? new Date().toISOString() : null
 
-    await fetch('/api/ryuha/chapters', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: chapter.id, status: nextStatus, completed_at }),
-    })
-    fetchChapters()
+      await fetch('/api/ryuha/chapters', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: chapter.id, status: nextStatus, completed_at }),
+      })
+      await fetchChapters()
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev)
+        next.delete(chapterId)
+        return next
+      })
+    }
   }
 
   const toggleReviewCompleted = async (chapter: RyuhaChapter) => {
-    await fetch('/api/ryuha/chapters', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: chapter.id, review_completed: !chapter.review_completed }),
-    })
-    fetchChapters()
+    const reviewId = `review-${chapter.id}`
+    if (togglingIds.has(reviewId)) return
+
+    setTogglingIds(prev => new Set(prev).add(reviewId))
+    try {
+      await fetch('/api/ryuha/chapters', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: chapter.id, review_completed: !chapter.review_completed }),
+      })
+      await fetchChapters()
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev)
+        next.delete(reviewId)
+        return next
+      })
+    }
   }
 
   const deleteChapter = async (id: string) => {
@@ -1040,11 +1337,7 @@ export default function RyuhaStudyPage() {
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <RyuhaStudyPageSkeleton />
   }
 
   return (
@@ -1212,8 +1505,11 @@ export default function RyuhaStudyPage() {
                                     'hover:opacity-80 transition-opacity'
                                   )}
                                   title={config.tooltip}
+                                  disabled={togglingIds.has(`chapter-${chapter.id}`)}
                                 >
-                                  {chapter.status === 'completed' ? (
+                                  {togglingIds.has(`chapter-${chapter.id}`) ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                                  ) : chapter.status === 'completed' ? (
                                     <CheckCircle2 className={cn('h-3.5 w-3.5', config.color)} />
                                   ) : chapter.status === 'in_progress' ? (
                                     <Clock className={cn('h-3.5 w-3.5', config.color)} />
@@ -1269,16 +1565,21 @@ export default function RyuhaStudyPage() {
                                       : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                                   )}
                                   title={chapter.review_completed ? '리뷰노트 완료' : '리뷰노트 미완료'}
+                                  disabled={togglingIds.has(`review-${chapter.id}`)}
                                 >
-                                  <span className="relative flex items-center gap-0.5">
-                                    <BookOpen className="h-3 w-3" />
-                                    <span className="hidden sm:inline">리뷰노트</span>
-                                    {chapter.review_completed && (
-                                      <span className="absolute inset-0 flex items-center">
-                                        <span className="w-full h-[1px] bg-current" />
-                                      </span>
-                                    )}
-                                  </span>
+                                  {togglingIds.has(`review-${chapter.id}`) ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <span className="relative flex items-center gap-0.5">
+                                      <BookOpen className="h-3 w-3" />
+                                      <span className="hidden sm:inline">리뷰노트</span>
+                                      {chapter.review_completed && (
+                                        <span className="absolute inset-0 flex items-center">
+                                          <span className="w-full h-[1px] bg-current" />
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
                                 </button>
                                 <Button
                                   size="icon"
@@ -1509,57 +1810,72 @@ export default function RyuhaStudyPage() {
                             </div>
                           </div>
                           {/* Homework deadline items - displayed first */}
-                          {getHomeworkForDate(day).map((schedule) => (
-                            <div
-                              key={`hw-${schedule.id}`}
-                              className={cn(
-                                'text-xs p-1.5 rounded border-l-2 border-orange-500',
-                                schedule.homework_completed
-                                  ? 'bg-muted line-through text-muted-foreground'
-                                  : 'bg-orange-100 dark:bg-orange-900/30'
-                              )}
-                            >
-                              <div className="flex items-start gap-1">
-                                <button
-                                  className="mt-0.5 flex-shrink-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleHomeworkComplete(schedule)
-                                  }}
-                                >
-                                  {schedule.homework_completed ? (
-                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                  ) : (
-                                    <Circle className="h-3 w-3 text-orange-600" />
-                                  )}
-                                </button>
-                                <span
-                                  className="flex-1 cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    openScheduleDialog(undefined, schedule)
-                                  }}
-                                >
-                                  <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
-                                    <ClipboardList className="h-2.5 w-2.5" />
-                                    <span className="font-medium">과제</span>
-                                  </div>
-                                  <div className="text-muted-foreground">{schedule.title}</div>
-                                  {schedule.homework_content && (
-                                    <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
-                                      {schedule.homework_content}
+                          {getHomeworkForDate(day).map((hw, hwIdx) => {
+                            const isCompleted = hw.isLegacy ? hw.schedule.homework_completed : hw.item?.is_completed
+                            const toggleId = hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}`
+                            const content = hw.isLegacy ? hw.schedule.homework_content : hw.item?.content
+                            return (
+                              <div
+                                key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
+                                className={cn(
+                                  'text-xs p-1.5 rounded border-l-2 border-orange-500',
+                                  isCompleted
+                                    ? 'bg-muted line-through text-muted-foreground'
+                                    : 'bg-orange-100 dark:bg-orange-900/30'
+                                )}
+                              >
+                                <div className="flex items-start gap-1">
+                                  <button
+                                    className="mt-0.5 flex-shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (!togglingIds.has(toggleId)) {
+                                        if (hw.isLegacy) {
+                                          toggleHomeworkComplete(hw.schedule)
+                                        } else if (hw.item) {
+                                          toggleHomeworkItemComplete(hw.item)
+                                        }
+                                      }
+                                    }}
+                                    disabled={togglingIds.has(toggleId)}
+                                  >
+                                    {togglingIds.has(toggleId) ? (
+                                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                    ) : isCompleted ? (
+                                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                    ) : (
+                                      <Circle className="h-3 w-3 text-orange-600" />
+                                    )}
+                                  </button>
+                                  <span
+                                    className="flex-1 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openScheduleDialog(undefined, hw.schedule)
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
+                                      <ClipboardList className="h-2.5 w-2.5" />
+                                      <span className="font-medium">과제</span>
                                     </div>
-                                  )}
-                                </span>
+                                    <div className="text-muted-foreground">{hw.schedule.title}</div>
+                                    {content && (
+                                      <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
+                                        {content}
+                                      </div>
+                                    )}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                           {getSchedulesForDate(day).map((schedule) => (
                             <DraggableScheduleCard
                               key={schedule.id}
                               schedule={schedule}
                               onToggleComplete={() => toggleScheduleComplete(schedule)}
                               onEdit={() => openScheduleDialog(undefined, schedule)}
+                              isToggling={togglingIds.has(schedule.id)}
                             />
                           ))}
                         </DroppableDay>
@@ -1607,47 +1923,61 @@ export default function RyuhaStudyPage() {
                                 </div>
                                 <div className="space-y-0.5">
                                   {/* Homework deadline items - displayed first */}
-                                  {getHomeworkForDate(day).map((schedule) => (
-                                    <div
-                                      key={`hw-${schedule.id}`}
-                                      className={cn(
-                                        'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
-                                        schedule.homework_completed
-                                          ? 'bg-muted text-muted-foreground line-through'
-                                          : 'bg-orange-100 dark:bg-orange-900/30'
-                                      )}
-                                    >
-                                      <button
-                                        className="flex-shrink-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          toggleHomeworkComplete(schedule)
-                                        }}
-                                      >
-                                        {schedule.homework_completed ? (
-                                          <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
-                                        ) : (
-                                          <Circle className="h-2.5 w-2.5 text-orange-600" />
+                                  {getHomeworkForDate(day).map((hw, hwIdx) => {
+                                    const isCompleted = hw.isLegacy ? hw.schedule.homework_completed : hw.item?.is_completed
+                                    const toggleId = hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}`
+                                    return (
+                                      <div
+                                        key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
+                                        className={cn(
+                                          'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
+                                          isCompleted
+                                            ? 'bg-muted text-muted-foreground line-through'
+                                            : 'bg-orange-100 dark:bg-orange-900/30'
                                         )}
-                                      </button>
-                                      <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
-                                      <span
-                                        className="truncate flex-1 cursor-pointer"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          openScheduleDialog(undefined, schedule)
-                                        }}
                                       >
-                                        {schedule.title}
-                                      </span>
-                                    </div>
-                                  ))}
+                                        <button
+                                          className="flex-shrink-0"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            if (!togglingIds.has(toggleId)) {
+                                              if (hw.isLegacy) {
+                                                toggleHomeworkComplete(hw.schedule)
+                                              } else if (hw.item) {
+                                                toggleHomeworkItemComplete(hw.item)
+                                              }
+                                            }
+                                          }}
+                                          disabled={togglingIds.has(toggleId)}
+                                        >
+                                          {togglingIds.has(toggleId) ? (
+                                            <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />
+                                          ) : isCompleted ? (
+                                            <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
+                                          ) : (
+                                            <Circle className="h-2.5 w-2.5 text-orange-600" />
+                                          )}
+                                        </button>
+                                        <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
+                                        <span
+                                          className="truncate flex-1 cursor-pointer"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            openScheduleDialog(undefined, hw.schedule)
+                                          }}
+                                        >
+                                          {hw.schedule.title}
+                                        </span>
+                                      </div>
+                                    )
+                                  })}
                                   {getSchedulesForDate(day).map((schedule) => (
                                     <DraggableMonthScheduleCard
                                       key={schedule.id}
                                       schedule={schedule}
                                       onEdit={() => openScheduleDialog(undefined, schedule)}
                                       onToggleComplete={() => toggleScheduleComplete(schedule)}
+                                      isToggling={togglingIds.has(schedule.id)}
                                     />
                                   ))}
                                 </div>
@@ -1700,11 +2030,11 @@ export default function RyuhaStudyPage() {
 
       {/* Schedule Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>{editingSchedule ? '일정 수정' : '일정 추가'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 pr-2">
             <div className="space-y-2">
               <Label>제목</Label>
               <Input
@@ -1875,45 +2205,98 @@ export default function RyuhaStudyPage() {
 
             {/* Homework section */}
             <div className="border-t pt-4 space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="has_homework"
-                  checked={scheduleForm.has_homework}
-                  onCheckedChange={(checked) =>
-                    setScheduleForm({ ...scheduleForm, has_homework: checked as boolean })
-                  }
-                />
-                <Label htmlFor="has_homework" className="text-sm font-medium">
-                  사전 과제 있음
-                </Label>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="has_homework"
+                    checked={scheduleForm.has_homework}
+                    onCheckedChange={(checked) => {
+                      const hasHomework = checked as boolean
+                      setScheduleForm({
+                        ...scheduleForm,
+                        has_homework: hasHomework,
+                        homework_items: hasHomework && scheduleForm.homework_items.length === 0
+                          ? [{ content: '', deadline: '' }]
+                          : scheduleForm.homework_items,
+                      })
+                    }}
+                  />
+                  <Label htmlFor="has_homework" className="text-sm font-medium">
+                    사전 과제 있음
+                  </Label>
+                </div>
+                {scheduleForm.has_homework && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setScheduleForm({
+                        ...scheduleForm,
+                        homework_items: [
+                          ...scheduleForm.homework_items,
+                          { content: '', deadline: '' },
+                        ],
+                      })
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    과제 추가
+                  </Button>
+                )}
               </div>
-              {scheduleForm.has_homework && (
-                <>
+              {scheduleForm.has_homework && scheduleForm.homework_items.map((item, index) => (
+                <div key={index} className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">과제 {index + 1}</span>
+                    {scheduleForm.homework_items.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          setScheduleForm({
+                            ...scheduleForm,
+                            homework_items: scheduleForm.homework_items.filter((_, i) => i !== index),
+                          })
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                   <div className="space-y-2">
-                    <Label>과제 마감일</Label>
+                    <Label className="text-xs">마감일</Label>
                     <Input
                       type="date"
-                      value={scheduleForm.homework_deadline}
-                      onChange={(e) =>
-                        setScheduleForm({ ...scheduleForm, homework_deadline: e.target.value })
-                      }
+                      value={item.deadline}
+                      onChange={(e) => {
+                        const newItems = [...scheduleForm.homework_items]
+                        newItems[index] = { ...item, deadline: e.target.value }
+                        setScheduleForm({ ...scheduleForm, homework_items: newItems })
+                      }}
                       max={scheduleForm.schedule_date}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>과제 내용</Label>
+                    <Label className="text-xs">과제 내용</Label>
                     <Textarea
-                      value={scheduleForm.homework_content}
-                      onChange={(e) => setScheduleForm({ ...scheduleForm, homework_content: e.target.value })}
+                      value={item.content}
+                      onChange={(e) => {
+                        const newItems = [...scheduleForm.homework_items]
+                        newItems[index] = { ...item, content: e.target.value }
+                        setScheduleForm({ ...scheduleForm, homework_items: newItems })
+                      }}
                       placeholder="과제 내용을 입력하세요"
                       rows={2}
                     />
                   </div>
-                </>
-              )}
+                </div>
+              ))}
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0">
             {editingSchedule ? (
               <div className="flex gap-2">
                 <Button

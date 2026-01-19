@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from('ryuha_schedules')
-      .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*))')
+      .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*)), homework_items:ryuha_homework_items(*)')
       .order('schedule_date')
       .order('start_time')
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from('ryuha_schedules')
       .insert(body)
-      .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*))')
+      .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*)), homework_items:ryuha_homework_items(*)')
       .single()
 
     if (error) throw error
@@ -64,7 +64,7 @@ export async function PUT(request: Request) {
       .from('ryuha_schedules')
       .update(updates)
       .eq('id', id)
-      .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*))')
+      .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*)), homework_items:ryuha_homework_items(*)')
       .single()
 
     if (error) throw error
