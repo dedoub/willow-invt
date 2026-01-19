@@ -2343,6 +2343,7 @@ export default function RyuhaStudyPage() {
                 <Label>시작 시간</Label>
                 <Input
                   type="time"
+                  step="300"
                   value={scheduleForm.start_time}
                   onChange={(e) => setScheduleForm({ ...scheduleForm, start_time: e.target.value })}
                 />
@@ -2351,6 +2352,7 @@ export default function RyuhaStudyPage() {
                 <Label>종료 시간</Label>
                 <Input
                   type="time"
+                  step="300"
                   value={scheduleForm.end_time}
                   onChange={(e) => setScheduleForm({ ...scheduleForm, end_time: e.target.value })}
                 />
