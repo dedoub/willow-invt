@@ -526,6 +526,13 @@ export default function RyuhaStudyPage() {
     }
     return true
   })
+  const [studyPlanExpanded, setStudyPlanExpanded] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ryuha-study-plan-expanded')
+      return saved !== 'false'
+    }
+    return true
+  })
   const [currentDate, setCurrentDate] = useState(new Date())
   const [subjects, setSubjects] = useState<RyuhaSubject[]>([])
   const [textbooks, setTextbooks] = useState<RyuhaTextbook[]>([])
@@ -2019,11 +2026,28 @@ export default function RyuhaStudyPage() {
 
                       return (
                         <div className="mb-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-center gap-2 mb-3">
-                            <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">오늘 기준 주요 학습 계획</span>
-                          </div>
-                          <div className="space-y-2">
+                          <button
+                            className="flex items-center justify-between w-full"
+                            onClick={() => {
+                              const newValue = !studyPlanExpanded
+                              setStudyPlanExpanded(newValue)
+                              localStorage.setItem('ryuha-study-plan-expanded', String(newValue))
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">오늘 기준 주요 학습 계획</span>
+                              <span className="text-xs text-blue-600 dark:text-blue-400">
+                                ({overdueChapters.length + upcomingChapters.length})
+                              </span>
+                            </div>
+                            <ChevronDown className={cn(
+                              'h-4 w-4 text-blue-600 dark:text-blue-400 transition-transform',
+                              !studyPlanExpanded && '-rotate-90'
+                            )} />
+                          </button>
+                          {studyPlanExpanded && (
+                          <div className="space-y-2 mt-3">
                             {/* Overdue chapters grouped by textbook */}
                             {overdueByTextbook.map(({ textbook, chapters: tbChapters }) => {
                               const subject = subjects.find(s => s.id === textbook?.subject_id)
@@ -2078,6 +2102,7 @@ export default function RyuhaStudyPage() {
                               )
                             })}
                           </div>
+                          )}
                         </div>
                       )
                     })()}
