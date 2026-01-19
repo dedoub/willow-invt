@@ -2868,15 +2868,42 @@ export default function RyuhaStudyPage() {
           </div>
           <DialogFooter className="flex-row justify-between sm:justify-between">
             {editingChapter ? (
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  deleteChapter(editingChapter.id)
-                  setChapterDialogOpen(false)
-                }}
-              >
-                삭제
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    deleteChapter(editingChapter.id)
+                    setChapterDialogOpen(false)
+                  }}
+                >
+                  삭제
+                </Button>
+                {editingChapter.status !== 'pending' && (
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await fetch('/api/ryuha/chapters', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            id: editingChapter.id,
+                            status: 'pending',
+                            completed_at: null,
+                            review_completed: false,
+                          }),
+                        })
+                        await fetchData()
+                        setChapterDialogOpen(false)
+                      } catch (error) {
+                        console.error('Error resetting chapter status:', error)
+                      }
+                    }}
+                  >
+                    상태 초기화
+                  </Button>
+                )}
+              </div>
             ) : (
               <div />
             )}
