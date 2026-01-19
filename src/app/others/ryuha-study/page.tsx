@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ProtectedPage } from '@/components/auth/protected-page'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -190,6 +190,14 @@ function DraggableScheduleCard({
     id: schedule.id,
     data: { schedule },
   })
+  const wasDraggingRef = useRef(false)
+
+  // Track if we were dragging to prevent click after drag
+  useEffect(() => {
+    if (isDragging) {
+      wasDraggingRef.current = true
+    }
+  }, [isDragging])
 
   // Determine display color: subject color takes priority, then custom color
   const displayColor = schedule.subject?.color || schedule.color
@@ -224,6 +232,11 @@ function DraggableScheduleCard({
           : !displayColor && 'bg-slate-300/50 dark:bg-slate-600/50'
       )}
       onClick={(e) => {
+        // 드래그 직후에는 클릭 이벤트 무시
+        if (wasDraggingRef.current) {
+          wasDraggingRef.current = false
+          return
+        }
         // 체크박스 클릭 시에는 편집 모달 열지 않음
         if ((e.target as HTMLElement).closest('button')) return
         e.stopPropagation()
