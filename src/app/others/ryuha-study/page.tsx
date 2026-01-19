@@ -2406,8 +2406,24 @@ export default function RyuhaStudyPage() {
 
                 return (
                   <div key={idx} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-muted-foreground">#{idx + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          setScheduleForm({
+                            ...scheduleForm,
+                            selected_chapters: scheduleForm.selected_chapters.filter((_, i) => i !== idx),
+                          })
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground w-6">#{idx + 1}</span>
                       {/* Subject */}
                       <Select
                         value={selection.subject_id}
@@ -2478,21 +2494,6 @@ export default function RyuhaStudyPage() {
                             ))}
                         </SelectContent>
                       </Select>
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive flex-shrink-0"
-                        onClick={() => {
-                          setScheduleForm({
-                            ...scheduleForm,
-                            selected_chapters: scheduleForm.selected_chapters.filter((_, i) => i !== idx),
-                          })
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
                     </div>
 
                     {/* Summary when complete */}
