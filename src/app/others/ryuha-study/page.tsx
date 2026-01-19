@@ -2025,10 +2025,12 @@ export default function RyuhaStudyPage() {
                           </div>
                           <div className="space-y-2">
                             {/* Overdue chapters grouped by textbook */}
-                            {overdueByTextbook.map(({ textbook, chapters: tbChapters }) => (
+                            {overdueByTextbook.map(({ textbook, chapters: tbChapters }) => {
+                              const subject = subjects.find(s => s.id === textbook?.subject_id)
+                              return (
                               <div key={`overdue-${textbook?.id}`} className="flex flex-wrap items-center gap-1.5">
                                 <span className="text-xs font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded">
-                                  {textbook?.name || '알 수 없음'}
+                                  {subject?.name || '알 수 없음'} &gt; {textbook?.name || '알 수 없음'}
                                 </span>
                                 {tbChapters.map((chapter) => {
                                   const daysOverdue = Math.floor((new Date().getTime() - new Date(chapter.target_date + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
@@ -2044,12 +2046,15 @@ export default function RyuhaStudyPage() {
                                   )
                                 })}
                               </div>
-                            ))}
+                              )
+                            })}
                             {/* Upcoming chapters grouped by textbook */}
-                            {upcomingByTextbook.map(({ textbook, chapters: tbChapters }) => (
+                            {upcomingByTextbook.map(({ textbook, chapters: tbChapters }) => {
+                              const subject = subjects.find(s => s.id === textbook?.subject_id)
+                              return (
                               <div key={`upcoming-${textbook?.id}`} className="flex flex-wrap items-center gap-1.5">
                                 <span className="text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
-                                  {textbook?.name || '알 수 없음'}
+                                  {subject?.name || '알 수 없음'} &gt; {textbook?.name || '알 수 없음'}
                                 </span>
                                 {tbChapters.map((chapter) => {
                                   const daysUntil = Math.ceil((new Date(chapter.target_date + 'T00:00:00').getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
@@ -2070,7 +2075,8 @@ export default function RyuhaStudyPage() {
                                   )
                                 })}
                               </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         </div>
                       )
