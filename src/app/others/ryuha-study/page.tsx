@@ -2406,47 +2406,30 @@ export default function RyuhaStudyPage() {
 
                 return (
                   <div key={idx} className="p-3 bg-muted/50 rounded-lg space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-muted-foreground">#{idx + 1}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => {
-                          setScheduleForm({
-                            ...scheduleForm,
-                            selected_chapters: scheduleForm.selected_chapters.filter((_, i) => i !== idx),
-                          })
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground w-6">#{idx + 1}</span>
+                      {/* Subject */}
+                      <Select
+                        value={selection.subject_id}
+                        onValueChange={(v) => {
+                          const newSelections = [...scheduleForm.selected_chapters]
+                          newSelections[idx] = { subject_id: v, textbook_id: '', chapter_id: '' }
+                          setScheduleForm({ ...scheduleForm, selected_chapters: newSelections })
                         }}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                        <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
+                          <SelectValue placeholder="과목" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subjects.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
 
-                    {/* Subject */}
-                    <Select
-                      value={selection.subject_id}
-                      onValueChange={(v) => {
-                        const newSelections = [...scheduleForm.selected_chapters]
-                        newSelections[idx] = { subject_id: v, textbook_id: '', chapter_id: '' }
-                        setScheduleForm({ ...scheduleForm, selected_chapters: newSelections })
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="과목 선택" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {subjects.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {/* Textbook */}
-                    {selection.subject_id && (
+                      {/* Textbook */}
                       <Select
                         value={selection.textbook_id}
                         onValueChange={(v) => {
@@ -2454,9 +2437,10 @@ export default function RyuhaStudyPage() {
                           newSelections[idx] = { ...newSelections[idx], textbook_id: v, chapter_id: '' }
                           setScheduleForm({ ...scheduleForm, selected_chapters: newSelections })
                         }}
+                        disabled={!selection.subject_id}
                       >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="교재 선택" />
+                        <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
+                          <SelectValue placeholder="교재" />
                         </SelectTrigger>
                         <SelectContent>
                           {textbooks
@@ -2469,10 +2453,8 @@ export default function RyuhaStudyPage() {
                             ))}
                         </SelectContent>
                       </Select>
-                    )}
 
-                    {/* Chapter */}
-                    {selection.textbook_id && (
+                      {/* Chapter */}
                       <Select
                         value={selection.chapter_id}
                         onValueChange={(v) => {
@@ -2480,9 +2462,10 @@ export default function RyuhaStudyPage() {
                           newSelections[idx] = { ...newSelections[idx], chapter_id: v }
                           setScheduleForm({ ...scheduleForm, selected_chapters: newSelections })
                         }}
+                        disabled={!selection.textbook_id}
                       >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="챕터 선택" />
+                        <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
+                          <SelectValue placeholder="챕터" />
                         </SelectTrigger>
                         <SelectContent>
                           {chapters
@@ -2495,7 +2478,22 @@ export default function RyuhaStudyPage() {
                             ))}
                         </SelectContent>
                       </Select>
-                    )}
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive flex-shrink-0"
+                        onClick={() => {
+                          setScheduleForm({
+                            ...scheduleForm,
+                            selected_chapters: scheduleForm.selected_chapters.filter((_, i) => i !== idx),
+                          })
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
 
                     {/* Summary when complete */}
                     {selectedChapter && selectedTextbook && selectedSubject && (
