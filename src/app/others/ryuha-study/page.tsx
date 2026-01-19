@@ -2343,17 +2343,16 @@ export default function RyuhaStudyPage() {
                 <Label>시작 시간</Label>
                 <div className="flex gap-1">
                   <Select
-                    value={scheduleForm.start_time ? scheduleForm.start_time.split(':')[0] : ''}
+                    value={scheduleForm.start_time ? scheduleForm.start_time.split(':')[0] : undefined}
                     onValueChange={(hour) => {
                       const currentMinute = scheduleForm.start_time ? scheduleForm.start_time.split(':')[1] : '00'
-                      setScheduleForm({ ...scheduleForm, start_time: hour ? `${hour}:${currentMinute}` : '' })
+                      setScheduleForm({ ...scheduleForm, start_time: `${hour}:${currentMinute}` })
                     }}
                   >
                     <SelectTrigger className="w-[70px]">
                       <SelectValue placeholder="시" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">--</SelectItem>
                       {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map((hour) => (
                         <SelectItem key={hour} value={hour}>{hour}</SelectItem>
                       ))}
@@ -2361,17 +2360,16 @@ export default function RyuhaStudyPage() {
                   </Select>
                   <span className="flex items-center">:</span>
                   <Select
-                    value={scheduleForm.start_time ? scheduleForm.start_time.split(':')[1] : ''}
+                    value={scheduleForm.start_time ? scheduleForm.start_time.split(':')[1] : undefined}
                     onValueChange={(minute) => {
                       const currentHour = scheduleForm.start_time ? scheduleForm.start_time.split(':')[0] : '09'
-                      setScheduleForm({ ...scheduleForm, start_time: minute ? `${currentHour}:${minute}` : '' })
+                      setScheduleForm({ ...scheduleForm, start_time: `${currentHour}:${minute}` })
                     }}
                   >
                     <SelectTrigger className="w-[70px]">
                       <SelectValue placeholder="분" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">--</SelectItem>
                       {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((minute) => (
                         <SelectItem key={minute} value={minute}>{minute}</SelectItem>
                       ))}
@@ -2394,17 +2392,16 @@ export default function RyuhaStudyPage() {
                 <Label>종료 시간</Label>
                 <div className="flex gap-1">
                   <Select
-                    value={scheduleForm.end_time ? scheduleForm.end_time.split(':')[0] : ''}
+                    value={scheduleForm.end_time ? scheduleForm.end_time.split(':')[0] : undefined}
                     onValueChange={(hour) => {
                       const currentMinute = scheduleForm.end_time ? scheduleForm.end_time.split(':')[1] : '00'
-                      setScheduleForm({ ...scheduleForm, end_time: hour ? `${hour}:${currentMinute}` : '' })
+                      setScheduleForm({ ...scheduleForm, end_time: `${hour}:${currentMinute}` })
                     }}
                   >
                     <SelectTrigger className="w-[70px]">
                       <SelectValue placeholder="시" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">--</SelectItem>
                       {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map((hour) => (
                         <SelectItem key={hour} value={hour}>{hour}</SelectItem>
                       ))}
@@ -2412,17 +2409,16 @@ export default function RyuhaStudyPage() {
                   </Select>
                   <span className="flex items-center">:</span>
                   <Select
-                    value={scheduleForm.end_time ? scheduleForm.end_time.split(':')[1] : ''}
+                    value={scheduleForm.end_time ? scheduleForm.end_time.split(':')[1] : undefined}
                     onValueChange={(minute) => {
                       const currentHour = scheduleForm.end_time ? scheduleForm.end_time.split(':')[0] : '10'
-                      setScheduleForm({ ...scheduleForm, end_time: minute ? `${currentHour}:${minute}` : '' })
+                      setScheduleForm({ ...scheduleForm, end_time: `${currentHour}:${minute}` })
                     }}
                   >
                     <SelectTrigger className="w-[70px]">
                       <SelectValue placeholder="분" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">--</SelectItem>
                       {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((minute) => (
                         <SelectItem key={minute} value={minute}>{minute}</SelectItem>
                       ))}
