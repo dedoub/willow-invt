@@ -164,6 +164,23 @@ export const en = {
       status: 'Status',
       lastLogin: 'Last Login',
       actions: 'Actions',
+      permissions: 'Permissions',
+    },
+    permissions: {
+      title: 'Page Access Permissions',
+      description: 'Configure which pages the user can access',
+      allPages: 'All pages access',
+      noAccess: 'No access',
+      pageCount: '{count} pages',
+      sections: {
+        etfIndexing: 'ETF/Index',
+        monoRApps: 'MonoR Apps',
+        tenSoftworks: 'TenSoftworks',
+        others: 'Others',
+      },
+      adminNote: 'Admins have access to all pages',
+      saved: 'Permissions saved',
+      saveFailed: 'Failed to save permissions',
     },
   },
 

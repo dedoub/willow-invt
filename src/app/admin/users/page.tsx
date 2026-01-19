@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useI18n } from '@/lib/i18n'
 import { useAuth, useIsAdmin } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
@@ -14,6 +17,8 @@ import {
   Trash2,
   RefreshCw,
   ChevronDown,
+  Key,
+  Check,
 } from 'lucide-react'
 
 interface UserData {
@@ -24,6 +29,12 @@ interface UserData {
   is_active: boolean
   created_at: string
   last_login_at: string | null
+}
+
+interface PageInfo {
+  path: string
+  section: string
+  name: string
 }
 
 function formatDate(dateString: string | null, locale: string) {
@@ -66,6 +77,13 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<UserData | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
+  // Permissions state
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
+  const [permissionsUser, setPermissionsUser] = useState<UserData | null>(null)
+  const [availablePages, setAvailablePages] = useState<PageInfo[]>([])
+  const [userPermissions, setUserPermissions] = useState<string[]>([])
+  const [isSavingPermissions, setIsSavingPermissions] = useState(false)
+
   // Redirect non-admin users
   useEffect(() => {
     if (!isAdmin && !isLoading) {
@@ -91,8 +109,88 @@ export default function UsersPage() {
   useEffect(() => {
     if (isAdmin) {
       loadUsers()
+      loadAvailablePages()
     }
   }, [isAdmin])
+
+  const loadAvailablePages = async () => {
+    try {
+      const response = await fetch('/api/admin/permissions')
+      if (response.ok) {
+        const data = await response.json()
+        setAvailablePages(data.pages)
+      }
+    } catch (error) {
+      console.error('Failed to load available pages:', error)
+    }
+  }
+
+  const openPermissionsDialog = async (user: UserData) => {
+    setPermissionsUser(user)
+    setPermissionsDialogOpen(true)
+
+    // Load user's current permissions
+    try {
+      const response = await fetch(`/api/admin/permissions?userId=${user.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setUserPermissions(data.permissions || [])
+      }
+    } catch (error) {
+      console.error('Failed to load user permissions:', error)
+      setUserPermissions([])
+    }
+  }
+
+  const togglePermission = (path: string) => {
+    setUserPermissions(prev =>
+      prev.includes(path)
+        ? prev.filter(p => p !== path)
+        : [...prev, path]
+    )
+  }
+
+  const toggleAllPermissions = () => {
+    if (userPermissions.length === availablePages.length) {
+      setUserPermissions([])
+    } else {
+      setUserPermissions(availablePages.map(p => p.path))
+    }
+  }
+
+  const savePermissions = async () => {
+    if (!permissionsUser) return
+
+    setIsSavingPermissions(true)
+    try {
+      const response = await fetch('/api/admin/permissions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: permissionsUser.id,
+          permissions: userPermissions,
+        }),
+      })
+
+      if (response.ok) {
+        setPermissionsDialogOpen(false)
+        setPermissionsUser(null)
+      }
+    } catch (error) {
+      console.error('Failed to save permissions:', error)
+    } finally {
+      setIsSavingPermissions(false)
+    }
+  }
+
+  // Group pages by section
+  const pagesBySection = availablePages.reduce((acc, page) => {
+    if (!acc[page.section]) {
+      acc[page.section] = []
+    }
+    acc[page.section].push(page)
+    return acc
+  }, {} as Record<string, PageInfo[]>)
 
   // Stats
   const totalUsers = users.length
@@ -404,6 +502,14 @@ export default function UsersPage() {
                       <td className="py-3">
                         <div className="flex items-center gap-1">
                           <button
+                            onClick={() => openPermissionsDialog(user)}
+                            disabled={user.role === 'admin'}
+                            className={`rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 ${user.role === 'admin' ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                            title={t.users.columns.permissions}
+                          >
+                            <Key className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                          </button>
+                          <button
                             onClick={() => setEditingUser(user)}
                             disabled={user.id === currentUser?.id}
                             className={`rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 ${user.id === currentUser?.id ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
@@ -429,6 +535,78 @@ export default function UsersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Permissions Dialog */}
+      <Dialog open={permissionsDialogOpen} onOpenChange={setPermissionsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              {t.users.permissions.title}
+            </DialogTitle>
+            {permissionsUser && (
+              <p className="text-sm text-muted-foreground">
+                {permissionsUser.name} ({permissionsUser.email})
+              </p>
+            )}
+          </DialogHeader>
+
+          {permissionsUser?.role === 'admin' ? (
+            <div className="py-4 text-center text-muted-foreground">
+              <Shield className="h-8 w-8 mx-auto mb-2 text-purple-500" />
+              <p>{t.users.permissions.adminNote}</p>
+            </div>
+          ) : (
+            <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+              {/* Select All */}
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <Checkbox
+                  id="select-all"
+                  checked={userPermissions.length === availablePages.length}
+                  onCheckedChange={toggleAllPermissions}
+                />
+                <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                  {t.users.permissions.allPages}
+                </label>
+              </div>
+
+              {/* Pages by Section */}
+              {Object.entries(pagesBySection).map(([section, pages]) => (
+                <div key={section} className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">
+                    {t.users.permissions.sections[section as keyof typeof t.users.permissions.sections] || section}
+                  </h4>
+                  <div className="space-y-1 pl-2">
+                    {pages.map((page) => (
+                      <div key={page.path} className="flex items-center gap-2">
+                        <Checkbox
+                          id={page.path}
+                          checked={userPermissions.includes(page.path)}
+                          onCheckedChange={() => togglePermission(page.path)}
+                        />
+                        <label htmlFor={page.path} className="text-sm cursor-pointer">
+                          {page.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPermissionsDialogOpen(false)}>
+              {t.common.cancel}
+            </Button>
+            {permissionsUser?.role !== 'admin' && (
+              <Button onClick={savePermissions} disabled={isSavingPermissions}>
+                {isSavingPermissions ? t.common.saving : t.common.save}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

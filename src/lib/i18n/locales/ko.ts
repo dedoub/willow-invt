@@ -164,6 +164,23 @@ export const ko = {
       status: '상태',
       lastLogin: '마지막 로그인',
       actions: '관리',
+      permissions: '접근 권한',
+    },
+    permissions: {
+      title: '페이지 접근 권한',
+      description: '사용자가 접근할 수 있는 페이지를 설정합니다',
+      allPages: '전체 페이지 접근',
+      noAccess: '접근 권한 없음',
+      pageCount: '{count}개 페이지',
+      sections: {
+        etfIndexing: 'ETF/Index',
+        monoRApps: '모노알 앱스',
+        tenSoftworks: '텐소프트웍스',
+        others: '기타',
+      },
+      adminNote: '관리자는 모든 페이지에 접근할 수 있습니다',
+      saved: '권한이 저장되었습니다',
+      saveFailed: '권한 저장에 실패했습니다',
     },
   },
 
