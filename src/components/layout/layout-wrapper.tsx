@@ -30,7 +30,6 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
       '/tensoftworks/active': t.pageTitles.tenswActive,
       '/tensoftworks/managed': t.pageTitles.tenswManaged,
       '/tensoftworks/poc': t.pageTitles.tenswPoc,
-      '/tensoftworks/closed': t.pageTitles.tenswClosed,
       '/admin/users': t.pageTitles.usersPage,
       '/others/ryuha-study': t.pageTitles.ryuhaStudyPage,
     }

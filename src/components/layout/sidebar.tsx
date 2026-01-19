@@ -86,7 +86,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         { title: t.sidebar.pocProjects, href: '/tensoftworks/poc' },
         { title: t.sidebar.activeProjects, href: '/tensoftworks/active' },
         { title: t.sidebar.managedProjects, href: '/tensoftworks/managed' },
-        { title: t.sidebar.closedProjects, href: '/tensoftworks/closed' },
       ],
     },
     {
