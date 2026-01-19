@@ -1474,7 +1474,7 @@ export default function RyuhaStudyPage() {
                 onDragEnd={handleDragEnd}
               >
                 {viewMode === 'week' ? (
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
                     {getWeekDays().map((day, idx) => {
                       const memo = getMemoForDate(day)
                       return (
@@ -1501,7 +1501,7 @@ export default function RyuhaStudyPage() {
                             <div className="flex items-start gap-1">
                               <StickyNote className="h-2.5 w-2.5 mt-0.5 flex-shrink-0" />
                               {memo ? (
-                                <span className="line-clamp-2 whitespace-pre-wrap">{memo.content}</span>
+                                <span className="whitespace-pre-wrap">{memo.content}</span>
                               ) : (
                                 <span className="opacity-50">메모</span>
                               )}
