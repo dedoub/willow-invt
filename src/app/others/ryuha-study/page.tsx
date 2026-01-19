@@ -2341,21 +2341,105 @@ export default function RyuhaStudyPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>시작 시간</Label>
-                <Input
-                  type="time"
-                  step="300"
-                  value={scheduleForm.start_time}
-                  onChange={(e) => setScheduleForm({ ...scheduleForm, start_time: e.target.value })}
-                />
+                <div className="flex gap-1">
+                  <Select
+                    value={scheduleForm.start_time ? scheduleForm.start_time.split(':')[0] : ''}
+                    onValueChange={(hour) => {
+                      const currentMinute = scheduleForm.start_time ? scheduleForm.start_time.split(':')[1] : '00'
+                      setScheduleForm({ ...scheduleForm, start_time: hour ? `${hour}:${currentMinute}` : '' })
+                    }}
+                  >
+                    <SelectTrigger className="w-[70px]">
+                      <SelectValue placeholder="시" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">--</SelectItem>
+                      {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map((hour) => (
+                        <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="flex items-center">:</span>
+                  <Select
+                    value={scheduleForm.start_time ? scheduleForm.start_time.split(':')[1] : ''}
+                    onValueChange={(minute) => {
+                      const currentHour = scheduleForm.start_time ? scheduleForm.start_time.split(':')[0] : '09'
+                      setScheduleForm({ ...scheduleForm, start_time: minute ? `${currentHour}:${minute}` : '' })
+                    }}
+                  >
+                    <SelectTrigger className="w-[70px]">
+                      <SelectValue placeholder="분" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">--</SelectItem>
+                      {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((minute) => (
+                        <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {scheduleForm.start_time && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-2"
+                      onClick={() => setScheduleForm({ ...scheduleForm, start_time: '' })}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>종료 시간</Label>
-                <Input
-                  type="time"
-                  step="300"
-                  value={scheduleForm.end_time}
-                  onChange={(e) => setScheduleForm({ ...scheduleForm, end_time: e.target.value })}
-                />
+                <div className="flex gap-1">
+                  <Select
+                    value={scheduleForm.end_time ? scheduleForm.end_time.split(':')[0] : ''}
+                    onValueChange={(hour) => {
+                      const currentMinute = scheduleForm.end_time ? scheduleForm.end_time.split(':')[1] : '00'
+                      setScheduleForm({ ...scheduleForm, end_time: hour ? `${hour}:${currentMinute}` : '' })
+                    }}
+                  >
+                    <SelectTrigger className="w-[70px]">
+                      <SelectValue placeholder="시" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">--</SelectItem>
+                      {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map((hour) => (
+                        <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="flex items-center">:</span>
+                  <Select
+                    value={scheduleForm.end_time ? scheduleForm.end_time.split(':')[1] : ''}
+                    onValueChange={(minute) => {
+                      const currentHour = scheduleForm.end_time ? scheduleForm.end_time.split(':')[0] : '10'
+                      setScheduleForm({ ...scheduleForm, end_time: minute ? `${currentHour}:${minute}` : '' })
+                    }}
+                  >
+                    <SelectTrigger className="w-[70px]">
+                      <SelectValue placeholder="분" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">--</SelectItem>
+                      {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((minute) => (
+                        <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {scheduleForm.end_time && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-2"
+                      onClick={() => setScheduleForm({ ...scheduleForm, end_time: '' })}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 
