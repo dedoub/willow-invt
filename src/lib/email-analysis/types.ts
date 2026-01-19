@@ -180,6 +180,7 @@ export interface EmailMetadataRow {
   priority?: Priority
   is_analyzed?: boolean
   analyzed_at?: string
+  trigger_source?: 'auto' | 'manual'
 }
 
 // DB 저장용 임베딩

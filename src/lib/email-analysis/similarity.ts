@@ -58,7 +58,8 @@ export async function saveEmailMetadata(
     date: string
     direction: 'inbound' | 'outbound'
     labels?: string[]
-  }
+  },
+  triggerSource: 'auto' | 'manual' = 'auto'
 ): Promise<void> {
   const supabase = getServiceSupabase()
 
@@ -89,6 +90,7 @@ export async function saveEmailMetadata(
     priority: analysis.priority,
     is_analyzed: true,
     analyzed_at: new Date().toISOString(),
+    trigger_source: triggerSource,
   }
 
   const { error } = await supabase

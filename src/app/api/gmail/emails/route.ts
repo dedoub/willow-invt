@@ -187,7 +187,7 @@ async function triggerBackgroundAnalysis(
           date: email.date,
           direction: email.direction,
           labels: email.labels,
-        })
+        }, 'auto')
 
         await saveEmailEmbedding(userId, analysis, {
           subject: email.subject,

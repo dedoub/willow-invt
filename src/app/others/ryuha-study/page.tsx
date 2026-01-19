@@ -134,7 +134,7 @@ function CalendarPanelSkeleton() {
           <div className="h-7 w-7 bg-slate-300 dark:bg-slate-600 rounded" />
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
+      <CardContent className="p-4 pt-0 -mt-2">
         {/* Week view skeleton */}
         <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
           {[...Array(7)].map((_, i) => (
@@ -253,6 +253,11 @@ function DraggableScheduleCard({
           {schedule.title}
         </span>
       </div>
+      {schedule.description && (
+        <div className="text-muted-foreground text-[10px] mt-0.5 line-clamp-3">
+          {schedule.description}
+        </div>
+      )}
       {schedule.end_date && (
         <div className="text-muted-foreground flex items-center gap-1 mt-0.5">
           <Calendar className="h-2.5 w-2.5" />
@@ -1711,7 +1716,7 @@ export default function RyuhaStudyPage() {
 
           {/* Calendar */}
           <Card className="bg-slate-100 dark:bg-slate-800">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
@@ -1749,7 +1754,7 @@ export default function RyuhaStudyPage() {
                   </button>
                 </div>
               </div>
-              <div className="flex items-center justify-center gap-2 mt-2">
+              <div className="flex items-center justify-center gap-2 mt-1">
                 <button
                   className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted transition-colors"
                   onClick={() => navigate(-1)}
@@ -1769,7 +1774,7 @@ export default function RyuhaStudyPage() {
                 </button>
               </div>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent className="p-4 pt-0 -mt-2">
               <DndContext
                 sensors={sensors}
                 onDragStart={handleDragStart}

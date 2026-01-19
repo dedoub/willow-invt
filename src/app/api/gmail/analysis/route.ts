@@ -7,6 +7,44 @@ const supabase = createClient(
   process.env.SUPABASE_SECRET_KEY!
 )
 
+// 텍스트 정규화 (비교용)
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s가-힣]/g, '') // 특수문자 제거 (한글 유지)
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+// 단어 집합 추출
+function getWords(text: string): Set<string> {
+  return new Set(normalizeText(text).split(' ').filter(w => w.length > 1))
+}
+
+// Jaccard 유사도 계산
+function jaccardSimilarity(set1: Set<string>, set2: Set<string>): number {
+  const intersection = new Set([...set1].filter(x => set2.has(x)))
+  const union = new Set([...set1, ...set2])
+  return union.size === 0 ? 0 : intersection.size / union.size
+}
+
+// 두 작업이 유사한지 확인 (임계값: 0.6)
+function isSimilarTask(task1: string, task2: string, threshold = 0.6): boolean {
+  const norm1 = normalizeText(task1)
+  const norm2 = normalizeText(task2)
+
+  // 정규화된 텍스트가 동일하면 중복
+  if (norm1 === norm2) return true
+
+  // 한 쪽이 다른 쪽을 포함하면 중복
+  if (norm1.includes(norm2) || norm2.includes(norm1)) return true
+
+  // Jaccard 유사도가 임계값 이상이면 중복
+  const words1 = getWords(task1)
+  const words2 = getWords(task2)
+  return jaccardSimilarity(words1, words2) >= threshold
+}
+
 // 현재 사용자 ID 가져오기
 async function getCurrentUserId(): Promise<string | null> {
   const cookieStore = await cookies()
@@ -111,7 +149,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save analysis' }, { status: 500 })
     }
 
-    // 새 todos 추가 (중복은 무시)
+    // 기존 todos 조회 (완료된 것 포함) - 유사도 검사를 위해
+    const { data: existingTodos } = await supabase
+      .from('email_todos')
+      .select('task, category')
+      .eq('user_id', userId)
+      .eq('label', label)
+
+    const existingTasksByCategory = new Map<string, string[]>()
+    for (const todo of existingTodos || []) {
+      const tasks = existingTasksByCategory.get(todo.category) || []
+      tasks.push(todo.task)
+      existingTasksByCategory.set(todo.category, tasks)
+    }
+
+    // 새 todos 추가 (유사한 것은 제외)
     const newTodos: Array<{
       user_id: string
       label: string
@@ -123,8 +175,22 @@ export async function POST(request: NextRequest) {
       source_analysis_id: string
     }> = []
 
+    let skippedCount = 0
+
     for (const category of analysisData.categories || []) {
+      const existingTasks = existingTasksByCategory.get(category.category) || []
+
       for (const todo of category.todos || []) {
+        // 기존 todo들과 유사도 검사
+        const hasSimilar = existingTasks.some(existingTask =>
+          isSimilarTask(todo.task, existingTask)
+        )
+
+        if (hasSimilar) {
+          skippedCount++
+          continue // 유사한 것이 있으면 건너뜀
+        }
+
         newTodos.push({
           user_id: userId,
           label,
@@ -135,11 +201,18 @@ export async function POST(request: NextRequest) {
           related_email_ids: todo.relatedEmailIds || [],
           source_analysis_id: analysis.id,
         })
+
+        // 새로 추가할 것도 비교 대상에 추가 (중복 방지)
+        existingTasks.push(todo.task)
       }
     }
 
+    if (skippedCount > 0) {
+      console.log(`Skipped ${skippedCount} similar todos for label: ${label}`)
+    }
+
     if (newTodos.length > 0) {
-      // ON CONFLICT DO NOTHING - 중복된 task는 무시
+      // ON CONFLICT DO NOTHING - 완전히 동일한 task는 무시
       const { error: todosError } = await supabase
         .from('email_todos')
         .upsert(newTodos, {

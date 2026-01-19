@@ -192,7 +192,7 @@ export async function GET(request: NextRequest) {
           date: parsed.date || new Date().toISOString(),
           direction,
           labels: msgLabels,
-        })
+        }, 'manual')
 
         await saveEmailEmbedding(userId, analysis, {
           subject: parsed.subject || '',
@@ -316,7 +316,7 @@ export async function POST(request: NextRequest) {
           date: parsed.date || new Date().toISOString(),
           direction,
           labels: msgLabels,
-        })
+        }, 'manual')
 
         // 임베딩 저장
         await saveEmailEmbedding(userId, analysis, {
