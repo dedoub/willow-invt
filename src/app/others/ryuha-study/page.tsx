@@ -2188,10 +2188,10 @@ export default function RyuhaStudyPage() {
                                     <div
                                       key={schedule.id}
                                       className={cn(
-                                        'flex items-center gap-1 text-[10px] p-0.5 rounded cursor-pointer',
+                                        'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-pointer',
                                         schedule.is_completed
-                                          ? 'text-muted-foreground line-through'
-                                          : 'text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/30'
+                                          ? 'bg-muted text-muted-foreground line-through'
+                                          : 'bg-orange-100 dark:bg-orange-900/30'
                                       )}
                                       onClick={(e) => {
                                         if ((e.target as HTMLElement).closest('button')) return
