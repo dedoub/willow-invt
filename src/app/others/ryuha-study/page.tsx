@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { ProtectedPage } from '@/components/auth/protected-page'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -1047,7 +1048,7 @@ export default function RyuhaStudyPage() {
   }
 
   return (
-    <>
+    <ProtectedPage pagePath="/others/ryuha-study">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Textbooks & Chapters Panel */}
         <div className="lg:col-span-1 order-2 lg:order-1">
@@ -2216,6 +2217,6 @@ export default function RyuhaStudyPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </ProtectedPage>
   )
 }

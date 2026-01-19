@@ -9,6 +9,7 @@ export interface User {
   email: string
   name: string
   role: UserRole
+  permissions: string[]
 }
 
 interface AuthContextType {
@@ -32,7 +33,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch('/api/auth/me')
       if (response.ok) {
         const data = await response.json()
-        setUser(data.user)
+        // Fetch permissions
+        const permResponse = await fetch('/api/auth/permissions')
+        let permissions: string[] = []
+        if (permResponse.ok) {
+          const permData = await permResponse.json()
+          permissions = permData.permissions || []
+        }
+        setUser({ ...data.user, permissions })
       } else {
         setUser(null)
       }
@@ -58,7 +66,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json()
 
       if (response.ok) {
-        setUser(data.user)
+        // Fetch permissions after login
+        const permResponse = await fetch('/api/auth/permissions')
+        let permissions: string[] = []
+        if (permResponse.ok) {
+          const permData = await permResponse.json()
+          permissions = permData.permissions || []
+        }
+        setUser({ ...data.user, permissions })
         return { success: true }
       } else {
         return { success: false, error: data.error || 'Login failed' }
@@ -120,4 +135,20 @@ export function useCanEdit() {
 export function useIsAdmin() {
   const { user } = useAuth()
   return user?.role === 'admin'
+}
+
+export function useHasPageAccess(pagePath: string) {
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) return { hasAccess: false, isLoading: true }
+  if (!user) return { hasAccess: false, isLoading: false }
+
+  // Admin has access to all pages
+  if (user.role === 'admin' || user.permissions.includes('*')) {
+    return { hasAccess: true, isLoading: false }
+  }
+
+  // Check if user has permission for this page
+  const hasAccess = user.permissions.includes(pagePath)
+  return { hasAccess, isLoading: false }
 }

@@ -27,6 +27,9 @@ export const ko = {
     profile: '프로필',
     settings: '설정',
     close: '닫기',
+    accessDenied: '접근 권한 없음',
+    noPageAccess: '이 페이지에 접근할 권한이 없습니다.',
+    backToDashboard: '대시보드로 돌아가기',
   },
 
   // 인증

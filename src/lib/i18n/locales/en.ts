@@ -27,6 +27,9 @@ export const en = {
     profile: 'Profile',
     settings: 'Settings',
     close: 'Close',
+    accessDenied: 'Access Denied',
+    noPageAccess: 'You do not have permission to access this page.',
+    backToDashboard: 'Back to Dashboard',
   },
 
   // Auth

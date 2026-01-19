@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
-import { useIsAdmin } from '@/lib/auth-context'
+import { useIsAdmin, useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n'
 import {
   LayoutDashboard,
@@ -39,9 +39,17 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const isAdmin = useIsAdmin()
+  const { user } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const { t } = useI18n()
   const [expandedSections, setExpandedSections] = useState<string[]>(['etfIndexing', 'monoRApps', 'tenSoftworks', 'others'])
+
+  // Check if user has access to a specific page
+  const hasPageAccess = (pagePath: string) => {
+    if (!user) return false
+    if (user.role === 'admin' || user.permissions.includes('*')) return true
+    return user.permissions.includes(pagePath)
+  }
 
   const toggleSection = (sectionKey: string) => {
     setExpandedSections(prev =>
@@ -173,51 +181,59 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         </Link>
 
         {/* Menu Sections */}
-        {menuSections.map((section) => (
-          <div key={section.key} className="mt-2">
-            {collapsed ? (
-              <div className="flex justify-center py-2">
-                {section.icon}
-              </div>
-            ) : (
-              <>
-                <button
-                  onClick={() => toggleSection(section.key)}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    {section.icon}
-                    <span>{section.title}</span>
-                  </div>
-                  <ChevronDown
-                    className={cn(
-                      'h-4 w-4 transition-transform',
-                      expandedSections.includes(section.key) && 'rotate-180'
-                    )}
-                  />
-                </button>
-                {expandedSections.includes(section.key) && (
-                  <div className="ml-4 mt-1 space-y-1 border-l border-slate-700 pl-4">
-                    {section.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={cn(
-                          'block rounded-lg px-3 py-1.5 text-sm transition-colors',
-                          pathname === item.href
-                            ? 'bg-brand-600 text-white'
-                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                        )}
-                      >
-                        {item.title}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        ))}
+        {menuSections.map((section) => {
+          // Filter items based on user permissions
+          const accessibleItems = section.items.filter(item => hasPageAccess(item.href))
+
+          // Don't render section if no accessible items
+          if (accessibleItems.length === 0) return null
+
+          return (
+            <div key={section.key} className="mt-2">
+              {collapsed ? (
+                <div className="flex justify-center py-2">
+                  {section.icon}
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => toggleSection(section.key)}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      {section.icon}
+                      <span>{section.title}</span>
+                    </div>
+                    <ChevronDown
+                      className={cn(
+                        'h-4 w-4 transition-transform',
+                        expandedSections.includes(section.key) && 'rotate-180'
+                      )}
+                    />
+                  </button>
+                  {expandedSections.includes(section.key) && (
+                    <div className="ml-4 mt-1 space-y-1 border-l border-slate-700 pl-4">
+                      {accessibleItems.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            'block rounded-lg px-3 py-1.5 text-sm transition-colors',
+                            pathname === item.href
+                              ? 'bg-brand-600 text-white'
+                              : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                          )}
+                        >
+                          {item.title}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )
+        })}
 
         {/* Admin section */}
         {isAdmin && (

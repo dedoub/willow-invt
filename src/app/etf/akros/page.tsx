@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ProtectedPage } from '@/components/auth/protected-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useI18n } from '@/lib/i18n'
 import { gmailService, ParsedEmail, EmailSyncStatus, OverallAnalysisResult, SavedTodo, SavedAnalysis } from '@/lib/gmail'
@@ -2363,6 +2364,7 @@ Dongwook`
   }, [wikiSearch])
 
   return (
+    <ProtectedPage pagePath="/etf/akros">
     <div className="space-y-6">
       {/* Summary Cards - Akros Total Metrics */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -4083,5 +4085,6 @@ Dongwook`
         t={t}
       />
     </div>
+    </ProtectedPage>
   )
 }
