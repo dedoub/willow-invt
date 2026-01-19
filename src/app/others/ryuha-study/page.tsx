@@ -223,6 +223,12 @@ function DraggableScheduleCard({
           ? 'bg-muted line-through text-muted-foreground'
           : !displayColor && 'bg-slate-300/50 dark:bg-slate-600/50'
       )}
+      onClick={(e) => {
+        // 체크박스 클릭 시에는 편집 모달 열지 않음
+        if ((e.target as HTMLElement).closest('button')) return
+        e.stopPropagation()
+        onEdit()
+      }}
     >
       <div className="flex items-start gap-1">
         <button
@@ -242,14 +248,7 @@ function DraggableScheduleCard({
             <Circle className="h-3 w-3" />
           )}
         </button>
-        <span
-          className="flex-1"
-          onClick={(e) => {
-            e.stopPropagation()
-            onEdit()
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
+        <span className="flex-1">
           {schedule.title}
         </span>
       </div>
@@ -438,6 +437,12 @@ function DraggableMonthScheduleCard({
           ? 'bg-muted text-muted-foreground line-through'
           : !displayColor && 'bg-slate-200 dark:bg-slate-700'
       )}
+      onClick={(e) => {
+        // 체크박스 클릭 시에는 편집 모달 열지 않음
+        if ((e.target as HTMLElement).closest('button')) return
+        e.stopPropagation()
+        if (!isDragging) onEdit()
+      }}
     >
       <button
         className="flex-shrink-0"
@@ -472,16 +477,7 @@ function DraggableMonthScheduleCard({
           schedule.homework_completed ? 'text-green-600' : 'text-orange-600'
         )} />
       )}
-      <span
-        className="truncate flex-1"
-        onClick={(e) => {
-          e.stopPropagation()
-          if (!isDragging) {
-            onEdit()
-          }
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
+      <span className="truncate flex-1">
         {schedule.title}
       </span>
     </div>
@@ -738,6 +734,8 @@ export default function RyuhaStudyPage() {
     const dateStr = formatDate(date)
     return schedules
       .filter((s) => {
+        // Exclude homework type schedules (they are displayed separately)
+        if (s.type === 'homework') return false
         // Single-day schedule
         if (!s.end_date) {
           return s.schedule_date === dateStr
@@ -750,6 +748,21 @@ export default function RyuhaStudyPage() {
         if (!a.start_time && b.start_time) return -1
         if (a.start_time && !b.start_time) return 1
         // Then sort by start_time
+        if (a.start_time && b.start_time) {
+          return a.start_time.localeCompare(b.start_time)
+        }
+        return 0
+      })
+  }
+
+  // Get homework type schedules for a specific date (displayed at schedule_date)
+  const getHomeworkTypeSchedulesForDate = (date: Date) => {
+    const dateStr = formatDate(date)
+    return schedules
+      .filter((s) => s.type === 'homework' && s.schedule_date === dateStr)
+      .sort((a, b) => {
+        if (!a.start_time && b.start_time) return -1
+        if (a.start_time && !b.start_time) return 1
         if (a.start_time && b.start_time) {
           return a.start_time.localeCompare(b.start_time)
         }
@@ -1174,18 +1187,28 @@ export default function RyuhaStudyPage() {
     const hasSchedules = chaptersWithSchedules.has(chapter.id)
 
     // Determine next status based on whether chapter has schedules
-    let nextStatus: 'pending' | 'in_progress' | 'completed'
+    // Flow: pending → in_progress → review_notes_pending → completed
+    let nextStatus: 'pending' | 'in_progress' | 'review_notes_pending' | 'completed'
     if (hasSchedules) {
-      // If has schedules: only toggle between in_progress and completed
-      nextStatus = chapter.status === 'completed' ? 'in_progress' : 'completed'
+      // If has schedules: in_progress → review_notes_pending → completed → in_progress
+      if (chapter.status === 'in_progress') {
+        nextStatus = 'review_notes_pending'
+      } else if (chapter.status === 'review_notes_pending') {
+        nextStatus = 'completed'
+      } else {
+        nextStatus = 'in_progress'
+      }
     } else {
-      // If no schedules: pending → in_progress → completed → pending
-      nextStatus =
-        chapter.status === 'pending'
-          ? 'in_progress'
-          : chapter.status === 'in_progress'
-            ? 'completed'
-            : 'pending'
+      // If no schedules: pending → in_progress → review_notes_pending → completed → pending
+      if (chapter.status === 'pending') {
+        nextStatus = 'in_progress'
+      } else if (chapter.status === 'in_progress') {
+        nextStatus = 'review_notes_pending'
+      } else if (chapter.status === 'review_notes_pending') {
+        nextStatus = 'completed'
+      } else {
+        nextStatus = 'pending'
+      }
     }
 
     // Check if trying to complete without review note completed
@@ -1329,10 +1352,19 @@ export default function RyuhaStudyPage() {
     return memos.get(formatDate(date))
   }
 
-  // Filtered data
-  const filteredTextbooks = selectedSubject
+  // Filtered data (sorted by subject name, then textbook name)
+  const filteredTextbooks = (selectedSubject
     ? textbooks.filter((t) => t.subject_id === selectedSubject)
     : textbooks
+  ).sort((a, b) => {
+    // Sort by subject name first
+    const subjectA = a.subject?.name || ''
+    const subjectB = b.subject?.name || ''
+    const subjectCompare = subjectA.localeCompare(subjectB, 'ko')
+    if (subjectCompare !== 0) return subjectCompare
+    // Then by textbook name
+    return a.name.localeCompare(b.name, 'ko')
+  })
 
   const getChaptersForTextbook = (textbookId: string) =>
     chapters
@@ -1360,17 +1392,17 @@ export default function RyuhaStudyPage() {
                 <div className="flex items-center gap-2">
                   <button
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
-                    onClick={() => openTextbookDialog()}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    교재 추가
-                  </button>
-                  <button
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
                     onClick={() => openSubjectDialog()}
                   >
                     <Plus className="h-3.5 w-3.5" />
                     과목 추가
+                  </button>
+                  <button
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                    onClick={() => openTextbookDialog()}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    교재 추가
                   </button>
                 </div>
               </div>
@@ -1465,6 +1497,63 @@ export default function RyuhaStudyPage() {
                         </div>
                       </div>
 
+                      {/* Review notes pending chapters - always visible even when collapsed */}
+                      {!isExpanded && (() => {
+                        const reviewNotesPendingChapters = textbookChapters.filter(c => c.status === 'review_notes_pending')
+                        if (reviewNotesPendingChapters.length === 0) return null
+                        return (
+                          <div className="px-2 pb-2 space-y-1 bg-background border-t border-border/50">
+                            {reviewNotesPendingChapters.map((chapter) => (
+                              <div
+                                key={chapter.id}
+                                className="flex items-center gap-2 p-1.5 rounded text-sm"
+                              >
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleChapterStatus(chapter)
+                                  }}
+                                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-purple-100 dark:bg-purple-900/30 hover:opacity-80 transition-opacity"
+                                  title={chapter.review_completed ? '클릭해서 완료로 변경' : '리뷰노트 완료 후 클릭해서 완료로 변경'}
+                                  disabled={togglingIds.has(`chapter-${chapter.id}`)}
+                                >
+                                  {togglingIds.has(`chapter-${chapter.id}`) ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                                  ) : (
+                                    <StickyNote className="h-3.5 w-3.5 text-purple-600" />
+                                  )}
+                                  <span className="text-purple-600">리뷰노트</span>
+                                </button>
+                                <span className="flex-1 truncate">{chapter.name}</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleReviewCompleted(chapter)
+                                  }}
+                                  className={cn(
+                                    'flex items-center gap-1 px-1.5 py-0.5 rounded text-xs transition-opacity',
+                                    chapter.review_completed
+                                      ? 'bg-green-100 dark:bg-green-900/30 text-green-600'
+                                      : 'bg-muted/50 text-muted-foreground hover:text-foreground'
+                                  )}
+                                  title={chapter.review_completed ? '리뷰노트 완료됨' : '리뷰노트 미완료'}
+                                  disabled={togglingIds.has(`review-${chapter.id}`)}
+                                >
+                                  {togglingIds.has(`review-${chapter.id}`) ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : chapter.review_completed ? (
+                                    <CheckCircle2 className="h-3 w-3" />
+                                  ) : (
+                                    <Circle className="h-3 w-3" />
+                                  )}
+                                  <span className="text-xs">리뷰노트</span>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      })()}
+
                       {/* Chapters */}
                       {isExpanded && (
                         <div className="p-2 space-y-1 bg-background">
@@ -1479,9 +1568,17 @@ export default function RyuhaStudyPage() {
                               },
                               in_progress: {
                                 label: '진행중',
-                                tooltip: '클릭해서 완료로 변경',
+                                tooltip: '클릭해서 리뷰노트 등록으로 변경',
                                 color: 'text-amber-600',
                                 bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+                              },
+                              review_notes_pending: {
+                                label: '리뷰노트',
+                                tooltip: chapter.review_completed
+                                  ? '클릭해서 완료로 변경'
+                                  : '리뷰노트 완료 후 클릭해서 완료로 변경',
+                                color: 'text-purple-600',
+                                bgColor: 'bg-purple-100 dark:bg-purple-900/30',
                               },
                               completed: {
                                 label: '완료',
@@ -1516,6 +1613,8 @@ export default function RyuhaStudyPage() {
                                     <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                                   ) : chapter.status === 'completed' ? (
                                     <CheckCircle2 className={cn('h-3.5 w-3.5', config.color)} />
+                                  ) : chapter.status === 'review_notes_pending' ? (
+                                    <StickyNote className={cn('h-3.5 w-3.5', config.color)} />
                                   ) : chapter.status === 'in_progress' ? (
                                     <Clock className={cn('h-3.5 w-3.5', config.color)} />
                                   ) : (
@@ -1823,11 +1922,16 @@ export default function RyuhaStudyPage() {
                               <div
                                 key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
                                 className={cn(
-                                  'text-xs p-1.5 rounded border-l-2 border-orange-500',
+                                  'text-xs p-1.5 rounded border-l-2 border-orange-500 cursor-pointer',
                                   isCompleted
                                     ? 'bg-muted line-through text-muted-foreground'
                                     : 'bg-orange-100 dark:bg-orange-900/30'
                                 )}
+                                onClick={(e) => {
+                                  if ((e.target as HTMLElement).closest('button')) return
+                                  e.stopPropagation()
+                                  openScheduleDialog(undefined, hw.schedule)
+                                }}
                               >
                                 <div className="flex items-start gap-1">
                                   <button
@@ -1852,13 +1956,7 @@ export default function RyuhaStudyPage() {
                                       <Circle className="h-3 w-3 text-orange-600" />
                                     )}
                                   </button>
-                                  <span
-                                    className="flex-1 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      openScheduleDialog(undefined, hw.schedule)
-                                    }}
-                                  >
+                                  <span className="flex-1">
                                     <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
                                       <ClipboardList className="h-2.5 w-2.5" />
                                       <span className="font-medium">과제</span>
@@ -1874,6 +1972,56 @@ export default function RyuhaStudyPage() {
                               </div>
                             )
                           })}
+                          {/* Homework type schedules - displayed with orange style */}
+                          {getHomeworkTypeSchedulesForDate(day).map((schedule) => (
+                            <div
+                              key={schedule.id}
+                              className={cn(
+                                'text-xs p-1.5 rounded border-l-2 border-orange-500 cursor-pointer',
+                                schedule.is_completed
+                                  ? 'bg-muted line-through text-muted-foreground'
+                                  : 'bg-orange-100 dark:bg-orange-900/30'
+                              )}
+                              onClick={(e) => {
+                                if ((e.target as HTMLElement).closest('button')) return
+                                e.stopPropagation()
+                                openScheduleDialog(undefined, schedule)
+                              }}
+                            >
+                              <div className="flex items-start gap-1">
+                                <button
+                                  className="mt-0.5 flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (!togglingIds.has(schedule.id)) {
+                                      toggleScheduleComplete(schedule)
+                                    }
+                                  }}
+                                  disabled={togglingIds.has(schedule.id)}
+                                >
+                                  {togglingIds.has(schedule.id) ? (
+                                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                  ) : schedule.is_completed ? (
+                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Circle className="h-3 w-3 text-orange-600" />
+                                  )}
+                                </button>
+                                <span className="flex-1">
+                                  <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
+                                    <ClipboardList className="h-2.5 w-2.5" />
+                                    <span className="font-medium">과제</span>
+                                  </div>
+                                  <div className="text-muted-foreground">{schedule.title}</div>
+                                  {schedule.description && (
+                                    <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
+                                      {schedule.description}
+                                    </div>
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
                           {getSchedulesForDate(day).map((schedule) => (
                             <DraggableScheduleCard
                               key={schedule.id}
@@ -1935,11 +2083,16 @@ export default function RyuhaStudyPage() {
                                       <div
                                         key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
                                         className={cn(
-                                          'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
+                                          'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-pointer',
                                           isCompleted
                                             ? 'bg-muted text-muted-foreground line-through'
                                             : 'bg-orange-100 dark:bg-orange-900/30'
                                         )}
+                                        onClick={(e) => {
+                                          if ((e.target as HTMLElement).closest('button')) return
+                                          e.stopPropagation()
+                                          openScheduleDialog(undefined, hw.schedule)
+                                        }}
                                       >
                                         <button
                                           className="flex-shrink-0"
@@ -1964,18 +2117,52 @@ export default function RyuhaStudyPage() {
                                           )}
                                         </button>
                                         <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
-                                        <span
-                                          className="truncate flex-1 cursor-pointer"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            openScheduleDialog(undefined, hw.schedule)
-                                          }}
-                                        >
+                                        <span className="truncate flex-1">
                                           {hw.schedule.title}
                                         </span>
                                       </div>
                                     )
                                   })}
+                                  {/* Homework type schedules - month view */}
+                                  {getHomeworkTypeSchedulesForDate(day).map((schedule) => (
+                                    <div
+                                      key={schedule.id}
+                                      className={cn(
+                                        'flex items-center gap-1 text-[10px] p-0.5 rounded cursor-pointer',
+                                        schedule.is_completed
+                                          ? 'text-muted-foreground line-through'
+                                          : 'text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/30'
+                                      )}
+                                      onClick={(e) => {
+                                        if ((e.target as HTMLElement).closest('button')) return
+                                        e.stopPropagation()
+                                        openScheduleDialog(undefined, schedule)
+                                      }}
+                                    >
+                                      <button
+                                        className="flex-shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          if (!togglingIds.has(schedule.id)) {
+                                            toggleScheduleComplete(schedule)
+                                          }
+                                        }}
+                                        disabled={togglingIds.has(schedule.id)}
+                                      >
+                                        {togglingIds.has(schedule.id) ? (
+                                          <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />
+                                        ) : schedule.is_completed ? (
+                                          <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
+                                        ) : (
+                                          <Circle className="h-2.5 w-2.5 text-orange-600" />
+                                        )}
+                                      </button>
+                                      <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
+                                      <span className="truncate flex-1">
+                                        {schedule.title}
+                                      </span>
+                                    </div>
+                                  ))}
                                   {getSchedulesForDate(day).map((schedule) => (
                                     <DraggableMonthScheduleCard
                                       key={schedule.id}
@@ -2040,6 +2227,25 @@ export default function RyuhaStudyPage() {
             <DialogTitle>{editingSchedule ? '일정 수정' : '일정 추가'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+            {/* Schedule type toggle */}
+            <div className="flex items-center space-x-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+              <Checkbox
+                id="is_homework_type"
+                checked={scheduleForm.type === 'homework'}
+                onCheckedChange={(checked) => {
+                  setScheduleForm({
+                    ...scheduleForm,
+                    type: checked ? 'homework' : 'self_study',
+                  })
+                }}
+              />
+              <Label htmlFor="is_homework_type" className="text-sm font-medium flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-orange-600" />
+                과제 일정
+              </Label>
+              <span className="text-xs text-muted-foreground">(과제처럼 표시됨)</span>
+            </div>
+
             <div className="space-y-2">
               <Label>제목</Label>
               <Input

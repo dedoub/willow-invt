@@ -25,7 +25,7 @@ export interface RyuhaChapter {
   name: string
   description: string | null
   order_index: number
-  status: 'pending' | 'in_progress' | 'completed'
+  status: 'pending' | 'in_progress' | 'review_notes_pending' | 'completed'
   target_date: string | null
   completed_at: string | null
   review_completed: boolean
@@ -83,7 +83,7 @@ export interface RyuhaStudyRange {
   name: string
   description: string | null
   order_index: number
-  status: 'pending' | 'in_progress' | 'completed'
+  status: 'pending' | 'in_progress' | 'review_notes_pending' | 'completed'
   target_date: string | null
   completed_at: string | null
   created_at: string
