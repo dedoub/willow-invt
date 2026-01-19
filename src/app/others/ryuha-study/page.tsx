@@ -831,6 +831,59 @@ export default function RyuhaStudyPage() {
     return result
   }
 
+  // Get key study plan chapters (overdue + upcoming within 7 days)
+  const getKeyStudyPlanChapters = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = formatDate(today)
+
+    const sevenDaysLater = new Date(today)
+    sevenDaysLater.setDate(today.getDate() + 7)
+    const sevenDaysLaterStr = formatDate(sevenDaysLater)
+
+    const overdueChapters: RyuhaChapter[] = []
+    const upcomingByTextbook: Map<string, RyuhaChapter[]> = new Map()
+
+    for (const chapter of chapters) {
+      if (!chapter.target_date || chapter.status === 'completed') continue
+
+      const textbook = textbooks.find(t => t.id === chapter.textbook_id)
+      if (!textbook) continue
+
+      // Overdue: target_date < today
+      if (chapter.target_date < todayStr) {
+        overdueChapters.push(chapter)
+      }
+      // Upcoming: today <= target_date <= today + 7 days
+      else if (chapter.target_date >= todayStr && chapter.target_date <= sevenDaysLaterStr) {
+        const existing = upcomingByTextbook.get(chapter.textbook_id) || []
+        existing.push(chapter)
+        upcomingByTextbook.set(chapter.textbook_id, existing)
+      }
+    }
+
+    // Sort overdue by target_date (oldest first)
+    overdueChapters.sort((a, b) => (a.target_date || '').localeCompare(b.target_date || ''))
+
+    // For each textbook, get chapters with the closest target_date
+    const upcomingChapters: RyuhaChapter[] = []
+    for (const [, textbookChapters] of upcomingByTextbook) {
+      // Sort by target_date
+      textbookChapters.sort((a, b) => (a.target_date || '').localeCompare(b.target_date || ''))
+      // Get the closest target_date
+      const closestDate = textbookChapters[0]?.target_date
+      if (closestDate) {
+        // Add all chapters with the same closest date
+        upcomingChapters.push(...textbookChapters.filter(ch => ch.target_date === closestDate))
+      }
+    }
+
+    // Sort upcoming by target_date
+    upcomingChapters.sort((a, b) => (a.target_date || '').localeCompare(b.target_date || ''))
+
+    return { overdueChapters, upcomingChapters }
+  }
+
   // Toggle textbook expansion
   const toggleTextbook = (id: string) => {
     setExpandedTextbooks((prev) =>
@@ -1940,7 +1993,63 @@ export default function RyuhaStudyPage() {
                 onDragEnd={handleDragEnd}
               >
                 {viewMode === 'week' ? (
-                  <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+                  <>
+                    {/* Key Study Plan Section */}
+                    {(() => {
+                      const { overdueChapters, upcomingChapters } = getKeyStudyPlanChapters()
+                      if (overdueChapters.length === 0 && upcomingChapters.length === 0) return null
+                      return (
+                        <div className="mb-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-center gap-2 mb-2">
+                            <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">주요 학습 계획</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {overdueChapters.map((chapter) => {
+                              const textbook = textbooks.find(t => t.id === chapter.textbook_id)
+                              const daysOverdue = Math.floor((new Date().getTime() - new Date(chapter.target_date + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
+                              return (
+                                <div
+                                  key={chapter.id}
+                                  className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-xs cursor-pointer hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors"
+                                  onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
+                                >
+                                  <span className="text-red-700 dark:text-red-300 font-medium">지연</span>
+                                  <span className="text-red-600 dark:text-red-400">
+                                    {textbook?.name} &gt; {chapter.name}
+                                  </span>
+                                  <span className="text-red-500 dark:text-red-400 text-[10px]">
+                                    D+{daysOverdue}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                            {upcomingChapters.map((chapter) => {
+                              const textbook = textbooks.find(t => t.id === chapter.textbook_id)
+                              const daysUntil = Math.ceil((new Date(chapter.target_date + 'T00:00:00').getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
+                              return (
+                                <div
+                                  key={chapter.id}
+                                  className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 text-xs cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors"
+                                  onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
+                                >
+                                  <span className="text-blue-600 dark:text-blue-400">
+                                    {textbook?.name} &gt; {chapter.name}
+                                  </span>
+                                  <span className={cn(
+                                    'text-[10px] font-medium',
+                                    daysUntil === 0 ? 'text-orange-600 dark:text-orange-400' : 'text-blue-500 dark:text-blue-400'
+                                  )}>
+                                    {daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })()}
+                    <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
                     {getWeekDays().map((day, idx) => {
                       const memo = getMemoForDate(day)
                       return (
@@ -2094,9 +2203,10 @@ export default function RyuhaStudyPage() {
                         </DroppableDay>
                       )
                     })}
-                  </div>
+                    </div>
+                  </>
                 ) : (
-                <div>
+                  <div>
                     <div className="grid grid-cols-7 gap-1 mb-2">
                       {weekDays.map((day) => (
                         <div key={day} className="text-center text-sm font-medium py-2">
