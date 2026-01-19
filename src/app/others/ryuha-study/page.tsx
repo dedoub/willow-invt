@@ -260,21 +260,12 @@ function DraggableScheduleCard({
       {/* Display connected chapters */}
       {schedule.chapters && schedule.chapters.length > 0 && (
         <div className="text-[10px] mt-0.5 space-y-0.5">
-          {schedule.chapters.length <= 2 ? (
-            schedule.chapters.map((ch) => (
-              <div key={ch.id} className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                <BookOpen className="h-2.5 w-2.5 flex-shrink-0" />
-                <span className="truncate">
-                  {ch.textbook?.name && `${ch.textbook.name} > `}{ch.name}
-                </span>
-              </div>
-            ))
-          ) : (
-            <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-              <BookOpen className="h-2.5 w-2.5 flex-shrink-0" />
-              <span>{schedule.chapters.length}개 챕터</span>
+          {schedule.chapters.map((ch) => (
+            <div key={ch.id} className="flex items-start gap-1 text-blue-600 dark:text-blue-400">
+              <BookOpen className="h-2.5 w-2.5 flex-shrink-0 mt-0.5" />
+              <span>{ch.textbook?.name && `${ch.textbook.name} > `}{ch.name}</span>
             </div>
-          )}
+          ))}
         </div>
       )}
       {schedule.end_date && (
