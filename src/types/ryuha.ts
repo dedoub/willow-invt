@@ -45,6 +45,7 @@ export interface RyuhaSchedule {
   color: string | null
   subject_id: string | null
   chapter_id: string | null
+  chapter_ids: string[]
   is_completed: boolean
   email_reminder: boolean
   reminder_sent: boolean
@@ -54,6 +55,7 @@ export interface RyuhaSchedule {
   created_at: string
   subject?: RyuhaSubject
   chapter?: RyuhaChapter
+  chapters?: RyuhaChapter[]
   homework_items?: RyuhaHomeworkItem[]
 }
 

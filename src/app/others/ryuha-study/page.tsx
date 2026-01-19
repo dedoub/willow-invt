@@ -553,6 +553,11 @@ export default function RyuhaStudyPage() {
     deadline: string
     is_completed?: boolean
   }
+  interface ChapterSelectionForm {
+    subject_id: string
+    textbook_id: string
+    chapter_id: string
+  }
   const [scheduleForm, setScheduleForm] = useState({
     title: '',
     description: '',
@@ -565,6 +570,7 @@ export default function RyuhaStudyPage() {
     subject_id: '',
     textbook_id: '',
     chapter_id: '',
+    selected_chapters: [] as ChapterSelectionForm[],
     email_reminder: false,
     has_homework: false,
     homework_items: [] as HomeworkItemForm[],
@@ -821,6 +827,23 @@ export default function RyuhaStudyPage() {
         : (schedule.homework_content || schedule.homework_deadline)
           ? [{ content: schedule.homework_content || '', deadline: schedule.homework_deadline || '' }]
           : []
+
+      // Build selected_chapters from chapter_ids or legacy chapter_id
+      const chapterIds = schedule.chapter_ids?.length > 0
+        ? schedule.chapter_ids
+        : schedule.chapter_id
+          ? [schedule.chapter_id]
+          : []
+      const selectedChapters: ChapterSelectionForm[] = chapterIds.map(cid => {
+        const ch = chapters.find(c => c.id === cid)
+        const tb = ch ? textbooks.find(t => t.id === ch.textbook_id) : undefined
+        return {
+          subject_id: tb?.subject_id || '',
+          textbook_id: ch?.textbook_id || '',
+          chapter_id: cid,
+        }
+      })
+
       setScheduleForm({
         title: schedule.title,
         description: schedule.description || '',
@@ -833,6 +856,7 @@ export default function RyuhaStudyPage() {
         subject_id: schedule.subject_id || '',
         textbook_id: chapter?.textbook_id || '',
         chapter_id: schedule.chapter_id || '',
+        selected_chapters: selectedChapters,
         email_reminder: schedule.email_reminder,
         has_homework: homeworkItems.length > 0,
         homework_items: homeworkItems,
@@ -851,6 +875,7 @@ export default function RyuhaStudyPage() {
         subject_id: '',
         textbook_id: '',
         chapter_id: '',
+        selected_chapters: [],
         email_reminder: false,
         has_homework: false,
         homework_items: [],
@@ -863,6 +888,11 @@ export default function RyuhaStudyPage() {
     if (saving) return
     setSaving(true)
     try {
+      // Get chapter_ids from selected_chapters (use chapter_id as fallback for legacy)
+      const chapterIds = scheduleForm.selected_chapters.length > 0
+        ? scheduleForm.selected_chapters.map(sc => sc.chapter_id).filter(Boolean)
+        : scheduleForm.chapter_id ? [scheduleForm.chapter_id] : []
+
       const payload = {
         title: scheduleForm.title,
         description: scheduleForm.description || null,
@@ -873,7 +903,8 @@ export default function RyuhaStudyPage() {
         type: scheduleForm.type,
         color: scheduleForm.subject_id ? null : (scheduleForm.color || null),
         subject_id: scheduleForm.subject_id || null,
-        chapter_id: scheduleForm.chapter_id || null,
+        chapter_id: chapterIds[0] || null, // Keep first for backward compatibility
+        chapter_ids: chapterIds,
         email_reminder: scheduleForm.email_reminder,
         // Clear legacy fields since we're using homework_items now
         homework_content: null,
@@ -946,19 +977,21 @@ export default function RyuhaStudyPage() {
         }
       }
 
-      // Auto-update chapter to "in_progress" when schedule is created with chapter_id
-      if (scheduleForm.chapter_id) {
-        const chapter = chapters.find((c) => c.id === scheduleForm.chapter_id)
-        if (chapter && chapter.status === 'pending') {
-          await fetch('/api/ryuha/chapters', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: chapter.id, status: 'in_progress' }),
-          })
-          await fetchChapters()
+      // Auto-update chapters to "in_progress" when schedule is created with chapter_ids
+      if (chapterIds.length > 0) {
+        for (const cid of chapterIds) {
+          const chapter = chapters.find((c) => c.id === cid)
+          if (chapter && chapter.status === 'pending') {
+            await fetch('/api/ryuha/chapters', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: chapter.id, status: 'in_progress' }),
+            })
+          }
         }
+        await fetchChapters()
         // Update chaptersWithSchedules
-        setChaptersWithSchedules((prev) => new Set([...prev, scheduleForm.chapter_id]))
+        setChaptersWithSchedules((prev) => new Set([...prev, ...chapterIds]))
       }
 
       setScheduleDialogOpen(false)
@@ -2297,100 +2330,169 @@ export default function RyuhaStudyPage() {
               </div>
             </div>
 
-            {/* Subject → Textbook → Chapter cascade */}
-            <div className="space-y-2">
-              <Label>과목</Label>
-              <Select
-                value={scheduleForm.subject_id}
-                onValueChange={(v) =>
-                  setScheduleForm({ ...scheduleForm, subject_id: v, textbook_id: '', chapter_id: '', color: '' })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Multiple Chapter Selection */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>과목/교재/챕터</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setScheduleForm({
+                      ...scheduleForm,
+                      selected_chapters: [
+                        ...scheduleForm.selected_chapters,
+                        { subject_id: '', textbook_id: '', chapter_id: '' },
+                      ],
+                    })
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  추가
+                </Button>
+              </div>
 
-            {/* Color picker - only when no subject selected */}
-            {!scheduleForm.subject_id && (
-              <div className="space-y-2">
-                <Label>색상</Label>
-                <div className="flex flex-wrap gap-2">
-                  {['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280'].map((color) => (
-                    <button
-                      key={color || 'none'}
-                      type="button"
-                      className={cn(
-                        'w-7 h-7 rounded-full border-2 transition-all',
-                        scheduleForm.color === color
-                          ? 'border-slate-900 dark:border-white scale-110'
-                          : 'border-transparent hover:scale-105',
-                        !color && 'bg-slate-200 dark:bg-slate-700'
-                      )}
-                      style={color ? { backgroundColor: color } : undefined}
-                      onClick={() => setScheduleForm({ ...scheduleForm, color })}
-                      title={color || '없음'}
-                    />
-                  ))}
+              {/* Color picker - only when no chapters selected */}
+              {scheduleForm.selected_chapters.length === 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">색상 (챕터 미선택 시)</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280'].map((color) => (
+                      <button
+                        key={color || 'none'}
+                        type="button"
+                        className={cn(
+                          'w-6 h-6 rounded-full border-2 transition-all',
+                          scheduleForm.color === color
+                            ? 'border-slate-900 dark:border-white scale-110'
+                            : 'border-transparent hover:scale-105',
+                          !color && 'bg-slate-200 dark:bg-slate-700'
+                        )}
+                        style={color ? { backgroundColor: color } : undefined}
+                        onClick={() => setScheduleForm({ ...scheduleForm, color })}
+                        title={color || '없음'}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {scheduleForm.subject_id && (
-              <div className="space-y-2">
-                <Label>교재</Label>
-                <Select
-                  value={scheduleForm.textbook_id}
-                  onValueChange={(v) =>
-                    setScheduleForm({ ...scheduleForm, textbook_id: v, chapter_id: '' })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {textbooks
-                      .filter((t) => t.subject_id === scheduleForm.subject_id)
-                      .map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+              {/* Selected chapters list */}
+              {scheduleForm.selected_chapters.map((selection, idx) => {
+                const selectedChapter = chapters.find(c => c.id === selection.chapter_id)
+                const selectedTextbook = textbooks.find(t => t.id === selection.textbook_id)
+                const selectedSubject = subjects.find(s => s.id === selection.subject_id)
 
-            {scheduleForm.textbook_id && (
-              <div className="space-y-2">
-                <Label>챕터</Label>
-                <Select
-                  value={scheduleForm.chapter_id}
-                  onValueChange={(v) => setScheduleForm({ ...scheduleForm, chapter_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {chapters
-                      .filter((c) => c.textbook_id === scheduleForm.textbook_id)
-                      .map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+                return (
+                  <div key={idx} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-muted-foreground">#{idx + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          setScheduleForm({
+                            ...scheduleForm,
+                            selected_chapters: scheduleForm.selected_chapters.filter((_, i) => i !== idx),
+                          })
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+
+                    {/* Subject */}
+                    <Select
+                      value={selection.subject_id}
+                      onValueChange={(v) => {
+                        const newSelections = [...scheduleForm.selected_chapters]
+                        newSelections[idx] = { subject_id: v, textbook_id: '', chapter_id: '' }
+                        setScheduleForm({ ...scheduleForm, selected_chapters: newSelections })
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="과목 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjects.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Textbook */}
+                    {selection.subject_id && (
+                      <Select
+                        value={selection.textbook_id}
+                        onValueChange={(v) => {
+                          const newSelections = [...scheduleForm.selected_chapters]
+                          newSelections[idx] = { ...newSelections[idx], textbook_id: v, chapter_id: '' }
+                          setScheduleForm({ ...scheduleForm, selected_chapters: newSelections })
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="교재 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {textbooks
+                            .filter((t) => t.subject_id === selection.subject_id)
+                            .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+                            .map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                {t.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {/* Chapter */}
+                    {selection.textbook_id && (
+                      <Select
+                        value={selection.chapter_id}
+                        onValueChange={(v) => {
+                          const newSelections = [...scheduleForm.selected_chapters]
+                          newSelections[idx] = { ...newSelections[idx], chapter_id: v }
+                          setScheduleForm({ ...scheduleForm, selected_chapters: newSelections })
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="챕터 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {chapters
+                            .filter((c) => c.textbook_id === selection.textbook_id)
+                            .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+                            .map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {/* Summary when complete */}
+                    {selectedChapter && selectedTextbook && selectedSubject && (
+                      <div className="text-xs text-muted-foreground pt-1 border-t">
+                        {selectedSubject.name} → {selectedTextbook.name} → {selectedChapter.name}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {scheduleForm.selected_chapters.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  챕터를 추가하려면 위의 추가 버튼을 클릭하세요
+                </p>
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label>설명</Label>
