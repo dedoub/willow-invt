@@ -1998,53 +1998,79 @@ export default function RyuhaStudyPage() {
                     {(() => {
                       const { overdueChapters, upcomingChapters } = getKeyStudyPlanChapters()
                       if (overdueChapters.length === 0 && upcomingChapters.length === 0) return null
+
+                      // Group chapters by textbook
+                      const groupByTextbook = (chapterList: RyuhaChapter[]) => {
+                        const grouped: Map<string, { textbook: RyuhaTextbook | undefined; chapters: RyuhaChapter[] }> = new Map()
+                        for (const chapter of chapterList) {
+                          const textbook = textbooks.find(t => t.id === chapter.textbook_id)
+                          const existing = grouped.get(chapter.textbook_id)
+                          if (existing) {
+                            existing.chapters.push(chapter)
+                          } else {
+                            grouped.set(chapter.textbook_id, { textbook, chapters: [chapter] })
+                          }
+                        }
+                        return Array.from(grouped.values())
+                      }
+
+                      const overdueByTextbook = groupByTextbook(overdueChapters)
+                      const upcomingByTextbook = groupByTextbook(upcomingChapters)
+
                       return (
                         <div className="mb-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 mb-3">
                             <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">주요 학습 계획</span>
+                            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">오늘 기준 주요 학습 계획</span>
                           </div>
-                          <div className="flex flex-wrap gap-2">
-                            {overdueChapters.map((chapter) => {
-                              const textbook = textbooks.find(t => t.id === chapter.textbook_id)
-                              const daysOverdue = Math.floor((new Date().getTime() - new Date(chapter.target_date + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
-                              return (
-                                <div
-                                  key={chapter.id}
-                                  className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-xs cursor-pointer hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors"
-                                  onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
-                                >
-                                  <span className="text-red-700 dark:text-red-300 font-medium">지연</span>
-                                  <span className="text-red-600 dark:text-red-400">
-                                    {textbook?.name} &gt; {chapter.name}
-                                  </span>
-                                  <span className="text-red-500 dark:text-red-400 text-[10px]">
-                                    D+{daysOverdue}
-                                  </span>
-                                </div>
-                              )
-                            })}
-                            {upcomingChapters.map((chapter) => {
-                              const textbook = textbooks.find(t => t.id === chapter.textbook_id)
-                              const daysUntil = Math.ceil((new Date(chapter.target_date + 'T00:00:00').getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
-                              return (
-                                <div
-                                  key={chapter.id}
-                                  className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 text-xs cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors"
-                                  onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
-                                >
-                                  <span className="text-blue-600 dark:text-blue-400">
-                                    {textbook?.name} &gt; {chapter.name}
-                                  </span>
-                                  <span className={cn(
-                                    'text-[10px] font-medium',
-                                    daysUntil === 0 ? 'text-orange-600 dark:text-orange-400' : 'text-blue-500 dark:text-blue-400'
-                                  )}>
-                                    {daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`}
-                                  </span>
-                                </div>
-                              )
-                            })}
+                          <div className="space-y-2">
+                            {/* Overdue chapters grouped by textbook */}
+                            {overdueByTextbook.map(({ textbook, chapters: tbChapters }) => (
+                              <div key={`overdue-${textbook?.id}`} className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-xs font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded">
+                                  {textbook?.name || '알 수 없음'}
+                                </span>
+                                {tbChapters.map((chapter) => {
+                                  const daysOverdue = Math.floor((new Date().getTime() - new Date(chapter.target_date + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
+                                  return (
+                                    <div
+                                      key={chapter.id}
+                                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-xs cursor-pointer hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors"
+                                      onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
+                                    >
+                                      <span className="text-red-600 dark:text-red-400">{chapter.name}</span>
+                                      <span className="text-red-500 dark:text-red-400 text-[10px] font-medium">D+{daysOverdue}</span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            ))}
+                            {/* Upcoming chapters grouped by textbook */}
+                            {upcomingByTextbook.map(({ textbook, chapters: tbChapters }) => (
+                              <div key={`upcoming-${textbook?.id}`} className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
+                                  {textbook?.name || '알 수 없음'}
+                                </span>
+                                {tbChapters.map((chapter) => {
+                                  const daysUntil = Math.ceil((new Date(chapter.target_date + 'T00:00:00').getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
+                                  return (
+                                    <div
+                                      key={chapter.id}
+                                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 text-xs cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors"
+                                      onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
+                                    >
+                                      <span className="text-blue-600 dark:text-blue-400">{chapter.name}</span>
+                                      <span className={cn(
+                                        'text-[10px] font-medium',
+                                        daysUntil === 0 ? 'text-orange-600 dark:text-orange-400' : 'text-blue-500 dark:text-blue-400'
+                                      )}>
+                                        {daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`}
+                                      </span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )
