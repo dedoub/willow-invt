@@ -11,6 +11,7 @@ export const AVAILABLE_PAGES = [
   { path: '/tensoftworks/poc', section: 'tenSoftworks', name: 'POC Projects' },
   { path: '/tensoftworks/active', section: 'tenSoftworks', name: 'Active Projects' },
   { path: '/tensoftworks/managed', section: 'tenSoftworks', name: 'Managed Projects' },
+  { path: '/tensoftworks/management', section: 'tenSoftworks', name: 'Management' },
   { path: '/others/ryuha-study', section: 'others', name: 'Ryuha Study' },
 ]
 
