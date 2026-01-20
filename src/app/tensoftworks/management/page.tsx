@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ProtectedPage } from '@/components/auth/protected-page'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useI18n } from '@/lib/i18n'
+import { gmailService, ParsedEmail, EmailSyncStatus, OverallAnalysisResult, SavedTodo, SavedAnalysis } from '@/lib/gmail'
+import type { Invoice, LineItem, InvoiceStatus, InvoiceItemType } from '@/lib/invoice'
+import { ITEM_TEMPLATES, MONTH_NAMES, DEFAULT_CLIENT, formatInvoiceDate as formatInvoiceDateUtil, formatAmount } from '@/lib/invoice'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -27,6 +31,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   Plus,
   Calendar,
   BookOpen,
@@ -44,6 +49,23 @@ import {
   Search,
   StickyNote,
   ClipboardList,
+  Receipt,
+  Download,
+  Send,
+  Check,
+  Ban,
+  AlertCircle,
+  FileText,
+  Building,
+  X,
+  Mail,
+  RefreshCw,
+  Sparkles,
+  Paperclip,
+  Reply,
+  ReplyAll,
+  Forward,
+  CheckCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TenswMgmtClient, TenswMgmtProject, TenswMgmtMilestone, TenswMgmtSchedule, TenswMgmtDailyMemo, TenswMgmtTask } from '@/types/tensw-mgmt'
@@ -628,6 +650,139 @@ export default function TenswManagementPage() {
     name: '',
     color: '#6366f1',
   })
+
+  // i18n
+  const { t } = useI18n()
+
+  // Invoice states
+  const INVOICES_PER_PAGE = 5
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(true)
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+  const [invoicePage, setInvoicePage] = useState(1)
+  const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null)
+  const [isSavingInvoice, setIsSavingInvoice] = useState(false)
+  const [isSendingInvoice, setIsSendingInvoice] = useState<string | null>(null)
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
+
+  // Invoice form states
+  interface InvoiceFormItem {
+    id: string
+    itemType: InvoiceItemType
+    month: number
+    year: number
+    customDesc: string
+    amount: string
+  }
+  const createEmptyItem = (): InvoiceFormItem => ({
+    id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    itemType: 'monthly_fee',
+    month: new Date().getMonth(),
+    year: new Date().getFullYear(),
+    customDesc: '',
+    amount: '2083.33',
+  })
+  const [invoiceFormDate, setInvoiceFormDate] = useState(new Date().toISOString().split('T')[0])
+  const [invoiceFormAttention, setInvoiceFormAttention] = useState<string>(DEFAULT_CLIENT.attention)
+  const [invoiceFormNotes, setInvoiceFormNotes] = useState('')
+  const [invoiceFormItems, setInvoiceFormItems] = useState<InvoiceFormItem[]>([createEmptyItem()])
+
+  // Extended invoice status type
+  type ExtendedInvoiceStatus = InvoiceStatus | 'sent_etc' | 'sent_bank'
+
+  // Invoice status colors
+  const INVOICE_STATUS_COLORS: Record<ExtendedInvoiceStatus, { bg: string; text: string; icon: typeof Check }> = {
+    draft: { bg: 'bg-slate-100', text: 'text-slate-600', icon: FileText },
+    sent_etc: { bg: 'bg-blue-100', text: 'text-blue-700', icon: Send },
+    sent_bank: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Send },
+    sent: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: Send },
+    paid: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: Check },
+    overdue: { bg: 'bg-red-100', text: 'text-red-700', icon: AlertCircle },
+    cancelled: { bg: 'bg-slate-200', text: 'text-slate-500', icon: Ban },
+  }
+
+  // Wiki states
+  interface WikiAttachment {
+    name: string
+    url: string
+    size: number
+    type: string
+  }
+  interface WikiNote {
+    id: string
+    user_id: string
+    section: string
+    title: string
+    content: string
+    category: string | null
+    is_pinned: boolean
+    attachments: WikiAttachment[] | null
+    created_at: string
+    updated_at: string
+  }
+  const WIKI_PER_PAGE = 5
+  const [wikiNotes, setWikiNotes] = useState<WikiNote[]>([])
+  const [isLoadingWiki, setIsLoadingWiki] = useState(true)
+  const [isAddingNote, setIsAddingNote] = useState(false)
+  const [editingNote, setEditingNote] = useState<WikiNote | null>(null)
+  const [newNoteTitle, setNewNoteTitle] = useState('')
+  const [newNoteContent, setNewNoteContent] = useState('')
+  const [newNoteFiles, setNewNoteFiles] = useState<File[]>([])
+  const [isDraggingWiki, setIsDraggingWiki] = useState(false)
+  const [isUploadingWiki, setIsUploadingWiki] = useState(false)
+  const [wikiSearch, setWikiSearch] = useState('')
+  const [wikiPage, setWikiPage] = useState(1)
+
+  // Gmail states
+  const [emails, setEmails] = useState<ParsedEmail[]>([])
+  const [selectedEmail, setSelectedEmail] = useState<ParsedEmail | null>(null)
+  const [syncStatus, setSyncStatus] = useState<EmailSyncStatus>({
+    lastSyncAt: null,
+    totalEmails: 0,
+    newEmailsCount: 0,
+    isConnected: false,
+  })
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [showGmailSettings, setShowGmailSettings] = useState(false)
+  const [gmailLabel, setGmailLabel] = useState('TenSW')
+  const [labelInput, setLabelInput] = useState('TenSW')
+  const [isConnecting, setIsConnecting] = useState(false)
+
+  // Email compose states
+  interface ComposeEmailData {
+    to: string
+    cc: string
+    bcc: string
+    subject: string
+    body: string
+  }
+  const [isComposeOpen, setIsComposeOpen] = useState(false)
+  const [composeMode, setComposeMode] = useState<'new' | 'reply' | 'replyAll' | 'forward'>('new')
+  const [composeOriginalEmail, setComposeOriginalEmail] = useState<ParsedEmail | null>(null)
+  const [composeInitialData, setComposeInitialData] = useState<Partial<ComposeEmailData> | undefined>(undefined)
+  const [composeInitialAttachments, setComposeInitialAttachments] = useState<File[] | undefined>(undefined)
+  const [pendingInvoiceSend, setPendingInvoiceSend] = useState<{ invoiceId: string; recipientType: 'etc' | 'bank' } | null>(null)
+
+  // AI analysis states
+  const [aiAnalysis, setAiAnalysis] = useState<OverallAnalysisResult | null>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [showAiAnalysis, setShowAiAnalysis] = useState(false)
+  const [savedTodos, setSavedTodos] = useState<SavedTodo[]>([])
+  const [togglingTodoIdsEmail, setTogglingTodoIdsEmail] = useState<Set<string>>(new Set())
+  const [savedAnalysis, setSavedAnalysis] = useState<SavedAnalysis | null>(null)
+
+  // AI context settings
+  const [aiContextText, setAiContextText] = useState('')
+  const [aiContextEnabled, setAiContextEnabled] = useState(true)
+  const [isSavingAiContext, setIsSavingAiContext] = useState(false)
+  const [showAiContextSettings, setShowAiContextSettings] = useState(false)
+
+  // Email filtering/pagination
+  const [emailFilter, setEmailFilter] = useState<string>('all')
+  const [emailSearch, setEmailSearch] = useState('')
+  const [emailPage, setEmailPage] = useState(1)
+  const [emailsPerPage, setEmailsPerPage] = useState(10)
+  const [relatedEmailIds, setRelatedEmailIds] = useState<string[]>([])
 
   // Fetch data
   const fetchClients = useCallback(async () => {
@@ -1471,6 +1626,662 @@ export default function TenswManagementPage() {
   const getMemoForDate = (date: Date) => {
     return memos.get(formatDate(date))
   }
+
+  // ====== Invoice Functions ======
+  const loadInvoices = useCallback(async () => {
+    setIsLoadingInvoices(true)
+    try {
+      const res = await fetch('/api/invoices')
+      if (res.ok) {
+        const data = await res.json()
+        setInvoices(data.invoices || [])
+      }
+    } catch (error) {
+      console.error('Failed to load invoices:', error)
+    } finally {
+      setIsLoadingInvoices(false)
+    }
+  }, [])
+
+  const resetInvoiceForm = () => {
+    setInvoiceFormDate(new Date().toISOString().split('T')[0])
+    setInvoiceFormAttention(DEFAULT_CLIENT.attention)
+    setInvoiceFormNotes('')
+    setInvoiceFormItems([createEmptyItem()])
+    setEditingInvoice(null)
+  }
+
+  const openNewInvoiceModal = () => {
+    resetInvoiceForm()
+    setIsInvoiceModalOpen(true)
+  }
+
+  const getItemDescription = (item: InvoiceFormItem): string => {
+    if (item.itemType === 'custom') {
+      return item.customDesc
+    }
+    const template = ITEM_TEMPLATES.find(tpl => tpl.type === item.itemType)
+    if (!template) return ''
+    return template.descriptionTemplate
+      .replace('{month}', MONTH_NAMES[item.month])
+      .replace('{year}', String(item.year))
+  }
+
+  const updateFormItem = (id: string, updates: Partial<InvoiceFormItem>) => {
+    setInvoiceFormItems(items => items.map(item =>
+      item.id === id ? { ...item, ...updates } : item
+    ))
+  }
+
+  const addFormItem = () => {
+    setInvoiceFormItems(items => [...items, createEmptyItem()])
+  }
+
+  const removeFormItem = (id: string) => {
+    setInvoiceFormItems(items => items.filter(item => item.id !== id))
+  }
+
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)
+  }
+
+  const getEffectiveInvoiceStatus = (invoice: Invoice): ExtendedInvoiceStatus => {
+    if (invoice.status === 'paid' || invoice.status === 'cancelled' || invoice.status === 'overdue') {
+      return invoice.status
+    }
+    if (invoice.sent_to_etc_at && invoice.sent_to_bank_at) {
+      return 'sent'
+    }
+    if (invoice.sent_to_etc_at) {
+      return 'sent_etc'
+    }
+    if (invoice.sent_to_bank_at) {
+      return 'sent_bank'
+    }
+    return 'draft'
+  }
+
+  const getInvoiceStatusLabel = (status: ExtendedInvoiceStatus): string => {
+    const labels: Record<ExtendedInvoiceStatus, string> = {
+      draft: t.invoice.status.draft,
+      sent_etc: t.invoice.status.sent_etc,
+      sent_bank: t.invoice.status.sent_bank,
+      sent: t.invoice.status.sent,
+      paid: t.invoice.status.paid,
+      overdue: t.invoice.status.overdue,
+      cancelled: t.invoice.status.cancelled,
+    }
+    return labels[status]
+  }
+
+  const handleSaveInvoice = async () => {
+    if (!invoiceFormDate) {
+      alert('날짜를 입력해주세요.')
+      return
+    }
+
+    const lineItems: LineItem[] = []
+    for (const item of invoiceFormItems) {
+      const amount = parseFloat(item.amount)
+      if (isNaN(amount) || amount <= 0) {
+        alert('모든 항목의 금액을 올바르게 입력해주세요.')
+        return
+      }
+      const description = getItemDescription(item)
+      if (!description) {
+        alert('모든 항목의 설명을 입력해주세요.')
+        return
+      }
+      lineItems.push({
+        description,
+        qty: null,
+        unitPrice: null,
+        amount,
+      })
+    }
+
+    if (lineItems.length === 0) {
+      alert('최소 하나의 항목을 추가해주세요.')
+      return
+    }
+
+    setIsSavingInvoice(true)
+    try {
+      const payload = {
+        invoice_date: invoiceFormDate,
+        attention: invoiceFormAttention,
+        line_items: lineItems,
+        notes: invoiceFormNotes || undefined,
+      }
+
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        setIsInvoiceModalOpen(false)
+        resetInvoiceForm()
+        await loadInvoices()
+      } else {
+        alert(t.invoice.saveFailed)
+      }
+    } catch (error) {
+      console.error('Failed to save invoice:', error)
+      alert(t.invoice.saveFailed)
+    } finally {
+      setIsSavingInvoice(false)
+    }
+  }
+
+  const handleDownloadPdf = async (invoiceId: string) => {
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/pdf`)
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = res.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'invoice.pdf'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      } else {
+        alert(t.invoice.downloadFailed)
+      }
+    } catch (error) {
+      console.error('Failed to download PDF:', error)
+      alert(t.invoice.downloadFailed)
+    }
+  }
+
+  const handleSendInvoice = async (invoiceId: string, recipientType: 'etc' | 'bank') => {
+    const invoice = invoices.find(inv => inv.id === invoiceId)
+    if (!invoice) return
+
+    setIsSendingInvoice(invoiceId)
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/pdf`)
+      if (!res.ok) {
+        alert(t.invoice.pdfFailed)
+        return
+      }
+
+      const blob = await res.blob()
+      const filename = `Willow_Invoice_${invoice.invoice_no.replace('#', '')}_${invoice.invoice_date.replace(/-/g, '')}.pdf`
+      const pdfFile = new File([blob], filename, { type: 'application/pdf' })
+
+      let emailTo: string
+      let emailSubject: string
+      let emailBody: string
+      const itemName = invoice.line_items?.[0]?.description || 'services'
+
+      if (recipientType === 'etc') {
+        emailTo = 'kyle@exchangetradedconcepts.com'
+        emailSubject = `Willow Investments - ${itemName}`
+        emailBody = `Hi Kyle,\n\nAttached is my invoice for the ${itemName}.\n\nPlease let me know once the payment is made so I can inform my bank.\n\nThank you.\n\n\nBest,\n\nDongwook`
+      } else {
+        emailTo = 'ysjmto@shinhan.com'
+        emailSubject = `윌로우인베스트먼트 외화인보이스 - ${invoice.invoice_no}`
+        emailBody = `안녕하세요.\n\n당사 추가 외화 인보이스 첨부와 같이 보내 드립니다.\n\n이에 확인 부탁 드립니다.\n\n감사합니다.\n\n김동욱 드림 (010-9629-1025)`
+      }
+
+      setComposeInitialData({ to: emailTo, subject: emailSubject, body: emailBody })
+      setComposeInitialAttachments([pdfFile])
+      setPendingInvoiceSend({ invoiceId, recipientType })
+      setComposeMode('new')
+      setComposeOriginalEmail(null)
+      setIsComposeOpen(true)
+    } catch (error) {
+      console.error('Failed to prepare invoice email:', error)
+      alert(t.invoice.emailFailed)
+    } finally {
+      setIsSendingInvoice(null)
+    }
+  }
+
+  const handleInvoiceEmailSent = async () => {
+    if (!pendingInvoiceSend) return
+
+    const { invoiceId, recipientType } = pendingInvoiceSend
+    const now = new Date().toISOString()
+
+    try {
+      const updateData: Record<string, string> = {}
+      if (recipientType === 'etc') {
+        updateData.sent_to_etc_at = now
+      } else {
+        updateData.sent_to_bank_at = now
+      }
+
+      const res = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      })
+
+      if (res.ok) {
+        await loadInvoices()
+      }
+    } catch (error) {
+      console.error('Failed to update invoice status:', error)
+    } finally {
+      setPendingInvoiceSend(null)
+    }
+  }
+
+  const handleUpdateInvoiceStatus = async (invoiceId: string, status: InvoiceStatus) => {
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      if (res.ok) {
+        await loadInvoices()
+      }
+    } catch (error) {
+      console.error('Failed to update invoice status:', error)
+    }
+  }
+
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    if (!confirm(t.invoice.deleteConfirm)) return
+
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}`, { method: 'DELETE' })
+      if (res.ok) {
+        await loadInvoices()
+      }
+    } catch (error) {
+      console.error('Failed to delete invoice:', error)
+    }
+  }
+
+  // ====== Wiki Functions ======
+  const loadWikiNotes = useCallback(async () => {
+    setIsLoadingWiki(true)
+    try {
+      const res = await fetch('/api/wiki?section=tensw-mgmt')
+      if (res.ok) {
+        const data = await res.json()
+        setWikiNotes(data)
+      }
+    } catch (error) {
+      console.error('Failed to load wiki notes:', error)
+    } finally {
+      setIsLoadingWiki(false)
+    }
+  }, [])
+
+  const handleAddNote = async () => {
+    if (!newNoteTitle.trim() || !newNoteContent.trim()) return
+
+    try {
+      setIsUploadingWiki(true)
+      let attachments: WikiAttachment[] | null = null
+
+      if (newNoteFiles.length > 0) {
+        const formData = new FormData()
+        newNoteFiles.forEach(file => formData.append('files', file))
+
+        const uploadRes = await fetch('/api/wiki/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json()
+          attachments = uploadData.files
+        }
+      }
+
+      const res = await fetch('/api/wiki', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          section: 'tensw-mgmt',
+          title: newNoteTitle.trim(),
+          content: newNoteContent.trim(),
+          attachments,
+        }),
+      })
+      if (res.ok) {
+        setNewNoteTitle('')
+        setNewNoteContent('')
+        setNewNoteFiles([])
+        setIsAddingNote(false)
+        await loadWikiNotes()
+      }
+    } catch (error) {
+      console.error('Failed to add wiki note:', error)
+    } finally {
+      setIsUploadingWiki(false)
+    }
+  }
+
+  const handleUpdateNote = async () => {
+    if (!editingNote || !newNoteTitle.trim() || !newNoteContent.trim()) return
+
+    try {
+      setIsUploadingWiki(true)
+      let attachments = editingNote.attachments
+
+      if (newNoteFiles.length > 0) {
+        const formData = new FormData()
+        newNoteFiles.forEach(file => formData.append('files', file))
+
+        const uploadRes = await fetch('/api/wiki/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json()
+          attachments = [...(attachments || []), ...uploadData.files]
+        }
+      }
+
+      const res = await fetch(`/api/wiki/${editingNote.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newNoteTitle.trim(),
+          content: newNoteContent.trim(),
+          attachments,
+        }),
+      })
+      if (res.ok) {
+        setNewNoteTitle('')
+        setNewNoteContent('')
+        setNewNoteFiles([])
+        setEditingNote(null)
+        await loadWikiNotes()
+      }
+    } catch (error) {
+      console.error('Failed to update wiki note:', error)
+    } finally {
+      setIsUploadingWiki(false)
+    }
+  }
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm(t.wiki.deleteConfirm)) return
+
+    try {
+      const res = await fetch(`/api/wiki/${noteId}`, { method: 'DELETE' })
+      if (res.ok) {
+        await loadWikiNotes()
+      }
+    } catch (error) {
+      console.error('Failed to delete wiki note:', error)
+    }
+  }
+
+  const startEditNote = (note: WikiNote) => {
+    setEditingNote(note)
+    setNewNoteTitle(note.title)
+    setNewNoteContent(note.content)
+    setNewNoteFiles([])
+    setIsAddingNote(false)
+  }
+
+  const handleWikiFilesDrop = (files: FileList) => {
+    setNewNoteFiles(prev => [...prev, ...Array.from(files)])
+  }
+
+  const filteredWikiNotes = wikiNotes.filter(note => {
+    if (!wikiSearch) return true
+    const search = wikiSearch.toLowerCase()
+    return note.title.toLowerCase().includes(search) || note.content.toLowerCase().includes(search)
+  })
+
+  const totalWikiPages = Math.ceil(filteredWikiNotes.length / WIKI_PER_PAGE)
+  const paginatedWikiNotes = filteredWikiNotes.slice(
+    (wikiPage - 1) * WIKI_PER_PAGE,
+    wikiPage * WIKI_PER_PAGE
+  )
+
+  // ====== Gmail Functions ======
+  const formatRelativeTime = (dateStr: string) => {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+
+    if (minutes < 1) return t.time.justNow
+    if (minutes < 60) return t.time.minutesAgo.replace('{minutes}', String(minutes))
+    if (hours < 24) return t.time.hoursAgo.replace('{hours}', String(hours))
+    return t.time.daysAgo.replace('{days}', String(days))
+  }
+
+  const checkGmailStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/gmail/status?section=${gmailLabel}`)
+      if (res.ok) {
+        const data = await res.json()
+        setSyncStatus({
+          isConnected: data.isConnected,
+          lastSyncAt: data.lastSyncAt,
+          totalEmails: data.totalEmails || 0,
+          newEmailsCount: data.newEmailsCount || 0,
+        })
+      }
+    } catch (error) {
+      console.error('Failed to check Gmail status:', error)
+    }
+  }, [gmailLabel])
+
+  const syncEmails = useCallback(async () => {
+    setIsSyncing(true)
+    try {
+      const res = await fetch(`/api/gmail/emails?section=${gmailLabel}`)
+      if (res.ok) {
+        const data = await res.json()
+        setEmails(data.emails || [])
+        await checkGmailStatus()
+      }
+    } catch (error) {
+      console.error('Failed to sync emails:', error)
+    } finally {
+      setIsSyncing(false)
+    }
+  }, [gmailLabel, checkGmailStatus])
+
+  const handleGmailConnect = async () => {
+    setIsConnecting(true)
+    try {
+      const res = await fetch(`/api/gmail/auth?section=${gmailLabel}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.authUrl) {
+          window.location.href = data.authUrl
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get auth URL:', error)
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  const handleGmailDisconnect = async () => {
+    if (!confirm(t.gmail.disconnectConfirm)) return
+
+    try {
+      await fetch(`/api/gmail/disconnect?section=${gmailLabel}`, { method: 'POST' })
+      setSyncStatus({ lastSyncAt: null, totalEmails: 0, newEmailsCount: 0, isConnected: false })
+      setEmails([])
+    } catch (error) {
+      console.error('Failed to disconnect Gmail:', error)
+    }
+  }
+
+  const handleLabelSave = () => {
+    setGmailLabel(labelInput)
+    localStorage.setItem('tensw-mgmt-gmail-label', labelInput)
+  }
+
+  const handleSaveAiContext = async () => {
+    setIsSavingAiContext(true)
+    try {
+      await fetch('/api/gmail/context-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          section: gmailLabel,
+          context_text: aiContextText,
+          enabled: aiContextEnabled,
+        }),
+      })
+    } catch (error) {
+      console.error('Failed to save AI context:', error)
+    } finally {
+      setIsSavingAiContext(false)
+    }
+  }
+
+  const loadAiContext = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/gmail/context-settings?section=${gmailLabel}`)
+      if (res.ok) {
+        const data = await res.json()
+        setAiContextText(data.context_text || '')
+        setAiContextEnabled(data.enabled ?? true)
+      }
+    } catch (error) {
+      console.error('Failed to load AI context:', error)
+    }
+  }, [gmailLabel])
+
+  const handleAnalyzeEmails = async () => {
+    setIsAnalyzing(true)
+    try {
+      const res = await fetch('/api/gmail/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          section: gmailLabel,
+          emails: emails.slice(0, 50),
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setAiAnalysis(data.analysis)
+        setSavedAnalysis(data.savedAnalysis)
+        setShowAiAnalysis(true)
+      }
+    } catch (error) {
+      console.error('Failed to analyze emails:', error)
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  const loadSavedTodos = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/gmail/todos?section=${gmailLabel}`)
+      if (res.ok) {
+        const data = await res.json()
+        setSavedTodos(data.todos || [])
+      }
+    } catch (error) {
+      console.error('Failed to load saved todos:', error)
+    }
+  }, [gmailLabel])
+
+  const handleEmailTodoToggle = async (todoId: string, completed: boolean) => {
+    setTogglingTodoIdsEmail(prev => new Set(prev).add(todoId))
+    try {
+      await fetch(`/api/gmail/todos/${todoId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed }),
+      })
+      await loadSavedTodos()
+    } catch (error) {
+      console.error('Failed to toggle todo:', error)
+    } finally {
+      setTogglingTodoIdsEmail(prev => {
+        const next = new Set(prev)
+        next.delete(todoId)
+        return next
+      })
+    }
+  }
+
+  const clearRelatedFilter = () => {
+    setRelatedEmailIds([])
+  }
+
+  const availableCategories = Array.from(new Set(emails.map(e => e.category).filter(Boolean))) as string[]
+
+  const getCategoryColor = (category: string, categories: string[]) => {
+    const colors = [
+      { bg: 'bg-blue-100', text: 'text-blue-700', button: 'bg-blue-600' },
+      { bg: 'bg-green-100', text: 'text-green-700', button: 'bg-green-600' },
+      { bg: 'bg-purple-100', text: 'text-purple-700', button: 'bg-purple-600' },
+      { bg: 'bg-orange-100', text: 'text-orange-700', button: 'bg-orange-600' },
+      { bg: 'bg-pink-100', text: 'text-pink-700', button: 'bg-pink-600' },
+    ]
+    const index = categories.indexOf(category) % colors.length
+    return colors[index]
+  }
+
+  const filteredEmails = emails.filter(email => {
+    if (relatedEmailIds.length > 0 && !relatedEmailIds.includes(email.id)) return false
+    if (emailFilter !== 'all' && email.category !== emailFilter) return false
+    if (emailSearch) {
+      const search = emailSearch.toLowerCase()
+      return (
+        email.subject?.toLowerCase().includes(search) ||
+        email.from?.toLowerCase().includes(search) ||
+        email.to?.toLowerCase().includes(search) ||
+        email.body?.toLowerCase().includes(search)
+      )
+    }
+    return true
+  })
+
+  const paginatedEmails = filteredEmails.slice(
+    (emailPage - 1) * emailsPerPage,
+    emailPage * emailsPerPage
+  )
+
+  const formatEmailDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  // Load Invoice, Wiki, and Gmail data
+  useEffect(() => {
+    loadInvoices()
+    loadWikiNotes()
+  }, [loadInvoices, loadWikiNotes])
+
+  useEffect(() => {
+    const savedLabel = localStorage.getItem('tensw-mgmt-gmail-label')
+    if (savedLabel) {
+      setGmailLabel(savedLabel)
+      setLabelInput(savedLabel)
+    }
+  }, [])
+
+  useEffect(() => {
+    checkGmailStatus()
+    loadSavedTodos()
+    loadAiContext()
+  }, [checkGmailStatus, loadSavedTodos, loadAiContext])
+
+  useEffect(() => {
+    if (syncStatus.isConnected && emails.length === 0) {
+      syncEmails()
+    }
+  }, [syncStatus.isConnected])
 
   // Filtered data (sorted by client name, then project name)
   const filteredProjects = (selectedClient
@@ -2453,6 +3264,899 @@ export default function TenswManagementPage() {
           </Card>
         </div>
       </div>
+
+      {/* Invoice & Work Wiki Section - Side by Side */}
+      <div className="flex flex-col lg:flex-row gap-4 mt-6">
+        {/* Invoice Section */}
+        <Card className="bg-slate-100 dark:bg-slate-800 w-full lg:w-1/2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                {t.invoice.title}
+              </CardTitle>
+              <CardDescription>{t.invoice.description}</CardDescription>
+            </div>
+            <button
+              onClick={openNewInvoiceModal}
+              className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.invoice.create}</span>
+            </button>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const totalPages = Math.ceil(invoices.length / INVOICES_PER_PAGE)
+              const paginatedInvoices = invoices.slice(
+                (invoicePage - 1) * INVOICES_PER_PAGE,
+                invoicePage * INVOICES_PER_PAGE
+              )
+              return (
+                <>
+                  <div className="space-y-2">
+                    {isLoadingInvoices ? (
+                      <div className="text-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                      </div>
+                    ) : invoices.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                        <p className="text-sm">{t.invoice.noInvoices}</p>
+                        <p className="text-xs">{t.invoice.createHint}</p>
+                      </div>
+                    ) : (
+                      paginatedInvoices.map((invoice) => {
+                        const effectiveStatus = getEffectiveInvoiceStatus(invoice)
+                        const statusStyle = INVOICE_STATUS_COLORS[effectiveStatus]
+                        const StatusIcon = statusStyle.icon
+                        const firstItem = (invoice.line_items as LineItem[])[0]
+                        return (
+                          <div key={invoice.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                            <div
+                              className="flex items-center justify-between cursor-pointer"
+                              onClick={() => setExpandedInvoice(expandedInvoice === invoice.id ? null : invoice.id)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Receipt className="h-4 w-4 text-slate-400" />
+                                <div>
+                                  <p className="font-medium text-sm">{invoice.invoice_no}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatInvoiceDateUtil(invoice.invoice_date)} · {formatCurrency(invoice.total_amount, 'USD')}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`rounded-full px-2 py-0.5 text-xs flex items-center gap-1 ${statusStyle.bg} ${statusStyle.text}`}>
+                                  <StatusIcon className="h-3 w-3" />
+                                  {getInvoiceStatusLabel(effectiveStatus)}
+                                </span>
+                                {expandedInvoice === invoice.id ? (
+                                  <ChevronUp className="h-4 w-4 text-slate-400" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                                )}
+                              </div>
+                            </div>
+                            {expandedInvoice === invoice.id && (
+                              <div className="mt-2 pt-2 border-t border-slate-100 space-y-2">
+                                <div className="text-xs text-muted-foreground">
+                                  {firstItem?.description}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleDownloadPdf(invoice.id) }}
+                                    className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-medium hover:bg-slate-200 cursor-pointer"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                    PDF
+                                  </button>
+                                  {effectiveStatus !== 'paid' && effectiveStatus !== 'cancelled' && (
+                                    <>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'etc') }}
+                                        disabled={isSendingInvoice === invoice.id}
+                                        className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
+                                          invoice.sent_to_etc_at
+                                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                                        }`}
+                                      >
+                                        {isSendingInvoice === invoice.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : invoice.sent_to_etc_at ? (
+                                          <Check className="h-3 w-3" />
+                                        ) : (
+                                          <Send className="h-3 w-3" />
+                                        )}
+                                        ETC 발송
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'bank') }}
+                                        disabled={isSendingInvoice === invoice.id}
+                                        className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
+                                          invoice.sent_to_bank_at
+                                            ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                            : 'bg-amber-600 text-white hover:bg-amber-700'
+                                        }`}
+                                      >
+                                        {isSendingInvoice === invoice.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : invoice.sent_to_bank_at ? (
+                                          <Building className="h-3 w-3" />
+                                        ) : (
+                                          <Send className="h-3 w-3" />
+                                        )}
+                                        은행 발송
+                                      </button>
+                                      {(invoice.sent_to_etc_at || invoice.sent_to_bank_at) && (
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleUpdateInvoiceStatus(invoice.id, 'paid') }}
+                                          className="flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 cursor-pointer"
+                                        >
+                                          <Check className="h-3 w-3" />
+                                          입금확인
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                  {!invoice.sent_to_etc_at && !invoice.sent_to_bank_at && effectiveStatus !== 'paid' && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(invoice.id) }}
+                                      className="flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-200 cursor-pointer"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                      {t.common.delete}
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-3 text-xs">
+                                  <span className={invoice.sent_to_etc_at ? 'text-blue-600' : 'text-muted-foreground'}>
+                                    ETC: {invoice.sent_to_etc_at ? new Date(invoice.sent_to_etc_at).toLocaleDateString('ko-KR') : '미발송'}
+                                  </span>
+                                  <span className={invoice.sent_to_bank_at ? 'text-amber-600' : 'text-muted-foreground'}>
+                                    은행: {invoice.sent_to_bank_at ? new Date(invoice.sent_to_bank_at).toLocaleDateString('ko-KR') : '미발송'}
+                                  </span>
+                                  <span className={invoice.paid_at ? 'text-emerald-600' : 'text-muted-foreground'}>
+                                    입금: {invoice.paid_at ? new Date(invoice.paid_at).toLocaleDateString('ko-KR') : '미확인'}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                  {invoices.length > 0 && (
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                      <p className="text-xs text-muted-foreground whitespace-nowrap">
+                        {t.invoice.showingRange
+                          .replace('{total}', String(invoices.length))
+                          .replace('{start}', String((invoicePage - 1) * INVOICES_PER_PAGE + 1))
+                          .replace('{end}', String(Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)))}
+                      </p>
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setInvoicePage(1)} disabled={invoicePage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
+                          <button onClick={() => setInvoicePage(p => Math.max(1, p - 1))} disabled={invoicePage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
+                          <span className="px-2 py-1 text-xs font-medium">{invoicePage}/{totalPages}</span>
+                          <button onClick={() => setInvoicePage(p => Math.min(totalPages, p + 1))} disabled={invoicePage === totalPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
+                          <button onClick={() => setInvoicePage(totalPages)} disabled={invoicePage === totalPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
+          </CardContent>
+        </Card>
+
+        {/* Invoice Modal */}
+        {isInvoiceModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setIsInvoiceModalOpen(false)} />
+            <div className="relative bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <button onClick={() => setIsInvoiceModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                <X className="h-5 w-5" />
+              </button>
+              <h2 className="text-lg font-bold mb-4">{t.invoice.new}</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">{t.invoice.invoiceDate}</label>
+                  <input
+                    type="date"
+                    value={invoiceFormDate}
+                    onChange={(e) => setInvoiceFormDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">{t.invoice.attention}</label>
+                  <input
+                    type="text"
+                    value={invoiceFormAttention}
+                    onChange={(e) => setInvoiceFormAttention(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium">{t.invoice.items}</label>
+                    <button type="button" onClick={addFormItem} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                      <Plus className="h-3 w-3" />
+                      {t.invoice.addItem}
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {invoiceFormItems.map((item, index) => (
+                      <div key={item.id} className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-slate-500">{t.invoice.itemNumber.replace('{number}', String(index + 1))}</span>
+                          {invoiceFormItems.length > 1 && (
+                            <button type="button" onClick={() => removeFormItem(item.id)} className="text-xs text-red-500 hover:text-red-700">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                        <select
+                          value={item.itemType}
+                          onChange={(e) => updateFormItem(item.id, { itemType: e.target.value as InvoiceItemType })}
+                          className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        >
+                          {ITEM_TEMPLATES.map((template) => (
+                            <option key={template.type} value={template.type}>{template.label}</option>
+                          ))}
+                        </select>
+                        {item.itemType !== 'custom' && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <select
+                              value={item.month}
+                              onChange={(e) => updateFormItem(item.id, { month: parseInt(e.target.value) })}
+                              className="px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                              {MONTH_NAMES.map((name, idx) => (
+                                <option key={idx} value={idx}>{name}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={item.year}
+                              onChange={(e) => updateFormItem(item.id, { year: parseInt(e.target.value) })}
+                              className="px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                              {[2024, 2025, 2026, 2027].map((year) => (
+                                <option key={year} value={year}>{year}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        {item.itemType === 'custom' && (
+                          <input
+                            type="text"
+                            value={item.customDesc}
+                            onChange={(e) => updateFormItem(item.id, { customDesc: e.target.value })}
+                            placeholder={t.invoice.itemDescription}
+                            className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          />
+                        )}
+                        {item.itemType !== 'custom' && (
+                          <div className="text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-600 px-2 py-1 rounded">
+                            {getItemDescription(item)}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-slate-500">$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={item.amount}
+                            onChange={(e) => updateFormItem(item.id, { amount: e.target.value })}
+                            placeholder="2083.33"
+                            className="flex-1 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {invoiceFormItems.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center">
+                      <span className="text-sm font-medium">{t.invoice.total}</span>
+                      <span className="text-sm font-bold">
+                        ${invoiceFormItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">{t.invoice.notes}</label>
+                  <textarea
+                    value={invoiceFormNotes}
+                    onChange={(e) => setInvoiceFormNotes(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <button onClick={() => setIsInvoiceModalOpen(false)} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">
+                  {t.common.cancel}
+                </button>
+                <button
+                  onClick={handleSaveInvoice}
+                  disabled={isSavingInvoice}
+                  className="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSavingInvoice && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {t.common.save}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Work Wiki Section */}
+        <Card className="bg-slate-100 dark:bg-slate-800 w-full lg:w-1/2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                {t.wiki.title}
+              </CardTitle>
+              <CardDescription>{t.wiki.description}</CardDescription>
+            </div>
+            <button
+              onClick={() => setIsAddingNote(true)}
+              className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.invoice.create}</span>
+            </button>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={wikiSearch}
+                  onChange={(e) => setWikiSearch(e.target.value)}
+                  placeholder={t.wiki.searchPlaceholder}
+                  className="w-full rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 text-sm pl-8 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                {wikiSearch && (
+                  <button onClick={() => setWikiSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              {wikiSearch && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t.wiki.searchCount.replace('{count}', String(filteredWikiNotes.length))}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              {isAddingNote && (
+                <div
+                  className={`rounded-lg bg-white dark:bg-slate-700 p-3 border-2 transition-colors ${
+                    isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-purple-200 dark:border-purple-800'
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); setIsDraggingWiki(true) }}
+                  onDragLeave={() => setIsDraggingWiki(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDraggingWiki(false); if (e.dataTransfer.files) handleWikiFilesDrop(e.dataTransfer.files) }}
+                >
+                  <input
+                    type="text"
+                    value={newNoteTitle}
+                    onChange={(e) => setNewNoteTitle(e.target.value)}
+                    placeholder={t.wiki.titlePlaceholder}
+                    className="w-full border-b border-slate-200 dark:border-slate-600 px-1 py-1 text-sm font-medium focus:outline-none focus:border-purple-400 bg-transparent mb-2"
+                  />
+                  <textarea
+                    value={newNoteContent}
+                    onChange={(e) => setNewNoteContent(e.target.value)}
+                    placeholder={t.wiki.contentPlaceholder}
+                    rows={3}
+                    className="w-full text-sm resize-none focus:outline-none bg-transparent"
+                  />
+                  {newNoteFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {newNoteFiles.map((file, idx) => (
+                        <span key={idx} className="text-xs bg-slate-100 dark:bg-slate-600 px-2 py-0.5 rounded flex items-center gap-1">
+                          <Paperclip className="h-3 w-3" />
+                          {file.name}
+                          <button onClick={() => setNewNoteFiles(files => files.filter((_, i) => i !== idx))} className="ml-1 hover:text-red-500">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-600">
+                    <label className="text-xs text-slate-500 hover:text-slate-700 cursor-pointer flex items-center gap-1">
+                      <Paperclip className="h-3 w-3" />
+                      {t.wiki.fileAttach}
+                      <input type="file" multiple className="hidden" onChange={(e) => e.target.files && handleWikiFilesDrop(e.target.files)} />
+                    </label>
+                    <div className="flex gap-2">
+                      <button onClick={() => { setIsAddingNote(false); setNewNoteTitle(''); setNewNoteContent(''); setNewNoteFiles([]) }} className="text-xs text-slate-500 hover:text-slate-700">
+                        {t.common.cancel}
+                      </button>
+                      <button
+                        onClick={handleAddNote}
+                        disabled={!newNoteTitle.trim() || !newNoteContent.trim() || isUploadingWiki}
+                        className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin" />}
+                        {t.common.save}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {editingNote && (
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-3 border-2 border-amber-200 dark:border-amber-800">
+                  <input
+                    type="text"
+                    value={newNoteTitle}
+                    onChange={(e) => setNewNoteTitle(e.target.value)}
+                    className="w-full border-b border-slate-200 dark:border-slate-600 px-1 py-1 text-sm font-medium focus:outline-none focus:border-amber-400 bg-transparent mb-2"
+                  />
+                  <textarea
+                    value={newNoteContent}
+                    onChange={(e) => setNewNoteContent(e.target.value)}
+                    rows={3}
+                    className="w-full text-sm resize-none focus:outline-none bg-transparent"
+                  />
+                  <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-600">
+                    <button onClick={() => { setEditingNote(null); setNewNoteTitle(''); setNewNoteContent(''); setNewNoteFiles([]) }} className="text-xs text-slate-500 hover:text-slate-700">
+                      {t.common.cancel}
+                    </button>
+                    <button onClick={handleUpdateNote} disabled={!newNoteTitle.trim() || !newNoteContent.trim() || isUploadingWiki} className="text-xs bg-amber-600 text-white px-2 py-1 rounded hover:bg-amber-700 disabled:opacity-50">
+                      {t.common.save}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {isLoadingWiki ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                </div>
+              ) : filteredWikiNotes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <StickyNote className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                  <p className="text-sm">{wikiSearch ? t.wiki.noSearchResults : t.wiki.noNotes}</p>
+                  {!wikiSearch && <p className="text-xs">{t.wiki.addNoteHint}</p>}
+                </div>
+              ) : (
+                paginatedWikiNotes.map((note) => (
+                  <div key={note.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm truncate">{note.title}</h4>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{note.content}</p>
+                        {note.attachments && note.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {note.attachments.map((att, idx) => (
+                              <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
+                                <Paperclip className="h-3 w-3" />
+                                {att.name}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 ml-2">
+                        <button onClick={() => startEditNote(note)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded">
+                          <Pencil className="h-3 w-3 text-slate-400" />
+                        </button>
+                        <button onClick={() => handleDeleteNote(note.id)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded">
+                          <Trash2 className="h-3 w-3 text-slate-400" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {new Date(note.updated_at).toLocaleDateString('ko-KR')}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+            {filteredWikiNotes.length > 0 && (
+              <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700 mt-3">
+                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                  {t.wiki.showingRange
+                    .replace('{total}', String(filteredWikiNotes.length))
+                    .replace('{start}', String((wikiPage - 1) * WIKI_PER_PAGE + 1))
+                    .replace('{end}', String(Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)))}
+                </p>
+                {totalWikiPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setWikiPage(1)} disabled={wikiPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
+                    <button onClick={() => setWikiPage(p => Math.max(1, p - 1))} disabled={wikiPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
+                    <span className="px-2 py-1 text-xs font-medium">{wikiPage}/{totalWikiPages}</span>
+                    <button onClick={() => setWikiPage(p => Math.min(totalWikiPages, p + 1))} disabled={wikiPage === totalWikiPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
+                    <button onClick={() => setWikiPage(totalWikiPages)} disabled={wikiPage === totalWikiPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Email Section */}
+      <Card className="bg-slate-100 dark:bg-slate-800 mt-6">
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                {t.gmail.title}
+                {syncStatus.isConnected ? (
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-amber-500" />
+                )}
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                Gmail · {t.gmail.watchLabel}: {gmailLabel}
+                {syncStatus.lastSyncAt && (
+                  <span className="ml-2">· {formatRelativeTime(syncStatus.lastSyncAt)}</span>
+                )}
+              </CardDescription>
+            </div>
+            <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
+              <button
+                onClick={syncEmails}
+                disabled={isSyncing || !syncStatus.isConnected}
+                className="flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={handleAnalyzeEmails}
+                disabled={isAnalyzing || !syncStatus.isConnected}
+                className="flex items-center justify-center gap-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 px-3 py-2 text-sm font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 disabled:opacity-50 cursor-pointer"
+              >
+                {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                <span className="hidden sm:inline">{isAnalyzing ? t.gmail.analyzing : t.gmail.aiAnalysis}</span>
+              </button>
+              <button
+                onClick={() => setShowGmailSettings(!showGmailSettings)}
+                className="flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer"
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => { setComposeMode('new'); setComposeOriginalEmail(null); setIsComposeOpen(true) }}
+                className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+              >
+                <Mail className="h-4 w-4" />
+                <span className="hidden sm:inline">{t.gmail.newEmail}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Gmail Settings Modal */}
+          {showGmailSettings && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50" onClick={() => setShowGmailSettings(false)} />
+              <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-base">{t.gmail.settings}</h4>
+                  <button onClick={() => setShowGmailSettings(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="space-y-4 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{t.gmail.connectionStatus}</span>
+                    <div className="flex items-center gap-1.5">
+                      {syncStatus.isConnected ? (
+                        <>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            {t.gmail.connected}
+                          </span>
+                          <button onClick={handleGmailDisconnect} className="text-xs px-2 py-0.5 rounded-full text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 transition-colors">
+                            {t.gmail.disconnect}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            {t.gmail.notConnected}
+                          </span>
+                          <button onClick={handleGmailConnect} disabled={isConnecting} className="text-xs bg-slate-900 text-white px-2.5 py-0.5 rounded-full hover:bg-slate-800 disabled:opacity-50 transition-colors">
+                            {isConnecting ? t.gmail.connecting : t.gmail.connect}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{t.gmail.watchLabel}</span>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={labelInput}
+                        onChange={(e) => setLabelInput(e.target.value)}
+                        className="font-mono bg-slate-100 px-2 py-1 rounded text-xs w-24 border border-slate-200 focus:outline-none focus:border-slate-400"
+                        placeholder="TenSW"
+                      />
+                      <button onClick={handleLabelSave} disabled={labelInput === gmailLabel} className="text-xs bg-slate-900 text-white px-2.5 py-1 rounded hover:bg-slate-800 disabled:opacity-50 transition-colors">
+                        {t.common.save}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{t.gmail.totalEmails}</span>
+                    <span className="font-medium">{syncStatus.totalEmails}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            {/* Email List */}
+            <div className="w-full lg:w-1/2">
+              <div className="flex gap-1.5 mb-4 flex-wrap">
+                <button
+                  onClick={() => setEmailFilter('all')}
+                  className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer ${
+                    emailFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                  }`}
+                >
+                  {t.gmail.filterAll}
+                </button>
+                {availableCategories.map((category) => {
+                  const color = getCategoryColor(category, availableCategories)
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => setEmailFilter(category)}
+                      className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer ${
+                        emailFilter === category ? `${color.button} text-white` : `${color.bg} ${color.text} hover:opacity-80`
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={emailSearch}
+                    onChange={(e) => setEmailSearch(e.target.value)}
+                    placeholder={t.header.searchPlaceholder}
+                    className="w-full rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-2 text-sm pl-9 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  {emailSearch && (
+                    <button onClick={() => setEmailSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                {emailSearch && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t.gmail.searchResultCount.replace('{count}', String(filteredEmails.length))}
+                  </p>
+                )}
+                {relatedEmailIds.length > 0 && (
+                  <div className="flex items-center justify-between mt-2 px-2 py-1.5 bg-blue-50 rounded-lg border border-blue-100">
+                    <p className="text-xs text-blue-700">
+                      {t.gmail.showingRelatedEmails.replace('{count}', String(relatedEmailIds.length))}
+                    </p>
+                    <button onClick={clearRelatedFilter} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                      <X className="h-3 w-3" />
+                      {t.gmail.clearRelatedFilter}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                {!syncStatus.isConnected ? (
+                  <div className="text-center py-8">
+                    <Mail className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                    <p className="text-muted-foreground mb-4">{t.gmail.notConnectedMessage}</p>
+                    <button
+                      onClick={handleGmailConnect}
+                      disabled={isConnecting}
+                      className="inline-flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50"
+                    >
+                      {isConnecting ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" />{t.gmail.connecting}</>
+                      ) : (
+                        <><Mail className="h-4 w-4" />{t.gmail.connect}</>
+                      )}
+                    </button>
+                  </div>
+                ) : filteredEmails.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {isSyncing ? t.gmail.syncing : t.gmail.noEmails}
+                  </div>
+                ) : (
+                  <>
+                    {paginatedEmails.map((email) => (
+                      <div
+                        key={email.id}
+                        className={`rounded-lg bg-white dark:bg-slate-700 p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 ${selectedEmail?.id === email.id ? 'ring-2 ring-blue-500' : ''}`}
+                        onClick={() => setSelectedEmail(email)}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0 flex-1">
+                            <Mail className={`h-5 w-5 mt-0.5 flex-shrink-0 ${email.direction === 'outbound' ? 'text-blue-500' : 'text-slate-400'}`} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm truncate">{email.subject || t.gmail.noSubject}</p>
+                                {email.attachments && email.attachments.length > 0 && <Paperclip className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
+                                <p className="truncate"><span className="text-slate-400">{t.gmail.from}:</span> {email.fromName || email.from}</p>
+                                <p className="truncate"><span className="text-slate-400">{t.gmail.to}:</span> {email.to}</p>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {email.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound} · {formatEmailDate(email.date)}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                                {email.body?.replace(/\n+/g, ' ').trim() || t.gmail.noContent}
+                              </p>
+                            </div>
+                          </div>
+                          {email.category && (
+                            <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${getCategoryColor(email.category, availableCategories).bg} ${getCategoryColor(email.category, availableCategories).text}`}>
+                              {email.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {filteredEmails.length > 0 && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                        <p className="text-xs text-muted-foreground whitespace-nowrap">
+                          {t.gmail.showingRange.replace('{total}', String(filteredEmails.length)).replace('{start}', String((emailPage - 1) * emailsPerPage + 1)).replace('{end}', String(Math.min(emailPage * emailsPerPage, filteredEmails.length)))}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
+                          <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
+                          <span className="px-2 py-1 text-xs font-medium">{emailPage}/{Math.ceil(filteredEmails.length / emailsPerPage)}</span>
+                          <button onClick={() => setEmailPage(p => Math.min(Math.ceil(filteredEmails.length / emailsPerPage), p + 1))} disabled={emailPage === Math.ceil(filteredEmails.length / emailsPerPage)} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
+                          <button onClick={() => setEmailPage(Math.ceil(filteredEmails.length / emailsPerPage))} disabled={emailPage === Math.ceil(filteredEmails.length / emailsPerPage)} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Email Detail / AI Analysis */}
+            <div className="w-full lg:w-1/2">
+              {selectedEmail ? (
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-4">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <span className={`rounded-full px-2 py-0.5 text-xs ${selectedEmail.direction === 'outbound' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                      {selectedEmail.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound}
+                    </span>
+                    <h3 className="text-lg font-semibold break-words flex-1">{selectedEmail.subject || t.gmail.noSubject}</h3>
+                    <button onClick={() => setSelectedEmail(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-1 text-sm mb-4">
+                    <div className="flex"><span className="w-20 text-muted-foreground flex-shrink-0">{t.gmail.from}:</span><span className="break-all">{selectedEmail.from}</span></div>
+                    <div className="flex"><span className="w-20 text-muted-foreground flex-shrink-0">{t.gmail.to}:</span><span className="break-all">{selectedEmail.to}</span></div>
+                    <div className="flex"><span className="w-20 text-muted-foreground flex-shrink-0">{t.gmail.date}:</span><span>{new Date(selectedEmail.date).toLocaleString('ko-KR')}</span></div>
+                  </div>
+                  {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
+                    <div className="mb-4 p-2 bg-slate-50 dark:bg-slate-600 rounded">
+                      <span className="text-sm font-medium">{selectedEmail.attachments.length} {t.gmail.attachments}</span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {selectedEmail.attachments.map((att, idx) => (
+                          <a
+                            key={idx}
+                            href={`/api/gmail/attachments/${selectedEmail.id}/${att.attachmentId}?filename=${encodeURIComponent(att.filename)}&mimeType=${encodeURIComponent(att.mimeType)}`}
+                            download={att.filename}
+                            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                          >
+                            <Paperclip className="h-3 w-3" />
+                            {att.filename}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="text-sm whitespace-pre-wrap max-h-64 overflow-y-auto">
+                    {selectedEmail.body || t.gmail.noContent}
+                  </div>
+                  <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-600">
+                    <button
+                      onClick={() => { setComposeMode('reply'); setComposeOriginalEmail(selectedEmail); setIsComposeOpen(true) }}
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-600 rounded hover:bg-slate-200 dark:hover:bg-slate-500"
+                    >
+                      <Reply className="h-4 w-4" />
+                      {t.gmail.reply}
+                    </button>
+                    <button
+                      onClick={() => { setComposeMode('replyAll'); setComposeOriginalEmail(selectedEmail); setIsComposeOpen(true) }}
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-600 rounded hover:bg-slate-200 dark:hover:bg-slate-500"
+                    >
+                      <ReplyAll className="h-4 w-4" />
+                      {t.gmail.replyAll}
+                    </button>
+                    <button
+                      onClick={() => { setComposeMode('forward'); setComposeOriginalEmail(selectedEmail); setIsComposeOpen(true) }}
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-600 rounded hover:bg-slate-200 dark:hover:bg-slate-500"
+                    >
+                      <Forward className="h-4 w-4" />
+                      {t.gmail.forward}
+                    </button>
+                  </div>
+                </div>
+              ) : aiAnalysis ? (
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-4">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    {t.gmail.aiAnalysis}
+                  </h3>
+                  <div className="space-y-4 text-sm">
+                    {aiAnalysis.overallSummary && (
+                      <div>
+                        <h4 className="font-medium text-xs text-muted-foreground mb-1">{t.gmail.overallSummary}</h4>
+                        <p className="text-sm">{aiAnalysis.overallSummary}</p>
+                      </div>
+                    )}
+                    {aiAnalysis.categories && aiAnalysis.categories.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-xs text-muted-foreground mb-1">{t.gmail.recentTopics}</h4>
+                        <ul className="list-disc list-inside space-y-1">
+                          {aiAnalysis.categories.flatMap(cat => cat.recentTopics || []).slice(0, 5).map((topic, idx) => (
+                            <li key={idx} className="text-sm">{topic}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {savedTodos.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-xs text-muted-foreground mb-1">{t.gmail.todoList}</h4>
+                        <div className="space-y-2">
+                          {savedTodos.map((todo) => (
+                            <div key={todo.id} className="flex items-start gap-2">
+                              {togglingTodoIdsEmail.has(todo.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-slate-400 mt-0.5" />
+                              ) : (
+                                <input
+                                  type="checkbox"
+                                  checked={todo.completed}
+                                  onChange={(e) => handleEmailTodoToggle(todo.id, e.target.checked)}
+                                  className="mt-0.5"
+                                />
+                              )}
+                              <span className={todo.completed ? 'line-through text-muted-foreground' : ''}>{todo.task}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-4 text-center text-muted-foreground">
+                  <Mail className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                  <p className="text-sm">이메일을 선택하거나 AI 분석을 실행하세요</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Schedule Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
