@@ -703,11 +703,11 @@ export default function TenswManagementPage() {
   const [invoiceFormFiles, setInvoiceFormFiles] = useState<File[]>([])
   const [isUploadingInvoiceFiles, setIsUploadingInvoiceFiles] = useState(false)
 
-  // Invoice status styles
+  // Invoice status styles (UI guide pattern)
   const INVOICE_STATUS_STYLES = {
-    pending: { bg: 'bg-slate-100', text: 'text-slate-600', label: '미처리' },
-    issued: { bg: 'bg-amber-100', text: 'text-amber-700', label: '발행됨' },
-    completed: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: '완료' },
+    pending: { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-400', label: '미처리' },
+    issued: { bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-400', label: '발행됨' },
+    completed: { bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-400', label: '완료' },
   }
 
   // 인보이스 상태 자동 계산
@@ -2640,16 +2640,16 @@ export default function TenswManagementPage() {
                                         <span className="font-medium text-sm truncate">{invoice.counterparty}</span>
                                         <span
                                           className={cn(
-                                            'rounded-full px-2 py-0.5 text-xs flex items-center gap-1 shrink-0',
+                                            'rounded-md px-2 py-1 text-xs font-medium flex items-center gap-1.5 shrink-0',
                                             statusStyle.bg, statusStyle.text
                                           )}
                                         >
                                           {computedStatus === 'completed' ? (
-                                            <CheckCircle2 className="h-3 w-3" />
+                                            <CheckCircle2 className="h-4 w-4" />
                                           ) : computedStatus === 'issued' ? (
-                                            <Clock className="h-3 w-3" />
+                                            <Clock className="h-4 w-4" />
                                           ) : (
-                                            <Clock className="h-3 w-3" />
+                                            <Circle className="h-4 w-4" />
                                           )}
                                           {statusStyle.label}
                                         </span>
