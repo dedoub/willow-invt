@@ -84,9 +84,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       title: t.sidebar.tenSoftworks,
       icon: <Building2 className="h-5 w-5" />,
       items: [
-        { title: t.sidebar.pocProjects, href: '/tensoftworks/poc' },
-        { title: t.sidebar.activeProjects, href: '/tensoftworks/active' },
-        { title: t.sidebar.managedProjects, href: '/tensoftworks/managed' },
+        { title: t.sidebar.tenswProjects, href: '/tensoftworks/projects' },
         { title: t.sidebar.tenswManagement, href: '/tensoftworks/management' },
       ],
     },

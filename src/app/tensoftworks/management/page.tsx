@@ -87,6 +87,7 @@ import {
   Minus,
   AlertTriangle,
   ListTodo,
+  Pin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TenswMgmtClient, TenswMgmtProject, TenswMgmtMilestone, TenswMgmtSchedule, TenswMgmtDailyMemo, TenswMgmtTask } from '@/types/tensw-mgmt'
@@ -1815,7 +1816,8 @@ export default function TenswManagementPage() {
   }, [])
 
   const handleAddNote = async () => {
-    if (!newNoteTitle.trim() || !newNoteContent.trim()) return
+    // 제목, 내용, 파일 중 하나만 있어도 저장 가능
+    if (!newNoteTitle.trim() && !newNoteContent.trim() && newNoteFiles.length === 0) return
 
     try {
       setIsUploadingWiki(true)
@@ -1830,10 +1832,13 @@ export default function TenswManagementPage() {
           body: formData,
         })
 
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json()
-          attachments = uploadData.files
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json().catch(() => ({}))
+          alert(`파일 업로드 실패: ${errorData.error || uploadRes.statusText}`)
+          return
         }
+        const uploadData = await uploadRes.json()
+        attachments = uploadData.files
       }
 
       const res = await fetch('/api/wiki', {
@@ -1846,22 +1851,30 @@ export default function TenswManagementPage() {
           attachments,
         }),
       })
-      if (res.ok) {
-        setNewNoteTitle('')
-        setNewNoteContent('')
-        setNewNoteFiles([])
-        setIsAddingNote(false)
-        await loadWikiNotes()
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        alert(`메모 저장 실패: ${errorData.error || res.statusText}`)
+        return
       }
+
+      setNewNoteTitle('')
+      setNewNoteContent('')
+      setNewNoteFiles([])
+      setIsAddingNote(false)
+      await loadWikiNotes()
     } catch (error) {
       console.error('Failed to add wiki note:', error)
+      alert(`저장 중 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
     } finally {
       setIsUploadingWiki(false)
     }
   }
 
   const handleUpdateNote = async () => {
-    if (!editingNote || !newNoteTitle.trim() || !newNoteContent.trim()) return
+    if (!editingNote) return
+    // 제목, 내용 중 하나만 있어도 수정 가능
+    if (!newNoteTitle.trim() && !newNoteContent.trim()) return
 
     try {
       setIsUploadingWiki(true)
@@ -1876,14 +1889,17 @@ export default function TenswManagementPage() {
           body: formData,
         })
 
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json()
-          attachments = [...(attachments || []), ...uploadData.files]
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json().catch(() => ({}))
+          alert(`파일 업로드 실패: ${errorData.error || uploadRes.statusText}`)
+          return
         }
+        const uploadData = await uploadRes.json()
+        attachments = [...(attachments || []), ...uploadData.files]
       }
 
       const res = await fetch(`/api/wiki/${editingNote.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newNoteTitle.trim(),
@@ -1891,23 +1907,27 @@ export default function TenswManagementPage() {
           attachments,
         }),
       })
-      if (res.ok) {
-        setNewNoteTitle('')
-        setNewNoteContent('')
-        setNewNoteFiles([])
-        setEditingNote(null)
-        await loadWikiNotes()
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        alert(`메모 수정 실패: ${errorData.error || res.statusText}`)
+        return
       }
+
+      setNewNoteTitle('')
+      setNewNoteContent('')
+      setNewNoteFiles([])
+      setEditingNote(null)
+      await loadWikiNotes()
     } catch (error) {
       console.error('Failed to update wiki note:', error)
+      alert(`수정 중 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
     } finally {
       setIsUploadingWiki(false)
     }
   }
 
   const handleDeleteNote = async (noteId: string) => {
-    if (!confirm(t.wiki.deleteConfirm)) return
-
     try {
       const res = await fetch(`/api/wiki/${noteId}`, { method: 'DELETE' })
       if (res.ok) {
@@ -1915,6 +1935,21 @@ export default function TenswManagementPage() {
       }
     } catch (error) {
       console.error('Failed to delete wiki note:', error)
+    }
+  }
+
+  const handleTogglePin = async (note: WikiNote) => {
+    try {
+      const res = await fetch(`/api/wiki/${note.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_pinned: !note.is_pinned }),
+      })
+      if (res.ok) {
+        await loadWikiNotes()
+      }
+    } catch (error) {
+      console.error('Failed to toggle pin:', error)
     }
   }
 
@@ -2283,7 +2318,7 @@ export default function TenswManagementPage() {
     <ProtectedPage pagePath="/tensoftworks/management">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Projects & Milestones Panel + Invoice + Wiki */}
-        <div className="lg:col-span-1 order-2 lg:order-1 space-y-4">
+        <div className="lg:col-span-1 space-y-4">
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -2456,7 +2491,7 @@ export default function TenswManagementPage() {
                                     }
                                   }}
                                 />
-                                <div className="flex gap-2">
+                                <div className="flex items-center gap-2">
                                   <div
                                     className="relative flex-1 cursor-pointer"
                                     onClick={(e) => {
@@ -2472,7 +2507,7 @@ export default function TenswManagementPage() {
                                       value={milestoneForm.target_date}
                                       onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
                                       className={cn(
-                                        "h-8 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
+                                        "h-9 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
                                         !milestoneForm.target_date && "date-placeholder-hidden"
                                       )}
                                     />
@@ -2485,7 +2520,7 @@ export default function TenswManagementPage() {
                                   <Button
                                     size="sm"
                                     variant="destructive"
-                                    className="h-8 px-2"
+                                    className="h-9 px-3"
                                     onClick={() => {
                                       deleteMilestone(milestone.id)
                                       setEditingMilestoneId(null)
@@ -2496,14 +2531,14 @@ export default function TenswManagementPage() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-8 px-2"
+                                    className="h-9 px-3"
                                     onClick={() => setEditingMilestoneId(null)}
                                   >
                                     취소
                                   </Button>
                                   <Button
                                     size="sm"
-                                    className="h-8 px-3"
+                                    className="h-9 px-3"
                                     disabled={!milestoneForm.name.trim() || saving}
                                     onClick={async () => {
                                       await saveMilestone()
@@ -2619,7 +2654,7 @@ export default function TenswManagementPage() {
                                   }
                                 }}
                               />
-                              <div className="flex gap-2">
+                              <div className="flex items-center gap-2">
                                 <div
                                   className="relative flex-1 cursor-pointer"
                                   onClick={(e) => {
@@ -2635,7 +2670,7 @@ export default function TenswManagementPage() {
                                     value={milestoneForm.target_date}
                                     onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
                                     className={cn(
-                                      "h-8 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
+                                      "h-9 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
                                       !milestoneForm.target_date && "date-placeholder-hidden"
                                     )}
                                   />
@@ -2648,7 +2683,7 @@ export default function TenswManagementPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 px-2"
+                                  className="h-9 px-3"
                                   onClick={() => {
                                     setAddingMilestoneForProject(null)
                                     setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
@@ -2658,7 +2693,7 @@ export default function TenswManagementPage() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  className="h-8 px-3"
+                                  className="h-9 px-3"
                                   disabled={!milestoneForm.name.trim() || saving}
                                   onClick={async () => {
                                     await saveMilestone()
@@ -3205,83 +3240,93 @@ export default function TenswManagementPage() {
               <div className="space-y-2">
                 {isAddingNote && (
                   <div
-                    className={`rounded-lg bg-white dark:bg-slate-700 p-3 border-2 transition-colors ${
-                      isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-purple-200 dark:border-purple-800'
+                    className={`rounded-lg bg-white dark:bg-slate-700 p-3 border transition-colors ${
+                      isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-200 dark:border-slate-600'
                     }`}
                     onDragOver={(e) => { e.preventDefault(); setIsDraggingWiki(true) }}
                     onDragLeave={() => setIsDraggingWiki(false)}
-                    onDrop={(e) => { e.preventDefault(); setIsDraggingWiki(false); if (e.dataTransfer.files) handleWikiFilesDrop(e.dataTransfer.files) }}
+                    onDrop={(e) => { e.preventDefault(); setIsDraggingWiki(false); const files = Array.from(e.dataTransfer.files || []); if (files.length > 0) setNewNoteFiles(prev => [...prev, ...files]) }}
                   >
-                    <input
-                      type="text"
-                      value={newNoteTitle}
-                      onChange={(e) => setNewNoteTitle(e.target.value)}
-                      placeholder={t.wiki.titlePlaceholder}
-                      className="w-full border-b border-slate-200 dark:border-slate-600 px-1 py-1 text-sm font-medium focus:outline-none focus:border-purple-400 bg-transparent mb-2"
-                    />
-                    <textarea
-                      value={newNoteContent}
-                      onChange={(e) => setNewNoteContent(e.target.value)}
-                      placeholder={t.wiki.contentPlaceholder}
-                      rows={3}
-                      className="w-full text-sm resize-none focus:outline-none bg-transparent"
-                    />
-                    {newNoteFiles.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {newNoteFiles.map((file, idx) => (
-                          <span key={idx} className="text-xs bg-slate-100 dark:bg-slate-600 px-2 py-0.5 rounded flex items-center gap-1">
-                            <Paperclip className="h-3 w-3" />
-                            {file.name}
-                            <button onClick={() => setNewNoteFiles(files => files.filter((_, i) => i !== idx))} className="ml-1 hover:text-red-500">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        ))}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                        <Input
+                          value={newNoteTitle}
+                          onChange={(e) => setNewNoteTitle(e.target.value)}
+                          placeholder={t.wiki.titlePlaceholder}
+                          className="h-9 border border-slate-200 dark:border-slate-600"
+                        />
                       </div>
-                    )}
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-600">
-                      <label className="text-xs text-slate-500 hover:text-slate-700 cursor-pointer flex items-center gap-1">
-                        <Paperclip className="h-3 w-3" />
-                        {t.wiki.fileAttach}
-                        <input type="file" multiple className="hidden" onChange={(e) => e.target.files && handleWikiFilesDrop(e.target.files)} />
-                      </label>
-                      <div className="flex gap-2">
-                        <button onClick={() => { setIsAddingNote(false); setNewNoteTitle(''); setNewNoteContent(''); setNewNoteFiles([]) }} className="text-xs text-slate-500 hover:text-slate-700">
-                          {t.common.cancel}
-                        </button>
-                        <button
-                          onClick={handleAddNote}
-                          disabled={!newNoteTitle.trim() || !newNoteContent.trim() || isUploadingWiki}
-                          className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">내용</label>
+                        <Textarea
+                          value={newNoteContent}
+                          onChange={(e) => setNewNoteContent(e.target.value)}
+                          placeholder={t.wiki.contentPlaceholder}
+                          rows={3}
+                          className="resize-none border border-slate-200 dark:border-slate-600"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="wiki-file-input-mgmt"
+                          className={`border border-dashed rounded p-2 text-center transition-colors cursor-pointer block ${
+                            isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-300 dark:border-slate-500'
+                          }`}
                         >
-                          {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin" />}
-                          {t.common.save}
-                        </button>
+                          <input
+                            type="file"
+                            id="wiki-file-input-mgmt"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || [])
+                              if (files.length > 0) {
+                                setNewNoteFiles(prev => [...prev, ...files])
+                              }
+                              e.target.value = ''
+                            }}
+                          />
+                          <span className="flex items-center justify-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                            <Paperclip className="h-3 w-3" />
+                            <span>{t.wiki.fileAttach}</span>
+                          </span>
+                        </label>
+                        {newNoteFiles.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {newNoteFiles.map((file, idx) => (
+                              <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
+                                <Paperclip className="h-3 w-3 text-slate-400" />
+                                <span className="flex-1 truncate">{file.name}</span>
+                                <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                                <button
+                                  onClick={() => setNewNoteFiles(files => files.filter((_, i) => i !== idx))}
+                                  className="text-slate-400 hover:text-red-500"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                )}
-                {editingNote && (
-                  <div className="rounded-lg bg-white dark:bg-slate-700 p-3 border-2 border-amber-200 dark:border-amber-800">
-                    <input
-                      type="text"
-                      value={newNoteTitle}
-                      onChange={(e) => setNewNoteTitle(e.target.value)}
-                      className="w-full border-b border-slate-200 dark:border-slate-600 px-1 py-1 text-sm font-medium focus:outline-none focus:border-amber-400 bg-transparent mb-2"
-                    />
-                    <textarea
-                      value={newNoteContent}
-                      onChange={(e) => setNewNoteContent(e.target.value)}
-                      rows={3}
-                      className="w-full text-sm resize-none focus:outline-none bg-transparent"
-                    />
-                    <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-600">
-                      <button onClick={() => { setEditingNote(null); setNewNoteTitle(''); setNewNoteContent(''); setNewNoteFiles([]) }} className="text-xs text-slate-500 hover:text-slate-700">
+                    <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setIsAddingNote(false); setNewNoteTitle(''); setNewNoteContent(''); setNewNoteFiles([]) }}
+                      >
                         {t.common.cancel}
-                      </button>
-                      <button onClick={handleUpdateNote} disabled={!newNoteTitle.trim() || !newNoteContent.trim() || isUploadingWiki} className="text-xs bg-amber-600 text-white px-2 py-1 rounded hover:bg-amber-700 disabled:opacity-50">
-                        {t.common.save}
-                      </button>
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleAddNote}
+                        disabled={(!newNoteTitle.trim() && !newNoteContent.trim() && newNoteFiles.length === 0) || isUploadingWiki}
+                      >
+                        {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                        {isUploadingWiki ? t.common.saving : t.common.save}
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -3295,39 +3340,176 @@ export default function TenswManagementPage() {
                     <p className="text-sm">{wikiSearch ? t.wiki.noSearchResults : t.wiki.noNotes}</p>
                     {!wikiSearch && <p className="text-xs">{t.wiki.addNoteHint}</p>}
                   </div>
-                ) : (
+                ) : filteredWikiNotes.length > 0 ? (
                   paginatedWikiNotes.map((note) => (
                     <div key={note.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate">{note.title}</h4>
-                          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{note.content}</p>
-                          {note.attachments && note.attachments.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {note.attachments.map((att, idx) => (
-                                <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
+                      {editingNote?.id === note.id ? (
+                        <div
+                          className={`border rounded-lg p-3 -m-3 transition-colors ${
+                            isDraggingWiki ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/30' : 'border-amber-200 dark:border-amber-800'
+                          }`}
+                          onDragOver={(e) => { e.preventDefault(); setIsDraggingWiki(true) }}
+                          onDragLeave={() => setIsDraggingWiki(false)}
+                          onDrop={(e) => { e.preventDefault(); setIsDraggingWiki(false); const files = Array.from(e.dataTransfer.files || []); if (files.length > 0) setNewNoteFiles(prev => [...prev, ...files]) }}
+                        >
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                              <Input
+                                value={newNoteTitle}
+                                onChange={(e) => setNewNoteTitle(e.target.value)}
+                                className="h-9 border border-slate-200 dark:border-slate-600"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-slate-500 mb-1 block">내용</label>
+                              <Textarea
+                                value={newNoteContent}
+                                onChange={(e) => setNewNoteContent(e.target.value)}
+                                rows={3}
+                                className="resize-none border border-slate-200 dark:border-slate-600"
+                              />
+                            </div>
+                            <div>
+                              <label
+                                htmlFor={`wiki-file-input-edit-${note.id}`}
+                                className={`border border-dashed rounded p-2 text-center transition-colors cursor-pointer block ${
+                                  isDraggingWiki ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/30' : 'border-slate-300 dark:border-slate-500'
+                                }`}
+                              >
+                                <input
+                                  type="file"
+                                  id={`wiki-file-input-edit-${note.id}`}
+                                  multiple
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const files = Array.from(e.target.files || [])
+                                    if (files.length > 0) {
+                                      setNewNoteFiles(prev => [...prev, ...files])
+                                    }
+                                    e.target.value = ''
+                                  }}
+                                />
+                                <span className="flex items-center justify-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
                                   <Paperclip className="h-3 w-3" />
-                                  {att.name}
+                                  <span>{t.wiki.fileAttach}</span>
+                                </span>
+                              </label>
+                              {(editingNote.attachments && editingNote.attachments.length > 0) && (
+                                <div className="mt-2 space-y-1">
+                                  <p className="text-xs text-slate-400">기존 첨부파일:</p>
+                                  {editingNote.attachments.map((att, idx) => (
+                                    <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-500">
+                                      <Paperclip className="h-3 w-3 text-slate-400" />
+                                      <span className="flex-1 truncate text-blue-600">{att.name}</span>
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                              {newNoteFiles.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  <p className="text-xs text-slate-400">새 첨부파일:</p>
+                                  {newNoteFiles.map((file, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
+                                      <Paperclip className="h-3 w-3 text-slate-400" />
+                                      <span className="flex-1 truncate">{file.name}</span>
+                                      <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                                      <button
+                                        onClick={() => setNewNoteFiles(files => files.filter((_, i) => i !== idx))}
+                                        className="text-slate-400 hover:text-red-500"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex justify-between gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm(t.wiki.deleteConfirm)) {
+                                  handleDeleteNote(editingNote.id)
+                                  setEditingNote(null)
+                                  setNewNoteTitle('')
+                                  setNewNoteContent('')
+                                  setNewNoteFiles([])
+                                }
+                              }}
+                            >
+                              {t.common.delete}
+                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setEditingNote(null); setNewNoteTitle(''); setNewNoteContent(''); setNewNoteFiles([]) }}
+                              >
+                                {t.common.cancel}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={handleUpdateNote}
+                                disabled={(!newNoteTitle.trim() && !newNoteContent.trim()) || isUploadingWiki}
+                                className="bg-amber-600 hover:bg-amber-700 text-white"
+                              >
+                                {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                                {isUploadingWiki ? t.common.saving : t.common.save}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              {note.is_pinned && <Pin className="h-3 w-3 text-amber-500" />}
+                              <p className="font-medium text-sm">{note.title}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleTogglePin(note)}
+                                className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${note.is_pinned ? 'text-amber-500' : 'text-slate-400'}`}
+                              >
+                                <Pin className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => startEditNote(note)}
+                                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 cursor-pointer"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 whitespace-pre-wrap line-clamp-3">{note.content}</p>
+                          {note.attachments && note.attachments.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {note.attachments.map((att, idx) => (
+                                <a
+                                  key={idx}
+                                  href={att.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
+                                >
+                                  <Paperclip className="h-2.5 w-2.5" />
+                                  <span className="max-w-[100px] truncate">{att.name}</span>
                                 </a>
                               ))}
                             </div>
                           )}
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {new Date(note.updated_at).toLocaleDateString('ko-KR')}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-1 ml-2">
-                          <button onClick={() => startEditNote(note)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded">
-                            <Pencil className="h-3 w-3 text-slate-400" />
-                          </button>
-                          <button onClick={() => handleDeleteNote(note.id)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded">
-                            <Trash2 className="h-3 w-3 text-slate-400" />
-                          </button>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {new Date(note.updated_at).toLocaleDateString('ko-KR')}
-                      </p>
+                      )}
                     </div>
                   ))
-                )}
+                ) : null}
               </div>
               {filteredWikiNotes.length > 0 && (
                 <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700 mt-3">
@@ -3353,7 +3535,7 @@ export default function TenswManagementPage() {
         </div>
 
         {/* Right Panel - Progress Summary + Calendar */}
-        <div className="lg:col-span-2 order-1 lg:order-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4">
           {/* Progress Summary */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader
@@ -4206,7 +4388,7 @@ export default function TenswManagementPage() {
                           </div>
                         ))}
                         {filteredEmails.length > 0 && (
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                             <div className="flex items-center gap-2">
                               <p className="text-xs text-muted-foreground whitespace-nowrap">
                                 {t.gmail.showingRange.replace('{total}', String(filteredEmails.length)).replace('{start}', String((emailPage - 1) * emailsPerPage + 1)).replace('{end}', String(Math.min(emailPage * emailsPerPage, filteredEmails.length)))}

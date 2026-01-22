@@ -200,9 +200,9 @@ export function CheckboxGroup() {
 }
 
 // ============================================
-// 6. 모달 폼
+// 6. 모달 폼 (생성 모드)
 // ============================================
-export function ModalForm() {
+export function CreateModalForm() {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -218,13 +218,13 @@ export function ModalForm() {
       <Button onClick={() => setOpen(true)}>모달 열기</Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle>항목 추가</DialogTitle>
             <DialogDescription>새 항목의 정보를 입력하세요.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 py-4">
             <div>
               <Label className="mb-2 block">이름</Label>
               <Input placeholder="이름을 입력하세요" />
@@ -236,14 +236,18 @@ export function ModalForm() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              취소
-            </Button>
-            <Button onClick={handleSave} disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              저장
-            </Button>
+          {/* 생성 모드: 삭제 버튼 없음 */}
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+            <div />
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={handleSave} disabled={isLoading}>
+                {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                저장
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -252,34 +256,195 @@ export function ModalForm() {
 }
 
 // ============================================
-// 7. 인라인 편집 폼 (카드 내)
+// 7. 모달 폼 (수정 모드 - 삭제 버튼 포함)
 // ============================================
-export function InlineEditForm() {
-  const [isEditing, setIsEditing] = useState(false)
-  const [value, setValue] = useState('초기값')
+export function EditModalForm() {
+  const [open, setOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  if (isEditing) {
+  const handleSave = async () => {
+    setIsLoading(true)
+    // API 호출
+    setIsLoading(false)
+    setOpen(false)
+  }
+
+  const handleDelete = async () => {
+    // 삭제 로직
+    setOpen(false)
+  }
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>수정</Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
+            <DialogTitle>항목 수정</DialogTitle>
+            <DialogDescription>항목 정보를 수정합니다.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 overflow-y-auto flex-1 py-4">
+            <div>
+              <Label className="mb-2 block">이름</Label>
+              <Input defaultValue="기존 값" />
+            </div>
+
+            <div>
+              <Label className="mb-2 block">설명</Label>
+              <Textarea defaultValue="기존 설명..." rows={3} />
+            </div>
+          </div>
+
+          {/* 수정 모드: 삭제 버튼 좌측 */}
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+            <Button variant="destructive" onClick={handleDelete}>
+              삭제
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={handleSave} disabled={isLoading}>
+                {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                저장
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+// ============================================
+// 8. 인라인 추가 폼
+// ============================================
+export function InlineAddForm() {
+  const [isAdding, setIsAdding] = useState(false)
+  const [form, setForm] = useState({ name: '', date: '' })
+
+  const handleSave = () => {
+    // 저장 로직
+    setIsAdding(false)
+    setForm({ name: '', date: '' })
+  }
+
+  if (isAdding) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
         <Input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          className="flex-1"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="항목명"
+          className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && form.name.trim()) handleSave()
+            if (e.key === 'Escape') setIsAdding(false)
+          }}
         />
-        <Button size="sm" onClick={() => setIsEditing(false)}>저장</Button>
-        <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
-          취소
-        </Button>
+        <div className="flex gap-2">
+          <Input
+            type="date"
+            value={form.date}
+            onChange={(e) => setForm({ ...form, date: e.target.value })}
+            className="h-8 text-sm flex-1 focus-visible:bg-white dark:focus-visible:bg-slate-700"
+          />
+          <Button size="sm" variant="outline" className="h-8 px-3" onClick={() => setIsAdding(false)}>
+            취소
+          </Button>
+          <Button size="sm" className="h-8 px-3" disabled={!form.name.trim()} onClick={handleSave}>
+            저장
+          </Button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div
-      onClick={() => setIsEditing(true)}
-      className="p-2 rounded cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
-    >
-      {value}
+    <Button size="sm" variant="ghost" onClick={() => setIsAdding(true)}>
+      + 항목 추가
+    </Button>
+  )
+}
+
+// ============================================
+// 9. 인라인 수정 폼 (삭제 버튼 포함)
+// ============================================
+export function InlineEditForm() {
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState({ name: '', date: '' })
+
+  const items = [
+    { id: '1', name: '항목 1', date: '2025-03-15' },
+    { id: '2', name: '항목 2', date: '2025-04-01' },
+  ]
+
+  const handleEdit = (item: typeof items[0]) => {
+    setEditingId(item.id)
+    setForm({ name: item.name, date: item.date })
+  }
+
+  const handleSave = () => {
+    // 저장 로직
+    setEditingId(null)
+  }
+
+  const handleDelete = () => {
+    // 삭제 로직
+    setEditingId(null)
+  }
+
+  return (
+    <div className="space-y-2">
+      {items.map((item) =>
+        editingId === item.id ? (
+          <div key={item.id} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+            <Input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="항목명"
+              className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && form.name.trim()) handleSave()
+                if (e.key === 'Escape') setEditingId(null)
+              }}
+            />
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                className="h-8 text-sm flex-1 focus-visible:bg-white dark:focus-visible:bg-slate-700"
+              />
+              {/* 버튼 크기 통일: h-8 px-3 */}
+              <Button size="sm" variant="destructive" className="h-8 px-3" onClick={handleDelete}>
+                삭제
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 px-3" onClick={() => setEditingId(null)}>
+                취소
+              </Button>
+              <Button size="sm" className="h-8 px-3" disabled={!form.name.trim()} onClick={handleSave}>
+                저장
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div
+            key={item.id}
+            onClick={() => handleEdit(item)}
+            className="p-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-medium">{item.name}</span>
+              <span className="text-sm text-muted-foreground">{item.date}</span>
+            </div>
+          </div>
+        )
+      )}
     </div>
   )
 }

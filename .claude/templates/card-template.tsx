@@ -16,6 +16,11 @@ import {
   RefreshCw,
   ExternalLink,
   Users,
+  Plus,
+  Zap,
+  Ban,
+  GitCommit,
+  Bell,
 } from 'lucide-react'
 
 // ============================================
@@ -64,6 +69,7 @@ export function IconHeaderCard() {
               </CardDescription>
             </div>
           </div>
+          {/* 상태 배지 스타일: px-2.5 py-1 rounded-full */}
           <span className={`text-sm px-2.5 py-1 rounded-full flex-shrink-0 ${getStatusColor(status)}`}>
             Active
           </span>
@@ -186,7 +192,43 @@ export function ColorStatsGrid() {
 }
 
 // ============================================
-// 6. POC 카드 (Amber 테마)
+// 6. 활동 카드 (Activity Card)
+// ============================================
+// 카드 배경이 slate-100이므로, neutral 색상은 slate-200 사용
+export function ActivityCards() {
+  const activities = [
+    { type: 'created', icon: <Plus className="h-4 w-4" />, label: '생성됨', color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400' },
+    { type: 'assigned', icon: <Users className="h-4 w-4" />, label: '배정됨', color: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400' },
+    { type: 'started', icon: <Zap className="h-4 w-4" />, label: '시작됨', color: 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400' },
+    { type: 'completed', icon: <CheckCircle2 className="h-4 w-4" />, label: '완료됨', color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' },
+    { type: 'discarded', icon: <Ban className="h-4 w-4" />, label: '취소됨', color: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400' },
+    { type: 'commit', icon: <GitCommit className="h-4 w-4" />, label: '커밋', color: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400' },
+    { type: 'default', icon: <Bell className="h-4 w-4" />, label: '알림', color: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400' },
+  ]
+
+  return (
+    <Card className="bg-slate-100 dark:bg-slate-800">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">최근 활동</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-2">
+        {activities.map((activity) => (
+          <div
+            key={activity.type}
+            className={`flex items-center gap-2 p-2 rounded-lg ${activity.color}`}
+          >
+            {activity.icon}
+            <span className="text-sm font-medium">{activity.label}</span>
+            <span className="text-xs ml-auto opacity-70">방금 전</span>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ============================================
+// 7. POC 카드 (Amber 테마)
 // ============================================
 export function POCCard() {
   return (
@@ -204,6 +246,7 @@ export function POCCard() {
               </CardDescription>
             </div>
           </div>
+          {/* 상태 배지 스타일: px-2.5 py-1 rounded-full */}
           <span className="text-sm px-2.5 py-1 rounded-full flex-shrink-0 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400">
             POC
           </span>

@@ -23,6 +23,26 @@ async function getCurrentUserId(): Promise<string | null> {
   }
 }
 
+// 파일명 sanitize (한글, 공백, 특수문자 처리)
+function sanitizeFileName(fileName: string): string {
+  // 확장자 분리
+  const lastDot = fileName.lastIndexOf('.')
+  const name = lastDot > 0 ? fileName.slice(0, lastDot) : fileName
+  const ext = lastDot > 0 ? fileName.slice(lastDot) : ''
+
+  // 파일명에서 허용되지 않는 문자를 언더스코어로 변환
+  // 영문, 숫자, 하이픈, 언더스코어만 허용
+  const sanitized = name
+    .replace(/\s+/g, '_')  // 공백을 언더스코어로
+    .replace(/[^a-zA-Z0-9_\-]/g, '')  // 허용되지 않는 문자 제거
+    .slice(0, 50)  // 파일명 길이 제한
+
+  // 빈 파일명 방지
+  const finalName = sanitized || 'file'
+
+  return `${finalName}${ext.toLowerCase()}`
+}
+
 // POST: 파일 업로드
 export async function POST(request: NextRequest) {
   try {
@@ -48,7 +68,8 @@ export async function POST(request: NextRequest) {
     for (const file of files) {
       const timestamp = Date.now()
       const sanitizedUserId = userId.replace(/[^a-zA-Z0-9]/g, '_')
-      const filePath = `${sanitizedUserId}/${timestamp}_${file.name}`
+      const sanitizedFileName = sanitizeFileName(file.name)
+      const filePath = `${sanitizedUserId}/${timestamp}_${sanitizedFileName}`
 
       const arrayBuffer = await file.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)

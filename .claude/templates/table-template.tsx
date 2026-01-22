@@ -12,7 +12,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, RefreshCw, Pencil, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCw, Pencil } from 'lucide-react'
 
 // 샘플 데이터 타입
 interface TableItem {
@@ -82,15 +82,12 @@ export function BasicTable() {
 }
 
 // ============================================
-// 2. 액션 버튼 테이블
+// 2. 액션 버튼 테이블 (수정 아이콘만 - 삭제는 수정 모달에서)
 // ============================================
 export function ActionTable() {
   const handleEdit = (id: string) => {
+    // 수정 모달 열기 (삭제는 모달 내에서만 가능)
     console.log('Edit:', id)
-  }
-
-  const handleDelete = (id: string) => {
-    console.log('Delete:', id)
   }
 
   return (
@@ -116,20 +113,14 @@ export function ActionTable() {
               <td className="py-3 px-3 text-sm">{item.name}</td>
               <td className="py-3 px-3">{item.aum}</td>
               <td className="py-3 px-3 text-right">
-                <div className="flex items-center justify-end gap-1">
-                  <button
-                    onClick={() => handleEdit(item.id)}
-                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-600"
-                  >
-                    <Pencil className="h-4 w-4 text-slate-500" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </button>
-                </div>
+                {/* 수정 아이콘만 표시 - 삭제는 수정 모달/인라인 내에서만 */}
+                <button
+                  onClick={() => handleEdit(item.id)}
+                  className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600"
+                  title="수정"
+                >
+                  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                </button>
               </td>
             </tr>
           ))}

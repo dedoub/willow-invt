@@ -66,8 +66,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { section = 'etf-etc', title, content, category, attachments } = body
 
-    if (!title) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+    // 제목, 내용, 파일 중 하나라도 있어야 함
+    if (!title && !content && (!attachments || attachments.length === 0)) {
+      return NextResponse.json({ error: 'Title, content, or attachments required' }, { status: 400 })
     }
 
     const { data, error } = await supabase
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: userId,
         section,
-        title,
+        title: title || '',
         content: content || '',
         category: category || null,
         attachments: attachments || null,

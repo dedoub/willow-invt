@@ -27,9 +27,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     const titleMap: Record<string, string> = {
       '/etf/etc': t.pageTitles.etcPage,
       '/etf/akros': t.pageTitles.akrosPage,
-      '/tensoftworks/active': t.pageTitles.tenswActive,
-      '/tensoftworks/managed': t.pageTitles.tenswManaged,
-      '/tensoftworks/poc': t.pageTitles.tenswPoc,
+      '/tensoftworks/projects': t.pageTitles.tenswProjects,
       '/tensoftworks/management': t.pageTitles.tenswManagement,
       '/admin/users': t.pageTitles.usersPage,
       '/others/ryuha-study': t.pageTitles.ryuhaStudyPage,

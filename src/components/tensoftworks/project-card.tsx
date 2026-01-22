@@ -273,7 +273,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
 
   if (variant === 'poc') {
     return (
-      <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 h-full">
+      <Card className="bg-amber-50 dark:bg-amber-900/20 h-full">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -345,7 +345,7 @@ export function ProjectCard({ project, variant = 'default' }: ProjectCardProps) 
   const hasMembers = project.members && project.members.length > 0
 
   return (
-    <Card className="bg-slate-100 dark:bg-slate-800 hover:shadow-md transition-shadow h-full overflow-hidden">
+    <Card className="bg-slate-100 dark:bg-slate-800 h-full overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3 min-w-0 flex-1">

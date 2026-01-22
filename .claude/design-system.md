@@ -843,7 +843,8 @@ function formatFileSize(bytes: number): string {
 |------|--------|
 | Stats 카드 (ETF) | `grid gap-4 md:grid-cols-3` |
 | Stats Grid (Tensoftworks) | `grid grid-cols-2 sm:grid-cols-4 gap-2` |
-| 프로젝트 카드 리스트 | `grid sm:grid-cols-1 lg:grid-cols-2 gap-4` |
+| 프로젝트 카드 리스트 (Active/Managed) | `grid sm:grid-cols-1 lg:grid-cols-2 gap-4` |
+| POC 카드 리스트 | `grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4` |
 | Management 페이지 (1:2) | `grid grid-cols-1 lg:grid-cols-3 gap-6` |
 | 카드 내 2컬럼 | `grid grid-cols-1 sm:grid-cols-2 gap-3` |
 

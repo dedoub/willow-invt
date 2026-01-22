@@ -70,6 +70,9 @@ import {
   Brain,
   ListTodo,
   ClipboardList,
+  Paperclip,
+  StickyNote,
+  Pin,
 } from 'lucide-react'
 
 // ============= Helper Functions =============
@@ -100,18 +103,19 @@ const getStatusColor = (status: string) => {
 }
 
 // Activity type colors
+// 카드 배경이 slate-100이므로, neutral 색상은 slate-200 사용
 const getActivityColor = (type: string) => {
   switch (type) {
     case 'created': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
     case 'assigned': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
     case 'started': return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-400'
     case 'completed': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
-    case 'discarded': return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+    case 'discarded': return 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
     case 'analysis': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400'
     case 'doc_created': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400'
     case 'schedule': return 'bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-400'
-    case 'commit': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-    default: return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+    case 'commit': return 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+    default: return 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
   }
 }
 
@@ -228,6 +232,8 @@ export default function UIGuidePage() {
             <a href="#dnd" className="text-sm text-blue-600 hover:underline">19. 드래그앤드롭</a>
             <a href="#icon-buttons" className="text-sm text-blue-600 hover:underline">20. 수정 버튼 패턴</a>
             <a href="#number-format" className="text-sm text-blue-600 hover:underline">21. 숫자 포맷</a>
+            <a href="#inline-form" className="text-sm text-blue-600 hover:underline">22. 인라인 폼</a>
+            <a href="#wiki-patterns" className="text-sm text-blue-600 hover:underline">23. 업무위키 패턴</a>
           </div>
         </CardContent>
       </Card>
@@ -807,8 +813,9 @@ export default function UIGuidePage() {
             <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
               <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">폼 요소 디자인 규칙</h4>
               <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
-                <li>• <strong>border, shadow 없음</strong> - 배경색으로 구분</li>
-                <li>• <strong>Input/Textarea</strong>: <code>bg-white dark:bg-slate-700</code></li>
+                <li>• <strong>기본 Input/Textarea</strong>: 배경색으로 구분 (border 없음)</li>
+                <li>• <strong>다이얼로그 내 Input</strong>: <code>border border-slate-200 dark:border-slate-600</code> 추가</li>
+                <li>• <strong>라벨</strong>: <code>text-xs text-slate-500 mb-1 block</code></li>
                 <li>• <strong>Checkbox 미선택</strong>: <code>bg-slate-200 dark:bg-slate-600</code></li>
                 <li>• <strong>Button (outline)</strong>: <code>bg-slate-200 dark:bg-slate-700</code></li>
               </ul>
@@ -881,10 +888,19 @@ export default function UIGuidePage() {
               </div>
             </div>
 
-            <CodeBlock title="폼 요소 패턴" code={`// Input (border/shadow 없음, 배경색으로 구분)
+            <CodeBlock title="폼 요소 패턴" code={`// 기본 Input (배경색으로 구분)
 <Input placeholder="..." />
 // 기본 배경: bg-white dark:bg-slate-700
 // 포커스 시: bg-slate-50 dark:bg-slate-600
+
+// 다이얼로그 내 Input (테두리 추가)
+<div>
+  <label className="text-xs text-slate-500 mb-1 block">필드명</label>
+  <Input
+    placeholder="..."
+    className="border border-slate-200 dark:border-slate-600"
+  />
+</div>
 
 // Checkbox (배경색으로 구분)
 <Checkbox />
@@ -1166,12 +1182,12 @@ const getActivityColor = (type: string) => {
     case 'assigned': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
     case 'started': return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-400'
     case 'completed': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
-    case 'discarded': return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+    case 'discarded': return 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
     case 'analysis': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400'
     case 'doc_created': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400'
     case 'schedule': return 'bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-400'
-    case 'commit': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-    default: return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+    case 'commit': return 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+    default: return 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
   }
 }`} />
           </CardContent>
@@ -2641,6 +2657,393 @@ const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   onChange={handleAmountChange}
   placeholder="1,000,000"
 />`} />
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* 22. Inline Form Section */}
+      <Section id="inline-form" title="22. 인라인 폼 (Inline Form)" icon={ListTodo}>
+        <Card className="bg-slate-100 dark:bg-slate-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">인라인 폼 패턴</CardTitle>
+            <CardDescription className="text-sm mt-0.5">모달 대신 인라인으로 추가/수정하는 패턴</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-6">
+            {/* When to Use */}
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+              <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">언제 사용하나요?</h4>
+              <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                <li>• <strong>간단한 항목</strong>: 필드가 1-2개인 경우 (예: 마일스톤명, 날짜)</li>
+                <li>• <strong>빠른 입력</strong>: 여러 항목을 연속으로 추가할 때</li>
+                <li>• <strong>컨텍스트 유지</strong>: 현재 목록에서 벗어나지 않고 작업할 때</li>
+              </ul>
+            </div>
+
+            {/* Add Form */}
+            <div>
+              <Label className="mb-3 block">추가 폼 (Add Form)</Label>
+              <div className="max-w-md p-2 bg-slate-50 dark:bg-slate-700 rounded-lg space-y-2">
+                <Input
+                  placeholder="항목명"
+                  className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
+                />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type="date"
+                      className="h-8 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700"
+                    />
+                  </div>
+                  <Button size="sm" variant="outline" className="h-8 px-3">취소</Button>
+                  <Button size="sm" className="h-8 px-3">저장</Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Edit Form */}
+            <div>
+              <Label className="mb-3 block">수정 폼 (Edit Form) - 삭제 버튼 포함</Label>
+              <div className="max-w-md p-2 bg-slate-50 dark:bg-slate-700 rounded-lg space-y-2">
+                <Input
+                  defaultValue="기존 항목명"
+                  className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
+                />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type="date"
+                      defaultValue="2025-03-15"
+                      className="h-8 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700"
+                    />
+                  </div>
+                  <Button size="sm" variant="destructive" className="h-8 px-3">삭제</Button>
+                  <Button size="sm" variant="outline" className="h-8 px-3">취소</Button>
+                  <Button size="sm" className="h-8 px-3">저장</Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Button Sizing Rule */}
+            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20">
+              <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">버튼 사이징 규칙</h4>
+              <ul className="text-xs text-amber-600 dark:text-amber-400 space-y-1">
+                <li>• <strong>높이</strong>: <code>h-8</code> (입력 필드와 동일)</li>
+                <li>• <strong>패딩</strong>: <code>px-3</code> (모든 버튼 동일)</li>
+                <li>• <strong>삭제 버튼</strong>: <code>variant="destructive"</code></li>
+                <li>• <strong>취소 버튼</strong>: <code>variant="outline"</code></li>
+                <li>• <strong>저장 버튼</strong>: <code>variant="default"</code> (primary)</li>
+              </ul>
+            </div>
+
+            {/* Keyboard Shortcuts */}
+            <div>
+              <Label className="mb-3 block">키보드 단축키</Label>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary">Enter → 저장</Badge>
+                <Badge variant="secondary">Escape → 취소</Badge>
+              </div>
+            </div>
+
+            {/* Focus Styling */}
+            <div>
+              <Label className="mb-3 block">포커스 스타일링</Label>
+              <div className="p-3 rounded-lg bg-white dark:bg-slate-700 space-y-2">
+                <div className="flex items-center gap-3">
+                  <Input
+                    placeholder="포커스 시 배경 유지"
+                    className="h-8 text-sm max-w-xs focus-visible:bg-white dark:focus-visible:bg-slate-700"
+                  />
+                  <span className="text-xs text-slate-500">focus-visible:bg-white</span>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <CodeBlock title="인라인 폼 패턴" code={`// 상태 관리
+const [addingItem, setAddingItem] = useState(false)
+const [editingItemId, setEditingItemId] = useState<string | null>(null)
+const [form, setForm] = useState({ name: '', date: '' })
+
+// 추가 폼
+{addingItem ? (
+  <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+    <Input
+      value={form.name}
+      onChange={(e) => setForm({ ...form, name: e.target.value })}
+      placeholder="항목명"
+      className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
+      autoFocus
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && form.name.trim()) save()
+        if (e.key === 'Escape') setAddingItem(false)
+      }}
+    />
+    <div className="flex gap-2">
+      <Input type="date" className="h-8 text-sm flex-1" />
+      <Button size="sm" variant="outline" className="h-8 px-3">취소</Button>
+      <Button size="sm" className="h-8 px-3">저장</Button>
+    </div>
+  </div>
+) : (
+  <Button size="sm" variant="ghost" onClick={() => setAddingItem(true)}>
+    <Plus className="h-3 w-3 mr-1" />항목 추가
+  </Button>
+)}
+
+// 수정 폼 (삭제 버튼 포함)
+{editingItemId === item.id ? (
+  <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+    <Input value={form.name} className="h-8 text-sm" autoFocus />
+    <div className="flex gap-2">
+      <Input type="date" className="h-8 text-sm flex-1" />
+      <Button size="sm" variant="destructive" className="h-8 px-3">삭제</Button>
+      <Button size="sm" variant="outline" className="h-8 px-3">취소</Button>
+      <Button size="sm" className="h-8 px-3">저장</Button>
+    </div>
+  </div>
+) : (
+  <div onClick={() => setEditingItemId(item.id)}>
+    {/* 일반 아이템 표시 */}
+  </div>
+)}`} />
+
+            {/* Date Placeholder Pattern */}
+            <div>
+              <Label className="mb-3 block">날짜 입력 플레이스홀더</Label>
+              <div className="p-3 rounded-lg bg-white dark:bg-slate-700">
+                <div className="flex items-center gap-3">
+                  <div className="relative max-w-[200px]">
+                    <Input
+                      type="date"
+                      className="h-8 text-sm w-full cursor-pointer"
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500">기본 상태</span>
+                </div>
+              </div>
+            </div>
+
+            <CodeBlock title="날짜 플레이스홀더 (CSS)" code={`/* globals.css */
+input[type="date"].date-placeholder-hidden::-webkit-datetime-edit-text,
+input[type="date"].date-placeholder-hidden::-webkit-datetime-edit-month-field,
+input[type="date"].date-placeholder-hidden::-webkit-datetime-edit-day-field,
+input[type="date"].date-placeholder-hidden::-webkit-datetime-edit-year-field {
+  -webkit-appearance: none;
+  display: none;
+}
+
+// JSX
+<div className="relative">
+  <Input
+    type="date"
+    value={date}
+    className={cn(
+      "h-8 text-sm cursor-pointer",
+      !date && "date-placeholder-hidden"
+    )}
+  />
+  {!date && (
+    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+      목표마감일
+    </span>
+  )}
+</div>`} />
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* 23. Wiki Patterns */}
+      <Section id="wiki-patterns" title="23. 업무위키 패턴 (Work Wiki)" icon={StickyNote}>
+        <Card className="bg-slate-100 dark:bg-slate-800">
+          <CardContent className="pt-6 space-y-6">
+            <div className="p-4 rounded-lg bg-amber-100/50 dark:bg-amber-900/20">
+              <h4 className="font-medium text-amber-800 dark:text-amber-300 mb-2">업무위키 통일 규칙</h4>
+              <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-1">
+                <li>• <strong>추가 폼</strong>: <code>border border-slate-200</code> (평상시), <code>border-purple-400 bg-purple-50</code> (드래그 시)</li>
+                <li>• <strong>수정 폼</strong>: <code>border border-amber-200 dark:border-amber-800</code> (수정 모드 강조)</li>
+                <li>• <strong>파일 첨부 영역</strong>: <code>border border-dashed rounded border-slate-300</code></li>
+                <li>• <strong>첨부된 파일</strong>: <code>bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5</code></li>
+                <li>• <strong>저장 검증</strong>: 제목, 내용, 파일 중 하나만 있어도 저장 가능</li>
+                <li>• <strong>에러 처리</strong>: <code>alert()</code>로 사용자에게 에러 메시지 표시</li>
+              </ul>
+            </div>
+
+            {/* Wiki Add Form Example */}
+            <div>
+              <Label className="mb-3 block">메모 추가 폼</Label>
+              <div className="rounded-lg bg-white dark:bg-slate-700 p-3 border border-slate-200 dark:border-slate-600">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                    <Input
+                      placeholder="제목을 입력하세요"
+                      className="h-9 border border-slate-200 dark:border-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">내용</label>
+                    <Textarea
+                      placeholder="내용을 입력하세요"
+                      rows={3}
+                      className="resize-none border border-slate-200 dark:border-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <div className="border border-dashed rounded p-2 text-center border-slate-300 dark:border-slate-500">
+                      <div className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300">
+                        <Paperclip className="h-3 w-3" />
+                        <span>파일 첨부</span>
+                      </div>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
+                        <Paperclip className="h-3 w-3 text-slate-400" />
+                        <span className="flex-1 truncate">example-file.pdf</span>
+                        <span className="text-slate-400">(256.5KB)</span>
+                        <button className="text-slate-400 hover:text-red-500">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                  <Button variant="outline" size="sm">취소</Button>
+                  <Button size="sm">저장</Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Wiki Edit Form Example */}
+            <div>
+              <Label className="mb-3 block">메모 수정 폼</Label>
+              <div className="rounded-lg bg-white dark:bg-slate-700 p-3 border border-amber-200 dark:border-amber-800">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                    <Input
+                      defaultValue="기존 메모 제목"
+                      className="h-9 border border-slate-200 dark:border-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">내용</label>
+                    <Textarea
+                      defaultValue="기존 메모 내용..."
+                      rows={3}
+                      className="resize-none border border-slate-200 dark:border-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 mb-1">첨부파일:</p>
+                    <div className="space-y-1">
+                      <a href="#" className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-500">
+                        <Paperclip className="h-3 w-3 text-slate-400" />
+                        <span className="flex-1 truncate text-blue-600">document.pdf</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                  <Button variant="outline" size="sm">취소</Button>
+                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">저장</Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Wiki Note Card Example */}
+            <div>
+              <Label className="mb-3 block">메모 카드</Label>
+              <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Pin className="h-3 w-3 text-amber-500" />
+                    <p className="font-medium text-sm">고정된 중요 메모</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-amber-500">
+                      <Pin className="h-3 w-3" />
+                    </button>
+                    <button className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400">
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                    <button className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 hover:text-red-500">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap line-clamp-3">
+                  메모 내용이 여기에 표시됩니다. 긴 내용은 3줄까지만 표시됩니다.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <a href="#" className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300">
+                    <Paperclip className="h-2.5 w-2.5" />
+                    <span className="max-w-[100px] truncate">attachment.pdf</span>
+                  </a>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">2024. 1. 15.</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <CodeBlock title="업무위키 패턴 코드" code={`// 저장 검증: 제목, 내용, 파일 중 하나만 있어도 저장 가능
+if (!newNoteTitle.trim() && !newNoteContent.trim() && newNoteFiles.length === 0) return
+
+// 에러 처리
+if (!uploadRes.ok) {
+  const errorData = await uploadRes.json().catch(() => ({}))
+  alert(\`파일 업로드 실패: \${errorData.error || uploadRes.statusText}\`)
+  return
+}
+
+// 추가 폼 컨테이너
+<div className={\`rounded-lg bg-white dark:bg-slate-700 p-3 border transition-colors \${
+  isDragging ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-200 dark:border-slate-600'
+}\`}>
+  <div className="space-y-3">
+    <div>
+      <label className="text-xs text-slate-500 mb-1 block">제목</label>
+      <Input className="h-9 border border-slate-200 dark:border-slate-600" />
+    </div>
+    <div>
+      <label className="text-xs text-slate-500 mb-1 block">내용</label>
+      <Textarea rows={3} className="resize-none border border-slate-200 dark:border-slate-600" />
+    </div>
+    <div>
+      {/* 파일 첨부 영역 */}
+      <div className="border border-dashed rounded p-2 text-center border-slate-300 dark:border-slate-500">
+        <label className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer">
+          <Paperclip className="h-3 w-3" />파일 첨부
+          <input type="file" multiple className="hidden" />
+        </label>
+      </div>
+      {/* 첨부된 파일 목록 */}
+      {files.map((file, idx) => (
+        <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
+          <Paperclip className="h-3 w-3 text-slate-400" />
+          <span className="flex-1 truncate">{file.name}</span>
+          <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
+          <button className="text-slate-400 hover:text-red-500"><X className="h-3 w-3" /></button>
+        </div>
+      ))}
+    </div>
+  </div>
+  <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+    <Button variant="outline" size="sm">취소</Button>
+    <Button size="sm" disabled={(!title && !content && !files.length) || uploading}>
+      {uploading && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+      {uploading ? '저장 중...' : '저장'}
+    </Button>
+  </div>
+</div>
+
+// 수정 폼: 테두리 색상을 amber로 변경
+<div className="border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+  ...
+  <Button className="bg-amber-600 hover:bg-amber-700 text-white">저장</Button>
+</div>`} />
           </CardContent>
         </Card>
       </Section>

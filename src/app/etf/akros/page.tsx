@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import { ProtectedPage } from '@/components/auth/protected-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/lib/i18n'
 import { gmailService, ParsedEmail, EmailSyncStatus, OverallAnalysisResult, SavedTodo, SavedAnalysis } from '@/lib/gmail'
 import type { Invoice, LineItem, InvoiceStatus, InvoiceItemType } from '@/lib/invoice'
@@ -1954,7 +1957,8 @@ Dongwook`
   }
 
   const handleAddNote = async () => {
-    if (!newNoteTitle.trim() || (!newNoteContent.trim() && newNoteFiles.length === 0)) return
+    // 제목, 내용, 파일 중 하나만 있어도 저장 가능
+    if (!newNoteTitle.trim() && !newNoteContent.trim() && newNoteFiles.length === 0) return
 
     try {
       setIsUploadingWiki(true)
@@ -1970,10 +1974,15 @@ Dongwook`
           body: formData,
         })
 
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json()
-          attachments = uploadData.files
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json().catch(() => ({}))
+          console.error('File upload failed:', uploadRes.status, errorData)
+          alert(`파일 업로드 실패: ${errorData.error || uploadRes.statusText}`)
+          return
         }
+
+        const uploadData = await uploadRes.json()
+        attachments = uploadData.files
       }
 
       const res = await fetch('/api/wiki', {
@@ -1986,15 +1995,22 @@ Dongwook`
           attachments,
         }),
       })
-      if (res.ok) {
-        setNewNoteTitle('')
-        setNewNoteContent('')
-        setNewNoteFiles([])
-        setIsAddingNote(false)
-        await loadWikiNotes()
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        console.error('Note creation failed:', res.status, errorData)
+        alert(`메모 저장 실패: ${errorData.error || res.statusText}`)
+        return
       }
+
+      setNewNoteTitle('')
+      setNewNoteContent('')
+      setNewNoteFiles([])
+      setIsAddingNote(false)
+      await loadWikiNotes()
     } catch (error) {
       console.error('Failed to add wiki note:', error)
+      alert(`저장 중 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
     } finally {
       setIsUploadingWiki(false)
     }
@@ -2020,8 +2036,6 @@ Dongwook`
   }
 
   const handleDeleteNote = async (id: string) => {
-    if (!confirm(t.wiki.deleteConfirm)) return
-
     try {
       const res = await fetch(`/api/wiki/${id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -3094,8 +3108,8 @@ Dongwook`
               {/* 새 메모 추가 폼 */}
               {isAddingNote && (
                 <div
-                  className={`rounded-lg bg-white dark:bg-slate-700 p-3 border-2 transition-colors ${
-                    isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-purple-200 dark:border-purple-800'
+                  className={`rounded-lg bg-white dark:bg-slate-700 p-3 border transition-colors ${
+                    isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-200 dark:border-slate-600'
                   }`}
                   onDragOver={(e) => {
                     e.preventDefault()
@@ -3111,88 +3125,96 @@ Dongwook`
                     }
                   }}
                 >
-                  <input
-                    type="text"
-                    value={newNoteTitle}
-                    onChange={(e) => setNewNoteTitle(e.target.value)}
-                    placeholder={t.wiki.titlePlaceholder}
-                    className="w-full text-sm font-medium mb-2 px-2 py-1 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-500"
-                  />
-                  <textarea
-                    value={newNoteContent}
-                    onChange={(e) => setNewNoteContent(e.target.value)}
-                    placeholder={t.wiki.contentPlaceholder}
-                    rows={3}
-                    className="w-full text-sm px-2 py-1 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-500 resize-none"
-                  />
-
-                  {/* 파일 첨부 영역 */}
-                  <div className="mt-2">
-                    <div className={`border border-dashed rounded p-2 text-center transition-colors ${
-                      isDraggingWiki ? 'border-purple-400 bg-purple-50' : 'border-slate-300'
-                    }`}>
-                      <input
-                        type="file"
-                        id="wiki-file-input"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => {
-                          const files = Array.from(e.target.files || [])
-                          if (files.length > 0) {
-                            setNewNoteFiles(prev => [...prev, ...files])
-                          }
-                          e.target.value = ''
-                        }}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                      <Input
+                        value={newNoteTitle}
+                        onChange={(e) => setNewNoteTitle(e.target.value)}
+                        placeholder={t.wiki.titlePlaceholder}
+                        className="h-9 border border-slate-200 dark:border-slate-600"
                       />
-                      <label
-                        htmlFor="wiki-file-input"
-                        className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-purple-600"
-                      >
-                        <Paperclip className="h-3 w-3" />
-                        <span>{t.wiki.fileAttach}</span>
-                      </label>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">내용</label>
+                      <Textarea
+                        value={newNoteContent}
+                        onChange={(e) => setNewNoteContent(e.target.value)}
+                        placeholder={t.wiki.contentPlaceholder}
+                        rows={3}
+                        className="resize-none border border-slate-200 dark:border-slate-600"
+                      />
                     </div>
 
-                    {/* 첨부된 파일 목록 */}
-                    {newNoteFiles.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {newNoteFiles.map((file, idx) => (
-                          <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 rounded px-2 py-1">
-                            <Paperclip className="h-3 w-3 text-slate-400" />
-                            <span className="flex-1 truncate">{file.name}</span>
-                            <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
-                            <button
-                              onClick={() => setNewNoteFiles(prev => prev.filter((_, i) => i !== idx))}
-                              className="text-slate-400 hover:text-red-500"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
+                    {/* 파일 첨부 영역 */}
+                    <div>
+                      <div className={`border border-dashed rounded p-2 text-center transition-colors ${
+                        isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-300 dark:border-slate-500'
+                      }`}>
+                        <input
+                          type="file"
+                          id="wiki-file-input"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || [])
+                            if (files.length > 0) {
+                              setNewNoteFiles(prev => [...prev, ...files])
+                            }
+                            e.target.value = ''
+                          }}
+                        />
+                        <label
+                          htmlFor="wiki-file-input"
+                          className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300"
+                        >
+                          <Paperclip className="h-3 w-3" />
+                          <span>{t.wiki.fileAttach}</span>
+                        </label>
                       </div>
-                    )}
+
+                      {/* 첨부된 파일 목록 */}
+                      {newNoteFiles.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {newNoteFiles.map((file, idx) => (
+                            <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
+                              <Paperclip className="h-3 w-3 text-slate-400" />
+                              <span className="flex-1 truncate">{file.name}</span>
+                              <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                              <button
+                                onClick={() => setNewNoteFiles(prev => prev.filter((_, i) => i !== idx))}
+                                className="text-slate-400 hover:text-red-500"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 mt-2">
-                    <button
+                  <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => {
                         setIsAddingNote(false)
                         setNewNoteTitle('')
                         setNewNoteContent('')
                         setNewNoteFiles([])
                       }}
-                      className="px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded"
                     >
                       {t.common.cancel}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      size="sm"
                       onClick={handleAddNote}
-                      disabled={!newNoteTitle.trim() || (!newNoteContent.trim() && newNoteFiles.length === 0) || isUploadingWiki}
-                      className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
+                      disabled={(!newNoteTitle.trim() && !newNoteContent.trim() && newNoteFiles.length === 0) || isUploadingWiki}
                     >
-                      {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin" />}
+                      {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
                       {isUploadingWiki ? t.common.saving : t.common.save}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -3212,32 +3234,69 @@ Dongwook`
                 paginatedWikiNotes.map((note) => (
                   <div key={note.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
                     {editingNote?.id === note.id ? (
-                      <div>
-                        <input
-                          type="text"
-                          value={editingNote.title}
-                          onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
-                          className="w-full text-sm font-medium mb-2 px-2 py-1 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-500"
-                        />
-                        <textarea
-                          value={editingNote.content}
-                          onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
-                          rows={3}
-                          className="w-full text-sm px-2 py-1 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-500 resize-none"
-                        />
-                        <div className="flex justify-end gap-2 mt-2">
-                          <button
-                            onClick={() => setEditingNote(null)}
-                            className="px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded"
+                      <div className="border border-amber-200 dark:border-amber-800 rounded-lg p-3 -m-3">
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                            <Input
+                              value={editingNote.title}
+                              onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
+                              className="h-9 border border-slate-200 dark:border-slate-600"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">내용</label>
+                            <Textarea
+                              value={editingNote.content}
+                              onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
+                              rows={3}
+                              className="resize-none border border-slate-200 dark:border-slate-600"
+                            />
+                          </div>
+                          {editingNote.attachments && editingNote.attachments.length > 0 && (
+                            <div>
+                              <p className="text-xs text-slate-400 mb-1">첨부파일:</p>
+                              <div className="space-y-1">
+                                {editingNote.attachments.map((att, idx) => (
+                                  <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-500">
+                                    <Paperclip className="h-3 w-3 text-slate-400" />
+                                    <span className="flex-1 truncate text-blue-600">{att.name}</span>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex justify-between gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm(t.wiki.deleteConfirm)) {
+                                handleDeleteNote(editingNote.id)
+                                setEditingNote(null)
+                              }
+                            }}
                           >
-                            {t.common.cancel}
-                          </button>
-                          <button
-                            onClick={() => handleUpdateNote(editingNote)}
-                            className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
-                          >
-                            {t.common.save}
-                          </button>
+                            {t.common.delete}
+                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingNote(null)}
+                            >
+                              {t.common.cancel}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleUpdateNote(editingNote)}
+                              className="bg-amber-600 hover:bg-amber-700 text-white"
+                            >
+                              {t.common.save}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -3259,12 +3318,6 @@ Dongwook`
                               className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 cursor-pointer"
                             >
                               <Pencil className="h-3 w-3" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteNote(note.id)}
-                              className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 hover:text-red-500 cursor-pointer"
-                            >
-                              <Trash2 className="h-3 w-3" />
                             </button>
                           </div>
                         </div>

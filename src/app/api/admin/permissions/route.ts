@@ -8,9 +8,7 @@ export const AVAILABLE_PAGES = [
   { path: '/etf/akros', section: 'etfIndexing', name: 'Akros' },
   { path: '/monor/voicecards', section: 'monoRApps', name: 'Voice Cards' },
   { path: '/monor/reviewnotes', section: 'monoRApps', name: 'Review Notes' },
-  { path: '/tensoftworks/poc', section: 'tenSoftworks', name: 'POC Projects' },
-  { path: '/tensoftworks/active', section: 'tenSoftworks', name: 'Active Projects' },
-  { path: '/tensoftworks/managed', section: 'tenSoftworks', name: 'Managed Projects' },
+  { path: '/tensoftworks/projects', section: 'tenSoftworks', name: 'Projects' },
   { path: '/tensoftworks/management', section: 'tenSoftworks', name: 'Management' },
   { path: '/others/ryuha-study', section: 'others', name: 'Ryuha Study' },
 ]

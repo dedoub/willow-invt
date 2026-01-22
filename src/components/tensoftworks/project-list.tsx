@@ -14,7 +14,7 @@ interface ProjectListProps {
 // POC 카드 스켈레톤
 function PocCardSkeleton() {
   return (
-    <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 h-full animate-pulse">
+    <Card className="bg-amber-50 dark:bg-amber-900/20 h-full animate-pulse">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3 min-w-0 flex-1">
