@@ -2672,11 +2672,15 @@ export default function TenswManagementPage() {
                                           {(invoice.issue_date || invoice.payment_date) && <span> · </span>}
                                           <span className="font-medium text-foreground">{formatKRW(invoice.amount)}</span>
                                         </p>
-                                        {invoice.description && <p>{invoice.description}</p>}
-                                        {invoice.account_number && <p>계좌: {invoice.account_number}</p>}
-                                        {invoice.notes && <p className="text-slate-500">메모: {invoice.notes}</p>}
-                                        {invoice.attachments && invoice.attachments.length > 0 && (
-                                          <p className="flex items-center gap-1"><Paperclip className="h-3 w-3" />{invoice.attachments.length}개 파일</p>
+                                        {expandedInvoice === invoice.id && (
+                                          <>
+                                            {invoice.description && <p>{invoice.description}</p>}
+                                            {invoice.account_number && <p>계좌: {invoice.account_number}</p>}
+                                            {invoice.notes && <p className="text-slate-500">메모: {invoice.notes}</p>}
+                                            {invoice.attachments && invoice.attachments.length > 0 && (
+                                              <p className="flex items-center gap-1"><Paperclip className="h-3 w-3" />{invoice.attachments.length}개 파일</p>
+                                            )}
+                                          </>
                                         )}
                                       </div>
                                     </div>
