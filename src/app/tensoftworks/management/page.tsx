@@ -2438,7 +2438,7 @@ export default function TenswManagementPage() {
                                 <button
                                   onClick={() => toggleMilestoneStatus(milestone)}
                                   className={cn(
-                                    'flex items-center gap-1 px-1.5 py-0.5 rounded text-xs',
+                                    'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium',
                                     config.bgColor,
                                     'hover:opacity-80 transition-opacity'
                                   )}
@@ -2446,13 +2446,13 @@ export default function TenswManagementPage() {
                                   disabled={togglingIds.has(`milestone-${milestone.id}`)}
                                 >
                                   {togglingIds.has(`milestone-${milestone.id}`) ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                   ) : milestone.status === 'completed' ? (
-                                    <CheckCircle2 className={cn('h-3.5 w-3.5', config.color)} />
+                                    <CheckCircle2 className={cn('h-4 w-4', config.color)} />
                                   ) : milestone.status === 'in_progress' ? (
-                                    <Clock className={cn('h-3.5 w-3.5', config.color)} />
+                                    <Clock className={cn('h-4 w-4', config.color)} />
                                   ) : (
-                                    <Circle className={cn('h-3.5 w-3.5', config.color)} />
+                                    <Circle className={cn('h-4 w-4', config.color)} />
                                   )}
                                   <span className={config.color}>{config.label}</span>
                                 </button>
@@ -4423,7 +4423,7 @@ export default function TenswManagementPage() {
           <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
                 {/* Type Selection */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">유형</label>
+                  <label className="text-xs text-slate-500 mb-1 block">유형</label>
                   <div className="grid grid-cols-4 gap-2">
                     <button
                       type="button"
@@ -4478,7 +4478,7 @@ export default function TenswManagementPage() {
 
                 {/* Counterparty */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">거래처 *</label>
+                  <label className="text-xs text-slate-500 mb-1 block">거래처 *</label>
                   <input
                     type="text"
                     value={invoiceFormCounterparty}
@@ -4490,7 +4490,7 @@ export default function TenswManagementPage() {
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">내역</label>
+                  <label className="text-xs text-slate-500 mb-1 block">내역</label>
                   <input
                     type="text"
                     value={invoiceFormDescription}
@@ -4502,7 +4502,7 @@ export default function TenswManagementPage() {
 
                 {/* Amount */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">금액 (원) *</label>
+                  <label className="text-xs text-slate-500 mb-1 block">금액 (원) *</label>
                   <input
                     type="text"
                     value={invoiceFormAmount}
@@ -4517,7 +4517,7 @@ export default function TenswManagementPage() {
 
                 {/* Issue Date - 세금계산서 발행일 */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">발행일</label>
+                  <label className="text-xs text-slate-500 mb-1 block">발행일</label>
                   <input
                     type="date"
                     value={invoiceFormDate}
@@ -4528,7 +4528,7 @@ export default function TenswManagementPage() {
 
                 {/* Payment Date - 입금일/지급일 */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="text-xs text-slate-500 mb-1 block">
                     {invoiceFormType === 'revenue' || invoiceFormType === 'asset' ? '입금일' : '지급일'}
                   </label>
                   <input
@@ -4541,7 +4541,7 @@ export default function TenswManagementPage() {
 
                 {/* Account Number */}
                 <div className="relative">
-                  <label className="block text-sm font-medium mb-1">계좌번호</label>
+                  <label className="text-xs text-slate-500 mb-1 block">계좌번호</label>
                   <input
                     type="text"
                     value={invoiceFormAccountNumber}
@@ -4582,7 +4582,7 @@ export default function TenswManagementPage() {
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">메모</label>
+                  <label className="text-xs text-slate-500 mb-1 block">메모</label>
                   <textarea
                     value={invoiceFormNotes}
                     onChange={(e) => setInvoiceFormNotes(e.target.value)}
@@ -4595,7 +4595,7 @@ export default function TenswManagementPage() {
                 {/* Existing Attachments (edit mode) */}
                 {editingInvoice && editingInvoice.attachments.length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium mb-2">기존 첨부파일</label>
+                    <label className="text-xs text-slate-500 mb-1 block">기존 첨부파일</label>
                     <div className="space-y-1">
                       {editingInvoice.attachments.map((att, idx) => (
                         <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700 px-3 py-2 rounded-lg">
@@ -4623,7 +4623,7 @@ export default function TenswManagementPage() {
 
                 {/* File Upload */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">새 첨부파일</label>
+                  <label className="text-xs text-slate-500 mb-1 block">새 첨부파일</label>
                   <div
                     className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-4 text-center cursor-pointer hover:border-slate-400 dark:hover:border-slate-500"
                     onClick={() => document.getElementById('invoice-file-input')?.click()}
