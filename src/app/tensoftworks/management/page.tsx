@@ -12,7 +12,8 @@ interface TenswInvoice {
   counterparty: string
   description: string | null
   amount: number
-  issue_date: string
+  issue_date: string | null  // 세금계산서 발행일
+  payment_date: string | null  // 입금일/지급일
   status: 'issued' | 'completed'
   attachments: Array<{ name: string; url: string; size: number; type: string }>
   notes: string | null
@@ -694,7 +695,8 @@ export default function TenswManagementPage() {
   const [invoiceFormCounterparty, setInvoiceFormCounterparty] = useState('')
   const [invoiceFormDescription, setInvoiceFormDescription] = useState('')
   const [invoiceFormAmount, setInvoiceFormAmount] = useState('')
-  const [invoiceFormDate, setInvoiceFormDate] = useState(new Date().toISOString().split('T')[0])
+  const [invoiceFormDate, setInvoiceFormDate] = useState('')  // 발행일 (선택)
+  const [invoiceFormPaymentDate, setInvoiceFormPaymentDate] = useState('')  // 입금일/지급일 (선택)
   const [invoiceFormNotes, setInvoiceFormNotes] = useState('')
   const [invoiceFormAccountNumber, setInvoiceFormAccountNumber] = useState('')
   const [showAccountSuggestions, setShowAccountSuggestions] = useState(false)
@@ -1652,7 +1654,8 @@ export default function TenswManagementPage() {
     setInvoiceFormCounterparty('')
     setInvoiceFormDescription('')
     setInvoiceFormAmount('')
-    setInvoiceFormDate(new Date().toISOString().split('T')[0])
+    setInvoiceFormDate('')  // 발행일 (선택)
+    setInvoiceFormPaymentDate('')  // 입금일/지급일 (선택)
     setInvoiceFormNotes('')
     setInvoiceFormAccountNumber('')
     setInvoiceFormFiles([])
@@ -1670,7 +1673,8 @@ export default function TenswManagementPage() {
     setInvoiceFormCounterparty(invoice.counterparty)
     setInvoiceFormDescription(invoice.description || '')
     setInvoiceFormAmount(invoice.amount.toLocaleString())
-    setInvoiceFormDate(invoice.issue_date)
+    setInvoiceFormDate(invoice.issue_date || '')
+    setInvoiceFormPaymentDate(invoice.payment_date || '')
     setInvoiceFormNotes(invoice.notes || '')
     setInvoiceFormAccountNumber(invoice.account_number || '')
     setInvoiceFormFiles([])
@@ -1732,7 +1736,8 @@ export default function TenswManagementPage() {
         counterparty: invoiceFormCounterparty.trim(),
         description: invoiceFormDescription.trim() || null,
         amount,
-        issue_date: invoiceFormDate,
+        issue_date: invoiceFormDate || null,  // 발행일 (선택)
+        payment_date: invoiceFormPaymentDate || null,  // 입금일/지급일 (선택)
         status: editingInvoice?.status || 'issued',
         attachments,
         notes: invoiceFormNotes.trim() || null,
@@ -2298,9 +2303,9 @@ export default function TenswManagementPage() {
                 </button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent>
               {/* Client filter */}
-              <div className="flex flex-wrap gap-1 items-center">
+              <div className="flex flex-wrap gap-1 items-center mb-4">
                 <button
                   onClick={() => setSelectedClient(null)}
                   className={cn(
@@ -4498,15 +4503,26 @@ export default function TenswManagementPage() {
                   />
                 </div>
 
-                {/* Issue Date */}
+                {/* Issue Date - 세금계산서 발행일 */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">발행일</label>
+                  <input
+                    type="date"
+                    value={invoiceFormDate}
+                    onChange={(e) => setInvoiceFormDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+
+                {/* Payment Date - 입금일/지급일 */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     {invoiceFormType === 'revenue' || invoiceFormType === 'asset' ? '입금일' : '지급일'}
                   </label>
                   <input
                     type="date"
-                    value={invoiceFormDate}
-                    onChange={(e) => setInvoiceFormDate(e.target.value)}
+                    value={invoiceFormPaymentDate}
+                    onChange={(e) => setInvoiceFormPaymentDate(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>

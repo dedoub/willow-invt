@@ -1062,7 +1062,8 @@ const [amount, setAmount] = useState('')
             </div>
 
             <CodeBlock title="필터 뱃지 패턴" code={`// 필터 뱃지 (탭 스타일)
-<div className="flex flex-wrap gap-1">
+// mb-4로 아래 콘텐츠와 간격 유지
+<div className="flex flex-wrap gap-1 mb-4">
   {items.map((item) => (
     <button
       key={item}
