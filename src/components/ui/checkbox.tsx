@@ -14,7 +14,18 @@ function Checkbox({
     <CheckboxPrimitive.Root
       data-slot="checkbox"
       className={cn(
-        "peer border-input dark:bg-input/30 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:data-[state=checked]:bg-primary data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        // 기본 스타일 (border, shadow 없음 - 배경색으로 구분)
+        "peer size-4 shrink-0 rounded-[4px] transition-colors outline-none",
+        // 미체크 상태: 회색 배경
+        "bg-slate-200 dark:bg-slate-600",
+        // 체크 상태: primary 배경
+        "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
+        // 포커스 시 배경색 변경
+        "focus-visible:bg-slate-300 dark:focus-visible:bg-slate-500",
+        // 에러 상태
+        "aria-invalid:bg-red-100 dark:aria-invalid:bg-red-900/30",
+        // 비활성화
+        "disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       {...props}

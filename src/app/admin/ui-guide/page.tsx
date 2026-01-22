@@ -226,7 +226,7 @@ export default function UIGuidePage() {
             <a href="#calendar" className="text-sm text-blue-600 hover:underline">17. 캘린더 셀</a>
             <a href="#charts" className="text-sm text-blue-600 hover:underline">18. 차트</a>
             <a href="#dnd" className="text-sm text-blue-600 hover:underline">19. 드래그앤드롭</a>
-            <a href="#icon-buttons" className="text-sm text-blue-600 hover:underline">20. 아이콘 버튼</a>
+            <a href="#icon-buttons" className="text-sm text-blue-600 hover:underline">20. 수정 버튼 패턴</a>
             <a href="#number-format" className="text-sm text-blue-600 hover:underline">21. 숫자 포맷</a>
           </div>
         </CardContent>
@@ -800,18 +800,29 @@ export default function UIGuidePage() {
         <Card className="bg-slate-100 dark:bg-slate-800">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">입력 폼 컴포넌트</CardTitle>
-            <CardDescription className="text-sm mt-0.5">Input, Textarea, Checkbox</CardDescription>
+            <CardDescription className="text-sm mt-0.5">Input, Textarea, Checkbox, Button (border/shadow 없음)</CardDescription>
           </CardHeader>
           <CardContent className="pt-0 space-y-6">
+            {/* Form Design Rule */}
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+              <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">폼 요소 디자인 규칙</h4>
+              <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                <li>• <strong>border, shadow 없음</strong> - 배경색으로 구분</li>
+                <li>• <strong>Input/Textarea</strong>: <code>bg-white dark:bg-slate-700</code></li>
+                <li>• <strong>Checkbox 미선택</strong>: <code>bg-slate-200 dark:bg-slate-600</code></li>
+                <li>• <strong>Button (outline)</strong>: <code>bg-slate-200 dark:bg-slate-700</code></li>
+              </ul>
+            </div>
+
             {/* Basic Inputs */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label className="mb-2 block">기본 Input</Label>
-                <Input placeholder="텍스트를 입력하세요..." className="bg-white dark:bg-slate-700" />
+                <Label className="mb-2 block">기본 Input (배경색으로 구분)</Label>
+                <Input placeholder="텍스트를 입력하세요..." />
               </div>
               <div>
                 <Label className="mb-2 block">비활성화 Input</Label>
-                <Input placeholder="비활성화됨" disabled className="bg-white dark:bg-slate-700" />
+                <Input placeholder="비활성화됨" disabled />
               </div>
             </div>
 
@@ -820,46 +831,84 @@ export default function UIGuidePage() {
               <Label className="mb-2 block">검색 Input (아이콘 포함)</Label>
               <div className="relative max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="검색..."
-                  className="pl-10 h-9 bg-white dark:bg-slate-700"
-                />
+                <Input placeholder="검색..." className="pl-10 h-9" />
               </div>
             </div>
 
             {/* Textarea */}
             <div>
               <Label className="mb-2 block">Textarea</Label>
-              <Textarea
-                placeholder="내용을 입력하세요..."
-                rows={3}
-                className="bg-white dark:bg-slate-700"
-              />
+              <Textarea placeholder="내용을 입력하세요..." rows={3} />
+            </div>
+
+            {/* Amount Input */}
+            <div>
+              <Label className="mb-2 block">금액 입력 (천단위 콤마)</Label>
+              <div className="max-w-xs">
+                <Input
+                  placeholder="0"
+                  defaultValue="50,000,000"
+                  className="text-right"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">입력 시 자동으로 콤마 추가</p>
             </div>
 
             {/* Checkbox */}
             <div>
-              <Label className="mb-2 block">Checkbox</Label>
+              <Label className="mb-2 block">Checkbox (배경색으로 구분)</Label>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <Checkbox id="check1" />
-                  <label htmlFor="check1" className="text-sm">옵션 1</label>
+                  <label htmlFor="check1" className="text-sm">미선택 (회색 배경)</label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Checkbox id="check2" defaultChecked />
-                  <label htmlFor="check2" className="text-sm">옵션 2 (선택됨)</label>
+                  <label htmlFor="check2" className="text-sm">선택됨 (primary 배경)</label>
                 </div>
               </div>
             </div>
 
-            <CodeBlock title="폼 요소 패턴" code={`// Input 배경 (카드 내부에서)
-<Input className="bg-white dark:bg-slate-700" />
+            {/* Buttons */}
+            <div>
+              <Label className="mb-2 block">Button Variants (border/shadow 없음)</Label>
+              <div className="flex flex-wrap gap-3">
+                <Button>Default</Button>
+                <Button variant="outline">Outline (취소)</Button>
+                <Button variant="secondary">Secondary</Button>
+                <Button variant="destructive">Destructive (삭제)</Button>
+                <Button variant="ghost">Ghost</Button>
+              </div>
+            </div>
 
-// 검색 Input
-<div className="relative">
-  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-  <Input className="pl-10 h-9 bg-white dark:bg-slate-700" />
-</div>`} />
+            <CodeBlock title="폼 요소 패턴" code={`// Input (border/shadow 없음, 배경색으로 구분)
+<Input placeholder="..." />
+// 기본 배경: bg-white dark:bg-slate-700
+// 포커스 시: bg-slate-50 dark:bg-slate-600
+
+// Checkbox (배경색으로 구분)
+<Checkbox />
+// 미선택: bg-slate-200 dark:bg-slate-600
+// 선택됨: bg-primary
+
+// 금액 입력 (천단위 콤마)
+const [amount, setAmount] = useState('')
+<input
+  type="text"
+  value={amount}
+  onChange={(e) => {
+    const value = e.target.value.replace(/[^\\d]/g, '')
+    setAmount(value ? parseInt(value).toLocaleString() : '')
+  }}
+  placeholder="0"
+/>
+// 로드 시: setAmount(invoice.amount.toLocaleString())
+// 저장 시: parseInt(amount.replace(/,/g, ''), 10)
+
+// Button outline variant (취소 버튼)
+<Button variant="outline">취소</Button>
+// 배경: bg-slate-200 dark:bg-slate-700
+// 호버: bg-slate-300 dark:bg-slate-600`} />
           </CardContent>
         </Card>
       </Section>
@@ -968,6 +1017,48 @@ export default function UIGuidePage() {
                   이맥스시스템
                 </button>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">이메일 카테고리 필터 (선택 시 동적 색상)</p>
+              <div className="flex flex-wrap gap-1 mt-2">
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-900 text-white dark:bg-slate-600">
+                  전체
+                </button>
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-amber-500 text-white">
+                  재무회계
+                </button>
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">
+                  고객사/성균관대학교
+                </button>
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">
+                  모노알앱스
+                </button>
+              </div>
+            </div>
+
+            {/* Search + Filter Combination */}
+            <div>
+              <Label className="mb-3 block">검색 + 필터 조합</Label>
+              <p className="text-xs text-muted-foreground mb-2">검색 입력창을 위에, 필터 뱃지를 아래에 배치</p>
+              <div className="space-y-2 max-w-md">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="검색어를 입력하세요..."
+                    className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-900 text-white dark:bg-slate-600">
+                    전체
+                  </button>
+                  <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-amber-500 text-white">
+                    재무회계
+                  </button>
+                  <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">
+                    고객사
+                  </button>
+                </div>
+              </div>
             </div>
 
             <CodeBlock title="필터 뱃지 패턴" code={`// 필터 뱃지 (탭 스타일)
@@ -1002,7 +1093,59 @@ export default function UIGuidePage() {
   }}
 >
   {client.name}
-</button>`} />
+</button>
+
+// 카테고리 필터 뱃지 (이메일 등 - 선택 시 동적 색상)
+{categories.map((category) => {
+  const color = getCategoryColor(category)
+  return (
+    <button
+      key={category}
+      onClick={() => setFilter(category)}
+      className={cn(
+        'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+        filter === category
+          ? \`\${color.button} text-white\`  // 선택 시 카테고리 색상
+          : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300'
+      )}
+    >
+      {category}
+    </button>
+  )
+})}`} />
+
+            <CodeBlock title="검색 + 필터 조합 패턴" code={`// 검색 + 필터 조합 (검색 위, 필터 아래)
+<div className="space-y-2">
+  {/* 검색 입력창 */}
+  <div className="relative">
+    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <input
+      type="text"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      placeholder="검색어를 입력하세요..."
+      className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+    />
+  </div>
+
+  {/* 필터 뱃지 */}
+  <div className="flex flex-wrap gap-1">
+    {categories.map((category) => (
+      <button
+        key={category}
+        onClick={() => setFilter(category)}
+        className={cn(
+          'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+          filter === category
+            ? 'bg-slate-900 text-white dark:bg-slate-600'
+            : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300'
+        )}
+      >
+        {category}
+      </button>
+    ))}
+  </div>
+</div>`} />
 
             <CodeBlock title="배지 헬퍼 함수" code={`// 우선순위 색상 (통일된 패턴)
 const getPriorityColor = (priority: string) => {
@@ -1551,16 +1694,16 @@ className="bg-slate-100 dark:bg-slate-800"
 
             {/* Scrollable Modal with Fixed Header/Footer */}
             <div>
-              <Label className="mb-3 block">스크롤 모달 (헤더/푸터 고정)</Label>
+              <Label className="mb-3 block">스크롤 모달 (헤더/푸터 고정 + 테두리 구분)</Label>
               <div className="p-4 rounded-lg bg-white dark:bg-slate-700">
                 <div className="max-w-md mx-auto bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex flex-col max-h-[300px]">
-                  {/* Fixed Header */}
-                  <div className="p-4 flex-shrink-0">
+                  {/* Fixed Header with border-bottom */}
+                  <div className="p-4 pb-4 flex-shrink-0 border-b">
                     <h3 className="text-lg font-semibold">헤더 (고정)</h3>
-                    <p className="text-sm text-muted-foreground">flex-shrink-0으로 고정</p>
+                    <p className="text-sm text-muted-foreground">pb-4 border-b로 구분</p>
                   </div>
-                  {/* Scrollable Content */}
-                  <div className="overflow-y-auto flex-1 px-4 space-y-3">
+                  {/* Scrollable Content with padding */}
+                  <div className="overflow-y-auto flex-1 px-4 py-4 space-y-3">
                     <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 1</div>
                     <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 2</div>
                     <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 3</div>
@@ -1568,8 +1711,8 @@ className="bg-slate-100 dark:bg-slate-800"
                     <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 5</div>
                     <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 6</div>
                   </div>
-                  {/* Fixed Footer */}
-                  <div className="p-4 flex-shrink-0 flex justify-end gap-2">
+                  {/* Fixed Footer with border-top */}
+                  <div className="p-4 pt-4 flex-shrink-0 flex justify-end gap-2 border-t">
                     <Button variant="outline" size="sm">취소</Button>
                     <Button size="sm">저장</Button>
                   </div>
@@ -1582,16 +1725,16 @@ className="bg-slate-100 dark:bg-slate-800"
               <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">헤더/푸터 고정 핵심 규칙</h4>
               <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
                 <li>• <strong>DialogContent</strong>: <code>max-h-[90vh] flex flex-col</code></li>
-                <li>• <strong>DialogHeader</strong>: <code>flex-shrink-0</code> (암묵적으로 적용됨)</li>
-                <li>• <strong>컨텐츠 영역</strong>: <code>overflow-y-auto flex-1</code></li>
-                <li>• <strong>DialogFooter</strong>: <code>flex-shrink-0</code> (명시적 추가 권장)</li>
+                <li>• <strong>DialogHeader</strong>: <code>flex-shrink-0 pb-4 border-b</code> (테두리로 구분)</li>
+                <li>• <strong>컨텐츠 영역</strong>: <code>overflow-y-auto flex-1 py-4</code></li>
+                <li>• <strong>DialogFooter</strong>: <code>flex-shrink-0 pt-4 border-t</code> (테두리로 구분)</li>
               </ul>
             </div>
 
             <Separator />
 
             <CodeBlock title="DialogFooter 패턴 (핵심)" code={`// 생성 모드 - 삭제 버튼 없음
-<DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0">
+<DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
   <div />  {/* 빈 공간 */}
   <div className="flex gap-2">
     <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
@@ -1600,7 +1743,7 @@ className="bg-slate-100 dark:bg-slate-800"
 </DialogFooter>
 
 // 수정 모드 - 삭제 버튼 왼쪽 배치
-<DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0">
+<DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
   <Button variant="destructive" onClick={handleDelete}>
     <Trash2 className="h-4 w-4 mr-1" />삭제
   </Button>
@@ -1615,20 +1758,20 @@ className="bg-slate-100 dark:bg-slate-800"
 
             <CodeBlock title="전체 Dialog 구조" code={`<Dialog open={open} onOpenChange={setOpen}>
   <DialogContent className="max-h-[90vh] flex flex-col">
-    <DialogHeader>
+    <DialogHeader className="flex-shrink-0 pb-4 border-b">
       <DialogTitle>{isEditing ? '항목 수정' : '항목 추가'}</DialogTitle>
       <DialogDescription>항목 설명</DialogDescription>
     </DialogHeader>
 
     {/* 스크롤 가능한 컨텐츠 영역 */}
-    <div className="overflow-y-auto flex-1 space-y-4 p-1">
+    <div className="overflow-y-auto flex-1 space-y-4 py-4 px-1 -mx-1">
       <div>
         <label className="text-xs text-slate-500 mb-1 block">필드명</label>
         <Input className="bg-white dark:bg-slate-700" />
       </div>
     </div>
 
-    <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0">
+    <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
       {isEditing ? (
         <Button variant="destructive" onClick={handleDelete}>삭제</Button>
       ) : (
@@ -2235,58 +2378,48 @@ function DroppableZone({ date, children }) {
       </Section>
 
       {/* 20. Icon Buttons Section */}
-      <Section id="icon-buttons" title="20. 아이콘 버튼 (Edit/Delete)" icon={Pencil}>
+      <Section id="icon-buttons" title="20. 수정 버튼 패턴" icon={Pencil}>
         <Card className="bg-slate-100 dark:bg-slate-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">수정/삭제 아이콘 버튼</CardTitle>
-            <CardDescription className="text-sm mt-0.5">테이블 및 카드 내 액션 버튼 패턴</CardDescription>
+            <CardTitle className="text-lg">수정/삭제 액션 패턴</CardTitle>
+            <CardDescription className="text-sm mt-0.5">삭제는 수정 모달 내에서만 가능</CardDescription>
           </CardHeader>
           <CardContent className="pt-0 space-y-6">
-            {/* Standard Icon Buttons */}
-            <div>
-              <Label className="mb-3 block">기본 아이콘 버튼 (테이블/카드)</Label>
-              <div className="flex gap-2 items-center p-4 rounded-lg bg-white dark:bg-slate-700">
-                <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
-                  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                </button>
-                <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
-                  <Trash2 className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                </button>
-                <span className="text-xs text-slate-500 ml-4">기본 상태: 회색 아이콘</span>
-              </div>
+            {/* Important Rule */}
+            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20">
+              <h4 className="text-sm font-medium text-red-700 dark:text-red-400 mb-2">🚨 삭제 버튼 규칙</h4>
+              <ul className="text-xs text-red-600 dark:text-red-400 space-y-1">
+                <li>• <strong>삭제 아이콘(Trash) 단독 사용 금지</strong></li>
+                <li>• <strong>삭제는 수정 모달/인라인 내에서만 가능</strong></li>
+                <li>• <strong>삭제 버튼 위치: 모달 좌측 하단</strong></li>
+              </ul>
             </div>
 
-            {/* Hover to Red Delete */}
+            {/* Edit Icon Only */}
             <div>
-              <Label className="mb-3 block">삭제 버튼 - 호버 시 빨간색</Label>
-              <div className="flex gap-2 items-center p-4 rounded-lg bg-white dark:bg-slate-700">
-                <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
+              <Label className="mb-3 block">수정 아이콘 (테이블/카드에서 유일한 액션)</Label>
+              <div className="flex gap-4 items-center p-4 rounded-lg bg-white dark:bg-slate-700">
+                <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer">
                   <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                 </button>
-                <button className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 hover:text-red-500 cursor-pointer">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-                <span className="text-xs text-slate-500 ml-4">삭제: 호버 시 빨간색 전환</span>
+                <span className="text-xs text-slate-500">→ 클릭 시 수정 모달 열림 (삭제는 모달 내에서)</span>
               </div>
             </div>
 
             {/* Disabled State */}
             <div>
               <Label className="mb-3 block">비활성화 상태</Label>
-              <div className="flex gap-2 items-center p-4 rounded-lg bg-white dark:bg-slate-700">
+              <div className="flex gap-4 items-center p-4 rounded-lg bg-white dark:bg-slate-700">
                 <button className="rounded p-1 opacity-30 cursor-not-allowed">
                   <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                 </button>
-                <button className="rounded p-1 opacity-30 cursor-not-allowed">
-                  <Trash2 className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                </button>
-                <span className="text-xs text-slate-500 ml-4">비활성화: opacity-30 cursor-not-allowed</span>
+                <span className="text-xs text-slate-500">opacity-30 cursor-not-allowed</span>
               </div>
             </div>
 
             {/* Table Row Example */}
             <div>
-              <Label className="mb-3 block">테이블 행 예시</Label>
+              <Label className="mb-3 block">테이블 행 예시 (수정 아이콘만)</Label>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -2301,14 +2434,9 @@ function DroppableZone({ date, children }) {
                       <td className="py-2 px-3">항목 1</td>
                       <td className="py-2 px-3"><Badge className="bg-green-100 text-green-700">활성</Badge></td>
                       <td className="py-2 px-3 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer">
-                            <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                          </button>
-                          <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-400 hover:text-red-500 cursor-pointer">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                        <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer">
+                          <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                        </button>
                       </td>
                     </tr>
                   </tbody>
@@ -2316,33 +2444,53 @@ function DroppableZone({ date, children }) {
               </div>
             </div>
 
+            {/* Edit Modal with Delete */}
+            <div>
+              <Label className="mb-3 block">수정 모달 (삭제 버튼 좌측 하단)</Label>
+              <div className="p-4 rounded-lg bg-white dark:bg-slate-700">
+                <div className="max-w-md mx-auto bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold">항목 수정</h3>
+                    <p className="text-sm text-muted-foreground">기존 항목을 수정합니다</p>
+                  </div>
+                  <div className="space-y-3 mb-4">
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">입력 필드</label>
+                      <Input defaultValue="기존 값" className="bg-white dark:bg-slate-700" />
+                    </div>
+                  </div>
+                  <div className="flex flex-row justify-between">
+                    <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-1" />삭제</Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">취소</Button>
+                      <Button size="sm">저장</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <Separator />
 
-            <CodeBlock title="아이콘 버튼 패턴" code={`// 기본 아이콘 버튼 (수정)
+            <CodeBlock title="수정/삭제 패턴" code={`// 테이블/카드에서: 수정 아이콘만 표시
 <button
-  onClick={handleEdit}
+  onClick={() => openEditModal(item)}
   className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
   title="수정"
 >
   <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
 </button>
 
-// 삭제 버튼 - 호버 시 빨간색
-<button
-  onClick={handleDelete}
-  className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 hover:text-red-500 cursor-pointer"
-  title="삭제"
->
-  <Trash2 className="h-4 w-4" />
-</button>
-
-// 비활성화 상태
-<button
-  disabled={isDisabled}
-  className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
->
-  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-</button>`} />
+// 수정 모달 내에서: 삭제 버튼 좌측 하단
+<DialogFooter className="flex-row justify-between">
+  <Button variant="destructive" onClick={handleDelete}>
+    <Trash2 className="h-4 w-4 mr-1" />삭제
+  </Button>
+  <div className="flex gap-2">
+    <Button variant="outline">취소</Button>
+    <Button>저장</Button>
+  </div>
+</DialogFooter>`} />
 
             <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20">
               <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">아이콘 버튼 규칙</h4>
@@ -2351,7 +2499,6 @@ function DroppableZone({ date, children }) {
                 <li>• <strong>버튼 패딩</strong>: <code>p-1</code> (4px)</li>
                 <li>• <strong>기본 색상</strong>: <code>text-slate-600 dark:text-slate-400</code></li>
                 <li>• <strong>호버 배경</strong>: <code>hover:bg-slate-200 dark:hover:bg-slate-700</code></li>
-                <li>• <strong>삭제 호버</strong>: <code>text-slate-400 hover:text-red-500</code></li>
                 <li>• <strong>비활성화</strong>: <code>disabled:opacity-30 disabled:cursor-not-allowed</code></li>
               </ul>
             </div>

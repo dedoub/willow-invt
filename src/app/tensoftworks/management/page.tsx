@@ -1472,34 +1472,24 @@ export default function TenswManagementPage() {
     const hasSchedules = milestonesWithSchedules.has(milestone.id)
 
     // Determine next status based on whether milestone has schedules
-    // Flow: pending → in_progress → review_pending → completed
-    let nextStatus: 'pending' | 'in_progress' | 'review_pending' | 'completed'
+    // Flow: pending → in_progress → completed
+    let nextStatus: 'pending' | 'in_progress' | 'completed'
     if (hasSchedules) {
-      // If has schedules: in_progress → review_pending → completed → in_progress
+      // If has schedules: in_progress → completed → in_progress
       if (milestone.status === 'in_progress') {
-        nextStatus = 'review_pending'
-      } else if (milestone.status === 'review_pending') {
         nextStatus = 'completed'
       } else {
         nextStatus = 'in_progress'
       }
     } else {
-      // If no schedules: pending → in_progress → review_pending → completed → pending
+      // If no schedules: pending → in_progress → completed → pending
       if (milestone.status === 'pending') {
         nextStatus = 'in_progress'
       } else if (milestone.status === 'in_progress') {
-        nextStatus = 'review_pending'
-      } else if (milestone.status === 'review_pending') {
         nextStatus = 'completed'
       } else {
         nextStatus = 'pending'
       }
-    }
-
-    // Check if trying to complete without review note completed
-    if (nextStatus === 'completed' && !milestone.review_completed) {
-      alert('리뷰노트를 먼저 완료해주세요.')
-      return
     }
 
     setTogglingIds(prev => new Set(prev).add(milestoneId))
@@ -1679,7 +1669,7 @@ export default function TenswManagementPage() {
     setInvoiceFormType(invoice.type)
     setInvoiceFormCounterparty(invoice.counterparty)
     setInvoiceFormDescription(invoice.description || '')
-    setInvoiceFormAmount(String(invoice.amount))
+    setInvoiceFormAmount(invoice.amount.toLocaleString())
     setInvoiceFormDate(invoice.issue_date)
     setInvoiceFormNotes(invoice.notes || '')
     setInvoiceFormAccountNumber(invoice.account_number || '')
@@ -2301,14 +2291,14 @@ export default function TenswManagementPage() {
                   onClick={() => openClientDialog()}
                 >
                   <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">클라이언트 추가</span>
+                  <span className="hidden sm:inline">클라이언트</span>
                 </button>
                 <button
                   className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
                   onClick={() => openProjectDialog()}
                 >
                   <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">프로젝트 추가</span>
+                  <span className="hidden sm:inline">프로젝트</span>
                 </button>
               </div>
             </CardHeader>
@@ -2412,63 +2402,6 @@ export default function TenswManagementPage() {
                         </div>
                       </div>
 
-                      {/* Review notes pending milestones - always visible even when collapsed */}
-                      {!isExpanded && (() => {
-                        const reviewNotesPendingMilestones = projectMilestones.filter(c => c.status === 'review_pending')
-                        if (reviewNotesPendingMilestones.length === 0) return null
-                        return (
-                          <div className="px-2 pb-2 space-y-1 bg-background border-t border-border/50">
-                            {reviewNotesPendingMilestones.map((milestone) => (
-                              <div
-                                key={milestone.id}
-                                className="flex items-center gap-2 p-1.5 rounded text-sm"
-                              >
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleMilestoneStatus(milestone)
-                                  }}
-                                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-purple-100 dark:bg-purple-900/30 hover:opacity-80 transition-opacity"
-                                  title={milestone.review_completed ? '클릭해서 완료로 변경' : '리뷰노트 완료 후 클릭해서 완료로 변경'}
-                                  disabled={togglingIds.has(`milestone-${milestone.id}`)}
-                                >
-                                  {togglingIds.has(`milestone-${milestone.id}`) ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                                  ) : (
-                                    <StickyNote className="h-3.5 w-3.5 text-purple-600" />
-                                  )}
-                                  <span className="text-purple-600">리뷰노트</span>
-                                </button>
-                                <span className="flex-1 truncate">{milestone.name}</span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleReviewCompleted(milestone)
-                                  }}
-                                  className={cn(
-                                    'flex items-center gap-1 px-1.5 py-0.5 rounded text-xs transition-opacity',
-                                    milestone.review_completed
-                                      ? 'bg-green-100 dark:bg-green-900/30 text-green-600'
-                                      : 'bg-muted/50 text-muted-foreground hover:text-foreground'
-                                  )}
-                                  title={milestone.review_completed ? '리뷰노트 완료됨' : '리뷰노트 미완료'}
-                                  disabled={togglingIds.has(`review-${milestone.id}`)}
-                                >
-                                  {togglingIds.has(`review-${milestone.id}`) ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : milestone.review_completed ? (
-                                    <CheckCircle2 className="h-3 w-3" />
-                                  ) : (
-                                    <Circle className="h-3 w-3" />
-                                  )}
-                                  <span className="text-xs">리뷰노트</span>
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )
-                      })()}
-
                       {/* Milestones */}
                       {isExpanded && (
                         <div className="p-2 space-y-1 bg-background">
@@ -2483,17 +2416,9 @@ export default function TenswManagementPage() {
                               },
                               in_progress: {
                                 label: '진행중',
-                                tooltip: '클릭해서 리뷰노트 등록으로 변경',
+                                tooltip: '클릭해서 완료로 변경',
                                 color: 'text-amber-600',
                                 bgColor: 'bg-amber-100 dark:bg-amber-900/30',
-                              },
-                              review_pending: {
-                                label: '리뷰노트',
-                                tooltip: milestone.review_completed
-                                  ? '클릭해서 완료로 변경'
-                                  : '리뷰노트 완료 후 클릭해서 완료로 변경',
-                                color: 'text-purple-600',
-                                bgColor: 'bg-purple-100 dark:bg-purple-900/30',
                               },
                               completed: {
                                 label: '완료',
@@ -2504,7 +2429,7 @@ export default function TenswManagementPage() {
                                 bgColor: 'bg-green-100 dark:bg-green-900/30',
                               },
                             }
-                            const config = statusConfig[milestone.status]
+                            const config = statusConfig[milestone.status as keyof typeof statusConfig] || statusConfig.pending
 
                             return (
                               <div
@@ -2528,8 +2453,6 @@ export default function TenswManagementPage() {
                                     <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                                   ) : milestone.status === 'completed' ? (
                                     <CheckCircle2 className={cn('h-3.5 w-3.5', config.color)} />
-                                  ) : milestone.status === 'review_pending' ? (
-                                    <StickyNote className={cn('h-3.5 w-3.5', config.color)} />
                                   ) : milestone.status === 'in_progress' ? (
                                     <Clock className={cn('h-3.5 w-3.5', config.color)} />
                                   ) : (
@@ -2575,38 +2498,13 @@ export default function TenswManagementPage() {
                                     </span>
                                   )}
                                 </span>
-                                <button
-                                  onClick={() => toggleReviewCompleted(milestone)}
-                                  className={cn(
-                                    'flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs',
-                                    milestone.review_completed
-                                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600'
-                                      : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                                  )}
-                                  title={milestone.review_completed ? '리뷰노트 완료' : '리뷰노트 미완료'}
-                                  disabled={togglingIds.has(`review-${milestone.id}`)}
-                                >
-                                  {togglingIds.has(`review-${milestone.id}`) ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <span className="relative flex items-center gap-0.5">
-                                      <BookOpen className="h-3 w-3" />
-                                      <span className="hidden sm:inline">리뷰노트</span>
-                                      {milestone.review_completed && (
-                                        <span className="absolute inset-0 flex items-center">
-                                          <span className="w-full h-[1px] bg-current" />
-                                        </span>
-                                      )}
-                                    </span>
-                                  )}
-                                </button>
                                 <Button
                                   size="icon"
                                   variant="ghost"
                                   className="h-5 w-5 opacity-30 hover:opacity-100"
                                   onClick={() => openMilestoneDialog(project.id, milestone)}
                                 >
-                                  <Search className="h-2.5 w-2.5" />
+                                  <Pencil className="h-2.5 w-2.5" />
                                 </Button>
                               </div>
                             )
@@ -2769,6 +2667,12 @@ export default function TenswManagementPage() {
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-1 ml-2 shrink-0">
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); openEditInvoiceModal(invoice) }}
+                                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </button>
                                       {expandedInvoice === invoice.id ? (
                                         <ChevronUp className="h-4 w-4 text-slate-400" />
                                       ) : (
@@ -2778,38 +2682,20 @@ export default function TenswManagementPage() {
                                   </div>
                                   {expandedInvoice === invoice.id && (
                                     <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-2">
-                                      {invoice.attachments && invoice.attachments.length > 0 && (
-                                        <div className="flex flex-wrap gap-1">
-                                          {invoice.attachments.map((att, idx) => (
-                                            <a
-                                              key={idx}
-                                              href={att.url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-500"
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              <Paperclip className="h-3 w-3" />
-                                              {att.name}
-                                            </a>
-                                          ))}
-                                        </div>
-                                      )}
-                                      <div className="flex flex-wrap gap-2 pt-1">
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); openEditInvoiceModal(invoice) }}
-                                          className="flex items-center gap-1 rounded bg-slate-100 dark:bg-slate-600 px-2 py-1 text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
-                                        >
-                                          <Pencil className="h-3 w-3" />
-                                          수정
-                                        </button>
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(invoice.id) }}
-                                          className="flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-200 cursor-pointer"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                          삭제
-                                        </button>
+                                      <div className="flex flex-wrap gap-1">
+                                        {invoice.attachments?.map((att, idx) => (
+                                          <a
+                                            key={idx}
+                                            href={att.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-500"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <Paperclip className="h-3 w-3" />
+                                            {att.name}
+                                          </a>
+                                        ))}
                                       </div>
                                     </div>
                                   )}
@@ -4009,30 +3895,6 @@ export default function TenswManagementPage() {
               <div className="flex flex-col lg:flex-row gap-6 items-start">
                 {/* Email List */}
                 <div className="w-full lg:w-1/2">
-                  <div className="flex gap-1.5 mb-4 flex-wrap">
-                    <button
-                      onClick={() => setEmailFilter('all')}
-                      className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer ${
-                        emailFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                      }`}
-                    >
-                      {t.gmail.filterAll}
-                    </button>
-                    {availableCategories.map((category) => {
-                      const color = getCategoryColor(category, availableCategories)
-                      return (
-                        <button
-                          key={category}
-                          onClick={() => setEmailFilter(category)}
-                          className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer ${
-                            emailFilter === category ? `${color.button} text-white` : `${color.bg} ${color.text} hover:opacity-80`
-                          }`}
-                        >
-                          {category}
-                        </button>
-                      )
-                    })}
-                  </div>
                   <div className="mb-4">
                     <div className="relative">
                       <input
@@ -4065,6 +3927,36 @@ export default function TenswManagementPage() {
                         </button>
                       </div>
                     )}
+                  </div>
+                  <div className="flex gap-1 mb-4 flex-wrap">
+                    <button
+                      onClick={() => setEmailFilter('all')}
+                      className={cn(
+                        'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                        emailFilter === 'all'
+                          ? 'bg-slate-900 text-white dark:bg-slate-600'
+                          : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                      )}
+                    >
+                      {t.gmail.filterAll}
+                    </button>
+                    {availableCategories.map((category) => {
+                      const color = getCategoryColor(category, availableCategories)
+                      return (
+                        <button
+                          key={category}
+                          onClick={() => setEmailFilter(category)}
+                          className={cn(
+                            'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                            emailFilter === category
+                              ? `${color.button} text-white`
+                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                          )}
+                        >
+                          {category}
+                        </button>
+                      )
+                    })}
                   </div>
                   <div className="space-y-2">
                     {!syncStatus.isConnected ? (
@@ -4512,10 +4404,10 @@ export default function TenswManagementPage() {
       {/* Invoice Modal (Simplified) */}
       <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
         <DialogContent className="max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle>{editingInvoice ? '재무항목 수정' : '재무항목 추가'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
                 {/* Type Selection */}
                 <div>
                   <label className="block text-sm font-medium mb-2">유형</label>
@@ -4742,7 +4634,7 @@ export default function TenswManagementPage() {
                   )}
                 </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
             {editingInvoice ? (
               <Button
                 variant="destructive"
