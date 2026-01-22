@@ -744,44 +744,49 @@ export default function UIGuidePage() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-max">
                   <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-sm text-muted-foreground whitespace-nowrap">
-                      <th className="pb-3 pr-6 font-medium">Symbol</th>
-                      <th className="pb-3 pr-6 font-medium">Country</th>
-                      <th className="pb-3 pr-6 font-medium">Fund Name</th>
-                      <th className="pb-3 pr-6 font-medium">AUM</th>
-                      <th className="pb-3 font-medium">ARR</th>
+                    <tr className="bg-slate-200 dark:bg-slate-700 text-left text-sm text-muted-foreground whitespace-nowrap">
+                      <th className="py-2 px-3 font-medium first:rounded-l-lg last:rounded-r-lg">Symbol</th>
+                      <th className="py-2 px-3 font-medium">Country</th>
+                      <th className="py-2 px-3 font-medium">Fund Name</th>
+                      <th className="py-2 px-3 font-medium">AUM</th>
+                      <th className="py-2 px-3 font-medium first:rounded-l-lg last:rounded-r-lg">ARR</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-slate-200 dark:border-slate-700 last:border-0 whitespace-nowrap">
-                      <td className="py-3 pr-6 font-mono font-medium">KDEF</td>
-                      <td className="py-3 pr-6 text-sm">KR</td>
-                      <td className="py-3 pr-6 text-sm min-w-[220px]">PLUS Korea Defense ETF</td>
-                      <td className="py-3 pr-6">$123.5M</td>
-                      <td className="py-3 font-medium">$1.2M</td>
+                    <tr className="whitespace-nowrap hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <td className="py-3 px-3 font-mono font-medium">KDEF</td>
+                      <td className="py-3 px-3 text-sm">KR</td>
+                      <td className="py-3 px-3 text-sm min-w-[220px]">PLUS Korea Defense ETF</td>
+                      <td className="py-3 px-3">$123.5M</td>
+                      <td className="py-3 px-3 font-medium">$1.2M</td>
                     </tr>
-                    <tr className="border-b border-slate-200 dark:border-slate-700 last:border-0 whitespace-nowrap">
-                      <td className="py-3 pr-6 font-mono font-medium">KBAT</td>
-                      <td className="py-3 pr-6 text-sm">KR</td>
-                      <td className="py-3 pr-6 text-sm min-w-[220px]">PLUS Battery ETF</td>
-                      <td className="py-3 pr-6">$89.2M</td>
-                      <td className="py-3 font-medium">$890K</td>
+                    <tr className="whitespace-nowrap bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50">
+                      <td className="py-3 px-3 font-mono font-medium">KBAT</td>
+                      <td className="py-3 px-3 text-sm">KR</td>
+                      <td className="py-3 px-3 text-sm min-w-[220px]">PLUS Battery ETF</td>
+                      <td className="py-3 px-3">$89.2M</td>
+                      <td className="py-3 px-3 font-medium">$890K</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <CodeBlock title="테이블 패턴" code={`<div className="overflow-x-auto">
+            <CodeBlock title="테이블 패턴 (border 없이)" code={`<div className="overflow-x-auto">
   <table className="w-full min-w-max">
     <thead>
-      <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-sm text-muted-foreground whitespace-nowrap">
-        <th className="pb-3 pr-6 font-medium">Column</th>
+      {/* 헤더: 배경색으로 구분 */}
+      <tr className="bg-slate-200 dark:bg-slate-700 text-left text-sm text-muted-foreground whitespace-nowrap">
+        <th className="py-2 px-3 font-medium first:rounded-l-lg last:rounded-r-lg">Column</th>
       </tr>
     </thead>
     <tbody>
-      <tr className="border-b border-slate-200 dark:border-slate-700 last:border-0 whitespace-nowrap">
-        <td className="py-3 pr-6">{value}</td>
+      {/* 홀수/짝수 행: 배경색 교차 */}
+      <tr className="whitespace-nowrap hover:bg-slate-50 dark:hover:bg-slate-700/50">
+        <td className="py-3 px-3">{value}</td>
+      </tr>
+      <tr className="whitespace-nowrap bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50">
+        <td className="py-3 px-3">{value}</td>
       </tr>
     </tbody>
   </table>
@@ -934,6 +939,70 @@ export default function UIGuidePage() {
                 ))}
               </div>
             </div>
+
+            {/* Filter Badges */}
+            <div>
+              <Label className="mb-3 block">필터 뱃지 (탭 스타일)</Label>
+              <div className="flex flex-wrap gap-1">
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-900 text-white dark:bg-slate-600">
+                  전체
+                </button>
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">
+                  매출
+                </button>
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">
+                  비용
+                </button>
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">
+                  자산
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1 mt-3">
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-900 text-white dark:bg-slate-600">
+                  전체
+                </button>
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors text-white" style={{ backgroundColor: '#6366f1' }}>
+                  성균관대학교
+                </button>
+                <button className="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">
+                  이맥스시스템
+                </button>
+              </div>
+            </div>
+
+            <CodeBlock title="필터 뱃지 패턴" code={`// 필터 뱃지 (탭 스타일)
+<div className="flex flex-wrap gap-1">
+  {items.map((item) => (
+    <button
+      key={item}
+      onClick={() => setFilter(item)}
+      className={cn(
+        'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+        filter === item
+          ? 'bg-slate-900 text-white dark:bg-slate-600'
+          : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+      )}
+    >
+      {item}
+    </button>
+  ))}
+</div>
+
+// 커스텀 색상 필터 뱃지 (클라이언트별 색상)
+<button
+  onClick={() => setFilter(client.id)}
+  className={cn(
+    'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+    selected === client.id
+      ? 'text-white'  // 선택 시 흰 글씨
+      : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300'
+  )}
+  style={{
+    backgroundColor: selected === client.id ? client.color : undefined,
+  }}
+>
+  {client.name}
+</button>`} />
 
             <CodeBlock title="배지 헬퍼 함수" code={`// 우선순위 색상 (통일된 패턴)
 const getPriorityColor = (priority: string) => {
@@ -1897,13 +1966,13 @@ useEffect(() => {
               </div>
             </div>
 
-            <CodeBlock title="캘린더 셀 패턴" code={`// 주간 뷰 셀
+            <CodeBlock title="캘린더 셀 패턴" code={`// 주간 뷰 셀 (border 없이 배경색으로 구분)
 <div className="min-h-[280px]">
   {/* 헤더 - 오늘 */}
   <div className={cn(
     "text-center py-1.5 rounded-t-lg font-medium text-xs cursor-pointer transition-colors",
     isToday
-      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:bg-slate-800"
+      ? "bg-slate-700 text-white dark:bg-white dark:text-slate-700 hover:bg-slate-600"
       : "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300"
   )}>
     <div>{dayLabel}</div>
@@ -1913,18 +1982,19 @@ useEffect(() => {
   <div className={cn(
     "rounded-b-lg p-2 space-y-1 min-h-[120px] cursor-pointer transition-colors",
     "bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700",
-    isOver && "bg-slate-100 dark:bg-slate-800"
+    isOver && "bg-slate-100 dark:bg-slate-700"
   )}>
     {children}
   </div>
 </div>
 
-// 월간 뷰 셀
+// 월간 뷰 셀 (border 대신 배경색)
 <div className={cn(
-  "min-h-[80px] border rounded p-1 cursor-pointer",
-  isToday && "border-slate-900 dark:border-white",
-  isOver && "bg-slate-900/10 border-slate-900 dark:bg-white/10",
-  !day && "bg-muted/20"
+  "min-h-[80px] rounded p-1 cursor-pointer",
+  "bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700",
+  isToday && "bg-slate-200 dark:bg-slate-600",
+  isOver && "bg-slate-300 dark:bg-slate-500",
+  !day && "bg-slate-100 dark:bg-slate-700"
 )}>
   {children}
 </div>`} />
@@ -1943,8 +2013,8 @@ useEffect(() => {
             {/* Chart Container Pattern */}
             <div>
               <Label className="mb-3 block">차트 컨테이너 (h-48)</Label>
-              <div className="h-48 bg-white dark:bg-slate-900 rounded-lg p-4">
-                <div className="w-full h-full flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 rounded">
+              <div className="h-48 bg-white dark:bg-slate-700 rounded-lg p-4">
+                <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-600 rounded">
                   <div className="text-center text-muted-foreground">
                     <TrendingUp className="h-8 w-8 mx-auto mb-2" />
                     <p className="text-sm">ResponsiveContainer</p>
@@ -2220,17 +2290,17 @@ function DroppableZone({ date, children }) {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b dark:border-slate-600">
-                      <th className="text-left py-2 font-medium">이름</th>
-                      <th className="text-left py-2 font-medium">상태</th>
-                      <th className="text-right py-2 font-medium">액션</th>
+                    <tr className="bg-slate-200 dark:bg-slate-700">
+                      <th className="text-left py-2 px-3 font-medium rounded-l-lg">이름</th>
+                      <th className="text-left py-2 px-3 font-medium">상태</th>
+                      <th className="text-right py-2 px-3 font-medium rounded-r-lg">액션</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                      <td className="py-2">항목 1</td>
-                      <td className="py-2"><Badge className="bg-green-100 text-green-700">활성</Badge></td>
-                      <td className="py-2 text-right">
+                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <td className="py-2 px-3">항목 1</td>
+                      <td className="py-2 px-3"><Badge className="bg-green-100 text-green-700">활성</Badge></td>
+                      <td className="py-2 px-3 text-right">
                         <div className="flex justify-end gap-1">
                           <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer">
                             <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />

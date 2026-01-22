@@ -2315,30 +2315,33 @@ export default function TenswManagementPage() {
             <CardContent className="space-y-3">
               {/* Client filter */}
               <div className="flex flex-wrap gap-1 items-center">
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'cursor-pointer',
-                    selectedClient === null && 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:border-white dark:hover:bg-slate-100'
-                  )}
+                <button
                   onClick={() => setSelectedClient(null)}
+                  className={cn(
+                    'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                    selectedClient === null
+                      ? 'bg-slate-900 text-white dark:bg-slate-600'
+                      : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                  )}
                 >
                   전체
-                </Badge>
+                </button>
                 {clients.map((client) => (
-                  <Badge
+                  <button
                     key={client.id}
-                    variant={selectedClient === client.id ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    style={{
-                      backgroundColor:
-                        selectedClient === client.id ? client.color : undefined,
-                      borderColor: client.color,
-                    }}
                     onClick={() => setSelectedClient(client.id)}
+                    className={cn(
+                      'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                      selectedClient === client.id
+                        ? 'text-white'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                    )}
+                    style={{
+                      backgroundColor: selectedClient === client.id ? client.color : undefined,
+                    }}
                   >
                     {client.name}
-                  </Badge>
+                  </button>
                 ))}
               </div>
 
