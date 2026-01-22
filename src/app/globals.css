@@ -180,3 +180,17 @@
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
 }
+
+/* Hide default date input placeholder when empty */
+input[type="date"].date-placeholder-hidden::-webkit-datetime-edit-text,
+input[type="date"].date-placeholder-hidden::-webkit-datetime-edit-month-field,
+input[type="date"].date-placeholder-hidden::-webkit-datetime-edit-day-field,
+input[type="date"].date-placeholder-hidden::-webkit-datetime-edit-year-field {
+  -webkit-appearance: none;
+  display: none;
+}
+
+input[type="date"].date-placeholder-hidden:not(:focus):not([value])::-webkit-datetime-edit,
+input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
+  color: transparent;
+}

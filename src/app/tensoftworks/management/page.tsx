@@ -2551,7 +2551,7 @@ export default function TenswManagementPage() {
                                     onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
                                     className={cn(
                                       "h-8 text-sm w-full cursor-pointer",
-                                      !milestoneForm.target_date && "text-transparent"
+                                      !milestoneForm.target_date && "date-placeholder-hidden"
                                     )}
                                   />
                                   {!milestoneForm.target_date && (
