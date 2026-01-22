@@ -791,7 +791,7 @@ export default function TenswManagementPage() {
   const [emailFilter, setEmailFilter] = useState<string>('all')
   const [emailSearch, setEmailSearch] = useState('')
   const [emailPage, setEmailPage] = useState(1)
-  const [emailsPerPage, setEmailsPerPage] = useState(10)
+  const [emailsPerPage, setEmailsPerPage] = useState(5)
   const [relatedEmailIds, setRelatedEmailIds] = useState<string[]>([])
 
   // Fetch data
@@ -3116,7 +3116,7 @@ export default function TenswManagementPage() {
                     value={wikiSearch}
                     onChange={(e) => setWikiSearch(e.target.value)}
                     placeholder={t.wiki.searchPlaceholder}
-                    className="w-full rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 text-sm pl-8 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                    className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 focus:outline-none focus:ring-2 focus:ring-slate-300"
                   />
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   {wikiSearch && (
@@ -4041,7 +4041,7 @@ export default function TenswManagementPage() {
                         value={emailSearch}
                         onChange={(e) => setEmailSearch(e.target.value)}
                         placeholder={t.header.searchPlaceholder}
-                        className="w-full rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-2 text-sm pl-9 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                        className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm pl-9 focus:outline-none focus:ring-2 focus:ring-slate-300"
                       />
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       {emailSearch && (
@@ -4116,26 +4116,48 @@ export default function TenswManagementPage() {
                                   </p>
                                 </div>
                               </div>
-                              {email.category && (
-                                <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${getCategoryColor(email.category, availableCategories).bg} ${getCategoryColor(email.category, availableCategories).text}`}>
-                                  {email.category}
-                                </span>
+                              {(email.categories?.length || email.category) && (
+                                <div className="flex flex-col gap-1 flex-shrink-0 items-end">
+                                  {(email.categories || (email.category ? [email.category] : [])).map((cat, idx) => (
+                                    <span key={idx} className={`rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${getCategoryColor(cat, availableCategories).bg} ${getCategoryColor(cat, availableCategories).text}`}>
+                                      {cat}
+                                    </span>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           </div>
                         ))}
                         {filteredEmails.length > 0 && (
                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
-                            <p className="text-xs text-muted-foreground whitespace-nowrap">
-                              {t.gmail.showingRange.replace('{total}', String(filteredEmails.length)).replace('{start}', String((emailPage - 1) * emailsPerPage + 1)).replace('{end}', String(Math.min(emailPage * emailsPerPage, filteredEmails.length)))}
-                            </p>
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
-                              <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
-                              <span className="px-2 py-1 text-xs font-medium">{emailPage}/{Math.ceil(filteredEmails.length / emailsPerPage)}</span>
-                              <button onClick={() => setEmailPage(p => Math.min(Math.ceil(filteredEmails.length / emailsPerPage), p + 1))} disabled={emailPage === Math.ceil(filteredEmails.length / emailsPerPage)} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
-                              <button onClick={() => setEmailPage(Math.ceil(filteredEmails.length / emailsPerPage))} disabled={emailPage === Math.ceil(filteredEmails.length / emailsPerPage)} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                {t.gmail.showingRange.replace('{total}', String(filteredEmails.length)).replace('{start}', String((emailPage - 1) * emailsPerPage + 1)).replace('{end}', String(Math.min(emailPage * emailsPerPage, filteredEmails.length)))}
+                              </p>
+                              <select
+                                value={emailsPerPage}
+                                onChange={(e) => {
+                                  setEmailsPerPage(Number(e.target.value))
+                                  setEmailPage(1)
+                                }}
+                                className="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5"
+                              >
+                                <option value={5}>5개</option>
+                                <option value={10}>10개</option>
+                                <option value={25}>25개</option>
+                                <option value={50}>50개</option>
+                                <option value={100}>100개</option>
+                              </select>
                             </div>
+                            {Math.ceil(filteredEmails.length / emailsPerPage) > 1 && (
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
+                                <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
+                                <span className="px-2 sm:px-3 py-1 text-xs font-medium">{emailPage}/{Math.ceil(filteredEmails.length / emailsPerPage)}</span>
+                                <button onClick={() => setEmailPage(p => Math.min(Math.ceil(filteredEmails.length / emailsPerPage), p + 1))} disabled={emailPage === Math.ceil(filteredEmails.length / emailsPerPage)} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
+                                <button onClick={() => setEmailPage(Math.ceil(filteredEmails.length / emailsPerPage))} disabled={emailPage === Math.ceil(filteredEmails.length / emailsPerPage)} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </>

@@ -349,23 +349,25 @@ export async function GET(request: NextRequest) {
 
         // 하위 라벨 기반 카테고리 결정 (예: ETC/키움 -> 키움)
         const msgLabels = msgRes.data.labelIds || []
-        let category: string | null = null
+        const categories: string[] = []
 
         // 디버깅: 이메일별 라벨 확인
         const msgLabelNames = msgLabels.map(id => labelMap.get(id)?.name).filter(Boolean)
         console.log(`[Gmail] Email "${parsed.subject?.substring(0, 30)}..." has labels:`, msgLabelNames)
 
-        // 하위 라벨에서 카테고리 추출 (예: "ETC/키움" -> "키움")
+        // 하위 라벨에서 카테고리 추출 (예: "ETC/키움" -> "키움") - 모든 매칭되는 하위 라벨 수집
         for (const lblId of msgLabels) {
           const lblInfo = labelMap.get(lblId)
           if (lblInfo && lblInfo.name.toLowerCase().startsWith(label.toLowerCase() + '/')) {
             // 부모 라벨 이름 제거하여 카테고리 추출
-            category = lblInfo.name.substring(label.length + 1)
-            console.log(`[Gmail] -> Category: ${category} (from label: ${lblInfo.name})`)
-            break
+            const cat = lblInfo.name.substring(label.length + 1)
+            categories.push(cat)
+            console.log(`[Gmail] -> Category: ${cat} (from label: ${lblInfo.name})`)
           }
         }
 
+        // 첫 번째 카테고리를 기본 category로 사용 (하위 호환성)
+        const category = categories.length > 0 ? categories[0] : null
         if (!category) {
           console.log(`[Gmail] -> No sub-label category found`)
         }
@@ -379,6 +381,7 @@ export async function GET(request: NextRequest) {
           threadId: msgRes.data.threadId || undefined,
           labels: msgLabels,
           category,
+          categories,
           direction,
         }
       })

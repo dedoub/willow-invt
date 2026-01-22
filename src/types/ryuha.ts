@@ -47,6 +47,7 @@ export interface RyuhaSchedule {
   chapter_id: string | null
   chapter_ids: string[]
   is_completed: boolean
+  completed_dates: string[]
   email_reminder: boolean
   reminder_sent: boolean
   homework_content: string | null
@@ -76,6 +77,16 @@ export interface RyuhaHomeworkItem {
   completed_at: string | null
   order_index: number
   created_at: string
+}
+
+export interface RyuhaBodyRecord {
+  id: string
+  record_date: string
+  height_cm: number | null
+  weight_kg: number | null
+  notes: string | null
+  created_at: string
+  updated_at: string
 }
 
 // Legacy - 기존 호환성 유지

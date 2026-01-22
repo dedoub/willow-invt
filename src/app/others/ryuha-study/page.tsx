@@ -44,9 +44,12 @@ import {
   Search,
   StickyNote,
   ClipboardList,
+  Ruler,
+  Scale,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule, RyuhaDailyMemo, RyuhaHomeworkItem } from '@/types/ryuha'
+import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule, RyuhaDailyMemo, RyuhaHomeworkItem, RyuhaBodyRecord } from '@/types/ryuha'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import {
   DndContext,
   DragEndEvent,
@@ -180,11 +183,13 @@ function DraggableScheduleCard({
   onToggleComplete,
   onEdit,
   isToggling = false,
+  currentDate,
 }: {
   schedule: RyuhaSchedule
   onToggleComplete: () => void
   onEdit: () => void
   isToggling?: boolean
+  currentDate?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: schedule.id,
@@ -203,17 +208,23 @@ function DraggableScheduleCard({
   const displayColor = schedule.subject?.color || schedule.color
   const subjectColor = schedule.subject?.color
 
+  // 여러 날짜에 걸친 일정인 경우 현재 날짜의 완료 상태 확인
+  const isMultiDay = !!schedule.end_date
+  const isDateCompleted = isMultiDay && currentDate
+    ? (schedule.completed_dates || []).includes(currentDate)
+    : schedule.is_completed
+
   const style = transform
     ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
         borderLeft: subjectColor ? `3px solid ${subjectColor}` : undefined,
-        backgroundColor: !schedule.is_completed && displayColor
+        backgroundColor: !isDateCompleted && displayColor
           ? `${displayColor}20`
           : undefined,
       }
     : {
         borderLeft: subjectColor ? `3px solid ${subjectColor}` : undefined,
-        backgroundColor: !schedule.is_completed && displayColor
+        backgroundColor: !isDateCompleted && displayColor
           ? `${displayColor}20`
           : undefined,
       }
@@ -227,7 +238,7 @@ function DraggableScheduleCard({
       className={cn(
         'text-xs p-1.5 rounded cursor-grab active:cursor-grabbing touch-none',
         isDragging && 'opacity-50',
-        schedule.is_completed
+        isDateCompleted
           ? 'bg-muted line-through text-muted-foreground'
           : !displayColor && 'bg-slate-300/50 dark:bg-slate-600/50'
       )}
@@ -255,7 +266,7 @@ function DraggableScheduleCard({
         >
           {isToggling ? (
             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-          ) : schedule.is_completed ? (
+          ) : isDateCompleted ? (
             <CheckCircle2 className="h-3 w-3 text-green-600" />
           ) : (
             <Circle className="h-3 w-3" />
@@ -416,11 +427,13 @@ function DraggableMonthScheduleCard({
   onEdit,
   onToggleComplete,
   isToggling = false,
+  currentDate,
 }: {
   schedule: RyuhaSchedule
   onEdit: () => void
   onToggleComplete: () => void
   isToggling?: boolean
+  currentDate?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: schedule.id,
@@ -431,12 +444,18 @@ function DraggableMonthScheduleCard({
   const displayColor = schedule.subject?.color || schedule.color
   const subjectColor = schedule.subject?.color
 
+  // 여러 날짜에 걸친 일정인 경우 현재 날짜의 완료 상태 확인
+  const isMultiDay = !!schedule.end_date
+  const isDateCompleted = isMultiDay && currentDate
+    ? (schedule.completed_dates || []).includes(currentDate)
+    : schedule.is_completed
+
   const style = transform
     ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
         zIndex: 50,
         borderLeft: subjectColor ? `2px solid ${subjectColor}` : undefined,
-        backgroundColor: schedule.is_completed
+        backgroundColor: isDateCompleted
           ? undefined
           : displayColor
             ? `${displayColor}25`
@@ -444,7 +463,7 @@ function DraggableMonthScheduleCard({
       }
     : {
         borderLeft: subjectColor ? `2px solid ${subjectColor}` : undefined,
-        backgroundColor: schedule.is_completed
+        backgroundColor: isDateCompleted
           ? undefined
           : displayColor
             ? `${displayColor}25`
@@ -460,7 +479,7 @@ function DraggableMonthScheduleCard({
       className={cn(
         'text-[10px] px-1 py-0.5 rounded cursor-grab active:cursor-grabbing touch-none flex items-center gap-0.5',
         isDragging && 'opacity-50',
-        schedule.is_completed
+        isDateCompleted
           ? 'bg-muted text-muted-foreground line-through'
           : !displayColor && 'bg-slate-200 dark:bg-slate-700'
       )}
@@ -482,7 +501,7 @@ function DraggableMonthScheduleCard({
       >
         {isToggling ? (
           <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />
-        ) : schedule.is_completed ? (
+        ) : isDateCompleted ? (
           <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
         ) : (
           <Circle className="h-2.5 w-2.5" />
@@ -557,6 +576,24 @@ export default function RyuhaStudyPage() {
   const [activeSchedule, setActiveSchedule] = useState<RyuhaSchedule | null>(null)
   const [memos, setMemos] = useState<Map<string, RyuhaDailyMemo>>(new Map())
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
+
+  // Body records states
+  const [bodyRecords, setBodyRecords] = useState<RyuhaBodyRecord[]>([])
+  const [bodyRecordDialogOpen, setBodyRecordDialogOpen] = useState(false)
+  const [editingBodyRecord, setEditingBodyRecord] = useState<RyuhaBodyRecord | null>(null)
+  const [bodyRecordForm, setBodyRecordForm] = useState({
+    record_date: formatDateLocal(new Date()),
+    height_cm: '',
+    weight_kg: '',
+    notes: '',
+  })
+  const [bodyRecordExpanded, setBodyRecordExpanded] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ryuha-body-record-expanded')
+      return saved !== 'false'
+    }
+    return true
+  })
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -680,6 +717,81 @@ export default function RyuhaStudyPage() {
     }
   }, [currentDate, viewMode])
 
+  const fetchBodyRecords = useCallback(async () => {
+    try {
+      const res = await fetch('/api/ryuha/body-records?limit=30')
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setBodyRecords(data)
+      }
+    } catch (error) {
+      console.error('Error fetching body records:', error)
+    }
+  }, [])
+
+  const saveBodyRecord = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/ryuha/body-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          record_date: bodyRecordForm.record_date,
+          height_cm: bodyRecordForm.height_cm ? parseFloat(bodyRecordForm.height_cm) : null,
+          weight_kg: bodyRecordForm.weight_kg ? parseFloat(bodyRecordForm.weight_kg) : null,
+          notes: bodyRecordForm.notes || null,
+        }),
+      })
+      if (res.ok) {
+        await fetchBodyRecords()
+        setBodyRecordDialogOpen(false)
+        setEditingBodyRecord(null)
+        setBodyRecordForm({
+          record_date: formatDateLocal(new Date()),
+          height_cm: '',
+          weight_kg: '',
+          notes: '',
+        })
+      }
+    } catch (error) {
+      console.error('Error saving body record:', error)
+    }
+    setSaving(false)
+  }
+
+  const deleteBodyRecord = async (id: string) => {
+    if (!confirm('이 기록을 삭제하시겠습니까?')) return
+    try {
+      const res = await fetch(`/api/ryuha/body-records?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        await fetchBodyRecords()
+      }
+    } catch (error) {
+      console.error('Error deleting body record:', error)
+    }
+  }
+
+  const openBodyRecordDialog = (record?: RyuhaBodyRecord) => {
+    if (record) {
+      setEditingBodyRecord(record)
+      setBodyRecordForm({
+        record_date: record.record_date,
+        height_cm: record.height_cm?.toString() || '',
+        weight_kg: record.weight_kg?.toString() || '',
+        notes: record.notes || '',
+      })
+    } else {
+      setEditingBodyRecord(null)
+      setBodyRecordForm({
+        record_date: formatDateLocal(new Date()),
+        height_cm: '',
+        weight_kg: '',
+        notes: '',
+      })
+    }
+    setBodyRecordDialogOpen(true)
+  }
+
   const getDateRange = () => {
     if (viewMode === 'week') {
       const start = getWeekStart(currentDate)
@@ -703,6 +815,7 @@ export default function RyuhaStudyPage() {
         fetchSchedules(),
         fetchChaptersWithSchedules(),
         fetchMemos(),
+        fetchBodyRecords(),
       ])
       setLoading(false)
     }
@@ -1088,20 +1201,31 @@ export default function RyuhaStudyPage() {
     }
   }
 
-  const toggleScheduleComplete = async (schedule: RyuhaSchedule) => {
-    if (togglingIds.has(schedule.id)) return
-    setTogglingIds(prev => new Set(prev).add(schedule.id))
+  const toggleScheduleComplete = async (schedule: RyuhaSchedule, date?: string) => {
+    const toggleId = date ? `${schedule.id}-${date}` : schedule.id
+    if (togglingIds.has(toggleId)) return
+    setTogglingIds(prev => new Set(prev).add(toggleId))
     try {
-      await fetch('/api/ryuha/schedules', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: schedule.id, is_completed: !schedule.is_completed }),
-      })
+      // 여러 날짜에 걸친 일정이고 특정 날짜가 지정된 경우
+      if (schedule.end_date && date) {
+        await fetch('/api/ryuha/schedules/toggle-date', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ schedule_id: schedule.id, date }),
+        })
+      } else {
+        // 단일 날짜 일정이거나 전체 토글
+        await fetch('/api/ryuha/schedules', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: schedule.id, is_completed: !schedule.is_completed }),
+        })
+      }
       await fetchSchedules()
     } finally {
       setTogglingIds(prev => {
         const next = new Set(prev)
-        next.delete(schedule.id)
+        next.delete(toggleId)
         return next
       })
     }
@@ -1839,6 +1963,108 @@ export default function RyuhaStudyPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Body Records Section */}
+          <Card className="bg-slate-100 dark:bg-slate-800 mt-4">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scale className="h-5 w-5" />
+                    체형 기록
+                  </CardTitle>
+                  <CardDescription>키/몸무게 변화 추적</CardDescription>
+                </div>
+                <button
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                  onClick={() => openBodyRecordDialog()}
+                >
+                  <Plus className="h-4 w-4" />
+                  기록
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {/* Chart */}
+                {bodyRecords.length > 0 ? (
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={[...bodyRecords].reverse().map(r => ({
+                          date: r.record_date.slice(5).replace('-', '/'),
+                          height: r.height_cm,
+                          weight: r.weight_kg,
+                        }))}
+                        margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                        <YAxis yAxisId="height" orientation="left" tick={{ fontSize: 10 }} domain={[(dataMin: number) => Math.floor(dataMin - 2), (dataMax: number) => Math.ceil(dataMax + 2)]} />
+                        <YAxis yAxisId="weight" orientation="right" tick={{ fontSize: 10 }} domain={[(dataMin: number) => Math.floor(dataMin - 2), (dataMax: number) => Math.ceil(dataMax + 2)]} />
+                        <Tooltip
+                          contentStyle={{ fontSize: 12, backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                          formatter={(value, name) => [
+                            value != null ? `${value}${name === 'height' ? 'cm' : 'kg'}` : '-',
+                            name === 'height' ? '키' : '몸무게'
+                          ]}
+                        />
+                        <Legend
+                          wrapperStyle={{ fontSize: 11 }}
+                          formatter={(value) => value === 'height' ? '키(cm)' : '몸무게(kg)'}
+                        />
+                        <Line yAxisId="height" type="monotone" dataKey="height" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                        <Line yAxisId="weight" type="monotone" dataKey="weight" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    기록이 없습니다
+                  </div>
+                )}
+
+                {/* Recent Records */}
+                {bodyRecords.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">최근 기록</div>
+                    {bodyRecords.slice(0, 5).map((record) => (
+                      <div
+                        key={record.id}
+                        className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800"
+                        onClick={() => openBodyRecordDialog(record)}
+                      >
+                        <span className="text-muted-foreground">{record.record_date}</span>
+                        <div className="flex items-center gap-3">
+                          {record.height_cm && (
+                            <span className="flex items-center gap-1">
+                              <Ruler className="h-3 w-3 text-indigo-500" />
+                              {record.height_cm}cm
+                            </span>
+                          )}
+                          {record.weight_kg && (
+                            <span className="flex items-center gap-1">
+                              <Scale className="h-3 w-3 text-orange-500" />
+                              {record.weight_kg}kg
+                            </span>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 opacity-50 hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteBodyRecord(record.id)
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+          </Card>
         </div>
 
         {/* Right Panel - Progress Summary + Calendar */}
@@ -2255,15 +2481,19 @@ export default function RyuhaStudyPage() {
                               </div>
                             </div>
                           ))}
-                          {getSchedulesForDate(day).map((schedule) => (
-                            <DraggableScheduleCard
-                              key={schedule.id}
-                              schedule={schedule}
-                              onToggleComplete={() => toggleScheduleComplete(schedule)}
-                              onEdit={() => openScheduleDialog(undefined, schedule)}
-                              isToggling={togglingIds.has(schedule.id)}
-                            />
-                          ))}
+                          {getSchedulesForDate(day).map((schedule) => {
+                            const dateStr = formatDateLocal(day)
+                            return (
+                              <DraggableScheduleCard
+                                key={`${schedule.id}-${dateStr}`}
+                                schedule={schedule}
+                                currentDate={dateStr}
+                                onToggleComplete={() => toggleScheduleComplete(schedule, dateStr)}
+                                onEdit={() => openScheduleDialog(undefined, schedule)}
+                                isToggling={togglingIds.has(`${schedule.id}-${dateStr}`) || togglingIds.has(schedule.id)}
+                              />
+                            )
+                          })}
                         </DroppableDay>
                       )
                     })}
@@ -2397,15 +2627,19 @@ export default function RyuhaStudyPage() {
                                       </span>
                                     </div>
                                   ))}
-                                  {getSchedulesForDate(day).map((schedule) => (
-                                    <DraggableMonthScheduleCard
-                                      key={schedule.id}
-                                      schedule={schedule}
-                                      onEdit={() => openScheduleDialog(undefined, schedule)}
-                                      onToggleComplete={() => toggleScheduleComplete(schedule)}
-                                      isToggling={togglingIds.has(schedule.id)}
-                                    />
-                                  ))}
+                                  {getSchedulesForDate(day).map((schedule) => {
+                                    const dateStr = formatDateLocal(day)
+                                    return (
+                                      <DraggableMonthScheduleCard
+                                        key={`${schedule.id}-${dateStr}`}
+                                        schedule={schedule}
+                                        currentDate={dateStr}
+                                        onEdit={() => openScheduleDialog(undefined, schedule)}
+                                        onToggleComplete={() => toggleScheduleComplete(schedule, dateStr)}
+                                        isToggling={togglingIds.has(`${schedule.id}-${dateStr}`) || togglingIds.has(schedule.id)}
+                                      />
+                                    )
+                                  })}
                                 </div>
                               </>
                             )}
@@ -3218,6 +3452,68 @@ export default function RyuhaStudyPage() {
             </Button>
             <Button onClick={saveMemo}>
               저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Body Record Dialog */}
+      <Dialog open={bodyRecordDialogOpen} onOpenChange={setBodyRecordDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Scale className="h-4 w-4" />
+              {editingBodyRecord ? '체형 기록 수정' : '체형 기록 추가'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>날짜</Label>
+              <Input
+                type="date"
+                value={bodyRecordForm.record_date}
+                onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, record_date: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>키 (cm)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder="165.5"
+                  value={bodyRecordForm.height_cm}
+                  onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, height_cm: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>몸무게 (kg)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="55.5"
+                  value={bodyRecordForm.weight_kg}
+                  onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, weight_kg: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>메모 (선택)</Label>
+              <Textarea
+                value={bodyRecordForm.notes}
+                onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, notes: e.target.value })}
+                placeholder="특이사항을 기록하세요..."
+                rows={2}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBodyRecordDialogOpen(false)}>
+              취소
+            </Button>
+            <Button onClick={saveBodyRecord} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : '저장'}
             </Button>
           </DialogFooter>
         </DialogContent>

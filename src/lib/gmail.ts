@@ -19,7 +19,8 @@ export interface ParsedEmail {
   hasAttachments: boolean
   attachments: EmailAttachment[]
   // 추가 필드
-  category: string | null  // 하위 라벨 기반 카테고리 (예: "키움", "삼성")
+  category: string | null  // 하위 라벨 기반 카테고리 (예: "키움", "삼성") - 첫 번째 카테고리
+  categories?: string[]  // 모든 하위 라벨 기반 카테고리 목록
   direction: 'inbound' | 'outbound'  // 수신/발신
 }
 
