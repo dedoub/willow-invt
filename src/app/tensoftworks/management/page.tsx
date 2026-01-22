@@ -2544,9 +2544,9 @@ export default function TenswManagementPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Receipt className="h-5 w-5" />
-                  재무관리
+                  현금관리
                 </CardTitle>
-                <CardDescription>현금흐름 관리</CardDescription>
+                <CardDescription>입출금 내역</CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 {/* View mode toggle */}
@@ -5188,17 +5188,17 @@ export default function TenswManagementPage() {
       {/* Project Dialog */}
       <Dialog open={projectDialogOpen} onOpenChange={setProjectDialogOpen}>
         <DialogContent>
-          <DialogHeader>
+          <DialogHeader className="pb-4 border-b">
             <DialogTitle>{editingProject ? '프로젝트 수정' : '프로젝트 추가'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>클라이언트</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">클라이언트</label>
               <Select
                 value={projectForm.client_id}
                 onValueChange={(v) => setProjectForm({ ...projectForm, client_id: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border border-slate-200 dark:border-slate-600">
                   <SelectValue placeholder="클라이언트 선택" />
                 </SelectTrigger>
                 <SelectContent>
@@ -5210,21 +5210,22 @@ export default function TenswManagementPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>프로젝트명</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">프로젝트명</label>
               <Input
                 value={projectForm.name}
                 onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
                 placeholder="예: 대시보드 개발"
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
-            <div className="space-y-2">
-              <Label>상태</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">상태</label>
               <Select
                 value={projectForm.status}
                 onValueChange={(value) => setProjectForm({ ...projectForm, status: value as 'active' | 'completed' | 'on_hold' | 'cancelled' })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border border-slate-200 dark:border-slate-600">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -5235,18 +5236,19 @@ export default function TenswManagementPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>설명</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">설명</label>
               <Textarea
                 value={projectForm.description}
                 onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
                 placeholder="프로젝트에 대한 메모"
                 rows={2}
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
           </div>
-          <DialogFooter>
-            {editingProject && (
+          <DialogFooter className="pt-4 border-t sm:justify-between">
+            {editingProject ? (
               <Button
                 variant="destructive"
                 onClick={() => {
@@ -5256,13 +5258,15 @@ export default function TenswManagementPage() {
               >
                 삭제
               </Button>
-            )}
-            <Button variant="outline" onClick={() => setProjectDialogOpen(false)}>
-              취소
-            </Button>
-            <Button onClick={saveProject} disabled={!projectForm.name || !projectForm.client_id || saving}>
-              {saving ? '저장 중...' : '저장'}
-            </Button>
+            ) : <div />}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setProjectDialogOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={saveProject} disabled={!projectForm.name || !projectForm.client_id || saving}>
+                {saving ? '저장 중...' : '저장'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -5270,37 +5274,40 @@ export default function TenswManagementPage() {
       {/* Milestone Dialog */}
       <Dialog open={milestoneDialogOpen} onOpenChange={setMilestoneDialogOpen}>
         <DialogContent>
-          <DialogHeader>
+          <DialogHeader className="pb-4 border-b">
             <DialogTitle>{editingMilestone ? '마일스톤 수정' : '마일스톤 추가'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>마일스톤명</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">마일스톤명</label>
               <Input
                 value={milestoneForm.name}
                 onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
                 placeholder="예: 1장 다항식의 연산"
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
-            <div className="space-y-2">
-              <Label>목표 완료일</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">목표 완료일</label>
               <Input
                 type="date"
                 value={milestoneForm.target_date}
                 onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
-            <div className="space-y-2">
-              <Label>설명</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">설명</label>
               <Textarea
                 value={milestoneForm.description}
                 onChange={(e) => setMilestoneForm({ ...milestoneForm, description: e.target.value })}
                 placeholder="마일스톤에 대한 메모"
                 rows={2}
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between">
+          <DialogFooter className="pt-4 border-t sm:justify-between">
             {editingMilestone ? (
               <div className="flex gap-2">
                 <Button
@@ -5356,7 +5363,7 @@ export default function TenswManagementPage() {
       {/* Client Dialog */}
       <Dialog open={clientDialogOpen} onOpenChange={setClientDialogOpen}>
         <DialogContent>
-          <DialogHeader>
+          <DialogHeader className="pb-4 border-b">
             <DialogTitle>{editingClient ? '클라이언트 수정' : '클라이언트 추가'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -5377,24 +5384,12 @@ export default function TenswManagementPage() {
                         />
                         <span className="text-sm">{client.name}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => openClientDialog(client)}
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 text-destructive"
-                          onClick={() => deleteClient(client.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <button
+                        className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
+                        onClick={() => openClientDialog(client)}
+                      >
+                        <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -5412,36 +5407,23 @@ export default function TenswManagementPage() {
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">색상</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={clientForm.color}
-                  onChange={(e) => setClientForm({ ...clientForm, color: e.target.value })}
-                  className="w-10 h-10 rounded cursor-pointer border border-slate-200 dark:border-slate-600"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    // Row 1: Vivid
-                    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e',
-                    // Row 2: Muted / Dark
-                    '#b91c1c', '#c2410c', '#a16207', '#4d7c0f', '#047857', '#0f766e', '#0369a1', '#1d4ed8', '#4338ca', '#6d28d9', '#7e22ce', '#a21caf', '#be185d', '#64748b', '#374151', '#1e293b',
-                  ].map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      className={cn(
-                        'w-6 h-6 rounded-full border-2 transition-transform hover:scale-110',
-                        clientForm.color === color ? 'border-foreground' : 'border-transparent'
-                      )}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setClientForm({ ...clientForm, color })}
-                    />
-                  ))}
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#64748b'].map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={cn(
+                      'w-7 h-7 rounded-full border-2 transition-transform hover:scale-110',
+                      clientForm.color === color ? 'border-foreground' : 'border-transparent'
+                    )}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setClientForm({ ...clientForm, color })}
+                  />
+                ))}
               </div>
             </div>
           </div>
-          <DialogFooter className="sm:justify-between">
+          <DialogFooter className="pt-4 border-t sm:justify-between">
             {editingClient ? (
               <Button
                 variant="destructive"
@@ -5465,7 +5447,7 @@ export default function TenswManagementPage() {
       {/* Memo Dialog */}
       <Dialog open={memoDialogOpen} onOpenChange={setMemoDialogOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+          <DialogHeader className="pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
               <StickyNote className="h-4 w-4" />
               {editingMemoDate && `${editingMemoDate.slice(5).replace('-', '/')} 메모`}
@@ -5477,11 +5459,11 @@ export default function TenswManagementPage() {
               onChange={(e) => setMemoContent(e.target.value)}
               placeholder="이 날짜에 대한 메모를 입력하세요..."
               rows={4}
-              className="resize-none"
+              className="resize-none border border-slate-200 dark:border-slate-600"
               autoFocus
             />
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t">
             <Button variant="outline" onClick={() => setMemoDialogOpen(false)}>
               취소
             </Button>
