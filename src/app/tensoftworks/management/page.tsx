@@ -616,6 +616,7 @@ export default function TenswManagementPage() {
   const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false)
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
   const [addingMilestoneForProject, setAddingMilestoneForProject] = useState<string | null>(null)
+  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null)
   const [editingSchedule, setEditingSchedule] = useState<TenswMgmtSchedule | null>(null)
   const [editingProject, setEditingProject] = useState<TenswMgmtProject | null>(null)
   const [editingMilestone, setEditingMilestone] = useState<TenswMgmtMilestone | null>(null)
@@ -2438,7 +2439,82 @@ export default function TenswManagementPage() {
                             }
                             const config = statusConfig[milestone.status as keyof typeof statusConfig] || statusConfig.pending
 
-                            return (
+                            return editingMilestoneId === milestone.id ? (
+                              <div key={milestone.id} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                                <Input
+                                  value={milestoneForm.name}
+                                  onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
+                                  placeholder="마일스톤명"
+                                  className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && milestoneForm.name.trim()) {
+                                      saveMilestone()
+                                      setEditingMilestoneId(null)
+                                    } else if (e.key === 'Escape') {
+                                      setEditingMilestoneId(null)
+                                    }
+                                  }}
+                                />
+                                <div className="flex gap-2">
+                                  <div
+                                    className="relative flex-1 cursor-pointer"
+                                    onClick={(e) => {
+                                      const input = e.currentTarget.querySelector('input')
+                                      if (input) {
+                                        input.showPicker?.()
+                                        input.focus()
+                                      }
+                                    }}
+                                  >
+                                    <Input
+                                      type="date"
+                                      value={milestoneForm.target_date}
+                                      onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
+                                      className={cn(
+                                        "h-8 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
+                                        !milestoneForm.target_date && "date-placeholder-hidden"
+                                      )}
+                                    />
+                                    {!milestoneForm.target_date && (
+                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                        목표마감일
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-8 px-2"
+                                    onClick={() => {
+                                      deleteMilestone(milestone.id)
+                                      setEditingMilestoneId(null)
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-2"
+                                    onClick={() => setEditingMilestoneId(null)}
+                                  >
+                                    취소
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-8 px-3"
+                                    disabled={!milestoneForm.name.trim() || saving}
+                                    onClick={async () => {
+                                      await saveMilestone()
+                                      setEditingMilestoneId(null)
+                                    }}
+                                  >
+                                    저장
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
                               <div
                                 key={milestone.id}
                                 className={cn(
@@ -2509,7 +2585,16 @@ export default function TenswManagementPage() {
                                   size="icon"
                                   variant="ghost"
                                   className="h-5 w-5 opacity-30 hover:opacity-100"
-                                  onClick={() => openMilestoneDialog(project.id, milestone)}
+                                  onClick={() => {
+                                    setMilestoneForm({
+                                      project_id: milestone.project_id,
+                                      name: milestone.name,
+                                      description: milestone.description || '',
+                                      target_date: milestone.target_date || '',
+                                    })
+                                    setEditingMilestone(milestone)
+                                    setEditingMilestoneId(milestone.id)
+                                  }}
                                 >
                                   <Pencil className="h-2.5 w-2.5" />
                                 </Button>

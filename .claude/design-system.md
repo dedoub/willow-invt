@@ -59,6 +59,75 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 - `CardTitle`: `text-lg truncate`
 - `CardDescription`: `text-sm mt-0.5 line-clamp-1`
 
+### 프로젝트 카드 (Tensoftworks 스타일)
+
+```tsx
+// 기본 프로젝트 카드 (Active/Managed)
+<Card className="bg-slate-100 dark:bg-slate-800 h-full overflow-hidden">
+  <CardHeader className="pb-2">
+    <div className="flex items-start justify-between">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="rounded-lg bg-slate-200 dark:bg-slate-700 p-2 flex-shrink-0">
+          <Folder className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <CardTitle className="text-lg truncate">{project.name}</CardTitle>
+          <CardDescription className="text-sm mt-0.5 line-clamp-1">{project.description}</CardDescription>
+        </div>
+      </div>
+      <span className={`text-sm px-2.5 py-1 rounded-full flex-shrink-0 ${getStatusColor(project.status)}`}>
+        {project.status}
+      </span>
+    </div>
+  </CardHeader>
+  <CardContent className="pt-0 space-y-3 overflow-hidden">
+    {/* Stats Grid */}
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/30">
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-sm text-amber-700 dark:text-amber-400">배정</div>
+          <div className="rounded bg-amber-100 dark:bg-amber-800/50 p-1">
+            <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          </div>
+        </div>
+        <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{count}</div>
+      </div>
+      {/* 진행: bg-blue-50, 완료: bg-emerald-50, 진행률: bg-slate-200 */}
+    </div>
+  </CardContent>
+</Card>
+
+// POC 카드 (Amber 테마)
+<Card className="bg-amber-50 dark:bg-amber-900/20 h-full">
+  <CardHeader className="pb-2">
+    <div className="flex items-start justify-between">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="rounded-lg bg-amber-100 dark:bg-amber-800/50 p-2 flex-shrink-0">
+          <Folder className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <CardTitle className="text-lg truncate">{project.name}</CardTitle>
+          <CardDescription className="text-sm mt-0.5 line-clamp-1">{project.description}</CardDescription>
+        </div>
+      </div>
+      <span className="text-sm px-2.5 py-1 rounded-full flex-shrink-0 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400">
+        POC
+      </span>
+    </div>
+  </CardHeader>
+  <CardContent className="pt-0 space-y-2">
+    <a href={project.link} className="flex items-center gap-1.5 text-sm text-amber-700 dark:text-amber-300 hover:text-amber-900">
+      <ExternalLink className="h-4 w-4" />
+      <span>서비스 링크</span>
+    </a>
+    <div className="flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400">
+      <Users className="h-4 w-4" />
+      <span>{project.members.join(', ')}</span>
+    </div>
+  </CardContent>
+</Card>
+```
+
 ### 2. 버튼 (Button)
 
 ```tsx
@@ -418,6 +487,378 @@ import {
 - `Separator` - 구분선
 - `Avatar`, `AvatarImage`, `AvatarFallback` - 아바타
 - `DropdownMenu`, `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem` - 드롭다운
+
+---
+
+## 타이포그래피
+
+| 용도 | 클래스 |
+|------|--------|
+| Stats 값 | `text-2xl font-bold` |
+| 페이지 섹션 제목 | `text-xl font-bold` |
+| CardTitle | `text-lg truncate` |
+| 섹션 헤더, 라벨 | `text-sm font-medium` |
+| 본문, 설명 | `text-sm` |
+| 보조 정보 | `text-xs text-muted-foreground` |
+| 매우 작은 (일정 상세) | `text-[10px]` |
+
+---
+
+## 스켈레톤 로딩
+
+```tsx
+// 기본 스켈레톤 (animate-pulse 필수)
+<div className="animate-pulse">
+  <div className="h-5 w-40 bg-slate-200 dark:bg-slate-600 rounded" />
+</div>
+
+// 아이콘 자리
+<div className="rounded-lg bg-slate-200 dark:bg-slate-600 p-2 w-9 h-9" />
+
+// 배지 자리
+<div className="h-6 w-16 bg-slate-200 dark:bg-slate-600 rounded-full" />
+
+// 컬러 스켈레톤 (Stats 카드)
+<div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/30 animate-pulse">
+  <div className="h-4 w-12 bg-amber-200 dark:bg-amber-800/50 rounded" />
+  <div className="h-7 w-8 bg-amber-200 dark:bg-amber-800/50 rounded mt-2" />
+</div>
+```
+
+---
+
+## 섹션 헤더
+
+```tsx
+// 카드 내 섹션 구분
+<div className="space-y-1.5">
+  <div className="flex items-center gap-1.5 text-sm font-medium text-slate-500 dark:text-slate-400">
+    <Icon className="h-4 w-4" />
+    <span>{sectionTitle}</span>
+  </div>
+  {/* 섹션 내용 */}
+</div>
+```
+
+---
+
+## UI 패턴
+
+### 로딩 스피너
+
+```tsx
+<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+```
+
+### 빈 상태
+
+```tsx
+<div className="p-8 rounded-lg bg-white dark:bg-slate-700 text-center">
+  <FileText className="h-12 w-12 mx-auto text-slate-400 mb-3" />
+  <p className="text-slate-500">데이터가 없습니다</p>
+  <Button size="sm" className="mt-3">
+    <Plus className="h-4 w-4 mr-1" />
+    새로 만들기
+  </Button>
+</div>
+```
+
+### 확장/축소 아이템
+
+```tsx
+// 축소된 상태
+<div className="p-3 rounded-lg bg-white dark:bg-slate-700 cursor-pointer">
+  <div className="flex items-center justify-between">
+    <span className="text-sm font-medium">제목</span>
+    <ChevronDown className="h-4 w-4 text-slate-400" />
+  </div>
+</div>
+
+// 확장된 상태
+<div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+  <div className="flex items-center justify-between mb-2">
+    <span className="text-sm font-medium">제목</span>
+    <ChevronUp className="h-4 w-4 text-slate-400" />
+  </div>
+  <div className="text-sm text-slate-600">상세 내용...</div>
+</div>
+```
+
+### 페이지네이션
+
+```tsx
+<div className="flex items-center justify-between">
+  <div className="text-sm text-slate-500">1-10 / 45</div>
+  <div className="flex items-center gap-2">
+    <Button size="sm" variant="secondary" disabled>
+      <ChevronLeft className="h-4 w-4" />
+    </Button>
+    <span className="text-sm px-3">1 / 5</span>
+    <Button size="sm" variant="secondary">
+      <ChevronRight className="h-4 w-4" />
+    </Button>
+  </div>
+</div>
+```
+
+---
+
+## 접기/펼치기 (Collapsible)
+
+```tsx
+const [expanded, setExpanded] = useState(true)
+
+<Card className="bg-slate-100 dark:bg-slate-800">
+  <CardHeader
+    className={cn("cursor-pointer", !expanded && "-mb-2")}
+    onClick={() => setExpanded(!expanded)}
+  >
+    <div className="flex items-center justify-between">
+      <div>
+        <CardTitle className="text-lg">제목</CardTitle>
+        <CardDescription>설명</CardDescription>
+      </div>
+      <ChevronDown className={cn(
+        "h-4 w-4 text-muted-foreground transition-transform",
+        !expanded && "-rotate-90"
+      )} />
+    </div>
+  </CardHeader>
+  {expanded && (
+    <CardContent className="pt-0">...</CardContent>
+  )}
+</Card>
+
+// localStorage 저장
+useEffect(() => {
+  localStorage.setItem('section-expanded', String(expanded))
+}, [expanded])
+```
+
+---
+
+## 캘린더 셀
+
+```tsx
+// 주간 뷰 셀 (border 없이 배경색으로 구분)
+<div className="min-h-[280px]">
+  {/* 헤더 - 오늘 */}
+  <div className={cn(
+    "text-center py-1.5 rounded-t-lg font-medium text-xs cursor-pointer transition-colors",
+    isToday
+      ? "bg-slate-700 text-white dark:bg-white dark:text-slate-700"
+      : "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300"
+  )}>
+    <div>{dayLabel}</div>
+    <div className="text-base">{day.getDate()}</div>
+  </div>
+  {/* 콘텐츠 */}
+  <div className={cn(
+    "rounded-b-lg p-2 space-y-1 min-h-[120px] cursor-pointer",
+    "bg-white dark:bg-slate-800 hover:bg-slate-50",
+    isOver && "bg-slate-100 dark:bg-slate-700"
+  )}>
+    {children}
+  </div>
+</div>
+
+// 월간 뷰 셀
+<div className={cn(
+  "min-h-[80px] rounded p-1 cursor-pointer",
+  "bg-white dark:bg-slate-800 hover:bg-slate-50",
+  isToday && "bg-slate-200 dark:bg-slate-600",
+  isOver && "bg-slate-300 dark:bg-slate-500"
+)}>
+  {children}
+</div>
+```
+
+---
+
+## 차트 (recharts)
+
+```tsx
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
+// 차트 컨테이너 (h-48 권장)
+<div className="h-48">
+  <ResponsiveContainer width="100%" height="100%">
+    <LineChart data={data}>
+      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+      <YAxis tick={{ fontSize: 10 }} />
+      <Tooltip />
+      <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
+
+// 차트 색상 팔레트
+// #6366f1 (indigo), #f97316 (orange), #10b981 (emerald), #3b82f6 (blue)
+```
+
+---
+
+## 드래그앤드롭 (dnd-kit)
+
+```tsx
+import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+
+// Sensor 설정 (8px 이동 후 드래그 시작)
+const sensors = useSensors(
+  useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+)
+
+// Draggable 아이템
+<div
+  ref={setNodeRef}
+  style={{
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    borderLeft: item.color ? `3px solid ${item.color}` : undefined,  // 동적 색상
+  }}
+  className={cn(
+    "text-xs p-1.5 rounded cursor-grab active:cursor-grabbing touch-none",
+    isDragging && "opacity-50",
+    item.completed && "bg-muted line-through text-muted-foreground"
+  )}
+>
+  {item.title}
+</div>
+
+// Droppable 영역
+<div
+  ref={setNodeRef}
+  className={cn("min-h-[120px] p-2", isOver && "bg-slate-100 dark:bg-slate-800")}
+>
+  {children}
+</div>
+```
+
+---
+
+## 수정/삭제 버튼 규칙
+
+### 중요: 삭제 버튼 규칙
+- **삭제 아이콘(Trash) 단독 사용 금지**
+- **삭제는 수정 모달/인라인 내에서만 가능**
+- **삭제 버튼 위치: 모달 좌측 하단**
+
+```tsx
+// 테이블/카드에서: 수정 아이콘만 표시
+<button
+  onClick={() => openEditModal(item)}
+  className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+>
+  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+</button>
+
+// 수정 모달 DialogFooter (삭제 버튼 좌측)
+<DialogFooter className="flex-row justify-between sm:justify-between">
+  <Button variant="destructive" onClick={handleDelete}>
+    <Trash2 className="h-4 w-4 mr-1" />삭제
+  </Button>
+  <div className="flex gap-2">
+    <Button variant="outline">취소</Button>
+    <Button>저장</Button>
+  </div>
+</DialogFooter>
+```
+
+### 아이콘 버튼 스타일
+- 아이콘 크기: `h-4 w-4`
+- 버튼 패딩: `p-1`
+- 기본 색상: `text-slate-600 dark:text-slate-400`
+- 호버 배경: `hover:bg-slate-200 dark:hover:bg-slate-700`
+- 비활성화: `disabled:opacity-30 disabled:cursor-not-allowed`
+
+---
+
+## 숫자 포맷
+
+```tsx
+// 천 단위 콤마 (필수!)
+const formatted = value.toLocaleString()
+// 1234567 → "1,234,567"
+
+// 소수점 포함
+const withDecimals = value.toLocaleString(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+})
+
+// 통화 포맷
+const currency = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD'
+}).format(value)
+
+// 큰 숫자 축약
+function formatLargeNumber(value: number): string {
+  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
+  if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`
+  return `$${value.toLocaleString()}`
+}
+
+// 파일 크기
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`
+  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${bytes} B`
+}
+```
+
+---
+
+## 그리드 패턴 (자주 사용)
+
+| 용도 | 클래스 |
+|------|--------|
+| Stats 카드 (ETF) | `grid gap-4 md:grid-cols-3` |
+| Stats Grid (Tensoftworks) | `grid grid-cols-2 sm:grid-cols-4 gap-2` |
+| 프로젝트 카드 리스트 | `grid sm:grid-cols-1 lg:grid-cols-2 gap-4` |
+| Management 페이지 (1:2) | `grid grid-cols-1 lg:grid-cols-3 gap-6` |
+| 카드 내 2컬럼 | `grid grid-cols-1 sm:grid-cols-2 gap-3` |
+
+---
+
+## 오버플로우 처리 (필수)
+
+```tsx
+// flex 컨테이너 필수
+<div className="flex items-center gap-2 min-w-0">
+  <Icon className="h-4 w-4 flex-shrink-0" />
+  <span className="truncate">긴 텍스트...</span>
+</div>
+
+// CardContent 오버플로우
+<CardContent className="pt-0 space-y-3 overflow-hidden">
+
+// 멀티라인 제한
+<p className="line-clamp-2">여러 줄 텍스트...</p>
+```
+
+---
+
+## 스크롤 모달 (헤더/푸터 고정)
+
+```tsx
+<DialogContent className="max-h-[90vh] flex flex-col">
+  <DialogHeader className="flex-shrink-0 pb-4 border-b">
+    <DialogTitle>제목</DialogTitle>
+  </DialogHeader>
+
+  {/* 스크롤 영역 */}
+  <div className="overflow-y-auto flex-1 py-4 space-y-4">
+    {/* 내용 */}
+  </div>
+
+  <DialogFooter className="flex-shrink-0 pt-4 border-t">
+    <Button variant="outline">취소</Button>
+    <Button>저장</Button>
+  </DialogFooter>
+</DialogContent>
+```
 
 ---
 
