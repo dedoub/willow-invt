@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getAuthUrl } from '@/lib/gmail-server'
+import { getAuthUrl, GmailContext } from '@/lib/gmail-server'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const authUrl = getAuthUrl()
+    const { searchParams } = new URL(request.url)
+    const context = (searchParams.get('context') || 'default') as GmailContext
+    const authUrl = getAuthUrl(context)
     return NextResponse.json({ authUrl })
   } catch (error) {
     console.error('Error generating auth URL:', error)

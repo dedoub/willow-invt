@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getGmailClient, parseEmail } from '@/lib/gmail-server'
+import { getGmailClient, parseEmail, GmailContext } from '@/lib/gmail-server'
 import { analyzeEmails as analyzeEmailsSummary, type EmailForAnalysis as GeminiEmailForAnalysis } from '@/lib/gemini-server'
 import {
   filterUnanalyzedEmails,
@@ -227,13 +227,14 @@ async function triggerBackgroundAnalysis(
 
 export async function GET(request: NextRequest) {
   try {
-    const gmail = await getGmailClient()
+    const searchParams = request.nextUrl.searchParams
+    const context = (searchParams.get('context') || 'default') as GmailContext
+    const gmail = await getGmailClient(context)
 
     if (!gmail) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const searchParams = request.nextUrl.searchParams
     const label = searchParams.get('label') || 'INBOX'
     const maxResults = parseInt(searchParams.get('maxResults') || '100')
     const daysBack = parseInt(searchParams.get('daysBack') || '365') // 기본 1년

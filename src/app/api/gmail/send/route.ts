@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGmailClient, createMimeMessage, EmailAttachmentData } from '@/lib/gmail-server'
+import { getGmailClient, createMimeMessage, EmailAttachmentData, GmailContext } from '@/lib/gmail-server'
 
 export async function POST(request: NextRequest) {
   try {
-    const gmail = await getGmailClient()
+    const context = (request.nextUrl.searchParams.get('context') || 'default') as GmailContext
+    const gmail = await getGmailClient(context)
 
     if (!gmail) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })

@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
-import { deleteTokens } from '@/lib/gmail-server'
+import { deleteTokens, GmailContext } from '@/lib/gmail-server'
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    await deleteTokens()
+    const { searchParams } = new URL(request.url)
+    const context = (searchParams.get('context') || 'default') as GmailContext
+    await deleteTokens(context)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error disconnecting Gmail:', error)

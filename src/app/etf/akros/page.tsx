@@ -1941,7 +1941,7 @@ Dongwook`
   const loadWikiNotes = async () => {
     setIsLoadingWiki(true)
     try {
-      const res = await fetch('/api/wiki?section=etf-etc')
+      const res = await fetch('/api/wiki?section=akros')
       if (res.ok) {
         const data = await res.json()
         setWikiNotes(data)
@@ -1954,7 +1954,7 @@ Dongwook`
   }
 
   const handleAddNote = async () => {
-    if (!newNoteTitle.trim() || !newNoteContent.trim()) return
+    if (!newNoteTitle.trim() || (!newNoteContent.trim() && newNoteFiles.length === 0)) return
 
     try {
       setIsUploadingWiki(true)
@@ -1980,7 +1980,7 @@ Dongwook`
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          section: 'etf-etc',
+          section: 'akros',
           title: newNoteTitle.trim(),
           content: newNoteContent.trim(),
           attachments,
@@ -3187,7 +3187,7 @@ Dongwook`
                     </button>
                     <button
                       onClick={handleAddNote}
-                      disabled={!newNoteTitle.trim() || !newNoteContent.trim() || isUploadingWiki}
+                      disabled={!newNoteTitle.trim() || (!newNoteContent.trim() && newNoteFiles.length === 0) || isUploadingWiki}
                       className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
                     >
                       {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin" />}

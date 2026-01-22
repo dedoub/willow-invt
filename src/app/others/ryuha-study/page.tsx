@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ProtectedPage } from '@/components/auth/protected-page'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -1503,28 +1503,29 @@ export default function RyuhaStudyPage() {
         {/* Textbooks & Chapters Panel */}
         <div className="lg:col-span-1 order-2 lg:order-1">
           <Card className="bg-slate-100 dark:bg-slate-800">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <BookMarked className="h-4 w-4" />
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <BookMarked className="h-5 w-5" />
                   과목 및 교재
                 </CardTitle>
-                <div className="flex items-center gap-2">
-                  <button
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
-                    onClick={() => openSubjectDialog()}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    과목 추가
-                  </button>
-                  <button
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
-                    onClick={() => openTextbookDialog()}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    교재 추가
-                  </button>
-                </div>
+                <CardDescription>과목별 교재 및 챕터 관리</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                  onClick={() => openSubjectDialog()}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">과목 추가</span>
+                </button>
+                <button
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                  onClick={() => openTextbookDialog()}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">교재 추가</span>
+                </button>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -1845,14 +1846,17 @@ export default function RyuhaStudyPage() {
           {/* Progress Summary */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader
-              className={cn("cursor-pointer", progressExpanded ? "pb-3" : "-mb-2")}
+              className={cn("cursor-pointer", progressExpanded ? "" : "-mb-2")}
               onClick={() => setProgressExpanded(!progressExpanded)}
             >
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4" />
-                  진행 현황
-                </CardTitle>
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5" />
+                    진행 현황
+                  </CardTitle>
+                  <CardDescription>과목별 챕터 달성률</CardDescription>
+                </div>
                 <ChevronDown
                   className={cn(
                     'h-4 w-4 text-muted-foreground transition-transform',
@@ -1937,14 +1941,17 @@ export default function RyuhaStudyPage() {
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  학습 일정
-                </CardTitle>
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    학습 일정
+                  </CardTitle>
+                  <CardDescription>학습 일정 및 목표일 관리</CardDescription>
+                </div>
                 <div className="flex items-center gap-2">
                   <button
                     className={cn(
-                      'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                      'px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                       viewMode === 'week'
                         ? 'bg-slate-900 dark:bg-slate-700 text-white'
                         : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -1955,7 +1962,7 @@ export default function RyuhaStudyPage() {
                   </button>
                   <button
                     className={cn(
-                      'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                      'px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                       viewMode === 'month'
                         ? 'bg-slate-900 dark:bg-slate-700 text-white'
                         : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -1965,11 +1972,11 @@ export default function RyuhaStudyPage() {
                     월간
                   </button>
                   <button
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
                     onClick={() => openScheduleDialog()}
                   >
-                    <Plus className="h-3.5 w-3.5" />
-                    일정 추가
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">일정 추가</span>
                   </button>
                 </div>
               </div>

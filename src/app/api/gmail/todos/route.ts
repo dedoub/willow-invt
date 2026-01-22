@@ -59,6 +59,43 @@ async function getCurrentUserId(): Promise<string | null> {
   }
 }
 
+// GET: 특정 label의 todos 조회
+export async function GET(request: NextRequest) {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    const searchParams = request.nextUrl.searchParams
+    const label = searchParams.get('label') || searchParams.get('section')
+
+    if (!label) {
+      return NextResponse.json({ error: 'label is required' }, { status: 400 })
+    }
+
+    const { data, error } = await supabase
+      .from('email_todos')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('label', label)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching todos:', error)
+      return NextResponse.json({ error: 'Failed to fetch todos' }, { status: 500 })
+    }
+
+    return NextResponse.json({ todos: data || [] })
+  } catch (error) {
+    console.error('Error in GET /api/gmail/todos:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 // POST: 새 todo 생성
 export async function POST(request: NextRequest) {
   try {

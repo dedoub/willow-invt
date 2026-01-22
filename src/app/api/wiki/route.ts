@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { section = 'etf-etc', title, content, category, attachments } = body
 
-    if (!title || !content) {
-      return NextResponse.json({ error: 'Title and content are required' }, { status: 400 })
+    if (!title) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
     const { data, error } = await supabase
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         section,
         title,
-        content,
+        content: content || '',
         category: category || null,
         attachments: attachments || null,
       })

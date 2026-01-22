@@ -12,6 +12,9 @@ const SCOPES = [
   'https://www.googleapis.com/auth/gmail.labels',
 ]
 
+// Gmail context types for multi-account support
+export type GmailContext = 'default' | 'tensoftworks'
+
 // Supabase 클라이언트
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -42,12 +45,13 @@ export function getOAuth2Client() {
 }
 
 // 인증 URL 생성
-export function getAuthUrl(): string {
+export function getAuthUrl(context: GmailContext = 'default'): string {
   const oauth2Client = getOAuth2Client()
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
     prompt: 'select_account consent', // 항상 계정 선택 화면 표시
+    state: context, // context를 state로 전달하여 callback에서 사용
   })
 }
 
@@ -57,6 +61,7 @@ export async function saveTokens(tokens: {
   refresh_token?: string
   expiry_date?: number
   gmail_email?: string
+  context?: GmailContext
 }) {
   const userId = await getCurrentUserId()
   if (!userId) {
@@ -64,8 +69,10 @@ export async function saveTokens(tokens: {
     return
   }
 
+  const context = tokens.context || 'default'
   const tokenData = {
     user_id: userId,
+    context,
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token || '',
     token_expiry: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
@@ -75,15 +82,16 @@ export async function saveTokens(tokens: {
 
   const { error } = await supabase
     .from('gmail_tokens')
-    .upsert(tokenData, { onConflict: 'user_id' })
+    .upsert(tokenData, { onConflict: 'user_id,context' })
 
   if (error) {
     console.error('Error saving Gmail tokens:', error)
   }
 
-  // 쿠키에도 저장 (현재 세션용)
+  // 쿠키에도 저장 (현재 세션용) - context별로 별도 쿠키
+  const cookieName = context === 'default' ? GMAIL_TOKEN_COOKIE : `${GMAIL_TOKEN_COOKIE}_${context}`
   const cookieStore = await cookies()
-  cookieStore.set(GMAIL_TOKEN_COOKIE, JSON.stringify({
+  cookieStore.set(cookieName, JSON.stringify({
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
     expires_at: tokens.expiry_date || Date.now() + 3600 * 1000,
@@ -97,7 +105,7 @@ export async function saveTokens(tokens: {
 }
 
 // 토큰 조회 (DB 우선, 쿠키 폴백)
-export async function getTokens(): Promise<{
+export async function getTokens(context: GmailContext = 'default'): Promise<{
   access_token: string
   refresh_token: string
   expires_at: number
@@ -110,6 +118,7 @@ export async function getTokens(): Promise<{
       .from('gmail_tokens')
       .select('*')
       .eq('user_id', userId)
+      .eq('context', context)
       .single()
 
     if (!error && data) {
@@ -122,8 +131,9 @@ export async function getTokens(): Promise<{
   }
 
   // 2. 쿠키에서 폴백 (기존 연결 호환성)
+  const cookieName = context === 'default' ? GMAIL_TOKEN_COOKIE : `${GMAIL_TOKEN_COOKIE}_${context}`
   const cookieStore = await cookies()
-  const tokenCookie = cookieStore.get(GMAIL_TOKEN_COOKIE)
+  const tokenCookie = cookieStore.get(cookieName)
 
   if (!tokenCookie) return null
 
@@ -136,6 +146,7 @@ export async function getTokens(): Promise<{
         access_token: cookieTokens.access_token,
         refresh_token: cookieTokens.refresh_token,
         expiry_date: cookieTokens.expires_at,
+        context,
       })
     }
 
@@ -146,7 +157,7 @@ export async function getTokens(): Promise<{
 }
 
 // 토큰 삭제
-export async function deleteTokens() {
+export async function deleteTokens(context: GmailContext = 'default') {
   const userId = await getCurrentUserId()
 
   // DB에서 삭제
@@ -155,16 +166,18 @@ export async function deleteTokens() {
       .from('gmail_tokens')
       .delete()
       .eq('user_id', userId)
+      .eq('context', context)
   }
 
   // 쿠키에서도 삭제
+  const cookieName = context === 'default' ? GMAIL_TOKEN_COOKIE : `${GMAIL_TOKEN_COOKIE}_${context}`
   const cookieStore = await cookies()
-  cookieStore.delete(GMAIL_TOKEN_COOKIE)
+  cookieStore.delete(cookieName)
 }
 
 // 인증된 Gmail 클라이언트 가져오기
-export async function getGmailClient() {
-  const tokens = await getTokens()
+export async function getGmailClient(context: GmailContext = 'default') {
+  const tokens = await getTokens(context)
   if (!tokens) return null
 
   const oauth2Client = getOAuth2Client()
@@ -182,10 +195,11 @@ export async function getGmailClient() {
         access_token: credentials.access_token!,
         refresh_token: credentials.refresh_token || tokens.refresh_token,
         expiry_date: credentials.expiry_date!,
+        context,
       })
     } catch (error) {
       console.error('Failed to refresh token:', error)
-      await deleteTokens()
+      await deleteTokens(context)
       return null
     }
   }
