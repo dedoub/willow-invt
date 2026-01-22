@@ -769,10 +769,24 @@ const sensors = useSensors(
 
 ### 아이콘 버튼 스타일
 
-> **중요**: `opacity` 기반이 아닌 명시적 색상 사용. `text-slate-600 dark:text-slate-400`를 항상 적용.
+**1. 목록 아이템용 (마일스톤, 챕터 등) - opacity 패턴:**
+
+> 목록 내 수정 아이콘은 기본적으로 옅게 표시하고 호버 시 진하게
 
 ```tsx
-// 표준 수정 아이콘 버튼
+<Button
+  size="icon"
+  variant="ghost"
+  className="h-5 w-5 opacity-30 hover:opacity-100"
+  onClick={() => openEditModal(item)}
+>
+  <Pencil className="h-2.5 w-2.5" />
+</Button>
+```
+
+**2. 독립 버튼용 (클라이언트 섹션 등) - 명시적 색상:**
+
+```tsx
 <button
   className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer"
   onClick={() => openEditModal(item)}
@@ -781,13 +795,8 @@ const sensors = useSensors(
 </button>
 ```
 
-- 아이콘 크기: `h-4 w-4` (작은 경우 `h-3 w-3` 또는 `h-3.5 w-3.5`)
-- 버튼 패딩: `p-1`
-- **아이콘 색상**: `text-slate-600 dark:text-slate-400` (필수)
-- 호버 배경: `hover:bg-slate-200 dark:hover:bg-slate-600`
+**공통 규칙:**
 - 비활성화: `disabled:opacity-30 disabled:cursor-not-allowed`
-
-❌ **금지**: `opacity-30 hover:opacity-100` 패턴 (색상이 일관되지 않음)
 
 ---
 

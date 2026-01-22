@@ -1732,15 +1732,17 @@ export default function RyuhaStudyPage() {
                           <span className="text-xs text-muted-foreground">
                             {completed}/{total}
                           </span>
-                          <button
-                            className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer"
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 opacity-30 hover:opacity-100"
                             onClick={(e) => {
                               e.stopPropagation()
                               openTextbookDialog(textbook)
                             }}
                           >
-                            <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                          </button>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
                         </div>
                       </div>
 
@@ -2007,8 +2009,10 @@ export default function RyuhaStudyPage() {
                                     </span>
                                   )}
                                 </button>
-                                <button
-                                  className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer"
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-5 w-5 opacity-30 hover:opacity-100"
                                   onClick={() => {
                                     setChapterForm({
                                       textbook_id: chapter.textbook_id,
@@ -2020,8 +2024,8 @@ export default function RyuhaStudyPage() {
                                     setEditingChapterId(chapter.id)
                                   }}
                                 >
-                                  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                                </button>
+                                  <Pencil className="h-2.5 w-2.5" />
+                                </Button>
                               </div>
                             )
                           })}
