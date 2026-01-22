@@ -222,6 +222,10 @@ export default function UIGuidePage() {
             <a href="#modals" className="text-sm text-blue-600 hover:underline">13. 모달/다이얼로그</a>
             <a href="#typography" className="text-sm text-blue-600 hover:underline">14. 타이포그래피</a>
             <a href="#spacing" className="text-sm text-blue-600 hover:underline">15. 간격 시스템</a>
+            <a href="#collapsible" className="text-sm text-blue-600 hover:underline">16. 접기/펼치기</a>
+            <a href="#calendar" className="text-sm text-blue-600 hover:underline">17. 캘린더 셀</a>
+            <a href="#charts" className="text-sm text-blue-600 hover:underline">18. 차트</a>
+            <a href="#dnd" className="text-sm text-blue-600 hover:underline">19. 드래그앤드롭</a>
           </div>
         </CardContent>
       </Card>
@@ -1564,6 +1568,454 @@ className="bg-slate-100 dark:bg-slate-800"
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* 16. Collapsible Sections */}
+      <Section id="collapsible" title="16. 접기/펼치기 (Collapsible)" icon={ChevronDown}>
+        <Card className="bg-slate-100 dark:bg-slate-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">접기/펼치기 패턴</CardTitle>
+            <CardDescription className="text-sm mt-0.5">CardHeader 클릭으로 섹션 접기/펼치기</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-6">
+            {/* Collapsible Card Example */}
+            <div>
+              <Label className="mb-3 block">접기/펼치기 카드</Label>
+              <div className="space-y-3 max-w-md">
+                {/* Expanded State */}
+                <Card className="bg-slate-100 dark:bg-slate-700">
+                  <CardHeader className="cursor-pointer pb-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg">펼쳐진 섹션</CardTitle>
+                        <CardDescription className="text-sm mt-0.5">상세 정보 표시</CardDescription>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      섹션 내용이 표시됩니다...
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Collapsed State */}
+                <Card className="bg-slate-100 dark:bg-slate-700">
+                  <CardHeader className="cursor-pointer -mb-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg">접힌 섹션</CardTitle>
+                        <CardDescription className="text-sm mt-0.5">클릭하여 펼치기</CardDescription>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform -rotate-90" />
+                    </div>
+                  </CardHeader>
+                </Card>
+              </div>
+            </div>
+
+            {/* Accordion Pattern */}
+            <div>
+              <Label className="mb-3 block">아코디언 아이템</Label>
+              <div className="max-w-md border dark:border-slate-700 rounded-lg overflow-hidden">
+                <div className="p-3 flex items-center justify-between cursor-pointer bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700">
+                  <div className="flex items-center gap-2">
+                    <ChevronDown className="h-4 w-4 transition-transform" />
+                    <span className="font-medium text-sm">펼쳐진 아이템</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">3개</span>
+                </div>
+                <div className="px-3 pb-3 space-y-2 bg-white dark:bg-slate-800">
+                  <div className="pl-6 text-sm text-slate-600 dark:text-slate-400">
+                    내용 1
+                  </div>
+                  <div className="pl-6 text-sm text-slate-600 dark:text-slate-400">
+                    내용 2
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <CodeBlock title="접기/펼치기 패턴" code={`// 상태 관리
+const [expanded, setExpanded] = useState(true)
+
+// 접기/펼치기 카드
+<Card className="bg-slate-100 dark:bg-slate-800">
+  <CardHeader
+    className={cn("cursor-pointer", !expanded && "-mb-2")}
+    onClick={() => setExpanded(!expanded)}
+  >
+    <div className="flex items-center justify-between">
+      <div>
+        <CardTitle className="text-lg">제목</CardTitle>
+        <CardDescription>설명</CardDescription>
+      </div>
+      <ChevronDown className={cn(
+        "h-4 w-4 text-muted-foreground transition-transform",
+        !expanded && "-rotate-90"
+      )} />
+    </div>
+  </CardHeader>
+  {expanded && (
+    <CardContent className="pt-0">...</CardContent>
+  )}
+</Card>
+
+// localStorage 저장
+useEffect(() => {
+  localStorage.setItem('section-expanded', String(expanded))
+}, [expanded])`} />
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* 17. Calendar Cells */}
+      <Section id="calendar" title="17. 캘린더 셀 (Calendar)" icon={Calendar}>
+        <Card className="bg-slate-100 dark:bg-slate-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">캘린더 셀 패턴</CardTitle>
+            <CardDescription className="text-sm mt-0.5">주간/월간 캘린더 뷰 셀 스타일</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-6">
+            {/* Week View Cells */}
+            <div>
+              <Label className="mb-3 block">주간 뷰 셀 (min-h-[280px])</Label>
+              <div className="grid grid-cols-3 gap-2 max-w-md">
+                {/* Regular Day */}
+                <div className="min-h-[140px]">
+                  <div className="text-center py-1.5 rounded-t-lg font-medium text-xs bg-slate-200 dark:bg-slate-700 cursor-pointer hover:bg-slate-300 dark:hover:bg-slate-600">
+                    <div>월</div>
+                    <div className="text-base">15</div>
+                  </div>
+                  <div className="rounded-b-lg p-2 space-y-1 min-h-[100px] cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <div className="text-xs p-1.5 rounded bg-slate-200 dark:bg-slate-700">
+                      일정 1
+                    </div>
+                  </div>
+                </div>
+
+                {/* Today */}
+                <div className="min-h-[140px]">
+                  <div className="text-center py-1.5 rounded-t-lg font-medium text-xs bg-slate-900 text-white dark:bg-white dark:text-slate-900 cursor-pointer hover:bg-slate-800 dark:hover:bg-slate-100">
+                    <div>화</div>
+                    <div className="text-base">16</div>
+                  </div>
+                  <div className="rounded-b-lg p-2 space-y-1 min-h-[100px] cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <div className="text-xs p-1.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400">
+                      오늘 일정
+                    </div>
+                  </div>
+                </div>
+
+                {/* Empty Day */}
+                <div className="min-h-[140px]">
+                  <div className="text-center py-1.5 rounded-t-lg font-medium text-xs bg-slate-200 dark:bg-slate-700">
+                    <div>수</div>
+                    <div className="text-base">17</div>
+                  </div>
+                  <div className="rounded-b-lg p-2 space-y-1 min-h-[100px] bg-white dark:bg-slate-900 text-center">
+                    <p className="text-xs text-muted-foreground mt-4">일정 없음</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Month View Cells */}
+            <div>
+              <Label className="mb-3 block">월간 뷰 셀 (min-h-[80px])</Label>
+              <div className="grid grid-cols-4 gap-1 max-w-sm">
+                {/* Regular */}
+                <div className="min-h-[60px] border rounded p-1 cursor-pointer hover:bg-muted/50">
+                  <div className="text-xs text-muted-foreground">15</div>
+                  <div className="text-[10px] px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-700 truncate mt-1">
+                    일정
+                  </div>
+                </div>
+                {/* Today */}
+                <div className="min-h-[60px] border border-slate-900 dark:border-white rounded p-1 cursor-pointer hover:bg-muted/50">
+                  <div className="text-xs font-bold">16</div>
+                  <div className="text-[10px] px-1 py-0.5 rounded bg-blue-200 dark:bg-blue-900/50 truncate mt-1">
+                    오늘
+                  </div>
+                </div>
+                {/* Hover/Drop */}
+                <div className="min-h-[60px] border rounded p-1 bg-slate-900/10 border-slate-900 dark:bg-white/10 dark:border-white">
+                  <div className="text-xs">17</div>
+                  <div className="text-[10px] text-muted-foreground mt-2">드롭 영역</div>
+                </div>
+                {/* Empty */}
+                <div className="min-h-[60px] border rounded p-1 bg-muted/20">
+                  <div className="text-xs text-muted-foreground">-</div>
+                </div>
+              </div>
+            </div>
+
+            <CodeBlock title="캘린더 셀 패턴" code={`// 주간 뷰 셀
+<div className="min-h-[280px]">
+  {/* 헤더 - 오늘 */}
+  <div className={cn(
+    "text-center py-1.5 rounded-t-lg font-medium text-xs cursor-pointer transition-colors",
+    isToday
+      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:bg-slate-800"
+      : "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300"
+  )}>
+    <div>{dayLabel}</div>
+    <div className="text-base">{day.getDate()}</div>
+  </div>
+  {/* 콘텐츠 */}
+  <div className={cn(
+    "rounded-b-lg p-2 space-y-1 min-h-[120px] cursor-pointer transition-colors",
+    "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800",
+    isOver && "bg-slate-100 dark:bg-slate-800"
+  )}>
+    {children}
+  </div>
+</div>
+
+// 월간 뷰 셀
+<div className={cn(
+  "min-h-[80px] border rounded p-1 cursor-pointer",
+  isToday && "border-slate-900 dark:border-white",
+  isOver && "bg-slate-900/10 border-slate-900 dark:bg-white/10",
+  !day && "bg-muted/20"
+)}>
+  {children}
+</div>`} />
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* 18. Charts (recharts) */}
+      <Section id="charts" title="18. 차트 (Charts)" icon={TrendingUp}>
+        <Card className="bg-slate-100 dark:bg-slate-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">차트 패턴 (recharts)</CardTitle>
+            <CardDescription className="text-sm mt-0.5">recharts 라이브러리 사용</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-6">
+            {/* Chart Container Pattern */}
+            <div>
+              <Label className="mb-3 block">차트 컨테이너 (h-48)</Label>
+              <div className="h-48 bg-white dark:bg-slate-900 rounded-lg p-4">
+                <div className="w-full h-full flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 rounded">
+                  <div className="text-center text-muted-foreground">
+                    <TrendingUp className="h-8 w-8 mx-auto mb-2" />
+                    <p className="text-sm">ResponsiveContainer</p>
+                    <p className="text-xs">width="100%" height="100%"</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Chart Color Scheme */}
+            <div>
+              <Label className="mb-3 block">차트 색상 팔레트</Label>
+              <div className="flex flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#6366f1]" />
+                  <span className="text-xs">#6366f1 (indigo)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#f97316]" />
+                  <span className="text-xs">#f97316 (orange)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#10b981]" />
+                  <span className="text-xs">#10b981 (emerald)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#3b82f6]" />
+                  <span className="text-xs">#3b82f6 (blue)</span>
+                </div>
+              </div>
+            </div>
+
+            <CodeBlock title="차트 패턴 (recharts)" code={`import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+
+// 기본 LineChart
+<div className="h-48">
+  <ResponsiveContainer width="100%" height="100%">
+    <LineChart data={data}>
+      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+      <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
+      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} />
+      <Tooltip />
+      <Legend />
+      <Line
+        yAxisId="left"
+        type="monotone"
+        dataKey="value1"
+        stroke="#6366f1"
+        strokeWidth={2}
+        dot={{ r: 3 }}
+        connectNulls
+      />
+      <Line
+        yAxisId="right"
+        type="monotone"
+        dataKey="value2"
+        stroke="#f97316"
+        strokeWidth={2}
+        dot={{ r: 3 }}
+        connectNulls
+      />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
+
+// 빈 상태
+{data.length === 0 && (
+  <div className="text-center py-4 text-muted-foreground text-sm">
+    데이터가 없습니다
+  </div>
+)}`} />
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* 19. Drag and Drop (dnd-kit) */}
+      <Section id="dnd" title="19. 드래그앤드롭 (DnD)" icon={Layout}>
+        <Card className="bg-slate-100 dark:bg-slate-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">드래그앤드롭 (dnd-kit)</CardTitle>
+            <CardDescription className="text-sm mt-0.5">@dnd-kit/core 라이브러리 사용</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-6">
+            {/* Draggable Card */}
+            <div>
+              <Label className="mb-3 block">드래그 가능한 카드</Label>
+              <div className="flex gap-3">
+                <div className="text-xs p-1.5 rounded cursor-grab active:cursor-grabbing touch-none bg-slate-200 dark:bg-slate-700">
+                  <div className="flex items-center gap-1">
+                    <Circle className="h-3 w-3" />
+                    <span>드래그 가능</span>
+                  </div>
+                </div>
+                <div className="text-xs p-1.5 rounded cursor-grab active:cursor-grabbing touch-none bg-slate-200 dark:bg-slate-700 opacity-50">
+                  <div className="flex items-center gap-1">
+                    <Circle className="h-3 w-3" />
+                    <span>드래그 중 (opacity-50)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dynamic Color Border */}
+            <div>
+              <Label className="mb-3 block">동적 색상 테두리 (인라인 스타일)</Label>
+              <div className="flex flex-wrap gap-3">
+                <div
+                  className="text-xs p-1.5 rounded bg-indigo-100/20 dark:bg-indigo-900/20"
+                  style={{ borderLeft: '3px solid #6366f1' }}
+                >
+                  과목 A 일정
+                </div>
+                <div
+                  className="text-xs p-1.5 rounded bg-orange-100/20 dark:bg-orange-900/20"
+                  style={{ borderLeft: '3px solid #f97316' }}
+                >
+                  과목 B 일정
+                </div>
+                <div
+                  className="text-xs p-1.5 rounded bg-emerald-100/20 dark:bg-emerald-900/20"
+                  style={{ borderLeft: '3px solid #10b981' }}
+                >
+                  과목 C 일정
+                </div>
+              </div>
+            </div>
+
+            {/* Completed State */}
+            <div>
+              <Label className="mb-3 block">완료 상태 스타일</Label>
+              <div className="flex gap-3">
+                <div className="text-xs p-1.5 rounded bg-slate-200 dark:bg-slate-700">
+                  <div className="flex items-center gap-1">
+                    <Circle className="h-3 w-3" />
+                    <span>미완료</span>
+                  </div>
+                </div>
+                <div className="text-xs p-1.5 rounded bg-muted line-through text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                    <span>완료됨</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <CodeBlock title="드래그앤드롭 패턴" code={`import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+
+// Sensor 설정 (8px 이동 후 드래그 시작)
+const sensors = useSensors(
+  useSensor(PointerSensor, {
+    activationConstraint: { distance: 8 },
+  })
+)
+
+// Draggable 컴포넌트
+function DraggableCard({ item }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: item.id,
+    data: { item },
+  })
+
+  // 동적 색상 스타일
+  const style = {
+    transform: transform
+      ? \`translate3d(\${transform.x}px, \${transform.y}px, 0)\`
+      : undefined,
+    borderLeft: item.color ? \`3px solid \${item.color}\` : undefined,
+    backgroundColor: item.color ? \`\${item.color}20\` : undefined,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={cn(
+        "text-xs p-1.5 rounded cursor-grab active:cursor-grabbing touch-none",
+        isDragging && "opacity-50",
+        item.completed && "bg-muted line-through text-muted-foreground"
+      )}
+    >
+      {item.title}
+    </div>
+  )
+}
+
+// Droppable 영역
+function DroppableZone({ date, children }) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: \`day-\${date}\`,
+    data: { date },
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "min-h-[120px] p-2",
+        isOver && "bg-slate-100 dark:bg-slate-800"
+      )}
+    >
+      {children}
+    </div>
+  )
+}`} />
           </CardContent>
         </Card>
       </Section>

@@ -16,6 +16,22 @@ const FOLDER_BUCKET_MAP: Record<string, string> = {
   'ceo': 'ceo-docs',
 }
 
+// 파일명 sanitize (Supabase Storage에서 허용하지 않는 문자 제거)
+function sanitizeFileName(fileName: string): string {
+  // 확장자 분리
+  const lastDot = fileName.lastIndexOf('.')
+  const ext = lastDot > 0 ? fileName.slice(lastDot) : ''
+  const name = lastDot > 0 ? fileName.slice(0, lastDot) : fileName
+
+  // 허용되지 않는 문자를 언더스코어로 대체 (한글, 공백, 특수문자 등)
+  const sanitized = name
+    .replace(/[^\w.-]/g, '_') // 영문, 숫자, 언더스코어, 점, 하이픈 외 모두 제거
+    .replace(/_+/g, '_') // 연속된 언더스코어 하나로
+    .replace(/^_|_$/g, '') // 앞뒤 언더스코어 제거
+
+  return (sanitized || 'file') + ext.toLowerCase()
+}
+
 // 현재 사용자 ID 가져오기
 async function getCurrentUserId(): Promise<string | null> {
   const cookieStore = await cookies()
@@ -59,7 +75,8 @@ export async function POST(request: NextRequest) {
     for (const file of files) {
       const timestamp = Date.now()
       const sanitizedUserId = userId.replace(/[^a-zA-Z0-9]/g, '_')
-      const filePath = `${folder}/${sanitizedUserId}/${timestamp}_${file.name}`
+      const sanitizedFileName = sanitizeFileName(file.name)
+      const filePath = `${folder}/${sanitizedUserId}/${timestamp}_${sanitizedFileName}`
 
       const arrayBuffer = await file.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
