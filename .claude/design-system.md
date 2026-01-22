@@ -231,8 +231,11 @@ const [amount, setAmount] = useState('')
 ```
 
 **필터 뱃지 (탭 스타일):**
+
+> **중요**: 필터 뱃지와 아래 목록 사이에는 반드시 `mb-4` (16px) 간격을 유지합니다.
+
 ```tsx
-<div className="flex flex-wrap gap-1 mb-4">
+<div className="flex flex-wrap gap-1 items-center mb-4">
   {items.map((item) => (
     <button
       key={item}
@@ -765,11 +768,26 @@ const sensors = useSensors(
 ```
 
 ### 아이콘 버튼 스타일
-- 아이콘 크기: `h-4 w-4`
+
+> **중요**: `opacity` 기반이 아닌 명시적 색상 사용. `text-slate-600 dark:text-slate-400`를 항상 적용.
+
+```tsx
+// 표준 수정 아이콘 버튼
+<button
+  className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer"
+  onClick={() => openEditModal(item)}
+>
+  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+</button>
+```
+
+- 아이콘 크기: `h-4 w-4` (작은 경우 `h-3 w-3` 또는 `h-3.5 w-3.5`)
 - 버튼 패딩: `p-1`
-- 기본 색상: `text-slate-600 dark:text-slate-400`
-- 호버 배경: `hover:bg-slate-200 dark:hover:bg-slate-700`
+- **아이콘 색상**: `text-slate-600 dark:text-slate-400` (필수)
+- 호버 배경: `hover:bg-slate-200 dark:hover:bg-slate-600`
 - 비활성화: `disabled:opacity-30 disabled:cursor-not-allowed`
+
+❌ **금지**: `opacity-30 hover:opacity-100` 패턴 (색상이 일관되지 않음)
 
 ---
 

@@ -41,7 +41,6 @@ import {
   BookMarked,
   ListOrdered,
   Settings,
-  Search,
   StickyNote,
   ClipboardList,
   Ruler,
@@ -612,6 +611,8 @@ export default function RyuhaStudyPage() {
   const [editingSchedule, setEditingSchedule] = useState<RyuhaSchedule | null>(null)
   const [editingTextbook, setEditingTextbook] = useState<RyuhaTextbook | null>(null)
   const [editingChapter, setEditingChapter] = useState<RyuhaChapter | null>(null)
+  const [editingChapterId, setEditingChapterId] = useState<string | null>(null)
+  const [addingChapterForTextbook, setAddingChapterForTextbook] = useState<string | null>(null)
   const [editingSubject, setEditingSubject] = useState<RyuhaSubject | null>(null)
   const [memoDialogOpen, setMemoDialogOpen] = useState(false)
   const [editingMemoDate, setEditingMemoDate] = useState<string>('')
@@ -1654,31 +1655,34 @@ export default function RyuhaStudyPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Subject filter */}
-              <div className="flex flex-wrap gap-1 items-center">
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'cursor-pointer',
-                    selectedSubject === null && 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:border-white dark:hover:bg-slate-100'
-                  )}
+              <div className="flex flex-wrap gap-1 items-center mb-4">
+                <button
                   onClick={() => setSelectedSubject(null)}
+                  className={cn(
+                    'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                    selectedSubject === null
+                      ? 'bg-slate-900 text-white dark:bg-slate-600'
+                      : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                  )}
                 >
                   전체
-                </Badge>
-                {subjects.map((subject) => (
-                  <Badge
+                </button>
+                {[...subjects].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((subject) => (
+                  <button
                     key={subject.id}
-                    variant={selectedSubject === subject.id ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    style={{
-                      backgroundColor:
-                        selectedSubject === subject.id ? subject.color : undefined,
-                      borderColor: subject.color,
-                    }}
                     onClick={() => setSelectedSubject(subject.id)}
+                    className={cn(
+                      'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                      selectedSubject === subject.id
+                        ? 'text-white'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                    )}
+                    style={{
+                      backgroundColor: selectedSubject === subject.id ? subject.color : undefined,
+                    }}
                   >
                     {subject.name}
-                  </Badge>
+                  </button>
                 ))}
               </div>
 
@@ -1728,17 +1732,15 @@ export default function RyuhaStudyPage() {
                           <span className="text-xs text-muted-foreground">
                             {completed}/{total}
                           </span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 opacity-30 hover:opacity-100"
+                          <button
+                            className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation()
                               openTextbookDialog(textbook)
                             }}
                           >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
+                            <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                          </button>
                         </div>
                       </div>
 
@@ -1836,7 +1838,82 @@ export default function RyuhaStudyPage() {
                             }
                             const config = statusConfig[chapter.status]
 
-                            return (
+                            return editingChapterId === chapter.id ? (
+                              <div key={chapter.id} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                                <Input
+                                  value={chapterForm.name}
+                                  onChange={(e) => setChapterForm({ ...chapterForm, name: e.target.value })}
+                                  placeholder="챕터명"
+                                  className="h-9 text-sm"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && chapterForm.name.trim()) {
+                                      saveChapter()
+                                      setEditingChapterId(null)
+                                    } else if (e.key === 'Escape') {
+                                      setEditingChapterId(null)
+                                    }
+                                  }}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="relative flex-1 cursor-pointer"
+                                    onClick={(e) => {
+                                      const input = e.currentTarget.querySelector('input')
+                                      if (input) {
+                                        input.showPicker?.()
+                                        input.focus()
+                                      }
+                                    }}
+                                  >
+                                    <Input
+                                      type="date"
+                                      value={chapterForm.target_date}
+                                      onChange={(e) => setChapterForm({ ...chapterForm, target_date: e.target.value })}
+                                      className={cn(
+                                        "h-9 text-sm w-full cursor-pointer",
+                                        !chapterForm.target_date && "date-placeholder-hidden"
+                                      )}
+                                    />
+                                    {!chapterForm.target_date && (
+                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                        목표마감일
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-9 px-3"
+                                    onClick={() => {
+                                      deleteChapter(chapter.id)
+                                      setEditingChapterId(null)
+                                    }}
+                                  >
+                                    삭제
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-9 px-3"
+                                    onClick={() => setEditingChapterId(null)}
+                                  >
+                                    취소
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-9 px-3"
+                                    disabled={!chapterForm.name.trim() || saving}
+                                    onClick={async () => {
+                                      await saveChapter()
+                                      setEditingChapterId(null)
+                                    }}
+                                  >
+                                    저장
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
                               <div
                                 key={chapter.id}
                                 className={cn(
@@ -1930,26 +2007,105 @@ export default function RyuhaStudyPage() {
                                     </span>
                                   )}
                                 </button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-5 w-5 opacity-30 hover:opacity-100"
-                                  onClick={() => openChapterDialog(textbook.id, chapter)}
+                                <button
+                                  className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer"
+                                  onClick={() => {
+                                    setChapterForm({
+                                      textbook_id: chapter.textbook_id,
+                                      name: chapter.name,
+                                      description: chapter.description || '',
+                                      target_date: chapter.target_date || '',
+                                    })
+                                    setEditingChapter(chapter)
+                                    setEditingChapterId(chapter.id)
+                                  }}
                                 >
-                                  <Search className="h-2.5 w-2.5" />
-                                </Button>
+                                  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                                </button>
                               </div>
                             )
                           })}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="w-full text-xs"
-                            onClick={() => openChapterDialog(textbook.id)}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            챕터 추가
-                          </Button>
+                          {addingChapterForTextbook === textbook.id ? (
+                            <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                              <Input
+                                value={chapterForm.name}
+                                onChange={(e) => setChapterForm({ ...chapterForm, name: e.target.value })}
+                                placeholder="챕터명"
+                                className="h-9 text-sm"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && chapterForm.name.trim()) {
+                                    saveChapter()
+                                    setAddingChapterForTextbook(null)
+                                  } else if (e.key === 'Escape') {
+                                    setAddingChapterForTextbook(null)
+                                    setChapterForm({ textbook_id: '', name: '', description: '', target_date: '' })
+                                  }
+                                }}
+                              />
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="relative flex-1 cursor-pointer"
+                                  onClick={(e) => {
+                                    const input = e.currentTarget.querySelector('input')
+                                    if (input) {
+                                      input.showPicker?.()
+                                      input.focus()
+                                    }
+                                  }}
+                                >
+                                  <Input
+                                    type="date"
+                                    value={chapterForm.target_date}
+                                    onChange={(e) => setChapterForm({ ...chapterForm, target_date: e.target.value })}
+                                    className={cn(
+                                      "h-9 text-sm w-full cursor-pointer",
+                                      !chapterForm.target_date && "date-placeholder-hidden"
+                                    )}
+                                  />
+                                  {!chapterForm.target_date && (
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                      목표마감일
+                                    </span>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-9 px-3"
+                                  onClick={() => {
+                                    setAddingChapterForTextbook(null)
+                                    setChapterForm({ textbook_id: '', name: '', description: '', target_date: '' })
+                                  }}
+                                >
+                                  취소
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="h-9 px-3"
+                                  disabled={!chapterForm.name.trim() || saving}
+                                  onClick={async () => {
+                                    await saveChapter()
+                                    setAddingChapterForTextbook(null)
+                                  }}
+                                >
+                                  저장
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              className="w-full py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 rounded flex items-center justify-center gap-1 cursor-pointer"
+                              onClick={() => {
+                                setChapterForm({ textbook_id: textbook.id, name: '', description: '', target_date: '' })
+                                setEditingChapter(null)
+                                setAddingChapterForTextbook(textbook.id)
+                              }}
+                            >
+                              <Plus className="h-3 w-3" />
+                              챕터 추가
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -3171,17 +3327,17 @@ export default function RyuhaStudyPage() {
       {/* Textbook Dialog */}
       <Dialog open={textbookDialogOpen} onOpenChange={setTextbookDialogOpen}>
         <DialogContent>
-          <DialogHeader>
+          <DialogHeader className="pb-4 border-b">
             <DialogTitle>{editingTextbook ? '교재 수정' : '교재 추가'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>과목</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">과목</label>
               <Select
                 value={textbookForm.subject_id}
                 onValueChange={(v) => setTextbookForm({ ...textbookForm, subject_id: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border border-slate-200 dark:border-slate-600">
                   <SelectValue placeholder="과목 선택" />
                 </SelectTrigger>
                 <SelectContent>
@@ -3193,34 +3349,37 @@ export default function RyuhaStudyPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>교재명</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">교재명</label>
               <Input
                 value={textbookForm.name}
                 onChange={(e) => setTextbookForm({ ...textbookForm, name: e.target.value })}
                 placeholder="예: 수학의 정석 (상)"
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
-            <div className="space-y-2">
-              <Label>출판사</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">출판사</label>
               <Input
                 value={textbookForm.publisher}
                 onChange={(e) => setTextbookForm({ ...textbookForm, publisher: e.target.value })}
                 placeholder="예: 성지출판"
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
-            <div className="space-y-2">
-              <Label>설명</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">설명</label>
               <Textarea
                 value={textbookForm.description}
                 onChange={(e) => setTextbookForm({ ...textbookForm, description: e.target.value })}
                 placeholder="교재에 대한 메모"
                 rows={2}
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
           </div>
-          <DialogFooter>
-            {editingTextbook && (
+          <DialogFooter className="pt-4 border-t sm:justify-between">
+            {editingTextbook ? (
               <Button
                 variant="destructive"
                 onClick={() => {
@@ -3230,13 +3389,15 @@ export default function RyuhaStudyPage() {
               >
                 삭제
               </Button>
-            )}
-            <Button variant="outline" onClick={() => setTextbookDialogOpen(false)}>
-              취소
-            </Button>
-            <Button onClick={saveTextbook} disabled={!textbookForm.name || !textbookForm.subject_id || saving}>
-              {saving ? '저장 중...' : '저장'}
-            </Button>
+            ) : <div />}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setTextbookDialogOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={saveTextbook} disabled={!textbookForm.name || !textbookForm.subject_id || saving}>
+                {saving ? '저장 중...' : '저장'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -3330,19 +3491,19 @@ export default function RyuhaStudyPage() {
       {/* Subject Dialog */}
       <Dialog open={subjectDialogOpen} onOpenChange={setSubjectDialogOpen}>
         <DialogContent>
-          <DialogHeader>
+          <DialogHeader className="pb-4 border-b">
             <DialogTitle>{editingSubject ? '과목 수정' : '과목 추가'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Subject list when adding */}
             {!editingSubject && subjects.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs">등록된 과목</Label>
-                <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
-                  {subjects.map((subject) => (
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">등록된 과목</label>
+                <div className="border border-slate-200 dark:border-slate-600 rounded-lg divide-y divide-slate-200 dark:divide-slate-600 max-h-[200px] overflow-y-auto bg-white dark:bg-slate-700">
+                  {[...subjects].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((subject) => (
                     <div
                       key={subject.id}
-                      className="flex items-center justify-between p-2 hover:bg-muted/50"
+                      className="flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-600"
                     >
                       <div className="flex items-center gap-2">
                         <div
@@ -3351,78 +3512,62 @@ export default function RyuhaStudyPage() {
                         />
                         <span className="text-sm">{subject.name}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => openSubjectDialog(subject)}
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 text-destructive"
-                          onClick={() => deleteSubject(subject.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <button
+                        className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
+                        onClick={() => openSubjectDialog(subject)}
+                      >
+                        <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>{editingSubject ? '과목명' : '새 과목명'}</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">{editingSubject ? '과목명' : '새 과목명'}</label>
               <Input
                 value={subjectForm.name}
                 onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })}
                 placeholder="예: 수학, 영어, 국어"
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
-            <div className="space-y-2">
-              <Label>색상</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={subjectForm.color}
-                  onChange={(e) => setSubjectForm({ ...subjectForm, color: e.target.value })}
-                  className="w-10 h-10 rounded cursor-pointer border"
-                />
-                <div className="flex flex-wrap gap-1">
-                  {['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899'].map((color) => (
-                    <button
-                      key={color}
-                      className={cn(
-                        'w-6 h-6 rounded-full border-2',
-                        subjectForm.color === color ? 'border-foreground' : 'border-transparent'
-                      )}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setSubjectForm({ ...subjectForm, color })}
-                    />
-                  ))}
-                </div>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">색상</label>
+              <div className="flex flex-wrap gap-2">
+                {['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#64748b'].map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={cn(
+                      'w-7 h-7 rounded-full border-2 transition-transform hover:scale-110',
+                      subjectForm.color === color ? 'border-foreground' : 'border-transparent'
+                    )}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setSubjectForm({ ...subjectForm, color })}
+                  />
+                ))}
               </div>
             </div>
           </div>
-          <DialogFooter>
-            {editingSubject && (
+          <DialogFooter className="pt-4 border-t sm:justify-between">
+            {editingSubject ? (
               <Button
                 variant="destructive"
                 onClick={() => deleteSubject(editingSubject.id)}
               >
                 삭제
               </Button>
-            )}
-            <Button variant="outline" onClick={() => setSubjectDialogOpen(false)}>
-              {editingSubject ? '취소' : '닫기'}
-            </Button>
-            <Button onClick={saveSubject} disabled={!subjectForm.name || saving}>
-              {saving ? '저장 중...' : editingSubject ? '저장' : '추가'}
-            </Button>
+            ) : <div />}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setSubjectDialogOpen(false)}>
+                {editingSubject ? '취소' : '닫기'}
+              </Button>
+              <Button onClick={saveSubject} disabled={!subjectForm.name || saving}>
+                {saving ? '저장 중...' : editingSubject ? '저장' : '추가'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -3430,7 +3575,7 @@ export default function RyuhaStudyPage() {
       {/* Memo Dialog */}
       <Dialog open={memoDialogOpen} onOpenChange={setMemoDialogOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+          <DialogHeader className="pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
               <StickyNote className="h-4 w-4" />
               {editingMemoDate && `${editingMemoDate.slice(5).replace('-', '/')} 메모`}
@@ -3442,11 +3587,11 @@ export default function RyuhaStudyPage() {
               onChange={(e) => setMemoContent(e.target.value)}
               placeholder="이 날짜에 대한 메모를 입력하세요..."
               rows={4}
-              className="resize-none"
+              className="resize-none border border-slate-200 dark:border-slate-600"
               autoFocus
             />
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t">
             <Button variant="outline" onClick={() => setMemoDialogOpen(false)}>
               취소
             </Button>
@@ -3460,7 +3605,7 @@ export default function RyuhaStudyPage() {
       {/* Body Record Dialog */}
       <Dialog open={bodyRecordDialogOpen} onOpenChange={setBodyRecordDialogOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+          <DialogHeader className="pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
               <Scale className="h-4 w-4" />
               {editingBodyRecord ? '체형 기록 수정' : '체형 기록 추가'}
@@ -3468,47 +3613,50 @@ export default function RyuhaStudyPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>날짜</Label>
+              <label className="text-xs text-slate-500 mb-1 block">날짜</label>
               <Input
                 type="date"
                 value={bodyRecordForm.record_date}
                 onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, record_date: e.target.value })}
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>키 (cm)</Label>
+                <label className="text-xs text-slate-500 mb-1 block">키 (cm)</label>
                 <Input
                   type="number"
                   step="0.1"
                   placeholder="165.5"
                   value={bodyRecordForm.height_cm}
                   onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, height_cm: e.target.value })}
+                  className="border border-slate-200 dark:border-slate-600"
                 />
               </div>
               <div>
-                <Label>몸무게 (kg)</Label>
+                <label className="text-xs text-slate-500 mb-1 block">몸무게 (kg)</label>
                 <Input
                   type="number"
                   step="0.01"
                   placeholder="55.5"
                   value={bodyRecordForm.weight_kg}
                   onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, weight_kg: e.target.value })}
+                  className="border border-slate-200 dark:border-slate-600"
                 />
               </div>
             </div>
             <div>
-              <Label>메모 (선택)</Label>
+              <label className="text-xs text-slate-500 mb-1 block">메모 (선택)</label>
               <Textarea
                 value={bodyRecordForm.notes}
                 onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, notes: e.target.value })}
                 placeholder="특이사항을 기록하세요..."
                 rows={2}
-                className="resize-none"
+                className="resize-none border border-slate-200 dark:border-slate-600"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t">
             <Button variant="outline" onClick={() => setBodyRecordDialogOpen(false)}>
               취소
             </Button>
