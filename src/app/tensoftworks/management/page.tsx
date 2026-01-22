@@ -1686,10 +1686,6 @@ export default function TenswManagementPage() {
       alert('거래처를 입력해주세요.')
       return
     }
-    if (!invoiceFormDate) {
-      alert('발행일을 입력해주세요.')
-      return
-    }
     const amount = parseInt(invoiceFormAmount.replace(/,/g, ''), 10)
     if (isNaN(amount) || amount <= 0) {
       alert('금액을 올바르게 입력해주세요.')
@@ -2154,7 +2150,7 @@ export default function TenswManagementPage() {
     setRelatedEmailIds([])
   }
 
-  const availableCategories = Array.from(new Set(emails.map(e => e.category).filter(Boolean))) as string[]
+  const availableCategories = Array.from(new Set(emails.map(e => e.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'ko')) as string[]
 
   const getCategoryColor = (category: string, categories: string[]) => {
     const colors = [
@@ -2316,7 +2312,7 @@ export default function TenswManagementPage() {
                 >
                   전체
                 </button>
-                {clients.map((client) => (
+                {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => (
                   <button
                     key={client.id}
                     onClick={() => setSelectedClient(client.id)}
@@ -3192,7 +3188,7 @@ export default function TenswManagementPage() {
             </CardHeader>
             {progressExpanded && <CardContent>
               <div className="grid grid-cols-2 gap-4">
-                {clients.map((client) => {
+                {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => {
                   const clientProjects = projects.filter((t) => t.client_id === client.id)
                   const clientMilestones = milestones.filter((c) =>
                     clientProjects.some((t) => t.id === c.project_id)
@@ -4504,7 +4500,9 @@ export default function TenswManagementPage() {
 
                 {/* Issue Date */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">발행일 *</label>
+                  <label className="block text-sm font-medium mb-1">
+                    {invoiceFormType === 'revenue' || invoiceFormType === 'asset' ? '입금일' : '지급일'}
+                  </label>
                   <input
                     type="date"
                     value={invoiceFormDate}
@@ -4915,7 +4913,7 @@ export default function TenswManagementPage() {
                           <SelectValue placeholder="클라이언트" />
                         </SelectTrigger>
                         <SelectContent>
-                          {clients.map((s) => (
+                          {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((s) => (
                             <SelectItem key={s.id} value={s.id}>
                               {s.name}
                             </SelectItem>
@@ -5166,7 +5164,7 @@ export default function TenswManagementPage() {
                   <SelectValue placeholder="클라이언트 선택" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((s) => (
+                  {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name}
                     </SelectItem>
@@ -5329,7 +5327,7 @@ export default function TenswManagementPage() {
               <div className="space-y-2">
                 <Label className="text-muted-foreground text-xs">등록된 클라이언트</Label>
                 <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
-                  {clients.map((client) => (
+                  {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => (
                     <div
                       key={client.id}
                       className="flex items-center justify-between p-2 hover:bg-muted/50"

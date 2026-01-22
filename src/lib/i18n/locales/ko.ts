@@ -365,7 +365,7 @@ export const ko = {
     title: '인보이스',
     description: '월별 수수료 인보이스 관리',
     new: '새 인보이스',
-    create: '생성',
+    create: '추가',
     noInvoices: '인보이스가 없습니다',
     createHint: '새 인보이스를 생성해보세요',
     invoiceDate: '인보이스 날짜',
