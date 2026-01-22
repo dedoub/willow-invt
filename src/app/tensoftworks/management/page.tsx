@@ -2260,9 +2260,9 @@ export default function TenswManagementPage() {
     milestones
       .filter((c) => c.project_id === projectId)
       .sort((a, b) => {
-        // 1. 상태순: in_progress > completed
-        const statusOrder = { in_progress: 0, completed: 1 }
-        const statusDiff = (statusOrder[a.status] ?? 0) - (statusOrder[b.status] ?? 0)
+        // 1. 상태순: in_progress > pending > completed
+        const statusOrder: Record<string, number> = { in_progress: 0, pending: 1, review_pending: 1, completed: 2 }
+        const statusDiff = (statusOrder[a.status] ?? 1) - (statusOrder[b.status] ?? 1)
         if (statusDiff !== 0) return statusDiff
         // 2. 마감일 가까운 순 (null은 맨 뒤로)
         if (!a.target_date && !b.target_date) return 0
@@ -5407,7 +5407,7 @@ export default function TenswManagementPage() {
                 value={clientForm.name}
                 onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
                 placeholder="예: 수학, 영어, 국어"
-                className="bg-white dark:bg-slate-700"
+                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
             <div>
@@ -5419,12 +5419,18 @@ export default function TenswManagementPage() {
                   onChange={(e) => setClientForm({ ...clientForm, color: e.target.value })}
                   className="w-10 h-10 rounded cursor-pointer border border-slate-200 dark:border-slate-600"
                 />
-                <div className="flex flex-wrap gap-1">
-                  {['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899'].map((color) => (
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    // Row 1: Vivid
+                    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e',
+                    // Row 2: Muted / Dark
+                    '#b91c1c', '#c2410c', '#a16207', '#4d7c0f', '#047857', '#0f766e', '#0369a1', '#1d4ed8', '#4338ca', '#6d28d9', '#7e22ce', '#a21caf', '#be185d', '#64748b', '#374151', '#1e293b',
+                  ].map((color) => (
                     <button
                       key={color}
+                      type="button"
                       className={cn(
-                        'w-6 h-6 rounded-full border-2',
+                        'w-6 h-6 rounded-full border-2 transition-transform hover:scale-110',
                         clientForm.color === color ? 'border-foreground' : 'border-transparent'
                       )}
                       style={{ backgroundColor: color }}
@@ -5435,21 +5441,23 @@ export default function TenswManagementPage() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            {editingClient && (
+          <DialogFooter className="sm:justify-between">
+            {editingClient ? (
               <Button
                 variant="destructive"
                 onClick={() => deleteClient(editingClient.id)}
               >
                 삭제
               </Button>
-            )}
-            <Button variant="outline" onClick={() => setClientDialogOpen(false)}>
-              {editingClient ? '취소' : '닫기'}
-            </Button>
-            <Button onClick={saveClient} disabled={!clientForm.name || saving}>
-              {saving ? '저장 중...' : editingClient ? '저장' : '추가'}
-            </Button>
+            ) : <div />}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setClientDialogOpen(false)}>
+                {editingClient ? '취소' : '닫기'}
+              </Button>
+              <Button onClick={saveClient} disabled={!clientForm.name || saving}>
+                {saving ? '저장 중...' : editingClient ? '저장' : '추가'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
