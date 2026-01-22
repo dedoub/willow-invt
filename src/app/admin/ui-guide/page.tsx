@@ -226,20 +226,51 @@ export default function UIGuidePage() {
             <a href="#calendar" className="text-sm text-blue-600 hover:underline">17. 캘린더 셀</a>
             <a href="#charts" className="text-sm text-blue-600 hover:underline">18. 차트</a>
             <a href="#dnd" className="text-sm text-blue-600 hover:underline">19. 드래그앤드롭</a>
+            <a href="#icon-buttons" className="text-sm text-blue-600 hover:underline">20. 아이콘 버튼</a>
+            <a href="#number-format" className="text-sm text-blue-600 hover:underline">21. 숫자 포맷</a>
           </div>
         </CardContent>
       </Card>
 
       {/* Design Principle Alert */}
       <div className="p-4 rounded-lg bg-red-100 dark:bg-red-900/30">
-        <h3 className="font-bold text-red-700 dark:text-red-400 mb-2">핵심 디자인 원칙</h3>
+        <h3 className="font-bold text-red-700 dark:text-red-400 mb-2">🚨 제1 디자인 원칙</h3>
+        <div className="text-lg font-bold text-red-800 dark:text-red-300 mb-3 p-3 bg-red-200 dark:bg-red-800/50 rounded">
+          테두리(border)와 그림자(shadow)를 사용하지 않고, 색상(color)으로 컴포넌트를 구분한다
+        </div>
         <ul className="text-sm text-red-600 dark:text-red-400 space-y-1">
-          <li>• <strong>카드 배경색</strong>: <code>bg-slate-100 dark:bg-slate-800</code> 통일</li>
+          <li>• <strong>카드 배경색</strong>: <code>bg-slate-100 dark:bg-slate-800</code> (border 없음)</li>
+          <li>• <strong>내부 영역 구분</strong>: <code>bg-white dark:bg-slate-700</code> (중첩 배경색)</li>
           <li>• <strong>아이콘 래퍼 (기본)</strong>: <code>rounded-lg bg-slate-200 dark:bg-slate-700 p-2</code></li>
           <li>• <strong>아이콘 래퍼 (Stats)</strong>: <code>rounded-lg bg-white/50 dark:bg-white/10 p-2</code></li>
           <li>• <strong>CardHeader</strong>: <code>pb-2</code> / <strong>CardContent</strong>: <code>pt-0 space-y-3</code></li>
           <li>• <strong>CardTitle</strong>: <code>text-lg truncate</code> / <strong>CardDescription</strong>: <code>text-sm mt-0.5 line-clamp-1</code></li>
         </ul>
+      </div>
+
+      {/* No Border/Shadow Rule */}
+      <div className="p-4 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+        <h3 className="font-bold text-amber-700 dark:text-amber-400 mb-2">색상으로 구분하는 방법</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <p className="font-medium text-amber-800 dark:text-amber-300 mb-2">✅ 올바른 패턴</p>
+            <ul className="text-amber-600 dark:text-amber-400 space-y-1">
+              <li>• 페이지 배경: <code>bg-slate-50</code></li>
+              <li>• 카드 배경: <code>bg-slate-100</code></li>
+              <li>• 내부 영역: <code>bg-white</code> 또는 <code>bg-slate-200</code></li>
+              <li>• 상태별 색상: <code>bg-{'{color}'}-50/100</code></li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-medium text-amber-800 dark:text-amber-300 mb-2">❌ 피해야 할 패턴</p>
+            <ul className="text-amber-600 dark:text-amber-400 space-y-1">
+              <li>• <code className="line-through">border border-gray-200</code></li>
+              <li>• <code className="line-through">shadow-md</code></li>
+              <li>• <code className="line-through">ring-1 ring-gray-200</code></li>
+              <li>• <code className="line-through">outline outline-gray-200</code></li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       {/* 1. Buttons Section */}
@@ -292,7 +323,7 @@ export default function UIGuidePage() {
                 <button className="flex items-center justify-center gap-2 rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer">
                   <RefreshCw className="h-4 w-4" />
                 </button>
-                <button className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer">
+                <button className="flex items-center justify-center gap-2 rounded-lg bg-slate-700 dark:bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 dark:hover:bg-slate-500 cursor-pointer">
                   External Link
                   <ExternalLink className="h-4 w-4" />
                 </button>
@@ -383,7 +414,7 @@ export default function UIGuidePage() {
                     <button className="flex items-center justify-center gap-2 rounded-lg bg-white dark:bg-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer">
                       <RefreshCw className="h-4 w-4" />
                     </button>
-                    <button className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-500 cursor-pointer">
+                    <button className="flex items-center justify-center gap-2 rounded-lg bg-slate-700 dark:bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 dark:hover:bg-slate-500 cursor-pointer">
                       Supernova
                       <ExternalLink className="h-4 w-4" />
                     </button>
@@ -495,7 +526,7 @@ export default function UIGuidePage() {
             {/* POC Card Variant */}
             <div>
               <Label className="mb-3 block">POC 카드 (Amber 테마)</Label>
-              <Card className="max-w-md bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 h-full">
+              <Card className="max-w-md bg-amber-50 dark:bg-amber-900/20 h-full">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -546,8 +577,8 @@ export default function UIGuidePage() {
   </CardContent>
 </Card>
 
-// POC 카드
-<Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+// POC 카드 (border 없음)
+<Card className="bg-amber-50 dark:bg-amber-900/20">
   <CardHeader className="pb-2">
     <div className="flex items-center gap-3">
       <div className="rounded-lg bg-amber-100 dark:bg-amber-800/50 p-2">
@@ -1115,7 +1146,7 @@ className="bg-slate-100 dark:bg-slate-800"
                     ))}
                   </div>
                   {[...Array(2)].map((_, i) => (
-                    <div key={i} className="border dark:border-slate-600 rounded-lg p-3 space-y-2">
+                    <div key={i} className="bg-slate-200 dark:bg-slate-700 rounded-lg p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="h-4 w-4 bg-slate-300 dark:bg-slate-600 rounded" />
                         <div className="h-4 w-32 bg-slate-300 dark:bg-slate-600 rounded" />
@@ -1386,13 +1417,14 @@ className="bg-slate-100 dark:bg-slate-800"
             <CardDescription className="text-sm mt-0.5">모달 다이얼로그 패턴</CardDescription>
           </CardHeader>
           <CardContent className="pt-0 space-y-6">
+            {/* Create Mode Dialog */}
             <div>
-              <Label className="mb-3 block">Dialog 미리보기</Label>
+              <Label className="mb-3 block">생성 모드 (Create Mode)</Label>
               <div className="p-4 rounded-lg bg-white dark:bg-slate-700">
                 <div className="max-w-md mx-auto bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
                   <div className="mb-4">
-                    <h3 className="text-lg font-semibold">다이얼로그 제목</h3>
-                    <p className="text-sm text-muted-foreground">다이얼로그 설명</p>
+                    <h3 className="text-lg font-semibold">항목 추가</h3>
+                    <p className="text-sm text-muted-foreground">새 항목을 추가합니다</p>
                   </div>
                   <div className="space-y-3 mb-4">
                     <div>
@@ -1400,31 +1432,143 @@ className="bg-slate-100 dark:bg-slate-800"
                       <Input placeholder="값 입력" className="bg-white dark:bg-slate-700" />
                     </div>
                   </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline">취소</Button>
-                    <Button>저장</Button>
+                  <div className="flex flex-row justify-between">
+                    <div />
+                    <div className="flex gap-2">
+                      <Button variant="outline">취소</Button>
+                      <Button>저장</Button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <CodeBlock title="Dialog 패턴" code={`<Dialog open={open} onOpenChange={setOpen}>
-  <DialogContent>
+            {/* Edit Mode Dialog */}
+            <div>
+              <Label className="mb-3 block">수정 모드 (Edit Mode) - 삭제 버튼 포함</Label>
+              <div className="p-4 rounded-lg bg-white dark:bg-slate-700">
+                <div className="max-w-md mx-auto bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold">항목 수정</h3>
+                    <p className="text-sm text-muted-foreground">기존 항목을 수정합니다</p>
+                  </div>
+                  <div className="space-y-3 mb-4">
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">입력 필드</label>
+                      <Input defaultValue="기존 값" className="bg-white dark:bg-slate-700" />
+                    </div>
+                  </div>
+                  <div className="flex flex-row justify-between">
+                    <Button variant="destructive"><Trash2 className="h-4 w-4 mr-1" />삭제</Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline">취소</Button>
+                      <Button>저장</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Button Loading State */}
+            <div>
+              <Label className="mb-3 block">버튼 로딩 상태</Label>
+              <div className="flex gap-3">
+                <Button disabled><Loader2 className="h-4 w-4 animate-spin mr-1" />저장 중...</Button>
+                <Button variant="destructive" disabled><Loader2 className="h-4 w-4 animate-spin mr-1" />삭제 중...</Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Scrollable Modal with Fixed Header/Footer */}
+            <div>
+              <Label className="mb-3 block">스크롤 모달 (헤더/푸터 고정)</Label>
+              <div className="p-4 rounded-lg bg-white dark:bg-slate-700">
+                <div className="max-w-md mx-auto bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex flex-col max-h-[300px]">
+                  {/* Fixed Header */}
+                  <div className="p-4 flex-shrink-0">
+                    <h3 className="text-lg font-semibold">헤더 (고정)</h3>
+                    <p className="text-sm text-muted-foreground">flex-shrink-0으로 고정</p>
+                  </div>
+                  {/* Scrollable Content */}
+                  <div className="overflow-y-auto flex-1 px-4 space-y-3">
+                    <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 1</div>
+                    <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 2</div>
+                    <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 3</div>
+                    <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 4</div>
+                    <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 5</div>
+                    <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm">스크롤 컨텐츠 6</div>
+                  </div>
+                  {/* Fixed Footer */}
+                  <div className="p-4 flex-shrink-0 flex justify-end gap-2">
+                    <Button variant="outline" size="sm">취소</Button>
+                    <Button size="sm">저장</Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Fixed Header/Footer Rules */}
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+              <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">헤더/푸터 고정 핵심 규칙</h4>
+              <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                <li>• <strong>DialogContent</strong>: <code>max-h-[90vh] flex flex-col</code></li>
+                <li>• <strong>DialogHeader</strong>: <code>flex-shrink-0</code> (암묵적으로 적용됨)</li>
+                <li>• <strong>컨텐츠 영역</strong>: <code>overflow-y-auto flex-1</code></li>
+                <li>• <strong>DialogFooter</strong>: <code>flex-shrink-0</code> (명시적 추가 권장)</li>
+              </ul>
+            </div>
+
+            <Separator />
+
+            <CodeBlock title="DialogFooter 패턴 (핵심)" code={`// 생성 모드 - 삭제 버튼 없음
+<DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0">
+  <div />  {/* 빈 공간 */}
+  <div className="flex gap-2">
+    <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
+    <Button onClick={handleSave}>저장</Button>
+  </div>
+</DialogFooter>
+
+// 수정 모드 - 삭제 버튼 왼쪽 배치
+<DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0">
+  <Button variant="destructive" onClick={handleDelete}>
+    <Trash2 className="h-4 w-4 mr-1" />삭제
+  </Button>
+  <div className="flex gap-2">
+    <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
+    <Button onClick={handleSave} disabled={isSaving}>
+      {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+      저장
+    </Button>
+  </div>
+</DialogFooter>`} />
+
+            <CodeBlock title="전체 Dialog 구조" code={`<Dialog open={open} onOpenChange={setOpen}>
+  <DialogContent className="max-h-[90vh] flex flex-col">
     <DialogHeader>
-      <DialogTitle>제목</DialogTitle>
-      <DialogDescription>설명</DialogDescription>
+      <DialogTitle>{isEditing ? '항목 수정' : '항목 추가'}</DialogTitle>
+      <DialogDescription>항목 설명</DialogDescription>
     </DialogHeader>
 
-    <div className="space-y-4">
+    {/* 스크롤 가능한 컨텐츠 영역 */}
+    <div className="overflow-y-auto flex-1 space-y-4 p-1">
       <div>
         <label className="text-xs text-slate-500 mb-1 block">필드명</label>
         <Input className="bg-white dark:bg-slate-700" />
       </div>
     </div>
 
-    <DialogFooter>
-      <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
-      <Button onClick={handleSave}>저장</Button>
+    <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0">
+      {isEditing ? (
+        <Button variant="destructive" onClick={handleDelete}>삭제</Button>
+      ) : (
+        <div />
+      )}
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
+        <Button onClick={handleSave}>저장</Button>
+      </div>
     </DialogFooter>
   </DialogContent>
 </Dialog>`} />
@@ -1620,8 +1764,8 @@ className="bg-slate-100 dark:bg-slate-800"
             {/* Accordion Pattern */}
             <div>
               <Label className="mb-3 block">아코디언 아이템</Label>
-              <div className="max-w-md border dark:border-slate-700 rounded-lg overflow-hidden">
-                <div className="p-3 flex items-center justify-between cursor-pointer bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700">
+              <div className="max-w-md bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden">
+                <div className="p-3 flex items-center justify-between cursor-pointer bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                   <div className="flex items-center gap-2">
                     <ChevronDown className="h-4 w-4 transition-transform" />
                     <span className="font-medium text-sm">펼쳐진 아이템</span>
@@ -1690,7 +1834,7 @@ useEffect(() => {
                     <div>월</div>
                     <div className="text-base">15</div>
                   </div>
-                  <div className="rounded-b-lg p-2 space-y-1 min-h-[100px] cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800">
+                  <div className="rounded-b-lg p-2 space-y-1 min-h-[100px] cursor-pointer bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700">
                     <div className="text-xs p-1.5 rounded bg-slate-200 dark:bg-slate-700">
                       일정 1
                     </div>
@@ -1699,11 +1843,11 @@ useEffect(() => {
 
                 {/* Today */}
                 <div className="min-h-[140px]">
-                  <div className="text-center py-1.5 rounded-t-lg font-medium text-xs bg-slate-900 text-white dark:bg-white dark:text-slate-900 cursor-pointer hover:bg-slate-800 dark:hover:bg-slate-100">
+                  <div className="text-center py-1.5 rounded-t-lg font-medium text-xs bg-slate-700 text-white dark:bg-white dark:text-slate-700 cursor-pointer hover:bg-slate-600 dark:hover:bg-slate-100">
                     <div>화</div>
                     <div className="text-base">16</div>
                   </div>
-                  <div className="rounded-b-lg p-2 space-y-1 min-h-[100px] cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800">
+                  <div className="rounded-b-lg p-2 space-y-1 min-h-[100px] cursor-pointer bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700">
                     <div className="text-xs p-1.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400">
                       오늘 일정
                     </div>
@@ -1728,26 +1872,26 @@ useEffect(() => {
               <Label className="mb-3 block">월간 뷰 셀 (min-h-[80px])</Label>
               <div className="grid grid-cols-4 gap-1 max-w-sm">
                 {/* Regular */}
-                <div className="min-h-[60px] border rounded p-1 cursor-pointer hover:bg-muted/50">
+                <div className="min-h-[60px] bg-white dark:bg-slate-800 rounded p-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700">
                   <div className="text-xs text-muted-foreground">15</div>
                   <div className="text-[10px] px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-700 truncate mt-1">
                     일정
                   </div>
                 </div>
                 {/* Today */}
-                <div className="min-h-[60px] border border-slate-900 dark:border-white rounded p-1 cursor-pointer hover:bg-muted/50">
+                <div className="min-h-[60px] bg-slate-200 dark:bg-slate-600 rounded p-1 cursor-pointer hover:bg-slate-300 dark:hover:bg-slate-500">
                   <div className="text-xs font-bold">16</div>
                   <div className="text-[10px] px-1 py-0.5 rounded bg-blue-200 dark:bg-blue-900/50 truncate mt-1">
                     오늘
                   </div>
                 </div>
                 {/* Hover/Drop */}
-                <div className="min-h-[60px] border rounded p-1 bg-slate-900/10 border-slate-900 dark:bg-white/10 dark:border-white">
+                <div className="min-h-[60px] bg-slate-300 dark:bg-slate-500 rounded p-1">
                   <div className="text-xs">17</div>
                   <div className="text-[10px] text-muted-foreground mt-2">드롭 영역</div>
                 </div>
                 {/* Empty */}
-                <div className="min-h-[60px] border rounded p-1 bg-muted/20">
+                <div className="min-h-[60px] bg-slate-100 dark:bg-slate-700 rounded p-1">
                   <div className="text-xs text-muted-foreground">-</div>
                 </div>
               </div>
@@ -1768,7 +1912,7 @@ useEffect(() => {
   {/* 콘텐츠 */}
   <div className={cn(
     "rounded-b-lg p-2 space-y-1 min-h-[120px] cursor-pointer transition-colors",
-    "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800",
+    "bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700",
     isOver && "bg-slate-100 dark:bg-slate-800"
   )}>
     {children}
@@ -2016,6 +2160,269 @@ function DroppableZone({ date, children }) {
     </div>
   )
 }`} />
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* 20. Icon Buttons Section */}
+      <Section id="icon-buttons" title="20. 아이콘 버튼 (Edit/Delete)" icon={Pencil}>
+        <Card className="bg-slate-100 dark:bg-slate-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">수정/삭제 아이콘 버튼</CardTitle>
+            <CardDescription className="text-sm mt-0.5">테이블 및 카드 내 액션 버튼 패턴</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-6">
+            {/* Standard Icon Buttons */}
+            <div>
+              <Label className="mb-3 block">기본 아이콘 버튼 (테이블/카드)</Label>
+              <div className="flex gap-2 items-center p-4 rounded-lg bg-white dark:bg-slate-700">
+                <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
+                  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                </button>
+                <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
+                  <Trash2 className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                </button>
+                <span className="text-xs text-slate-500 ml-4">기본 상태: 회색 아이콘</span>
+              </div>
+            </div>
+
+            {/* Hover to Red Delete */}
+            <div>
+              <Label className="mb-3 block">삭제 버튼 - 호버 시 빨간색</Label>
+              <div className="flex gap-2 items-center p-4 rounded-lg bg-white dark:bg-slate-700">
+                <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
+                  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                </button>
+                <button className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 hover:text-red-500 cursor-pointer">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <span className="text-xs text-slate-500 ml-4">삭제: 호버 시 빨간색 전환</span>
+              </div>
+            </div>
+
+            {/* Disabled State */}
+            <div>
+              <Label className="mb-3 block">비활성화 상태</Label>
+              <div className="flex gap-2 items-center p-4 rounded-lg bg-white dark:bg-slate-700">
+                <button className="rounded p-1 opacity-30 cursor-not-allowed">
+                  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                </button>
+                <button className="rounded p-1 opacity-30 cursor-not-allowed">
+                  <Trash2 className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                </button>
+                <span className="text-xs text-slate-500 ml-4">비활성화: opacity-30 cursor-not-allowed</span>
+              </div>
+            </div>
+
+            {/* Table Row Example */}
+            <div>
+              <Label className="mb-3 block">테이블 행 예시</Label>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b dark:border-slate-600">
+                      <th className="text-left py-2 font-medium">이름</th>
+                      <th className="text-left py-2 font-medium">상태</th>
+                      <th className="text-right py-2 font-medium">액션</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <td className="py-2">항목 1</td>
+                      <td className="py-2"><Badge className="bg-green-100 text-green-700">활성</Badge></td>
+                      <td className="py-2 text-right">
+                        <div className="flex justify-end gap-1">
+                          <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer">
+                            <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                          </button>
+                          <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-400 hover:text-red-500 cursor-pointer">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <Separator />
+
+            <CodeBlock title="아이콘 버튼 패턴" code={`// 기본 아이콘 버튼 (수정)
+<button
+  onClick={handleEdit}
+  className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+  title="수정"
+>
+  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+</button>
+
+// 삭제 버튼 - 호버 시 빨간색
+<button
+  onClick={handleDelete}
+  className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 hover:text-red-500 cursor-pointer"
+  title="삭제"
+>
+  <Trash2 className="h-4 w-4" />
+</button>
+
+// 비활성화 상태
+<button
+  disabled={isDisabled}
+  className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
+>
+  <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+</button>`} />
+
+            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20">
+              <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">아이콘 버튼 규칙</h4>
+              <ul className="text-xs text-amber-600 dark:text-amber-400 space-y-1">
+                <li>• <strong>아이콘 크기</strong>: <code>h-4 w-4</code> (16px)</li>
+                <li>• <strong>버튼 패딩</strong>: <code>p-1</code> (4px)</li>
+                <li>• <strong>기본 색상</strong>: <code>text-slate-600 dark:text-slate-400</code></li>
+                <li>• <strong>호버 배경</strong>: <code>hover:bg-slate-200 dark:hover:bg-slate-700</code></li>
+                <li>• <strong>삭제 호버</strong>: <code>text-slate-400 hover:text-red-500</code></li>
+                <li>• <strong>비활성화</strong>: <code>disabled:opacity-30 disabled:cursor-not-allowed</code></li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* 21. Number Formatting Section */}
+      <Section id="number-format" title="21. 숫자 포맷 (Number Format)" icon={DollarSign}>
+        <Card className="bg-slate-100 dark:bg-slate-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">숫자 포맷팅 규칙</CardTitle>
+            <CardDescription className="text-sm mt-0.5">천 단위 콤마, 통화, 파일 크기 표시</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-6">
+            {/* Thousand Separator */}
+            <div>
+              <Label className="mb-3 block">천 단위 콤마 (필수)</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 rounded-lg bg-white dark:bg-slate-700 text-center">
+                  <div className="text-2xl font-bold">{(1234567).toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">일반 숫자</div>
+                </div>
+                <div className="p-3 rounded-lg bg-white dark:bg-slate-700 text-center">
+                  <div className="text-2xl font-bold">₩{(1500000).toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">원화</div>
+                </div>
+                <div className="p-3 rounded-lg bg-white dark:bg-slate-700 text-center">
+                  <div className="text-2xl font-bold">${(12345.67).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                  <div className="text-xs text-muted-foreground">달러 (소수점)</div>
+                </div>
+                <div className="p-3 rounded-lg bg-white dark:bg-slate-700 text-center">
+                  <div className="text-2xl font-bold">{(85.5).toLocaleString()}%</div>
+                  <div className="text-xs text-muted-foreground">퍼센트</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Currency Abbreviations */}
+            <div>
+              <Label className="mb-3 block">큰 숫자 축약 표기</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-center">
+                  <div className="text-xl font-bold text-blue-600">$1.5M</div>
+                  <div className="text-xs text-muted-foreground">Million</div>
+                </div>
+                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-center">
+                  <div className="text-xl font-bold text-blue-600">$250K</div>
+                  <div className="text-xs text-muted-foreground">Thousand</div>
+                </div>
+                <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-center">
+                  <div className="text-xl font-bold text-emerald-600">15.5억원</div>
+                  <div className="text-xs text-muted-foreground">억 단위</div>
+                </div>
+                <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-center">
+                  <div className="text-xl font-bold text-emerald-600">A$2.3M</div>
+                  <div className="text-xs text-muted-foreground">호주 달러</div>
+                </div>
+              </div>
+            </div>
+
+            {/* File Size */}
+            <div>
+              <Label className="mb-3 block">파일 크기</Label>
+              <div className="flex flex-wrap gap-3">
+                <Badge variant="secondary">256 B</Badge>
+                <Badge variant="secondary">1.5 KB</Badge>
+                <Badge variant="secondary">12.8 MB</Badge>
+                <Badge variant="secondary">2.1 GB</Badge>
+              </div>
+            </div>
+
+            <Separator />
+
+            <CodeBlock title="숫자 포맷팅 함수" code={`// 기본 천 단위 콤마 (필수!)
+const formatted = value.toLocaleString()
+// 1234567 → "1,234,567"
+
+// 소수점 포함
+const withDecimals = value.toLocaleString(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+})
+// 12345.6 → "12,345.60"
+
+// 한국어 로케일
+const korean = value.toLocaleString('ko-KR')
+
+// 통화 포맷
+const currency = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD'
+}).format(value)
+
+// 큰 숫자 축약
+function formatLargeNumber(value: number): string {
+  if (value >= 1000000) return \`$\${(value / 1000000).toFixed(2)}M\`
+  if (value >= 1000) return \`$\${(value / 1000).toFixed(1)}K\`
+  return \`$\${value.toFixed(0)}\`
+}
+
+// 억 단위 (한국)
+function formatBillion(value: number): string {
+  if (value >= 100000000) return \`\${(value / 100000000).toFixed(1)}억원\`
+  return value.toLocaleString() + '원'
+}
+
+// 파일 크기
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return \`\${bytes} B\`
+  if (bytes < 1024 * 1024) return \`\${(bytes / 1024).toFixed(1)} KB\`
+  return \`\${(bytes / 1024 / 1024).toFixed(1)} MB\`
+}`} />
+
+            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20">
+              <h4 className="text-sm font-medium text-red-700 dark:text-red-400 mb-2">필수 규칙</h4>
+              <ul className="text-xs text-red-600 dark:text-red-400 space-y-1">
+                <li>• <strong>모든 숫자에 천 단위 콤마 필수</strong>: <code>value.toLocaleString()</code></li>
+                <li>• <strong>금액 입력 필드</strong>: 입력 시 실시간 콤마 포맷 적용</li>
+                <li>• <strong>통계/차트 값</strong>: 항상 포맷된 숫자 표시</li>
+                <li>• <strong>테이블 숫자</strong>: 우측 정렬 + 콤마 포맷</li>
+              </ul>
+            </div>
+
+            <CodeBlock title="금액 입력 필드 예시" code={`// 입력 시 실시간 콤마 포맷
+const [displayValue, setDisplayValue] = useState('')
+
+const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const rawValue = e.target.value.replace(/[^0-9]/g, '') // 숫자만 추출
+  if (rawValue) {
+    setDisplayValue(parseInt(rawValue).toLocaleString())
+  } else {
+    setDisplayValue('')
+  }
+}
+
+<Input
+  value={displayValue}
+  onChange={handleAmountChange}
+  placeholder="1,000,000"
+/>`} />
           </CardContent>
         </Card>
       </Section>

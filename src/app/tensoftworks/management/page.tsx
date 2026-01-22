@@ -2639,7 +2639,7 @@ export default function TenswManagementPage() {
                   <Receipt className="h-5 w-5" />
                   재무관리
                 </CardTitle>
-                <CardDescription>매출, 비용, 자산, 부채 현금흐름 관리</CardDescription>
+                <CardDescription>현금흐름 관리</CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 {/* View mode toggle */}
@@ -2725,41 +2725,47 @@ export default function TenswManagementPage() {
                               return (
                                 <div key={invoice.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
                                   <div
-                                    className="flex items-center justify-between cursor-pointer"
+                                    className="flex items-start justify-between cursor-pointer"
                                     onClick={() => setExpandedInvoice(expandedInvoice === invoice.id ? null : invoice.id)}
                                   >
-                                    <div className="flex items-center gap-3">
-                                      <span className={cn(
-                                        'px-2 py-0.5 rounded text-xs font-medium',
-                                        invoice.type === 'revenue' ? 'bg-blue-100 text-blue-700' :
-                                        invoice.type === 'expense' ? 'bg-orange-100 text-orange-700' :
-                                        invoice.type === 'asset' ? 'bg-emerald-100 text-emerald-700' :
-                                        'bg-purple-100 text-purple-700'
-                                      )}>
-                                        {invoice.type === 'revenue' ? '매출' : invoice.type === 'expense' ? '비용' : invoice.type === 'asset' ? '자산' : '부채'}
-                                      </span>
-                                      <div>
-                                        <p className="font-medium text-sm">{invoice.counterparty}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {invoice.issue_date} · {formatKRW(invoice.amount)}
-                                        </p>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className={cn(
+                                          'px-2 py-0.5 rounded text-xs font-medium shrink-0',
+                                          invoice.type === 'revenue' ? 'bg-blue-100 text-blue-700' :
+                                          invoice.type === 'expense' ? 'bg-orange-100 text-orange-700' :
+                                          invoice.type === 'asset' ? 'bg-emerald-100 text-emerald-700' :
+                                          'bg-purple-100 text-purple-700'
+                                        )}>
+                                          {invoice.type === 'revenue' ? '매출' : invoice.type === 'expense' ? '비용' : invoice.type === 'asset' ? '자산' : '부채'}
+                                        </span>
+                                        <span className="font-medium text-sm truncate">{invoice.counterparty}</span>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleToggleInvoiceStatus(invoice) }}
+                                          className={cn(
+                                            'rounded-full px-2 py-0.5 text-xs flex items-center gap-1 shrink-0',
+                                            statusStyle.bg, statusStyle.text
+                                          )}
+                                        >
+                                          {invoice.status === 'completed' ? (
+                                            <CheckCircle2 className="h-3 w-3" />
+                                          ) : (
+                                            <Clock className="h-3 w-3" />
+                                          )}
+                                          {statusStyle.label}
+                                        </button>
+                                      </div>
+                                      <div className="text-xs text-muted-foreground space-y-0.5">
+                                        <p>{invoice.issue_date} · <span className="font-medium text-foreground">{formatKRW(invoice.amount)}</span></p>
+                                        {invoice.description && <p>{invoice.description}</p>}
+                                        {invoice.account_number && <p>계좌: {invoice.account_number}</p>}
+                                        {invoice.notes && <p className="text-slate-500">메모: {invoice.notes}</p>}
+                                        {invoice.attachments && invoice.attachments.length > 0 && (
+                                          <p className="flex items-center gap-1"><Paperclip className="h-3 w-3" />{invoice.attachments.length}개 파일</p>
+                                        )}
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); handleToggleInvoiceStatus(invoice) }}
-                                        className={cn(
-                                          'rounded-full px-2 py-0.5 text-xs flex items-center gap-1',
-                                          statusStyle.bg, statusStyle.text
-                                        )}
-                                      >
-                                        {invoice.status === 'completed' ? (
-                                          <CheckCircle2 className="h-3 w-3" />
-                                        ) : (
-                                          <Clock className="h-3 w-3" />
-                                        )}
-                                        {statusStyle.label}
-                                      </button>
+                                    <div className="flex items-center gap-1 ml-2 shrink-0">
                                       {expandedInvoice === invoice.id ? (
                                         <ChevronUp className="h-4 w-4 text-slate-400" />
                                       ) : (
@@ -2769,16 +2775,6 @@ export default function TenswManagementPage() {
                                   </div>
                                   {expandedInvoice === invoice.id && (
                                     <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-2">
-                                      {invoice.description && (
-                                        <div className="text-xs text-muted-foreground">
-                                          {invoice.description}
-                                        </div>
-                                      )}
-                                      {invoice.notes && (
-                                        <div className="text-xs text-muted-foreground bg-slate-50 dark:bg-slate-800 p-2 rounded">
-                                          {invoice.notes}
-                                        </div>
-                                      )}
                                       {invoice.attachments && invoice.attachments.length > 0 && (
                                         <div className="flex flex-wrap gap-1">
                                           {invoice.attachments.map((att, idx) => (
@@ -4516,11 +4512,11 @@ export default function TenswManagementPage() {
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>{editingInvoice ? '재무항목 수정' : '재무항목 추가'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1">
                 {/* Type Selection */}
                 <div>
                   <label className="block text-sm font-medium mb-2">유형</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     <button
                       type="button"
                       onClick={() => setInvoiceFormType('revenue')}
