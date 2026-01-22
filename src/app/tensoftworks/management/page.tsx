@@ -615,6 +615,7 @@ export default function TenswManagementPage() {
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false)
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
+  const [addingMilestoneForProject, setAddingMilestoneForProject] = useState<string | null>(null)
   const [editingSchedule, setEditingSchedule] = useState<TenswMgmtSchedule | null>(null)
   const [editingProject, setEditingProject] = useState<TenswMgmtProject | null>(null)
   const [editingMilestone, setEditingMilestone] = useState<TenswMgmtMilestone | null>(null)
@@ -2515,15 +2516,69 @@ export default function TenswManagementPage() {
                               </div>
                             )
                           })}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="w-full text-xs"
-                            onClick={() => openMilestoneDialog(project.id)}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            마일스톤 추가
-                          </Button>
+                          {addingMilestoneForProject === project.id ? (
+                            <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                              <Input
+                                value={milestoneForm.name}
+                                onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
+                                placeholder="마일스톤명"
+                                className="h-8 text-sm"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && milestoneForm.name.trim()) {
+                                    saveMilestone()
+                                    setAddingMilestoneForProject(null)
+                                  } else if (e.key === 'Escape') {
+                                    setAddingMilestoneForProject(null)
+                                    setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
+                                  }
+                                }}
+                              />
+                              <div className="flex gap-2">
+                                <Input
+                                  type="date"
+                                  value={milestoneForm.target_date}
+                                  onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
+                                  className="h-8 text-sm flex-1"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 px-2"
+                                  onClick={() => {
+                                    setAddingMilestoneForProject(null)
+                                    setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
+                                  }}
+                                >
+                                  취소
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="h-8 px-3"
+                                  disabled={!milestoneForm.name.trim() || saving}
+                                  onClick={async () => {
+                                    await saveMilestone()
+                                    setAddingMilestoneForProject(null)
+                                  }}
+                                >
+                                  저장
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="w-full text-xs"
+                              onClick={() => {
+                                setMilestoneForm({ project_id: project.id, name: '', description: '', target_date: '' })
+                                setAddingMilestoneForProject(project.id)
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              마일스톤 추가
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
