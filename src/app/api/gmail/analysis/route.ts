@@ -81,9 +81,9 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('user_id', userId)
       .eq('label', label)
-      .single()
+      .maybeSingle()
 
-    if (analysisError && analysisError.code !== 'PGRST116') {
+    if (analysisError) {
       console.error('Error fetching analysis:', analysisError)
       return NextResponse.json({ error: 'Failed to fetch analysis' }, { status: 500 })
     }
@@ -129,6 +129,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Label and analysisData are required' }, { status: 400 })
     }
 
+    console.log(`[Analysis POST] Processing label: ${label}, categories count: ${analysisData.categories?.length || 0}`)
+    if (analysisData.categories?.[0]) {
+      const firstCat = analysisData.categories[0]
+      console.log(`[Analysis POST] First category: ${firstCat.category}, todos: ${firstCat.todos?.length || 0}`)
+    }
+
     // 분석 결과 upsert (user_id, label이 unique)
     const { data: analysis, error: analysisError } = await supabase
       .from('email_analysis')
@@ -148,6 +154,8 @@ export async function POST(request: NextRequest) {
       console.error('Error saving analysis:', analysisError)
       return NextResponse.json({ error: 'Failed to save analysis' }, { status: 500 })
     }
+
+    console.log(`[Analysis POST] Analysis saved with id: ${analysis?.id}`)
 
     // 기존 todos 조회 (완료된 것 포함) - 유사도 검사를 위해
     const { data: existingTodos } = await supabase
@@ -207,11 +215,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (skippedCount > 0) {
-      console.log(`Skipped ${skippedCount} similar todos for label: ${label}`)
-    }
+    console.log(`[Analysis POST] Todos processing: ${newTodos.length} new, ${skippedCount} skipped for label: ${label}`)
 
     if (newTodos.length > 0) {
+      console.log(`[Analysis POST] Inserting ${newTodos.length} todos...`)
       // ON CONFLICT DO NOTHING - 완전히 동일한 task는 무시
       const { error: todosError } = await supabase
         .from('email_todos')
@@ -221,9 +228,13 @@ export async function POST(request: NextRequest) {
         })
 
       if (todosError) {
-        console.error('Error saving todos:', todosError)
+        console.error('[Analysis POST] Error saving todos:', todosError)
         // todos 저장 실패해도 analysis는 저장됨
+      } else {
+        console.log(`[Analysis POST] Successfully saved ${newTodos.length} todos`)
       }
+    } else {
+      console.log(`[Analysis POST] No new todos to insert`)
     }
 
     // 저장된 todos 다시 조회
