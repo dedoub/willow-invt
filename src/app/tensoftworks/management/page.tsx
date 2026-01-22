@@ -2491,7 +2491,7 @@ export default function TenswManagementPage() {
                                       setEditingMilestoneId(null)
                                     }}
                                   >
-                                    <Trash2 className="h-3.5 w-3.5" />
+                                    삭제
                                   </Button>
                                   <Button
                                     size="sm"
