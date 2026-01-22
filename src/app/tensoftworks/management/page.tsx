@@ -2535,13 +2535,22 @@ export default function TenswManagementPage() {
                                 }}
                               />
                               <div className="flex gap-2">
-                                <div className="relative flex-1">
+                                <div
+                                  className="relative flex-1 cursor-pointer"
+                                  onClick={(e) => {
+                                    const input = e.currentTarget.querySelector('input')
+                                    if (input) {
+                                      input.showPicker?.()
+                                      input.focus()
+                                    }
+                                  }}
+                                >
                                   <Input
                                     type="date"
                                     value={milestoneForm.target_date}
                                     onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
                                     className={cn(
-                                      "h-8 text-sm w-full",
+                                      "h-8 text-sm w-full cursor-pointer",
                                       !milestoneForm.target_date && "text-transparent"
                                     )}
                                   />
