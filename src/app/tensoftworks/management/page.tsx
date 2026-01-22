@@ -2150,7 +2150,7 @@ export default function TenswManagementPage() {
     setRelatedEmailIds([])
   }
 
-  const availableCategories = Array.from(new Set(emails.map(e => e.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'ko')) as string[]
+  const availableCategories = Array.from(new Set(emails.map(e => e.category).filter((c): c is string => Boolean(c)))).sort((a, b) => a.localeCompare(b, 'ko'))
 
   const getCategoryColor = (category: string, categories: string[]) => {
     const colors = [
@@ -2259,7 +2259,17 @@ export default function TenswManagementPage() {
   const getMilestonesForProject = (projectId: string) =>
     milestones
       .filter((c) => c.project_id === projectId)
-      .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      .sort((a, b) => {
+        // 1. 상태순: in_progress > completed
+        const statusOrder = { in_progress: 0, completed: 1 }
+        const statusDiff = (statusOrder[a.status] ?? 0) - (statusOrder[b.status] ?? 0)
+        if (statusDiff !== 0) return statusDiff
+        // 2. 마감일 가까운 순 (null은 맨 뒤로)
+        if (!a.target_date && !b.target_date) return 0
+        if (!a.target_date) return 1
+        if (!b.target_date) return -1
+        return a.target_date.localeCompare(b.target_date)
+      })
 
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -5352,13 +5362,13 @@ export default function TenswManagementPage() {
           <div className="space-y-4">
             {/* Client list when adding */}
             {!editingClient && clients.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs">등록된 클라이언트</Label>
-                <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">등록된 클라이언트</label>
+                <div className="border border-slate-200 dark:border-slate-600 rounded-lg divide-y divide-slate-200 dark:divide-slate-600 max-h-[200px] overflow-y-auto bg-white dark:bg-slate-700">
                   {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => (
                     <div
                       key={client.id}
-                      className="flex items-center justify-between p-2 hover:bg-muted/50"
+                      className="flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-600"
                     >
                       <div className="flex items-center gap-2">
                         <div
@@ -5391,22 +5401,23 @@ export default function TenswManagementPage() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>{editingClient ? '클라이언트명' : '새 클라이언트명'}</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">{editingClient ? '클라이언트명' : '새 클라이언트명'}</label>
               <Input
                 value={clientForm.name}
                 onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
                 placeholder="예: 수학, 영어, 국어"
+                className="bg-white dark:bg-slate-700"
               />
             </div>
-            <div className="space-y-2">
-              <Label>색상</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">색상</label>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
                   value={clientForm.color}
                   onChange={(e) => setClientForm({ ...clientForm, color: e.target.value })}
-                  className="w-10 h-10 rounded cursor-pointer border"
+                  className="w-10 h-10 rounded cursor-pointer border border-slate-200 dark:border-slate-600"
                 />
                 <div className="flex flex-wrap gap-1">
                   {['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899'].map((color) => (
