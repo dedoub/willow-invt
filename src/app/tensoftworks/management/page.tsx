@@ -705,8 +705,19 @@ export default function TenswManagementPage() {
 
   // Invoice status styles
   const INVOICE_STATUS_STYLES = {
+    pending: { bg: 'bg-slate-100', text: 'text-slate-600', label: '미처리' },
     issued: { bg: 'bg-amber-100', text: 'text-amber-700', label: '발행됨' },
     completed: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: '완료' },
+  }
+
+  // 인보이스 상태 자동 계산
+  const getInvoiceStatus = (invoice: TenswInvoice): 'pending' | 'issued' | 'completed' => {
+    // 입금일/지급일이 있으면 완료
+    if (invoice.payment_date) return 'completed'
+    // 매출/비용이고 발행일이 있으면 발행됨
+    if ((invoice.type === 'revenue' || invoice.type === 'expense') && invoice.issue_date) return 'issued'
+    // 그 외는 미처리
+    return 'pending'
   }
 
   // Wiki states
@@ -1765,22 +1776,6 @@ export default function TenswManagementPage() {
     }
   }
 
-  const handleToggleInvoiceStatus = async (invoice: TenswInvoice) => {
-    const newStatus = invoice.status === 'issued' ? 'completed' : 'issued'
-    try {
-      const res = await fetch('/api/tensw-mgmt/invoices', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: invoice.id, status: newStatus }),
-      })
-      if (res.ok) {
-        await loadInvoices()
-      }
-    } catch (error) {
-      console.error('Failed to update invoice status:', error)
-    }
-  }
-
   const handleDeleteInvoice = async (invoiceId: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return
 
@@ -2412,22 +2407,22 @@ export default function TenswManagementPage() {
                               pending: {
                                 label: '대기',
                                 tooltip: '클릭해서 진행중으로 변경',
-                                color: 'text-muted-foreground',
-                                bgColor: 'bg-muted/50',
+                                color: 'text-amber-700 dark:text-amber-400',
+                                bgColor: 'bg-amber-100 dark:bg-amber-900/50',
                               },
                               in_progress: {
                                 label: '진행중',
                                 tooltip: '클릭해서 완료로 변경',
-                                color: 'text-amber-600',
-                                bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+                                color: 'text-blue-700 dark:text-blue-400',
+                                bgColor: 'bg-blue-100 dark:bg-blue-900/50',
                               },
                               completed: {
                                 label: '완료',
                                 tooltip: hasSchedules
                                   ? '클릭해서 진행중으로 변경'
                                   : '클릭해서 대기로 변경',
-                                color: 'text-green-600',
-                                bgColor: 'bg-green-100 dark:bg-green-900/30',
+                                color: 'text-emerald-700 dark:text-emerald-400',
+                                bgColor: 'bg-emerald-100 dark:bg-emerald-900/50',
                               },
                             }
                             const config = statusConfig[milestone.status as keyof typeof statusConfig] || statusConfig.pending
@@ -2623,7 +2618,8 @@ export default function TenswManagementPage() {
                             </div>
                           ) : (
                             paginatedInvoices.map((invoice) => {
-                              const statusStyle = INVOICE_STATUS_STYLES[invoice.status]
+                              const computedStatus = getInvoiceStatus(invoice)
+                              const statusStyle = INVOICE_STATUS_STYLES[computedStatus]
                               return (
                                 <div key={invoice.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
                                   <div
@@ -2642,23 +2638,30 @@ export default function TenswManagementPage() {
                                           {invoice.type === 'revenue' ? '매출' : invoice.type === 'expense' ? '비용' : invoice.type === 'asset' ? '자산' : '부채'}
                                         </span>
                                         <span className="font-medium text-sm truncate">{invoice.counterparty}</span>
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); handleToggleInvoiceStatus(invoice) }}
+                                        <span
                                           className={cn(
                                             'rounded-full px-2 py-0.5 text-xs flex items-center gap-1 shrink-0',
                                             statusStyle.bg, statusStyle.text
                                           )}
                                         >
-                                          {invoice.status === 'completed' ? (
+                                          {computedStatus === 'completed' ? (
                                             <CheckCircle2 className="h-3 w-3" />
+                                          ) : computedStatus === 'issued' ? (
+                                            <Clock className="h-3 w-3" />
                                           ) : (
                                             <Clock className="h-3 w-3" />
                                           )}
                                           {statusStyle.label}
-                                        </button>
+                                        </span>
                                       </div>
                                       <div className="text-xs text-muted-foreground space-y-0.5">
-                                        <p>{invoice.issue_date} · <span className="font-medium text-foreground">{formatKRW(invoice.amount)}</span></p>
+                                        <p>
+                                          {invoice.issue_date && <span>발행: {invoice.issue_date}</span>}
+                                          {invoice.issue_date && invoice.payment_date && <span> · </span>}
+                                          {invoice.payment_date && <span>{invoice.type === 'revenue' || invoice.type === 'asset' ? '입금' : '지급'}: {invoice.payment_date}</span>}
+                                          {(invoice.issue_date || invoice.payment_date) && <span> · </span>}
+                                          <span className="font-medium text-foreground">{formatKRW(invoice.amount)}</span>
+                                        </p>
                                         {invoice.description && <p>{invoice.description}</p>}
                                         {invoice.account_number && <p>계좌: {invoice.account_number}</p>}
                                         {invoice.notes && <p className="text-slate-500">메모: {invoice.notes}</p>}
@@ -2740,7 +2743,10 @@ export default function TenswManagementPage() {
                     }>()
 
                     for (const inv of allInvoices) {
-                      const date = new Date(inv.issue_date)
+                      // 입금일/지급일이 없으면 합계에서 제외
+                      if (!inv.payment_date) continue
+
+                      const date = new Date(inv.payment_date)
                       let periodKey: string
 
                       if (invoiceSummaryPeriod === 'monthly') {
@@ -2818,10 +2824,13 @@ export default function TenswManagementPage() {
                             const totalCashFlow = operatingCashFlow + investingCashFlow + financingCashFlow
                             const isExpanded = expandedSummaryPeriod === period
 
-                            // Get invoices for this period
+                            // Get invoices for this period (only those with payment_date)
                             const getInvoicesForPeriod = () => {
                               return invoices.filter((inv) => {
-                                const date = new Date(inv.issue_date)
+                                // 입금일/지급일이 없으면 제외
+                                if (!inv.payment_date) return false
+
+                                const date = new Date(inv.payment_date)
                                 let periodKey: string
 
                                 if (invoiceSummaryPeriod === 'monthly') {
@@ -2834,7 +2843,9 @@ export default function TenswManagementPage() {
                                 }
 
                                 return periodKey === period
-                              }).sort((a, b) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime())
+                              }).sort((a, b) => {
+                                return new Date(b.payment_date!).getTime() - new Date(a.payment_date!).getTime()
+                              })
                             }
 
                             const periodInvoices = isExpanded ? getInvoicesForPeriod() : []
@@ -2927,7 +2938,8 @@ export default function TenswManagementPage() {
                                               setInvoiceFormCounterparty(inv.counterparty)
                                               setInvoiceFormDescription(inv.description || '')
                                               setInvoiceFormAmount(String(inv.amount))
-                                              setInvoiceFormDate(inv.issue_date)
+                                              setInvoiceFormDate(inv.issue_date || '')
+                                              setInvoiceFormPaymentDate(inv.payment_date || '')
                                               setInvoiceFormNotes(inv.notes || '')
                                               setInvoiceFormAccountNumber(inv.account_number || '')
                                               setIsInvoiceModalOpen(true)
@@ -2943,7 +2955,7 @@ export default function TenswManagementPage() {
                                               )}>
                                                 {inv.type === 'revenue' ? '매출' : inv.type === 'expense' ? '비용' : inv.type === 'asset' ? '자산' : '부채'}
                                               </span>
-                                              <span className="flex-shrink-0 text-xs text-muted-foreground w-20">{inv.issue_date}</span>
+                                              <span className="flex-shrink-0 text-xs text-muted-foreground w-20">{inv.issue_date || inv.payment_date || '-'}</span>
                                               <span className="text-sm font-medium truncate flex-1 min-w-0">
                                                 {inv.counterparty}
                                                 {inv.description && <span className="text-muted-foreground font-normal"> - {inv.description}</span>}

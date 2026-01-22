@@ -7,7 +7,8 @@ export interface TenswInvoice {
   counterparty: string
   description: string | null
   amount: number
-  issue_date: string
+  issue_date: string | null  // 세금계산서 발행일
+  payment_date: string | null  // 입금일/지급일
   status: 'issued' | 'completed'
   attachments: Array<{ name: string; url: string; size: number; type: string }>
   notes: string | null
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('tensw_invoices')
     .select('*')
-    .order('issue_date', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (type) {
     query = query.eq('type', type)
@@ -48,11 +49,11 @@ export async function GET(request: Request) {
 // POST - Create a new invoice
 export async function POST(request: Request) {
   const body = await request.json()
-  const { type, counterparty, description, amount, issue_date, status, attachments, notes, account_number } = body
+  const { type, counterparty, description, amount, issue_date, payment_date, status, attachments, notes, account_number } = body
 
-  if (!type || !counterparty || amount === undefined || !issue_date) {
+  if (!type || !counterparty || amount === undefined) {
     return NextResponse.json(
-      { error: 'type, counterparty, amount, and issue_date are required' },
+      { error: 'type, counterparty, and amount are required' },
       { status: 400 }
     )
   }
@@ -66,7 +67,8 @@ export async function POST(request: Request) {
       counterparty,
       description: description || null,
       amount,
-      issue_date,
+      issue_date: issue_date || null,  // 세금계산서 발행일 (선택)
+      payment_date: payment_date || null,  // 입금일/지급일 (선택)
       status: status || 'issued',
       attachments: attachments || [],
       notes: notes || null,
