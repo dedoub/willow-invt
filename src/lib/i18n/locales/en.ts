@@ -102,6 +102,7 @@ export const en = {
     others: 'Others',
     jangbigo: 'Jangbigo',
     ryuhaStudy: 'Ryuha Study',
+    uiGuide: 'UI Guide',
   },
 
   // Header

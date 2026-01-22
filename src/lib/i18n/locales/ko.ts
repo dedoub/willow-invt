@@ -102,6 +102,7 @@ export const ko = {
     others: '기타',
     jangbigo: '장비고',
     ryuhaStudy: '류하 학습관리',
+    uiGuide: 'UI 가이드',
   },
 
   // 헤더

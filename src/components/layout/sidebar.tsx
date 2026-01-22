@@ -18,6 +18,7 @@ import {
   Building2,
   MoreHorizontal,
   X,
+  BookOpen,
 } from 'lucide-react'
 
 interface MenuItem {
@@ -104,6 +105,12 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       title: t.sidebar.users,
       href: '/admin/users',
       icon: <Users className="h-5 w-5" />,
+      adminOnly: true,
+    },
+    {
+      title: t.sidebar.uiGuide,
+      href: '/admin/ui-guide',
+      icon: <BookOpen className="h-5 w-5" />,
       adminOnly: true,
     },
   ]
