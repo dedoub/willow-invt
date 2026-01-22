@@ -2522,7 +2522,7 @@ export default function TenswManagementPage() {
                                 value={milestoneForm.name}
                                 onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
                                 placeholder="마일스톤명"
-                                className="h-8 text-sm"
+                                className="h-8 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
                                 autoFocus
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' && milestoneForm.name.trim()) {
@@ -2550,7 +2550,7 @@ export default function TenswManagementPage() {
                                     value={milestoneForm.target_date}
                                     onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
                                     className={cn(
-                                      "h-8 text-sm w-full cursor-pointer",
+                                      "h-8 text-sm w-full cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900",
                                       !milestoneForm.target_date && "date-placeholder-hidden"
                                     )}
                                   />
@@ -2562,7 +2562,7 @@ export default function TenswManagementPage() {
                                 </div>
                                 <Button
                                   size="sm"
-                                  variant="ghost"
+                                  variant="outline"
                                   className="h-8 px-2"
                                   onClick={() => {
                                     setAddingMilestoneForProject(null)
