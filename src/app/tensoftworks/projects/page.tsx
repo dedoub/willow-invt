@@ -41,6 +41,7 @@ import {
   FileText,
   Circle,
   GitCommit,
+  Search,
 } from 'lucide-react'
 
 // 프로젝트 아이콘 맵
@@ -93,6 +94,7 @@ const getActivityConfig = (type: string, activityT: {
   started: string
   completed: string
   discarded: string
+  analysis?: string
   commit?: string
 }) => {
   switch (type) {
@@ -104,10 +106,12 @@ const getActivityConfig = (type: string, activityT: {
       return { icon: <Zap className="h-4 w-4" />, color: 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400', label: activityT.started }
     case 'completed':
       return { icon: <CheckCircle2 className="h-4 w-4" />, color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400', label: activityT.completed }
+    case 'analysis':
+      return { icon: <Search className="h-4 w-4" />, color: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400', label: activityT.analysis || 'AI 분석' }
     case 'discarded':
       return { icon: <Ban className="h-4 w-4" />, color: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400', label: activityT.discarded }
     case 'commit':
-      return { icon: <GitCommit className="h-4 w-4" />, color: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400', label: activityT.commit || 'commit' }
+      return { icon: <GitCommit className="h-4 w-4" />, color: 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400', label: activityT.commit || 'commit' }
     default:
       return { icon: <Bell className="h-4 w-4" />, color: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400', label: type }
   }

@@ -21,6 +21,7 @@ import {
   Ban,
   GitCommit,
   Bell,
+  Search,
 } from 'lucide-react'
 
 // ============================================
@@ -201,8 +202,9 @@ export function ActivityCards() {
     { type: 'assigned', icon: <Users className="h-4 w-4" />, label: '배정됨', color: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400' },
     { type: 'started', icon: <Zap className="h-4 w-4" />, label: '시작됨', color: 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400' },
     { type: 'completed', icon: <CheckCircle2 className="h-4 w-4" />, label: '완료됨', color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' },
+    { type: 'analysis', icon: <Search className="h-4 w-4" />, label: 'AI 분석', color: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400' },
     { type: 'discarded', icon: <Ban className="h-4 w-4" />, label: '취소됨', color: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400' },
-    { type: 'commit', icon: <GitCommit className="h-4 w-4" />, label: '커밋', color: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400' },
+    { type: 'commit', icon: <GitCommit className="h-4 w-4" />, label: '커밋', color: 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400' },
     { type: 'default', icon: <Bell className="h-4 w-4" />, label: '알림', color: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400' },
   ]
 
