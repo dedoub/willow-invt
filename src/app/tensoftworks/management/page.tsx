@@ -2535,12 +2535,22 @@ export default function TenswManagementPage() {
                                 }}
                               />
                               <div className="flex gap-2">
-                                <Input
-                                  type="date"
-                                  value={milestoneForm.target_date}
-                                  onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
-                                  className="h-8 text-sm flex-1"
-                                />
+                                <div className="relative flex-1">
+                                  <Input
+                                    type="date"
+                                    value={milestoneForm.target_date}
+                                    onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
+                                    className={cn(
+                                      "h-8 text-sm w-full",
+                                      !milestoneForm.target_date && "text-transparent"
+                                    )}
+                                  />
+                                  {!milestoneForm.target_date && (
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                      목표마감일
+                                    </span>
+                                  )}
+                                </div>
                                 <Button
                                   size="sm"
                                   variant="ghost"
