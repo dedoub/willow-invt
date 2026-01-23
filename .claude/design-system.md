@@ -951,6 +951,212 @@ function formatFileSize(bytes: number): string {
 
 ---
 
+## 이메일 커뮤니케이션 섹션
+
+Gmail 연동 이메일 목록 및 AI 분석 패널 구조입니다.
+
+### 섹션 레이아웃
+
+```tsx
+<CardContent>
+  <div className="flex flex-col lg:flex-row gap-6 items-start">
+    {/* 좌측: 이메일 목록 (1/2) */}
+    <div className="w-full lg:w-1/2">
+      {/* 검색창 */}
+      {/* 필터 배지 */}
+      {/* 이메일 목록 */}
+      {/* 페이지네이션 */}
+    </div>
+
+    {/* 우측: AI 분석 또는 이메일 상세 (1/2) */}
+    <div className="w-full lg:w-1/2">
+      {/* AI 분석 패널 또는 선택된 이메일 상세 */}
+    </div>
+  </div>
+</CardContent>
+```
+
+### 검색창 (필터 배지 위)
+
+```tsx
+<div className="mb-4">
+  <div className="relative">
+    <input
+      type="text"
+      value={emailSearch}
+      onChange={(e) => setEmailSearch(e.target.value)}
+      placeholder="검색..."
+      className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm pl-9 focus:outline-none focus:ring-2 focus:ring-slate-300"
+    />
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+    {emailSearch && (
+      <button onClick={() => setEmailSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+        <X className="h-4 w-4" />
+      </button>
+    )}
+  </div>
+  {emailSearch && (
+    <p className="text-xs text-muted-foreground mt-1">
+      {filteredEmails.length}개 검색됨
+    </p>
+  )}
+</div>
+```
+
+### 필터 배지 (카테고리)
+
+```tsx
+<div className="flex gap-1 mb-4 flex-wrap">
+  <button
+    onClick={() => setEmailFilter('all')}
+    className={cn(
+      'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+      emailFilter === 'all'
+        ? 'bg-slate-900 text-white dark:bg-slate-600'
+        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+    )}
+  >
+    전체
+  </button>
+  {availableCategories.map((category) => {
+    const color = getCategoryColor(category, availableCategories)
+    return (
+      <button
+        key={category}
+        onClick={() => setEmailFilter(category)}
+        className={cn(
+          'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+          emailFilter === category
+            ? `${color.button} text-white`
+            : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+        )}
+      >
+        {category}
+      </button>
+    )
+  })}
+</div>
+```
+
+### 이메일 목록 아이템
+
+```tsx
+<div className="space-y-2">
+  {paginatedEmails.map((email) => (
+    <div
+      key={email.id}
+      className={`rounded-lg bg-white dark:bg-slate-700 p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 ${
+        selectedEmail?.id === email.id ? 'ring-2 ring-blue-500' : ''
+      }`}
+      onClick={() => setSelectedEmail(email)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <Mail className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
+            email.direction === 'outbound' ? 'text-blue-500' : 'text-slate-400'
+          }`} />
+          <div className="min-w-0 flex-1">
+            {/* 카테고리 배지 (제목 위) */}
+            {email.category && (
+              <div className="flex flex-wrap gap-1 mb-1">
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${getCategoryColor(email.category).bg} ${getCategoryColor(email.category).text}`}>
+                  {email.category}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-sm truncate">{email.subject || '(제목 없음)'}</p>
+              {email.attachments?.length > 0 && <Paperclip className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
+              <p className="truncate"><span className="text-slate-400">보낸사람:</span> {email.fromName || email.from}</p>
+              <p className="truncate"><span className="text-slate-400">받는사람:</span> {email.to}</p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {email.direction === 'outbound' ? '발신' : '수신'} · {formatEmailDate(email.date)}
+            </p>
+            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+              {email.body?.replace(/\n+/g, ' ').trim() || '(내용 없음)'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
+```
+
+### 페이지네이션
+
+```tsx
+{filteredEmails.length > 0 && (
+  <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+    <div className="flex items-center gap-2">
+      <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">
+        총 {filteredEmails.length}개 중 {startIndex + 1}-{endIndex}
+      </p>
+      <p className="sm:hidden text-xs text-muted-foreground whitespace-nowrap">
+        {filteredEmails.length}개 중 {startIndex + 1}-{endIndex}
+      </p>
+      <select
+        value={emailsPerPage}
+        onChange={(e) => {
+          setEmailsPerPage(Number(e.target.value))
+          setEmailPage(1)
+        }}
+        className="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5"
+      >
+        <option value={5}>5개</option>
+        <option value={10}>10개</option>
+        <option value={25}>25개</option>
+        <option value={50}>50개</option>
+        <option value={100}>100개</option>
+      </select>
+    </div>
+    {totalPages > 1 && (
+      <div className="flex items-center gap-1">
+        <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
+        <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
+        <span className="px-2 sm:px-3 py-1 text-xs font-medium">{emailPage}/{totalPages}</span>
+        <button onClick={() => setEmailPage(p => Math.min(totalPages, p + 1))} disabled={emailPage === totalPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
+        <button onClick={() => setEmailPage(totalPages)} disabled={emailPage === totalPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+      </div>
+    )}
+  </div>
+)}
+```
+
+### AI 분석 배지 (카테고리)
+
+```tsx
+<span className={`px-2 py-0.5 rounded text-xs font-medium ${color.bg} ${color.text}`}>
+  {category}
+</span>
+```
+
+### 카테고리 색상 헬퍼
+
+```tsx
+// 동적 카테고리 색상 (순환)
+const CATEGORY_COLORS = [
+  { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400', button: 'bg-blue-600' },
+  { bg: 'bg-purple-100 dark:bg-purple-900/50', text: 'text-purple-700 dark:text-purple-400', button: 'bg-purple-600' },
+  { bg: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-700 dark:text-green-400', button: 'bg-green-600' },
+  { bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-400', button: 'bg-amber-600' },
+  { bg: 'bg-pink-100 dark:bg-pink-900/50', text: 'text-pink-700 dark:text-pink-400', button: 'bg-pink-600' },
+  { bg: 'bg-cyan-100 dark:bg-cyan-900/50', text: 'text-cyan-700 dark:text-cyan-400', button: 'bg-cyan-600' },
+  { bg: 'bg-orange-100 dark:bg-orange-900/50', text: 'text-orange-700 dark:text-orange-400', button: 'bg-orange-600' },
+  { bg: 'bg-indigo-100 dark:bg-indigo-900/50', text: 'text-indigo-700 dark:text-indigo-400', button: 'bg-indigo-600' },
+]
+
+function getCategoryColor(category: string, allCategories: string[]) {
+  const index = allCategories.indexOf(category)
+  return CATEGORY_COLORS[index % CATEGORY_COLORS.length]
+}
+```
+
+---
+
 ## 참고
 
 - 전체 UI 가이드: `/src/app/admin/ui-guide/page.tsx`

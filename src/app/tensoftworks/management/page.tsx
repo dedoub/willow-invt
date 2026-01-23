@@ -4490,6 +4490,16 @@ export default function TenswManagementPage() {
                               <div className="flex items-start gap-3 min-w-0 flex-1">
                                 <Mail className={`h-5 w-5 mt-0.5 flex-shrink-0 ${email.direction === 'outbound' ? 'text-blue-500' : 'text-slate-400'}`} />
                                 <div className="min-w-0 flex-1">
+                                  {/* 카테고리 배지 (제목 위) */}
+                                  {(email.categories?.length || email.category) && (
+                                    <div className="flex flex-wrap gap-1 mb-1">
+                                      {(email.categories || (email.category ? [email.category] : [])).map((cat, idx) => (
+                                        <span key={idx} className={`px-2 py-0.5 rounded text-xs font-medium ${getCategoryColor(cat, availableCategories).bg} ${getCategoryColor(cat, availableCategories).text}`}>
+                                          {cat}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
                                   <div className="flex items-center gap-2">
                                     <p className="font-medium text-sm truncate">{email.subject || t.gmail.noSubject}</p>
                                     {email.attachments && email.attachments.length > 0 && <Paperclip className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />}
@@ -4506,15 +4516,6 @@ export default function TenswManagementPage() {
                                   </p>
                                 </div>
                               </div>
-                              {(email.categories?.length || email.category) && (
-                                <div className="flex flex-col gap-1 flex-shrink-0 items-end">
-                                  {(email.categories || (email.category ? [email.category] : [])).map((cat, idx) => (
-                                    <span key={idx} className={`rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${getCategoryColor(cat, availableCategories).bg} ${getCategoryColor(cat, availableCategories).text}`}>
-                                      {cat}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
                             </div>
                           </div>
                         ))}
