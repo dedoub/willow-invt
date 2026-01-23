@@ -42,6 +42,8 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   RefreshCw,
   CheckCircle,
   AlertCircle,
@@ -1216,9 +1218,9 @@ function ComposeEmailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden p-6">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <h3 className="text-lg font-semibold">{getTitle()}</h3>
           <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
             <X className="h-5 w-5" />
@@ -1226,63 +1228,63 @@ function ComposeEmailModal({
         </div>
 
         {/* Form */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto py-4 space-y-3 px-1 -mx-1">
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700">
+            <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm text-red-700 dark:text-red-400">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t.gmail.to} *</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.gmail.to} *</label>
             <input
               type="email"
               value={formData.to}
               onChange={(e) => setFormData({ ...formData, to: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm"
               placeholder="recipient@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t.gmail.cc}</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.gmail.cc}</label>
             <input
               type="text"
               value={formData.cc}
               onChange={(e) => setFormData({ ...formData, cc: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm"
               placeholder="cc@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t.gmail.bcc}</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.gmail.bcc}</label>
             <input
               type="text"
               value={formData.bcc}
               onChange={(e) => setFormData({ ...formData, bcc: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm"
               placeholder="bcc@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t.gmail.subject} *</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.gmail.subject} *</label>
             <input
               type="text"
               value={formData.subject}
               onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm"
               placeholder={t.gmail.subjectPlaceholder}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t.gmail.body}</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.gmail.body}</label>
             <textarea
               value={formData.body}
               onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm min-h-[200px] font-mono"
+              className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm min-h-[200px] font-mono"
               placeholder={t.gmail.bodyPlaceholder}
             />
           </div>
@@ -1290,7 +1292,7 @@ function ComposeEmailModal({
           {/* 첨부파일 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium">{t.gmail.attachments}</label>
+              <label className="text-xs text-slate-500">{t.gmail.attachments}</label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -1323,7 +1325,7 @@ function ComposeEmailModal({
                     </div>
                     <button
                       onClick={() => handleRemoveAttachment(index)}
-                      className="rounded p-1 hover:bg-slate-200 flex-shrink-0"
+                      className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 flex-shrink-0"
                     >
                       <X className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                     </button>
@@ -1335,18 +1337,18 @@ function ComposeEmailModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="flex-1 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+              className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600"
             >
               {t.common.cancel}
             </button>
             <button
               onClick={handleSend}
               disabled={isSending}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-500 disabled:opacity-50"
             >
               {isSending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1398,7 +1400,7 @@ export default function ETCPage() {
   const INVOICES_PER_PAGE = 5
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
   const [isSavingInvoice, setIsSavingInvoice] = useState(false)
-  const [isSendingInvoice, setIsSendingInvoice] = useState<string | null>(null)
+  const [isSendingInvoice, setIsSendingInvoice] = useState<{ id: string; type: 'etc' | 'bank' } | null>(null)
 
   // 인보이스 생성 폼 상태
   const [invoiceFormDate, setInvoiceFormDate] = useState('')
@@ -1595,6 +1597,25 @@ export default function ETCPage() {
     setIsInvoiceModalOpen(true)
   }
 
+  const startEditInvoice = (invoice: Invoice) => {
+    setEditingInvoice(invoice)
+    setInvoiceFormDate(invoice.invoice_date)
+    setInvoiceFormAttention(invoice.attention)
+    setInvoiceFormNotes(invoice.notes || '')
+    // line_items를 form items로 변환
+    const formItems: InvoiceFormItem[] = (invoice.line_items as LineItem[]).map(item => ({
+      id: crypto.randomUUID(),
+      itemType: 'custom' as InvoiceItemType,
+      month: new Date().getMonth(),
+      year: new Date().getFullYear(),
+      customDesc: item.description,
+      amount: String(item.amount),
+    }))
+    setInvoiceFormItems(formItems.length > 0 ? formItems : [createEmptyItem()])
+    setExpandedInvoice(invoice.id)
+    setIsInvoiceModalOpen(true)
+  }
+
   const getItemDescription = (item: InvoiceFormItem): string => {
     if (item.itemType === 'custom') {
       return item.customDesc
@@ -1661,8 +1682,12 @@ export default function ETCPage() {
         notes: invoiceFormNotes || undefined,
       }
 
-      const res = await fetch('/api/invoices', {
-        method: 'POST',
+      const isEditing = !!editingInvoice
+      const url = isEditing ? `/api/invoices/${editingInvoice.id}` : '/api/invoices'
+      const method = isEditing ? 'PATCH' : 'POST'
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
@@ -1711,7 +1736,7 @@ export default function ETCPage() {
     const invoice = invoices.find(inv => inv.id === invoiceId)
     if (!invoice) return
 
-    setIsSendingInvoice(invoiceId)
+    setIsSendingInvoice({ id: invoiceId, type: recipientType })
     try {
       // Fetch the PDF
       const res = await fetch(`/api/invoices/${invoiceId}/pdf`)
@@ -1764,6 +1789,7 @@ Dongwook`
       // Set initial compose data and open modal
       setComposeInitialData({
         to: emailTo,
+        cc: recipientType === 'etc' ? 'accounting@exchangetradedconcepts.com' : '',
         subject: emailSubject,
         body: emailBody,
       })
@@ -2584,9 +2610,9 @@ Dongwook`
                         <div className="flex items-center gap-3">
                           <Receipt className="h-4 w-4 text-slate-400" />
                           <div>
-                            <p className="font-medium text-sm">{invoice.invoice_no}</p>
+                            <p className="font-medium text-sm">{firstItem?.description || invoice.invoice_no}</p>
                             <p className="text-xs text-muted-foreground">
-                              {formatInvoiceDateUtil(invoice.invoice_date)} · {formatCurrency(invoice.total_amount, 'USD')}
+                              발행일: {formatInvoiceDateUtil(invoice.invoice_date)} · ${invoice.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                           </div>
                         </div>
@@ -2604,13 +2630,29 @@ Dongwook`
                       </div>
                       {expandedInvoice === invoice.id && (
                         <div className="mt-2 pt-2 border-t border-slate-100 space-y-2">
-                          {/* 항목 상세 */}
-                          <div className="text-xs text-muted-foreground">
-                            {firstItem?.description}
-                          </div>
+                          {/* 항목 상세 - 여러 항목이 있을 때만 표시 */}
+                          {(invoice.line_items as LineItem[]).length > 1 && (
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              {(invoice.line_items as LineItem[]).map((item, idx) => (
+                                <div key={idx}>{item.description} - ${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                              ))}
+                            </div>
+                          )}
+                          {/* 메모 - 있을 때만 표시 */}
+                          {invoice.notes && (
+                            <p className="text-xs text-muted-foreground">{invoice.notes}</p>
+                          )}
 
                           {/* 액션 버튼 */}
                           <div className="flex flex-wrap gap-2">
+                            {/* 수정 버튼 */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); startEditInvoice(invoice) }}
+                              className="flex items-center gap-1 rounded bg-slate-200 dark:bg-slate-600 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500 cursor-pointer"
+                            >
+                              <Pencil className="h-3 w-3" />
+                              수정
+                            </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleDownloadPdf(invoice.id) }}
                               className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-medium hover:bg-slate-200 cursor-pointer"
@@ -2623,14 +2665,14 @@ Dongwook`
                                 {/* ETC 발송 버튼 */}
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'etc') }}
-                                  disabled={isSendingInvoice === invoice.id}
+                                  disabled={isSendingInvoice?.id === invoice.id && isSendingInvoice?.type === 'etc'}
                                   className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
                                     invoice.sent_to_etc_at
                                       ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                                       : 'bg-blue-600 text-white hover:bg-blue-700'
                                   }`}
                                 >
-                                  {isSendingInvoice === invoice.id ? (
+                                  {isSendingInvoice?.id === invoice.id && isSendingInvoice?.type === 'etc' ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
                                   ) : invoice.sent_to_etc_at ? (
                                     <Check className="h-3 w-3" />
@@ -2642,14 +2684,14 @@ Dongwook`
                                 {/* 은행 발송 버튼 */}
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'bank') }}
-                                  disabled={isSendingInvoice === invoice.id}
+                                  disabled={isSendingInvoice?.id === invoice.id && isSendingInvoice?.type === 'bank'}
                                   className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
                                     invoice.sent_to_bank_at
                                       ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
                                       : 'bg-amber-600 text-white hover:bg-amber-700'
                                   }`}
                                 >
-                                  {isSendingInvoice === invoice.id ? (
+                                  {isSendingInvoice?.id === invoice.id && isSendingInvoice?.type === 'bank' ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
                                   ) : invoice.sent_to_bank_at ? (
                                     <Building className="h-3 w-3" />
@@ -2684,13 +2726,14 @@ Dongwook`
 
                           {/* 발송 정보 - 한 줄로 표시 */}
                           <div className="flex flex-wrap gap-3 text-xs">
+                            <span className="text-muted-foreground">{invoice.invoice_no}</span>
                             <span className={invoice.sent_to_etc_at ? 'text-blue-600' : 'text-muted-foreground'}>
-                              ETC: {invoice.sent_to_etc_at
+                              ETC 이메일: {invoice.sent_to_etc_at
                                 ? new Date(invoice.sent_to_etc_at).toLocaleDateString('ko-KR')
                                 : '미발송'}
                             </span>
                             <span className={invoice.sent_to_bank_at ? 'text-amber-600' : 'text-muted-foreground'}>
-                              은행: {invoice.sent_to_bank_at
+                              은행 이메일: {invoice.sent_to_bank_at
                                 ? new Date(invoice.sent_to_bank_at).toLocaleDateString('ko-KR')
                                 : '미발송'}
                             </span>
@@ -2763,44 +2806,47 @@ Dongwook`
         {/* Invoice Creation Modal */}
         {isInvoiceModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsInvoiceModalOpen(false)} />
-            <div className="relative bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
-              <button
-                onClick={() => setIsInvoiceModalOpen(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-              >
-                <X className="h-5 w-5" />
-              </button>
+            <div className="absolute inset-0 bg-black/50" onClick={() => { setIsInvoiceModalOpen(false); resetInvoiceForm() }} />
+            <div className="relative bg-white dark:bg-slate-800 rounded-xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col overflow-hidden p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+                <h2 className="text-lg font-semibold">{editingInvoice ? '인보이스 수정' : t.invoice.new}</h2>
+                <button
+                  onClick={() => { setIsInvoiceModalOpen(false); resetInvoiceForm() }}
+                  className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-              <h2 className="text-lg font-bold mb-4">{t.invoice.new}</h2>
-
-              <div className="space-y-4">
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto py-4 -mx-6 px-6 space-y-4">
                 {/* Invoice Date */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">{t.invoice.invoiceDate}</label>
+                  <label className="text-xs text-slate-500 mb-1 block">{t.invoice.invoiceDate}</label>
                   <input
                     type="date"
                     value={invoiceFormDate}
                     onChange={(e) => setInvoiceFormDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none"
                   />
                 </div>
 
                 {/* Attention */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">{t.invoice.attention}</label>
+                  <label className="text-xs text-slate-500 mb-1 block">{t.invoice.attention}</label>
                   <input
                     type="text"
                     value={invoiceFormAttention}
                     onChange={(e) => setInvoiceFormAttention(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none"
                   />
                 </div>
 
                 {/* Line Items */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium">{t.invoice.items}</label>
+                    <label className="text-xs text-slate-500">{t.invoice.items}</label>
                     <button
                       type="button"
                       onClick={addFormItem}
@@ -2812,7 +2858,7 @@ Dongwook`
                   </div>
                   <div className="space-y-3">
                     {invoiceFormItems.map((item, index) => (
-                      <div key={item.id} className="p-3 bg-slate-50 rounded-lg space-y-2">
+                      <div key={item.id} className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium text-slate-500">{t.invoice.itemNumber.replace('{number}', String(index + 1))}</span>
                           {invoiceFormItems.length > 1 && (
@@ -2829,7 +2875,7 @@ Dongwook`
                         <select
                           value={item.itemType}
                           onChange={(e) => updateFormItem(item.id, { itemType: e.target.value as InvoiceItemType })}
-                          className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                          className="w-full px-2 py-1.5 text-sm bg-white dark:bg-slate-600 rounded focus:bg-slate-50 dark:focus:bg-slate-500 focus:outline-none"
                         >
                           {ITEM_TEMPLATES.map((template) => (
                             <option key={template.type} value={template.type}>
@@ -2843,7 +2889,7 @@ Dongwook`
                             <select
                               value={item.month}
                               onChange={(e) => updateFormItem(item.id, { month: parseInt(e.target.value) })}
-                              className="px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                              className="px-2 py-1.5 text-sm bg-white dark:bg-slate-600 rounded focus:bg-slate-50 dark:focus:bg-slate-500 focus:outline-none"
                             >
                               {MONTH_NAMES.map((name, idx) => (
                                 <option key={idx} value={idx}>{name}</option>
@@ -2852,7 +2898,7 @@ Dongwook`
                             <select
                               value={item.year}
                               onChange={(e) => updateFormItem(item.id, { year: parseInt(e.target.value) })}
-                              className="px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                              className="px-2 py-1.5 text-sm bg-white dark:bg-slate-600 rounded focus:bg-slate-50 dark:focus:bg-slate-500 focus:outline-none"
                             >
                               {[2024, 2025, 2026, 2027].map((year) => (
                                 <option key={year} value={year}>{year}</option>
@@ -2867,12 +2913,12 @@ Dongwook`
                             value={item.customDesc}
                             onChange={(e) => updateFormItem(item.id, { customDesc: e.target.value })}
                             placeholder={t.invoice.itemDescription}
-                            className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                            className="w-full px-2 py-1.5 text-sm bg-white dark:bg-slate-600 rounded focus:bg-slate-50 dark:focus:bg-slate-500 focus:outline-none"
                           />
                         )}
                         {/* Preview */}
                         {item.itemType !== 'custom' && (
-                          <div className="text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-2 py-1 rounded">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-600 px-2 py-1 rounded">
                             {getItemDescription(item)}
                           </div>
                         )}
@@ -2880,12 +2926,22 @@ Dongwook`
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-slate-500">$</span>
                           <input
-                            type="number"
-                            step="0.01"
-                            value={item.amount}
-                            onChange={(e) => updateFormItem(item.id, { amount: e.target.value })}
-                            placeholder="2083.33"
-                            className="flex-1 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                            type="text"
+                            value={(() => {
+                              if (!item.amount) return ''
+                              const parts = item.amount.split('.')
+                              const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                              return parts.length > 1 ? `${intPart}.${parts[1]}` : intPart
+                            })()}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9.]/g, '')
+                              // 소수점이 여러 개인 경우 첫 번째만 유지
+                              const parts = value.split('.')
+                              const cleaned = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : value
+                              updateFormItem(item.id, { amount: cleaned })
+                            }}
+                            placeholder="2,083.33"
+                            className="flex-1 px-2 py-1.5 text-sm bg-white dark:bg-slate-600 rounded focus:bg-slate-50 dark:focus:bg-slate-500 focus:outline-none"
                           />
                         </div>
                       </div>
@@ -2893,7 +2949,7 @@ Dongwook`
                   </div>
                   {/* Total */}
                   {invoiceFormItems.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                       <span className="text-sm font-medium">{t.invoice.total}</span>
                       <span className="text-sm font-bold">
                         ${invoiceFormItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -2904,31 +2960,50 @@ Dongwook`
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">{t.invoice.notes}</label>
+                  <label className="text-xs text-slate-500 mb-1 block">{t.invoice.notes}</label>
                   <textarea
                     value={invoiceFormNotes}
                     onChange={(e) => setInvoiceFormNotes(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500 resize-none"
+                    className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none resize-none"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 mt-6">
-                <button
-                  onClick={() => setIsInvoiceModalOpen(false)}
-                  className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  {t.common.cancel}
-                </button>
-                <button
-                  onClick={handleSaveInvoice}
-                  disabled={isSavingInvoice}
-                  className="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isSavingInvoice && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {t.common.save}
-                </button>
+              {/* Footer */}
+              <div className="flex justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+                {editingInvoice ? (
+                  <button
+                    onClick={() => {
+                      if (confirm(t.invoice.deleteConfirm)) {
+                        handleDeleteInvoice(editingInvoice.id)
+                        setIsInvoiceModalOpen(false)
+                        resetInvoiceForm()
+                      }
+                    }}
+                    className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    {t.common.delete}
+                  </button>
+                ) : (
+                  <div />
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setIsInvoiceModalOpen(false); resetInvoiceForm() }}
+                    className="px-4 py-2 text-sm bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    onClick={handleSaveInvoice}
+                    disabled={isSavingInvoice}
+                    className="px-4 py-2 text-sm bg-slate-900 dark:bg-slate-600 text-white rounded-lg hover:bg-slate-800 dark:hover:bg-slate-500 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isSavingInvoice && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {t.common.save}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -3032,6 +3107,7 @@ Dongwook`
                       />
                     </div>
                     <div>
+                      <label className="text-xs text-slate-500 mb-1 block">첨부 파일</label>
                       <div className={`!border-0 rounded-lg p-2 text-center transition-colors ${
                         isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-700'
                       }`} style={{ border: 'none' }}>
@@ -3137,6 +3213,7 @@ Dongwook`
                             />
                           </div>
                           <div>
+                            <span className="text-xs text-slate-500 mb-1 block">첨부 파일</span>
                             <label
                               htmlFor={`wiki-file-input-edit-${note.id}`}
                               className={`!border-0 rounded-lg p-2 text-center transition-colors cursor-pointer block ${
@@ -3268,7 +3345,7 @@ Dongwook`
                                 className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
                               >
                                 <Paperclip className="h-2.5 w-2.5" />
-                                <span className="max-w-[100px] truncate">{att.name}</span>
+                                <span>{att.name}</span>
                               </a>
                             ))}
                           </div>
@@ -3403,9 +3480,9 @@ Dongwook`
                   <h4 className="font-semibold text-base">{t.gmail.settings}</h4>
                   <button
                     onClick={() => setShowGmailSettings(false)}
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+                    className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
                 <div className="space-y-4 text-sm">
@@ -3680,28 +3757,39 @@ Dongwook`
                           <p className="sm:hidden text-xs text-muted-foreground whitespace-nowrap">
                             {filteredEmails.length}개 중 {(emailPage - 1) * emailsPerPage + 1}-{Math.min(emailPage * emailsPerPage, filteredEmails.length)}
                           </p>
-                          <select
-                            value={emailsPerPage}
-                            onChange={(e) => {
-                              setEmailsPerPage(Number(e.target.value))
-                              setEmailPage(1)
-                            }}
-                            className="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5"
-                          >
-                            <option value={5}>5개</option>
-                            <option value={10}>10개</option>
-                            <option value={25}>25개</option>
-                            <option value={50}>50개</option>
-                            <option value={100}>100개</option>
-                          </select>
+                          <div className="relative">
+                            <select
+                              value={emailsPerPage}
+                              onChange={(e) => {
+                                setEmailsPerPage(Number(e.target.value))
+                                setEmailPage(1)
+                              }}
+                              className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                            >
+                              <option value={5}>5개</option>
+                              <option value={10}>10개</option>
+                              <option value={25}>25개</option>
+                              <option value={50}>50개</option>
+                              <option value={100}>100개</option>
+                            </select>
+                            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                          </div>
                         </div>
                         {totalEmailPages > 1 && (
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
-                            <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
+                          <div className="flex items-center gap-0.5">
+                            <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                              <ChevronsLeft className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                              <ChevronLeft className="h-4 w-4" />
+                            </button>
                             <span className="px-2 sm:px-3 py-1 text-xs font-medium">{emailPage}/{totalEmailPages}</span>
-                            <button onClick={() => setEmailPage(p => Math.min(totalEmailPages, p + 1))} disabled={emailPage === totalEmailPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
-                            <button onClick={() => setEmailPage(totalEmailPages)} disabled={emailPage === totalEmailPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+                            <button onClick={() => setEmailPage(p => Math.min(totalEmailPages, p + 1))} disabled={emailPage === totalEmailPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                              <ChevronRight className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => setEmailPage(totalEmailPages)} disabled={emailPage === totalEmailPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                              <ChevronsRight className="h-4 w-4" />
+                            </button>
                           </div>
                         )}
                       </div>
@@ -3726,9 +3814,9 @@ Dongwook`
                   </h4>
                   <button
                     onClick={() => setShowAiAnalysis(false)}
-                    className="text-purple-400 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300"
+                    className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
 

@@ -31,7 +31,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select'
-import { Search, Loader2 } from 'lucide-react'
+import { Search, Loader2, X } from 'lucide-react'
 
 // ============================================
 // 1. 기본 폼 카드
@@ -460,6 +460,113 @@ export function InlineEditForm() {
           </div>
         )
       )}
+    </div>
+  )
+}
+
+// ============================================
+// 10. 커스텀 모달 (div 기반, 스크롤 지원)
+// ============================================
+/**
+ * 커스텀 모달 패딩 패턴 (필수):
+ *
+ * 컨테이너: p-6 (전체 패딩)
+ * ├── Header: pb-4 border-b (하단 패딩 + border)
+ * ├── Body: py-4 -mx-6 px-6 (상하 패딩, 스크롤 시 좌우 유지)
+ * └── Footer: pt-4 border-t (상단 패딩 + border)
+ *
+ * Input/Select/Textarea: border 없음, bg-slate-100 dark:bg-slate-700
+ * 내부 필드 (카드 안): bg-white dark:bg-slate-600 (계층 구분)
+ */
+export function CustomModal() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSave = async () => {
+    setIsLoading(true)
+    // API 호출
+    setIsLoading(false)
+    setIsOpen(false)
+  }
+
+  if (!isOpen) {
+    return <Button onClick={() => setIsOpen(true)}>커스텀 모달 열기</Button>
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
+
+      {/* Modal Container */}
+      <div className="relative bg-white dark:bg-slate-800 rounded-xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col overflow-hidden p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <h2 className="text-lg font-semibold">모달 제목</h2>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Body - 스크롤 가능 */}
+        <div className="flex-1 overflow-y-auto py-4 -mx-6 px-6 space-y-4">
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">이름 *</label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none"
+              placeholder="이름을 입력하세요"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">설명</label>
+            <textarea
+              className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none resize-none"
+              rows={3}
+              placeholder="설명을 입력하세요..."
+            />
+          </div>
+
+          {/* 내부 카드 영역 (계층 구분 예시) */}
+          <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg space-y-2">
+            <span className="text-xs font-medium text-slate-500">항목</span>
+            <select className="w-full px-2 py-1.5 text-sm bg-white dark:bg-slate-600 rounded focus:bg-slate-50 dark:focus:bg-slate-500 focus:outline-none">
+              <option>옵션 1</option>
+              <option>옵션 2</option>
+            </select>
+            <input
+              type="text"
+              className="w-full px-2 py-1.5 text-sm bg-white dark:bg-slate-600 rounded focus:bg-slate-50 dark:focus:bg-slate-500 focus:outline-none"
+              placeholder="값 입력"
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-between pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <div />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="px-4 py-2 text-sm bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg"
+            >
+              취소
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isLoading}
+              className="px-4 py-2 text-sm bg-slate-900 dark:bg-slate-600 text-white rounded-lg hover:bg-slate-800 dark:hover:bg-slate-500 disabled:opacity-50 flex items-center gap-2"
+            >
+              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+              저장
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

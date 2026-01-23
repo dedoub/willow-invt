@@ -407,11 +407,11 @@ function DroppableMonthDay({
     <div
       ref={setNodeRef}
       className={cn(
-        'min-h-[80px] border rounded p-1',
-        day ? 'cursor-pointer' : 'bg-muted/20',
-        day && !isOver && 'hover:bg-muted/50',
-        isOver && 'bg-slate-900/10 border-slate-900 dark:bg-white/10 dark:border-white',
-        isToday && 'border-slate-900 dark:border-white'
+        'min-h-[80px] rounded-lg p-1',
+        day ? 'cursor-pointer bg-white dark:bg-slate-700' : 'bg-transparent',
+        day && !isOver && 'hover:bg-slate-50 dark:hover:bg-slate-600',
+        isOver && 'bg-slate-200 dark:bg-slate-600',
+        isToday && 'bg-slate-200 dark:bg-slate-600'
       )}
       onClick={() => day && onClick()}
     >
@@ -2851,12 +2851,12 @@ export default function RyuhaStudyPage() {
       {/* Schedule Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
         <DialogContent className="max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
+          <DialogHeader className="pb-4 border-b flex-shrink-0">
             <DialogTitle>{editingSchedule ? '일정 수정' : '일정 추가'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 pr-2">
             {/* Schedule type toggle */}
-            <div className="flex items-center space-x-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center space-x-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
               <Checkbox
                 id="is_homework_type"
                 checked={scheduleForm.type === 'homework'}
@@ -3285,7 +3285,7 @@ export default function RyuhaStudyPage() {
               ))}
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0">
+          <DialogFooter className="pt-4 border-t sm:justify-between flex-shrink-0">
             {editingSchedule ? (
               <div className="flex gap-2">
                 <Button
@@ -3341,7 +3341,7 @@ export default function RyuhaStudyPage() {
                 value={textbookForm.subject_id}
                 onValueChange={(v) => setTextbookForm({ ...textbookForm, subject_id: v })}
               >
-                <SelectTrigger className="border border-slate-200 dark:border-slate-600">
+                <SelectTrigger>
                   <SelectValue placeholder="과목 선택" />
                 </SelectTrigger>
                 <SelectContent>
@@ -3359,7 +3359,6 @@ export default function RyuhaStudyPage() {
                 value={textbookForm.name}
                 onChange={(e) => setTextbookForm({ ...textbookForm, name: e.target.value })}
                 placeholder="예: 수학의 정석 (상)"
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
             <div>
@@ -3368,7 +3367,6 @@ export default function RyuhaStudyPage() {
                 value={textbookForm.publisher}
                 onChange={(e) => setTextbookForm({ ...textbookForm, publisher: e.target.value })}
                 placeholder="예: 성지출판"
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
             <div>
@@ -3378,7 +3376,6 @@ export default function RyuhaStudyPage() {
                 onChange={(e) => setTextbookForm({ ...textbookForm, description: e.target.value })}
                 placeholder="교재에 대한 메모"
                 rows={2}
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
           </div>
@@ -3409,28 +3406,28 @@ export default function RyuhaStudyPage() {
       {/* Chapter Dialog */}
       <Dialog open={chapterDialogOpen} onOpenChange={setChapterDialogOpen}>
         <DialogContent>
-          <DialogHeader>
+          <DialogHeader className="pb-4 border-b">
             <DialogTitle>{editingChapter ? '챕터 수정' : '챕터 추가'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>챕터명</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">챕터명</label>
               <Input
                 value={chapterForm.name}
                 onChange={(e) => setChapterForm({ ...chapterForm, name: e.target.value })}
                 placeholder="예: 1장 다항식의 연산"
               />
             </div>
-            <div className="space-y-2">
-              <Label>목표 완료일</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">목표 완료일</label>
               <Input
                 type="date"
                 value={chapterForm.target_date}
                 onChange={(e) => setChapterForm({ ...chapterForm, target_date: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label>설명</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">설명</label>
               <Textarea
                 value={chapterForm.description}
                 onChange={(e) => setChapterForm({ ...chapterForm, description: e.target.value })}
@@ -3439,7 +3436,7 @@ export default function RyuhaStudyPage() {
               />
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between">
+          <DialogFooter className="pt-4 border-t sm:justify-between">
             {editingChapter ? (
               <div className="flex gap-2">
                 <Button
@@ -3503,7 +3500,7 @@ export default function RyuhaStudyPage() {
             {!editingSubject && subjects.length > 0 && (
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">등록된 과목</label>
-                <div className="border border-slate-200 dark:border-slate-600 rounded-lg divide-y divide-slate-200 dark:divide-slate-600 max-h-[200px] overflow-y-auto bg-white dark:bg-slate-700">
+                <div className="rounded-lg max-h-[200px] overflow-y-auto bg-slate-50 dark:bg-slate-600">
                   {[...subjects].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((subject) => (
                     <div
                       key={subject.id}
@@ -3534,7 +3531,6 @@ export default function RyuhaStudyPage() {
                 value={subjectForm.name}
                 onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })}
                 placeholder="예: 수학, 영어, 국어"
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
             <div>
@@ -3591,7 +3587,7 @@ export default function RyuhaStudyPage() {
               onChange={(e) => setMemoContent(e.target.value)}
               placeholder="이 날짜에 대한 메모를 입력하세요..."
               rows={4}
-              className="resize-none border border-slate-200 dark:border-slate-600"
+              className="resize-none"
               autoFocus
             />
           </div>
@@ -3622,7 +3618,6 @@ export default function RyuhaStudyPage() {
                 type="date"
                 value={bodyRecordForm.record_date}
                 onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, record_date: e.target.value })}
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -3634,7 +3629,6 @@ export default function RyuhaStudyPage() {
                   placeholder="165.5"
                   value={bodyRecordForm.height_cm}
                   onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, height_cm: e.target.value })}
-                  className="border border-slate-200 dark:border-slate-600"
                 />
               </div>
               <div>
@@ -3645,7 +3639,6 @@ export default function RyuhaStudyPage() {
                   placeholder="55.5"
                   value={bodyRecordForm.weight_kg}
                   onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, weight_kg: e.target.value })}
-                  className="border border-slate-200 dark:border-slate-600"
                 />
               </div>
             </div>
@@ -3656,7 +3649,7 @@ export default function RyuhaStudyPage() {
                 onChange={(e) => setBodyRecordForm({ ...bodyRecordForm, notes: e.target.value })}
                 placeholder="특이사항을 기록하세요..."
                 rows={2}
-                className="resize-none border border-slate-200 dark:border-slate-600"
+                className="resize-none"
               />
             </div>
           </div>

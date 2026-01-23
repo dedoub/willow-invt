@@ -47,6 +47,8 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   RefreshCw,
   CheckCircle,
   AlertCircle,
@@ -75,42 +77,40 @@ import {
   Building,
   ExternalLink,
   Search,
+  Banknote,
 } from 'lucide-react'
 import { useRef } from 'react'
 
-// Extended invoice status type (includes partial sent states)
-type ExtendedInvoiceStatus = InvoiceStatus | 'sent_etc' | 'sent_bank'
-
-// Invoice status colors
-const INVOICE_STATUS_COLORS: Record<ExtendedInvoiceStatus, { bg: string; text: string; icon: typeof Check }> = {
-  draft: { bg: 'bg-slate-100', text: 'text-slate-600', icon: FileText },
-  sent_etc: { bg: 'bg-blue-100', text: 'text-blue-700', icon: Send },
-  sent_bank: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Send },
-  sent: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: Send },
-  paid: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: Check },
-  overdue: { bg: 'bg-red-100', text: 'text-red-700', icon: AlertCircle },
-  cancelled: { bg: 'bg-slate-200', text: 'text-slate-500', icon: Ban },
+// 아크로스 세금계산서 타입
+interface AkrosTaxInvoice {
+  id: string
+  invoice_date: string
+  amount: number
+  notes: string | null
+  file_url: string | null
+  issued_at: string | null
+  paid_at: string | null
+  created_at: string
+  updated_at: string
 }
 
-// INVOICE_STATUS_LABELS는 컴포넌트 내부에서 t 객체를 사용하여 동적으로 생성됨
-// getInvoiceStatusLabel(status, t) 함수 사용
+// 세금계산서 상태 타입 (발행/입금 기준)
+type TaxInvoiceStatus = 'draft' | 'issued' | 'paid'
 
-// 실제 발송 상태 기반으로 effective status 계산
-function getEffectiveInvoiceStatus(invoice: Invoice): ExtendedInvoiceStatus {
-  if (invoice.status === 'paid' || invoice.status === 'cancelled' || invoice.status === 'overdue') {
-    return invoice.status
+// 세금계산서 상태 색상
+const TAX_INVOICE_STATUS_COLORS: Record<TaxInvoiceStatus, { bg: string; text: string; icon: typeof Check }> = {
+  draft: { bg: 'bg-slate-100', text: 'text-slate-600', icon: FileText },
+  issued: { bg: 'bg-blue-100', text: 'text-blue-700', icon: FileText },
+  paid: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: Check },
+}
+
+// 발행/입금 상태 기반으로 effective status 계산
+function getTaxInvoiceStatus(invoice: AkrosTaxInvoice): TaxInvoiceStatus {
+  if (invoice.paid_at) {
+    return 'paid'
   }
-  // 둘 다 발송했으면 'sent'
-  if (invoice.sent_to_etc_at && invoice.sent_to_bank_at) {
-    return 'sent'
-  }
-  // ETC만 발송
-  if (invoice.sent_to_etc_at) {
-    return 'sent_etc'
-  }
-  // 은행만 발송
-  if (invoice.sent_to_bank_at) {
-    return 'sent_bank'
+  if (invoice.issued_at) {
+    return 'issued'
   }
   return 'draft'
 }
@@ -1279,9 +1279,9 @@ function ComposeEmailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden p-6">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <h3 className="text-lg font-semibold">{getTitle()}</h3>
           <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
             <X className="h-5 w-5" />
@@ -1289,15 +1289,15 @@ function ComposeEmailModal({
         </div>
 
         {/* Form */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto py-4 space-y-3 px-1 -mx-1">
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700">
+            <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm text-red-700 dark:text-red-400">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t.gmail.to} *</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.gmail.to} *</label>
             <Input
               type="email"
               value={formData.to}
@@ -1307,7 +1307,7 @@ function ComposeEmailModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t.gmail.cc}</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.gmail.cc}</label>
             <Input
               type="text"
               value={formData.cc}
@@ -1317,7 +1317,7 @@ function ComposeEmailModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t.gmail.bcc}</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.gmail.bcc}</label>
             <Input
               type="text"
               value={formData.bcc}
@@ -1327,7 +1327,7 @@ function ComposeEmailModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t.gmail.subject} *</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.gmail.subject} *</label>
             <Input
               type="text"
               value={formData.subject}
@@ -1337,7 +1337,7 @@ function ComposeEmailModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t.gmail.body}</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.gmail.body}</label>
             <Textarea
               value={formData.body}
               onChange={(e) => setFormData({ ...formData, body: e.target.value })}
@@ -1349,7 +1349,7 @@ function ComposeEmailModal({
           {/* 첨부파일 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium">{t.gmail.attachments}</label>
+              <label className="text-xs text-slate-500">{t.gmail.attachments}</label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -1394,18 +1394,18 @@ function ComposeEmailModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="flex-1 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+              className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600"
             >
               {t.common.cancel}
             </button>
             <button
               onClick={handleSend}
               disabled={isSending}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-500 disabled:opacity-50"
             >
               {isSending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1426,15 +1426,11 @@ export default function AkrosPage() {
   const locale = language === 'ko' ? 'ko-KR' : 'en-US'
 
   // 인보이스 상태 라벨 헬퍼 함수
-  const getInvoiceStatusLabel = (status: ExtendedInvoiceStatus): string => {
-    const labels: Record<ExtendedInvoiceStatus, string> = {
-      draft: t.invoice.status.draft,
-      sent_etc: t.invoice.status.sent_etc,
-      sent_bank: t.invoice.status.sent_bank,
-      sent: t.invoice.status.sent,
-      paid: t.invoice.status.paid,
-      overdue: t.invoice.status.overdue,
-      cancelled: t.invoice.status.cancelled,
+  const getTaxInvoiceStatusLabel = (status: TaxInvoiceStatus): string => {
+    const labels: Record<TaxInvoiceStatus, string> = {
+      draft: '대기',
+      issued: '발행',
+      paid: '입금완료',
     }
     return labels[status]
   }
@@ -1451,39 +1447,27 @@ export default function AkrosPage() {
   const [emailPage, setEmailPage] = useState(1)  // 이메일 페이지네이션
   const [emailsPerPage, setEmailsPerPage] = useState(5)  // 페이지당 이메일 수
 
-  // 인보이스 상태
-  const [invoices, setInvoices] = useState<Invoice[]>([])
+  // 세금계산서 상태
+  const [taxInvoices, setTaxInvoices] = useState<AkrosTaxInvoice[]>([])
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(true)
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null)
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
   const [invoicePage, setInvoicePage] = useState(1)
   const INVOICES_PER_PAGE = 5
-  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
   const [isSavingInvoice, setIsSavingInvoice] = useState(false)
-  const [isSendingInvoice, setIsSendingInvoice] = useState<string | null>(null)
+  const [isUpdatingInvoiceStatus, setIsUpdatingInvoiceStatus] = useState<{ id: string; type: 'issued' | 'paid' } | null>(null)
 
-  // 인보이스 생성 폼 상태
-  const [invoiceFormDate, setInvoiceFormDate] = useState('')
-  const [invoiceFormAttention, setInvoiceFormAttention] = useState<string>(DEFAULT_CLIENT.attention)
-  const [invoiceFormNotes, setInvoiceFormNotes] = useState('')
-  // 다중 항목 지원
-  interface InvoiceFormItem {
-    id: string
-    itemType: InvoiceItemType
-    month: number
-    year: number
-    customDesc: string
-    amount: string
-  }
-  const createEmptyItem = (): InvoiceFormItem => ({
-    id: crypto.randomUUID(),
-    itemType: 'monthly_fee',
-    month: new Date().getMonth(),
-    year: new Date().getFullYear(),
-    customDesc: '',
-    amount: '',
-  })
-  const [invoiceFormItems, setInvoiceFormItems] = useState<InvoiceFormItem[]>([createEmptyItem()])
+  // 세금계산서 추가 폼 상태
+  const [isAddingInvoice, setIsAddingInvoice] = useState(false)
+  const [newInvoiceDate, setNewInvoiceDate] = useState('')
+  const [newInvoiceAmount, setNewInvoiceAmount] = useState('')
+  const [newInvoiceNotes, setNewInvoiceNotes] = useState('')
+  const [newInvoiceFile, setNewInvoiceFile] = useState<File | null>(null)
+
+  // 세금계산서 수정 상태
+  const [editingTaxInvoice, setEditingTaxInvoice] = useState<AkrosTaxInvoice | null>(null)
+  const [editInvoiceDate, setEditInvoiceDate] = useState('')
+  const [editInvoiceAmount, setEditInvoiceAmount] = useState('')
+  const [editInvoiceNotes, setEditInvoiceNotes] = useState('')
 
   // Modal 상태
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -1515,7 +1499,6 @@ export default function AkrosPage() {
   const [composeOriginalEmail, setComposeOriginalEmail] = useState<ParsedEmail | null>(null)
   const [composeInitialData, setComposeInitialData] = useState<Partial<ComposeEmailData> | undefined>(undefined)
   const [composeInitialAttachments, setComposeInitialAttachments] = useState<File[] | undefined>(undefined)
-  const [pendingInvoiceSend, setPendingInvoiceSend] = useState<{ invoiceId: string; recipientType: 'etc' | 'bank' } | null>(null)
 
   // AI 분석 상태
   const [aiAnalysis, setAiAnalysis] = useState<OverallAnalysisResult | null>(null)
@@ -1650,286 +1633,225 @@ export default function AkrosPage() {
     }
   }
 
-  // 인보이스 함수들
-  const loadInvoices = async () => {
+  // 세금계산서 함수들
+  const loadTaxInvoices = async () => {
     setIsLoadingInvoices(true)
     try {
-      const res = await fetch('/api/invoices')
+      const res = await fetch('/api/akros/tax-invoices')
       if (res.ok) {
         const data = await res.json()
-        setInvoices(data.invoices || [])
+        setTaxInvoices(data.invoices || [])
       }
     } catch (error) {
-      console.error('Failed to load invoices:', error)
+      console.error('Failed to load tax invoices:', error)
     } finally {
       setIsLoadingInvoices(false)
     }
   }
 
-  const resetInvoiceForm = () => {
-    setInvoiceFormDate(new Date().toISOString().split('T')[0])
-    setInvoiceFormAttention(DEFAULT_CLIENT.attention)
-    setInvoiceFormNotes('')
-    setInvoiceFormItems([createEmptyItem()])
-    setEditingInvoice(null)
-  }
 
-  const openNewInvoiceModal = () => {
-    resetInvoiceForm()
-    setIsInvoiceModalOpen(true)
-  }
-
-  const getItemDescription = (item: InvoiceFormItem): string => {
-    if (item.itemType === 'custom') {
-      return item.customDesc
-    }
-    const template = ITEM_TEMPLATES.find(t => t.type === item.itemType)
-    if (!template) return ''
-    return template.descriptionTemplate
-      .replace('{month}', MONTH_NAMES[item.month])
-      .replace('{year}', String(item.year))
-  }
-
-  const updateFormItem = (id: string, updates: Partial<InvoiceFormItem>) => {
-    setInvoiceFormItems(items => items.map(item =>
-      item.id === id ? { ...item, ...updates } : item
-    ))
-  }
-
-  const addFormItem = () => {
-    setInvoiceFormItems(items => [...items, createEmptyItem()])
-  }
-
-  const removeFormItem = (id: string) => {
-    setInvoiceFormItems(items => items.filter(item => item.id !== id))
-  }
-
-  const handleSaveInvoice = async () => {
-    if (!invoiceFormDate) {
-      alert('날짜를 입력해주세요.')
+  // 세금계산서 추가
+  const handleAddTaxInvoice = async () => {
+    if (!newInvoiceDate) {
+      alert('발행일을 입력해주세요.')
       return
     }
-
-    // Validate all items
-    const lineItems: LineItem[] = []
-    for (const item of invoiceFormItems) {
-      const amount = parseFloat(item.amount)
-      if (isNaN(amount) || amount <= 0) {
-        alert('모든 항목의 금액을 올바르게 입력해주세요.')
-        return
-      }
-      const description = getItemDescription(item)
-      if (!description) {
-        alert('모든 항목의 설명을 입력해주세요.')
-        return
-      }
-      lineItems.push({
-        description,
-        qty: null,
-        unitPrice: null,
-        amount,
-      })
-    }
-
-    if (lineItems.length === 0) {
-      alert('최소 하나의 항목을 추가해주세요.')
+    if (!newInvoiceAmount || parseFloat(newInvoiceAmount) <= 0) {
+      alert('금액을 입력해주세요.')
       return
     }
 
     setIsSavingInvoice(true)
     try {
       const payload = {
-        invoice_date: invoiceFormDate,
-        attention: invoiceFormAttention,
-        line_items: lineItems,
-        notes: invoiceFormNotes || undefined,
+        invoice_date: newInvoiceDate,
+        amount: parseFloat(newInvoiceAmount),
+        notes: newInvoiceNotes || null,
       }
 
-      const res = await fetch('/api/invoices', {
+      const res = await fetch('/api/akros/tax-invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
 
       if (res.ok) {
-        setIsInvoiceModalOpen(false)
-        resetInvoiceForm()
-        await loadInvoices()
+        const data = await res.json()
+
+        // 파일이 있으면 업로드
+        if (newInvoiceFile && data.invoice?.id) {
+          const formData = new FormData()
+          formData.append('file', newInvoiceFile)
+          formData.append('invoiceId', data.invoice.id)
+          await fetch('/api/akros/tax-invoices/upload', {
+            method: 'POST',
+            body: formData,
+          })
+        }
+
+        // 폼 초기화
+        setIsAddingInvoice(false)
+        setNewInvoiceDate('')
+        setNewInvoiceAmount('')
+        setNewInvoiceNotes('')
+        setNewInvoiceFile(null)
+        await loadTaxInvoices()
       } else {
-        const err = await res.json()
-        console.error('Save failed:', err.error)
-        alert(t.invoice.saveFailed)
+        alert('저장에 실패했습니다.')
       }
     } catch (error) {
-      console.error('Failed to save invoice:', error)
-      alert(t.invoice.saveFailed)
+      console.error('Failed to add tax invoice:', error)
+      alert('저장에 실패했습니다.')
     } finally {
       setIsSavingInvoice(false)
     }
   }
 
-  const handleDownloadPdf = async (invoiceId: string) => {
-    try {
-      const res = await fetch(`/api/invoices/${invoiceId}/pdf`)
-      if (res.ok) {
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = res.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'invoice.pdf'
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-      } else {
-        alert(t.invoice.downloadFailed)
-      }
-    } catch (error) {
-      console.error('Failed to download PDF:', error)
-      alert(t.invoice.downloadFailed)
-    }
-  }
-
-  const handleSendInvoice = async (invoiceId: string, recipientType: 'etc' | 'bank') => {
-    // Find the invoice to get details
-    const invoice = invoices.find(inv => inv.id === invoiceId)
+  // 발행 상태 토글
+  const handleToggleIssuedStatus = async (invoiceId: string) => {
+    const invoice = taxInvoices.find(inv => inv.id === invoiceId)
     if (!invoice) return
 
-    setIsSendingInvoice(invoiceId)
+    setIsUpdatingInvoiceStatus({ id: invoiceId, type: 'issued' })
     try {
-      // Fetch the PDF
-      const res = await fetch(`/api/invoices/${invoiceId}/pdf`)
-      if (!res.ok) {
-        alert(t.invoice.pdfFailed)
-        return
-      }
-
-      const blob = await res.blob()
-      const filename = `Willow_Invoice_${invoice.invoice_no.replace('#', '')}_${invoice.invoice_date.replace(/-/g, '')}.pdf`
-      const pdfFile = new File([blob], filename, { type: 'application/pdf' })
-
-      // Prepare email content based on recipient type
-      let emailTo: string
-      let emailSubject: string
-      let emailBody: string
-
-      // Get item name from first line item
-      const itemName = invoice.line_items?.[0]?.description || 'services'
-
-      if (recipientType === 'etc') {
-        emailTo = 'kyle@exchangetradedconcepts.com'
-        emailSubject = `Willow Investments - ${itemName}`
-        emailBody = `Hi Kyle,
-
-Attached is my invoice for the ${itemName}.
-
-Please let me know once the payment is made so I can inform my bank.
-
-Thank you.
-
-
-Best,
-
-Dongwook`
-      } else {
-        emailTo = 'ysjmto@shinhan.com'
-        emailSubject = `윌로우인베스트먼트 외화인보이스 - ${invoice.invoice_no}`
-        emailBody = `안녕하세요.
-
-당사 추가 외화 인보이스 첨부와 같이 보내 드립니다.
-
-이에 확인 부탁 드립니다.
-
-감사합니다.
-
-김동욱 드림 (010-9629-1025)`
-      }
-
-      // Set initial compose data and open modal
-      setComposeInitialData({
-        to: emailTo,
-        subject: emailSubject,
-        body: emailBody,
-      })
-      setComposeInitialAttachments([pdfFile])
-      setPendingInvoiceSend({ invoiceId, recipientType })
-      setComposeMode('new')
-      setComposeOriginalEmail(null)
-      setIsComposeOpen(true)
-    } catch (error) {
-      console.error('Failed to prepare invoice email:', error)
-      alert(t.invoice.emailFailed)
-    } finally {
-      setIsSendingInvoice(null)
-    }
-  }
-
-  // 인보이스 이메일 발송 성공 시 상태 업데이트
-  const handleInvoiceEmailSent = async () => {
-    if (!pendingInvoiceSend) return
-
-    const { invoiceId, recipientType } = pendingInvoiceSend
-    const now = new Date().toISOString()
-
-    try {
-      const updateData: Record<string, string> = {}
-      if (recipientType === 'etc') {
-        updateData.sent_to_etc_at = now
-      } else {
-        updateData.sent_to_bank_at = now
-      }
-
-      const res = await fetch(`/api/invoices/${invoiceId}`, {
+      const now = new Date().toISOString()
+      const res = await fetch(`/api/akros/tax-invoices/${invoiceId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify({
+          issued_at: invoice.issued_at ? null : now
+        }),
       })
 
       if (res.ok) {
-        await loadInvoices()
+        await loadTaxInvoices()
       }
     } catch (error) {
-      console.error('Failed to update invoice status:', error)
+      console.error('Failed to update invoice issued status:', error)
     } finally {
-      setPendingInvoiceSend(null)
+      setIsUpdatingInvoiceStatus(null)
     }
   }
 
-  const handleUpdateInvoiceStatus = async (invoiceId: string, status: InvoiceStatus) => {
+  // 입금 상태 토글
+  const handleTogglePaidStatus = async (invoiceId: string) => {
+    const invoice = taxInvoices.find(inv => inv.id === invoiceId)
+    if (!invoice) return
+
+    setIsUpdatingInvoiceStatus({ id: invoiceId, type: 'paid' })
     try {
-      const res = await fetch(`/api/invoices/${invoiceId}`, {
+      const now = new Date().toISOString()
+      const res = await fetch(`/api/akros/tax-invoices/${invoiceId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          paid_at: invoice.paid_at ? null : now
+        }),
       })
 
       if (res.ok) {
-        await loadInvoices()
+        await loadTaxInvoices()
       }
     } catch (error) {
-      console.error('Failed to update invoice status:', error)
+      console.error('Failed to update invoice paid status:', error)
+    } finally {
+      setIsUpdatingInvoiceStatus(null)
     }
   }
 
-  const handleDeleteInvoice = async (invoiceId: string) => {
-    if (!confirm(t.invoice.deleteConfirm)) return
+  // 세금계산서 파일 업로드
+  const handleUploadTaxInvoiceFile = async (invoiceId: string, file: File) => {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('invoiceId', invoiceId)
+
+      const res = await fetch('/api/akros/tax-invoices/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (res.ok) {
+        await loadTaxInvoices()
+      } else {
+        alert('파일 업로드에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Failed to upload tax invoice file:', error)
+      alert('파일 업로드에 실패했습니다.')
+    }
+  }
+
+  const handleDeleteTaxInvoice = async (invoiceId: string) => {
+    if (!confirm('세금계산서를 삭제하시겠습니까?')) return
 
     try {
-      const res = await fetch(`/api/invoices/${invoiceId}`, {
+      const res = await fetch(`/api/akros/tax-invoices/${invoiceId}`, {
         method: 'DELETE',
       })
 
       if (res.ok) {
-        await loadInvoices()
+        await loadTaxInvoices()
       }
     } catch (error) {
-      console.error('Failed to delete invoice:', error)
+      console.error('Failed to delete tax invoice:', error)
     }
   }
 
-  // 인보이스 로드
+  // 세금계산서 수정 시작
+  const startEditTaxInvoice = (invoice: AkrosTaxInvoice) => {
+    setEditingTaxInvoice(invoice)
+    setEditInvoiceDate(invoice.invoice_date)
+    setEditInvoiceAmount(String(invoice.amount))
+    setEditInvoiceNotes(invoice.notes || '')
+    setExpandedInvoice(invoice.id)
+  }
+
+  // 세금계산서 수정 취소
+  const cancelEditTaxInvoice = () => {
+    setEditingTaxInvoice(null)
+    setEditInvoiceDate('')
+    setEditInvoiceAmount('')
+    setEditInvoiceNotes('')
+  }
+
+  // 세금계산서 수정 저장
+  const handleUpdateTaxInvoice = async () => {
+    if (!editingTaxInvoice) return
+    if (!editInvoiceDate || !editInvoiceAmount) {
+      alert('발행일과 금액은 필수입니다.')
+      return
+    }
+
+    setIsSavingInvoice(true)
+    try {
+      const res = await fetch(`/api/akros/tax-invoices/${editingTaxInvoice.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoice_date: editInvoiceDate,
+          amount: Number(editInvoiceAmount),
+          notes: editInvoiceNotes || null,
+        }),
+      })
+
+      if (res.ok) {
+        await loadTaxInvoices()
+        cancelEditTaxInvoice()
+      } else {
+        alert('세금계산서 수정에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Failed to update tax invoice:', error)
+      alert('세금계산서 수정에 실패했습니다.')
+    } finally {
+      setIsSavingInvoice(false)
+    }
+  }
+
+  // 세금계산서 로드
   useEffect(() => {
-    loadInvoices()
+    loadTaxInvoices()
   }, [])
 
   // 업무 위키 함수들
@@ -2586,53 +2508,30 @@ Dongwook`
                     <p className="sm:hidden text-xs text-muted-foreground whitespace-nowrap">
                       {akrosProducts.length}개 중 {(productPage - 1) * productsPerPage + 1}-{Math.min(productPage * productsPerPage, akrosProducts.length)}
                     </p>
-                    <select
-                      value={productsPerPage}
-                      onChange={(e) => {
-                        setProductsPerPage(Number(e.target.value))
-                        setProductPage(1)
-                      }}
-                      className="!border-0 text-xs bg-white dark:bg-slate-700 rounded px-1.5 py-0.5"
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={productsPerPage}
+                        onChange={(e) => {
+                          setProductsPerPage(Number(e.target.value))
+                          setProductPage(1)
+                        }}
+                        className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        <option value={10}>10개</option>
+                        <option value={25}>25개</option>
+                        <option value={50}>50개</option>
+                        <option value={100}>100개</option>
+                      </select>
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                    </div>
                   </div>
                   {Math.ceil(akrosProducts.length / productsPerPage) > 1 && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setProductPage(1)}
-                        disabled={productPage === 1}
-                        className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        «
-                      </button>
-                      <button
-                        onClick={() => setProductPage(p => Math.max(1, p - 1))}
-                        disabled={productPage === 1}
-                        className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        ‹
-                      </button>
-                      <span className="px-2 sm:px-3 py-1 text-xs font-medium">
-                        {productPage}/{Math.ceil(akrosProducts.length / productsPerPage)}
-                      </span>
-                      <button
-                        onClick={() => setProductPage(p => Math.min(Math.ceil(akrosProducts.length / productsPerPage), p + 1))}
-                        disabled={productPage === Math.ceil(akrosProducts.length / productsPerPage)}
-                        className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        ›
-                      </button>
-                      <button
-                        onClick={() => setProductPage(Math.ceil(akrosProducts.length / productsPerPage))}
-                        disabled={productPage === Math.ceil(akrosProducts.length / productsPerPage)}
-                        className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        »
-                      </button>
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => setProductPage(1)} disabled={productPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                      <button onClick={() => setProductPage(p => Math.max(1, p - 1))} disabled={productPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                      <span className="px-2 py-1 text-xs font-medium">{productPage}/{Math.ceil(akrosProducts.length / productsPerPage)}</span>
+                      <button onClick={() => setProductPage(p => Math.min(Math.ceil(akrosProducts.length / productsPerPage), p + 1))} disabled={productPage === Math.ceil(akrosProducts.length / productsPerPage)} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                      <button onClick={() => setProductPage(Math.ceil(akrosProducts.length / productsPerPage))} disabled={productPage === Math.ceil(akrosProducts.length / productsPerPage)} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
                     </div>
                   )}
                 </div>
@@ -2642,52 +2541,112 @@ Dongwook`
         </CardContent>
       </Card>
 
-      {/* Invoice & Work Wiki Section - Side by Side */}
+      {/* 세금계산서 & Work Wiki Section - Side by Side */}
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Invoice Section */}
+        {/* 세금계산서 Section */}
         <Card className="bg-slate-100 dark:bg-slate-800 w-full lg:w-1/2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Receipt className="h-5 w-5" />
-                {t.invoice.title}
-              </CardTitle>
-              <CardDescription>{t.invoice.description}</CardDescription>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="h-5 w-5" />
+                  세금계산서
+                </CardTitle>
+                <CardDescription>아크로스테크놀로지스</CardDescription>
+              </div>
+              <button
+                onClick={() => setIsAddingInvoice(true)}
+                className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">추가</span>
+              </button>
             </div>
-            <button
-              onClick={openNewInvoiceModal}
-              className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">{t.invoice.create}</span>
-            </button>
           </CardHeader>
-          <CardContent>
-            {(() => {
-              const totalPages = Math.ceil(invoices.length / INVOICES_PER_PAGE)
-              const paginatedInvoices = invoices.slice(
-                (invoicePage - 1) * INVOICES_PER_PAGE,
-                invoicePage * INVOICES_PER_PAGE
-              )
-              return (
-                <>
-                  <div className="space-y-2">
-                    {isLoadingInvoices ? (
-                      <div className="text-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                      </div>
-                    ) : invoices.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                        <p className="text-sm">{t.invoice.noInvoices}</p>
-                        <p className="text-xs">{t.invoice.createHint}</p>
-                      </div>
-                    ) : (
-                      paginatedInvoices.map((invoice) => {
-                  const effectiveStatus = getEffectiveInvoiceStatus(invoice)
-                  const statusStyle = INVOICE_STATUS_COLORS[effectiveStatus]
+          <CardContent className="pt-0 space-y-3">
+            {/* 인라인 추가 폼 */}
+            {isAddingInvoice && (
+              <div className="rounded-lg p-3 bg-white dark:bg-slate-700">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">발행일 *</label>
+                      <Input
+                        type="date"
+                        value={newInvoiceDate}
+                        onChange={(e) => setNewInvoiceDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">금액 (₩) *</label>
+                      <Input
+                        type="text"
+                        placeholder="0"
+                        value={newInvoiceAmount ? Number(newInvoiceAmount).toLocaleString() : ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '')
+                          setNewInvoiceAmount(value)
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">메모</label>
+                    <Input
+                      placeholder="메모 입력..."
+                      value={newInvoiceNotes}
+                      onChange={(e) => setNewInvoiceNotes(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">세금계산서 파일</label>
+                    <label className="flex items-center justify-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-600 px-3 py-2 text-sm cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500">
+                      <Upload className="h-4 w-4" />
+                      {newInvoiceFile ? newInvoiceFile.name : '파일 선택...'}
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                        onChange={(e) => setNewInvoiceFile(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4 pt-3">
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setIsAddingInvoice(false)
+                    setNewInvoiceDate('')
+                    setNewInvoiceAmount('')
+                    setNewInvoiceNotes('')
+                    setNewInvoiceFile(null)
+                  }}>
+                    취소
+                  </Button>
+                  <Button size="sm" onClick={handleAddTaxInvoice} disabled={isSavingInvoice}>
+                    {isSavingInvoice && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                    저장
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* 세금계산서 목록 */}
+            {isLoadingInvoices ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+              </div>
+            ) : taxInvoices.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                <p className="text-sm">세금계산서가 없습니다</p>
+                <p className="text-xs">위 버튼으로 추가하세요</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {taxInvoices.slice((invoicePage - 1) * INVOICES_PER_PAGE, invoicePage * INVOICES_PER_PAGE).map((invoice) => {
+                  const effectiveStatus = getTaxInvoiceStatus(invoice)
+                  const statusStyle = TAX_INVOICE_STATUS_COLORS[effectiveStatus]
                   const StatusIcon = statusStyle.icon
-                  const firstItem = (invoice.line_items as LineItem[])[0]
                   return (
                     <div key={invoice.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
                       <div
@@ -2697,16 +2656,18 @@ Dongwook`
                         <div className="flex items-center gap-3">
                           <Receipt className="h-4 w-4 text-slate-400" />
                           <div>
-                            <p className="font-medium text-sm">{invoice.invoice_no}</p>
+                            <p className="font-medium text-sm">
+                              {new Date(invoice.invoice_date).toLocaleDateString('ko-KR')}
+                            </p>
                             <p className="text-xs text-muted-foreground">
-                              {formatInvoiceDateUtil(invoice.invoice_date)} · {formatCurrency(invoice.total_amount, 'USD')}
+                              ₩{invoice.amount.toLocaleString()}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`rounded-full px-2 py-0.5 text-xs flex items-center gap-1 ${statusStyle.bg} ${statusStyle.text}`}>
                             <StatusIcon className="h-3 w-3" />
-                            {getInvoiceStatusLabel(effectiveStatus)}
+                            {getTaxInvoiceStatusLabel(effectiveStatus)}
                           </span>
                           {expandedInvoice === invoice.id ? (
                             <ChevronUp className="h-4 w-4 text-slate-400" />
@@ -2716,334 +2677,204 @@ Dongwook`
                         </div>
                       </div>
                       {expandedInvoice === invoice.id && (
-                        <div className="mt-2 pt-2 border-t border-slate-100 space-y-2">
-                          {/* 항목 상세 */}
-                          <div className="text-xs text-muted-foreground">
-                            {firstItem?.description}
-                          </div>
-
-                          {/* 액션 버튼 */}
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDownloadPdf(invoice.id) }}
-                              className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-medium hover:bg-slate-200 cursor-pointer"
-                            >
-                              <Download className="h-3 w-3" />
-                              PDF
-                            </button>
-                            {effectiveStatus !== 'paid' && effectiveStatus !== 'cancelled' && (
-                              <>
-                                {/* ETC 발송 버튼 */}
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'etc') }}
-                                  disabled={isSendingInvoice === invoice.id}
-                                  className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
-                                    invoice.sent_to_etc_at
-                                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                                  }`}
+                        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-2">
+                          {editingTaxInvoice?.id === invoice.id ? (
+                            // 수정 폼
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-xs text-slate-500 mb-1 block">발행일 *</label>
+                                  <Input
+                                    type="date"
+                                    value={editInvoiceDate}
+                                    onChange={(e) => setEditInvoiceDate(e.target.value)}
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-slate-500 mb-1 block">금액 *</label>
+                                  <Input
+                                    type="text"
+                                    placeholder="0"
+                                    value={editInvoiceAmount ? Number(editInvoiceAmount).toLocaleString() : ''}
+                                    onChange={(e) => {
+                                      const value = e.target.value.replace(/[^0-9]/g, '')
+                                      setEditInvoiceAmount(value)
+                                    }}
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">메모</label>
+                                <Textarea
+                                  placeholder="메모..."
+                                  value={editInvoiceNotes}
+                                  onChange={(e) => setEditInvoiceNotes(e.target.value)}
+                                  rows={2}
+                                  className="text-sm"
+                                />
+                              </div>
+                              <div className="flex justify-between gap-2 pt-2">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="h-8 px-3"
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteTaxInvoice(invoice.id) }}
                                 >
-                                  {isSendingInvoice === invoice.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : invoice.sent_to_etc_at ? (
-                                    <Check className="h-3 w-3" />
-                                  ) : (
-                                    <Send className="h-3 w-3" />
-                                  )}
-                                  ETC 발송
-                                </button>
-                                {/* 은행 발송 버튼 */}
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'bank') }}
-                                  disabled={isSendingInvoice === invoice.id}
-                                  className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
-                                    invoice.sent_to_bank_at
-                                      ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                      : 'bg-amber-600 text-white hover:bg-amber-700'
-                                  }`}
-                                >
-                                  {isSendingInvoice === invoice.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : invoice.sent_to_bank_at ? (
-                                    <Building className="h-3 w-3" />
-                                  ) : (
-                                    <Send className="h-3 w-3" />
-                                  )}
-                                  은행 발송
-                                </button>
-                                {/* 입금확인 버튼 - 최소 하나 발송 완료 시 */}
-                                {(invoice.sent_to_etc_at || invoice.sent_to_bank_at) && (
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); handleUpdateInvoiceStatus(invoice.id, 'paid') }}
-                                    className="flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 cursor-pointer"
+                                  삭제
+                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 px-3"
+                                    onClick={(e) => { e.stopPropagation(); cancelEditTaxInvoice() }}
                                   >
-                                    <Check className="h-3 w-3" />
-                                    입금확인
-                                  </button>
+                                    취소
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-8 px-3"
+                                    onClick={(e) => { e.stopPropagation(); handleUpdateTaxInvoice() }}
+                                    disabled={isSavingInvoice}
+                                  >
+                                    {isSavingInvoice ? <Loader2 className="h-4 w-4 animate-spin" /> : '저장'}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            // 보기 모드
+                            <>
+                              {invoice.notes && (
+                                <p className="text-xs text-muted-foreground">{invoice.notes}</p>
+                              )}
+                              <div className="flex flex-wrap gap-2">
+                                {/* 수정 버튼 */}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); startEditTaxInvoice(invoice) }}
+                                  className="flex items-center gap-1 rounded bg-slate-200 dark:bg-slate-600 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500 cursor-pointer"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                  수정
+                                </button>
+                                {/* 파일 첨부/보기 */}
+                                {invoice.file_url ? (
+                                  <a
+                                    href={invoice.file_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-1 rounded bg-slate-100 dark:bg-slate-600 px-2 py-1 text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
+                                  >
+                                    <FileText className="h-3 w-3" />
+                                    첨부파일
+                                  </a>
+                                ) : (
+                                  <label
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-1 rounded bg-slate-200 dark:bg-slate-600 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500 cursor-pointer"
+                                  >
+                                    <Upload className="h-3 w-3" />
+                                    파일첨부
+                                    <input
+                                      type="file"
+                                      accept=".pdf,.jpg,.jpeg,.png"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0]
+                                        if (file) handleUploadTaxInvoiceFile(invoice.id, file)
+                                      }}
+                                    />
+                                  </label>
                                 )}
-                              </>
-                            )}
-                            {/* 삭제 버튼 - 미발송 상태에서만 */}
-                            {!invoice.sent_to_etc_at && !invoice.sent_to_bank_at && effectiveStatus !== 'paid' && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(invoice.id) }}
-                                className="flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-200 cursor-pointer"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                                {t.common.delete}
-                              </button>
-                            )}
-                          </div>
-
-                          {/* 발송 정보 - 한 줄로 표시 */}
-                          <div className="flex flex-wrap gap-3 text-xs">
-                            <span className={invoice.sent_to_etc_at ? 'text-blue-600' : 'text-muted-foreground'}>
-                              ETC: {invoice.sent_to_etc_at
-                                ? new Date(invoice.sent_to_etc_at).toLocaleDateString('ko-KR')
-                                : '미발송'}
-                            </span>
-                            <span className={invoice.sent_to_bank_at ? 'text-amber-600' : 'text-muted-foreground'}>
-                              은행: {invoice.sent_to_bank_at
-                                ? new Date(invoice.sent_to_bank_at).toLocaleDateString('ko-KR')
-                                : '미발송'}
-                            </span>
-                            <span className={invoice.paid_at ? 'text-emerald-600' : 'text-muted-foreground'}>
-                              입금: {invoice.paid_at
-                                ? new Date(invoice.paid_at).toLocaleDateString('ko-KR')
-                                : '미확인'}
-                            </span>
-                          </div>
+                                {/* 발행 토글 */}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleToggleIssuedStatus(invoice.id) }}
+                                  disabled={isUpdatingInvoiceStatus?.id === invoice.id && isUpdatingInvoiceStatus?.type === 'issued'}
+                                  className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
+                                    invoice.issued_at
+                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400 hover:bg-blue-200'
+                                      : 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300 hover:bg-slate-300'
+                                  }`}
+                                >
+                                  {isUpdatingInvoiceStatus?.id === invoice.id && isUpdatingInvoiceStatus?.type === 'issued' ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : invoice.issued_at ? (
+                                    <Check className="h-3 w-3" />
+                                  ) : (
+                                    <FileText className="h-3 w-3" />
+                                  )}
+                                  발행
+                                </button>
+                                {/* 입금 토글 */}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleTogglePaidStatus(invoice.id) }}
+                                  disabled={isUpdatingInvoiceStatus?.id === invoice.id && isUpdatingInvoiceStatus?.type === 'paid'}
+                                  className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
+                                    invoice.paid_at
+                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 hover:bg-emerald-200'
+                                      : 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300 hover:bg-slate-300'
+                                  }`}
+                                >
+                                  {isUpdatingInvoiceStatus?.id === invoice.id && isUpdatingInvoiceStatus?.type === 'paid' ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : invoice.paid_at ? (
+                                    <Check className="h-3 w-3" />
+                                  ) : (
+                                    <Banknote className="h-3 w-3" />
+                                  )}
+                                  입금
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap gap-3 text-xs">
+                                <span className={invoice.issued_at ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}>
+                                  발행: {invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString('ko-KR') : '-'}
+                                </span>
+                                <span className={invoice.paid_at ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}>
+                                  입금: {invoice.paid_at ? new Date(invoice.paid_at).toLocaleDateString('ko-KR') : '-'}
+                                </span>
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
                   )
-                })
-              )}
-            </div>
-            {/* Pagination controls */}
-            {invoices.length > 0 && (
-              <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
-                <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  <span className="hidden sm:inline">{t.invoice.showingRange
-                    .replace('{total}', String(invoices.length))
-                    .replace('{start}', String((invoicePage - 1) * INVOICES_PER_PAGE + 1))
-                    .replace('{end}', String(Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)))}</span>
-                  <span className="sm:hidden">{invoices.length}개 중 {(invoicePage - 1) * INVOICES_PER_PAGE + 1}-{Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)}</span>
-                </p>
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setInvoicePage(1)}
-                      disabled={invoicePage === 1}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      «
-                    </button>
-                    <button
-                      onClick={() => setInvoicePage(p => Math.max(1, p - 1))}
-                      disabled={invoicePage === 1}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      ‹
-                    </button>
-                    <span className="px-2 py-1 text-xs font-medium">
-                      {invoicePage}/{totalPages}
-                    </span>
-                    <button
-                      onClick={() => setInvoicePage(p => Math.min(totalPages, p + 1))}
-                      disabled={invoicePage === totalPages}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      ›
-                    </button>
-                    <button
-                      onClick={() => setInvoicePage(totalPages)}
-                      disabled={invoicePage === totalPages}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      »
-                    </button>
-                  </div>
-                )}
+                })}
               </div>
             )}
-          </>
-        )
-      })()}
-        </CardContent>
+
+            {/* 페이지네이션 */}
+            {taxInvoices.length > INVOICES_PER_PAGE && (
+              <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <p className="text-xs text-muted-foreground">
+                  {taxInvoices.length}개 중 {(invoicePage - 1) * INVOICES_PER_PAGE + 1}-{Math.min(invoicePage * INVOICES_PER_PAGE, taxInvoices.length)}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setInvoicePage(p => Math.max(1, p - 1))}
+                    disabled={invoicePage === 1}
+                    className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="px-2 py-1 text-xs font-medium">
+                    {invoicePage}/{Math.ceil(taxInvoices.length / INVOICES_PER_PAGE)}
+                  </span>
+                  <button
+                    onClick={() => setInvoicePage(p => Math.min(Math.ceil(taxInvoices.length / INVOICES_PER_PAGE), p + 1))}
+                    disabled={invoicePage === Math.ceil(taxInvoices.length / INVOICES_PER_PAGE)}
+                    className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </CardContent>
         </Card>
-
-        {/* Invoice Creation Modal */}
-        {isInvoiceModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsInvoiceModalOpen(false)} />
-            <div className="relative bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
-              <button
-                onClick={() => setIsInvoiceModalOpen(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              <h2 className="text-lg font-bold mb-4">{t.invoice.new}</h2>
-
-              <div className="space-y-4">
-                {/* Invoice Date */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">{t.invoice.invoiceDate}</label>
-                  <Input
-                    type="date"
-                    value={invoiceFormDate}
-                    onChange={(e) => setInvoiceFormDate(e.target.value)}
-                  />
-                </div>
-
-                {/* Attention */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">{t.invoice.attention}</label>
-                  <Input
-                    type="text"
-                    value={invoiceFormAttention}
-                    onChange={(e) => setInvoiceFormAttention(e.target.value)}
-                  />
-                </div>
-
-                {/* Line Items */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium">{t.invoice.items}</label>
-                    <button
-                      type="button"
-                      onClick={addFormItem}
-                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                    >
-                      <Plus className="h-3 w-3" />
-                      {t.invoice.addItem}
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {invoiceFormItems.map((item, index) => (
-                      <div key={item.id} className="!border-0 p-3 bg-slate-50 rounded-lg space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-slate-500">{t.invoice.itemNumber.replace('{number}', String(index + 1))}</span>
-                          {invoiceFormItems.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeFormItem(item.id)}
-                              className="text-xs text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                        {/* Item Type */}
-                        <select
-                          value={item.itemType}
-                          onChange={(e) => updateFormItem(item.id, { itemType: e.target.value as InvoiceItemType })}
-                          className="!border-0 w-full px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-700 rounded transition-colors focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
-                        >
-                          {ITEM_TEMPLATES.map((template) => (
-                            <option key={template.type} value={template.type}>
-                              {template.label}
-                            </option>
-                          ))}
-                        </select>
-                        {/* Month/Year for preset types */}
-                        {item.itemType !== 'custom' && (
-                          <div className="grid grid-cols-2 gap-2">
-                            <select
-                              value={item.month}
-                              onChange={(e) => updateFormItem(item.id, { month: parseInt(e.target.value) })}
-                              className="!border-0 px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-700 rounded transition-colors focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
-                            >
-                              {MONTH_NAMES.map((name, idx) => (
-                                <option key={idx} value={idx}>{name}</option>
-                              ))}
-                            </select>
-                            <select
-                              value={item.year}
-                              onChange={(e) => updateFormItem(item.id, { year: parseInt(e.target.value) })}
-                              className="!border-0 px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-700 rounded transition-colors focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
-                            >
-                              {[2024, 2025, 2026, 2027].map((year) => (
-                                <option key={year} value={year}>{year}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                        {/* Custom Description */}
-                        {item.itemType === 'custom' && (
-                          <Input
-                            type="text"
-                            value={item.customDesc}
-                            onChange={(e) => updateFormItem(item.id, { customDesc: e.target.value })}
-                            placeholder={t.invoice.itemDescription}
-                            className="h-8 text-sm"
-                          />
-                        )}
-                        {/* Preview */}
-                        {item.itemType !== 'custom' && (
-                          <div className="text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-2 py-1 rounded">
-                            {getItemDescription(item)}
-                          </div>
-                        )}
-                        {/* Amount */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-slate-500">$</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={item.amount}
-                            onChange={(e) => updateFormItem(item.id, { amount: e.target.value })}
-                            placeholder="2083.33"
-                            className="flex-1 h-8 text-sm"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Total */}
-                  {invoiceFormItems.length > 0 && (
-                    <div className="mt-3 pt-3 flex justify-between items-center">
-                      <span className="text-sm font-medium">{t.invoice.total}</span>
-                      <span className="text-sm font-bold">
-                        ${invoiceFormItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">{t.invoice.notes}</label>
-                  <Textarea
-                    value={invoiceFormNotes}
-                    onChange={(e) => setInvoiceFormNotes(e.target.value)}
-                    rows={2}
-                    className="resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 mt-6">
-                <button
-                  onClick={() => setIsInvoiceModalOpen(false)}
-                  className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  {t.common.cancel}
-                </button>
-                <button
-                  onClick={handleSaveInvoice}
-                  disabled={isSavingInvoice}
-                  className="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isSavingInvoice && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {t.common.save}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Work Wiki Section */}
         <Card className="bg-slate-100 dark:bg-slate-800 w-full lg:w-1/2">
@@ -3145,6 +2976,7 @@ Dongwook`
 
                     {/* 파일 첨부 영역 */}
                     <div>
+                      <label className="text-xs text-slate-500 mb-1 block">첨부 파일</label>
                       <div className={`!border-0 rounded-lg p-2 text-center transition-colors ${
                         isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-700'
                       }`}>
@@ -3278,6 +3110,7 @@ Dongwook`
                           )}
                           {/* 새 파일 추가 */}
                           <div>
+                            <span className="text-xs text-slate-500 mb-1 block">첨부 파일</span>
                             <div className="!border-0 rounded-lg p-2 text-center transition-colors bg-slate-100 dark:bg-slate-700">
                               <input
                                 type="file"
@@ -3384,7 +3217,7 @@ Dongwook`
                                 className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
                               >
                                 <Paperclip className="h-2.5 w-2.5" />
-                                <span className="max-w-[100px] truncate">{att.name}</span>
+                                <span>{att.name}</span>
                               </a>
                             ))}
                           </div>
@@ -3519,9 +3352,9 @@ Dongwook`
                   <h4 className="font-semibold text-base">{t.gmail.settings}</h4>
                   <button
                     onClick={() => setShowGmailSettings(false)}
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+                    className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
                 <div className="space-y-4 text-sm">
@@ -3796,28 +3629,31 @@ Dongwook`
                           <p className="sm:hidden text-xs text-muted-foreground whitespace-nowrap">
                             {filteredEmails.length}개 중 {(emailPage - 1) * emailsPerPage + 1}-{Math.min(emailPage * emailsPerPage, filteredEmails.length)}
                           </p>
-                          <select
-                            value={emailsPerPage}
-                            onChange={(e) => {
-                              setEmailsPerPage(Number(e.target.value))
-                              setEmailPage(1)
-                            }}
-                            className="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5"
-                          >
-                            <option value={5}>5개</option>
-                            <option value={10}>10개</option>
-                            <option value={25}>25개</option>
-                            <option value={50}>50개</option>
-                            <option value={100}>100개</option>
-                          </select>
+                          <div className="relative">
+                            <select
+                              value={emailsPerPage}
+                              onChange={(e) => {
+                                setEmailsPerPage(Number(e.target.value))
+                                setEmailPage(1)
+                              }}
+                              className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                            >
+                              <option value={5}>5개</option>
+                              <option value={10}>10개</option>
+                              <option value={25}>25개</option>
+                              <option value={50}>50개</option>
+                              <option value={100}>100개</option>
+                            </select>
+                            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                          </div>
                         </div>
                         {totalEmailPages > 1 && (
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
-                            <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
-                            <span className="px-2 sm:px-3 py-1 text-xs font-medium">{emailPage}/{totalEmailPages}</span>
-                            <button onClick={() => setEmailPage(p => Math.min(totalEmailPages, p + 1))} disabled={emailPage === totalEmailPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
-                            <button onClick={() => setEmailPage(totalEmailPages)} disabled={emailPage === totalEmailPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+                          <div className="flex items-center gap-0.5">
+                            <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                            <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                            <span className="px-2 py-1 text-xs font-medium">{emailPage}/{totalEmailPages}</span>
+                            <button onClick={() => setEmailPage(p => Math.min(totalEmailPages, p + 1))} disabled={emailPage === totalEmailPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                            <button onClick={() => setEmailPage(totalEmailPages)} disabled={emailPage === totalEmailPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
                           </div>
                         )}
                       </div>
@@ -3842,9 +3678,9 @@ Dongwook`
                   </h4>
                   <button
                     onClick={() => setShowAiAnalysis(false)}
-                    className="text-purple-400 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300"
+                    className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
 
@@ -4168,13 +4004,11 @@ Dongwook`
           setComposeOriginalEmail(null)
           setComposeInitialData(undefined)
           setComposeInitialAttachments(undefined)
-          setPendingInvoiceSend(null)
         }}
         mode={composeMode}
         originalEmail={composeOriginalEmail}
         initialData={composeInitialData}
         initialAttachments={composeInitialAttachments}
-        onSendSuccess={handleInvoiceEmailSent}
         t={t}
       />
     </div>

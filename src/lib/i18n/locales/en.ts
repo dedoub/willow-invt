@@ -448,6 +448,7 @@ export const en = {
       assigned: 'Todo Assigned',
       started: 'Work Started',
       completed: 'Todo Completed',
+      updated: 'Todo Updated',
       discarded: 'Todo Discarded',
       analysis: 'AI Analysis',
       docCreated: 'Doc Created',

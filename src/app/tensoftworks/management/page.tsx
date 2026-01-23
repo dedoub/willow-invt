@@ -46,6 +46,8 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
+  ChevronsLeft,
+  ChevronsRight,
   Plus,
   Calendar,
   BookOpen,
@@ -391,7 +393,7 @@ function DroppableDay({
   })
 
   return (
-    <div className="min-h-[280px]">
+    <div className="min-h-[140px] md:min-h-0">
       <div
         className={cn(
           'text-center py-1.5 rounded-t-lg font-medium text-xs cursor-pointer transition-colors',
@@ -441,11 +443,11 @@ function DroppableMonthDay({
     <div
       ref={setNodeRef}
       className={cn(
-        'min-h-[80px] border rounded p-1',
-        day ? 'cursor-pointer' : 'bg-muted/20',
-        day && !isOver && 'hover:bg-muted/50',
-        isOver && 'bg-slate-900/10 border-slate-900 dark:bg-white/10 dark:border-white',
-        isToday && 'border-slate-900 dark:border-white'
+        'min-h-[80px] rounded-lg p-1',
+        day ? 'cursor-pointer bg-white dark:bg-slate-700' : 'bg-transparent',
+        day && !isOver && 'hover:bg-slate-50 dark:hover:bg-slate-600',
+        isOver && 'bg-slate-200 dark:bg-slate-600',
+        isToday && 'bg-slate-200 dark:bg-slate-600'
       )}
       onClick={() => day && onClick()}
     >
@@ -642,24 +644,24 @@ function ComposeEmailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden p-6">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <h3 className="text-lg font-semibold">{getTitle()}</h3>
           <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"><X className="h-5 w-5" /></button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto py-4 space-y-3 px-1 -mx-1">
           {error && <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm text-red-700 dark:text-red-400">{error}</div>}
-          <div><label className="block text-sm font-medium mb-1">{t.gmail.to} *</label><input type="email" value={formData.to} onChange={(e) => setFormData({ ...formData, to: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder="recipient@example.com" /></div>
-          <div><label className="block text-sm font-medium mb-1">{t.gmail.cc}</label><input type="text" value={formData.cc} onChange={(e) => setFormData({ ...formData, cc: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder="cc@example.com" /></div>
-          <div><label className="block text-sm font-medium mb-1">{t.gmail.bcc}</label><input type="text" value={formData.bcc} onChange={(e) => setFormData({ ...formData, bcc: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder="bcc@example.com" /></div>
-          <div><label className="block text-sm font-medium mb-1">{t.gmail.subject} *</label><input type="text" value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder={t.gmail.subjectPlaceholder} /></div>
-          <div><label className="block text-sm font-medium mb-1">{t.gmail.body}</label><textarea value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm min-h-[200px] font-mono" placeholder={t.gmail.bodyPlaceholder} /></div>
+          <div><label className="text-xs text-slate-500 mb-1 block">{t.gmail.to} *</label><input type="email" value={formData.to} onChange={(e) => setFormData({ ...formData, to: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder="recipient@example.com" /></div>
+          <div><label className="text-xs text-slate-500 mb-1 block">{t.gmail.cc}</label><input type="text" value={formData.cc} onChange={(e) => setFormData({ ...formData, cc: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder="cc@example.com" /></div>
+          <div><label className="text-xs text-slate-500 mb-1 block">{t.gmail.bcc}</label><input type="text" value={formData.bcc} onChange={(e) => setFormData({ ...formData, bcc: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder="bcc@example.com" /></div>
+          <div><label className="text-xs text-slate-500 mb-1 block">{t.gmail.subject} *</label><input type="text" value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder={t.gmail.subjectPlaceholder} /></div>
+          <div><label className="text-xs text-slate-500 mb-1 block">{t.gmail.body}</label><textarea value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm min-h-[200px] font-mono" placeholder={t.gmail.bodyPlaceholder} /></div>
           <div>
-            <div className="flex items-center justify-between mb-2"><label className="block text-sm font-medium">{t.gmail.attachments}</label><input ref={fileInputRef} type="file" multiple onChange={handleFileSelect} className="hidden" id="tensw-compose-file-input" /><label htmlFor="tensw-compose-file-input" className="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-700 cursor-pointer"><Plus className="h-4 w-4" />{t.gmail.addAttachment}</label></div>
+            <div className="flex items-center justify-between mb-2"><label className="text-xs text-slate-500">{t.gmail.attachments}</label><input ref={fileInputRef} type="file" multiple onChange={handleFileSelect} className="hidden" id="tensw-compose-file-input" /><label htmlFor="tensw-compose-file-input" className="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-700 cursor-pointer"><Plus className="h-4 w-4" />{t.gmail.addAttachment}</label></div>
             {attachments.length > 0 && <div className="space-y-2">{attachments.map((file, index) => (<div key={index} className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-700 px-3 py-2"><div className="flex items-center gap-2 min-w-0"><FileText className="h-4 w-4 text-slate-400 flex-shrink-0" /><span className="text-sm truncate">{file.name}</span><span className="text-xs text-muted-foreground flex-shrink-0">({formatFileSize(file.size)})</span></div><button onClick={() => handleRemoveAttachment(index)} className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 flex-shrink-0"><X className="h-4 w-4 text-slate-500" /></button></div>))}</div>}
           </div>
         </div>
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600">{t.common.cancel}</button>
             <button onClick={handleSend} disabled={isSending} className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-500 disabled:opacity-50">{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{t.gmail.send}</button>
@@ -795,7 +797,7 @@ export default function TenswManagementPage() {
   const locale = language === 'ko' ? 'ko-KR' : 'en-US'
 
   // Invoice states (simplified)
-  const INVOICES_PER_PAGE = 5
+  const [invoicesPerPage, setInvoicesPerPage] = useState(5)
   const [invoices, setInvoices] = useState<TenswInvoice[]>([])
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(true)
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
@@ -857,7 +859,7 @@ export default function TenswManagementPage() {
     created_at: string
     updated_at: string
   }
-  const WIKI_PER_PAGE = 5
+  const [wikiPerPage, setWikiPerPage] = useState(5)
   const [wikiNotes, setWikiNotes] = useState<WikiNote[]>([])
   const [isLoadingWiki, setIsLoadingWiki] = useState(true)
   const [isAddingNote, setIsAddingNote] = useState(false)
@@ -2086,10 +2088,10 @@ export default function TenswManagementPage() {
     return note.title.toLowerCase().includes(search) || note.content.toLowerCase().includes(search)
   })
 
-  const totalWikiPages = Math.ceil(filteredWikiNotes.length / WIKI_PER_PAGE)
+  const totalWikiPages = Math.ceil(filteredWikiNotes.length / wikiPerPage)
   const paginatedWikiNotes = filteredWikiNotes.slice(
-    (wikiPage - 1) * WIKI_PER_PAGE,
-    wikiPage * WIKI_PER_PAGE
+    (wikiPage - 1) * wikiPerPage,
+    wikiPage * wikiPerPage
   )
 
   // ====== Gmail Functions ======
@@ -2917,10 +2919,10 @@ export default function TenswManagementPage() {
                   </div>
 
                   {(() => {
-                    const totalPages = Math.ceil(invoices.length / INVOICES_PER_PAGE)
+                    const totalPages = Math.ceil(invoices.length / invoicesPerPage)
                     const paginatedInvoices = invoices.slice(
-                      (invoicePage - 1) * INVOICES_PER_PAGE,
-                      invoicePage * INVOICES_PER_PAGE
+                      (invoicePage - 1) * invoicesPerPage,
+                      invoicePage * invoicesPerPage
                     )
                     return (
                       <>
@@ -3033,16 +3035,34 @@ export default function TenswManagementPage() {
                         </div>
                         {invoices.length > 0 && (
                           <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
-                            <p className="text-xs text-muted-foreground whitespace-nowrap">
-                              {invoices.length}개 중 {(invoicePage - 1) * INVOICES_PER_PAGE + 1}-{Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                {invoices.length}개 중 {(invoicePage - 1) * invoicesPerPage + 1}-{Math.min(invoicePage * invoicesPerPage, invoices.length)}
+                              </p>
+                              <div className="relative">
+                                <select
+                                  value={invoicesPerPage}
+                                  onChange={(e) => {
+                                    setInvoicesPerPage(Number(e.target.value))
+                                    setInvoicePage(1)
+                                  }}
+                                  className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                  <option value={5}>5개</option>
+                                  <option value={10}>10개</option>
+                                  <option value={25}>25개</option>
+                                  <option value={50}>50개</option>
+                                </select>
+                                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                              </div>
+                            </div>
                             {totalPages > 1 && (
-                              <div className="flex items-center gap-1">
-                                <button onClick={() => setInvoicePage(1)} disabled={invoicePage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
-                                <button onClick={() => setInvoicePage(p => Math.max(1, p - 1))} disabled={invoicePage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
+                              <div className="flex items-center gap-0.5">
+                                <button onClick={() => setInvoicePage(1)} disabled={invoicePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                                <button onClick={() => setInvoicePage(p => Math.max(1, p - 1))} disabled={invoicePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
                                 <span className="px-2 py-1 text-xs font-medium">{invoicePage}/{totalPages}</span>
-                                <button onClick={() => setInvoicePage(p => Math.min(totalPages, p + 1))} disabled={invoicePage === totalPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
-                                <button onClick={() => setInvoicePage(totalPages)} disabled={invoicePage === totalPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+                                <button onClick={() => setInvoicePage(p => Math.min(totalPages, p + 1))} disabled={invoicePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                                <button onClick={() => setInvoicePage(totalPages)} disabled={invoicePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
                               </div>
                             )}
                           </div>
@@ -3386,6 +3406,7 @@ export default function TenswManagementPage() {
                         />
                       </div>
                       <div>
+                        <label className="text-xs text-slate-500 mb-1 block">첨부 파일</label>
                         <div className={`!border-0 rounded-lg p-2 text-center transition-colors ${
                             isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-700'
                           }`} style={{ border: 'none' }}>
@@ -3492,6 +3513,7 @@ export default function TenswManagementPage() {
                               />
                             </div>
                             <div>
+                              <span className="text-xs text-slate-500 mb-1 block">첨부 파일</span>
                               <label
                                 htmlFor={`wiki-file-input-edit-${note.id}`}
                                 className={`!border-0 rounded-lg p-2 text-center transition-colors cursor-pointer block ${
@@ -3627,7 +3649,7 @@ export default function TenswManagementPage() {
                                   className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
                                 >
                                   <Paperclip className="h-2.5 w-2.5" />
-                                  <span className="max-w-[100px] truncate">{att.name}</span>
+                                  <span>{att.name}</span>
                                 </a>
                               ))}
                             </div>
@@ -3643,20 +3665,38 @@ export default function TenswManagementPage() {
               </div>
               {filteredWikiNotes.length > 0 && (
                 <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 mt-3">
-                  <p className="text-xs text-muted-foreground whitespace-nowrap">
-                    <span className="hidden sm:inline">{t.wiki.showingRange
-                      .replace('{total}', String(filteredWikiNotes.length))
-                      .replace('{start}', String((wikiPage - 1) * WIKI_PER_PAGE + 1))
-                      .replace('{end}', String(Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)))}</span>
-                    <span className="sm:hidden">{filteredWikiNotes.length}개 중 {(wikiPage - 1) * WIKI_PER_PAGE + 1}-{Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)}</span>
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      <span className="hidden sm:inline">{t.wiki.showingRange
+                        .replace('{total}', String(filteredWikiNotes.length))
+                        .replace('{start}', String((wikiPage - 1) * wikiPerPage + 1))
+                        .replace('{end}', String(Math.min(wikiPage * wikiPerPage, filteredWikiNotes.length)))}</span>
+                      <span className="sm:hidden">{filteredWikiNotes.length}개 중 {(wikiPage - 1) * wikiPerPage + 1}-{Math.min(wikiPage * wikiPerPage, filteredWikiNotes.length)}</span>
+                    </p>
+                    <div className="relative">
+                      <select
+                        value={wikiPerPage}
+                        onChange={(e) => {
+                          setWikiPerPage(Number(e.target.value))
+                          setWikiPage(1)
+                        }}
+                        className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        <option value={5}>5개</option>
+                        <option value={10}>10개</option>
+                        <option value={25}>25개</option>
+                        <option value={50}>50개</option>
+                      </select>
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                    </div>
+                  </div>
                   {totalWikiPages > 1 && (
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => setWikiPage(1)} disabled={wikiPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
-                      <button onClick={() => setWikiPage(p => Math.max(1, p - 1))} disabled={wikiPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => setWikiPage(1)} disabled={wikiPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                      <button onClick={() => setWikiPage(p => Math.max(1, p - 1))} disabled={wikiPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
                       <span className="px-2 py-1 text-xs font-medium">{wikiPage}/{totalWikiPages}</span>
-                      <button onClick={() => setWikiPage(p => Math.min(totalWikiPages, p + 1))} disabled={wikiPage === totalWikiPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
-                      <button onClick={() => setWikiPage(totalWikiPages)} disabled={wikiPage === totalWikiPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+                      <button onClick={() => setWikiPage(p => Math.min(totalWikiPages, p + 1))} disabled={wikiPage === totalWikiPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                      <button onClick={() => setWikiPage(totalWikiPages)} disabled={wikiPage === totalWikiPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
                     </div>
                   )}
                 </div>
@@ -4335,8 +4375,8 @@ export default function TenswManagementPage() {
                   <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-semibold text-base">{t.gmail.settings}</h4>
-                      <button onClick={() => setShowGmailSettings(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
-                        <X className="h-4 w-4" />
+                      <button onClick={() => setShowGmailSettings(false)} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
+                        <X className="h-5 w-5" />
                       </button>
                     </div>
                     <div className="space-y-4 text-sm">
@@ -4528,28 +4568,31 @@ export default function TenswManagementPage() {
                               <p className="sm:hidden text-xs text-muted-foreground whitespace-nowrap">
                                 {filteredEmails.length}개 중 {(emailPage - 1) * emailsPerPage + 1}-{Math.min(emailPage * emailsPerPage, filteredEmails.length)}
                               </p>
-                              <select
-                                value={emailsPerPage}
-                                onChange={(e) => {
-                                  setEmailsPerPage(Number(e.target.value))
-                                  setEmailPage(1)
-                                }}
-                                className="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5"
-                              >
-                                <option value={5}>5개</option>
-                                <option value={10}>10개</option>
-                                <option value={25}>25개</option>
-                                <option value={50}>50개</option>
-                                <option value={100}>100개</option>
-                              </select>
+                              <div className="relative">
+                                <select
+                                  value={emailsPerPage}
+                                  onChange={(e) => {
+                                    setEmailsPerPage(Number(e.target.value))
+                                    setEmailPage(1)
+                                  }}
+                                  className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                  <option value={5}>5개</option>
+                                  <option value={10}>10개</option>
+                                  <option value={25}>25개</option>
+                                  <option value={50}>50개</option>
+                                  <option value={100}>100개</option>
+                                </select>
+                                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                              </div>
                             </div>
                             {Math.ceil(filteredEmails.length / emailsPerPage) > 1 && (
-                              <div className="flex items-center gap-1">
-                                <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
-                                <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
+                              <div className="flex items-center gap-0.5">
+                                <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                                <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
                                 <span className="px-2 sm:px-3 py-1 text-xs font-medium">{emailPage}/{Math.ceil(filteredEmails.length / emailsPerPage)}</span>
-                                <button onClick={() => setEmailPage(p => Math.min(Math.ceil(filteredEmails.length / emailsPerPage), p + 1))} disabled={emailPage === Math.ceil(filteredEmails.length / emailsPerPage)} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
-                                <button onClick={() => setEmailPage(Math.ceil(filteredEmails.length / emailsPerPage))} disabled={emailPage === Math.ceil(filteredEmails.length / emailsPerPage)} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+                                <button onClick={() => setEmailPage(p => Math.min(Math.ceil(filteredEmails.length / emailsPerPage), p + 1))} disabled={emailPage === Math.ceil(filteredEmails.length / emailsPerPage)} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                                <button onClick={() => setEmailPage(Math.ceil(filteredEmails.length / emailsPerPage))} disabled={emailPage === Math.ceil(filteredEmails.length / emailsPerPage)} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
                               </div>
                             )}
                           </div>
@@ -4568,8 +4611,8 @@ export default function TenswManagementPage() {
                           {selectedEmail.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound}
                         </span>
                         <h3 className="text-lg font-semibold break-words flex-1">{selectedEmail.subject || t.gmail.noSubject}</h3>
-                        <button onClick={() => setSelectedEmail(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded">
-                          <X className="h-4 w-4" />
+                        <button onClick={() => setSelectedEmail(null)} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
+                          <X className="h-5 w-5" />
                         </button>
                       </div>
                       <div className="space-y-1 text-sm mb-4">
@@ -4634,9 +4677,9 @@ export default function TenswManagementPage() {
                         </h4>
                         <button
                           onClick={() => setShowAiAnalysis(false)}
-                          className="text-purple-400 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300"
+                          className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-5 w-5" />
                         </button>
                       </div>
 
@@ -4908,7 +4951,7 @@ export default function TenswManagementPage() {
       <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
         <DialogContent className="max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0 pb-4 border-b">
-            <DialogTitle>{editingInvoice ? '재무항목 수정' : '재무항목 추가'}</DialogTitle>
+            <DialogTitle>{editingInvoice ? '현금관리 수정' : '현금관리 추가'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
                 {/* Type Selection */}
@@ -5109,7 +5152,7 @@ export default function TenswManagementPage() {
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">새 첨부파일</label>
                   <div
-                    className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    className="bg-slate-100 dark:bg-slate-700 rounded-lg p-4 text-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                     onClick={() => document.getElementById('invoice-file-input')?.click()}
                   >
                     <input

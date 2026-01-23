@@ -414,7 +414,7 @@ export const ko = {
     noProjects: '프로젝트가 없습니다',
     // 상태 라벨
     status: {
-      active: '진행',
+      active: '진행 중',
       managed: '관리',
       closed: '종료',
       poc: 'POC',
@@ -442,12 +442,13 @@ export const ko = {
       medium: '보통',
       low: '낮음',
     },
-    // 활동 유형
+    // 활동 유형 (tensw-todo와 동일)
     activityType: {
-      created: '할일 생성',
+      created: '새 할일 등록',
       assigned: '할일 배정',
       started: '작업 시작',
       completed: '할일 완료',
+      updated: '할일 수정',
       discarded: '할일 폐기',
       analysis: 'AI 분석',
       docCreated: '문서 등록',

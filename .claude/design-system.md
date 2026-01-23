@@ -12,6 +12,17 @@
 ❌ outline outline-gray-200
 ```
 
+> **참고:** `globals.css`의 base layer에서 모든 요소의 기본 border가 제거되어 있음
+> ```css
+> @layer base {
+>   *, ::before, ::after {
+>     border-color: var(--border);
+>     border-width: 0;
+>     border-style: solid;
+>   }
+> }
+> ```
+
 ### 올바른 패턴
 ```
 ✅ 페이지 배경: bg-muted/30 (layout-wrapper에서 적용)
@@ -152,6 +163,32 @@ import { Button } from '@/components/ui/button'
   처리 중...
 </Button>
 
+// 독립적 로딩 상태 (여러 버튼 중 하나만 로딩)
+// ❌ 잘못된 방법: string | null (모든 버튼이 동시에 로딩 표시)
+const [isLoading, setIsLoading] = useState<string | null>(null)
+
+// ✅ 올바른 방법: { id: string; type: string } | null
+const [isLoading, setIsLoading] = useState<{ id: string; type: 'issued' | 'paid' } | null>(null)
+
+// 사용 예시
+const handleIssue = async (id: string) => {
+  setIsLoading({ id, type: 'issued' })
+  // ... API 호출
+  setIsLoading(null)
+}
+
+// 버튼에서 조건부 로딩 표시
+<Button
+  onClick={() => handleIssue(item.id)}
+  disabled={isLoading?.id === item.id && isLoading?.type === 'issued'}
+>
+  {isLoading?.id === item.id && isLoading?.type === 'issued' ? (
+    <Loader2 className="h-4 w-4 animate-spin" />
+  ) : (
+    '발행'
+  )}
+</Button>
+
 // AI 특수 버튼
 <Button className="bg-purple-600 hover:bg-purple-700 text-white">
   <Sparkles className="h-4 w-4 mr-2" />
@@ -175,17 +212,38 @@ import { Button } from '@/components/ui/button'
 
 ### 3. 입력 폼
 
+> **중요: Input/Textarea/Select 컴포넌트는 기본적으로 border가 없음**
+> - 기본 배경: `bg-slate-100 dark:bg-slate-700`
+> - 포커스 시: `bg-slate-50 dark:bg-slate-600`
+> - 추가 border 클래스 사용 금지
+
 ```tsx
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
 
 // 기본 Input (border 없음, 배경색으로 구분)
-// Input/Textarea/Select: bg-slate-100 → 포커스: bg-slate-50
 <div>
-  <Label className="mb-2 block">라벨</Label>
+  <label className="text-xs text-slate-500 mb-1 block">라벨</label>
   <Input placeholder="텍스트를 입력하세요..." />
+</div>
+
+// Select (border 없음)
+<div>
+  <label className="text-xs text-slate-500 mb-1 block">상태</label>
+  <Select value={status} onValueChange={setStatus}>
+    <SelectTrigger><SelectValue /></SelectTrigger>
+    <SelectContent>
+      <SelectItem value="option1">옵션 1</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+
+// Textarea (border 없음)
+<div>
+  <label className="text-xs text-slate-500 mb-1 block">내용</label>
+  <Textarea placeholder="내용을 입력하세요..." rows={3} />
 </div>
 
 // 검색 Input
@@ -194,7 +252,7 @@ import { Label } from '@/components/ui/label'
   <Input placeholder="검색..." className="pl-10 h-9" />
 </div>
 
-// 금액 입력 (천단위 콤마)
+// 금액 입력 (천단위 콤마 - 정수)
 const [amount, setAmount] = useState('')
 <Input
   value={amount}
@@ -206,6 +264,28 @@ const [amount, setAmount] = useState('')
   className="text-right"
 />
 // 저장 시: parseInt(amount.replace(/,/g, ''), 10)
+
+// 금액 입력 (천단위 콤마 - 소수점 허용)
+// toLocaleString은 입력 중 소수점을 강제하므로 수동 포맷팅 필요
+const [amount, setAmount] = useState('')
+<Input
+  value={(() => {
+    if (!amount) return ''
+    const parts = amount.split('.')
+    const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    return parts.length > 1 ? `${intPart}.${parts[1]}` : intPart
+  })()}
+  onChange={(e) => {
+    const value = e.target.value.replace(/[^0-9.]/g, '')
+    // 소수점 중복 방지
+    const parts = value.split('.')
+    const cleaned = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : value
+    setAmount(cleaned)
+  }}
+  placeholder="0.00"
+  className="text-right"
+/>
+// 저장 시: parseFloat(amount) 또는 Number(amount)
 ```
 
 ### 인라인 폼 (위키 스타일)
@@ -229,13 +309,16 @@ const [amount, setAmount] = useState('')
       <label className="text-xs text-slate-500 mb-1 block">내용</label>
       <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={3} />
     </div>
-    {/* 파일 첨부 영역 */}
-    <div className="rounded-lg p-2 text-center bg-slate-100 dark:bg-slate-700">
-      <input type="file" id="file-input" multiple className="hidden" />
-      <label htmlFor="file-input" className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700">
-        <Paperclip className="h-3 w-3" />
-        <span>파일 첨부</span>
-      </label>
+    {/* 파일 첨부 영역 (라벨 필수!) */}
+    <div>
+      <label className="text-xs text-slate-500 mb-1 block">첨부 파일</label>
+      <div className="rounded-lg p-2 text-center bg-slate-100 dark:bg-slate-700">
+        <input type="file" id="file-input" multiple className="hidden" />
+        <label htmlFor="file-input" className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700">
+          <Paperclip className="h-3 w-3" />
+          <span>파일 첨부</span>
+        </label>
+      </div>
     </div>
   </div>
   <div className="flex justify-end gap-2 mt-4 pt-3">
@@ -265,6 +348,30 @@ const [amount, setAmount] = useState('')
   <button onClick={() => removeAttachment(idx)} className="text-slate-400 hover:text-red-500">
     <X className="h-3 w-3" />
   </button>
+</div>
+```
+
+**업무 위키 첨부파일 표시 (파일명 전체 표시):**
+```tsx
+// ❌ 잘못된 방법: 파일명 자르기
+<span className="max-w-[100px] truncate">{att.name}</span>
+
+// ✅ 올바른 방법: 파일명 전체 표시 (줄바꿈 허용)
+<span>{att.name}</span>
+
+// 위키 첨부파일 목록 (읽기 전용)
+<div className="flex flex-wrap gap-1.5">
+  {attachments.map((att) => (
+    <a
+      key={att.id}
+      href={att.url}
+      target="_blank"
+      className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline bg-slate-50 dark:bg-slate-600 px-2 py-1 rounded"
+    >
+      <Paperclip className="h-3 w-3" />
+      <span>{att.name}</span>  {/* truncate 없음 */}
+    </a>
+  ))}
 </div>
 ```
 
@@ -351,12 +458,14 @@ const getActivityColor = (type: string) => {
     case 'assigned': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
     case 'started': return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-400'
     case 'completed': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
-    case 'discarded': return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+    case 'discarded': return 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
     case 'analysis': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400'
     case 'doc_created': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400'
-    case 'schedule': return 'bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-400'
-    case 'commit': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-    default: return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+    case 'schedule_created':
+    case 'schedule_updated':
+    case 'schedule_completed': return 'bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-400'
+    case 'commit': return 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400'
+    default: return 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
   }
 }
 
@@ -477,6 +586,44 @@ const getCategoryColor = (color: string) => {
 
 ## 다이얼로그/모달
 
+### 패딩 패턴 (필수)
+
+> **모달 패딩은 컨테이너에서 전체 적용, 섹션은 border와 상하 패딩만**
+
+```
+컨테이너: p-6 (전체 패딩)
+├── Header: pb-4 border-b (하단 패딩 + border)
+├── Body: py-4 -mx-6 px-6 (상하 패딩, 스크롤 시 좌우 패딩 유지)
+└── Footer: pt-4 border-t (상단 패딩 + border)
+```
+
+**커스텀 모달 (div 기반):**
+```tsx
+<div className="... rounded-xl max-h-[90vh] flex flex-col overflow-hidden p-6">
+  {/* Header */}
+  <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+    <h2 className="text-lg font-semibold">제목</h2>
+    <button className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
+      <X className="h-5 w-5" />
+    </button>
+  </div>
+
+  {/* Body - 스크롤 가능 */}
+  <div className="flex-1 overflow-y-auto py-4 -mx-6 px-6 space-y-4">
+    {/* 내용 */}
+  </div>
+
+  {/* Footer */}
+  <div className="flex justify-between pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+    {/* 버튼들 */}
+  </div>
+</div>
+```
+
+### 기본 구조 (Dialog 컴포넌트)
+
+> DialogContent는 기본 패딩이 적용되어 있음
+
 ```tsx
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
@@ -484,19 +631,80 @@ import {
 
 <Dialog open={open} onOpenChange={setOpen}>
   <DialogContent>
-    <DialogHeader>
+    <DialogHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
       <DialogTitle>제목</DialogTitle>
       <DialogDescription>설명</DialogDescription>
     </DialogHeader>
-    <div className="space-y-4">
+    <div className="space-y-4 py-4">
       {/* 내용 */}
     </div>
-    <DialogFooter>
+    <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
       <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
       <Button onClick={handleSave}>저장</Button>
     </DialogFooter>
   </DialogContent>
 </Dialog>
+```
+
+### 폼이 있는 모달
+
+> **Input/Textarea/Select 컴포넌트는 기본적으로 border가 없음 (bg-slate-100으로 구분)**
+
+```tsx
+<Dialog open={open} onOpenChange={setOpen}>
+  <DialogContent>
+    <DialogHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
+      <DialogTitle>항목 추가</DialogTitle>
+    </DialogHeader>
+    <div className="space-y-4 py-4">
+      <div>
+        <label className="text-xs text-slate-500 mb-1 block">제목 *</label>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+      </div>
+      <div>
+        <label className="text-xs text-slate-500 mb-1 block">설명</label>
+        <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
+      </div>
+      <div>
+        <label className="text-xs text-slate-500 mb-1 block">상태</label>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">대기</SelectItem>
+            <SelectItem value="in_progress">진행중</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+    {/* 생성 모드: 삭제 버튼 없음 */}
+    <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
+      <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
+      <Button onClick={handleSave}>저장</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+```
+
+### 수정 모달 (삭제 버튼 포함)
+
+```tsx
+<DialogFooter className="flex-row justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+  <Button variant="destructive" onClick={handleDelete}>삭제</Button>
+  <div className="flex gap-2">
+    <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
+    <Button onClick={handleSave}>저장</Button>
+  </div>
+</DialogFooter>
+```
+
+### X 닫기 버튼 (DialogContent 기본 제공)
+
+> DialogContent 컴포넌트에 기본 X 버튼이 포함되어 있음
+
+```tsx
+// dialog.tsx 기본 스타일
+className="absolute top-4 right-4 rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
+<XIcon className="h-5 w-5" />
 ```
 
 ---
@@ -650,20 +858,75 @@ import {
 
 ### 페이지네이션
 
+> **아이콘 버튼 + 드롭다운 스타일 통일**
+
 ```tsx
-<div className="flex items-center justify-between">
-  <div className="text-sm text-slate-500">1-10 / 45</div>
-  <div className="flex items-center gap-2">
-    <Button size="sm" variant="secondary" disabled>
-      <ChevronLeft className="h-4 w-4" />
-    </Button>
-    <span className="text-sm px-3">1 / 5</span>
-    <Button size="sm" variant="secondary">
-      <ChevronRight className="h-4 w-4" />
-    </Button>
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown } from 'lucide-react'
+
+// State 정의
+const [currentPage, setCurrentPage] = useState(1)
+const [perPage, setPerPage] = useState(5)
+const totalPages = Math.ceil(items.length / perPage)
+
+// 페이지네이션 UI
+{items.length > 0 && (
+  <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+    <div className="flex items-center gap-2">
+      <p className="text-xs text-muted-foreground whitespace-nowrap">
+        {items.length}개 중 {(currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, items.length)}
+      </p>
+      {/* 페이지당 개수 드롭다운 */}
+      <div className="relative">
+        <select
+          value={perPage}
+          onChange={(e) => {
+            setPerPage(Number(e.target.value))
+            setCurrentPage(1)
+          }}
+          className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+        >
+          <option value={5}>5개</option>
+          <option value={10}>10개</option>
+          <option value={25}>25개</option>
+          <option value={50}>50개</option>
+        </select>
+        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+      </div>
+    </div>
+    {/* 페이지 네비게이션 */}
+    {totalPages > 1 && (
+      <div className="flex items-center gap-0.5">
+        <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+          <ChevronsLeft className="h-4 w-4" />
+        </button>
+        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="px-2 py-1 text-xs font-medium">{currentPage}/{totalPages}</span>
+        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+          <ChevronRight className="h-4 w-4" />
+        </button>
+        <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+          <ChevronsRight className="h-4 w-4" />
+        </button>
+      </div>
+    )}
   </div>
-</div>
+)}
 ```
+
+**스타일 요약:**
+| 요소 | 스타일 |
+|------|--------|
+| 컨테이너 | `flex items-center justify-between gap-2 pt-4 border-t mt-4` |
+| 좌측 (정보+드롭다운) | `flex items-center gap-2` |
+| 카운트 텍스트 | `text-xs text-muted-foreground whitespace-nowrap` |
+| 드롭다운 wrapper | `relative` |
+| 드롭다운 select | `text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors` |
+| 드롭다운 아이콘 | `absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground` |
+| 네비게이션 컨테이너 | `flex items-center gap-0.5` |
+| 네비게이션 버튼 | `h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors` |
+| 페이지 표시 | `px-2 py-1 text-xs font-medium` |
 
 ---
 
@@ -1088,43 +1351,7 @@ Gmail 연동 이메일 목록 및 AI 분석 패널 구조입니다.
 
 ### 페이지네이션
 
-```tsx
-{filteredEmails.length > 0 && (
-  <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
-    <div className="flex items-center gap-2">
-      <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">
-        총 {filteredEmails.length}개 중 {startIndex + 1}-{endIndex}
-      </p>
-      <p className="sm:hidden text-xs text-muted-foreground whitespace-nowrap">
-        {filteredEmails.length}개 중 {startIndex + 1}-{endIndex}
-      </p>
-      <select
-        value={emailsPerPage}
-        onChange={(e) => {
-          setEmailsPerPage(Number(e.target.value))
-          setEmailPage(1)
-        }}
-        className="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5"
-      >
-        <option value={5}>5개</option>
-        <option value={10}>10개</option>
-        <option value={25}>25개</option>
-        <option value={50}>50개</option>
-        <option value={100}>100개</option>
-      </select>
-    </div>
-    {totalPages > 1 && (
-      <div className="flex items-center gap-1">
-        <button onClick={() => setEmailPage(1)} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
-        <button onClick={() => setEmailPage(p => Math.max(1, p - 1))} disabled={emailPage === 1} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
-        <span className="px-2 sm:px-3 py-1 text-xs font-medium">{emailPage}/{totalPages}</span>
-        <button onClick={() => setEmailPage(p => Math.min(totalPages, p + 1))} disabled={emailPage === totalPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
-        <button onClick={() => setEmailPage(totalPages)} disabled={emailPage === totalPages} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
-      </div>
-    )}
-  </div>
-)}
-```
+> 이메일 섹션 페이지네이션은 상단 "UI 패턴 > 페이지네이션" 섹션 참조
 
 ### AI 분석 배지 (카테고리)
 
@@ -1154,6 +1381,105 @@ function getCategoryColor(category: string, allCategories: string[]) {
   return CATEGORY_COLORS[index % CATEGORY_COLORS.length]
 }
 ```
+
+### 새 이메일 작성 모달 (ComposeEmailModal)
+
+> DialogContent 대신 커스텀 모달 사용 (전체 화면 오버레이)
+
+**모달 구조:**
+```tsx
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden p-6">
+    {/* Header: pb-4 border-b (테두리가 양 끝까지 확장) */}
+    <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+      <h3 className="text-lg font-semibold">{title}</h3>
+      <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
+        <X className="h-5 w-5" />
+      </button>
+    </div>
+
+    {/* Body: py-4 px-1 -mx-1 (스크롤바 처리) */}
+    <div className="flex-1 overflow-y-auto py-4 space-y-3 px-1 -mx-1">
+      {/* 에러 메시지 (border 없음) */}
+      {error && (
+        <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm text-red-700 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
+      {/* 입력 필드 (border 없음, 배경색으로 구분) */}
+      <div>
+        <label className="text-xs text-slate-500 mb-1 block">받는 사람 *</label>
+        <input className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" />
+      </div>
+
+      {/* 첨부파일 영역 */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs text-slate-500">첨부파일</label>
+          <label className="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-700 cursor-pointer">
+            <Plus className="h-4 w-4" />파일 추가
+          </label>
+        </div>
+        {/* 첨부파일 목록 */}
+        <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-700 px-3 py-2">
+          <FileText className="h-4 w-4 text-slate-400" />
+          <span className="text-sm truncate">{file.name}</span>
+          <button className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600">
+            <X className="h-4 w-4 text-slate-500" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {/* Footer: pt-4 border-t (테두리가 양 끝까지 확장) */}
+    <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+      <div className="flex gap-2">
+        {/* Cancel 버튼: border 대신 배경색 */}
+        <button className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600">
+          취소
+        </button>
+        {/* Send 버튼 */}
+        <button className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-500 disabled:opacity-50">
+          <Send className="h-4 w-4" />보내기
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+**스타일 요약:**
+| 요소 | 스타일 |
+|------|--------|
+| Container | `p-6` (전체 패딩, 테두리가 양 끝까지 확장되도록) |
+| Header | `pb-4 border-b` |
+| Body | `py-4 px-1 -mx-1` (스크롤바 처리) |
+| Footer | `pt-4 border-t` |
+| Close (X) 버튼 | `rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700` |
+| Input | `bg-slate-100 dark:bg-slate-700` (border 없음) |
+| Label | `text-xs text-slate-500 mb-1 block` |
+| Error | `bg-red-50 dark:bg-red-900/20` (border 없음) |
+| Cancel | `bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600` |
+| Send | `bg-slate-900 dark:bg-slate-600 hover:bg-slate-800 dark:hover:bg-slate-500` |
+
+> **모달/패널 Close 버튼 통일 규칙:**
+> - 모든 모달/패널의 X 버튼은 동일한 스타일 사용
+> - 스타일: `rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700`
+> - 아이콘 크기: `h-5 w-5` (모든 경우 동일)
+> - 절대 위치(absolute) 사용 시에도 동일한 스타일 적용
+>
+> ```tsx
+> // 표준 모달 닫기 버튼
+> <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
+>   <X className="h-5 w-5" />
+> </button>
+>
+> // 절대 위치 사용 시
+> <button onClick={onClose} className="absolute top-4 right-4 rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700">
+>   <X className="h-5 w-5" />
+> </button>
+> ```
 
 ---
 

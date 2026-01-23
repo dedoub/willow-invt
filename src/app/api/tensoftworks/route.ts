@@ -365,7 +365,7 @@ export async function GET() {
         due_date: string | null
       }> = []
 
-      // Todo logs
+      // Todo logs only (tensw-todo와 동일하게)
       recentLogs
         .filter(log => projectTodoIds.includes(log.todo_id))
         .forEach(log => {
@@ -377,91 +377,6 @@ export async function GET() {
             changed_by: log.changed_by ? userNameMap.get(log.changed_by) || null : null,
             priority: todoPriorityMap.get(log.todo_id) || null,
             due_date: todoDueDateMap.get(log.todo_id) || null,
-          })
-        })
-
-      // AI analyses
-      allAnalyses
-        ?.filter(a => a.project_id === project.id)
-        .forEach(analysis => {
-          allActivities.push({
-            id: `analysis-${analysis.id}`,
-            type: 'analysis',
-            title: 'AI 프로젝트 분석 완료',
-            created_at: analysis.created_at,
-            changed_by: analysis.created_by ? userNameMap.get(analysis.created_by) || null : null,
-            priority: null,
-            due_date: null,
-          })
-        })
-
-      // Document creation (recent 7 days)
-      allDocs
-        ?.filter(d => d.project_id === project.id && new Date(d.created_at) >= sevenDaysAgo)
-        .forEach(doc => {
-          allActivities.push({
-            id: `doc-${doc.id}`,
-            type: 'doc_created',
-            title: doc.title,
-            created_at: doc.created_at,
-            changed_by: doc.created_by ? userNameMap.get(doc.created_by) || null : null,
-            priority: null,
-            due_date: null,
-          })
-        })
-
-      // Schedule changes
-      recentScheduleChanges
-        ?.filter(s => s.project_id === project.id)
-        .forEach(schedule => {
-          const wasUpdated = schedule.updated_at && schedule.updated_at !== schedule.created_at
-          if (schedule.status === 'completed' && wasUpdated) {
-            allActivities.push({
-              id: `schedule-completed-${schedule.id}`,
-              type: 'schedule_completed',
-              title: schedule.title,
-              created_at: schedule.updated_at,
-              changed_by: schedule.created_by ? userNameMap.get(schedule.created_by) || null : null,
-              priority: null,
-              due_date: null,
-            })
-          } else if (wasUpdated) {
-            allActivities.push({
-              id: `schedule-updated-${schedule.id}`,
-              type: 'schedule_updated',
-              title: schedule.title,
-              created_at: schedule.updated_at,
-              changed_by: schedule.created_by ? userNameMap.get(schedule.created_by) || null : null,
-              priority: null,
-              due_date: null,
-            })
-          }
-          // New schedule (within 7 days)
-          if (new Date(schedule.created_at) >= sevenDaysAgo) {
-            allActivities.push({
-              id: `schedule-created-${schedule.id}`,
-              type: 'schedule_created',
-              title: schedule.title,
-              created_at: schedule.created_at,
-              changed_by: schedule.created_by ? userNameMap.get(schedule.created_by) || null : null,
-              priority: null,
-              due_date: null,
-            })
-          }
-        })
-
-      // GitHub commits
-      allCommits
-        .filter(c => c.project_id === project.id)
-        .forEach(commit => {
-          allActivities.push({
-            id: `commit-${commit.sha.substring(0, 7)}`,
-            type: 'commit',
-            title: `[${commit.repo}] ${commit.message}`,
-            created_at: commit.date,
-            changed_by: commit.author,
-            priority: null,
-            due_date: null,
           })
         })
 

@@ -132,7 +132,11 @@ AKROS_SUPABASE_SERVICE_KEY=...
 | assigned | `bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400` |
 | started | `bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400` |
 | completed | `bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400` |
-| discarded/commit/default | `bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400` |
+| commit | `bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400` |
+| analysis | `bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400` |
+| doc_created | `bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400` |
+| schedule_* | `bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-400` |
+| discarded/default | `bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400` |
 
 ### 배지 스타일링
 ```jsx
@@ -252,6 +256,18 @@ AKROS_SUPABASE_SERVICE_KEY=...
     <Button size="sm">저장</Button>
   </div>
 </div>
+
+// 파일 첨부 영역 (라벨 필수!)
+<div>
+  <label className="text-xs text-slate-500 mb-1 block">첨부 파일</label>
+  <div className="rounded-lg p-2 text-center bg-slate-100 dark:bg-slate-700">
+    <input type="file" id="file-input" multiple className="hidden" />
+    <label htmlFor="file-input" className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700">
+      <Paperclip className="h-3 w-3" />
+      <span>파일 첨부</span>
+    </label>
+  </div>
+</div>
 ```
 
 ### 숫자 포맷팅
@@ -274,10 +290,27 @@ items.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
 - CardHeader: `pb-2`
 - CardContent: `pt-0 space-y-3`
 
+### 모달 패딩 패턴 (필수)
+```
+컨테이너: p-6 (전체 패딩)
+├── Header: pb-4 border-b (하단 패딩 + border)
+├── Body: py-4 -mx-6 px-6 (상하 패딩, 스크롤 시 좌우 유지)
+└── Footer: pt-4 border-t (상단 패딩 + border)
+```
+
 ### 아이콘 버튼 규칙
 - 삭제 아이콘 단독 사용 금지
 - 삭제는 수정 모달/인라인 내에서만 가능
 - 수정 아이콘: `<Pencil className="h-4 w-4" />`
+
+### 모달 X 닫기 버튼 (통일)
+```jsx
+// DialogContent에 기본 포함됨
+// 커스텀 모달 사용 시:
+<button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
+  <X className="h-5 w-5" />
+</button>
+```
 
 ### UI 가이드 참조
 - 전체 디자인 시스템: `/admin/ui-guide` 페이지
@@ -285,15 +318,18 @@ items.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
 - 템플릿 파일: `.claude/templates/`
   - `page-template.tsx` - 페이지 기본 구조
   - `card-template.tsx` - 카드 컴포넌트
-  - `form-template.tsx` - 폼/모달/인라인 폼
+  - `form-template.tsx` - 폼/모달/인라인 폼 (Dialog 모달 포함)
   - `table-template.tsx` - 테이블
   - `button-template.tsx` - 버튼 variants/sizes
   - `badge-template.tsx` - 배지/상태 + 색상 헬퍼 함수
   - `skeleton-template.tsx` - 스켈레톤 로딩
-  - `pattern-template.tsx` - 공통 UI 패턴 (로딩, 빈상태, 페이지네이션)
+  - `pattern-template.tsx` - 공통 UI 패턴 (로딩, 빈상태)
+  - `pagination-template.tsx` - 페이지네이션 (드롭다운 + 쉐브론 네비게이션)
   - `collapsible-template.tsx` - 접기/펼치기
   - `calendar-template.tsx` - 캘린더 셀
   - `chart-template.tsx` - 차트 (recharts)
   - `dnd-template.tsx` - 드래그앤드롭 (dnd-kit)
   - `utilities-template.tsx` - 숫자 포맷, 날짜 등 유틸리티
-  - `wiki-template.tsx` - 업무 위키 (인라인 폼, 파일 첨부, 페이지네이션)
+  - `wiki-template.tsx` - 업무 위키 (인라인 폼, 파일 첨부 라벨)
+  - `email-template.tsx` - 이메일 커뮤니케이션 (Gmail 연동, ComposeEmailModal)
+  - `client-project-template.tsx` - 클라이언트/프로젝트 (필터 배지, 마일스톤)

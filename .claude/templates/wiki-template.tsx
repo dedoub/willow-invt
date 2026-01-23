@@ -430,6 +430,7 @@ interface WikiFileUploadProps {
 export function WikiFileUpload({ inputId, files, setFiles, isDragging }: WikiFileUploadProps) {
   return (
     <div>
+      <span className="text-xs text-slate-500 mb-1 block">첨부 파일</span>
       {/* 업로드 버튼 */}
       <div
         className={`rounded-lg p-2 text-center transition-colors ${
