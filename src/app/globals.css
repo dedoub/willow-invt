@@ -125,8 +125,14 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
+  *,
+  ::before,
+  ::after {
+    --tw-border-spacing-x: 0;
+    --tw-border-spacing-y: 0;
+    border-color: var(--border);
+    border-width: 0;
+    border-style: solid;
   }
   body {
     @apply bg-background text-foreground;

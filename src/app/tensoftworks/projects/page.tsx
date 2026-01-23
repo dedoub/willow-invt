@@ -535,17 +535,6 @@ function ProjectsContent() {
 
   return (
     <div className="space-y-8">
-      {/* 페이지 헤더 */}
-      <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-blue-100 dark:bg-blue-900 p-2">
-          <Briefcase className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">프로젝트 관리</h1>
-          <p className="text-sm text-muted-foreground">텐소프트웍스 프로젝트 현황</p>
-        </div>
-      </div>
-
       {/* Active Projects */}
       {renderProjectSection(
         tensw.status.active + ' 프로젝트',

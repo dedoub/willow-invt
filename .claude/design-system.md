@@ -182,6 +182,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 
 // 기본 Input (border 없음, 배경색으로 구분)
+// Input/Textarea/Select: bg-slate-100 → 포커스: bg-slate-50
 <div>
   <Label className="mb-2 block">라벨</Label>
   <Input placeholder="텍스트를 입력하세요..." />
@@ -205,6 +206,66 @@ const [amount, setAmount] = useState('')
   className="text-right"
 />
 // 저장 시: parseInt(amount.replace(/,/g, ''), 10)
+```
+
+### 인라인 폼 (위키 스타일)
+
+> 카드 내에서 모달 대신 인라인으로 추가/수정하는 폼 패턴
+
+**배경색 규칙:**
+- 폼 컨테이너: `bg-white dark:bg-slate-700` (카드 배경과 구분)
+- 입력 필드 (Input/Textarea): `bg-slate-100` (컴포넌트 기본값)
+- 파일 첨부 영역: `bg-slate-100 dark:bg-slate-700`
+
+```tsx
+// 추가 폼 컨테이너
+<div className="rounded-lg p-3 bg-white dark:bg-slate-700">
+  <div className="space-y-3">
+    <div>
+      <label className="text-xs text-slate-500 mb-1 block">제목</label>
+      <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+    </div>
+    <div>
+      <label className="text-xs text-slate-500 mb-1 block">내용</label>
+      <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={3} />
+    </div>
+    {/* 파일 첨부 영역 */}
+    <div className="rounded-lg p-2 text-center bg-slate-100 dark:bg-slate-700">
+      <input type="file" id="file-input" multiple className="hidden" />
+      <label htmlFor="file-input" className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700">
+        <Paperclip className="h-3 w-3" />
+        <span>파일 첨부</span>
+      </label>
+    </div>
+  </div>
+  <div className="flex justify-end gap-2 mt-4 pt-3">
+    <Button variant="outline" size="sm">취소</Button>
+    <Button size="sm">저장</Button>
+  </div>
+</div>
+
+// 수정 폼 컨테이너 (삭제 버튼 좌측)
+<div className="rounded-lg p-3 bg-white dark:bg-slate-700">
+  {/* ... 입력 필드들 ... */}
+  <div className="flex justify-between gap-2 mt-4 pt-3">
+    <Button variant="destructive" size="sm">삭제</Button>
+    <div className="flex gap-2">
+      <Button variant="outline" size="sm">취소</Button>
+      <Button size="sm">저장</Button>
+    </div>
+  </div>
+</div>
+```
+
+**첨부파일 목록 (삭제 가능):**
+```tsx
+<div className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-600 rounded px-2 py-1.5">
+  <Paperclip className="h-3 w-3 text-slate-400" />
+  <a href={att.url} target="_blank" className="flex-1 truncate text-blue-600 hover:underline">{att.name}</a>
+  <button onClick={() => removeAttachment(idx)} className="text-slate-400 hover:text-red-500">
+    <X className="h-3 w-3" />
+  </button>
+</div>
 ```
 
 ### 4. 배지/상태 (Badges)

@@ -461,7 +461,7 @@ function TieredFeeInput({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 p-3">
+    <div className="rounded-lg bg-slate-50 dark:bg-slate-800 p-3">
       <div className="flex items-center justify-between mb-2">
         <label className="text-sm font-semibold text-slate-700">{label}</label>
         <button
@@ -477,11 +477,10 @@ function TieredFeeInput({
       {/* Min Fee */}
       <div className="mb-3">
         <label className="block text-xs text-muted-foreground mb-1">{t.etf.form.minFee}</label>
-        <input
+        <Input
           type="number"
           value={feeStructure.minFee || ''}
           onChange={(e) => onChange({ ...feeStructure, minFee: parseFloat(e.target.value) || 0 })}
-          className="w-full rounded-lg border px-3 py-2 text-sm"
           placeholder="e.g. 90000"
           step="1000"
         />
@@ -497,18 +496,18 @@ function TieredFeeInput({
           </div>
           {feeStructure.tiers.map((tier, index) => (
             <div key={index} className="flex gap-2 items-center">
-              <input
+              <Input
                 type="text"
                 value={formatThreshold(tier.upTo)}
                 onChange={(e) => updateTier(index, 'upTo', parseThreshold(e.target.value))}
-                className="flex-1 min-w-0 rounded border px-2 py-1.5 text-sm"
+                className="flex-1 min-w-0 h-8 text-sm"
                 placeholder={tier.upTo === 0 ? '∞' : 'e.g. 500M'}
               />
-              <input
+              <Input
                 type="number"
                 value={tier.bps || ''}
                 onChange={(e) => updateTier(index, 'bps', parseFloat(e.target.value) || 0)}
-                className="w-16 rounded border px-2 py-1.5 text-sm"
+                className="w-16 h-8 text-sm"
                 placeholder="7"
                 step="0.5"
               />
@@ -599,22 +598,20 @@ function ETFModal({
           <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">{t.etf.form.symbol} *</label>
-              <input
+              <Input
                 type="text"
                 value={formData.symbol}
                 onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
                 placeholder={t.etf.form.symbolPlaceholder}
                 disabled={!!editData}
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t.etf.form.fundName} *</label>
-              <input
+              <Input
                 type="text"
                 value={formData.fund_name}
                 onChange={(e) => setFormData({ ...formData, fund_name: e.target.value })}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
                 placeholder={t.etf.form.fundNamePlaceholder}
               />
             </div>
@@ -624,21 +621,19 @@ function ETFModal({
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_100px] gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">{t.etf.form.fundUrl}</label>
-              <input
+              <Input
                 type="url"
                 value={formData.fund_url}
                 onChange={(e) => setFormData({ ...formData, fund_url: e.target.value })}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
                 placeholder="https://..."
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t.etf.form.listingDate}</label>
-              <input
+              <Input
                 type="date"
                 value={formData.listing_date}
                 onChange={(e) => setFormData({ ...formData, listing_date: e.target.value })}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
               />
             </div>
             <div>
@@ -646,7 +641,7 @@ function ETFModal({
               <select
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
+                className="!border-0 w-full h-9 rounded-md bg-slate-100 dark:bg-slate-700 px-3 text-sm transition-colors outline-none focus:bg-slate-50 dark:focus:bg-slate-600"
               >
                 <option value="USD">USD</option>
                 <option value="KRW">KRW</option>
@@ -673,10 +668,9 @@ function ETFModal({
           {/* Row 4: Notes (full width) */}
           <div>
             <label className="block text-sm font-medium mb-1">{t.etf.form.notes}</label>
-            <textarea
+            <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
               rows={2}
             />
           </div>
@@ -685,7 +679,7 @@ function ETFModal({
         <div className="flex gap-2 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600"
           >
             {t.common.cancel}
           </button>
@@ -1302,54 +1296,50 @@ function ComposeEmailModal({
 
           <div>
             <label className="block text-sm font-medium mb-1">{t.gmail.to} *</label>
-            <input
+            <Input
               type="email"
               value={formData.to}
               onChange={(e) => setFormData({ ...formData, to: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
               placeholder="recipient@example.com"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">{t.gmail.cc}</label>
-            <input
+            <Input
               type="text"
               value={formData.cc}
               onChange={(e) => setFormData({ ...formData, cc: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
               placeholder="cc@example.com"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">{t.gmail.bcc}</label>
-            <input
+            <Input
               type="text"
               value={formData.bcc}
               onChange={(e) => setFormData({ ...formData, bcc: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
               placeholder="bcc@example.com"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">{t.gmail.subject} *</label>
-            <input
+            <Input
               type="text"
               value={formData.subject}
               onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
               placeholder={t.gmail.subjectPlaceholder}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">{t.gmail.body}</label>
-            <textarea
+            <Textarea
               value={formData.body}
               onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm min-h-[200px] font-mono"
+              className="min-h-[200px] font-mono"
               placeholder={t.gmail.bodyPlaceholder}
             />
           </div>
@@ -2498,7 +2488,7 @@ Dongwook`
             <CardTitle>{t.etf.title}</CardTitle>
             <CardDescription>{t.etf.description}</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={loadETFData}
               disabled={isLoadingETFs}
@@ -2508,7 +2498,7 @@ Dongwook`
             </button>
             <button
               onClick={() => window.open('https://supernova.index.engineering', '_blank')}
-              className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
             >
               Supernova
               <ExternalLink className="h-4 w-4" />
@@ -2583,13 +2573,16 @@ Dongwook`
               </div>
               {/* 페이지네이션 */}
               {akrosProducts.length > 0 && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                    <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">
                       {t.gmail.showingRange
                         .replace('{total}', String(akrosProducts.length))
                         .replace('{start}', String((productPage - 1) * productsPerPage + 1))
                         .replace('{end}', String(Math.min(productPage * productsPerPage, akrosProducts.length)))}
+                    </p>
+                    <p className="sm:hidden text-xs text-muted-foreground whitespace-nowrap">
+                      {akrosProducts.length}개 중 {(productPage - 1) * productsPerPage + 1}-{Math.min(productPage * productsPerPage, akrosProducts.length)}
                     </p>
                     <select
                       value={productsPerPage}
@@ -2597,7 +2590,7 @@ Dongwook`
                         setProductsPerPage(Number(e.target.value))
                         setProductPage(1)
                       }}
-                      className="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5"
+                      className="!border-0 text-xs bg-white dark:bg-slate-700 rounded px-1.5 py-0.5"
                     >
                       <option value={10}>10</option>
                       <option value={25}>25</option>
@@ -2827,12 +2820,13 @@ Dongwook`
             </div>
             {/* Pagination controls */}
             {invoices.length > 0 && (
-              <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+              <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                 <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  {t.invoice.showingRange
+                  <span className="hidden sm:inline">{t.invoice.showingRange
                     .replace('{total}', String(invoices.length))
                     .replace('{start}', String((invoicePage - 1) * INVOICES_PER_PAGE + 1))
-                    .replace('{end}', String(Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)))}
+                    .replace('{end}', String(Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)))}</span>
+                  <span className="sm:hidden">{invoices.length}개 중 {(invoicePage - 1) * INVOICES_PER_PAGE + 1}-{Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)}</span>
                 </p>
                 {totalPages > 1 && (
                   <div className="flex items-center gap-1">
@@ -2895,22 +2889,20 @@ Dongwook`
                 {/* Invoice Date */}
                 <div>
                   <label className="block text-sm font-medium mb-1">{t.invoice.invoiceDate}</label>
-                  <input
+                  <Input
                     type="date"
                     value={invoiceFormDate}
                     onChange={(e) => setInvoiceFormDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
                   />
                 </div>
 
                 {/* Attention */}
                 <div>
                   <label className="block text-sm font-medium mb-1">{t.invoice.attention}</label>
-                  <input
+                  <Input
                     type="text"
                     value={invoiceFormAttention}
                     onChange={(e) => setInvoiceFormAttention(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
                   />
                 </div>
 
@@ -2929,7 +2921,7 @@ Dongwook`
                   </div>
                   <div className="space-y-3">
                     {invoiceFormItems.map((item, index) => (
-                      <div key={item.id} className="p-3 bg-slate-50 rounded-lg space-y-2">
+                      <div key={item.id} className="!border-0 p-3 bg-slate-50 rounded-lg space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium text-slate-500">{t.invoice.itemNumber.replace('{number}', String(index + 1))}</span>
                           {invoiceFormItems.length > 1 && (
@@ -2946,7 +2938,7 @@ Dongwook`
                         <select
                           value={item.itemType}
                           onChange={(e) => updateFormItem(item.id, { itemType: e.target.value as InvoiceItemType })}
-                          className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                          className="!border-0 w-full px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-700 rounded transition-colors focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
                         >
                           {ITEM_TEMPLATES.map((template) => (
                             <option key={template.type} value={template.type}>
@@ -2960,7 +2952,7 @@ Dongwook`
                             <select
                               value={item.month}
                               onChange={(e) => updateFormItem(item.id, { month: parseInt(e.target.value) })}
-                              className="px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                              className="!border-0 px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-700 rounded transition-colors focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
                             >
                               {MONTH_NAMES.map((name, idx) => (
                                 <option key={idx} value={idx}>{name}</option>
@@ -2969,7 +2961,7 @@ Dongwook`
                             <select
                               value={item.year}
                               onChange={(e) => updateFormItem(item.id, { year: parseInt(e.target.value) })}
-                              className="px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                              className="!border-0 px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-700 rounded transition-colors focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
                             >
                               {[2024, 2025, 2026, 2027].map((year) => (
                                 <option key={year} value={year}>{year}</option>
@@ -2979,12 +2971,12 @@ Dongwook`
                         )}
                         {/* Custom Description */}
                         {item.itemType === 'custom' && (
-                          <input
+                          <Input
                             type="text"
                             value={item.customDesc}
                             onChange={(e) => updateFormItem(item.id, { customDesc: e.target.value })}
                             placeholder={t.invoice.itemDescription}
-                            className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                            className="h-8 text-sm"
                           />
                         )}
                         {/* Preview */}
@@ -2996,13 +2988,13 @@ Dongwook`
                         {/* Amount */}
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-slate-500">$</span>
-                          <input
+                          <Input
                             type="number"
                             step="0.01"
                             value={item.amount}
                             onChange={(e) => updateFormItem(item.id, { amount: e.target.value })}
                             placeholder="2083.33"
-                            className="flex-1 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
+                            className="flex-1 h-8 text-sm"
                           />
                         </div>
                       </div>
@@ -3010,7 +3002,7 @@ Dongwook`
                   </div>
                   {/* Total */}
                   {invoiceFormItems.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <div className="mt-3 pt-3 flex justify-between items-center">
                       <span className="text-sm font-medium">{t.invoice.total}</span>
                       <span className="text-sm font-bold">
                         ${invoiceFormItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -3022,11 +3014,11 @@ Dongwook`
                 {/* Notes */}
                 <div>
                   <label className="block text-sm font-medium mb-1">{t.invoice.notes}</label>
-                  <textarea
+                  <Textarea
                     value={invoiceFormNotes}
                     onChange={(e) => setInvoiceFormNotes(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500 resize-none"
+                    className="resize-none"
                   />
                 </div>
               </div>
@@ -3078,7 +3070,7 @@ Dongwook`
                   value={wikiSearch}
                   onChange={(e) => setWikiSearch(e.target.value)}
                   placeholder={t.wiki.searchPlaceholder}
-                  className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-500"
+                  className="!border-0 w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
                 />
                 <svg
                   className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"
@@ -3108,9 +3100,10 @@ Dongwook`
               {/* 새 메모 추가 폼 */}
               {isAddingNote && (
                 <div
-                  className={`rounded-lg bg-white dark:bg-slate-700 p-3 border transition-colors ${
-                    isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-200 dark:border-slate-600'
+                  className={`!border-0 !outline-none !ring-0 !shadow-none rounded-lg p-3 transition-colors ${
+                    isDraggingWiki ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-white dark:bg-slate-700'
                   }`}
+                  style={{ border: 'none' }}
                   onDragOver={(e) => {
                     e.preventDefault()
                     setIsDraggingWiki(true)
@@ -3132,7 +3125,8 @@ Dongwook`
                         value={newNoteTitle}
                         onChange={(e) => setNewNoteTitle(e.target.value)}
                         placeholder={t.wiki.titlePlaceholder}
-                        className="h-9 border border-slate-200 dark:border-slate-600"
+                        className="!border-0 h-9"
+                        style={{ border: 'none' }}
                       />
                     </div>
                     <div>
@@ -3142,14 +3136,15 @@ Dongwook`
                         onChange={(e) => setNewNoteContent(e.target.value)}
                         placeholder={t.wiki.contentPlaceholder}
                         rows={3}
-                        className="resize-none border border-slate-200 dark:border-slate-600"
+                        className="!border-0 resize-none"
+                        style={{ border: 'none' }}
                       />
                     </div>
 
                     {/* 파일 첨부 영역 */}
                     <div>
-                      <div className={`border border-dashed rounded p-2 text-center transition-colors ${
-                        isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-300 dark:border-slate-500'
+                      <div className={`!border-0 rounded-lg p-2 text-center transition-colors ${
+                        isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-700'
                       }`}>
                         <input
                           type="file"
@@ -3194,7 +3189,7 @@ Dongwook`
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                  <div className="flex justify-end gap-2 mt-4 pt-3">
                     <Button
                       variant="outline"
                       size="sm"
@@ -3232,16 +3227,17 @@ Dongwook`
                 </div>
               ) : filteredWikiNotes.length > 0 ? (
                 paginatedWikiNotes.map((note) => (
-                  <div key={note.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                  <div key={note.id} className="!border-0 !outline-none !ring-0 !shadow-none rounded-lg bg-white dark:bg-slate-700 p-3">
                     {editingNote?.id === note.id ? (
-                      <div className="border border-amber-200 dark:border-amber-800 rounded-lg p-3 -m-3">
+                      <div className="!border-0 !outline-none !ring-0 !shadow-none bg-white dark:bg-slate-700 rounded-lg p-3 -m-3">
                         <div className="space-y-3">
                           <div>
                             <label className="text-xs text-slate-500 mb-1 block">제목</label>
                             <Input
                               value={editingNote.title}
                               onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
-                              className="h-9 border border-slate-200 dark:border-slate-600"
+                              className="!border-0 h-9"
+                              style={{ border: 'none' }}
                             />
                           </div>
                           <div>
@@ -3250,24 +3246,78 @@ Dongwook`
                               value={editingNote.content}
                               onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
                               rows={3}
-                              className="resize-none border border-slate-200 dark:border-slate-600"
+                              className="!border-0 resize-none"
+                              style={{ border: 'none' }}
                             />
                           </div>
+                          {/* 기존 첨부파일 */}
                           {editingNote.attachments && editingNote.attachments.length > 0 && (
                             <div>
                               <p className="text-xs text-slate-400 mb-1">첨부파일:</p>
                               <div className="space-y-1">
                                 {editingNote.attachments.map((att, idx) => (
-                                  <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-500">
+                                  <div key={idx} className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-600 rounded px-2 py-1.5">
                                     <Paperclip className="h-3 w-3 text-slate-400" />
-                                    <span className="flex-1 truncate text-blue-600">{att.name}</span>
-                                  </a>
+                                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-blue-600 hover:underline">{att.name}</a>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newAttachments = editingNote.attachments?.filter((_, i) => i !== idx) || []
+                                        setEditingNote({ ...editingNote, attachments: newAttachments })
+                                      }}
+                                      className="text-slate-400 hover:text-red-500 transition-colors"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
                                 ))}
                               </div>
                             </div>
                           )}
+                          {/* 새 파일 추가 */}
+                          <div>
+                            <div className="!border-0 rounded-lg p-2 text-center transition-colors bg-slate-100 dark:bg-slate-700">
+                              <input
+                                type="file"
+                                id={`wiki-file-input-edit-${editingNote.id}`}
+                                multiple
+                                className="hidden"
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || [])
+                                  if (files.length > 0) {
+                                    setNewNoteFiles(prev => [...prev, ...files])
+                                  }
+                                  e.target.value = ''
+                                }}
+                              />
+                              <label
+                                htmlFor={`wiki-file-input-edit-${editingNote.id}`}
+                                className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300"
+                              >
+                                <Paperclip className="h-3 w-3" />
+                                <span>{t.wiki.fileAttach}</span>
+                              </label>
+                            </div>
+                            {newNoteFiles.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {newNoteFiles.map((file, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-600 rounded px-2 py-1.5">
+                                    <Paperclip className="h-3 w-3 text-slate-400" />
+                                    <span className="flex-1 truncate">{file.name}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setNewNoteFiles(prev => prev.filter((_, i) => i !== idx))}
+                                      className="text-slate-400 hover:text-red-500 transition-colors"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex justify-between gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                        <div className="flex justify-between gap-2 mt-4 pt-3">
                           <Button
                             variant="destructive"
                             size="sm"
@@ -3290,9 +3340,7 @@ Dongwook`
                             </Button>
                             <Button
                               size="sm"
-                              variant="secondary"
                               onClick={() => handleUpdateNote(editingNote)}
-                              className="bg-amber-600 hover:bg-amber-700 text-white"
                             >
                               {t.common.save}
                             </Button>
@@ -3351,12 +3399,13 @@ Dongwook`
 
             {/* 페이지네이션 */}
             {filteredWikiNotes.length > 0 && (
-              <div className="flex items-center justify-between pt-3 border-t border-slate-200 mt-3">
+              <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 mt-3">
                 <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  {t.wiki.showingRange
+                  <span className="hidden sm:inline">{t.wiki.showingRange
                     .replace('{total}', String(filteredWikiNotes.length))
                     .replace('{start}', String((wikiPage - 1) * WIKI_PER_PAGE + 1))
-                    .replace('{end}', String(Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)))}
+                    .replace('{end}', String(Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)))}</span>
+                  <span className="sm:hidden">{filteredWikiNotes.length}개 중 {(wikiPage - 1) * WIKI_PER_PAGE + 1}-{Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)}</span>
                 </p>
                 {totalWikiPages > 1 && (
                   <div className="flex items-center gap-1">
@@ -3514,7 +3563,7 @@ Dongwook`
                         type="text"
                         value={labelInput}
                         onChange={(e) => setLabelInput(e.target.value)}
-                        className="font-mono bg-slate-100 px-2 py-1 rounded text-xs w-24 border border-slate-200 focus:outline-none focus:border-slate-400"
+                        className="!border-0 font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs w-24 outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
                         placeholder="ETC"
                       />
                       <button
@@ -3559,7 +3608,7 @@ Dongwook`
                             value={aiContextText}
                             onChange={(e) => setAiContextText(e.target.value)}
                             placeholder={t.gmail.aiContextPlaceholder}
-                            className="w-full rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            className="!border-0 w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm min-h-[80px] outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
                           />
                         </div>
                         <button
@@ -3616,7 +3665,7 @@ Dongwook`
                     value={emailSearch}
                     onChange={(e) => setEmailSearch(e.target.value)}
                     placeholder={t.header.searchPlaceholder}
-                    className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm pl-9 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-500"
+                    className="!border-0 w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm pl-9 outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
                   />
                   <svg
                     className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
@@ -3738,10 +3787,13 @@ Dongwook`
                     ))}
                     {/* 페이지네이션 */}
                     {filteredEmails.length > 0 && (
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                      <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                         <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground whitespace-nowrap">
+                          <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">
                             {t.gmail.showingRange.replace('{total}', String(filteredEmails.length)).replace('{start}', String((emailPage - 1) * emailsPerPage + 1)).replace('{end}', String(Math.min(emailPage * emailsPerPage, filteredEmails.length)))}
+                          </p>
+                          <p className="sm:hidden text-xs text-muted-foreground whitespace-nowrap">
+                            {filteredEmails.length}개 중 {(emailPage - 1) * emailsPerPage + 1}-{Math.min(emailPage * emailsPerPage, filteredEmails.length)}
                           </p>
                           <select
                             value={emailsPerPage}
@@ -3749,13 +3801,13 @@ Dongwook`
                               setEmailsPerPage(Number(e.target.value))
                               setEmailPage(1)
                             }}
-                            className="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5"
+                            className="!border-0 text-xs bg-white dark:bg-slate-700 rounded px-1.5 py-0.5"
                           >
-                            <option value={10}>{t.gmail.emailCount.replace('{count}', '10')}</option>
-                            <option value={20}>{t.gmail.emailCount.replace('{count}', '20')}</option>
-                            <option value={30}>{t.gmail.emailCount.replace('{count}', '30')}</option>
-                            <option value={50}>{t.gmail.emailCount.replace('{count}', '50')}</option>
-                            <option value={100}>{t.gmail.emailCount.replace('{count}', '100')}</option>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={30}>30</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
                           </select>
                         </div>
                         {totalEmailPages > 1 && (
@@ -3822,7 +3874,7 @@ Dongwook`
                 </div>
 
                 {/* Overall Summary */}
-                <div className="bg-white dark:bg-slate-700 rounded-lg p-3 mb-4">
+                <div className="!border-0 bg-white dark:bg-slate-700 rounded-lg p-3 mb-4">
                   <h5 className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{t.gmail.overallSummary}</h5>
                   <p className="text-xs text-slate-600 dark:text-slate-400">{aiAnalysis.overallSummary}</p>
                 </div>
@@ -3869,7 +3921,7 @@ Dongwook`
 
                       {/* Category Card */}
                       <div
-                        className="bg-white dark:bg-slate-700 rounded-lg p-3 cursor-grab active:cursor-grabbing select-none"
+                        className="!border-0 bg-white dark:bg-slate-700 rounded-lg p-3 cursor-grab active:cursor-grabbing select-none"
                         style={{
                           transform: isDragging ? `translateX(${dragDeltaX}px)` : 'translateX(0)',
                           transition: isDragging ? 'none' : 'transform 0.3s ease-out',

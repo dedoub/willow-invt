@@ -62,6 +62,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const menuSections: (MenuSection & { key: string })[] = [
     {
+      key: 'tenSoftworks',
+      title: t.sidebar.tenSoftworks,
+      icon: <Building2 className="h-5 w-5" />,
+      items: [
+        { title: t.sidebar.tenswProjects, href: '/tensoftworks/projects' },
+        { title: t.sidebar.tenswManagement, href: '/tensoftworks/management' },
+      ],
+    },
+    {
       key: 'etfIndexing',
       title: t.sidebar.etfIndexing,
       icon: <TrendingUp className="h-5 w-5" />,
@@ -77,15 +86,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       items: [
         { title: t.sidebar.voiceCards, href: '/monor/voicecards' },
         { title: t.sidebar.reviewNotes, href: '/monor/reviewnotes' },
-      ],
-    },
-    {
-      key: 'tenSoftworks',
-      title: t.sidebar.tenSoftworks,
-      icon: <Building2 className="h-5 w-5" />,
-      items: [
-        { title: t.sidebar.tenswProjects, href: '/tensoftworks/projects' },
-        { title: t.sidebar.tenswManagement, href: '/tensoftworks/management' },
       ],
     },
     {

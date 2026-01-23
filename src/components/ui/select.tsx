@@ -37,7 +37,19 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // 기본 스타일 (border, shadow 없음 - 배경색으로 구분)
+        "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground",
+        "!border-0 flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap transition-colors outline-none",
+        "bg-slate-100 dark:bg-slate-700",
+        // 포커스 시 배경색 변경 (흰색 대신 slate-50으로 구분 유지)
+        "focus-visible:bg-slate-50 dark:focus-visible:bg-slate-600",
+        // 에러 상태
+        "aria-invalid:bg-red-50 dark:aria-invalid:bg-red-900/20",
+        // 비활성화
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        "data-[size=default]:h-9 data-[size=sm]:h-8",
+        "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}

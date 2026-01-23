@@ -53,6 +53,7 @@ export interface SendEmailParams {
   bcc?: string
   replyTo?: string
   attachments?: File[]
+  context?: 'default' | 'tensoftworks'
 }
 
 export interface GmailTokens {
@@ -200,7 +201,8 @@ class GmailService {
         })
       }
 
-      const res = await fetch('/api/gmail/send', {
+      const url = params.context ? `/api/gmail/send?context=${params.context}` : '/api/gmail/send'
+      const res = await fetch(url, {
         method: 'POST',
         body: formData,
       })

@@ -202,6 +202,21 @@ export function CheckboxGroup() {
 // ============================================
 // 6. 모달 폼 (생성 모드)
 // ============================================
+/**
+ * 모달 폼 스타일 가이드:
+ *
+ * DialogContent: className="max-h-[90vh] flex flex-col"
+ * DialogHeader: className="flex-shrink-0 pb-4 border-b"
+ * 본문 div: className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4"
+ *   - px-1 -mx-1: 스크롤바가 내용과 겹치지 않도록 처리
+ *   - py-4: 상하 여백
+ * DialogFooter: className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t"
+ *
+ * label 스타일: className="text-xs text-slate-500 mb-1 block"
+ *   - 필수 필드는 라벨 끝에 * 표시: "이름 *"
+ *
+ * 폼 필드 wrapper: <div> (space-y-2 불필요, label에 mb-1 있음)
+ */
 export function CreateModalForm() {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -224,14 +239,14 @@ export function CreateModalForm() {
             <DialogDescription>새 항목의 정보를 입력하세요.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 overflow-y-auto flex-1 py-4">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
             <div>
-              <Label className="mb-2 block">이름</Label>
+              <label className="text-xs text-slate-500 mb-1 block">이름 *</label>
               <Input placeholder="이름을 입력하세요" />
             </div>
 
             <div>
-              <Label className="mb-2 block">설명</Label>
+              <label className="text-xs text-slate-500 mb-1 block">설명</label>
               <Textarea placeholder="설명을 입력하세요..." rows={3} />
             </div>
           </div>
@@ -285,14 +300,14 @@ export function EditModalForm() {
             <DialogDescription>항목 정보를 수정합니다.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 overflow-y-auto flex-1 py-4">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
             <div>
-              <Label className="mb-2 block">이름</Label>
+              <label className="text-xs text-slate-500 mb-1 block">이름 *</label>
               <Input defaultValue="기존 값" />
             </div>
 
             <div>
-              <Label className="mb-2 block">설명</Label>
+              <label className="text-xs text-slate-500 mb-1 block">설명</label>
               <Textarea defaultValue="기존 설명..." rows={3} />
             </div>
           </div>

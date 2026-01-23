@@ -112,6 +112,10 @@ AKROS_SUPABASE_SERVICE_KEY=...
 | 페이지 배경 | `bg-slate-50` | `dark:bg-slate-900` |
 | 카드 배경 | `bg-slate-100` | `dark:bg-slate-800` |
 | 내부 영역 | `bg-white` | `dark:bg-slate-700` |
+| 폼 필드 (Input/Textarea/Select) | `bg-slate-100` | `dark:bg-slate-700` |
+| 폼 필드 포커스 | `bg-slate-50` | `dark:bg-slate-600` |
+
+> **Note**: 모달 배경(bg-white)에서 폼 필드가 항상 구분되도록 포커스 시에도 slate-50 유지
 
 ### 상태 배지 색상 (Status Badge)
 | 상태 | 색상 |
@@ -146,10 +150,57 @@ AKROS_SUPABASE_SERVICE_KEY=...
 <Button size="sm" className="h-8 px-3">저장</Button>
 ```
 
+### 모달 폼 전체 구조
+```jsx
+<Dialog open={open} onOpenChange={setOpen}>
+  <DialogContent className="max-h-[90vh] flex flex-col">
+    <DialogHeader className="flex-shrink-0 pb-4 border-b">
+      <DialogTitle>항목 추가</DialogTitle>
+    </DialogHeader>
+
+    {/* 본문: px-1 -mx-1로 스크롤바 처리 */}
+    <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
+      <div>
+        <label className="text-xs text-slate-500 mb-1 block">이름 *</label>
+        <Input placeholder="이름을 입력하세요" />
+      </div>
+      <div>
+        <label className="text-xs text-slate-500 mb-1 block">설명</label>
+        <Textarea placeholder="설명..." rows={2} />
+      </div>
+    </div>
+
+    <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+      {/* 생성 모드: <div /> | 수정 모드: <Button variant="destructive">삭제</Button> */}
+      <div />
+      <div className="flex gap-2">
+        <Button variant="outline">취소</Button>
+        <Button>저장</Button>
+      </div>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+```
+
+### 모달 폼 label 스타일
+```jsx
+// 기본 label (필수 아님)
+<label className="text-xs text-slate-500 mb-1 block">설명</label>
+
+// 필수 필드 label
+<label className="text-xs text-slate-500 mb-1 block">이름 *</label>
+
+// 폼 필드 wrapper (space-y-2 불필요, label에 mb-1 있음)
+<div>
+  <label className="text-xs text-slate-500 mb-1 block">필드명</label>
+  <Input ... />
+</div>
+```
+
 ### 모달 Footer 패턴
 ```jsx
 // 생성 모드 (삭제 버튼 없음)
-<DialogFooter className="flex-row justify-between pt-4 border-t">
+<DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
   <div />
   <div className="flex gap-2">
     <Button variant="outline">취소</Button>
@@ -158,7 +209,7 @@ AKROS_SUPABASE_SERVICE_KEY=...
 </DialogFooter>
 
 // 수정 모드 (삭제 버튼 좌측)
-<DialogFooter className="flex-row justify-between pt-4 border-t">
+<DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
   <Button variant="destructive">삭제</Button>
   <div className="flex gap-2">
     <Button variant="outline">취소</Button>
@@ -167,23 +218,38 @@ AKROS_SUPABASE_SERVICE_KEY=...
 </DialogFooter>
 ```
 
-### 인라인 폼 패턴
-간단한 항목(1-2개 필드)은 모달 대신 인라인 폼 사용:
+### 인라인 폼 패턴 (위키 스타일)
+카드 내에서 모달 대신 인라인으로 추가/수정하는 폼 패턴:
 ```jsx
-<div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
-  <Input
-    className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
-    autoFocus
-    onKeyDown={(e) => {
-      if (e.key === 'Enter') save()
-      if (e.key === 'Escape') cancel()
-    }}
-  />
+// 배경색 규칙:
+// - 폼 컨테이너: bg-white (카드 배경 bg-slate-100과 구분)
+// - 입력 필드: bg-slate-100 (컴포넌트 기본값)
+// - 파일 첨부 영역: bg-slate-100
+
+// 추가 폼 (버튼 우측 정렬)
+<div className="rounded-lg p-3 bg-white dark:bg-slate-700">
+  <div className="space-y-3">
+    <div>
+      <label className="text-xs text-slate-500 mb-1 block">제목</label>
+      <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+    </div>
+    <div>
+      <label className="text-xs text-slate-500 mb-1 block">내용</label>
+      <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={3} />
+    </div>
+  </div>
+  <div className="flex justify-end gap-2 mt-4 pt-3">
+    <Button variant="outline" size="sm">취소</Button>
+    <Button size="sm">저장</Button>
+  </div>
+</div>
+
+// 수정 폼 (삭제 버튼 좌측)
+<div className="flex justify-between gap-2 mt-4 pt-3">
+  <Button variant="destructive" size="sm">삭제</Button>
   <div className="flex gap-2">
-    <Input type="date" className="h-8 text-sm flex-1" />
-    <Button size="sm" variant="destructive" className="h-8 px-3">삭제</Button>
-    <Button size="sm" variant="outline" className="h-8 px-3">취소</Button>
-    <Button size="sm" className="h-8 px-3">저장</Button>
+    <Button variant="outline" size="sm">취소</Button>
+    <Button size="sm">저장</Button>
   </div>
 </div>
 ```
@@ -230,3 +296,4 @@ items.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
   - `chart-template.tsx` - 차트 (recharts)
   - `dnd-template.tsx` - 드래그앤드롭 (dnd-kit)
   - `utilities-template.tsx` - 숫자 포맷, 날짜 등 유틸리티
+  - `wiki-template.tsx` - 업무 위키 (인라인 폼, 파일 첨부, 페이지네이션)

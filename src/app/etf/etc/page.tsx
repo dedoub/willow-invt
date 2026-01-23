@@ -2707,12 +2707,13 @@ Dongwook`
             </div>
             {/* Pagination controls */}
             {invoices.length > 0 && (
-              <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+              <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                 <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  {t.invoice.showingRange
+                  <span className="hidden sm:inline">{t.invoice.showingRange
                     .replace('{total}', String(invoices.length))
                     .replace('{start}', String((invoicePage - 1) * INVOICES_PER_PAGE + 1))
-                    .replace('{end}', String(Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)))}
+                    .replace('{end}', String(Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)))}</span>
+                  <span className="sm:hidden">{invoices.length}개 중 {(invoicePage - 1) * INVOICES_PER_PAGE + 1}-{Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)}</span>
                 </p>
                 {totalPages > 1 && (
                   <div className="flex items-center gap-1">
@@ -2988,9 +2989,10 @@ Dongwook`
               {/* 새 메모 추가 폼 */}
               {isAddingNote && (
                 <div
-                  className={`rounded-lg bg-white dark:bg-slate-700 p-3 border transition-colors ${
-                    isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-200 dark:border-slate-600'
+                  className={`!border-0 rounded-lg p-3 transition-colors ${
+                    isDraggingWiki ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-white dark:bg-slate-700'
                   }`}
+                  style={{ border: 'none' }}
                   onDragOver={(e) => {
                     e.preventDefault()
                     setIsDraggingWiki(true)
@@ -3012,7 +3014,8 @@ Dongwook`
                         value={newNoteTitle}
                         onChange={(e) => setNewNoteTitle(e.target.value)}
                         placeholder={t.wiki.titlePlaceholder}
-                        className="h-9 border border-slate-200 dark:border-slate-600"
+                        className="!border-0 h-9"
+                        style={{ border: 'none' }}
                       />
                     </div>
                     <div>
@@ -3022,13 +3025,14 @@ Dongwook`
                         onChange={(e) => setNewNoteContent(e.target.value)}
                         placeholder={t.wiki.contentPlaceholder}
                         rows={3}
-                        className="resize-none border border-slate-200 dark:border-slate-600"
+                        className="!border-0 resize-none"
+                        style={{ border: 'none' }}
                       />
                     </div>
                     <div>
-                      <div className={`border border-dashed rounded p-2 text-center transition-colors ${
-                        isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-300 dark:border-slate-500'
-                      }`}>
+                      <div className={`!border-0 rounded-lg p-2 text-center transition-colors ${
+                        isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-700'
+                      }`} style={{ border: 'none' }}>
                         <input
                           type="file"
                           id="wiki-file-input-etc"
@@ -3107,16 +3111,17 @@ Dongwook`
                 </div>
               ) : filteredWikiNotes.length > 0 ? (
                 paginatedWikiNotes.map((note) => (
-                  <div key={note.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                  <div key={note.id} className="!border-0 rounded-lg bg-white dark:bg-slate-700 p-3" style={{ border: 'none' }}>
                     {editingNote?.id === note.id ? (
-                      <div className="border border-amber-200 dark:border-amber-800 rounded-lg p-3 -m-3">
+                      <div className="!border-0 bg-white dark:bg-slate-700 rounded-lg p-3 -m-3" style={{ border: 'none' }}>
                         <div className="space-y-3">
                           <div>
                             <label className="text-xs text-slate-500 mb-1 block">제목</label>
                             <Input
                               value={editingNote.title}
                               onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
-                              className="h-9 border border-slate-200 dark:border-slate-600"
+                              className="!border-0 h-9"
+                              style={{ border: 'none' }}
                             />
                           </div>
                           <div>
@@ -3125,22 +3130,76 @@ Dongwook`
                               value={editingNote.content}
                               onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
                               rows={3}
-                              className="resize-none border border-slate-200 dark:border-slate-600"
+                              className="!border-0 resize-none"
+                              style={{ border: 'none' }}
                             />
                           </div>
-                          {editingNote.attachments && editingNote.attachments.length > 0 && (
-                            <div>
-                              <p className="text-xs text-slate-400 mb-1">첨부파일:</p>
-                              <div className="space-y-1">
+                          <div>
+                            <label
+                              htmlFor={`wiki-file-input-edit-${note.id}`}
+                              className={`!border-0 rounded-lg p-2 text-center transition-colors cursor-pointer block ${
+                                isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-600'
+                              }`}
+                              style={{ border: 'none' }}
+                            >
+                              <input
+                                type="file"
+                                id={`wiki-file-input-edit-${note.id}`}
+                                multiple
+                                className="hidden"
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || [])
+                                  if (files.length > 0) {
+                                    setNewNoteFiles(prev => [...prev, ...files])
+                                  }
+                                  e.target.value = ''
+                                }}
+                              />
+                              <span className="flex items-center justify-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                <Paperclip className="h-3 w-3" />
+                                <span>{t.wiki.fileAttach}</span>
+                              </span>
+                            </label>
+                            {editingNote.attachments && editingNote.attachments.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs text-slate-400">기존 첨부파일:</p>
                                 {editingNote.attachments.map((att, idx) => (
-                                  <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-500">
+                                  <div key={idx} className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-600 rounded px-2 py-1.5">
                                     <Paperclip className="h-3 w-3 text-slate-400" />
-                                    <span className="flex-1 truncate text-blue-600">{att.name}</span>
-                                  </a>
+                                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-blue-600 hover:underline">{att.name}</a>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newAttachments = editingNote.attachments?.filter((_, i) => i !== idx) || []
+                                        setEditingNote({ ...editingNote, attachments: newAttachments })
+                                      }}
+                                      className="text-slate-400 hover:text-red-500 transition-colors"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
                                 ))}
                               </div>
-                            </div>
-                          )}
+                            )}
+                            {newNoteFiles.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs text-slate-400">새 첨부파일:</p>
+                                {newNoteFiles.map((file, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-600 rounded px-2 py-1.5">
+                                    <Paperclip className="h-3 w-3 text-slate-400" />
+                                    <span className="flex-1 truncate">{file.name}</span>
+                                    <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                                    <button
+                                      onClick={() => setNewNoteFiles(files => files.filter((_, i) => i !== idx))}
+                                      className="text-slate-400 hover:text-red-500"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="flex justify-between gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
                           <Button
@@ -3165,9 +3224,7 @@ Dongwook`
                             </Button>
                             <Button
                               size="sm"
-                              variant="secondary"
                               onClick={() => handleUpdateNote(editingNote)}
-                              className="bg-amber-600 hover:bg-amber-700 text-white"
                             >
                               {t.common.save}
                             </Button>
@@ -3226,12 +3283,13 @@ Dongwook`
 
             {/* 페이지네이션 */}
             {filteredWikiNotes.length > 0 && (
-              <div className="flex items-center justify-between pt-3 border-t border-slate-200 mt-3">
+              <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 mt-3">
                 <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  {t.wiki.showingRange
+                  <span className="hidden sm:inline">{t.wiki.showingRange
                     .replace('{total}', String(filteredWikiNotes.length))
                     .replace('{start}', String((wikiPage - 1) * WIKI_PER_PAGE + 1))
-                    .replace('{end}', String(Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)))}
+                    .replace('{end}', String(Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)))}</span>
+                  <span className="sm:hidden">{filteredWikiNotes.length}개 중 {(wikiPage - 1) * WIKI_PER_PAGE + 1}-{Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)}</span>
                 </p>
                 {totalWikiPages > 1 && (
                   <div className="flex items-center gap-1">
@@ -3613,10 +3671,13 @@ Dongwook`
                     ))}
                     {/* 페이지네이션 */}
                     {filteredEmails.length > 0 && (
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                      <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                         <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground whitespace-nowrap">
+                          <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">
                             {t.gmail.showingRange.replace('{total}', String(filteredEmails.length)).replace('{start}', String((emailPage - 1) * emailsPerPage + 1)).replace('{end}', String(Math.min(emailPage * emailsPerPage, filteredEmails.length)))}
+                          </p>
+                          <p className="sm:hidden text-xs text-muted-foreground whitespace-nowrap">
+                            {filteredEmails.length}개 중 {(emailPage - 1) * emailsPerPage + 1}-{Math.min(emailPage * emailsPerPage, filteredEmails.length)}
                           </p>
                           <select
                             value={emailsPerPage}
@@ -3624,13 +3685,13 @@ Dongwook`
                               setEmailsPerPage(Number(e.target.value))
                               setEmailPage(1)
                             }}
-                            className="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5"
+                            className="!border-0 text-xs bg-white dark:bg-slate-700 rounded px-1.5 py-0.5"
                           >
-                            <option value={10}>{t.gmail.emailCount.replace('{count}', '10')}</option>
-                            <option value={20}>{t.gmail.emailCount.replace('{count}', '20')}</option>
-                            <option value={30}>{t.gmail.emailCount.replace('{count}', '30')}</option>
-                            <option value={50}>{t.gmail.emailCount.replace('{count}', '50')}</option>
-                            <option value={100}>{t.gmail.emailCount.replace('{count}', '100')}</option>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={30}>30</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
                           </select>
                         </div>
                         {totalEmailPages > 1 && (

@@ -555,6 +555,121 @@ function DraggableMonthScheduleCard({
   )
 }
 
+// 이메일 작성 모달
+type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
+
+interface ComposeEmailData {
+  to: string
+  cc: string
+  bcc: string
+  subject: string
+  body: string
+}
+
+function ComposeEmailModal({
+  isOpen,
+  onClose,
+  mode,
+  originalEmail,
+  initialData,
+  initialAttachments,
+  onSendSuccess,
+  t,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  mode: ComposeMode
+  originalEmail: ParsedEmail | null
+  initialData?: Partial<ComposeEmailData>
+  initialAttachments?: File[]
+  onSendSuccess?: () => void
+  t: ReturnType<typeof useI18n>['t']
+}) {
+  const [formData, setFormData] = useState<ComposeEmailData>({ to: '', cc: '', bcc: '', subject: '', body: '' })
+  const [attachments, setAttachments] = useState<File[]>([])
+  const [isSending, setIsSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isOpen && originalEmail) {
+      const replyPrefix = mode === 'forward' ? 'Fwd: ' : 'Re: '
+      const subjectHasPrefix = originalEmail.subject.startsWith('Re:') || originalEmail.subject.startsWith('Fwd:')
+      const newSubject = subjectHasPrefix ? originalEmail.subject : replyPrefix + originalEmail.subject
+      const quotedBody = `\n\n-------- Original Message --------\nFrom: ${originalEmail.fromName || originalEmail.from}\nDate: ${originalEmail.date}\nSubject: ${originalEmail.subject}\n\n${originalEmail.body || originalEmail.snippet}`
+      if (mode === 'reply') setFormData({ to: originalEmail.from, cc: '', bcc: '', subject: newSubject, body: quotedBody })
+      else if (mode === 'replyAll') {
+        const allRecipients = [originalEmail.from]
+        if (originalEmail.to) allRecipients.push(...originalEmail.to.split(',').map(e => e.trim()).filter(e => e))
+        setFormData({ to: originalEmail.from, cc: allRecipients.slice(1).join(', '), bcc: '', subject: newSubject, body: quotedBody })
+      } else if (mode === 'forward') setFormData({ to: '', cc: '', bcc: '', subject: newSubject, body: quotedBody })
+    } else if (isOpen && mode === 'new') {
+      setFormData({ to: initialData?.to || '', cc: initialData?.cc || '', bcc: initialData?.bcc || '', subject: initialData?.subject || '', body: initialData?.body || '' })
+      setAttachments(initialAttachments || [])
+      setError(null)
+      return
+    }
+    setAttachments([])
+    setError(null)
+  }, [isOpen, mode, originalEmail, initialData, initialAttachments])
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) {
+      const newFiles = Array.from(files)
+      setAttachments(prev => [...prev, ...newFiles])
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+  const handleRemoveAttachment = (index: number) => setAttachments(prev => prev.filter((_, i) => i !== index))
+  const formatFileSize = (bytes: number) => bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
+
+  const handleSend = async () => {
+    if (!formData.to.trim()) { setError(t.gmail.errorNoRecipient); return }
+    if (!formData.subject.trim()) { setError(t.gmail.errorNoSubject); return }
+    setIsSending(true)
+    setError(null)
+    try {
+      const result = await gmailService.sendEmail({ to: formData.to, subject: formData.subject, body: formData.body, cc: formData.cc || undefined, bcc: formData.bcc || undefined, attachments: attachments.length > 0 ? attachments : undefined, context: 'tensoftworks' })
+      if (result.success) { onSendSuccess?.(); onClose() }
+      else setError(result.error || t.gmail.sendFailed)
+    } catch { setError(t.gmail.sendFailed) }
+    finally { setIsSending(false) }
+  }
+
+  if (!isOpen) return null
+  const getTitle = () => { switch (mode) { case 'reply': return t.gmail.reply; case 'replyAll': return t.gmail.replyAll; case 'forward': return t.gmail.forward; default: return t.gmail.newEmail } }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <h3 className="text-lg font-semibold">{getTitle()}</h3>
+          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {error && <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm text-red-700 dark:text-red-400">{error}</div>}
+          <div><label className="block text-sm font-medium mb-1">{t.gmail.to} *</label><input type="email" value={formData.to} onChange={(e) => setFormData({ ...formData, to: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder="recipient@example.com" /></div>
+          <div><label className="block text-sm font-medium mb-1">{t.gmail.cc}</label><input type="text" value={formData.cc} onChange={(e) => setFormData({ ...formData, cc: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder="cc@example.com" /></div>
+          <div><label className="block text-sm font-medium mb-1">{t.gmail.bcc}</label><input type="text" value={formData.bcc} onChange={(e) => setFormData({ ...formData, bcc: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder="bcc@example.com" /></div>
+          <div><label className="block text-sm font-medium mb-1">{t.gmail.subject} *</label><input type="text" value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" placeholder={t.gmail.subjectPlaceholder} /></div>
+          <div><label className="block text-sm font-medium mb-1">{t.gmail.body}</label><textarea value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm min-h-[200px] font-mono" placeholder={t.gmail.bodyPlaceholder} /></div>
+          <div>
+            <div className="flex items-center justify-between mb-2"><label className="block text-sm font-medium">{t.gmail.attachments}</label><input ref={fileInputRef} type="file" multiple onChange={handleFileSelect} className="hidden" id="tensw-compose-file-input" /><label htmlFor="tensw-compose-file-input" className="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-700 cursor-pointer"><Plus className="h-4 w-4" />{t.gmail.addAttachment}</label></div>
+            {attachments.length > 0 && <div className="space-y-2">{attachments.map((file, index) => (<div key={index} className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-700 px-3 py-2"><div className="flex items-center gap-2 min-w-0"><FileText className="h-4 w-4 text-slate-400 flex-shrink-0" /><span className="text-sm truncate">{file.name}</span><span className="text-xs text-muted-foreground flex-shrink-0">({formatFileSize(file.size)})</span></div><button onClick={() => handleRemoveAttachment(index)} className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 flex-shrink-0"><X className="h-4 w-4 text-slate-500" /></button></div>))}</div>}
+          </div>
+        </div>
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <div className="flex gap-2">
+            <button onClick={onClose} className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600">{t.common.cancel}</button>
+            <button onClick={handleSend} disabled={isSending} className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-500 disabled:opacity-50">{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{t.gmail.send}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function TenswManagementPage() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
@@ -2917,9 +3032,9 @@ export default function TenswManagementPage() {
                           )}
                         </div>
                         {invoices.length > 0 && (
-                          <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                          <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                             <p className="text-xs text-muted-foreground whitespace-nowrap">
-                              총 {invoices.length}건 중 {(invoicePage - 1) * INVOICES_PER_PAGE + 1}-{Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)}
+                              {invoices.length}개 중 {(invoicePage - 1) * INVOICES_PER_PAGE + 1}-{Math.min(invoicePage * INVOICES_PER_PAGE, invoices.length)}
                             </p>
                             {totalPages > 1 && (
                               <div className="flex items-center gap-1">
@@ -3240,9 +3355,10 @@ export default function TenswManagementPage() {
               <div className="space-y-2">
                 {isAddingNote && (
                   <div
-                    className={`rounded-lg bg-white dark:bg-slate-700 p-3 border transition-colors ${
-                      isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-200 dark:border-slate-600'
+                    className={`!border-0 rounded-lg p-3 transition-colors ${
+                      isDraggingWiki ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-white dark:bg-slate-700'
                     }`}
+                    style={{ border: 'none' }}
                     onDragOver={(e) => { e.preventDefault(); setIsDraggingWiki(true) }}
                     onDragLeave={() => setIsDraggingWiki(false)}
                     onDrop={(e) => { e.preventDefault(); setIsDraggingWiki(false); const files = Array.from(e.dataTransfer.files || []); if (files.length > 0) setNewNoteFiles(prev => [...prev, ...files]) }}
@@ -3254,7 +3370,8 @@ export default function TenswManagementPage() {
                           value={newNoteTitle}
                           onChange={(e) => setNewNoteTitle(e.target.value)}
                           placeholder={t.wiki.titlePlaceholder}
-                          className="h-9 border border-slate-200 dark:border-slate-600"
+                          className="!border-0 h-9"
+                          style={{ border: 'none' }}
                         />
                       </div>
                       <div>
@@ -3264,16 +3381,14 @@ export default function TenswManagementPage() {
                           onChange={(e) => setNewNoteContent(e.target.value)}
                           placeholder={t.wiki.contentPlaceholder}
                           rows={3}
-                          className="resize-none border border-slate-200 dark:border-slate-600"
+                          className="!border-0 resize-none"
+                          style={{ border: 'none' }}
                         />
                       </div>
                       <div>
-                        <label
-                          htmlFor="wiki-file-input-mgmt"
-                          className={`border border-dashed rounded p-2 text-center transition-colors cursor-pointer block ${
-                            isDraggingWiki ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'border-slate-300 dark:border-slate-500'
-                          }`}
-                        >
+                        <div className={`!border-0 rounded-lg p-2 text-center transition-colors ${
+                            isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-700'
+                          }`} style={{ border: 'none' }}>
                           <input
                             type="file"
                             id="wiki-file-input-mgmt"
@@ -3287,11 +3402,14 @@ export default function TenswManagementPage() {
                               e.target.value = ''
                             }}
                           />
-                          <span className="flex items-center justify-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                          <label
+                            htmlFor="wiki-file-input-mgmt"
+                            className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300"
+                          >
                             <Paperclip className="h-3 w-3" />
                             <span>{t.wiki.fileAttach}</span>
-                          </span>
-                        </label>
+                          </label>
+                        </div>
                         {newNoteFiles.length > 0 && (
                           <div className="mt-2 space-y-1">
                             {newNoteFiles.map((file, idx) => (
@@ -3342,12 +3460,13 @@ export default function TenswManagementPage() {
                   </div>
                 ) : filteredWikiNotes.length > 0 ? (
                   paginatedWikiNotes.map((note) => (
-                    <div key={note.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                    <div key={note.id} className="!border-0 rounded-lg bg-white dark:bg-slate-700 p-3" style={{ border: 'none' }}>
                       {editingNote?.id === note.id ? (
                         <div
-                          className={`border rounded-lg p-3 -m-3 transition-colors ${
-                            isDraggingWiki ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/30' : 'border-amber-200 dark:border-amber-800'
+                          className={`!border-0 rounded-lg p-3 -m-3 transition-colors ${
+                            isDraggingWiki ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-white dark:bg-slate-700'
                           }`}
+                          style={{ border: 'none' }}
                           onDragOver={(e) => { e.preventDefault(); setIsDraggingWiki(true) }}
                           onDragLeave={() => setIsDraggingWiki(false)}
                           onDrop={(e) => { e.preventDefault(); setIsDraggingWiki(false); const files = Array.from(e.dataTransfer.files || []); if (files.length > 0) setNewNoteFiles(prev => [...prev, ...files]) }}
@@ -3358,7 +3477,8 @@ export default function TenswManagementPage() {
                               <Input
                                 value={newNoteTitle}
                                 onChange={(e) => setNewNoteTitle(e.target.value)}
-                                className="h-9 border border-slate-200 dark:border-slate-600"
+                                className="!border-0 h-9"
+                                style={{ border: 'none' }}
                               />
                             </div>
                             <div>
@@ -3367,15 +3487,17 @@ export default function TenswManagementPage() {
                                 value={newNoteContent}
                                 onChange={(e) => setNewNoteContent(e.target.value)}
                                 rows={3}
-                                className="resize-none border border-slate-200 dark:border-slate-600"
+                                className="!border-0 resize-none"
+                                style={{ border: 'none' }}
                               />
                             </div>
                             <div>
                               <label
                                 htmlFor={`wiki-file-input-edit-${note.id}`}
-                                className={`border border-dashed rounded p-2 text-center transition-colors cursor-pointer block ${
-                                  isDraggingWiki ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/30' : 'border-slate-300 dark:border-slate-500'
+                                className={`!border-0 rounded-lg p-2 text-center transition-colors cursor-pointer block ${
+                                  isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-600'
                                 }`}
+                                style={{ border: 'none' }}
                               >
                                 <input
                                   type="file"
@@ -3399,10 +3521,20 @@ export default function TenswManagementPage() {
                                 <div className="mt-2 space-y-1">
                                   <p className="text-xs text-slate-400">기존 첨부파일:</p>
                                   {editingNote.attachments.map((att, idx) => (
-                                    <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-500">
+                                    <div key={idx} className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-600 rounded px-2 py-1.5">
                                       <Paperclip className="h-3 w-3 text-slate-400" />
-                                      <span className="flex-1 truncate text-blue-600">{att.name}</span>
-                                    </a>
+                                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-blue-600 hover:underline">{att.name}</a>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const newAttachments = editingNote.attachments?.filter((_, i) => i !== idx) || []
+                                          setEditingNote({ ...editingNote, attachments: newAttachments })
+                                        }}
+                                        className="text-slate-400 hover:text-red-500 transition-colors"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
                                   ))}
                                 </div>
                               )}
@@ -3452,10 +3584,8 @@ export default function TenswManagementPage() {
                               </Button>
                               <Button
                                 size="sm"
-                                variant="secondary"
                                 onClick={handleUpdateNote}
                                 disabled={(!newNoteTitle.trim() && !newNoteContent.trim()) || isUploadingWiki}
-                                className="bg-amber-600 hover:bg-amber-700 text-white"
                               >
                                 {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
                                 {isUploadingWiki ? t.common.saving : t.common.save}
@@ -3512,12 +3642,13 @@ export default function TenswManagementPage() {
                 ) : null}
               </div>
               {filteredWikiNotes.length > 0 && (
-                <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700 mt-3">
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 mt-3">
                   <p className="text-xs text-muted-foreground whitespace-nowrap">
-                    {t.wiki.showingRange
+                    <span className="hidden sm:inline">{t.wiki.showingRange
                       .replace('{total}', String(filteredWikiNotes.length))
                       .replace('{start}', String((wikiPage - 1) * WIKI_PER_PAGE + 1))
-                      .replace('{end}', String(Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)))}
+                      .replace('{end}', String(Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)))}</span>
+                    <span className="sm:hidden">{filteredWikiNotes.length}개 중 {(wikiPage - 1) * WIKI_PER_PAGE + 1}-{Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)}</span>
                   </p>
                   {totalWikiPages > 1 && (
                     <div className="flex items-center gap-1">
@@ -4388,10 +4519,13 @@ export default function TenswManagementPage() {
                           </div>
                         ))}
                         {filteredEmails.length > 0 && (
-                          <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                          <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                             <div className="flex items-center gap-2">
-                              <p className="text-xs text-muted-foreground whitespace-nowrap">
+                              <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">
                                 {t.gmail.showingRange.replace('{total}', String(filteredEmails.length)).replace('{start}', String((emailPage - 1) * emailsPerPage + 1)).replace('{end}', String(Math.min(emailPage * emailsPerPage, filteredEmails.length)))}
+                              </p>
+                              <p className="sm:hidden text-xs text-muted-foreground whitespace-nowrap">
+                                {filteredEmails.length}개 중 {(emailPage - 1) * emailsPerPage + 1}-{Math.min(emailPage * emailsPerPage, filteredEmails.length)}
                               </p>
                               <select
                                 value={emailsPerPage}
@@ -4784,10 +4918,10 @@ export default function TenswManagementPage() {
                       type="button"
                       onClick={() => setInvoiceFormType('revenue')}
                       className={cn(
-                        'py-2 text-sm font-medium rounded-lg border transition-colors',
+                        'py-2 text-sm font-medium rounded-lg transition-colors',
                         invoiceFormType === 'revenue'
-                          ? 'bg-blue-100 border-blue-300 text-blue-700'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                       )}
                     >
                       매출
@@ -4796,10 +4930,10 @@ export default function TenswManagementPage() {
                       type="button"
                       onClick={() => setInvoiceFormType('expense')}
                       className={cn(
-                        'py-2 text-sm font-medium rounded-lg border transition-colors',
+                        'py-2 text-sm font-medium rounded-lg transition-colors',
                         invoiceFormType === 'expense'
-                          ? 'bg-orange-100 border-orange-300 text-orange-700'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300'
+                          ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                       )}
                     >
                       비용
@@ -4808,10 +4942,10 @@ export default function TenswManagementPage() {
                       type="button"
                       onClick={() => setInvoiceFormType('asset')}
                       className={cn(
-                        'py-2 text-sm font-medium rounded-lg border transition-colors',
+                        'py-2 text-sm font-medium rounded-lg transition-colors',
                         invoiceFormType === 'asset'
-                          ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                       )}
                     >
                       자산
@@ -4820,10 +4954,10 @@ export default function TenswManagementPage() {
                       type="button"
                       onClick={() => setInvoiceFormType('liability')}
                       className={cn(
-                        'py-2 text-sm font-medium rounded-lg border transition-colors',
+                        'py-2 text-sm font-medium rounded-lg transition-colors',
                         invoiceFormType === 'liability'
-                          ? 'bg-purple-100 border-purple-300 text-purple-700'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300'
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                       )}
                     >
                       부채
@@ -4834,31 +4968,29 @@ export default function TenswManagementPage() {
                 {/* Counterparty */}
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">거래처 *</label>
-                  <input
+                  <Input
                     type="text"
                     value={invoiceFormCounterparty}
                     onChange={(e) => setInvoiceFormCounterparty(e.target.value)}
                     placeholder="거래처명"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
 
                 {/* Description */}
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">내역</label>
-                  <input
+                  <Input
                     type="text"
                     value={invoiceFormDescription}
                     onChange={(e) => setInvoiceFormDescription(e.target.value)}
                     placeholder="내역 설명 (선택)"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
 
                 {/* Amount */}
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">금액 (원) *</label>
-                  <input
+                  <Input
                     type="text"
                     value={invoiceFormAmount}
                     onChange={(e) => {
@@ -4866,18 +4998,16 @@ export default function TenswManagementPage() {
                       setInvoiceFormAmount(value ? parseInt(value).toLocaleString() : '')
                     }}
                     placeholder="0"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
 
                 {/* Issue Date - 세금계산서 발행일 */}
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">발행일</label>
-                  <input
+                  <Input
                     type="date"
                     value={invoiceFormDate}
                     onChange={(e) => setInvoiceFormDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
 
@@ -4886,25 +5016,23 @@ export default function TenswManagementPage() {
                   <label className="text-xs text-slate-500 mb-1 block">
                     {invoiceFormType === 'revenue' || invoiceFormType === 'asset' ? '입금일' : '지급일'}
                   </label>
-                  <input
+                  <Input
                     type="date"
                     value={invoiceFormPaymentDate}
                     onChange={(e) => setInvoiceFormPaymentDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
 
                 {/* Account Number */}
                 <div className="relative">
                   <label className="text-xs text-slate-500 mb-1 block">계좌번호</label>
-                  <input
+                  <Input
                     type="text"
                     value={invoiceFormAccountNumber}
                     onChange={(e) => setInvoiceFormAccountNumber(e.target.value)}
                     onFocus={() => setShowAccountSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowAccountSuggestions(false), 200)}
                     placeholder="계좌번호 (선택)"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                   {showAccountSuggestions && (() => {
                     const uniqueAccounts = Array.from(new Set(
@@ -4916,7 +5044,7 @@ export default function TenswManagementPage() {
                     )
                     if (uniqueAccounts.length === 0) return null
                     return (
-                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 rounded-lg max-h-32 overflow-y-auto">
                         {uniqueAccounts.map((acc, idx) => (
                           <button
                             key={idx}
@@ -4938,12 +5066,12 @@ export default function TenswManagementPage() {
                 {/* Notes */}
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">메모</label>
-                  <textarea
+                  <Textarea
                     value={invoiceFormNotes}
                     onChange={(e) => setInvoiceFormNotes(e.target.value)}
                     rows={2}
                     placeholder="메모 (선택)"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+                    className="resize-none"
                   />
                 </div>
 
@@ -4980,7 +5108,7 @@ export default function TenswManagementPage() {
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">새 첨부파일</label>
                   <div
-                    className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-4 text-center cursor-pointer hover:border-slate-400 dark:hover:border-slate-500"
+                    className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                     onClick={() => document.getElementById('invoice-file-input')?.click()}
                   >
                     <input
@@ -5053,12 +5181,12 @@ export default function TenswManagementPage() {
       {/* Schedule Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
         <DialogContent className="max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle>{editingSchedule ? '일정 수정' : '일정 추가'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
             {/* Schedule type toggle */}
-            <div className="flex items-center space-x-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center space-x-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
               <Checkbox
                 id="is_task_type"
                 checked={scheduleForm.type === 'task'}
@@ -5076,8 +5204,8 @@ export default function TenswManagementPage() {
               <span className="text-xs text-muted-foreground">(태스크처럼 표시됨)</span>
             </div>
 
-            <div className="space-y-2">
-              <Label>제목</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">제목 *</label>
               <Input
                 value={scheduleForm.title}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })}
@@ -5085,8 +5213,8 @@ export default function TenswManagementPage() {
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>시작일</Label>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">시작일</label>
                 <Input
                   type="date"
                   value={scheduleForm.schedule_date}
@@ -5095,8 +5223,8 @@ export default function TenswManagementPage() {
                   }
                 />
               </div>
-              <div className="space-y-2">
-                <Label>종료일</Label>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">종료일</label>
                 <Input
                   type="date"
                   value={scheduleForm.end_date}
@@ -5109,8 +5237,8 @@ export default function TenswManagementPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>시작 시간</Label>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">시작 시간</label>
                 <div className="flex gap-1">
                   <Select
                     value={scheduleForm.start_time ? scheduleForm.start_time.split(':')[0] : undefined}
@@ -5158,8 +5286,8 @@ export default function TenswManagementPage() {
                   )}
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>종료 시간</Label>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">종료 시간</label>
                 <div className="flex gap-1">
                   <Select
                     value={scheduleForm.end_time ? scheduleForm.end_time.split(':')[0] : undefined}
@@ -5212,7 +5340,7 @@ export default function TenswManagementPage() {
             {/* Multiple Milestone Selection */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>클라이언트/프로젝트/마일스톤</Label>
+                <label className="text-xs text-slate-500">클라이언트/프로젝트/마일스톤</label>
                 <Button
                   type="button"
                   variant="outline"
@@ -5234,8 +5362,8 @@ export default function TenswManagementPage() {
 
               {/* Color picker - only when no milestones selected */}
               {scheduleForm.selected_milestones.length === 0 && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">색상 (마일스톤 미선택 시)</Label>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">색상 (마일스톤 미선택 시)</label>
                   <div className="flex flex-wrap gap-2">
                     {['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280'].map((color) => (
                       <button
@@ -5264,7 +5392,7 @@ export default function TenswManagementPage() {
                 const selectedClient = clients.find(s => s.id === selection.client_id)
 
                 return (
-                  <div key={idx} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                  <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-muted-foreground">#{idx + 1}</span>
                       <Button
@@ -5357,7 +5485,7 @@ export default function TenswManagementPage() {
 
                     {/* Summary when complete */}
                     {selectedMilestone && selectedProject && selectedClient && (
-                      <div className="text-xs text-muted-foreground pt-1 border-t">
+                      <div className="text-xs text-slate-500 pt-1">
                         {selectedClient.name} → {selectedProject.name} → {selectedMilestone.name}
                       </div>
                     )}
@@ -5372,8 +5500,8 @@ export default function TenswManagementPage() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>설명</Label>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">설명</label>
               <Textarea
                 value={scheduleForm.description}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, description: e.target.value })}
@@ -5389,13 +5517,13 @@ export default function TenswManagementPage() {
                   setScheduleForm({ ...scheduleForm, email_reminder: checked as boolean })
                 }
               />
-              <Label htmlFor="email_reminder" className="text-sm">
+              <label htmlFor="email_reminder" className="text-sm">
                 이메일 알림 받기
-              </Label>
+              </label>
             </div>
 
             {/* Task section */}
-            <div className="border-t pt-4 space-y-3">
+            <div className="pt-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -5412,9 +5540,9 @@ export default function TenswManagementPage() {
                       })
                     }}
                   />
-                  <Label htmlFor="has_task" className="text-sm font-medium">
+                  <label htmlFor="has_task" className="text-sm font-medium">
                     사전 태스크 있음
-                  </Label>
+                  </label>
                 </div>
                 {scheduleForm.has_task && (
                   <Button
@@ -5437,7 +5565,7 @@ export default function TenswManagementPage() {
                 )}
               </div>
               {scheduleForm.has_task && scheduleForm.tasks.map((item, index) => (
-                <div key={index} className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                <div key={index} className="rounded-lg p-3 space-y-2 bg-slate-50 dark:bg-slate-800">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-muted-foreground">태스크 {index + 1}</span>
                     {scheduleForm.tasks.length > 1 && (
@@ -5457,8 +5585,8 @@ export default function TenswManagementPage() {
                       </Button>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">마감일</Label>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">마감일</label>
                     <Input
                       type="date"
                       value={item.deadline || ''}
@@ -5470,8 +5598,8 @@ export default function TenswManagementPage() {
                       max={scheduleForm.schedule_date}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">태스크 내용</Label>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">태스크 내용</label>
                     <Textarea
                       value={item.content}
                       onChange={(e) => {
@@ -5487,7 +5615,7 @@ export default function TenswManagementPage() {
               ))}
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
             {editingSchedule ? (
               <div className="flex gap-2">
                 <Button
@@ -5532,18 +5660,18 @@ export default function TenswManagementPage() {
 
       {/* Project Dialog */}
       <Dialog open={projectDialogOpen} onOpenChange={setProjectDialogOpen}>
-        <DialogContent>
-          <DialogHeader className="pb-4 border-b">
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle>{editingProject ? '프로젝트 수정' : '프로젝트 추가'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">클라이언트</label>
+              <label className="text-xs text-slate-500 mb-1 block">클라이언트 *</label>
               <Select
                 value={projectForm.client_id}
                 onValueChange={(v) => setProjectForm({ ...projectForm, client_id: v })}
               >
-                <SelectTrigger className="border border-slate-200 dark:border-slate-600">
+                <SelectTrigger>
                   <SelectValue placeholder="클라이언트 선택" />
                 </SelectTrigger>
                 <SelectContent>
@@ -5556,12 +5684,11 @@ export default function TenswManagementPage() {
               </Select>
             </div>
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">프로젝트명</label>
+              <label className="text-xs text-slate-500 mb-1 block">프로젝트명 *</label>
               <Input
                 value={projectForm.name}
                 onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
                 placeholder="예: 대시보드 개발"
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
             <div>
@@ -5570,7 +5697,7 @@ export default function TenswManagementPage() {
                 value={projectForm.status}
                 onValueChange={(value) => setProjectForm({ ...projectForm, status: value as 'active' | 'completed' | 'on_hold' | 'cancelled' })}
               >
-                <SelectTrigger className="border border-slate-200 dark:border-slate-600">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -5588,11 +5715,10 @@ export default function TenswManagementPage() {
                 onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
                 placeholder="프로젝트에 대한 메모"
                 rows={2}
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t sm:justify-between">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
             {editingProject ? (
               <Button
                 variant="destructive"
@@ -5618,18 +5744,17 @@ export default function TenswManagementPage() {
 
       {/* Milestone Dialog */}
       <Dialog open={milestoneDialogOpen} onOpenChange={setMilestoneDialogOpen}>
-        <DialogContent>
-          <DialogHeader className="pb-4 border-b">
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle>{editingMilestone ? '마일스톤 수정' : '마일스톤 추가'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">마일스톤명</label>
+              <label className="text-xs text-slate-500 mb-1 block">마일스톤명 *</label>
               <Input
                 value={milestoneForm.name}
                 onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
                 placeholder="예: 1장 다항식의 연산"
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
             <div>
@@ -5638,7 +5763,6 @@ export default function TenswManagementPage() {
                 type="date"
                 value={milestoneForm.target_date}
                 onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
             <div>
@@ -5648,11 +5772,10 @@ export default function TenswManagementPage() {
                 onChange={(e) => setMilestoneForm({ ...milestoneForm, description: e.target.value })}
                 placeholder="마일스톤에 대한 메모"
                 rows={2}
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t sm:justify-between">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
             {editingMilestone ? (
               <div className="flex gap-2">
                 <Button
@@ -5707,20 +5830,23 @@ export default function TenswManagementPage() {
 
       {/* Client Dialog */}
       <Dialog open={clientDialogOpen} onOpenChange={setClientDialogOpen}>
-        <DialogContent>
-          <DialogHeader className="pb-4 border-b">
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle>{editingClient ? '클라이언트 수정' : '클라이언트 추가'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
             {/* Client list when adding */}
             {!editingClient && clients.length > 0 && (
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">등록된 클라이언트</label>
-                <div className="border border-slate-200 dark:border-slate-600 rounded-lg divide-y divide-slate-200 dark:divide-slate-600 max-h-[200px] overflow-y-auto bg-white dark:bg-slate-700">
-                  {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => (
+                <div className="rounded-lg max-h-[200px] overflow-y-auto bg-slate-50 dark:bg-slate-800">
+                  {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client, idx) => (
                     <div
                       key={client.id}
-                      className="flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-600"
+                      className={cn(
+                        "flex items-center justify-between p-2 hover:bg-slate-100 dark:hover:bg-slate-700",
+                        idx > 0 && "mt-0.5"
+                      )}
                     >
                       <div className="flex items-center gap-2">
                         <div
@@ -5730,7 +5856,7 @@ export default function TenswManagementPage() {
                         <span className="text-sm">{client.name}</span>
                       </div>
                       <button
-                        className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
+                        className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer"
                         onClick={() => openClientDialog(client)}
                       >
                         <Pencil className="h-4 w-4 text-slate-600 dark:text-slate-400" />
@@ -5742,12 +5868,11 @@ export default function TenswManagementPage() {
             )}
 
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">{editingClient ? '클라이언트명' : '새 클라이언트명'}</label>
+              <label className="text-xs text-slate-500 mb-1 block">{editingClient ? '클라이언트명 *' : '새 클라이언트명 *'}</label>
               <Input
                 value={clientForm.name}
                 onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
                 placeholder="예: 수학, 영어, 국어"
-                className="border border-slate-200 dark:border-slate-600"
               />
             </div>
             <div>
@@ -5758,8 +5883,8 @@ export default function TenswManagementPage() {
                     key={color}
                     type="button"
                     className={cn(
-                      'w-7 h-7 rounded-full border-2 transition-transform hover:scale-110',
-                      clientForm.color === color ? 'border-foreground' : 'border-transparent'
+                      'w-7 h-7 rounded-full transition-transform hover:scale-110',
+                      clientForm.color === color ? 'ring-2 ring-offset-2 ring-slate-900 dark:ring-white' : ''
                     )}
                     style={{ backgroundColor: color }}
                     onClick={() => setClientForm({ ...clientForm, color })}
@@ -5768,7 +5893,7 @@ export default function TenswManagementPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t sm:justify-between">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
             {editingClient ? (
               <Button
                 variant="destructive"
@@ -5791,33 +5916,48 @@ export default function TenswManagementPage() {
 
       {/* Memo Dialog */}
       <Dialog open={memoDialogOpen} onOpenChange={setMemoDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader className="pb-4 border-b">
+        <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
               <StickyNote className="h-4 w-4" />
               {editingMemoDate && `${editingMemoDate.slice(5).replace('-', '/')} 메모`}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
             <Textarea
               value={memoContent}
               onChange={(e) => setMemoContent(e.target.value)}
               placeholder="이 날짜에 대한 메모를 입력하세요..."
               rows={4}
-              className="resize-none border border-slate-200 dark:border-slate-600"
+              className="resize-none"
               autoFocus
             />
           </div>
-          <DialogFooter className="pt-4 border-t">
-            <Button variant="outline" onClick={() => setMemoDialogOpen(false)}>
-              취소
-            </Button>
-            <Button onClick={saveMemo}>
-              저장
-            </Button>
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+            <div />
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setMemoDialogOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={saveMemo}>
+                저장
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Compose Email Modal */}
+      <ComposeEmailModal
+        isOpen={isComposeOpen}
+        onClose={() => { setIsComposeOpen(false); setComposeOriginalEmail(null) }}
+        mode={composeMode}
+        originalEmail={composeOriginalEmail}
+        initialData={composeInitialData}
+        initialAttachments={composeInitialAttachments}
+        onSendSuccess={() => syncEmails()}
+        t={t}
+      />
     </ProtectedPage>
   )
 }
