@@ -595,7 +595,7 @@ export default function UsersPage() {
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
             <Button variant="outline" onClick={() => setPermissionsDialogOpen(false)}>
               {t.common.cancel}
             </Button>

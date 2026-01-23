@@ -396,27 +396,27 @@ function TieredFeeInput({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 p-3">
+    <div className="rounded-lg bg-slate-100 dark:bg-slate-700 p-3">
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-semibold text-slate-700">{label}</label>
+        <label className="text-sm font-medium">{label}</label>
         <button
           type="button"
           onClick={addTier}
           className="flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700"
         >
           <Plus className="h-3 w-3" />
-          {t.etf.form.addTier || 'Add Tier'}
+          {t.etf.form.addTier || '+ 티어 추가'}
         </button>
       </div>
 
       {/* Min Fee */}
       <div className="mb-3">
-        <label className="block text-xs text-muted-foreground mb-1">{t.etf.form.minFee}</label>
+        <label className="block text-xs text-slate-500 mb-1">{t.etf.form.minFee}</label>
         <input
           type="number"
           value={feeStructure.minFee || ''}
           onChange={(e) => onChange({ ...feeStructure, minFee: parseFloat(e.target.value) || 0 })}
-          className="w-full rounded-lg border px-3 py-2 text-sm"
+          className="w-full rounded-lg bg-white dark:bg-slate-600 px-3 py-2 text-sm focus:bg-slate-50 dark:focus:bg-slate-500 focus:outline-none"
           placeholder="e.g. 90000"
           step="1000"
         />
@@ -425,7 +425,7 @@ function TieredFeeInput({
       {/* Tiers */}
       {feeStructure.tiers.length > 0 && (
         <div className="space-y-2">
-          <div className="flex gap-2 text-xs text-muted-foreground">
+          <div className="flex gap-2 text-xs text-slate-500">
             <span className="flex-1">{t.etf.form.tierThreshold || 'Up To'}</span>
             <span className="w-16">{t.etf.form.tierBps || 'Bps'}</span>
             <span className="w-6"></span>
@@ -436,14 +436,14 @@ function TieredFeeInput({
                 type="text"
                 value={formatThreshold(tier.upTo)}
                 onChange={(e) => updateTier(index, 'upTo', parseThreshold(e.target.value))}
-                className="flex-1 min-w-0 rounded border px-2 py-1.5 text-sm"
+                className="flex-1 min-w-0 rounded-lg bg-white dark:bg-slate-600 px-2 py-1.5 text-sm focus:bg-slate-50 dark:focus:bg-slate-500 focus:outline-none"
                 placeholder={tier.upTo === 0 ? '∞' : 'e.g. 500M'}
               />
               <input
                 type="number"
                 value={tier.bps || ''}
                 onChange={(e) => updateTier(index, 'bps', parseFloat(e.target.value) || 0)}
-                className="w-16 rounded border px-2 py-1.5 text-sm"
+                className="w-16 rounded-lg bg-white dark:bg-slate-600 px-2 py-1.5 text-sm focus:bg-slate-50 dark:focus:bg-slate-500 focus:outline-none"
                 placeholder="7"
                 step="0.5"
               />
@@ -456,7 +456,7 @@ function TieredFeeInput({
               </button>
             </div>
           ))}
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             {t.etf.form.tierHint || 'Use 0 or empty for unlimited. Supports M (million), B (billion).'}
           </p>
         </div>
@@ -521,35 +521,37 @@ function ETFModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
+      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <h3 className="text-lg font-semibold">{editData ? t.etf.editEtf : t.etf.addEtf}</h3>
           <button onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="space-y-4">
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto py-4 -mx-6 px-6 space-y-4">
           {/* Row 1: Symbol + Fund Name */}
           <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">{t.etf.form.symbol} *</label>
+              <label className="text-xs text-slate-500 mb-1 block">{t.etf.form.symbol} *</label>
               <input
                 type="text"
                 value={formData.symbol}
                 onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
+                className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none disabled:opacity-50"
                 placeholder={t.etf.form.symbolPlaceholder}
                 disabled={!!editData}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{t.etf.form.fundName} *</label>
+              <label className="text-xs text-slate-500 mb-1 block">{t.etf.form.fundName} *</label>
               <input
                 type="text"
                 value={formData.fund_name}
                 onChange={(e) => setFormData({ ...formData, fund_name: e.target.value })}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
+                className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none"
                 placeholder={t.etf.form.fundNamePlaceholder}
               />
             </div>
@@ -558,30 +560,30 @@ function ETFModal({
           {/* Row 2: Fund URL + Listing Date + Currency */}
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_100px] gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">{t.etf.form.fundUrl}</label>
+              <label className="text-xs text-slate-500 mb-1 block">{t.etf.form.fundUrl}</label>
               <input
                 type="url"
                 value={formData.fund_url}
                 onChange={(e) => setFormData({ ...formData, fund_url: e.target.value })}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
+                className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none"
                 placeholder="https://..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{t.etf.form.listingDate}</label>
+              <label className="text-xs text-slate-500 mb-1 block">{t.etf.form.listingDate}</label>
               <input
                 type="date"
                 value={formData.listing_date}
                 onChange={(e) => setFormData({ ...formData, listing_date: e.target.value })}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
+                className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{t.etf.form.currency}</label>
+              <label className="text-xs text-slate-500 mb-1 block">{t.etf.form.currency}</label>
               <select
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
+                className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none"
               >
                 <option value="USD">USD</option>
                 <option value="KRW">KRW</option>
@@ -607,30 +609,29 @@ function ETFModal({
 
           {/* Row 4: Notes (full width) */}
           <div>
-            <label className="block text-sm font-medium mb-1">{t.etf.form.notes}</label>
+            <label className="text-xs text-slate-500 mb-1 block">{t.etf.form.notes}</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm focus:bg-slate-50 dark:focus:bg-slate-600 focus:outline-none resize-none"
               rows={2}
             />
           </div>
         </div>
 
-        <div className="flex gap-2 mt-6">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
-          >
+        {/* Footer */}
+        <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <Button variant="outline" size="sm" onClick={onClose}>
             {t.common.cancel}
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
             onClick={() => onSave(formData)}
             disabled={isSaving || !formData.symbol || !formData.fund_name}
-            className="flex-1 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50"
           >
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editData ? t.common.edit : t.etf.addEtf}
-          </button>
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {t.common.save}
+          </Button>
         </div>
       </div>
     </div>
@@ -1019,21 +1020,21 @@ function EmailDetailModal({
           <div className="flex gap-2">
             <button
               onClick={() => onReply && onReply('reply')}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-500"
             >
               <Reply className="h-4 w-4" />
               {t.gmail.reply}
             </button>
             <button
               onClick={() => onReply && onReply('replyAll')}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600"
             >
               <ReplyAll className="h-4 w-4" />
               {t.gmail.replyAll}
             </button>
             <button
               onClick={() => onReply && onReply('forward')}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600"
             >
               <Forward className="h-4 w-4" />
               {t.gmail.forward}
@@ -3036,16 +3037,9 @@ Dongwook`
                   value={wikiSearch}
                   onChange={(e) => setWikiSearch(e.target.value)}
                   placeholder={t.wiki.searchPlaceholder}
-                  className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-500"
+                  className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
                 />
-                <svg
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 {wikiSearch && (
                   <button
                     onClick={() => setWikiSearch('')}

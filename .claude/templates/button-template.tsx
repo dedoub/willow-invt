@@ -4,7 +4,13 @@
  * 사용법:
  * 필요한 버튼 패턴을 복사하여 사용
  *
- * 주의: AI 버튼은 purple 테마 사용
+ * 버튼 색상 (button.tsx):
+ * - default: bg-slate-900 dark:bg-slate-600 (저장/확인)
+ * - outline: bg-slate-200 dark:bg-slate-700 (취소)
+ * - destructive: bg-red-600 (삭제)
+ *
+ * 모달/인라인 폼: size="sm" 필수
+ * AI 버튼: purple 테마 사용
  */
 
 'use client'

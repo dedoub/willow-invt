@@ -678,20 +678,19 @@ function ETFModal({
           </div>
         </div>
 
-        <div className="flex gap-2 mt-6">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600"
-          >
+        {/* Footer */}
+        <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <Button variant="outline" size="sm" onClick={onClose}>
             {t.common.cancel}
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
             onClick={() => onSave(formData)}
             disabled={isSaving || !formData.symbol || !formData.fund_name}
-            className="flex-1 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50"
           >
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editData ? t.common.edit : t.etf.addEtf}
-          </button>
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {t.common.save}
+          </Button>
         </div>
       </div>
     </div>
@@ -1080,21 +1079,21 @@ function EmailDetailModal({
           <div className="flex gap-2">
             <button
               onClick={() => onReply && onReply('reply')}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-500"
             >
               <Reply className="h-4 w-4" />
               {t.gmail.reply}
             </button>
             <button
               onClick={() => onReply && onReply('replyAll')}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600"
             >
               <ReplyAll className="h-4 w-4" />
               {t.gmail.replyAll}
             </button>
             <button
               onClick={() => onReply && onReply('forward')}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg border dark:border-slate-600 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600"
             >
               <Forward className="h-4 w-4" />
               {t.gmail.forward}
@@ -2612,7 +2611,7 @@ export default function AkrosPage() {
                     </label>
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 mt-4 pt-3">
+                <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
                   <Button variant="outline" size="sm" onClick={() => {
                     setIsAddingInvoice(false)
                     setNewInvoiceDate('')
@@ -2657,10 +2656,10 @@ export default function AkrosPage() {
                           <Receipt className="h-4 w-4 text-slate-400" />
                           <div>
                             <p className="font-medium text-sm">
-                              {new Date(invoice.invoice_date).toLocaleDateString('ko-KR')}
+                              {invoice.notes || new Date(invoice.invoice_date).toLocaleDateString('ko-KR')}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              ₩{invoice.amount.toLocaleString()}
+                              {new Date(invoice.invoice_date).toLocaleDateString('ko-KR')} · ₩{invoice.amount.toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -2903,16 +2902,9 @@ export default function AkrosPage() {
                   value={wikiSearch}
                   onChange={(e) => setWikiSearch(e.target.value)}
                   placeholder={t.wiki.searchPlaceholder}
-                  className="!border-0 w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
+                  className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
                 />
-                <svg
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 {wikiSearch && (
                   <button
                     onClick={() => setWikiSearch('')}
@@ -3023,7 +3015,7 @@ export default function AkrosPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 mt-4 pt-3">
+                  <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
                     <Button
                       variant="outline"
                       size="sm"
@@ -3152,7 +3144,7 @@ export default function AkrosPage() {
                             )}
                           </div>
                         </div>
-                        <div className="flex justify-between gap-2 mt-4 pt-3">
+                        <div className="flex justify-between gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
                           <Button
                             variant="destructive"
                             size="sm"

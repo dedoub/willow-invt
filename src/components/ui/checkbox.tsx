@@ -18,8 +18,8 @@ function Checkbox({
         "peer size-4 shrink-0 rounded-[4px] transition-colors outline-none",
         // 미체크 상태: 회색 배경
         "bg-slate-200 dark:bg-slate-600",
-        // 체크 상태: primary 배경
-        "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
+        // 체크 상태: slate 배경 (버튼과 동일)
+        "data-[state=checked]:bg-slate-900 dark:data-[state=checked]:bg-slate-500 data-[state=checked]:text-white",
         // 포커스 시 배경색 변경
         "focus-visible:bg-slate-300 dark:focus-visible:bg-slate-500",
         // 에러 상태

@@ -8,6 +8,10 @@
  * - /etf/akros
  * - /etf/etc
  * - /tensoftworks/management
+ *
+ * 주요 스타일 규칙:
+ * - 첨부파일명은 truncate하지 않고 전체 표시 (사용자가 파일 이름 확인 필요)
+ * - 인라인 폼에서 삭제 버튼은 좌측, 취소/저장은 우측
  */
 
 import { useState } from 'react'
@@ -576,7 +580,8 @@ export function WikiNoteItem({
                   className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
                 >
                   <Paperclip className="h-2.5 w-2.5" />
-                  <span className="max-w-[100px] truncate">{att.name}</span>
+                  {/* 파일명은 truncate하지 않고 전체 표시 */}
+                  <span>{att.name}</span>
                 </a>
               ))}
             </div>

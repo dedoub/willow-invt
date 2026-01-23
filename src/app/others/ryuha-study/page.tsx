@@ -3285,7 +3285,7 @@ export default function RyuhaStudyPage() {
               ))}
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t sm:justify-between flex-shrink-0">
+          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700 sm:justify-between flex-shrink-0">
             {editingSchedule ? (
               <div className="flex gap-2">
                 <Button
@@ -3379,7 +3379,7 @@ export default function RyuhaStudyPage() {
               />
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t sm:justify-between">
+          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700 sm:justify-between">
             {editingTextbook ? (
               <Button
                 variant="destructive"
@@ -3436,7 +3436,7 @@ export default function RyuhaStudyPage() {
               />
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t sm:justify-between">
+          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700 sm:justify-between">
             {editingChapter ? (
               <div className="flex gap-2">
                 <Button
@@ -3551,7 +3551,7 @@ export default function RyuhaStudyPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t sm:justify-between">
+          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700 sm:justify-between">
             {editingSubject ? (
               <Button
                 variant="destructive"
@@ -3591,7 +3591,7 @@ export default function RyuhaStudyPage() {
               autoFocus
             />
           </div>
-          <DialogFooter className="pt-4 border-t">
+          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
             <Button variant="outline" onClick={() => setMemoDialogOpen(false)}>
               취소
             </Button>
@@ -3653,7 +3653,7 @@ export default function RyuhaStudyPage() {
               />
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t">
+          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
             <Button variant="outline" onClick={() => setBodyRecordDialogOpen(false)}>
               취소
             </Button>

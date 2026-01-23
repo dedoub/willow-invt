@@ -141,14 +141,19 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 
 ### 2. 버튼 (Button)
 
+> **Button 컴포넌트는 primary 색상이 아닌 slate 색상 사용**
+> - default: `bg-slate-900 dark:bg-slate-600` (저장/확인 등 primary 액션)
+> - outline: `bg-slate-200 dark:bg-slate-700` (취소)
+> - destructive: `bg-red-600` (삭제)
+
 ```tsx
 import { Button } from '@/components/ui/button'
 
 // Variants
-<Button variant="default">Primary 액션</Button>
+<Button variant="default">저장</Button>           {/* bg-slate-900 dark:bg-slate-600 */}
+<Button variant="outline">취소</Button>           {/* bg-slate-200 dark:bg-slate-700 */}
+<Button variant="destructive">삭제</Button>       {/* bg-red-600 */}
 <Button variant="secondary">Secondary</Button>
-<Button variant="outline">취소</Button>
-<Button variant="destructive">삭제</Button>
 <Button variant="ghost">Ghost</Button>
 
 // Sizes
@@ -194,6 +199,25 @@ const handleIssue = async (id: string) => {
   <Sparkles className="h-4 w-4 mr-2" />
   AI 분석
 </Button>
+```
+
+### 체크박스 (Checkbox)
+
+> **Checkbox도 Button과 동일하게 slate 색상 사용 (primary 아님)**
+
+```tsx
+import { Checkbox } from '@/components/ui/checkbox'
+
+// 체크박스 색상:
+// - 미체크: bg-slate-200 dark:bg-slate-600
+// - 체크: bg-slate-900 dark:bg-slate-500
+<Checkbox />
+
+// 라벨과 함께 사용
+<div className="flex items-center gap-2">
+  <Checkbox id="terms" />
+  <label htmlFor="terms" className="text-sm">약관에 동의합니다</label>
+</div>
 ```
 
 **카드 내 버튼 패턴:**
@@ -321,7 +345,8 @@ const [amount, setAmount] = useState('')
       </div>
     </div>
   </div>
-  <div className="flex justify-end gap-2 mt-4 pt-3">
+  {/* Footer: border-t로 구분 */}
+  <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
     <Button variant="outline" size="sm">취소</Button>
     <Button size="sm">저장</Button>
   </div>
@@ -330,7 +355,7 @@ const [amount, setAmount] = useState('')
 // 수정 폼 컨테이너 (삭제 버튼 좌측)
 <div className="rounded-lg p-3 bg-white dark:bg-slate-700">
   {/* ... 입력 필드들 ... */}
-  <div className="flex justify-between gap-2 mt-4 pt-3">
+  <div className="flex justify-between gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
     <Button variant="destructive" size="sm">삭제</Button>
     <div className="flex gap-2">
       <Button variant="outline" size="sm">취소</Button>
@@ -338,6 +363,60 @@ const [amount, setAmount] = useState('')
     </div>
   </div>
 </div>
+```
+
+**인라인 수정 상태 관리:**
+```tsx
+// 수정 중인 항목 ID 저장
+const [editingItemId, setEditingItemId] = useState<string | null>(null)
+const [editFormData, setEditFormData] = useState({
+  title: '',
+  content: '',
+  amount: 0,
+})
+
+// 수정 시작
+const startEdit = (item: Item) => {
+  setEditingItemId(item.id)
+  setEditFormData({
+    title: item.title,
+    content: item.content,
+    amount: item.amount,
+  })
+}
+
+// 수정 취소
+const cancelEdit = () => {
+  setEditingItemId(null)
+  setEditFormData({ title: '', content: '', amount: 0 })
+}
+
+// 렌더링
+{items.map((item) => (
+  editingItemId === item.id ? (
+    // 수정 폼 표시
+    <div className="rounded-lg p-3 bg-white dark:bg-slate-700">
+      {/* 입력 필드들 */}
+      <div className="flex justify-between gap-2 mt-4 pt-3">
+        <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id)}>삭제</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={cancelEdit}>취소</Button>
+          <Button size="sm" onClick={() => handleSave(item.id)}>저장</Button>
+        </div>
+      </div>
+    </div>
+  ) : (
+    // 읽기 전용 표시 (수정 버튼 포함)
+    <div className="rounded-lg p-3 bg-white dark:bg-slate-700">
+      <div className="flex items-start justify-between">
+        <div>{item.title}</div>
+        <button onClick={() => startEdit(item)} className="rounded p-1 hover:bg-slate-200 dark:hover:bg-slate-600">
+          <Pencil className="h-4 w-4 text-slate-500" />
+        </button>
+      </div>
+    </div>
+  )
+))}
 ```
 
 **첨부파일 목록 (삭제 가능):**
@@ -706,6 +785,56 @@ import {
 className="absolute top-4 right-4 rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
 <XIcon className="h-5 w-5" />
 ```
+
+### 모달 Footer 버튼 스타일 (통일)
+
+> **모든 모달은 Button 컴포넌트 사용, 우측 정렬, 작은 사이즈 (`size="sm"`)**
+
+**생성 모달 (삭제 버튼 없음):**
+```tsx
+// Dialog 모달
+<DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
+  <Button variant="outline" size="sm" onClick={() => setOpen(false)}>취소</Button>
+  <Button size="sm" onClick={handleSave}>저장</Button>
+</DialogFooter>
+
+// 커스텀 모달 (div 기반)
+<div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+  <Button variant="outline" size="sm" onClick={onClose}>취소</Button>
+  <Button size="sm" onClick={handleSave} disabled={isSaving}>
+    {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+    저장
+  </Button>
+</div>
+```
+
+**수정 모달 (삭제 버튼 좌측):**
+```tsx
+// Dialog 모달
+<DialogFooter className="flex-row justify-between sm:justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+  <Button variant="destructive" size="sm" onClick={handleDelete}>삭제</Button>
+  <div className="flex gap-2">
+    <Button variant="outline" size="sm" onClick={() => setOpen(false)}>취소</Button>
+    <Button size="sm" onClick={handleSave}>저장</Button>
+  </div>
+</DialogFooter>
+
+// 커스텀 모달 (div 기반)
+<div className="flex justify-between pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+  <Button variant="destructive" size="sm" onClick={handleDelete}>삭제</Button>
+  <div className="flex gap-2">
+    <Button variant="outline" size="sm" onClick={onClose}>취소</Button>
+    <Button size="sm" onClick={handleSave}>저장</Button>
+  </div>
+</div>
+```
+
+**버튼 색상 정리 (Button 컴포넌트 variants):**
+| 버튼 유형 | Variant | 색상 |
+|----------|---------|------|
+| 저장/확인 | `default` | `bg-slate-900 dark:bg-slate-600` |
+| 취소 | `outline` | `bg-slate-200 dark:bg-slate-700` |
+| 삭제 | `destructive` | `bg-red-600` |
 
 ---
 
@@ -1412,6 +1541,10 @@ function getCategoryColor(category: string, allCategories: string[]) {
         <label className="text-xs text-slate-500 mb-1 block">받는 사람 *</label>
         <input className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" />
       </div>
+      <div>
+        <label className="text-xs text-slate-500 mb-1 block">참조 (CC)</label>
+        <input className="w-full rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm" />
+      </div>
 
       {/* 첨부파일 영역 */}
       <div>
@@ -1480,6 +1613,121 @@ function getCategoryColor(category: string, allCategories: string[]) {
 >   <X className="h-5 w-5" />
 > </button>
 > ```
+
+### 이메일 작성 초기 데이터 (CC 포함)
+
+```tsx
+// ComposeInitialData 타입
+interface ComposeInitialData {
+  to: string
+  cc?: string  // 참조 (선택)
+  subject: string
+  body: string
+}
+
+// 이메일 작성 시 초기 데이터 설정
+const [composeInitialData, setComposeInitialData] = useState<ComposeInitialData | null>(null)
+
+// 특정 수신자에게 기본 CC 설정 예시
+const handleSendEmail = (recipientType: 'etc' | 'bank', invoice: Invoice) => {
+  setComposeInitialData({
+    to: recipientType === 'etc' ? 'etc@example.com' : 'bank@example.com',
+    cc: recipientType === 'etc' ? 'accounting@example.com' : '',  // ETC에만 CC 설정
+    subject: `Invoice #${invoice.invoice_no}`,
+    body: generateEmailBody(invoice),
+  })
+  setShowComposeModal(true)
+}
+```
+
+### 이메일 상태 라벨
+
+```tsx
+// 발송 상태 라벨 (명확한 구분)
+<p className="text-xs text-muted-foreground">
+  ETC 이메일: {invoice.sent_to_etc_at ? formatDate(invoice.sent_to_etc_at) : '미발송'}
+</p>
+<p className="text-xs text-muted-foreground">
+  은행 이메일: {invoice.sent_to_bank_at ? formatDate(invoice.sent_to_bank_at) : '미발송'}
+</p>
+```
+
+---
+
+---
+
+## 인보이스/목록 아이템 표시
+
+### 목록 아이템 우선순위
+
+> 인보이스 번호보다 **내용(항목)**이 더 중요합니다
+
+```tsx
+// ❌ 인보이스 번호 우선
+<p className="font-medium text-sm">{invoice.invoice_no}</p>
+<p className="text-xs text-muted-foreground">{invoice.invoice_date}</p>
+
+// ✅ 항목(내용) 우선, 인보이스 번호는 상세에서
+<p className="font-medium text-sm">
+  {invoice.items[0]?.description || invoice.invoice_no}
+</p>
+<p className="text-xs text-muted-foreground">
+  발행일: {formatDate(invoice.invoice_date)} · ${invoice.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+</p>
+```
+
+### 날짜 라벨
+
+> 날짜 앞에는 반드시 무슨 날짜인지 라벨 표시
+
+```tsx
+// ❌ 라벨 없음
+<span>{formatDate(date)}</span>
+
+// ✅ 라벨 포함
+<span>발행일: {formatDate(date)}</span>
+<span>입금일: {formatDate(date)}</span>
+```
+
+### 금액 표시 (소수점)
+
+```tsx
+// 정수만 표시
+value.toLocaleString()  // 1234567 → "1,234,567"
+
+// 소수점 2자리까지 표시 (인보이스 등)
+value.toLocaleString(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+})  // 1234.5 → "1,234.50"
+
+// 달러 표시
+`$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+```
+
+### 펼침 섹션 조건부 표시
+
+> 내용이 있을 때만 표시, 없으면 생략
+
+```tsx
+// 항목이 여러 개일 때만 표시
+{invoice.items.length > 1 && (
+  <div>
+    <p className="text-xs text-slate-500 mb-1">항목</p>
+    {invoice.items.map((item) => (
+      <div key={item.id} className="text-sm">{item.description}</div>
+    ))}
+  </div>
+)}
+
+// 메모가 있을 때만 표시
+{invoice.notes && (
+  <div>
+    <p className="text-xs text-slate-500 mb-1">메모</p>
+    <p className="text-sm whitespace-pre-wrap">{invoice.notes}</p>
+  </div>
+)}
+```
 
 ---
 

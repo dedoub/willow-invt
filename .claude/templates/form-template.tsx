@@ -251,15 +251,15 @@ export function CreateModalForm() {
             </div>
           </div>
 
-          {/* 생성 모드: 삭제 버튼 없음 */}
+          {/* 생성 모드: 삭제 버튼 없음, size="sm" 필수 */}
           <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
             <div />
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
                 취소
               </Button>
-              <Button onClick={handleSave} disabled={isLoading}>
-                {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              <Button size="sm" onClick={handleSave} disabled={isLoading}>
+                {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 저장
               </Button>
             </div>
@@ -312,17 +312,17 @@ export function EditModalForm() {
             </div>
           </div>
 
-          {/* 수정 모드: 삭제 버튼 좌측 */}
+          {/* 수정 모드: 삭제 버튼 좌측, size="sm" 필수 */}
           <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button variant="destructive" size="sm" onClick={handleDelete}>
               삭제
             </Button>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
                 취소
               </Button>
-              <Button onClick={handleSave} disabled={isLoading}>
-                {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              <Button size="sm" onClick={handleSave} disabled={isLoading}>
+                {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 저장
               </Button>
             </div>

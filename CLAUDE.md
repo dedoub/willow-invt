@@ -147,11 +147,16 @@ AKROS_SUPABASE_SERVICE_KEY=...
 ```
 
 ### 버튼 패턴
+> **Button 컴포넌트는 slate 색상 사용 (primary 아님)**
+> - default: `bg-slate-900 dark:bg-slate-600`
+> - outline: `bg-slate-200 dark:bg-slate-700`
+> - destructive: `bg-red-600`
+
 ```jsx
-// 인라인 폼 버튼 (동일 크기)
-<Button size="sm" variant="destructive" className="h-8 px-3">삭제</Button>
-<Button size="sm" variant="outline" className="h-8 px-3">취소</Button>
-<Button size="sm" className="h-8 px-3">저장</Button>
+// 모달/인라인 폼 버튼 (size="sm" 필수)
+<Button size="sm" variant="destructive">삭제</Button>
+<Button size="sm" variant="outline">취소</Button>
+<Button size="sm">저장</Button>
 ```
 
 ### 모달 폼 전체 구조
@@ -174,12 +179,13 @@ AKROS_SUPABASE_SERVICE_KEY=...
       </div>
     </div>
 
+    {/* Footer: size="sm" 버튼 사용 */}
     <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
-      {/* 생성 모드: <div /> | 수정 모드: <Button variant="destructive">삭제</Button> */}
+      {/* 생성 모드: <div /> | 수정 모드: <Button variant="destructive" size="sm">삭제</Button> */}
       <div />
       <div className="flex gap-2">
-        <Button variant="outline">취소</Button>
-        <Button>저장</Button>
+        <Button variant="outline" size="sm">취소</Button>
+        <Button size="sm">저장</Button>
       </div>
     </DialogFooter>
   </DialogContent>
@@ -202,22 +208,24 @@ AKROS_SUPABASE_SERVICE_KEY=...
 ```
 
 ### 모달 Footer 패턴
+> **모든 모달 버튼은 `size="sm"` 사용**
+
 ```jsx
 // 생성 모드 (삭제 버튼 없음)
 <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
   <div />
   <div className="flex gap-2">
-    <Button variant="outline">취소</Button>
-    <Button>저장</Button>
+    <Button variant="outline" size="sm">취소</Button>
+    <Button size="sm">저장</Button>
   </div>
 </DialogFooter>
 
 // 수정 모드 (삭제 버튼 좌측)
 <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
-  <Button variant="destructive">삭제</Button>
+  <Button variant="destructive" size="sm">삭제</Button>
   <div className="flex gap-2">
-    <Button variant="outline">취소</Button>
-    <Button>저장</Button>
+    <Button variant="outline" size="sm">취소</Button>
+    <Button size="sm">저장</Button>
   </div>
 </DialogFooter>
 ```

@@ -3357,7 +3357,7 @@ export default function TenswManagementPage() {
                     value={wikiSearch}
                     onChange={(e) => setWikiSearch(e.target.value)}
                     placeholder={t.wiki.searchPlaceholder}
-                    className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                    className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
                   />
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   {wikiSearch && (
@@ -3810,7 +3810,7 @@ export default function TenswManagementPage() {
                     <Calendar className="h-5 w-5" />
                     일정
                   </CardTitle>
-                  <CardDescription>프로젝트 일정 및 마감일 관리</CardDescription>
+                  <CardDescription>프로젝트 및 기타 업무 일정 관리</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -5187,7 +5187,7 @@ export default function TenswManagementPage() {
                   )}
                 </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingInvoice ? (
               <Button
                 variant="destructive"
@@ -5659,7 +5659,7 @@ export default function TenswManagementPage() {
               ))}
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingSchedule ? (
               <div className="flex gap-2">
                 <Button
@@ -5762,7 +5762,7 @@ export default function TenswManagementPage() {
               />
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingProject ? (
               <Button
                 variant="destructive"
@@ -5819,7 +5819,7 @@ export default function TenswManagementPage() {
               />
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingMilestone ? (
               <div className="flex gap-2">
                 <Button
@@ -5937,7 +5937,7 @@ export default function TenswManagementPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingClient ? (
               <Button
                 variant="destructive"
@@ -5977,7 +5977,7 @@ export default function TenswManagementPage() {
               autoFocus
             />
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             <div />
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setMemoDialogOpen(false)}>

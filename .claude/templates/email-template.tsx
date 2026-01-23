@@ -461,6 +461,19 @@ interface ComposeEmailModalProps {
   onClose: () => void
   mode: ComposeMode
   originalEmail?: Email | null
+  /**
+   * 초기 데이터 설정 (특정 수신자에게 기본 CC 설정 등)
+   *
+   * 예시: ETC에 이메일 보낼 때 기본 CC 설정
+   * ```tsx
+   * setComposeInitialData({
+   *   to: 'etc@example.com',
+   *   cc: 'accounting@example.com',  // ETC에만 기본 CC
+   *   subject: `Invoice #${invoice.invoice_no}`,
+   *   body: generateEmailBody(invoice),
+   * })
+   * ```
+   */
   initialData?: Partial<ComposeEmailData>
   onSendSuccess?: () => void
 }
