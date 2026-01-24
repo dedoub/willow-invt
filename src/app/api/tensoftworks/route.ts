@@ -6,6 +6,7 @@ export interface ProjectStats {
   pending: number
   assigned: number
   in_progress: number
+  pending_approval: number
   completed: number
   discarded: number
 }
@@ -44,6 +45,8 @@ export interface ProjectActivity {
   changed_by: string | null
   priority: string | null
   due_date: string | null
+  actor?: string
+  assignees?: string[]
 }
 
 export interface ProjectMember {
@@ -280,11 +283,17 @@ export async function GET() {
     const todoTitleMap = new Map<string, string>()
     const todoPriorityMap = new Map<string, string>()
     const todoDueDateMap = new Map<string, string | null>()
+    const todoAssigneesMap = new Map<string, string[]>()
     allTodos?.forEach(t => {
       todoProjectMap.set(t.id, t.project_id)
       todoTitleMap.set(t.id, t.title)
       todoPriorityMap.set(t.id, t.priority)
       todoDueDateMap.set(t.id, t.due_date)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const assigneeNames = (t as any).assignees
+        ?.map((a: { member: { name: string } | null }) => a.member?.name)
+        .filter(Boolean) || []
+      todoAssigneesMap.set(t.id, assigneeNames)
     })
 
     // Build project data with all details
@@ -297,6 +306,7 @@ export async function GET() {
         pending: projectTodos.filter(t => t.status === 'pending').length,
         assigned: projectTodos.filter(t => t.status === 'assigned').length,
         in_progress: projectTodos.filter(t => t.status === 'in_progress').length,
+        pending_approval: projectTodos.filter(t => t.status === 'pending_approval').length,
         completed: projectTodos.filter(t => t.status === 'completed').length,
         discarded: projectTodos.filter(t => t.status === 'discarded').length,
       }
@@ -363,12 +373,16 @@ export async function GET() {
         changed_by: string | null
         priority: string | null
         due_date: string | null
+        actor?: string
+        assignees?: string[]
       }> = []
 
       // Todo logs only (tensw-todo와 동일하게)
       recentLogs
         .filter(log => projectTodoIds.includes(log.todo_id))
         .forEach(log => {
+          const actorName = log.changed_by ? userNameMap.get(log.changed_by) || undefined : undefined
+          const assignees = todoAssigneesMap.get(log.todo_id) || []
           allActivities.push({
             id: log.id,
             type: log.action,
@@ -377,6 +391,8 @@ export async function GET() {
             changed_by: log.changed_by ? userNameMap.get(log.changed_by) || null : null,
             priority: todoPriorityMap.get(log.todo_id) || null,
             due_date: todoDueDateMap.get(log.todo_id) || null,
+            actor: actorName,
+            assignees: assignees.length > 0 ? assignees : undefined,
           })
         })
 

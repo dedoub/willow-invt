@@ -70,6 +70,7 @@ interface ProjectStats {
   pending: number
   assigned: number
   in_progress: number
+  pending_approval: number
   completed: number
   discarded: number
 }
@@ -88,6 +89,8 @@ interface RecentActivity {
   type: string
   title: string
   created_at: string
+  actor?: string
+  assignees?: string[]
 }
 
 interface ServiceUrl {
@@ -293,8 +296,9 @@ function DashboardContent() {
 
     // 배정 대기 = pending (담당자 미배정)
     const waitingCount = stats.pending
-    // 진행 중 = assigned + in_progress (담당자 배정됨)
-    const inProgressCount = stats.assigned + stats.in_progress
+    // 진행 중 = assigned + in_progress + pending_approval (담당자 배정됨)
+    const pendingApprovalCount = stats.pending_approval || 0
+    const inProgressCount = stats.assigned + stats.in_progress + pendingApprovalCount
     // 완료
     const completedCount = stats.completed
     // 진행률 = 완료 / (전체 - 폐기) * 100
@@ -343,7 +347,7 @@ function DashboardContent() {
                 <div className="text-xl font-bold text-amber-600 dark:text-amber-400">{waitingCount}</div>
               </div>
 
-              {/* 진행 중 */}
+              {/* 진행 중 (승인 대기 포함) */}
               <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                 <div className="flex items-center justify-between mb-1">
                   <div className="text-sm text-blue-700 dark:text-blue-400">{tensw.stats.inProgress}</div>
@@ -351,7 +355,14 @@ function DashboardContent() {
                     <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   </div>
                 </div>
-                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{inProgressCount}</div>
+                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                  {inProgressCount}
+                  {pendingApprovalCount > 0 && (
+                    <span className="text-[10px] sm:text-xs font-normal text-orange-600 dark:text-orange-400 ml-1 whitespace-nowrap">
+                      (승인대기 {pendingApprovalCount})
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* 완료 */}
@@ -421,9 +432,16 @@ function DashboardContent() {
                             <p className="text-sm sm:text-xs truncate font-medium opacity-90" title={activity.title}>
                               {activity.title}
                             </p>
-                            <span className="text-sm opacity-70">
-                              {formatRelativeTime(activity.created_at)}
-                            </span>
+                            <div className="text-xs opacity-70">
+                              <div>{formatRelativeTime(activity.created_at)}</div>
+                              {(activity.actor || (activity.assignees && activity.assignees.length > 0)) && (
+                                <div className="truncate">
+                                  {activity.actor}
+                                  {activity.actor && activity.assignees && activity.assignees.length > 0 && ' → '}
+                                  {activity.assignees && activity.assignees.length > 0 && activity.assignees.join(', ')}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )
                       })}
