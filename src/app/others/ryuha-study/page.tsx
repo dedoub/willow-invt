@@ -336,6 +336,166 @@ function DraggableScheduleCard({
   )
 }
 
+// Draggable Homework Item Component (Week View)
+function DraggableHomeworkItem({
+  homework,
+  onToggleComplete,
+  onEdit,
+  isToggling = false,
+}: {
+  homework: { schedule: RyuhaSchedule; item?: RyuhaHomeworkItem; isLegacy: boolean }
+  onToggleComplete: () => void
+  onEdit: () => void
+  isToggling?: boolean
+}) {
+  const hw = homework
+  const isCompleted = hw.isLegacy ? hw.schedule.homework_completed : hw.item?.is_completed
+  const content = hw.isLegacy ? hw.schedule.homework_content : hw.item?.content
+  const dragId = hw.isLegacy ? `hw-legacy-${hw.schedule.id}` : `hw-${hw.item?.id}`
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: dragId,
+    data: { homework: hw },
+  })
+  const wasDraggingRef = useRef(false)
+
+  useEffect(() => {
+    if (isDragging) {
+      wasDraggingRef.current = true
+    }
+  }, [isDragging])
+
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+    : undefined
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={cn(
+        'text-xs p-1.5 rounded border-l-2 border-orange-500 cursor-grab active:cursor-grabbing touch-none',
+        isDragging && 'opacity-50',
+        isCompleted
+          ? 'bg-muted line-through text-muted-foreground'
+          : 'bg-orange-100 dark:bg-orange-900/30'
+      )}
+      onClick={(e) => {
+        if (wasDraggingRef.current) {
+          wasDraggingRef.current = false
+          return
+        }
+        if ((e.target as HTMLElement).closest('button')) return
+        e.stopPropagation()
+        onEdit()
+      }}
+    >
+      <div className="flex items-start gap-1">
+        <button
+          className="mt-0.5 flex-shrink-0"
+          onClick={(e) => {
+            e.stopPropagation()
+            if (!isToggling) onToggleComplete()
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          disabled={isToggling}
+        >
+          {isToggling ? (
+            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+          ) : isCompleted ? (
+            <CheckCircle2 className="h-3 w-3 text-green-600" />
+          ) : (
+            <Circle className="h-3 w-3 text-orange-600" />
+          )}
+        </button>
+        <span className="flex-1">
+          <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
+            <ClipboardList className="h-2.5 w-2.5" />
+            <span className="font-medium">과제</span>
+          </div>
+          <div className="text-muted-foreground">{hw.schedule.title}</div>
+          {content && (
+            <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
+              {content}
+            </div>
+          )}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// Draggable Homework Item Component (Month View)
+function DraggableMonthHomeworkItem({
+  homework,
+  onToggleComplete,
+  onEdit,
+  isToggling = false,
+}: {
+  homework: { schedule: RyuhaSchedule; item?: RyuhaHomeworkItem; isLegacy: boolean }
+  onToggleComplete: () => void
+  onEdit: () => void
+  isToggling?: boolean
+}) {
+  const hw = homework
+  const isCompleted = hw.isLegacy ? hw.schedule.homework_completed : hw.item?.is_completed
+  const dragId = hw.isLegacy ? `hw-legacy-${hw.schedule.id}` : `hw-${hw.item?.id}`
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: dragId,
+    data: { homework: hw },
+  })
+
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 50 }
+    : undefined
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={cn(
+        'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-grab active:cursor-grabbing touch-none',
+        isDragging && 'opacity-50',
+        isCompleted
+          ? 'bg-muted text-muted-foreground line-through'
+          : 'bg-orange-100 dark:bg-orange-900/30'
+      )}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('button')) return
+        e.stopPropagation()
+        if (!isDragging) onEdit()
+      }}
+    >
+      <button
+        className="flex-shrink-0"
+        onClick={(e) => {
+          e.stopPropagation()
+          if (!isToggling) onToggleComplete()
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        disabled={isToggling}
+      >
+        {isToggling ? (
+          <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />
+        ) : isCompleted ? (
+          <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
+        ) : (
+          <Circle className="h-2.5 w-2.5 text-orange-600" />
+        )}
+      </button>
+      <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
+      <span className="truncate flex-1">
+        {hw.schedule.title}
+      </span>
+    </div>
+  )
+}
+
 // Droppable Day Cell Component
 function DroppableDay({
   day,
@@ -573,6 +733,7 @@ export default function RyuhaStudyPage() {
   })
   const [chaptersWithSchedules, setChaptersWithSchedules] = useState<Set<string>>(new Set())
   const [activeSchedule, setActiveSchedule] = useState<RyuhaSchedule | null>(null)
+  const [activeHomework, setActiveHomework] = useState<{ schedule: RyuhaSchedule; item?: RyuhaHomeworkItem; isLegacy: boolean } | null>(null)
   const [memos, setMemos] = useState<Map<string, RyuhaDailyMemo>>(new Map())
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
 
@@ -1285,31 +1446,73 @@ export default function RyuhaStudyPage() {
   // Drag and drop handlers
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
-    const schedule = schedules.find((s) => s.id === active.id)
+    const activeId = active.id as string
+
+    // Check if it's a homework item
+    if (activeId.startsWith('hw-')) {
+      const homework = active.data.current?.homework as { schedule: RyuhaSchedule; item?: RyuhaHomeworkItem; isLegacy: boolean } | undefined
+      if (homework) {
+        setActiveHomework(homework)
+        setActiveSchedule(null)
+        return
+      }
+    }
+
+    // Regular schedule
+    const schedule = schedules.find((s) => s.id === activeId)
     if (schedule) {
       setActiveSchedule(schedule)
+      setActiveHomework(null)
     }
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveSchedule(null)
+    setActiveHomework(null)
 
     if (!over) return
 
-    const scheduleId = active.id as string
+    const activeId = active.id as string
     const dropData = over.data.current as { dateStr: string } | undefined
 
     if (!dropData?.dateStr) return
 
-    const schedule = schedules.find((s) => s.id === scheduleId)
+    // Check if it's a homework item
+    if (activeId.startsWith('hw-')) {
+      const homework = active.data.current?.homework as { schedule: RyuhaSchedule; item?: RyuhaHomeworkItem; isLegacy: boolean } | undefined
+      if (!homework) return
+
+      if (homework.isLegacy) {
+        // Legacy: update homework_deadline on schedule
+        if (homework.schedule.homework_deadline === dropData.dateStr) return
+        await fetch('/api/ryuha/schedules', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: homework.schedule.id, homework_deadline: dropData.dateStr }),
+        })
+      } else if (homework.item) {
+        // New homework item: update deadline
+        if (homework.item.deadline === dropData.dateStr) return
+        await fetch('/api/ryuha/homework-items', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: homework.item.id, deadline: dropData.dateStr }),
+        })
+      }
+      fetchSchedules()
+      return
+    }
+
+    // Regular schedule
+    const schedule = schedules.find((s) => s.id === activeId)
     if (!schedule || schedule.schedule_date === dropData.dateStr) return
 
     // Update schedule date
     await fetch('/api/ryuha/schedules', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: scheduleId, schedule_date: dropData.dateStr }),
+      body: JSON.stringify({ id: activeId, schedule_date: dropData.dateStr }),
     })
     fetchSchedules()
   }
@@ -2532,63 +2735,23 @@ export default function RyuhaStudyPage() {
                               )}
                             </div>
                           </div>
-                          {/* Homework deadline items - displayed first */}
+                          {/* Homework deadline items - displayed first (draggable) */}
                           {getHomeworkForDate(day).map((hw, hwIdx) => {
-                            const isCompleted = hw.isLegacy ? hw.schedule.homework_completed : hw.item?.is_completed
                             const toggleId = hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}`
-                            const content = hw.isLegacy ? hw.schedule.homework_content : hw.item?.content
                             return (
-                              <div
+                              <DraggableHomeworkItem
                                 key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
-                                className={cn(
-                                  'text-xs p-1.5 rounded border-l-2 border-orange-500 cursor-pointer',
-                                  isCompleted
-                                    ? 'bg-muted line-through text-muted-foreground'
-                                    : 'bg-orange-100 dark:bg-orange-900/30'
-                                )}
-                                onClick={(e) => {
-                                  if ((e.target as HTMLElement).closest('button')) return
-                                  e.stopPropagation()
-                                  openScheduleDialog(undefined, hw.schedule)
+                                homework={hw}
+                                onToggleComplete={() => {
+                                  if (hw.isLegacy) {
+                                    toggleHomeworkComplete(hw.schedule)
+                                  } else if (hw.item) {
+                                    toggleHomeworkItemComplete(hw.item)
+                                  }
                                 }}
-                              >
-                                <div className="flex items-start gap-1">
-                                  <button
-                                    className="mt-0.5 flex-shrink-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      if (!togglingIds.has(toggleId)) {
-                                        if (hw.isLegacy) {
-                                          toggleHomeworkComplete(hw.schedule)
-                                        } else if (hw.item) {
-                                          toggleHomeworkItemComplete(hw.item)
-                                        }
-                                      }
-                                    }}
-                                    disabled={togglingIds.has(toggleId)}
-                                  >
-                                    {togglingIds.has(toggleId) ? (
-                                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                                    ) : isCompleted ? (
-                                      <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                    ) : (
-                                      <Circle className="h-3 w-3 text-orange-600" />
-                                    )}
-                                  </button>
-                                  <span className="flex-1">
-                                    <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
-                                      <ClipboardList className="h-2.5 w-2.5" />
-                                      <span className="font-medium">과제</span>
-                                    </div>
-                                    <div className="text-muted-foreground">{hw.schedule.title}</div>
-                                    {content && (
-                                      <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
-                                        {content}
-                                      </div>
-                                    )}
-                                  </span>
-                                </div>
-                              </div>
+                                onEdit={() => openScheduleDialog(undefined, hw.schedule)}
+                                isToggling={togglingIds.has(toggleId)}
+                              />
                             )
                           })}
                           {/* Homework type schedules - displayed with orange style */}
@@ -2699,52 +2862,23 @@ export default function RyuhaStudyPage() {
                                   </button>
                                 </div>
                                 <div className="space-y-0.5">
-                                  {/* Homework deadline items - displayed first */}
+                                  {/* Homework deadline items - displayed first (draggable) */}
                                   {getHomeworkForDate(day).map((hw, hwIdx) => {
-                                    const isCompleted = hw.isLegacy ? hw.schedule.homework_completed : hw.item?.is_completed
                                     const toggleId = hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}`
                                     return (
-                                      <div
+                                      <DraggableMonthHomeworkItem
                                         key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
-                                        className={cn(
-                                          'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-pointer',
-                                          isCompleted
-                                            ? 'bg-muted text-muted-foreground line-through'
-                                            : 'bg-orange-100 dark:bg-orange-900/30'
-                                        )}
-                                        onClick={(e) => {
-                                          if ((e.target as HTMLElement).closest('button')) return
-                                          e.stopPropagation()
-                                          openScheduleDialog(undefined, hw.schedule)
+                                        homework={hw}
+                                        onToggleComplete={() => {
+                                          if (hw.isLegacy) {
+                                            toggleHomeworkComplete(hw.schedule)
+                                          } else if (hw.item) {
+                                            toggleHomeworkItemComplete(hw.item)
+                                          }
                                         }}
-                                      >
-                                        <button
-                                          className="flex-shrink-0"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            if (!togglingIds.has(toggleId)) {
-                                              if (hw.isLegacy) {
-                                                toggleHomeworkComplete(hw.schedule)
-                                              } else if (hw.item) {
-                                                toggleHomeworkItemComplete(hw.item)
-                                              }
-                                            }
-                                          }}
-                                          disabled={togglingIds.has(toggleId)}
-                                        >
-                                          {togglingIds.has(toggleId) ? (
-                                            <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />
-                                          ) : isCompleted ? (
-                                            <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
-                                          ) : (
-                                            <Circle className="h-2.5 w-2.5 text-orange-600" />
-                                          )}
-                                        </button>
-                                        <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
-                                        <span className="truncate flex-1">
-                                          {hw.schedule.title}
-                                        </span>
-                                      </div>
+                                        onEdit={() => openScheduleDialog(undefined, hw.schedule)}
+                                        isToggling={togglingIds.has(toggleId)}
+                                      />
                                     )
                                   })}
                                   {/* Homework type schedules - month view */}
@@ -2837,6 +2971,44 @@ export default function RyuhaStudyPage() {
                             <Circle className="h-3 w-3" />
                           )}
                           <span>{activeSchedule.title}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                  {activeHomework && (() => {
+                    const isCompleted = activeHomework.isLegacy
+                      ? activeHomework.schedule.homework_completed
+                      : activeHomework.item?.is_completed
+                    const content = activeHomework.isLegacy
+                      ? activeHomework.schedule.homework_content
+                      : activeHomework.item?.content
+                    return (
+                      <div
+                        className={cn(
+                          'text-xs p-1.5 rounded shadow-lg border-l-2 border-orange-500',
+                          isCompleted
+                            ? 'bg-muted line-through text-muted-foreground'
+                            : 'bg-orange-100 dark:bg-orange-900/50'
+                        )}
+                      >
+                        <div className="flex items-start gap-1">
+                          {isCompleted ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0" />
+                          ) : (
+                            <Circle className="h-3 w-3 text-orange-600 flex-shrink-0" />
+                          )}
+                          <span className="flex-1">
+                            <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
+                              <ClipboardList className="h-2.5 w-2.5" />
+                              <span className="font-medium">과제</span>
+                            </div>
+                            <div className="text-muted-foreground">{activeHomework.schedule.title}</div>
+                            {content && (
+                              <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-1">
+                                {content}
+                              </div>
+                            )}
+                          </span>
                         </div>
                       </div>
                     )

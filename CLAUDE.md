@@ -146,17 +146,21 @@ AKROS_SUPABASE_SERVICE_KEY=...
 </span>
 ```
 
-### 버튼 패턴
-> **Button 컴포넌트는 slate 색상 사용 (primary 아님)**
-> - default: `bg-slate-900 dark:bg-slate-600`
-> - outline: `bg-slate-200 dark:bg-slate-700`
-> - destructive: `bg-red-600`
+### 버튼 & 체크박스 패턴
+> **Button, Checkbox는 slate 색상 사용 (primary 아님)**
+> - Button default: `bg-slate-900 dark:bg-slate-600`
+> - Button outline: `bg-slate-200 dark:bg-slate-700`
+> - Button destructive: `bg-red-600`
+> - Checkbox 체크: `bg-slate-900 dark:bg-slate-500`
 
 ```jsx
 // 모달/인라인 폼 버튼 (size="sm" 필수)
 <Button size="sm" variant="destructive">삭제</Button>
 <Button size="sm" variant="outline">취소</Button>
 <Button size="sm">저장</Button>
+
+// 체크박스 (slate 색상)
+<Checkbox />  // 미체크: slate-200, 체크: slate-900
 ```
 
 ### 모달 폼 전체 구조

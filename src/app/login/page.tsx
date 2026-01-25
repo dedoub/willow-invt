@@ -105,7 +105,7 @@ export default function LoginPage() {
                     placeholder={t.auth.login.emailPlaceholder}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-brand-100/40 focus:border-brand-400 focus:ring-brand-400/20"
+                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-brand-100/40 focus:border-brand-400 focus:ring-brand-400/20 focus-visible:bg-white/10 autofill:bg-white/5 autofill:text-white [-webkit-autofill]:bg-white/5 [&:-webkit-autofill]:!bg-white/5 [&:-webkit-autofill]:!text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.05)]"
                     required
                   />
                 </div>
@@ -124,7 +124,7 @@ export default function LoginPage() {
                     placeholder={t.auth.login.passwordPlaceholder}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-brand-100/40 focus:border-brand-400 focus:ring-brand-400/20"
+                    className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-brand-100/40 focus:border-brand-400 focus:ring-brand-400/20 focus-visible:bg-white/10 autofill:bg-white/5 autofill:text-white [-webkit-autofill]:bg-white/5 [&:-webkit-autofill]:!bg-white/5 [&:-webkit-autofill]:!text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.05)]"
                     required
                   />
                   <button
