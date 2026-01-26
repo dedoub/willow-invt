@@ -3203,7 +3203,14 @@ export default function TenswManagementPage() {
                                 if (aPayment !== bPayment) return bPayment - aPayment
                                 const aIssue = a.issue_date ? new Date(a.issue_date).getTime() : 0
                                 const bIssue = b.issue_date ? new Date(b.issue_date).getTime() : 0
-                                return bIssue - aIssue
+                                if (aIssue !== bIssue) return bIssue - aIssue
+                                // Same date: sort by type (revenue > expense > asset > liability)
+                                const typeOrder = { revenue: 0, expense: 1, asset: 2, liability: 3 }
+                                const aType = typeOrder[a.type as keyof typeof typeOrder] ?? 4
+                                const bType = typeOrder[b.type as keyof typeof typeOrder] ?? 4
+                                if (aType !== bType) return aType - bType
+                                // Same type: sort by counterparty name (가나다순)
+                                return a.counterparty.localeCompare(b.counterparty, 'ko')
                               })
                             }
 
@@ -3310,7 +3317,7 @@ export default function TenswManagementPage() {
                                               )}>
                                                 {inv.type === 'revenue' ? '매출' : inv.type === 'expense' ? '비용' : inv.type === 'asset' ? '자산' : '부채'}
                                               </span>
-                                              <span className="flex-shrink-0 text-xs text-muted-foreground w-20">{inv.issue_date || inv.payment_date || '-'}</span>
+                                              <span className="flex-shrink-0 text-xs text-muted-foreground w-20">{inv.payment_date || inv.issue_date || '-'}</span>
                                               <span className="text-sm font-medium truncate flex-1 min-w-0">
                                                 {inv.counterparty}
                                                 {inv.description && <span className="text-muted-foreground font-normal"> - {inv.description}</span>}
