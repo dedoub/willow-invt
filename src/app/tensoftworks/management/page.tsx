@@ -3197,7 +3197,13 @@ export default function TenswManagementPage() {
 
                                 return periodKey === period
                               }).sort((a, b) => {
-                                return new Date(b.payment_date!).getTime() - new Date(a.payment_date!).getTime()
+                                // Sort by payment_date first (newest first), then by issue_date
+                                const aPayment = a.payment_date ? new Date(a.payment_date).getTime() : 0
+                                const bPayment = b.payment_date ? new Date(b.payment_date).getTime() : 0
+                                if (aPayment !== bPayment) return bPayment - aPayment
+                                const aIssue = a.issue_date ? new Date(a.issue_date).getTime() : 0
+                                const bIssue = b.issue_date ? new Date(b.issue_date).getTime() : 0
+                                return bIssue - aIssue
                               })
                             }
 
