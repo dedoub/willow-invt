@@ -1764,11 +1764,8 @@ export default function TenswManagementPage() {
   const loadInvoices = useCallback(async () => {
     setIsLoadingInvoices(true)
     try {
-      const params = new URLSearchParams()
-      if (invoiceTypeFilter !== 'all') {
-        params.set('type', invoiceTypeFilter)
-      }
-      const res = await fetch(`/api/tensw-mgmt/invoices?${params.toString()}`)
+      // Always fetch all invoices (filter on client side for list view)
+      const res = await fetch('/api/tensw-mgmt/invoices')
       if (res.ok) {
         const data = await res.json()
         setInvoices(data.invoices || [])
@@ -1778,7 +1775,7 @@ export default function TenswManagementPage() {
     } finally {
       setIsLoadingInvoices(false)
     }
-  }, [invoiceTypeFilter])
+  }, [])
 
   const resetInvoiceForm = () => {
     setInvoiceFormType('revenue')
@@ -2919,8 +2916,12 @@ export default function TenswManagementPage() {
                   </div>
 
                   {(() => {
-                    const totalPages = Math.ceil(invoices.length / invoicesPerPage)
-                    const paginatedInvoices = invoices.slice(
+                    // Client-side filtering for list view
+                    const filteredInvoices = invoiceTypeFilter === 'all'
+                      ? invoices
+                      : invoices.filter(inv => inv.type === invoiceTypeFilter)
+                    const totalPages = Math.ceil(filteredInvoices.length / invoicesPerPage)
+                    const paginatedInvoices = filteredInvoices.slice(
                       (invoicePage - 1) * invoicesPerPage,
                       invoicePage * invoicesPerPage
                     )
@@ -2931,7 +2932,7 @@ export default function TenswManagementPage() {
                             <div className="text-center py-8">
                               <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
                             </div>
-                          ) : invoices.length === 0 ? (
+                          ) : filteredInvoices.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">
                               <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
                               <p className="text-sm">등록된 재무항목이 없습니다</p>
@@ -3010,7 +3011,7 @@ export default function TenswManagementPage() {
                                     </div>
                                   </div>
                                   {expandedInvoice === invoice.id && (
-                                    <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-2">
+                                    <div className="mt-1 space-y-2">
                                       <div className="flex flex-wrap gap-1">
                                         {invoice.attachments?.map((att, idx) => (
                                           <a
@@ -3033,11 +3034,11 @@ export default function TenswManagementPage() {
                             })
                           )}
                         </div>
-                        {invoices.length > 0 && (
+                        {filteredInvoices.length > 0 && (
                           <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                             <div className="flex items-center gap-2">
                               <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                {invoices.length}개 중 {(invoicePage - 1) * invoicesPerPage + 1}-{Math.min(invoicePage * invoicesPerPage, invoices.length)}
+                                {filteredInvoices.length}개 중 {(invoicePage - 1) * invoicesPerPage + 1}-{Math.min(invoicePage * invoicesPerPage, filteredInvoices.length)}
                               </p>
                               <div className="relative">
                                 <select
@@ -3207,74 +3208,70 @@ export default function TenswManagementPage() {
                                     )} />
                                   </div>
                                   {/* 영업활동 */}
-                                  <div className="grid grid-cols-4 gap-2 mb-3">
+                                  <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
                                     <div>
-                                      <div className="flex items-center gap-1 text-xs text-blue-600 mb-1">
-                                        <TrendingUp className="h-3 w-3" />
+                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-blue-600 mb-1">
+                                        <TrendingUp className="h-3 w-3 hidden sm:block" />
                                         매출 ({data.revenueCount})
                                       </div>
-                                      <p className="text-sm font-bold text-blue-700">{formatKRW(data.revenue)}</p>
+                                      <p className="text-xs sm:text-sm font-bold text-blue-700">{formatKRW(data.revenue)}</p>
                                     </div>
                                     <div>
-                                      <div className="flex items-center gap-1 text-xs text-orange-600 mb-1">
-                                        <TrendingDown className="h-3 w-3" />
+                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-orange-600 mb-1">
+                                        <TrendingDown className="h-3 w-3 hidden sm:block" />
                                         비용 ({data.expenseCount})
                                       </div>
-                                      <p className="text-sm font-bold text-orange-700">{formatKRW(data.expense)}</p>
+                                      <p className="text-xs sm:text-sm font-bold text-orange-700">{formatKRW(data.expense)}</p>
                                     </div>
                                     <div>
-                                      <div className="text-xs text-muted-foreground mb-1">영업이익</div>
+                                      <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">영업이익</div>
                                       <p className={cn(
-                                        'text-sm font-bold',
+                                        'text-xs sm:text-sm font-bold',
                                         operatingCashFlow >= 0 ? 'text-slate-700 dark:text-slate-200' : 'text-red-600'
                                       )}>
                                         {formatKRW(operatingCashFlow)}
                                       </p>
                                     </div>
+                                  </div>
+                                  {/* 투자/재무활동 + 현금흐름 */}
+                                  <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-3 border-t border-slate-100 dark:border-slate-600">
                                     <div>
-                                      <div className="text-xs text-muted-foreground mb-1">현금흐름</div>
+                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-emerald-600 mb-1">
+                                        <TrendingDown className="h-3 w-3 hidden sm:block" />
+                                        자산 ({data.assetCount})
+                                      </div>
+                                      <p className="text-xs sm:text-sm font-bold text-emerald-700">{formatKRW(data.asset)}</p>
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-purple-600 mb-1">
+                                        <TrendingUp className="h-3 w-3 hidden sm:block" />
+                                        부채 ({data.liabilityCount})
+                                      </div>
+                                      <p className="text-xs sm:text-sm font-bold text-purple-700">{formatKRW(data.liability)}</p>
+                                    </div>
+                                    <div>
+                                      <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">현금흐름</div>
                                       <p className={cn(
-                                        'text-sm font-bold',
+                                        'text-xs sm:text-sm font-bold',
                                         totalCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'
                                       )}>
                                         {totalCashFlow >= 0 ? '+' : ''}{formatKRW(totalCashFlow)}
                                       </p>
                                     </div>
                                   </div>
-                                  {/* 투자/재무활동 */}
-                                  {(data.assetCount > 0 || data.liabilityCount > 0) && (
-                                    <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100 dark:border-slate-600">
-                                      <div>
-                                        <div className="flex items-center gap-1 text-xs text-emerald-600 mb-1">
-                                          <TrendingDown className="h-3 w-3" />
-                                          자산 ({data.assetCount})
-                                        </div>
-                                        <p className="text-sm font-bold text-emerald-700">{formatKRW(data.asset)}</p>
-                                      </div>
-                                      <div>
-                                        <div className="flex items-center gap-1 text-xs text-purple-600 mb-1">
-                                          <TrendingUp className="h-3 w-3" />
-                                          부채 ({data.liabilityCount})
-                                        </div>
-                                        <p className="text-sm font-bold text-purple-700">{formatKRW(data.liability)}</p>
-                                      </div>
-                                      <div />
-                                      <div />
-                                    </div>
-                                  )}
                                 </button>
 
                                 {/* Expanded invoice list */}
                                 {isExpanded && (
-                                  <div className="border-t border-slate-200 dark:border-slate-600">
+                                  <div>
                                     {periodInvoices.length === 0 ? (
                                       <p className="text-sm text-muted-foreground text-center py-4">항목 없음</p>
                                     ) : (
-                                      <div className="divide-y divide-slate-100 dark:divide-slate-600">
+                                      <div>
                                         {periodInvoices.map((inv) => (
                                           <div
                                             key={inv.id}
-                                            className="px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer"
+                                            className="px-4 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer"
                                             onClick={() => {
                                               setEditingInvoice(inv)
                                               setInvoiceFormType(inv.type)

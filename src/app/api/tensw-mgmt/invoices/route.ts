@@ -43,7 +43,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ invoices: data || [] })
+  // Convert amount from string (numeric type) to number
+  const invoices = (data || []).map((inv) => ({
+    ...inv,
+    amount: Number(inv.amount),
+  }))
+
+  return NextResponse.json({ invoices })
 }
 
 // POST - Create a new invoice
