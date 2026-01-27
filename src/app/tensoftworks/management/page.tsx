@@ -871,6 +871,7 @@ export default function TenswManagementPage() {
   const [isUploadingWiki, setIsUploadingWiki] = useState(false)
   const [wikiSearch, setWikiSearch] = useState('')
   const [wikiPage, setWikiPage] = useState(1)
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
 
   // Gmail states
   const [emails, setEmails] = useState<ParsedEmail[]>([])
@@ -3656,7 +3657,23 @@ export default function TenswManagementPage() {
                               </button>
                             </div>
                           </div>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 whitespace-pre-wrap line-clamp-3">{note.content}</p>
+                          <p className={`text-xs text-slate-600 dark:text-slate-400 mt-1 whitespace-pre-wrap ${!expandedNotes.has(note.id) ? 'line-clamp-3' : ''}`}>{note.content}</p>
+                          {note.content && note.content.split('\n').length > 3 && (
+                            <button
+                              onClick={() => {
+                                const newExpanded = new Set(expandedNotes)
+                                if (newExpanded.has(note.id)) {
+                                  newExpanded.delete(note.id)
+                                } else {
+                                  newExpanded.add(note.id)
+                                }
+                                setExpandedNotes(newExpanded)
+                              }}
+                              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mt-1"
+                            >
+                              {expandedNotes.has(note.id) ? '접기' : '펼치기'}
+                            </button>
+                          )}
                           {note.attachments && note.attachments.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1">
                               {note.attachments.map((att, idx) => (

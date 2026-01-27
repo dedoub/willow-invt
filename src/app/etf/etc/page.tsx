@@ -1509,6 +1509,7 @@ export default function ETCPage() {
   const [isUploadingWiki, setIsUploadingWiki] = useState(false)
   const [wikiSearch, setWikiSearch] = useState('')
   const [wikiPage, setWikiPage] = useState(1)
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
   const WIKI_PER_PAGE = 5
 
   // ETF 데이터 로드
@@ -1953,20 +1954,46 @@ Dongwook`
 
   const handleUpdateNote = async (note: WikiNote) => {
     try {
+      setIsUploadingWiki(true)
+      let attachments = note.attachments
+
+      // 새 파일이 있으면 업로드
+      if (newNoteFiles.length > 0) {
+        const formData = new FormData()
+        newNoteFiles.forEach(file => formData.append('files', file))
+
+        const uploadRes = await fetch('/api/wiki/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json().catch(() => ({}))
+          alert(`파일 업로드 실패: ${errorData.error || uploadRes.statusText}`)
+          return
+        }
+        const uploadData = await uploadRes.json()
+        attachments = [...(attachments || []), ...uploadData.files]
+      }
+
       const res = await fetch(`/api/wiki/${note.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: note.title,
           content: note.content,
+          attachments,
         }),
       })
       if (res.ok) {
         setEditingNote(null)
+        setNewNoteFiles([])
         await loadWikiNotes()
       }
     } catch (error) {
       console.error('Failed to update wiki note:', error)
+    } finally {
+      setIsUploadingWiki(false)
     }
   }
 
@@ -3326,7 +3353,23 @@ Dongwook`
                             </button>
                           </div>
                         </div>
-                        <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap line-clamp-3">{note.content}</p>
+                        <p className={`text-xs text-slate-600 mt-1 whitespace-pre-wrap ${!expandedNotes.has(note.id) ? 'line-clamp-3' : ''}`}>{note.content}</p>
+                        {note.content && note.content.split('\n').length > 3 && (
+                          <button
+                            onClick={() => {
+                              const newExpanded = new Set(expandedNotes)
+                              if (newExpanded.has(note.id)) {
+                                newExpanded.delete(note.id)
+                              } else {
+                                newExpanded.add(note.id)
+                              }
+                              setExpandedNotes(newExpanded)
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mt-1"
+                          >
+                            {expandedNotes.has(note.id) ? '접기' : '펼치기'}
+                          </button>
+                        )}
                         {/* 첨부파일 표시 */}
                         {note.attachments && note.attachments.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1">
