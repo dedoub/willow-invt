@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { TiptapEditor, plainTextToHtml } from '@/components/ui/tiptap-editor'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n'
 import { gmailService, ParsedEmail, EmailSyncStatus, OverallAnalysisResult, SavedTodo, SavedAnalysis } from '@/lib/gmail'
@@ -3118,13 +3119,11 @@ Dongwook`
                     </div>
                     <div>
                       <label className="text-xs text-slate-500 mb-1 block">내용</label>
-                      <Textarea
-                        value={newNoteContent}
-                        onChange={(e) => setNewNoteContent(e.target.value)}
+                      <TiptapEditor
+                        content={newNoteContent}
+                        onChange={setNewNoteContent}
                         placeholder={t.wiki.contentPlaceholder}
-                        rows={3}
-                        className="!border-0 resize-none"
-                        style={{ border: 'none' }}
+                        minHeight="80px"
                       />
                     </div>
                     <div>
@@ -3225,12 +3224,11 @@ Dongwook`
                           </div>
                           <div>
                             <label className="text-xs text-slate-500 mb-1 block">내용</label>
-                            <Textarea
-                              value={editingNote.content}
-                              onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
-                              rows={3}
-                              className="!border-0 resize-none"
-                              style={{ border: 'none' }}
+                            <TiptapEditor
+                              content={editingNote.content}
+                              onChange={(content) => setEditingNote({ ...editingNote, content })}
+                              placeholder="내용을 입력하세요..."
+                              minHeight="80px"
                             />
                           </div>
                           <div>
@@ -3346,15 +3344,24 @@ Dongwook`
                               <Pin className="h-3 w-3" />
                             </button>
                             <button
-                              onClick={() => setEditingNote(note)}
+                              onClick={() => {
+                                const content = note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '')
+                                setEditingNote({ ...note, content })
+                              }}
                               className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 cursor-pointer"
                             >
                               <Pencil className="h-3 w-3" />
                             </button>
                           </div>
                         </div>
-                        <p className={`text-xs text-slate-600 mt-1 whitespace-pre-wrap ${!expandedNotes.has(note.id) ? 'line-clamp-3' : ''}`}>{note.content}</p>
-                        {note.content && note.content.split('\n').length > 3 && (
+                        <div
+                          className={cn(
+                            "wiki-content mt-1 text-slate-600 dark:text-slate-400",
+                            !expandedNotes.has(note.id) && "line-clamp-3 overflow-hidden"
+                          )}
+                          dangerouslySetInnerHTML={{ __html: note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '') }}
+                        />
+                        {note.content && note.content.length > 150 && (
                           <button
                             onClick={() => {
                               const newExpanded = new Set(expandedNotes)

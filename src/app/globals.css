@@ -200,3 +200,65 @@ input[type="date"].date-placeholder-hidden:not(:focus):not([value])::-webkit-dat
 input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   color: transparent;
 }
+
+/* Wiki content styles */
+.wiki-content {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.wiki-content p {
+  margin: 0.375rem 0;
+  min-height: 1.5em;
+}
+
+.wiki-content p:empty::before,
+.wiki-content p:has(> br:only-child)::after {
+  content: '\00a0';
+}
+
+.wiki-content br {
+  display: block;
+  content: '';
+  margin-top: 0.5em;
+}
+
+.wiki-content h2 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.wiki-content ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin: 0.375rem 0;
+}
+
+.wiki-content ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin: 0.375rem 0;
+}
+
+.wiki-content li {
+  margin: 0.25rem 0;
+}
+
+.wiki-content strong {
+  font-weight: 600;
+}
+
+.wiki-content em {
+  font-style: italic;
+}
+
+.wiki-content hr {
+  border: none;
+  border-top: 1px solid oklch(0.9 0 0);
+  margin: 0.5rem 0;
+}
+
+.dark .wiki-content hr {
+  border-top-color: oklch(0.35 0 0);
+}
