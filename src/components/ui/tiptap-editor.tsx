@@ -124,7 +124,7 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class: cn(
-          'focus:outline-none text-sm',
+          'focus:outline-none text-xs',
           'min-h-[var(--editor-min-height)] px-3 py-2',
           editorClassName
         ),
@@ -156,27 +156,29 @@ export function TiptapEditor({
         }
         .tiptap {
           outline: none;
+          line-height: 1.5;
         }
         .tiptap p {
-          margin: 0.25em 0;
+          margin: 0.375rem 0;
+          min-height: 1.5em;
         }
         .tiptap h2 {
-          font-size: 1em;
+          font-size: 0.875rem;
           font-weight: 600;
-          margin: 0.5em 0 0.25em;
+          margin: 0.5rem 0 0.25rem;
         }
         .tiptap ul {
           list-style-type: disc;
-          padding-left: 1.5em;
-          margin: 0.25em 0;
+          padding-left: 1.25rem;
+          margin: 0.375rem 0;
         }
         .tiptap ol {
           list-style-type: decimal;
-          padding-left: 1.5em;
-          margin: 0.25em 0;
+          padding-left: 1.25rem;
+          margin: 0.375rem 0;
         }
         .tiptap li {
-          margin: 0.125em 0;
+          margin: 0.25rem 0;
         }
         .tiptap li p {
           margin: 0;
@@ -190,7 +192,7 @@ export function TiptapEditor({
         .tiptap hr {
           border: none;
           border-top: 1px solid #e2e8f0;
-          margin: 0.5em 0;
+          margin: 0.5rem 0;
         }
         .dark .tiptap hr {
           border-top-color: #475569;
