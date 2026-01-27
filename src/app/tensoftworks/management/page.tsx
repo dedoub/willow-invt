@@ -33,6 +33,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { TiptapEditor, plainTextToHtml } from '@/components/ui/tiptap-editor'
 import {
   Select,
   SelectContent,
@@ -811,6 +812,7 @@ export default function TenswManagementPage() {
   const [invoiceViewMode, setInvoiceViewMode] = useState<'list' | 'summary'>('list')
   const [invoiceSummaryPeriod, setInvoiceSummaryPeriod] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly')
   const [expandedSummaryPeriod, setExpandedSummaryPeriod] = useState<string | null>(null)
+  const [summaryCounterpartyFilter, setSummaryCounterpartyFilter] = useState<string | null>(null)
 
   // Invoice form states (simplified)
   const [invoiceFormType, setInvoiceFormType] = useState<'revenue' | 'expense' | 'asset' | 'liability'>('revenue')
@@ -2073,7 +2075,9 @@ export default function TenswManagementPage() {
   const startEditNote = (note: WikiNote) => {
     setEditingNote(note)
     setNewNoteTitle(note.title)
-    setNewNoteContent(note.content)
+    // 기존 텍스트를 HTML로 변환 (이미 HTML인 경우 그대로 사용)
+    const content = note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '')
+    setNewNoteContent(content)
     setNewNoteFiles([])
     setIsAddingNote(false)
   }
@@ -3149,6 +3153,8 @@ export default function TenswManagementPage() {
                     for (const inv of allInvoices) {
                       // 입금일/지급일이 없으면 합계에서 제외
                       if (!inv.payment_date) continue
+                      // 거래처 필터 적용
+                      if (summaryCounterpartyFilter && inv.counterparty !== summaryCounterpartyFilter) continue
 
                       const date = new Date(inv.payment_date)
                       let periodKey: string
@@ -3189,24 +3195,46 @@ export default function TenswManagementPage() {
 
                   const summaryData = getSummaryData()
 
+                  // Get unique counterparties sorted alphabetically
+                  const uniqueCounterparties = Array.from(
+                    new Set(invoices.filter(inv => inv.payment_date).map(inv => inv.counterparty))
+                  ).sort((a, b) => a.localeCompare(b, 'ko'))
+
                   return (
                     <>
-                      {/* Period filter */}
-                      <div className="flex gap-1 mb-4">
-                        {(['monthly', 'quarterly', 'yearly'] as const).map((period) => (
-                          <button
-                            key={period}
-                            onClick={() => setInvoiceSummaryPeriod(period)}
-                            className={cn(
-                              'px-3 py-1 text-xs font-medium rounded-full transition-colors',
-                              invoiceSummaryPeriod === period
-                                ? 'bg-slate-900 text-white dark:bg-slate-600'
-                                : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                            )}
-                          >
-                            {periodLabels[period]}
-                          </button>
-                        ))}
+                      {/* Period filter + Counterparty filter */}
+                      <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <div className="flex gap-1">
+                          {(['monthly', 'quarterly', 'yearly'] as const).map((period) => (
+                            <button
+                              key={period}
+                              onClick={() => setInvoiceSummaryPeriod(period)}
+                              className={cn(
+                                'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                                invoiceSummaryPeriod === period
+                                  ? 'bg-slate-900 text-white dark:bg-slate-600'
+                                  : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                              )}
+                            >
+                              {periodLabels[period]}
+                            </button>
+                          ))}
+                        </div>
+                        {uniqueCounterparties.length > 0 && (
+                          <div className="relative">
+                            <select
+                              value={summaryCounterpartyFilter || ''}
+                              onChange={(e) => setSummaryCounterpartyFilter(e.target.value || null)}
+                              className="text-xs bg-white dark:bg-slate-800 rounded-lg pl-2 pr-6 py-1.5 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                            >
+                              <option value="">전체 거래처</option>
+                              {uniqueCounterparties.map((cp) => (
+                                <option key={cp} value={cp}>{cp}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                          </div>
+                        )}
                       </div>
 
                       {isLoadingInvoices ? (
@@ -3233,6 +3261,8 @@ export default function TenswManagementPage() {
                               return invoices.filter((inv) => {
                                 // 입금일/지급일이 없으면 제외
                                 if (!inv.payment_date) return false
+                                // 거래처 필터 적용
+                                if (summaryCounterpartyFilter && inv.counterparty !== summaryCounterpartyFilter) return false
 
                                 const date = new Date(inv.payment_date)
                                 let periodKey: string
@@ -3466,13 +3496,11 @@ export default function TenswManagementPage() {
                       </div>
                       <div>
                         <label className="text-xs text-slate-500 mb-1 block">내용</label>
-                        <Textarea
-                          value={newNoteContent}
-                          onChange={(e) => setNewNoteContent(e.target.value)}
+                        <TiptapEditor
+                          content={newNoteContent}
+                          onChange={setNewNoteContent}
                           placeholder={t.wiki.contentPlaceholder}
-                          rows={3}
-                          className="!border-0 resize-none"
-                          style={{ border: 'none' }}
+                          minHeight="80px"
                         />
                       </div>
                       <div>
@@ -3574,12 +3602,11 @@ export default function TenswManagementPage() {
                             </div>
                             <div>
                               <label className="text-xs text-slate-500 mb-1 block">내용</label>
-                              <Textarea
-                                value={newNoteContent}
-                                onChange={(e) => setNewNoteContent(e.target.value)}
-                                rows={3}
-                                className="!border-0 resize-none"
-                                style={{ border: 'none' }}
+                              <TiptapEditor
+                                content={newNoteContent}
+                                onChange={setNewNoteContent}
+                                placeholder="내용을 입력하세요..."
+                                minHeight="80px"
                               />
                             </div>
                             <div>
@@ -3707,8 +3734,14 @@ export default function TenswManagementPage() {
                               </button>
                             </div>
                           </div>
-                          <p className={`text-xs text-slate-600 dark:text-slate-400 mt-1 whitespace-pre-wrap ${!expandedNotes.has(note.id) ? 'line-clamp-3' : ''}`}>{note.content}</p>
-                          {note.content && note.content.split('\n').length > 3 && (
+                          <div
+                            className={cn(
+                              "wiki-content mt-1 text-slate-600 dark:text-slate-400",
+                              !expandedNotes.has(note.id) && "line-clamp-3 overflow-hidden"
+                            )}
+                            dangerouslySetInnerHTML={{ __html: note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '') }}
+                          />
+                          {note.content && note.content.length > 150 && (
                             <button
                               onClick={() => {
                                 const newExpanded = new Set(expandedNotes)
