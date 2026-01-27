@@ -3089,7 +3089,7 @@ export default function RyuhaStudyPage() {
                       setScheduleForm({ ...scheduleForm, start_time: `${hour}:${currentMinute}` })
                     }}
                   >
-                    <SelectTrigger className="w-[65px]">
+                    <SelectTrigger className="w-[65px] sm:flex-1 sm:w-auto">
                       <SelectValue placeholder="시" />
                     </SelectTrigger>
                     <SelectContent>
@@ -3106,7 +3106,7 @@ export default function RyuhaStudyPage() {
                       setScheduleForm({ ...scheduleForm, start_time: `${currentHour}:${minute}` })
                     }}
                   >
-                    <SelectTrigger className="w-[65px] -mr-3">
+                    <SelectTrigger className="w-[65px] sm:flex-1 sm:w-auto -mr-3 sm:mr-0">
                       <SelectValue placeholder="분" />
                     </SelectTrigger>
                     <SelectContent>
@@ -3120,7 +3120,7 @@ export default function RyuhaStudyPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9"
+                      className="h-9 w-9 flex-shrink-0"
                       onClick={() => setScheduleForm({ ...scheduleForm, start_time: '' })}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -3138,7 +3138,7 @@ export default function RyuhaStudyPage() {
                       setScheduleForm({ ...scheduleForm, end_time: `${hour}:${currentMinute}` })
                     }}
                   >
-                    <SelectTrigger className="w-[65px]">
+                    <SelectTrigger className="w-[65px] sm:flex-1 sm:w-auto">
                       <SelectValue placeholder="시" />
                     </SelectTrigger>
                     <SelectContent>
@@ -3155,7 +3155,7 @@ export default function RyuhaStudyPage() {
                       setScheduleForm({ ...scheduleForm, end_time: `${currentHour}:${minute}` })
                     }}
                   >
-                    <SelectTrigger className="w-[65px] -mr-3">
+                    <SelectTrigger className="w-[65px] sm:flex-1 sm:w-auto -mr-3 sm:mr-0">
                       <SelectValue placeholder="분" />
                     </SelectTrigger>
                     <SelectContent>
@@ -3169,7 +3169,7 @@ export default function RyuhaStudyPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9"
+                      className="h-9 w-9 flex-shrink-0"
                       onClick={() => setScheduleForm({ ...scheduleForm, end_time: '' })}
                     >
                       <Trash2 className="h-4 w-4" />
