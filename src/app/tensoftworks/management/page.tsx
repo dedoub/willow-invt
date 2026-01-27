@@ -806,6 +806,8 @@ export default function TenswManagementPage() {
   const [isSavingInvoice, setIsSavingInvoice] = useState(false)
   const [editingInvoice, setEditingInvoice] = useState<TenswInvoice | null>(null)
   const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<'all' | 'revenue' | 'expense' | 'asset' | 'liability'>('all')
+  const [invoiceDateFrom, setInvoiceDateFrom] = useState('')
+  const [invoiceDateTo, setInvoiceDateTo] = useState('')
   const [invoiceViewMode, setInvoiceViewMode] = useState<'list' | 'summary'>('list')
   const [invoiceSummaryPeriod, setInvoiceSummaryPeriod] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly')
   const [expandedSummaryPeriod, setExpandedSummaryPeriod] = useState<string | null>(null)
@@ -2916,12 +2918,60 @@ export default function TenswManagementPage() {
                     ))}
                   </div>
 
+                  {/* Date range filter */}
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <span className="text-xs text-slate-500">기간</span>
+                    <input
+                      type="date"
+                      value={invoiceDateFrom}
+                      onChange={(e) => {
+                        setInvoiceDateFrom(e.target.value)
+                        setInvoicePage(1)
+                      }}
+                      className="px-2 py-1 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
+                    />
+                    <span className="text-xs text-slate-400">~</span>
+                    <input
+                      type="date"
+                      value={invoiceDateTo}
+                      onChange={(e) => {
+                        setInvoiceDateTo(e.target.value)
+                        setInvoicePage(1)
+                      }}
+                      className="px-2 py-1 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
+                    />
+                    {(invoiceDateFrom || invoiceDateTo) && (
+                      <button
+                        onClick={() => {
+                          setInvoiceDateFrom('')
+                          setInvoiceDateTo('')
+                          setInvoicePage(1)
+                        }}
+                        className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      >
+                        초기화
+                      </button>
+                    )}
+                  </div>
+
                   {(() => {
                     // Client-side filtering and sorting for list view
-                    const filteredInvoices = (invoiceTypeFilter === 'all'
+                    let filteredInvoices = invoiceTypeFilter === 'all'
                       ? invoices
                       : invoices.filter(inv => inv.type === invoiceTypeFilter)
-                    ).sort((a, b) => {
+
+                    // Date range filter (based on payment_date or issue_date)
+                    if (invoiceDateFrom || invoiceDateTo) {
+                      filteredInvoices = filteredInvoices.filter(inv => {
+                        const dateToCheck = inv.payment_date || inv.issue_date
+                        if (!dateToCheck) return false
+                        if (invoiceDateFrom && dateToCheck < invoiceDateFrom) return false
+                        if (invoiceDateTo && dateToCheck > invoiceDateTo) return false
+                        return true
+                      })
+                    }
+
+                    filteredInvoices = filteredInvoices.sort((a, b) => {
                       // Sort by payment_date first (newest first), then by issue_date
                       const aPayment = a.payment_date ? new Date(a.payment_date).getTime() : 0
                       const bPayment = b.payment_date ? new Date(b.payment_date).getTime() : 0
@@ -5223,10 +5273,11 @@ export default function TenswManagementPage() {
                   )}
                 </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex flex-row flex-nowrap justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingInvoice ? (
               <Button
                 variant="destructive"
+                size="sm"
                 onClick={async () => {
                   if (!editingInvoice) return
                   try {
@@ -5246,15 +5297,15 @@ export default function TenswManagementPage() {
               <div />
             )}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsInvoiceModalOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setIsInvoiceModalOpen(false)}>
                 취소
               </Button>
-              <Button onClick={handleSaveInvoice} disabled={isSavingInvoice || isUploadingInvoiceFiles}>
+              <Button size="sm" onClick={handleSaveInvoice} disabled={isSavingInvoice || isUploadingInvoiceFiles}>
                 {(isSavingInvoice || isUploadingInvoiceFiles) && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                 저장
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -5695,11 +5746,12 @@ export default function TenswManagementPage() {
               ))}
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-700" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'nowrap' }}>
             {editingSchedule ? (
               <div className="flex gap-2">
                 <Button
                   variant="destructive"
+                  size="sm"
                   onClick={() => {
                     deleteSchedule(editingSchedule.id)
                     setScheduleDialogOpen(false)
@@ -5709,6 +5761,7 @@ export default function TenswManagementPage() {
                 </Button>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => {
                     // Clear editingSchedule and dates to create a copy
                     setEditingSchedule(null)
@@ -5727,14 +5780,14 @@ export default function TenswManagementPage() {
               <div />
             )}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setScheduleDialogOpen(false)}>
                 취소
               </Button>
-              <Button onClick={saveSchedule} disabled={!scheduleForm.title || saving}>
+              <Button size="sm" onClick={saveSchedule} disabled={!scheduleForm.title || saving}>
                 {saving ? '저장 중...' : '저장'}
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -5798,10 +5851,11 @@ export default function TenswManagementPage() {
               />
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex flex-row flex-nowrap justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingProject ? (
               <Button
                 variant="destructive"
+                size="sm"
                 onClick={() => {
                   deleteProject(editingProject.id)
                   setProjectDialogOpen(false)
@@ -5811,14 +5865,14 @@ export default function TenswManagementPage() {
               </Button>
             ) : <div />}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setProjectDialogOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setProjectDialogOpen(false)}>
                 취소
               </Button>
-              <Button onClick={saveProject} disabled={!projectForm.name || !projectForm.client_id || saving}>
+              <Button size="sm" onClick={saveProject} disabled={!projectForm.name || !projectForm.client_id || saving}>
                 {saving ? '저장 중...' : '저장'}
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -5855,11 +5909,12 @@ export default function TenswManagementPage() {
               />
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex flex-row flex-nowrap justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingMilestone ? (
               <div className="flex gap-2">
                 <Button
                   variant="destructive"
+                  size="sm"
                   onClick={() => {
                     deleteMilestone(editingMilestone.id)
                     setMilestoneDialogOpen(false)
@@ -5870,6 +5925,7 @@ export default function TenswManagementPage() {
                 {editingMilestone.status !== 'pending' && (
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={async () => {
                       try {
                         await fetch('/api/tensw-mgmt/milestones', {
@@ -5897,14 +5953,14 @@ export default function TenswManagementPage() {
               <div />
             )}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setMilestoneDialogOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setMilestoneDialogOpen(false)}>
                 취소
               </Button>
-              <Button onClick={saveMilestone} disabled={!milestoneForm.name || saving}>
+              <Button size="sm" onClick={saveMilestone} disabled={!milestoneForm.name || saving}>
                 {saving ? '저장 중...' : '저장'}
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -5973,24 +6029,25 @@ export default function TenswManagementPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex flex-row flex-nowrap justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingClient ? (
               <Button
                 variant="destructive"
+                size="sm"
                 onClick={() => deleteClient(editingClient.id)}
               >
                 삭제
               </Button>
             ) : <div />}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setClientDialogOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setClientDialogOpen(false)}>
                 {editingClient ? '취소' : '닫기'}
               </Button>
-              <Button onClick={saveClient} disabled={!clientForm.name || saving}>
+              <Button size="sm" onClick={saveClient} disabled={!clientForm.name || saving}>
                 {saving ? '저장 중...' : editingClient ? '저장' : '추가'}
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -6013,17 +6070,17 @@ export default function TenswManagementPage() {
               autoFocus
             />
           </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex flex-row flex-nowrap justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
             <div />
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setMemoDialogOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setMemoDialogOpen(false)}>
                 취소
               </Button>
-              <Button onClick={saveMemo}>
+              <Button size="sm" onClick={saveMemo}>
                 저장
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

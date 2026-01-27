@@ -3089,7 +3089,7 @@ export default function RyuhaStudyPage() {
                       setScheduleForm({ ...scheduleForm, start_time: `${hour}:${currentMinute}` })
                     }}
                   >
-                    <SelectTrigger className="w-[70px]">
+                    <SelectTrigger className="w-[65px]">
                       <SelectValue placeholder="시" />
                     </SelectTrigger>
                     <SelectContent>
@@ -3106,7 +3106,7 @@ export default function RyuhaStudyPage() {
                       setScheduleForm({ ...scheduleForm, start_time: `${currentHour}:${minute}` })
                     }}
                   >
-                    <SelectTrigger className="w-[70px]">
+                    <SelectTrigger className="w-[65px] -mr-3">
                       <SelectValue placeholder="분" />
                     </SelectTrigger>
                     <SelectContent>
@@ -3119,11 +3119,11 @@ export default function RyuhaStudyPage() {
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
-                      className="h-9 px-2"
+                      size="icon"
+                      className="h-9 w-9"
                       onClick={() => setScheduleForm({ ...scheduleForm, start_time: '' })}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
@@ -3138,7 +3138,7 @@ export default function RyuhaStudyPage() {
                       setScheduleForm({ ...scheduleForm, end_time: `${hour}:${currentMinute}` })
                     }}
                   >
-                    <SelectTrigger className="w-[70px]">
+                    <SelectTrigger className="w-[65px]">
                       <SelectValue placeholder="시" />
                     </SelectTrigger>
                     <SelectContent>
@@ -3155,7 +3155,7 @@ export default function RyuhaStudyPage() {
                       setScheduleForm({ ...scheduleForm, end_time: `${currentHour}:${minute}` })
                     }}
                   >
-                    <SelectTrigger className="w-[70px]">
+                    <SelectTrigger className="w-[65px] -mr-3">
                       <SelectValue placeholder="분" />
                     </SelectTrigger>
                     <SelectContent>
@@ -3168,11 +3168,11 @@ export default function RyuhaStudyPage() {
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
-                      className="h-9 px-2"
+                      size="icon"
+                      className="h-9 w-9"
                       onClick={() => setScheduleForm({ ...scheduleForm, end_time: '' })}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
@@ -3457,11 +3457,12 @@ export default function RyuhaStudyPage() {
               ))}
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700 sm:justify-between flex-shrink-0">
+          <div className="flex flex-row justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingSchedule ? (
               <div className="flex gap-2">
                 <Button
                   variant="destructive"
+                  size="sm"
                   onClick={() => {
                     deleteSchedule(editingSchedule.id)
                     setScheduleDialogOpen(false)
@@ -3471,6 +3472,7 @@ export default function RyuhaStudyPage() {
                 </Button>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => {
                     // Clear editingSchedule and dates to create a copy
                     setEditingSchedule(null)
@@ -3489,14 +3491,14 @@ export default function RyuhaStudyPage() {
               <div />
             )}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setScheduleDialogOpen(false)}>
                 취소
               </Button>
-              <Button onClick={saveSchedule} disabled={!scheduleForm.title || saving}>
+              <Button size="sm" onClick={saveSchedule} disabled={!scheduleForm.title || saving}>
                 {saving ? '저장 중...' : '저장'}
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -3551,10 +3553,11 @@ export default function RyuhaStudyPage() {
               />
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700 sm:justify-between">
+          <div className="flex flex-row justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingTextbook ? (
               <Button
                 variant="destructive"
+                size="sm"
                 onClick={() => {
                   deleteTextbook(editingTextbook.id)
                   setTextbookDialogOpen(false)
@@ -3564,14 +3567,14 @@ export default function RyuhaStudyPage() {
               </Button>
             ) : <div />}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setTextbookDialogOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setTextbookDialogOpen(false)}>
                 취소
               </Button>
-              <Button onClick={saveTextbook} disabled={!textbookForm.name || !textbookForm.subject_id || saving}>
+              <Button size="sm" onClick={saveTextbook} disabled={!textbookForm.name || !textbookForm.subject_id || saving}>
                 {saving ? '저장 중...' : '저장'}
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -3608,11 +3611,12 @@ export default function RyuhaStudyPage() {
               />
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700 sm:justify-between">
+          <div className="flex flex-row justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingChapter ? (
               <div className="flex gap-2">
                 <Button
                   variant="destructive"
+                  size="sm"
                   onClick={() => {
                     deleteChapter(editingChapter.id)
                     setChapterDialogOpen(false)
@@ -3623,6 +3627,7 @@ export default function RyuhaStudyPage() {
                 {editingChapter.status !== 'pending' && (
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={async () => {
                       try {
                         await fetch('/api/ryuha/chapters', {
@@ -3650,14 +3655,14 @@ export default function RyuhaStudyPage() {
               <div />
             )}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setChapterDialogOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setChapterDialogOpen(false)}>
                 취소
               </Button>
-              <Button onClick={saveChapter} disabled={!chapterForm.name || saving}>
+              <Button size="sm" onClick={saveChapter} disabled={!chapterForm.name || saving}>
                 {saving ? '저장 중...' : '저장'}
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -3723,24 +3728,25 @@ export default function RyuhaStudyPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700 sm:justify-between">
+          <div className="flex flex-row justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
             {editingSubject ? (
               <Button
                 variant="destructive"
+                size="sm"
                 onClick={() => deleteSubject(editingSubject.id)}
               >
                 삭제
               </Button>
             ) : <div />}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setSubjectDialogOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setSubjectDialogOpen(false)}>
                 {editingSubject ? '취소' : '닫기'}
               </Button>
-              <Button onClick={saveSubject} disabled={!subjectForm.name || saving}>
+              <Button size="sm" onClick={saveSubject} disabled={!subjectForm.name || saving}>
                 {saving ? '저장 중...' : editingSubject ? '저장' : '추가'}
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -3763,14 +3769,14 @@ export default function RyuhaStudyPage() {
               autoFocus
             />
           </div>
-          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
-            <Button variant="outline" onClick={() => setMemoDialogOpen(false)}>
+          <div className="flex flex-row justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <Button variant="outline" size="sm" onClick={() => setMemoDialogOpen(false)}>
               취소
             </Button>
-            <Button onClick={saveMemo}>
+            <Button size="sm" onClick={saveMemo}>
               저장
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -3825,14 +3831,14 @@ export default function RyuhaStudyPage() {
               />
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
-            <Button variant="outline" onClick={() => setBodyRecordDialogOpen(false)}>
+          <div className="flex flex-row justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <Button variant="outline" size="sm" onClick={() => setBodyRecordDialogOpen(false)}>
               취소
             </Button>
-            <Button onClick={saveBodyRecord} disabled={saving}>
+            <Button size="sm" onClick={saveBodyRecord} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : '저장'}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </ProtectedPage>
