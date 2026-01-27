@@ -124,7 +124,7 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-sm dark:prose-invert max-w-none focus:outline-none',
+          'focus:outline-none text-sm',
           'min-h-[var(--editor-min-height)] px-3 py-2',
           editorClassName
         ),
@@ -156,13 +156,12 @@ export function TiptapEditor({
         }
         .tiptap {
           outline: none;
-          font-size: 0.875rem;
         }
         .tiptap p {
           margin: 0.25em 0;
         }
         .tiptap h2 {
-          font-size: 1.125rem;
+          font-size: 1em;
           font-weight: 600;
           margin: 0.5em 0 0.25em;
         }
