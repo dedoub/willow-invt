@@ -53,7 +53,7 @@ export interface SendEmailParams {
   bcc?: string
   replyTo?: string
   attachments?: File[]
-  context?: 'default' | 'tensoftworks'
+  context?: 'default' | 'tensoftworks' | 'willow'
 }
 
 export interface GmailTokens {

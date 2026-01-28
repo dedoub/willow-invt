@@ -6,6 +6,7 @@ import { getOAuth2Client, saveTokens, GmailContext } from '@/lib/gmail-server'
 const CONTEXT_REDIRECT_PATHS: Record<GmailContext, string> = {
   default: '/etf/etc',
   tensoftworks: '/tensoftworks/management',
+  willow: '/willow-investment/management',
 }
 
 export async function GET(request: NextRequest) {
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const error = searchParams.get('error')
   const state = searchParams.get('state') as GmailContext | null
-  const context: GmailContext = state && (state === 'default' || state === 'tensoftworks') ? state : 'default'
+  const context: GmailContext = state && (state === 'default' || state === 'tensoftworks' || state === 'willow') ? state : 'default'
 
   // 기본 리다이렉트 URL (호스트 기반)
   const baseUrl = request.nextUrl.origin

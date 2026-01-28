@@ -5,6 +5,7 @@ export const en = {
     akrosPage: 'ETF/Index - Akros',
     tenswProjects: 'Tensoftworks - Projects',
     tenswManagement: 'Tensoftworks - Management',
+    willowManagement: 'Willow Investment - Management',
     usersPage: 'User Management',
     ryuhaStudyPage: 'Ryuha Study',
   },
@@ -83,6 +84,9 @@ export const en = {
     users: 'Users',
     settings: 'Settings',
     version: 'Willow Dashboard v1.0',
+    // Willow Investment
+    willowInvest: 'Willow Investment',
+    willowManagement: 'Management',
     // Menu sections
     etfIndexing: 'ETF/Index',
     etc: 'ETC',

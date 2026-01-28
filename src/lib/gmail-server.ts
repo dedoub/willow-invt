@@ -13,7 +13,7 @@ const SCOPES = [
 ]
 
 // Gmail context types for multi-account support
-export type GmailContext = 'default' | 'tensoftworks'
+export type GmailContext = 'default' | 'tensoftworks' | 'willow'
 
 // Supabase 클라이언트
 const supabase = createClient(

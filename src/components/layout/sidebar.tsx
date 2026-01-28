@@ -43,7 +43,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const { user } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const { t } = useI18n()
-  const [expandedSections, setExpandedSections] = useState<string[]>(['etfIndexing', 'monoRApps', 'tenSoftworks', 'others'])
+  const [expandedSections, setExpandedSections] = useState<string[]>(['willowInvest', 'etfIndexing', 'monoRApps', 'tenSoftworks', 'others'])
 
   // Check if user has access to a specific page
   const hasPageAccess = (pagePath: string) => {
@@ -62,9 +62,17 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const menuSections: (MenuSection & { key: string })[] = [
     {
+      key: 'willowInvest',
+      title: t.sidebar.willowInvest,
+      icon: <Image src="/leaf-icon.png" alt="" width={20} height={20} className="h-5 w-5 brightness-0 invert opacity-70" />,
+      items: [
+        { title: t.sidebar.willowManagement, href: '/willow-investment/management' },
+      ],
+    },
+    {
       key: 'tenSoftworks',
       title: t.sidebar.tenSoftworks,
-      icon: <Building2 className="h-5 w-5" />,
+      icon: <Image src="/tensw-icon-white.png" alt="" width={20} height={20} className="h-5 w-5 opacity-70" />,
       items: [
         { title: t.sidebar.tenswProjects, href: '/tensoftworks/projects' },
         { title: t.sidebar.tenswManagement, href: '/tensoftworks/management' },
