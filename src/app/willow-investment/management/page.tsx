@@ -1835,7 +1835,7 @@ export default function WillowManagementPage() {
       return
     }
     const amount = parseInt(invoiceFormAmount.replace(/,/g, ''), 10)
-    if (isNaN(amount) || amount <= 0) {
+    if (isNaN(amount) || amount === 0) {
       alert('금액을 올바르게 입력해주세요.')
       return
     }
@@ -5168,8 +5168,15 @@ export default function WillowManagementPage() {
                     type="text"
                     value={invoiceFormAmount}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/[^\d]/g, '')
-                      setInvoiceFormAmount(value ? parseInt(value).toLocaleString() : '')
+                      const raw = e.target.value
+                      const isNegative = raw.startsWith('-')
+                      const digits = raw.replace(/[^\d]/g, '')
+                      if (digits) {
+                        const formatted = parseInt(digits).toLocaleString()
+                        setInvoiceFormAmount(isNegative ? `-${formatted}` : formatted)
+                      } else {
+                        setInvoiceFormAmount(isNegative ? '-' : '')
+                      }
                     }}
                     placeholder="0"
                   />
