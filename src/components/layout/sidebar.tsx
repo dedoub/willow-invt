@@ -81,7 +81,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     {
       key: 'etfIndexing',
       title: t.sidebar.etfIndexing,
-      icon: <TrendingUp className="h-5 w-5" />,
+      icon: <Image src="/akros-icon.png" alt="" width={20} height={20} className="h-5 w-5 brightness-0 invert opacity-70" />,
       items: [
         { title: t.sidebar.etc, href: '/etf/etc' },
         { title: t.sidebar.akros, href: '/etf/akros' },
