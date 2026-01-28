@@ -809,7 +809,13 @@ export default function TenswManagementPage() {
   const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<'all' | 'revenue' | 'expense' | 'asset' | 'liability'>('all')
   const [invoiceDateFrom, setInvoiceDateFrom] = useState('')
   const [invoiceDateTo, setInvoiceDateTo] = useState('')
-  const [invoiceViewMode, setInvoiceViewMode] = useState<'list' | 'summary'>('list')
+  const [invoiceViewMode, setInvoiceViewMode] = useState<'list' | 'summary'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tensw-mgmt-invoice-view-mode')
+      return (saved === 'list' || saved === 'summary') ? saved : 'list'
+    }
+    return 'list'
+  })
   const [invoiceSummaryPeriod, setInvoiceSummaryPeriod] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly')
   const [expandedSummaryPeriod, setExpandedSummaryPeriod] = useState<string | null>(null)
   const [summaryCounterpartyFilter, setSummaryCounterpartyFilter] = useState<string | null>(null)
@@ -1035,6 +1041,11 @@ export default function TenswManagementPage() {
   useEffect(() => {
     localStorage.setItem('tensw-mgmt-expanded-projects', JSON.stringify(expandedProjects))
   }, [expandedProjects])
+
+  // Save invoiceViewMode to localStorage
+  useEffect(() => {
+    localStorage.setItem('tensw-mgmt-invoice-view-mode', invoiceViewMode)
+  }, [invoiceViewMode])
 
   // Date helpers
   const getWeekStart = (date: Date) => {
