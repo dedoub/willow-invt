@@ -90,7 +90,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     {
       key: 'monoRApps',
       title: t.sidebar.monoRApps,
-      icon: <Smartphone className="h-5 w-5" />,
+      icon: <Image src="/ReviewNotes logo-10.svg" alt="" width={20} height={20} className="h-5 w-5 brightness-0 invert opacity-70" />,
       items: [
         { title: t.sidebar.voiceCards, href: '/monor/voicecards' },
         { title: t.sidebar.reviewNotes, href: '/monor/reviewnotes' },
