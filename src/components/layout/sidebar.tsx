@@ -124,10 +124,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'flex flex-col bg-slate-950 text-white transition-all duration-300 overflow-hidden',
+        'flex flex-col bg-slate-950 text-white transition-all duration-300',
         // Desktop: normal sidebar
         'hidden md:flex',
-        collapsed ? 'md:w-16' : 'md:w-64',
+        collapsed ? 'md:w-16 overflow-visible' : 'md:w-64 overflow-hidden',
         // Mobile: fixed overlay when open
         mobileOpen && 'fixed inset-y-0 left-0 z-50 flex w-64'
       )}
@@ -177,7 +177,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2 overflow-y-auto sidebar-nav">
+      <nav className={cn(
+        "flex-1 space-y-1 p-2 sidebar-nav",
+        collapsed ? "overflow-visible" : "overflow-y-auto"
+      )}>
         {/* Dashboard */}
         <Link
           href="/"
@@ -204,8 +207,32 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           return (
             <div key={section.key} className="mt-2">
               {collapsed ? (
-                <div className="flex justify-center py-2">
-                  {section.icon}
+                <div className="relative group">
+                  <div className="flex justify-center py-2 rounded-lg hover:bg-slate-800 cursor-pointer">
+                    {section.icon}
+                  </div>
+                  {/* Hover tooltip menu */}
+                  <div className="absolute left-full top-0 ml-2 hidden group-hover:block z-50">
+                    <div className="bg-slate-900 rounded-lg py-2 min-w-[160px] shadow-lg">
+                      <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 border-b border-slate-700 mb-1">
+                        {section.title}
+                      </div>
+                      {accessibleItems.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            'block px-3 py-1.5 text-sm transition-colors',
+                            pathname === item.href
+                              ? 'bg-brand-600 text-white'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          )}
+                        >
+                          {item.title}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <>
