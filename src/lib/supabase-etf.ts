@@ -330,12 +330,64 @@ export async function fetchHistoricalData(
     const pmMonthlyFee = pmAnnualFee / 12
     const monthlyFee = (platformMonthlyFee + pmMonthlyFee) * 0.25
 
-    // 잔여개월 계산
+    // 잔여개월 계산 (fetchETFDisplayData와 동일한 로직 적용)
     let remainingMonths = 0
     if (info.listingDate) {
-      const monthsElapsed = (rowDate.getFullYear() - info.listingDate.getFullYear()) * 12
-        + (rowDate.getMonth() - info.listingDate.getMonth())
-      remainingMonths = Math.max(0, 36 - monthsElapsed)
+      const endDate = new Date(info.listingDate)
+      endDate.setMonth(endDate.getMonth() + 36)
+
+      // 해당 날짜 기준 직전 달의 첫째 날
+      const startDate = new Date(rowDate.getFullYear(), rowDate.getMonth() - 1, 1)
+
+      if (endDate <= startDate) {
+        // 36개월 완전히 경과
+        remainingMonths = 0
+      } else {
+        const listingMonth = info.listingDate.getMonth()
+        const listingYear = info.listingDate.getFullYear()
+        const startMonth = startDate.getMonth()
+        const startYear = startDate.getFullYear()
+        const endMonth = endDate.getMonth()
+        const endYear = endDate.getFullYear()
+        const endDay = endDate.getDate()
+
+        let totalMonths = 0
+        let calcStartDate: Date
+
+        // 첫 달 pro-rating
+        if (listingMonth === startMonth && listingYear === startYear) {
+          const daysInMonth = new Date(listingYear, listingMonth + 1, 0).getDate()
+          const remainingDaysInMonth = daysInMonth - info.listingDate.getDate() + 1
+          totalMonths += remainingDaysInMonth / daysInMonth
+          calcStartDate = new Date(listingYear, listingMonth + 1, 1)
+        } else if (info.listingDate > startDate) {
+          // 당월 상장 - 전체 36개월
+          remainingMonths = 36
+          calcStartDate = endDate // skip calculation
+        } else {
+          calcStartDate = startDate
+        }
+
+        // 당월 상장이 아닌 경우에만 계속 계산
+        if (!(info.listingDate > startDate && listingMonth !== startMonth)) {
+          const endMonthStart = new Date(endYear, endMonth, 1)
+          if (endMonthStart > calcStartDate) {
+            const fullMonths = (endMonthStart.getFullYear() - calcStartDate.getFullYear()) * 12
+              + (endMonthStart.getMonth() - calcStartDate.getMonth())
+            totalMonths += fullMonths
+          }
+
+          // 마지막 달 pro-rating
+          const daysInEndMonth = new Date(endYear, endMonth + 1, 0).getDate()
+          if (endDay < daysInEndMonth) {
+            totalMonths += endDay / daysInEndMonth
+          } else {
+            totalMonths += 1
+          }
+
+          remainingMonths = Math.max(0, totalMonths)
+        }
+      }
     }
 
     const current = dailyDataMap.get(row.date) || { totalAum: 0, monthlyFees: [], remainingMonthsList: [] }
@@ -514,18 +566,19 @@ export async function fetchETFDisplayData(bank?: string): Promise<ETFDisplayData
     const platformFeeTiers = product.platform_fee_tiers || convertLegacyToTieredFee(platformMinFee, platformFeePercent)
     const pmFeeTiers = product.pm_fee_tiers || convertLegacyToTieredFee(pmMinFee, pmFeePercent)
 
-    // 최근 1개월 평균 AUM 사용
+    // 총 월 수수료: 직전 1개월 평균 AUM 사용
     const avgAum = aum?.avgMonthlyAum || 0
-
-    // 티어드 수수료 계산 (연간 수수료를 월간으로 변환)
-    const platformAnnualFee = calculateTieredFee(avgAum, platformFeeTiers)
-    const pmAnnualFee = calculateTieredFee(avgAum, pmFeeTiers)
-
-    const platformMonthlyFee = platformAnnualFee / 12
-    const pmMonthlyFee = pmAnnualFee / 12
-
-    // 총 월수수료 (Platform + PM)의 25%가 최종 수수료
+    const platformAnnualFeeAvg = calculateTieredFee(avgAum, platformFeeTiers)
+    const pmAnnualFeeAvg = calculateTieredFee(avgAum, pmFeeTiers)
+    const platformMonthlyFee = platformAnnualFeeAvg / 12
+    const pmMonthlyFee = pmAnnualFeeAvg / 12
     const totalMonthlyFee = (platformMonthlyFee + pmMonthlyFee) * 0.25
+
+    // 잔여 수수료: 최신 market_cap 사용 (차트와 동일한 기준)
+    const currentAum = aum?.marketCap || 0
+    const platformAnnualFeeCurrent = calculateTieredFee(currentAum, platformFeeTiers)
+    const pmAnnualFeeCurrent = calculateTieredFee(currentAum, pmFeeTiers)
+    const monthlyFeeForRemaining = ((platformAnnualFeeCurrent / 12) + (pmAnnualFeeCurrent / 12)) * 0.25
 
     // 잔여수수료 계산 (상장일로부터 36개월)
     let remainingFee: number | null = null
@@ -536,9 +589,9 @@ export async function fetchETFDisplayData(bank?: string): Promise<ETFDisplayData
       const endDate = new Date(listingDate)
       endDate.setMonth(endDate.getMonth() + 36) // 상장일 + 36개월
 
-      // 현재 날짜 기준 직전 달의 첫째 날 (1월이면 12월 1일)
-      const now = new Date()
-      const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      // 데이터 날짜 기준 직전 달의 첫째 날 (차트와 동일한 기준)
+      const dataDate = aum?.date ? new Date(aum.date) : new Date()
+      const startDate = new Date(dataDate.getFullYear(), dataDate.getMonth() - 1, 1)
 
       // 36개월 완전히 경과 - 잔여수수료 0
       if (endDate <= startDate) {
@@ -565,7 +618,7 @@ export async function fetchETFDisplayData(bank?: string): Promise<ETFDisplayData
         } else if (listingDate > startDate) {
           // 당월 상장 (아직 시작하지 않음) - 전체 36개월
           remainingMonths = 36
-          remainingFee = totalMonthlyFee * 36
+          remainingFee = monthlyFeeForRemaining * 36
           // 아래 계산 스킵
           calcStartDate = endDate // dummy to skip calculation
         } else {
@@ -594,7 +647,7 @@ export async function fetchETFDisplayData(bank?: string): Promise<ETFDisplayData
           }
 
           remainingMonths = Math.max(0, totalMonths)
-          remainingFee = totalMonthlyFee * remainingMonths
+          remainingFee = monthlyFeeForRemaining * remainingMonths
         }
       }
     }

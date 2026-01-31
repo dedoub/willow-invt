@@ -204,7 +204,7 @@ export const en = {
   // ETF
   etf: {
     title: 'Product List',
-    description: 'Akros Index Tracking Products',
+    description: 'Korean Sponsor Products',
     totalAum: 'Total AUM',
     totalProducts: 'Total Products',
     totalArr: 'Total ARR',

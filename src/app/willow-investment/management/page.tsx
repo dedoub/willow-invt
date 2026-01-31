@@ -2451,419 +2451,6 @@ export default function WillowManagementPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Projects & Milestones Panel + Invoice + Wiki */}
         <div className="lg:col-span-1 space-y-4">
-          <Card className="bg-slate-100 dark:bg-slate-800">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <BookMarked className="h-5 w-5" />
-                  클라이언트 및 프로젝트
-                </CardTitle>
-                <CardDescription>프로젝트 및 마일스톤 관리</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
-                  onClick={() => openClientDialog()}
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">클라이언트</span>
-                </button>
-                <button
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
-                  onClick={() => openProjectDialog()}
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">프로젝트</span>
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Client filter */}
-              <div className="flex flex-wrap gap-1 items-center mb-4">
-                <button
-                  onClick={() => setSelectedClient(null)}
-                  className={cn(
-                    'px-3 py-1 text-xs font-medium rounded-full transition-colors',
-                    selectedClient === null
-                      ? 'bg-slate-900 text-white dark:bg-slate-600'
-                      : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                  )}
-                >
-                  전체
-                </button>
-                {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => (
-                  <button
-                    key={client.id}
-                    onClick={() => setSelectedClient(client.id)}
-                    className={cn(
-                      'px-3 py-1 text-xs font-medium rounded-full transition-colors',
-                      selectedClient === client.id
-                        ? 'text-white'
-                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                    )}
-                    style={{
-                      backgroundColor: selectedClient === client.id ? client.color : undefined,
-                    }}
-                  >
-                    {client.name}
-                  </button>
-                ))}
-              </div>
-
-              {/* Projects list */}
-              <div className="space-y-2">
-                {filteredProjects.map((project) => {
-                  const projectMilestones = getMilestonesForProject(project.id)
-                  const completed = projectMilestones.filter((c) => c.status === 'completed').length
-                  const total = projectMilestones.length
-                  const isExpanded = expandedProjects.includes(project.id)
-
-                  return (
-                    <div
-                      key={project.id}
-                      className="rounded-lg overflow-hidden"
-                      style={{ borderLeft: `3px solid ${project.client?.color || '#888'}` }}
-                    >
-                      {/* Project header */}
-                      <div
-                        className="p-2 cursor-pointer flex items-center justify-between transition-opacity hover:opacity-80"
-                        style={{ backgroundColor: `${project.client?.color || '#888'}15` }}
-                        onClick={() => toggleProject(project.id)}
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <ChevronDown
-                            className={cn(
-                              'h-4 w-4 transition-transform flex-shrink-0',
-                              !isExpanded && '-rotate-90'
-                            )}
-                          />
-                          <div className="flex-1 min-w-0">
-                            {project.client && (
-                              <div className="text-xs text-muted-foreground">{project.client.name}</div>
-                            )}
-                            <div className="flex items-baseline gap-2">
-                              <span className="font-medium text-sm truncate">{project.name}</span>
-                              {project.status !== 'active' && (
-                                <span className={cn(
-                                  'text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0',
-                                  project.status === 'completed' && 'bg-green-100 text-green-700',
-                                  project.status === 'on_hold' && 'bg-yellow-100 text-yellow-700',
-                                  project.status === 'cancelled' && 'bg-red-100 text-red-700'
-                                )}>
-                                  {project.status === 'completed' ? '완료' : project.status === 'on_hold' ? '보류' : '취소'}
-                                </span>
-                              )}
-                            </div>
-                            {project.description && (
-                              <div className="text-xs text-muted-foreground truncate">{project.description}</div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            {completed}/{total}
-                          </span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 opacity-30 hover:opacity-100"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              openProjectDialog(project)
-                            }}
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Milestones */}
-                      {isExpanded && (
-                        <div className="p-2 space-y-1 bg-background">
-                          {projectMilestones.map((milestone) => {
-                            const hasSchedules = milestonesWithSchedules.has(milestone.id)
-                            const statusConfig = {
-                              pending: {
-                                label: '대기',
-                                tooltip: '클릭해서 진행중으로 변경',
-                                color: 'text-amber-700 dark:text-amber-400',
-                                bgColor: 'bg-amber-100 dark:bg-amber-900/50',
-                              },
-                              in_progress: {
-                                label: '진행중',
-                                tooltip: '클릭해서 완료로 변경',
-                                color: 'text-blue-700 dark:text-blue-400',
-                                bgColor: 'bg-blue-100 dark:bg-blue-900/50',
-                              },
-                              completed: {
-                                label: '완료',
-                                tooltip: hasSchedules
-                                  ? '클릭해서 진행중으로 변경'
-                                  : '클릭해서 대기로 변경',
-                                color: 'text-emerald-700 dark:text-emerald-400',
-                                bgColor: 'bg-emerald-100 dark:bg-emerald-900/50',
-                              },
-                            }
-                            const config = statusConfig[milestone.status as keyof typeof statusConfig] || statusConfig.pending
-
-                            return editingMilestoneId === milestone.id ? (
-                              <div key={milestone.id} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
-                                <Input
-                                  value={milestoneForm.name}
-                                  onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
-                                  placeholder="마일스톤명"
-                                  className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && milestoneForm.name.trim()) {
-                                      saveMilestone()
-                                      setEditingMilestoneId(null)
-                                    } else if (e.key === 'Escape') {
-                                      setEditingMilestoneId(null)
-                                    }
-                                  }}
-                                />
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="relative flex-1 cursor-pointer"
-                                    onClick={(e) => {
-                                      const input = e.currentTarget.querySelector('input')
-                                      if (input) {
-                                        input.showPicker?.()
-                                        input.focus()
-                                      }
-                                    }}
-                                  >
-                                    <Input
-                                      type="date"
-                                      value={milestoneForm.target_date}
-                                      onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
-                                      className={cn(
-                                        "h-9 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
-                                        !milestoneForm.target_date && "date-placeholder-hidden"
-                                      )}
-                                    />
-                                    {!milestoneForm.target_date && (
-                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                                        목표마감일
-                                      </span>
-                                    )}
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    className="h-9 px-3"
-                                    onClick={() => {
-                                      deleteMilestone(milestone.id)
-                                      setEditingMilestoneId(null)
-                                    }}
-                                  >
-                                    삭제
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-9 px-3"
-                                    onClick={() => setEditingMilestoneId(null)}
-                                  >
-                                    취소
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    className="h-9 px-3"
-                                    disabled={!milestoneForm.name.trim() || saving}
-                                    onClick={async () => {
-                                      await saveMilestone()
-                                      setEditingMilestoneId(null)
-                                    }}
-                                  >
-                                    저장
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div
-                                key={milestone.id}
-                                className={cn(
-                                  'flex items-center gap-2 p-1.5 rounded text-sm',
-                                  milestone.status === 'completed' && 'bg-muted/50'
-                                )}
-                              >
-                                <button
-                                  onClick={() => toggleMilestoneStatus(milestone)}
-                                  className={cn(
-                                    'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium',
-                                    config.bgColor,
-                                    'hover:opacity-80 transition-opacity'
-                                  )}
-                                  title={config.tooltip}
-                                  disabled={togglingIds.has(`milestone-${milestone.id}`)}
-                                >
-                                  {togglingIds.has(`milestone-${milestone.id}`) ? (
-                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                  ) : milestone.status === 'completed' ? (
-                                    <CheckCircle2 className={cn('h-4 w-4', config.color)} />
-                                  ) : milestone.status === 'in_progress' ? (
-                                    <Clock className={cn('h-4 w-4', config.color)} />
-                                  ) : (
-                                    <Circle className={cn('h-4 w-4', config.color)} />
-                                  )}
-                                  <span className={config.color}>{config.label}</span>
-                                </button>
-                                <span
-                                  className={cn(
-                                    'flex-1 truncate flex items-center gap-1',
-                                    milestone.status === 'completed' &&
-                                      'line-through text-muted-foreground'
-                                  )}
-                                >
-                                  {milestone.name}
-                                  {milestone.target_date && milestone.status !== 'completed' && (() => {
-                                    const today = new Date()
-                                    today.setHours(0, 0, 0, 0)
-                                    const target = new Date(milestone.target_date)
-                                    target.setHours(0, 0, 0, 0)
-                                    const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-
-                                    let colorClass = 'text-muted-foreground'
-                                    if (diffDays < 0) colorClass = 'text-red-500'
-                                    else if (diffDays === 0) colorClass = 'text-red-500'
-                                    else if (diffDays <= 3) colorClass = 'text-orange-500'
-
-                                    const label = diffDays < 0
-                                      ? `D+${Math.abs(diffDays)}`
-                                      : diffDays === 0
-                                        ? 'D-Day'
-                                        : `D-${diffDays}`
-
-                                    return (
-                                      <span className={cn('text-xs flex-shrink-0', colorClass)} title={`목표: ${milestone.target_date}`}>
-                                        {label}
-                                      </span>
-                                    )
-                                  })()}
-                                  {hasSchedules && (
-                                    <span title="일정 있음">
-                                      <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                    </span>
-                                  )}
-                                </span>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-5 w-5 opacity-30 hover:opacity-100"
-                                  onClick={() => {
-                                    setMilestoneForm({
-                                      project_id: milestone.project_id,
-                                      name: milestone.name,
-                                      description: milestone.description || '',
-                                      target_date: milestone.target_date || '',
-                                    })
-                                    setEditingMilestone(milestone)
-                                    setEditingMilestoneId(milestone.id)
-                                  }}
-                                >
-                                  <Pencil className="h-2.5 w-2.5" />
-                                </Button>
-                              </div>
-                            )
-                          })}
-                          {addingMilestoneForProject === project.id ? (
-                            <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
-                              <Input
-                                value={milestoneForm.name}
-                                onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
-                                placeholder="마일스톤명"
-                                className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && milestoneForm.name.trim()) {
-                                    saveMilestone()
-                                    setAddingMilestoneForProject(null)
-                                  } else if (e.key === 'Escape') {
-                                    setAddingMilestoneForProject(null)
-                                    setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
-                                  }
-                                }}
-                              />
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="relative flex-1 cursor-pointer"
-                                  onClick={(e) => {
-                                    const input = e.currentTarget.querySelector('input')
-                                    if (input) {
-                                      input.showPicker?.()
-                                      input.focus()
-                                    }
-                                  }}
-                                >
-                                  <Input
-                                    type="date"
-                                    value={milestoneForm.target_date}
-                                    onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
-                                    className={cn(
-                                      "h-9 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
-                                      !milestoneForm.target_date && "date-placeholder-hidden"
-                                    )}
-                                  />
-                                  {!milestoneForm.target_date && (
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                                      목표마감일
-                                    </span>
-                                  )}
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-9 px-3"
-                                  onClick={() => {
-                                    setAddingMilestoneForProject(null)
-                                    setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
-                                  }}
-                                >
-                                  취소
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="h-9 px-3"
-                                  disabled={!milestoneForm.name.trim() || saving}
-                                  onClick={async () => {
-                                    await saveMilestone()
-                                    setAddingMilestoneForProject(null)
-                                  }}
-                                >
-                                  저장
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="w-full text-xs"
-                              onClick={() => {
-                                setMilestoneForm({ project_id: project.id, name: '', description: '', target_date: '' })
-                                setAddingMilestoneForProject(project.id)
-                              }}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              마일스톤 추가
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-                {filteredProjects.length === 0 && (
-                  <div className="text-center text-muted-foreground py-4 text-sm">
-                    프로젝트가 없습니다
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Invoice Section (Simplified Tax Invoice Tracking) */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -3442,401 +3029,420 @@ export default function WillowManagementPage() {
             </CardContent>
           </Card>
 
-          {/* Work Wiki Section */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  {t.wiki.title}
+                  <BookMarked className="h-5 w-5" />
+                  클라이언트 및 프로젝트
                 </CardTitle>
-                <CardDescription>{t.wiki.description}</CardDescription>
+                <CardDescription>프로젝트 및 마일스톤 관리</CardDescription>
               </div>
-              <button
-                onClick={() => setIsAddingNote(true)}
-                className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">{t.invoice.create}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                  onClick={() => openClientDialog()}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">클라이언트</span>
+                </button>
+                <button
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                  onClick={() => openProjectDialog()}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">프로젝트</span>
+                </button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="mb-3">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={wikiSearch}
-                    onChange={(e) => setWikiSearch(e.target.value)}
-                    placeholder={t.wiki.searchPlaceholder}
-                    className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
-                  />
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                  {wikiSearch && (
-                    <button onClick={() => setWikiSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+              {/* Client filter */}
+              <div className="flex flex-wrap gap-1 items-center mb-4">
+                <button
+                  onClick={() => setSelectedClient(null)}
+                  className={cn(
+                    'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                    selectedClient === null
+                      ? 'bg-slate-900 text-white dark:bg-slate-600'
+                      : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                   )}
-                </div>
-                {wikiSearch && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t.wiki.searchCount.replace('{count}', String(filteredWikiNotes.length))}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                {isAddingNote && (
-                  <div
-                    className={`!border-0 rounded-lg p-3 transition-colors ${
-                      isDraggingWiki ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-white dark:bg-slate-700'
-                    }`}
-                    style={{ border: 'none' }}
-                    onDragOver={(e) => { e.preventDefault(); setIsDraggingWiki(true) }}
-                    onDragLeave={() => setIsDraggingWiki(false)}
-                    onDrop={(e) => { e.preventDefault(); setIsDraggingWiki(false); const files = Array.from(e.dataTransfer.files || []); if (files.length > 0) setNewNoteFiles(prev => [...prev, ...files]) }}
+                >
+                  전체
+                </button>
+                {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => (
+                  <button
+                    key={client.id}
+                    onClick={() => setSelectedClient(client.id)}
+                    className={cn(
+                      'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                      selectedClient === client.id
+                        ? 'text-white'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                    )}
+                    style={{
+                      backgroundColor: selectedClient === client.id ? client.color : undefined,
+                    }}
                   >
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-xs text-slate-500 mb-1 block">제목</label>
-                        <Input
-                          value={newNoteTitle}
-                          onChange={(e) => setNewNoteTitle(e.target.value)}
-                          placeholder={t.wiki.titlePlaceholder}
-                          className="!border-0 h-9"
-                          style={{ border: 'none' }}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-slate-500 mb-1 block">내용</label>
-                        <TiptapEditor
-                          content={newNoteContent}
-                          onChange={setNewNoteContent}
-                          placeholder={t.wiki.contentPlaceholder}
-                          minHeight="80px"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-slate-500 mb-1 block">첨부 파일</label>
-                        <div className={`!border-0 rounded-lg p-2 text-center transition-colors ${
-                            isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-700'
-                          }`} style={{ border: 'none' }}>
-                          <input
-                            type="file"
-                            id="wiki-file-input-mgmt"
-                            multiple
-                            className="hidden"
-                            onChange={(e) => {
-                              const files = Array.from(e.target.files || [])
-                              if (files.length > 0) {
-                                setNewNoteFiles(prev => [...prev, ...files])
-                              }
-                              e.target.value = ''
-                            }}
+                    {client.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Projects list */}
+              <div className="space-y-2">
+                {filteredProjects.map((project) => {
+                  const projectMilestones = getMilestonesForProject(project.id)
+                  const completed = projectMilestones.filter((c) => c.status === 'completed').length
+                  const total = projectMilestones.length
+                  const isExpanded = expandedProjects.includes(project.id)
+
+                  return (
+                    <div
+                      key={project.id}
+                      className="rounded-lg overflow-hidden"
+                      style={{ borderLeft: `3px solid ${project.client?.color || '#888'}` }}
+                    >
+                      {/* Project header */}
+                      <div
+                        className="p-2 cursor-pointer flex items-center justify-between transition-opacity hover:opacity-80"
+                        style={{ backgroundColor: `${project.client?.color || '#888'}15` }}
+                        onClick={() => toggleProject(project.id)}
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <ChevronDown
+                            className={cn(
+                              'h-4 w-4 transition-transform flex-shrink-0',
+                              !isExpanded && '-rotate-90'
+                            )}
                           />
-                          <label
-                            htmlFor="wiki-file-input-mgmt"
-                            className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300"
-                          >
-                            <Paperclip className="h-3 w-3" />
-                            <span>{t.wiki.fileAttach}</span>
-                          </label>
-                        </div>
-                        {newNoteFiles.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {newNoteFiles.map((file, idx) => (
-                              <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
-                                <Paperclip className="h-3 w-3 text-slate-400" />
-                                <span className="flex-1 truncate">{file.name}</span>
-                                <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
-                                <button
-                                  onClick={() => setNewNoteFiles(files => files.filter((_, i) => i !== idx))}
-                                  className="text-slate-400 hover:text-red-500"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-                            ))}
+                          <div className="flex-1 min-w-0">
+                            {project.client && (
+                              <div className="text-xs text-muted-foreground">{project.client.name}</div>
+                            )}
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-medium text-sm truncate">{project.name}</span>
+                              {project.status !== 'active' && (
+                                <span className={cn(
+                                  'text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0',
+                                  project.status === 'completed' && 'bg-green-100 text-green-700',
+                                  project.status === 'on_hold' && 'bg-yellow-100 text-yellow-700',
+                                  project.status === 'cancelled' && 'bg-red-100 text-red-700'
+                                )}>
+                                  {project.status === 'completed' ? '완료' : project.status === 'on_hold' ? '보류' : '취소'}
+                                </span>
+                              )}
+                            </div>
+                            {project.description && (
+                              <div className="text-xs text-muted-foreground truncate">{project.description}</div>
+                            )}
                           </div>
-                        )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {completed}/{total}
+                          </span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 opacity-30 hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openProjectDialog(project)
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { setIsAddingNote(false); setNewNoteTitle(''); setNewNoteContent(''); setNewNoteFiles([]) }}
-                      >
-                        {t.common.cancel}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleAddNote}
-                        disabled={(!newNoteTitle.trim() && !newNoteContent.trim() && newNoteFiles.length === 0) || isUploadingWiki}
-                      >
-                        {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
-                        {isUploadingWiki ? t.common.saving : t.common.save}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                {isLoadingWiki ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                  </div>
-                ) : filteredWikiNotes.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <StickyNote className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                    <p className="text-sm">{wikiSearch ? t.wiki.noSearchResults : t.wiki.noNotes}</p>
-                    {!wikiSearch && <p className="text-xs">{t.wiki.addNoteHint}</p>}
-                  </div>
-                ) : filteredWikiNotes.length > 0 ? (
-                  paginatedWikiNotes.map((note) => (
-                    <div key={note.id} className="!border-0 rounded-lg bg-white dark:bg-slate-700 p-3" style={{ border: 'none' }}>
-                      {editingNote?.id === note.id ? (
-                        <div
-                          className={`!border-0 rounded-lg p-3 -m-3 transition-colors ${
-                            isDraggingWiki ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-white dark:bg-slate-700'
-                          }`}
-                          style={{ border: 'none' }}
-                          onDragOver={(e) => { e.preventDefault(); setIsDraggingWiki(true) }}
-                          onDragLeave={() => setIsDraggingWiki(false)}
-                          onDrop={(e) => { e.preventDefault(); setIsDraggingWiki(false); const files = Array.from(e.dataTransfer.files || []); if (files.length > 0) setNewNoteFiles(prev => [...prev, ...files]) }}
-                        >
-                          <div className="space-y-3">
-                            <div>
-                              <label className="text-xs text-slate-500 mb-1 block">제목</label>
-                              <Input
-                                value={newNoteTitle}
-                                onChange={(e) => setNewNoteTitle(e.target.value)}
-                                className="!border-0 h-9"
-                                style={{ border: 'none' }}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-slate-500 mb-1 block">내용</label>
-                              <TiptapEditor
-                                content={newNoteContent}
-                                onChange={setNewNoteContent}
-                                placeholder="내용을 입력하세요..."
-                                minHeight="80px"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-xs text-slate-500 mb-1 block">첨부 파일</span>
-                              <label
-                                htmlFor={`wiki-file-input-edit-${note.id}`}
-                                className={`!border-0 rounded-lg p-2 text-center transition-colors cursor-pointer block ${
-                                  isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-600'
-                                }`}
-                                style={{ border: 'none' }}
-                              >
-                                <input
-                                  type="file"
-                                  id={`wiki-file-input-edit-${note.id}`}
-                                  multiple
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const files = Array.from(e.target.files || [])
-                                    if (files.length > 0) {
-                                      setNewNoteFiles(prev => [...prev, ...files])
+
+                      {/* Milestones */}
+                      {isExpanded && (
+                        <div className="p-2 space-y-1 bg-background">
+                          {projectMilestones.map((milestone) => {
+                            const hasSchedules = milestonesWithSchedules.has(milestone.id)
+                            const statusConfig = {
+                              pending: {
+                                label: '대기',
+                                tooltip: '클릭해서 진행중으로 변경',
+                                color: 'text-amber-700 dark:text-amber-400',
+                                bgColor: 'bg-amber-100 dark:bg-amber-900/50',
+                              },
+                              in_progress: {
+                                label: '진행중',
+                                tooltip: '클릭해서 완료로 변경',
+                                color: 'text-blue-700 dark:text-blue-400',
+                                bgColor: 'bg-blue-100 dark:bg-blue-900/50',
+                              },
+                              completed: {
+                                label: '완료',
+                                tooltip: hasSchedules
+                                  ? '클릭해서 진행중으로 변경'
+                                  : '클릭해서 대기로 변경',
+                                color: 'text-emerald-700 dark:text-emerald-400',
+                                bgColor: 'bg-emerald-100 dark:bg-emerald-900/50',
+                              },
+                            }
+                            const config = statusConfig[milestone.status as keyof typeof statusConfig] || statusConfig.pending
+
+                            return editingMilestoneId === milestone.id ? (
+                              <div key={milestone.id} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                                <Input
+                                  value={milestoneForm.name}
+                                  onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
+                                  placeholder="마일스톤명"
+                                  className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && milestoneForm.name.trim()) {
+                                      saveMilestone()
+                                      setEditingMilestoneId(null)
+                                    } else if (e.key === 'Escape') {
+                                      setEditingMilestoneId(null)
                                     }
-                                    e.target.value = ''
                                   }}
                                 />
-                                <span className="flex items-center justify-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-                                  <Paperclip className="h-3 w-3" />
-                                  <span>{t.wiki.fileAttach}</span>
-                                </span>
-                              </label>
-                              {(editingNote.attachments && editingNote.attachments.length > 0) && (
-                                <div className="mt-2 space-y-1">
-                                  <p className="text-xs text-slate-400">기존 첨부파일:</p>
-                                  {editingNote.attachments.map((att, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-600 rounded px-2 py-1.5">
-                                      <Paperclip className="h-3 w-3 text-slate-400" />
-                                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-blue-600 hover:underline">{att.name}</a>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const newAttachments = editingNote.attachments?.filter((_, i) => i !== idx) || []
-                                          setEditingNote({ ...editingNote, attachments: newAttachments })
-                                        }}
-                                        className="text-slate-400 hover:text-red-500 transition-colors"
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                  ))}
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="relative flex-1 cursor-pointer"
+                                    onClick={(e) => {
+                                      const input = e.currentTarget.querySelector('input')
+                                      if (input) {
+                                        input.showPicker?.()
+                                        input.focus()
+                                      }
+                                    }}
+                                  >
+                                    <Input
+                                      type="date"
+                                      value={milestoneForm.target_date}
+                                      onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
+                                      className={cn(
+                                        "h-9 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
+                                        !milestoneForm.target_date && "date-placeholder-hidden"
+                                      )}
+                                    />
+                                    {!milestoneForm.target_date && (
+                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                        목표마감일
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-9 px-3"
+                                    onClick={() => {
+                                      deleteMilestone(milestone.id)
+                                      setEditingMilestoneId(null)
+                                    }}
+                                  >
+                                    삭제
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-9 px-3"
+                                    onClick={() => setEditingMilestoneId(null)}
+                                  >
+                                    취소
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-9 px-3"
+                                    disabled={!milestoneForm.name.trim() || saving}
+                                    onClick={async () => {
+                                      await saveMilestone()
+                                      setEditingMilestoneId(null)
+                                    }}
+                                  >
+                                    저장
+                                  </Button>
                                 </div>
-                              )}
-                              {newNoteFiles.length > 0 && (
-                                <div className="mt-2 space-y-1">
-                                  <p className="text-xs text-slate-400">새 첨부파일:</p>
-                                  {newNoteFiles.map((file, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
-                                      <Paperclip className="h-3 w-3 text-slate-400" />
-                                      <span className="flex-1 truncate">{file.name}</span>
-                                      <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
-                                      <button
-                                        onClick={() => setNewNoteFiles(files => files.filter((_, i) => i !== idx))}
-                                        className="text-slate-400 hover:text-red-500"
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex justify-between gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => {
-                                if (confirm(t.wiki.deleteConfirm)) {
-                                  handleDeleteNote(editingNote.id)
-                                  setEditingNote(null)
-                                  setNewNoteTitle('')
-                                  setNewNoteContent('')
-                                  setNewNoteFiles([])
-                                }
-                              }}
-                            >
-                              {t.common.delete}
-                            </Button>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => { setEditingNote(null); setNewNoteTitle(''); setNewNoteContent(''); setNewNoteFiles([]) }}
+                              </div>
+                            ) : (
+                              <div
+                                key={milestone.id}
+                                className={cn(
+                                  'flex items-center gap-2 p-1.5 rounded text-sm',
+                                  milestone.status === 'completed' && 'bg-muted/50'
+                                )}
                               >
-                                {t.common.cancel}
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={handleUpdateNote}
-                                disabled={(!newNoteTitle.trim() && !newNoteContent.trim()) || isUploadingWiki}
-                              >
-                                {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
-                                {isUploadingWiki ? t.common.saving : t.common.save}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              {note.is_pinned && <Pin className="h-3 w-3 text-amber-500" />}
-                              <p className="font-medium text-sm">{note.title}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => handleTogglePin(note)}
-                                className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${note.is_pinned ? 'text-amber-500' : 'text-slate-400'}`}
-                              >
-                                <Pin className="h-3 w-3" />
-                              </button>
-                              <button
-                                onClick={() => startEditNote(note)}
-                                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 cursor-pointer"
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
-                          <div
-                            className={cn(
-                              "wiki-content mt-1 text-slate-600 dark:text-slate-400",
-                              !expandedNotes.has(note.id) && "line-clamp-3 overflow-hidden"
-                            )}
-                            dangerouslySetInnerHTML={{ __html: note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '') }}
-                          />
-                          {note.content && note.content.length > 150 && (
-                            <button
-                              onClick={() => {
-                                const newExpanded = new Set(expandedNotes)
-                                if (newExpanded.has(note.id)) {
-                                  newExpanded.delete(note.id)
-                                } else {
-                                  newExpanded.add(note.id)
-                                }
-                                setExpandedNotes(newExpanded)
-                              }}
-                              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mt-1"
-                            >
-                              {expandedNotes.has(note.id) ? '접기' : '펼치기'}
-                            </button>
-                          )}
-                          {note.attachments && note.attachments.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {note.attachments.map((att, idx) => (
-                                <a
-                                  key={idx}
-                                  href={att.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
+                                <button
+                                  onClick={() => toggleMilestoneStatus(milestone)}
+                                  className={cn(
+                                    'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium',
+                                    config.bgColor,
+                                    'hover:opacity-80 transition-opacity'
+                                  )}
+                                  title={config.tooltip}
+                                  disabled={togglingIds.has(`milestone-${milestone.id}`)}
                                 >
-                                  <Paperclip className="h-2.5 w-2.5" />
-                                  <span>{att.name}</span>
-                                </a>
-                              ))}
+                                  {togglingIds.has(`milestone-${milestone.id}`) ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                  ) : milestone.status === 'completed' ? (
+                                    <CheckCircle2 className={cn('h-4 w-4', config.color)} />
+                                  ) : milestone.status === 'in_progress' ? (
+                                    <Clock className={cn('h-4 w-4', config.color)} />
+                                  ) : (
+                                    <Circle className={cn('h-4 w-4', config.color)} />
+                                  )}
+                                  <span className={config.color}>{config.label}</span>
+                                </button>
+                                <span
+                                  className={cn(
+                                    'flex-1 truncate flex items-center gap-1',
+                                    milestone.status === 'completed' &&
+                                      'line-through text-muted-foreground'
+                                  )}
+                                >
+                                  {milestone.name}
+                                  {milestone.target_date && milestone.status !== 'completed' && (() => {
+                                    const today = new Date()
+                                    today.setHours(0, 0, 0, 0)
+                                    const target = new Date(milestone.target_date)
+                                    target.setHours(0, 0, 0, 0)
+                                    const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+                                    let colorClass = 'text-muted-foreground'
+                                    if (diffDays < 0) colorClass = 'text-red-500'
+                                    else if (diffDays === 0) colorClass = 'text-red-500'
+                                    else if (diffDays <= 3) colorClass = 'text-orange-500'
+
+                                    const label = diffDays < 0
+                                      ? `D+${Math.abs(diffDays)}`
+                                      : diffDays === 0
+                                        ? 'D-Day'
+                                        : `D-${diffDays}`
+
+                                    return (
+                                      <span className={cn('text-xs flex-shrink-0', colorClass)} title={`목표: ${milestone.target_date}`}>
+                                        {label}
+                                      </span>
+                                    )
+                                  })()}
+                                  {hasSchedules && (
+                                    <span title="일정 있음">
+                                      <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                    </span>
+                                  )}
+                                </span>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-5 w-5 opacity-30 hover:opacity-100"
+                                  onClick={() => {
+                                    setMilestoneForm({
+                                      project_id: milestone.project_id,
+                                      name: milestone.name,
+                                      description: milestone.description || '',
+                                      target_date: milestone.target_date || '',
+                                    })
+                                    setEditingMilestone(milestone)
+                                    setEditingMilestoneId(milestone.id)
+                                  }}
+                                >
+                                  <Pencil className="h-2.5 w-2.5" />
+                                </Button>
+                              </div>
+                            )
+                          })}
+                          {addingMilestoneForProject === project.id ? (
+                            <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                              <Input
+                                value={milestoneForm.name}
+                                onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
+                                placeholder="마일스톤명"
+                                className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && milestoneForm.name.trim()) {
+                                    saveMilestone()
+                                    setAddingMilestoneForProject(null)
+                                  } else if (e.key === 'Escape') {
+                                    setAddingMilestoneForProject(null)
+                                    setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
+                                  }
+                                }}
+                              />
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="relative flex-1 cursor-pointer"
+                                  onClick={(e) => {
+                                    const input = e.currentTarget.querySelector('input')
+                                    if (input) {
+                                      input.showPicker?.()
+                                      input.focus()
+                                    }
+                                  }}
+                                >
+                                  <Input
+                                    type="date"
+                                    value={milestoneForm.target_date}
+                                    onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
+                                    className={cn(
+                                      "h-9 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
+                                      !milestoneForm.target_date && "date-placeholder-hidden"
+                                    )}
+                                  />
+                                  {!milestoneForm.target_date && (
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                      목표마감일
+                                    </span>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-9 px-3"
+                                  onClick={() => {
+                                    setAddingMilestoneForProject(null)
+                                    setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
+                                  }}
+                                >
+                                  취소
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="h-9 px-3"
+                                  disabled={!milestoneForm.name.trim() || saving}
+                                  onClick={async () => {
+                                    await saveMilestone()
+                                    setAddingMilestoneForProject(null)
+                                  }}
+                                >
+                                  저장
+                                </Button>
+                              </div>
                             </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="w-full text-xs"
+                              onClick={() => {
+                                setMilestoneForm({ project_id: project.id, name: '', description: '', target_date: '' })
+                                setAddingMilestoneForProject(project.id)
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              마일스톤 추가
+                            </Button>
                           )}
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {new Date(note.updated_at).toLocaleDateString('ko-KR')}
-                          </p>
                         </div>
                       )}
                     </div>
-                  ))
-                ) : null}
-              </div>
-              {filteredWikiNotes.length > 0 && (
-                <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 mt-3">
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs text-muted-foreground whitespace-nowrap">
-                      <span className="hidden sm:inline">{t.wiki.showingRange
-                        .replace('{total}', String(filteredWikiNotes.length))
-                        .replace('{start}', String((wikiPage - 1) * wikiPerPage + 1))
-                        .replace('{end}', String(Math.min(wikiPage * wikiPerPage, filteredWikiNotes.length)))}</span>
-                      <span className="sm:hidden">{filteredWikiNotes.length}개 중 {(wikiPage - 1) * wikiPerPage + 1}-{Math.min(wikiPage * wikiPerPage, filteredWikiNotes.length)}</span>
-                    </p>
-                    <div className="relative">
-                      <select
-                        value={wikiPerPage}
-                        onChange={(e) => {
-                          setWikiPerPage(Number(e.target.value))
-                          setWikiPage(1)
-                        }}
-                        className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                      >
-                        <option value={5}>5개</option>
-                        <option value={10}>10개</option>
-                        <option value={25}>25개</option>
-                        <option value={50}>50개</option>
-                      </select>
-                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
-                    </div>
+                  )
+                })}
+                {filteredProjects.length === 0 && (
+                  <div className="text-center text-muted-foreground py-4 text-sm">
+                    프로젝트가 없습니다
                   </div>
-                  {totalWikiPages > 1 && (
-                    <div className="flex items-center gap-0.5">
-                      <button onClick={() => setWikiPage(1)} disabled={wikiPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
-                      <button onClick={() => setWikiPage(p => Math.max(1, p - 1))} disabled={wikiPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
-                      <span className="px-2 py-1 text-xs font-medium">{wikiPage}/{totalWikiPages}</span>
-                      <button onClick={() => setWikiPage(p => Math.min(totalWikiPages, p + 1))} disabled={wikiPage === totalWikiPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
-                      <button onClick={() => setWikiPage(totalWikiPages)} disabled={wikiPage === totalWikiPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Right Panel - Progress Summary + Calendar */}
-        <div className="lg:col-span-2 space-y-4">
+
           {/* Progress Summary */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader
@@ -3930,7 +3536,10 @@ export default function WillowManagementPage() {
               </div>
             </CardContent>}
           </Card>
+        </div>
 
+        {/* Right Panel - Calendar + Wiki */}
+        <div className="lg:col-span-2 space-y-4">
           {/* Calendar */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="pb-1">
@@ -4445,6 +4054,399 @@ export default function WillowManagementPage() {
               </DndContext>
             </CardContent>
           </Card>
+
+          {/* Work Wiki Section */}
+          <Card className="bg-slate-100 dark:bg-slate-800">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  {t.wiki.title}
+                </CardTitle>
+                <CardDescription>{t.wiki.description}</CardDescription>
+              </div>
+              <button
+                onClick={() => setIsAddingNote(true)}
+                className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">{t.invoice.create}</span>
+              </button>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-3">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={wikiSearch}
+                    onChange={(e) => setWikiSearch(e.target.value)}
+                    placeholder={t.wiki.searchPlaceholder}
+                    className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
+                  />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  {wikiSearch && (
+                    <button onClick={() => setWikiSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                {wikiSearch && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t.wiki.searchCount.replace('{count}', String(filteredWikiNotes.length))}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                {isAddingNote && (
+                  <div
+                    className={`!border-0 rounded-lg p-3 transition-colors ${
+                      isDraggingWiki ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-white dark:bg-slate-700'
+                    }`}
+                    style={{ border: 'none' }}
+                    onDragOver={(e) => { e.preventDefault(); setIsDraggingWiki(true) }}
+                    onDragLeave={() => setIsDraggingWiki(false)}
+                    onDrop={(e) => { e.preventDefault(); setIsDraggingWiki(false); const files = Array.from(e.dataTransfer.files || []); if (files.length > 0) setNewNoteFiles(prev => [...prev, ...files]) }}
+                  >
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                        <Input
+                          value={newNoteTitle}
+                          onChange={(e) => setNewNoteTitle(e.target.value)}
+                          placeholder={t.wiki.titlePlaceholder}
+                          className="!border-0 h-9"
+                          style={{ border: 'none' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">내용</label>
+                        <TiptapEditor
+                          content={newNoteContent}
+                          onChange={setNewNoteContent}
+                          placeholder={t.wiki.contentPlaceholder}
+                          minHeight="80px"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">첨부 파일</label>
+                        <div className={`!border-0 rounded-lg p-2 text-center transition-colors ${
+                            isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-700'
+                          }`} style={{ border: 'none' }}>
+                          <input
+                            type="file"
+                            id="wiki-file-input-mgmt"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || [])
+                              if (files.length > 0) {
+                                setNewNoteFiles(prev => [...prev, ...files])
+                              }
+                              e.target.value = ''
+                            }}
+                          />
+                          <label
+                            htmlFor="wiki-file-input-mgmt"
+                            className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300"
+                          >
+                            <Paperclip className="h-3 w-3" />
+                            <span>{t.wiki.fileAttach}</span>
+                          </label>
+                        </div>
+                        {newNoteFiles.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {newNoteFiles.map((file, idx) => (
+                              <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
+                                <Paperclip className="h-3 w-3 text-slate-400" />
+                                <span className="flex-1 truncate">{file.name}</span>
+                                <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                                <button
+                                  onClick={() => setNewNoteFiles(files => files.filter((_, i) => i !== idx))}
+                                  className="text-slate-400 hover:text-red-500"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setIsAddingNote(false); setNewNoteTitle(''); setNewNoteContent(''); setNewNoteFiles([]) }}
+                      >
+                        {t.common.cancel}
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleAddNote}
+                        disabled={(!newNoteTitle.trim() && !newNoteContent.trim() && newNoteFiles.length === 0) || isUploadingWiki}
+                      >
+                        {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                        {isUploadingWiki ? t.common.saving : t.common.save}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {isLoadingWiki ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                  </div>
+                ) : filteredWikiNotes.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <StickyNote className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                    <p className="text-sm">{wikiSearch ? t.wiki.noSearchResults : t.wiki.noNotes}</p>
+                    {!wikiSearch && <p className="text-xs">{t.wiki.addNoteHint}</p>}
+                  </div>
+                ) : filteredWikiNotes.length > 0 ? (
+                  paginatedWikiNotes.map((note) => (
+                    <div key={note.id} className="!border-0 rounded-lg bg-white dark:bg-slate-700 p-3" style={{ border: 'none' }}>
+                      {editingNote?.id === note.id ? (
+                        <div
+                          className={`!border-0 rounded-lg p-3 -m-3 transition-colors ${
+                            isDraggingWiki ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-white dark:bg-slate-700'
+                          }`}
+                          style={{ border: 'none' }}
+                          onDragOver={(e) => { e.preventDefault(); setIsDraggingWiki(true) }}
+                          onDragLeave={() => setIsDraggingWiki(false)}
+                          onDrop={(e) => { e.preventDefault(); setIsDraggingWiki(false); const files = Array.from(e.dataTransfer.files || []); if (files.length > 0) setNewNoteFiles(prev => [...prev, ...files]) }}
+                        >
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                              <Input
+                                value={newNoteTitle}
+                                onChange={(e) => setNewNoteTitle(e.target.value)}
+                                className="!border-0 h-9"
+                                style={{ border: 'none' }}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-slate-500 mb-1 block">내용</label>
+                              <TiptapEditor
+                                content={newNoteContent}
+                                onChange={setNewNoteContent}
+                                placeholder="내용을 입력하세요..."
+                                minHeight="80px"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-xs text-slate-500 mb-1 block">첨부 파일</span>
+                              <label
+                                htmlFor={`wiki-file-input-edit-${note.id}`}
+                                className={`!border-0 rounded-lg p-2 text-center transition-colors cursor-pointer block ${
+                                  isDraggingWiki ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-600'
+                                }`}
+                                style={{ border: 'none' }}
+                              >
+                                <input
+                                  type="file"
+                                  id={`wiki-file-input-edit-${note.id}`}
+                                  multiple
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const files = Array.from(e.target.files || [])
+                                    if (files.length > 0) {
+                                      setNewNoteFiles(prev => [...prev, ...files])
+                                    }
+                                    e.target.value = ''
+                                  }}
+                                />
+                                <span className="flex items-center justify-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                  <Paperclip className="h-3 w-3" />
+                                  <span>{t.wiki.fileAttach}</span>
+                                </span>
+                              </label>
+                              {(editingNote.attachments && editingNote.attachments.length > 0) && (
+                                <div className="mt-2 space-y-1">
+                                  <p className="text-xs text-slate-400">기존 첨부파일:</p>
+                                  {editingNote.attachments.map((att, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-600 rounded px-2 py-1.5">
+                                      <Paperclip className="h-3 w-3 text-slate-400" />
+                                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-blue-600 hover:underline">{att.name}</a>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const newAttachments = editingNote.attachments?.filter((_, i) => i !== idx) || []
+                                          setEditingNote({ ...editingNote, attachments: newAttachments })
+                                        }}
+                                        className="text-slate-400 hover:text-red-500 transition-colors"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {newNoteFiles.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  <p className="text-xs text-slate-400">새 첨부파일:</p>
+                                  {newNoteFiles.map((file, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
+                                      <Paperclip className="h-3 w-3 text-slate-400" />
+                                      <span className="flex-1 truncate">{file.name}</span>
+                                      <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                                      <button
+                                        onClick={() => setNewNoteFiles(files => files.filter((_, i) => i !== idx))}
+                                        className="text-slate-400 hover:text-red-500"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex justify-between gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm(t.wiki.deleteConfirm)) {
+                                  handleDeleteNote(editingNote.id)
+                                  setEditingNote(null)
+                                  setNewNoteTitle('')
+                                  setNewNoteContent('')
+                                  setNewNoteFiles([])
+                                }
+                              }}
+                            >
+                              {t.common.delete}
+                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setEditingNote(null); setNewNoteTitle(''); setNewNoteContent(''); setNewNoteFiles([]) }}
+                              >
+                                {t.common.cancel}
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={handleUpdateNote}
+                                disabled={(!newNoteTitle.trim() && !newNoteContent.trim()) || isUploadingWiki}
+                              >
+                                {isUploadingWiki && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                                {isUploadingWiki ? t.common.saving : t.common.save}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              {note.is_pinned && <Pin className="h-3 w-3 text-amber-500" />}
+                              <p className="font-medium text-sm">{note.title}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleTogglePin(note)}
+                                className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${note.is_pinned ? 'text-amber-500' : 'text-slate-400'}`}
+                              >
+                                <Pin className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => startEditNote(note)}
+                                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 cursor-pointer"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                          <div
+                            className={cn(
+                              "wiki-content mt-1 text-slate-600 dark:text-slate-400",
+                              !expandedNotes.has(note.id) && "line-clamp-3 overflow-hidden"
+                            )}
+                            dangerouslySetInnerHTML={{ __html: note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '') }}
+                          />
+                          {note.content && note.content.length > 150 && (
+                            <button
+                              onClick={() => {
+                                const newExpanded = new Set(expandedNotes)
+                                if (newExpanded.has(note.id)) {
+                                  newExpanded.delete(note.id)
+                                } else {
+                                  newExpanded.add(note.id)
+                                }
+                                setExpandedNotes(newExpanded)
+                              }}
+                              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mt-1"
+                            >
+                              {expandedNotes.has(note.id) ? '접기' : '펼치기'}
+                            </button>
+                          )}
+                          {note.attachments && note.attachments.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {note.attachments.map((att, idx) => (
+                                <a
+                                  key={idx}
+                                  href={att.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
+                                >
+                                  <Paperclip className="h-2.5 w-2.5" />
+                                  <span>{att.name}</span>
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {new Date(note.updated_at).toLocaleDateString('ko-KR')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : null}
+              </div>
+              {filteredWikiNotes.length > 0 && (
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 mt-3">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      <span className="hidden sm:inline">{t.wiki.showingRange
+                        .replace('{total}', String(filteredWikiNotes.length))
+                        .replace('{start}', String((wikiPage - 1) * wikiPerPage + 1))
+                        .replace('{end}', String(Math.min(wikiPage * wikiPerPage, filteredWikiNotes.length)))}</span>
+                      <span className="sm:hidden">{filteredWikiNotes.length}개 중 {(wikiPage - 1) * wikiPerPage + 1}-{Math.min(wikiPage * wikiPerPage, filteredWikiNotes.length)}</span>
+                    </p>
+                    <div className="relative">
+                      <select
+                        value={wikiPerPage}
+                        onChange={(e) => {
+                          setWikiPerPage(Number(e.target.value))
+                          setWikiPage(1)
+                        }}
+                        className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        <option value={5}>5개</option>
+                        <option value={10}>10개</option>
+                        <option value={25}>25개</option>
+                        <option value={50}>50개</option>
+                      </select>
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                    </div>
+                  </div>
+                  {totalWikiPages > 1 && (
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => setWikiPage(1)} disabled={wikiPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                      <button onClick={() => setWikiPage(p => Math.max(1, p - 1))} disabled={wikiPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                      <span className="px-2 py-1 text-xs font-medium">{wikiPage}/{totalWikiPages}</span>
+                      <button onClick={() => setWikiPage(p => Math.min(totalWikiPages, p + 1))} disabled={wikiPage === totalWikiPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                      <button onClick={() => setWikiPage(totalWikiPages)} disabled={wikiPage === totalWikiPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
 
           {/* Email Section */}
           <Card className="bg-slate-100 dark:bg-slate-800">

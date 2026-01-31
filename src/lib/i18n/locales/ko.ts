@@ -204,7 +204,7 @@ export const ko = {
   // ETF
   etf: {
     title: '상품 리스트',
-    description: '아크로스 지수 추종 상품',
+    description: '한국 스폰서 출시 상품',
     totalAum: '총 AUM',
     totalProducts: '총 상품',
     totalArr: '연 매출액',

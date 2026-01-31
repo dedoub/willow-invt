@@ -414,7 +414,7 @@ export default function UIGuidePage() {
                 <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
                   <div>
                     <CardTitle className="text-lg">상품 리스트</CardTitle>
-                    <CardDescription className="text-sm mt-0.5">아크로스 지수 추종 상품</CardDescription>
+                    <CardDescription className="text-sm mt-0.5">한국 스폰서 출시 상품</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <button className="flex items-center justify-center gap-2 rounded-lg bg-white dark:bg-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer">
