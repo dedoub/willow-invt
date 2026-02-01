@@ -1662,7 +1662,7 @@ export default function RyuhaStudyPage() {
 
     // 완료 시 리뷰노트 완료 여부 체크
     if (nextStatus === 'completed' && !chapter.review_completed) {
-      alert('리뷰노트를 먼저 완료해주세요.')
+      alert('문제등록을 먼저 완료해주세요.')
       return
     }
 
@@ -2002,7 +2002,7 @@ export default function RyuhaStudyPage() {
                                     toggleChapterStatus(chapter)
                                   }}
                                   className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-purple-100 dark:bg-purple-900/30 hover:opacity-80 transition-opacity"
-                                  title={chapter.review_completed ? '클릭해서 완료로 변경' : '리뷰노트 완료 후 클릭해서 완료로 변경'}
+                                  title={chapter.review_completed ? '클릭해서 완료로 변경' : '문제등록 완료 후 클릭해서 완료로 변경'}
                                   disabled={togglingIds.has(`chapter-${chapter.id}`)}
                                 >
                                   {togglingIds.has(`chapter-${chapter.id}`) ? (
@@ -2024,7 +2024,7 @@ export default function RyuhaStudyPage() {
                                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600'
                                       : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                                   )}
-                                  title={chapter.review_completed ? '리뷰노트 완료' : '리뷰노트 미완료'}
+                                  title={chapter.review_completed ? '문제등록 완료' : '문제등록 미완료'}
                                   disabled={togglingIds.has(`review-${chapter.id}`)}
                                 >
                                   {togglingIds.has(`review-${chapter.id}`) ? (
@@ -2069,7 +2069,7 @@ export default function RyuhaStudyPage() {
                                 label: '리뷰노트',
                                 tooltip: chapter.review_completed
                                   ? '클릭해서 완료로 변경'
-                                  : '리뷰노트 완료 후 클릭해서 완료로 변경',
+                                  : '문제등록 완료 후 클릭해서 완료로 변경',
                                 color: 'text-purple-600',
                                 bgColor: 'bg-purple-100 dark:bg-purple-900/30',
                               },
@@ -2249,7 +2249,7 @@ export default function RyuhaStudyPage() {
                                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600'
                                       : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                                   )}
-                                  title={chapter.review_completed ? '리뷰노트 완료' : '리뷰노트 미완료'}
+                                  title={chapter.review_completed ? '문제등록 완료' : '문제등록 미완료'}
                                   disabled={togglingIds.has(`review-${chapter.id}`)}
                                 >
                                   {togglingIds.has(`review-${chapter.id}`) ? (
