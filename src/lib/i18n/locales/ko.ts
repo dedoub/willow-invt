@@ -439,6 +439,7 @@ export const ko = {
       members: '멤버',
       activity: '알림',
       todos: '할일',
+      lastTodoUpdate: '마지막 Todo 업데이트',
     },
     // 우선순위
     priority: {

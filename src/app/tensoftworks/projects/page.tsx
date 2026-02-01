@@ -40,6 +40,7 @@ import {
   Circle,
   GitCommit,
   Search,
+  Clock,
 } from 'lucide-react'
 
 // tensw-todo 사이트 URL
@@ -450,6 +451,21 @@ function DashboardContent() {
                     <p className="text-sm text-slate-400">-</p>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* 마지막 업데이트 정보 */}
+            {project.recentActivity.length > 0 && (
+              <div className="flex items-center gap-1.5 pt-2 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{tensw.sections.lastTodoUpdate}</span>
+                <span>{formatRelativeTime(project.recentActivity[0].created_at)}</span>
+                {project.recentActivity[0].actor && (
+                  <>
+                    <span>·</span>
+                    <span className="truncate">{project.recentActivity[0].actor}</span>
+                  </>
+                )}
               </div>
             )}
           </CardContent>

@@ -1628,38 +1628,39 @@ export default function RyuhaStudyPage() {
     }
   }
 
+  /**
+   * 챕터 상태 변경 로직
+   *
+   * [일정 있음] 진행 → 리뷰노트 → 완료 → 진행 (순환, pending 불가)
+   * [일정 없음] 대기 → 진행 → 리뷰노트 → 완료 → 대기 (순환)
+   *
+   * 제약: completed로 변경하려면 review_completed가 true여야 함
+   */
   const toggleChapterStatus = async (chapter: RyuhaChapter) => {
     const chapterId = `chapter-${chapter.id}`
     if (togglingIds.has(chapterId)) return
 
     const hasSchedules = chaptersWithSchedules.has(chapter.id)
 
-    // Determine next status based on whether chapter has schedules
-    // Flow: pending → in_progress → review_notes_pending → completed
-    let nextStatus: 'pending' | 'in_progress' | 'review_notes_pending' | 'completed'
-    if (hasSchedules) {
-      // If has schedules: in_progress → review_notes_pending → completed → in_progress
-      if (chapter.status === 'in_progress') {
-        nextStatus = 'review_notes_pending'
-      } else if (chapter.status === 'review_notes_pending') {
-        nextStatus = 'completed'
-      } else {
-        nextStatus = 'in_progress'
-      }
-    } else {
-      // If no schedules: pending → in_progress → review_notes_pending → completed → pending
-      if (chapter.status === 'pending') {
-        nextStatus = 'in_progress'
-      } else if (chapter.status === 'in_progress') {
-        nextStatus = 'review_notes_pending'
-      } else if (chapter.status === 'review_notes_pending') {
-        nextStatus = 'completed'
-      } else {
-        nextStatus = 'pending'
-      }
-    }
+    // 상태 전환 맵
+    type ChapterStatus = 'pending' | 'in_progress' | 'review_notes_pending' | 'completed'
+    const statusFlow: Record<ChapterStatus, ChapterStatus> = hasSchedules
+      ? { // 일정 있음: pending 불가
+          pending: 'in_progress',
+          in_progress: 'review_notes_pending',
+          review_notes_pending: 'completed',
+          completed: 'in_progress',
+        }
+      : { // 일정 없음: 전체 순환
+          pending: 'in_progress',
+          in_progress: 'review_notes_pending',
+          review_notes_pending: 'completed',
+          completed: 'pending',
+        }
 
-    // Check if trying to complete without review note completed
+    const nextStatus = statusFlow[chapter.status as ChapterStatus]
+
+    // 완료 시 리뷰노트 완료 여부 체크
     if (nextStatus === 'completed' && !chapter.review_completed) {
       alert('리뷰노트를 먼저 완료해주세요.')
       return
@@ -1668,7 +1669,6 @@ export default function RyuhaStudyPage() {
     setTogglingIds(prev => new Set(prev).add(chapterId))
     try {
       const completed_at = nextStatus === 'completed' ? new Date().toISOString() : null
-
       await fetch('/api/ryuha/chapters', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1702,6 +1702,26 @@ export default function RyuhaStudyPage() {
         next.delete(reviewId)
         return next
       })
+    }
+  }
+
+  // 챕터 상태 초기화 (pending으로 리셋, review_completed도 false로)
+  const resetChapterStatus = async (chapterId: string) => {
+    setSaving(true)
+    try {
+      await fetch('/api/ryuha/chapters', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: chapterId,
+          status: 'pending',
+          review_completed: false,
+          completed_at: null,
+        }),
+      })
+      await fetchChapters()
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -1814,10 +1834,26 @@ export default function RyuhaStudyPage() {
     return a.name.localeCompare(b.name, 'ko')
   })
 
-  const getChaptersForTextbook = (textbookId: string) =>
-    chapters
+  const getChaptersForTextbook = (textbookId: string) => {
+    // 상태 우선순위: 리뷰노트 > 진행 > 대기 > 완료
+    const statusPriority: Record<string, number> = {
+      review_notes_pending: 0,
+      in_progress: 1,
+      pending: 2,
+      completed: 3,
+    }
+    return chapters
       .filter((c) => c.textbook_id === textbookId)
-      .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      .sort((a, b) => {
+        // 1. 상태 우선순위로 정렬
+        const statusDiff = (statusPriority[a.status] ?? 99) - (statusPriority[b.status] ?? 99)
+        if (statusDiff !== 0) return statusDiff
+        // 2. 목표마감일 오래된 순 (없으면 뒤로)
+        const dateA = a.target_date || '9999-12-31'
+        const dateB = b.target_date || '9999-12-31'
+        return dateA.localeCompare(dateB)
+      })
+  }
 
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -1983,22 +2019,27 @@ export default function RyuhaStudyPage() {
                                     toggleReviewCompleted(chapter)
                                   }}
                                   className={cn(
-                                    'flex items-center gap-1 px-1.5 py-0.5 rounded text-xs transition-opacity',
+                                    'flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs transition-opacity',
                                     chapter.review_completed
-                                      ? 'bg-green-100 dark:bg-green-900/30 text-green-600'
-                                      : 'bg-muted/50 text-muted-foreground hover:text-foreground'
+                                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600'
+                                      : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                                   )}
-                                  title={chapter.review_completed ? '리뷰노트 완료됨' : '리뷰노트 미완료'}
+                                  title={chapter.review_completed ? '리뷰노트 완료' : '리뷰노트 미완료'}
                                   disabled={togglingIds.has(`review-${chapter.id}`)}
                                 >
                                   {togglingIds.has(`review-${chapter.id}`) ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : chapter.review_completed ? (
-                                    <CheckCircle2 className="h-3 w-3" />
                                   ) : (
-                                    <Circle className="h-3 w-3" />
+                                    <span className="relative flex items-center gap-0.5">
+                                      <BookOpen className="h-3 w-3" />
+                                      <span>문제등록</span>
+                                      {chapter.review_completed && (
+                                        <span className="absolute inset-0 flex items-center">
+                                          <span className="w-full h-[1px] bg-current" />
+                                        </span>
+                                      )}
+                                    </span>
                                   )}
-                                  <span className="text-xs">리뷰노트</span>
                                 </button>
                               </div>
                             ))}
@@ -2097,6 +2138,19 @@ export default function RyuhaStudyPage() {
                                   >
                                     삭제
                                   </Button>
+                                  {chapter.status !== 'pending' && (
+                                    <Button
+                                      size="sm"
+                                      className="h-9 px-3 bg-orange-500 hover:bg-orange-600 text-white"
+                                      disabled={saving}
+                                      onClick={async () => {
+                                        await resetChapterStatus(chapter.id)
+                                        setEditingChapterId(null)
+                                      }}
+                                    >
+                                      초기화
+                                    </Button>
+                                  )}
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -2203,7 +2257,7 @@ export default function RyuhaStudyPage() {
                                   ) : (
                                     <span className="relative flex items-center gap-0.5">
                                       <BookOpen className="h-3 w-3" />
-                                      <span className="hidden sm:inline">리뷰노트</span>
+                                      <span className="hidden sm:inline">문제등록</span>
                                       {chapter.review_completed && (
                                         <span className="absolute inset-0 flex items-center">
                                           <span className="w-full h-[1px] bg-current" />

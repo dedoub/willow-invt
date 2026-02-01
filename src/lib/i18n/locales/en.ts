@@ -439,6 +439,7 @@ export const en = {
       members: 'Members',
       activity: 'Activity',
       todos: 'Todos',
+      lastTodoUpdate: 'Last Todo Update',
     },
     // Priority
     priority: {
