@@ -3076,11 +3076,11 @@ export default function RyuhaStudyPage() {
 
       {/* Schedule Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-        <DialogContent className="max-h-[90vh] flex flex-col">
+        <DialogContent className={`max-h-[90vh] flex flex-col transition-colors duration-300 ${!editingSchedule ? 'bg-green-50 dark:bg-green-950/50' : ''}`}>
           <DialogHeader className="pb-4 border-b flex-shrink-0">
             <DialogTitle>{editingSchedule ? '일정 수정' : '일정 추가'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+          <div className="space-y-4 overflow-y-auto flex-1 px-2 -mx-2 py-4">
             {/* Schedule type toggle */}
             <div className="flex items-center space-x-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
               <Checkbox
