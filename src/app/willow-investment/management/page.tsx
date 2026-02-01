@@ -227,15 +227,17 @@ function DraggableScheduleCard({
   onToggleComplete,
   onEdit,
   isToggling = false,
+  currentDate,
 }: {
   schedule: WillowMgmtSchedule
   onToggleComplete: () => void
   onEdit: () => void
   isToggling?: boolean
+  currentDate?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: schedule.id,
-    data: { schedule },
+    id: currentDate ? `${schedule.id}-${currentDate}` : schedule.id,
+    data: { schedule, currentDate },
   })
   const wasDraggingRef = useRef(false)
 
@@ -250,17 +252,23 @@ function DraggableScheduleCard({
   const displayColor = schedule.client?.color || schedule.color
   const clientColor = schedule.client?.color
 
+  // 여러 날짜에 걸친 일정인 경우 현재 날짜의 완료 상태 확인
+  const isMultiDay = !!schedule.end_date
+  const isDateCompleted = isMultiDay && currentDate
+    ? (schedule.completed_dates || []).includes(currentDate)
+    : schedule.is_completed
+
   const style = transform
     ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
         borderLeft: clientColor ? `3px solid ${clientColor}` : undefined,
-        backgroundColor: !schedule.is_completed && displayColor
+        backgroundColor: !isDateCompleted && displayColor
           ? `${displayColor}20`
           : undefined,
       }
     : {
         borderLeft: clientColor ? `3px solid ${clientColor}` : undefined,
-        backgroundColor: !schedule.is_completed && displayColor
+        backgroundColor: !isDateCompleted && displayColor
           ? `${displayColor}20`
           : undefined,
       }
@@ -274,7 +282,7 @@ function DraggableScheduleCard({
       className={cn(
         'text-xs p-1.5 rounded cursor-grab active:cursor-grabbing touch-none',
         isDragging && 'opacity-50',
-        schedule.is_completed
+        isDateCompleted
           ? 'bg-muted line-through text-muted-foreground'
           : !displayColor && 'bg-slate-300/50 dark:bg-slate-600/50'
       )}
@@ -302,7 +310,7 @@ function DraggableScheduleCard({
         >
           {isToggling ? (
             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-          ) : schedule.is_completed ? (
+          ) : isDateCompleted ? (
             <CheckCircle2 className="h-3 w-3 text-green-600" />
           ) : (
             <Circle className="h-3 w-3" />
@@ -463,27 +471,35 @@ function DraggableMonthScheduleCard({
   onEdit,
   onToggleComplete,
   isToggling = false,
+  currentDate,
 }: {
   schedule: WillowMgmtSchedule
   onEdit: () => void
   onToggleComplete: () => void
   isToggling?: boolean
+  currentDate?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: schedule.id,
-    data: { schedule },
+    id: currentDate ? `${schedule.id}-${currentDate}` : schedule.id,
+    data: { schedule, currentDate },
   })
 
   // Determine display color: client color takes priority, then custom color
   const displayColor = schedule.client?.color || schedule.color
   const clientColor = schedule.client?.color
 
+  // 여러 날짜에 걸친 일정인 경우 현재 날짜의 완료 상태 확인
+  const isMultiDay = !!schedule.end_date
+  const isDateCompleted = isMultiDay && currentDate
+    ? (schedule.completed_dates || []).includes(currentDate)
+    : schedule.is_completed
+
   const style = transform
     ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
         zIndex: 50,
         borderLeft: clientColor ? `2px solid ${clientColor}` : undefined,
-        backgroundColor: schedule.is_completed
+        backgroundColor: isDateCompleted
           ? undefined
           : displayColor
             ? `${displayColor}25`
@@ -491,7 +507,7 @@ function DraggableMonthScheduleCard({
       }
     : {
         borderLeft: clientColor ? `2px solid ${clientColor}` : undefined,
-        backgroundColor: schedule.is_completed
+        backgroundColor: isDateCompleted
           ? undefined
           : displayColor
             ? `${displayColor}25`
@@ -507,7 +523,7 @@ function DraggableMonthScheduleCard({
       className={cn(
         'text-[10px] px-1 py-0.5 rounded cursor-grab active:cursor-grabbing touch-none flex items-center gap-0.5',
         isDragging && 'opacity-50',
-        schedule.is_completed
+        isDateCompleted
           ? 'bg-muted text-muted-foreground line-through'
           : !displayColor && 'bg-slate-200 dark:bg-slate-700'
       )}
@@ -529,7 +545,7 @@ function DraggableMonthScheduleCard({
       >
         {isToggling ? (
           <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />
-        ) : schedule.is_completed ? (
+        ) : isDateCompleted ? (
           <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
         ) : (
           <Circle className="h-2.5 w-2.5" />
@@ -1402,20 +1418,31 @@ export default function WillowManagementPage() {
     }
   }
 
-  const toggleScheduleComplete = async (schedule: WillowMgmtSchedule) => {
-    if (togglingIds.has(schedule.id)) return
-    setTogglingIds(prev => new Set(prev).add(schedule.id))
+  const toggleScheduleComplete = async (schedule: WillowMgmtSchedule, date?: string) => {
+    const toggleId = date ? `${schedule.id}-${date}` : schedule.id
+    if (togglingIds.has(toggleId)) return
+    setTogglingIds(prev => new Set(prev).add(toggleId))
     try {
-      await fetch('/api/willow-mgmt/schedules', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: schedule.id, is_completed: !schedule.is_completed }),
-      })
+      // 여러 날짜에 걸친 일정이고 특정 날짜가 지정된 경우
+      if (schedule.end_date && date) {
+        await fetch('/api/willow-mgmt/schedules/toggle-date', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ schedule_id: schedule.id, date }),
+        })
+      } else {
+        // 단일 날짜 일정이거나 전체 토글
+        await fetch('/api/willow-mgmt/schedules', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: schedule.id, is_completed: !schedule.is_completed }),
+        })
+      }
       await fetchSchedules()
     } finally {
       setTogglingIds(prev => {
         const next = new Set(prev)
-        next.delete(schedule.id)
+        next.delete(toggleId)
         return next
       })
     }
@@ -3858,15 +3885,19 @@ export default function WillowManagementPage() {
                               </div>
                             </div>
                           ))}
-                          {getSchedulesForDate(day).map((schedule) => (
-                            <DraggableScheduleCard
-                              key={schedule.id}
-                              schedule={schedule}
-                              onToggleComplete={() => toggleScheduleComplete(schedule)}
-                              onEdit={() => openScheduleDialog(undefined, schedule)}
-                              isToggling={togglingIds.has(schedule.id)}
-                            />
-                          ))}
+                          {getSchedulesForDate(day).map((schedule) => {
+                            const dateStr = formatDate(day)
+                            return (
+                              <DraggableScheduleCard
+                                key={`${schedule.id}-${dateStr}`}
+                                schedule={schedule}
+                                currentDate={dateStr}
+                                onToggleComplete={() => toggleScheduleComplete(schedule, dateStr)}
+                                onEdit={() => openScheduleDialog(undefined, schedule)}
+                                isToggling={togglingIds.has(`${schedule.id}-${dateStr}`) || togglingIds.has(schedule.id)}
+                              />
+                            )
+                          })}
                         </DroppableDay>
                       )
                     })}
@@ -4000,15 +4031,19 @@ export default function WillowManagementPage() {
                                       </span>
                                     </div>
                                   ))}
-                                  {getSchedulesForDate(day).map((schedule) => (
-                                    <DraggableMonthScheduleCard
-                                      key={schedule.id}
-                                      schedule={schedule}
-                                      onEdit={() => openScheduleDialog(undefined, schedule)}
-                                      onToggleComplete={() => toggleScheduleComplete(schedule)}
-                                      isToggling={togglingIds.has(schedule.id)}
-                                    />
-                                  ))}
+                                  {getSchedulesForDate(day).map((schedule) => {
+                                    const dateStr = formatDate(day)
+                                    return (
+                                      <DraggableMonthScheduleCard
+                                        key={`${schedule.id}-${dateStr}`}
+                                        schedule={schedule}
+                                        currentDate={dateStr}
+                                        onEdit={() => openScheduleDialog(undefined, schedule)}
+                                        onToggleComplete={() => toggleScheduleComplete(schedule, dateStr)}
+                                        isToggling={togglingIds.has(`${schedule.id}-${dateStr}`) || togglingIds.has(schedule.id)}
+                                      />
+                                    )
+                                  })}
                                 </div>
                               </>
                             )}

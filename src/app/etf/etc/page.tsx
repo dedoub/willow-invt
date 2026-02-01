@@ -2436,7 +2436,7 @@ Dongwook`
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle>{t.etf.title}</CardTitle>
-            <CardDescription>{t.etf.description}</CardDescription>
+            <CardDescription>{t.etf.etcDescription}</CardDescription>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             <button

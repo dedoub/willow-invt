@@ -47,6 +47,7 @@ export interface TenswMgmtSchedule {
   milestone_id: string | null
   milestone_ids: string[]
   is_completed: boolean
+  completed_dates: string[]
   email_reminder: boolean
   reminder_sent: boolean
   task_content: string | null
