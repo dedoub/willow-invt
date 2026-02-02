@@ -23,6 +23,8 @@ import type {
   LemonSqueezySubscription,
   LemonSqueezyCustomer,
 } from '@/lib/lemonsqueezy'
+import type { ReviewNotesUserStats } from '@/lib/reviewnotes-supabase'
+import Image from 'next/image'
 
 // 숫자 포맷팅
 function formatCurrency(value: number, currency = 'USD'): string {
@@ -107,6 +109,7 @@ export default function ReviewNotesPage() {
   const [recentOrders, setRecentOrders] = useState<LemonSqueezyOrder[]>([])
   const [subscriptions, setSubscriptions] = useState<LemonSqueezySubscription[]>([])
   const [customers, setCustomers] = useState<LemonSqueezyCustomer[]>([])
+  const [userStats, setUserStats] = useState<ReviewNotesUserStats | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // 데이터 로드
@@ -128,6 +131,7 @@ export default function ReviewNotesPage() {
       setRecentOrders(data.recentOrders || [])
       setSubscriptions(data.subscriptions || [])
       setCustomers(data.customers || [])
+      setUserStats(data.userStats || null)
     } catch (err) {
       console.error('Error loading data:', err)
       setError(String(err))
@@ -418,6 +422,181 @@ export default function ReviewNotesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* 앱 유저 통계 */}
+        {userStats && (
+          <>
+            <div className="flex items-center gap-2 mt-8">
+              <Image src="/reviewnotes-icon.svg" alt="" width={24} height={24} />
+              <h2 className="text-xl font-bold">앱 유저 통계</h2>
+              <span className="text-sm text-muted-foreground">
+                Supabase 연동
+              </span>
+            </div>
+
+            {/* 유저 통계 카드 */}
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card className="bg-slate-100 dark:bg-slate-800">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    총 가입자
+                  </CardTitle>
+                  <div className="rounded-lg bg-white/50 dark:bg-white/10 p-2">
+                    <Users className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{userStats.totalUsers}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-muted-foreground">
+                      이번 달 +{userStats.newUsersThisMonth}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      · 이번 주 +{userStats.newUsersThisWeek}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-100 dark:bg-slate-800">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    플랜별 현황
+                  </CardTitle>
+                  <div className="rounded-lg bg-white/50 dark:bg-white/10 p-2">
+                    <TrendingUp className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-2 py-0.5 rounded text-xs bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                      Free: {userStats.freeUsers}
+                    </span>
+                    {userStats.basicUsers > 0 && (
+                      <span className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
+                        Basic: {userStats.basicUsers}
+                      </span>
+                    )}
+                    {userStats.standardUsers > 0 && (
+                      <span className="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400">
+                        Standard: {userStats.standardUsers}
+                      </span>
+                    )}
+                    {userStats.proUsers > 0 && (
+                      <span className="px-2 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400">
+                        Pro: {userStats.proUsers}
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-100 dark:bg-slate-800">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    관리자
+                  </CardTitle>
+                  <div className="rounded-lg bg-white/50 dark:bg-white/10 p-2">
+                    <UserPlus className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{userStats.adminUsers}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Admin 권한 유저</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-100 dark:bg-slate-800">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    총 스토리지
+                  </CardTitle>
+                  <div className="rounded-lg bg-white/50 dark:bg-white/10 p-2">
+                    <DollarSign className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {(userStats.totalStorageUsed / (1024 * 1024)).toFixed(1)} MB
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">유저 업로드 파일</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 최근 가입자 목록 */}
+            <Card className="bg-slate-100 dark:bg-slate-800">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    <CardTitle className="text-base">최근 가입자</CardTitle>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    총 {userStats.totalUsers}명
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-2">
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {userStats.users.slice(0, 10).map((user) => (
+                    <div
+                      key={user.id}
+                      className="p-2 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        {user.image ? (
+                          <Image
+                            src={user.image}
+                            alt=""
+                            width={32}
+                            height={32}
+                            className="rounded-full"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center">
+                            <span className="text-xs font-medium">
+                              {user.name?.charAt(0) || user.email.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {user.name || 'Unknown'}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-xs ${
+                          user.subscriptionPlan === 'FREE'
+                            ? 'bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300'
+                            : user.subscriptionPlan === 'BASIC'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                            : user.subscriptionPlan === 'STANDARD'
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400'
+                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
+                        }`}>
+                          {user.subscriptionPlan}
+                        </span>
+                        {user.role === 'ADMIN' && (
+                          <span className="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
+                            Admin
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(user.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </ProtectedPage>
   )

@@ -28,6 +28,17 @@ Next.js 기반 대시보드 애플리케이션. ETF 관리, 업무 관리 등 �
 - **URL**: https://iiicccnrnwdfawsvbacu.supabase.co
 - **용도**: Akros ETF 관련 데이터
 
+### review-notes (ReviewNotes App)
+- **Project ID**: `kumaqaizejnjrvfqhahu`
+- **Region**: ap-southeast-1
+- **URL**: https://kumaqaizejnjrvfqhahu.supabase.co
+- **용도**: ReviewNotes 앱 유저/콘텐츠 관리
+- **주요 테이블**:
+  - `User` - 유저 정보 (subscriptionPlan, role 등)
+  - `Note` - 노트
+  - `Problem` - 문제
+  - `Subscription` - 구독 정보 (LemonSqueezy 연동)
+
 ## Environment Variables
 ```
 # Main Supabase (experiment-apps)
@@ -38,6 +49,14 @@ SUPABASE_SECRET_KEY=... (service_role)
 # Akros DB (Supernova)
 AKROS_SUPABASE_URL=https://iiicccnrnwdfawsvbacu.supabase.co
 AKROS_SUPABASE_SERVICE_KEY=...
+
+# ReviewNotes Supabase
+REVIEWNOTES_SUPABASE_URL=https://kumaqaizejnjrvfqhahu.supabase.co
+REVIEWNOTES_SUPABASE_KEY=...
+
+# LemonSqueezy (ReviewNotes 결제)
+LEMONSQUEEZY_API_KEY=...
+LEMONSQUEEZY_STORE_ID=237969
 ```
 
 ## Key Pages & Features
