@@ -154,10 +154,15 @@ function StatCardSkeleton() {
 function ConnectionBanner({
   status,
   onOpenSettings,
+  loading,
 }: {
   status: ConnectionStatus
   onOpenSettings: () => void
+  loading?: boolean
 }) {
+  // 로딩 중에는 배너 숨김
+  if (loading) return null
+
   const iosConnected = status.ios.connected
   const androidConnected = status.android.connected
 
@@ -421,6 +426,7 @@ export default function VoicecardsPage() {
         <ConnectionBanner
           status={connectionStatus}
           onOpenSettings={() => setSettingsOpen(true)}
+          loading={loading}
         />
 
         {/* 날짜 범위 필터 */}
