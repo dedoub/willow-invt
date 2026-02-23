@@ -1,9 +1,9 @@
 // Gemini Embedding API 래퍼
-// text-embedding-004 모델 사용 (768 dimensions)
+// gemini-embedding-001 모델 사용 (768 dimensions)
 
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const EMBEDDING_MODEL = 'text-embedding-004'
+const EMBEDDING_MODEL = 'gemini-embedding-001'
 
 function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY
