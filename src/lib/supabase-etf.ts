@@ -794,6 +794,70 @@ export interface TimeSeriesData {
   total_arr_usd: number
 }
 
+// raw time_series_data row (개별 지역 데이터 포함)
+interface TimeSeriesRaw {
+  date: string
+  kr_etf_aum: number | null
+  kr_etn_aum: number | null
+  kr_mf_aum: number | null
+  us_etf_aum: number | null
+  au_etf_aum: number | null
+  kr_etf_arr: number | null
+  kr_etn_arr: number | null
+  kr_mf_arr: number | null
+  us_etf_arr: number | null
+  au_etf_arr: number | null
+  total_products: number | null
+  total_aum_krw: number | null
+  total_aum_usd: number | null
+  total_arr_krw: number | null
+  total_arr_usd: number | null
+}
+
+// 환율 맵 빌드 + total 컬럼 계산
+// KR 데이터: 억원, US: raw USD, AU: raw AUD
+// exchange_rates.rate = 1 USD 당 해당 통화 (KRW/USD, AUD/USD)
+function computeTotals(rows: TimeSeriesRaw[], fxMap: Record<string, { KRW?: number; AUD?: number }>): TimeSeriesData[] {
+  let lastKrw = 1443
+  let lastAud = 1.4
+
+  return rows.map(row => {
+    const fx = fxMap[row.date]
+    const krwPerUsd = fx?.KRW ?? lastKrw
+    const audPerUsd = fx?.AUD ?? lastAud
+    if (fx?.KRW) lastKrw = krwPerUsd
+    if (fx?.AUD) lastAud = audPerUsd
+
+    // AUM 합산
+    const krAum = Number(row.kr_etf_aum || 0) + Number(row.kr_etn_aum || 0) + Number(row.kr_mf_aum || 0) // 억원
+    const usAum = Number(row.us_etf_aum || 0) // USD
+    const auAum = Number(row.au_etf_aum || 0) // AUD
+
+    // ARR 합산
+    const krArr = Number(row.kr_etf_arr || 0) + Number(row.kr_etn_arr || 0) + Number(row.kr_mf_arr || 0) // 억원
+    const usArr = Number(row.us_etf_arr || 0) // USD
+    const auArr = Number(row.au_etf_arr || 0) // AUD
+
+    // 총 AUM (억원)
+    const totalAumKrw = krAum + (usAum * krwPerUsd / 1e8) + (auAum / audPerUsd * krwPerUsd / 1e8)
+    // 총 AUM (백만 USD)
+    const totalAumUsd = (krAum * 1e8 / krwPerUsd / 1e6) + (usAum / 1e6) + (auAum / audPerUsd / 1e6)
+    // 총 ARR (억원)
+    const totalArrKrw = krArr + (usArr * krwPerUsd / 1e8) + (auArr / audPerUsd * krwPerUsd / 1e8)
+    // 총 ARR (백만 USD)
+    const totalArrUsd = (krArr * 1e8 / krwPerUsd / 1e6) + (usArr / 1e6) + (auArr / audPerUsd / 1e6)
+
+    return {
+      date: row.date,
+      total_aum_krw: row.total_aum_krw ?? totalAumKrw,
+      total_aum_usd: row.total_aum_usd ?? totalAumUsd,
+      total_arr_krw: row.total_arr_krw ?? totalArrKrw,
+      total_arr_usd: row.total_arr_usd ?? totalArrUsd,
+      total_products: row.total_products ?? 0,
+    }
+  })
+}
+
 // 최신 Time Series 데이터 가져오기
 export async function fetchLatestTimeSeriesData(): Promise<TimeSeriesData | null> {
   const { data, error } = await akrosDb
@@ -808,7 +872,22 @@ export async function fetchLatestTimeSeriesData(): Promise<TimeSeriesData | null
     return null
   }
 
-  return data as TimeSeriesData
+  const row = data as TimeSeriesRaw
+  if (row.total_aum_krw != null) return row as unknown as TimeSeriesData
+
+  const { data: fxData } = await akrosDb
+    .from('exchange_rates')
+    .select('date, currency, rate')
+    .eq('date', row.date)
+    .in('currency', ['KRW', 'AUD'])
+
+  const fxMap: Record<string, { KRW?: number; AUD?: number }> = {}
+  for (const fx of fxData || []) {
+    if (!fxMap[fx.date]) fxMap[fx.date] = {}
+    fxMap[fx.date][fx.currency as 'KRW' | 'AUD'] = Number(fx.rate)
+  }
+
+  return computeTotals([row], fxMap)[0]
 }
 
 // 전체 Time Series 데이터 가져오기 (차트용)
@@ -823,7 +902,28 @@ export async function fetchAllTimeSeriesData(): Promise<TimeSeriesData[]> {
     return []
   }
 
-  return (data || []) as TimeSeriesData[]
+  const rows = (data || []) as TimeSeriesRaw[]
+  if (rows.length === 0) return []
+
+  // total 컬럼이 이미 채워져 있으면 그대로 반환
+  if (rows[rows.length - 1].total_aum_krw != null) {
+    return rows as unknown as TimeSeriesData[]
+  }
+
+  // 환율 데이터 fetch
+  const { data: fxData } = await akrosDb
+    .from('exchange_rates')
+    .select('date, currency, rate')
+    .in('currency', ['KRW', 'AUD'])
+    .order('date', { ascending: true })
+
+  const fxMap: Record<string, { KRW?: number; AUD?: number }> = {}
+  for (const fx of fxData || []) {
+    if (!fxMap[fx.date]) fxMap[fx.date] = {}
+    fxMap[fx.date][fx.currency as 'KRW' | 'AUD'] = Number(fx.rate)
+  }
+
+  return computeTotals(rows, fxMap)
 }
 
 // 올해 출시 상품 수 가져오기

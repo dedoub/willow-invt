@@ -143,7 +143,8 @@ function formatAUM(value: number | null, currency: string = 'USD') {
 }
 
 // 억원 단위 포맷 (time_series_data용)
-function formatAumKRW(value: number): string {
+function formatAumKRW(value: number | null | undefined): string {
+  if (value == null) return '-'
   return new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(value) + '억원'
 }
 
@@ -168,7 +169,8 @@ function formatARR(value: number | null, currency: string = 'USD') {
 }
 
 // USD 포맷 (백만달러 단위)
-function formatUSD(value: number): string {
+function formatUSD(value: number | null | undefined): string {
+  if (value == null) return '-'
   return `$${value.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}m`
 }
 
@@ -2687,7 +2689,7 @@ export default function AkrosPage() {
                               {invoice.notes || new Date(invoice.invoice_date).toLocaleDateString('ko-KR')}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(invoice.invoice_date).toLocaleDateString('ko-KR')} · ₩{invoice.amount.toLocaleString()}
+                              {new Date(invoice.invoice_date).toLocaleDateString('ko-KR')} · ₩{(invoice.amount ?? 0).toLocaleString()}
                             </p>
                           </div>
                         </div>
