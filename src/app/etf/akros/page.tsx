@@ -3228,8 +3228,8 @@ export default function AkrosPage() {
                         </div>
                         <div
                           className={cn(
-                            "wiki-content mt-1 text-slate-600 dark:text-slate-400",
-                            !expandedNotes.has(note.id) && "line-clamp-3 overflow-hidden"
+                            "wiki-content mt-1 text-slate-600 dark:text-slate-400 overflow-hidden",
+                            !expandedNotes.has(note.id) && "max-h-[4.5rem]"
                           )}
                           dangerouslySetInnerHTML={{ __html: note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '') }}
                         />
@@ -3267,7 +3267,8 @@ export default function AkrosPage() {
                           </div>
                         )}
                         <p className="text-xs text-muted-foreground mt-2">
-                          {new Date(note.updated_at).toLocaleDateString('ko-KR')}
+                          작성 {new Date(note.created_at).toLocaleDateString('ko-KR')}
+                          {note.updated_at !== note.created_at && ` · 수정 ${new Date(note.updated_at).toLocaleDateString('ko-KR')}`}
                         </p>
                       </div>
                     )}
