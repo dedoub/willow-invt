@@ -280,12 +280,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         )}
       </nav>
 
-      {/* Footer */}
-      {!collapsed && (
-        <div className="p-4">
-          <p className="text-xs text-slate-500">{t.sidebar.version}</p>
-        </div>
-      )}
     </aside>
   )
 }
