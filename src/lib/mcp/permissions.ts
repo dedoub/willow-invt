@@ -12,6 +12,9 @@ export type McpScope =
   | 'invoices:read' | 'invoices:write'
   | 'etf:read'
   | 'dashboard:read'
+  | 'ryuha:read' | 'ryuha:write'
+  | 'willow:read' | 'willow:write'
+  | 'tensw:read' | 'tensw:write'
   | 'admin:read' | 'admin:write'
 
 interface ToolPermission {
@@ -49,6 +52,96 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
 
   // Dashboard
   get_dashboard:     { roles: ['admin', 'editor', 'viewer'], scopes: ['dashboard:read'] },
+
+  // Ryuha (류하 학습관리)
+  ryuha_list_subjects:      { roles: ['admin', 'editor', 'viewer'], scopes: ['ryuha:read'] },
+  ryuha_create_subject:     { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_update_subject:     { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_delete_subject:     { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_list_textbooks:     { roles: ['admin', 'editor', 'viewer'], scopes: ['ryuha:read'] },
+  ryuha_create_textbook:    { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_update_textbook:    { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_delete_textbook:    { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_list_chapters:      { roles: ['admin', 'editor', 'viewer'], scopes: ['ryuha:read'] },
+  ryuha_create_chapter:     { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_update_chapter:     { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_delete_chapter:     { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_list_schedules:     { roles: ['admin', 'editor', 'viewer'], scopes: ['ryuha:read'] },
+  ryuha_create_schedule:    { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_update_schedule:    { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_delete_schedule:    { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_list_homework:      { roles: ['admin', 'editor', 'viewer'], scopes: ['ryuha:read'] },
+  ryuha_create_homework:    { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_update_homework:    { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_delete_homework:    { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_list_memos:         { roles: ['admin', 'editor', 'viewer'], scopes: ['ryuha:read'] },
+  ryuha_upsert_memo:        { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_delete_memo:        { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_list_body_records:  { roles: ['admin', 'editor', 'viewer'], scopes: ['ryuha:read'] },
+  ryuha_create_body_record: { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_update_body_record: { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+  ryuha_delete_body_record: { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
+
+  // Willow Investment (윌로우 경영관리)
+  willow_list_clients:          { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  willow_create_client:         { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_update_client:         { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_delete_client:         { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_list_projects:         { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  willow_create_project:        { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_update_project:        { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_delete_project:        { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_list_milestones:       { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  willow_create_milestone:      { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_update_milestone:      { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_delete_milestone:      { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_list_schedules:        { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  willow_create_schedule:       { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_update_schedule:       { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_delete_schedule:       { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_toggle_schedule_date:  { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_list_tasks:            { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  willow_create_task:           { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_update_task:           { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_delete_task:           { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_list_memos:            { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  willow_upsert_memo:           { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_delete_memo:           { roles: ['admin', 'editor'], scopes: ['willow:write'] },
+  willow_list_invoices:         { roles: ['admin', 'editor'], scopes: ['willow:read'] },
+  willow_create_invoice:        { roles: ['admin'], scopes: ['willow:write'] },
+  willow_update_invoice:        { roles: ['admin'], scopes: ['willow:write'] },
+  willow_delete_invoice:        { roles: ['admin'], scopes: ['willow:write'] },
+
+  // Tensoftworks (텐소프트웍스 경영관리)
+  tensw_list_clients:          { roles: ['admin', 'editor', 'viewer'], scopes: ['tensw:read'] },
+  tensw_create_client:         { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_update_client:         { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_delete_client:         { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_list_projects:         { roles: ['admin', 'editor', 'viewer'], scopes: ['tensw:read'] },
+  tensw_get_project:           { roles: ['admin', 'editor', 'viewer'], scopes: ['tensw:read'] },
+  tensw_create_project:        { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_update_project:        { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_delete_project:        { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_list_milestones:       { roles: ['admin', 'editor', 'viewer'], scopes: ['tensw:read'] },
+  tensw_create_milestone:      { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_update_milestone:      { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_delete_milestone:      { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_list_schedules:        { roles: ['admin', 'editor', 'viewer'], scopes: ['tensw:read'] },
+  tensw_create_schedule:       { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_update_schedule:       { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_delete_schedule:       { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_toggle_schedule_date:  { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_list_tasks:            { roles: ['admin', 'editor', 'viewer'], scopes: ['tensw:read'] },
+  tensw_create_task:           { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_update_task:           { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_delete_task:           { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_list_memos:            { roles: ['admin', 'editor', 'viewer'], scopes: ['tensw:read'] },
+  tensw_upsert_memo:           { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_delete_memo:           { roles: ['admin', 'editor'], scopes: ['tensw:write'] },
+  tensw_list_invoices:         { roles: ['admin', 'editor'], scopes: ['tensw:read'] },
+  tensw_create_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
+  tensw_update_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
+  tensw_delete_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
 }
 
 /**
@@ -91,6 +184,9 @@ export function getDefaultScopes(role: UserRole): string[] {
         'invoices:read', 'invoices:write',
         'etf:read',
         'dashboard:read',
+        'ryuha:read', 'ryuha:write',
+        'willow:read', 'willow:write',
+        'tensw:read', 'tensw:write',
         'admin:read', 'admin:write',
       ]
     case 'editor':
@@ -101,6 +197,9 @@ export function getDefaultScopes(role: UserRole): string[] {
         'invoices:read',
         'etf:read',
         'dashboard:read',
+        'ryuha:read', 'ryuha:write',
+        'willow:read', 'willow:write',
+        'tensw:read', 'tensw:write',
       ]
     case 'viewer':
       return [
@@ -109,6 +208,9 @@ export function getDefaultScopes(role: UserRole): string[] {
         'schedules:read',
         'etf:read',
         'dashboard:read',
+        'ryuha:read',
+        'willow:read',
+        'tensw:read',
       ]
     default:
       return ['wiki:read', 'projects:read']
