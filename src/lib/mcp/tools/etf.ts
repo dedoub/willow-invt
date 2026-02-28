@@ -5,6 +5,7 @@ import { checkToolPermission } from '../permissions'
 import { logMcpAction } from '../audit'
 import { getServiceSupabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
+import { fetchETFDisplayData } from '@/lib/supabase-etf'
 
 function getAkrosDb() {
   return createClient(
@@ -485,5 +486,55 @@ export function registerEtfTools(server: McpServer) {
 
     await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'etc_delete_product', inputParams: { id } })
     return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, deleted_id: id }) }] }
+  })
+
+  // =============================================
+  // Etc - 전체 통계 (Stats Summary)
+  // =============================================
+
+  server.registerTool('etc_get_stats', {
+    description: '[ETF/Etc] ETF 전체 통계를 조회합니다 (Total AUM, 월수수료, 잔여수수료, 상품별 요약)',
+    inputSchema: z.object({}),
+  }, async (_input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('etc_get_stats', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    try {
+      const displayData = await fetchETFDisplayData('ETC')
+
+      const totalAUM = displayData.reduce((sum, etf) => sum + (etf.aum || 0), 0)
+      const totalMonthlyFee = displayData.reduce((sum, etf) => sum + etf.totalMonthlyFee, 0) + 2083.33
+      const totalRemainingFee = displayData.reduce((sum, etf) => sum + (etf.remainingFee || 0), 0)
+      const activeCount = displayData.filter(etf => etf.isActive).length
+
+      const stats = {
+        summary: {
+          total_aum_usd: totalAUM,
+          total_monthly_fee_usd: totalMonthlyFee,
+          total_remaining_fee_usd: totalRemainingFee,
+          total_products: displayData.length,
+          active_products: activeCount,
+        },
+        products: displayData.map(etf => ({
+          symbol: etf.symbol,
+          fund_name: etf.fundName,
+          aum: etf.aum,
+          monthly_fee: etf.totalMonthlyFee,
+          remaining_fee: etf.remainingFee,
+          remaining_months: etf.remainingMonths,
+          listing_date: etf.listingDate,
+          currency: etf.currency,
+          is_active: etf.isActive,
+        })),
+      }
+
+      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'etc_get_stats' })
+      return { content: [{ type: 'text' as const, text: JSON.stringify(stats, null, 2) }] }
+    } catch (e) {
+      return { content: [{ type: 'text' as const, text: `Error: ${(e as Error).message}` }], isError: true }
+    }
   })
 }

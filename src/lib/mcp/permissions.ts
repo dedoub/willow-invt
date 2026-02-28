@@ -61,6 +61,19 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   etc_create_product:  { roles: ['admin', 'editor'], scopes: ['etf:read'] },
   etc_update_product:  { roles: ['admin', 'editor'], scopes: ['etf:read'] },
   etc_delete_product:  { roles: ['admin'], scopes: ['etf:read'] },
+  etc_get_stats:       { roles: ['admin', 'editor', 'viewer'], scopes: ['etf:read'] },
+
+  // Email Analysis & Todos (Akros)
+  akros_get_analysis:  { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  akros_list_todos:    { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  akros_toggle_todo:   { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  akros_delete_todo:   { roles: ['admin'], scopes: ['etf:read'] },
+
+  // Email Analysis & Todos (Etc)
+  etc_get_analysis:    { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  etc_list_todos:      { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  etc_toggle_todo:     { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  etc_delete_todo:     { roles: ['admin'], scopes: ['etf:read'] },
 
   // Dashboard
   get_dashboard:     { roles: ['admin', 'editor', 'viewer'], scopes: ['dashboard:read'] },

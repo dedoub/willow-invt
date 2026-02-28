@@ -3,6 +3,7 @@ import { registerWikiTools } from './wiki'
 import { registerProjectTools } from './projects'
 import { registerInvoiceTools } from './invoices'
 import { registerEtfTools } from './etf'
+import { registerEmailAnalysisTools } from './email-analysis'
 import { registerDashboardTools } from './dashboard'
 import { registerRyuhaTools } from './ryuha'
 import { registerWillowMgmtTools } from './willow-mgmt'
@@ -13,6 +14,7 @@ export function registerAllTools(server: McpServer) {
   registerProjectTools(server)
   registerInvoiceTools(server)
   registerEtfTools(server)
+  registerEmailAnalysisTools(server)
   registerDashboardTools(server)
   registerRyuhaTools(server)
   registerWillowMgmtTools(server)
