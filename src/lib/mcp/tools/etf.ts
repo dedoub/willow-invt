@@ -14,8 +14,12 @@ function getAkrosDb() {
 }
 
 export function registerEtfTools(server: McpServer) {
-  server.registerTool('list_etf_products', {
-    description: '[ETF/Akros] Akros ETF 상품 목록을 조회합니다 (AUM, ARR 포함)',
+  // =============================================
+  // Akros - 상품 목록 / AUM
+  // =============================================
+
+  server.registerTool('akros_list_products', {
+    description: '[Akros] Akros ETF 상품 목록을 조회합니다 (AUM, ARR 포함)',
     inputSchema: z.object({
       country: z.string().optional().describe('국가 필터 (KR, US, AU 등)'),
     }),
@@ -23,13 +27,12 @@ export function registerEtfTools(server: McpServer) {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('list_etf_products', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('akros_list_products', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     try {
       const akrosDb = getAkrosDb()
 
-      // Get product meta
       let metaQuery = akrosDb
         .from('product_meta')
         .select('symbol, country, product_type, product_name, product_name_local, listing_date, index_fee, index_fee_min, product_issuer, index_provider')
@@ -42,14 +45,12 @@ export function registerEtfTools(server: McpServer) {
 
       if (metaError) return { content: [{ type: 'text' as const, text: `Error: ${metaError.message}` }], isError: true }
 
-      // Filter Akros products
       const akrosProducts = (metaData || []).filter(p =>
         p.index_provider && p.index_provider.toLowerCase().includes('akros')
       )
 
       const symbols = akrosProducts.map(p => p.symbol)
 
-      // Get latest figures
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -60,7 +61,6 @@ export function registerEtfTools(server: McpServer) {
         .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
         .order('date', { ascending: false })
 
-      // Build latest figures map
       const latestFigures = new Map<string, { market_cap: number; currency: string }>()
       for (const row of figuresData || []) {
         if (!latestFigures.has(row.symbol)) {
@@ -98,15 +98,15 @@ export function registerEtfTools(server: McpServer) {
           }
         })
 
-      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'list_etf_products', inputParams: { country } })
+      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'akros_list_products', inputParams: { country } })
       return { content: [{ type: 'text' as const, text: JSON.stringify(products, null, 2) }] }
     } catch (e) {
       return { content: [{ type: 'text' as const, text: `Error: ${(e as Error).message}` }], isError: true }
     }
   })
 
-  server.registerTool('get_aum_data', {
-    description: '[ETF/Akros] 특정 ETF 상품의 AUM 히스토리를 조회합니다',
+  server.registerTool('akros_get_aum_data', {
+    description: '[Akros] 특정 ETF 상품의 AUM 히스토리를 조회합니다',
     inputSchema: z.object({
       symbol: z.string().describe('상품 심볼'),
       days: z.number().optional().describe('조회 기간 (일, 기본: 30)'),
@@ -115,7 +115,7 @@ export function registerEtfTools(server: McpServer) {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('get_aum_data', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('akros_get_aum_data', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     try {
@@ -133,7 +133,7 @@ export function registerEtfTools(server: McpServer) {
 
       if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'get_aum_data', inputParams: { symbol, days } })
+      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'akros_get_aum_data', inputParams: { symbol, days } })
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
     } catch (e) {
       return { content: [{ type: 'text' as const, text: `Error: ${(e as Error).message}` }], isError: true }
@@ -141,11 +141,11 @@ export function registerEtfTools(server: McpServer) {
   })
 
   // =============================================
-  // 환율 (Exchange Rates)
+  // Akros - 환율 (Exchange Rates)
   // =============================================
 
-  server.registerTool('get_exchange_rates', {
-    description: '[ETF/Akros] 최신 환율 정보를 조회합니다 (KRW, AUD 등)',
+  server.registerTool('akros_get_exchange_rates', {
+    description: '[Akros] 최신 환율 정보를 조회합니다 (KRW, AUD 등)',
     inputSchema: z.object({
       date: z.string().optional().describe('특정 날짜 환율 (YYYY-MM-DD, 기본: 최신)'),
     }),
@@ -153,7 +153,7 @@ export function registerEtfTools(server: McpServer) {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('get_exchange_rates', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('akros_get_exchange_rates', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     try {
@@ -179,7 +179,7 @@ export function registerEtfTools(server: McpServer) {
 
       if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'get_exchange_rates', inputParams: { date } })
+      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'akros_get_exchange_rates', inputParams: { date } })
       return { content: [{ type: 'text' as const, text: JSON.stringify({ date: targetDate, rates: data }, null, 2) }] }
     } catch (e) {
       return { content: [{ type: 'text' as const, text: `Error: ${(e as Error).message}` }], isError: true }
@@ -187,11 +187,11 @@ export function registerEtfTools(server: McpServer) {
   })
 
   // =============================================
-  // Akros 시계열 데이터 (Time Series)
+  // Akros - 시계열 데이터 (Time Series)
   // =============================================
 
-  server.registerTool('get_akros_time_series', {
-    description: '[ETF/Akros] Akros 전체 AUM/ARR 시계열 데이터를 조회합니다 (지역별 분류 포함)',
+  server.registerTool('akros_get_time_series', {
+    description: '[Akros] Akros 전체 AUM/ARR 시계열 데이터를 조회합니다 (지역별 분류 포함)',
     inputSchema: z.object({
       days: z.number().optional().describe('최근 N일 (기본: 전체)'),
     }),
@@ -199,7 +199,7 @@ export function registerEtfTools(server: McpServer) {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('get_akros_time_series', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('akros_get_time_series', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     try {
@@ -219,7 +219,7 @@ export function registerEtfTools(server: McpServer) {
 
       if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'get_akros_time_series', inputParams: { days } })
+      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'akros_get_time_series', inputParams: { days } })
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
     } catch (e) {
       return { content: [{ type: 'text' as const, text: `Error: ${(e as Error).message}` }], isError: true }
@@ -227,17 +227,17 @@ export function registerEtfTools(server: McpServer) {
   })
 
   // =============================================
-  // 세금계산서 (Tax Invoices)
+  // Akros - 세금계산서 (Tax Invoices)
   // =============================================
 
-  server.registerTool('list_tax_invoices', {
-    description: '[ETF/Akros] Akros 세금계산서 목록을 조회합니다',
+  server.registerTool('akros_list_tax_invoices', {
+    description: '[Akros] Akros 세금계산서 목록을 조회합니다',
     inputSchema: z.object({}),
   }, async (_input, { authInfo }) => {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('list_tax_invoices', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('akros_list_tax_invoices', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     const supabase = getServiceSupabase()
@@ -248,12 +248,12 @@ export function registerEtfTools(server: McpServer) {
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'list_tax_invoices' })
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'akros_list_tax_invoices' })
     return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
   })
 
-  server.registerTool('create_tax_invoice', {
-    description: '[ETF/Akros] Akros 세금계산서를 생성합니다',
+  server.registerTool('akros_create_tax_invoice', {
+    description: '[Akros] Akros 세금계산서를 생성합니다',
     inputSchema: z.object({
       invoice_date: z.string().describe('계산서 날짜 (YYYY-MM-DD)'),
       amount: z.number().describe('금액'),
@@ -263,7 +263,7 @@ export function registerEtfTools(server: McpServer) {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('create_tax_invoice', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('akros_create_tax_invoice', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     const supabase = getServiceSupabase()
@@ -279,12 +279,12 @@ export function registerEtfTools(server: McpServer) {
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'create_tax_invoice', inputParams: input })
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'akros_create_tax_invoice', inputParams: input })
     return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
   })
 
-  server.registerTool('update_tax_invoice', {
-    description: '[ETF/Akros] Akros 세금계산서를 수정합니다',
+  server.registerTool('akros_update_tax_invoice', {
+    description: '[Akros] Akros 세금계산서를 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('세금계산서 ID'),
       invoice_date: z.string().optional().describe('계산서 날짜 (YYYY-MM-DD)'),
@@ -297,7 +297,7 @@ export function registerEtfTools(server: McpServer) {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('update_tax_invoice', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('akros_update_tax_invoice', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     const supabase = getServiceSupabase()
@@ -310,12 +310,12 @@ export function registerEtfTools(server: McpServer) {
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'update_tax_invoice', inputParams: { id, ...updates } })
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'akros_update_tax_invoice', inputParams: { id, ...updates } })
     return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
   })
 
-  server.registerTool('delete_tax_invoice', {
-    description: '[ETF/Akros] Akros 세금계산서를 삭제합니다',
+  server.registerTool('akros_delete_tax_invoice', {
+    description: '[Akros] Akros 세금계산서를 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('세금계산서 ID'),
     }),
@@ -323,7 +323,7 @@ export function registerEtfTools(server: McpServer) {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('delete_tax_invoice', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('akros_delete_tax_invoice', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     const supabase = getServiceSupabase()
@@ -334,7 +334,156 @@ export function registerEtfTools(server: McpServer) {
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'delete_tax_invoice', inputParams: { id } })
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'akros_delete_tax_invoice', inputParams: { id } })
+    return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, deleted_id: id }) }] }
+  })
+
+  // =============================================
+  // Etc - ETF 상품 관리 (etf_products 테이블)
+  // =============================================
+
+  server.registerTool('etc_list_products', {
+    description: '[ETF/Etc] ETF 상품 메타 목록을 조회합니다 (수수료 구조 포함)',
+    inputSchema: z.object({
+      bank: z.string().optional().describe('은행/발행사 필터'),
+    }),
+  }, async ({ bank }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('etc_list_products', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    let query = supabase
+      .from('etf_products')
+      .select('*')
+      .order('symbol', { ascending: true })
+
+    if (bank) query = query.eq('bank', bank)
+
+    const { data, error } = await query
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'etc_list_products', inputParams: { bank } })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+  })
+
+  server.registerTool('etc_create_product', {
+    description: '[ETF/Etc] ETF 상품을 생성합니다',
+    inputSchema: z.object({
+      symbol: z.string().describe('상품 심볼'),
+      fund_name: z.string().describe('펀드명'),
+      fund_url: z.string().optional().describe('펀드 URL'),
+      listing_date: z.string().optional().describe('상장일 (YYYY-MM-DD)'),
+      bank: z.string().optional().describe('은행/발행사 (기본: ETC)'),
+      platform_fee_percent: z.number().optional().describe('플랫폼 수수료율'),
+      platform_min_fee: z.number().optional().describe('플랫폼 최소 수수료'),
+      pm_fee_percent: z.number().optional().describe('PM 수수료율'),
+      pm_min_fee: z.number().optional().describe('PM 최소 수수료'),
+      currency: z.string().optional().describe('통화 (기본: USD)'),
+      notes: z.string().optional().describe('메모'),
+    }),
+  }, async (input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('etc_create_product', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('etf_products')
+      .insert({
+        symbol: input.symbol.toUpperCase(),
+        fund_name: input.fund_name,
+        fund_url: input.fund_url || null,
+        listing_date: input.listing_date || null,
+        bank: input.bank || 'ETC',
+        platform_fee_percent: input.platform_fee_percent || 0,
+        platform_min_fee: input.platform_min_fee || 0,
+        pm_fee_percent: input.pm_fee_percent || 0,
+        pm_min_fee: input.pm_min_fee || 0,
+        currency: input.currency || 'USD',
+        notes: input.notes || null,
+        is_active: true,
+      })
+      .select()
+      .single()
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'etc_create_product', inputParams: input })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+  })
+
+  server.registerTool('etc_update_product', {
+    description: '[ETF/Etc] ETF 상품을 수정합니다',
+    inputSchema: z.object({
+      id: z.number().describe('상품 ID'),
+      symbol: z.string().optional().describe('심볼'),
+      fund_name: z.string().optional().describe('펀드명'),
+      fund_url: z.string().optional().describe('펀드 URL'),
+      listing_date: z.string().optional().describe('상장일 (YYYY-MM-DD)'),
+      bank: z.string().optional().describe('은행/발행사'),
+      platform_fee_percent: z.number().optional().describe('플랫폼 수수료율'),
+      platform_min_fee: z.number().optional().describe('플랫폼 최소 수수료'),
+      pm_fee_percent: z.number().optional().describe('PM 수수료율'),
+      pm_min_fee: z.number().optional().describe('PM 최소 수수료'),
+      currency: z.string().optional().describe('통화'),
+      notes: z.string().optional().describe('메모'),
+      is_active: z.boolean().optional().describe('활성 여부'),
+    }),
+  }, async ({ id, ...updates }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('etc_update_product', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        updateData[key === 'symbol' ? 'symbol' : key] = key === 'symbol' ? (value as string).toUpperCase() : value
+      }
+    }
+
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('etf_products')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'etc_update_product', inputParams: { id, ...updates } })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+  })
+
+  server.registerTool('etc_delete_product', {
+    description: '[ETF/Etc] ETF 상품을 삭제합니다',
+    inputSchema: z.object({
+      id: z.number().describe('상품 ID'),
+    }),
+  }, async ({ id }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('etc_delete_product', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { error } = await supabase
+      .from('etf_products')
+      .delete()
+      .eq('id', id)
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'etc_delete_product', inputParams: { id } })
     return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, deleted_id: id }) }] }
   })
 }

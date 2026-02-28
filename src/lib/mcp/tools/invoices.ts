@@ -6,8 +6,8 @@ import { logMcpAction } from '../audit'
 import { getServiceSupabase } from '@/lib/supabase'
 
 export function registerInvoiceTools(server: McpServer) {
-  server.registerTool('list_invoices', {
-    description: '[ETF/Akros > 인보이스] 인보이스 목록을 조회합니다',
+  server.registerTool('etc_list_invoices', {
+    description: '[ETF/Etc] 인보이스 목록을 조회합니다 (willow_invoices)',
     inputSchema: z.object({
       status: z.string().optional().describe('상태 필터 (draft, sent, paid, overdue, cancelled)'),
       limit: z.number().optional().describe('조회 수 (기본: 50)'),
@@ -16,7 +16,7 @@ export function registerInvoiceTools(server: McpServer) {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('list_invoices', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('etc_list_invoices', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     const supabase = getServiceSupabase()
@@ -34,12 +34,12 @@ export function registerInvoiceTools(server: McpServer) {
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'list_invoices', inputParams: { status, limit } })
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'etc_list_invoices', inputParams: { status, limit } })
     return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
   })
 
-  server.registerTool('get_invoice', {
-    description: '[ETF/Akros > 인보이스] 인보이스 상세 정보를 조회합니다',
+  server.registerTool('etc_get_invoice', {
+    description: '[ETF/Etc] 인보이스 상세 정보를 조회합니다',
     inputSchema: z.object({
       id: z.string().describe('인보이스 ID'),
     }),
@@ -47,7 +47,7 @@ export function registerInvoiceTools(server: McpServer) {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('get_invoice', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('etc_get_invoice', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     const supabase = getServiceSupabase()
@@ -59,12 +59,12 @@ export function registerInvoiceTools(server: McpServer) {
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'get_invoice', inputParams: { id } })
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'etc_get_invoice', inputParams: { id } })
     return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
   })
 
-  server.registerTool('create_invoice', {
-    description: '[ETF/Akros > 인보이스] 새 인보이스를 생성합니다',
+  server.registerTool('etc_create_invoice', {
+    description: '[ETF/Etc] 새 인보이스를 생성합니다',
     inputSchema: z.object({
       invoice_date: z.string().describe('인보이스 날짜 (YYYY-MM-DD)'),
       bill_to_company: z.string().optional().describe('수신 회사명'),
@@ -81,7 +81,7 @@ export function registerInvoiceTools(server: McpServer) {
     const user = getUserFromAuthInfo(authInfo)
     if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
 
-    const perm = checkToolPermission('create_invoice', user, authInfo?.scopes || [])
+    const perm = checkToolPermission('etc_create_invoice', user, authInfo?.scopes || [])
     if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
 
     const totalAmount = input.line_items.reduce((sum, item) => sum + (item.amount || 0), 0)
@@ -105,7 +105,7 @@ export function registerInvoiceTools(server: McpServer) {
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'create_invoice', inputParams: input })
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'etc_create_invoice', inputParams: input })
     return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
   })
 }

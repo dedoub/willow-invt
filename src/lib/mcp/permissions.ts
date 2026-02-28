@@ -41,20 +41,26 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   list_schedules:    { roles: ['admin', 'editor', 'viewer'], scopes: ['schedules:read'] },
   list_tasks:        { roles: ['admin', 'editor', 'viewer'], scopes: ['projects:read'] },
 
-  // Invoices
-  list_invoices:     { roles: ['admin', 'editor'], scopes: ['invoices:read'] },
-  get_invoice:       { roles: ['admin', 'editor'], scopes: ['invoices:read'] },
-  create_invoice:    { roles: ['admin'], scopes: ['invoices:write'] },
+  // ETF/Etc Invoices
+  etc_list_invoices:  { roles: ['admin', 'editor'], scopes: ['invoices:read'] },
+  etc_get_invoice:    { roles: ['admin', 'editor'], scopes: ['invoices:read'] },
+  etc_create_invoice: { roles: ['admin'], scopes: ['invoices:write'] },
 
-  // ETF
-  list_etf_products:    { roles: ['admin', 'editor', 'viewer'], scopes: ['etf:read'] },
-  get_aum_data:         { roles: ['admin', 'editor'], scopes: ['etf:read'] },
-  get_exchange_rates:   { roles: ['admin', 'editor', 'viewer'], scopes: ['etf:read'] },
-  get_akros_time_series: { roles: ['admin', 'editor'], scopes: ['etf:read'] },
-  list_tax_invoices:    { roles: ['admin', 'editor'], scopes: ['etf:read'] },
-  create_tax_invoice:   { roles: ['admin'], scopes: ['etf:read'] },
-  update_tax_invoice:   { roles: ['admin'], scopes: ['etf:read'] },
-  delete_tax_invoice:   { roles: ['admin'], scopes: ['etf:read'] },
+  // Akros
+  akros_list_products:       { roles: ['admin', 'editor', 'viewer'], scopes: ['etf:read'] },
+  akros_get_aum_data:        { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  akros_get_exchange_rates:  { roles: ['admin', 'editor', 'viewer'], scopes: ['etf:read'] },
+  akros_get_time_series:     { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  akros_list_tax_invoices:   { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  akros_create_tax_invoice:  { roles: ['admin'], scopes: ['etf:read'] },
+  akros_update_tax_invoice:  { roles: ['admin'], scopes: ['etf:read'] },
+  akros_delete_tax_invoice:  { roles: ['admin'], scopes: ['etf:read'] },
+
+  // ETF/Etc
+  etc_list_products:   { roles: ['admin', 'editor', 'viewer'], scopes: ['etf:read'] },
+  etc_create_product:  { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  etc_update_product:  { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  etc_delete_product:  { roles: ['admin'], scopes: ['etf:read'] },
 
   // Dashboard
   get_dashboard:     { roles: ['admin', 'editor', 'viewer'], scopes: ['dashboard:read'] },
