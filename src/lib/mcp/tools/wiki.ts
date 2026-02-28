@@ -9,7 +9,7 @@ export function registerWikiTools(server: McpServer) {
   server.registerTool('list_wiki_notes', {
     description: '[업무위키] 위키 노트 목록을 조회합니다 (section 파라미터로 페이지별 구분)',
     inputSchema: z.object({
-      section: z.string().optional().describe('섹션 필터 (기본: etf-etc)'),
+      section: z.string().optional().describe('섹션: akros | etf-etc | willow-mgmt | tensw-mgmt (기본: etf-etc)'),
     }),
   }, async ({ section }, { authInfo }) => {
     const user = getUserFromAuthInfo(authInfo)
@@ -62,7 +62,7 @@ export function registerWikiTools(server: McpServer) {
     inputSchema: z.object({
       title: z.string().describe('노트 제목'),
       content: z.string().optional().describe('노트 내용'),
-      section: z.string().optional().describe('섹션 (기본: etf-etc)'),
+      section: z.string().optional().describe('섹션: akros | etf-etc | willow-mgmt | tensw-mgmt (기본: etf-etc)'),
       category: z.string().optional().describe('카테고리'),
     }),
   }, async (input, { authInfo }) => {

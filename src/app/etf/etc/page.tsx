@@ -3345,8 +3345,7 @@ Dongwook`
                             </button>
                             <button
                               onClick={() => {
-                                const content = note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '')
-                                setEditingNote({ ...note, content })
+                                setEditingNote(note)
                               }}
                               className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 cursor-pointer"
                             >
@@ -3361,7 +3360,7 @@ Dongwook`
                           )}
                           dangerouslySetInnerHTML={{ __html: note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '') }}
                         />
-                        {note.content && note.content.length > 150 && (
+                        {note.content && (note.content.length > 150 || note.content.split('\n').length > 3) && (
                           <button
                             onClick={() => {
                               const newExpanded = new Set(expandedNotes)

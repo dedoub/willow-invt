@@ -2114,9 +2114,7 @@ export default function WillowManagementPage() {
   const startEditNote = (note: WikiNote) => {
     setEditingNote(note)
     setNewNoteTitle(note.title)
-    // 기존 텍스트를 HTML로 변환 (이미 HTML인 경우 그대로 사용)
-    const content = note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '')
-    setNewNoteContent(content)
+    setNewNoteContent(note.content || '')
     setNewNoteFiles([])
     setIsAddingNote(false)
   }
@@ -4429,7 +4427,7 @@ export default function WillowManagementPage() {
                             )}
                             dangerouslySetInnerHTML={{ __html: note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '') }}
                           />
-                          {note.content && note.content.length > 150 && (
+                          {note.content && (note.content.length > 150 || note.content.split('\n').length > 3) && (
                             <button
                               onClick={() => {
                                 const newExpanded = new Set(expandedNotes)
