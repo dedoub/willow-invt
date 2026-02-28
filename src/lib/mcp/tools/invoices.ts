@@ -7,7 +7,7 @@ import { getServiceSupabase } from '@/lib/supabase'
 
 export function registerInvoiceTools(server: McpServer) {
   server.registerTool('list_invoices', {
-    description: '인보이스 목록을 조회합니다',
+    description: '[ETF/Akros > 인보이스] 인보이스 목록을 조회합니다',
     inputSchema: z.object({
       status: z.string().optional().describe('상태 필터 (draft, sent, paid, overdue, cancelled)'),
       limit: z.number().optional().describe('조회 수 (기본: 50)'),
@@ -39,7 +39,7 @@ export function registerInvoiceTools(server: McpServer) {
   })
 
   server.registerTool('get_invoice', {
-    description: '인보이스 상세 정보를 조회합니다',
+    description: '[ETF/Akros > 인보이스] 인보이스 상세 정보를 조회합니다',
     inputSchema: z.object({
       id: z.string().describe('인보이스 ID'),
     }),
@@ -64,7 +64,7 @@ export function registerInvoiceTools(server: McpServer) {
   })
 
   server.registerTool('create_invoice', {
-    description: '새 인보이스를 생성합니다',
+    description: '[ETF/Akros > 인보이스] 새 인보이스를 생성합니다',
     inputSchema: z.object({
       invoice_date: z.string().describe('인보이스 날짜 (YYYY-MM-DD)'),
       bill_to_company: z.string().optional().describe('수신 회사명'),

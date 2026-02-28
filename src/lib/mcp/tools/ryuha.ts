@@ -11,7 +11,7 @@ export function registerRyuhaTools(server: McpServer) {
   // =============================================
 
   server.registerTool('ryuha_list_subjects', {
-    description: '류하 과목 목록을 조회합니다',
+    description: '[류하 학습관리] 과목 목록을 조회합니다',
     inputSchema: z.object({}),
   }, async (_input, { authInfo }) => {
     const user = getUserFromAuthInfo(authInfo)
@@ -33,7 +33,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_create_subject', {
-    description: '류하 과목을 생성합니다',
+    description: '[류하 학습관리] 과목을 생성합니다',
     inputSchema: z.object({
       name: z.string().describe('과목명'),
       color: z.string().optional().describe('색상 코드 (예: #3B82F6)'),
@@ -61,7 +61,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_update_subject', {
-    description: '류하 과목을 수정합니다',
+    description: '[류하 학습관리] 과목을 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('과목 ID'),
       name: z.string().optional().describe('과목명'),
@@ -91,7 +91,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_delete_subject', {
-    description: '류하 과목을 삭제합니다',
+    description: '[류하 학습관리] 과목을 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('과목 ID'),
     }),
@@ -119,7 +119,7 @@ export function registerRyuhaTools(server: McpServer) {
   // =============================================
 
   server.registerTool('ryuha_list_textbooks', {
-    description: '류하 교재 목록을 조회합니다',
+    description: '[류하 학습관리] 교재 목록을 조회합니다',
     inputSchema: z.object({
       subject_id: z.string().optional().describe('과목 ID로 필터'),
     }),
@@ -147,7 +147,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_create_textbook', {
-    description: '류하 교재를 생성합니다',
+    description: '[류하 학습관리] 교재를 생성합니다',
     inputSchema: z.object({
       subject_id: z.string().describe('과목 ID'),
       name: z.string().describe('교재명'),
@@ -176,7 +176,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_update_textbook', {
-    description: '류하 교재를 수정합니다',
+    description: '[류하 학습관리] 교재를 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('교재 ID'),
       name: z.string().optional().describe('교재명'),
@@ -206,7 +206,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_delete_textbook', {
-    description: '류하 교재를 삭제합니다',
+    description: '[류하 학습관리] 교재를 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('교재 ID'),
     }),
@@ -234,7 +234,7 @@ export function registerRyuhaTools(server: McpServer) {
   // =============================================
 
   server.registerTool('ryuha_list_chapters', {
-    description: '류하 챕터 목록을 조회합니다',
+    description: '[류하 학습관리] 챕터 목록을 조회합니다',
     inputSchema: z.object({
       textbook_id: z.string().optional().describe('교재 ID로 필터'),
     }),
@@ -262,7 +262,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_create_chapter', {
-    description: '류하 챕터를 생성합니다',
+    description: '[류하 학습관리] 챕터를 생성합니다',
     inputSchema: z.object({
       textbook_id: z.string().describe('교재 ID'),
       name: z.string().describe('챕터명'),
@@ -292,7 +292,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_update_chapter', {
-    description: '류하 챕터를 수정합니다',
+    description: '[류하 학습관리] 챕터를 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('챕터 ID'),
       name: z.string().optional().describe('챕터명'),
@@ -329,7 +329,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_delete_chapter', {
-    description: '류하 챕터를 삭제합니다',
+    description: '[류하 학습관리] 챕터를 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('챕터 ID'),
     }),
@@ -357,7 +357,7 @@ export function registerRyuhaTools(server: McpServer) {
   // =============================================
 
   server.registerTool('ryuha_list_schedules', {
-    description: '류하 학습 스케줄 목록을 조회합니다',
+    description: '[류하 학습관리] 학습 스케줄 목록을 조회합니다',
     inputSchema: z.object({
       start_date: z.string().optional().describe('시작일 필터 (YYYY-MM-DD)'),
       end_date: z.string().optional().describe('종료일 필터 (YYYY-MM-DD)'),
@@ -417,7 +417,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_create_schedule', {
-    description: '류하 학습 스케줄을 생성합니다',
+    description: '[류하 학습관리] 학습 스케줄을 생성합니다',
     inputSchema: z.object({
       title: z.string().describe('스케줄 제목'),
       schedule_date: z.string().describe('날짜 (YYYY-MM-DD)'),
@@ -454,7 +454,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_update_schedule', {
-    description: '류하 학습 스케줄을 수정합니다',
+    description: '[류하 학습관리] 학습 스케줄을 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('스케줄 ID'),
       title: z.string().optional().describe('제목'),
@@ -495,7 +495,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_delete_schedule', {
-    description: '류하 학습 스케줄을 삭제합니다',
+    description: '[류하 학습관리] 학습 스케줄을 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('스케줄 ID'),
     }),
@@ -523,7 +523,7 @@ export function registerRyuhaTools(server: McpServer) {
   // =============================================
 
   server.registerTool('ryuha_list_homework', {
-    description: '류하 숙제 목록을 조회합니다',
+    description: '[류하 학습관리] 숙제 목록을 조회합니다',
     inputSchema: z.object({
       schedule_id: z.string().optional().describe('스케줄 ID로 필터'),
     }),
@@ -552,7 +552,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_create_homework', {
-    description: '류하 숙제를 생성합니다',
+    description: '[류하 학습관리] 숙제를 생성합니다',
     inputSchema: z.object({
       schedule_id: z.string().describe('스케줄 ID'),
       content: z.string().describe('숙제 내용'),
@@ -580,7 +580,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_update_homework', {
-    description: '류하 숙제를 수정합니다',
+    description: '[류하 학습관리] 숙제를 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('숙제 ID'),
       content: z.string().optional().describe('숙제 내용'),
@@ -615,7 +615,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_delete_homework', {
-    description: '류하 숙제를 삭제합니다',
+    description: '[류하 학습관리] 숙제를 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('숙제 ID'),
     }),
@@ -643,7 +643,7 @@ export function registerRyuhaTools(server: McpServer) {
   // =============================================
 
   server.registerTool('ryuha_list_memos', {
-    description: '류하 일일 메모 목록을 조회합니다',
+    description: '[류하 학습관리] 일일 메모 목록을 조회합니다',
     inputSchema: z.object({
       start_date: z.string().optional().describe('시작일 필터 (YYYY-MM-DD)'),
       end_date: z.string().optional().describe('종료일 필터 (YYYY-MM-DD)'),
@@ -673,7 +673,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_upsert_memo', {
-    description: '류하 일일 메모를 생성하거나 수정합니다 (날짜 기준 upsert)',
+    description: '[류하 학습관리] 일일 메모를 생성하거나 수정합니다 (날짜 기준 upsert)',
     inputSchema: z.object({
       memo_date: z.string().describe('메모 날짜 (YYYY-MM-DD)'),
       content: z.string().describe('메모 내용'),
@@ -702,7 +702,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_delete_memo', {
-    description: '류하 일일 메모를 삭제합니다',
+    description: '[류하 학습관리] 일일 메모를 삭제합니다',
     inputSchema: z.object({
       date: z.string().describe('메모 날짜 (YYYY-MM-DD)'),
     }),
@@ -730,7 +730,7 @@ export function registerRyuhaTools(server: McpServer) {
   // =============================================
 
   server.registerTool('ryuha_list_body_records', {
-    description: '류하 신체기록 목록을 조회합니다',
+    description: '[류하 학습관리] 신체기록 목록을 조회합니다',
     inputSchema: z.object({
       start_date: z.string().optional().describe('시작일 필터 (YYYY-MM-DD)'),
       end_date: z.string().optional().describe('종료일 필터 (YYYY-MM-DD)'),
@@ -760,7 +760,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_create_body_record', {
-    description: '류하 신체기록을 생성합니다',
+    description: '[류하 학습관리] 신체기록을 생성합니다',
     inputSchema: z.object({
       record_date: z.string().describe('기록 날짜 (YYYY-MM-DD)'),
       height_cm: z.number().optional().describe('키 (cm)'),
@@ -788,7 +788,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_update_body_record', {
-    description: '류하 신체기록을 수정합니다',
+    description: '[류하 학습관리] 신체기록을 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('기록 ID'),
       record_date: z.string().optional().describe('기록 날짜 (YYYY-MM-DD)'),
@@ -818,7 +818,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_delete_body_record', {
-    description: '류하 신체기록을 삭제합니다',
+    description: '[류하 학습관리] 신체기록을 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('기록 ID'),
     }),

@@ -7,7 +7,7 @@ import { getServiceSupabase } from '@/lib/supabase'
 
 export function registerWikiTools(server: McpServer) {
   server.registerTool('list_wiki_notes', {
-    description: '위키 노트 목록을 조회합니다',
+    description: '[업무위키] 위키 노트 목록을 조회합니다 (section 파라미터로 페이지별 구분)',
     inputSchema: z.object({
       section: z.string().optional().describe('섹션 필터 (기본: etf-etc)'),
     }),
@@ -33,7 +33,7 @@ export function registerWikiTools(server: McpServer) {
   })
 
   server.registerTool('get_wiki_note', {
-    description: '위키 노트 상세 내용을 조회합니다',
+    description: '[업무위키] 위키 노트 상세 내용을 조회합니다',
     inputSchema: z.object({
       id: z.string().describe('위키 노트 ID'),
     }),
@@ -58,7 +58,7 @@ export function registerWikiTools(server: McpServer) {
   })
 
   server.registerTool('create_wiki_note', {
-    description: '새 위키 노트를 생성합니다',
+    description: '[업무위키] 새 위키 노트를 생성합니다',
     inputSchema: z.object({
       title: z.string().describe('노트 제목'),
       content: z.string().optional().describe('노트 내용'),
@@ -92,7 +92,7 @@ export function registerWikiTools(server: McpServer) {
   })
 
   server.registerTool('update_wiki_note', {
-    description: '위키 노트를 수정합니다',
+    description: '[업무위키] 위키 노트를 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('위키 노트 ID'),
       title: z.string().optional().describe('제목'),
@@ -122,7 +122,7 @@ export function registerWikiTools(server: McpServer) {
   })
 
   server.registerTool('delete_wiki_note', {
-    description: '위키 노트를 삭제합니다',
+    description: '[업무위키] 위키 노트를 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('위키 노트 ID'),
     }),

@@ -14,7 +14,7 @@ function getAkrosDb() {
 
 export function registerEtfTools(server: McpServer) {
   server.registerTool('list_etf_products', {
-    description: 'Akros ETF 상품 목록을 조회합니다 (AUM, ARR 포함)',
+    description: '[ETF/Akros] Akros ETF 상품 목록을 조회합니다 (AUM, ARR 포함)',
     inputSchema: z.object({
       country: z.string().optional().describe('국가 필터 (KR, US, AU 등)'),
     }),
@@ -105,7 +105,7 @@ export function registerEtfTools(server: McpServer) {
   })
 
   server.registerTool('get_aum_data', {
-    description: '특정 ETF 상품의 AUM 히스토리를 조회합니다',
+    description: '[ETF/Akros] 특정 ETF 상품의 AUM 히스토리를 조회합니다',
     inputSchema: z.object({
       symbol: z.string().describe('상품 심볼'),
       days: z.number().optional().describe('조회 기간 (일, 기본: 30)'),

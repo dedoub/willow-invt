@@ -7,7 +7,7 @@ import { getServiceSupabase } from '@/lib/supabase'
 
 export function registerDashboardTools(server: McpServer) {
   server.registerTool('get_dashboard', {
-    description: '대시보드 요약 정보를 조회합니다 (프로젝트 현황, 최근 일정, 위키 요약)',
+    description: '[대시보드] 전체 요약 정보를 조회합니다 (프로젝트 현황, 최근 일정, 위키 요약)',
     inputSchema: z.object({}),
   }, async (_input, { authInfo }) => {
     const user = getUserFromAuthInfo(authInfo)

@@ -11,7 +11,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   // =============================================
 
   server.registerTool('tensw_list_clients', {
-    description: '텐소프트웍스 클라이언트 목록을 조회합니다',
+    description: '[텐소프트웍스 > 경영관리] 클라이언트 목록을 조회합니다',
     inputSchema: z.object({}),
   }, async (_input, { authInfo }) => {
     const user = getUserFromAuthInfo(authInfo)
@@ -33,7 +33,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_create_client', {
-    description: '텐소프트웍스 클라이언트를 생성합니다',
+    description: '[텐소프트웍스 > 경영관리] 클라이언트를 생성합니다',
     inputSchema: z.object({
       name: z.string().describe('클라이언트명'),
       color: z.string().optional().describe('색상 코드 (예: #3B82F6)'),
@@ -61,7 +61,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_update_client', {
-    description: '텐소프트웍스 클라이언트를 수정합니다',
+    description: '[텐소프트웍스 > 경영관리] 클라이언트를 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('클라이언트 ID'),
       name: z.string().optional().describe('클라이언트명'),
@@ -91,7 +91,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_delete_client', {
-    description: '텐소프트웍스 클라이언트를 삭제합니다',
+    description: '[텐소프트웍스 > 경영관리] 클라이언트를 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('클라이언트 ID'),
     }),
@@ -119,7 +119,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   // =============================================
 
   server.registerTool('tensw_list_projects', {
-    description: '텐소프트웍스 프로젝트 목록을 조회합니다',
+    description: '[텐소프트웍스 > 경영관리] 프로젝트 목록을 조회합니다',
     inputSchema: z.object({
       client_id: z.string().optional().describe('클라이언트 ID로 필터'),
     }),
@@ -147,7 +147,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_get_project', {
-    description: '텐소프트웍스 프로젝트 상세 정보를 조회합니다',
+    description: '[텐소프트웍스 > 경영관리] 프로젝트 상세 정보를 조회합니다',
     inputSchema: z.object({
       id: z.string().describe('프로젝트 ID'),
     }),
@@ -172,7 +172,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_create_project', {
-    description: '텐소프트웍스 프로젝트를 생성합니다',
+    description: '[텐소프트웍스 > 경영관리] 프로젝트를 생성합니다',
     inputSchema: z.object({
       client_id: z.string().describe('클라이언트 ID'),
       name: z.string().describe('프로젝트명'),
@@ -201,7 +201,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_update_project', {
-    description: '텐소프트웍스 프로젝트를 수정합니다',
+    description: '[텐소프트웍스 > 경영관리] 프로젝트를 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('프로젝트 ID'),
       name: z.string().optional().describe('프로젝트명'),
@@ -231,7 +231,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_delete_project', {
-    description: '텐소프트웍스 프로젝트를 삭제합니다',
+    description: '[텐소프트웍스 > 경영관리] 프로젝트를 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('프로젝트 ID'),
     }),
@@ -259,7 +259,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   // =============================================
 
   server.registerTool('tensw_list_milestones', {
-    description: '텐소프트웍스 마일스톤 목록을 조회합니다',
+    description: '[텐소프트웍스 > 경영관리] 마일스톤 목록을 조회합니다',
     inputSchema: z.object({
       project_id: z.string().optional().describe('프로젝트 ID로 필터'),
     }),
@@ -287,7 +287,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_create_milestone', {
-    description: '텐소프트웍스 마일스톤을 생성합니다',
+    description: '[텐소프트웍스 > 경영관리] 마일스톤을 생성합니다',
     inputSchema: z.object({
       project_id: z.string().describe('프로젝트 ID'),
       name: z.string().describe('마일스톤명'),
@@ -317,7 +317,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_update_milestone', {
-    description: '텐소프트웍스 마일스톤을 수정합니다',
+    description: '[텐소프트웍스 > 경영관리] 마일스톤을 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('마일스톤 ID'),
       name: z.string().optional().describe('마일스톤명'),
@@ -354,7 +354,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_delete_milestone', {
-    description: '텐소프트웍스 마일스톤을 삭제합니다',
+    description: '[텐소프트웍스 > 경영관리] 마일스톤을 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('마일스톤 ID'),
     }),
@@ -382,7 +382,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   // =============================================
 
   server.registerTool('tensw_list_schedules', {
-    description: '텐소프트웍스 스케줄 목록을 조회합니다',
+    description: '[텐소프트웍스 > 경영관리] 스케줄 목록을 조회합니다',
     inputSchema: z.object({
       start_date: z.string().optional().describe('시작일 필터 (YYYY-MM-DD)'),
       end_date: z.string().optional().describe('종료일 필터 (YYYY-MM-DD)'),
@@ -442,7 +442,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_create_schedule', {
-    description: '텐소프트웍스 스케줄을 생성합니다',
+    description: '[텐소프트웍스 > 경영관리] 스케줄을 생성합니다',
     inputSchema: z.object({
       title: z.string().describe('스케줄 제목'),
       schedule_date: z.string().describe('날짜 (YYYY-MM-DD)'),
@@ -479,7 +479,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_update_schedule', {
-    description: '텐소프트웍스 스케줄을 수정합니다',
+    description: '[텐소프트웍스 > 경영관리] 스케줄을 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('스케줄 ID'),
       title: z.string().optional().describe('제목'),
@@ -520,7 +520,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_delete_schedule', {
-    description: '텐소프트웍스 스케줄을 삭제합니다',
+    description: '[텐소프트웍스 > 경영관리] 스케줄을 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('스케줄 ID'),
     }),
@@ -544,7 +544,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_toggle_schedule_date', {
-    description: '텐소프트웍스 멀티데이 스케줄의 특정 날짜 완료 상태를 토글합니다',
+    description: '[텐소프트웍스 > 경영관리] 멀티데이 스케줄의 특정 날짜 완료 상태를 토글합니다',
     inputSchema: z.object({
       schedule_id: z.string().describe('스케줄 ID'),
       date: z.string().describe('토글할 날짜 (YYYY-MM-DD)'),
@@ -599,7 +599,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   // =============================================
 
   server.registerTool('tensw_list_tasks', {
-    description: '텐소프트웍스 태스크 목록을 조회합니다',
+    description: '[텐소프트웍스 > 경영관리] 태스크 목록을 조회합니다',
     inputSchema: z.object({
       schedule_id: z.string().optional().describe('스케줄 ID로 필터'),
     }),
@@ -628,7 +628,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_create_task', {
-    description: '텐소프트웍스 태스크를 생성합니다',
+    description: '[텐소프트웍스 > 경영관리] 태스크를 생성합니다',
     inputSchema: z.object({
       schedule_id: z.string().describe('스케줄 ID'),
       content: z.string().describe('태스크 내용'),
@@ -656,7 +656,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_update_task', {
-    description: '텐소프트웍스 태스크를 수정합니다',
+    description: '[텐소프트웍스 > 경영관리] 태스크를 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('태스크 ID'),
       content: z.string().optional().describe('태스크 내용'),
@@ -691,7 +691,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_delete_task', {
-    description: '텐소프트웍스 태스크를 삭제합니다',
+    description: '[텐소프트웍스 > 경영관리] 태스크를 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('태스크 ID'),
     }),
@@ -719,7 +719,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   // =============================================
 
   server.registerTool('tensw_list_memos', {
-    description: '텐소프트웍스 일일 메모 목록을 조회합니다',
+    description: '[텐소프트웍스 > 경영관리] 일일 메모 목록을 조회합니다',
     inputSchema: z.object({
       start_date: z.string().optional().describe('시작일 필터 (YYYY-MM-DD)'),
       end_date: z.string().optional().describe('종료일 필터 (YYYY-MM-DD)'),
@@ -749,7 +749,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_upsert_memo', {
-    description: '텐소프트웍스 일일 메모를 생성하거나 수정합니다 (날짜 기준 upsert)',
+    description: '[텐소프트웍스 > 경영관리] 일일 메모를 생성하거나 수정합니다 (날짜 기준 upsert)',
     inputSchema: z.object({
       memo_date: z.string().describe('메모 날짜 (YYYY-MM-DD)'),
       content: z.string().describe('메모 내용'),
@@ -778,7 +778,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_delete_memo', {
-    description: '텐소프트웍스 일일 메모를 삭제합니다',
+    description: '[텐소프트웍스 > 경영관리] 일일 메모를 삭제합니다',
     inputSchema: z.object({
       date: z.string().describe('메모 날짜 (YYYY-MM-DD)'),
     }),
@@ -806,7 +806,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   // =============================================
 
   server.registerTool('tensw_list_invoices', {
-    description: '텐소프트웍스 인보이스/현금관리 목록을 조회합니다',
+    description: '[텐소프트웍스 > 경영관리] 인보이스/현금관리 목록을 조회합니다',
     inputSchema: z.object({
       type: z.enum(['revenue', 'expense', 'asset', 'liability']).optional().describe('유형 필터 (수입/지출/자산/부채)'),
       status: z.enum(['issued', 'completed']).optional().describe('상태 필터'),
@@ -841,7 +841,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_create_invoice', {
-    description: '텐소프트웍스 인보이스/현금관리 항목을 생성합니다',
+    description: '[텐소프트웍스 > 경영관리] 인보이스/현금관리 항목을 생성합니다',
     inputSchema: z.object({
       type: z.enum(['revenue', 'expense', 'asset', 'liability']).describe('유형 (revenue=수입, expense=지출, asset=자산, liability=부채)'),
       counterparty: z.string().describe('거래처'),
@@ -885,7 +885,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_update_invoice', {
-    description: '텐소프트웍스 인보이스/현금관리 항목을 수정합니다',
+    description: '[텐소프트웍스 > 경영관리] 인보이스/현금관리 항목을 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('인보이스 ID'),
       type: z.enum(['revenue', 'expense', 'asset', 'liability']).optional().describe('유형'),
@@ -920,7 +920,7 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   server.registerTool('tensw_delete_invoice', {
-    description: '텐소프트웍스 인보이스/현금관리 항목을 삭제합니다',
+    description: '[텐소프트웍스 > 경영관리] 인보이스/현금관리 항목을 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('인보이스 ID'),
     }),

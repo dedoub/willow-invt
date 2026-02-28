@@ -7,7 +7,7 @@ import { getServiceSupabase } from '@/lib/supabase'
 
 export function registerProjectTools(server: McpServer) {
   server.registerTool('list_clients', {
-    description: 'Tensoftworks 클라이언트 목록을 조회합니다',
+    description: '[텐소프트웍스 > 프로젝트] 클라이언트 목록을 조회합니다 (읽기 전용)',
     inputSchema: z.object({}),
   }, async (_input, { authInfo }) => {
     const user = getUserFromAuthInfo(authInfo)
@@ -29,7 +29,7 @@ export function registerProjectTools(server: McpServer) {
   })
 
   server.registerTool('list_projects', {
-    description: '프로젝트 목록을 조회합니다 (클라이언트별 필터 가능)',
+    description: '[텐소프트웍스 > 프로젝트] 프로젝트 목록을 조회합니다 (클라이언트별 필터 가능, 읽기 전용)',
     inputSchema: z.object({
       client_id: z.string().optional().describe('클라이언트 ID로 필터'),
     }),
@@ -59,7 +59,7 @@ export function registerProjectTools(server: McpServer) {
   })
 
   server.registerTool('get_project', {
-    description: '프로젝트 상세 정보를 마일스톤과 함께 조회합니다',
+    description: '[텐소프트웍스 > 프로젝트] 프로젝트 상세 정보를 마일스톤과 함께 조회합니다 (읽기 전용)',
     inputSchema: z.object({
       id: z.string().describe('프로젝트 ID'),
     }),
@@ -84,7 +84,7 @@ export function registerProjectTools(server: McpServer) {
   })
 
   server.registerTool('list_milestones', {
-    description: '프로젝트 마일스톤 목록을 조회합니다',
+    description: '[텐소프트웍스 > 프로젝트] 마일스톤 목록을 조회합니다 (읽기 전용)',
     inputSchema: z.object({
       project_id: z.string().describe('프로젝트 ID'),
     }),
@@ -109,7 +109,7 @@ export function registerProjectTools(server: McpServer) {
   })
 
   server.registerTool('list_schedules', {
-    description: '일정/스케줄 목록을 조회합니다',
+    description: '[텐소프트웍스 > 경영관리] 스케줄 목록을 조회합니다 (읽기 전용)',
     inputSchema: z.object({
       type: z.string().optional().describe('일정 유형 필터 (task, meeting, deadline)'),
     }),
@@ -139,7 +139,7 @@ export function registerProjectTools(server: McpServer) {
   })
 
   server.registerTool('list_tasks', {
-    description: '태스크 목록을 조회합니다',
+    description: '[텐소프트웍스 > 경영관리] 태스크 목록을 조회합니다 (읽기 전용)',
     inputSchema: z.object({
       schedule_id: z.string().optional().describe('스케줄 ID로 필터'),
     }),
