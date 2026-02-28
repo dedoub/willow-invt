@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
 
-const PUBLIC_PATHS = ['/login', '/signup', '/mcp/authorize']
+const PUBLIC_PATHS = ['/login', '/signup']
+const STANDALONE_PATHS = ['/mcp/authorize'] // 인증 여부와 무관하게 독립 렌더링
 
 interface LayoutWrapperProps {
   children: React.ReactNode
@@ -21,6 +22,12 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const isPublicPath = PUBLIC_PATHS.includes(pathname)
+  const isStandalonePath = STANDALONE_PATHS.includes(pathname)
+
+  // Standalone paths: render without layout or redirects
+  if (isStandalonePath) {
+    return <>{children}</>
+  }
 
   // 경로별 타이틀 매핑 (번역 적용)
   const getPageTitle = (path: string): string | undefined => {
