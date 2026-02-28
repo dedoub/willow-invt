@@ -128,7 +128,7 @@ export async function createAuthCode(params: {
   const code = generateCode()
   const supabase = getServiceSupabase()
 
-  await supabase.from('mcp_oauth_codes').insert({
+  const { error } = await supabase.from('mcp_oauth_codes').insert({
     code,
     client_id: params.clientId,
     user_id: params.userId,
@@ -138,6 +138,11 @@ export async function createAuthCode(params: {
     code_challenge_method: params.codeChallengeMethod,
     expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 min
   })
+
+  if (error) {
+    console.error('Failed to create auth code:', error)
+    throw new Error(`Failed to create auth code: ${error.message}`)
+  }
 
   return code
 }
@@ -190,7 +195,7 @@ export async function exchangeCodeForTokens(params: {
   const refreshToken = generateToken()
   const expiresIn = 3600 // 1 hour
 
-  await supabase.from('mcp_oauth_tokens').insert({
+  const { error: insertError } = await supabase.from('mcp_oauth_tokens').insert({
     access_token: accessToken,
     refresh_token: refreshToken,
     client_id: params.clientId,
@@ -199,6 +204,11 @@ export async function exchangeCodeForTokens(params: {
     expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
     refresh_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
   })
+
+  if (insertError) {
+    console.error('Failed to create tokens:', insertError)
+    return null
+  }
 
   return {
     access_token: accessToken,

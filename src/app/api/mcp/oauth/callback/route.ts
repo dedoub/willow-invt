@@ -106,14 +106,23 @@ export async function POST(request: NextRequest) {
   const effectiveScope = effectiveScopes.join(' ')
 
   // Create authorization code
-  const code = await createAuthCode({
-    clientId,
-    userId: user.id,
-    redirectUri,
-    scope: effectiveScope,
-    codeChallenge,
-    codeChallengeMethod,
-  })
+  let code: string
+  try {
+    code = await createAuthCode({
+      clientId,
+      userId: user.id,
+      redirectUri,
+      scope: effectiveScope,
+      codeChallenge,
+      codeChallengeMethod,
+    })
+  } catch (err) {
+    console.error('MCP OAuth callback: failed to create auth code', err)
+    return NextResponse.json(
+      { error: 'server_error', error_description: 'Failed to create authorization code' },
+      { status: 500 }
+    )
+  }
 
   // Audit log
   await logMcpAction({
