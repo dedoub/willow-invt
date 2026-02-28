@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const oauth2Client = getOAuth2Client()
+    const oauth2Client = getOAuth2Client(context)
     const { tokens } = await oauth2Client.getToken(code)
 
     console.log('Gmail tokens received:', {

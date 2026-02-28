@@ -35,18 +35,19 @@ async function getCurrentUserId(): Promise<string | null> {
   }
 }
 
-// OAuth2 클라이언트 생성
-export function getOAuth2Client() {
+// OAuth2 클라이언트 생성 (context별 GCP 프로젝트 분리)
+export function getOAuth2Client(context: GmailContext = 'default') {
+  const isTensw = context === 'tensoftworks'
   return new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
+    isTensw ? process.env.GOOGLE_CLIENT_ID_TENSW : process.env.GOOGLE_CLIENT_ID,
+    isTensw ? process.env.GOOGLE_CLIENT_SECRET_TENSW : process.env.GOOGLE_CLIENT_SECRET,
     process.env.GOOGLE_REDIRECT_URI
   )
 }
 
 // 인증 URL 생성
 export function getAuthUrl(context: GmailContext = 'default'): string {
-  const oauth2Client = getOAuth2Client()
+  const oauth2Client = getOAuth2Client(context)
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
@@ -188,7 +189,7 @@ export async function getGmailClient(context: GmailContext = 'default') {
   const tokens = await getTokens(context)
   if (!tokens) return null
 
-  const oauth2Client = getOAuth2Client()
+  const oauth2Client = getOAuth2Client(context)
   oauth2Client.setCredentials({
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
