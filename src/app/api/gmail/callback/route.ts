@@ -58,13 +58,18 @@ export async function GET(request: NextRequest) {
     }
 
     // 토큰을 DB에 저장 (context 포함)
-    await saveTokens({
+    const saveResult = await saveTokens({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token || undefined,
       expiry_date: tokens.expiry_date || undefined,
       gmail_email: gmailEmail,
       context,
     })
+
+    if (!saveResult.success) {
+      console.error(`Gmail OAuth: Failed to save tokens for context=${context}:`, saveResult.error)
+      return NextResponse.redirect(`${baseUrl}${redirectPath}?gmail_error=save_failed&details=${encodeURIComponent(saveResult.error || 'unknown')}`)
+    }
 
     return NextResponse.redirect(`${baseUrl}${redirectPath}?gmail_connected=true`)
   } catch (err) {

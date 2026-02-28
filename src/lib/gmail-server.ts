@@ -55,18 +55,18 @@ export function getAuthUrl(context: GmailContext = 'default'): string {
   })
 }
 
-// 토큰 저장 (데이터베이스에 저장)
+// 토큰 저장 (데이터베이스에 저장) - returns true on success
 export async function saveTokens(tokens: {
   access_token: string
   refresh_token?: string
   expiry_date?: number
   gmail_email?: string
   context?: GmailContext
-}) {
+}): Promise<{ success: boolean; error?: string }> {
   const userId = await getCurrentUserId()
   if (!userId) {
-    console.error('Cannot save tokens: No user logged in')
-    return
+    console.error('Cannot save tokens: No user logged in (auth_token cookie missing)')
+    return { success: false, error: 'no_user_session' }
   }
 
   const context = tokens.context || 'default'
@@ -86,22 +86,30 @@ export async function saveTokens(tokens: {
 
   if (error) {
     console.error('Error saving Gmail tokens:', error)
+    return { success: false, error: `db_error: ${error.message}` }
   }
 
   // 쿠키에도 저장 (현재 세션용) - context별로 별도 쿠키
-  const cookieName = context === 'default' ? GMAIL_TOKEN_COOKIE : `${GMAIL_TOKEN_COOKIE}_${context}`
-  const cookieStore = await cookies()
-  cookieStore.set(cookieName, JSON.stringify({
-    access_token: tokens.access_token,
-    refresh_token: tokens.refresh_token,
-    expires_at: tokens.expiry_date || Date.now() + 3600 * 1000,
-  }), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30, // 30일
-    path: '/',
-  })
+  try {
+    const cookieName = context === 'default' ? GMAIL_TOKEN_COOKIE : `${GMAIL_TOKEN_COOKIE}_${context}`
+    const cookieStore = await cookies()
+    cookieStore.set(cookieName, JSON.stringify({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_at: tokens.expiry_date || Date.now() + 3600 * 1000,
+    }), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30, // 30일
+      path: '/',
+    })
+  } catch (cookieError) {
+    // Cookie setting may fail in redirect context, but DB save succeeded
+    console.warn('Failed to set Gmail cookie (non-critical):', cookieError)
+  }
+
+  return { success: true }
 }
 
 // 토큰 조회 (DB 우선, 쿠키 폴백)
@@ -197,10 +205,23 @@ export async function getGmailClient(context: GmailContext = 'default') {
         expiry_date: credentials.expiry_date!,
         context,
       })
+      // 갱신된 토큰으로 credentials 업데이트
+      oauth2Client.setCredentials({
+        access_token: credentials.access_token,
+        refresh_token: credentials.refresh_token || tokens.refresh_token,
+        expiry_date: credentials.expiry_date,
+      })
     } catch (error) {
-      console.error('Failed to refresh token:', error)
-      await deleteTokens(context)
-      return null
+      console.error(`Failed to refresh Gmail token for context=${context}:`, error)
+      // invalid_grant = refresh token이 무효화됨 → 토큰 삭제 필요
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage.includes('invalid_grant') || errorMessage.includes('Token has been expired or revoked')) {
+        console.error(`Refresh token revoked for context=${context}, deleting tokens`)
+        await deleteTokens(context)
+        return null
+      }
+      // 일시적 오류 (네트워크 등)는 기존 토큰으로 시도
+      console.warn(`Temporary refresh failure for context=${context}, trying with existing token`)
     }
   }
 

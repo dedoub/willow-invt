@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ProtectedPage } from '@/components/auth/protected-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useI18n } from '@/lib/i18n'
@@ -2407,6 +2408,34 @@ export default function WillowManagementPage() {
     return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
 
+  // Gmail OAuth callback 결과 처리
+  const searchParams = useSearchParams()
+  const [gmailMessage, setGmailMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    const gmailError = searchParams.get('gmail_error')
+    const gmailConnected = searchParams.get('gmail_connected')
+    const details = searchParams.get('details')
+
+    if (gmailError) {
+      const errorMessages: Record<string, string> = {
+        no_code: 'OAuth 인증 코드를 받지 못했습니다',
+        no_access_token: 'Access token을 받지 못했습니다',
+        token_exchange_failed: '토큰 교환에 실패했습니다',
+        save_failed: '토큰 저장에 실패했습니다',
+        no_user_session: '로그인 세션이 만료되었습니다. 다시 로그인해주세요',
+        access_denied: '사용자가 권한을 거부했습니다',
+      }
+      const message = errorMessages[gmailError] || `Gmail 연결 오류: ${gmailError}`
+      setGmailMessage({ type: 'error', text: details ? `${message} (${details})` : message })
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (gmailConnected) {
+      setGmailMessage({ type: 'success', text: 'Gmail이 성공적으로 연결되었습니다' })
+      window.history.replaceState({}, '', window.location.pathname)
+      setTimeout(() => setGmailMessage(null), 5000)
+    }
+  }, [searchParams])
+
   // Load Invoice, Wiki, and Gmail data
   useEffect(() => {
     loadInvoices()
@@ -4486,6 +4515,16 @@ export default function WillowManagementPage() {
           {/* Email Section */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="space-y-4">
+              {gmailMessage && (
+                <div className={`rounded-lg px-3 py-2 text-sm ${
+                  gmailMessage.type === 'error'
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
+                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
+                }`}>
+                  {gmailMessage.text}
+                  <button onClick={() => setGmailMessage(null)} className="ml-2 font-bold hover:opacity-70">×</button>
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <CardTitle className="flex items-center gap-2">
