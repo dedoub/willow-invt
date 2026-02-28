@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 import { createAuthCode, validateClient } from '@/lib/mcp/auth'
-import { verifyToken } from '@/lib/auth'
 import { getDefaultScopes } from '@/lib/mcp/permissions'
 import { logMcpAction } from '@/lib/mcp/audit'
+import { getServiceSupabase } from '@/lib/supabase'
+import type { UserRole } from '@/lib/auth'
 
 /**
  * OAuth callback: after user authenticates in the login UI,
@@ -66,43 +68,39 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Authenticate user via login API (internal call)
-  const loginRes = await fetch(new URL('/api/auth/login', request.nextUrl.origin).toString(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
+  // Authenticate user directly (no internal fetch)
+  const supabase = getServiceSupabase()
+  const { data: user, error: dbError } = await supabase
+    .from('willow_users')
+    .select('id, email, name, role, is_active, password_hash')
+    .eq('email', email.toLowerCase())
+    .single()
 
-  if (!loginRes.ok) {
-    const loginData = await loginRes.json()
+  if (dbError || !user) {
     return NextResponse.json(
-      { error: 'access_denied', error_description: loginData.error || 'Login failed' },
+      { error: 'access_denied', error_description: 'Invalid email or password' },
       { status: 401 }
     )
   }
 
-  // Extract auth token from login response Set-Cookie header
-  const setCookieHeader = loginRes.headers.get('set-cookie') || ''
-  const tokenMatch = setCookieHeader.match(/auth_token=([^;]+)/)
-  const authToken = tokenMatch?.[1]
-
-  if (!authToken) {
+  if (!user.is_active) {
     return NextResponse.json(
-      { error: 'server_error', error_description: 'Failed to obtain auth token' },
-      { status: 500 }
+      { error: 'access_denied', error_description: 'Account is deactivated' },
+      { status: 401 }
     )
   }
 
-  const user = await verifyToken(authToken)
-  if (!user) {
+  const isValidPassword = await bcrypt.compare(password, user.password_hash)
+  if (!isValidPassword) {
     return NextResponse.json(
-      { error: 'access_denied', error_description: 'Invalid auth token' },
+      { error: 'access_denied', error_description: 'Invalid email or password' },
       { status: 401 }
     )
   }
 
   // Determine effective scope
-  const allowedScopes = getDefaultScopes(user.role)
+  const userRole = user.role as UserRole
+  const allowedScopes = getDefaultScopes(userRole)
   const requestedScopes = scope ? scope.split(' ').filter(Boolean) : allowedScopes
   const effectiveScopes = requestedScopes.filter(s => allowedScopes.includes(s))
   const effectiveScope = effectiveScopes.join(' ')
@@ -110,7 +108,7 @@ export async function POST(request: NextRequest) {
   // Create authorization code
   const code = await createAuthCode({
     clientId,
-    userId: user.userId,
+    userId: user.id,
     redirectUri,
     scope: effectiveScope,
     codeChallenge,
@@ -119,7 +117,7 @@ export async function POST(request: NextRequest) {
 
   // Audit log
   await logMcpAction({
-    userId: user.userId,
+    userId: user.id,
     clientId,
     action: 'auth_login',
     resultSummary: `Authorization code issued for ${clientId}`,
