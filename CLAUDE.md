@@ -89,6 +89,30 @@ LEMONSQUEEZY_STORE_ID=237969
 ## Authentication
 커스텀 JWT 인증 사용 (`auth_token` 쿠키)
 
+## MCP Server
+Willow Dashboard는 자체 MCP 서버를 내장하고 있으며, Claude Desktop 등 MCP 클라이언트에서 OAuth 2.1 인증 후 데이터에 접근 가능.
+
+- **Endpoint**: `/api/mcp` (Streamable HTTP)
+- **Auth**: OAuth 2.1 + PKCE (`/api/mcp/oauth/*`)
+- **도구 수**: 88개 (10개 모듈)
+- **리소스**: 3개 (`willow://wiki/notes`, `willow://users/me`, `willow://projects/{section}`)
+
+### MCP 도구 모듈
+| 모듈 | 파일 | 도구 수 | 접두사 |
+|------|------|---------|--------|
+| 대시보드 | `dashboard.ts` | 1 | - |
+| 업무위키 | `wiki.ts` | 5 | - |
+| 프로젝트(레거시) | `projects.ts` | 6 | - |
+| Akros ETF | `etf.ts` | 8 | `akros_` |
+| ETF/Etc | `etf.ts` | 5 | `etc_` |
+| ETF/Etc 인보이스 | `invoices.ts` | 3 | `etc_` |
+| 이메일 AI 분석 | `email-analysis.ts` | 8 | `akros_`/`etc_` |
+| 류하 학습관리 | `ryuha.ts` | 18+ | `ryuha_` |
+| 윌로우 경영관리 | `willow-mgmt.ts` | 18+ | `willow_` |
+| 텐소프트웍스 | `tensw-mgmt.ts` | 18+ | `tensw_` |
+
+> 상세 문서: `docs/mcp.md`
+
 ## Notes
 - 파일 업로드 시 service_role 키 사용 (RLS 우회)
 - wiki-attachments 버킷은 public으로 설정됨
