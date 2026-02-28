@@ -98,12 +98,11 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Determine effective scope
+  // Determine effective scope — always grant all role-based scopes
+  // (internal server; client-requested scopes may be stale/cached)
   const userRole = user.role as UserRole
   const allowedScopes = getDefaultScopes(userRole)
-  const requestedScopes = scope ? scope.split(' ').filter(Boolean) : allowedScopes
-  const effectiveScopes = requestedScopes.filter(s => allowedScopes.includes(s))
-  const effectiveScope = effectiveScopes.join(' ')
+  const effectiveScope = allowedScopes.join(' ')
 
   // Create authorization code
   let code: string

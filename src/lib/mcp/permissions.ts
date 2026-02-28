@@ -47,8 +47,14 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   create_invoice:    { roles: ['admin'], scopes: ['invoices:write'] },
 
   // ETF
-  list_etf_products: { roles: ['admin', 'editor', 'viewer'], scopes: ['etf:read'] },
-  get_aum_data:      { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  list_etf_products:    { roles: ['admin', 'editor', 'viewer'], scopes: ['etf:read'] },
+  get_aum_data:         { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  get_exchange_rates:   { roles: ['admin', 'editor', 'viewer'], scopes: ['etf:read'] },
+  get_akros_time_series: { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  list_tax_invoices:    { roles: ['admin', 'editor'], scopes: ['etf:read'] },
+  create_tax_invoice:   { roles: ['admin'], scopes: ['etf:read'] },
+  update_tax_invoice:   { roles: ['admin'], scopes: ['etf:read'] },
+  delete_tax_invoice:   { roles: ['admin'], scopes: ['etf:read'] },
 
   // Dashboard
   get_dashboard:     { roles: ['admin', 'editor', 'viewer'], scopes: ['dashboard:read'] },

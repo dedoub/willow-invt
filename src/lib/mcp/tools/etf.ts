@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getUserFromAuthInfo } from '../auth'
 import { checkToolPermission } from '../permissions'
 import { logMcpAction } from '../audit'
+import { getServiceSupabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
 
 function getAkrosDb() {
@@ -137,5 +138,203 @@ export function registerEtfTools(server: McpServer) {
     } catch (e) {
       return { content: [{ type: 'text' as const, text: `Error: ${(e as Error).message}` }], isError: true }
     }
+  })
+
+  // =============================================
+  // 환율 (Exchange Rates)
+  // =============================================
+
+  server.registerTool('get_exchange_rates', {
+    description: '[ETF/Akros] 최신 환율 정보를 조회합니다 (KRW, AUD 등)',
+    inputSchema: z.object({
+      date: z.string().optional().describe('특정 날짜 환율 (YYYY-MM-DD, 기본: 최신)'),
+    }),
+  }, async ({ date }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('get_exchange_rates', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    try {
+      const akrosDb = getAkrosDb()
+
+      let targetDate = date
+      if (!targetDate) {
+        const { data: latest } = await akrosDb
+          .from('exchange_rates')
+          .select('date')
+          .order('date', { ascending: false })
+          .limit(1)
+
+        targetDate = latest?.[0]?.date
+      }
+
+      if (!targetDate) return { content: [{ type: 'text' as const, text: 'No exchange rate data found' }], isError: true }
+
+      const { data, error } = await akrosDb
+        .from('exchange_rates')
+        .select('date, currency, rate')
+        .eq('date', targetDate)
+
+      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'get_exchange_rates', inputParams: { date } })
+      return { content: [{ type: 'text' as const, text: JSON.stringify({ date: targetDate, rates: data }, null, 2) }] }
+    } catch (e) {
+      return { content: [{ type: 'text' as const, text: `Error: ${(e as Error).message}` }], isError: true }
+    }
+  })
+
+  // =============================================
+  // Akros 시계열 데이터 (Time Series)
+  // =============================================
+
+  server.registerTool('get_akros_time_series', {
+    description: '[ETF/Akros] Akros 전체 AUM/ARR 시계열 데이터를 조회합니다 (지역별 분류 포함)',
+    inputSchema: z.object({
+      days: z.number().optional().describe('최근 N일 (기본: 전체)'),
+    }),
+  }, async ({ days }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('get_akros_time_series', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    try {
+      const akrosDb = getAkrosDb()
+      let query = akrosDb
+        .from('time_series_data')
+        .select('*')
+        .order('date', { ascending: false })
+
+      if (days) {
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - days)
+        query = query.gte('date', startDate.toISOString().split('T')[0])
+      }
+
+      const { data, error } = await query
+
+      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+      await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'get_akros_time_series', inputParams: { days } })
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+    } catch (e) {
+      return { content: [{ type: 'text' as const, text: `Error: ${(e as Error).message}` }], isError: true }
+    }
+  })
+
+  // =============================================
+  // 세금계산서 (Tax Invoices)
+  // =============================================
+
+  server.registerTool('list_tax_invoices', {
+    description: '[ETF/Akros] Akros 세금계산서 목록을 조회합니다',
+    inputSchema: z.object({}),
+  }, async (_input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('list_tax_invoices', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('akros_tax_invoices')
+      .select('*')
+      .order('invoice_date', { ascending: false })
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'list_tax_invoices' })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+  })
+
+  server.registerTool('create_tax_invoice', {
+    description: '[ETF/Akros] Akros 세금계산서를 생성합니다',
+    inputSchema: z.object({
+      invoice_date: z.string().describe('계산서 날짜 (YYYY-MM-DD)'),
+      amount: z.number().describe('금액'),
+      notes: z.string().optional().describe('메모'),
+    }),
+  }, async (input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('create_tax_invoice', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('akros_tax_invoices')
+      .insert({
+        invoice_date: input.invoice_date,
+        amount: input.amount,
+        notes: input.notes || null,
+      })
+      .select()
+      .single()
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'create_tax_invoice', inputParams: input })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+  })
+
+  server.registerTool('update_tax_invoice', {
+    description: '[ETF/Akros] Akros 세금계산서를 수정합니다',
+    inputSchema: z.object({
+      id: z.string().describe('세금계산서 ID'),
+      invoice_date: z.string().optional().describe('계산서 날짜 (YYYY-MM-DD)'),
+      amount: z.number().optional().describe('금액'),
+      notes: z.string().optional().describe('메모'),
+      issued_at: z.string().optional().describe('발행일'),
+      paid_at: z.string().optional().describe('지급일'),
+    }),
+  }, async ({ id, ...updates }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('update_tax_invoice', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('akros_tax_invoices')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'update_tax_invoice', inputParams: { id, ...updates } })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+  })
+
+  server.registerTool('delete_tax_invoice', {
+    description: '[ETF/Akros] Akros 세금계산서를 삭제합니다',
+    inputSchema: z.object({
+      id: z.string().describe('세금계산서 ID'),
+    }),
+  }, async ({ id }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('delete_tax_invoice', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { error } = await supabase
+      .from('akros_tax_invoices')
+      .delete()
+      .eq('id', id)
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'delete_tax_invoice', inputParams: { id } })
+    return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, deleted_id: id }) }] }
   })
 }

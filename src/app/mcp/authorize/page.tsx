@@ -75,6 +75,12 @@ export default function McpAuthorizePage() {
     'invoices:write': '인보이스 수정',
     'etf:read': 'ETF 데이터 조회',
     'dashboard:read': '대시보드 조회',
+    'ryuha:read': '류하 학습관리 조회',
+    'ryuha:write': '류하 학습관리 수정',
+    'willow:read': '윌로우 경영관리 조회',
+    'willow:write': '윌로우 경영관리 수정',
+    'tensw:read': '텐소프트웍스 경영관리 조회',
+    'tensw:write': '텐소프트웍스 경영관리 수정',
     'admin:read': '관리자 조회',
     'admin:write': '관리자 수정',
   }
