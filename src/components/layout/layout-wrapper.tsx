@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
 
-const PUBLIC_PATHS = ['/login', '/signup']
+const PUBLIC_PATHS = ['/login', '/signup', '/mcp/authorize']
 
 interface LayoutWrapperProps {
   children: React.ReactNode
