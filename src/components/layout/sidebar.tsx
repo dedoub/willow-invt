@@ -8,7 +8,6 @@ import { cn } from '@/lib/utils'
 import { useIsAdmin, useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n'
 import {
-  LayoutDashboard,
   Users,
   ChevronLeft,
   ChevronRight,
@@ -18,7 +17,6 @@ import {
   Building2,
   MoreHorizontal,
   X,
-  BookOpen,
 } from 'lucide-react'
 
 interface MenuItem {
@@ -113,12 +111,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       icon: <Users className="h-5 w-5" />,
       adminOnly: true,
     },
-    {
-      title: t.sidebar.uiGuide,
-      href: '/admin/ui-guide',
-      icon: <BookOpen className="h-5 w-5" />,
-      adminOnly: true,
-    },
   ]
 
   return (
@@ -181,21 +173,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         "flex-1 space-y-1 p-2 sidebar-nav",
         collapsed ? "overflow-visible" : "overflow-y-auto"
       )}>
-        {/* Dashboard */}
-        <Link
-          href="/"
-          className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-            pathname === '/'
-              ? 'bg-brand-600 text-white'
-              : 'text-slate-300 hover:bg-slate-800 hover:text-white',
-            collapsed && 'justify-center'
-          )}
-        >
-          <LayoutDashboard className="h-5 w-5" />
-          {!collapsed && <span>{t.sidebar.dashboard}</span>}
-        </Link>
-
         {/* Menu Sections */}
         {menuSections.map((section) => {
           // Filter items based on user permissions
