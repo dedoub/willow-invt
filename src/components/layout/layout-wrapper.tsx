@@ -36,6 +36,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
       '/etf/akros': t.pageTitles.akrosPage,
       '/tensoftworks/projects': t.pageTitles.tenswProjects,
       '/tensoftworks/management': t.pageTitles.tenswManagement,
+      '/willow-investment/management': t.pageTitles.willowManagement,
       '/admin/users': t.pageTitles.usersPage,
       '/others/ryuha-study': t.pageTitles.ryuhaStudyPage,
     }

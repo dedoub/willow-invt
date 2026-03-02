@@ -211,12 +211,11 @@ function CalendarPanelSkeleton() {
 // Full page skeleton
 function WillowManagementPageSkeleton() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1 order-2 lg:order-1">
+    <div className="space-y-6">
+      <CalendarPanelSkeleton />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ProjectsPanelSkeleton />
-      </div>
-      <div className="lg:col-span-2 order-1 lg:order-2">
-        <CalendarPanelSkeleton />
+        <ProjectsPanelSkeleton />
       </div>
     </div>
   )
@@ -568,7 +567,7 @@ function DraggableMonthScheduleCard({
           schedule.task_completed ? 'text-green-600' : 'text-orange-600'
         )} />
       )}
-      <span className="truncate flex-1">
+      <span className="flex-1 break-words">
         {schedule.title}
       </span>
     </div>
@@ -2502,1099 +2501,8 @@ export default function WillowManagementPage() {
 
   return (
     <ProtectedPage pagePath="/willow-investment/management">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Projects & Milestones Panel + Invoice + Wiki */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Invoice Section (Simplified Tax Invoice Tracking) */}
-          <Card className="bg-slate-100 dark:bg-slate-800">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Receipt className="h-5 w-5" />
-                  현금관리
-                </CardTitle>
-                <CardDescription>입출금 내역</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* View mode toggle */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setInvoiceViewMode('list')}
-                    className={cn(
-                      'min-w-[52px] px-3 py-2 text-sm font-medium rounded-lg transition-colors',
-                      invoiceViewMode === 'list'
-                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
-                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
-                    )}
-                  >
-                    목록
-                  </button>
-                  <button
-                    onClick={() => setInvoiceViewMode('summary')}
-                    className={cn(
-                      'min-w-[52px] px-3 py-2 text-sm font-medium rounded-lg transition-colors',
-                      invoiceViewMode === 'summary'
-                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
-                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
-                    )}
-                  >
-                    표
-                  </button>
-                </div>
-                <button
-                  onClick={openNewInvoiceModal}
-                  className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">추가</span>
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {invoiceViewMode === 'list' ? (
-                <>
-                  {/* Type filter tabs */}
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {(['all', 'revenue', 'expense', 'asset', 'liability'] as const).map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => {
-                          setInvoiceTypeFilter(type)
-                          setInvoicePage(1)
-                        }}
-                        className={cn(
-                          'px-3 py-1 text-xs font-medium rounded-full transition-colors',
-                          invoiceTypeFilter === type
-                            ? 'bg-slate-900 text-white dark:bg-slate-600'
-                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                        )}
-                      >
-                        {type === 'all' ? '전체' : type === 'revenue' ? '매출' : type === 'expense' ? '비용' : type === 'asset' ? '자산' : '부채'}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Date range filter */}
-                  <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <span className="text-xs text-slate-500">기간</span>
-                    <input
-                      type="date"
-                      value={invoiceDateFrom}
-                      onChange={(e) => {
-                        setInvoiceDateFrom(e.target.value)
-                        setInvoicePage(1)
-                      }}
-                      className="px-2 py-1 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
-                    />
-                    <span className="text-xs text-slate-400">~</span>
-                    <input
-                      type="date"
-                      value={invoiceDateTo}
-                      onChange={(e) => {
-                        setInvoiceDateTo(e.target.value)
-                        setInvoicePage(1)
-                      }}
-                      className="px-2 py-1 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
-                    />
-                    {(invoiceDateFrom || invoiceDateTo) && (
-                      <button
-                        onClick={() => {
-                          setInvoiceDateFrom('')
-                          setInvoiceDateTo('')
-                          setInvoicePage(1)
-                        }}
-                        className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                      >
-                        초기화
-                      </button>
-                    )}
-                  </div>
-
-                  {(() => {
-                    // Client-side filtering and sorting for list view
-                    let filteredInvoices = invoiceTypeFilter === 'all'
-                      ? invoices
-                      : invoices.filter(inv => inv.type === invoiceTypeFilter)
-
-                    // Date range filter (based on payment_date or issue_date)
-                    if (invoiceDateFrom || invoiceDateTo) {
-                      filteredInvoices = filteredInvoices.filter(inv => {
-                        const dateToCheck = inv.payment_date || inv.issue_date
-                        if (!dateToCheck) return false
-                        if (invoiceDateFrom && dateToCheck < invoiceDateFrom) return false
-                        if (invoiceDateTo && dateToCheck > invoiceDateTo) return false
-                        return true
-                      })
-                    }
-
-                    filteredInvoices = filteredInvoices.sort((a, b) => {
-                      // Sort by payment_date first (newest first), then by issue_date
-                      const aPayment = a.payment_date ? new Date(a.payment_date).getTime() : 0
-                      const bPayment = b.payment_date ? new Date(b.payment_date).getTime() : 0
-                      if (aPayment !== bPayment) return bPayment - aPayment
-                      const aIssue = a.issue_date ? new Date(a.issue_date).getTime() : 0
-                      const bIssue = b.issue_date ? new Date(b.issue_date).getTime() : 0
-                      return bIssue - aIssue
-                    })
-                    const totalPages = Math.ceil(filteredInvoices.length / invoicesPerPage)
-                    const paginatedInvoices = filteredInvoices.slice(
-                      (invoicePage - 1) * invoicesPerPage,
-                      invoicePage * invoicesPerPage
-                    )
-                    return (
-                      <>
-                        <div className="space-y-2">
-                          {isLoadingInvoices ? (
-                            <div className="text-center py-8">
-                              <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                            </div>
-                          ) : filteredInvoices.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                              <p className="text-sm">등록된 재무항목이 없습니다</p>
-                              <p className="text-xs">새 항목을 추가해주세요</p>
-                            </div>
-                          ) : (
-                            paginatedInvoices.map((invoice) => {
-                              const computedStatus = getInvoiceStatus(invoice)
-                              const statusStyle = INVOICE_STATUS_STYLES[computedStatus]
-                              return (
-                                <div key={invoice.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
-                                  <div
-                                    className="flex items-start justify-between cursor-pointer"
-                                    onClick={() => setExpandedInvoice(expandedInvoice === invoice.id ? null : invoice.id)}
-                                  >
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <span className={cn(
-                                          'px-2 py-0.5 rounded text-xs font-medium shrink-0',
-                                          invoice.type === 'revenue' ? 'bg-blue-100 text-blue-700' :
-                                          invoice.type === 'expense' ? 'bg-orange-100 text-orange-700' :
-                                          invoice.type === 'asset' ? 'bg-emerald-100 text-emerald-700' :
-                                          'bg-purple-100 text-purple-700'
-                                        )}>
-                                          {invoice.type === 'revenue' ? '매출' : invoice.type === 'expense' ? '비용' : invoice.type === 'asset' ? '자산' : '부채'}
-                                        </span>
-                                        <span className="font-medium text-sm truncate">{invoice.counterparty}</span>
-                                        <span
-                                          className={cn(
-                                            'rounded-md px-2 py-1 text-xs font-medium flex items-center gap-1.5 shrink-0',
-                                            statusStyle.bg, statusStyle.text
-                                          )}
-                                        >
-                                          {computedStatus === 'completed' ? (
-                                            <CheckCircle2 className="h-4 w-4" />
-                                          ) : computedStatus === 'issued' ? (
-                                            <Clock className="h-4 w-4" />
-                                          ) : (
-                                            <Circle className="h-4 w-4" />
-                                          )}
-                                          {statusStyle.label}
-                                        </span>
-                                      </div>
-                                      <div className="text-xs text-muted-foreground space-y-0.5">
-                                        <p>
-                                          {invoice.issue_date && <span>발행: {invoice.issue_date}</span>}
-                                          {invoice.issue_date && invoice.payment_date && <span> · </span>}
-                                          {invoice.payment_date && <span>{invoice.type === 'revenue' || invoice.type === 'asset' ? '입금' : '지급'}: {invoice.payment_date}</span>}
-                                          {(invoice.issue_date || invoice.payment_date) && <span> · </span>}
-                                          <span className="font-medium text-foreground">{formatKRW(invoice.amount)}</span>
-                                        </p>
-                                        {expandedInvoice === invoice.id && (
-                                          <>
-                                            {invoice.description && <p>{invoice.description}</p>}
-                                            {invoice.account_number && <p>계좌: {invoice.account_number}</p>}
-                                            {invoice.notes && <p className="text-slate-500">메모: {invoice.notes}</p>}
-                                            {invoice.attachments && invoice.attachments.length > 0 && (
-                                              <p className="flex items-center gap-1"><Paperclip className="h-3 w-3" />{invoice.attachments.length}개 파일</p>
-                                            )}
-                                          </>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-1 ml-2 shrink-0">
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); openEditInvoiceModal(invoice) }}
-                                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                      >
-                                        <Pencil className="h-3.5 w-3.5" />
-                                      </button>
-                                      {expandedInvoice === invoice.id ? (
-                                        <ChevronUp className="h-4 w-4 text-slate-400" />
-                                      ) : (
-                                        <ChevronDown className="h-4 w-4 text-slate-400" />
-                                      )}
-                                    </div>
-                                  </div>
-                                  {expandedInvoice === invoice.id && (
-                                    <div className="mt-1 space-y-2">
-                                      <div className="flex flex-wrap gap-1">
-                                        {invoice.attachments?.map((att, idx) => (
-                                          <a
-                                            key={idx}
-                                            href={att.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-500"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <Paperclip className="h-3 w-3" />
-                                            {att.name}
-                                          </a>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })
-                          )}
-                        </div>
-                        {filteredInvoices.length > 0 && (
-                          <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                {filteredInvoices.length}개 중 {(invoicePage - 1) * invoicesPerPage + 1}-{Math.min(invoicePage * invoicesPerPage, filteredInvoices.length)}
-                              </p>
-                              <div className="relative">
-                                <select
-                                  value={invoicesPerPage}
-                                  onChange={(e) => {
-                                    setInvoicesPerPage(Number(e.target.value))
-                                    setInvoicePage(1)
-                                  }}
-                                  className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                  <option value={5}>5개</option>
-                                  <option value={10}>10개</option>
-                                  <option value={25}>25개</option>
-                                  <option value={50}>50개</option>
-                                </select>
-                                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
-                              </div>
-                            </div>
-                            {totalPages > 1 && (
-                              <div className="flex items-center gap-0.5">
-                                <button onClick={() => setInvoicePage(1)} disabled={invoicePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
-                                <button onClick={() => setInvoicePage(p => Math.max(1, p - 1))} disabled={invoicePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
-                                <span className="px-2 py-1 text-xs font-medium">{invoicePage}/{totalPages}</span>
-                                <button onClick={() => setInvoicePage(p => Math.min(totalPages, p + 1))} disabled={invoicePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
-                                <button onClick={() => setInvoicePage(totalPages)} disabled={invoicePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                </>
-              ) : (
-                /* Financial Summary View */
-                (() => {
-                  // Period filter tabs
-                  const periodLabels = { monthly: '월별', quarterly: '분기별', yearly: '연도별' }
-
-                  // Calculate summary data based on period
-                  const getSummaryData = () => {
-                    const allInvoices = invoices // Use all invoices, not filtered
-                    const summaryMap = new Map<string, {
-                      revenue: number; expense: number; asset: number; liability: number;
-                      revenueCount: number; expenseCount: number; assetCount: number; liabilityCount: number
-                    }>()
-
-                    for (const inv of allInvoices) {
-                      // 입금일/지급일이 없으면 합계에서 제외
-                      if (!inv.payment_date) continue
-                      // 거래처 필터 적용
-                      if (summaryCounterpartyFilter && inv.counterparty !== summaryCounterpartyFilter) continue
-
-                      const date = new Date(inv.payment_date)
-                      let periodKey: string
-
-                      if (invoiceSummaryPeriod === 'monthly') {
-                        periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-                      } else if (invoiceSummaryPeriod === 'quarterly') {
-                        const quarter = Math.ceil((date.getMonth() + 1) / 3)
-                        periodKey = `${date.getFullYear()}-Q${quarter}`
-                      } else {
-                        periodKey = `${date.getFullYear()}`
-                      }
-
-                      const existing = summaryMap.get(periodKey) || {
-                        revenue: 0, expense: 0, asset: 0, liability: 0,
-                        revenueCount: 0, expenseCount: 0, assetCount: 0, liabilityCount: 0
-                      }
-                      if (inv.type === 'revenue') {
-                        existing.revenue += inv.amount
-                        existing.revenueCount++
-                      } else if (inv.type === 'expense') {
-                        existing.expense += inv.amount
-                        existing.expenseCount++
-                      } else if (inv.type === 'asset') {
-                        existing.asset += inv.amount
-                        existing.assetCount++
-                      } else if (inv.type === 'liability') {
-                        existing.liability += inv.amount
-                        existing.liabilityCount++
-                      }
-                      summaryMap.set(periodKey, existing)
-                    }
-
-                    // Sort by period (descending)
-                    return Array.from(summaryMap.entries())
-                      .sort((a, b) => b[0].localeCompare(a[0]))
-                  }
-
-                  const summaryData = getSummaryData()
-
-                  // Get unique counterparties sorted alphabetically
-                  const uniqueCounterparties = Array.from(
-                    new Set(invoices.filter(inv => inv.payment_date).map(inv => inv.counterparty))
-                  ).sort((a, b) => a.localeCompare(b, 'ko'))
-
-                  return (
-                    <>
-                      {/* Period filter + Counterparty filter */}
-                      <div className="flex flex-wrap items-center gap-3 mb-4">
-                        <div className="flex gap-1">
-                          {(['monthly', 'quarterly', 'yearly'] as const).map((period) => (
-                            <button
-                              key={period}
-                              onClick={() => setInvoiceSummaryPeriod(period)}
-                              className={cn(
-                                'px-3 py-1 text-xs font-medium rounded-full transition-colors',
-                                invoiceSummaryPeriod === period
-                                  ? 'bg-slate-900 text-white dark:bg-slate-600'
-                                  : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                              )}
-                            >
-                              {periodLabels[period]}
-                            </button>
-                          ))}
-                        </div>
-                        {uniqueCounterparties.length > 0 && (
-                          <div className="relative">
-                            <select
-                              value={summaryCounterpartyFilter || ''}
-                              onChange={(e) => setSummaryCounterpartyFilter(e.target.value || null)}
-                              className="text-xs bg-white dark:bg-slate-800 rounded-lg pl-2 pr-6 py-1.5 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                            >
-                              <option value="">전체 거래처</option>
-                              {uniqueCounterparties.map((cp) => (
-                                <option key={cp} value={cp}>{cp}</option>
-                              ))}
-                            </select>
-                            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-
-                      {isLoadingInvoices ? (
-                        <div className="text-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                        </div>
-                      ) : summaryData.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <BarChart3 className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                          <p className="text-sm">데이터가 없습니다</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {summaryData.map(([period, data]) => {
-                            // 현금흐름 계산: 매출 + 부채(유입) - 비용 - 자산(유출)
-                            const operatingCashFlow = data.revenue - data.expense
-                            const investingCashFlow = -data.asset // 자산 취득은 현금 유출
-                            const financingCashFlow = data.liability // 부채 증가는 현금 유입
-                            const totalCashFlow = operatingCashFlow + investingCashFlow + financingCashFlow
-                            const isExpanded = expandedSummaryPeriod === period
-
-                            // Get invoices for this period (only those with payment_date)
-                            const getInvoicesForPeriod = () => {
-                              return invoices.filter((inv) => {
-                                // 입금일/지급일이 없으면 제외
-                                if (!inv.payment_date) return false
-                                // 거래처 필터 적용
-                                if (summaryCounterpartyFilter && inv.counterparty !== summaryCounterpartyFilter) return false
-
-                                const date = new Date(inv.payment_date)
-                                let periodKey: string
-
-                                if (invoiceSummaryPeriod === 'monthly') {
-                                  periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-                                } else if (invoiceSummaryPeriod === 'quarterly') {
-                                  const quarter = Math.ceil((date.getMonth() + 1) / 3)
-                                  periodKey = `${date.getFullYear()}-Q${quarter}`
-                                } else {
-                                  periodKey = `${date.getFullYear()}`
-                                }
-
-                                return periodKey === period
-                              }).sort((a, b) => {
-                                // Sort by payment_date first (newest first), then by issue_date
-                                const aPayment = a.payment_date ? new Date(a.payment_date).getTime() : 0
-                                const bPayment = b.payment_date ? new Date(b.payment_date).getTime() : 0
-                                if (aPayment !== bPayment) return bPayment - aPayment
-                                const aIssue = a.issue_date ? new Date(a.issue_date).getTime() : 0
-                                const bIssue = b.issue_date ? new Date(b.issue_date).getTime() : 0
-                                if (aIssue !== bIssue) return bIssue - aIssue
-                                // Same date: sort by type (revenue > expense > asset > liability)
-                                const typeOrder = { revenue: 0, expense: 1, asset: 2, liability: 3 }
-                                const aType = typeOrder[a.type as keyof typeof typeOrder] ?? 4
-                                const bType = typeOrder[b.type as keyof typeof typeOrder] ?? 4
-                                if (aType !== bType) return aType - bType
-                                // Same type: sort by counterparty name (가나다순)
-                                return a.counterparty.localeCompare(b.counterparty, 'ko')
-                              })
-                            }
-
-                            const periodInvoices = isExpanded ? getInvoicesForPeriod() : []
-
-                            return (
-                              <div key={period} className="bg-white dark:bg-slate-700 rounded-lg overflow-hidden">
-                                <button
-                                  onClick={() => setExpandedSummaryPeriod(isExpanded ? null : period)}
-                                  className="w-full p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
-                                >
-                                  <div className="flex items-center justify-between mb-3">
-                                    <h4 className="text-xs font-medium text-muted-foreground">{period}</h4>
-                                    <ChevronDown className={cn(
-                                      'h-4 w-4 text-slate-400 transition-transform',
-                                      isExpanded && 'rotate-180'
-                                    )} />
-                                  </div>
-                                  {/* 영업활동 */}
-                                  <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
-                                    <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-blue-600 mb-1">
-                                        <TrendingUp className="h-3 w-3 hidden sm:block" />
-                                        매출 ({data.revenueCount})
-                                      </div>
-                                      <p className="text-xs sm:text-sm font-bold text-blue-700">{formatKRW(data.revenue)}</p>
-                                    </div>
-                                    <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-orange-600 mb-1">
-                                        <TrendingDown className="h-3 w-3 hidden sm:block" />
-                                        비용 ({data.expenseCount})
-                                      </div>
-                                      <p className="text-xs sm:text-sm font-bold text-orange-700">{formatKRW(data.expense)}</p>
-                                    </div>
-                                    <div>
-                                      <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">영업이익</div>
-                                      <p className={cn(
-                                        'text-xs sm:text-sm font-bold',
-                                        operatingCashFlow >= 0 ? 'text-slate-700 dark:text-slate-200' : 'text-red-600'
-                                      )}>
-                                        {formatKRW(operatingCashFlow)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  {/* 투자/재무활동 + 현금흐름 */}
-                                  <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-3 border-t border-slate-100 dark:border-slate-600">
-                                    <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-emerald-600 mb-1">
-                                        <TrendingDown className="h-3 w-3 hidden sm:block" />
-                                        자산 ({data.assetCount})
-                                      </div>
-                                      <p className="text-xs sm:text-sm font-bold text-emerald-700">{formatKRW(data.asset)}</p>
-                                    </div>
-                                    <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-purple-600 mb-1">
-                                        <TrendingUp className="h-3 w-3 hidden sm:block" />
-                                        부채 ({data.liabilityCount})
-                                      </div>
-                                      <p className="text-xs sm:text-sm font-bold text-purple-700">{formatKRW(data.liability)}</p>
-                                    </div>
-                                    <div>
-                                      <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">현금흐름</div>
-                                      <p className={cn(
-                                        'text-xs sm:text-sm font-bold',
-                                        totalCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'
-                                      )}>
-                                        {totalCashFlow >= 0 ? '+' : ''}{formatKRW(totalCashFlow)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </button>
-
-                                {/* Expanded invoice list */}
-                                {isExpanded && (
-                                  <div>
-                                    {periodInvoices.length === 0 ? (
-                                      <p className="text-sm text-muted-foreground text-center py-4">항목 없음</p>
-                                    ) : (
-                                      <div>
-                                        {periodInvoices.map((inv) => (
-                                          <div
-                                            key={inv.id}
-                                            className="px-4 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer"
-                                            onClick={() => {
-                                              setEditingInvoice(inv)
-                                              setInvoiceFormType(inv.type)
-                                              setInvoiceFormCounterparty(inv.counterparty)
-                                              setInvoiceFormDescription(inv.description || '')
-                                              setInvoiceFormAmount(String(inv.amount))
-                                              setInvoiceFormDate(inv.issue_date || '')
-                                              setInvoiceFormPaymentDate(inv.payment_date || '')
-                                              setInvoiceFormNotes(inv.notes || '')
-                                              setInvoiceFormAccountNumber(inv.account_number || '')
-                                              setIsInvoiceModalOpen(true)
-                                            }}
-                                          >
-                                            <div className="flex items-center gap-2">
-                                              <span className={cn(
-                                                'flex-shrink-0 text-[10px] w-7 text-center py-0.5 rounded font-medium',
-                                                inv.type === 'revenue' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                                                inv.type === 'expense' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' :
-                                                inv.type === 'asset' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' :
-                                                'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
-                                              )}>
-                                                {inv.type === 'revenue' ? '매출' : inv.type === 'expense' ? '비용' : inv.type === 'asset' ? '자산' : '부채'}
-                                              </span>
-                                              <span className="flex-shrink-0 text-xs text-muted-foreground w-20">{inv.payment_date || inv.issue_date || '-'}</span>
-                                              <span className="text-sm font-medium truncate flex-1 min-w-0">
-                                                {inv.counterparty}
-                                                {inv.description && <span className="text-muted-foreground font-normal"> - {inv.description}</span>}
-                                              </span>
-                                              <span className={cn(
-                                                'flex-shrink-0 text-sm font-bold text-right min-w-[80px]',
-                                                inv.type === 'revenue' ? 'text-blue-600' :
-                                                inv.type === 'expense' ? 'text-orange-600' :
-                                                inv.type === 'asset' ? 'text-emerald-600' :
-                                                'text-purple-600'
-                                              )}>
-                                                {formatKRW(inv.amount)}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </>
-                  )
-                })()
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-100 dark:bg-slate-800">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <BookMarked className="h-5 w-5" />
-                  클라이언트 및 프로젝트
-                </CardTitle>
-                <CardDescription>프로젝트 및 마일스톤 관리</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
-                  onClick={() => openClientDialog()}
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">클라이언트</span>
-                </button>
-                <button
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
-                  onClick={() => openProjectDialog()}
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">프로젝트</span>
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Client filter */}
-              <div className="flex flex-wrap gap-1 items-center mb-4">
-                <button
-                  onClick={() => setSelectedClient(null)}
-                  className={cn(
-                    'px-3 py-1 text-xs font-medium rounded-full transition-colors',
-                    selectedClient === null
-                      ? 'bg-slate-900 text-white dark:bg-slate-600'
-                      : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                  )}
-                >
-                  전체
-                </button>
-                {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => (
-                  <button
-                    key={client.id}
-                    onClick={() => setSelectedClient(client.id)}
-                    className={cn(
-                      'px-3 py-1 text-xs font-medium rounded-full transition-colors',
-                      selectedClient === client.id
-                        ? 'text-white'
-                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                    )}
-                    style={{
-                      backgroundColor: selectedClient === client.id ? client.color : undefined,
-                    }}
-                  >
-                    {client.name}
-                  </button>
-                ))}
-              </div>
-
-              {/* Projects list */}
-              <div className="space-y-2">
-                {filteredProjects.map((project) => {
-                  const projectMilestones = getMilestonesForProject(project.id)
-                  const completed = projectMilestones.filter((c) => c.status === 'completed').length
-                  const total = projectMilestones.length
-                  const isExpanded = expandedProjects.includes(project.id)
-
-                  return (
-                    <div
-                      key={project.id}
-                      className="rounded-lg overflow-hidden"
-                      style={{ borderLeft: `3px solid ${project.client?.color || '#888'}` }}
-                    >
-                      {/* Project header */}
-                      <div
-                        className="p-2 cursor-pointer flex items-center justify-between transition-opacity hover:opacity-80"
-                        style={{ backgroundColor: `${project.client?.color || '#888'}15` }}
-                        onClick={() => toggleProject(project.id)}
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <ChevronDown
-                            className={cn(
-                              'h-4 w-4 transition-transform flex-shrink-0',
-                              !isExpanded && '-rotate-90'
-                            )}
-                          />
-                          <div className="flex-1 min-w-0">
-                            {project.client && (
-                              <div className="text-xs text-muted-foreground">{project.client.name}</div>
-                            )}
-                            <div className="flex items-baseline gap-2">
-                              <span className="font-medium text-sm truncate">{project.name}</span>
-                              {project.status !== 'active' && (
-                                <span className={cn(
-                                  'text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0',
-                                  project.status === 'completed' && 'bg-green-100 text-green-700',
-                                  project.status === 'on_hold' && 'bg-yellow-100 text-yellow-700',
-                                  project.status === 'cancelled' && 'bg-red-100 text-red-700'
-                                )}>
-                                  {project.status === 'completed' ? '완료' : project.status === 'on_hold' ? '보류' : '취소'}
-                                </span>
-                              )}
-                            </div>
-                            {project.description && (
-                              <div className="text-xs text-muted-foreground truncate">{project.description}</div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            {completed}/{total}
-                          </span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 opacity-30 hover:opacity-100"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              openProjectDialog(project)
-                            }}
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Milestones */}
-                      {isExpanded && (
-                        <div className="p-2 space-y-1 bg-background">
-                          {projectMilestones.map((milestone) => {
-                            const hasSchedules = milestonesWithSchedules.has(milestone.id)
-                            const statusConfig = {
-                              pending: {
-                                label: '대기',
-                                tooltip: '클릭해서 진행중으로 변경',
-                                color: 'text-amber-700 dark:text-amber-400',
-                                bgColor: 'bg-amber-100 dark:bg-amber-900/50',
-                              },
-                              in_progress: {
-                                label: '진행중',
-                                tooltip: '클릭해서 완료로 변경',
-                                color: 'text-blue-700 dark:text-blue-400',
-                                bgColor: 'bg-blue-100 dark:bg-blue-900/50',
-                              },
-                              completed: {
-                                label: '완료',
-                                tooltip: hasSchedules
-                                  ? '클릭해서 진행중으로 변경'
-                                  : '클릭해서 대기로 변경',
-                                color: 'text-emerald-700 dark:text-emerald-400',
-                                bgColor: 'bg-emerald-100 dark:bg-emerald-900/50',
-                              },
-                            }
-                            const config = statusConfig[milestone.status as keyof typeof statusConfig] || statusConfig.pending
-
-                            return editingMilestoneId === milestone.id ? (
-                              <div key={milestone.id} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
-                                <Input
-                                  value={milestoneForm.name}
-                                  onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
-                                  placeholder="마일스톤명"
-                                  className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && milestoneForm.name.trim()) {
-                                      saveMilestone()
-                                      setEditingMilestoneId(null)
-                                    } else if (e.key === 'Escape') {
-                                      setEditingMilestoneId(null)
-                                    }
-                                  }}
-                                />
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="relative flex-1 cursor-pointer"
-                                    onClick={(e) => {
-                                      const input = e.currentTarget.querySelector('input')
-                                      if (input) {
-                                        input.showPicker?.()
-                                        input.focus()
-                                      }
-                                    }}
-                                  >
-                                    <Input
-                                      type="date"
-                                      value={milestoneForm.target_date}
-                                      onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
-                                      className={cn(
-                                        "h-9 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
-                                        !milestoneForm.target_date && "date-placeholder-hidden"
-                                      )}
-                                    />
-                                    {!milestoneForm.target_date && (
-                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                                        목표마감일
-                                      </span>
-                                    )}
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    className="h-9 px-3"
-                                    onClick={() => {
-                                      deleteMilestone(milestone.id)
-                                      setEditingMilestoneId(null)
-                                    }}
-                                  >
-                                    삭제
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-9 px-3"
-                                    onClick={() => setEditingMilestoneId(null)}
-                                  >
-                                    취소
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    className="h-9 px-3"
-                                    disabled={!milestoneForm.name.trim() || saving}
-                                    onClick={async () => {
-                                      await saveMilestone()
-                                      setEditingMilestoneId(null)
-                                    }}
-                                  >
-                                    저장
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div
-                                key={milestone.id}
-                                className={cn(
-                                  'flex items-center gap-2 p-1.5 rounded text-sm',
-                                  milestone.status === 'completed' && 'bg-muted/50'
-                                )}
-                              >
-                                <button
-                                  onClick={() => toggleMilestoneStatus(milestone)}
-                                  className={cn(
-                                    'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium',
-                                    config.bgColor,
-                                    'hover:opacity-80 transition-opacity'
-                                  )}
-                                  title={config.tooltip}
-                                  disabled={togglingIds.has(`milestone-${milestone.id}`)}
-                                >
-                                  {togglingIds.has(`milestone-${milestone.id}`) ? (
-                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                  ) : milestone.status === 'completed' ? (
-                                    <CheckCircle2 className={cn('h-4 w-4', config.color)} />
-                                  ) : milestone.status === 'in_progress' ? (
-                                    <Clock className={cn('h-4 w-4', config.color)} />
-                                  ) : (
-                                    <Circle className={cn('h-4 w-4', config.color)} />
-                                  )}
-                                  <span className={config.color}>{config.label}</span>
-                                </button>
-                                <span
-                                  className={cn(
-                                    'flex-1 truncate flex items-center gap-1',
-                                    milestone.status === 'completed' &&
-                                      'line-through text-muted-foreground'
-                                  )}
-                                >
-                                  {milestone.name}
-                                  {milestone.target_date && milestone.status !== 'completed' && (() => {
-                                    const today = new Date()
-                                    today.setHours(0, 0, 0, 0)
-                                    const target = new Date(milestone.target_date)
-                                    target.setHours(0, 0, 0, 0)
-                                    const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-
-                                    let colorClass = 'text-muted-foreground'
-                                    if (diffDays < 0) colorClass = 'text-red-500'
-                                    else if (diffDays === 0) colorClass = 'text-red-500'
-                                    else if (diffDays <= 3) colorClass = 'text-orange-500'
-
-                                    const label = diffDays < 0
-                                      ? `D+${Math.abs(diffDays)}`
-                                      : diffDays === 0
-                                        ? 'D-Day'
-                                        : `D-${diffDays}`
-
-                                    return (
-                                      <span className={cn('text-xs flex-shrink-0', colorClass)} title={`목표: ${milestone.target_date}`}>
-                                        {label}
-                                      </span>
-                                    )
-                                  })()}
-                                  {hasSchedules && (
-                                    <span title="일정 있음">
-                                      <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                    </span>
-                                  )}
-                                </span>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-5 w-5 opacity-30 hover:opacity-100"
-                                  onClick={() => {
-                                    setMilestoneForm({
-                                      project_id: milestone.project_id,
-                                      name: milestone.name,
-                                      description: milestone.description || '',
-                                      target_date: milestone.target_date || '',
-                                    })
-                                    setEditingMilestone(milestone)
-                                    setEditingMilestoneId(milestone.id)
-                                  }}
-                                >
-                                  <Pencil className="h-2.5 w-2.5" />
-                                </Button>
-                              </div>
-                            )
-                          })}
-                          {addingMilestoneForProject === project.id ? (
-                            <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
-                              <Input
-                                value={milestoneForm.name}
-                                onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
-                                placeholder="마일스톤명"
-                                className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && milestoneForm.name.trim()) {
-                                    saveMilestone()
-                                    setAddingMilestoneForProject(null)
-                                  } else if (e.key === 'Escape') {
-                                    setAddingMilestoneForProject(null)
-                                    setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
-                                  }
-                                }}
-                              />
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="relative flex-1 cursor-pointer"
-                                  onClick={(e) => {
-                                    const input = e.currentTarget.querySelector('input')
-                                    if (input) {
-                                      input.showPicker?.()
-                                      input.focus()
-                                    }
-                                  }}
-                                >
-                                  <Input
-                                    type="date"
-                                    value={milestoneForm.target_date}
-                                    onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
-                                    className={cn(
-                                      "h-9 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
-                                      !milestoneForm.target_date && "date-placeholder-hidden"
-                                    )}
-                                  />
-                                  {!milestoneForm.target_date && (
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                                      목표마감일
-                                    </span>
-                                  )}
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-9 px-3"
-                                  onClick={() => {
-                                    setAddingMilestoneForProject(null)
-                                    setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
-                                  }}
-                                >
-                                  취소
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="h-9 px-3"
-                                  disabled={!milestoneForm.name.trim() || saving}
-                                  onClick={async () => {
-                                    await saveMilestone()
-                                    setAddingMilestoneForProject(null)
-                                  }}
-                                >
-                                  저장
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="w-full text-xs"
-                              onClick={() => {
-                                setMilestoneForm({ project_id: project.id, name: '', description: '', target_date: '' })
-                                setAddingMilestoneForProject(project.id)
-                              }}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              마일스톤 추가
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-                {filteredProjects.length === 0 && (
-                  <div className="text-center text-muted-foreground py-4 text-sm">
-                    프로젝트가 없습니다
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-
-          {/* Progress Summary */}
-          <Card className="bg-slate-100 dark:bg-slate-800">
-            <CardHeader
-              className={cn("cursor-pointer", progressExpanded ? "" : "-mb-2")}
-              onClick={() => setProgressExpanded(!progressExpanded)}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <GraduationCap className="h-5 w-5" />
-                    진행 현황
-                  </CardTitle>
-                  <CardDescription>클라이언트별 마일스톤 달성률</CardDescription>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    'h-4 w-4 text-muted-foreground transition-transform',
-                    !progressExpanded && '-rotate-90'
-                  )}
-                />
-              </div>
-            </CardHeader>
-            {progressExpanded && <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => {
-                  const clientProjects = projects.filter((t) => t.client_id === client.id)
-                  const clientMilestones = milestones.filter((c) =>
-                    clientProjects.some((t) => t.id === c.project_id)
-                  )
-                  const completed = clientMilestones.filter((c) => c.status === 'completed').length
-                  const total = clientMilestones.length
-                  const actualPercent = total > 0 ? Math.round((completed / total) * 100) : 0
-
-                  // Calculate target progress (milestones that should be done by today based on target_date)
-                  const today = new Date()
-                  today.setHours(0, 0, 0, 0)
-                  const shouldBeCompleted = clientMilestones.filter((c) => {
-                    if (!c.target_date) return false
-                    const target = new Date(c.target_date)
-                    target.setHours(0, 0, 0, 0)
-                    return target <= today
-                  }).length
-                  const targetPercent = total > 0 ? Math.round((shouldBeCompleted / total) * 100) : 0
-                  const diff = actualPercent - targetPercent
-
-                  return (
-                    <div key={client.id} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-1.5">
-                          <span>{client.name}</span>
-                          {total > 0 && (
-                            <span
-                              className={cn(
-                                'text-xs font-medium',
-                                diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-500' : 'text-muted-foreground'
-                              )}
-                            >
-                              {diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : '±0%'}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-muted-foreground text-xs">
-                          {completed}/{total}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground w-8">목표</span>
-                          <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all opacity-40"
-                              style={{ width: `${targetPercent}%`, backgroundColor: client.color }}
-                            />
-                          </div>
-                          <span className="text-[10px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground w-8">실제</span>
-                          <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{ width: `${actualPercent}%`, backgroundColor: client.color }}
-                            />
-                          </div>
-                          <span className="text-[10px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>}
-          </Card>
-        </div>
-
-        {/* Right Panel - Calendar + Wiki */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Calendar */}
+      <div className="space-y-6">
+      {/* Row 1 - Schedule (full width) */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
@@ -4012,7 +2920,7 @@ export default function WillowManagementPage() {
                                           )}
                                         </button>
                                         <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
-                                        <span className="truncate flex-1">
+                                        <span className="flex-1 break-words">
                                           {hw.schedule.title}
                                         </span>
                                       </div>
@@ -4053,7 +2961,7 @@ export default function WillowManagementPage() {
                                         )}
                                       </button>
                                       <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
-                                      <span className="truncate flex-1">
+                                      <span className="flex-1 break-words">
                                         {schedule.title}
                                       </span>
                                     </div>
@@ -4117,7 +3025,520 @@ export default function WillowManagementPage() {
             </CardContent>
           </Card>
 
-          {/* Work Wiki Section */}
+      {/* Row 2 - Invoice + Wiki (5:5) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <Card className="bg-slate-100 dark:bg-slate-800">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="h-5 w-5" />
+                  현금관리
+                </CardTitle>
+                <CardDescription>입출금 내역</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* View mode toggle */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setInvoiceViewMode('list')}
+                    className={cn(
+                      'min-w-[52px] px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                      invoiceViewMode === 'list'
+                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
+                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    )}
+                  >
+                    목록
+                  </button>
+                  <button
+                    onClick={() => setInvoiceViewMode('summary')}
+                    className={cn(
+                      'min-w-[52px] px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                      invoiceViewMode === 'summary'
+                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
+                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    )}
+                  >
+                    표
+                  </button>
+                </div>
+                <button
+                  onClick={openNewInvoiceModal}
+                  className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">추가</span>
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {invoiceViewMode === 'list' ? (
+                <>
+                  {/* Type filter tabs */}
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {(['all', 'revenue', 'expense', 'asset', 'liability'] as const).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => {
+                          setInvoiceTypeFilter(type)
+                          setInvoicePage(1)
+                        }}
+                        className={cn(
+                          'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                          invoiceTypeFilter === type
+                            ? 'bg-slate-900 text-white dark:bg-slate-600'
+                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                        )}
+                      >
+                        {type === 'all' ? '전체' : type === 'revenue' ? '매출' : type === 'expense' ? '비용' : type === 'asset' ? '자산' : '부채'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Date range filter */}
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <span className="text-xs text-slate-500">기간</span>
+                    <input
+                      type="date"
+                      value={invoiceDateFrom}
+                      onChange={(e) => {
+                        setInvoiceDateFrom(e.target.value)
+                        setInvoicePage(1)
+                      }}
+                      className="px-2 py-1 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
+                    />
+                    <span className="text-xs text-slate-400">~</span>
+                    <input
+                      type="date"
+                      value={invoiceDateTo}
+                      onChange={(e) => {
+                        setInvoiceDateTo(e.target.value)
+                        setInvoicePage(1)
+                      }}
+                      className="px-2 py-1 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-600 outline-none"
+                    />
+                    {(invoiceDateFrom || invoiceDateTo) && (
+                      <button
+                        onClick={() => {
+                          setInvoiceDateFrom('')
+                          setInvoiceDateTo('')
+                          setInvoicePage(1)
+                        }}
+                        className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      >
+                        초기화
+                      </button>
+                    )}
+                  </div>
+
+                  {(() => {
+                    // Client-side filtering and sorting for list view
+                    let filteredInvoices = invoiceTypeFilter === 'all'
+                      ? invoices
+                      : invoices.filter(inv => inv.type === invoiceTypeFilter)
+
+                    // Date range filter (based on payment_date or issue_date)
+                    if (invoiceDateFrom || invoiceDateTo) {
+                      filteredInvoices = filteredInvoices.filter(inv => {
+                        const dateToCheck = inv.payment_date || inv.issue_date
+                        if (!dateToCheck) return false
+                        if (invoiceDateFrom && dateToCheck < invoiceDateFrom) return false
+                        if (invoiceDateTo && dateToCheck > invoiceDateTo) return false
+                        return true
+                      })
+                    }
+
+                    filteredInvoices = filteredInvoices.sort((a, b) => {
+                      // Sort by payment_date first (newest first), then by issue_date
+                      const aPayment = a.payment_date ? new Date(a.payment_date).getTime() : 0
+                      const bPayment = b.payment_date ? new Date(b.payment_date).getTime() : 0
+                      if (aPayment !== bPayment) return bPayment - aPayment
+                      const aIssue = a.issue_date ? new Date(a.issue_date).getTime() : 0
+                      const bIssue = b.issue_date ? new Date(b.issue_date).getTime() : 0
+                      return bIssue - aIssue
+                    })
+                    const totalPages = Math.ceil(filteredInvoices.length / invoicesPerPage)
+                    const paginatedInvoices = filteredInvoices.slice(
+                      (invoicePage - 1) * invoicesPerPage,
+                      invoicePage * invoicesPerPage
+                    )
+                    return (
+                      <>
+                        <div className="space-y-2">
+                          {isLoadingInvoices ? (
+                            <div className="text-center py-8">
+                              <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                            </div>
+                          ) : filteredInvoices.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                              <p className="text-sm">등록된 재무항목이 없습니다</p>
+                              <p className="text-xs">새 항목을 추가해주세요</p>
+                            </div>
+                          ) : (
+                            paginatedInvoices.map((invoice) => {
+                              const computedStatus = getInvoiceStatus(invoice)
+                              const statusStyle = INVOICE_STATUS_STYLES[computedStatus]
+                              return (
+                                <div
+                                  key={invoice.id}
+                                  className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                                  onClick={() => openEditInvoiceModal(invoice)}
+                                >
+                                  <span className={cn(
+                                    'px-2 py-0.5 rounded text-xs font-medium shrink-0',
+                                    invoice.type === 'revenue' ? 'bg-blue-100 text-blue-700' :
+                                    invoice.type === 'expense' ? 'bg-orange-100 text-orange-700' :
+                                    invoice.type === 'asset' ? 'bg-emerald-100 text-emerald-700' :
+                                    'bg-purple-100 text-purple-700'
+                                  )}>
+                                    {invoice.type === 'revenue' ? '매출' : invoice.type === 'expense' ? '비용' : invoice.type === 'asset' ? '자산' : '부채'}
+                                  </span>
+                                  <span className="font-medium text-sm truncate">{invoice.counterparty}</span>
+                                  {invoice.description && <span className="text-xs text-muted-foreground truncate hidden sm:inline">{invoice.description}</span>}
+                                  {invoice.description && (invoice.payment_date || invoice.issue_date) && <span className="text-xs text-muted-foreground hidden sm:inline">·</span>}
+                                  {(invoice.payment_date || invoice.issue_date) && <span className="text-xs text-muted-foreground shrink-0">{(() => { const d = invoice.payment_date || invoice.issue_date!; return `${d}(${['일','월','화','수','목','금','토'][new Date(d).getDay()]})`; })()}</span>}
+                                  <span className="font-medium text-sm shrink-0 ml-auto">{formatKRW(invoice.amount)}</span>
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+                        {filteredInvoices.length > 0 && (
+                          <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                {filteredInvoices.length}개 중 {(invoicePage - 1) * invoicesPerPage + 1}-{Math.min(invoicePage * invoicesPerPage, filteredInvoices.length)}
+                              </p>
+                              <div className="relative">
+                                <select
+                                  value={invoicesPerPage}
+                                  onChange={(e) => {
+                                    setInvoicesPerPage(Number(e.target.value))
+                                    setInvoicePage(1)
+                                  }}
+                                  className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                  <option value={5}>5개</option>
+                                  <option value={10}>10개</option>
+                                  <option value={25}>25개</option>
+                                  <option value={50}>50개</option>
+                                </select>
+                                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                              </div>
+                            </div>
+                            {totalPages > 1 && (
+                              <div className="flex items-center gap-0.5">
+                                <button onClick={() => setInvoicePage(1)} disabled={invoicePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                                <button onClick={() => setInvoicePage(p => Math.max(1, p - 1))} disabled={invoicePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                                <span className="px-2 py-1 text-xs font-medium">{invoicePage}/{totalPages}</span>
+                                <button onClick={() => setInvoicePage(p => Math.min(totalPages, p + 1))} disabled={invoicePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                                <button onClick={() => setInvoicePage(totalPages)} disabled={invoicePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
+                </>
+              ) : (
+                /* Financial Summary View */
+                (() => {
+                  // Period filter tabs
+                  const periodLabels = { monthly: '월별', quarterly: '분기별', yearly: '연도별' }
+
+                  // Calculate summary data based on period
+                  const getSummaryData = () => {
+                    const allInvoices = invoices // Use all invoices, not filtered
+                    const summaryMap = new Map<string, {
+                      revenue: number; expense: number; asset: number; liability: number;
+                      revenueCount: number; expenseCount: number; assetCount: number; liabilityCount: number
+                    }>()
+
+                    for (const inv of allInvoices) {
+                      // 입금일/지급일이 없으면 합계에서 제외
+                      if (!inv.payment_date) continue
+                      // 거래처 필터 적용
+                      if (summaryCounterpartyFilter && inv.counterparty !== summaryCounterpartyFilter) continue
+
+                      const date = new Date(inv.payment_date)
+                      let periodKey: string
+
+                      if (invoiceSummaryPeriod === 'monthly') {
+                        periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+                      } else if (invoiceSummaryPeriod === 'quarterly') {
+                        const quarter = Math.ceil((date.getMonth() + 1) / 3)
+                        periodKey = `${date.getFullYear()}-Q${quarter}`
+                      } else {
+                        periodKey = `${date.getFullYear()}`
+                      }
+
+                      const existing = summaryMap.get(periodKey) || {
+                        revenue: 0, expense: 0, asset: 0, liability: 0,
+                        revenueCount: 0, expenseCount: 0, assetCount: 0, liabilityCount: 0
+                      }
+                      if (inv.type === 'revenue') {
+                        existing.revenue += inv.amount
+                        existing.revenueCount++
+                      } else if (inv.type === 'expense') {
+                        existing.expense += inv.amount
+                        existing.expenseCount++
+                      } else if (inv.type === 'asset') {
+                        existing.asset += inv.amount
+                        existing.assetCount++
+                      } else if (inv.type === 'liability') {
+                        existing.liability += inv.amount
+                        existing.liabilityCount++
+                      }
+                      summaryMap.set(periodKey, existing)
+                    }
+
+                    // Sort by period (descending)
+                    return Array.from(summaryMap.entries())
+                      .sort((a, b) => b[0].localeCompare(a[0]))
+                  }
+
+                  const summaryData = getSummaryData()
+
+                  // Get unique counterparties sorted alphabetically
+                  const uniqueCounterparties = Array.from(
+                    new Set(invoices.filter(inv => inv.payment_date).map(inv => inv.counterparty))
+                  ).sort((a, b) => a.localeCompare(b, 'ko'))
+
+                  return (
+                    <>
+                      {/* Period filter + Counterparty filter */}
+                      <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <div className="flex gap-1">
+                          {(['monthly', 'quarterly', 'yearly'] as const).map((period) => (
+                            <button
+                              key={period}
+                              onClick={() => setInvoiceSummaryPeriod(period)}
+                              className={cn(
+                                'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                                invoiceSummaryPeriod === period
+                                  ? 'bg-slate-900 text-white dark:bg-slate-600'
+                                  : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                              )}
+                            >
+                              {periodLabels[period]}
+                            </button>
+                          ))}
+                        </div>
+                        {uniqueCounterparties.length > 0 && (
+                          <div className="relative">
+                            <select
+                              value={summaryCounterpartyFilter || ''}
+                              onChange={(e) => setSummaryCounterpartyFilter(e.target.value || null)}
+                              className="text-xs bg-white dark:bg-slate-800 rounded-lg pl-2 pr-6 py-1.5 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                            >
+                              <option value="">전체 거래처</option>
+                              {uniqueCounterparties.map((cp) => (
+                                <option key={cp} value={cp}>{cp}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+
+                      {isLoadingInvoices ? (
+                        <div className="text-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                        </div>
+                      ) : summaryData.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <BarChart3 className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                          <p className="text-sm">데이터가 없습니다</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {summaryData.map(([period, data]) => {
+                            // 현금흐름 계산: 매출 + 부채(유입) - 비용 - 자산(유출)
+                            const operatingCashFlow = data.revenue - data.expense
+                            const investingCashFlow = -data.asset // 자산 취득은 현금 유출
+                            const financingCashFlow = data.liability // 부채 증가는 현금 유입
+                            const totalCashFlow = operatingCashFlow + investingCashFlow + financingCashFlow
+                            const isExpanded = expandedSummaryPeriod === period
+
+                            // Get invoices for this period (only those with payment_date)
+                            const getInvoicesForPeriod = () => {
+                              return invoices.filter((inv) => {
+                                // 입금일/지급일이 없으면 제외
+                                if (!inv.payment_date) return false
+                                // 거래처 필터 적용
+                                if (summaryCounterpartyFilter && inv.counterparty !== summaryCounterpartyFilter) return false
+
+                                const date = new Date(inv.payment_date)
+                                let periodKey: string
+
+                                if (invoiceSummaryPeriod === 'monthly') {
+                                  periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+                                } else if (invoiceSummaryPeriod === 'quarterly') {
+                                  const quarter = Math.ceil((date.getMonth() + 1) / 3)
+                                  periodKey = `${date.getFullYear()}-Q${quarter}`
+                                } else {
+                                  periodKey = `${date.getFullYear()}`
+                                }
+
+                                return periodKey === period
+                              }).sort((a, b) => {
+                                // Sort by payment_date first (newest first), then by issue_date
+                                const aPayment = a.payment_date ? new Date(a.payment_date).getTime() : 0
+                                const bPayment = b.payment_date ? new Date(b.payment_date).getTime() : 0
+                                if (aPayment !== bPayment) return bPayment - aPayment
+                                const aIssue = a.issue_date ? new Date(a.issue_date).getTime() : 0
+                                const bIssue = b.issue_date ? new Date(b.issue_date).getTime() : 0
+                                if (aIssue !== bIssue) return bIssue - aIssue
+                                // Same date: sort by type (revenue > expense > asset > liability)
+                                const typeOrder = { revenue: 0, expense: 1, asset: 2, liability: 3 }
+                                const aType = typeOrder[a.type as keyof typeof typeOrder] ?? 4
+                                const bType = typeOrder[b.type as keyof typeof typeOrder] ?? 4
+                                if (aType !== bType) return aType - bType
+                                // Same type: sort by counterparty name (가나다순)
+                                return a.counterparty.localeCompare(b.counterparty, 'ko')
+                              })
+                            }
+
+                            const periodInvoices = isExpanded ? getInvoicesForPeriod() : []
+
+                            return (
+                              <div key={period} className="bg-white dark:bg-slate-700 rounded-lg overflow-hidden">
+                                <button
+                                  onClick={() => setExpandedSummaryPeriod(isExpanded ? null : period)}
+                                  className="w-full p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                                >
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-xs font-medium text-muted-foreground">{period}</h4>
+                                    <ChevronDown className={cn(
+                                      'h-4 w-4 text-slate-400 transition-transform',
+                                      isExpanded && 'rotate-180'
+                                    )} />
+                                  </div>
+                                  {/* 영업활동 */}
+                                  <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
+                                    <div>
+                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-blue-600 mb-1">
+                                        <TrendingUp className="h-3 w-3 hidden sm:block" />
+                                        매출 ({data.revenueCount})
+                                      </div>
+                                      <p className="text-xs sm:text-sm font-bold text-blue-700">{formatKRW(data.revenue)}</p>
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-orange-600 mb-1">
+                                        <TrendingDown className="h-3 w-3 hidden sm:block" />
+                                        비용 ({data.expenseCount})
+                                      </div>
+                                      <p className="text-xs sm:text-sm font-bold text-orange-700">{formatKRW(data.expense)}</p>
+                                    </div>
+                                    <div>
+                                      <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">영업이익</div>
+                                      <p className={cn(
+                                        'text-xs sm:text-sm font-bold',
+                                        operatingCashFlow >= 0 ? 'text-slate-700 dark:text-slate-200' : 'text-red-600'
+                                      )}>
+                                        {formatKRW(operatingCashFlow)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {/* 투자/재무활동 + 현금흐름 */}
+                                  <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-3 border-t border-slate-100 dark:border-slate-600">
+                                    <div>
+                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-emerald-600 mb-1">
+                                        <TrendingDown className="h-3 w-3 hidden sm:block" />
+                                        자산 ({data.assetCount})
+                                      </div>
+                                      <p className="text-xs sm:text-sm font-bold text-emerald-700">{formatKRW(data.asset)}</p>
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-purple-600 mb-1">
+                                        <TrendingUp className="h-3 w-3 hidden sm:block" />
+                                        부채 ({data.liabilityCount})
+                                      </div>
+                                      <p className="text-xs sm:text-sm font-bold text-purple-700">{formatKRW(data.liability)}</p>
+                                    </div>
+                                    <div>
+                                      <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">현금흐름</div>
+                                      <p className={cn(
+                                        'text-xs sm:text-sm font-bold',
+                                        totalCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'
+                                      )}>
+                                        {totalCashFlow >= 0 ? '+' : ''}{formatKRW(totalCashFlow)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </button>
+
+                                {/* Expanded invoice list */}
+                                {isExpanded && (
+                                  <div>
+                                    {periodInvoices.length === 0 ? (
+                                      <p className="text-sm text-muted-foreground text-center py-4">항목 없음</p>
+                                    ) : (
+                                      <div>
+                                        {periodInvoices.map((inv) => (
+                                          <div
+                                            key={inv.id}
+                                            className="px-4 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer"
+                                            onClick={() => {
+                                              setEditingInvoice(inv)
+                                              setInvoiceFormType(inv.type)
+                                              setInvoiceFormCounterparty(inv.counterparty)
+                                              setInvoiceFormDescription(inv.description || '')
+                                              setInvoiceFormAmount(String(inv.amount))
+                                              setInvoiceFormDate(inv.issue_date || '')
+                                              setInvoiceFormPaymentDate(inv.payment_date || '')
+                                              setInvoiceFormNotes(inv.notes || '')
+                                              setInvoiceFormAccountNumber(inv.account_number || '')
+                                              setIsInvoiceModalOpen(true)
+                                            }}
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              <span className={cn(
+                                                'flex-shrink-0 text-[10px] w-7 text-center py-0.5 rounded font-medium',
+                                                inv.type === 'revenue' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                                                inv.type === 'expense' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' :
+                                                inv.type === 'asset' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' :
+                                                'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                                              )}>
+                                                {inv.type === 'revenue' ? '매출' : inv.type === 'expense' ? '비용' : inv.type === 'asset' ? '자산' : '부채'}
+                                              </span>
+                                              <span className="flex-shrink-0 text-xs text-muted-foreground w-20">{inv.payment_date || inv.issue_date || '-'}</span>
+                                              <span className="text-sm font-medium truncate flex-1 min-w-0">
+                                                {inv.counterparty}
+                                                {inv.description && <span className="text-muted-foreground font-normal"> - {inv.description}</span>}
+                                              </span>
+                                              <span className={cn(
+                                                'flex-shrink-0 text-sm font-bold text-right min-w-[80px]',
+                                                inv.type === 'revenue' ? 'text-blue-600' :
+                                                inv.type === 'expense' ? 'text-orange-600' :
+                                                inv.type === 'asset' ? 'text-emerald-600' :
+                                                'text-purple-600'
+                                              )}>
+                                                {formatKRW(inv.amount)}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        <div>
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -4508,9 +3929,10 @@ export default function WillowManagementPage() {
               )}
             </CardContent>
           </Card>
+        </div>
+      </div>
 
-
-          {/* Email Section */}
+      {/* Row 3 - Email (full width) */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="space-y-4">
               {gmailMessage && (
@@ -5148,8 +4570,520 @@ export default function WillowManagementPage() {
               </div>
             </CardContent>
           </Card>
+
+      {/* Row 4 - Client/Projects + Progress (5:5) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <Card className="bg-slate-100 dark:bg-slate-800">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <BookMarked className="h-5 w-5" />
+                  클라이언트 및 프로젝트
+                </CardTitle>
+                <CardDescription>프로젝트 및 마일스톤 관리</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                  onClick={() => openClientDialog()}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">클라이언트</span>
+                </button>
+                <button
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                  onClick={() => openProjectDialog()}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">프로젝트</span>
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Client filter */}
+              <div className="flex flex-wrap gap-1 items-center mb-4">
+                <button
+                  onClick={() => setSelectedClient(null)}
+                  className={cn(
+                    'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                    selectedClient === null
+                      ? 'bg-slate-900 text-white dark:bg-slate-600'
+                      : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                  )}
+                >
+                  전체
+                </button>
+                {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => (
+                  <button
+                    key={client.id}
+                    onClick={() => setSelectedClient(client.id)}
+                    className={cn(
+                      'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                      selectedClient === client.id
+                        ? 'text-white'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                    )}
+                    style={{
+                      backgroundColor: selectedClient === client.id ? client.color : undefined,
+                    }}
+                  >
+                    {client.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Projects list */}
+              <div className="space-y-2">
+                {filteredProjects.map((project) => {
+                  const projectMilestones = getMilestonesForProject(project.id)
+                  const completed = projectMilestones.filter((c) => c.status === 'completed').length
+                  const total = projectMilestones.length
+                  const isExpanded = expandedProjects.includes(project.id)
+
+                  return (
+                    <div
+                      key={project.id}
+                      className="rounded-lg overflow-hidden"
+                      style={{ borderLeft: `3px solid ${project.client?.color || '#888'}` }}
+                    >
+                      {/* Project header */}
+                      <div
+                        className="p-2 cursor-pointer flex items-center justify-between transition-opacity hover:opacity-80"
+                        style={{ backgroundColor: `${project.client?.color || '#888'}15` }}
+                        onClick={() => toggleProject(project.id)}
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <ChevronDown
+                            className={cn(
+                              'h-4 w-4 transition-transform flex-shrink-0',
+                              !isExpanded && '-rotate-90'
+                            )}
+                          />
+                          <div className="flex-1 min-w-0">
+                            {project.client && (
+                              <div className="text-xs text-muted-foreground">{project.client.name}</div>
+                            )}
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-medium text-sm truncate">{project.name}</span>
+                              {project.status !== 'active' && (
+                                <span className={cn(
+                                  'text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0',
+                                  project.status === 'completed' && 'bg-green-100 text-green-700',
+                                  project.status === 'on_hold' && 'bg-yellow-100 text-yellow-700',
+                                  project.status === 'cancelled' && 'bg-red-100 text-red-700'
+                                )}>
+                                  {project.status === 'completed' ? '완료' : project.status === 'on_hold' ? '보류' : '취소'}
+                                </span>
+                              )}
+                            </div>
+                            {project.description && (
+                              <div className="text-xs text-muted-foreground truncate">{project.description}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {completed}/{total}
+                          </span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 opacity-30 hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openProjectDialog(project)
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Milestones */}
+                      {isExpanded && (
+                        <div className="p-2 space-y-1 bg-background">
+                          {projectMilestones.map((milestone) => {
+                            const hasSchedules = milestonesWithSchedules.has(milestone.id)
+                            const statusConfig = {
+                              pending: {
+                                label: '대기',
+                                tooltip: '클릭해서 진행중으로 변경',
+                                color: 'text-amber-700 dark:text-amber-400',
+                                bgColor: 'bg-amber-100 dark:bg-amber-900/50',
+                              },
+                              in_progress: {
+                                label: '진행중',
+                                tooltip: '클릭해서 완료로 변경',
+                                color: 'text-blue-700 dark:text-blue-400',
+                                bgColor: 'bg-blue-100 dark:bg-blue-900/50',
+                              },
+                              completed: {
+                                label: '완료',
+                                tooltip: hasSchedules
+                                  ? '클릭해서 진행중으로 변경'
+                                  : '클릭해서 대기로 변경',
+                                color: 'text-emerald-700 dark:text-emerald-400',
+                                bgColor: 'bg-emerald-100 dark:bg-emerald-900/50',
+                              },
+                            }
+                            const config = statusConfig[milestone.status as keyof typeof statusConfig] || statusConfig.pending
+
+                            return editingMilestoneId === milestone.id ? (
+                              <div key={milestone.id} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                                <Input
+                                  value={milestoneForm.name}
+                                  onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
+                                  placeholder="마일스톤명"
+                                  className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && milestoneForm.name.trim()) {
+                                      saveMilestone()
+                                      setEditingMilestoneId(null)
+                                    } else if (e.key === 'Escape') {
+                                      setEditingMilestoneId(null)
+                                    }
+                                  }}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="relative flex-1 cursor-pointer"
+                                    onClick={(e) => {
+                                      const input = e.currentTarget.querySelector('input')
+                                      if (input) {
+                                        input.showPicker?.()
+                                        input.focus()
+                                      }
+                                    }}
+                                  >
+                                    <Input
+                                      type="date"
+                                      value={milestoneForm.target_date}
+                                      onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
+                                      className={cn(
+                                        "h-9 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
+                                        !milestoneForm.target_date && "date-placeholder-hidden"
+                                      )}
+                                    />
+                                    {!milestoneForm.target_date && (
+                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                        목표마감일
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-9 px-3"
+                                    onClick={() => {
+                                      deleteMilestone(milestone.id)
+                                      setEditingMilestoneId(null)
+                                    }}
+                                  >
+                                    삭제
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-9 px-3"
+                                    onClick={() => setEditingMilestoneId(null)}
+                                  >
+                                    취소
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-9 px-3"
+                                    disabled={!milestoneForm.name.trim() || saving}
+                                    onClick={async () => {
+                                      await saveMilestone()
+                                      setEditingMilestoneId(null)
+                                    }}
+                                  >
+                                    저장
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div
+                                key={milestone.id}
+                                className={cn(
+                                  'flex items-center gap-2 p-1.5 rounded text-sm',
+                                  milestone.status === 'completed' && 'bg-muted/50'
+                                )}
+                              >
+                                <button
+                                  onClick={() => toggleMilestoneStatus(milestone)}
+                                  className={cn(
+                                    'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium',
+                                    config.bgColor,
+                                    'hover:opacity-80 transition-opacity'
+                                  )}
+                                  title={config.tooltip}
+                                  disabled={togglingIds.has(`milestone-${milestone.id}`)}
+                                >
+                                  {togglingIds.has(`milestone-${milestone.id}`) ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                  ) : milestone.status === 'completed' ? (
+                                    <CheckCircle2 className={cn('h-4 w-4', config.color)} />
+                                  ) : milestone.status === 'in_progress' ? (
+                                    <Clock className={cn('h-4 w-4', config.color)} />
+                                  ) : (
+                                    <Circle className={cn('h-4 w-4', config.color)} />
+                                  )}
+                                  <span className={config.color}>{config.label}</span>
+                                </button>
+                                <span
+                                  className={cn(
+                                    'flex-1 truncate flex items-center gap-1',
+                                    milestone.status === 'completed' &&
+                                      'line-through text-muted-foreground'
+                                  )}
+                                >
+                                  {milestone.name}
+                                  {milestone.target_date && milestone.status !== 'completed' && (() => {
+                                    const today = new Date()
+                                    today.setHours(0, 0, 0, 0)
+                                    const target = new Date(milestone.target_date)
+                                    target.setHours(0, 0, 0, 0)
+                                    const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+                                    let colorClass = 'text-muted-foreground'
+                                    if (diffDays < 0) colorClass = 'text-red-500'
+                                    else if (diffDays === 0) colorClass = 'text-red-500'
+                                    else if (diffDays <= 3) colorClass = 'text-orange-500'
+
+                                    const label = diffDays < 0
+                                      ? `D+${Math.abs(diffDays)}`
+                                      : diffDays === 0
+                                        ? 'D-Day'
+                                        : `D-${diffDays}`
+
+                                    return (
+                                      <span className={cn('text-xs flex-shrink-0', colorClass)} title={`목표: ${milestone.target_date}`}>
+                                        {label}
+                                      </span>
+                                    )
+                                  })()}
+                                  {hasSchedules && (
+                                    <span title="일정 있음">
+                                      <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                    </span>
+                                  )}
+                                </span>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-5 w-5 opacity-30 hover:opacity-100"
+                                  onClick={() => {
+                                    setMilestoneForm({
+                                      project_id: milestone.project_id,
+                                      name: milestone.name,
+                                      description: milestone.description || '',
+                                      target_date: milestone.target_date || '',
+                                    })
+                                    setEditingMilestone(milestone)
+                                    setEditingMilestoneId(milestone.id)
+                                  }}
+                                >
+                                  <Pencil className="h-2.5 w-2.5" />
+                                </Button>
+                              </div>
+                            )
+                          })}
+                          {addingMilestoneForProject === project.id ? (
+                            <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                              <Input
+                                value={milestoneForm.name}
+                                onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
+                                placeholder="마일스톤명"
+                                className="h-8 text-sm focus-visible:bg-white dark:focus-visible:bg-slate-700"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && milestoneForm.name.trim()) {
+                                    saveMilestone()
+                                    setAddingMilestoneForProject(null)
+                                  } else if (e.key === 'Escape') {
+                                    setAddingMilestoneForProject(null)
+                                    setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
+                                  }
+                                }}
+                              />
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="relative flex-1 cursor-pointer"
+                                  onClick={(e) => {
+                                    const input = e.currentTarget.querySelector('input')
+                                    if (input) {
+                                      input.showPicker?.()
+                                      input.focus()
+                                    }
+                                  }}
+                                >
+                                  <Input
+                                    type="date"
+                                    value={milestoneForm.target_date}
+                                    onChange={(e) => setMilestoneForm({ ...milestoneForm, target_date: e.target.value })}
+                                    className={cn(
+                                      "h-9 text-sm w-full cursor-pointer focus-visible:bg-white dark:focus-visible:bg-slate-700",
+                                      !milestoneForm.target_date && "date-placeholder-hidden"
+                                    )}
+                                  />
+                                  {!milestoneForm.target_date && (
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                      목표마감일
+                                    </span>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-9 px-3"
+                                  onClick={() => {
+                                    setAddingMilestoneForProject(null)
+                                    setMilestoneForm({ project_id: '', name: '', description: '', target_date: '' })
+                                  }}
+                                >
+                                  취소
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="h-9 px-3"
+                                  disabled={!milestoneForm.name.trim() || saving}
+                                  onClick={async () => {
+                                    await saveMilestone()
+                                    setAddingMilestoneForProject(null)
+                                  }}
+                                >
+                                  저장
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="w-full text-xs"
+                              onClick={() => {
+                                setMilestoneForm({ project_id: project.id, name: '', description: '', target_date: '' })
+                                setAddingMilestoneForProject(project.id)
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              마일스톤 추가
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+                {filteredProjects.length === 0 && (
+                  <div className="text-center text-muted-foreground py-4 text-sm">
+                    프로젝트가 없습니다
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div>
+          <Card className="bg-slate-100 dark:bg-slate-800">
+            <CardHeader
+              className={cn("cursor-pointer", progressExpanded ? "" : "-mb-2")}
+              onClick={() => setProgressExpanded(!progressExpanded)}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5" />
+                    진행 현황
+                  </CardTitle>
+                  <CardDescription>클라이언트별 마일스톤 달성률</CardDescription>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 text-muted-foreground transition-transform',
+                    !progressExpanded && '-rotate-90'
+                  )}
+                />
+              </div>
+            </CardHeader>
+            {progressExpanded && <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((client) => {
+                  const clientProjects = projects.filter((t) => t.client_id === client.id)
+                  const clientMilestones = milestones.filter((c) =>
+                    clientProjects.some((t) => t.id === c.project_id)
+                  )
+                  const completed = clientMilestones.filter((c) => c.status === 'completed').length
+                  const total = clientMilestones.length
+                  const actualPercent = total > 0 ? Math.round((completed / total) * 100) : 0
+
+                  // Calculate target progress (milestones that should be done by today based on target_date)
+                  const today = new Date()
+                  today.setHours(0, 0, 0, 0)
+                  const shouldBeCompleted = clientMilestones.filter((c) => {
+                    if (!c.target_date) return false
+                    const target = new Date(c.target_date)
+                    target.setHours(0, 0, 0, 0)
+                    return target <= today
+                  }).length
+                  const targetPercent = total > 0 ? Math.round((shouldBeCompleted / total) * 100) : 0
+                  const diff = actualPercent - targetPercent
+
+                  return (
+                    <div key={client.id} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1.5">
+                          <span>{client.name}</span>
+                          {total > 0 && (
+                            <span
+                              className={cn(
+                                'text-xs font-medium',
+                                diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-500' : 'text-muted-foreground'
+                              )}
+                            >
+                              {diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : '±0%'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-muted-foreground text-xs">
+                          {completed}/{total}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground w-8">목표</span>
+                          <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all opacity-40"
+                              style={{ width: `${targetPercent}%`, backgroundColor: client.color }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground w-8">실제</span>
+                          <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ width: `${actualPercent}%`, backgroundColor: client.color }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>}
+          </Card>
         </div>
       </div>
+      </div>
+
 
       {/* Invoice Modal (Simplified) */}
       <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
