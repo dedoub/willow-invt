@@ -162,8 +162,18 @@ export function TiptapEditor({
           margin: 0.375rem 0;
           min-height: 1.5em;
         }
+        .tiptap h1 {
+          font-size: 1rem;
+          font-weight: 700;
+          margin: 0.625rem 0 0.375rem;
+        }
         .tiptap h2 {
           font-size: 0.875rem;
+          font-weight: 600;
+          margin: 0.5rem 0 0.25rem;
+        }
+        .tiptap h3 {
+          font-size: 0.8125rem;
           font-weight: 600;
           margin: 0.5rem 0 0.25rem;
         }
@@ -189,6 +199,47 @@ export function TiptapEditor({
         .tiptap em {
           font-style: italic;
         }
+        .tiptap s {
+          text-decoration: line-through;
+        }
+        .tiptap code {
+          background-color: #f1f5f9;
+          color: #e11d48;
+          padding: 0.125rem 0.25rem;
+          border-radius: 0.25rem;
+          font-size: 0.6875rem;
+          font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+        }
+        .dark .tiptap code {
+          background-color: #334155;
+          color: #fb7185;
+        }
+        .tiptap pre {
+          background-color: #f1f5f9;
+          padding: 0.75rem;
+          border-radius: 0.375rem;
+          margin: 0.5rem 0;
+          overflow-x: auto;
+        }
+        .dark .tiptap pre {
+          background-color: #1e293b;
+        }
+        .tiptap pre code {
+          background: none;
+          color: inherit;
+          padding: 0;
+          font-size: 0.6875rem;
+        }
+        .tiptap blockquote {
+          border-left: 3px solid #cbd5e1;
+          padding-left: 0.75rem;
+          margin: 0.5rem 0;
+          color: #64748b;
+        }
+        .dark .tiptap blockquote {
+          border-left-color: #475569;
+          color: #94a3b8;
+        }
         .tiptap hr {
           border: none;
           border-top: 1px solid #e2e8f0;
@@ -209,14 +260,33 @@ export function htmlToPlainText(html: string): string {
   return tmp.textContent || tmp.innerText || ''
 }
 
-// 일반 텍스트를 HTML로 변환 (기존 데이터 마이그레이션용)
+// 마크다운 감지 패턴
+const MARKDOWN_PATTERNS = /^#{1,6}\s|^\*\*|^-{3,}|^\*\s|^-\s|^\d+\.\s|^>\s|```|^\|/m
+
+// 일반 텍스트/마크다운을 HTML로 변환
 export function plainTextToHtml(text: string): string {
   if (!text) return ''
   // 이미 HTML인 경우 그대로 반환
   if (text.startsWith('<')) return text
-  // 줄바꿈을 <p> 태그로 변환
+  // 마크다운 패턴이 있으면 마크다운으로 파싱
+  if (MARKDOWN_PATTERNS.test(text)) {
+    return markdownToHtml(text)
+  }
+  // 순수 텍스트: 줄바꿈을 <p> 태그로 변환
   return text
     .split('\n')
     .map(line => `<p>${line || '<br>'}</p>`)
     .join('')
+}
+
+// 마크다운을 HTML로 변환 (동기)
+import { marked } from 'marked'
+
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
+
+export function markdownToHtml(markdown: string): string {
+  return marked.parse(markdown, { async: false }) as string
 }

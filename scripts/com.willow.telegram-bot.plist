@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 서비스 식별자 -->
+	<key>Label</key>
+	<string>com.willow.telegram-bot</string>
+
+	<!-- 실행할 스크립트 -->
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-telegram-bot.sh</string>
+	</array>
+
+	<!-- 작업 디렉토리 -->
+	<key>WorkingDirectory</key>
+	<string>/Volumes/PRO-G40/app-dev/willow-invt</string>
+
+	<!-- 환경변수 (homebrew PATH) -->
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+	</dict>
+
+	<!-- 로그인 시 자동 시작 -->
+	<key>RunAtLoad</key>
+	<true/>
+
+	<!-- 크래시 시 자동 재시작 -->
+	<key>KeepAlive</key>
+	<dict>
+		<!-- 비정상 종료 시에만 재시작 -->
+		<key>SuccessfulExit</key>
+		<false/>
+		<!-- 외장하드가 마운트되어 있을 때만 -->
+		<key>PathState</key>
+		<dict>
+			<key>/Volumes/PRO-G40/app-dev/willow-invt/package.json</key>
+			<true/>
+		</dict>
+	</dict>
+
+	<!-- 재시작 간격 (60초) -->
+	<key>ThrottleInterval</key>
+	<integer>60</integer>
+
+	<!-- 로그 -->
+	<key>StandardOutPath</key>
+	<string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/logs/telegram-bot-launchd.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/logs/telegram-bot-launchd-error.log</string>
+
+	<!-- 프로세스 제한 -->
+	<key>ProcessType</key>
+	<string>Background</string>
+</dict>
+</plist>

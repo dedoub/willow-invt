@@ -5,7 +5,7 @@ export const ko = {
     akrosPage: 'ETF/Index - 아크로스',
     tenswProjects: '텐소프트웍스 - 프로젝트',
     tenswManagement: '텐소프트웍스 - 경영관리',
-    willowManagement: '윌로우인베스트먼트 - 경영관리',
+    willowManagement: '윌로우인베스트먼트 - 사업관리',
     usersPage: '사용자 관리',
     ryuhaStudyPage: '류하 학습관리',
   },
@@ -86,7 +86,7 @@ export const ko = {
     version: 'Willow Dashboard v1.0',
     // 윌로우인베스트먼트
     willowInvest: '윌로우인베스트먼트',
-    willowManagement: '경영관리',
+    willowManagement: '사업관리',
     // 메뉴 섹션
     etfIndexing: 'ETF/Index',
     etc: 'ETC',

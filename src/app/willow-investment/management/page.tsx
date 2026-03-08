@@ -237,7 +237,7 @@ function DraggableScheduleCard({
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: currentDate ? `${schedule.id}-${currentDate}` : schedule.id,
-    data: { schedule, currentDate },
+    data: { type: 'schedule', schedule, currentDate },
   })
   const wasDraggingRef = useRef(false)
 
@@ -465,6 +465,46 @@ function DroppableMonthDay({
   )
 }
 
+// Generic Draggable Item wrapper for tasks and other items
+function DraggableItem({
+  id,
+  data,
+  children,
+  className,
+  style: styleProp,
+  onClick,
+}: {
+  id: string
+  data: Record<string, unknown>
+  children: React.ReactNode
+  className?: string
+  style?: React.CSSProperties
+  onClick?: (e: React.MouseEvent) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id, data })
+  const wasDraggingRef = useRef(false)
+  useEffect(() => { if (isDragging) wasDraggingRef.current = true }, [isDragging])
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={cn(className, isDragging && 'opacity-50', 'cursor-grab active:cursor-grabbing touch-none')}
+      style={{
+        ...styleProp,
+        ...(transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : {}),
+      }}
+      onClick={(e) => {
+        if (wasDraggingRef.current) { wasDraggingRef.current = false; return }
+        onClick?.(e)
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
 // Draggable Month Schedule Card Component
 function DraggableMonthScheduleCard({
   schedule,
@@ -481,7 +521,7 @@ function DraggableMonthScheduleCard({
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: currentDate ? `${schedule.id}-${currentDate}` : schedule.id,
-    data: { schedule, currentDate },
+    data: { type: 'schedule', schedule, currentDate },
   })
 
   // Determine display color: client color takes priority, then custom color
@@ -732,7 +772,7 @@ export default function WillowManagementPage() {
     return []
   })
   const [milestonesWithSchedules, setMilestonesWithSchedules] = useState<Set<string>>(new Set())
-  const [activeSchedule, setActiveSchedule] = useState<WillowMgmtSchedule | null>(null)
+  const [activeDragItem, setActiveDragItem] = useState<{ type: string; schedule: WillowMgmtSchedule; taskItem?: WillowMgmtTask } | null>(null)
   const [memos, setMemos] = useState<Map<string, WillowMgmtDailyMemo>>(new Map())
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
 
@@ -1500,34 +1540,66 @@ export default function WillowManagementPage() {
 
   // Drag and drop handlers
   const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event
-    const schedule = schedules.find((s) => s.id === active.id)
-    if (schedule) {
-      setActiveSchedule(schedule)
+    const data = event.active.data.current as { type: string; schedule?: WillowMgmtSchedule; taskItem?: WillowMgmtTask } | undefined
+    if (data?.schedule) {
+      setActiveDragItem({ type: data.type, schedule: data.schedule, taskItem: data.taskItem })
     }
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
-    setActiveSchedule(null)
+    setActiveDragItem(null)
 
     if (!over) return
 
-    const scheduleId = active.id as string
+    const dragData = active.data.current as { type: string; schedule?: WillowMgmtSchedule; taskItem?: WillowMgmtTask } | undefined
     const dropData = over.data.current as { dateStr: string } | undefined
 
-    if (!dropData?.dateStr) return
+    if (!dropData?.dateStr || !dragData) return
 
-    const schedule = schedules.find((s) => s.id === scheduleId)
-    if (!schedule || schedule.schedule_date === dropData.dateStr) return
+    const newDate = dropData.dateStr
 
-    // Update schedule date
-    await fetch('/api/willow-mgmt/schedules', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: scheduleId, schedule_date: dropData.dateStr }),
-    })
-    fetchSchedules()
+    if (dragData.type === 'schedule' || dragData.type === 'task-schedule') {
+      const schedule = dragData.schedule
+      if (!schedule || schedule.schedule_date === newDate) return
+
+      const updateData: Record<string, string> = { id: schedule.id, schedule_date: newDate }
+
+      // For multi-day events, shift end_date by the same delta
+      if (schedule.end_date) {
+        const startMs = new Date(schedule.schedule_date + 'T00:00:00').getTime()
+        const endMs = new Date(schedule.end_date + 'T00:00:00').getTime()
+        const newEndDate = new Date(new Date(newDate + 'T00:00:00').getTime() + (endMs - startMs))
+        updateData.end_date = formatDateLocal(newEndDate)
+      }
+
+      await fetch('/api/willow-mgmt/schedules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      })
+      fetchSchedules()
+    } else if (dragData.type === 'task-item') {
+      const taskItem = dragData.taskItem
+      if (!taskItem || taskItem.deadline === newDate) return
+
+      await fetch('/api/willow-mgmt/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskItem.id, deadline: newDate }),
+      })
+      fetchSchedules()
+    } else if (dragData.type === 'task-legacy') {
+      const schedule = dragData.schedule
+      if (!schedule || schedule.task_deadline === newDate) return
+
+      await fetch('/api/willow-mgmt/schedules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: schedule.id, task_deadline: newDate }),
+      })
+      fetchSchedules()
+    }
   }
 
   // Project CRUD
@@ -2711,16 +2783,22 @@ export default function WillowManagementPage() {
                               )}
                             </div>
                           </div>
-                          {/* Task deadline items - displayed first */}
+                          {/* Task deadline items - displayed first (draggable) */}
                           {getTaskForDate(day).map((hw, hwIdx) => {
                             const isCompleted = hw.isLegacy ? hw.schedule.task_completed : hw.item?.is_completed
                             const toggleId = hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}`
                             const content = hw.isLegacy ? hw.schedule.task_content : hw.item?.content
+                            const dragId = hw.isLegacy ? `task-legacy-${hw.schedule.id}` : `task-item-${hw.item?.id}`
                             return (
-                              <div
+                              <DraggableItem
                                 key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
+                                id={dragId}
+                                data={hw.isLegacy
+                                  ? { type: 'task-legacy', schedule: hw.schedule }
+                                  : { type: 'task-item', schedule: hw.schedule, taskItem: hw.item }
+                                }
                                 className={cn(
-                                  'text-xs p-1.5 rounded border-l-2 border-orange-500 cursor-pointer',
+                                  'text-xs p-1.5 rounded border-l-2 border-orange-500',
                                   isCompleted
                                     ? 'bg-muted line-through text-muted-foreground'
                                     : 'bg-orange-100 dark:bg-orange-900/30'
@@ -2744,6 +2822,7 @@ export default function WillowManagementPage() {
                                         }
                                       }
                                     }}
+                                    onPointerDown={(e) => e.stopPropagation()}
                                     disabled={togglingIds.has(toggleId)}
                                   >
                                     {togglingIds.has(toggleId) ? (
@@ -2767,15 +2846,17 @@ export default function WillowManagementPage() {
                                     )}
                                   </span>
                                 </div>
-                              </div>
+                              </DraggableItem>
                             )
                           })}
-                          {/* Task type schedules - displayed with orange style */}
+                          {/* Task type schedules - displayed with orange style (draggable) */}
                           {getTaskTypeSchedulesForDate(day).map((schedule) => (
-                            <div
+                            <DraggableItem
                               key={schedule.id}
+                              id={`task-schedule-${schedule.id}`}
+                              data={{ type: 'task-schedule', schedule }}
                               className={cn(
-                                'text-xs p-1.5 rounded border-l-2 border-orange-500 cursor-pointer',
+                                'text-xs p-1.5 rounded border-l-2 border-orange-500',
                                 schedule.is_completed
                                   ? 'bg-muted line-through text-muted-foreground'
                                   : 'bg-orange-100 dark:bg-orange-900/30'
@@ -2795,6 +2876,7 @@ export default function WillowManagementPage() {
                                       toggleScheduleComplete(schedule)
                                     }
                                   }}
+                                  onPointerDown={(e) => e.stopPropagation()}
                                   disabled={togglingIds.has(schedule.id)}
                                 >
                                   {togglingIds.has(schedule.id) ? (
@@ -2818,7 +2900,7 @@ export default function WillowManagementPage() {
                                   )}
                                 </span>
                               </div>
-                            </div>
+                            </DraggableItem>
                           ))}
                           {getSchedulesForDate(day).map((schedule) => {
                             const dateStr = formatDate(day)
@@ -2878,15 +2960,21 @@ export default function WillowManagementPage() {
                                   </button>
                                 </div>
                                 <div className="space-y-0.5">
-                                  {/* Task deadline items - displayed first */}
+                                  {/* Task deadline items - displayed first (draggable) */}
                                   {getTaskForDate(day).map((hw, hwIdx) => {
                                     const isCompleted = hw.isLegacy ? hw.schedule.task_completed : hw.item?.is_completed
                                     const toggleId = hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}`
+                                    const dragId = hw.isLegacy ? `task-legacy-month-${hw.schedule.id}` : `task-item-month-${hw.item?.id}`
                                     return (
-                                      <div
+                                      <DraggableItem
                                         key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
+                                        id={dragId}
+                                        data={hw.isLegacy
+                                          ? { type: 'task-legacy', schedule: hw.schedule }
+                                          : { type: 'task-item', schedule: hw.schedule, taskItem: hw.item }
+                                        }
                                         className={cn(
-                                          'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-pointer',
+                                          'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
                                           isCompleted
                                             ? 'bg-muted text-muted-foreground line-through'
                                             : 'bg-orange-100 dark:bg-orange-900/30'
@@ -2909,6 +2997,7 @@ export default function WillowManagementPage() {
                                               }
                                             }
                                           }}
+                                          onPointerDown={(e) => e.stopPropagation()}
                                           disabled={togglingIds.has(toggleId)}
                                         >
                                           {togglingIds.has(toggleId) ? (
@@ -2923,15 +3012,17 @@ export default function WillowManagementPage() {
                                         <span className="flex-1 break-words">
                                           {hw.schedule.title}
                                         </span>
-                                      </div>
+                                      </DraggableItem>
                                     )
                                   })}
-                                  {/* Task type schedules - month view */}
+                                  {/* Task type schedules - month view (draggable) */}
                                   {getTaskTypeSchedulesForDate(day).map((schedule) => (
-                                    <div
+                                    <DraggableItem
                                       key={schedule.id}
+                                      id={`task-schedule-month-${schedule.id}`}
+                                      data={{ type: 'task-schedule', schedule }}
                                       className={cn(
-                                        'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-pointer',
+                                        'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
                                         schedule.is_completed
                                           ? 'bg-muted text-muted-foreground line-through'
                                           : 'bg-orange-100 dark:bg-orange-900/30'
@@ -2950,6 +3041,7 @@ export default function WillowManagementPage() {
                                             toggleScheduleComplete(schedule)
                                           }
                                         }}
+                                        onPointerDown={(e) => e.stopPropagation()}
                                         disabled={togglingIds.has(schedule.id)}
                                       >
                                         {togglingIds.has(schedule.id) ? (
@@ -2964,7 +3056,7 @@ export default function WillowManagementPage() {
                                       <span className="flex-1 break-words">
                                         {schedule.title}
                                       </span>
-                                    </div>
+                                    </DraggableItem>
                                   ))}
                                   {getSchedulesForDate(day).map((schedule) => {
                                     const dateStr = formatDate(day)
@@ -2989,14 +3081,26 @@ export default function WillowManagementPage() {
                   </div>
                 )}
                 <DragOverlay>
-                  {activeSchedule && (() => {
-                    const displayColor = activeSchedule.client?.color || activeSchedule.color
-                    const clientColor = activeSchedule.client?.color
+                  {activeDragItem && (() => {
+                    const { type, schedule, taskItem } = activeDragItem
+                    if (type === 'task-item' || type === 'task-legacy' || type === 'task-schedule') {
+                      return (
+                        <div className="text-xs p-1.5 rounded shadow-lg bg-orange-100 dark:bg-orange-900/30 border-l-2 border-orange-500">
+                          <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
+                            <ClipboardList className="h-3 w-3" />
+                            <span>{schedule.title}</span>
+                            {taskItem && <span className="text-[10px] text-muted-foreground ml-1">({taskItem.content})</span>}
+                          </div>
+                        </div>
+                      )
+                    }
+                    const displayColor = schedule.client?.color || schedule.color
+                    const clientColor = schedule.client?.color
                     return (
                       <div
                         className={cn(
                           'text-xs p-1.5 rounded shadow-lg',
-                          activeSchedule.is_completed
+                          schedule.is_completed
                             ? 'bg-muted line-through text-muted-foreground'
                             : !displayColor && 'bg-slate-300/50 dark:bg-slate-600/50'
                         )}
@@ -3004,18 +3108,18 @@ export default function WillowManagementPage() {
                           borderLeft: clientColor
                             ? `3px solid ${clientColor}`
                             : undefined,
-                          backgroundColor: !activeSchedule.is_completed && displayColor
+                          backgroundColor: !schedule.is_completed && displayColor
                             ? `${displayColor}20`
                             : undefined,
                         }}
                       >
                         <div className="flex items-center gap-1">
-                          {activeSchedule.is_completed ? (
+                          {schedule.is_completed ? (
                             <CheckCircle2 className="h-3 w-3 text-green-600" />
                           ) : (
                             <Circle className="h-3 w-3" />
                           )}
-                          <span>{activeSchedule.title}</span>
+                          <span>{schedule.title}</span>
                         </div>
                       </div>
                     )

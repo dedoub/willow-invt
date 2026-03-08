@@ -107,7 +107,7 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   ryuha_update_body_record: { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
   ryuha_delete_body_record: { roles: ['admin', 'editor'], scopes: ['ryuha:write'] },
 
-  // Willow Investment (윌로우 경영관리)
+  // Willow Investment (윌로우 사업관리)
   willow_list_clients:          { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
   willow_create_client:         { roles: ['admin', 'editor'], scopes: ['willow:write'] },
   willow_update_client:         { roles: ['admin', 'editor'], scopes: ['willow:write'] },
