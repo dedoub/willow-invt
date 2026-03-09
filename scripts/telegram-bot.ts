@@ -31,6 +31,8 @@ const messageBatchBuffer: Map<number, { messages: string[]; timer: ReturnType<ty
 
 // 처리 중 메시지 취소를 위한 AbortController 관리
 const processingAbort: Map<number, AbortController> = new Map()
+// abort 시 원본 메시지 보존 — 새 메시지와 합침
+const inFlightText: Map<number, string> = new Map()
 
 // ============================================================
 // Process lock — 중복 실행 방지
@@ -1895,15 +1897,11 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
   console.log(`[${chatId}] User: ${text}`)
 
   try {
-    // 무거운 질문 감지 — 빠른 확인 메시지 전송
+    // 무거운 질문 감지 — 리액션으로 먼저 확인
     const heavyKeywords = ['브리핑', '현황', '분석', '포트폴리오', '뉴스', '검색', '찾아', '정리해', '요약', '리뷰']
     const isHeavyQuery = heavyKeywords.some(k => text.includes(k)) || text.length > 80
-    if (isHeavyQuery) {
-      const acks = ['잠깐만요, 확인해볼게요.', '확인 중이에요.', '살펴볼게요, 잠시만요.', '확인하고 바로 알려드릴게요.']
-      const ack = acks[Math.floor(Math.random() * acks.length)]
-      await sendMessage(chatId, ack)
-    } else if (lastMessageId) {
-      // 가벼운 메시지엔 리액션으로 확인 (👀 = 읽었다)
+    // 리액션으로 "읽었다" 표시 (abort 되더라도 문제 없음)
+    if (lastMessageId) {
       await setReaction(chatId, lastMessageId, '👀')
     }
 
@@ -2029,6 +2027,13 @@ ${text}
     if (abortSignal?.aborted) {
       console.log(`[${chatId}] ⏹️ 처리 취소됨 (새 메시지 수신)`)
       return
+    }
+
+    // 데이터 수집 완료 후, 무거운 질문이면 확인 메시지 전송
+    if (isHeavyQuery) {
+      const acks = ['잠깐만요, 확인해볼게요.', '확인 중이에요.', '살펴볼게요, 잠시만요.', '확인하고 바로 알려드릴게요.']
+      const ack = acks[Math.floor(Math.random() * acks.length)]
+      await sendMessage(chatId, ack)
     }
 
     // 타이핑 유지 (Claude 처리 중)
@@ -2323,11 +2328,12 @@ async function main() {
       // 메시지 배칭: 연달아 오는 메시지를 합쳐서 한 번에 처리
       // 처리 중에 새 메시지가 오면 기존 처리를 abort하고 합쳐서 재처리
 
-      // 기존에 처리 중인 Claude 세션이 있으면 abort
+      // 기존에 처리 중인 Claude 세션이 있으면 abort + 원본 텍스트 보존
       const existingAbort = processingAbort.get(chatId)
       if (existingAbort) {
         existingAbort.abort()
-        console.log(`🔄 [${chatId}] 기존 처리 취소 — 새 메시지 수신`)
+        // 처리 중이던 텍스트는 inFlightText에 이미 저장되어 있음
+        console.log(`🔄 [${chatId}] 기존 처리 취소 — 새 메시지와 합침`)
       }
 
       const msgId = msg.message_id
@@ -2342,14 +2348,20 @@ async function main() {
           const batch = messageBatchBuffer.get(chatId)
           messageBatchBuffer.delete(chatId)
           if (batch) {
-            const combined = batch.messages.join('\n\n')
-            console.log(`📨 배칭 완료: ${batch.messages.length}개 메시지 통합 처리`)
+            // abort된 이전 메시지가 있으면 앞에 합침
+            const savedText = inFlightText.get(chatId)
+            inFlightText.delete(chatId)
+            const allMessages = savedText ? [savedText, ...batch.messages] : batch.messages
+            const combined = allMessages.join('\n\n')
+            console.log(`📨 배칭 완료: ${allMessages.length}개 메시지 통합 처리${savedText ? ' (이전 메시지 포함)' : ''}`)
             const ac = new AbortController()
             processingAbort.set(chatId, ac)
+            inFlightText.set(chatId, combined) // 처리 중 텍스트 보존
             try {
               await handleMessage(chatId, combined, ac.signal, batch.lastMessageId)
             } finally {
               processingAbort.delete(chatId)
+              inFlightText.delete(chatId)
             }
           }
         }, MESSAGE_BATCH_DELAY)
@@ -2362,16 +2374,22 @@ async function main() {
             const batch = messageBatchBuffer.get(chatId)
             messageBatchBuffer.delete(chatId)
             if (batch) {
-              const combined = batch.messages.join('\n\n')
-              if (batch.messages.length > 1) {
-                console.log(`📨 배칭 완료: ${batch.messages.length}개 메시지 통합 처리`)
+              // abort된 이전 메시지가 있으면 앞에 합침
+              const savedText = inFlightText.get(chatId)
+              inFlightText.delete(chatId)
+              const allMessages = savedText ? [savedText, ...batch.messages] : batch.messages
+              const combined = allMessages.join('\n\n')
+              if (allMessages.length > 1) {
+                console.log(`📨 배칭 완료: ${allMessages.length}개 메시지 통합 처리${savedText ? ' (이전 메시지 포함)' : ''}`)
               }
               const ac = new AbortController()
               processingAbort.set(chatId, ac)
+              inFlightText.set(chatId, combined) // 처리 중 텍스트 보존
               try {
                 await handleMessage(chatId, combined, ac.signal, batch.lastMessageId)
               } finally {
                 processingAbort.delete(chatId)
+                inFlightText.delete(chatId)
               }
             }
           }, MESSAGE_BATCH_DELAY),
