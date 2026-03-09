@@ -8,6 +8,7 @@ import { registerDashboardTools } from './dashboard'
 import { registerRyuhaTools } from './ryuha'
 import { registerWillowMgmtTools } from './willow-mgmt'
 import { registerTenswMgmtTools } from './tensw-mgmt'
+import { registerKnowledgeTools } from './knowledge'
 
 export function registerAllTools(server: McpServer) {
   registerWikiTools(server)
@@ -19,4 +20,5 @@ export function registerAllTools(server: McpServer) {
   registerRyuhaTools(server)
   registerWillowMgmtTools(server)
   registerTenswMgmtTools(server)
+  registerKnowledgeTools(server)
 }

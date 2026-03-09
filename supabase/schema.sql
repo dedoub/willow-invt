@@ -265,3 +265,60 @@ CREATE TRIGGER update_work_wiki_updated_at
 
 -- Add attachments column if table already exists
 -- ALTER TABLE work_wiki ADD COLUMN IF NOT EXISTS attachments JSONB;
+
+-- ============================================
+-- Knowledge Graph / Ontology Tables
+-- ============================================
+
+-- Knowledge Entities (concepts, people, companies, etc.)
+CREATE TABLE IF NOT EXISTS knowledge_entities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL DEFAULT 'concept',
+    description TEXT,
+    properties JSONB DEFAULT '{}',
+    tags TEXT[],
+    source VARCHAR(50) DEFAULT 'conversation',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_knowledge_entities_name ON knowledge_entities(name);
+CREATE INDEX IF NOT EXISTS idx_knowledge_entities_type ON knowledge_entities(entity_type);
+CREATE INDEX IF NOT EXISTS idx_knowledge_entities_tags ON knowledge_entities USING gin(tags);
+
+DROP TRIGGER IF EXISTS update_knowledge_entities_updated_at ON knowledge_entities;
+CREATE TRIGGER update_knowledge_entities_updated_at
+    BEFORE UPDATE ON knowledge_entities
+    FOR EACH ROW
+    EXECUTE FUNCTION willow_update_updated_at_column();
+
+-- Knowledge Relations (entity-to-entity relationships)
+CREATE TABLE IF NOT EXISTS knowledge_relations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    subject_id UUID NOT NULL REFERENCES knowledge_entities(id) ON DELETE CASCADE,
+    predicate VARCHAR(100) NOT NULL,
+    object_id UUID NOT NULL REFERENCES knowledge_entities(id) ON DELETE CASCADE,
+    properties JSONB DEFAULT '{}',
+    source VARCHAR(50) DEFAULT 'conversation',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_relations_subject ON knowledge_relations(subject_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_relations_object ON knowledge_relations(object_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_relations_predicate ON knowledge_relations(predicate);
+
+-- Knowledge Insights (decisions, observations, patterns)
+CREATE TABLE IF NOT EXISTS knowledge_insights (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    content TEXT NOT NULL,
+    insight_type VARCHAR(50) DEFAULT 'observation',
+    entity_ids UUID[],
+    context TEXT,
+    status VARCHAR(20) DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_insights_type ON knowledge_insights(insight_type);
+CREATE INDEX IF NOT EXISTS idx_knowledge_insights_status ON knowledge_insights(status);
+CREATE INDEX IF NOT EXISTS idx_knowledge_insights_entities ON knowledge_insights USING gin(entity_ids);

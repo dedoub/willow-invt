@@ -15,6 +15,7 @@ export type McpScope =
   | 'ryuha:read' | 'ryuha:write'
   | 'willow:read' | 'willow:write'
   | 'tensw:read' | 'tensw:write'
+  | 'knowledge:read' | 'knowledge:write'
   | 'admin:read' | 'admin:write'
 
 interface ToolPermission {
@@ -167,6 +168,19 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   tensw_create_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
   tensw_update_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
   tensw_delete_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
+
+  // Knowledge Graph (온톨로지)
+  knowledge_list_entities:     { roles: ['admin', 'editor', 'viewer'], scopes: ['knowledge:read'] },
+  knowledge_get_entity:        { roles: ['admin', 'editor', 'viewer'], scopes: ['knowledge:read'] },
+  knowledge_create_entity:     { roles: ['admin', 'editor'], scopes: ['knowledge:write'] },
+  knowledge_delete_entity:     { roles: ['admin'], scopes: ['knowledge:write'] },
+  knowledge_list_relations:    { roles: ['admin', 'editor', 'viewer'], scopes: ['knowledge:read'] },
+  knowledge_create_relation:   { roles: ['admin', 'editor'], scopes: ['knowledge:write'] },
+  knowledge_delete_relation:   { roles: ['admin'], scopes: ['knowledge:write'] },
+  knowledge_list_insights:     { roles: ['admin', 'editor', 'viewer'], scopes: ['knowledge:read'] },
+  knowledge_create_insight:    { roles: ['admin', 'editor'], scopes: ['knowledge:write'] },
+  knowledge_search:            { roles: ['admin', 'editor', 'viewer'], scopes: ['knowledge:read'] },
+  knowledge_get_stats:         { roles: ['admin', 'editor', 'viewer'], scopes: ['knowledge:read'] },
 }
 
 /**
@@ -212,6 +226,7 @@ export function getDefaultScopes(role: UserRole): string[] {
         'ryuha:read', 'ryuha:write',
         'willow:read', 'willow:write',
         'tensw:read', 'tensw:write',
+        'knowledge:read', 'knowledge:write',
         'admin:read', 'admin:write',
       ]
     case 'editor':
@@ -225,6 +240,7 @@ export function getDefaultScopes(role: UserRole): string[] {
         'ryuha:read', 'ryuha:write',
         'willow:read', 'willow:write',
         'tensw:read', 'tensw:write',
+        'knowledge:read', 'knowledge:write',
       ]
     case 'viewer':
       return [
@@ -236,6 +252,7 @@ export function getDefaultScopes(role: UserRole): string[] {
         'ryuha:read',
         'willow:read',
         'tensw:read',
+        'knowledge:read',
       ]
     default:
       return ['wiki:read', 'projects:read']

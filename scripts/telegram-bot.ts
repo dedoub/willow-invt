@@ -3,6 +3,8 @@ config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import { spawn } from 'child_process'
+import { existsSync, writeFileSync, readFileSync, unlinkSync } from 'fs'
+import { join } from 'path'
 
 // ============================================================
 // Config
@@ -17,9 +19,68 @@ const supabase = createClient(
 const MAX_HISTORY = 20 // 대화 기록 최대 보관 수
 const POLL_INTERVAL = 1500 // ms
 const PROACTIVE_CHECK_INTERVAL = 30 * 60 * 1000 // 30분마다 자율 점검
+const LOCK_FILE = join(__dirname, 'logs', 'telegram-bot.lock')
+const OFFSET_FILE = join(__dirname, 'logs', 'telegram-bot.offset')
 
 // CEO chat_id 저장 (첫 메시지 수신 시 등록)
 let ceoChatId: number | null = null
+
+// ============================================================
+// Process lock — 중복 실행 방지
+// ============================================================
+function acquireLock(): boolean {
+  try {
+    if (existsSync(LOCK_FILE)) {
+      const lockPid = parseInt(readFileSync(LOCK_FILE, 'utf-8').trim(), 10)
+      // PID가 아직 살아있는지 확인
+      try {
+        process.kill(lockPid, 0) // signal 0 = 존재 확인만
+        console.error(`❌ 봇이 이미 실행 중입니다 (PID: ${lockPid}). 중복 실행 차단.`)
+        return false
+      } catch {
+        // 프로세스 없음 — stale lock 제거
+        console.log(`⚠️ 이전 lock 파일 정리 (PID ${lockPid} 없음)`)
+      }
+    }
+    writeFileSync(LOCK_FILE, String(process.pid))
+    return true
+  } catch (err) {
+    console.error('Lock acquire error:', err)
+    return false
+  }
+}
+
+function releaseLock() {
+  try {
+    if (existsSync(LOCK_FILE)) {
+      const lockPid = parseInt(readFileSync(LOCK_FILE, 'utf-8').trim(), 10)
+      if (lockPid === process.pid) {
+        unlinkSync(LOCK_FILE)
+      }
+    }
+  } catch { /* ignore */ }
+}
+
+// ============================================================
+// Persistent offset — 재시작 시 메시지 재처리 방지
+// ============================================================
+function loadOffset(): number {
+  try {
+    if (existsSync(OFFSET_FILE)) {
+      return parseInt(readFileSync(OFFSET_FILE, 'utf-8').trim(), 10) || 0
+    }
+  } catch { /* ignore */ }
+  return 0
+}
+
+function saveOffset(offset: number) {
+  try {
+    writeFileSync(OFFSET_FILE, String(offset))
+  } catch { /* ignore */ }
+}
+
+// 처리 중인 메시지 추적 (동일 update 중복 처리 방지)
+const processingMessages = new Set<number>()
 
 // ============================================================
 // Telegram API helpers
@@ -78,17 +139,40 @@ function formatDate(d: Date) {
 }
 
 async function fetchKnowledgeContext(): Promise<string> {
+  // First get counts to decide loading strategy
+  const [
+    { count: entityCount },
+    { count: relationCount },
+    { count: insightCount },
+  ] = await Promise.all([
+    supabase.from('knowledge_entities').select('*', { count: 'exact', head: true }),
+    supabase.from('knowledge_relations').select('*', { count: 'exact', head: true }),
+    supabase.from('knowledge_insights').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+  ])
+
+  const total = (entityCount || 0) + (relationCount || 0) + (insightCount || 0)
+  const isCompact = total > 80 // 80개 초과 시 요약 모드
+
+  const entityLimit = isCompact ? 15 : 50
+  const relationLimit = isCompact ? 20 : 100
+  const insightLimit = isCompact ? 8 : 20
+
   const [
     { data: entities },
     { data: relations },
     { data: recentInsights },
   ] = await Promise.all([
-    supabase.from('knowledge_entities').select('name, entity_type, description').order('updated_at', { ascending: false }).limit(30),
-    supabase.from('knowledge_relations').select('subject:knowledge_entities!subject_id(name), predicate, object:knowledge_entities!object_id(name)').limit(50),
-    supabase.from('knowledge_insights').select('content, insight_type, created_at').eq('status', 'active').order('created_at', { ascending: false }).limit(10),
+    supabase.from('knowledge_entities').select('name, entity_type, description').order('updated_at', { ascending: false }).limit(entityLimit),
+    supabase.from('knowledge_relations').select('subject:knowledge_entities!subject_id(name), predicate, object:knowledge_entities!object_id(name)').limit(relationLimit),
+    supabase.from('knowledge_insights').select('content, insight_type, created_at').eq('status', 'active').order('created_at', { ascending: false }).limit(insightLimit),
   ])
 
   const parts: string[] = []
+
+  // 요약 모드일 때 통계 먼저
+  if (isCompact) {
+    parts.push(`[요약 모드] 엔티티 ${entityCount}개, 관계 ${relationCount}개, 인사이트 ${insightCount}개 — 아래는 최근 항목. DB에서 직접 쿼리 가능 (knowledge_entities, knowledge_relations, knowledge_insights 테이블)`)
+  }
 
   if (entities?.length) {
     parts.push('엔티티:')
@@ -1187,12 +1271,6 @@ ${action.milestone_type ? `유형: ${action.milestone_type}` : ''}
 async function handleMessage(chatId: number, text: string) {
   console.log(`[${chatId}] User: ${text}`)
 
-  // "접수" 메시지를 먼저 전송 (CEO 선호사항)
-  await tg('sendMessage', {
-    chat_id: chatId,
-    text: '🔄 확인했습니다. 답변 준비 중...',
-  })
-
   try {
     // 대시보드 + 위키 + 추적주제 + 텐소프트웍스 + 온톨로지 데이터 수집
     const [dashboardContext, wikiContext, watchTopics, tenswContext, knowledgeContext] = await Promise.all([
@@ -1360,13 +1438,28 @@ async function getUpdates(offset: number): Promise<any[]> {
 async function main() {
   console.log('🌿 윌로우 에이전트 시작...')
 
+  // 중복 실행 방지
+  if (!acquireLock()) {
+    process.exit(1)
+  }
+
+  // 종료 시 lock 해제
+  const cleanup = () => {
+    releaseLock()
+    process.exit(0)
+  }
+  process.on('SIGINT', cleanup)
+  process.on('SIGTERM', cleanup)
+  process.on('exit', releaseLock)
+
   // Bot 정보 확인
   const me = await tg('getMe', {})
   if (!me.ok) {
     console.error('Bot token invalid:', me)
+    releaseLock()
     process.exit(1)
   }
-  console.log(`✅ Bot: @${me.result.username} (${me.result.first_name})`)
+  console.log(`✅ Bot: @${me.result.username} (${me.result.first_name}) [PID: ${process.pid}]`)
 
   // CEO chat_id 복원
   await loadCeoChatId()
@@ -1377,18 +1470,32 @@ async function main() {
   // 시작 직후 1회 점검
   setTimeout(proactiveCheck, 5000)
 
-  console.log('📡 텔레그램 메시지 대기 중...\n')
+  // 저장된 offset 복원 (재시작 시 이전 메시지 건너뛰기)
+  let offset = loadOffset()
+  if (offset > 0) {
+    console.log(`📌 저장된 offset 복원: ${offset}`)
+  }
 
-  let offset = 0
+  console.log('📡 텔레그램 메시지 대기 중...\n')
 
   while (true) {
     const updates = await getUpdates(offset)
 
     for (const update of updates) {
       offset = update.update_id + 1
+      saveOffset(offset)
 
       const msg = update.message
       if (!msg?.text) continue
+
+      // 중복 메시지 처리 방지
+      if (processingMessages.has(update.update_id)) {
+        console.log(`⏭️ 중복 update 스킵: ${update.update_id}`)
+        continue
+      }
+      processingMessages.add(update.update_id)
+      // 5분 후 Set에서 제거 (메모리 누수 방지)
+      setTimeout(() => processingMessages.delete(update.update_id), 5 * 60 * 1000)
 
       // CEO chat_id 등록
       if (!ceoChatId) {
@@ -1421,13 +1528,21 @@ async function main() {
         continue
       }
 
+      // 인용 답장(reply) 처리 — 원본 메시지를 맥락에 포함
+      let messageText = msg.text
+      if (msg.reply_to_message?.text) {
+        const replyFrom = msg.reply_to_message.from?.is_bot ? '윌로우 에이전트' : 'CEO'
+        messageText = `[인용된 메시지 (${replyFrom})]\n${msg.reply_to_message.text}\n\n[CEO 답장]\n${msg.text}`
+      }
+
       // 일반 메시지 처리
-      await handleMessage(msg.chat.id, msg.text)
+      await handleMessage(msg.chat.id, messageText)
     }
   }
 }
 
 main().catch((err) => {
   console.error('Fatal error:', err)
+  releaseLock()
   process.exit(1)
 })
