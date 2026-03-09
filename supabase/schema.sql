@@ -322,3 +322,25 @@ CREATE TABLE IF NOT EXISTS knowledge_insights (
 CREATE INDEX IF NOT EXISTS idx_knowledge_insights_type ON knowledge_insights(insight_type);
 CREATE INDEX IF NOT EXISTS idx_knowledge_insights_status ON knowledge_insights(status);
 CREATE INDEX IF NOT EXISTS idx_knowledge_insights_entities ON knowledge_insights USING gin(entity_ids);
+
+-- ============================================
+-- Agent Follow-ups (맥락기반 팔로업)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS agent_follow_ups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    content TEXT NOT NULL,
+    source_message TEXT,
+    trigger_type VARCHAR(50) NOT NULL DEFAULT 'time_elapsed',
+    trigger_config JSONB DEFAULT '{}',
+    follow_up_hint TEXT,
+    status VARCHAR(20) DEFAULT 'open' CHECK (status IN ('open', 'triggered', 'resolved', 'expired')),
+    priority VARCHAR(20) DEFAULT 'normal' CHECK (priority IN ('high', 'normal', 'low')),
+    trigger_after TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    triggered_at TIMESTAMP WITH TIME ZONE,
+    resolved_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX IF NOT EXISTS idx_follow_ups_status ON agent_follow_ups(status);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_trigger ON agent_follow_ups(trigger_after) WHERE status = 'open';

@@ -766,6 +766,7 @@ export default function RyuhaStudyPage() {
 
   // Dialog states
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [scheduleViewMode, setScheduleViewMode] = useState<'read' | 'edit'>('edit')
   const [textbookDialogOpen, setTextbookDialogOpen] = useState(false)
   const [chapterDialogOpen, setChapterDialogOpen] = useState(false)
   const [subjectDialogOpen, setSubjectDialogOpen] = useState(false)
@@ -1243,11 +1244,16 @@ export default function RyuhaStudyPage() {
         homework_items: [],
       })
     }
+    setScheduleViewMode(schedule ? 'read' : 'edit')
     setScheduleDialogOpen(true)
   }
 
   const saveSchedule = async () => {
     if (saving) return
+    if (!scheduleForm.schedule_date) {
+      alert('날짜를 지정해주세요.')
+      return
+    }
     setSaving(true)
     try {
       // Get chapter_ids from selected_chapters (use chapter_id as fallback for legacy)
@@ -3078,8 +3084,94 @@ export default function RyuhaStudyPage() {
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
         <DialogContent className={`max-h-[90vh] flex flex-col transition-colors duration-300 ${!editingSchedule ? 'bg-green-50 dark:bg-green-950/50' : ''}`}>
           <DialogHeader className="pb-4 border-b flex-shrink-0">
-            <DialogTitle>{editingSchedule ? '일정 수정' : '일정 추가'}</DialogTitle>
+            <DialogTitle>{scheduleViewMode === 'read' ? '일정 상세' : editingSchedule ? '일정 수정' : '일정 추가'}</DialogTitle>
           </DialogHeader>
+
+          {/* 읽기 모드 */}
+          {scheduleViewMode === 'read' && editingSchedule ? (
+            <>
+              <div className="space-y-3 overflow-y-auto flex-1 px-1 -mx-1 py-4">
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                    editingSchedule.type === 'homework'
+                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400'
+                      : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                  )}>
+                    {editingSchedule.type === 'homework' ? '과제' : '자율학습'}
+                  </span>
+                  {editingSchedule.is_completed && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400">
+                      완료
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-base font-semibold">{editingSchedule.title}</h3>
+                <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>{editingSchedule.schedule_date}{editingSchedule.end_date && editingSchedule.end_date !== editingSchedule.schedule_date ? ` ~ ${editingSchedule.end_date}` : ''}</span>
+                  </div>
+                  {(editingSchedule.start_time || editingSchedule.end_time) && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      <span>{editingSchedule.start_time || ''}{editingSchedule.end_time ? ` ~ ${editingSchedule.end_time}` : ''}</span>
+                    </div>
+                  )}
+                  {editingSchedule.chapters && editingSchedule.chapters.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <BookOpen className="h-4 w-4 mt-0.5" />
+                      <div>
+                        {editingSchedule.chapters.map((ch, i) => (
+                          <div key={i} className="text-xs">{ch.name}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {editingSchedule.description && (
+                  <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm whitespace-pre-wrap">
+                    {editingSchedule.description}
+                  </div>
+                )}
+                {editingSchedule.homework_items && editingSchedule.homework_items.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <span className="text-xs font-medium text-slate-500">사전 과제</span>
+                    {editingSchedule.homework_items.map((item, i) => (
+                      <div key={i} className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-sm">
+                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                          {item.deadline && <span>마감: {item.deadline}</span>}
+                          {item.is_completed && <span className="text-emerald-600">완료</span>}
+                        </div>
+                        <div className="whitespace-pre-wrap">{item.content}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    toggleScheduleComplete(editingSchedule)
+                    setScheduleDialogOpen(false)
+                  }}
+                >
+                  {editingSchedule.is_completed ? '미완료로 변경' : '완료 처리'}
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setScheduleDialogOpen(false)}>
+                    닫기
+                  </Button>
+                  <Button size="sm" onClick={() => setScheduleViewMode('edit')}>
+                    수정
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+          <>
           <div className="space-y-4 overflow-y-auto flex-1 px-2 -mx-2 py-4">
             {/* Schedule type toggle */}
             <div className="flex items-center space-x-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
@@ -3534,6 +3626,12 @@ export default function RyuhaStudyPage() {
                       ...prev,
                       schedule_date: '',
                       end_date: '',
+                      // 사전과제 날짜 리셋 + id 제거 (새로 생성되도록)
+                      homework_items: prev.homework_items.map(item => ({
+                        ...item,
+                        id: undefined,
+                        deadline: '',
+                      })),
                     }))
                   }}
                 >
@@ -3553,6 +3651,8 @@ export default function RyuhaStudyPage() {
               </Button>
             </div>
           </div>
+          </>
+          )}
         </DialogContent>
       </Dialog>
 

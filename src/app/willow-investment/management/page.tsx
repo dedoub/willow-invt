@@ -787,6 +787,7 @@ export default function WillowManagementPage() {
 
   // Dialog states
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [scheduleViewMode, setScheduleViewMode] = useState<'read' | 'edit'>('edit')
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false)
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
@@ -1338,6 +1339,7 @@ export default function WillowManagementPage() {
         tasks: [],
       })
     }
+    setScheduleViewMode(schedule ? 'read' : 'edit')
     setScheduleDialogOpen(true)
   }
 
@@ -5476,8 +5478,96 @@ export default function WillowManagementPage() {
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
         <DialogContent className="max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0 pb-4 border-b">
-            <DialogTitle>{editingSchedule ? '일정 수정' : '일정 추가'}</DialogTitle>
+            <DialogTitle>{scheduleViewMode === 'read' ? '일정 상세' : editingSchedule ? '일정 수정' : '일정 추가'}</DialogTitle>
           </DialogHeader>
+
+          {/* 읽기 모드 */}
+          {scheduleViewMode === 'read' && editingSchedule ? (
+            <>
+              <div className="space-y-3 overflow-y-auto flex-1 px-1 -mx-1 py-4">
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                    editingSchedule.type === 'task'
+                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400'
+                      : editingSchedule.type === 'meeting'
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
+                  )}>
+                    {editingSchedule.type === 'task' ? '태스크' : editingSchedule.type === 'meeting' ? '미팅' : '마감'}
+                  </span>
+                  {editingSchedule.is_completed && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400">
+                      완료
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-base font-semibold">{editingSchedule.title}</h3>
+                <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>{editingSchedule.schedule_date}{editingSchedule.end_date && editingSchedule.end_date !== editingSchedule.schedule_date ? ` ~ ${editingSchedule.end_date}` : ''}</span>
+                  </div>
+                  {(editingSchedule.start_time || editingSchedule.end_time) && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      <span>{editingSchedule.start_time || ''}{editingSchedule.end_time ? ` ~ ${editingSchedule.end_time}` : ''}</span>
+                    </div>
+                  )}
+                  {editingSchedule.milestones && editingSchedule.milestones.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <BookMarked className="h-4 w-4 mt-0.5" />
+                      <div>
+                        {editingSchedule.milestones.map((ms, i) => (
+                          <div key={i} className="text-xs">{ms.name}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {editingSchedule.description && (
+                  <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm whitespace-pre-wrap">
+                    {editingSchedule.description}
+                  </div>
+                )}
+                {editingSchedule.tasks && editingSchedule.tasks.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <span className="text-xs font-medium text-slate-500">태스크</span>
+                    {editingSchedule.tasks.map((item, i) => (
+                      <div key={i} className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-sm">
+                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                          {item.deadline && <span>마감: {item.deadline}</span>}
+                          {item.is_completed && <span className="text-emerald-600">완료</span>}
+                        </div>
+                        <div className="whitespace-pre-wrap">{item.content}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    toggleScheduleComplete(editingSchedule)
+                    setScheduleDialogOpen(false)
+                  }}
+                >
+                  {editingSchedule.is_completed ? '미완료로 변경' : '완료 처리'}
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setScheduleDialogOpen(false)}>
+                    닫기
+                  </Button>
+                  <Button size="sm" onClick={() => setScheduleViewMode('edit')}>
+                    수정
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+          <>
           <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
             {/* Schedule type toggle */}
             <div className="flex items-center space-x-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
@@ -5951,6 +6041,8 @@ export default function WillowManagementPage() {
               </Button>
             </div>
           </div>
+          </>
+          )}
         </DialogContent>
       </Dialog>
 
