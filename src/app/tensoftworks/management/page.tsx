@@ -22,6 +22,27 @@ interface TenswInvoice {
   created_at: string
   updated_at: string
 }
+interface TenswLoan {
+  id: string
+  bank: string
+  account_number: string
+  loan_type: string
+  principal: number
+  interest_rate: number | null
+  monthly_interest_avg: number | null
+  annual_interest_2025: number | null
+  loan_date: string | null
+  maturity_date: string | null
+  last_extension_date: string | null
+  next_interest_date: string | null
+  interest_payment_day: number | null
+  repayment_type: string
+  status: string
+  memo: string | null
+  attachments: Array<{ name: string; url: string; size: number; type: string }>
+  created_at: string
+  updated_at: string
+}
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -75,6 +96,7 @@ import {
   AlertCircle,
   FileText,
   Building,
+  Landmark,
   X,
   Mail,
   RefreshCw,
@@ -889,6 +911,39 @@ export default function TenswManagementPage() {
   const [showAccountSuggestions, setShowAccountSuggestions] = useState(false)
   const [invoiceFormFiles, setInvoiceFormFiles] = useState<File[]>([])
   const [isUploadingInvoiceFiles, setIsUploadingInvoiceFiles] = useState(false)
+
+  // Loan states
+  const [loans, setLoans] = useState<TenswLoan[]>([])
+  const [isLoadingLoans, setIsLoadingLoans] = useState(true)
+  const [isLoanModalOpen, setIsLoanModalOpen] = useState(false)
+  const [editingLoan, setEditingLoan] = useState<TenswLoan | null>(null)
+  const [isSavingLoan, setIsSavingLoan] = useState(false)
+  const [expandedLoan, setExpandedLoan] = useState<string | null>(null)
+  const [loanStatusFilter, setLoanStatusFilter] = useState<'all' | 'active' | 'pending' | 'closed'>('all')
+
+  // Loan form states
+  const [loanFormBank, setLoanFormBank] = useState('')
+  const [loanFormAccountNumber, setLoanFormAccountNumber] = useState('')
+  const [loanFormLoanType, setLoanFormLoanType] = useState('')
+  const [loanFormPrincipal, setLoanFormPrincipal] = useState('')
+  const [loanFormInterestRate, setLoanFormInterestRate] = useState('')
+  const [loanFormMonthlyInterest, setLoanFormMonthlyInterest] = useState('')
+  const [loanFormLoanDate, setLoanFormLoanDate] = useState('')
+  const [loanFormMaturityDate, setLoanFormMaturityDate] = useState('')
+  const [loanFormLastExtensionDate, setLoanFormLastExtensionDate] = useState('')
+  const [loanFormNextInterestDate, setLoanFormNextInterestDate] = useState('')
+  const [loanFormInterestPaymentDay, setLoanFormInterestPaymentDay] = useState('')
+  const [loanFormRepaymentType, setLoanFormRepaymentType] = useState('bullet')
+  const [loanFormStatus, setLoanFormStatus] = useState('active')
+  const [loanFormMemo, setLoanFormMemo] = useState('')
+  const [loanFormFiles, setLoanFormFiles] = useState<File[]>([])
+  const [isUploadingLoanFiles, setIsUploadingLoanFiles] = useState(false)
+
+  const LOAN_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+    active: { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400', label: '실행중' },
+    pending: { bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-400', label: '대기' },
+    closed: { bg: 'bg-slate-200 dark:bg-slate-700', text: 'text-slate-600 dark:text-slate-400', label: '상환완료' },
+  }
 
   // Invoice status styles (UI guide pattern)
   const INVOICE_STATUS_STYLES = {
@@ -2030,6 +2085,162 @@ export default function TenswManagementPage() {
     setEditingInvoice({ ...editingInvoice, attachments: newAttachments })
   }
 
+  // ====== Loan Functions ======
+  const loadLoans = useCallback(async () => {
+    setIsLoadingLoans(true)
+    try {
+      const res = await fetch('/api/tensw-mgmt/loans')
+      if (res.ok) {
+        const data = await res.json()
+        setLoans(data.loans || [])
+      }
+    } catch (error) {
+      console.error('Failed to load loans:', error)
+    } finally {
+      setIsLoadingLoans(false)
+    }
+  }, [])
+
+  const resetLoanForm = () => {
+    setLoanFormBank('')
+    setLoanFormAccountNumber('')
+    setLoanFormLoanType('')
+    setLoanFormPrincipal('')
+    setLoanFormInterestRate('')
+    setLoanFormMonthlyInterest('')
+    setLoanFormLoanDate('')
+    setLoanFormMaturityDate('')
+    setLoanFormLastExtensionDate('')
+    setLoanFormNextInterestDate('')
+    setLoanFormInterestPaymentDay('')
+    setLoanFormRepaymentType('bullet')
+    setLoanFormStatus('active')
+    setLoanFormMemo('')
+    setLoanFormFiles([])
+    setEditingLoan(null)
+  }
+
+  const openNewLoanModal = () => {
+    resetLoanForm()
+    setIsLoanModalOpen(true)
+  }
+
+  const openEditLoanModal = (loan: TenswLoan) => {
+    setEditingLoan(loan)
+    setLoanFormBank(loan.bank)
+    setLoanFormAccountNumber(loan.account_number)
+    setLoanFormLoanType(loan.loan_type)
+    setLoanFormPrincipal(loan.principal.toLocaleString())
+    setLoanFormInterestRate(loan.interest_rate?.toString() || '')
+    setLoanFormMonthlyInterest(loan.monthly_interest_avg?.toLocaleString() || '')
+    setLoanFormLoanDate(loan.loan_date || '')
+    setLoanFormMaturityDate(loan.maturity_date || '')
+    setLoanFormLastExtensionDate(loan.last_extension_date || '')
+    setLoanFormNextInterestDate(loan.next_interest_date || '')
+    setLoanFormInterestPaymentDay(loan.interest_payment_day?.toString() || '')
+    setLoanFormRepaymentType(loan.repayment_type || 'bullet')
+    setLoanFormStatus(loan.status || 'active')
+    setLoanFormMemo(loan.memo || '')
+    setLoanFormFiles([])
+    setIsLoanModalOpen(true)
+  }
+
+  const handleSaveLoan = async () => {
+    if (!loanFormBank.trim() || !loanFormLoanType.trim() || !loanFormPrincipal.trim()) return
+    setIsSavingLoan(true)
+
+    try {
+      // Upload files first if any
+      let attachments: Array<{ name: string; url: string; size: number; type: string }> = editingLoan?.attachments || []
+
+      if (loanFormFiles.length > 0) {
+        setIsUploadingLoanFiles(true)
+        const formData = new FormData()
+        loanFormFiles.forEach(file => formData.append('files', file))
+        formData.append('folder', 'loans')
+
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json()
+          const newAttachments = uploadData.files.map((f: { name: string; url: string; size: number; type: string }) => ({
+            name: f.name, url: f.url, size: f.size, type: f.type,
+          }))
+          attachments = [...attachments, ...newAttachments]
+        } else {
+          alert('파일 업로드에 실패했습니다.')
+          setIsUploadingLoanFiles(false)
+          setIsSavingLoan(false)
+          return
+        }
+        setIsUploadingLoanFiles(false)
+      }
+
+      const payload: any = {
+        bank: loanFormBank.trim(),
+        account_number: loanFormAccountNumber.trim(),
+        loan_type: loanFormLoanType.trim(),
+        principal: Number(loanFormPrincipal.replace(/,/g, '')),
+        interest_rate: loanFormInterestRate ? Number(loanFormInterestRate) : null,
+        monthly_interest_avg: loanFormMonthlyInterest ? Number(loanFormMonthlyInterest.replace(/,/g, '')) : null,
+        loan_date: loanFormLoanDate || null,
+        maturity_date: loanFormMaturityDate || null,
+        last_extension_date: loanFormLastExtensionDate || null,
+        next_interest_date: loanFormNextInterestDate || null,
+        interest_payment_day: loanFormInterestPaymentDay ? Number(loanFormInterestPaymentDay) : null,
+        repayment_type: loanFormRepaymentType,
+        status: loanFormStatus,
+        memo: loanFormMemo.trim() || null,
+        attachments,
+      }
+
+      if (editingLoan) payload.id = editingLoan.id
+
+      const res = await fetch('/api/tensw-mgmt/loans', {
+        method: editingLoan ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        setIsLoanModalOpen(false)
+        resetLoanForm()
+        await loadLoans()
+      } else {
+        alert('저장에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Failed to save loan:', error)
+      alert('저장에 실패했습니다.')
+    } finally {
+      setIsSavingLoan(false)
+    }
+  }
+
+  const handleDeleteLoan = async (loanId: string) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return
+    try {
+      const res = await fetch(`/api/tensw-mgmt/loans?id=${loanId}`, { method: 'DELETE' })
+      if (res.ok) {
+        await loadLoans()
+        setIsLoanModalOpen(false)
+      }
+    } catch (error) {
+      console.error('Failed to delete loan:', error)
+    }
+  }
+
+  const filteredLoans = (loanStatusFilter === 'all'
+    ? loans
+    : loans.filter(l => l.status === loanStatusFilter)
+  ).sort((a, b) => b.principal - a.principal)
+
+  const totalPrincipal = loans.filter(l => l.status === 'active').reduce((sum, l) => sum + l.principal, 0)
+  const totalMonthlyInterest = loans.filter(l => l.status === 'active').reduce((sum, l) => sum + (l.monthly_interest_avg || 0), 0)
+
   // ====== Wiki Functions ======
   const loadWikiNotes = useCallback(async () => {
     setIsLoadingWiki(true)
@@ -2509,11 +2720,12 @@ export default function TenswManagementPage() {
     }
   }, [searchParams])
 
-  // Load Invoice, Wiki, and Gmail data
+  // Load Invoice, Loan, Wiki, and Gmail data
   useEffect(() => {
     loadInvoices()
+    loadLoans()
     loadWikiNotes()
-  }, [loadInvoices, loadWikiNotes])
+  }, [loadInvoices, loadLoans, loadWikiNotes])
 
   useEffect(() => {
     const savedLabel = localStorage.getItem('tensw-mgmt-gmail-label')
@@ -3642,6 +3854,200 @@ export default function TenswManagementPage() {
                     </>
                   )
                 })()
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Loan Management */}
+          <Card className="bg-slate-100 dark:bg-slate-800 mt-6">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Landmark className="h-5 w-5" />
+                  대출관리
+                </CardTitle>
+                <CardDescription>대출 현황 및 이자 관리</CardDescription>
+              </div>
+              <button
+                onClick={openNewLoanModal}
+                className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">추가</span>
+              </button>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              {/* Summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">총 원금</p>
+                  <p className="text-sm font-bold">₩{totalPrincipal.toLocaleString()}</p>
+                </div>
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">평균 이율</p>
+                  <p className="text-sm font-bold">{(() => { const active = loans.filter(l => l.status === 'active' && l.interest_rate); return active.length ? (active.reduce((s, l) => s + (l.interest_rate || 0), 0) / active.length).toFixed(2) + '%' : '-' })()}</p>
+                </div>
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">월 이자</p>
+                  <p className="text-sm font-bold">₩{totalMonthlyInterest.toLocaleString()}</p>
+                </div>
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">연 이자</p>
+                  <p className="text-sm font-bold">₩{(totalMonthlyInterest * 12).toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Status filter */}
+              <div className="flex flex-wrap gap-1">
+                {(['all', 'active', 'pending', 'closed'] as const).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setLoanStatusFilter(status)}
+                    className={cn(
+                      'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                      loanStatusFilter === status
+                        ? 'bg-slate-900 text-white dark:bg-slate-600'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                    )}
+                  >
+                    {status === 'all' ? `전체 (${loans.length})` : `${LOAN_STATUS_STYLES[status]?.label || status} (${loans.filter(l => l.status === status).length})`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Loan list */}
+              {isLoadingLoans ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                </div>
+              ) : filteredLoans.length === 0 ? (
+                <div className="text-center text-sm text-slate-500 py-8">
+                  등록된 대출이 없습니다.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredLoans.map((loan) => {
+                    const statusStyle = LOAN_STATUS_STYLES[loan.status] || LOAN_STATUS_STYLES.active
+                    const isExpanded = expandedLoan === loan.id
+                    const today = new Date()
+                    const maturity = loan.maturity_date ? new Date(loan.maturity_date) : null
+                    const daysToMaturity = maturity ? Math.ceil((maturity.getTime() - today.getTime()) / 86400000) : null
+                    const isMaturitySoon = daysToMaturity !== null && daysToMaturity >= 0 && daysToMaturity <= 90
+
+                    return (
+                      <div
+                        key={loan.id}
+                        className="rounded-lg bg-white dark:bg-slate-700 p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                        onClick={() => setExpandedLoan(isExpanded ? null : loan.id)}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 whitespace-nowrap', statusStyle.bg, statusStyle.text)}>
+                              {statusStyle.label}
+                            </span>
+                            <span className="font-medium text-sm truncate">{loan.bank}</span>
+                            <span className="hidden sm:inline text-xs text-slate-500 truncate">{loan.loan_type}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="font-medium text-sm">₩{loan.principal.toLocaleString()}</span>
+                            <span className="hidden sm:inline text-xs text-slate-500">
+                              {loan.interest_rate ? `${loan.interest_rate}%` : ''}{loan.interest_rate && loan.monthly_interest_avg ? ' · ' : ''}{loan.monthly_interest_avg ? `월 ₩${loan.monthly_interest_avg.toLocaleString()}` : ''}
+                            </span>
+                            {isMaturitySoon && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
+                                <AlertTriangle className="h-3 w-3" />
+                                D-{daysToMaturity}
+                              </span>
+                            )}
+                            {isExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                          </div>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-600 space-y-2">
+                            <div className="grid grid-cols-2 gap-3 text-xs">
+                              <div>
+                                <span className="text-slate-500">대출유형</span>
+                                <p className="font-medium">{loan.loan_type}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">계좌번호</span>
+                                <p className="font-medium">{loan.account_number}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">이자율</span>
+                                <p className="font-medium">{loan.interest_rate ? `${loan.interest_rate}%` : '-'}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">월평균 이자</span>
+                                <p className="font-medium">{loan.monthly_interest_avg ? `₩${loan.monthly_interest_avg.toLocaleString()}` : '-'}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">대출일</span>
+                                <p className="font-medium">{loan.loan_date || '-'}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">만기일</span>
+                                <p className={cn('font-medium', isMaturitySoon && 'text-red-600 dark:text-red-400')}>{loan.maturity_date || '-'}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">상환방식</span>
+                                <p className="font-medium">{loan.repayment_type === 'bullet' ? '만기일시상환' : loan.repayment_type}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">이자납입일</span>
+                                <p className="font-medium">{loan.interest_payment_day ? `매월 ${loan.interest_payment_day}일` : '-'}</p>
+                              </div>
+                              {loan.last_extension_date && (
+                                <div>
+                                  <span className="text-slate-500">최근 연장일</span>
+                                  <p className="font-medium">{loan.last_extension_date}</p>
+                                </div>
+                              )}
+                              {loan.next_interest_date && (
+                                <div>
+                                  <span className="text-slate-500">다음 이자일</span>
+                                  <p className="font-medium">{loan.next_interest_date}</p>
+                                </div>
+                              )}
+                            </div>
+                            {loan.memo && (
+                              <div className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-lg p-2 mt-2">
+                                {loan.memo}
+                              </div>
+                            )}
+                            {loan.attachments && loan.attachments.length > 0 && (
+                              <div className="space-y-1 mt-2">
+                                {loan.attachments.map((att, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={att.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-800 rounded px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Paperclip className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                                    <span className="text-blue-600 hover:underline truncate">{att.name}</span>
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                            <div className="flex justify-end pt-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openEditLoanModal(loan) }}
+                                className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                              >
+                                <Pencil className="h-3 w-3" />
+                                수정
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -5473,6 +5879,226 @@ export default function TenswManagementPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Loan Modal */}
+      <Dialog open={isLoanModalOpen} onOpenChange={setIsLoanModalOpen}>
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
+            <DialogTitle>{editingLoan ? '대출 수정' : '대출 추가'}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">은행 *</label>
+                <Input value={loanFormBank} onChange={(e) => setLoanFormBank(e.target.value)} placeholder="우리은행" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">계좌번호 *</label>
+                <Input value={loanFormAccountNumber} onChange={(e) => setLoanFormAccountNumber(e.target.value)} placeholder="1220-000-758330" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">대출유형 *</label>
+              <Input value={loanFormLoanType} onChange={(e) => setLoanFormLoanType(e.target.value)} placeholder="기업운전일반자금대출" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">대출원금 *</label>
+                <Input
+                  value={loanFormPrincipal}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/,/g, '')
+                    if (raw === '' || /^\d+$/.test(raw)) {
+                      setLoanFormPrincipal(raw ? Number(raw).toLocaleString() : '')
+                    }
+                  }}
+                  placeholder="150,000,000"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">이자율 (%)</label>
+                <Input
+                  value={loanFormInterestRate}
+                  onChange={(e) => setLoanFormInterestRate(e.target.value)}
+                  placeholder="5.54"
+                  type="number"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">월평균 이자</label>
+                <Input
+                  value={loanFormMonthlyInterest}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/,/g, '')
+                    if (raw === '' || /^\d+$/.test(raw)) {
+                      setLoanFormMonthlyInterest(raw ? Number(raw).toLocaleString() : '')
+                    }
+                  }}
+                  placeholder="640,000"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">이자납입일</label>
+                <Input
+                  value={loanFormInterestPaymentDay}
+                  onChange={(e) => setLoanFormInterestPaymentDay(e.target.value)}
+                  placeholder="16"
+                  type="number"
+                  min="1"
+                  max="31"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">대출일</label>
+                <Input type="date" value={loanFormLoanDate} onChange={(e) => setLoanFormLoanDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">만기일</label>
+                <Input type="date" value={loanFormMaturityDate} onChange={(e) => setLoanFormMaturityDate(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">최근 연장일</label>
+                <Input type="date" value={loanFormLastExtensionDate} onChange={(e) => setLoanFormLastExtensionDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">다음 이자일</label>
+                <Input type="date" value={loanFormNextInterestDate} onChange={(e) => setLoanFormNextInterestDate(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">상환방식</label>
+                <Select value={loanFormRepaymentType} onValueChange={setLoanFormRepaymentType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bullet">만기일시상환</SelectItem>
+                    <SelectItem value="amortizing">원리금균등</SelectItem>
+                    <SelectItem value="principal_equal">원금균등</SelectItem>
+                    <SelectItem value="custom">기타</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">상태</label>
+                <Select value={loanFormStatus} onValueChange={setLoanFormStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">실행중</SelectItem>
+                    <SelectItem value="pending">대기</SelectItem>
+                    <SelectItem value="closed">상환완료</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">메모</label>
+              <Textarea
+                value={loanFormMemo}
+                onChange={(e) => setLoanFormMemo(e.target.value)}
+                rows={3}
+                placeholder="대출 관련 메모..."
+              />
+            </div>
+
+            {/* 첨부파일 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">첨부 서류</label>
+              <div className="rounded-lg p-2 text-center bg-slate-100 dark:bg-slate-700">
+                <input
+                  type="file"
+                  id="loan-file-input"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setLoanFormFiles(prev => [...prev, ...Array.from(e.target.files!)])
+                      e.target.value = ''
+                    }
+                  }}
+                />
+                <label htmlFor="loan-file-input" className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300">
+                  <Paperclip className="h-3 w-3" />
+                  <span>파일 첨부</span>
+                </label>
+              </div>
+              {/* 기존 첨부파일 */}
+              {editingLoan?.attachments && editingLoan.attachments.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {editingLoan.attachments.map((att, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-700 rounded px-2 py-1.5">
+                      <Paperclip className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-blue-600 hover:underline">{att.name}</a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newAttachments = editingLoan.attachments.filter((_, i) => i !== idx)
+                          setEditingLoan({ ...editingLoan, attachments: newAttachments })
+                        }}
+                        className="text-slate-400 hover:text-red-500 transition-colors flex-shrink-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* 새 첨부파일 */}
+              {loanFormFiles.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {loanFormFiles.map((file, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-700 rounded px-2 py-1.5">
+                      <Paperclip className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                      <span className="flex-1 truncate">{file.name}</span>
+                      <span className="text-slate-400 flex-shrink-0">({(file.size / 1024).toFixed(1)}KB)</span>
+                      <button
+                        type="button"
+                        onClick={() => setLoanFormFiles(files => files.filter((_, i) => i !== idx))}
+                        className="text-slate-400 hover:text-red-500 transition-colors flex-shrink-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+            {editingLoan ? (
+              <Button variant="destructive" size="sm" onClick={() => handleDeleteLoan(editingLoan.id)}>
+                삭제
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsLoanModalOpen(false)}>
+                취소
+              </Button>
+              <Button size="sm" onClick={handleSaveLoan} disabled={isSavingLoan || isUploadingLoanFiles || !loanFormBank.trim() || !loanFormLoanType.trim() || !loanFormPrincipal.trim()}>
+                {(isSavingLoan || isUploadingLoanFiles) && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                저장
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

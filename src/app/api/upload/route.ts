@@ -10,6 +10,7 @@ const supabase = createClient(
 // Folder to bucket mapping
 const FOLDER_BUCKET_MAP: Record<string, string> = {
   'invoices': 'tensw-project-docs',
+  'loans': 'tensw-project-docs',
   'tensw': 'tensw-project-docs',
   'wiki': 'wiki-attachments',
   'etf': 'etf-documents',
