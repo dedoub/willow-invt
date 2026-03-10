@@ -22,6 +22,25 @@ interface TenswInvoice {
   created_at: string
   updated_at: string
 }
+interface TenswTaxInvoice {
+  id: string
+  invoice_type: string
+  issue_date: string
+  counterparty: string
+  business_number: string | null
+  representative: string | null
+  supply_amount: number
+  tax_amount: number
+  total_amount: number
+  items: Array<{ description: string; quantity: number; unit_price: number; supply_amount: number; tax_amount: number }>
+  expected_payment_date: string | null
+  paid_at: string | null
+  payment_status: string
+  notes: string | null
+  file_url: string | null
+  created_at: string
+  updated_at: string
+}
 interface TenswLoan {
   id: string
   bank: string
@@ -920,6 +939,8 @@ export default function TenswManagementPage() {
   const [isSavingLoan, setIsSavingLoan] = useState(false)
   const [expandedLoan, setExpandedLoan] = useState<string | null>(null)
   const [loanStatusFilter, setLoanStatusFilter] = useState<'all' | 'active' | 'pending' | 'closed'>('all')
+  const [loanPage, setLoanPage] = useState(1)
+  const [loanPerPage, setLoanPerPage] = useState(5)
 
   // Loan form states
   const [loanFormBank, setLoanFormBank] = useState('')
@@ -938,6 +959,34 @@ export default function TenswManagementPage() {
   const [loanFormMemo, setLoanFormMemo] = useState('')
   const [loanFormFiles, setLoanFormFiles] = useState<File[]>([])
   const [isUploadingLoanFiles, setIsUploadingLoanFiles] = useState(false)
+
+  // Tax Invoice (매출관리) states
+  const [taxInvoices, setTaxInvoices] = useState<TenswTaxInvoice[]>([])
+  const [isLoadingTaxInvoices, setIsLoadingTaxInvoices] = useState(true)
+  const [isTaxInvoiceModalOpen, setIsTaxInvoiceModalOpen] = useState(false)
+  const [editingTaxInvoice, setEditingTaxInvoice] = useState<TenswTaxInvoice | null>(null)
+  const [isSavingTaxInvoice, setIsSavingTaxInvoice] = useState(false)
+  const [expandedTaxInvoice, setExpandedTaxInvoice] = useState<string | null>(null)
+  const [taxInvoiceStatusFilter, setTaxInvoiceStatusFilter] = useState<'all' | 'pending' | 'paid'>('all')
+  const [taxInvoicePage, setTaxInvoicePage] = useState(1)
+  const [taxInvoicePerPage, setTaxInvoicePerPage] = useState(5)
+
+  // Tax Invoice form states
+  const [taxFormCounterparty, setTaxFormCounterparty] = useState('')
+  const [taxFormBusinessNumber, setTaxFormBusinessNumber] = useState('')
+  const [taxFormRepresentative, setTaxFormRepresentative] = useState('')
+  const [taxFormSupplyAmount, setTaxFormSupplyAmount] = useState('')
+  const [taxFormTaxAmount, setTaxFormTaxAmount] = useState('')
+  const [taxFormIssueDate, setTaxFormIssueDate] = useState('')
+  const [taxFormExpectedPaymentDate, setTaxFormExpectedPaymentDate] = useState('')
+  const [taxFormPaymentStatus, setTaxFormPaymentStatus] = useState('pending')
+  const [taxFormNotes, setTaxFormNotes] = useState('')
+  const [taxFormItems, setTaxFormItems] = useState<Array<{ description: string; quantity: number; unit_price: number; supply_amount: number; tax_amount: number }>>([])
+
+  const TAX_INVOICE_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+    pending: { bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-400', label: '미수금' },
+    paid: { bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-400', label: '수금완료' },
+  }
 
   const LOAN_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
     active: { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400', label: '실행중' },
@@ -2240,6 +2289,125 @@ export default function TenswManagementPage() {
 
   const totalPrincipal = loans.filter(l => l.status === 'active').reduce((sum, l) => sum + l.principal, 0)
   const totalMonthlyInterest = loans.filter(l => l.status === 'active').reduce((sum, l) => sum + (l.monthly_interest_avg || 0), 0)
+  const totalLoanPages = Math.ceil(filteredLoans.length / loanPerPage)
+  const paginatedLoans = filteredLoans.slice(
+    (loanPage - 1) * loanPerPage,
+    loanPage * loanPerPage
+  )
+
+  // ====== Tax Invoice (매출관리) Functions ======
+  const loadTaxInvoices = useCallback(async () => {
+    setIsLoadingTaxInvoices(true)
+    try {
+      const res = await fetch('/api/tensw-mgmt/tax-invoices')
+      if (res.ok) {
+        const data = await res.json()
+        setTaxInvoices(data.invoices || [])
+      }
+    } catch (error) {
+      console.error('Failed to load tax invoices:', error)
+    } finally {
+      setIsLoadingTaxInvoices(false)
+    }
+  }, [])
+
+  const resetTaxInvoiceForm = () => {
+    setTaxFormCounterparty('')
+    setTaxFormBusinessNumber('')
+    setTaxFormRepresentative('')
+    setTaxFormSupplyAmount('')
+    setTaxFormTaxAmount('')
+    setTaxFormIssueDate('')
+    setTaxFormExpectedPaymentDate('')
+    setTaxFormPaymentStatus('pending')
+    setTaxFormNotes('')
+    setTaxFormItems([])
+    setEditingTaxInvoice(null)
+  }
+
+  const openNewTaxInvoiceModal = () => {
+    resetTaxInvoiceForm()
+    setIsTaxInvoiceModalOpen(true)
+  }
+
+  const openEditTaxInvoiceModal = (inv: TenswTaxInvoice) => {
+    setEditingTaxInvoice(inv)
+    setTaxFormCounterparty(inv.counterparty)
+    setTaxFormBusinessNumber(inv.business_number || '')
+    setTaxFormRepresentative(inv.representative || '')
+    setTaxFormSupplyAmount(inv.supply_amount.toLocaleString())
+    setTaxFormTaxAmount(inv.tax_amount.toLocaleString())
+    setTaxFormIssueDate(inv.issue_date || '')
+    setTaxFormExpectedPaymentDate(inv.expected_payment_date || '')
+    setTaxFormPaymentStatus(inv.payment_status || 'pending')
+    setTaxFormNotes(inv.notes || '')
+    setTaxFormItems(inv.items || [])
+    setIsTaxInvoiceModalOpen(true)
+  }
+
+  const handleSaveTaxInvoice = async () => {
+    if (!taxFormCounterparty.trim() || !taxFormSupplyAmount.trim() || !taxFormIssueDate) return
+    setIsSavingTaxInvoice(true)
+    try {
+      const supplyAmount = Number(taxFormSupplyAmount.replace(/,/g, ''))
+      const taxAmount = Number(taxFormTaxAmount.replace(/,/g, '') || '0')
+      const payload: Record<string, unknown> = {
+        invoice_type: 'sales',
+        issue_date: taxFormIssueDate,
+        counterparty: taxFormCounterparty.trim(),
+        business_number: taxFormBusinessNumber.trim() || null,
+        representative: taxFormRepresentative.trim() || null,
+        supply_amount: supplyAmount,
+        tax_amount: taxAmount,
+        total_amount: supplyAmount + taxAmount,
+        items: taxFormItems,
+        expected_payment_date: taxFormExpectedPaymentDate || null,
+        payment_status: taxFormPaymentStatus,
+        notes: taxFormNotes.trim() || null,
+      }
+      if (editingTaxInvoice) payload.id = editingTaxInvoice.id
+      const res = await fetch('/api/tensw-mgmt/tax-invoices', {
+        method: editingTaxInvoice ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        setIsTaxInvoiceModalOpen(false)
+        resetTaxInvoiceForm()
+        await loadTaxInvoices()
+      }
+    } catch (error) {
+      console.error('Failed to save tax invoice:', error)
+    } finally {
+      setIsSavingTaxInvoice(false)
+    }
+  }
+
+  const handleDeleteTaxInvoice = async (id: string) => {
+    try {
+      const res = await fetch(`/api/tensw-mgmt/tax-invoices?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        await loadTaxInvoices()
+        setIsTaxInvoiceModalOpen(false)
+      }
+    } catch (error) {
+      console.error('Failed to delete tax invoice:', error)
+    }
+  }
+
+  const filteredTaxInvoices = (taxInvoiceStatusFilter === 'all'
+    ? taxInvoices
+    : taxInvoices.filter(i => i.payment_status === taxInvoiceStatusFilter)
+  ).sort((a, b) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime())
+
+  const totalSalesAmount = taxInvoices.reduce((sum, i) => sum + i.total_amount, 0)
+  const pendingSalesAmount = taxInvoices.filter(i => i.payment_status === 'pending').reduce((sum, i) => sum + i.total_amount, 0)
+  const paidSalesAmount = taxInvoices.filter(i => i.payment_status === 'paid').reduce((sum, i) => sum + i.total_amount, 0)
+  const totalTaxInvoicePages = Math.ceil(filteredTaxInvoices.length / taxInvoicePerPage)
+  const paginatedTaxInvoices = filteredTaxInvoices.slice(
+    (taxInvoicePage - 1) * taxInvoicePerPage,
+    taxInvoicePage * taxInvoicePerPage
+  )
 
   // ====== Wiki Functions ======
   const loadWikiNotes = useCallback(async () => {
@@ -2720,12 +2888,13 @@ export default function TenswManagementPage() {
     }
   }, [searchParams])
 
-  // Load Invoice, Loan, Wiki, and Gmail data
+  // Load Invoice, Loan, TaxInvoice, Wiki, and Gmail data
   useEffect(() => {
     loadInvoices()
     loadLoans()
+    loadTaxInvoices()
     loadWikiNotes()
-  }, [loadInvoices, loadLoans, loadWikiNotes])
+  }, [loadInvoices, loadLoans, loadTaxInvoices, loadWikiNotes])
 
   useEffect(() => {
     const savedLabel = localStorage.getItem('tensw-mgmt-gmail-label')
@@ -3345,10 +3514,181 @@ export default function TenswManagementPage() {
             </CardContent>
           </Card>
 
-      {/* Row 2 - Invoice + Wiki (5:5) */}
+      {/* Row 2 - Sales/Cash/Loans + Wiki (5:5) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
+          {/* 매출관리 (Tax Invoice) */}
           <Card className="bg-slate-100 dark:bg-slate-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  매출관리
+                </CardTitle>
+                <CardDescription>세금계산서 발행내역</CardDescription>
+              </div>
+              <button
+                onClick={openNewTaxInvoiceModal}
+                className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">추가</span>
+              </button>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">총 매출</p>
+                  <p className="text-sm font-bold">₩{totalSalesAmount.toLocaleString()}</p>
+                  <p className="text-[10px] text-slate-400">VAT ₩{taxInvoices.reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                </div>
+                <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">미수금</p>
+                  <p className="text-sm font-bold text-amber-600">₩{pendingSalesAmount.toLocaleString()}</p>
+                  <p className="text-[10px] text-slate-400">VAT ₩{taxInvoices.filter(i => i.payment_status === 'pending').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                </div>
+                <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">수금완료</p>
+                  <p className="text-sm font-bold text-emerald-600">₩{paidSalesAmount.toLocaleString()}</p>
+                  <p className="text-[10px] text-slate-400">VAT ₩{taxInvoices.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Status filter */}
+              <div className="flex gap-1">
+                {(['all', 'pending', 'paid'] as const).map((status) => {
+                  const count = status === 'all' ? taxInvoices.length : taxInvoices.filter(i => i.payment_status === status).length
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => { setTaxInvoiceStatusFilter(status); setTaxInvoicePage(1) }}
+                      className={cn(
+                        'px-2 py-0.5 text-xs font-medium rounded-full transition-colors',
+                        taxInvoiceStatusFilter === status
+                          ? 'bg-slate-900 text-white dark:bg-slate-600'
+                          : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300'
+                      )}
+                    >
+                      {status === 'all' ? '전체' : status === 'pending' ? '미수금' : '수금완료'} {count}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Tax invoice list */}
+              {isLoadingTaxInvoices ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />)}
+                </div>
+              ) : filteredTaxInvoices.length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-4">세금계산서가 없습니다</p>
+              ) : (
+                <div className="space-y-1">
+                  {paginatedTaxInvoices.map((inv) => {
+                    const statusStyle = TAX_INVOICE_STATUS_STYLES[inv.payment_status] || TAX_INVOICE_STATUS_STYLES.pending
+                    const isExpanded = expandedTaxInvoice === inv.id
+                    return (
+                      <div key={inv.id}>
+                        <div
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer"
+                          onClick={() => setExpandedTaxInvoice(isExpanded ? null : inv.id)}
+                        >
+                          <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium', statusStyle.bg, statusStyle.text)}>
+                            {statusStyle.label}
+                          </span>
+                          <span className="font-medium text-sm truncate">{inv.counterparty}</span>
+                          {inv.items && inv.items.length > 0 && (
+                            <span className="hidden sm:inline text-xs text-slate-500 truncate">
+                              {inv.items[0].description}{inv.items.length > 1 ? ` 외 ${inv.items.length - 1}건` : ''}
+                            </span>
+                          )}
+                          <span className="ml-auto flex items-baseline gap-1 whitespace-nowrap">
+                            <span className="font-medium text-sm">₩{inv.total_amount.toLocaleString()}</span>
+                            <span className="hidden sm:inline text-[10px] text-slate-400">(VAT ₩{inv.tax_amount.toLocaleString()})</span>
+                          </span>
+                          <span className="hidden sm:inline text-xs text-slate-500">{inv.issue_date}</span>
+                          {isExpanded ? <ChevronUp className="h-3 w-3 text-slate-400 flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-slate-400 flex-shrink-0" />}
+                        </div>
+                        {isExpanded && (
+                          <div className="mt-1 p-3 rounded-lg bg-white dark:bg-slate-700 text-xs space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div><span className="text-slate-500">발행일:</span> {inv.issue_date}</div>
+                              <div><span className="text-slate-500">공급가:</span> ₩{inv.supply_amount.toLocaleString()}</div>
+                              <div><span className="text-slate-500">세액:</span> ₩{inv.tax_amount.toLocaleString()}</div>
+                              <div><span className="text-slate-500">합계:</span> ₩{inv.total_amount.toLocaleString()}</div>
+                              {inv.business_number && <div><span className="text-slate-500">사업자번호:</span> {inv.business_number}</div>}
+                              {inv.representative && <div><span className="text-slate-500">대표자:</span> {inv.representative}</div>}
+                              {inv.expected_payment_date && <div><span className="text-slate-500">입금예정일:</span> {inv.expected_payment_date}</div>}
+                              {inv.paid_at && <div><span className="text-slate-500">수금일:</span> {new Date(inv.paid_at).toLocaleDateString('ko-KR')}</div>}
+                            </div>
+                            {/* Items */}
+                            {inv.items && inv.items.length > 0 && (
+                              <div>
+                                <p className="text-slate-500 mb-1">품목:</p>
+                                <div className="space-y-1">
+                                  {inv.items.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center p-1.5 rounded bg-slate-50 dark:bg-slate-600">
+                                      <span>{item.description}</span>
+                                      <span className="font-medium">₩{item.supply_amount.toLocaleString()}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {inv.notes && <div><span className="text-slate-500">메모:</span> {inv.notes}</div>}
+                            <div className="flex justify-end pt-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openEditTaxInvoiceModal(inv) }}
+                                className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                              >
+                                <Pencil className="h-3 w-3" />
+                                수정
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {/* Tax Invoice Pagination */}
+              {filteredTaxInvoices.length > 0 && (
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 mt-3">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      {filteredTaxInvoices.length}개 중 {(taxInvoicePage - 1) * taxInvoicePerPage + 1}-{Math.min(taxInvoicePage * taxInvoicePerPage, filteredTaxInvoices.length)}
+                    </p>
+                    <div className="relative">
+                      <select
+                        value={taxInvoicePerPage}
+                        onChange={(e) => { setTaxInvoicePerPage(Number(e.target.value)); setTaxInvoicePage(1) }}
+                        className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        <option value={5}>5개</option>
+                        <option value={10}>10개</option>
+                        <option value={25}>25개</option>
+                      </select>
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                    </div>
+                  </div>
+                  {totalTaxInvoicePages > 1 && (
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => setTaxInvoicePage(1)} disabled={taxInvoicePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                      <button onClick={() => setTaxInvoicePage(p => Math.max(1, p - 1))} disabled={taxInvoicePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                      <span className="px-2 py-1 text-xs font-medium">{taxInvoicePage}/{totalTaxInvoicePages}</span>
+                      <button onClick={() => setTaxInvoicePage(p => Math.min(totalTaxInvoicePages, p + 1))} disabled={taxInvoicePage === totalTaxInvoicePages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                      <button onClick={() => setTaxInvoicePage(totalTaxInvoicePages)} disabled={taxInvoicePage === totalTaxInvoicePages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 현금관리 */}
+          <Card className="bg-slate-100 dark:bg-slate-800 mt-6">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
@@ -3879,19 +4219,19 @@ export default function TenswManagementPage() {
             <CardContent className="pt-0 space-y-3">
               {/* Summary */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5">
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">총 원금</p>
                   <p className="text-sm font-bold">₩{totalPrincipal.toLocaleString()}</p>
                 </div>
-                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5">
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">평균 이율</p>
                   <p className="text-sm font-bold">{(() => { const active = loans.filter(l => l.status === 'active' && l.interest_rate); return active.length ? (active.reduce((s, l) => s + (l.interest_rate || 0), 0) / active.length).toFixed(2) + '%' : '-' })()}</p>
                 </div>
-                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5">
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">월 이자</p>
                   <p className="text-sm font-bold">₩{totalMonthlyInterest.toLocaleString()}</p>
                 </div>
-                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5">
+                <div className="rounded-lg bg-white dark:bg-slate-700 p-2.5 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">연 이자</p>
                   <p className="text-sm font-bold">₩{(totalMonthlyInterest * 12).toLocaleString()}</p>
                 </div>
@@ -3902,7 +4242,7 @@ export default function TenswManagementPage() {
                 {(['all', 'active', 'pending', 'closed'] as const).map((status) => (
                   <button
                     key={status}
-                    onClick={() => setLoanStatusFilter(status)}
+                    onClick={() => { setLoanStatusFilter(status); setLoanPage(1) }}
                     className={cn(
                       'px-3 py-1 text-xs font-medium rounded-full transition-colors',
                       loanStatusFilter === status
@@ -3926,7 +4266,7 @@ export default function TenswManagementPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredLoans.map((loan) => {
+                  {paginatedLoans.map((loan) => {
                     const statusStyle = LOAN_STATUS_STYLES[loan.status] || LOAN_STATUS_STYLES.active
                     const isExpanded = expandedLoan === loan.id
                     const today = new Date()
@@ -3937,7 +4277,7 @@ export default function TenswManagementPage() {
                     return (
                       <div
                         key={loan.id}
-                        className="rounded-lg bg-white dark:bg-slate-700 p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                        className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                         onClick={() => setExpandedLoan(isExpanded ? null : loan.id)}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -4047,6 +4387,37 @@ export default function TenswManagementPage() {
                       </div>
                     )
                   })}
+                </div>
+              )}
+              {/* Loan Pagination */}
+              {filteredLoans.length > 0 && (
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 mt-3">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      {filteredLoans.length}개 중 {(loanPage - 1) * loanPerPage + 1}-{Math.min(loanPage * loanPerPage, filteredLoans.length)}
+                    </p>
+                    <div className="relative">
+                      <select
+                        value={loanPerPage}
+                        onChange={(e) => { setLoanPerPage(Number(e.target.value)); setLoanPage(1) }}
+                        className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        <option value={5}>5개</option>
+                        <option value={10}>10개</option>
+                        <option value={25}>25개</option>
+                      </select>
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                    </div>
+                  </div>
+                  {totalLoanPages > 1 && (
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => setLoanPage(1)} disabled={loanPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                      <button onClick={() => setLoanPage(p => Math.max(1, p - 1))} disabled={loanPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                      <span className="px-2 py-1 text-xs font-medium">{loanPage}/{totalLoanPages}</span>
+                      <button onClick={() => setLoanPage(p => Math.min(totalLoanPages, p + 1))} disabled={loanPage === totalLoanPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                      <button onClick={() => setLoanPage(totalLoanPages)} disabled={loanPage === totalLoanPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -5879,6 +6250,142 @@ export default function TenswManagementPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tax Invoice Modal */}
+      <Dialog open={isTaxInvoiceModalOpen} onOpenChange={setIsTaxInvoiceModalOpen}>
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
+            <DialogTitle>{editingTaxInvoice ? '세금계산서 수정' : '세금계산서 추가'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">거래처 *</label>
+                <Input value={taxFormCounterparty} onChange={(e) => setTaxFormCounterparty(e.target.value)} placeholder="거래처명" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">발행일 *</label>
+                <Input type="date" value={taxFormIssueDate} onChange={(e) => setTaxFormIssueDate(e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">사업자번호</label>
+                <Input value={taxFormBusinessNumber} onChange={(e) => setTaxFormBusinessNumber(e.target.value)} placeholder="000-00-00000" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">대표자</label>
+                <Input value={taxFormRepresentative} onChange={(e) => setTaxFormRepresentative(e.target.value)} placeholder="대표자명" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">공급가액 *</label>
+                <Input
+                  value={taxFormSupplyAmount}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/,/g, '').replace(/[^0-9]/g, '')
+                    setTaxFormSupplyAmount(raw ? Number(raw).toLocaleString() : '')
+                    // Auto-calculate tax (10%)
+                    if (raw) {
+                      setTaxFormTaxAmount(Math.round(Number(raw) * 0.1).toLocaleString())
+                    }
+                  }}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">세액</label>
+                <Input
+                  value={taxFormTaxAmount}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/,/g, '').replace(/[^0-9]/g, '')
+                    setTaxFormTaxAmount(raw ? Number(raw).toLocaleString() : '')
+                  }}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            {/* Items */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs text-slate-500">품목</label>
+                <button
+                  type="button"
+                  onClick={() => setTaxFormItems([...taxFormItems, { description: '', quantity: 1, unit_price: 0, supply_amount: 0, tax_amount: 0 }])}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  + 품목 추가
+                </button>
+              </div>
+              {taxFormItems.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2 mb-1">
+                  <Input
+                    className="flex-1"
+                    value={item.description}
+                    onChange={(e) => {
+                      const newItems = [...taxFormItems]
+                      newItems[idx] = { ...newItems[idx], description: e.target.value }
+                      setTaxFormItems(newItems)
+                    }}
+                    placeholder="품목명"
+                  />
+                  <Input
+                    className="w-28"
+                    value={item.supply_amount ? item.supply_amount.toLocaleString() : ''}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/,/g, '').replace(/[^0-9]/g, '')
+                      const newItems = [...taxFormItems]
+                      const supplyAmt = raw ? Number(raw) : 0
+                      newItems[idx] = { ...newItems[idx], supply_amount: supplyAmt, unit_price: supplyAmt, tax_amount: Math.round(supplyAmt * 0.1) }
+                      setTaxFormItems(newItems)
+                    }}
+                    placeholder="금액"
+                  />
+                  <button
+                    onClick={() => setTaxFormItems(taxFormItems.filter((_, i) => i !== idx))}
+                    className="text-slate-400 hover:text-red-500"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">입금예정일</label>
+                <Input type="date" value={taxFormExpectedPaymentDate} onChange={(e) => setTaxFormExpectedPaymentDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">수금상태</label>
+                <Select value={taxFormPaymentStatus} onValueChange={setTaxFormPaymentStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">미수금</SelectItem>
+                    <SelectItem value="paid">수금완료</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">메모</label>
+              <Textarea value={taxFormNotes} onChange={(e) => setTaxFormNotes(e.target.value)} rows={2} placeholder="메모..." />
+            </div>
+          </div>
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t">
+            {editingTaxInvoice ? (
+              <Button variant="destructive" size="sm" onClick={() => handleDeleteTaxInvoice(editingTaxInvoice.id)}>삭제</Button>
+            ) : <div />}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsTaxInvoiceModalOpen(false)}>취소</Button>
+              <Button size="sm" onClick={handleSaveTaxInvoice} disabled={isSavingTaxInvoice || !taxFormCounterparty.trim() || !taxFormSupplyAmount.trim() || !taxFormIssueDate}>
+                {isSavingTaxInvoice && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                저장
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
