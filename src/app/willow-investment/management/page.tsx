@@ -934,6 +934,7 @@ export default function WillowManagementPage() {
   const [stockThemes, setStockThemes] = useState<Record<string, { theme: string; parentTheme: string | null }[]>>({})
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false)
   const [usdKrwRate, setUsdKrwRate] = useState(1400) // fallback
+  const [fxHistory, setFxHistory] = useState<Record<string, number>>({}) // date → KRW/USD rate
 
   // Invoice form states (simplified)
   const [invoiceFormType, setInvoiceFormType] = useState<'revenue' | 'expense' | 'asset' | 'liability'>('revenue')
@@ -2154,10 +2155,11 @@ export default function WillowManagementPage() {
 
     setIsLoadingQuotes(true)
     try {
-      // Fetch stock quotes and USD/KRW rate in parallel
-      const [res, fxRes] = await Promise.all([
+      // Fetch stock quotes, current USD/KRW rate, and FX history in parallel
+      const [res, fxRes, fxHistRes] = await Promise.all([
         fetch(`/api/willow-mgmt/stock-quotes?tickers=${tickers.join(',')}&markets=${markets.join(',')}`),
         fetch('/api/willow-mgmt/stock-quotes?tickers=KRW%3DX&markets=US'),
+        fetch('/api/willow-mgmt/fx-history'),
       ])
       if (res.ok) {
         const data = await res.json()
@@ -2168,6 +2170,10 @@ export default function WillowManagementPage() {
         const fxData = await fxRes.json()
         const krwRate = fxData.prices?.['KRW=X']?.price
         if (krwRate && krwRate > 0) setUsdKrwRate(krwRate)
+      }
+      if (fxHistRes.ok) {
+        const histData = await fxHistRes.json()
+        if (histData.rates) setFxHistory(histData.rates)
       }
     } catch (error) {
       console.error('Failed to load stock quotes:', error)
@@ -4223,8 +4229,19 @@ export default function WillowManagementPage() {
                   const holdingsMap = new Map<string, {
                     ticker: string; company_name: string; market: 'KR' | 'US'; currency: 'KRW' | 'USD';
                     netQty: number; totalCost: number; // moving average state
-                    buyAmount: number; sellAmount: number; // for total return P&L (realized + unrealized)
+                    krwCost: number; // KRW cost using historical FX rates (for US stocks)
                   }>()
+
+                  // Find closest FX rate for a date (look back up to 5 days for weekends/holidays)
+                  const getFxRate = (date: string): number => {
+                    const d = new Date(date)
+                    for (let i = 0; i < 5; i++) {
+                      const key = d.toISOString().slice(0, 10)
+                      if (fxHistory[key]) return fxHistory[key]
+                      d.setDate(d.getDate() - 1)
+                    }
+                    return usdKrwRate // fallback to current
+                  }
 
                   // Process trades chronologically for moving average
                   const sortedTrades = [...stockTrades].sort((a, b) =>
@@ -4235,20 +4252,24 @@ export default function WillowManagementPage() {
                     const key = trade.ticker
                     const existing = holdingsMap.get(key) || {
                       ticker: trade.ticker, company_name: trade.company_name, market: trade.market, currency: trade.currency,
-                      netQty: 0, totalCost: 0, buyAmount: 0, sellAmount: 0,
+                      netQty: 0, totalCost: 0, krwCost: 0,
                     }
+                    const isUS = trade.market === 'US'
+                    const histRate = isUS ? getFxRate(trade.trade_date) : 1
+
                     if (trade.trade_type === 'buy') {
                       existing.totalCost += trade.total_amount
                       existing.netQty += trade.quantity
-                      existing.buyAmount += trade.total_amount
+                      existing.krwCost += trade.total_amount * histRate
                     } else {
                       // Sell: remove cost at current average price
                       const currentAvg = existing.netQty > 0 ? existing.totalCost / existing.netQty : 0
+                      const currentKrwAvg = existing.netQty > 0 ? existing.krwCost / existing.netQty : 0
                       existing.totalCost -= currentAvg * trade.quantity
+                      existing.krwCost -= currentKrwAvg * trade.quantity
                       existing.netQty -= trade.quantity
-                      existing.sellAmount += trade.total_amount
                       // Guard against floating point issues
-                      if (existing.netQty <= 0) { existing.netQty = 0; existing.totalCost = 0 }
+                      if (existing.netQty <= 0) { existing.netQty = 0; existing.totalCost = 0; existing.krwCost = 0 }
                     }
                     holdingsMap.set(key, existing)
                   }
@@ -4289,8 +4310,11 @@ export default function WillowManagementPage() {
                       const tickerThemes = stockThemes[h.ticker] || []
                       const parentTheme = tickerThemes[0]?.parentTheme || null
 
+                      // KRW invested using historical FX rates (for US stocks, KR stocks use as-is)
+                      const krwInvested = h.currency === 'USD' ? h.krwCost : totalInvested
+
                       return {
-                        ...h, netQty, avgBuyPrice, totalInvested, currentPrice, currentValue, pnl, pnlPercent, parentTheme, dailyChangePercent, irr, holdingDays,
+                        ...h, netQty, avgBuyPrice, totalInvested, currentPrice, currentValue, pnl, pnlPercent, parentTheme, dailyChangePercent, irr, holdingDays, krwInvested,
                         themes: tickerThemes.map(t => t.theme),
                       }
                     })
@@ -4351,7 +4375,9 @@ export default function WillowManagementPage() {
                       {/* Currency Toggle + Portfolio Summary */}
                       {hasQuotes && (() => {
                         const isKrwMode = portfolioCurrencyMode === 'KRW'
-                        const totalInvested = krInvested + usInvested * usdKrwRate
+                        // Use historical FX rates for US invested (matches Toss)
+                        const usInvestedKrwHist = usHoldings.reduce((s, h) => s + h.krwInvested, 0)
+                        const totalInvested = krInvested + usInvestedKrwHist
                         const totalValue = krValue + usValue * usdKrwRate
                         const totalPnl = totalValue - totalInvested
                         const totalPnlPct = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0
@@ -4375,9 +4401,9 @@ export default function WillowManagementPage() {
                             </div>
                             {(() => {
                               const usValueKrw = usValue * usdKrwRate
-                              const usInvestedKrw = usInvested * usdKrwRate
-                              const usPnlKrw = usValueKrw - usInvestedKrw
-                              const usPnlPctKrw = usInvestedKrw > 0 ? (usPnlKrw / usInvestedKrw) * 100 : 0
+                              const usInvestedKrwHist = usHoldings.reduce((s, h) => s + h.krwInvested, 0)
+                              const usPnlKrw = usValueKrw - usInvestedKrwHist
+                              const usPnlPctKrw = usInvestedKrwHist > 0 ? (usPnlKrw / usInvestedKrwHist) * 100 : 0
                               return (
                                 <div className="grid grid-cols-3 gap-3">
                                   <div
@@ -4416,8 +4442,8 @@ export default function WillowManagementPage() {
                                       )}
                                     </div>
                                     <div className="text-sm font-bold"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{isKrwMode ? formatAmount(usValueKrw, 'KRW') : formatAmount(usValue, 'USD')}</div>
-                                    <div className={cn('text-xs font-medium', usPnl > 0 ? 'text-red-600 dark:text-red-400' : usPnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{usPnl > 0 ? '+' : ''}{isKrwMode ? formatAmount(usPnlKrw, 'KRW') : formatAmount(usPnl, 'USD')} ({usPnl > 0 ? '+' : ''}{usPnlPct.toFixed(1)}%)
+                                    <div className={cn('text-xs font-medium', (isKrwMode ? usPnlKrw : usPnl) > 0 ? 'text-red-600 dark:text-red-400' : (isKrwMode ? usPnlKrw : usPnl) < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{isKrwMode ? (usPnlKrw > 0 ? '+' : '') + formatAmount(usPnlKrw, 'KRW') + ` (${usPnlKrw > 0 ? '+' : ''}${usPnlPctKrw.toFixed(1)}%)` : `${usPnl > 0 ? '+' : ''}${formatAmount(usPnl, 'USD')} (${usPnl > 0 ? '+' : ''}${usPnlPct.toFixed(1)}%)`}
                                     </div>
                                   </div>
                                   {/* 전체 통합 (항상 원화 환산) */}
