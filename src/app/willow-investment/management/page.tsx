@@ -4257,8 +4257,8 @@ export default function WillowManagementPage() {
                     .filter(h => h.netQty > 0)
                     .map(h => {
                       const netQty = h.netQty
-                      const avgBuyPrice = netQty > 0 ? h.totalCost / netQty : 0 // moving avg for display
-                      const totalInvested = h.buyAmount - h.sellAmount // net cash out (토스 방식: 실현+미실현)
+                      const avgBuyPrice = netQty > 0 ? h.totalCost / netQty : 0 // moving avg (이동평균법)
+                      const totalInvested = h.totalCost // 이동평균 원가 = 토스 매입금액
                       const quote = stockQuotes[h.ticker]
                       const currentPrice = quote?.price || 0
                       const dailyChangePercent = quote?.changePercent || 0
