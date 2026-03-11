@@ -2913,6 +2913,15 @@ export default function WillowManagementPage() {
     loadStockResearch()
   }, [loadInvoices, loadWikiNotes, loadStockTrades, loadStockResearch])
 
+  // Auto-refresh stock quotes every 5 minutes
+  useEffect(() => {
+    if (stockTrades.length === 0) return
+    const interval = setInterval(() => {
+      loadStockQuotes(stockTrades)
+    }, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [stockTrades, loadStockQuotes])
+
   // Persist trade view mode
   useEffect(() => {
     localStorage.setItem('willow-mgmt-trade-view-mode', tradeViewMode)
