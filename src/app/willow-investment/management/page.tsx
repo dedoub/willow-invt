@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ProtectedPage } from '@/components/auth/protected-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -94,6 +94,10 @@ import {
   Pin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ResponsiveContainer, Tooltip as RechartsTooltip, Legend as RechartsLegend,
+} from 'recharts'
 import { WillowMgmtClient, WillowMgmtProject, WillowMgmtMilestone, WillowMgmtSchedule, WillowMgmtDailyMemo, WillowMgmtTask } from '@/types/willow-mgmt'
 import {
   DndContext,
@@ -877,6 +881,60 @@ export default function WillowManagementPage() {
   const [expandedSummaryPeriod, setExpandedSummaryPeriod] = useState<string | null>(null)
   const [summaryCounterpartyFilter, setSummaryCounterpartyFilter] = useState<string | null>(null)
 
+  // Stock trade types
+  interface StockTrade {
+    id: string
+    ticker: string
+    company_name: string
+    market: 'KR' | 'US'
+    trade_date: string
+    trade_type: 'buy' | 'sell'
+    quantity: number
+    price: number
+    total_amount: number
+    currency: 'KRW' | 'USD'
+    broker: string | null
+    memo: string | null
+    created_at: string
+  }
+
+  // Stock trade states
+  const [stockTrades, setStockTrades] = useState<StockTrade[]>([])
+  const [isLoadingTrades, setIsLoadingTrades] = useState(true)
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false)
+  const [editingTrade, setEditingTrade] = useState<StockTrade | null>(null)
+  const [isSavingTrade, setIsSavingTrade] = useState(false)
+  const [tradeViewMode, setTradeViewMode] = useState<'list' | 'portfolio' | 'analysis'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('willow-mgmt-trade-view-mode')
+      return (saved === 'list' || saved === 'portfolio' || saved === 'analysis') ? saved as 'list' | 'portfolio' | 'analysis' : 'list'
+    }
+    return 'list'
+  })
+  const [tradeMarketFilter, setTradeMarketFilter] = useState<'all' | 'KR' | 'US'>('all')
+  const [tradeTypeFilter, setTradeTypeFilter] = useState<'all' | 'buy' | 'sell'>('all')
+  const [portfolioMarketFilter, setPortfolioMarketFilter] = useState<'all' | 'KR' | 'US'>('all')
+  const [portfolioCurrencyMode, setPortfolioCurrencyMode] = useState<'original' | 'KRW'>('original')
+  const [tradePage, setTradePage] = useState(1)
+  const [tradesPerPage, setTradesPerPage] = useState(5)
+
+  // Stock trade form states
+  const [tradeFormTicker, setTradeFormTicker] = useState('')
+  const [tradeFormCompanyName, setTradeFormCompanyName] = useState('')
+  const [tradeFormMarket, setTradeFormMarket] = useState<'KR' | 'US'>('KR')
+  const [tradeFormDate, setTradeFormDate] = useState('')
+  const [tradeFormType, setTradeFormType] = useState<'buy' | 'sell'>('buy')
+  const [tradeFormQuantity, setTradeFormQuantity] = useState('')
+  const [tradeFormPrice, setTradeFormPrice] = useState('')
+  const [tradeFormBroker, setTradeFormBroker] = useState('토스증권')
+  const [tradeFormMemo, setTradeFormMemo] = useState('')
+
+  // Stock quote & theme states
+  const [stockQuotes, setStockQuotes] = useState<Record<string, { price: number; change: number; changePercent: number; currency: string }>>({})
+  const [stockThemes, setStockThemes] = useState<Record<string, { theme: string; parentTheme: string | null }[]>>({})
+  const [isLoadingQuotes, setIsLoadingQuotes] = useState(false)
+  const [usdKrwRate, setUsdKrwRate] = useState(1400) // fallback
+
   // Invoice form states (simplified)
   const [invoiceFormType, setInvoiceFormType] = useState<'revenue' | 'expense' | 'asset' | 'liability'>('revenue')
   const [invoiceFormCounterparty, setInvoiceFormCounterparty] = useState('')
@@ -939,6 +997,58 @@ export default function WillowManagementPage() {
   const [wikiSearch, setWikiSearch] = useState('')
   const [wikiPage, setWikiPage] = useState(1)
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
+
+  // Stock research types & states
+  interface StockResearch {
+    id: string
+    ticker: string
+    company_name: string
+    scan_date: string
+    source: string
+    market_cap_b: number | null
+    current_price: number | null
+    revenue_growth_yoy: string | null
+    margin: string | null
+    value_chain_position: string | null
+    structural_thesis: string | null
+    sector_tags: string[]
+    high_12m: number | null
+    gap_from_high_pct: number | null
+    trend_verdict: string | null
+    verdict: string | null
+    fail_reason: string | null
+    notes: string | null
+    created_at: string
+    updated_at: string
+  }
+  const [stockResearch, setStockResearch] = useState<StockResearch[]>([])
+  const [isLoadingResearch, setIsLoadingResearch] = useState(true)
+  const [isResearchModalOpen, setIsResearchModalOpen] = useState(false)
+  const [editingResearch, setEditingResearch] = useState<StockResearch | null>(null)
+  const [isSavingResearch, setIsSavingResearch] = useState(false)
+  const [researchVerdictFilter, setResearchVerdictFilter] = useState<'all' | 'pass_tier1' | 'pass_tier2' | 'fail'>('all')
+  const [researchPage, setResearchPage] = useState(1)
+  const [researchPerPage, setResearchPerPage] = useState(5)
+  const [expandedResearch, setExpandedResearch] = useState<Set<string>>(new Set())
+
+  // Research form states
+  const [researchFormTicker, setResearchFormTicker] = useState('')
+  const [researchFormCompanyName, setResearchFormCompanyName] = useState('')
+  const [researchFormScanDate, setResearchFormScanDate] = useState('')
+  const [researchFormSource, setResearchFormSource] = useState('manual')
+  const [researchFormMarketCap, setResearchFormMarketCap] = useState('')
+  const [researchFormCurrentPrice, setResearchFormCurrentPrice] = useState('')
+  const [researchFormRevenueGrowth, setResearchFormRevenueGrowth] = useState('')
+  const [researchFormMargin, setResearchFormMargin] = useState('')
+  const [researchFormValueChain, setResearchFormValueChain] = useState('')
+  const [researchFormThesis, setResearchFormThesis] = useState('')
+  const [researchFormSectorTags, setResearchFormSectorTags] = useState('')
+  const [researchFormHigh12m, setResearchFormHigh12m] = useState('')
+  const [researchFormGapPct, setResearchFormGapPct] = useState('')
+  const [researchFormTrendVerdict, setResearchFormTrendVerdict] = useState('')
+  const [researchFormVerdict, setResearchFormVerdict] = useState<'pass_tier1' | 'pass_tier2' | 'fail'>('pass_tier1')
+  const [researchFormFailReason, setResearchFormFailReason] = useState('')
+  const [researchFormNotes, setResearchFormNotes] = useState('')
 
   // Gmail states
   const [emails, setEmails] = useState<ParsedEmail[]>([])
@@ -2030,6 +2140,288 @@ export default function WillowManagementPage() {
     setEditingInvoice({ ...editingInvoice, attachments: newAttachments })
   }
 
+  // ====== Stock Trade Functions ======
+  const loadStockQuotes = useCallback(async (trades: StockTrade[]) => {
+    // Get unique tickers with their markets
+    const tickerMap = new Map<string, string>()
+    for (const t of trades) {
+      if (!tickerMap.has(t.ticker)) tickerMap.set(t.ticker, t.market)
+    }
+    if (tickerMap.size === 0) return
+
+    const tickers = Array.from(tickerMap.keys())
+    const markets = tickers.map(t => tickerMap.get(t)!)
+
+    setIsLoadingQuotes(true)
+    try {
+      // Fetch stock quotes and USD/KRW rate in parallel
+      const [res, fxRes] = await Promise.all([
+        fetch(`/api/willow-mgmt/stock-quotes?tickers=${tickers.join(',')}&markets=${markets.join(',')}`),
+        fetch('/api/willow-mgmt/stock-quotes?tickers=KRW%3DX&markets=US'),
+      ])
+      if (res.ok) {
+        const data = await res.json()
+        setStockQuotes(data.prices || {})
+        setStockThemes(data.themes || {})
+      }
+      if (fxRes.ok) {
+        const fxData = await fxRes.json()
+        const krwRate = fxData.prices?.['KRW=X']?.price
+        if (krwRate && krwRate > 0) setUsdKrwRate(krwRate)
+      }
+    } catch (error) {
+      console.error('Failed to load stock quotes:', error)
+    } finally {
+      setIsLoadingQuotes(false)
+    }
+  }, [])
+
+  const loadStockTrades = useCallback(async () => {
+    setIsLoadingTrades(true)
+    try {
+      const res = await fetch('/api/willow-mgmt/stock-trades')
+      if (res.ok) {
+        const data = await res.json()
+        const trades = data.trades || []
+        setStockTrades(trades)
+        loadStockQuotes(trades)
+      }
+    } catch (error) {
+      console.error('Failed to load stock trades:', error)
+    } finally {
+      setIsLoadingTrades(false)
+    }
+  }, [loadStockQuotes])
+
+  const resetTradeForm = () => {
+    setTradeFormTicker('')
+    setTradeFormCompanyName('')
+    setTradeFormMarket('KR')
+    setTradeFormDate('')
+    setTradeFormType('buy')
+    setTradeFormQuantity('')
+    setTradeFormPrice('')
+    setTradeFormBroker('토스증권')
+    setTradeFormMemo('')
+    setEditingTrade(null)
+  }
+
+  const openNewTradeModal = () => {
+    resetTradeForm()
+    setIsTradeModalOpen(true)
+  }
+
+  const openEditTradeModal = (trade: StockTrade) => {
+    setEditingTrade(trade)
+    setTradeFormTicker(trade.ticker)
+    setTradeFormCompanyName(trade.company_name)
+    setTradeFormMarket(trade.market)
+    setTradeFormDate(trade.trade_date)
+    setTradeFormType(trade.trade_type)
+    setTradeFormQuantity(trade.quantity.toLocaleString())
+    setTradeFormPrice(trade.price.toLocaleString())
+    setTradeFormBroker(trade.broker || '토스증권')
+    setTradeFormMemo(trade.memo || '')
+    setIsTradeModalOpen(true)
+  }
+
+  // Calculate annualized IRR using Newton-Raphson
+  const calculateIRR = useCallback((cashFlows: { date: string; amount: number }[]): number | null => {
+    if (cashFlows.length < 2) return null
+    const sorted = [...cashFlows].sort((a, b) => a.date.localeCompare(b.date))
+    const t0 = new Date(sorted[0].date).getTime()
+    const ms365 = 365.25 * 24 * 60 * 60 * 1000
+    const data = sorted.map(cf => ({
+      years: (new Date(cf.date).getTime() - t0) / ms365,
+      amount: cf.amount,
+    }))
+    const npv = (r: number) => data.reduce((sum, d) => sum + d.amount / Math.pow(1 + r, d.years), 0)
+    const dnpv = (r: number) => data.reduce((sum, d) => sum + (-d.years * d.amount) / Math.pow(1 + r, d.years + 1), 0)
+    let rate = 0.1
+    for (let i = 0; i < 100; i++) {
+      const f = npv(rate)
+      const df = dnpv(rate)
+      if (Math.abs(df) < 1e-10) break
+      const next = rate - f / df
+      if (Math.abs(next - rate) < 1e-8) { rate = next; break }
+      rate = next
+      if (rate < -0.99 || rate > 100) return null
+    }
+    return Math.abs(npv(rate)) < 1 ? rate : null
+  }, [])
+
+  const formatAmount = (amount: number, currency: 'KRW' | 'USD') => {
+    if (currency === 'USD') {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+    }
+    return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount)
+  }
+
+  const handleSaveTrade = async () => {
+    if (!tradeFormTicker.trim() || !tradeFormCompanyName.trim() || !tradeFormDate) {
+      alert('종목코드, 종목명, 거래일을 입력해주세요.')
+      return
+    }
+    const quantity = parseInt(tradeFormQuantity.replace(/,/g, ''), 10)
+    const price = parseFloat(tradeFormPrice.replace(/,/g, ''))
+    if (isNaN(quantity) || quantity <= 0 || isNaN(price) || price <= 0) {
+      alert('수량과 단가를 올바르게 입력해주세요.')
+      return
+    }
+
+    setIsSavingTrade(true)
+    try {
+      const currency = tradeFormMarket === 'US' ? 'USD' : 'KRW'
+      const payload = {
+        id: editingTrade?.id,
+        ticker: tradeFormTicker.trim().toUpperCase(),
+        company_name: tradeFormCompanyName.trim(),
+        market: tradeFormMarket,
+        trade_date: tradeFormDate,
+        trade_type: tradeFormType,
+        quantity,
+        price,
+        total_amount: quantity * price,
+        currency,
+        broker: tradeFormBroker.trim() || '토스증권',
+        memo: tradeFormMemo.trim() || null,
+      }
+
+      const res = await fetch('/api/willow-mgmt/stock-trades', {
+        method: editingTrade ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        setIsTradeModalOpen(false)
+        resetTradeForm()
+        await loadStockTrades()
+      } else {
+        alert('저장에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Failed to save trade:', error)
+      alert('저장에 실패했습니다.')
+    } finally {
+      setIsSavingTrade(false)
+    }
+  }
+
+  // ====== Stock Research Functions ======
+  const loadStockResearch = useCallback(async () => {
+    setIsLoadingResearch(true)
+    try {
+      const res = await fetch('/api/willow-mgmt/stock-research')
+      if (res.ok) {
+        const data = await res.json()
+        setStockResearch(data.items || [])
+      }
+    } catch (error) {
+      console.error('Failed to load stock research:', error)
+    } finally {
+      setIsLoadingResearch(false)
+    }
+  }, [])
+
+  const resetResearchForm = () => {
+    setResearchFormTicker('')
+    setResearchFormCompanyName('')
+    setResearchFormScanDate('')
+    setResearchFormSource('manual')
+    setResearchFormMarketCap('')
+    setResearchFormCurrentPrice('')
+    setResearchFormRevenueGrowth('')
+    setResearchFormMargin('')
+    setResearchFormValueChain('')
+    setResearchFormThesis('')
+    setResearchFormSectorTags('')
+    setResearchFormHigh12m('')
+    setResearchFormGapPct('')
+    setResearchFormTrendVerdict('')
+    setResearchFormVerdict('pass_tier1')
+    setResearchFormFailReason('')
+    setResearchFormNotes('')
+    setEditingResearch(null)
+  }
+
+  const openNewResearchModal = () => {
+    resetResearchForm()
+    setIsResearchModalOpen(true)
+  }
+
+  const openEditResearchModal = (r: StockResearch) => {
+    setEditingResearch(r)
+    setResearchFormTicker(r.ticker)
+    setResearchFormCompanyName(r.company_name)
+    setResearchFormScanDate(r.scan_date)
+    setResearchFormSource(r.source)
+    setResearchFormMarketCap(r.market_cap_b?.toString() || '')
+    setResearchFormCurrentPrice(r.current_price?.toString() || '')
+    setResearchFormRevenueGrowth(r.revenue_growth_yoy || '')
+    setResearchFormMargin(r.margin || '')
+    setResearchFormValueChain(r.value_chain_position || '')
+    setResearchFormThesis(r.structural_thesis || '')
+    setResearchFormSectorTags((r.sector_tags || []).join(', '))
+    setResearchFormHigh12m(r.high_12m?.toString() || '')
+    setResearchFormGapPct(r.gap_from_high_pct?.toString() || '')
+    setResearchFormTrendVerdict(r.trend_verdict || '')
+    setResearchFormVerdict((r.verdict as 'pass_tier1' | 'pass_tier2' | 'fail') || 'pass_tier1')
+    setResearchFormFailReason(r.fail_reason || '')
+    setResearchFormNotes(r.notes || '')
+    setIsResearchModalOpen(true)
+  }
+
+  const handleSaveResearch = async () => {
+    if (!researchFormTicker.trim() || !researchFormCompanyName.trim()) {
+      alert('종목코드와 종목명을 입력해주세요.')
+      return
+    }
+
+    setIsSavingResearch(true)
+    try {
+      const payload = {
+        id: editingResearch?.id,
+        ticker: researchFormTicker.trim().toUpperCase(),
+        company_name: researchFormCompanyName.trim(),
+        scan_date: researchFormScanDate || new Date().toISOString().split('T')[0],
+        source: researchFormSource || 'manual',
+        market_cap_b: researchFormMarketCap ? parseFloat(researchFormMarketCap) : null,
+        current_price: researchFormCurrentPrice ? parseFloat(researchFormCurrentPrice) : null,
+        revenue_growth_yoy: researchFormRevenueGrowth || null,
+        margin: researchFormMargin || null,
+        value_chain_position: researchFormValueChain || null,
+        structural_thesis: researchFormThesis || null,
+        sector_tags: researchFormSectorTags ? researchFormSectorTags.split(',').map(s => s.trim()).filter(Boolean) : [],
+        high_12m: researchFormHigh12m ? parseFloat(researchFormHigh12m) : null,
+        gap_from_high_pct: researchFormGapPct ? parseFloat(researchFormGapPct) : null,
+        trend_verdict: researchFormTrendVerdict || null,
+        verdict: researchFormVerdict,
+        fail_reason: researchFormFailReason || null,
+        notes: researchFormNotes || null,
+      }
+
+      const res = await fetch('/api/willow-mgmt/stock-research', {
+        method: editingResearch ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        setIsResearchModalOpen(false)
+        resetResearchForm()
+        await loadStockResearch()
+      } else {
+        alert('저장에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Failed to save research:', error)
+      alert('저장에 실패했습니다.')
+    } finally {
+      setIsSavingResearch(false)
+    }
+  }
+
   // ====== Wiki Functions ======
   const loadWikiNotes = useCallback(async () => {
     setIsLoadingWiki(true)
@@ -2507,11 +2899,18 @@ export default function WillowManagementPage() {
     }
   }, [searchParams])
 
-  // Load Invoice, Wiki, and Gmail data
+  // Load Invoice, Wiki, Stock Trades, Research, and Gmail data
   useEffect(() => {
     loadInvoices()
     loadWikiNotes()
-  }, [loadInvoices, loadWikiNotes])
+    loadStockTrades()
+    loadStockResearch()
+  }, [loadInvoices, loadWikiNotes, loadStockTrades, loadStockResearch])
+
+  // Persist trade view mode
+  useEffect(() => {
+    localStorage.setItem('willow-mgmt-trade-view-mode', tradeViewMode)
+  }, [tradeViewMode])
 
   useEffect(() => {
     const savedLabel = localStorage.getItem('willow-mgmt-gmail-label')
@@ -3131,9 +3530,9 @@ export default function WillowManagementPage() {
             </CardContent>
           </Card>
 
-      {/* Row 2 - Invoice + Wiki (5:5) */}
+      {/* Row 2 - Invoice + Stock Trades + Wiki (5:5) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
+        <div className="space-y-6">
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -3643,8 +4042,758 @@ export default function WillowManagementPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Stock Trades Section */}
+          <Card className="bg-slate-100 dark:bg-slate-800">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  투자관리
+                </CardTitle>
+                <CardDescription>주식 매매 내역</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTradeViewMode('list')}
+                    className={cn(
+                      'min-w-[52px] px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                      tradeViewMode === 'list'
+                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
+                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    )}
+                  >
+                    거래
+                  </button>
+                  <button
+                    onClick={() => setTradeViewMode('portfolio')}
+                    className={cn(
+                      'min-w-[52px] px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                      tradeViewMode === 'portfolio'
+                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
+                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    )}
+                  >
+                    보유
+                  </button>
+                  <button
+                    onClick={() => setTradeViewMode('analysis')}
+                    className={cn(
+                      'min-w-[52px] px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                      tradeViewMode === 'analysis'
+                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
+                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    )}
+                  >
+                    분석
+                  </button>
+                </div>
+                <button
+                  onClick={openNewTradeModal}
+                  className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">추가</span>
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {tradeViewMode === 'list' ? (
+                <>
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {(['all', 'KR', 'US'] as const).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => { setTradeMarketFilter(m); setTradePage(1) }}
+                        className={cn(
+                          'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                          tradeMarketFilter === m
+                            ? 'bg-slate-900 text-white dark:bg-slate-600'
+                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                        )}
+                      >
+                        {m === 'all' ? '전체' : m === 'KR' ? '국내' : '해외'}
+                      </button>
+                    ))}
+                    <span className="w-px bg-slate-300 dark:bg-slate-600 mx-1" />
+                    {(['all', 'buy', 'sell'] as const).map((tt) => (
+                      <button
+                        key={tt}
+                        onClick={() => { setTradeTypeFilter(tt); setTradePage(1) }}
+                        className={cn(
+                          'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                          tradeTypeFilter === tt
+                            ? 'bg-slate-900 text-white dark:bg-slate-600'
+                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                        )}
+                      >
+                        {tt === 'all' ? '전체' : tt === 'buy' ? '매수' : '매도'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {(() => {
+                    let filtered = stockTrades
+                    if (tradeMarketFilter !== 'all') filtered = filtered.filter(t => t.market === tradeMarketFilter)
+                    if (tradeTypeFilter !== 'all') filtered = filtered.filter(t => t.trade_type === tradeTypeFilter)
+                    const totalPages = Math.ceil(filtered.length / tradesPerPage)
+                    const paginated = filtered.slice((tradePage - 1) * tradesPerPage, tradePage * tradesPerPage)
+
+                    return (
+                      <>
+                        <div className="space-y-2">
+                          {isLoadingTrades ? (
+                            <div className="text-center py-8">
+                              <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                            </div>
+                          ) : filtered.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <TrendingUp className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                              <p className="text-sm">거래 내역이 없습니다</p>
+                              <p className="text-xs">새 거래를 추가해주세요</p>
+                            </div>
+                          ) : (
+                            paginated.map((trade) => (
+                              <div
+                                key={trade.id}
+                                className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                                onClick={() => openEditTradeModal(trade)}
+                              >
+                                <span className={cn(
+                                  'px-2 py-0.5 rounded text-xs font-medium shrink-0',
+                                  trade.trade_type === 'buy' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                                )}>
+                                  {trade.trade_type === 'buy' ? '매수' : '매도'}
+                                </span>
+                                <span className={cn(
+                                  'px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0',
+                                  trade.market === 'KR' ? 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300' : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400'
+                                )}>
+                                  {trade.market}
+                                </span>
+                                <span className="font-medium text-sm truncate">{trade.company_name}</span>
+                                <span className="text-xs text-muted-foreground shrink-0">{trade.quantity.toLocaleString()}주</span>
+                                <span className="text-xs text-muted-foreground shrink-0">{trade.trade_date.slice(5)}</span>
+                                <span className="font-medium text-sm shrink-0 ml-auto">{formatAmount(trade.total_amount, trade.currency)}</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        {filtered.length > 0 && (
+                          <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                {filtered.length}개 중 {(tradePage - 1) * tradesPerPage + 1}-{Math.min(tradePage * tradesPerPage, filtered.length)}
+                              </p>
+                              <div className="relative">
+                                <select
+                                  value={tradesPerPage}
+                                  onChange={(e) => { setTradesPerPage(Number(e.target.value)); setTradePage(1) }}
+                                  className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                  <option value={5}>5개</option>
+                                  <option value={10}>10개</option>
+                                  <option value={25}>25개</option>
+                                  <option value={50}>50개</option>
+                                </select>
+                                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                              </div>
+                            </div>
+                            {totalPages > 1 && (
+                              <div className="flex items-center gap-0.5">
+                                <button onClick={() => setTradePage(1)} disabled={tradePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                                <button onClick={() => setTradePage(p => Math.max(1, p - 1))} disabled={tradePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                                <span className="px-2 py-1 text-xs font-medium">{tradePage}/{totalPages}</span>
+                                <button onClick={() => setTradePage(p => Math.min(totalPages, p + 1))} disabled={tradePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                                <button onClick={() => setTradePage(totalPages)} disabled={tradePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
+                </>
+              ) : (
+                /* Portfolio & Analysis Views - grouped by theme with current prices */
+                (() => {
+                  // Group by ticker and calculate holdings using moving average method (이동평균법)
+                  const holdingsMap = new Map<string, {
+                    ticker: string; company_name: string; market: 'KR' | 'US'; currency: 'KRW' | 'USD';
+                    netQty: number; totalCost: number; // moving average state
+                    buyAmount: number; sellAmount: number; // for total return P&L (realized + unrealized)
+                  }>()
+
+                  // Process trades chronologically for moving average
+                  const sortedTrades = [...stockTrades].sort((a, b) =>
+                    new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime() || a.id.localeCompare(b.id)
+                  )
+
+                  for (const trade of sortedTrades) {
+                    const key = trade.ticker
+                    const existing = holdingsMap.get(key) || {
+                      ticker: trade.ticker, company_name: trade.company_name, market: trade.market, currency: trade.currency,
+                      netQty: 0, totalCost: 0, buyAmount: 0, sellAmount: 0,
+                    }
+                    if (trade.trade_type === 'buy') {
+                      existing.totalCost += trade.total_amount
+                      existing.netQty += trade.quantity
+                      existing.buyAmount += trade.total_amount
+                    } else {
+                      // Sell: remove cost at current average price
+                      const currentAvg = existing.netQty > 0 ? existing.totalCost / existing.netQty : 0
+                      existing.totalCost -= currentAvg * trade.quantity
+                      existing.netQty -= trade.quantity
+                      existing.sellAmount += trade.total_amount
+                      // Guard against floating point issues
+                      if (existing.netQty <= 0) { existing.netQty = 0; existing.totalCost = 0 }
+                    }
+                    holdingsMap.set(key, existing)
+                  }
+
+                  const holdings = Array.from(holdingsMap.values())
+                    .filter(h => h.netQty > 0)
+                    .map(h => {
+                      const netQty = h.netQty
+                      const avgBuyPrice = netQty > 0 ? h.totalCost / netQty : 0 // moving avg for display
+                      const totalInvested = h.buyAmount - h.sellAmount // net cash out (토스 방식: 실현+미실현)
+                      const quote = stockQuotes[h.ticker]
+                      const currentPrice = quote?.price || 0
+                      const dailyChangePercent = quote?.changePercent || 0
+                      const currentValue = currentPrice * netQty
+                      const pnl = currentPrice > 0 ? currentValue - totalInvested : 0
+                      const pnlPercent = totalInvested > 0 && currentPrice > 0 ? (pnl / totalInvested) * 100 : 0
+
+                      // IRR calculation
+                      const tickerTrades = stockTrades.filter(t => t.ticker === h.ticker)
+                      const cashFlows: { date: string; amount: number }[] = tickerTrades.map(t => ({
+                        date: t.trade_date,
+                        amount: t.trade_type === 'buy' ? -t.total_amount : t.total_amount,
+                      }))
+                      if (currentPrice > 0 && netQty > 0) {
+                        cashFlows.push({ date: new Date().toISOString().slice(0, 10), amount: currentValue })
+                      }
+                      const irr = calculateIRR(cashFlows)
+
+                      // Weighted average holding period (by quantity)
+                      const buyTrades = tickerTrades.filter(t => t.trade_type === 'buy')
+                      const totalBuyQty = buyTrades.reduce((s, t) => s + t.quantity, 0)
+                      const weightedBuyDate = totalBuyQty > 0
+                        ? buyTrades.reduce((s, t) => s + new Date(t.trade_date).getTime() * t.quantity, 0) / totalBuyQty
+                        : Date.now()
+                      const holdingDays = Math.round((Date.now() - weightedBuyDate) / (24 * 60 * 60 * 1000))
+
+                      // Get themes for this ticker
+                      const tickerThemes = stockThemes[h.ticker] || []
+                      const parentTheme = tickerThemes[0]?.parentTheme || null
+
+                      return {
+                        ...h, netQty, avgBuyPrice, totalInvested, currentPrice, currentValue, pnl, pnlPercent, parentTheme, dailyChangePercent, irr, holdingDays,
+                        themes: tickerThemes.map(t => t.theme),
+                      }
+                    })
+                    .sort((a, b) => b.currentValue - a.currentValue || b.totalInvested - a.totalInvested)
+
+                  // Group by parent theme, sort each group by pnl descending
+                  const themeGroups = new Map<string, typeof holdings>()
+                  for (const h of holdings) {
+                    const group = h.parentTheme || '미분류'
+                    if (!themeGroups.has(group)) themeGroups.set(group, [])
+                    themeGroups.get(group)!.push(h)
+                  }
+                  const toKrw = (pnl: number, currency: 'KRW' | 'USD') => currency === 'USD' ? pnl * usdKrwRate : pnl
+                  for (const [, items] of themeGroups) {
+                    items.sort((a, b) => toKrw(b.pnl, b.currency) - toKrw(a.pnl, a.currency))
+                  }
+
+                  // Theme colors
+                  const themeColors: Record<string, string> = {
+                    'AI 인프라': 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400',
+                    '지정학/안보': 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400',
+                    '넥스트': 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400',
+                    '미분류': 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300',
+                  }
+
+                  const themeOrder = ['AI 인프라', '미분류', '지정학/안보', '넥스트']
+                  const sortedGroups = themeOrder
+                    .filter(t => themeGroups.has(t))
+                    .map(t => ({ theme: t, items: themeGroups.get(t)! }))
+
+                  // Portfolio totals
+                  const krHoldings = holdings.filter(h => h.currency === 'KRW')
+                  const usHoldings = holdings.filter(h => h.currency === 'USD')
+                  const krInvested = krHoldings.reduce((s, h) => s + h.totalInvested, 0)
+                  const krValue = krHoldings.reduce((s, h) => s + h.currentValue, 0)
+                  const usInvested = usHoldings.reduce((s, h) => s + h.totalInvested, 0)
+                  const usValue = usHoldings.reduce((s, h) => s + h.currentValue, 0)
+                  const krPnl = krValue > 0 ? krValue - krInvested : 0
+                  const usPnl = usValue > 0 ? usValue - usInvested : 0
+                  const krPnlPct = krInvested > 0 && krValue > 0 ? (krPnl / krInvested) * 100 : 0
+                  const usPnlPct = usInvested > 0 && usValue > 0 ? (usPnl / usInvested) * 100 : 0
+                  // Daily change % (weighted by current value)
+                  const krDailyPct = krValue > 0 ? krHoldings.reduce((s, h) => s + h.dailyChangePercent * h.currentValue, 0) / krValue : 0
+                  const usDailyPct = usValue > 0 ? usHoldings.reduce((s, h) => s + h.dailyChangePercent * h.currentValue, 0) / usValue : 0
+                  const hasQuotes = Object.keys(stockQuotes).length > 0
+
+                  return isLoadingTrades ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                    </div>
+                  ) : holdings.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <TrendingUp className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                      <p className="text-sm">보유 종목이 없습니다</p>
+                    </div>
+                  ) : tradeViewMode === 'portfolio' ? (
+                    <div className="space-y-4">
+                      {/* Currency Toggle + Portfolio Summary */}
+                      {hasQuotes && (() => {
+                        const isKrwMode = portfolioCurrencyMode === 'KRW'
+                        const totalInvested = krInvested + usInvested * usdKrwRate
+                        const totalValue = krValue + usValue * usdKrwRate
+                        const totalPnl = totalValue - totalInvested
+                        const totalPnlPct = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0
+                        const totalDailyPct = totalValue > 0
+                          ? (krHoldings.reduce((s, h) => s + h.dailyChangePercent * h.currentValue, 0) + usHoldings.reduce((s, h) => s + h.dailyChangePercent * h.currentValue * usdKrwRate, 0)) / totalValue
+                          : 0
+                        return (
+                          <>
+                            <div className="flex justify-start">
+                              <button
+                                onClick={() => setPortfolioCurrencyMode(prev => prev === 'original' ? 'KRW' : 'original')}
+                                className={cn(
+                                  'px-2.5 py-1 text-[10px] font-medium rounded-full transition-colors',
+                                  isKrwMode
+                                    ? 'bg-slate-900 text-white dark:bg-slate-600'
+                                    : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                                )}
+                              >
+                                {isKrwMode ? '₩ 원화 통합' : '원화/달러'}
+                              </button>
+                            </div>
+                            {(() => {
+                              const usValueKrw = usValue * usdKrwRate
+                              const usInvestedKrw = usInvested * usdKrwRate
+                              const usPnlKrw = usValueKrw - usInvestedKrw
+                              const usPnlPctKrw = usInvestedKrw > 0 ? (usPnlKrw / usInvestedKrw) * 100 : 0
+                              return (
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div
+                                    className={cn('rounded-lg bg-white dark:bg-slate-700 px-3 py-2 cursor-pointer transition-opacity', portfolioMarketFilter === 'US' && 'opacity-40')}
+                                    onClick={() => setPortfolioMarketFilter(prev => prev === 'KR' ? 'all' : 'KR')}
+                                  >
+                                    <div className="flex items-center justify-between mb-0.5">
+                                      <span className="text-[10px] text-muted-foreground">국내 {krHoldings.length}종목</span>
+                                      {krDailyPct !== 0 && (
+                                        <span className={cn(
+                                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                          krDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                        )}>
+                                          오늘 {krDailyPct > 0 ? '+' : ''}{krDailyPct.toFixed(1)}%
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-sm font-bold"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(krValue, 'KRW')}</div>
+                                    <div className={cn('text-xs font-medium', krPnl > 0 ? 'text-red-600 dark:text-red-400' : krPnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{krPnl > 0 ? '+' : ''}{formatAmount(krPnl, 'KRW')} ({krPnl > 0 ? '+' : ''}{krPnlPct.toFixed(1)}%)
+                                    </div>
+                                  </div>
+                                  <div
+                                    className={cn('rounded-lg bg-white dark:bg-slate-700 px-3 py-2 cursor-pointer transition-opacity', portfolioMarketFilter === 'KR' && 'opacity-40')}
+                                    onClick={() => setPortfolioMarketFilter(prev => prev === 'US' ? 'all' : 'US')}
+                                  >
+                                    <div className="flex items-center justify-between mb-0.5">
+                                      <span className="text-[10px] text-muted-foreground">해외 {usHoldings.length}종목</span>
+                                      {usDailyPct !== 0 && (
+                                        <span className={cn(
+                                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                          usDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                        )}>
+                                          오늘 {usDailyPct > 0 ? '+' : ''}{usDailyPct.toFixed(1)}%
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-sm font-bold"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{isKrwMode ? formatAmount(usValueKrw, 'KRW') : formatAmount(usValue, 'USD')}</div>
+                                    <div className={cn('text-xs font-medium', usPnl > 0 ? 'text-red-600 dark:text-red-400' : usPnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{usPnl > 0 ? '+' : ''}{isKrwMode ? formatAmount(usPnlKrw, 'KRW') : formatAmount(usPnl, 'USD')} ({usPnl > 0 ? '+' : ''}{usPnlPct.toFixed(1)}%)
+                                    </div>
+                                  </div>
+                                  {/* 전체 통합 (항상 원화 환산) */}
+                                  <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                                    <div className="flex items-center justify-between mb-0.5">
+                                      <span className="text-[10px] text-muted-foreground">전체 {holdings.length}종목 · {Math.round(usdKrwRate).toLocaleString()}원/$</span>
+                                      {totalDailyPct !== 0 && (
+                                        <span className={cn(
+                                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                          totalDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                        )}>
+                                          오늘 {totalDailyPct > 0 ? '+' : ''}{totalDailyPct.toFixed(1)}%
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-sm font-bold"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(totalValue, 'KRW')}</div>
+                                    <div className={cn('text-xs font-medium', totalPnl > 0 ? 'text-red-600 dark:text-red-400' : totalPnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{totalPnl > 0 ? '+' : ''}{formatAmount(totalPnl, 'KRW')} ({totalPnl > 0 ? '+' : ''}{totalPnlPct.toFixed(1)}%)
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })()}
+                          </>
+                        )
+                      })()}
+                      {isLoadingQuotes && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          시세 로딩 중...
+                        </div>
+                      )}
+                      {/* Theme Groups - explicit 2-column assignment */}
+                      {(() => {
+                        const filteredGroups = portfolioMarketFilter === 'all'
+                          ? sortedGroups
+                          : sortedGroups
+                              .map(g => ({ ...g, items: g.items.filter(i => i.market === portfolioMarketFilter) }))
+                              .filter(g => g.items.length > 0)
+                        const col1Themes = new Set(['AI 인프라', '미분류'])
+                        const col1 = filteredGroups.filter(g => col1Themes.has(g.theme))
+                        const col2 = filteredGroups.filter(g => !col1Themes.has(g.theme))
+                        const renderGroup = ({ theme, items }: typeof sortedGroups[0]) => {
+                          const hasMixedCurrency = new Set(items.map(i => i.currency)).size > 1
+                          const krItems = items.filter(i => i.currency === 'KRW')
+                          const usItems = items.filter(i => i.currency === 'USD')
+
+                          const calcGroup = (group: typeof items, forceKrw = false) => {
+                            const inv = group.reduce((s, h) => s + (forceKrw && h.currency === 'USD' ? h.totalInvested * usdKrwRate : h.totalInvested), 0)
+                            const val = group.reduce((s, h) => s + (forceKrw && h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue), 0)
+                            const pnl = val > 0 ? val - inv : 0
+                            const pct = inv > 0 && val > 0 ? (pnl / inv) * 100 : 0
+                            return { inv, val, pnl, pct }
+                          }
+                          const isKrwMode = portfolioCurrencyMode === 'KRW'
+
+                          return (
+                            <div key={theme}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={cn('px-2 py-0.5 rounded text-xs font-medium', themeColors[theme] || themeColors['미분류'])}>
+                                  {theme}
+                                </span>
+                                <span className="text-xs text-muted-foreground">{items.length}종목</span>
+                                {hasQuotes && (() => {
+                                  // 원화모드이거나 단일통화 → 통합 표시, 그 외 KR/US 분리
+                                  if (isKrwMode || !hasMixedCurrency) {
+                                    const g = calcGroup(items, true) // always KRW
+                                    if (g.val <= 0) return null
+                                    return (
+                                      <span className={cn('text-xs font-medium ml-auto', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                        {g.pnl > 0 ? '+' : ''}{g.pct.toFixed(1)}% ({g.pnl > 0 ? '+' : ''}{formatAmount(g.pnl, 'KRW')})
+                                      </span>
+                                    )
+                                  }
+                                  return (
+                                    <div className="flex items-center gap-2 ml-auto">
+                                      {(() => { const g = calcGroup(krItems); return krItems.length > 0 && g.val > 0 ? (
+                                        <span className={cn('text-[10px] font-medium', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                          KR {g.pnl > 0 ? '+' : ''}{g.pct.toFixed(1)}%
+                                        </span>
+                                      ) : null })()}
+                                      {(() => { const g = calcGroup(usItems); return usItems.length > 0 && g.val > 0 ? (
+                                        <span className={cn('text-[10px] font-medium', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                          US {g.pnl > 0 ? '+' : ''}{g.pct.toFixed(1)}%
+                                        </span>
+                                      ) : null })()}
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                              {/* Group summary card */}
+                              {hasQuotes && (() => {
+                                const g = calcGroup(items, true) // always KRW for summary
+                                if (g.val <= 0) return null
+                                const weightPct = (() => {
+                                  const allVal = holdings.reduce((s, h) => s + (h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue), 0)
+                                  return allVal > 0 ? (g.val / allVal) * 100 : 0
+                                })()
+                                return (
+                                  <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 mb-2 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500">투자 </span>
+                                      <span className="text-muted-foreground">{formatAmount(g.inv, 'KRW')}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500">평가 </span>
+                                      <span className="font-medium">{formatAmount(g.val, 'KRW')}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500">비중 </span>
+                                      <span className="text-muted-foreground">{weightPct.toFixed(0)}%</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500">누적 </span>
+                                      <span className={cn('font-medium', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                        {g.pnl > 0 ? '+' : ''}{formatAmount(g.pnl, 'KRW')} ({g.pnl > 0 ? '+' : ''}{g.pct.toFixed(1)}%)
+                                      </span>
+                                    </div>
+                                  </div>
+                                )
+                              })()}
+                              {(() => {
+                                const renderItem = (h: typeof items[0]) => {
+                                  const isKrwMode = portfolioCurrencyMode === 'KRW'
+                                  const toDisplay = (v: number) => isKrwMode && h.currency === 'USD' ? v * usdKrwRate : v
+                                  const displayCurrency: 'KRW' | 'USD' = isKrwMode ? 'KRW' : h.currency
+                                  const fmtCur = (v: number) => {
+                                    const dv = toDisplay(v)
+                                    return displayCurrency === 'USD' ? `$${dv.toFixed(2)}` : `${Math.round(dv).toLocaleString()}원`
+                                  }
+                                  return (
+                                    <div key={h.ticker} className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                                      {/* Row 1: 종목명 + 종목코드 + 세부테마 + 오늘수익률 */}
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                          <span className="font-medium text-sm truncate">{h.company_name}</span>
+                                          <span className="text-[10px] text-muted-foreground shrink-0">{h.ticker}</span>
+                                          {h.themes.map((t) => (
+                                            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400 shrink-0">{t}</span>
+                                          ))}
+                                        </div>
+                                        {h.dailyChangePercent !== 0 && (
+                                          <span className={cn(
+                                            'text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ml-1',
+                                            h.dailyChangePercent > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                          )}>
+                                            오늘 {h.dailyChangePercent > 0 ? '+' : ''}{h.dailyChangePercent.toFixed(1)}%
+                                          </span>
+                                        )}
+                                      </div>
+                                      {/* 2열 그리드: 좌=매수/투자/보유, 우=현재/평가/누적 */}
+                                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1.5 text-xs">
+                                        <span className="text-muted-foreground"><span className="text-[10px] text-slate-400 dark:text-slate-500">매수 </span>{fmtCur(h.avgBuyPrice)} <span className="text-slate-400 dark:text-slate-500">x</span> {h.netQty.toLocaleString()}주</span>
+                                        {h.currentPrice > 0 ? (
+                                          <span className="text-muted-foreground"><span className="text-[10px] text-slate-400 dark:text-slate-500">현재 </span>{fmtCur(h.currentPrice)}</span>
+                                        ) : (
+                                          <span className="text-slate-300">-</span>
+                                        )}
+                                        <span className="text-muted-foreground"><span className="text-[10px] text-slate-400 dark:text-slate-500">투자 </span>{formatAmount(toDisplay(h.totalInvested), displayCurrency)}</span>
+                                        {h.currentPrice > 0 ? (
+                                          <span className="font-medium"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(toDisplay(h.currentValue), displayCurrency)}</span>
+                                        ) : (
+                                          <span className="text-slate-300">-</span>
+                                        )}
+                                        {h.currentPrice > 0 && (
+                                          <>
+                                            <span className="text-muted-foreground flex items-center gap-1.5">
+                                              <span><span className="text-[10px] text-slate-400 dark:text-slate-500">보유 </span>{h.holdingDays.toLocaleString()}일</span>
+                                              {h.irr != null && h.irr !== 0 && (
+                                                <><span>·</span><span><span className="text-[10px] text-slate-400 dark:text-slate-500">IRR </span>{h.irr > 0 ? '+' : ''}{(h.irr * 100).toFixed(1)}%</span></>
+                                              )}
+                                            </span>
+                                            <span className={cn(
+                                              'font-medium',
+                                              h.pnl > 0 ? 'text-red-600 dark:text-red-400' : h.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'
+                                            )}>
+                                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{h.pnl > 0 ? '+' : ''}{formatAmount(toDisplay(h.pnl), displayCurrency)} ({h.pnl > 0 ? '+' : ''}{h.pnlPercent.toFixed(1)}%)
+                                            </span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                }
+                                return <div className="space-y-2">{items.map(renderItem)}</div>
+                              })()}
+                            </div>
+                          )
+                        }
+                        return (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-4">{col1.map(g => renderGroup(g))}</div>
+                            <div className="space-y-4">{col2.map(g => renderGroup(g))}</div>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  ) : (
+                    /* Analysis View - Radar Charts */
+                    <div className="space-y-4">
+                      {(() => {
+                        // Prepare data by theme
+                        const themeData = new Map<string, { invested: number; value: number; pnl: number }>()
+                        for (const h of holdings) {
+                          const theme = h.themes?.[0] || '미분류'
+                          const krwInvested = h.currency === 'USD' ? h.totalInvested * usdKrwRate : h.totalInvested
+                          const krwValue = h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue
+                          const krwPnl = h.currency === 'USD' ? h.pnl * usdKrwRate : h.pnl
+                          const existing = themeData.get(theme) || { invested: 0, value: 0, pnl: 0 }
+                          existing.invested += krwInvested
+                          existing.value += krwValue
+                          existing.pnl += krwPnl
+                          themeData.set(theme, existing)
+                        }
+                        const totalValue = Array.from(themeData.values()).reduce((s, d) => s + d.value, 0)
+                        const themeRadarData = Array.from(themeData.entries()).map(([theme, d]) => ({
+                          theme,
+                          비중: totalValue > 0 ? Math.round((d.value / totalValue) * 100) : 0,
+                          수익률: d.invested > 0 ? Math.round(((d.value - d.invested) / d.invested) * 100) : 0,
+                          수익금: Math.round(d.pnl / 10000), // 만원 단위
+                        })).sort((a, b) => b.비중 - a.비중)
+
+                        // Prepare data by stock
+                        const stockRadarData = holdings
+                          .filter(h => h.currentPrice > 0)
+                          .map(h => {
+                            const krwValue = h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue
+                            const krwPnl = h.currency === 'USD' ? h.pnl * usdKrwRate : h.pnl
+                            return {
+                              name: h.company_name,
+                              비중: totalValue > 0 ? Math.round((krwValue / totalValue) * 100) : 0,
+                              수익률: Math.round(h.pnlPercent),
+                              수익금: Math.round(krwPnl / 10000),
+                            }
+                          })
+                          .sort((a, b) => b.비중 - a.비중)
+                        return (
+                          <>
+                            {/* Theme Radar */}
+                            <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                              <div className="text-xs font-medium text-muted-foreground mb-2">테마별 분석</div>
+                              <div className="grid grid-cols-3 gap-2">
+                                {[
+                                  { key: '비중', label: '비중 (%)', color: '#6366f1' },
+                                  { key: '수익률', label: '수익률 (%)', color: '#ef4444' },
+                                  { key: '수익금', label: '수익금 (만원)', color: '#10b981' },
+                                ].map(({ key, label, color }) => (
+                                  <div key={key}>
+                                    <div className="text-[10px] text-center text-slate-400 mb-1">{label}</div>
+                                    <ResponsiveContainer width="100%" height={180}>
+                                      <RadarChart data={themeRadarData} cx="50%" cy="50%" outerRadius="70%">
+                                        <PolarGrid stroke="#e2e8f0" />
+                                        <PolarAngleAxis dataKey="theme" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                                        <PolarRadiusAxis tick={{ fontSize: 8, fill: '#94a3b8' }} />
+                                        <Radar dataKey={key} stroke={color} fill={color} fillOpacity={0.3} />
+                                        <RechartsTooltip contentStyle={{ fontSize: 11 }} />
+                                      </RadarChart>
+                                    </ResponsiveContainer>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {/* Stock Radar */}
+                            <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                              <div className="text-xs font-medium text-muted-foreground mb-2">종목별 분석</div>
+                              <div className="grid grid-cols-3 gap-2">
+                                {[
+                                  { key: '비중', label: '비중 (%)', color: '#6366f1' },
+                                  { key: '수익률', label: '수익률 (%)', color: '#ef4444' },
+                                  { key: '수익금', label: '수익금 (만원)', color: '#10b981' },
+                                ].map(({ key, label, color }) => (
+                                  <div key={key}>
+                                    <div className="text-[10px] text-center text-slate-400 mb-1">{label}</div>
+                                    <ResponsiveContainer width="100%" height={220}>
+                                      <RadarChart data={stockRadarData} cx="50%" cy="50%" outerRadius="65%">
+                                        <PolarGrid stroke="#e2e8f0" />
+                                        <PolarAngleAxis dataKey="name" tick={{ fontSize: 8, fill: '#94a3b8' }} />
+                                        <PolarRadiusAxis tick={{ fontSize: 8, fill: '#94a3b8' }} />
+                                        <Radar dataKey={key} stroke={color} fill={color} fillOpacity={0.3} />
+                                        <RechartsTooltip contentStyle={{ fontSize: 11 }} />
+                                      </RadarChart>
+                                    </ResponsiveContainer>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {/* AI Value Chain Analysis */}
+                            {(() => {
+                              const aiChainOrder = ['AI 반도체', 'AI 에너지/원전', '데이터센터/냉각/네트워킹']
+                              const aiChainColors: Record<string, string> = {
+                                'AI 반도체': 'bg-indigo-500',
+                                'AI 에너지/원전': 'bg-amber-500',
+                                '데이터센터/냉각/네트워킹': 'bg-cyan-500',
+                              }
+                              const aiChainBadge: Record<string, string> = {
+                                'AI 반도체': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400',
+                                'AI 에너지/원전': 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400',
+                                '데이터센터/냉각/네트워킹': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-400',
+                              }
+                              // Group holdings by AI sub-theme
+                              const aiChainData = aiChainOrder.map(chain => {
+                                const items = holdings.filter(h => h.currentPrice > 0 && h.themes.includes(chain))
+                                const invested = items.reduce((s, h) => s + (h.currency === 'USD' ? h.totalInvested * usdKrwRate : h.totalInvested), 0)
+                                const value = items.reduce((s, h) => s + (h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue), 0)
+                                const pnl = value - invested
+                                const pct = invested > 0 ? (pnl / invested) * 100 : 0
+                                return { chain, items, invested, value, pnl, pct }
+                              }).filter(d => d.items.length > 0)
+                              const aiTotalValue = aiChainData.reduce((s, d) => s + d.value, 0)
+                              if (aiChainData.length === 0) return null
+                              return (
+                                <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                                  <div className="text-xs font-medium text-muted-foreground mb-3">AI 밸류체인 분석</div>
+                                  {/* Proportion bar */}
+                                  <div className="flex rounded-full overflow-hidden h-2.5 mb-3">
+                                    {aiChainData.map(d => (
+                                      <div
+                                        key={d.chain}
+                                        className={cn('h-full', aiChainColors[d.chain])}
+                                        style={{ width: `${aiTotalValue > 0 ? (d.value / aiTotalValue) * 100 : 0}%` }}
+                                      />
+                                    ))}
+                                  </div>
+                                  {/* Chain segments */}
+                                  <div className="space-y-3">
+                                    {aiChainData.map(d => {
+                                      const weightPct = aiTotalValue > 0 ? (d.value / aiTotalValue) * 100 : 0
+                                      return (
+                                        <div key={d.chain}>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                              <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium', aiChainBadge[d.chain])}>
+                                                {d.chain}
+                                              </span>
+                                              <span className="text-[10px] text-slate-400">{d.items.length}종목 · 비중 {weightPct.toFixed(0)}%</span>
+                                            </div>
+                                            <span className={cn('text-xs font-medium', d.pnl > 0 ? 'text-red-600 dark:text-red-400' : d.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                              {d.pnl > 0 ? '+' : ''}{formatAmount(d.pnl, 'KRW')} ({d.pnl > 0 ? '+' : ''}{d.pct.toFixed(1)}%)
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-3 text-[10px] text-muted-foreground mb-1.5">
+                                            <span>투자 {formatAmount(d.invested, 'KRW')}</span>
+                                            <span>→</span>
+                                            <span className="font-medium text-foreground">{formatAmount(d.value, 'KRW')}</span>
+                                          </div>
+                                          <div className="flex flex-wrap gap-1">
+                                            {d.items.sort((a, b) => (b.currency === 'USD' ? b.pnl * usdKrwRate : b.pnl) - (a.currency === 'USD' ? a.pnl * usdKrwRate : a.pnl)).map(h => {
+                                              const krwPnl = h.currency === 'USD' ? h.pnl * usdKrwRate : h.pnl
+                                              return (
+                                                <span key={h.ticker} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600">
+                                                  <span className="text-slate-600 dark:text-slate-300">{h.company_name}</span>
+                                                  <span className={cn('font-medium', h.pnl > 0 ? 'text-red-600 dark:text-red-400' : h.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                                    {h.pnl > 0 ? '+' : ''}{Math.round(krwPnl / 10000).toLocaleString()}만 ({h.pnl > 0 ? '+' : ''}{h.pnlPercent.toFixed(0)}%)
+                                                  </span>
+                                                </span>
+                                              )
+                                            })}
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )
+                            })()}
+                          </>
+                        )
+                      })()}
+                    </div>
+                  )
+                })()
+              )}
+            </CardContent>
+          </Card>
         </div>
-        <div>
+        <div className="space-y-6">
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -4033,6 +5182,193 @@ export default function WillowManagementPage() {
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Stock Research Section */}
+          <Card className="bg-slate-100 dark:bg-slate-800">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  투자리서치
+                </CardTitle>
+                <CardDescription>종목 스크리닝 & 분석</CardDescription>
+              </div>
+              <button
+                onClick={openNewResearchModal}
+                className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">추가</span>
+              </button>
+            </CardHeader>
+            <CardContent>
+              {/* Verdict filter */}
+              <div className="flex flex-wrap gap-1 mb-4">
+                {(['all', 'pass_tier1', 'pass_tier2', 'fail'] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => { setResearchVerdictFilter(v); setResearchPage(1) }}
+                    className={cn(
+                      'px-3 py-1 text-xs font-medium rounded-full transition-colors',
+                      researchVerdictFilter === v
+                        ? 'bg-slate-900 text-white dark:bg-slate-600'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                    )}
+                  >
+                    {v === 'all' ? '전체' : v === 'pass_tier1' ? 'Tier 1' : v === 'pass_tier2' ? 'Tier 2' : 'Fail'}
+                  </button>
+                ))}
+              </div>
+
+              {(() => {
+                const filtered = researchVerdictFilter === 'all'
+                  ? stockResearch
+                  : stockResearch.filter(r => r.verdict === researchVerdictFilter)
+                const totalPages = Math.ceil(filtered.length / researchPerPage)
+                const paginated = filtered.slice((researchPage - 1) * researchPerPage, researchPage * researchPerPage)
+
+                const verdictStyle = (v: string | null) => {
+                  if (v === 'pass_tier1') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
+                  if (v === 'pass_tier2') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                  if (v === 'fail') return 'bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
+                  return 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300'
+                }
+                const verdictLabel = (v: string | null) => {
+                  if (v === 'pass_tier1') return 'T1'
+                  if (v === 'pass_tier2') return 'T2'
+                  if (v === 'fail') return 'F'
+                  return '-'
+                }
+
+                return (
+                  <>
+                    <div className="space-y-2">
+                      {isLoadingResearch ? (
+                        <div className="text-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                        </div>
+                      ) : filtered.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Search className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                          <p className="text-sm">리서치 항목이 없습니다</p>
+                          <p className="text-xs">새 종목을 추가해주세요</p>
+                        </div>
+                      ) : (
+                        paginated.map((r) => {
+                          const isExpanded = expandedResearch.has(r.id)
+                          return (
+                            <div
+                              key={r.id}
+                              className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2"
+                            >
+                              <div
+                                className="flex items-center gap-2 cursor-pointer"
+                                onClick={() => {
+                                  setExpandedResearch(prev => {
+                                    const next = new Set(prev)
+                                    if (next.has(r.id)) next.delete(r.id)
+                                    else next.add(r.id)
+                                    return next
+                                  })
+                                }}
+                              >
+                                <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0', verdictStyle(r.verdict))}>
+                                  {verdictLabel(r.verdict)}
+                                </span>
+                                <span className="font-medium text-sm">{r.ticker}</span>
+                                <span className="text-xs text-muted-foreground truncate">{r.company_name}</span>
+                                {r.gap_from_high_pct != null && (
+                                  <span className={cn(
+                                    'text-xs font-medium shrink-0 ml-auto',
+                                    r.gap_from_high_pct > -15 ? 'text-red-600' : r.gap_from_high_pct > -30 ? 'text-amber-600' : 'text-blue-600'
+                                  )}>
+                                    {r.gap_from_high_pct > 0 ? '+' : ''}{r.gap_from_high_pct.toFixed(1)}%
+                                  </span>
+                                )}
+                                {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                              </div>
+                              {/* Tags */}
+                              {r.sector_tags && r.sector_tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {r.sector_tags.map((tag) => (
+                                    <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{tag}</span>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Expanded details */}
+                              {isExpanded && (
+                                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-1.5">
+                                  {r.value_chain_position && (
+                                    <p className="text-xs text-muted-foreground"><span className="font-medium">밸류체인:</span> {r.value_chain_position}</p>
+                                  )}
+                                  {r.structural_thesis && (
+                                    <p className="text-xs text-muted-foreground"><span className="font-medium">투자논거:</span> {r.structural_thesis}</p>
+                                  )}
+                                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                    {r.current_price != null && <span>가격 ${r.current_price}</span>}
+                                    {r.market_cap_b != null && <span>시총 ${r.market_cap_b}B</span>}
+                                    {r.revenue_growth_yoy && <span>성장 {r.revenue_growth_yoy}</span>}
+                                    {r.margin && <span>마진 {r.margin}</span>}
+                                    {r.high_12m != null && <span>52주고 ${r.high_12m}</span>}
+                                    {r.trend_verdict && <span>추세 {r.trend_verdict}</span>}
+                                  </div>
+                                  {r.fail_reason && (
+                                    <p className="text-xs text-red-500"><span className="font-medium">탈락:</span> {r.fail_reason}</p>
+                                  )}
+                                  {r.notes && (
+                                    <p className="text-xs text-muted-foreground"><span className="font-medium">메모:</span> {r.notes}</p>
+                                  )}
+                                  <div className="flex items-center justify-between pt-1">
+                                    <span className="text-[10px] text-muted-foreground">{r.scan_date} · {r.source}</span>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); openEditResearchModal(r) }}
+                                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                                    >
+                                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                    {filtered.length > 0 && (
+                      <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground whitespace-nowrap">
+                            {filtered.length}개 중 {(researchPage - 1) * researchPerPage + 1}-{Math.min(researchPage * researchPerPage, filtered.length)}
+                          </p>
+                          <div className="relative">
+                            <select
+                              value={researchPerPage}
+                              onChange={(e) => { setResearchPerPage(Number(e.target.value)); setResearchPage(1) }}
+                              className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                            >
+                              <option value={5}>5개</option>
+                              <option value={10}>10개</option>
+                              <option value={25}>25개</option>
+                            </select>
+                            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                          </div>
+                        </div>
+                        {totalPages > 1 && (
+                          <div className="flex items-center gap-0.5">
+                            <button onClick={() => setResearchPage(1)} disabled={researchPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                            <button onClick={() => setResearchPage(p => Math.max(1, p - 1))} disabled={researchPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                            <span className="px-2 py-1 text-xs font-medium">{researchPage}/{totalPages}</span>
+                            <button onClick={() => setResearchPage(p => Math.min(totalPages, p + 1))} disabled={researchPage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                            <button onClick={() => setResearchPage(totalPages)} disabled={researchPage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
             </CardContent>
           </Card>
         </div>
@@ -5467,6 +6803,354 @@ export default function WillowManagementPage() {
               </Button>
               <Button size="sm" onClick={handleSaveInvoice} disabled={isSavingInvoice || isUploadingInvoiceFiles}>
                 {(isSavingInvoice || isUploadingInvoiceFiles) && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                저장
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stock Trade Modal */}
+      <Dialog open={isTradeModalOpen} onOpenChange={setIsTradeModalOpen}>
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
+            <DialogTitle>{editingTrade ? '거래 수정' : '거래 추가'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
+            {/* Trade Type */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">매매구분</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTradeFormType('buy')}
+                  className={cn(
+                    'py-2 text-sm font-medium rounded-lg transition-colors',
+                    tradeFormType === 'buy'
+                      ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                  )}
+                >
+                  매수
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTradeFormType('sell')}
+                  className={cn(
+                    'py-2 text-sm font-medium rounded-lg transition-colors',
+                    tradeFormType === 'sell'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                  )}
+                >
+                  매도
+                </button>
+              </div>
+            </div>
+
+            {/* Market */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">시장</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTradeFormMarket('KR')}
+                  className={cn(
+                    'py-2 text-sm font-medium rounded-lg transition-colors',
+                    tradeFormMarket === 'KR'
+                      ? 'bg-slate-900 text-white dark:bg-slate-600'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                  )}
+                >
+                  국내 (KR)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTradeFormMarket('US')}
+                  className={cn(
+                    'py-2 text-sm font-medium rounded-lg transition-colors',
+                    tradeFormMarket === 'US'
+                      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                  )}
+                >
+                  해외 (US)
+                </button>
+              </div>
+            </div>
+
+            {/* Ticker & Company Name */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">종목코드 *</label>
+                <Input
+                  value={tradeFormTicker}
+                  onChange={(e) => setTradeFormTicker(e.target.value)}
+                  placeholder={tradeFormMarket === 'KR' ? '005930' : 'AAPL'}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">종목명 *</label>
+                <Input
+                  value={tradeFormCompanyName}
+                  onChange={(e) => setTradeFormCompanyName(e.target.value)}
+                  placeholder={tradeFormMarket === 'KR' ? '삼성전자' : 'Apple'}
+                />
+              </div>
+            </div>
+
+            {/* Trade Date */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">거래일 *</label>
+              <Input
+                type="date"
+                value={tradeFormDate}
+                onChange={(e) => setTradeFormDate(e.target.value)}
+              />
+            </div>
+
+            {/* Quantity & Price */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">수량 *</label>
+                <Input
+                  value={tradeFormQuantity}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/[^\d]/g, '')
+                    setTradeFormQuantity(digits ? parseInt(digits).toLocaleString() : '')
+                  }}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">단가 ({tradeFormMarket === 'US' ? '$' : '원'}) *</label>
+                <Input
+                  value={tradeFormPrice}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^\d.]/g, '')
+                    if (tradeFormMarket === 'US') {
+                      setTradeFormPrice(raw)
+                    } else {
+                      const digits = e.target.value.replace(/[^\d]/g, '')
+                      setTradeFormPrice(digits ? parseInt(digits).toLocaleString() : '')
+                    }
+                  }}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            {/* Total Amount (calculated) */}
+            {tradeFormQuantity && tradeFormPrice && (() => {
+              const qty = parseInt(tradeFormQuantity.replace(/,/g, ''), 10)
+              const price = parseFloat(tradeFormPrice.replace(/,/g, ''))
+              if (!isNaN(qty) && !isNaN(price) && qty > 0 && price > 0) {
+                const total = qty * price
+                const currency = tradeFormMarket === 'US' ? 'USD' as const : 'KRW' as const
+                return (
+                  <div className="rounded-lg bg-slate-50 dark:bg-slate-600 px-3 py-2 flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">총 금액</span>
+                    <span className="font-bold text-sm">{formatAmount(total, currency)}</span>
+                  </div>
+                )
+              }
+              return null
+            })()}
+
+            {/* Broker */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">증권사</label>
+              <Input
+                value={tradeFormBroker}
+                onChange={(e) => setTradeFormBroker(e.target.value)}
+                placeholder="토스증권"
+              />
+            </div>
+
+            {/* Memo */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">메모</label>
+              <Textarea
+                value={tradeFormMemo}
+                onChange={(e) => setTradeFormMemo(e.target.value)}
+                rows={2}
+                placeholder="메모 (선택)"
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <div className="flex flex-row flex-nowrap justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
+            {editingTrade ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={async () => {
+                  if (!editingTrade) return
+                  try {
+                    const res = await fetch(`/api/willow-mgmt/stock-trades?id=${editingTrade.id}`, { method: 'DELETE' })
+                    if (!res.ok) throw new Error('Failed to delete')
+                    setStockTrades(stockTrades.filter(t => t.id !== editingTrade.id))
+                    setIsTradeModalOpen(false)
+                    resetTradeForm()
+                  } catch (error) {
+                    console.error('Failed to delete trade:', error)
+                  }
+                }}
+              >
+                삭제
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsTradeModalOpen(false)}>
+                취소
+              </Button>
+              <Button size="sm" onClick={handleSaveTrade} disabled={isSavingTrade}>
+                {isSavingTrade && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                저장
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stock Research Modal */}
+      <Dialog open={isResearchModalOpen} onOpenChange={setIsResearchModalOpen}>
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
+            <DialogTitle>{editingResearch ? '리서치 수정' : '리서치 추가'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
+            {/* Verdict */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">판정</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => setResearchFormVerdict('pass_tier1')} className={cn('py-2 text-sm font-medium rounded-lg transition-colors', researchFormVerdict === 'pass_tier1' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300')}>Tier 1</button>
+                <button type="button" onClick={() => setResearchFormVerdict('pass_tier2')} className={cn('py-2 text-sm font-medium rounded-lg transition-colors', researchFormVerdict === 'pass_tier2' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300')}>Tier 2</button>
+                <button type="button" onClick={() => setResearchFormVerdict('fail')} className={cn('py-2 text-sm font-medium rounded-lg transition-colors', researchFormVerdict === 'fail' ? 'bg-slate-300 text-slate-700 dark:bg-slate-600 dark:text-slate-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300')}>Fail</button>
+              </div>
+            </div>
+
+            {/* Ticker & Company */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">종목코드 *</label>
+                <Input value={researchFormTicker} onChange={(e) => setResearchFormTicker(e.target.value)} placeholder="VRT" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">종목명 *</label>
+                <Input value={researchFormCompanyName} onChange={(e) => setResearchFormCompanyName(e.target.value)} placeholder="버티브홀딩스" />
+              </div>
+            </div>
+
+            {/* Date & Source */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">스캔일</label>
+                <Input type="date" value={researchFormScanDate} onChange={(e) => setResearchFormScanDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">소스</label>
+                <Input value={researchFormSource} onChange={(e) => setResearchFormSource(e.target.value)} placeholder="reddit" />
+              </div>
+            </div>
+
+            {/* Value Chain & Thesis */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">밸류체인 포지션</label>
+              <Input value={researchFormValueChain} onChange={(e) => setResearchFormValueChain(e.target.value)} placeholder="AI 데이터센터 냉각/전력 인프라" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">투자논거</label>
+              <Textarea value={researchFormThesis} onChange={(e) => setResearchFormThesis(e.target.value)} rows={3} placeholder="구조적 성장 논거..." className="resize-none" />
+            </div>
+
+            {/* Sector Tags */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">섹터 태그 (콤마 구분)</label>
+              <Input value={researchFormSectorTags} onChange={(e) => setResearchFormSectorTags(e.target.value)} placeholder="AI인프라, 데이터저장" />
+            </div>
+
+            {/* Financials */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">현재가 ($)</label>
+                <Input value={researchFormCurrentPrice} onChange={(e) => setResearchFormCurrentPrice(e.target.value)} placeholder="266" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">시총 ($B)</label>
+                <Input value={researchFormMarketCap} onChange={(e) => setResearchFormMarketCap(e.target.value)} placeholder="85" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">매출성장률</label>
+                <Input value={researchFormRevenueGrowth} onChange={(e) => setResearchFormRevenueGrowth(e.target.value)} placeholder="+25% YoY" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">마진</label>
+                <Input value={researchFormMargin} onChange={(e) => setResearchFormMargin(e.target.value)} placeholder="46.1%" />
+              </div>
+            </div>
+
+            {/* Technical */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">52주고 ($)</label>
+                <Input value={researchFormHigh12m} onChange={(e) => setResearchFormHigh12m(e.target.value)} placeholder="309.75" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">고점대비 (%)</label>
+                <Input value={researchFormGapPct} onChange={(e) => setResearchFormGapPct(e.target.value)} placeholder="-14.1" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">추세</label>
+                <Input value={researchFormTrendVerdict} onChange={(e) => setResearchFormTrendVerdict(e.target.value)} placeholder="watch" />
+              </div>
+            </div>
+
+            {/* Fail Reason */}
+            {researchFormVerdict === 'fail' && (
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">탈락 사유</label>
+                <Input value={researchFormFailReason} onChange={(e) => setResearchFormFailReason(e.target.value)} placeholder="성장률 미미" />
+              </div>
+            )}
+
+            {/* Notes */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">메모</label>
+              <Textarea value={researchFormNotes} onChange={(e) => setResearchFormNotes(e.target.value)} rows={2} placeholder="메모 (선택)" className="resize-none" />
+            </div>
+          </div>
+          <div className="flex flex-row flex-nowrap justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
+            {editingResearch ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={async () => {
+                  if (!editingResearch) return
+                  try {
+                    const res = await fetch(`/api/willow-mgmt/stock-research?id=${editingResearch.id}`, { method: 'DELETE' })
+                    if (!res.ok) throw new Error('Failed to delete')
+                    setStockResearch(stockResearch.filter(r => r.id !== editingResearch.id))
+                    setIsResearchModalOpen(false)
+                    resetResearchForm()
+                  } catch (error) {
+                    console.error('Failed to delete research:', error)
+                  }
+                }}
+              >
+                삭제
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsResearchModalOpen(false)}>취소</Button>
+              <Button size="sm" onClick={handleSaveResearch} disabled={isSavingResearch}>
+                {isSavingResearch && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                 저장
               </Button>
             </div>
