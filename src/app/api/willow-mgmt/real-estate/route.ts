@@ -256,6 +256,14 @@ export async function GET(request: Request) {
         }
       }
 
+      // Latest data dates
+      const { data: latestListing } = await supabase
+        .from('re_naver_listings').select('snapshot_date').in('complex_name', complexNames)
+        .order('snapshot_date', { ascending: false }).limit(1)
+      const { data: latestTrade } = await supabase
+        .from('re_trades').select('deal_date').in('complex_name', complexNames).eq('cancel_yn', 'N')
+        .order('deal_date', { ascending: false }).limit(1)
+
       return NextResponse.json({
         summary: {
           trackedComplexes: complexCount,
@@ -264,6 +272,8 @@ export async function GET(request: Request) {
           avgJeonsePpp: jeonsePppCount > 0 ? Math.round(jeonsePppSum / jeonsePppCount) : 0,
           tradeListingGap: tradeGaps.length ? Math.round(tradeGaps.reduce((s, v) => s + v, 0) / tradeGaps.length * 10) / 10 : 0,
           jeonseListingGap: jeonseGaps.length ? Math.round(jeonseGaps.reduce((s, v) => s + v, 0) / jeonseGaps.length * 10) / 10 : 0,
+          lastListingDate: latestListing?.[0]?.snapshot_date || null,
+          lastTradeDate: latestTrade?.[0]?.deal_date || null,
         }
       })
     }

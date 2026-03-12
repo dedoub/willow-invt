@@ -1060,7 +1060,7 @@ export default function WillowManagementPage() {
   // Real estate states
   const [researchSubTab, setResearchSubTab] = useState<'stock' | 'realestate'>('realestate')
   const [reComplexes, setReComplexes] = useState<{ id: string; name: string; district_name: string; dong_name: string | null; total_units: number | null; build_year: number | null; is_tracked: boolean }[]>([])
-  const [reSummary, setReSummary] = useState<{ trackedComplexes: number; districtCount: number; avgTradePpp: number; avgJeonsePpp: number; tradeListingGap: number; jeonseListingGap: number } | null>(null)
+  const [reSummary, setReSummary] = useState<{ trackedComplexes: number; districtCount: number; avgTradePpp: number; avgJeonsePpp: number; tradeListingGap: number; jeonseListingGap: number; lastListingDate: string | null; lastTradeDate: string | null } | null>(null)
   const [reTrades, setReTrades] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
   const [reRentals, setReRentals] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
   const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
@@ -5837,6 +5837,11 @@ export default function WillowManagementPage() {
                       </button>
                     ))}
                   </div>
+                  {reSummary && (reSummary.lastListingDate || reSummary.lastTradeDate) && (
+                    <span className="text-[10px] text-slate-400 ml-auto whitespace-nowrap">
+                      호가 {reSummary.lastListingDate?.slice(5).replace('-', '/')} · 실거래 {reSummary.lastTradeDate?.slice(5).replace('-', '/')}
+                    </span>
+                  )}
                 </div>
 
                 {isLoadingRe ? (
