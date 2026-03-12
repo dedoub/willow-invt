@@ -4557,7 +4557,7 @@ export default function WillowManagementPage() {
                                 return (
                                   <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2 mb-2">
                                     <div className="flex items-center justify-between mb-0.5">
-                                      <span className="text-[10px] text-muted-foreground">투자 {formatAmount(g.inv, 'KRW')} · 비중 {weightPct.toFixed(0)}%</span>
+                                      <span />
                                       {groupDailyPct !== 0 && (
                                         <span className={cn(
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
