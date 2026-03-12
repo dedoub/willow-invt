@@ -1063,8 +1063,8 @@ export default function WillowManagementPage() {
   const [reSummary, setReSummary] = useState<{ trackedComplexes: number; districtCount: number; avgJeonseRatio: number; tradeListingGap: number; jeonseListingGap: number } | null>(null)
   const [reTrades, setReTrades] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
   const [reRentals, setReRentals] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
-  const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; listingMinPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
-  const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; listingMinPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
+  const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
+  const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reJeonseRatio, setReJeonseRatio] = useState<{ month: string; ratio: number | null }[]>([])
   const [isLoadingRe, setIsLoadingRe] = useState(false)
   const [reDistrictFilter, setReDistrictFilter] = useState<string[]>(['강남구', '서초구', '송파구'])
@@ -5919,9 +5919,9 @@ export default function WillowManagementPage() {
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
                             <YAxis yAxisId="price" tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
-                            <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 8, fill: '#cbd5e1' }} width={30} />
+                            <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 8, fill: '#94a3b8' }} width={30} />
                             <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value, name) => name === '_count' ? [`${value}건`, '거래량'] : [`${Number(value).toLocaleString()}만원/평`, name]} />
-                            <Bar yAxisId="count" dataKey="_count" fill="#e2e8f0" radius={[2, 2, 0, 0]} barSize={16} />
+                            <Bar yAxisId="count" dataKey="_count" fill="#cbd5e1" radius={[2, 2, 0, 0]} barSize={16} />
                             {reTrades.complexes.slice(0, 10).map((c, i) => {
                               const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
                               return <Line key={c.name} yAxisId="price" type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
@@ -5937,19 +5937,22 @@ export default function WillowManagementPage() {
                         <div className="text-xs font-medium mb-2">매도 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></div>
                         <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1">
                           <span className="w-24">단지</span>
-                          <span className="w-20 text-right">실거래</span>
+                          <span className="w-16 text-right">실거래</span>
                           <span className="w-3" />
-                          <span className="w-20 text-right">호가(최저)</span>
+                          <span className="w-28 text-right">호가(최저~최고)</span>
                           <span className="w-14 text-right">괴리율</span>
                           <span className="w-8 text-right">매물</span>
                         </div>
                         <div className="space-y-1">
                           {reListingsTrade.slice(0, 15).map(r => (
-                            <div key={r.complexName} className="flex items-center gap-2 text-[11px]">
+                            <div key={r.complexName} className="flex items-center gap-2 text-xs">
                               <span className="w-24 truncate font-medium">{r.complexName}</span>
-                              <span className="w-20 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp).toLocaleString()}` : '-'}</span>
+                              <span className="w-16 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp).toLocaleString()}` : '-'}</span>
                               <span className="text-[10px] text-slate-400">→</span>
-                              <span className="w-20 text-right">{r.listingMinPpp ? `${Math.round(r.listingMinPpp).toLocaleString()}` : '-'}</span>
+                              <span className="w-28 text-right">
+                                {r.listingMinPpp ? `${Math.round(r.listingMinPpp).toLocaleString()}` : '-'}
+                                {r.listingMaxPpp && r.listingMaxPpp !== r.listingMinPpp ? <span className="text-slate-400">~{Math.round(r.listingMaxPpp).toLocaleString()}</span> : ''}
+                              </span>
                               <span className={cn('w-14 text-right text-[10px] font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
                                 {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
                               </span>
@@ -5979,9 +5982,9 @@ export default function WillowManagementPage() {
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
                             <YAxis yAxisId="price" tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
-                            <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 8, fill: '#cbd5e1' }} width={30} />
+                            <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 8, fill: '#94a3b8' }} width={30} />
                             <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value, name) => name === '_count' ? [`${value}건`, '거래량'] : [`${Number(value).toLocaleString()}만원/평`, name]} />
-                            <Bar yAxisId="count" dataKey="_count" fill="#e2e8f0" radius={[2, 2, 0, 0]} barSize={16} />
+                            <Bar yAxisId="count" dataKey="_count" fill="#cbd5e1" radius={[2, 2, 0, 0]} barSize={16} />
                             {reRentals.complexes.slice(0, 10).map((c, i) => {
                               const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
                               return <Line key={c.name} yAxisId="price" type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
@@ -5997,19 +6000,22 @@ export default function WillowManagementPage() {
                         <div className="text-xs font-medium mb-2">전세 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></div>
                         <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1 px-0">
                           <span className="w-24">단지</span>
-                          <span className="w-20 text-right">실거래</span>
+                          <span className="w-16 text-right">실거래</span>
                           <span className="w-3" />
-                          <span className="w-20 text-right">호가(최저)</span>
+                          <span className="w-28 text-right">호가(최저~최고)</span>
                           <span className="w-14 text-right">괴리율</span>
                           <span className="w-8 text-right">매물</span>
                         </div>
                         <div className="space-y-1">
                           {reListingsJeonse.slice(0, 15).map(r => (
-                            <div key={r.complexName} className="flex items-center gap-2 text-[11px]">
+                            <div key={r.complexName} className="flex items-center gap-2 text-xs">
                               <span className="w-24 truncate font-medium">{r.complexName}</span>
-                              <span className="w-20 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp).toLocaleString()}` : '-'}</span>
+                              <span className="w-16 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp).toLocaleString()}` : '-'}</span>
                               <span className="text-[10px] text-slate-400">→</span>
-                              <span className="w-20 text-right">{r.listingMinPpp ? `${Math.round(r.listingMinPpp).toLocaleString()}` : '-'}</span>
+                              <span className="w-28 text-right">
+                                {r.listingMinPpp ? `${Math.round(r.listingMinPpp).toLocaleString()}` : '-'}
+                                {r.listingMaxPpp && r.listingMaxPpp !== r.listingMinPpp ? <span className="text-slate-400">~{Math.round(r.listingMaxPpp).toLocaleString()}</span> : ''}
+                              </span>
                               <span className={cn('w-14 text-right text-[10px] font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
                                 {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
                               </span>
