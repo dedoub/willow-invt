@@ -5915,7 +5915,7 @@ export default function WillowManagementPage() {
                           })} margin={{ top: 12, right: 45, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis tickFormatter={(v: number) => `${Math.round(v / 10000).toLocaleString()}`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={40} />
+                            <YAxis tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
                             <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value) => [`${Number(value).toLocaleString()}만원/평`, '']} />
                             {reTrades.complexes.length > 1 && <RechartsLegend wrapperStyle={{ fontSize: 9 }} />}
                             {reTrades.complexes.slice(0, 10).map((c, i) => {
@@ -5951,9 +5951,9 @@ export default function WillowManagementPage() {
                           {reListingsTrade.slice(0, 15).map(r => (
                             <div key={r.complexName} className="flex items-center gap-2 text-[11px]">
                               <span className="w-24 truncate font-medium">{r.complexName}</span>
-                              <span className="w-16 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp / 10000).toLocaleString()}만` : '-'}</span>
+                              <span className="w-20 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp).toLocaleString()}` : '-'}</span>
                               <span className="text-[10px] text-slate-400">→</span>
-                              <span className="w-16 text-right">{r.listingMinPpp ? `${Math.round(r.listingMinPpp / 10000).toLocaleString()}만` : '-'}</span>
+                              <span className="w-20 text-right">{r.listingMinPpp ? `${Math.round(r.listingMinPpp).toLocaleString()}` : '-'}</span>
                               <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-600 rounded-full overflow-hidden relative">
                                 {r.gap != null && (
                                   <div
@@ -5988,7 +5988,7 @@ export default function WillowManagementPage() {
                           })} margin={{ top: 12, right: 45, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis tickFormatter={(v: number) => `${Math.round(v / 10000).toLocaleString()}`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={40} />
+                            <YAxis tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
                             <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value) => [`${Number(value).toLocaleString()}만원/평`, '']} />
                             {reRentals.complexes.length > 1 && <RechartsLegend wrapperStyle={{ fontSize: 9 }} />}
                             {reRentals.complexes.slice(0, 10).map((c, i) => {
@@ -6024,9 +6024,9 @@ export default function WillowManagementPage() {
                           {reListingsJeonse.slice(0, 15).map(r => (
                             <div key={r.complexName} className="flex items-center gap-2 text-[11px]">
                               <span className="w-24 truncate font-medium">{r.complexName}</span>
-                              <span className="w-16 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp / 10000).toLocaleString()}만` : '-'}</span>
+                              <span className="w-20 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp).toLocaleString()}` : '-'}</span>
                               <span className="text-[10px] text-slate-400">→</span>
-                              <span className="w-16 text-right">{r.listingMinPpp ? `${Math.round(r.listingMinPpp / 10000).toLocaleString()}만` : '-'}</span>
+                              <span className="w-20 text-right">{r.listingMinPpp ? `${Math.round(r.listingMinPpp).toLocaleString()}` : '-'}</span>
                               <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-600 rounded-full overflow-hidden relative">
                                 {r.gap != null && (
                                   <div
