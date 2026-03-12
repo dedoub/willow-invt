@@ -5960,13 +5960,13 @@ export default function WillowManagementPage() {
                         </div>
                         <table className="w-full text-xs table-fixed">
                           <colgroup>
-                            <col className="w-[22%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
                             <col className="w-[10%]" />
-                            <col className="w-[17%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[13%]" />
-                            <col className="w-[8%]" />
                           </colgroup>
                           <thead>
                             <tr className="text-[10px] text-slate-400">
@@ -6082,13 +6082,13 @@ export default function WillowManagementPage() {
                         </div>
                         <table className="w-full text-xs table-fixed">
                           <colgroup>
-                            <col className="w-[22%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
                             <col className="w-[10%]" />
-                            <col className="w-[17%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[13%]" />
-                            <col className="w-[8%]" />
                           </colgroup>
                           <thead>
                             <tr className="text-[10px] text-slate-400">
