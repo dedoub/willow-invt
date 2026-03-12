@@ -1063,16 +1063,21 @@ export default function WillowManagementPage() {
   const [reSummary, setReSummary] = useState<{ trackedComplexes: number; districtCount: number; avgTradePpp: number; avgJeonsePpp: number; tradeListingGap: number; jeonseListingGap: number } | null>(null)
   const [reTrades, setReTrades] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
   const [reRentals, setReRentals] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
-  const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; complexNo: string | null; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
-  const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; complexNo: string | null; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
+  const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
+  const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reJeonseRatio, setReJeonseRatio] = useState<{ month: string; ratio: number | null }[]>([])
   const [reTradeListPage, setReTradeListPage] = useState(0)
   const [reJeonseListPage, setReJeonseListPage] = useState(0)
   const RE_LIST_PAGE_SIZE = 5
+  type ReSortKey = 'complexName' | 'areaBand' | 'actualAvgPpp' | 'listingMinPpp' | 'listingMaxPpp' | 'gap' | 'listingCount'
+  const [reTradeSortKey, setReTradeSortKey] = useState<ReSortKey>('gap')
+  const [reTradeSortAsc, setReTradeSortAsc] = useState(true)
+  const [reJeonseSortKey, setReJeonseSortKey] = useState<ReSortKey>('gap')
+  const [reJeonseSortAsc, setReJeonseSortAsc] = useState(true)
   const [isLoadingRe, setIsLoadingRe] = useState(false)
   const [reDistrictFilter, setReDistrictFilter] = useState<string[]>(['강남구', '서초구', '송파구'])
   const [reComplexFilter, setReComplexFilter] = useState<string[]>([])
-  const [reAreaFilter, setReAreaFilter] = useState<string>('')
+  const [reAreaFilter, setReAreaFilter] = useState<string>('30')
   const [rePeriodFilter, setRePeriodFilter] = useState<string>('12')
 
   // Gmail states
@@ -5819,7 +5824,7 @@ export default function WillowManagementPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-slate-400 mr-0.5">평형</span>
-                    {[{ v: '', l: '전체' }, { v: '20', l: '20평' }, { v: '30', l: '30평' }, { v: '40+', l: '40+' }].map(a => (
+                    {[{ v: '', l: '전체' }, { v: '20', l: '20평' }, { v: '30', l: '30평' }, { v: '40', l: '40평' }, { v: '50', l: '50평' }, { v: '60+', l: '60+' }].map(a => (
                       <button key={a.v} onClick={() => setReAreaFilter(a.v)}
                         className={cn('px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors',
                           reAreaFilter === a.v ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
@@ -5856,7 +5861,7 @@ export default function WillowManagementPage() {
                           <div className="text-sm font-bold">{reSummary.trackedComplexes}개 <span className="text-[10px] text-slate-400 font-normal">({reSummary.districtCount}개구)</span></div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[10px] text-muted-foreground">평균 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                          <div className="text-[10px] text-muted-foreground">최근1월 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
                           <div className="text-sm font-bold">{reSummary.avgTradePpp?.toLocaleString() || '-'}</div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
@@ -5866,7 +5871,7 @@ export default function WillowManagementPage() {
                           </div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[10px] text-muted-foreground">평균 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                          <div className="text-[10px] text-muted-foreground">최근1월 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
                           <div className="text-sm font-bold">{reSummary.avgJeonsePpp?.toLocaleString() || '-'}</div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
@@ -5936,12 +5941,22 @@ export default function WillowManagementPage() {
 
                     {/* Section 2: 매도 호가 vs 실거래가 */}
                     {reListingsTrade.length > 0 && (() => {
-                      const totalPages = Math.ceil(reListingsTrade.length / RE_LIST_PAGE_SIZE)
-                      const paged = reListingsTrade.slice(reTradeListPage * RE_LIST_PAGE_SIZE, (reTradeListPage + 1) * RE_LIST_PAGE_SIZE)
+                      const sorted = [...reListingsTrade].sort((a, b) => {
+                        const av = a[reTradeSortKey], bv = b[reTradeSortKey]
+                        const an = typeof av === 'string' ? av : (av ?? (reTradeSortAsc ? Infinity : -Infinity))
+                        const bn = typeof bv === 'string' ? bv : (bv ?? (reTradeSortAsc ? Infinity : -Infinity))
+                        if (an < bn) return reTradeSortAsc ? -1 : 1
+                        if (an > bn) return reTradeSortAsc ? 1 : -1
+                        return 0
+                      })
+                      const totalPages = Math.ceil(sorted.length / RE_LIST_PAGE_SIZE)
+                      const paged = sorted.slice(reTradeListPage * RE_LIST_PAGE_SIZE, (reTradeListPage + 1) * RE_LIST_PAGE_SIZE)
+                      const thClick = (key: ReSortKey) => { if (reTradeSortKey === key) setReTradeSortAsc(!reTradeSortAsc); else { setReTradeSortKey(key); setReTradeSortAsc(key === 'gap' ? true : true) }; setReTradeListPage(0) }
+                      const thCls = (key: ReSortKey) => cn('font-normal pb-1 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 select-none', reTradeSortKey === key && 'text-slate-600 dark:text-slate-300 font-medium')
                       return (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">매도 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></span>
+                          <span className="text-xs font-medium">매도 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평, 공급면적 기준)</span></span>
                           {totalPages > 1 && (
                             <div className="flex items-center gap-1">
                               <button onClick={() => setReTradeListPage(p => Math.max(0, p - 1))} disabled={reTradeListPage === 0} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button>
@@ -5953,25 +5968,27 @@ export default function WillowManagementPage() {
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="text-[10px] text-slate-400">
-                              <th className="text-left font-normal pb-1">단지</th>
-                              <th className="text-right font-normal pb-1">실거래</th>
-                              <th className="text-right font-normal pb-1">호가(최저)</th>
-                              <th className="text-right font-normal pb-1">호가(최고)</th>
-                              <th className="text-right font-normal pb-1">괴리율</th>
-                              <th className="text-right font-normal pb-1">매물</th>
+                              <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
+                              <th className={cn('text-right', thCls('areaBand'))} onClick={() => thClick('areaBand')}>평형</th>
+                              <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>최근1월 실거래</th>
+                              <th className={cn('text-right', thCls('listingMinPpp'))} onClick={() => thClick('listingMinPpp')}>호가(저)</th>
+                              <th className={cn('text-right', thCls('listingMaxPpp'))} onClick={() => thClick('listingMaxPpp')}>호가(고)</th>
+                              <th className={cn('text-right', thCls('gap'))} onClick={() => thClick('gap')}>괴리율</th>
+                              <th className={cn('text-right', thCls('listingCount'))} onClick={() => thClick('listingCount')}>매물</th>
                             </tr>
                           </thead>
                           <tbody>
                             {paged.map(r => (
-                              <tr key={r.complexName} className="border-t border-slate-50 dark:border-slate-600">
-                                <td className="py-1 font-medium truncate max-w-[120px]">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=a1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
+                              <tr key={`${r.complexName}-${r.areaBand}`} className="border-t border-slate-50 dark:border-slate-600">
+                                <td className="py-1 font-medium truncate max-w-[100px]">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=a1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
+                                <td className="py-1 text-right text-muted-foreground">{r.areaBand >= 60 ? '60+' : r.areaBand}평대</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
                                 <td className={cn('py-1 text-right font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
                                   {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
                                 </td>
-                                <td className="py-1 text-right text-muted-foreground">{r.listingCount}건</td>
+                                <td className="py-1 text-right text-muted-foreground">{r.listingCount}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -6037,12 +6054,22 @@ export default function WillowManagementPage() {
 
                     {/* Section 4: 전세 호가 vs 실거래가 */}
                     {reListingsJeonse.length > 0 && (() => {
-                      const totalPages = Math.ceil(reListingsJeonse.length / RE_LIST_PAGE_SIZE)
-                      const paged = reListingsJeonse.slice(reJeonseListPage * RE_LIST_PAGE_SIZE, (reJeonseListPage + 1) * RE_LIST_PAGE_SIZE)
+                      const sorted = [...reListingsJeonse].sort((a, b) => {
+                        const av = a[reJeonseSortKey], bv = b[reJeonseSortKey]
+                        const an = typeof av === 'string' ? av : (av ?? (reJeonseSortAsc ? Infinity : -Infinity))
+                        const bn = typeof bv === 'string' ? bv : (bv ?? (reJeonseSortAsc ? Infinity : -Infinity))
+                        if (an < bn) return reJeonseSortAsc ? -1 : 1
+                        if (an > bn) return reJeonseSortAsc ? 1 : -1
+                        return 0
+                      })
+                      const totalPages = Math.ceil(sorted.length / RE_LIST_PAGE_SIZE)
+                      const paged = sorted.slice(reJeonseListPage * RE_LIST_PAGE_SIZE, (reJeonseListPage + 1) * RE_LIST_PAGE_SIZE)
+                      const thClick = (key: ReSortKey) => { if (reJeonseSortKey === key) setReJeonseSortAsc(!reJeonseSortAsc); else { setReJeonseSortKey(key); setReJeonseSortAsc(key === 'gap' ? true : true) }; setReJeonseListPage(0) }
+                      const thCls = (key: ReSortKey) => cn('font-normal pb-1 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 select-none', reJeonseSortKey === key && 'text-slate-600 dark:text-slate-300 font-medium')
                       return (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">전세 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></span>
+                          <span className="text-xs font-medium">전세 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평, 공급면적 기준)</span></span>
                           {totalPages > 1 && (
                             <div className="flex items-center gap-1">
                               <button onClick={() => setReJeonseListPage(p => Math.max(0, p - 1))} disabled={reJeonseListPage === 0} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button>
@@ -6054,25 +6081,27 @@ export default function WillowManagementPage() {
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="text-[10px] text-slate-400">
-                              <th className="text-left font-normal pb-1">단지</th>
-                              <th className="text-right font-normal pb-1">실거래</th>
-                              <th className="text-right font-normal pb-1">호가(최저)</th>
-                              <th className="text-right font-normal pb-1">호가(최고)</th>
-                              <th className="text-right font-normal pb-1">괴리율</th>
-                              <th className="text-right font-normal pb-1">매물</th>
+                              <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
+                              <th className={cn('text-right', thCls('areaBand'))} onClick={() => thClick('areaBand')}>평형</th>
+                              <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>최근1월 실거래</th>
+                              <th className={cn('text-right', thCls('listingMinPpp'))} onClick={() => thClick('listingMinPpp')}>호가(저)</th>
+                              <th className={cn('text-right', thCls('listingMaxPpp'))} onClick={() => thClick('listingMaxPpp')}>호가(고)</th>
+                              <th className={cn('text-right', thCls('gap'))} onClick={() => thClick('gap')}>괴리율</th>
+                              <th className={cn('text-right', thCls('listingCount'))} onClick={() => thClick('listingCount')}>매물</th>
                             </tr>
                           </thead>
                           <tbody>
                             {paged.map(r => (
-                              <tr key={r.complexName} className="border-t border-slate-50 dark:border-slate-600">
-                                <td className="py-1 font-medium truncate max-w-[120px]">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=b1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
+                              <tr key={`${r.complexName}-${r.areaBand}`} className="border-t border-slate-50 dark:border-slate-600">
+                                <td className="py-1 font-medium truncate max-w-[100px]">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=b1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
+                                <td className="py-1 text-right text-muted-foreground">{r.areaBand >= 60 ? '60+' : r.areaBand}평대</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
                                 <td className={cn('py-1 text-right font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
                                   {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
                                 </td>
-                                <td className="py-1 text-right text-muted-foreground">{r.listingCount}건</td>
+                                <td className="py-1 text-right text-muted-foreground">{r.listingCount}</td>
                               </tr>
                             ))}
                           </tbody>

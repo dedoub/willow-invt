@@ -16,14 +16,56 @@ async function fetchAll(query: any, pageSize = 1000): Promise<any[]> {
   return all
 }
 
-// Extract pyeong from listing: use supply area (area1 from Naver = area type number)
+// Extract supply-area pyeong from listing (area1 from Naver = 공급면적)
 function getListingPyeong(l: { area_supply_sqm?: any; area_type?: any }): number {
   const supply = Number(l.area_supply_sqm)
   if (supply > 0) return supply / 3.3058
-  // fallback: parse numeric part from area_type (e.g. "84A" → 84)
   const typeNum = parseFloat(l.area_type || '0')
   if (typeNum > 0) return typeNum / 3.3058
   return 0
+}
+
+// Mapping: exclusive area (전용면적 ㎡) → supply area (공급면적 ㎡) per complex
+// Built from Naver listings which have both area1 (supply) and area2 (exclusive)
+type AreaMapping = { exclusive: number; supply: number }[]
+async function buildAreaMapping(supabase: any, complexNames: string[]): Promise<Record<string, AreaMapping>> {
+  const { data } = await supabase
+    .from('re_naver_listings')
+    .select('complex_name, area_exclusive_sqm, area_supply_sqm')
+    .in('complex_name', complexNames)
+    .gt('area_exclusive_sqm', '0')
+    .gt('area_supply_sqm', '0')
+  if (!data) return {}
+  const map: Record<string, Map<number, number>> = {}
+  for (const row of data) {
+    const excl = Number(row.area_exclusive_sqm)
+    const supp = Number(row.area_supply_sqm)
+    if (excl <= 0 || supp <= 0) continue
+    if (!map[row.complex_name]) map[row.complex_name] = new Map()
+    map[row.complex_name].set(excl, supp)
+  }
+  const result: Record<string, AreaMapping> = {}
+  for (const [name, m] of Object.entries(map)) {
+    result[name] = [...m.entries()].map(([exclusive, supply]) => ({ exclusive, supply })).sort((a, b) => a.exclusive - b.exclusive)
+  }
+  return result
+}
+
+// Convert trade/rental exclusive area (㎡) to supply pyeong using area mapping
+function getSupplyPyeong(areaMapping: Record<string, AreaMapping>, complexName: string, exclusiveSqm: number): number {
+  const mapping = areaMapping[complexName]
+  if (!mapping || mapping.length === 0) {
+    // fallback: assume ~75% exclusive/supply ratio
+    return (exclusiveSqm / 0.75) / 3.3058
+  }
+  // Find closest exclusive area match
+  let closest = mapping[0]
+  let minDiff = Math.abs(exclusiveSqm - closest.exclusive)
+  for (const entry of mapping) {
+    const diff = Math.abs(exclusiveSqm - entry.exclusive)
+    if (diff < minDiff) { closest = entry; minDiff = diff }
+  }
+  return closest.supply / 3.3058
 }
 
 // GET - Real estate data queries
@@ -59,12 +101,17 @@ export async function GET(request: Request) {
     complexNames = allTrackedNames
   }
 
+  // Build exclusive→supply area mapping from Naver listings (for supply-based PPP)
+  const areaMapping = await buildAreaMapping(supabase, complexNames)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyFilters = (query: any, table: 'trades' | 'rentals') => {
     query = query.in('complex_name', complexNames)
     if (areaRange === '20') query = query.gte('area_pyeong', 20).lt('area_pyeong', 30)
     else if (areaRange === '30') query = query.gte('area_pyeong', 30).lt('area_pyeong', 40)
-    else if (areaRange === '40+') query = query.gte('area_pyeong', 40)
+    else if (areaRange === '40') query = query.gte('area_pyeong', 40).lt('area_pyeong', 50)
+    else if (areaRange === '50') query = query.gte('area_pyeong', 50).lt('area_pyeong', 60)
+    else if (areaRange === '60+') query = query.gte('area_pyeong', 60)
     if (table === 'trades') query = query.eq('cancel_yn', 'N')
     return query
   }
@@ -86,68 +133,110 @@ export async function GET(request: Request) {
       const complexCount = allTrackedNames.length
       const districtSet = new Set(trackedData?.map(c => c.district_name))
 
-      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().slice(0, 10)
+      const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10)
 
-      // Fetch trades & rentals for tracked complexes only
-      const recentTrades = await fetchAll(applyFilters(
-        supabase.from('re_trades').select('complex_name, deal_amount, area_pyeong').gte('deal_date', threeMonthsAgo),
-        'trades'
-      ))
+      // Fetch trades & rentals (no DB area filter — filter by supply pyeong in code)
+      const recentTrades = await fetchAll(
+        supabase.from('re_trades').select('complex_name, deal_amount, area_sqm')
+          .gte('deal_date', oneMonthAgo).eq('cancel_yn', 'N').in('complex_name', complexNames)
+      )
+      const recentRentals = await fetchAll(
+        supabase.from('re_rentals').select('complex_name, deposit, area_sqm')
+          .gte('deal_date', oneMonthAgo).eq('rent_type', '전세').in('complex_name', complexNames)
+      )
 
-      const recentRentals = await fetchAll(applyFilters(
-        supabase.from('re_rentals').select('complex_name, deposit, area_pyeong').gte('deal_date', threeMonthsAgo).eq('rent_type', '전세'),
-        'rentals'
-      ))
+      // Supply-pyeong area filter (consistent with listings)
+      function matchesArea(supplyPy: number): boolean {
+        if (!areaRange) return supplyPy >= 20
+        if (areaRange === '20') return supplyPy >= 20 && supplyPy < 30
+        if (areaRange === '30') return supplyPy >= 30 && supplyPy < 40
+        if (areaRange === '40') return supplyPy >= 40 && supplyPy < 50
+        if (areaRange === '50') return supplyPy >= 50 && supplyPy < 60
+        if (areaRange === '60+') return supplyPy >= 60
+        return true
+      }
+      function getBandS(supplyPy: number): number {
+        if (supplyPy < 30) return 20
+        if (supplyPy < 40) return 30
+        if (supplyPy < 50) return 40
+        if (supplyPy < 60) return 50
+        return 60
+      }
 
-      // Listing gaps (tracked complexes only) — use fetchAll to bypass 1000 row limit
+      // Average PPP (supply-area based, filtered)
+      let tradePppSum = 0, tradePppCount = 0
+      for (const t of recentTrades || []) {
+        const sqm = Number(t.area_sqm)
+        if (sqm <= 0) continue
+        const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
+        if (supplyPy <= 0 || !matchesArea(supplyPy)) continue
+        tradePppSum += Number(t.deal_amount) / supplyPy
+        tradePppCount++
+      }
+      let jeonsePppSum = 0, jeonsePppCount = 0
+      for (const r of recentRentals || []) {
+        const sqm = Number(r.area_sqm)
+        if (sqm <= 0) continue
+        const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
+        if (supplyPy <= 0 || !matchesArea(supplyPy)) continue
+        jeonsePppSum += Number(r.deposit) / supplyPy
+        jeonsePppCount++
+      }
+
+      // Listing gaps — grouped by complex+평형대 (same as table)
       const listings = await fetchAll(
         supabase.from('re_naver_listings')
           .select('complex_name, trade_type, price, area_supply_sqm, area_type')
           .in('complex_name', complexNames)
       )
-
-      const listingMap: Record<string, { trade: number[]; jeonse: number[] }> = {}
+      type BandKey = string
+      const listingBands: Record<BandKey, { trade: number[]; jeonse: number[] }> = {}
       for (const l of listings) {
-        const pyeong = getListingPyeong(l)
-        if (pyeong <= 0) continue
-        const ppp = Number(l.price) / pyeong
-        if (!listingMap[l.complex_name]) listingMap[l.complex_name] = { trade: [], jeonse: [] }
-        if (l.trade_type === '매매') listingMap[l.complex_name].trade.push(ppp)
-        else if (l.trade_type === '전세') listingMap[l.complex_name].jeonse.push(ppp)
+        const py = getListingPyeong(l)
+        if (py <= 0 || !matchesArea(py)) continue
+        const key = `${l.complex_name}|${getBandS(py)}`
+        if (!listingBands[key]) listingBands[key] = { trade: [], jeonse: [] }
+        const ppp = Number(l.price) / py
+        if (l.trade_type === '매매') listingBands[key].trade.push(ppp)
+        else if (l.trade_type === '전세') listingBands[key].jeonse.push(ppp)
       }
 
+      // Actuals grouped by complex+band
+      const tradeActuals: Record<BandKey, number[]> = {}
+      for (const t of recentTrades || []) {
+        const sqm = Number(t.area_sqm)
+        if (sqm <= 0) continue
+        const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
+        if (supplyPy <= 0 || !matchesArea(supplyPy)) continue
+        const key = `${t.complex_name}|${getBandS(supplyPy)}`
+        if (!tradeActuals[key]) tradeActuals[key] = []
+        tradeActuals[key].push(Number(t.deal_amount) / supplyPy)
+      }
+      const jeonseActuals: Record<BandKey, number[]> = {}
+      for (const r of recentRentals || []) {
+        const sqm = Number(r.area_sqm)
+        if (sqm <= 0) continue
+        const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
+        if (supplyPy <= 0 || !matchesArea(supplyPy)) continue
+        const key = `${r.complex_name}|${getBandS(supplyPy)}`
+        if (!jeonseActuals[key]) jeonseActuals[key] = []
+        jeonseActuals[key].push(Number(r.deposit) / supplyPy)
+      }
+
+      // Gap per complex+band → average
       const tradeGaps: number[] = []
       const jeonseGaps: number[] = []
-      for (const name of Object.keys(listingMap)) {
-        const li = listingMap[name]
-        if (li.trade.length > 0) {
+      for (const [key, li] of Object.entries(listingBands)) {
+        if (li.trade.length > 0 && tradeActuals[key]?.length > 0) {
           const minListing = Math.min(...li.trade)
-          const actual = (recentTrades || []).filter((t: any) => t.complex_name === name && Number(t.area_pyeong) > 0)
-          if (actual.length > 0) {
-            const avgPpp = actual.reduce((s: number, t: any) => s + Number(t.deal_amount) / Number(t.area_pyeong), 0) / actual.length
-            if (avgPpp > 0) tradeGaps.push(((minListing - avgPpp) / avgPpp) * 100)
-          }
+          const avgActual = tradeActuals[key].reduce((s, v) => s + v, 0) / tradeActuals[key].length
+          if (avgActual > 0) tradeGaps.push(((minListing - avgActual) / avgActual) * 100)
         }
-        if (li.jeonse.length > 0) {
+        if (li.jeonse.length > 0 && jeonseActuals[key]?.length > 0) {
           const minListing = Math.min(...li.jeonse)
-          const actual = (recentRentals || []).filter((r: any) => r.complex_name === name && Number(r.area_pyeong) > 0)
-          if (actual.length > 0) {
-            const avgPpp = actual.reduce((s: number, r: any) => s + Number(r.deposit) / Number(r.area_pyeong), 0) / actual.length
-            if (avgPpp > 0) jeonseGaps.push(((minListing - avgPpp) / avgPpp) * 100)
-          }
+          const avgActual = jeonseActuals[key].reduce((s, v) => s + v, 0) / jeonseActuals[key].length
+          if (avgActual > 0) jeonseGaps.push(((minListing - avgActual) / avgActual) * 100)
         }
-      }
-
-      // Average trade/jeonse price per pyeong
-      let tradePppSum = 0, tradePppCount = 0
-      for (const t of recentTrades || []) {
-        const py = Number(t.area_pyeong)
-        if (py > 0) { tradePppSum += Number(t.deal_amount) / py; tradePppCount++ }
-      }
-      let jeonsePppSum = 0, jeonsePppCount = 0
-      for (const r of recentRentals || []) {
-        const py = Number(r.area_pyeong)
-        if (py > 0) { jeonsePppSum += Number(r.deposit) / py; jeonsePppCount++ }
       }
 
       return NextResponse.json({
@@ -164,19 +253,19 @@ export async function GET(request: Request) {
 
     if (type === 'trades') {
       const data = await fetchAll(applyFilters(
-        supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_pyeong, price_per_pyeong').gte('deal_date', cutoffDate).order('deal_date'),
+        supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_sqm').gte('deal_date', cutoffDate).order('deal_date'),
         'trades'
       ))
 
-      // Aggregate by month. If no specific complexes selected, aggregate as "전체" average
+      // Aggregate by month (supply-area based PPP)
       const useAggregate = complexIds.length === 0
       const monthly: Record<string, Record<string, { sum: number; count: number }>> = {}
-      // Track per-complex total count for top N selection
       const complexTotals: Record<string, number> = {}
 
       for (const t of data || []) {
         const month = t.deal_date.slice(0, 7)
-        const ppp = Number(t.price_per_pyeong) || (Number(t.area_pyeong) > 0 ? Number(t.deal_amount) / Number(t.area_pyeong) : 0)
+        const sqm = Number(t.area_sqm)
+        const ppp = sqm > 0 ? Number(t.deal_amount) / getSupplyPyeong(areaMapping, t.complex_name, sqm) : 0
         if (ppp <= 0) continue
 
         if (useAggregate) {
@@ -212,7 +301,7 @@ export async function GET(request: Request) {
 
     if (type === 'rentals') {
       const data = await fetchAll(applyFilters(
-        supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_pyeong').gte('deal_date', cutoffDate).eq('rent_type', '전세').order('deal_date'),
+        supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_sqm').gte('deal_date', cutoffDate).eq('rent_type', '전세').order('deal_date'),
         'rentals'
       ))
 
@@ -221,8 +310,8 @@ export async function GET(request: Request) {
 
       for (const r of data || []) {
         const month = r.deal_date.slice(0, 7)
-        const pyeong = Number(r.area_pyeong)
-        const ppp = pyeong > 0 ? Number(r.deposit) / pyeong : 0
+        const sqm = Number(r.area_sqm)
+        const ppp = sqm > 0 ? Number(r.deposit) / getSupplyPyeong(areaMapping, r.complex_name, sqm) : 0
         if (ppp <= 0) continue
         const key = useAggregate ? '전체' : r.complex_name
         if (!monthly[month]) monthly[month] = {}
@@ -255,77 +344,79 @@ export async function GET(request: Request) {
           .in('complex_name', complexNames)
       )
 
-      // Filter listings by area range
-      const filteredListings = areaRange
-        ? (listings || []).filter(l => {
-            const py = getListingPyeong(l)
-            if (areaRange === '20') return py >= 20 && py < 30
-            if (areaRange === '30') return py >= 30 && py < 40
-            if (areaRange === '40+') return py >= 40
-            return true
-          })
-        : (listings || [])
-
-      // Get listing complex names, then fetch actuals only for those
-      const listingComplexNames = [...new Set(filteredListings.map(l => l.complex_name))]
-
-      // Fetch actual prices for tracked complexes
-      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().slice(0, 10)
-      let actualQ = tradeType === '매매'
-        ? supabase.from('re_trades').select('complex_name, deal_amount, area_pyeong, price_per_pyeong').gte('deal_date', threeMonthsAgo).eq('cancel_yn', 'N').in('complex_name', complexNames)
-        : supabase.from('re_rentals').select('complex_name, deposit, area_pyeong').gte('deal_date', threeMonthsAgo).eq('rent_type', '전세').in('complex_name', complexNames)
-
-      if (areaRange === '20') actualQ = actualQ.gte('area_pyeong', 20).lt('area_pyeong', 30)
-      else if (areaRange === '30') actualQ = actualQ.gte('area_pyeong', 30).lt('area_pyeong', 40)
-      else if (areaRange === '40+') actualQ = actualQ.gte('area_pyeong', 40)
-
-      const actuals = await fetchAll(actualQ)
-
-      // Build per-complex comparison
-      const complexMap: Record<string, {
-        complexNo: string | null; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number
+      // Group listings by complex + 평형대 (20평대, 30평대, 40평대, 50평대, 60평대+)
+      function getBand(supplyPy: number): number {
+        if (supplyPy < 30) return 20
+        if (supplyPy < 40) return 30
+        if (supplyPy < 50) return 40
+        if (supplyPy < 60) return 50
+        return 60
+      }
+      type RowKey = string
+      const rowMap: Record<RowKey, {
+        complexName: string; complexNo: string | null; areaBand: number
+        listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number
         actualAvgPpp: number | null; actualCount: number; gap: number | null
       }> = {}
 
-      for (const l of filteredListings) {
-        const pyeong = getListingPyeong(l)
-        if (pyeong <= 0) continue
-        const ppp = Number(l.price) / pyeong
-        if (!complexMap[l.complex_name]) complexMap[l.complex_name] = { complexNo: l.complex_no || null, listingMinPpp: null, listingMaxPpp: null, listingCount: 0, actualAvgPpp: null, actualCount: 0, gap: null }
-        complexMap[l.complex_name].listingCount += 1
-        if (!complexMap[l.complex_name].listingMinPpp || ppp < complexMap[l.complex_name].listingMinPpp!) {
-          complexMap[l.complex_name].listingMinPpp = Math.round(ppp)
-        }
-        if (!complexMap[l.complex_name].listingMaxPpp || ppp > complexMap[l.complex_name].listingMaxPpp!) {
-          complexMap[l.complex_name].listingMaxPpp = Math.round(ppp)
-        }
+      for (const l of listings || []) {
+        const supply = Number(l.area_supply_sqm)
+        if (supply <= 0) continue
+        const py = supply / 3.3058
+        if (py < 20) continue // skip very small units
+        // Apply area filter
+        if (areaRange === '20' && (py < 20 || py >= 30)) continue
+        if (areaRange === '30' && (py < 30 || py >= 40)) continue
+        if (areaRange === '40' && (py < 40 || py >= 50)) continue
+        if (areaRange === '50' && (py < 50 || py >= 60)) continue
+        if (areaRange === '60+' && py < 60) continue
+
+        const ppp = Number(l.price) / py
+        if (ppp <= 0) continue
+        const band = getBand(py)
+        const key = `${l.complex_name}|${band}`
+        if (!rowMap[key]) rowMap[key] = { complexName: l.complex_name, complexNo: l.complex_no || null, areaBand: band, listingMinPpp: null, listingMaxPpp: null, listingCount: 0, actualAvgPpp: null, actualCount: 0, gap: null }
+        const r = rowMap[key]
+        r.listingCount += 1
+        if (!r.listingMinPpp || ppp < r.listingMinPpp) r.listingMinPpp = Math.round(ppp)
+        if (!r.listingMaxPpp || ppp > r.listingMaxPpp) r.listingMaxPpp = Math.round(ppp)
       }
 
-      // Only process actuals for complexes that have listings
-      for (const a of actuals || []) {
-        if (!listingComplexNames.includes(a.complex_name) && !complexMap[a.complex_name]) continue
-        const pyeong = Number(a.area_pyeong)
-        if (pyeong <= 0) continue
+      // Fetch actual prices (1-month window) and match to 평형대
+      const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10)
+      const allActuals = await fetchAll(
+        tradeType === '매매'
+          ? supabase.from('re_trades').select('complex_name, deal_amount, area_sqm').gte('deal_date', oneMonthAgo).eq('cancel_yn', 'N').in('complex_name', complexNames)
+          : supabase.from('re_rentals').select('complex_name, deposit, area_sqm').gte('deal_date', oneMonthAgo).eq('rent_type', '전세').in('complex_name', complexNames)
+      )
+
+      for (const a of allActuals || []) {
+        const sqm = Number(a.area_sqm)
+        if (sqm <= 0) continue
+        // Convert exclusive area → supply area → pyeong → band
+        const supplyPy = getSupplyPyeong(areaMapping, a.complex_name, sqm)
+        if (supplyPy < 20) continue
+        const band = getBand(supplyPy)
+        const key = `${a.complex_name}|${band}`
+        const r = rowMap[key]
+        if (!r) continue
         const price = tradeType === '매매' ? Number(a.deal_amount) : Number(a.deposit)
-        const ppp = price / pyeong
-        if (!complexMap[a.complex_name]) complexMap[a.complex_name] = { complexNo: null, listingMinPpp: null, listingMaxPpp: null, listingCount: 0, actualAvgPpp: null, actualCount: 0, gap: null }
-        const c = complexMap[a.complex_name]
-        c.actualAvgPpp = c.actualAvgPpp ? (c.actualAvgPpp * c.actualCount + ppp) / (c.actualCount + 1) : ppp
-        c.actualCount += 1
+        const ppp = price / supplyPy
+        r.actualAvgPpp = r.actualAvgPpp ? (r.actualAvgPpp * r.actualCount + ppp) / (r.actualCount + 1) : ppp
+        r.actualCount += 1
       }
 
-      for (const name of Object.keys(complexMap)) {
-        const c = complexMap[name]
-        if (c.listingMinPpp && c.actualAvgPpp && c.actualAvgPpp > 0) {
-          c.gap = Math.round(((c.listingMinPpp - c.actualAvgPpp) / c.actualAvgPpp) * 1000) / 10
+      // Calculate gaps
+      for (const r of Object.values(rowMap)) {
+        if (r.listingMinPpp && r.actualAvgPpp && r.actualAvgPpp > 0) {
+          r.gap = Math.round(((r.listingMinPpp - r.actualAvgPpp) / r.actualAvgPpp) * 1000) / 10
         }
-        if (c.actualAvgPpp) c.actualAvgPpp = Math.round(c.actualAvgPpp)
+        if (r.actualAvgPpp) r.actualAvgPpp = Math.round(r.actualAvgPpp)
       }
 
-      const rows = Object.entries(complexMap)
-        .filter(([, v]) => v.actualCount > 0 && v.listingCount > 0)
-        .map(([name, v]) => ({ complexName: name, ...v }))
-        .sort((a, b) => (b.gap ?? 0) - (a.gap ?? 0))
+      const rows = Object.values(rowMap)
+        .filter(r => r.listingCount > 0)
+        .sort((a, b) => a.complexName.localeCompare(b.complexName, 'ko') || a.areaBand - b.areaBand)
 
       return NextResponse.json({ listings: rows, tradeType })
     }
