@@ -1063,8 +1063,8 @@ export default function WillowManagementPage() {
   const [reSummary, setReSummary] = useState<{ trackedComplexes: number; districtCount: number; avgTradePpp: number; avgJeonsePpp: number; tradeListingGap: number; jeonseListingGap: number } | null>(null)
   const [reTrades, setReTrades] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
   const [reRentals, setReRentals] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
-  const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
-  const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
+  const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; complexNo: string | null; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
+  const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; complexNo: string | null; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reJeonseRatio, setReJeonseRatio] = useState<{ month: string; ratio: number | null }[]>([])
   const [reTradeListPage, setReTradeListPage] = useState(0)
   const [reJeonseListPage, setReJeonseListPage] = useState(0)
@@ -5964,7 +5964,7 @@ export default function WillowManagementPage() {
                           <tbody>
                             {paged.map(r => (
                               <tr key={r.complexName} className="border-t border-slate-50 dark:border-slate-600">
-                                <td className="py-1 font-medium truncate max-w-[120px]">{r.complexName}</td>
+                                <td className="py-1 font-medium truncate max-w-[120px]">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=a1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
@@ -6065,7 +6065,7 @@ export default function WillowManagementPage() {
                           <tbody>
                             {paged.map(r => (
                               <tr key={r.complexName} className="border-t border-slate-50 dark:border-slate-600">
-                                <td className="py-1 font-medium truncate max-w-[120px]">{r.complexName}</td>
+                                <td className="py-1 font-medium truncate max-w-[120px]">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=b1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
