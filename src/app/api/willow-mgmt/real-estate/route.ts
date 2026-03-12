@@ -159,11 +159,24 @@ export async function GET(request: Request) {
         }
       }
 
+      // Average trade/jeonse price per pyeong
+      let tradePppSum = 0, tradePppCount = 0
+      for (const t of recentTrades || []) {
+        const py = Number(t.area_pyeong)
+        if (py > 0) { tradePppSum += Number(t.deal_amount) / py; tradePppCount++ }
+      }
+      let jeonsePppSum = 0, jeonsePppCount = 0
+      for (const r of recentRentals || []) {
+        const py = Number(r.area_pyeong)
+        if (py > 0) { jeonsePppSum += Number(r.deposit) / py; jeonsePppCount++ }
+      }
+
       return NextResponse.json({
         summary: {
           trackedComplexes: complexCount,
           districtCount: districtSet.size,
-          avgJeonseRatio: Math.round(avgJeonseRatio * 10) / 10,
+          avgTradePpp: tradePppCount > 0 ? Math.round(tradePppSum / tradePppCount) : 0,
+          avgJeonsePpp: jeonsePppCount > 0 ? Math.round(jeonsePppSum / jeonsePppCount) : 0,
           tradeListingGap: tradeGaps.length ? Math.round(tradeGaps.reduce((s, v) => s + v, 0) / tradeGaps.length * 10) / 10 : 0,
           jeonseListingGap: jeonseGaps.length ? Math.round(jeonseGaps.reduce((s, v) => s + v, 0) / jeonseGaps.length * 10) / 10 : 0,
         }
@@ -259,7 +272,8 @@ export async function GET(request: Request) {
 
       // Fetch listings
       let listingsQ = supabase.from('re_naver_listings').select('*').eq('trade_type', tradeType)
-      if (districts.length > 0) listingsQ = listingsQ.in('district_name', districts)
+      if (complexNames) listingsQ = listingsQ.in('complex_name', complexNames)
+      else if (districts.length > 0) listingsQ = listingsQ.in('district_name', districts)
       const { data: listings } = await listingsQ
 
       // Filter listings by area range

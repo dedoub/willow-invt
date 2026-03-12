@@ -1058,9 +1058,9 @@ export default function WillowManagementPage() {
   const [researchFormNotes, setResearchFormNotes] = useState('')
 
   // Real estate states
-  const [researchSubTab, setResearchSubTab] = useState<'stock' | 'realestate'>('stock')
+  const [researchSubTab, setResearchSubTab] = useState<'stock' | 'realestate'>('realestate')
   const [reComplexes, setReComplexes] = useState<{ id: string; name: string; district_name: string; dong_name: string | null; total_units: number | null; build_year: number | null; is_tracked: boolean }[]>([])
-  const [reSummary, setReSummary] = useState<{ trackedComplexes: number; districtCount: number; avgJeonseRatio: number; tradeListingGap: number; jeonseListingGap: number } | null>(null)
+  const [reSummary, setReSummary] = useState<{ trackedComplexes: number; districtCount: number; avgTradePpp: number; avgJeonsePpp: number; tradeListingGap: number; jeonseListingGap: number } | null>(null)
   const [reTrades, setReTrades] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
   const [reRentals, setReRentals] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
   const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
@@ -5785,7 +5785,7 @@ export default function WillowManagementPage() {
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-slate-400 mr-0.5">단지</span>
                     {reComplexFilter.length === 0 ? (
-                      <span className="text-[10px] text-slate-300">전체 ({reComplexes.length}개)</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">전체 ({reComplexes.length}개)</span>
                     ) : (
                       reComplexFilter.map(id => {
                         const c = reComplexes.find(x => x.id === id)
@@ -5847,20 +5847,24 @@ export default function WillowManagementPage() {
                   <>
                     {/* Summary Cards */}
                     {reSummary && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
                           <div className="text-[10px] text-muted-foreground">추적 단지</div>
                           <div className="text-sm font-bold">{reSummary.trackedComplexes}개 <span className="text-[10px] text-slate-400 font-normal">({reSummary.districtCount}개구)</span></div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[10px] text-muted-foreground">평균 전세가율</div>
-                          <div className="text-sm font-bold">{reSummary.avgJeonseRatio}%</div>
+                          <div className="text-[10px] text-muted-foreground">평균 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                          <div className="text-sm font-bold">{reSummary.avgTradePpp?.toLocaleString() || '-'}</div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
                           <div className="text-[10px] text-muted-foreground">매도호가 괴리율</div>
                           <div className={cn('text-sm font-bold', reSummary.tradeListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
                             {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap}%
                           </div>
+                        </div>
+                        <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                          <div className="text-[10px] text-muted-foreground">평균 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                          <div className="text-sm font-bold">{reSummary.avgJeonsePpp?.toLocaleString() || '-'}</div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
                           <div className="text-[10px] text-muted-foreground">전세호가 괴리율</div>
@@ -5935,31 +5939,32 @@ export default function WillowManagementPage() {
                     {reListingsTrade.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                         <div className="text-xs font-medium mb-2">매도 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1">
-                          <span className="w-24">단지</span>
-                          <span className="w-16 text-right">실거래</span>
-                          <span className="w-3" />
-                          <span className="w-28 text-right">호가(최저~최고)</span>
-                          <span className="w-14 text-right">괴리율</span>
-                          <span className="w-8 text-right">매물</span>
-                        </div>
-                        <div className="space-y-1">
-                          {reListingsTrade.slice(0, 15).map(r => (
-                            <div key={r.complexName} className="flex items-center gap-2 text-xs">
-                              <span className="w-24 truncate font-medium">{r.complexName}</span>
-                              <span className="w-16 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp).toLocaleString()}` : '-'}</span>
-                              <span className="text-[10px] text-slate-400">→</span>
-                              <span className="w-28 text-right">
-                                {r.listingMinPpp ? `${Math.round(r.listingMinPpp).toLocaleString()}` : '-'}
-                                {r.listingMaxPpp && r.listingMaxPpp !== r.listingMinPpp ? <span className="text-slate-400">~{Math.round(r.listingMaxPpp).toLocaleString()}</span> : ''}
-                              </span>
-                              <span className={cn('w-14 text-right text-[10px] font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                                {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
-                              </span>
-                              <span className="w-8 text-right text-[10px] text-slate-400">{r.listingCount}건</span>
-                            </div>
-                          ))}
-                        </div>
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-[10px] text-slate-400">
+                              <th className="text-left font-normal pb-1">단지</th>
+                              <th className="text-right font-normal pb-1">실거래</th>
+                              <th className="text-right font-normal pb-1">호가(최저)</th>
+                              <th className="text-right font-normal pb-1">호가(최고)</th>
+                              <th className="text-right font-normal pb-1">괴리율</th>
+                              <th className="text-right font-normal pb-1">매물</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reListingsTrade.slice(0, 5).map(r => (
+                              <tr key={r.complexName} className="border-t border-slate-50 dark:border-slate-600">
+                                <td className="py-1 font-medium truncate max-w-[120px]">{r.complexName}</td>
+                                <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
+                                <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
+                                <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
+                                <td className={cn('py-1 text-right font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                                  {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
+                                </td>
+                                <td className="py-1 text-right text-muted-foreground">{r.listingCount}건</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
 
@@ -5998,31 +6003,32 @@ export default function WillowManagementPage() {
                     {reListingsJeonse.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                         <div className="text-xs font-medium mb-2">전세 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1 px-0">
-                          <span className="w-24">단지</span>
-                          <span className="w-16 text-right">실거래</span>
-                          <span className="w-3" />
-                          <span className="w-28 text-right">호가(최저~최고)</span>
-                          <span className="w-14 text-right">괴리율</span>
-                          <span className="w-8 text-right">매물</span>
-                        </div>
-                        <div className="space-y-1">
-                          {reListingsJeonse.slice(0, 15).map(r => (
-                            <div key={r.complexName} className="flex items-center gap-2 text-xs">
-                              <span className="w-24 truncate font-medium">{r.complexName}</span>
-                              <span className="w-16 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp).toLocaleString()}` : '-'}</span>
-                              <span className="text-[10px] text-slate-400">→</span>
-                              <span className="w-28 text-right">
-                                {r.listingMinPpp ? `${Math.round(r.listingMinPpp).toLocaleString()}` : '-'}
-                                {r.listingMaxPpp && r.listingMaxPpp !== r.listingMinPpp ? <span className="text-slate-400">~{Math.round(r.listingMaxPpp).toLocaleString()}</span> : ''}
-                              </span>
-                              <span className={cn('w-14 text-right text-[10px] font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                                {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
-                              </span>
-                              <span className="w-8 text-right text-[10px] text-slate-400">{r.listingCount}건</span>
-                            </div>
-                          ))}
-                        </div>
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-[10px] text-slate-400">
+                              <th className="text-left font-normal pb-1">단지</th>
+                              <th className="text-right font-normal pb-1">실거래</th>
+                              <th className="text-right font-normal pb-1">호가(최저)</th>
+                              <th className="text-right font-normal pb-1">호가(최고)</th>
+                              <th className="text-right font-normal pb-1">괴리율</th>
+                              <th className="text-right font-normal pb-1">매물</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reListingsJeonse.slice(0, 5).map(r => (
+                              <tr key={r.complexName} className="border-t border-slate-50 dark:border-slate-600">
+                                <td className="py-1 font-medium truncate max-w-[120px]">{r.complexName}</td>
+                                <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
+                                <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
+                                <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
+                                <td className={cn('py-1 text-right font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                                  {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
+                                </td>
+                                <td className="py-1 text-right text-muted-foreground">{r.listingCount}건</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
 
