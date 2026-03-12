@@ -2291,6 +2291,22 @@ export default function WillowManagementPage() {
     return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount)
   }
 
+  // 각 시장의 로컬 시간 기준으로 "오늘"/"어제" 판단
+  // Yahoo Finance가 반환하는 일간 변동은 해당 시장의 마지막 거래일 기준
+  // 한국 낮에 미국 주식의 마지막 거래일은 "어제"(미국 시간 전날)
+  const getDailyLabel = (market: 'KR' | 'US' | 'mixed') => {
+    if (market === 'KR') return '오늘'
+    if (market === 'US') {
+      const now = new Date()
+      const etDate = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+      const kstDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+      // ET 날짜 < KST 날짜 → 미국은 아직 전날 = "어제"
+      if (etDate < kstDate) return '어제'
+      return '오늘'
+    }
+    return '오늘'
+  }
+
   const handleSaveTrade = async () => {
     if (!tradeFormTicker.trim() || !tradeFormCompanyName.trim() || !tradeFormDate) {
       alert('종목코드, 종목명, 거래일을 입력해주세요.')
@@ -4454,7 +4470,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           krDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          오늘 {krDailyPct > 0 ? '+' : ''}{krDailyPct.toFixed(1)}%
+                                          {getDailyLabel('KR')} {krDailyPct > 0 ? '+' : ''}{krDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4474,7 +4490,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           usDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          오늘 {usDailyPct > 0 ? '+' : ''}{usDailyPct.toFixed(1)}%
+                                          {getDailyLabel('US')} {usDailyPct > 0 ? '+' : ''}{usDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4492,7 +4508,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           totalDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          오늘 {totalDailyPct > 0 ? '+' : ''}{totalDailyPct.toFixed(1)}%
+                                          {getDailyLabel('mixed')} {totalDailyPct > 0 ? '+' : ''}{totalDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4600,7 +4616,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           groupDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          오늘 {groupDailyPct > 0 ? '+' : ''}{groupDailyPct.toFixed(1)}%
+                                          {getDailyLabel(items.every(i => i.market === 'KR') ? 'KR' : items.every(i => i.market === 'US') ? 'US' : 'mixed')} {groupDailyPct > 0 ? '+' : ''}{groupDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4636,7 +4652,7 @@ export default function WillowManagementPage() {
                                             'text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ml-1',
                                             h.dailyChangePercent > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                           )}>
-                                            오늘 {h.dailyChangePercent > 0 ? '+' : ''}{h.dailyChangePercent.toFixed(1)}%
+                                            {getDailyLabel(h.market === 'US' ? 'US' : 'KR')} {h.dailyChangePercent > 0 ? '+' : ''}{h.dailyChangePercent.toFixed(1)}%
                                           </span>
                                         )}
                                       </div>
