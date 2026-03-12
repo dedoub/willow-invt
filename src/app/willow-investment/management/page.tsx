@@ -1066,6 +1066,9 @@ export default function WillowManagementPage() {
   const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reJeonseRatio, setReJeonseRatio] = useState<{ month: string; ratio: number | null }[]>([])
+  const [reTradeListPage, setReTradeListPage] = useState(0)
+  const [reJeonseListPage, setReJeonseListPage] = useState(0)
+  const RE_LIST_PAGE_SIZE = 5
   const [isLoadingRe, setIsLoadingRe] = useState(false)
   const [reDistrictFilter, setReDistrictFilter] = useState<string[]>(['강남구', '서초구', '송파구'])
   const [reComplexFilter, setReComplexFilter] = useState<string[]>([])
@@ -4961,7 +4964,7 @@ export default function WillowManagementPage() {
                                   <div key={suffix}>
                                     <div className="text-[10px] text-slate-400 mb-1">{label}</div>
                                     <ResponsiveContainer width="100%" height={160}>
-                                      <LineChart data={sampled} margin={{ top: 12, right: 45, bottom: 5, left: 0 }}
+                                      <LineChart data={sampled} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}
                                         onMouseMove={() => { if (!trendTooltipActive) setTrendTooltipActive(true) }}
                                         onMouseLeave={() => setTrendTooltipActive(false)}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -5859,7 +5862,7 @@ export default function WillowManagementPage() {
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
                           <div className="text-[10px] text-muted-foreground">매도호가 괴리율</div>
                           <div className={cn('text-sm font-bold', reSummary.tradeListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                            {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap}%
+                            {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap.toFixed(1)}%
                           </div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
@@ -5869,7 +5872,7 @@ export default function WillowManagementPage() {
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
                           <div className="text-[10px] text-muted-foreground">전세호가 괴리율</div>
                           <div className={cn('text-sm font-bold', reSummary.jeonseListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                            {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap}%
+                            {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap.toFixed(1)}%
                           </div>
                         </div>
                       </div>
@@ -5881,29 +5884,25 @@ export default function WillowManagementPage() {
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-medium">매매 실거래가 추이 <span className="text-[10px] text-slate-400 font-normal">(평당가, 만원)</span></span>
                           {reTrades.complexes.length > 0 && (() => {
-                            // 최근 3개월 변동률
+                            // 전월 대비 변동률
                             const months = reTrades.months
-                            if (months.length < 4) return null
-                            const recentMonths = months.slice(-3)
-                            const prevMonth = months[months.length - 4]
-                            let prevTotal = 0, prevCount = 0, recentTotal = 0, recentCount = 0
+                            if (months.length < 2) return null
+                            const curMonth = months[months.length - 1]
+                            const prevMonth = months[months.length - 2]
+                            let prevTotal = 0, prevCount = 0, curTotal = 0, curCount = 0
                             for (const c of reTrades.complexes) {
                               const prevD = c.data.find(d => d.month === prevMonth)
                               if (prevD?.avgPpp) { prevTotal += prevD.avgPpp; prevCount++ }
-                              for (const m of recentMonths) {
-                                const d = c.data.find(dd => dd.month === m)
-                                if (d?.avgPpp) { recentTotal += d.avgPpp; recentCount++ }
-                              }
+                              const curD = c.data.find(d => d.month === curMonth)
+                              if (curD?.avgPpp) { curTotal += curD.avgPpp; curCount++ }
                             }
-                            if (prevCount === 0 || recentCount === 0) return null
-                            const prevAvg = prevTotal / prevCount
-                            const recentAvg = recentTotal / recentCount
-                            const changePct = ((recentAvg - prevAvg) / prevAvg) * 100
+                            if (prevCount === 0 || curCount === 0) return null
+                            const changePct = ((curTotal / curCount - prevTotal / prevCount) / (prevTotal / prevCount)) * 100
                             return (
                               <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded',
                                 changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                               )}>
-                                3개월 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
+                                1개월 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
                               </span>
                             )
                           })()}
@@ -5919,7 +5918,7 @@ export default function WillowManagementPage() {
                             }
                             entry._count = totalCount
                             return entry
-                          })} margin={{ top: 12, right: 45, bottom: 5, left: 0 }}>
+                          })} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
                             <YAxis yAxisId="price" tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
@@ -5936,9 +5935,21 @@ export default function WillowManagementPage() {
                     )}
 
                     {/* Section 2: 매도 호가 vs 실거래가 */}
-                    {reListingsTrade.length > 0 && (
+                    {reListingsTrade.length > 0 && (() => {
+                      const totalPages = Math.ceil(reListingsTrade.length / RE_LIST_PAGE_SIZE)
+                      const paged = reListingsTrade.slice(reTradeListPage * RE_LIST_PAGE_SIZE, (reTradeListPage + 1) * RE_LIST_PAGE_SIZE)
+                      return (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
-                        <div className="text-xs font-medium mb-2">매도 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium">매도 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></span>
+                          {totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => setReTradeListPage(p => Math.max(0, p - 1))} disabled={reTradeListPage === 0} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button>
+                              <span className="text-[10px] text-slate-400">{reTradeListPage + 1}/{totalPages}</span>
+                              <button onClick={() => setReTradeListPage(p => Math.min(totalPages - 1, p + 1))} disabled={reTradeListPage >= totalPages - 1} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronRight className="h-3.5 w-3.5" /></button>
+                            </div>
+                          )}
+                        </div>
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="text-[10px] text-slate-400">
@@ -5951,14 +5962,14 @@ export default function WillowManagementPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {reListingsTrade.slice(0, 5).map(r => (
+                            {paged.map(r => (
                               <tr key={r.complexName} className="border-t border-slate-50 dark:border-slate-600">
                                 <td className="py-1 font-medium truncate max-w-[120px]">{r.complexName}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
                                 <td className={cn('py-1 text-right font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                                  {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
+                                  {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
                                 </td>
                                 <td className="py-1 text-right text-muted-foreground">{r.listingCount}건</td>
                               </tr>
@@ -5966,12 +5977,37 @@ export default function WillowManagementPage() {
                           </tbody>
                         </table>
                       </div>
-                    )}
+                      )
+                    })()}
 
                     {/* Section 3: 전세 실거래가 추이 */}
                     {reRentals && reRentals.months.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
-                        <div className="text-xs font-medium mb-2">전세 실거래가 추이 <span className="text-[10px] text-slate-400 font-normal">(평당 보증금, 만원)</span></div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium">전세 실거래가 추이 <span className="text-[10px] text-slate-400 font-normal">(평당 보증금, 만원)</span></span>
+                          {reRentals.complexes.length > 0 && (() => {
+                            const months = reRentals.months
+                            if (months.length < 2) return null
+                            const curMonth = months[months.length - 1]
+                            const prevMonth = months[months.length - 2]
+                            let prevTotal = 0, prevCount = 0, curTotal = 0, curCount = 0
+                            for (const c of reRentals.complexes) {
+                              const prevD = c.data.find(d => d.month === prevMonth)
+                              if (prevD?.avgPpp) { prevTotal += prevD.avgPpp; prevCount++ }
+                              const curD = c.data.find(d => d.month === curMonth)
+                              if (curD?.avgPpp) { curTotal += curD.avgPpp; curCount++ }
+                            }
+                            if (prevCount === 0 || curCount === 0) return null
+                            const changePct = ((curTotal / curCount - prevTotal / prevCount) / (prevTotal / prevCount)) * 100
+                            return (
+                              <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                              )}>
+                                1개월 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
+                              </span>
+                            )
+                          })()}
+                        </div>
                         <ResponsiveContainer width="100%" height={220}>
                           <ComposedChart data={reRentals.months.map(m => {
                             const entry: Record<string, string | number | null> = { month: m }
@@ -5983,7 +6019,7 @@ export default function WillowManagementPage() {
                             }
                             entry._count = totalCount
                             return entry
-                          })} margin={{ top: 12, right: 45, bottom: 5, left: 0 }}>
+                          })} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
                             <YAxis yAxisId="price" tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
@@ -6000,9 +6036,21 @@ export default function WillowManagementPage() {
                     )}
 
                     {/* Section 4: 전세 호가 vs 실거래가 */}
-                    {reListingsJeonse.length > 0 && (
+                    {reListingsJeonse.length > 0 && (() => {
+                      const totalPages = Math.ceil(reListingsJeonse.length / RE_LIST_PAGE_SIZE)
+                      const paged = reListingsJeonse.slice(reJeonseListPage * RE_LIST_PAGE_SIZE, (reJeonseListPage + 1) * RE_LIST_PAGE_SIZE)
+                      return (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
-                        <div className="text-xs font-medium mb-2">전세 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium">전세 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></span>
+                          {totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => setReJeonseListPage(p => Math.max(0, p - 1))} disabled={reJeonseListPage === 0} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button>
+                              <span className="text-[10px] text-slate-400">{reJeonseListPage + 1}/{totalPages}</span>
+                              <button onClick={() => setReJeonseListPage(p => Math.min(totalPages - 1, p + 1))} disabled={reJeonseListPage >= totalPages - 1} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronRight className="h-3.5 w-3.5" /></button>
+                            </div>
+                          )}
+                        </div>
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="text-[10px] text-slate-400">
@@ -6015,14 +6063,14 @@ export default function WillowManagementPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {reListingsJeonse.slice(0, 5).map(r => (
+                            {paged.map(r => (
                               <tr key={r.complexName} className="border-t border-slate-50 dark:border-slate-600">
                                 <td className="py-1 font-medium truncate max-w-[120px]">{r.complexName}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
                                 <td className={cn('py-1 text-right font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                                  {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
+                                  {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
                                 </td>
                                 <td className="py-1 text-right text-muted-foreground">{r.listingCount}건</td>
                               </tr>
@@ -6030,7 +6078,8 @@ export default function WillowManagementPage() {
                           </tbody>
                         </table>
                       </div>
-                    )}
+                      )
+                    })()}
 
                     {/* Section 5: 전세가율 추이 */}
                     {reJeonseRatio.length > 0 && (

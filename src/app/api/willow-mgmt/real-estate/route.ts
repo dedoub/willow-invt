@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 
-// District name → code mapping
-const DISTRICT_CODES: Record<string, string> = {
-  '강남구': '11680', '서초구': '11650', '송파구': '11710',
-}
-
 // Paginated fetch to bypass Supabase max_rows (default 1000)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchAll(query: any, pageSize = 1000): Promise<any[]> {
@@ -19,6 +14,16 @@ async function fetchAll(query: any, pageSize = 1000): Promise<any[]> {
     from += pageSize
   }
   return all
+}
+
+// Extract pyeong from listing: prefer exclusive_sqm, fallback to area_type (supply ㎡ × 0.78)
+function getListingPyeong(l: { area_exclusive_sqm?: any; area_type?: any }): number {
+  const exclusive = Number(l.area_exclusive_sqm)
+  if (exclusive > 0) return exclusive / 3.3058
+  // area_type contains supply area ㎡ (e.g. "115", "84")
+  const supply = parseFloat(l.area_type || '0')
+  if (supply > 0) return (supply * 0.78) / 3.3058
+  return 0
 }
 
 // GET - Real estate data queries
@@ -38,22 +43,25 @@ export async function GET(request: Request) {
     ? '2020-01-01'
     : new Date(now.getFullYear(), now.getMonth() - parseInt(period) + 1, 1).toISOString().slice(0, 10)
 
-  // District codes for filtering
-  const districtCodes = districts.length > 0
-    ? districts.map(d => DISTRICT_CODES[d]).filter(Boolean)
-    : Object.values(DISTRICT_CODES)
+  // Resolve tracked complex names: always filter by tracked complexes only
+  // If user selected specific complexes → use those (subset of tracked)
+  // Otherwise → use all tracked complexes (filtered by district if applicable)
+  let trackedQuery = supabase.from('re_complexes').select('name, district_name').eq('is_tracked', true)
+  if (districts.length > 0) trackedQuery = trackedQuery.in('district_name', districts)
+  const { data: trackedData } = await trackedQuery
+  const allTrackedNames = trackedData?.map(c => c.name) || []
 
-  // Resolve complex IDs → names (only when specific complexes selected)
-  let complexNames: string[] | null = null
+  let complexNames: string[]
   if (complexIds.length > 0) {
     const { data } = await supabase.from('re_complexes').select('name').in('id', complexIds)
     complexNames = data?.map(c => c.name) || []
+  } else {
+    complexNames = allTrackedNames
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyFilters = (query: any, table: 'trades' | 'rentals') => {
-    query = query.in('district_code', districtCodes)
-    if (complexNames) query = query.in('complex_name', complexNames)
+    query = query.in('complex_name', complexNames)
     if (areaRange === '20') query = query.gte('area_pyeong', 20).lt('area_pyeong', 30)
     else if (areaRange === '30') query = query.gte('area_pyeong', 30).lt('area_pyeong', 40)
     else if (areaRange === '40+') query = query.gte('area_pyeong', 40)
@@ -75,14 +83,12 @@ export async function GET(request: Request) {
     }
 
     if (type === 'summary') {
-      const { data: complexes } = await supabase
-        .from('re_complexes').select('id, district_name').eq('is_tracked', true)
-      const complexCount = complexes?.length || 0
-      const districtSet = new Set(complexes?.map(c => c.district_name))
+      const complexCount = allTrackedNames.length
+      const districtSet = new Set(trackedData?.map(c => c.district_name))
 
       const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().slice(0, 10)
 
-      // Fetch trades & rentals with district_code filter (not 552 names)
+      // Fetch trades & rentals for tracked complexes only
       const recentTrades = await fetchAll(applyFilters(
         supabase.from('re_trades').select('complex_name, deal_amount, area_pyeong').gte('deal_date', threeMonthsAgo),
         'trades'
@@ -93,43 +99,16 @@ export async function GET(request: Request) {
         'rentals'
       ))
 
-      // Jeonse ratio
-      const tradePrices: Record<string, number[]> = {}
-      for (const t of recentTrades || []) {
-        if (!tradePrices[t.complex_name]) tradePrices[t.complex_name] = []
-        tradePrices[t.complex_name].push(Number(t.deal_amount))
-      }
-      const rentalPrices: Record<string, number[]> = {}
-      for (const r of recentRentals || []) {
-        if (!rentalPrices[r.complex_name]) rentalPrices[r.complex_name] = []
-        rentalPrices[r.complex_name].push(Number(r.deposit))
-      }
-
-      const median = (arr: number[]) => {
-        const sorted = [...arr].sort((a, b) => a - b)
-        const mid = Math.floor(sorted.length / 2)
-        return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
-      }
-
-      const jeonseRatios: number[] = []
-      for (const name of Object.keys(tradePrices)) {
-        if (rentalPrices[name]?.length) {
-          const medTrade = median(tradePrices[name])
-          const medRental = median(rentalPrices[name])
-          if (medTrade > 0) jeonseRatios.push((medRental / medTrade) * 100)
-        }
-      }
-      const avgJeonseRatio = jeonseRatios.length > 0
-        ? jeonseRatios.reduce((s, v) => s + v, 0) / jeonseRatios.length : 0
-
-      // Listing gaps
-      let listingsQ = supabase.from('re_naver_listings').select('complex_name, trade_type, price, area_exclusive_sqm')
-      if (districts.length > 0) listingsQ = listingsQ.in('district_name', districts)
-      const { data: listings } = await listingsQ
+      // Listing gaps (tracked complexes only) — use fetchAll to bypass 1000 row limit
+      const listings = await fetchAll(
+        supabase.from('re_naver_listings')
+          .select('complex_name, trade_type, price, area_exclusive_sqm, area_type')
+          .in('complex_name', complexNames)
+      )
 
       const listingMap: Record<string, { trade: number[]; jeonse: number[] }> = {}
-      for (const l of listings || []) {
-        const pyeong = Number(l.area_exclusive_sqm) / 3.3058
+      for (const l of listings) {
+        const pyeong = getListingPyeong(l)
         if (pyeong <= 0) continue
         const ppp = Number(l.price) / pyeong
         if (!listingMap[l.complex_name]) listingMap[l.complex_name] = { trade: [], jeonse: [] }
@@ -189,8 +168,8 @@ export async function GET(request: Request) {
         'trades'
       ))
 
-      // Aggregate by month. If no specific complexes selected, aggregate by district average
-      const useDistrict = !complexNames
+      // Aggregate by month. If no specific complexes selected, aggregate as "전체" average
+      const useAggregate = complexIds.length === 0
       const monthly: Record<string, Record<string, { sum: number; count: number }>> = {}
       // Track per-complex total count for top N selection
       const complexTotals: Record<string, number> = {}
@@ -200,8 +179,7 @@ export async function GET(request: Request) {
         const ppp = Number(t.price_per_pyeong) || (Number(t.area_pyeong) > 0 ? Number(t.deal_amount) / Number(t.area_pyeong) : 0)
         if (ppp <= 0) continue
 
-        if (useDistrict) {
-          // Aggregate as "전체" average
+        if (useAggregate) {
           const key = '전체'
           if (!monthly[month]) monthly[month] = {}
           if (!monthly[month][key]) monthly[month][key] = { sum: 0, count: 0 }
@@ -217,7 +195,7 @@ export async function GET(request: Request) {
       }
 
       const months = Object.keys(monthly).sort()
-      const keys: string[] = useDistrict
+      const keys: string[] = useAggregate
         ? ['전체']
         : ([...new Set((data || []).map((t: any) => t.complex_name))] as string[]).sort()
       const complexData = keys.map(name => ({
@@ -238,7 +216,7 @@ export async function GET(request: Request) {
         'rentals'
       ))
 
-      const useDistrict = !complexNames
+      const useAggregate = complexIds.length === 0
       const monthly: Record<string, Record<string, { sum: number; count: number }>> = {}
 
       for (const r of data || []) {
@@ -246,7 +224,7 @@ export async function GET(request: Request) {
         const pyeong = Number(r.area_pyeong)
         const ppp = pyeong > 0 ? Number(r.deposit) / pyeong : 0
         if (ppp <= 0) continue
-        const key = useDistrict ? '전체' : r.complex_name
+        const key = useAggregate ? '전체' : r.complex_name
         if (!monthly[month]) monthly[month] = {}
         if (!monthly[month][key]) monthly[month][key] = { sum: 0, count: 0 }
         monthly[month][key].sum += ppp
@@ -254,7 +232,7 @@ export async function GET(request: Request) {
       }
 
       const months = Object.keys(monthly).sort()
-      const keys: string[] = useDistrict ? ['전체'] : ([...new Set((data || []).map((r: any) => r.complex_name))] as string[]).sort()
+      const keys: string[] = useAggregate ? ['전체'] : ([...new Set((data || []).map((r: any) => r.complex_name))] as string[]).sort()
       const complexData = keys.map(name => ({
         name,
         data: months.map(m => ({
@@ -270,16 +248,17 @@ export async function GET(request: Request) {
     if (type === 'listings') {
       const tradeType = searchParams.get('tradeType') || '매매'
 
-      // Fetch listings
-      let listingsQ = supabase.from('re_naver_listings').select('*').eq('trade_type', tradeType)
-      if (complexNames) listingsQ = listingsQ.in('complex_name', complexNames)
-      else if (districts.length > 0) listingsQ = listingsQ.in('district_name', districts)
-      const { data: listings } = await listingsQ
+      // Fetch listings (tracked complexes only) — use fetchAll to bypass 1000 row limit
+      const listings = await fetchAll(
+        supabase.from('re_naver_listings')
+          .select('*').eq('trade_type', tradeType)
+          .in('complex_name', complexNames)
+      )
 
       // Filter listings by area range
       const filteredListings = areaRange
         ? (listings || []).filter(l => {
-            const py = Number(l.area_exclusive_sqm) / 3.3058
+            const py = getListingPyeong(l)
             if (areaRange === '20') return py >= 20 && py < 30
             if (areaRange === '30') return py >= 30 && py < 40
             if (areaRange === '40+') return py >= 40
@@ -290,11 +269,11 @@ export async function GET(request: Request) {
       // Get listing complex names, then fetch actuals only for those
       const listingComplexNames = [...new Set(filteredListings.map(l => l.complex_name))]
 
-      // Fetch actual prices using district_code (not 552 names)
+      // Fetch actual prices for tracked complexes
       const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().slice(0, 10)
       let actualQ = tradeType === '매매'
-        ? supabase.from('re_trades').select('complex_name, deal_amount, area_pyeong, price_per_pyeong').gte('deal_date', threeMonthsAgo).eq('cancel_yn', 'N').in('district_code', districtCodes)
-        : supabase.from('re_rentals').select('complex_name, deposit, area_pyeong').gte('deal_date', threeMonthsAgo).eq('rent_type', '전세').in('district_code', districtCodes)
+        ? supabase.from('re_trades').select('complex_name, deal_amount, area_pyeong, price_per_pyeong').gte('deal_date', threeMonthsAgo).eq('cancel_yn', 'N').in('complex_name', complexNames)
+        : supabase.from('re_rentals').select('complex_name, deposit, area_pyeong').gte('deal_date', threeMonthsAgo).eq('rent_type', '전세').in('complex_name', complexNames)
 
       if (areaRange === '20') actualQ = actualQ.gte('area_pyeong', 20).lt('area_pyeong', 30)
       else if (areaRange === '30') actualQ = actualQ.gte('area_pyeong', 30).lt('area_pyeong', 40)
@@ -309,7 +288,7 @@ export async function GET(request: Request) {
       }> = {}
 
       for (const l of filteredListings) {
-        const pyeong = Number(l.area_exclusive_sqm) / 3.3058
+        const pyeong = getListingPyeong(l)
         if (pyeong <= 0) continue
         const ppp = Number(l.price) / pyeong
         if (!complexMap[l.complex_name]) complexMap[l.complex_name] = { listingMinPpp: null, listingMaxPpp: null, listingCount: 0, actualAvgPpp: null, actualCount: 0, gap: null }
