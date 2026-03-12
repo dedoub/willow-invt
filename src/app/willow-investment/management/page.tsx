@@ -5039,14 +5039,12 @@ export default function WillowManagementPage() {
                                       const weightPct = aiTotalValue > 0 ? (d.value / aiTotalValue) * 100 : 0
                                       return (
                                         <div key={d.chain}>
-                                          <div className="flex items-center justify-between mb-1">
-                                            <div className="flex items-center gap-2">
-                                              <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium', aiChainBadge[d.chain])}>
-                                                {d.chain}
-                                              </span>
-                                              <span className="text-[10px] text-slate-400">{d.items.length}종목 · 비중 {weightPct.toFixed(0)}%</span>
-                                            </div>
-                                            <span className={cn('text-xs font-medium', d.pnl > 0 ? 'text-red-600 dark:text-red-400' : d.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
+                                            <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium', aiChainBadge[d.chain])}>
+                                              {d.chain}
+                                            </span>
+                                            <span className="text-[10px] text-slate-400">{d.items.length}종목 · 비중 {weightPct.toFixed(0)}%</span>
+                                            <span className={cn('text-[10px] font-medium ml-auto', d.pnl > 0 ? 'text-red-600 dark:text-red-400' : d.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
                                               {d.pnl > 0 ? '+' : ''}{formatAmount(d.pnl, 'KRW')} ({d.pnl > 0 ? '+' : ''}{d.pct.toFixed(1)}%)
                                             </span>
                                           </div>
