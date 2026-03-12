@@ -16,13 +16,13 @@ async function fetchAll(query: any, pageSize = 1000): Promise<any[]> {
   return all
 }
 
-// Extract pyeong from listing: prefer exclusive_sqm, fallback to area_type (supply ㎡ × 0.78)
-function getListingPyeong(l: { area_exclusive_sqm?: any; area_type?: any }): number {
-  const exclusive = Number(l.area_exclusive_sqm)
-  if (exclusive > 0) return exclusive / 3.3058
-  // area_type contains supply area ㎡ (e.g. "115", "84")
-  const supply = parseFloat(l.area_type || '0')
-  if (supply > 0) return (supply * 0.78) / 3.3058
+// Extract pyeong from listing: use supply area (area1 from Naver = area type number)
+function getListingPyeong(l: { area_supply_sqm?: any; area_type?: any }): number {
+  const supply = Number(l.area_supply_sqm)
+  if (supply > 0) return supply / 3.3058
+  // fallback: parse numeric part from area_type (e.g. "84A" → 84)
+  const typeNum = parseFloat(l.area_type || '0')
+  if (typeNum > 0) return typeNum / 3.3058
   return 0
 }
 
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
       // Listing gaps (tracked complexes only) — use fetchAll to bypass 1000 row limit
       const listings = await fetchAll(
         supabase.from('re_naver_listings')
-          .select('complex_name, trade_type, price, area_exclusive_sqm, area_type')
+          .select('complex_name, trade_type, price, area_supply_sqm, area_type')
           .in('complex_name', complexNames)
       )
 
