@@ -4557,7 +4557,16 @@ export default function WillowManagementPage() {
                                 return (
                                   <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2 mb-2">
                                     <div className="flex items-center justify-between mb-0.5">
-                                      <span />
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {(() => {
+                                          const kr = items.filter(i => i.market === 'KR').length
+                                          const us = items.filter(i => i.market === 'US').length
+                                          const parts = []
+                                          if (kr > 0) parts.push(`국내 ${kr}종목`)
+                                          if (us > 0) parts.push(`해외 ${us}종목`)
+                                          return parts.join(' · ')
+                                        })()}
+                                      </span>
                                       {groupDailyPct !== 0 && (
                                         <span className={cn(
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
