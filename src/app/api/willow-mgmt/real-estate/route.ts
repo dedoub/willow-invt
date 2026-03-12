@@ -18,9 +18,10 @@ export async function GET(request: Request) {
   const supabase = getServiceSupabase()
 
   const now = new Date()
+  // period=6 → show last 6 months: if today is 2026-03, show from 2025-10-01
   const cutoffDate = period === 'all'
     ? '2020-01-01'
-    : new Date(now.getFullYear(), now.getMonth() - parseInt(period), 1).toISOString().slice(0, 10)
+    : new Date(now.getFullYear(), now.getMonth() - parseInt(period) + 1, 1).toISOString().slice(0, 10)
 
   // District codes for filtering
   const districtCodes = districts.length > 0
