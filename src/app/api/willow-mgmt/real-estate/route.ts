@@ -80,10 +80,23 @@ export async function GET(request: Request) {
   const supabase = getServiceSupabase()
 
   const now = new Date()
-  // period=6 → show last 6 months: if today is 2026-03, show from 2025-10-01
+  const periodNum = period === 'all' ? 0 : parseInt(period)
+  // period=12 → show last 12 months including current: if today is 2026-03, show 2025-04 ~ 2026-03
   const cutoffDate = period === 'all'
     ? '2020-01-01'
-    : new Date(now.getFullYear(), now.getMonth() - parseInt(period) + 1, 1).toISOString().slice(0, 10)
+    : new Date(now.getFullYear(), now.getMonth() - periodNum + 1, 1).toISOString().slice(0, 10)
+
+  // Generate explicit month list for consistent chart x-axis
+  function generateMonths(): string[] {
+    if (period === 'all') return [] // derive from data
+    const months: string[] = []
+    for (let i = periodNum - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      months.push(d.toISOString().slice(0, 7))
+    }
+    return months
+  }
+  const expectedMonths = generateMonths()
 
   // Resolve tracked complex names: always filter by tracked complexes only
   // If user selected specific complexes → use those (subset of tracked)
@@ -283,7 +296,7 @@ export async function GET(request: Request) {
         complexTotals[t.complex_name] = (complexTotals[t.complex_name] || 0) + 1
       }
 
-      const months = Object.keys(monthly).sort()
+      const months = expectedMonths.length > 0 ? expectedMonths : Object.keys(monthly).sort()
       const keys: string[] = useAggregate
         ? ['전체']
         : ([...new Set((data || []).map((t: any) => t.complex_name))] as string[]).sort()
@@ -320,7 +333,7 @@ export async function GET(request: Request) {
         monthly[month][key].count += 1
       }
 
-      const months = Object.keys(monthly).sort()
+      const months = expectedMonths.length > 0 ? expectedMonths : Object.keys(monthly).sort()
       const keys: string[] = useAggregate ? ['전체'] : ([...new Set((data || []).map((r: any) => r.complex_name))] as string[]).sort()
       const complexData = keys.map(name => ({
         name,
@@ -472,12 +485,13 @@ export async function GET(request: Request) {
         }
       }
 
-      const trend = allMonths
-        .filter(m => monthlyRatios[m]?.length)
-        .map(m => ({
-          month: m,
-          ratio: Math.round((monthlyRatios[m].reduce((s, v) => s + v, 0) / monthlyRatios[m].length) * 10) / 10,
-        }))
+      const trendMonths = expectedMonths.length > 0 ? expectedMonths : allMonths
+      const trend = trendMonths.map(m => ({
+        month: m,
+        ratio: monthlyRatios[m]?.length
+          ? Math.round((monthlyRatios[m].reduce((s, v) => s + v, 0) / monthlyRatios[m].length) * 10) / 10
+          : null,
+      }))
 
       return NextResponse.json({ trend })
     }

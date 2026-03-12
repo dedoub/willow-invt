@@ -5907,7 +5907,7 @@ export default function WillowManagementPage() {
                               <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded',
                                 changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                               )}>
-                                1개월 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
+                                전월대비 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
                               </span>
                             )
                           })()}
@@ -6020,7 +6020,7 @@ export default function WillowManagementPage() {
                               <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded',
                                 changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                               )}>
-                                1개월 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
+                                전월대비 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
                               </span>
                             )
                           })()}
