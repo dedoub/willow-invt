@@ -4909,12 +4909,8 @@ export default function WillowManagementPage() {
                                           if (val == null) return null
                                           return (
                                             <ReferenceDot key={`last-${l.key}`} x={lastPoint.date as string} y={val}
-                                              r={3} fill={l.color} stroke="white" strokeWidth={1.5}>
-                                              <text x={0} y={0} dx={8} dy={4} fontSize={9} fontWeight={600}
-                                                fill={l.color} textAnchor="start">
-                                                {fmt(val)}{unit}
-                                              </text>
-                                            </ReferenceDot>
+                                              r={3} fill={l.color} stroke="white" strokeWidth={1.5}
+                                              label={{ value: `${fmt(val)}${unit}`, position: 'top', fontSize: 9, fontWeight: 600, fill: l.color, offset: 6 }} />
                                           )
                                         })}
                                       </LineChart>
