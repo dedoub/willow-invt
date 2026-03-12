@@ -97,7 +97,7 @@ import { cn } from '@/lib/utils'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, Tooltip as RechartsTooltip, Legend as RechartsLegend,
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, ReferenceDot,
 } from 'recharts'
 import { WillowMgmtClient, WillowMgmtProject, WillowMgmtMilestone, WillowMgmtSchedule, WillowMgmtDailyMemo, WillowMgmtTask } from '@/types/willow-mgmt'
 import {
@@ -939,6 +939,7 @@ export default function WillowManagementPage() {
   const [stockHistory, setStockHistory] = useState<Record<string, { dates: string[]; prices: number[] }>>({})
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [trendViewMode, setTrendViewMode] = useState<'total' | 'group' | 'market'>('total')
+  const [trendTooltipActive, setTrendTooltipActive] = useState(false)
 
   // Invoice form states (simplified)
   const [invoiceFormType, setInvoiceFormType] = useState<'revenue' | 'expense' | 'asset' | 'liability'>('revenue')
@@ -4882,11 +4883,14 @@ export default function WillowManagementPage() {
                             <div className="space-y-4">
                               {charts.map(({ label, suffix, fmt, unit }) => {
                                 const lines = getLines(suffix)
+                                const lastPoint = sampled[sampled.length - 1]
                                 return (
                                   <div key={suffix}>
                                     <div className="text-[10px] text-slate-400 mb-1">{label}</div>
                                     <ResponsiveContainer width="100%" height={160}>
-                                      <LineChart data={sampled} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+                                      <LineChart data={sampled} margin={{ top: 12, right: 45, bottom: 5, left: 0 }}
+                                        onMouseMove={() => { if (!trendTooltipActive) setTrendTooltipActive(true) }}
+                                        onMouseLeave={() => setTrendTooltipActive(false)}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                         <XAxis dataKey="date" tickFormatter={fmtDate} tick={{ fontSize: 9, fill: '#94a3b8' }} interval="preserveStartEnd" />
                                         <YAxis tickFormatter={fmt} tick={{ fontSize: 9, fill: '#94a3b8' }} width={45} />
@@ -4900,6 +4904,19 @@ export default function WillowManagementPage() {
                                           <Line key={l.key} type="monotone" dataKey={l.key} stroke={l.color}
                                             name={l.name} dot={false} strokeWidth={1.5} />
                                         ))}
+                                        {!trendTooltipActive && lastPoint && lines.map(l => {
+                                          const val = lastPoint[l.key] as number
+                                          if (val == null) return null
+                                          return (
+                                            <ReferenceDot key={`last-${l.key}`} x={lastPoint.date as string} y={val}
+                                              r={3} fill={l.color} stroke="white" strokeWidth={1.5}>
+                                              <text x={0} y={0} dx={8} dy={4} fontSize={9} fontWeight={600}
+                                                fill={l.color} textAnchor="start">
+                                                {fmt(val)}{unit}
+                                              </text>
+                                            </ReferenceDot>
+                                          )
+                                        })}
                                       </LineChart>
                                     </ResponsiveContainer>
                                   </div>
