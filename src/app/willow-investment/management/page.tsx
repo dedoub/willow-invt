@@ -98,6 +98,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, Tooltip as RechartsTooltip, Legend as RechartsLegend,
   LineChart, Line, XAxis, YAxis, CartesianGrid, ReferenceDot,
+  BarChart, Bar, AreaChart, Area, ReferenceLine,
 } from 'recharts'
 import { WillowMgmtClient, WillowMgmtProject, WillowMgmtMilestone, WillowMgmtSchedule, WillowMgmtDailyMemo, WillowMgmtTask } from '@/types/willow-mgmt'
 import {
@@ -1055,6 +1056,21 @@ export default function WillowManagementPage() {
   const [researchFormVerdict, setResearchFormVerdict] = useState<'pass_tier1' | 'pass_tier2' | 'fail'>('pass_tier1')
   const [researchFormFailReason, setResearchFormFailReason] = useState('')
   const [researchFormNotes, setResearchFormNotes] = useState('')
+
+  // Real estate states
+  const [researchSubTab, setResearchSubTab] = useState<'stock' | 'realestate'>('stock')
+  const [reComplexes, setReComplexes] = useState<{ id: string; name: string; district_name: string; dong_name: string | null; total_units: number | null; build_year: number | null; is_tracked: boolean }[]>([])
+  const [reSummary, setReSummary] = useState<{ trackedComplexes: number; districtCount: number; avgJeonseRatio: number; tradeListingGap: number; jeonseListingGap: number } | null>(null)
+  const [reTrades, setReTrades] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
+  const [reRentals, setReRentals] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
+  const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; listingMinPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
+  const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; listingMinPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
+  const [reJeonseRatio, setReJeonseRatio] = useState<{ month: string; ratio: number | null }[]>([])
+  const [isLoadingRe, setIsLoadingRe] = useState(false)
+  const [reDistrictFilter, setReDistrictFilter] = useState<string[]>(['강남구', '서초구', '송파구'])
+  const [reComplexFilter, setReComplexFilter] = useState<string[]>([])
+  const [reAreaFilter, setReAreaFilter] = useState<string>('')
+  const [rePeriodFilter, setRePeriodFilter] = useState<string>('12')
 
   // Gmail states
   const [emails, setEmails] = useState<ParsedEmail[]>([])
@@ -2374,6 +2390,40 @@ export default function WillowManagementPage() {
     }
   }, [])
 
+  const loadRealEstateData = useCallback(async (districts: string[], complexIds: string[], area: string, period: string) => {
+    setIsLoadingRe(true)
+    try {
+      const params = new URLSearchParams()
+      if (districts.length > 0) params.set('districts', districts.join(','))
+      if (complexIds.length > 0) params.set('complexIds', complexIds.join(','))
+      if (area) params.set('areaRange', area)
+      params.set('period', period)
+
+      const base = '/api/willow-mgmt/real-estate'
+      const [summaryRes, complexesRes, tradesRes, rentalsRes, listingsTradeRes, listingsJeonseRes, jeonseRatioRes] = await Promise.all([
+        fetch(`${base}?type=summary&${params}`),
+        fetch(`${base}?type=complexes&${params}`),
+        fetch(`${base}?type=trades&${params}`),
+        fetch(`${base}?type=rentals&${params}`),
+        fetch(`${base}?type=listings&tradeType=매매&${params}`),
+        fetch(`${base}?type=listings&tradeType=전세&${params}`),
+        fetch(`${base}?type=jeonse-ratio&${params}`),
+      ])
+
+      if (summaryRes.ok) { const d = await summaryRes.json(); setReSummary(d.summary) }
+      if (complexesRes.ok) { const d = await complexesRes.json(); setReComplexes(d.complexes || []) }
+      if (tradesRes.ok) { const d = await tradesRes.json(); setReTrades(d) }
+      if (rentalsRes.ok) { const d = await rentalsRes.json(); setReRentals(d) }
+      if (listingsTradeRes.ok) { const d = await listingsTradeRes.json(); setReListingsTrade(d.listings || []) }
+      if (listingsJeonseRes.ok) { const d = await listingsJeonseRes.json(); setReListingsJeonse(d.listings || []) }
+      if (jeonseRatioRes.ok) { const d = await jeonseRatioRes.json(); setReJeonseRatio(d.trend || []) }
+    } catch (error) {
+      console.error('Failed to load real estate data:', error)
+    } finally {
+      setIsLoadingRe(false)
+    }
+  }, [])
+
   const resetResearchForm = () => {
     setResearchFormTicker('')
     setResearchFormCompanyName('')
@@ -2956,6 +3006,13 @@ export default function WillowManagementPage() {
     loadStockTrades()
     loadStockResearch()
   }, [loadInvoices, loadWikiNotes, loadStockTrades, loadStockResearch])
+
+  // Load real estate data when sub-tab is selected or filters change
+  useEffect(() => {
+    if (researchSubTab === 'realestate') {
+      loadRealEstateData(reDistrictFilter, reComplexFilter, reAreaFilter, rePeriodFilter)
+    }
+  }, [researchSubTab, reDistrictFilter, reComplexFilter, reAreaFilter, rePeriodFilter, loadRealEstateData])
 
   // Auto-refresh stock quotes every 5 minutes
   useEffect(() => {
@@ -5504,7 +5561,7 @@ export default function WillowManagementPage() {
             </CardContent>
           </Card>
 
-          {/* Stock Research Section */}
+          {/* Investment Research Section */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -5512,34 +5569,65 @@ export default function WillowManagementPage() {
                   <Search className="h-5 w-5" />
                   투자리서치
                 </CardTitle>
-                <CardDescription>종목 스크리닝 & 분석</CardDescription>
+                <CardDescription>{researchSubTab === 'stock' ? '종목 스크리닝 & 분석' : '강남3구 부동산 리서치'}</CardDescription>
               </div>
-              <button
-                onClick={openNewResearchModal}
-                className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">추가</span>
-              </button>
+              {researchSubTab === 'stock' && (
+                <button
+                  onClick={openNewResearchModal}
+                  className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">추가</span>
+                </button>
+              )}
             </CardHeader>
             <CardContent>
-              {/* Verdict filter */}
-              <div className="flex flex-wrap gap-1 mb-4">
-                {(['all', 'pass_tier1', 'pass_tier2', 'fail'] as const).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => { setResearchVerdictFilter(v); setResearchPage(1) }}
-                    className={cn(
-                      'px-3 py-1 text-xs font-medium rounded-full transition-colors',
-                      researchVerdictFilter === v
-                        ? 'bg-slate-900 text-white dark:bg-slate-600'
-                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                    )}
-                  >
-                    {v === 'all' ? '전체' : v === 'pass_tier1' ? 'Tier 1' : v === 'pass_tier2' ? 'Tier 2' : 'Fail'}
-                  </button>
-                ))}
+              {/* Sub-tab + verdict filter row */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1">
+                  {(['stock', 'realestate'] as const).map(tab => (
+                    <button key={tab} onClick={() => setResearchSubTab(tab)}
+                      className={cn('px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
+                        researchSubTab === tab ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                      )}>
+                      {tab === 'stock' ? '주식' : '부동산'}
+                    </button>
+                  ))}
+                </div>
+                {researchSubTab === 'stock' ? (
+                  <div className="flex items-center gap-1">
+                    {(['all', 'pass_tier1', 'pass_tier2', 'fail'] as const).map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => { setResearchVerdictFilter(v); setResearchPage(1) }}
+                        className={cn(
+                          'px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
+                          researchVerdictFilter === v
+                            ? 'bg-slate-900 text-white dark:bg-slate-600'
+                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                        )}
+                      >
+                        {v === 'all' ? '전체' : v === 'pass_tier1' ? 'T1' : v === 'pass_tier2' ? 'T2' : 'Fail'}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    {['강남구', '서초구', '송파구'].map(d => (
+                      <button key={d} onClick={() => setReDistrictFilter(prev =>
+                        prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]
+                      )}
+                        className={cn('px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
+                          reDistrictFilter.includes(d) ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                        )}>
+                        {d.replace('구', '')}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+              {researchSubTab === 'stock' ? (
+              <>
 
               {(() => {
                 const filtered = researchVerdictFilter === 'all'
@@ -5688,6 +5776,305 @@ export default function WillowManagementPage() {
                   </>
                 )
               })()}
+              </>
+              ) : (
+              /* ========== Real Estate Research Sub-Tab ========== */
+              <div className="space-y-4">
+                {/* Filter Bar: 단지 + 평형 + 기간 한 줄 */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-slate-400 mr-0.5">단지</span>
+                    {reComplexFilter.length === 0 ? (
+                      <span className="text-[10px] text-slate-300">전체 ({reComplexes.length}개)</span>
+                    ) : (
+                      reComplexFilter.map(id => {
+                        const c = reComplexes.find(x => x.id === id)
+                        return c ? (
+                          <button key={id} onClick={() => setReComplexFilter(prev => prev.filter(x => x !== id))}
+                            className="px-2 py-0.5 text-[10px] rounded-full bg-slate-900 text-white dark:bg-slate-500 flex items-center gap-1">
+                            {c.name} <X className="h-2.5 w-2.5" />
+                          </button>
+                        ) : null
+                      })
+                    )}
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value && !reComplexFilter.includes(e.target.value)) {
+                          setReComplexFilter(prev => [...prev, e.target.value])
+                        }
+                      }}
+                      className="text-[10px] bg-white dark:bg-slate-700 rounded px-1.5 py-0.5 cursor-pointer"
+                    >
+                      <option value="">+</option>
+                      {reComplexes
+                        .filter(c => !reComplexFilter.includes(c.id))
+                        .map(c => (
+                          <option key={c.id} value={c.id}>{c.district_name.replace('구', '')} · {c.name}</option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-slate-400 mr-0.5">평형</span>
+                    {[{ v: '', l: '전체' }, { v: '20', l: '20평' }, { v: '30', l: '30평' }, { v: '40+', l: '40+' }].map(a => (
+                      <button key={a.v} onClick={() => setReAreaFilter(a.v)}
+                        className={cn('px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors',
+                          reAreaFilter === a.v ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                        )}>
+                        {a.l}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-slate-400 mr-0.5">기간</span>
+                    {[{ v: '6', l: '6월' }, { v: '12', l: '1년' }, { v: 'all', l: '전체' }].map(p => (
+                      <button key={p.v} onClick={() => setRePeriodFilter(p.v)}
+                        className={cn('px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors',
+                          rePeriodFilter === p.v ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                        )}>
+                        {p.l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {isLoadingRe ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                    <p className="text-xs text-muted-foreground mt-2">부동산 데이터 로딩중...</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Summary Cards */}
+                    {reSummary && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                          <div className="text-[10px] text-muted-foreground">추적 단지</div>
+                          <div className="text-sm font-bold">{reSummary.trackedComplexes}개 <span className="text-[10px] text-slate-400 font-normal">({reSummary.districtCount}개구)</span></div>
+                        </div>
+                        <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                          <div className="text-[10px] text-muted-foreground">평균 전세가율</div>
+                          <div className="text-sm font-bold">{reSummary.avgJeonseRatio}%</div>
+                        </div>
+                        <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                          <div className="text-[10px] text-muted-foreground">매도호가 괴리율</div>
+                          <div className={cn('text-sm font-bold', reSummary.tradeListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                            {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap}%
+                          </div>
+                        </div>
+                        <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                          <div className="text-[10px] text-muted-foreground">전세호가 괴리율</div>
+                          <div className={cn('text-sm font-bold', reSummary.jeonseListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                            {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap}%
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section 1: 매매 실거래가 추이 */}
+                    {reTrades && reTrades.months.length > 0 && (
+                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium">매매 실거래가 추이 <span className="text-[10px] text-slate-400 font-normal">(평당가, 만원)</span></span>
+                          {reTrades.complexes.length > 0 && (() => {
+                            // 최근 3개월 변동률
+                            const months = reTrades.months
+                            if (months.length < 4) return null
+                            const recentMonths = months.slice(-3)
+                            const prevMonth = months[months.length - 4]
+                            let prevTotal = 0, prevCount = 0, recentTotal = 0, recentCount = 0
+                            for (const c of reTrades.complexes) {
+                              const prevD = c.data.find(d => d.month === prevMonth)
+                              if (prevD?.avgPpp) { prevTotal += prevD.avgPpp; prevCount++ }
+                              for (const m of recentMonths) {
+                                const d = c.data.find(dd => dd.month === m)
+                                if (d?.avgPpp) { recentTotal += d.avgPpp; recentCount++ }
+                              }
+                            }
+                            if (prevCount === 0 || recentCount === 0) return null
+                            const prevAvg = prevTotal / prevCount
+                            const recentAvg = recentTotal / recentCount
+                            const changePct = ((recentAvg - prevAvg) / prevAvg) * 100
+                            return (
+                              <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                              )}>
+                                3개월 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
+                              </span>
+                            )
+                          })()}
+                        </div>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <LineChart data={reTrades.months.map(m => {
+                            const entry: Record<string, string | number | null> = { month: m }
+                            for (const c of reTrades.complexes) {
+                              const d = c.data.find(dd => dd.month === m)
+                              entry[c.name] = d?.avgPpp ?? null
+                            }
+                            return entry
+                          })} margin={{ top: 12, right: 45, bottom: 5, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                            <YAxis tickFormatter={(v: number) => `${Math.round(v / 10000).toLocaleString()}`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={40} />
+                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value) => [`${Number(value).toLocaleString()}만원/평`, '']} />
+                            {reTrades.complexes.length > 1 && <RechartsLegend wrapperStyle={{ fontSize: 9 }} />}
+                            {reTrades.complexes.slice(0, 10).map((c, i) => {
+                              const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
+                              return <Line key={c.name} type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
+                            })}
+                          </LineChart>
+                        </ResponsiveContainer>
+                        {/* Monthly transaction count */}
+                        <ResponsiveContainer width="100%" height={60}>
+                          <BarChart data={reTrades.months.map(m => {
+                            let total = 0
+                            for (const c of reTrades.complexes) {
+                              const d = c.data.find(dd => dd.month === m)
+                              total += d?.count || 0
+                            }
+                            return { month: m, count: total }
+                          })} margin={{ top: 0, right: 45, bottom: 0, left: 0 }}>
+                            <XAxis dataKey="month" tick={false} axisLine={false} />
+                            <YAxis tick={{ fontSize: 8, fill: '#94a3b8' }} width={40} />
+                            <RechartsTooltip contentStyle={{ fontSize: 10 }} formatter={(value) => [`${value}건`, '거래']} />
+                            <Bar dataKey="count" fill="#cbd5e1" radius={[2, 2, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {/* Section 2: 매도 호가 vs 실거래가 */}
+                    {reListingsTrade.length > 0 && (
+                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                        <div className="text-xs font-medium mb-2">매도 호가 vs 실거래가</div>
+                        <div className="space-y-1.5">
+                          {reListingsTrade.slice(0, 15).map(r => (
+                            <div key={r.complexName} className="flex items-center gap-2 text-[11px]">
+                              <span className="w-24 truncate font-medium">{r.complexName}</span>
+                              <span className="w-16 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp / 10000).toLocaleString()}만` : '-'}</span>
+                              <span className="text-[10px] text-slate-400">→</span>
+                              <span className="w-16 text-right">{r.listingMinPpp ? `${Math.round(r.listingMinPpp / 10000).toLocaleString()}만` : '-'}</span>
+                              <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-600 rounded-full overflow-hidden relative">
+                                {r.gap != null && (
+                                  <div
+                                    className={cn('absolute top-0 h-full rounded-full', r.gap > 0 ? 'bg-red-400 dark:bg-red-500' : 'bg-blue-400 dark:bg-blue-500')}
+                                    style={{ width: `${Math.min(Math.abs(r.gap) * 3, 100)}%`, [r.gap > 0 ? 'left' : 'right']: '50%', transform: r.gap > 0 ? 'none' : 'none', ...(r.gap < 0 ? { right: '50%' } : { left: '50%' }) }}
+                                  />
+                                )}
+                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-300 dark:bg-slate-500" />
+                              </div>
+                              <span className={cn('w-12 text-right text-[10px] font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                                {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
+                              </span>
+                              <span className="w-8 text-right text-[10px] text-slate-400">{r.listingCount}건</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section 3: 전세 실거래가 추이 */}
+                    {reRentals && reRentals.months.length > 0 && (
+                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                        <div className="text-xs font-medium mb-2">전세 실거래가 추이 <span className="text-[10px] text-slate-400 font-normal">(평당 보증금, 만원)</span></div>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <LineChart data={reRentals.months.map(m => {
+                            const entry: Record<string, string | number | null> = { month: m }
+                            for (const c of reRentals.complexes) {
+                              const d = c.data.find(dd => dd.month === m)
+                              entry[c.name] = d?.avgPpp ?? null
+                            }
+                            return entry
+                          })} margin={{ top: 12, right: 45, bottom: 5, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                            <YAxis tickFormatter={(v: number) => `${Math.round(v / 10000).toLocaleString()}`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={40} />
+                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value) => [`${Number(value).toLocaleString()}만원/평`, '']} />
+                            {reRentals.complexes.length > 1 && <RechartsLegend wrapperStyle={{ fontSize: 9 }} />}
+                            {reRentals.complexes.slice(0, 10).map((c, i) => {
+                              const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
+                              return <Line key={c.name} type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
+                            })}
+                          </LineChart>
+                        </ResponsiveContainer>
+                        {/* Monthly transaction count */}
+                        <ResponsiveContainer width="100%" height={60}>
+                          <BarChart data={reRentals.months.map(m => {
+                            let total = 0
+                            for (const c of reRentals.complexes) {
+                              const d = c.data.find(dd => dd.month === m)
+                              total += d?.count || 0
+                            }
+                            return { month: m, count: total }
+                          })} margin={{ top: 0, right: 45, bottom: 0, left: 0 }}>
+                            <XAxis dataKey="month" tick={false} axisLine={false} />
+                            <YAxis tick={{ fontSize: 8, fill: '#94a3b8' }} width={40} />
+                            <RechartsTooltip contentStyle={{ fontSize: 10 }} formatter={(value) => [`${value}건`, '거래']} />
+                            <Bar dataKey="count" fill="#cbd5e1" radius={[2, 2, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {/* Section 4: 전세 호가 vs 실거래가 */}
+                    {reListingsJeonse.length > 0 && (
+                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                        <div className="text-xs font-medium mb-2">전세 호가 vs 실거래가</div>
+                        <div className="space-y-1.5">
+                          {reListingsJeonse.slice(0, 15).map(r => (
+                            <div key={r.complexName} className="flex items-center gap-2 text-[11px]">
+                              <span className="w-24 truncate font-medium">{r.complexName}</span>
+                              <span className="w-16 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp / 10000).toLocaleString()}만` : '-'}</span>
+                              <span className="text-[10px] text-slate-400">→</span>
+                              <span className="w-16 text-right">{r.listingMinPpp ? `${Math.round(r.listingMinPpp / 10000).toLocaleString()}만` : '-'}</span>
+                              <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-600 rounded-full overflow-hidden relative">
+                                {r.gap != null && (
+                                  <div
+                                    className={cn('absolute top-0 h-full rounded-full', r.gap > 0 ? 'bg-red-400 dark:bg-red-500' : 'bg-blue-400 dark:bg-blue-500')}
+                                    style={{ width: `${Math.min(Math.abs(r.gap) * 3, 100)}%`, [r.gap > 0 ? 'left' : 'right']: '50%', transform: r.gap > 0 ? 'none' : 'none', ...(r.gap < 0 ? { right: '50%' } : { left: '50%' }) }}
+                                  />
+                                )}
+                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-300 dark:bg-slate-500" />
+                              </div>
+                              <span className={cn('w-12 text-right text-[10px] font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                                {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
+                              </span>
+                              <span className="w-8 text-right text-[10px] text-slate-400">{r.listingCount}건</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section 5: 전세가율 추이 */}
+                    {reJeonseRatio.length > 0 && (
+                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                        <div className="text-xs font-medium mb-2">전세가율 추이</div>
+                        <ResponsiveContainer width="100%" height={180}>
+                          <AreaChart data={reJeonseRatio} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                            <YAxis domain={[30, 70]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={35} />
+                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value) => [`${value}%`, '전세가율']} />
+                            <ReferenceLine y={40} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: '40%', position: 'right', fontSize: 9, fill: '#94a3b8' }} />
+                            <ReferenceLine y={60} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: '60%', position: 'right', fontSize: 9, fill: '#94a3b8' }} />
+                            <Area type="monotone" dataKey="ratio" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={1.5} connectNulls />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!reTrades && !reSummary && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Search className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                        <p className="text-sm">부동산 데이터가 없습니다</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              )}
             </CardContent>
           </Card>
         </div>
