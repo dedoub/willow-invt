@@ -4964,7 +4964,7 @@ export default function WillowManagementPage() {
                                   <div key={suffix}>
                                     <div className="text-[10px] text-slate-400 mb-1">{label}</div>
                                     <ResponsiveContainer width="100%" height={160}>
-                                      <LineChart data={sampled} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}
+                                      <LineChart data={sampled} margin={{ top: 12, right: 20, bottom: 5, left: 0 }}
                                         onMouseMove={() => { if (!trendTooltipActive) setTrendTooltipActive(true) }}
                                         onMouseLeave={() => setTrendTooltipActive(false)}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
