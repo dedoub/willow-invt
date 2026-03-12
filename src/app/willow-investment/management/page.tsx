@@ -4414,7 +4414,7 @@ export default function WillowManagementPage() {
                               const usPnlKrw = usValueKrw - usInvestedKrwHist
                               const usPnlPctKrw = usInvestedKrwHist > 0 ? (usPnlKrw / usInvestedKrwHist) * 100 : 0
                               return (
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                   <div
                                     className={cn('rounded-lg bg-white dark:bg-slate-700 px-3 py-2 cursor-pointer transition-opacity', portfolioMarketFilter === 'US' && 'opacity-40')}
                                     onClick={() => setPortfolioMarketFilter(prev => prev === 'KR' ? 'all' : 'KR')}
@@ -4643,7 +4643,7 @@ export default function WillowManagementPage() {
                           )
                         }
                         return (
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-4">{col1.map(g => renderGroup(g))}</div>
                             <div className="space-y-4">{col2.map(g => renderGroup(g))}</div>
                           </div>
