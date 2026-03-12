@@ -97,6 +97,7 @@ import { cn } from '@/lib/utils'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, Tooltip as RechartsTooltip, Legend as RechartsLegend,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
 import { WillowMgmtClient, WillowMgmtProject, WillowMgmtMilestone, WillowMgmtSchedule, WillowMgmtDailyMemo, WillowMgmtTask } from '@/types/willow-mgmt'
 import {
@@ -935,6 +936,9 @@ export default function WillowManagementPage() {
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false)
   const [usdKrwRate, setUsdKrwRate] = useState(1400) // fallback
   const [fxHistory, setFxHistory] = useState<Record<string, number>>({}) // date → KRW/USD rate
+  const [stockHistory, setStockHistory] = useState<Record<string, { dates: string[]; prices: number[] }>>({})
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [trendViewMode, setTrendViewMode] = useState<'total' | 'group' | 'market'>('total')
 
   // Invoice form states (simplified)
   const [invoiceFormType, setInvoiceFormType] = useState<'revenue' | 'expense' | 'asset' | 'liability'>('revenue')
@@ -2182,6 +2186,28 @@ export default function WillowManagementPage() {
     }
   }, [])
 
+  const loadStockHistory = useCallback(async (trades: StockTrade[]) => {
+    const tickerMap = new Map<string, string>()
+    for (const t of trades) {
+      if (!tickerMap.has(t.ticker)) tickerMap.set(t.ticker, t.market)
+    }
+    if (tickerMap.size === 0) return
+    const tickers = Array.from(tickerMap.keys())
+    const markets = tickers.map(t => tickerMap.get(t)!)
+    setIsLoadingHistory(true)
+    try {
+      const res = await fetch(`/api/willow-mgmt/stock-history?tickers=${tickers.join(',')}&markets=${markets.join(',')}`)
+      if (res.ok) {
+        const data = await res.json()
+        setStockHistory(data.history || {})
+      }
+    } catch (error) {
+      console.error('Failed to load stock history:', error)
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }, [])
+
   const loadStockTrades = useCallback(async () => {
     setIsLoadingTrades(true)
     try {
@@ -2191,13 +2217,14 @@ export default function WillowManagementPage() {
         const trades = data.trades || []
         setStockTrades(trades)
         loadStockQuotes(trades)
+        loadStockHistory(trades)
       }
     } catch (error) {
       console.error('Failed to load stock trades:', error)
     } finally {
       setIsLoadingTrades(false)
     }
-  }, [loadStockQuotes])
+  }, [loadStockQuotes, loadStockHistory])
 
   const resetTradeForm = () => {
     setTradeFormTicker('')
@@ -4660,8 +4687,223 @@ export default function WillowManagementPage() {
                       })()}
                     </div>
                   ) : (
-                    /* Analysis View - Radar Charts */
+                    /* Analysis View */
                     <div className="space-y-4">
+                      {/* Trend Charts */}
+                      {(() => {
+                        if (Object.keys(stockHistory).length === 0) {
+                          return isLoadingHistory ? (
+                            <div className="rounded-lg bg-white dark:bg-slate-700 p-4 text-center">
+                              <Loader2 className="h-5 w-5 animate-spin mx-auto text-slate-400 mb-1" />
+                              <span className="text-xs text-muted-foreground">추이 데이터 로딩 중...</span>
+                            </div>
+                          ) : null
+                        }
+
+                        // Build portfolio timeline: for each date, calculate value/cost by group
+                        // 1. Collect all unique dates from stock history
+                        const allDates = new Set<string>()
+                        for (const [, hist] of Object.entries(stockHistory)) {
+                          for (const d of hist.dates) allDates.add(d)
+                        }
+                        const sortedDates = Array.from(allDates).sort()
+
+                        // 2. Build price lookup: ticker → date → price
+                        const priceLookup = new Map<string, Map<string, number>>()
+                        for (const [ticker, hist] of Object.entries(stockHistory)) {
+                          const dateMap = new Map<string, number>()
+                          for (let i = 0; i < hist.dates.length; i++) {
+                            dateMap.set(hist.dates[i], hist.prices[i])
+                          }
+                          priceLookup.set(ticker, dateMap)
+                        }
+
+                        // 3. Build holdings state timeline (changes on trade dates)
+                        // holdings at any date = process all trades up to that date
+                        const tradesSorted = [...stockTrades].sort((a, b) =>
+                          new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime() || a.id.localeCompare(b.id)
+                        )
+
+                        // Pre-compute: for each date, what are the holdings?
+                        // Optimization: only recompute on trade dates, carry forward otherwise
+                        type HoldingState = { qty: number; cost: number; market: string; themes: string[]; parentTheme: string | null }
+                        const holdingStates = new Map<string, HoldingState>() // ticker → state
+                        let tradeIdx = 0
+
+                        // FX rate lookup helper
+                        const getFx = (date: string): number => {
+                          const d = new Date(date)
+                          for (let i = 0; i < 5; i++) {
+                            const key = d.toISOString().slice(0, 10)
+                            if (fxHistory[key]) return fxHistory[key]
+                            d.setDate(d.getDate() - 1)
+                          }
+                          return usdKrwRate
+                        }
+
+                        // Process timeline
+                        const trendData: { date: string; 전체value: number; 전체pnl: number; 전체pct: number;
+                          국내value: number; 국내pnl: number; 국내pct: number;
+                          해외value: number; 해외pnl: number; 해외pct: number;
+                          [key: string]: number | string }[] = []
+
+                        const themeKeys = ['AI 인프라', '지정학/안보', '넥스트', '미분류']
+
+                        for (const date of sortedDates) {
+                          // Advance trades up to this date
+                          while (tradeIdx < tradesSorted.length && tradesSorted[tradeIdx].trade_date <= date) {
+                            const t = tradesSorted[tradeIdx]
+                            const state = holdingStates.get(t.ticker) || {
+                              qty: 0, cost: 0, market: t.market,
+                              themes: (stockThemes[t.ticker] || []).map(th => th.theme),
+                              parentTheme: (stockThemes[t.ticker] || [])[0]?.parentTheme || null,
+                            }
+                            if (t.trade_type === 'buy') {
+                              state.cost += t.total_amount
+                              state.qty += t.quantity
+                            } else {
+                              const avg = state.qty > 0 ? state.cost / state.qty : 0
+                              state.cost -= avg * t.quantity
+                              state.qty -= t.quantity
+                              if (state.qty <= 0) { state.qty = 0; state.cost = 0 }
+                            }
+                            holdingStates.set(t.ticker, state)
+                            tradeIdx++
+                          }
+
+                          // Calculate portfolio value on this date
+                          let totalVal = 0, totalCost = 0
+                          let krVal = 0, krCost = 0, usVal = 0, usCost = 0
+                          const themeVal: Record<string, number> = {}
+                          const themeCost: Record<string, number> = {}
+                          for (const k of themeKeys) { themeVal[k] = 0; themeCost[k] = 0 }
+
+                          for (const [ticker, state] of holdingStates) {
+                            if (state.qty <= 0) continue
+                            const priceMap = priceLookup.get(ticker)
+                            const price = priceMap?.get(date)
+                            if (!price) continue
+
+                            const isUS = state.market === 'US'
+                            const fx = isUS ? getFx(date) : 1
+                            const val = price * state.qty * fx
+                            const cost = isUS ? state.cost * fx : state.cost
+
+                            totalVal += val; totalCost += cost
+                            if (isUS) { usVal += val; usCost += cost } else { krVal += val; krCost += cost }
+
+                            const group = state.parentTheme || '미분류'
+                            themeVal[group] = (themeVal[group] || 0) + val
+                            themeCost[group] = (themeCost[group] || 0) + cost
+                          }
+
+                          if (totalCost === 0) continue // no holdings yet
+
+                          const entry: typeof trendData[0] = {
+                            date,
+                            전체value: Math.round(totalVal), 전체pnl: Math.round(totalVal - totalCost),
+                            전체pct: totalCost > 0 ? Math.round((totalVal - totalCost) / totalCost * 1000) / 10 : 0,
+                            국내value: Math.round(krVal), 국내pnl: Math.round(krVal - krCost),
+                            국내pct: krCost > 0 ? Math.round((krVal - krCost) / krCost * 1000) / 10 : 0,
+                            해외value: Math.round(usVal), 해외pnl: Math.round(usVal - usCost),
+                            해외pct: usCost > 0 ? Math.round((usVal - usCost) / usCost * 1000) / 10 : 0,
+                          }
+                          for (const k of themeKeys) {
+                            entry[`${k}value`] = Math.round(themeVal[k] || 0)
+                            entry[`${k}pnl`] = Math.round((themeVal[k] || 0) - (themeCost[k] || 0))
+                            entry[`${k}pct`] = (themeCost[k] || 0) > 0
+                              ? Math.round(((themeVal[k] || 0) - (themeCost[k] || 0)) / (themeCost[k] || 0) * 1000) / 10 : 0
+                          }
+                          trendData.push(entry)
+                        }
+
+                        // Sample data to ~120 points max for performance
+                        const sampled = trendData.length > 120
+                          ? trendData.filter((_, i) => i % Math.ceil(trendData.length / 120) === 0 || i === trendData.length - 1)
+                          : trendData
+
+                        if (sampled.length < 2) return null
+
+                        const groupColors: Record<string, string> = {
+                          'AI 인프라': '#6366f1', '지정학/안보': '#f97316', '넥스트': '#a855f7', '미분류': '#94a3b8',
+                        }
+                        const marketColors = { 국내: '#3b82f6', 해외: '#10b981' }
+
+                        const getLines = (suffix: string) => {
+                          if (trendViewMode === 'total') {
+                            return [{ key: `전체${suffix}`, color: '#6366f1', name: '전체' }]
+                          }
+                          if (trendViewMode === 'market') {
+                            return [
+                              { key: `국내${suffix}`, color: marketColors.국내, name: '국내' },
+                              { key: `해외${suffix}`, color: marketColors.해외, name: '해외' },
+                            ]
+                          }
+                          // group
+                          return themeKeys
+                            .filter(k => sampled.some(d => (d[`${k}value`] as number) > 0))
+                            .map(k => ({ key: `${k}${suffix}`, color: groupColors[k], name: k }))
+                        }
+
+                        const fmtDate = (d: string) => `${d.slice(5, 7)}/${d.slice(8, 10)}`
+                        const fmtKrw = (v: number) => {
+                          if (Math.abs(v) >= 1e8) return `${(v / 1e8).toFixed(1)}억`
+                          if (Math.abs(v) >= 1e4) return `${Math.round(v / 1e4).toLocaleString()}만`
+                          return v.toLocaleString()
+                        }
+
+                        const charts = [
+                          { label: '평가액 추이', suffix: 'value', fmt: fmtKrw, unit: '원' },
+                          { label: '수익금 추이', suffix: 'pnl', fmt: fmtKrw, unit: '원' },
+                          { label: '수익률 추이', suffix: 'pct', fmt: (v: number) => `${v.toFixed(1)}`, unit: '%' },
+                        ]
+
+                        return (
+                          <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-xs font-medium text-muted-foreground">포트폴리오 추이</span>
+                              <div className="flex gap-1">
+                                {(['total', 'group', 'market'] as const).map(m => (
+                                  <button key={m} onClick={() => setTrendViewMode(m)}
+                                    className={cn('px-2 py-0.5 text-[10px] rounded-full transition-colors',
+                                      trendViewMode === m ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
+                                    )}>
+                                    {m === 'total' ? '전체' : m === 'group' ? '그룹별' : '국내/해외'}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="space-y-4">
+                              {charts.map(({ label, suffix, fmt, unit }) => {
+                                const lines = getLines(suffix)
+                                return (
+                                  <div key={suffix}>
+                                    <div className="text-[10px] text-slate-400 mb-1">{label}</div>
+                                    <ResponsiveContainer width="100%" height={160}>
+                                      <LineChart data={sampled} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                        <XAxis dataKey="date" tickFormatter={fmtDate} tick={{ fontSize: 9, fill: '#94a3b8' }} interval="preserveStartEnd" />
+                                        <YAxis tickFormatter={fmt} tick={{ fontSize: 9, fill: '#94a3b8' }} width={45} />
+                                        <RechartsTooltip
+                                          contentStyle={{ fontSize: 11 }}
+                                          labelFormatter={(d) => fmtDate(String(d))}
+                                          formatter={(value) => [`${fmt(Number(value))}${unit}`, '']}
+                                        />
+                                        {lines.length > 1 && <RechartsLegend wrapperStyle={{ fontSize: 10 }} />}
+                                        {lines.map(l => (
+                                          <Line key={l.key} type="monotone" dataKey={l.key} stroke={l.color}
+                                            name={l.name} dot={false} strokeWidth={1.5} />
+                                        ))}
+                                      </LineChart>
+                                    </ResponsiveContainer>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                      {/* Radar Charts */}
                       {(() => {
                         // Prepare data by theme
                         const themeData = new Map<string, { invested: number; value: number; pnl: number }>()
