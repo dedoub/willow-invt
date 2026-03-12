@@ -283,7 +283,7 @@ export async function GET(request: Request) {
 
       // Build per-complex comparison
       const complexMap: Record<string, {
-        listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number
+        complexNo: string | null; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number
         actualAvgPpp: number | null; actualCount: number; gap: number | null
       }> = {}
 
@@ -291,7 +291,7 @@ export async function GET(request: Request) {
         const pyeong = getListingPyeong(l)
         if (pyeong <= 0) continue
         const ppp = Number(l.price) / pyeong
-        if (!complexMap[l.complex_name]) complexMap[l.complex_name] = { listingMinPpp: null, listingMaxPpp: null, listingCount: 0, actualAvgPpp: null, actualCount: 0, gap: null }
+        if (!complexMap[l.complex_name]) complexMap[l.complex_name] = { complexNo: l.complex_no || null, listingMinPpp: null, listingMaxPpp: null, listingCount: 0, actualAvgPpp: null, actualCount: 0, gap: null }
         complexMap[l.complex_name].listingCount += 1
         if (!complexMap[l.complex_name].listingMinPpp || ppp < complexMap[l.complex_name].listingMinPpp!) {
           complexMap[l.complex_name].listingMinPpp = Math.round(ppp)
@@ -308,7 +308,7 @@ export async function GET(request: Request) {
         if (pyeong <= 0) continue
         const price = tradeType === '매매' ? Number(a.deal_amount) : Number(a.deposit)
         const ppp = price / pyeong
-        if (!complexMap[a.complex_name]) complexMap[a.complex_name] = { listingMinPpp: null, listingMaxPpp: null, listingCount: 0, actualAvgPpp: null, actualCount: 0, gap: null }
+        if (!complexMap[a.complex_name]) complexMap[a.complex_name] = { complexNo: null, listingMinPpp: null, listingMaxPpp: null, listingCount: 0, actualAvgPpp: null, actualCount: 0, gap: null }
         const c = complexMap[a.complex_name]
         c.actualAvgPpp = c.actualAvgPpp ? (c.actualAvgPpp * c.actualCount + ppp) / (c.actualCount + 1) : ppp
         c.actualCount += 1
