@@ -4951,7 +4951,7 @@ export default function WillowManagementPage() {
                             {/* Theme Radar */}
                             <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                               <div className="text-xs font-medium text-muted-foreground mb-2">테마별 분석</div>
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                 {[
                                   { key: '비중', label: '비중 (%)', color: '#6366f1' },
                                   { key: '수익률', label: '수익률 (%)', color: '#ef4444' },
@@ -4975,7 +4975,7 @@ export default function WillowManagementPage() {
                             {/* Stock Radar */}
                             <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                               <div className="text-xs font-medium text-muted-foreground mb-2">종목별 분석</div>
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                 {[
                                   { key: '비중', label: '비중 (%)', color: '#6366f1' },
                                   { key: '수익률', label: '수익률 (%)', color: '#ef4444' },
