@@ -4555,32 +4555,21 @@ export default function WillowManagementPage() {
                                   ? items.reduce((s, h) => s + h.dailyChangePercent * (h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue), 0) / g.val
                                   : 0
                                 return (
-                                  <div className="relative rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 mb-2 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
-                                    {groupDailyPct !== 0 && (
-                                      <span className={cn(
-                                        'absolute top-1.5 right-2 text-[10px] font-medium px-1.5 py-0.5 rounded',
-                                        groupDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                                      )}>
-                                        오늘 {groupDailyPct > 0 ? '+' : ''}{groupDailyPct.toFixed(1)}%
-                                      </span>
-                                    )}
-                                    <div>
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500">투자 </span>
-                                      <span className="text-muted-foreground">{formatAmount(g.inv, 'KRW')}</span>
+                                  <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2 mb-2">
+                                    <div className="flex items-center justify-between mb-0.5">
+                                      <span className="text-[10px] text-muted-foreground">투자 {formatAmount(g.inv, 'KRW')} · 비중 {weightPct.toFixed(0)}%</span>
+                                      {groupDailyPct !== 0 && (
+                                        <span className={cn(
+                                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                          groupDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                        )}>
+                                          오늘 {groupDailyPct > 0 ? '+' : ''}{groupDailyPct.toFixed(1)}%
+                                        </span>
+                                      )}
                                     </div>
-                                    <div>
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500">평가 </span>
-                                      <span className="font-medium">{formatAmount(g.val, 'KRW')}</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500">비중 </span>
-                                      <span className="text-muted-foreground">{weightPct.toFixed(0)}%</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500">누적 </span>
-                                      <span className={cn('font-medium', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
-                                        {g.pnl > 0 ? '+' : ''}{formatAmount(g.pnl, 'KRW')} ({g.pnl > 0 ? '+' : ''}{g.pct.toFixed(1)}%)
-                                      </span>
+                                    <div className="text-sm font-bold"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(g.val, 'KRW')}</div>
+                                    <div className={cn('text-xs font-medium', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{g.pnl > 0 ? '+' : ''}{formatAmount(g.pnl, 'KRW')} ({g.pnl > 0 ? '+' : ''}{g.pct.toFixed(1)}%)
                                     </div>
                                   </div>
                                 )
