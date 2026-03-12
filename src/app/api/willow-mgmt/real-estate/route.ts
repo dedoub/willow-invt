@@ -6,6 +6,21 @@ const DISTRICT_CODES: Record<string, string> = {
   '강남구': '11680', '서초구': '11650', '송파구': '11710',
 }
 
+// Paginated fetch to bypass Supabase max_rows (default 1000)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchAll(query: any, pageSize = 1000): Promise<any[]> {
+  const all: any[] = []
+  let from = 0
+  while (true) {
+    const { data } = await query.range(from, from + pageSize - 1)
+    if (!data || data.length === 0) break
+    all.push(...data)
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+  return all
+}
+
 // GET - Real estate data queries
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -68,15 +83,15 @@ export async function GET(request: Request) {
       const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().slice(0, 10)
 
       // Fetch trades & rentals with district_code filter (not 552 names)
-      const { data: recentTrades } = await applyFilters(
+      const recentTrades = await fetchAll(applyFilters(
         supabase.from('re_trades').select('complex_name, deal_amount, area_pyeong').gte('deal_date', threeMonthsAgo),
         'trades'
-      ).limit(5000) as { data: any[] | null }
+      ))
 
-      const { data: recentRentals } = await applyFilters(
+      const recentRentals = await fetchAll(applyFilters(
         supabase.from('re_rentals').select('complex_name, deposit, area_pyeong').gte('deal_date', threeMonthsAgo).eq('rent_type', '전세'),
         'rentals'
-      ).limit(10000) as { data: any[] | null }
+      ))
 
       // Jeonse ratio
       const tradePrices: Record<string, number[]> = {}
@@ -156,11 +171,10 @@ export async function GET(request: Request) {
     }
 
     if (type === 'trades') {
-      const { data, error } = await applyFilters(
+      const data = await fetchAll(applyFilters(
         supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_pyeong, price_per_pyeong').gte('deal_date', cutoffDate).order('deal_date'),
         'trades'
-      ).limit(10000)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      ))
 
       // Aggregate by month. If no specific complexes selected, aggregate by district average
       const useDistrict = !complexNames
@@ -206,11 +220,10 @@ export async function GET(request: Request) {
     }
 
     if (type === 'rentals') {
-      const { data, error } = await applyFilters(
+      const data = await fetchAll(applyFilters(
         supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_pyeong').gte('deal_date', cutoffDate).eq('rent_type', '전세').order('deal_date'),
         'rentals'
-      ).limit(20000)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      ))
 
       const useDistrict = !complexNames
       const monthly: Record<string, Record<string, { sum: number; count: number }>> = {}
@@ -273,7 +286,7 @@ export async function GET(request: Request) {
       else if (areaRange === '30') actualQ = actualQ.gte('area_pyeong', 30).lt('area_pyeong', 40)
       else if (areaRange === '40+') actualQ = actualQ.gte('area_pyeong', 40)
 
-      const { data: actuals } = await actualQ.limit(5000) as { data: any[] | null }
+      const actuals = await fetchAll(actualQ)
 
       // Build per-complex comparison
       const complexMap: Record<string, {
@@ -322,15 +335,15 @@ export async function GET(request: Request) {
     }
 
     if (type === 'jeonse-ratio') {
-      const { data: trades } = await applyFilters(
+      const trades = await fetchAll(applyFilters(
         supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_pyeong').gte('deal_date', cutoffDate),
         'trades'
-      ).limit(10000) as { data: any[] | null }
+      ))
 
-      const { data: rentals } = await applyFilters(
+      const rentals = await fetchAll(applyFilters(
         supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_pyeong').gte('deal_date', cutoffDate).eq('rent_type', '전세'),
         'rentals'
-      ).limit(20000) as { data: any[] | null }
+      ))
 
       const tradeMonthly: Record<string, Record<string, number[]>> = {}
       for (const t of trades || []) {

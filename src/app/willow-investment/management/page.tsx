@@ -98,7 +98,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, Tooltip as RechartsTooltip, Legend as RechartsLegend,
   LineChart, Line, XAxis, YAxis, CartesianGrid, ReferenceDot,
-  BarChart, Bar, AreaChart, Area, ReferenceLine,
+  BarChart, Bar, AreaChart, Area, ReferenceLine, ComposedChart,
 } from 'recharts'
 import { WillowMgmtClient, WillowMgmtProject, WillowMgmtMilestone, WillowMgmtSchedule, WillowMgmtDailyMemo, WillowMgmtTask } from '@/types/willow-mgmt'
 import {
@@ -5827,7 +5827,7 @@ export default function WillowManagementPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-slate-400 mr-0.5">기간</span>
-                    {[{ v: '6', l: '6월' }, { v: '12', l: '1년' }, { v: 'all', l: '전체' }].map(p => (
+                    {[{ v: '6', l: '6월' }, { v: '12', l: '1년' }, { v: '24', l: '2년' }, { v: 'all', l: '전체' }].map(p => (
                       <button key={p.v} onClick={() => setRePeriodFilter(p.v)}
                         className={cn('px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors',
                           rePeriodFilter === p.v ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
@@ -5904,41 +5904,29 @@ export default function WillowManagementPage() {
                             )
                           })()}
                         </div>
-                        <ResponsiveContainer width="100%" height={200}>
-                          <LineChart data={reTrades.months.map(m => {
+                        <ResponsiveContainer width="100%" height={220}>
+                          <ComposedChart data={reTrades.months.map(m => {
                             const entry: Record<string, string | number | null> = { month: m }
+                            let totalCount = 0
                             for (const c of reTrades.complexes) {
                               const d = c.data.find(dd => dd.month === m)
                               entry[c.name] = d?.avgPpp ?? null
+                              totalCount += d?.count || 0
                             }
+                            entry._count = totalCount
                             return entry
                           })} margin={{ top: 12, right: 45, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
-                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value) => [`${Number(value).toLocaleString()}만원/평`, '']} />
-                            {reTrades.complexes.length > 1 && <RechartsLegend wrapperStyle={{ fontSize: 9 }} />}
+                            <YAxis yAxisId="price" tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
+                            <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 8, fill: '#cbd5e1' }} width={30} />
+                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value, name) => name === '_count' ? [`${value}건`, '거래량'] : [`${Number(value).toLocaleString()}만원/평`, name]} />
+                            <Bar yAxisId="count" dataKey="_count" fill="#e2e8f0" radius={[2, 2, 0, 0]} barSize={16} />
                             {reTrades.complexes.slice(0, 10).map((c, i) => {
                               const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
-                              return <Line key={c.name} type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
+                              return <Line key={c.name} yAxisId="price" type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
                             })}
-                          </LineChart>
-                        </ResponsiveContainer>
-                        {/* Monthly transaction count */}
-                        <ResponsiveContainer width="100%" height={60}>
-                          <BarChart data={reTrades.months.map(m => {
-                            let total = 0
-                            for (const c of reTrades.complexes) {
-                              const d = c.data.find(dd => dd.month === m)
-                              total += d?.count || 0
-                            }
-                            return { month: m, count: total }
-                          })} margin={{ top: 0, right: 45, bottom: 0, left: 0 }}>
-                            <XAxis dataKey="month" tick={false} axisLine={false} />
-                            <YAxis tick={{ fontSize: 8, fill: '#94a3b8' }} width={40} />
-                            <RechartsTooltip contentStyle={{ fontSize: 10 }} formatter={(value) => [`${value}건`, '거래']} />
-                            <Bar dataKey="count" fill="#cbd5e1" radius={[2, 2, 0, 0]} />
-                          </BarChart>
+                          </ComposedChart>
                         </ResponsiveContainer>
                       </div>
                     )}
@@ -5946,24 +5934,23 @@ export default function WillowManagementPage() {
                     {/* Section 2: 매도 호가 vs 실거래가 */}
                     {reListingsTrade.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
-                        <div className="text-xs font-medium mb-2">매도 호가 vs 실거래가</div>
-                        <div className="space-y-1.5">
+                        <div className="text-xs font-medium mb-2">매도 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1">
+                          <span className="w-24">단지</span>
+                          <span className="w-20 text-right">실거래</span>
+                          <span className="w-3" />
+                          <span className="w-20 text-right">호가(최저)</span>
+                          <span className="w-14 text-right">괴리율</span>
+                          <span className="w-8 text-right">매물</span>
+                        </div>
+                        <div className="space-y-1">
                           {reListingsTrade.slice(0, 15).map(r => (
                             <div key={r.complexName} className="flex items-center gap-2 text-[11px]">
                               <span className="w-24 truncate font-medium">{r.complexName}</span>
                               <span className="w-20 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp).toLocaleString()}` : '-'}</span>
                               <span className="text-[10px] text-slate-400">→</span>
                               <span className="w-20 text-right">{r.listingMinPpp ? `${Math.round(r.listingMinPpp).toLocaleString()}` : '-'}</span>
-                              <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-600 rounded-full overflow-hidden relative">
-                                {r.gap != null && (
-                                  <div
-                                    className={cn('absolute top-0 h-full rounded-full', r.gap > 0 ? 'bg-red-400 dark:bg-red-500' : 'bg-blue-400 dark:bg-blue-500')}
-                                    style={{ width: `${Math.min(Math.abs(r.gap) * 3, 100)}%`, [r.gap > 0 ? 'left' : 'right']: '50%', transform: r.gap > 0 ? 'none' : 'none', ...(r.gap < 0 ? { right: '50%' } : { left: '50%' }) }}
-                                  />
-                                )}
-                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-300 dark:bg-slate-500" />
-                              </div>
-                              <span className={cn('w-12 text-right text-[10px] font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                              <span className={cn('w-14 text-right text-[10px] font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
                                 {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
                               </span>
                               <span className="w-8 text-right text-[10px] text-slate-400">{r.listingCount}건</span>
@@ -5977,41 +5964,29 @@ export default function WillowManagementPage() {
                     {reRentals && reRentals.months.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                         <div className="text-xs font-medium mb-2">전세 실거래가 추이 <span className="text-[10px] text-slate-400 font-normal">(평당 보증금, 만원)</span></div>
-                        <ResponsiveContainer width="100%" height={200}>
-                          <LineChart data={reRentals.months.map(m => {
+                        <ResponsiveContainer width="100%" height={220}>
+                          <ComposedChart data={reRentals.months.map(m => {
                             const entry: Record<string, string | number | null> = { month: m }
+                            let totalCount = 0
                             for (const c of reRentals.complexes) {
                               const d = c.data.find(dd => dd.month === m)
                               entry[c.name] = d?.avgPpp ?? null
+                              totalCount += d?.count || 0
                             }
+                            entry._count = totalCount
                             return entry
                           })} margin={{ top: 12, right: 45, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
-                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value) => [`${Number(value).toLocaleString()}만원/평`, '']} />
-                            {reRentals.complexes.length > 1 && <RechartsLegend wrapperStyle={{ fontSize: 9 }} />}
+                            <YAxis yAxisId="price" tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
+                            <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 8, fill: '#cbd5e1' }} width={30} />
+                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value, name) => name === '_count' ? [`${value}건`, '거래량'] : [`${Number(value).toLocaleString()}만원/평`, name]} />
+                            <Bar yAxisId="count" dataKey="_count" fill="#e2e8f0" radius={[2, 2, 0, 0]} barSize={16} />
                             {reRentals.complexes.slice(0, 10).map((c, i) => {
                               const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
-                              return <Line key={c.name} type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
+                              return <Line key={c.name} yAxisId="price" type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
                             })}
-                          </LineChart>
-                        </ResponsiveContainer>
-                        {/* Monthly transaction count */}
-                        <ResponsiveContainer width="100%" height={60}>
-                          <BarChart data={reRentals.months.map(m => {
-                            let total = 0
-                            for (const c of reRentals.complexes) {
-                              const d = c.data.find(dd => dd.month === m)
-                              total += d?.count || 0
-                            }
-                            return { month: m, count: total }
-                          })} margin={{ top: 0, right: 45, bottom: 0, left: 0 }}>
-                            <XAxis dataKey="month" tick={false} axisLine={false} />
-                            <YAxis tick={{ fontSize: 8, fill: '#94a3b8' }} width={40} />
-                            <RechartsTooltip contentStyle={{ fontSize: 10 }} formatter={(value) => [`${value}건`, '거래']} />
-                            <Bar dataKey="count" fill="#cbd5e1" radius={[2, 2, 0, 0]} />
-                          </BarChart>
+                          </ComposedChart>
                         </ResponsiveContainer>
                       </div>
                     )}
@@ -6019,24 +5994,23 @@ export default function WillowManagementPage() {
                     {/* Section 4: 전세 호가 vs 실거래가 */}
                     {reListingsJeonse.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
-                        <div className="text-xs font-medium mb-2">전세 호가 vs 실거래가</div>
-                        <div className="space-y-1.5">
+                        <div className="text-xs font-medium mb-2">전세 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평)</span></div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1 px-0">
+                          <span className="w-24">단지</span>
+                          <span className="w-20 text-right">실거래</span>
+                          <span className="w-3" />
+                          <span className="w-20 text-right">호가(최저)</span>
+                          <span className="w-14 text-right">괴리율</span>
+                          <span className="w-8 text-right">매물</span>
+                        </div>
+                        <div className="space-y-1">
                           {reListingsJeonse.slice(0, 15).map(r => (
                             <div key={r.complexName} className="flex items-center gap-2 text-[11px]">
                               <span className="w-24 truncate font-medium">{r.complexName}</span>
                               <span className="w-20 text-right text-muted-foreground">{r.actualAvgPpp ? `${Math.round(r.actualAvgPpp).toLocaleString()}` : '-'}</span>
                               <span className="text-[10px] text-slate-400">→</span>
                               <span className="w-20 text-right">{r.listingMinPpp ? `${Math.round(r.listingMinPpp).toLocaleString()}` : '-'}</span>
-                              <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-600 rounded-full overflow-hidden relative">
-                                {r.gap != null && (
-                                  <div
-                                    className={cn('absolute top-0 h-full rounded-full', r.gap > 0 ? 'bg-red-400 dark:bg-red-500' : 'bg-blue-400 dark:bg-blue-500')}
-                                    style={{ width: `${Math.min(Math.abs(r.gap) * 3, 100)}%`, [r.gap > 0 ? 'left' : 'right']: '50%', transform: r.gap > 0 ? 'none' : 'none', ...(r.gap < 0 ? { right: '50%' } : { left: '50%' }) }}
-                                  />
-                                )}
-                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-300 dark:bg-slate-500" />
-                              </div>
-                              <span className={cn('w-12 text-right text-[10px] font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                              <span className={cn('w-14 text-right text-[10px] font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
                                 {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap}%` : '-'}
                               </span>
                               <span className="w-8 text-right text-[10px] text-slate-400">{r.listingCount}건</span>
