@@ -169,6 +169,15 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   tensw_update_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
   tensw_delete_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
 
+  // Real Estate (부동산 리서치)
+  re_list_complexes:     { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  re_get_summary:        { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  re_get_trade_trends:   { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  re_get_rental_trends:  { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  re_get_listing_gap:    { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  re_list_listings:      { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+  re_get_jeonse_ratio:   { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
+
   // Knowledge Graph (온톨로지)
   knowledge_list_entities:     { roles: ['admin', 'editor', 'viewer'], scopes: ['knowledge:read'] },
   knowledge_get_entity:        { roles: ['admin', 'editor', 'viewer'], scopes: ['knowledge:read'] },
