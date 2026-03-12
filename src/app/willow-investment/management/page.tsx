@@ -4551,8 +4551,19 @@ export default function WillowManagementPage() {
                                   const allVal = holdings.reduce((s, h) => s + (h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue), 0)
                                   return allVal > 0 ? (g.val / allVal) * 100 : 0
                                 })()
+                                const groupDailyPct = g.val > 0
+                                  ? items.reduce((s, h) => s + h.dailyChangePercent * (h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue), 0) / g.val
+                                  : 0
                                 return (
-                                  <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 mb-2 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                                  <div className="relative rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 mb-2 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                                    {groupDailyPct !== 0 && (
+                                      <span className={cn(
+                                        'absolute top-1.5 right-2 text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                        groupDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                      )}>
+                                        오늘 {groupDailyPct > 0 ? '+' : ''}{groupDailyPct.toFixed(1)}%
+                                      </span>
+                                    )}
                                     <div>
                                       <span className="text-[10px] text-slate-400 dark:text-slate-500">투자 </span>
                                       <span className="text-muted-foreground">{formatAmount(g.inv, 'KRW')}</span>
