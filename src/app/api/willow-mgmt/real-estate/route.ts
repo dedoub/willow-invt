@@ -82,17 +82,20 @@ export async function GET(request: Request) {
   const now = new Date()
   const periodNum = period === 'all' ? 0 : parseInt(period)
   // period=12 → show last 12 months including current: if today is 2026-03, show 2025-04 ~ 2026-03
+  const cutoffDateObj = new Date(now.getFullYear(), now.getMonth() - periodNum + 1, 1)
   const cutoffDate = period === 'all'
     ? '2020-01-01'
-    : new Date(now.getFullYear(), now.getMonth() - periodNum + 1, 1).toISOString().slice(0, 10)
+    : `${cutoffDateObj.getFullYear()}-${String(cutoffDateObj.getMonth() + 1).padStart(2, '0')}-01`
 
-  // Generate explicit month list for consistent chart x-axis
+  // Generate explicit month list for consistent chart x-axis (local timezone safe)
   function generateMonths(): string[] {
     if (period === 'all') return [] // derive from data
     const months: string[] = []
     for (let i = periodNum - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      months.push(d.toISOString().slice(0, 7))
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      months.push(`${y}-${m}`)
     }
     return months
   }
@@ -146,7 +149,8 @@ export async function GET(request: Request) {
       const complexCount = allTrackedNames.length
       const districtSet = new Set(trackedData?.map(c => c.district_name))
 
-      const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10)
+      const oma = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const oneMonthAgo = `${oma.getFullYear()}-${String(oma.getMonth() + 1).padStart(2, '0')}-01`
 
       // Fetch trades & rentals (no DB area filter — filter by supply pyeong in code)
       const recentTrades = await fetchAll(
@@ -396,7 +400,8 @@ export async function GET(request: Request) {
       }
 
       // Fetch actual prices (1-month window) and match to 평형대
-      const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10)
+      const oma = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const oneMonthAgo = `${oma.getFullYear()}-${String(oma.getMonth() + 1).padStart(2, '0')}-01`
       const allActuals = await fetchAll(
         tradeType === '매매'
           ? supabase.from('re_trades').select('complex_name, deal_amount, area_sqm').gte('deal_date', oneMonthAgo).eq('cancel_yn', 'N').in('complex_name', complexNames)
