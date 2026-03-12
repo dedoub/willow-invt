@@ -4700,94 +4700,100 @@ export default function WillowManagementPage() {
                           ) : null
                         }
 
-                        // Build portfolio timeline: for each date, calculate value/cost by group
-                        // 1. Collect all unique dates from stock history
+                        // Build portfolio timeline
+                        // 1. Collect all dates, build forward-filled price maps
                         const allDates = new Set<string>()
                         for (const [, hist] of Object.entries(stockHistory)) {
                           for (const d of hist.dates) allDates.add(d)
                         }
                         const sortedDates = Array.from(allDates).sort()
 
-                        // 2. Build price lookup: ticker → date → price
+                        // 2. Build forward-filled price lookup (carry last known price)
                         const priceLookup = new Map<string, Map<string, number>>()
                         for (const [ticker, hist] of Object.entries(stockHistory)) {
                           const dateMap = new Map<string, number>()
+                          const rawMap = new Map<string, number>()
                           for (let i = 0; i < hist.dates.length; i++) {
-                            dateMap.set(hist.dates[i], hist.prices[i])
+                            rawMap.set(hist.dates[i], hist.prices[i])
+                          }
+                          let lastPrice = 0
+                          for (const d of sortedDates) {
+                            const p = rawMap.get(d)
+                            if (p && p > 0) lastPrice = p
+                            if (lastPrice > 0) dateMap.set(d, lastPrice)
                           }
                           priceLookup.set(ticker, dateMap)
                         }
 
-                        // 3. Build holdings state timeline (changes on trade dates)
-                        // holdings at any date = process all trades up to that date
+                        // 3. Build forward-filled FX rate map
+                        const fxForDate = new Map<string, number>()
+                        {
+                          let lastFx = usdKrwRate
+                          for (const d of sortedDates) {
+                            if (fxHistory[d]) lastFx = fxHistory[d]
+                            fxForDate.set(d, lastFx)
+                          }
+                        }
+
+                        // 4. Build holdings state timeline with KRW cost tracking for US stocks
                         const tradesSorted = [...stockTrades].sort((a, b) =>
                           new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime() || a.id.localeCompare(b.id)
                         )
-
-                        // Pre-compute: for each date, what are the holdings?
-                        // Optimization: only recompute on trade dates, carry forward otherwise
-                        type HoldingState = { qty: number; cost: number; market: string; themes: string[]; parentTheme: string | null }
-                        const holdingStates = new Map<string, HoldingState>() // ticker → state
+                        type HoldingState = { qty: number; cost: number; krwCost: number; market: string; parentTheme: string | null }
+                        const holdingStates = new Map<string, HoldingState>()
                         let tradeIdx = 0
+                        const firstTradeDate = tradesSorted.length > 0 ? tradesSorted[0].trade_date : ''
 
-                        // FX rate lookup helper
-                        const getFx = (date: string): number => {
-                          const d = new Date(date)
-                          for (let i = 0; i < 5; i++) {
-                            const key = d.toISOString().slice(0, 10)
-                            if (fxHistory[key]) return fxHistory[key]
-                            d.setDate(d.getDate() - 1)
-                          }
-                          return usdKrwRate
-                        }
-
-                        // Process timeline
-                        const trendData: { date: string; 전체value: number; 전체pnl: number; 전체pct: number;
-                          국내value: number; 국내pnl: number; 국내pct: number;
-                          해외value: number; 해외pnl: number; 해외pct: number;
-                          [key: string]: number | string }[] = []
-
+                        const trendData: { date: string; [key: string]: number | string }[] = []
                         const themeKeys = ['AI 인프라', '지정학/안보', '넥스트', '미분류']
 
                         for (const date of sortedDates) {
+                          if (date < firstTradeDate) continue
+
                           // Advance trades up to this date
                           while (tradeIdx < tradesSorted.length && tradesSorted[tradeIdx].trade_date <= date) {
                             const t = tradesSorted[tradeIdx]
                             const state = holdingStates.get(t.ticker) || {
-                              qty: 0, cost: 0, market: t.market,
-                              themes: (stockThemes[t.ticker] || []).map(th => th.theme),
+                              qty: 0, cost: 0, krwCost: 0, market: t.market,
                               parentTheme: (stockThemes[t.ticker] || [])[0]?.parentTheme || null,
                             }
+                            const isUS = t.market === 'US'
+                            const tradeFx = isUS ? (fxForDate.get(t.trade_date) || usdKrwRate) : 1
+
                             if (t.trade_type === 'buy') {
                               state.cost += t.total_amount
+                              state.krwCost += t.total_amount * tradeFx
                               state.qty += t.quantity
                             } else {
                               const avg = state.qty > 0 ? state.cost / state.qty : 0
+                              const krwAvg = state.qty > 0 ? state.krwCost / state.qty : 0
                               state.cost -= avg * t.quantity
+                              state.krwCost -= krwAvg * t.quantity
                               state.qty -= t.quantity
-                              if (state.qty <= 0) { state.qty = 0; state.cost = 0 }
+                              if (state.qty <= 0) { state.qty = 0; state.cost = 0; state.krwCost = 0 }
                             }
                             holdingStates.set(t.ticker, state)
                             tradeIdx++
                           }
 
-                          // Calculate portfolio value on this date
+                          // Calculate portfolio value on this date (all in KRW)
                           let totalVal = 0, totalCost = 0
                           let krVal = 0, krCost = 0, usVal = 0, usCost = 0
                           const themeVal: Record<string, number> = {}
                           const themeCost: Record<string, number> = {}
                           for (const k of themeKeys) { themeVal[k] = 0; themeCost[k] = 0 }
+                          let hasAllPrices = true
 
                           for (const [ticker, state] of holdingStates) {
                             if (state.qty <= 0) continue
-                            const priceMap = priceLookup.get(ticker)
-                            const price = priceMap?.get(date)
-                            if (!price) continue
+                            const price = priceLookup.get(ticker)?.get(date)
+                            if (!price) { hasAllPrices = false; continue }
 
                             const isUS = state.market === 'US'
-                            const fx = isUS ? getFx(date) : 1
+                            const fx = isUS ? (fxForDate.get(date) || usdKrwRate) : 1
                             const val = price * state.qty * fx
-                            const cost = isUS ? state.cost * fx : state.cost
+                            // Cost: use historical KRW cost (fixed, not affected by daily FX)
+                            const cost = isUS ? state.krwCost : state.cost
 
                             totalVal += val; totalCost += cost
                             if (isUS) { usVal += val; usCost += cost } else { krVal += val; krCost += cost }
@@ -4797,9 +4803,9 @@ export default function WillowManagementPage() {
                             themeCost[group] = (themeCost[group] || 0) + cost
                           }
 
-                          if (totalCost === 0) continue // no holdings yet
+                          if (totalCost === 0 || !hasAllPrices) continue
 
-                          const entry: typeof trendData[0] = {
+                          const entry: { date: string; [key: string]: number | string } = {
                             date,
                             전체value: Math.round(totalVal), 전체pnl: Math.round(totalVal - totalCost),
                             전체pct: totalCost > 0 ? Math.round((totalVal - totalCost) / totalCost * 1000) / 10 : 0,
