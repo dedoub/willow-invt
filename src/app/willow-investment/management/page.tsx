@@ -2316,19 +2316,23 @@ export default function WillowManagementPage() {
   }
 
   // 각 시장의 로컬 시간 기준으로 "오늘"/"어제" 판단
-  // Yahoo Finance가 반환하는 일간 변동은 해당 시장의 마지막 거래일 기준
-  // 한국 낮에 미국 주식의 마지막 거래일은 "어제"(미국 시간 전날)
+  // 개장시각 ~ 자정: "오늘", 자정 ~ 개장전: "어제"
   const getDailyLabel = (market: 'KR' | 'US' | 'mixed') => {
-    if (market === 'KR') return '오늘'
-    if (market === 'US') {
-      const now = new Date()
-      const etDate = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
-      const kstDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-      // ET 날짜 < KST 날짜 → 미국은 아직 전날 = "어제"
-      if (etDate < kstDate) return '어제'
-      return '오늘'
+    const now = new Date()
+    if (market === 'KR') {
+      // KRX 개장 9:00 KST
+      const kstHour = parseInt(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul', hour: 'numeric', hour12: false }))
+      return kstHour >= 9 ? '오늘' : '어제'
     }
-    return '오늘'
+    if (market === 'US') {
+      // NYSE/NASDAQ 개장 9:30 ET
+      const etHour = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }))
+      const etMin = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', minute: 'numeric' }))
+      return (etHour > 9 || (etHour === 9 && etMin >= 30)) ? '오늘' : '어제'
+    }
+    // mixed: KR 기준
+    const kstHour = parseInt(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul', hour: 'numeric', hour12: false }))
+    return kstHour >= 9 ? '오늘' : '어제'
   }
 
   const handleSaveTrade = async () => {
@@ -5833,17 +5837,6 @@ export default function WillowManagementPage() {
                       </button>
                     ))}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-slate-400 mr-0.5">기간</span>
-                    {[{ v: '6', l: '6월' }, { v: '12', l: '1년' }, { v: '24', l: '2년' }, { v: 'all', l: '전체' }].map(p => (
-                      <button key={p.v} onClick={() => setRePeriodFilter(p.v)}
-                        className={cn('px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors',
-                          rePeriodFilter === p.v ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-                        )}>
-                        {p.l}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 {isLoadingRe ? (
@@ -5965,7 +5958,16 @@ export default function WillowManagementPage() {
                             </div>
                           )}
                         </div>
-                        <table className="w-full text-xs">
+                        <table className="w-full text-xs table-fixed">
+                          <colgroup>
+                            <col className="w-[22%]" />
+                            <col className="w-[10%]" />
+                            <col className="w-[17%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[13%]" />
+                            <col className="w-[8%]" />
+                          </colgroup>
                           <thead>
                             <tr className="text-[10px] text-slate-400">
                               <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
@@ -5980,7 +5982,7 @@ export default function WillowManagementPage() {
                           <tbody>
                             {paged.map(r => (
                               <tr key={`${r.complexName}-${r.areaBand}`} className="border-t border-slate-50 dark:border-slate-600">
-                                <td className="py-1 font-medium truncate max-w-[100px]">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=a1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
+                                <td className="py-1 font-medium truncate">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=a1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.areaBand >= 60 ? '60+' : r.areaBand}평대</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
@@ -6078,7 +6080,16 @@ export default function WillowManagementPage() {
                             </div>
                           )}
                         </div>
-                        <table className="w-full text-xs">
+                        <table className="w-full text-xs table-fixed">
+                          <colgroup>
+                            <col className="w-[22%]" />
+                            <col className="w-[10%]" />
+                            <col className="w-[17%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[13%]" />
+                            <col className="w-[8%]" />
+                          </colgroup>
                           <thead>
                             <tr className="text-[10px] text-slate-400">
                               <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
@@ -6093,7 +6104,7 @@ export default function WillowManagementPage() {
                           <tbody>
                             {paged.map(r => (
                               <tr key={`${r.complexName}-${r.areaBand}`} className="border-t border-slate-50 dark:border-slate-600">
-                                <td className="py-1 font-medium truncate max-w-[100px]">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=b1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
+                                <td className="py-1 font-medium truncate">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=b1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.areaBand >= 60 ? '60+' : r.areaBand}평대</td>
                                 <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
                                 <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
