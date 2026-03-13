@@ -5847,8 +5847,9 @@ export default function WillowManagementPage() {
                     ))}
                   </div>
                   {reSummary && (reSummary.lastListingDate || reSummary.lastTradeDate) && (
-                    <span className="text-[11px] text-slate-400 ml-auto whitespace-nowrap">
-                      호가 {reSummary.lastListingDate?.slice(5).replace('-', '/')} · 실거래 {reSummary.lastTradeDate?.slice(5).replace('-', '/')}
+                    <span className="text-[11px] text-slate-400 ml-auto sm:whitespace-nowrap">
+                      <span className="hidden sm:inline">호가 {reSummary.lastListingDate?.slice(5).replace('-', '/')} · 실거래 {reSummary.lastTradeDate?.slice(5).replace('-', '/')}</span>
+                      <span className="sm:hidden leading-tight">호가 {reSummary.lastListingDate?.slice(5).replace('-', '/')}<br/>실거래 {reSummary.lastTradeDate?.slice(5).replace('-', '/')}</span>
                     </span>
                   )}
                 </div>
