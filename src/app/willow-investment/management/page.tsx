@@ -5862,29 +5862,33 @@ export default function WillowManagementPage() {
                   <>
                     {/* Summary Cards */}
                     {reSummary && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
+                      <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-2">
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
                           <div className="text-[11px] text-muted-foreground">추적 단지</div>
                           <div className="text-sm font-bold">{reSummary.trackedComplexes}개 <span className="text-[11px] text-slate-400 font-normal">({reSummary.districtCount}개구)</span></div>
                         </div>
-                        <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">최근1월 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
-                          <div className="text-sm font-bold">{reSummary.avgTradePpp?.toLocaleString() || '-'}</div>
-                        </div>
-                        <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">매도호가 괴리율</div>
-                          <div className={cn('text-sm font-bold', reSummary.tradeListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                            {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap.toFixed(1)}%
+                        <div className="grid grid-cols-2 gap-2 md:contents">
+                          <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                            <div className="text-[11px] text-muted-foreground">최근1월 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                            <div className="text-sm font-bold">{reSummary.avgTradePpp?.toLocaleString() || '-'}</div>
+                          </div>
+                          <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                            <div className="text-[11px] text-muted-foreground">매도호가 괴리율</div>
+                            <div className={cn('text-sm font-bold', reSummary.tradeListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                              {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap.toFixed(1)}%
+                            </div>
                           </div>
                         </div>
-                        <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">최근1월 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
-                          <div className="text-sm font-bold">{reSummary.avgJeonsePpp?.toLocaleString() || '-'}</div>
-                        </div>
-                        <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">전세호가 괴리율</div>
-                          <div className={cn('text-sm font-bold', reSummary.jeonseListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                            {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap.toFixed(1)}%
+                        <div className="grid grid-cols-2 gap-2 md:contents">
+                          <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                            <div className="text-[11px] text-muted-foreground">최근1월 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                            <div className="text-sm font-bold">{reSummary.avgJeonsePpp?.toLocaleString() || '-'}</div>
+                          </div>
+                          <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                            <div className="text-[11px] text-muted-foreground">전세호가 괴리율</div>
+                            <div className={cn('text-sm font-bold', reSummary.jeonseListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                              {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap.toFixed(1)}%
+                            </div>
                           </div>
                         </div>
                       </div>
