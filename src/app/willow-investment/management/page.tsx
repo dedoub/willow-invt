@@ -2319,22 +2319,22 @@ export default function WillowManagementPage() {
 
   // 각 시장의 로컬 시간 기준으로 "오늘"/"어제" 판단
   // 개장시각 ~ 자정: "오늘", 자정 ~ 개장전: "어제"
-  const getDailyLabel = (market: 'KR' | 'US' | 'mixed') => {
+  const getDailyLabel = (market: 'KR' | 'US') => {
     const now = new Date()
+    let targetDate: Date
     if (market === 'KR') {
-      // KRX 개장 9:00 KST
       const kstHour = parseInt(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul', hour: 'numeric', hour12: false }))
-      return kstHour >= 9 ? '오늘' : '어제'
-    }
-    if (market === 'US') {
-      // NYSE/NASDAQ 개장 9:30 ET
+      const kstStr = now.toLocaleString('en-US', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'numeric', day: 'numeric' })
+      targetDate = new Date(kstStr)
+      if (kstHour < 9) targetDate.setDate(targetDate.getDate() - 1)
+    } else {
       const etHour = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }))
       const etMin = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', minute: 'numeric' }))
-      return (etHour > 9 || (etHour === 9 && etMin >= 30)) ? '오늘' : '어제'
+      const etStr = now.toLocaleString('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'numeric', day: 'numeric' })
+      targetDate = new Date(etStr)
+      if (!(etHour > 9 || (etHour === 9 && etMin >= 30))) targetDate.setDate(targetDate.getDate() - 1)
     }
-    // mixed: KR 기준
-    const kstHour = parseInt(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul', hour: 'numeric', hour12: false }))
-    return kstHour >= 9 ? '오늘' : '어제'
+    return `${targetDate.getMonth() + 1}/${targetDate.getDate()}`
   }
 
   const handleSaveTrade = async () => {
@@ -4541,7 +4541,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           krDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          {getDailyLabel('KR')} {krDailyPct > 0 ? '+' : ''}{krDailyPct.toFixed(1)}%
+                                          {krDailyPct > 0 ? '+' : ''}{krDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4561,7 +4561,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           usDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          {getDailyLabel('US')} {usDailyPct > 0 ? '+' : ''}{usDailyPct.toFixed(1)}%
+                                          {usDailyPct > 0 ? '+' : ''}{usDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4579,7 +4579,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           totalDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          {getDailyLabel('mixed')} {totalDailyPct > 0 ? '+' : ''}{totalDailyPct.toFixed(1)}%
+                                          {totalDailyPct > 0 ? '+' : ''}{totalDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4687,7 +4687,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           groupDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          {getDailyLabel(items.every(i => i.market === 'KR') ? 'KR' : items.every(i => i.market === 'US') ? 'US' : 'mixed')} {groupDailyPct > 0 ? '+' : ''}{groupDailyPct.toFixed(1)}%
+                                          {groupDailyPct > 0 ? '+' : ''}{groupDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4724,6 +4724,7 @@ export default function WillowManagementPage() {
                                             h.dailyChangePercent > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                           )}>
                                             {getDailyLabel(h.market === 'US' ? 'US' : 'KR')} {h.dailyChangePercent > 0 ? '+' : ''}{h.dailyChangePercent.toFixed(1)}%
+
                                           </span>
                                         )}
                                       </div>
