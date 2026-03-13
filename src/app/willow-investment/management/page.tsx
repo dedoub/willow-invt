@@ -328,13 +328,13 @@ function DraggableScheduleCard({
         </span>
       </div>
       {schedule.description && (
-        <div className="text-muted-foreground text-[10px] mt-0.5 line-clamp-3">
+        <div className="text-muted-foreground text-[11px] mt-0.5 line-clamp-3">
           {schedule.description}
         </div>
       )}
       {/* Display connected milestones */}
       {schedule.milestones && schedule.milestones.length > 0 && (
-        <div className="text-[10px] mt-0.5 space-y-0.5">
+        <div className="text-[11px] mt-0.5 space-y-0.5">
           {schedule.milestones.map((ch) => (
             <div key={ch.id} className="flex items-start gap-1 text-blue-600 dark:text-blue-400">
               <BookOpen className="h-2.5 w-2.5 flex-shrink-0 mt-0.5" />
@@ -361,7 +361,7 @@ function DraggableScheduleCard({
         <div className="mt-0.5 space-y-0.5">
           {schedule.tasks.map((item, idx) => (
             <div key={item.id || idx} className={cn(
-              'flex items-center gap-1 text-[10px]',
+              'flex items-center gap-1 text-[11px]',
               item.is_completed ? 'text-green-600' : 'text-orange-600'
             )}>
               <ClipboardList className="h-2.5 w-2.5" />
@@ -375,7 +375,7 @@ function DraggableScheduleCard({
       {/* Legacy single task field support */}
       {!schedule.tasks?.length && schedule.task_deadline && (
         <div className={cn(
-          'flex items-center gap-1 mt-0.5 text-[10px]',
+          'flex items-center gap-1 mt-0.5 text-[11px]',
           schedule.task_completed ? 'text-green-600' : 'text-orange-600'
         )}>
           <ClipboardList className="h-2.5 w-2.5" />
@@ -568,7 +568,7 @@ function DraggableMonthScheduleCard({
       {...listeners}
       {...attributes}
       className={cn(
-        'text-[10px] px-1 py-0.5 rounded cursor-grab active:cursor-grabbing touch-none flex items-center gap-0.5',
+        'text-xs px-1 py-0.5 rounded cursor-grab active:cursor-grabbing touch-none flex items-center gap-0.5',
         isDragging && 'opacity-50',
         isDateCompleted
           ? 'bg-muted text-muted-foreground line-through'
@@ -3240,7 +3240,7 @@ export default function WillowManagementPage() {
                                       onClick={() => openMilestoneDialog(milestone.project_id, milestone)}
                                     >
                                       <span className="text-red-600 dark:text-red-400">{milestone.name}</span>
-                                      <span className="text-red-500 dark:text-red-400 text-[10px] font-medium">D+{daysOverdue}</span>
+                                      <span className="text-red-500 dark:text-red-400 text-[11px] font-medium">D+{daysOverdue}</span>
                                     </div>
                                   )
                                 })}
@@ -3265,7 +3265,7 @@ export default function WillowManagementPage() {
                                     >
                                       <span className="text-blue-600 dark:text-blue-400">{milestone.name}</span>
                                       <span className={cn(
-                                        'text-[10px] font-medium',
+                                        'text-[11px] font-medium',
                                         daysUntil === 0 ? 'text-orange-600 dark:text-orange-400' : 'text-blue-500 dark:text-blue-400'
                                       )}>
                                         {daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`}
@@ -3295,7 +3295,7 @@ export default function WillowManagementPage() {
                           {/* Memo section */}
                           <div
                             className={cn(
-                              'mb-1 p-1 rounded text-[10px] cursor-pointer transition-colors',
+                              'mb-1 p-1 rounded text-[11px] cursor-pointer transition-colors',
                               memo
                                 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200'
                                 : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
@@ -3371,7 +3371,7 @@ export default function WillowManagementPage() {
                                     </div>
                                     <div className="text-muted-foreground">{hw.schedule.title}</div>
                                     {content && (
-                                      <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
+                                      <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-2">
                                         {content}
                                       </div>
                                     )}
@@ -3425,7 +3425,7 @@ export default function WillowManagementPage() {
                                   </div>
                                   <div className="text-muted-foreground">{schedule.title}</div>
                                   {schedule.description && (
-                                    <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
+                                    <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-2">
                                       {schedule.description}
                                     </div>
                                   )}
@@ -3505,7 +3505,7 @@ export default function WillowManagementPage() {
                                           : { type: 'task-item', schedule: hw.schedule, taskItem: hw.item }
                                         }
                                         className={cn(
-                                          'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
+                                          'text-xs px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
                                           isCompleted
                                             ? 'bg-muted text-muted-foreground line-through'
                                             : 'bg-orange-100 dark:bg-orange-900/30'
@@ -3553,7 +3553,7 @@ export default function WillowManagementPage() {
                                       id={`task-schedule-month-${schedule.id}`}
                                       data={{ type: 'task-schedule', schedule }}
                                       className={cn(
-                                        'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
+                                        'text-xs px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
                                         schedule.is_completed
                                           ? 'bg-muted text-muted-foreground line-through'
                                           : 'bg-orange-100 dark:bg-orange-900/30'
@@ -3620,7 +3620,7 @@ export default function WillowManagementPage() {
                           <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
                             <ClipboardList className="h-3 w-3" />
                             <span>{schedule.title}</span>
-                            {taskItem && <span className="text-[10px] text-muted-foreground ml-1">({taskItem.content})</span>}
+                            {taskItem && <span className="text-[11px] text-muted-foreground ml-1">({taskItem.content})</span>}
                           </div>
                         </div>
                       )
@@ -4055,21 +4055,21 @@ export default function WillowManagementPage() {
                                   {/* 영업활동 */}
                                   <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
                                     <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-blue-600 mb-1">
+                                      <div className="flex items-center gap-1 text-[11px] sm:text-xs text-blue-600 mb-1">
                                         <TrendingUp className="h-3 w-3 hidden sm:block" />
                                         매출 ({data.revenueCount})
                                       </div>
                                       <p className="text-xs sm:text-sm font-bold text-blue-700">{formatKRW(data.revenue)}</p>
                                     </div>
                                     <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-orange-600 mb-1">
+                                      <div className="flex items-center gap-1 text-[11px] sm:text-xs text-orange-600 mb-1">
                                         <TrendingDown className="h-3 w-3 hidden sm:block" />
                                         비용 ({data.expenseCount})
                                       </div>
                                       <p className="text-xs sm:text-sm font-bold text-orange-700">{formatKRW(data.expense)}</p>
                                     </div>
                                     <div>
-                                      <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">영업이익</div>
+                                      <div className="text-[11px] sm:text-xs text-muted-foreground mb-1">영업이익</div>
                                       <p className={cn(
                                         'text-xs sm:text-sm font-bold',
                                         operatingCashFlow >= 0 ? 'text-slate-700 dark:text-slate-200' : 'text-red-600'
@@ -4081,21 +4081,21 @@ export default function WillowManagementPage() {
                                   {/* 투자/재무활동 + 현금흐름 */}
                                   <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-3 border-t border-slate-100 dark:border-slate-600">
                                     <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-emerald-600 mb-1">
+                                      <div className="flex items-center gap-1 text-[11px] sm:text-xs text-emerald-600 mb-1">
                                         <TrendingDown className="h-3 w-3 hidden sm:block" />
                                         자산 ({data.assetCount})
                                       </div>
                                       <p className="text-xs sm:text-sm font-bold text-emerald-700">{formatKRW(data.asset)}</p>
                                     </div>
                                     <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-purple-600 mb-1">
+                                      <div className="flex items-center gap-1 text-[11px] sm:text-xs text-purple-600 mb-1">
                                         <TrendingUp className="h-3 w-3 hidden sm:block" />
                                         부채 ({data.liabilityCount})
                                       </div>
                                       <p className="text-xs sm:text-sm font-bold text-purple-700">{formatKRW(data.liability)}</p>
                                     </div>
                                     <div>
-                                      <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">현금흐름</div>
+                                      <div className="text-[11px] sm:text-xs text-muted-foreground mb-1">현금흐름</div>
                                       <p className={cn(
                                         'text-xs sm:text-sm font-bold',
                                         totalCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'
@@ -4132,7 +4132,7 @@ export default function WillowManagementPage() {
                                           >
                                             <div className="flex items-center gap-2">
                                               <span className={cn(
-                                                'flex-shrink-0 text-[10px] w-7 text-center py-0.5 rounded font-medium',
+                                                'flex-shrink-0 text-xs w-7 text-center py-0.5 rounded font-medium',
                                                 inv.type === 'revenue' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
                                                 inv.type === 'expense' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' :
                                                 inv.type === 'asset' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' :
@@ -4298,7 +4298,7 @@ export default function WillowManagementPage() {
                                   {trade.trade_type === 'buy' ? '매수' : '매도'}
                                 </span>
                                 <span className={cn(
-                                  'px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0',
+                                  'px-1.5 py-0.5 rounded text-xs font-medium shrink-0',
                                   trade.market === 'KR' ? 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300' : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400'
                                 )}>
                                   {trade.market}
@@ -4514,7 +4514,7 @@ export default function WillowManagementPage() {
                               <button
                                 onClick={() => setPortfolioCurrencyMode(prev => prev === 'original' ? 'KRW' : 'original')}
                                 className={cn(
-                                  'px-2.5 py-1 text-[10px] font-medium rounded-full transition-colors',
+                                  'px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
                                   isKrwMode
                                     ? 'bg-slate-900 text-white dark:bg-slate-600'
                                     : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
@@ -4535,19 +4535,19 @@ export default function WillowManagementPage() {
                                     onClick={() => setPortfolioMarketFilter(prev => prev === 'KR' ? 'all' : 'KR')}
                                   >
                                     <div className="flex items-center justify-between mb-0.5">
-                                      <span className="text-[10px] text-muted-foreground">국내 {krHoldings.length}종목</span>
+                                      <span className="text-[11px] text-muted-foreground">국내 {krHoldings.length}종목</span>
                                       {krDailyPct !== 0 && (
                                         <span className={cn(
-                                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                          'text-xs font-medium px-1.5 py-0.5 rounded',
                                           krDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
                                           {getDailyLabel('KR')} {krDailyPct > 0 ? '+' : ''}{krDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-sm font-bold"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(krValue, 'KRW')}</div>
+                                    <div className="text-sm font-bold"><span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(krValue, 'KRW')}</div>
                                     <div className={cn('text-xs font-medium', krPnl > 0 ? 'text-red-600 dark:text-red-400' : krPnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{krPnl > 0 ? '+' : ''}{formatAmount(krPnl, 'KRW')} ({krPnl > 0 ? '+' : ''}{krPnlPct.toFixed(1)}%)
+                                      <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{krPnl > 0 ? '+' : ''}{formatAmount(krPnl, 'KRW')} ({krPnl > 0 ? '+' : ''}{krPnlPct.toFixed(1)}%)
                                     </div>
                                   </div>
                                   <div
@@ -4555,37 +4555,37 @@ export default function WillowManagementPage() {
                                     onClick={() => setPortfolioMarketFilter(prev => prev === 'US' ? 'all' : 'US')}
                                   >
                                     <div className="flex items-center justify-between mb-0.5">
-                                      <span className="text-[10px] text-muted-foreground">해외 {usHoldings.length}종목</span>
+                                      <span className="text-[11px] text-muted-foreground">해외 {usHoldings.length}종목</span>
                                       {usDailyPct !== 0 && (
                                         <span className={cn(
-                                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                          'text-xs font-medium px-1.5 py-0.5 rounded',
                                           usDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
                                           {getDailyLabel('US')} {usDailyPct > 0 ? '+' : ''}{usDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-sm font-bold"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{isKrwMode ? formatAmount(usValueKrw, 'KRW') : formatAmount(usValue, 'USD')}</div>
+                                    <div className="text-sm font-bold"><span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{isKrwMode ? formatAmount(usValueKrw, 'KRW') : formatAmount(usValue, 'USD')}</div>
                                     <div className={cn('text-xs font-medium', (isKrwMode ? usPnlKrw : usPnl) > 0 ? 'text-red-600 dark:text-red-400' : (isKrwMode ? usPnlKrw : usPnl) < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{isKrwMode ? (usPnlKrw > 0 ? '+' : '') + formatAmount(usPnlKrw, 'KRW') + ` (${usPnlKrw > 0 ? '+' : ''}${usPnlPctKrw.toFixed(1)}%)` : `${usPnl > 0 ? '+' : ''}${formatAmount(usPnl, 'USD')} (${usPnl > 0 ? '+' : ''}${usPnlPct.toFixed(1)}%)`}
+                                      <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{isKrwMode ? (usPnlKrw > 0 ? '+' : '') + formatAmount(usPnlKrw, 'KRW') + ` (${usPnlKrw > 0 ? '+' : ''}${usPnlPctKrw.toFixed(1)}%)` : `${usPnl > 0 ? '+' : ''}${formatAmount(usPnl, 'USD')} (${usPnl > 0 ? '+' : ''}${usPnlPct.toFixed(1)}%)`}
                                     </div>
                                   </div>
                                   {/* 전체 통합 (항상 원화 환산) */}
                                   <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
                                     <div className="flex items-center justify-between mb-0.5">
-                                      <span className="text-[10px] text-muted-foreground">전체 {holdings.length}종목 · {Math.round(usdKrwRate).toLocaleString()}원/$</span>
+                                      <span className="text-[11px] text-muted-foreground">전체 {holdings.length}종목 · {Math.round(usdKrwRate).toLocaleString()}원/$</span>
                                       {totalDailyPct !== 0 && (
                                         <span className={cn(
-                                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                          'text-xs font-medium px-1.5 py-0.5 rounded',
                                           totalDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
                                           {(() => { const kr = getDailyLabel('KR'); const us = getDailyLabel('US'); return kr === us ? kr : `${us}~${kr.split('/')[1]}` })()} {totalDailyPct > 0 ? '+' : ''}{totalDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-sm font-bold"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(totalValue, 'KRW')}</div>
+                                    <div className="text-sm font-bold"><span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(totalValue, 'KRW')}</div>
                                     <div className={cn('text-xs font-medium', totalPnl > 0 ? 'text-red-600 dark:text-red-400' : totalPnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{totalPnl > 0 ? '+' : ''}{formatAmount(totalPnl, 'KRW')} ({totalPnl > 0 ? '+' : ''}{totalPnlPct.toFixed(1)}%)
+                                      <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{totalPnl > 0 ? '+' : ''}{formatAmount(totalPnl, 'KRW')} ({totalPnl > 0 ? '+' : ''}{totalPnlPct.toFixed(1)}%)
                                     </div>
                                   </div>
                                 </div>
@@ -4645,12 +4645,12 @@ export default function WillowManagementPage() {
                                   return (
                                     <div className="flex items-center gap-2 ml-auto">
                                       {(() => { const g = calcGroup(krItems); return krItems.length > 0 && g.val > 0 ? (
-                                        <span className={cn('text-[10px] font-medium', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                        <span className={cn('text-[11px] font-medium', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
                                           KR {g.pnl > 0 ? '+' : ''}{g.pct.toFixed(1)}%
                                         </span>
                                       ) : null })()}
                                       {(() => { const g = calcGroup(usItems); return usItems.length > 0 && g.val > 0 ? (
-                                        <span className={cn('text-[10px] font-medium', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                        <span className={cn('text-[11px] font-medium', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
                                           US {g.pnl > 0 ? '+' : ''}{g.pct.toFixed(1)}%
                                         </span>
                                       ) : null })()}
@@ -4672,7 +4672,7 @@ export default function WillowManagementPage() {
                                 return (
                                   <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2 mb-2">
                                     <div className="flex items-center justify-between mb-0.5">
-                                      <span className="text-[10px] text-muted-foreground">
+                                      <span className="text-[11px] text-muted-foreground">
                                         {(() => {
                                           const kr = items.filter(i => i.market === 'KR').length
                                           const us = items.filter(i => i.market === 'US').length
@@ -4684,16 +4684,16 @@ export default function WillowManagementPage() {
                                       </span>
                                       {groupDailyPct !== 0 && (
                                         <span className={cn(
-                                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                                          'text-xs font-medium px-1.5 py-0.5 rounded',
                                           groupDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
                                           {(() => { const allKR = items.every(i => i.market === 'KR'); const allUS = items.every(i => i.market === 'US'); if (allKR) return getDailyLabel('KR'); if (allUS) return getDailyLabel('US'); const kr = getDailyLabel('KR'); const us = getDailyLabel('US'); return kr === us ? kr : `${us}~${kr.split('/')[1]}`; })()} {groupDailyPct > 0 ? '+' : ''}{groupDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-sm font-bold"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(g.val, 'KRW')}</div>
+                                    <div className="text-sm font-bold"><span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(g.val, 'KRW')}</div>
                                     <div className={cn('text-xs font-medium', g.pnl > 0 ? 'text-red-600 dark:text-red-400' : g.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{g.pnl > 0 ? '+' : ''}{formatAmount(g.pnl, 'KRW')} ({g.pnl > 0 ? '+' : ''}{g.pct.toFixed(1)}%)
+                                      <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{g.pnl > 0 ? '+' : ''}{formatAmount(g.pnl, 'KRW')} ({g.pnl > 0 ? '+' : ''}{g.pct.toFixed(1)}%)
                                     </div>
                                   </div>
                                 )
@@ -4713,14 +4713,14 @@ export default function WillowManagementPage() {
                                       <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-1.5 min-w-0">
                                           <span className="font-medium text-sm truncate">{h.company_name}</span>
-                                          <span className="text-[10px] text-muted-foreground shrink-0">{h.ticker}</span>
+                                          <span className="text-[11px] text-muted-foreground shrink-0">{h.ticker}</span>
                                           {h.themes.map((t) => (
-                                            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400 shrink-0">{t}</span>
+                                            <span key={t} className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400 shrink-0">{t}</span>
                                           ))}
                                         </div>
                                         {h.dailyChangePercent !== 0 && (
                                           <span className={cn(
-                                            'text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ml-1',
+                                            'text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ml-1',
                                             h.dailyChangePercent > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                           )}>
                                             {getDailyLabel(h.market === 'US' ? 'US' : 'KR')} {h.dailyChangePercent > 0 ? '+' : ''}{h.dailyChangePercent.toFixed(1)}%
@@ -4730,31 +4730,31 @@ export default function WillowManagementPage() {
                                       </div>
                                       {/* 2열 그리드: 좌=매수/투자/보유, 우=현재/평가/누적 */}
                                       <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1.5 text-xs">
-                                        <span className="text-muted-foreground"><span className="text-[10px] text-slate-400 dark:text-slate-500">매수 </span>{fmtCur(h.avgBuyPrice)} <span className="text-slate-400 dark:text-slate-500">x</span> {h.netQty.toLocaleString()}주</span>
+                                        <span className="text-muted-foreground"><span className="text-[11px] text-slate-400 dark:text-slate-500">매수 </span>{fmtCur(h.avgBuyPrice)} <span className="text-slate-400 dark:text-slate-500">x</span> {h.netQty.toLocaleString()}주</span>
                                         {h.currentPrice > 0 ? (
-                                          <span className="text-muted-foreground"><span className="text-[10px] text-slate-400 dark:text-slate-500">현재 </span>{fmtCur(h.currentPrice)}</span>
+                                          <span className="text-muted-foreground"><span className="text-[11px] text-slate-400 dark:text-slate-500">현재 </span>{fmtCur(h.currentPrice)}</span>
                                         ) : (
                                           <span className="text-slate-300">-</span>
                                         )}
-                                        <span className="text-muted-foreground"><span className="text-[10px] text-slate-400 dark:text-slate-500">투자 </span>{formatAmount(toDisplay(h.totalInvested), displayCurrency)}</span>
+                                        <span className="text-muted-foreground"><span className="text-[11px] text-slate-400 dark:text-slate-500">투자 </span>{formatAmount(toDisplay(h.totalInvested), displayCurrency)}</span>
                                         {h.currentPrice > 0 ? (
-                                          <span className="font-medium"><span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(toDisplay(h.currentValue), displayCurrency)}</span>
+                                          <span className="font-medium"><span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">평가 </span>{formatAmount(toDisplay(h.currentValue), displayCurrency)}</span>
                                         ) : (
                                           <span className="text-slate-300">-</span>
                                         )}
                                         {h.currentPrice > 0 && (
                                           <>
                                             <span className="text-muted-foreground flex items-center gap-1.5">
-                                              <span><span className="text-[10px] text-slate-400 dark:text-slate-500">보유 </span>{h.holdingDays.toLocaleString()}일</span>
+                                              <span><span className="text-[11px] text-slate-400 dark:text-slate-500">보유 </span>{h.holdingDays.toLocaleString()}일</span>
                                               {h.irr != null && h.irr !== 0 && (
-                                                <><span>·</span><span><span className="text-[10px] text-slate-400 dark:text-slate-500">IRR </span>{h.irr > 0 ? '+' : ''}{(h.irr * 100).toFixed(1)}%</span></>
+                                                <><span>·</span><span><span className="text-[11px] text-slate-400 dark:text-slate-500">IRR </span>{h.irr > 0 ? '+' : ''}{(h.irr * 100).toFixed(1)}%</span></>
                                               )}
                                             </span>
                                             <span className={cn(
                                               'font-medium',
                                               h.pnl > 0 ? 'text-red-600 dark:text-red-400' : h.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'
                                             )}>
-                                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{h.pnl > 0 ? '+' : ''}{formatAmount(toDisplay(h.pnl), displayCurrency)} ({h.pnl > 0 ? '+' : ''}{h.pnlPercent.toFixed(1)}%)
+                                              <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">누적 </span>{h.pnl > 0 ? '+' : ''}{formatAmount(toDisplay(h.pnl), displayCurrency)} ({h.pnl > 0 ? '+' : ''}{h.pnlPercent.toFixed(1)}%)
                                             </span>
                                           </>
                                         )}
@@ -4960,7 +4960,7 @@ export default function WillowManagementPage() {
                               <div className="flex gap-1">
                                 {(['total', 'group', 'market'] as const).map(m => (
                                   <button key={m} onClick={() => setTrendViewMode(m)}
-                                    className={cn('px-2 py-0.5 text-[10px] rounded-full transition-colors',
+                                    className={cn('px-2 py-0.5 text-xs rounded-full transition-colors',
                                       trendViewMode === m ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
                                     )}>
                                     {m === 'total' ? '전체' : m === 'group' ? '그룹별' : '국내/해외'}
@@ -4974,7 +4974,7 @@ export default function WillowManagementPage() {
                                 const lastPoint = sampled[sampled.length - 1]
                                 return (
                                   <div key={suffix}>
-                                    <div className="text-[10px] text-slate-400 mb-1">{label}</div>
+                                    <div className="text-[11px] text-slate-400 mb-1">{label}</div>
                                     <ResponsiveContainer width="100%" height={160}>
                                       <LineChart data={sampled} margin={{ top: 12, right: 20, bottom: 5, left: 0 }}
                                         onMouseMove={() => { if (!trendTooltipActive) setTrendTooltipActive(true) }}
@@ -5059,7 +5059,7 @@ export default function WillowManagementPage() {
                                   { key: '수익금', label: '수익금 (만원)', color: '#10b981' },
                                 ].map(({ key, label, color }) => (
                                   <div key={key}>
-                                    <div className="text-[10px] text-center text-slate-400 mb-1">{label}</div>
+                                    <div className="text-[11px] text-center text-slate-400 mb-1">{label}</div>
                                     <ResponsiveContainer width="100%" height={180}>
                                       <RadarChart data={themeRadarData} cx="50%" cy="50%" outerRadius="70%">
                                         <PolarGrid stroke="#e2e8f0" />
@@ -5083,7 +5083,7 @@ export default function WillowManagementPage() {
                                   { key: '수익금', label: '수익금 (만원)', color: '#10b981' },
                                 ].map(({ key, label, color }) => (
                                   <div key={key}>
-                                    <div className="text-[10px] text-center text-slate-400 mb-1">{label}</div>
+                                    <div className="text-[11px] text-center text-slate-400 mb-1">{label}</div>
                                     <ResponsiveContainer width="100%" height={220}>
                                       <RadarChart data={stockRadarData} cx="50%" cy="50%" outerRadius="65%">
                                         <PolarGrid stroke="#e2e8f0" />
@@ -5141,15 +5141,15 @@ export default function WillowManagementPage() {
                                       return (
                                         <div key={d.chain}>
                                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
-                                            <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium', aiChainBadge[d.chain])}>
+                                            <span className={cn('px-1.5 py-0.5 rounded text-xs font-medium', aiChainBadge[d.chain])}>
                                               {d.chain}
                                             </span>
-                                            <span className="text-[10px] text-slate-400">{d.items.length}종목 · 비중 {weightPct.toFixed(0)}%</span>
-                                            <span className={cn('text-[10px] font-medium ml-auto', d.pnl > 0 ? 'text-red-600 dark:text-red-400' : d.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
+                                            <span className="text-[11px] text-slate-400">{d.items.length}종목 · 비중 {weightPct.toFixed(0)}%</span>
+                                            <span className={cn('text-[11px] font-medium ml-auto', d.pnl > 0 ? 'text-red-600 dark:text-red-400' : d.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
                                               {d.pnl > 0 ? '+' : ''}{formatAmount(d.pnl, 'KRW')} ({d.pnl > 0 ? '+' : ''}{d.pct.toFixed(1)}%)
                                             </span>
                                           </div>
-                                          <div className="flex items-center gap-3 text-[10px] text-muted-foreground mb-1.5">
+                                          <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-1.5">
                                             <span>투자 {formatAmount(d.invested, 'KRW')}</span>
                                             <span>→</span>
                                             <span className="font-medium text-foreground">{formatAmount(d.value, 'KRW')}</span>
@@ -5158,7 +5158,7 @@ export default function WillowManagementPage() {
                                             {d.items.sort((a, b) => (b.currency === 'USD' ? b.pnl * usdKrwRate : b.pnl) - (a.currency === 'USD' ? a.pnl * usdKrwRate : a.pnl)).map(h => {
                                               const krwPnl = h.currency === 'USD' ? h.pnl * usdKrwRate : h.pnl
                                               return (
-                                                <span key={h.ticker} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600">
+                                                <span key={h.ticker} className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600">
                                                   <span className="text-slate-600 dark:text-slate-300">{h.company_name}</span>
                                                   <span className={cn('font-medium', h.pnl > 0 ? 'text-red-600 dark:text-red-400' : h.pnl < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}>
                                                     {h.pnl > 0 ? '+' : ''}{Math.round(krwPnl / 10000).toLocaleString()}만 ({h.pnl > 0 ? '+' : ''}{h.pnlPercent.toFixed(0)}%)
@@ -5702,7 +5702,7 @@ export default function WillowManagementPage() {
                                   })
                                 }}
                               >
-                                <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0', verdictStyle(r.verdict))}>
+                                <span className={cn('px-1.5 py-0.5 rounded text-xs font-medium shrink-0', verdictStyle(r.verdict))}>
                                   {verdictLabel(r.verdict)}
                                 </span>
                                 <span className="font-medium text-sm">{r.ticker}</span>
@@ -5721,7 +5721,7 @@ export default function WillowManagementPage() {
                               {r.sector_tags && r.sector_tags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {r.sector_tags.map((tag) => (
-                                    <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{tag}</span>
+                                    <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{tag}</span>
                                   ))}
                                 </div>
                               )}
@@ -5749,7 +5749,7 @@ export default function WillowManagementPage() {
                                     <p className="text-xs text-muted-foreground"><span className="font-medium">메모:</span> {r.notes}</p>
                                   )}
                                   <div className="flex items-center justify-between pt-1">
-                                    <span className="text-[10px] text-muted-foreground">{r.scan_date} · {r.source}</span>
+                                    <span className="text-[11px] text-muted-foreground">{r.scan_date} · {r.source}</span>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); openEditResearchModal(r) }}
                                       className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
@@ -5804,15 +5804,15 @@ export default function WillowManagementPage() {
                 {/* Filter Bar: 단지 + 평형 + 기간 한 줄 */}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-slate-400 mr-0.5">단지</span>
+                    <span className="text-[11px] text-slate-400 mr-0.5">단지</span>
                     {reComplexFilter.length === 0 ? (
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500">전체 ({reComplexes.length}개)</span>
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500">전체 ({reComplexes.length}개)</span>
                     ) : (
                       reComplexFilter.map(id => {
                         const c = reComplexes.find(x => x.id === id)
                         return c ? (
                           <button key={id} onClick={() => setReComplexFilter(prev => prev.filter(x => x !== id))}
-                            className="px-2 py-0.5 text-[10px] rounded-full bg-slate-900 text-white dark:bg-slate-500 flex items-center gap-1">
+                            className="px-2 py-0.5 text-xs rounded-full bg-slate-900 text-white dark:bg-slate-500 flex items-center gap-1">
                             {c.name} <X className="h-2.5 w-2.5" />
                           </button>
                         ) : null
@@ -5825,7 +5825,7 @@ export default function WillowManagementPage() {
                           setReComplexFilter(prev => [...prev, e.target.value])
                         }
                       }}
-                      className="text-[10px] bg-white dark:bg-slate-700 rounded px-1.5 py-0.5 cursor-pointer"
+                      className="text-xs bg-white dark:bg-slate-700 rounded px-1.5 py-0.5 cursor-pointer"
                     >
                       <option value="">+</option>
                       {reComplexes
@@ -5836,10 +5836,10 @@ export default function WillowManagementPage() {
                     </select>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-slate-400 mr-0.5">평형</span>
+                    <span className="text-[11px] text-slate-400 mr-0.5">평형</span>
                     {[{ v: '', l: '전체' }, { v: '20', l: '20평' }, { v: '30', l: '30평' }, { v: '40', l: '40평' }, { v: '50', l: '50평' }, { v: '60+', l: '60+' }].map(a => (
                       <button key={a.v} onClick={() => setReAreaFilter(a.v)}
-                        className={cn('px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors',
+                        className={cn('px-2 py-0.5 text-xs font-medium rounded-full transition-colors',
                           reAreaFilter === a.v ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                         )}>
                         {a.l}
@@ -5847,7 +5847,7 @@ export default function WillowManagementPage() {
                     ))}
                   </div>
                   {reSummary && (reSummary.lastListingDate || reSummary.lastTradeDate) && (
-                    <span className="text-[10px] text-slate-400 ml-auto whitespace-nowrap">
+                    <span className="text-[11px] text-slate-400 ml-auto whitespace-nowrap">
                       호가 {reSummary.lastListingDate?.slice(5).replace('-', '/')} · 실거래 {reSummary.lastTradeDate?.slice(5).replace('-', '/')}
                     </span>
                   )}
@@ -5864,25 +5864,25 @@ export default function WillowManagementPage() {
                     {reSummary && (
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[10px] text-muted-foreground">추적 단지</div>
-                          <div className="text-sm font-bold">{reSummary.trackedComplexes}개 <span className="text-[10px] text-slate-400 font-normal">({reSummary.districtCount}개구)</span></div>
+                          <div className="text-[11px] text-muted-foreground">추적 단지</div>
+                          <div className="text-sm font-bold">{reSummary.trackedComplexes}개 <span className="text-[11px] text-slate-400 font-normal">({reSummary.districtCount}개구)</span></div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[10px] text-muted-foreground">최근1월 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                          <div className="text-[11px] text-muted-foreground">최근1월 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
                           <div className="text-sm font-bold">{reSummary.avgTradePpp?.toLocaleString() || '-'}</div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[10px] text-muted-foreground">매도호가 괴리율</div>
+                          <div className="text-[11px] text-muted-foreground">매도호가 괴리율</div>
                           <div className={cn('text-sm font-bold', reSummary.tradeListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
                             {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap.toFixed(1)}%
                           </div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[10px] text-muted-foreground">최근1월 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                          <div className="text-[11px] text-muted-foreground">최근1월 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
                           <div className="text-sm font-bold">{reSummary.avgJeonsePpp?.toLocaleString() || '-'}</div>
                         </div>
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[10px] text-muted-foreground">전세호가 괴리율</div>
+                          <div className="text-[11px] text-muted-foreground">전세호가 괴리율</div>
                           <div className={cn('text-sm font-bold', reSummary.jeonseListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
                             {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap.toFixed(1)}%
                           </div>
@@ -5894,7 +5894,7 @@ export default function WillowManagementPage() {
                     {reTrades && reTrades.months.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">매매 실거래가 추이 <span className="text-[10px] text-slate-400 font-normal">(평당가, 만원)</span></span>
+                          <span className="text-xs font-medium">매매 실거래가 추이 <span className="text-[11px] text-slate-400 font-normal">(평당가, 만원)</span></span>
                           {reTrades.complexes.length > 0 && (() => {
                             // 전월 대비 변동률
                             const months = reTrades.months
@@ -5911,7 +5911,7 @@ export default function WillowManagementPage() {
                             if (prevCount === 0 || curCount === 0) return null
                             const changePct = ((curTotal / curCount - prevTotal / prevCount) / (prevTotal / prevCount)) * 100
                             return (
-                              <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded',
+                              <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded',
                                 changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                               )}>
                                 전월대비 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
@@ -5963,11 +5963,11 @@ export default function WillowManagementPage() {
                       return (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">매도 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평, 공급면적 기준)</span></span>
+                          <span className="text-xs font-medium">매도 호가 vs 실거래가 <span className="text-[11px] text-slate-400 font-normal">(만원/평, 공급면적 기준)</span></span>
                           {totalPages > 1 && (
                             <div className="flex items-center gap-1">
                               <button onClick={() => setReTradeListPage(p => Math.max(0, p - 1))} disabled={reTradeListPage === 0} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button>
-                              <span className="text-[10px] text-slate-400">{reTradeListPage + 1}/{totalPages}</span>
+                              <span className="text-[11px] text-slate-400">{reTradeListPage + 1}/{totalPages}</span>
                               <button onClick={() => setReTradeListPage(p => Math.min(totalPages - 1, p + 1))} disabled={reTradeListPage >= totalPages - 1} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronRight className="h-3.5 w-3.5" /></button>
                             </div>
                           )}
@@ -5983,7 +5983,7 @@ export default function WillowManagementPage() {
                             <col className="w-[10%]" />
                           </colgroup>
                           <thead>
-                            <tr className="text-[10px] text-slate-400">
+                            <tr className="text-[11px] text-slate-400">
                               <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
                               <th className={cn('text-right', thCls('areaBand'))} onClick={() => thClick('areaBand')}>평형</th>
                               <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>최근1월 실거래</th>
@@ -6017,7 +6017,7 @@ export default function WillowManagementPage() {
                     {reRentals && reRentals.months.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">전세 실거래가 추이 <span className="text-[10px] text-slate-400 font-normal">(평당 보증금, 만원)</span></span>
+                          <span className="text-xs font-medium">전세 실거래가 추이 <span className="text-[11px] text-slate-400 font-normal">(평당 보증금, 만원)</span></span>
                           {reRentals.complexes.length > 0 && (() => {
                             const months = reRentals.months
                             if (months.length < 2) return null
@@ -6033,7 +6033,7 @@ export default function WillowManagementPage() {
                             if (prevCount === 0 || curCount === 0) return null
                             const changePct = ((curTotal / curCount - prevTotal / prevCount) / (prevTotal / prevCount)) * 100
                             return (
-                              <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded',
+                              <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded',
                                 changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                               )}>
                                 전월대비 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
@@ -6085,11 +6085,11 @@ export default function WillowManagementPage() {
                       return (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">전세 호가 vs 실거래가 <span className="text-[10px] text-slate-400 font-normal">(만원/평, 공급면적 기준)</span></span>
+                          <span className="text-xs font-medium">전세 호가 vs 실거래가 <span className="text-[11px] text-slate-400 font-normal">(만원/평, 공급면적 기준)</span></span>
                           {totalPages > 1 && (
                             <div className="flex items-center gap-1">
                               <button onClick={() => setReJeonseListPage(p => Math.max(0, p - 1))} disabled={reJeonseListPage === 0} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button>
-                              <span className="text-[10px] text-slate-400">{reJeonseListPage + 1}/{totalPages}</span>
+                              <span className="text-[11px] text-slate-400">{reJeonseListPage + 1}/{totalPages}</span>
                               <button onClick={() => setReJeonseListPage(p => Math.min(totalPages - 1, p + 1))} disabled={reJeonseListPage >= totalPages - 1} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronRight className="h-3.5 w-3.5" /></button>
                             </div>
                           )}
@@ -6105,7 +6105,7 @@ export default function WillowManagementPage() {
                             <col className="w-[10%]" />
                           </colgroup>
                           <thead>
-                            <tr className="text-[10px] text-slate-400">
+                            <tr className="text-[11px] text-slate-400">
                               <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
                               <th className={cn('text-right', thCls('areaBand'))} onClick={() => thClick('areaBand')}>평형</th>
                               <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>최근1월 실거래</th>
@@ -6656,7 +6656,7 @@ export default function WillowManagementPage() {
                                   {cat.category}
                                 </span>
                                 <span className="text-xs text-slate-500 dark:text-slate-400">{cat.emailCount} emails</span>
-                                <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-auto">{currentIndex + 1}/{aiAnalysis.categories.length}</span>
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500 ml-auto">{currentIndex + 1}/{aiAnalysis.categories.length}</span>
                               </div>
                               <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">{cat.summary}</p>
 
@@ -6664,7 +6664,7 @@ export default function WillowManagementPage() {
                               {cat.recentTopics && cat.recentTopics.length > 0 && (
                                 <div className="mb-2 flex flex-wrap gap-1">
                                   {cat.recentTopics.map((topic, idx) => (
-                                    <span key={idx} className="px-1.5 py-px bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded text-[10px]">
+                                    <span key={idx} className="px-1.5 py-px bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded text-xs">
                                       {topic}
                                     </span>
                                   ))}
@@ -6905,7 +6905,7 @@ export default function WillowManagementPage() {
                               <span className="font-medium text-sm truncate">{project.name}</span>
                               {project.status !== 'active' && (
                                 <span className={cn(
-                                  'text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0',
+                                  'text-xs px-1.5 py-0.5 rounded-full flex-shrink-0',
                                   project.status === 'completed' && 'bg-green-100 text-green-700',
                                   project.status === 'on_hold' && 'bg-yellow-100 text-yellow-700',
                                   project.status === 'cancelled' && 'bg-red-100 text-red-700'
@@ -7291,24 +7291,24 @@ export default function WillowManagementPage() {
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground w-8">목표</span>
+                          <span className="text-[11px] text-muted-foreground w-8">목표</span>
                           <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-all opacity-40"
                               style={{ width: `${targetPercent}%`, backgroundColor: client.color }}
                             />
                           </div>
-                          <span className="text-[10px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
+                          <span className="text-[11px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground w-8">실제</span>
+                          <span className="text-[11px] text-muted-foreground w-8">실제</span>
                           <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-all"
                               style={{ width: `${actualPercent}%`, backgroundColor: client.color }}
                             />
                           </div>
-                          <span className="text-[10px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
+                          <span className="text-[11px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
                         </div>
                       </div>
                     </div>
