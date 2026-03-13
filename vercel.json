@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/real-estate-sync",
+      "schedule": "13 22 * * *"
+    }
+  ]
+}
