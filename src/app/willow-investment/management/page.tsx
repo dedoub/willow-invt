@@ -5803,7 +5803,7 @@ export default function WillowManagementPage() {
               <div className="space-y-4">
                 {/* Filter Bar: 단지 + 평형 + 기간 한 줄 */}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 w-full sm:w-auto flex-wrap">
                     <span className="text-[11px] text-slate-400 mr-0.5">단지</span>
                     {reComplexFilter.length === 0 ? (
                       <span className="text-[11px] text-slate-400 dark:text-slate-500">전체 ({reComplexes.length}개)</span>
@@ -5847,9 +5847,8 @@ export default function WillowManagementPage() {
                     ))}
                   </div>
                   {reSummary && (reSummary.lastListingDate || reSummary.lastTradeDate) && (
-                    <span className="text-[11px] text-slate-400 ml-auto sm:whitespace-nowrap">
-                      <span className="hidden sm:inline">호가 {reSummary.lastListingDate?.slice(5).replace('-', '/')} · 실거래 {reSummary.lastTradeDate?.slice(5).replace('-', '/')}</span>
-                      <span className="sm:hidden leading-tight">호가 {reSummary.lastListingDate?.slice(5).replace('-', '/')}<br/>실거래 {reSummary.lastTradeDate?.slice(5).replace('-', '/')}</span>
+                    <span className="text-[11px] text-slate-400 sm:ml-auto whitespace-nowrap">
+                      호가 {reSummary.lastListingDate?.slice(5).replace('-', '/')} · 실거래 {reSummary.lastTradeDate?.slice(5).replace('-', '/')}
                     </span>
                   )}
                 </div>
@@ -5987,7 +5986,7 @@ export default function WillowManagementPage() {
                             <tr className="text-[11px] text-slate-400">
                               <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
                               <th className={cn('text-right', thCls('areaBand'))} onClick={() => thClick('areaBand')}>평형</th>
-                              <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>최근1월 실거래</th>
+                              <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>실거래</th>
                               <th className={cn('text-right', thCls('listingMinPpp'))} onClick={() => thClick('listingMinPpp')}>호가(저)</th>
                               <th className={cn('text-right', thCls('listingMaxPpp'))} onClick={() => thClick('listingMaxPpp')}>호가(고)</th>
                               <th className={cn('text-right', thCls('gap'))} onClick={() => thClick('gap')}>괴리율</th>
@@ -6109,7 +6108,7 @@ export default function WillowManagementPage() {
                             <tr className="text-[11px] text-slate-400">
                               <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
                               <th className={cn('text-right', thCls('areaBand'))} onClick={() => thClick('areaBand')}>평형</th>
-                              <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>최근1월 실거래</th>
+                              <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>실거래</th>
                               <th className={cn('text-right', thCls('listingMinPpp'))} onClick={() => thClick('listingMinPpp')}>호가(저)</th>
                               <th className={cn('text-right', thCls('listingMaxPpp'))} onClick={() => thClick('listingMaxPpp')}>호가(고)</th>
                               <th className={cn('text-right', thCls('gap'))} onClick={() => thClick('gap')}>괴리율</th>
