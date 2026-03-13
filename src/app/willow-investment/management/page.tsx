@@ -4541,7 +4541,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           krDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          {krDailyPct > 0 ? '+' : ''}{krDailyPct.toFixed(1)}%
+                                          {getDailyLabel('KR')} {krDailyPct > 0 ? '+' : ''}{krDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4561,7 +4561,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           usDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          {usDailyPct > 0 ? '+' : ''}{usDailyPct.toFixed(1)}%
+                                          {getDailyLabel('US')} {usDailyPct > 0 ? '+' : ''}{usDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4579,7 +4579,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           totalDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          {totalDailyPct > 0 ? '+' : ''}{totalDailyPct.toFixed(1)}%
+                                          {(() => { const kr = getDailyLabel('KR'); const us = getDailyLabel('US'); return kr === us ? kr : `${us}~${kr.split('/')[1]}` })()} {totalDailyPct > 0 ? '+' : ''}{totalDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
@@ -4687,7 +4687,7 @@ export default function WillowManagementPage() {
                                           'text-[10px] font-medium px-1.5 py-0.5 rounded',
                                           groupDailyPct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                         )}>
-                                          {groupDailyPct > 0 ? '+' : ''}{groupDailyPct.toFixed(1)}%
+                                          {(() => { const allKR = items.every(i => i.market === 'KR'); const allUS = items.every(i => i.market === 'US'); if (allKR) return getDailyLabel('KR'); if (allUS) return getDailyLabel('US'); const kr = getDailyLabel('KR'); const us = getDailyLabel('US'); return kr === us ? kr : `${us}~${kr.split('/')[1]}`; })()} {groupDailyPct > 0 ? '+' : ''}{groupDailyPct.toFixed(1)}%
                                         </span>
                                       )}
                                     </div>
