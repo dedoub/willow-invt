@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { TiptapEditor, plainTextToHtml } from '@/components/ui/tiptap-editor'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n'
 import { gmailService, ParsedEmail, EmailSyncStatus, OverallAnalysisResult, SavedTodo, SavedAnalysis } from '@/lib/gmail'
@@ -71,6 +72,7 @@ import {
   Ban,
   Building,
   Search,
+  Maximize2,
 } from 'lucide-react'
 import { useRef } from 'react'
 
@@ -1511,6 +1513,7 @@ export default function ETCPage() {
   const [wikiSearch, setWikiSearch] = useState('')
   const [wikiPage, setWikiPage] = useState(1)
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
+  const [viewingNote, setViewingNote] = useState<WikiNote | null>(null)
   const WIKI_PER_PAGE = 5
 
   // ETF 데이터 로드
@@ -3338,6 +3341,12 @@ Dongwook`
                           </div>
                           <div className="flex items-center gap-1">
                             <button
+                              onClick={() => setViewingNote(note)}
+                              className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 cursor-pointer"
+                            >
+                              <Maximize2 className="h-3 w-3" />
+                            </button>
+                            <button
                               onClick={() => handleTogglePin(note)}
                               className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${note.is_pinned ? 'text-amber-500' : 'text-slate-400'}`}
                             >
@@ -3454,6 +3463,41 @@ Dongwook`
           </CardContent>
         </Card>
       </div>
+
+      {/* Wiki View Modal */}
+      <Dialog open={!!viewingNote} onOpenChange={(open) => !open && setViewingNote(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              {viewingNote?.is_pinned && <Pin className="h-4 w-4 text-amber-500" />}
+              {viewingNote?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 px-1 -mx-1 py-4">
+            <div
+              className="wiki-content text-sm text-slate-600 dark:text-slate-400"
+              dangerouslySetInnerHTML={{ __html: viewingNote?.content?.startsWith('<') ? viewingNote.content : plainTextToHtml(viewingNote?.content || '') }}
+            />
+            {viewingNote?.attachments && viewingNote.attachments.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {viewingNote.attachments.map((att, idx) => (
+                  <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-2 py-1 text-slate-600 dark:text-slate-300">
+                    <Paperclip className="h-3 w-3" /><span>{att.name}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex-shrink-0 pt-4 border-t flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              작성 {viewingNote && new Date(viewingNote.created_at).toLocaleDateString('ko-KR')}
+              {viewingNote && viewingNote.updated_at !== viewingNote.created_at && ` · 수정 ${new Date(viewingNote.updated_at).toLocaleDateString('ko-KR')}`}
+            </p>
+            <Button size="sm" variant="outline" onClick={() => { setEditingNote(viewingNote); setViewingNote(null) }}>수정</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Email Section - Full Width, 2 Columns */}
       <Card className="bg-slate-100 dark:bg-slate-800">
