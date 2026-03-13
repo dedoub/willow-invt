@@ -5896,7 +5896,7 @@ export default function WillowManagementPage() {
 
                     {/* Section 1: 매매 실거래가 추이 */}
                     {reTrades && reTrades.months.length > 0 && (
-                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-medium">매매 실거래가 추이 <span className="text-[11px] text-slate-400 font-normal">(평당가, 만원)</span></span>
                           {reTrades.complexes.length > 0 && (() => {
@@ -6019,7 +6019,7 @@ export default function WillowManagementPage() {
 
                     {/* Section 3: 전세 실거래가 추이 */}
                     {reRentals && reRentals.months.length > 0 && (
-                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-medium">전세 실거래가 추이 <span className="text-[11px] text-slate-400 font-normal">(평당 보증금, 만원)</span></span>
                           {reRentals.complexes.length > 0 && (() => {
