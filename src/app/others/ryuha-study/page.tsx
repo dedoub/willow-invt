@@ -276,13 +276,13 @@ function DraggableScheduleCard({
         </span>
       </div>
       {schedule.description && (
-        <div className="text-muted-foreground text-[10px] mt-0.5 line-clamp-3">
+        <div className="text-muted-foreground text-[11px] mt-0.5 line-clamp-3">
           {schedule.description}
         </div>
       )}
       {/* Display connected chapters */}
       {schedule.chapters && schedule.chapters.length > 0 && (
-        <div className="text-[10px] mt-0.5 space-y-0.5">
+        <div className="text-[11px] mt-0.5 space-y-0.5">
           {schedule.chapters.map((ch) => (
             <div key={ch.id} className="flex items-start gap-1 text-blue-600 dark:text-blue-400">
               <BookOpen className="h-2.5 w-2.5 flex-shrink-0 mt-0.5" />
@@ -309,7 +309,7 @@ function DraggableScheduleCard({
         <div className="mt-0.5 space-y-0.5">
           {schedule.homework_items.map((item, idx) => (
             <div key={item.id || idx} className={cn(
-              'flex items-center gap-1 text-[10px]',
+              'flex items-center gap-1 text-[11px]',
               item.is_completed ? 'text-green-600' : 'text-orange-600'
             )}>
               <ClipboardList className="h-2.5 w-2.5" />
@@ -323,7 +323,7 @@ function DraggableScheduleCard({
       {/* Legacy single homework field support */}
       {!schedule.homework_items?.length && schedule.homework_deadline && (
         <div className={cn(
-          'flex items-center gap-1 mt-0.5 text-[10px]',
+          'flex items-center gap-1 mt-0.5 text-[11px]',
           schedule.homework_completed ? 'text-green-600' : 'text-orange-600'
         )}>
           <ClipboardList className="h-2.5 w-2.5" />
@@ -417,7 +417,7 @@ function DraggableHomeworkItem({
           </div>
           <div className="text-muted-foreground">{hw.schedule.title}</div>
           {content && (
-            <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
+            <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-2">
               {content}
             </div>
           )}
@@ -459,7 +459,7 @@ function DraggableMonthHomeworkItem({
       {...listeners}
       {...attributes}
       className={cn(
-        'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-grab active:cursor-grabbing touch-none',
+        'text-xs px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-grab active:cursor-grabbing touch-none',
         isDragging && 'opacity-50',
         isCompleted
           ? 'bg-muted text-muted-foreground line-through'
@@ -636,7 +636,7 @@ function DraggableMonthScheduleCard({
       {...listeners}
       {...attributes}
       className={cn(
-        'text-[10px] px-1 py-0.5 rounded cursor-grab active:cursor-grabbing touch-none flex items-center gap-0.5',
+        'text-xs px-1 py-0.5 rounded cursor-grab active:cursor-grabbing touch-none flex items-center gap-0.5',
         isDragging && 'opacity-50',
         isDateCompleted
           ? 'bg-muted text-muted-foreground line-through'
@@ -2559,24 +2559,24 @@ export default function RyuhaStudyPage() {
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground w-8">목표</span>
+                          <span className="text-[11px] text-muted-foreground w-8">목표</span>
                           <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-all opacity-40"
                               style={{ width: `${targetPercent}%`, backgroundColor: subject.color }}
                             />
                           </div>
-                          <span className="text-[10px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
+                          <span className="text-[11px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground w-8">실제</span>
+                          <span className="text-[11px] text-muted-foreground w-8">실제</span>
                           <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-all"
                               style={{ width: `${actualPercent}%`, backgroundColor: subject.color }}
                             />
                           </div>
-                          <span className="text-[10px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
+                          <span className="text-[11px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
                         </div>
                       </div>
                     </div>
@@ -2721,7 +2721,7 @@ export default function RyuhaStudyPage() {
                                       onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
                                     >
                                       <span className="text-red-600 dark:text-red-400">{chapter.name}</span>
-                                      <span className="text-red-500 dark:text-red-400 text-[10px] font-medium">D+{daysOverdue}</span>
+                                      <span className="text-red-500 dark:text-red-400 text-xs font-medium">D+{daysOverdue}</span>
                                     </div>
                                   )
                                 })}
@@ -2746,7 +2746,7 @@ export default function RyuhaStudyPage() {
                                     >
                                       <span className="text-blue-600 dark:text-blue-400">{chapter.name}</span>
                                       <span className={cn(
-                                        'text-[10px] font-medium',
+                                        'text-xs font-medium',
                                         daysUntil === 0 ? 'text-orange-600 dark:text-orange-400' : 'text-blue-500 dark:text-blue-400'
                                       )}>
                                         {daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`}
@@ -2776,7 +2776,7 @@ export default function RyuhaStudyPage() {
                           {/* Memo section */}
                           <div
                             className={cn(
-                              'mb-1 p-1 rounded text-[10px] cursor-pointer transition-colors',
+                              'mb-1 p-1 rounded text-[11px] cursor-pointer transition-colors',
                               memo
                                 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200'
                                 : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
@@ -2856,7 +2856,7 @@ export default function RyuhaStudyPage() {
                                   </div>
                                   <div className="text-muted-foreground">{schedule.title}</div>
                                   {schedule.description && (
-                                    <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
+                                    <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-2">
                                       {schedule.description}
                                     </div>
                                   )}
@@ -2946,7 +2946,7 @@ export default function RyuhaStudyPage() {
                                     <div
                                       key={schedule.id}
                                       className={cn(
-                                        'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-pointer',
+                                        'text-xs px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-pointer',
                                         schedule.is_completed
                                           ? 'bg-muted text-muted-foreground line-through'
                                           : 'bg-orange-100 dark:bg-orange-900/30'
@@ -3064,7 +3064,7 @@ export default function RyuhaStudyPage() {
                             </div>
                             <div className="text-muted-foreground">{activeHomework.schedule.title}</div>
                             {content && (
-                              <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-1">
+                              <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-1">
                                 {content}
                               </div>
                             )}

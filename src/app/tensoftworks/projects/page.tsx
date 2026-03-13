@@ -359,7 +359,7 @@ function DashboardContent() {
                 <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
                   {inProgressCount}
                   {pendingApprovalCount > 0 && (
-                    <span className="text-[10px] sm:text-xs font-normal text-orange-600 dark:text-orange-400 ml-1 whitespace-nowrap">
+                    <span className="text-[11px] font-normal text-orange-600 dark:text-orange-400 ml-1 whitespace-nowrap">
                       (승인대기 {pendingApprovalCount})
                     </span>
                   )}

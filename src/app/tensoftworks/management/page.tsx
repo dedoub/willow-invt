@@ -363,13 +363,13 @@ function DraggableScheduleCard({
         </span>
       </div>
       {schedule.description && (
-        <div className="text-muted-foreground text-[10px] mt-0.5 line-clamp-3">
+        <div className="text-muted-foreground text-[11px] mt-0.5 line-clamp-3">
           {schedule.description}
         </div>
       )}
       {/* Display connected milestones */}
       {schedule.milestones && schedule.milestones.length > 0 && (
-        <div className="text-[10px] mt-0.5 space-y-0.5">
+        <div className="text-[11px] mt-0.5 space-y-0.5">
           {schedule.milestones.map((ch) => (
             <div key={ch.id} className="flex items-start gap-1 text-blue-600 dark:text-blue-400">
               <BookOpen className="h-2.5 w-2.5 flex-shrink-0 mt-0.5" />
@@ -396,7 +396,7 @@ function DraggableScheduleCard({
         <div className="mt-0.5 space-y-0.5">
           {schedule.tasks.map((item, idx) => (
             <div key={item.id || idx} className={cn(
-              'flex items-center gap-1 text-[10px]',
+              'flex items-center gap-1 text-[11px]',
               item.is_completed ? 'text-green-600' : 'text-orange-600'
             )}>
               <ClipboardList className="h-2.5 w-2.5" />
@@ -410,7 +410,7 @@ function DraggableScheduleCard({
       {/* Legacy single task field support */}
       {!schedule.tasks?.length && schedule.task_deadline && (
         <div className={cn(
-          'flex items-center gap-1 mt-0.5 text-[10px]',
+          'flex items-center gap-1 mt-0.5 text-[11px]',
           schedule.task_completed ? 'text-green-600' : 'text-orange-600'
         )}>
           <ClipboardList className="h-2.5 w-2.5" />
@@ -603,7 +603,7 @@ function DraggableMonthScheduleCard({
       {...listeners}
       {...attributes}
       className={cn(
-        'text-[10px] px-1 py-0.5 rounded cursor-grab active:cursor-grabbing touch-none flex items-center gap-0.5',
+        'text-xs px-1 py-0.5 rounded cursor-grab active:cursor-grabbing touch-none flex items-center gap-0.5',
         isDragging && 'opacity-50',
         isDateCompleted
           ? 'bg-muted text-muted-foreground line-through'
@@ -3096,7 +3096,7 @@ export default function TenswManagementPage() {
                                       onClick={() => openMilestoneDialog(milestone.project_id, milestone)}
                                     >
                                       <span className="text-red-600 dark:text-red-400">{milestone.name}</span>
-                                      <span className="text-red-500 dark:text-red-400 text-[10px] font-medium">D+{daysOverdue}</span>
+                                      <span className="text-red-500 dark:text-red-400 text-xs font-medium">D+{daysOverdue}</span>
                                     </div>
                                   )
                                 })}
@@ -3121,7 +3121,7 @@ export default function TenswManagementPage() {
                                     >
                                       <span className="text-blue-600 dark:text-blue-400">{milestone.name}</span>
                                       <span className={cn(
-                                        'text-[10px] font-medium',
+                                        'text-xs font-medium',
                                         daysUntil === 0 ? 'text-orange-600 dark:text-orange-400' : 'text-blue-500 dark:text-blue-400'
                                       )}>
                                         {daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`}
@@ -3151,7 +3151,7 @@ export default function TenswManagementPage() {
                           {/* Memo section */}
                           <div
                             className={cn(
-                              'mb-1 p-1 rounded text-[10px] cursor-pointer transition-colors',
+                              'mb-1 p-1 rounded text-[11px] cursor-pointer transition-colors',
                               memo
                                 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200'
                                 : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
@@ -3227,7 +3227,7 @@ export default function TenswManagementPage() {
                                     </div>
                                     <div className="text-muted-foreground">{hw.schedule.title}</div>
                                     {content && (
-                                      <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
+                                      <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-2">
                                         {content}
                                       </div>
                                     )}
@@ -3281,7 +3281,7 @@ export default function TenswManagementPage() {
                                   </div>
                                   <div className="text-muted-foreground">{schedule.title}</div>
                                   {schedule.description && (
-                                    <div className="text-muted-foreground mt-0.5 text-[10px] line-clamp-2">
+                                    <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-2">
                                       {schedule.description}
                                     </div>
                                   )}
@@ -3361,7 +3361,7 @@ export default function TenswManagementPage() {
                                           : { type: 'task-item', schedule: hw.schedule, taskItem: hw.item }
                                         }
                                         className={cn(
-                                          'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
+                                          'text-xs px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
                                           isCompleted
                                             ? 'bg-muted text-muted-foreground line-through'
                                             : 'bg-orange-100 dark:bg-orange-900/30'
@@ -3409,7 +3409,7 @@ export default function TenswManagementPage() {
                                       id={`task-schedule-month-${schedule.id}`}
                                       data={{ type: 'task-schedule', schedule }}
                                       className={cn(
-                                        'text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
+                                        'text-xs px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500',
                                         schedule.is_completed
                                           ? 'bg-muted text-muted-foreground line-through'
                                           : 'bg-orange-100 dark:bg-orange-900/30'
@@ -3476,7 +3476,7 @@ export default function TenswManagementPage() {
                           <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
                             <ClipboardList className="h-3 w-3" />
                             <span>{schedule.title}</span>
-                            {taskItem && <span className="text-[10px] text-muted-foreground ml-1">({taskItem.content})</span>}
+                            {taskItem && <span className="text-[11px] text-muted-foreground ml-1">({taskItem.content})</span>}
                           </div>
                         </div>
                       )
@@ -3543,17 +3543,17 @@ export default function TenswManagementPage() {
                 <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">총 매출</p>
                   <p className="text-sm font-bold">₩{totalSalesAmount.toLocaleString()}</p>
-                  <p className="text-[10px] text-slate-400">VAT ₩{taxInvoices.reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-400">VAT ₩{taxInvoices.reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
                 </div>
                 <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">미수금</p>
                   <p className="text-sm font-bold text-amber-600">₩{pendingSalesAmount.toLocaleString()}</p>
-                  <p className="text-[10px] text-slate-400">VAT ₩{taxInvoices.filter(i => i.payment_status === 'pending').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-400">VAT ₩{taxInvoices.filter(i => i.payment_status === 'pending').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
                 </div>
                 <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">수금완료</p>
                   <p className="text-sm font-bold text-emerald-600">₩{paidSalesAmount.toLocaleString()}</p>
-                  <p className="text-[10px] text-slate-400">VAT ₩{taxInvoices.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-400">VAT ₩{taxInvoices.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
                 </div>
               </div>
 
@@ -3596,7 +3596,7 @@ export default function TenswManagementPage() {
                           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer"
                           onClick={() => setExpandedTaxInvoice(isExpanded ? null : inv.id)}
                         >
-                          <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium', statusStyle.bg, statusStyle.text)}>
+                          <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium', statusStyle.bg, statusStyle.text)}>
                             {statusStyle.label}
                           </span>
                           <span className="font-medium text-sm truncate">{inv.counterparty}</span>
@@ -3607,7 +3607,7 @@ export default function TenswManagementPage() {
                           )}
                           <span className="ml-auto flex items-baseline gap-1 whitespace-nowrap">
                             <span className="font-medium text-sm">₩{inv.total_amount.toLocaleString()}</span>
-                            <span className="hidden sm:inline text-[10px] text-slate-400">(VAT ₩{inv.tax_amount.toLocaleString()})</span>
+                            <span className="hidden sm:inline text-[11px] text-slate-400">(VAT ₩{inv.tax_amount.toLocaleString()})</span>
                           </span>
                           <span className="hidden sm:inline text-xs text-slate-500">{inv.issue_date}</span>
                           {isExpanded ? <ChevronUp className="h-3 w-3 text-slate-400 flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-slate-400 flex-shrink-0" />}
@@ -4082,21 +4082,21 @@ export default function TenswManagementPage() {
                                   {/* 영업활동 */}
                                   <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
                                     <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-blue-600 mb-1">
+                                      <div className="flex items-center gap-1 text-[11px] sm:text-xs text-blue-600 mb-1">
                                         <TrendingUp className="h-3 w-3 hidden sm:block" />
                                         매출 ({data.revenueCount})
                                       </div>
                                       <p className="text-xs sm:text-sm font-bold text-blue-700">{formatKRW(data.revenue)}</p>
                                     </div>
                                     <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-orange-600 mb-1">
+                                      <div className="flex items-center gap-1 text-[11px] sm:text-xs text-orange-600 mb-1">
                                         <TrendingDown className="h-3 w-3 hidden sm:block" />
                                         비용 ({data.expenseCount})
                                       </div>
                                       <p className="text-xs sm:text-sm font-bold text-orange-700">{formatKRW(data.expense)}</p>
                                     </div>
                                     <div>
-                                      <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">영업이익</div>
+                                      <div className="text-[11px] sm:text-xs text-muted-foreground mb-1">영업이익</div>
                                       <p className={cn(
                                         'text-xs sm:text-sm font-bold',
                                         operatingCashFlow >= 0 ? 'text-slate-700 dark:text-slate-200' : 'text-red-600'
@@ -4108,21 +4108,21 @@ export default function TenswManagementPage() {
                                   {/* 투자/재무활동 + 현금흐름 */}
                                   <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-3 border-t border-slate-100 dark:border-slate-600">
                                     <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-emerald-600 mb-1">
+                                      <div className="flex items-center gap-1 text-[11px] sm:text-xs text-emerald-600 mb-1">
                                         <TrendingDown className="h-3 w-3 hidden sm:block" />
                                         자산 ({data.assetCount})
                                       </div>
                                       <p className="text-xs sm:text-sm font-bold text-emerald-700">{formatKRW(data.asset)}</p>
                                     </div>
                                     <div>
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-purple-600 mb-1">
+                                      <div className="flex items-center gap-1 text-[11px] sm:text-xs text-purple-600 mb-1">
                                         <TrendingUp className="h-3 w-3 hidden sm:block" />
                                         부채 ({data.liabilityCount})
                                       </div>
                                       <p className="text-xs sm:text-sm font-bold text-purple-700">{formatKRW(data.liability)}</p>
                                     </div>
                                     <div>
-                                      <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">현금흐름</div>
+                                      <div className="text-[11px] sm:text-xs text-muted-foreground mb-1">현금흐름</div>
                                       <p className={cn(
                                         'text-xs sm:text-sm font-bold',
                                         totalCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'
@@ -4159,7 +4159,7 @@ export default function TenswManagementPage() {
                                           >
                                             <div className="flex items-center gap-2">
                                               <span className={cn(
-                                                'flex-shrink-0 text-[10px] w-7 text-center py-0.5 rounded font-medium',
+                                                'flex-shrink-0 text-xs w-7 text-center py-0.5 rounded font-medium',
                                                 inv.type === 'revenue' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
                                                 inv.type === 'expense' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' :
                                                 inv.type === 'asset' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' :
@@ -5312,7 +5312,7 @@ export default function TenswManagementPage() {
                                   {cat.category}
                                 </span>
                                 <span className="text-xs text-slate-500 dark:text-slate-400">{cat.emailCount} emails</span>
-                                <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-auto">{currentIndex + 1}/{aiAnalysis.categories.length}</span>
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500 ml-auto">{currentIndex + 1}/{aiAnalysis.categories.length}</span>
                               </div>
                               <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">{cat.summary}</p>
 
@@ -5320,7 +5320,7 @@ export default function TenswManagementPage() {
                               {cat.recentTopics && cat.recentTopics.length > 0 && (
                                 <div className="mb-2 flex flex-wrap gap-1">
                                   {cat.recentTopics.map((topic, idx) => (
-                                    <span key={idx} className="px-1.5 py-px bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded text-[10px]">
+                                    <span key={idx} className="px-1.5 py-px bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded text-xs">
                                       {topic}
                                     </span>
                                   ))}
@@ -5561,7 +5561,7 @@ export default function TenswManagementPage() {
                               <span className="font-medium text-sm truncate">{project.name}</span>
                               {project.status !== 'active' && (
                                 <span className={cn(
-                                  'text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0',
+                                  'text-xs px-1.5 py-0.5 rounded-full flex-shrink-0',
                                   project.status === 'completed' && 'bg-green-100 text-green-700',
                                   project.status === 'on_hold' && 'bg-yellow-100 text-yellow-700',
                                   project.status === 'cancelled' && 'bg-red-100 text-red-700'
@@ -5947,24 +5947,24 @@ export default function TenswManagementPage() {
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground w-8">목표</span>
+                          <span className="text-[11px] text-muted-foreground w-8">목표</span>
                           <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-all opacity-40"
                               style={{ width: `${targetPercent}%`, backgroundColor: client.color }}
                             />
                           </div>
-                          <span className="text-[10px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
+                          <span className="text-[11px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground w-8">실제</span>
+                          <span className="text-[11px] text-muted-foreground w-8">실제</span>
                           <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-all"
                               style={{ width: `${actualPercent}%`, backgroundColor: client.color }}
                             />
                           </div>
-                          <span className="text-[10px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
+                          <span className="text-[11px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
                         </div>
                       </div>
                     </div>

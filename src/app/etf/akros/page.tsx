@@ -3888,7 +3888,7 @@ export default function AkrosPage() {
                             {cat.category}
                           </span>
                           <span className="text-xs text-slate-500 dark:text-slate-400">{cat.emailCount} emails</span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-auto">{currentIndex + 1}/{aiAnalysis.categories.length}</span>
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500 ml-auto">{currentIndex + 1}/{aiAnalysis.categories.length}</span>
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">{cat.summary}</p>
 
@@ -3896,7 +3896,7 @@ export default function AkrosPage() {
                         {cat.recentTopics && cat.recentTopics.length > 0 && (
                           <div className="mb-2 flex flex-wrap gap-1">
                             {cat.recentTopics.map((topic, idx) => (
-                              <span key={idx} className="px-1.5 py-px bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded text-[10px]">
+                              <span key={idx} className="px-1.5 py-px bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded text-xs">
                                 {topic}
                               </span>
                             ))}
