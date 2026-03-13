@@ -5862,7 +5862,7 @@ export default function WillowManagementPage() {
                   <>
                     {/* Summary Cards */}
                     {reSummary && (
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
                         <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
                           <div className="text-[11px] text-muted-foreground">추적 단지</div>
                           <div className="text-sm font-bold">{reSummary.trackedComplexes}개 <span className="text-[11px] text-slate-400 font-normal">({reSummary.districtCount}개구)</span></div>
