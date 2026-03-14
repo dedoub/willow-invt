@@ -50,21 +50,79 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  resizable = false,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  resizable?: boolean
 }) {
+  const contentRef = React.useRef<HTMLDivElement | null>(null)
+  const [resizedWidth, setResizedWidth] = React.useState<number | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [])
+
+  const handleResizeStart = React.useCallback(
+    (side: 'left' | 'right') => (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const startX = e.clientX
+      const startWidth = contentRef.current?.offsetWidth || 600
+
+      const onMouseMove = (ev: MouseEvent) => {
+        const delta = side === 'right' ? ev.clientX - startX : startX - ev.clientX
+        const newWidth = Math.max(400, Math.min(window.innerWidth - 32, startWidth + delta * 2))
+        setResizedWidth(newWidth)
+      }
+
+      const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove)
+        document.removeEventListener('mouseup', onMouseUp)
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+      document.addEventListener('mousemove', onMouseMove)
+      document.addEventListener('mouseup', onMouseUp)
+    },
+    []
+  )
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       <DialogPrimitive.Content
+        ref={contentRef}
         data-slot="dialog-content"
         className={cn(
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 outline-none sm:max-w-lg",
           className
         )}
+        style={resizable && resizedWidth ? { width: resizedWidth, maxWidth: resizedWidth } : undefined}
         {...props}
       >
+        {resizable && (
+          <>
+            <div
+              className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize group z-10 flex items-center justify-center rounded-l-lg"
+              onMouseDown={handleResizeStart('left')}
+            >
+              <div className="w-0.5 h-8 rounded-full opacity-0 group-hover:opacity-100 bg-slate-400/50 dark:bg-slate-500/50 transition-opacity" />
+            </div>
+            <div
+              className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize group z-10 flex items-center justify-center rounded-r-lg"
+              onMouseDown={handleResizeStart('right')}
+            >
+              <div className="w-0.5 h-8 rounded-full opacity-0 group-hover:opacity-100 bg-slate-400/50 dark:bg-slate-500/50 transition-opacity" />
+            </div>
+          </>
+        )}
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close

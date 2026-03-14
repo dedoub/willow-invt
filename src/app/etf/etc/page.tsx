@@ -3466,7 +3466,7 @@ Dongwook`
 
       {/* Wiki View Modal */}
       <Dialog open={!!viewingNote} onOpenChange={(open) => !open && setViewingNote(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col" resizable>
           <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
               {viewingNote?.is_pinned && <Pin className="h-4 w-4 text-amber-500" />}
