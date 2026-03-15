@@ -693,6 +693,222 @@ async function fetchTenswContext(): Promise<string> {
 }
 
 // ============================================================
+// Weekly briefing data collection (raw data → Claude CLI analysis)
+// ============================================================
+async function fetchWeeklyBriefingData(): Promise<string> {
+  const now = new Date()
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  const todayStr = now.toISOString().slice(0, 10)
+  const parts: string[] = []
+
+  // 1. Active projects
+  const { data: projects } = await supabase
+    .from('tensw_projects')
+    .select('id, name, slug, status')
+    .eq('status', 'active')
+    .order('name')
+
+  if (!projects || projects.length === 0) return '활성 프로젝트 없음'
+
+  const projectIds = projects.map(p => p.id)
+
+  // 2. All todos with assignees
+  const { data: allTodos } = await supabase
+    .from('tensw_todos')
+    .select(`
+      id, project_id, title, status, priority, due_date, assigned_at, completed_at,
+      assignees:tensw_todo_assignees(
+        member_id,
+        member:tensw_project_members!tensw_todo_assignees_member_id_fkey(id, name)
+      )
+    `)
+    .in('project_id', projectIds)
+
+  // 3. Recent logs (last 7 days)
+  const todoIds = allTodos?.map(t => t.id) || []
+  let recentLogs: Array<{ id: string; todo_id: string; action: string; created_at: string; changed_by: string | null }> = []
+  for (let i = 0; i < todoIds.length; i += 500) {
+    const chunk = todoIds.slice(i, i + 500)
+    const { data: logs } = await supabase
+      .from('tensw_todo_logs')
+      .select('id, todo_id, action, created_at, changed_by')
+      .in('todo_id', chunk)
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .order('created_at', { ascending: false })
+    if (logs) recentLogs = recentLogs.concat(logs)
+  }
+
+  // 4. Members (with github_id)
+  const { data: allMembers } = await supabase
+    .from('tensw_project_members')
+    .select('id, project_id, name, role, is_manager, github_id')
+    .in('project_id', projectIds)
+
+  // 5. User name map for logs
+  const userIds = new Set<string>()
+  recentLogs.forEach(l => { if (l.changed_by) userIds.add(l.changed_by) })
+  const userNameMap = new Map<string, string>()
+  if (userIds.size > 0) {
+    const { data: users } = await supabase
+      .from('tensw_users')
+      .select('id, name')
+      .in('id', Array.from(userIds))
+    users?.forEach(u => userNameMap.set(u.id, u.name))
+  }
+
+  // 6. Weekly reports & code reports (FULL CONTENT)
+  const { data: weeklyDocs } = await supabase
+    .from('tensw_project_docs')
+    .select('id, project_id, title, doc_type, content, created_at')
+    .in('project_id', projectIds)
+    .in('doc_type', ['weekly_report', 'progress_report'])
+    .gte('created_at', sevenDaysAgo.toISOString())
+    .order('created_at', { ascending: false })
+
+  // 7. GitHub commits
+  const { data: repos } = await supabase
+    .from('tensw_project_repos')
+    .select('id, project_id, name, url')
+    .in('project_id', projectIds)
+
+  const githubToNameMap = new Map<string, string>()
+  if (allMembers) {
+    for (const m of allMembers) {
+      const ghId = (m as any).github_id?.trim()
+      if (ghId && m.name) githubToNameMap.set(ghId.toLowerCase(), m.name)
+    }
+  }
+
+  const commitsByPerson = new Map<string, { count: number; messages: string[] }>()
+  const commitsByProject = new Map<string, number>()
+  const githubToken = process.env.GITHUB_TOKEN
+
+  if (repos && repos.length > 0 && githubToken) {
+    for (const repo of repos) {
+      try {
+        const urlMatch = repo.url.match(/github\.com\/([^/]+)\/([^/]+)/)
+        if (!urlMatch) continue
+        const [, owner, repoName] = urlMatch
+        const cleanRepoName = repoName.replace(/\.git$/, '')
+        const response = await fetch(
+          `https://api.github.com/repos/${owner}/${cleanRepoName}/commits?per_page=100&since=${sevenDaysAgo.toISOString()}`,
+          { headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Willow-Dashboard', 'Authorization': `Bearer ${githubToken}` } }
+        )
+        if (response.ok) {
+          const commits = await response.json()
+          commitsByProject.set(repo.project_id, (commitsByProject.get(repo.project_id) || 0) + commits.length)
+          for (const c of commits) {
+            const ghLogin = c.author?.login?.toLowerCase()
+            const author = (ghLogin && githubToNameMap.get(ghLogin)) || c.commit?.author?.name || 'unknown'
+            if (!commitsByPerson.has(author)) commitsByPerson.set(author, { count: 0, messages: [] })
+            const p = commitsByPerson.get(author)!
+            p.count++
+            const msg = c.commit?.message?.split('\n')[0]?.slice(0, 80)
+            if (msg && p.messages.length < 10) p.messages.push(msg)
+          }
+        }
+      } catch { /* skip */ }
+    }
+  }
+
+  // ============================================================
+  // Format raw data
+  // ============================================================
+  const excludeNames = new Set(['김동욱', '김철형'])
+  const weekRange = `${sevenDaysAgo.toISOString().slice(0, 10)} ~ ${todayStr}`
+  parts.push(`# 텐소프트웍스 주간 데이터 (${weekRange})`)
+  parts.push('')
+
+  // Per-project summary
+  parts.push('## 프로젝트별 현황')
+  for (const project of projects) {
+    const pTodos = allTodos?.filter(t => t.project_id === project.id) || []
+    const total = pTodos.length
+    const completedTotal = pTodos.filter(t => t.status === 'completed').length
+    const pct = total > 0 ? Math.round((completedTotal / total) * 100) : 0
+    const completedThisWeek = recentLogs.filter(l =>
+      l.action === 'completed' && allTodos?.find(t => t.id === l.todo_id)?.project_id === project.id
+    ).length
+    const createdThisWeek = recentLogs.filter(l =>
+      l.action === 'created' && allTodos?.find(t => t.id === l.todo_id)?.project_id === project.id
+    ).length
+    const inProgress = pTodos.filter(t => ['assigned', 'in_progress'].includes(t.status)).length
+    const overdue = pTodos.filter(t =>
+      ['pending', 'assigned', 'in_progress'].includes(t.status) && t.due_date && t.due_date < todayStr
+    ).length
+    const commits = commitsByProject.get(project.id) || 0
+
+    parts.push(`### ${project.name} (${pct}%, ${completedTotal}/${total})`)
+    parts.push(`이번 주: 완료 ${completedThisWeek}건, 신규 ${createdThisWeek}건, 진행중 ${inProgress}건, 지연 ${overdue}건, 커밋 ${commits}건`)
+    parts.push('')
+  }
+
+  // Per-person raw stats
+  parts.push('## 사람별 활동 데이터')
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+  const personMap = new Map<string, { completed: string[]; inProgress: string[]; overdue: number; stale: number; commits: number; commitMsgs: string[] }>()
+
+  for (const log of recentLogs) {
+    if (log.action === 'completed' && log.changed_by) {
+      const name = userNameMap.get(log.changed_by) || log.changed_by
+      if (excludeNames.has(name)) continue
+      if (!personMap.has(name)) personMap.set(name, { completed: [], inProgress: [], overdue: 0, stale: 0, commits: 0, commitMsgs: [] })
+      const todo = allTodos?.find(t => t.id === log.todo_id)
+      if (todo?.title) personMap.get(name)!.completed.push(todo.title.slice(0, 60))
+    }
+  }
+
+  for (const todo of (allTodos || [])) {
+    if (!['assigned', 'in_progress'].includes(todo.status)) continue
+    const assignees = (todo as any).assignees || []
+    for (const a of assignees) {
+      const name = a.member?.name
+      if (!name || excludeNames.has(name)) continue
+      if (!personMap.has(name)) personMap.set(name, { completed: [], inProgress: [], overdue: 0, stale: 0, commits: 0, commitMsgs: [] })
+      const p = personMap.get(name)!
+      p.inProgress.push(todo.title?.slice(0, 60) || '(제목없음)')
+      if (todo.due_date && todo.due_date < todayStr) p.overdue++
+      const todoLogs = recentLogs.filter(l => l.todo_id === todo.id)
+      const lastActivity = todoLogs.length > 0 ? new Date(todoLogs[0].created_at) : (todo.assigned_at ? new Date(todo.assigned_at) : null)
+      if (!lastActivity || lastActivity < threeDaysAgo) p.stale++
+    }
+  }
+
+  commitsByPerson.forEach((data, author) => {
+    if (excludeNames.has(author)) return
+    if (!personMap.has(author)) personMap.set(author, { completed: [], inProgress: [], overdue: 0, stale: 0, commits: 0, commitMsgs: [] })
+    const p = personMap.get(author)!
+    p.commits = data.count
+    p.commitMsgs = data.messages
+  })
+
+  for (const [name, data] of personMap) {
+    parts.push(`### ${name}`)
+    parts.push(`완료: ${data.completed.length}건, 진행중: ${data.inProgress.length}건, 지연: ${data.overdue}건, 방치(3일+): ${data.stale}건, 커밋: ${data.commits}건`)
+    if (data.completed.length > 0) parts.push(`완료 태스크: ${data.completed.join(' / ')}`)
+    if (data.inProgress.length > 0) parts.push(`진행중 태스크: ${data.inProgress.join(' / ')}`)
+    if (data.commitMsgs.length > 0) parts.push(`주요 커밋: ${data.commitMsgs.slice(0, 5).join(' / ')}`)
+    parts.push('')
+  }
+
+  // Weekly reports (FULL content — this is the key difference from Vercel Cron)
+  if (weeklyDocs && weeklyDocs.length > 0) {
+    parts.push('## 주간보고서 & 코드기반 리포트 (원문)')
+    for (const doc of weeklyDocs) {
+      const projectName = projects.find(p => p.id === doc.project_id)?.name || '?'
+      const docType = doc.doc_type === 'weekly_report' ? '주간보고' : '코드기반 리포트'
+      parts.push(`### [${projectName}] ${docType} (${doc.created_at.slice(0, 10)})`)
+      // Truncate very long reports to keep within CLI limits
+      const content = doc.content?.slice(0, 3000) || '(내용 없음)'
+      parts.push(content)
+      parts.push('')
+    }
+  }
+
+  return parts.join('\n')
+}
+
+// ============================================================
 // Conversation memory (Supabase)
 // ============================================================
 interface Message {
@@ -735,6 +951,7 @@ interface ProactiveState {
   lastSnapshotHash: string       // 데이터 변화 감지용
   lastReportedIssues: string[]   // 중복 알림 방지
   morningBriefSent: string | null // 오늘 아침 브리핑 보냈는지 (날짜)
+  weeklyBriefSent: string | null  // 이번 주 주간 브리핑 보냈는지 (날짜)
   marketState: MarketStateInfo   // 마지막으로 감지한 장 상태
   lastMarketBriefing: { usOpen: string; usClose: string; krOpen: string; krClose: string; usHoliday: string; krHoliday: string } // 브리핑 중복 방지 (날짜)
 }
@@ -744,6 +961,7 @@ let proactiveState: ProactiveState = {
   lastSnapshotHash: '',
   lastReportedIssues: [],
   morningBriefSent: null,
+  weeklyBriefSent: null,
   marketState: { us: '', kr: '' },
   lastMarketBriefing: { usOpen: '', usClose: '', krOpen: '', krClose: '', usHoliday: '', krHoliday: '' },
 }
@@ -898,6 +1116,47 @@ async function checkFollowUps() {
   }
 }
 
+async function sendWeeklyBriefing(chatId: number) {
+  console.log('📋 텐소프트웍스 주간 브리핑 생성 중 (Claude CLI 분석)...')
+  await sendTyping(chatId)
+
+  const rawData = await fetchWeeklyBriefingData()
+  const prompt = `당신은 윌리(Willy)입니다. 윌로우인베스트먼트의 COO.
+CEO에게 텐소프트웍스 주간 브리핑을 보내세요.
+
+아래 원시 데이터를 분석해서, **각 사람이 실제로 뭘 했는지** 말로 정리해주세요.
+
+## 분석 지침
+1. 주간보고서와 코드기반 리포트를 읽고, 실제 업무 내용을 파악
+2. 태스크 완료 건수만이 아니라, 완료한 태스크의 내용과 난이도를 판단
+3. 커밋 메시지를 분석해서 실질적인 작업인지, 사소한 수정인지 구분
+4. **버스워크 감지**: 커밋만 많고 태스크 완료가 없으면 지적
+5. **말과 행동 비교**: 주간보고(사람이 쓴 것) vs 코드리포트(실제 코드 변경)가 일치하는지
+6. 방치 태스크, 지연 태스크 주의 인원 지적
+7. 프로젝트별로 정체인지 진행 중인지 한 줄 판단
+
+## 응답 형식
+- 텔레그램 메시지로 보내는 거라 Markdown 사용 (단, HTML 아닌 Telegram Markdown)
+- 전체 상태 요약 → 프로젝트별 한 줄 → 사람별 분석 (뭘 했는지 구체적으로) → 주의사항
+- 길어도 괜찮으니 내용이 충실하게. 하지만 불필요한 수식어는 빼고 팩트 위주.
+- 김동욱, 김철형은 분석에서 제외되어 있음
+
+# 원시 데이터
+${rawData}`
+
+  const typingInterval = setInterval(() => sendTyping(chatId), 4000)
+  const response = await askClaude(prompt)
+  clearInterval(typingInterval)
+
+  await sendMessage(chatId, response)
+
+  const history = await getConversation(chatId)
+  history.push({ role: 'assistant', content: `[주간 브리핑]\n${response}`, timestamp: new Date().toISOString() })
+  await saveConversation(chatId, history)
+
+  console.log('✅ 텐소프트웍스 주간 브리핑 전송 완료')
+}
+
 async function proactiveCheck() {
   if (!ceoChatId) return
 
@@ -928,6 +1187,16 @@ async function proactiveCheck() {
       await saveConversation(ceoChatId, history)
 
       console.log('✅ 아침 브리핑 전송 완료')
+      return
+    }
+
+    // 1.5) 텐소프트웍스 주간 브리핑 (월요일 10:30, 주 1회)
+    const dayOfWeek = now.getDay() // 0=일, 1=월
+    const minute = now.getMinutes()
+    const weekId = `${now.getFullYear()}-W${Math.ceil((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000))}`
+    if (dayOfWeek === 1 && hour === 10 && minute >= 30 && proactiveState.weeklyBriefSent !== weekId) {
+      await sendWeeklyBriefing(ceoChatId)
+      proactiveState.weeklyBriefSent = weekId
       return
     }
 
@@ -1158,8 +1427,9 @@ async function marketMonitorCheck() {
       return
     }
 
-    // 개장/마감 감지 후 5분 대기 — 실시간 가격이 반영될 시간 확보
-    const MARKET_BRIEFING_DELAY = 5 * 60 * 1000 // 5분
+    // 개장/마감 감지 후 대기 — 실시간 가격이 반영될 시간 확보
+    // KR 개장: Yahoo Finance KRX 15분 딜레이 감안하여 20분 대기
+    const MARKET_BRIEFING_DELAY = briefingKey === 'krOpen' ? 20 * 60 * 1000 : 5 * 60 * 1000
     console.log(`📊 ${briefingType} 감지! ${MARKET_BRIEFING_DELAY / 60000}분 후 브리핑 발송 예정 (US: ${prev.us}→${current.us}, KR: ${prev.kr}→${current.kr})`)
 
     // 중복 방지를 위해 즉시 마킹
@@ -2994,8 +3264,32 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('Fatal error:', err)
-  releaseLock()
-  process.exit(1)
-})
+// CLI mode: --weekly-briefing for manual trigger (doesn't start the bot loop)
+if (process.argv.includes('--weekly-briefing')) {
+  ;(async () => {
+    console.log('📋 주간 브리핑 수동 실행...')
+    // Load CEO chat_id
+    const { data: chatData } = await supabase
+      .from('telegram_conversations')
+      .select('chat_id')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single()
+    if (!chatData?.chat_id) {
+      console.error('CEO chat_id를 찾을 수 없습니다')
+      process.exit(1)
+    }
+    await sendWeeklyBriefing(chatData.chat_id)
+    console.log('✅ 완료')
+    process.exit(0)
+  })().catch(err => {
+    console.error('Error:', err)
+    process.exit(1)
+  })
+} else {
+  main().catch((err) => {
+    console.error('Fatal error:', err)
+    releaseLock()
+    process.exit(1)
+  })
+}

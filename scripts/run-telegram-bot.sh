@@ -31,11 +31,23 @@ log() {
 }
 
 check_volume() {
-  if [ ! -d "$VOLUME_PATH" ]; then
-    log "❌ 외장하드가 마운트되지 않았습니다: $VOLUME_PATH"
-    log "   디스크를 연결한 후 다시 시도하세요."
-    exit 1
+  if [ -d "$VOLUME_PATH" ]; then
+    return 0
   fi
+
+  log "⏳ 외장하드 마운트 대기 중: $VOLUME_PATH (최대 60초)"
+  local waited=0
+  while [ $waited -lt 60 ]; do
+    sleep 5
+    waited=$((waited + 5))
+    if [ -d "$VOLUME_PATH" ]; then
+      log "✅ 드라이브 마운트 확인 (${waited}초 대기)"
+      return 0
+    fi
+  done
+
+  log "❌ 외장하드 마운트 타임아웃: $VOLUME_PATH"
+  exit 1
 }
 
 check_project() {

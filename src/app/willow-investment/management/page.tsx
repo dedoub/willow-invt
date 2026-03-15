@@ -1061,8 +1061,8 @@ export default function WillowManagementPage() {
   const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reJeonseRatio, setReJeonseRatio] = useState<{ month: string; ratio: number | null }[]>([])
-  const [reListingTrend, setReListingTrend] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[] } | null>(null)
-  const [reListingTrendJeonse, setReListingTrendJeonse] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[] } | null>(null)
+  const [reListingTrend, setReListingTrend] = useState<{ trend: { date: string; gapRate: number | null }[]; tradeType: string } | null>(null)
+  const [reListingTrendJeonse, setReListingTrendJeonse] = useState<{ trend: { date: string; gapRate: number | null }[]; tradeType: string } | null>(null)
   const [reTradeListPage, setReTradeListPage] = useState(0)
   const [reJeonseListPage, setReJeonseListPage] = useState(0)
   const RE_LIST_PAGE_SIZE = 5
@@ -5930,39 +5930,33 @@ export default function WillowManagementPage() {
                       </div>
                     )}
 
-                    {/* Section 1.5: 매도 호가(저) 일일 추이 */}
-                    {reListingTrend && reListingTrend.dates.length > 1 && reListingTrend.complexes.length > 0 && (
+                    {/* Section 1.5: 매매 괴리율 일일 추이 */}
+                    {reListingTrend && reListingTrend.trend.length > 1 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium">매도 호가(저) 추이 <span className="text-[11px] text-slate-400 font-normal">(선택 단지 평균, 만원/평)</span></span>
+                          <span className="text-xs font-medium">매매 괴리율 추이 <span className="text-[11px] text-slate-400 font-normal">(호가 저 vs 실거래, %)</span></span>
                           {reSummary?.tradeListingGap != null && (
-                            <span className={`text-[11px] font-medium ${reSummary.tradeListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>괴리율 {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap}%</span>
+                            <span className={`text-[11px] font-medium ${reSummary.tradeListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>현재 {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap}%</span>
                           )}
                         </div>
                         <ResponsiveContainer width="100%" height={220}>
                           {(() => {
-                            const chartData = reListingTrend.dates.map(d => {
-                              const vals: number[] = []
-                              for (const c of reListingTrend.complexes) {
-                                const point = c.data.find(p => p.date === d)
-                                if (point?.minPpp != null) vals.push(point.minPpp)
-                              }
-                              return { date: d, avg: vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null }
-                            })
-                            const allVals = chartData.map(d => d.avg).filter((v): v is number => v != null)
+                            const chartData = reListingTrend.trend.filter(d => d.gapRate != null)
+                            const allVals = chartData.map(d => d.gapRate!).filter((v): v is number => v != null)
                             const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
                             const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0
-                            const yMin = Math.floor(minVal * 0.75 / 500) * 500
-                            const yMax = Math.ceil(maxVal / 500) * 500
+                            const yMin = Math.floor(Math.min(minVal - 2, 0) / 5) * 5
+                            const yMax = Math.ceil(Math.max(maxVal + 2, 0) / 5) * 5
                             const yTicks: number[] = []
-                            for (let t = yMin; t <= yMax; t += 500) yTicks.push(t)
+                            for (let t = yMin; t <= yMax; t += 5) yTicks.push(t)
                             return (
                           <ComposedChart data={chartData} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
-                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}만원/평`]} labelFormatter={(l) => String(l)} />
-                            <Line type="monotone" dataKey="avg" name="평균 최저호가" stroke="#6366f1" dot={{ r: 3 }} strokeWidth={2} connectNulls />
+                            <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={40} />
+                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`]} labelFormatter={(l) => String(l)} />
+                            <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
+                            <Line type="monotone" dataKey="gapRate" name="괴리율" stroke="#6366f1" dot={{ r: 3 }} strokeWidth={2} connectNulls />
                           </ComposedChart>
                             )
                           })()}
@@ -6092,39 +6086,33 @@ export default function WillowManagementPage() {
                       </div>
                     )}
 
-                    {/* Section 3.5: 전세 호가(저) 일일 추이 */}
-                    {reListingTrendJeonse && reListingTrendJeonse.dates.length > 1 && reListingTrendJeonse.complexes.length > 0 && (
+                    {/* Section 3.5: 전세 괴리율 일일 추이 */}
+                    {reListingTrendJeonse && reListingTrendJeonse.trend.length > 1 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium">전세 호가(저) 추이 <span className="text-[11px] text-slate-400 font-normal">(선택 단지 평균, 만원/평)</span></span>
+                          <span className="text-xs font-medium">전세 괴리율 추이 <span className="text-[11px] text-slate-400 font-normal">(호가 저 vs 실거래, %)</span></span>
                           {reSummary?.jeonseListingGap != null && (
-                            <span className={`text-[11px] font-medium ${reSummary.jeonseListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>괴리율 {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap}%</span>
+                            <span className={`text-[11px] font-medium ${reSummary.jeonseListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>현재 {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap}%</span>
                           )}
                         </div>
                         <ResponsiveContainer width="100%" height={220}>
                           {(() => {
-                            const chartData = reListingTrendJeonse.dates.map(d => {
-                              const vals: number[] = []
-                              for (const c of reListingTrendJeonse.complexes) {
-                                const point = c.data.find(p => p.date === d)
-                                if (point?.minPpp != null) vals.push(point.minPpp)
-                              }
-                              return { date: d, avg: vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null }
-                            })
-                            const allVals = chartData.map(d => d.avg).filter((v): v is number => v != null)
+                            const chartData = reListingTrendJeonse.trend.filter(d => d.gapRate != null)
+                            const allVals = chartData.map(d => d.gapRate!).filter((v): v is number => v != null)
                             const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
                             const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0
-                            const yMin = Math.floor(minVal * 0.75 / 500) * 500
-                            const yMax = Math.ceil(maxVal / 500) * 500
+                            const yMin = Math.floor(Math.min(minVal - 2, 0) / 5) * 5
+                            const yMax = Math.ceil(Math.max(maxVal + 2, 0) / 5) * 5
                             const yTicks: number[] = []
-                            for (let t = yMin; t <= yMax; t += 500) yTicks.push(t)
+                            for (let t = yMin; t <= yMax; t += 5) yTicks.push(t)
                             return (
                           <ComposedChart data={chartData} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
-                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}만원/평`]} labelFormatter={(l) => String(l)} />
-                            <Line type="monotone" dataKey="avg" name="평균 최저호가" stroke="#10b981" dot={{ r: 3 }} strokeWidth={2} connectNulls />
+                            <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={40} />
+                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`]} labelFormatter={(l) => String(l)} />
+                            <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
+                            <Line type="monotone" dataKey="gapRate" name="괴리율" stroke="#10b981" dot={{ r: 3 }} strokeWidth={2} connectNulls />
                           </ComposedChart>
                             )
                           })()}

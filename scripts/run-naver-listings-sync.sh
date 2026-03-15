@@ -1,6 +1,5 @@
 #!/bin/bash
-# 네이버 매물 스냅샷 동기화 (cron용 래퍼)
-# crontab: 0 7 * * * /Volumes/PRO-G40/app-dev/willow-invt/scripts/run-naver-listings-sync.sh
+# 네이버 매물 스냅샷 동기화 (launchd용 래퍼)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -8,6 +7,10 @@ LOG_DIR="$SCRIPT_DIR/logs"
 LOG_FILE="$LOG_DIR/naver-listings-sync.log"
 
 mkdir -p "$LOG_DIR"
+
+# 외장 드라이브 마운트 대기
+source "$SCRIPT_DIR/lib/wait-for-volume.sh"
+wait_for_volume "/Volumes/PRO-G40" 120 >> "$LOG_FILE" 2>&1 || exit 1
 
 cd "$PROJECT_DIR" || exit 1
 

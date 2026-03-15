@@ -470,6 +470,7 @@ export async function GET(request: Request) {
       const tradeType = searchParams.get('tradeType') || '매매'
       const bandFilter = areaRange === '20' ? 20 : areaRange === '30' ? 30 : areaRange === '40' ? 40 : areaRange === '50' ? 50 : areaRange === '60+' ? 60 : null
 
+      // 1. Daily summary (listing min_ppp per complex+band per date)
       let query = supabase
         .from('re_listing_daily_summary')
         .select('snapshot_date, complex_name, area_band, min_ppp')
@@ -480,44 +481,95 @@ export async function GET(request: Request) {
       if (bandFilter) {
         query = query.eq('area_band', bandFilter)
       } else {
-        // 전체: 20평대 이상 모두
         query = query.gte('area_band', 20)
       }
 
       const { data, error } = await query
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-      // Group by date → complex, average min_ppp across area bands per complex per date
-      const dateMap: Record<string, Record<string, { sum: number; count: number }>> = {}
+      // 2. Actual trade/rental data (recent 1 month) — same as summary
+      const areaMapping = await buildAreaMapping(supabase, complexNames)
+      const oma1 = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const oneMonthCutoff = `${oma1.getFullYear()}-${String(oma1.getMonth() + 1).padStart(2, '0')}-01`
+
+      function getBandT(py: number): number { return py < 30 ? 20 : py < 40 ? 30 : py < 50 ? 40 : py < 60 ? 50 : 60 }
+      function matchesAreaT(py: number): boolean {
+        if (!areaRange) return py >= 20
+        if (areaRange === '20') return py >= 20 && py < 30
+        if (areaRange === '30') return py >= 30 && py < 40
+        if (areaRange === '40') return py >= 40 && py < 50
+        if (areaRange === '50') return py >= 50 && py < 60
+        if (areaRange === '60+') return py >= 60
+        return true
+      }
+
+      // Actual avg PPP per complex+band (stays constant across dates)
+      const actualBands: Record<string, { sum: number; count: number }> = {}
+      if (tradeType === '매매') {
+        const actuals = await fetchAll(
+          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm')
+            .gte('deal_date', oneMonthCutoff).eq('cancel_yn', 'N').in('complex_name', complexNames)
+        )
+        for (const t of actuals) {
+          const sqm = Number(t.area_sqm)
+          if (sqm <= 0) continue
+          const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
+          if (supplyPy <= 0 || !matchesAreaT(supplyPy)) continue
+          const key = `${t.complex_name}|${getBandT(supplyPy)}`
+          if (!actualBands[key]) actualBands[key] = { sum: 0, count: 0 }
+          actualBands[key].sum += Number(t.deal_amount) / supplyPy
+          actualBands[key].count += 1
+        }
+      } else {
+        const actuals = await fetchAll(
+          supabase.from('re_rentals').select('complex_name, deposit, area_sqm')
+            .gte('deal_date', oneMonthCutoff).eq('rent_type', '전세').in('complex_name', complexNames)
+        )
+        for (const r of actuals) {
+          const sqm = Number(r.area_sqm)
+          if (sqm <= 0) continue
+          const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
+          if (supplyPy <= 0 || !matchesAreaT(supplyPy)) continue
+          const key = `${r.complex_name}|${getBandT(supplyPy)}`
+          if (!actualBands[key]) actualBands[key] = { sum: 0, count: 0 }
+          actualBands[key].sum += Number(r.deposit) / supplyPy
+          actualBands[key].count += 1
+        }
+      }
+
+      // 3. Compute daily gap rate: for each date, compute per complex+band gap → average
       const dateSet = new Set<string>()
+      const dateListings: Record<string, Record<string, number>> = {} // date → "complex|band" → min_ppp
       for (const row of data || []) {
         const d = row.snapshot_date
         dateSet.add(d)
-        if (!dateMap[d]) dateMap[d] = {}
-        const prev = dateMap[d][row.complex_name]
-        if (!prev) {
-          dateMap[d][row.complex_name] = { sum: row.min_ppp, count: 1 }
-        } else {
-          prev.sum += row.min_ppp
-          prev.count += 1
+        if (!dateListings[d]) dateListings[d] = {}
+        const key = `${row.complex_name}|${row.area_band}`
+        const prev = dateListings[d][key]
+        if (prev === undefined || row.min_ppp < prev) {
+          dateListings[d][key] = row.min_ppp
         }
       }
 
       const dates = [...dateSet].sort()
-      const complexSet = new Set<string>()
-      for (const d of dates) {
-        for (const name of Object.keys(dateMap[d] || {})) complexSet.add(name)
-      }
+      const trend: { date: string; gapRate: number | null }[] = dates.map(d => {
+        const gaps: number[] = []
+        for (const [key, minPpp] of Object.entries(dateListings[d] || {})) {
+          const actual = actualBands[key]
+          if (actual && actual.count > 0) {
+            const avgActual = actual.sum / actual.count
+            if (avgActual > 0) {
+              gaps.push(((minPpp - avgActual) / avgActual) * 100)
+            }
+          }
+        }
+        return {
+          date: d,
+          gapRate: gaps.length > 0 ? Math.round(gaps.reduce((s, v) => s + v, 0) / gaps.length * 10) / 10 : null,
+        }
+      })
 
-      const complexes = [...complexSet].sort((a, b) => a.localeCompare(b, 'ko')).map(name => ({
-        name,
-        data: dates.map(d => {
-          const entry = dateMap[d]?.[name]
-          return { date: d, minPpp: entry ? Math.round(entry.sum / entry.count) : null }
-        })
-      }))
-
-      return NextResponse.json({ dates, complexes, tradeType })
+      return NextResponse.json({ trend, tradeType })
     }
 
     if (type === 'jeonse-ratio') {
