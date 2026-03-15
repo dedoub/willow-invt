@@ -1061,8 +1061,8 @@ export default function WillowManagementPage() {
   const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reJeonseRatio, setReJeonseRatio] = useState<{ month: string; ratio: number | null }[]>([])
-  const [reListingTrend, setReListingTrend] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[]; gapRate: number | null } | null>(null)
-  const [reListingTrendJeonse, setReListingTrendJeonse] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[]; gapRate: number | null } | null>(null)
+  const [reListingTrend, setReListingTrend] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[] } | null>(null)
+  const [reListingTrendJeonse, setReListingTrendJeonse] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[] } | null>(null)
   const [reTradeListPage, setReTradeListPage] = useState(0)
   const [reJeonseListPage, setReJeonseListPage] = useState(0)
   const RE_LIST_PAGE_SIZE = 5
@@ -5935,8 +5935,8 @@ export default function WillowManagementPage() {
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium">매도 호가(저) 추이 <span className="text-[11px] text-slate-400 font-normal">(선택 단지 평균, 만원/평)</span></span>
-                          {reListingTrend.gapRate != null && (
-                            <span className={`text-[11px] font-medium ${reListingTrend.gapRate > 0 ? 'text-red-500' : 'text-blue-500'}`}>괴리율 {reListingTrend.gapRate > 0 ? '+' : ''}{reListingTrend.gapRate}%</span>
+                          {reSummary?.tradeListingGap != null && (
+                            <span className={`text-[11px] font-medium ${reSummary.tradeListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>괴리율 {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap}%</span>
                           )}
                         </div>
                         <ResponsiveContainer width="100%" height={220}>
@@ -6097,8 +6097,8 @@ export default function WillowManagementPage() {
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium">전세 호가(저) 추이 <span className="text-[11px] text-slate-400 font-normal">(선택 단지 평균, 만원/평)</span></span>
-                          {reListingTrendJeonse.gapRate != null && (
-                            <span className={`text-[11px] font-medium ${reListingTrendJeonse.gapRate > 0 ? 'text-red-500' : 'text-blue-500'}`}>괴리율 {reListingTrendJeonse.gapRate > 0 ? '+' : ''}{reListingTrendJeonse.gapRate}%</span>
+                          {reSummary?.jeonseListingGap != null && (
+                            <span className={`text-[11px] font-medium ${reSummary.jeonseListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>괴리율 {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap}%</span>
                           )}
                         </div>
                         <ResponsiveContainer width="100%" height={220}>
