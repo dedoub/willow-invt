@@ -5930,24 +5930,21 @@ export default function WillowManagementPage() {
                     {/* Section 1.5: 매도 호가(저) 일일 추이 */}
                     {reListingTrend && reListingTrend.dates.length > 1 && reListingTrend.complexes.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
-                        <span className="text-xs font-medium">매도 호가(저) 추이 <span className="text-[11px] text-slate-400 font-normal">(평당 최저 호가, 만원)</span></span>
+                        <span className="text-xs font-medium">매도 호가(저) 추이 <span className="text-[11px] text-slate-400 font-normal">(선택 단지 평균, 만원/평)</span></span>
                         <ResponsiveContainer width="100%" height={220}>
                           <ComposedChart data={reListingTrend.dates.map(d => {
-                            const entry: Record<string, string | number | null> = { date: d }
+                            const vals: number[] = []
                             for (const c of reListingTrend.complexes) {
                               const point = c.data.find(p => p.date === d)
-                              entry[c.name] = point?.minPpp ?? null
+                              if (point?.minPpp != null) vals.push(point.minPpp)
                             }
-                            return entry
+                            return { date: d, avg: vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null }
                           })} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
                             <YAxis tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
-                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}만원/평`]} />
-                            {reListingTrend.complexes.slice(0, 10).map((c, i) => {
-                              const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
-                              return <Line key={c.name} type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={{ r: 2 }} strokeWidth={1.5} connectNulls />
-                            })}
+                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}만원/평`]} labelFormatter={(l) => String(l)} />
+                            <Line type="monotone" dataKey="avg" name="평균 최저호가" stroke="#6366f1" dot={{ r: 3 }} strokeWidth={2} connectNulls />
                           </ComposedChart>
                         </ResponsiveContainer>
                       </div>
