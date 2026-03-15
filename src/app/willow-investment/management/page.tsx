@@ -5932,20 +5932,28 @@ export default function WillowManagementPage() {
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                         <span className="text-xs font-medium">매도 호가(저) 추이 <span className="text-[11px] text-slate-400 font-normal">(선택 단지 평균, 만원/평)</span></span>
                         <ResponsiveContainer width="100%" height={220}>
-                          <ComposedChart data={reListingTrend.dates.map(d => {
-                            const vals: number[] = []
-                            for (const c of reListingTrend.complexes) {
-                              const point = c.data.find(p => p.date === d)
-                              if (point?.minPpp != null) vals.push(point.minPpp)
-                            }
-                            return { date: d, avg: vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null }
-                          })} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
+                          {(() => {
+                            const chartData = reListingTrend.dates.map(d => {
+                              const vals: number[] = []
+                              for (const c of reListingTrend.complexes) {
+                                const point = c.data.find(p => p.date === d)
+                                if (point?.minPpp != null) vals.push(point.minPpp)
+                              }
+                              return { date: d, avg: vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null }
+                            })
+                            const allVals = chartData.map(d => d.avg).filter((v): v is number => v != null)
+                            const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
+                            const yMin = Math.floor(minVal * 0.5 / 100) * 100
+                            return (
+                          <ComposedChart data={chartData} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
+                            <YAxis domain={[yMin, 'auto']} tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
                             <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}만원/평`]} labelFormatter={(l) => String(l)} />
                             <Line type="monotone" dataKey="avg" name="평균 최저호가" stroke="#6366f1" dot={{ r: 3 }} strokeWidth={2} connectNulls />
                           </ComposedChart>
+                            )
+                          })()}
                         </ResponsiveContainer>
                       </div>
                     )}
