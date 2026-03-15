@@ -511,7 +511,40 @@ export async function GET(request: Request) {
         data: dates.map(d => ({ date: d, minPpp: dateMap[d]?.[name] ?? null }))
       }))
 
-      return NextResponse.json({ dates, complexes, tradeType })
+      // Fetch actual trade/rental avg PPP for gap calculation
+      const areaMapping = await buildAreaMapping(supabase, complexNames)
+      let actualAvgPpp: number | null = null
+      if (tradeType === '매매') {
+        const actuals = await fetchAll(applyFilters(
+          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm').gte('deal_date', cutoffDate),
+          'trades'
+        ))
+        const ppps: number[] = []
+        for (const t of actuals) {
+          const sqm = Number(t.area_sqm)
+          if (sqm <= 0) continue
+          const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
+          if (supplyPy < 20) continue
+          ppps.push(Number(t.deal_amount) / supplyPy)
+        }
+        if (ppps.length > 0) actualAvgPpp = Math.round(ppps.reduce((a, b) => a + b, 0) / ppps.length)
+      } else {
+        const actuals = await fetchAll(applyFilters(
+          supabase.from('re_rentals').select('complex_name, deposit, area_sqm').gte('deal_date', cutoffDate).eq('rent_type', '전세'),
+          'rentals'
+        ))
+        const ppps: number[] = []
+        for (const r of actuals) {
+          const sqm = Number(r.area_sqm)
+          if (sqm <= 0) continue
+          const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
+          if (supplyPy < 20) continue
+          ppps.push(Number(r.deposit) / supplyPy)
+        }
+        if (ppps.length > 0) actualAvgPpp = Math.round(ppps.reduce((a, b) => a + b, 0) / ppps.length)
+      }
+
+      return NextResponse.json({ dates, complexes, tradeType, actualAvgPpp })
     }
 
     if (type === 'jeonse-ratio') {
