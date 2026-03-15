@@ -5943,7 +5943,7 @@ export default function WillowManagementPage() {
                             })
                             const allVals = chartData.map(d => d.avg).filter((v): v is number => v != null)
                             const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
-                            const yMin = Math.floor(minVal * 0.5 / 100) * 100
+                            const yMin = Math.floor(minVal * 0.75 / 100) * 100
                             return (
                           <ComposedChart data={chartData} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
