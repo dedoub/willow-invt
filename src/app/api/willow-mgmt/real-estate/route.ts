@@ -501,17 +501,36 @@ export async function GET(request: Request) {
 
       const allMonths = [...new Set([...Object.keys(tradeMonthly), ...Object.keys(rentalMonthly)])].sort()
 
-      const monthlyRatios: Record<string, number[]> = {}
+      // Strategy: for each month, try per-complex matching first (same complex has both trade & jeonse).
+      // If no per-complex matches exist, fall back to aggregate median trade vs aggregate median jeonse.
+      const monthlyRatios: Record<string, number | null> = {}
       for (const month of allMonths) {
         const tData = tradeMonthly[month] || {}
         const rData = rentalMonthly[month] || {}
+
+        // Per-complex matching
+        const perComplexRatios: number[] = []
         for (const name of Object.keys(tData)) {
           if (rData[name]?.length) {
             const medTrade = median(tData[name])
             const medRental = median(rData[name])
             if (medTrade > 0) {
-              if (!monthlyRatios[month]) monthlyRatios[month] = []
-              monthlyRatios[month].push((medRental / medTrade) * 100)
+              perComplexRatios.push((medRental / medTrade) * 100)
+            }
+          }
+        }
+
+        if (perComplexRatios.length > 0) {
+          monthlyRatios[month] = Math.round((perComplexRatios.reduce((s, v) => s + v, 0) / perComplexRatios.length) * 10) / 10
+        } else {
+          // Fallback: aggregate all trades and all rentals for the month
+          const allTrades = Object.values(tData).flat()
+          const allRentals = Object.values(rData).flat()
+          if (allTrades.length > 0 && allRentals.length > 0) {
+            const medTrade = median(allTrades)
+            const medRental = median(allRentals)
+            if (medTrade > 0) {
+              monthlyRatios[month] = Math.round((medRental / medTrade) * 1000) / 10
             }
           }
         }
@@ -520,9 +539,7 @@ export async function GET(request: Request) {
       const trendMonths = expectedMonths.length > 0 ? expectedMonths : allMonths
       const trend = trendMonths.map(m => ({
         month: m,
-        ratio: monthlyRatios[m]?.length
-          ? Math.round((monthlyRatios[m].reduce((s, v) => s + v, 0) / monthlyRatios[m].length) * 10) / 10
-          : null,
+        ratio: monthlyRatios[m] ?? null,
       }))
 
       return NextResponse.json({ trend })
