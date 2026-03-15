@@ -111,7 +111,9 @@ export async function GET(request: Request) {
 
   let complexNames: string[]
   if (complexIds.length > 0) {
-    const { data } = await supabase.from('re_complexes').select('name').in('id', complexIds)
+    let cQuery = supabase.from('re_complexes').select('name').in('id', complexIds)
+    if (districts.length > 0) cQuery = cQuery.in('district_name', districts)
+    const { data } = await cQuery
     complexNames = data?.map(c => c.name) || []
   } else {
     complexNames = allTrackedNames
@@ -200,12 +202,19 @@ export async function GET(request: Request) {
         jeonsePppCount++
       }
 
-      // Listing gaps — grouped by complex+평형대 (same as table)
-      const listings = await fetchAll(
+      // Listing gaps — grouped by complex+평형대 (latest snapshot only)
+      const { data: summaryLatestSnap } = await supabase
+        .from('re_naver_listings').select('snapshot_date')
+        .in('complex_name', complexNames)
+        .order('snapshot_date', { ascending: false }).limit(1)
+      const summarySnapshotDate = summaryLatestSnap?.[0]?.snapshot_date
+
+      const listings = summarySnapshotDate ? await fetchAll(
         supabase.from('re_naver_listings')
           .select('complex_name, trade_type, price, area_supply_sqm, area_type')
+          .eq('snapshot_date', summarySnapshotDate)
           .in('complex_name', complexNames)
-      )
+      ) : []
       type BandKey = string
       const listingBands: Record<BandKey, { trade: number[]; jeonse: number[] }> = {}
       for (const l of listings) {
@@ -364,12 +373,20 @@ export async function GET(request: Request) {
     if (type === 'listings') {
       const tradeType = searchParams.get('tradeType') || '매매'
 
-      // Fetch listings (tracked complexes only) — use fetchAll to bypass 1000 row limit
-      const listings = await fetchAll(
+      // Find the latest snapshot date
+      const { data: latestSnap } = await supabase
+        .from('re_naver_listings').select('snapshot_date')
+        .in('complex_name', complexNames)
+        .order('snapshot_date', { ascending: false }).limit(1)
+      const latestSnapshotDate = latestSnap?.[0]?.snapshot_date
+
+      // Fetch listings (tracked complexes only, latest snapshot only)
+      const listings = latestSnapshotDate ? await fetchAll(
         supabase.from('re_naver_listings')
           .select('*').eq('trade_type', tradeType)
+          .eq('snapshot_date', latestSnapshotDate)
           .in('complex_name', complexNames)
-      )
+      ) : []
 
       // Group listings by complex + 평형대 (20평대, 30평대, 40평대, 50평대, 60평대+)
       function getBand(supplyPy: number): number {

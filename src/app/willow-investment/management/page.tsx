@@ -5602,9 +5602,14 @@ export default function WillowManagementPage() {
                 ) : (
                   <div className="flex items-center gap-1">
                     {['강남구', '서초구', '송파구'].map(d => (
-                      <button key={d} onClick={() => setReDistrictFilter(prev =>
-                        prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]
-                      )}
+                      <button key={d} onClick={() => {
+                        setReDistrictFilter(prev =>
+                          prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]
+                        )
+                        setReComplexFilter([])
+                        setReTradeListPage(0)
+                        setReJeonseListPage(0)
+                      }}
                         className={cn('px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
                           reDistrictFilter.includes(d) ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                         )}>
@@ -5778,7 +5783,7 @@ export default function WillowManagementPage() {
                       reComplexFilter.map(id => {
                         const c = reComplexes.find(x => x.id === id)
                         return c ? (
-                          <button key={id} onClick={() => setReComplexFilter(prev => prev.filter(x => x !== id))}
+                          <button key={id} onClick={() => { setReComplexFilter(prev => prev.filter(x => x !== id)); setReTradeListPage(0); setReJeonseListPage(0) }}
                             className="px-2 py-0.5 text-xs rounded-full bg-slate-900 text-white dark:bg-slate-500 flex items-center gap-1">
                             {c.name} <X className="h-2.5 w-2.5" />
                           </button>
@@ -5790,6 +5795,8 @@ export default function WillowManagementPage() {
                       onChange={(e) => {
                         if (e.target.value && !reComplexFilter.includes(e.target.value)) {
                           setReComplexFilter(prev => [...prev, e.target.value])
+                          setReTradeListPage(0)
+                          setReJeonseListPage(0)
                         }
                       }}
                       className="text-xs bg-white dark:bg-slate-700 rounded px-1.5 py-0.5 cursor-pointer"
@@ -5805,7 +5812,7 @@ export default function WillowManagementPage() {
                   <div className="flex items-center gap-1">
                     <span className="text-[11px] text-slate-400 mr-0.5">평형</span>
                     {[{ v: '', l: '전체' }, { v: '20', l: '20평' }, { v: '30', l: '30평' }, { v: '40', l: '40평' }, { v: '50', l: '50평' }, { v: '60+', l: '60+' }].map(a => (
-                      <button key={a.v} onClick={() => setReAreaFilter(a.v)}
+                      <button key={a.v} onClick={() => { setReAreaFilter(a.v); setReTradeListPage(0); setReJeonseListPage(0) }}
                         className={cn('px-2 py-0.5 text-xs font-medium rounded-full transition-colors',
                           reAreaFilter === a.v ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                         )}>
