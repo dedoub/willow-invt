@@ -487,16 +487,19 @@ export async function GET(request: Request) {
       const { data, error } = await query
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-      // Group by date → complex, pick min across area bands per complex per date
-      const dateMap: Record<string, Record<string, number>> = {}
+      // Group by date → complex, average min_ppp across area bands per complex per date
+      const dateMap: Record<string, Record<string, { sum: number; count: number }>> = {}
       const dateSet = new Set<string>()
       for (const row of data || []) {
         const d = row.snapshot_date
         dateSet.add(d)
         if (!dateMap[d]) dateMap[d] = {}
         const prev = dateMap[d][row.complex_name]
-        if (prev === undefined || row.min_ppp < prev) {
-          dateMap[d][row.complex_name] = row.min_ppp
+        if (!prev) {
+          dateMap[d][row.complex_name] = { sum: row.min_ppp, count: 1 }
+        } else {
+          prev.sum += row.min_ppp
+          prev.count += 1
         }
       }
 
@@ -508,15 +511,20 @@ export async function GET(request: Request) {
 
       const complexes = [...complexSet].sort((a, b) => a.localeCompare(b, 'ko')).map(name => ({
         name,
-        data: dates.map(d => ({ date: d, minPpp: dateMap[d]?.[name] ?? null }))
+        data: dates.map(d => {
+          const entry = dateMap[d]?.[name]
+          return { date: d, minPpp: entry ? Math.round(entry.sum / entry.count) : null }
+        })
       }))
 
-      // Fetch actual trade/rental avg PPP for gap calculation
+      // Fetch actual trade/rental avg PPP for gap calculation (recent 1 month, same as listing table)
       const areaMapping = await buildAreaMapping(supabase, complexNames)
+      const oma1 = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const oneMonthCutoff = `${oma1.getFullYear()}-${String(oma1.getMonth() + 1).padStart(2, '0')}-01`
       let actualAvgPpp: number | null = null
       if (tradeType === '매매') {
         const actuals = await fetchAll(applyFilters(
-          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm').gte('deal_date', cutoffDate),
+          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm').gte('deal_date', oneMonthCutoff).eq('cancel_yn', 'N'),
           'trades'
         ))
         const ppps: number[] = []
@@ -530,7 +538,7 @@ export async function GET(request: Request) {
         if (ppps.length > 0) actualAvgPpp = Math.round(ppps.reduce((a, b) => a + b, 0) / ppps.length)
       } else {
         const actuals = await fetchAll(applyFilters(
-          supabase.from('re_rentals').select('complex_name, deposit, area_sqm').gte('deal_date', cutoffDate).eq('rent_type', '전세'),
+          supabase.from('re_rentals').select('complex_name, deposit, area_sqm').gte('deal_date', oneMonthCutoff).eq('rent_type', '전세'),
           'rentals'
         ))
         const ppps: number[] = []
