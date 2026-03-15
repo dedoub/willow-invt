@@ -5943,12 +5943,16 @@ export default function WillowManagementPage() {
                             })
                             const allVals = chartData.map(d => d.avg).filter((v): v is number => v != null)
                             const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
+                            const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0
                             const yMin = Math.floor(minVal * 0.75 / 500) * 500
+                            const yMax = Math.ceil(maxVal / 500) * 500
+                            const yTicks: number[] = []
+                            for (let t = yMin; t <= yMax; t += 500) yTicks.push(t)
                             return (
                           <ComposedChart data={chartData} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis domain={[yMin, 'auto']} tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} interval="preserveStartEnd" allowDecimals={false} tickCount={6} />
+                            <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
                             <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}만원/평`]} labelFormatter={(l) => String(l)} />
                             <Line type="monotone" dataKey="avg" name="평균 최저호가" stroke="#6366f1" dot={{ r: 3 }} strokeWidth={2} connectNulls />
                           </ComposedChart>
