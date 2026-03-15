@@ -1061,8 +1061,8 @@ export default function WillowManagementPage() {
   const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reJeonseRatio, setReJeonseRatio] = useState<{ month: string; ratio: number | null }[]>([])
-  const [reListingTrend, setReListingTrend] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[]; actualAvgPpp: number | null } | null>(null)
-  const [reListingTrendJeonse, setReListingTrendJeonse] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[]; actualAvgPpp: number | null } | null>(null)
+  const [reListingTrend, setReListingTrend] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[]; gapRate: number | null } | null>(null)
+  const [reListingTrendJeonse, setReListingTrendJeonse] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[]; gapRate: number | null } | null>(null)
   const [reTradeListPage, setReTradeListPage] = useState(0)
   const [reJeonseListPage, setReJeonseListPage] = useState(0)
   const RE_LIST_PAGE_SIZE = 5
@@ -5935,26 +5935,21 @@ export default function WillowManagementPage() {
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium">매도 호가(저) 추이 <span className="text-[11px] text-slate-400 font-normal">(선택 단지 평균, 만원/평)</span></span>
-                          {reListingTrend.actualAvgPpp != null && (() => {
-                            const lastAvg = (() => { for (let i = reListingTrend.dates.length - 1; i >= 0; i--) { const vals: number[] = []; for (const c of reListingTrend.complexes) { const p = c.data.find(x => x.date === reListingTrend.dates[i]); if (p?.minPpp != null) vals.push(p.minPpp) }; if (vals.length > 0) return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length); } return null })()
-                            const gap = lastAvg != null && reListingTrend.actualAvgPpp > 0 ? Math.round(((lastAvg - reListingTrend.actualAvgPpp) / reListingTrend.actualAvgPpp) * 1000) / 10 : null
-                            return gap != null ? <span className={`text-[11px] font-medium ${gap > 0 ? 'text-red-500' : 'text-blue-500'}`}>괴리율 {gap > 0 ? '+' : ''}{gap}%</span> : null
-                          })()}
+                          {reListingTrend.gapRate != null && (
+                            <span className={`text-[11px] font-medium ${reListingTrend.gapRate > 0 ? 'text-red-500' : 'text-blue-500'}`}>괴리율 {reListingTrend.gapRate > 0 ? '+' : ''}{reListingTrend.gapRate}%</span>
+                          )}
                         </div>
                         <ResponsiveContainer width="100%" height={220}>
                           {(() => {
-                            const actualPpp = reListingTrend.actualAvgPpp
                             const chartData = reListingTrend.dates.map(d => {
                               const vals: number[] = []
                               for (const c of reListingTrend.complexes) {
                                 const point = c.data.find(p => p.date === d)
                                 if (point?.minPpp != null) vals.push(point.minPpp)
                               }
-                              const avg = vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null
-                              const gap = avg != null && actualPpp != null && actualPpp > 0 ? Math.round(((avg - actualPpp) / actualPpp) * 1000) / 10 : null
-                              return { date: d, avg, actual: actualPpp, gap }
+                              return { date: d, avg: vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null }
                             })
-                            const allVals = chartData.flatMap(d => [d.avg, d.actual].filter((v): v is number => v != null))
+                            const allVals = chartData.map(d => d.avg).filter((v): v is number => v != null)
                             const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
                             const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0
                             const yMin = Math.floor(minVal * 0.75 / 500) * 500
@@ -5967,7 +5962,6 @@ export default function WillowManagementPage() {
                             <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
                             <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
                             <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}만원/평`]} labelFormatter={(l) => String(l)} />
-                            {actualPpp != null && <ReferenceLine y={actualPpp} stroke="#94a3b8" strokeDasharray="6 3" label={{ value: `실거래 ${actualPpp.toLocaleString()}`, position: 'right', fontSize: 9, fill: '#94a3b8' }} />}
                             <Line type="monotone" dataKey="avg" name="평균 최저호가" stroke="#6366f1" dot={{ r: 3 }} strokeWidth={2} connectNulls />
                           </ComposedChart>
                             )
@@ -6103,24 +6097,21 @@ export default function WillowManagementPage() {
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium">전세 호가(저) 추이 <span className="text-[11px] text-slate-400 font-normal">(선택 단지 평균, 만원/평)</span></span>
-                          {reListingTrendJeonse.actualAvgPpp != null && (() => {
-                            const lastAvg = (() => { for (let i = reListingTrendJeonse.dates.length - 1; i >= 0; i--) { const vals: number[] = []; for (const c of reListingTrendJeonse.complexes) { const p = c.data.find(x => x.date === reListingTrendJeonse.dates[i]); if (p?.minPpp != null) vals.push(p.minPpp) }; if (vals.length > 0) return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length); } return null })()
-                            const gap = lastAvg != null && reListingTrendJeonse.actualAvgPpp > 0 ? Math.round(((lastAvg - reListingTrendJeonse.actualAvgPpp) / reListingTrendJeonse.actualAvgPpp) * 1000) / 10 : null
-                            return gap != null ? <span className={`text-[11px] font-medium ${gap > 0 ? 'text-red-500' : 'text-blue-500'}`}>괴리율 {gap > 0 ? '+' : ''}{gap}%</span> : null
-                          })()}
+                          {reListingTrendJeonse.gapRate != null && (
+                            <span className={`text-[11px] font-medium ${reListingTrendJeonse.gapRate > 0 ? 'text-red-500' : 'text-blue-500'}`}>괴리율 {reListingTrendJeonse.gapRate > 0 ? '+' : ''}{reListingTrendJeonse.gapRate}%</span>
+                          )}
                         </div>
                         <ResponsiveContainer width="100%" height={220}>
                           {(() => {
-                            const actualPpp = reListingTrendJeonse.actualAvgPpp
                             const chartData = reListingTrendJeonse.dates.map(d => {
                               const vals: number[] = []
                               for (const c of reListingTrendJeonse.complexes) {
                                 const point = c.data.find(p => p.date === d)
                                 if (point?.minPpp != null) vals.push(point.minPpp)
                               }
-                              return { date: d, avg: vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null, actual: actualPpp }
+                              return { date: d, avg: vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null }
                             })
-                            const allVals = chartData.flatMap(d => [d.avg, d.actual].filter((v): v is number => v != null))
+                            const allVals = chartData.map(d => d.avg).filter((v): v is number => v != null)
                             const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
                             const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0
                             const yMin = Math.floor(minVal * 0.75 / 500) * 500
@@ -6133,7 +6124,6 @@ export default function WillowManagementPage() {
                             <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
                             <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
                             <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}만원/평`]} labelFormatter={(l) => String(l)} />
-                            {actualPpp != null && <ReferenceLine y={actualPpp} stroke="#94a3b8" strokeDasharray="6 3" label={{ value: `실거래 ${actualPpp.toLocaleString()}`, position: 'right', fontSize: 9, fill: '#94a3b8' }} />}
                             <Line type="monotone" dataKey="avg" name="평균 최저호가" stroke="#10b981" dot={{ r: 3 }} strokeWidth={2} connectNulls />
                           </ComposedChart>
                             )
