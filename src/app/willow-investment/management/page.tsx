@@ -1061,6 +1061,7 @@ export default function WillowManagementPage() {
   const [reListingsTrade, setReListingsTrade] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reListingsJeonse, setReListingsJeonse] = useState<{ complexName: string; complexNo: string | null; areaBand: number; listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number; actualAvgPpp: number | null; actualCount: number; gap: number | null }[]>([])
   const [reJeonseRatio, setReJeonseRatio] = useState<{ month: string; ratio: number | null }[]>([])
+  const [reListingTrend, setReListingTrend] = useState<{ dates: string[]; complexes: { name: string; data: { date: string; minPpp: number | null }[] }[] } | null>(null)
   const [reTradeListPage, setReTradeListPage] = useState(0)
   const [reJeonseListPage, setReJeonseListPage] = useState(0)
   const RE_LIST_PAGE_SIZE = 5
@@ -2394,7 +2395,7 @@ export default function WillowManagementPage() {
       params.set('period', period)
 
       const base = '/api/willow-mgmt/real-estate'
-      const [summaryRes, complexesRes, tradesRes, rentalsRes, listingsTradeRes, listingsJeonseRes, jeonseRatioRes] = await Promise.all([
+      const [summaryRes, complexesRes, tradesRes, rentalsRes, listingsTradeRes, listingsJeonseRes, jeonseRatioRes, listingTrendRes] = await Promise.all([
         fetch(`${base}?type=summary&${params}`),
         fetch(`${base}?type=complexes&${params}`),
         fetch(`${base}?type=trades&${params}`),
@@ -2402,6 +2403,7 @@ export default function WillowManagementPage() {
         fetch(`${base}?type=listings&tradeType=매매&${params}`),
         fetch(`${base}?type=listings&tradeType=전세&${params}`),
         fetch(`${base}?type=jeonse-ratio&${params}`),
+        fetch(`${base}?type=listing-trend&tradeType=매매&${params}`),
       ])
 
       if (summaryRes.ok) { const d = await summaryRes.json(); setReSummary(d.summary) }
@@ -2411,6 +2413,7 @@ export default function WillowManagementPage() {
       if (listingsTradeRes.ok) { const d = await listingsTradeRes.json(); setReListingsTrade(d.listings || []) }
       if (listingsJeonseRes.ok) { const d = await listingsJeonseRes.json(); setReListingsJeonse(d.listings || []) }
       if (jeonseRatioRes.ok) { const d = await jeonseRatioRes.json(); setReJeonseRatio(d.trend || []) }
+      if (listingTrendRes.ok) { const d = await listingTrendRes.json(); setReListingTrend(d) }
     } catch (error) {
       console.error('Failed to load real estate data:', error)
     } finally {
@@ -5918,6 +5921,32 @@ export default function WillowManagementPage() {
                             {reTrades.complexes.slice(0, 10).map((c, i) => {
                               const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
                               return <Line key={c.name} yAxisId="price" type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
+                            })}
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {/* Section 1.5: 매도 호가(저) 일일 추이 */}
+                    {reListingTrend && reListingTrend.dates.length > 1 && reListingTrend.complexes.length > 0 && (
+                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
+                        <span className="text-xs font-medium">매도 호가(저) 추이 <span className="text-[11px] text-slate-400 font-normal">(평당 최저 호가, 만원)</span></span>
+                        <ResponsiveContainer width="100%" height={220}>
+                          <ComposedChart data={reListingTrend.dates.map(d => {
+                            const entry: Record<string, string | number | null> = { date: d }
+                            for (const c of reListingTrend.complexes) {
+                              const point = c.data.find(p => p.date === d)
+                              entry[c.name] = point?.minPpp ?? null
+                            }
+                            return entry
+                          })} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                            <YAxis tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
+                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}만원/평`]} />
+                            {reListingTrend.complexes.slice(0, 10).map((c, i) => {
+                              const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
+                              return <Line key={c.name} type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={{ r: 2 }} strokeWidth={1.5} connectNulls />
                             })}
                           </ComposedChart>
                         </ResponsiveContainer>

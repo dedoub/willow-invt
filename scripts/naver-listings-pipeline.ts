@@ -35,6 +35,16 @@ const TARGET_COMPLEXES: { name: string; district: string; hscpNo: string }[] = [
   { name: '은마', district: '강남구', hscpNo: '236' },
   { name: '도곡렉슬', district: '강남구', hscpNo: '11698' },
   { name: '개포래미안포레스트', district: '강남구', hscpNo: '119219' },
+  { name: "역삼I'PARK", district: '강남구', hscpNo: '17805' },
+  { name: '강남센트럴아이파크', district: '강남구', hscpNo: '127482' },
+  { name: '개나리푸르지오', district: '강남구', hscpNo: '17528' },
+  { name: '개나리래미안', district: '강남구', hscpNo: '18213' },
+  { name: '동부센트레빌', district: '강남구', hscpNo: '8710' },
+  { name: '디에이치퍼스티어아이파크', district: '강남구', hscpNo: '134062' },
+  { name: '래미안블레스티지', district: '강남구', hscpNo: '112228' },
+  { name: '현대1,2차', district: '강남구', hscpNo: '712' },
+  { name: '현대6,7차', district: '강남구', hscpNo: '724' },
+  { name: '신현대(9,11,12차)', district: '강남구', hscpNo: '3037' },
   // 서초구
   { name: '래미안원베일리', district: '서초구', hscpNo: '142155' },
   { name: '반포자이', district: '서초구', hscpNo: '22853' },
@@ -230,6 +240,119 @@ async function upsertListings(records: any[]): Promise<number> {
 }
 
 // ============================================================
+// Daily Summary 집계 & 적재
+// ============================================================
+interface DailySummaryRow {
+  snapshot_date: string
+  complex_name: string
+  trade_type: string
+  area_band: number
+  listing_count: number
+  min_ppp: number
+  max_ppp: number
+  avg_ppp: number
+}
+
+function getAreaBand(pyeong: number): number | null {
+  if (pyeong < 20) return null
+  if (pyeong < 30) return 20
+  if (pyeong < 40) return 30
+  if (pyeong < 50) return 40
+  if (pyeong < 60) return 50
+  return 60
+}
+
+async function buildAndUpsertDailySummary(snapshotDate: string): Promise<number> {
+  console.log('\n📊 일일 요약 적재 중...')
+
+  // 해당 스냅샷 날짜의 모든 매물 조회
+  const { data: listings, error } = await supabase
+    .from('re_naver_listings')
+    .select('complex_name, district_name, trade_type, area_supply_sqm, price')
+    .eq('snapshot_date', snapshotDate)
+
+  if (error) {
+    console.error('  ❌ 매물 조회 오류:', error.message)
+    return 0
+  }
+
+  if (!listings || listings.length === 0) {
+    console.log('  ⚠️ 해당 날짜 매물 없음')
+    return 0
+  }
+
+  // 단지별, 거래타입별, 평형대별 집계
+  const buckets = new Map<string, { prices: number[] }>()
+
+  for (const l of listings) {
+    const supplySqm = l.area_supply_sqm
+    if (!supplySqm || supplySqm <= 0) continue
+
+    const pyeong = supplySqm / 3.3058
+    const band = getAreaBand(pyeong)
+    if (band === null) continue
+
+    const price = l.price
+    if (!price || price <= 0) continue
+
+    const ppp = price / pyeong
+
+    const key = `${l.complex_name}|${l.trade_type}|${band}`
+    let bucket = buckets.get(key)
+    if (!bucket) {
+      bucket = { prices: [] }
+      buckets.set(key, bucket)
+    }
+    bucket.prices.push(ppp)
+  }
+
+  // summary 행 생성
+  const rows: DailySummaryRow[] = []
+  for (const [key, bucket] of buckets) {
+    const [complexName, tradeType, bandStr] = key.split('|')
+    const prices = bucket.prices
+    const sum = prices.reduce((a, b) => a + b, 0)
+
+    rows.push({
+      snapshot_date: snapshotDate,
+      complex_name: complexName,
+      trade_type: tradeType,
+      area_band: parseInt(bandStr),
+      listing_count: prices.length,
+      min_ppp: Math.round(Math.min(...prices)),
+      max_ppp: Math.round(Math.max(...prices)),
+      avg_ppp: Math.round(sum / prices.length),
+    })
+  }
+
+  if (rows.length === 0) {
+    console.log('  ⚠️ 집계 결과 없음')
+    return 0
+  }
+
+  // upsert
+  let upserted = 0
+  for (let i = 0; i < rows.length; i += 500) {
+    const chunk = rows.slice(i, i + 500)
+    const { error: upsertError, data } = await supabase
+      .from('re_listing_daily_summary')
+      .upsert(chunk, {
+        onConflict: 'snapshot_date,complex_name,trade_type,area_band',
+      })
+      .select('snapshot_date')
+
+    if (upsertError) {
+      console.error('  ❌ 요약 upsert 오류:', upsertError.message)
+    } else {
+      upserted += data?.length || 0
+    }
+  }
+
+  console.log(`✅ ${upserted}건 적재 완료`)
+  return upserted
+}
+
+// ============================================================
 // Summary Output
 // ============================================================
 function printSummary(
@@ -260,7 +383,7 @@ async function runPipeline() {
 
   const tradeLabel = saleOnly ? '매매만' : rentOnly ? '전세만' : '매매+전세'
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
   const activeComplexes = TARGET_COMPLEXES.filter(c => c.hscpNo)
 
   console.log(`🏠 네이버 매물 스냅샷 파이프라인 (Playwright)`)
@@ -356,6 +479,9 @@ async function runPipeline() {
   } finally {
     await browser.close()
   }
+
+  // Daily Summary 적재
+  await buildAndUpsertDailySummary(today)
 
   // Summary
   printSummary(summaryResults)

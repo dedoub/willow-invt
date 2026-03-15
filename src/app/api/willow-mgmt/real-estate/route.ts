@@ -466,6 +466,54 @@ export async function GET(request: Request) {
       return NextResponse.json({ listings: rows, tradeType })
     }
 
+    if (type === 'listing-trend') {
+      const tradeType = searchParams.get('tradeType') || '매매'
+      const bandFilter = areaRange === '20' ? 20 : areaRange === '30' ? 30 : areaRange === '40' ? 40 : areaRange === '50' ? 50 : areaRange === '60+' ? 60 : null
+
+      let query = supabase
+        .from('re_listing_daily_summary')
+        .select('snapshot_date, complex_name, area_band, min_ppp')
+        .eq('trade_type', tradeType)
+        .in('complex_name', complexNames)
+        .order('snapshot_date', { ascending: true })
+
+      if (bandFilter) {
+        query = query.eq('area_band', bandFilter)
+      } else {
+        // 전체: 20평대 이상 모두
+        query = query.gte('area_band', 20)
+      }
+
+      const { data, error } = await query
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+      // Group by date → complex, pick min across area bands per complex per date
+      const dateMap: Record<string, Record<string, number>> = {}
+      const dateSet = new Set<string>()
+      for (const row of data || []) {
+        const d = row.snapshot_date
+        dateSet.add(d)
+        if (!dateMap[d]) dateMap[d] = {}
+        const prev = dateMap[d][row.complex_name]
+        if (prev === undefined || row.min_ppp < prev) {
+          dateMap[d][row.complex_name] = row.min_ppp
+        }
+      }
+
+      const dates = [...dateSet].sort()
+      const complexSet = new Set<string>()
+      for (const d of dates) {
+        for (const name of Object.keys(dateMap[d] || {})) complexSet.add(name)
+      }
+
+      const complexes = [...complexSet].sort((a, b) => a.localeCompare(b, 'ko')).map(name => ({
+        name,
+        data: dates.map(d => ({ date: d, minPpp: dateMap[d]?.[name] ?? null }))
+      }))
+
+      return NextResponse.json({ dates, complexes, tradeType })
+    }
+
     if (type === 'jeonse-ratio') {
       const trades = await fetchAll(applyFilters(
         supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_pyeong').gte('deal_date', cutoffDate),

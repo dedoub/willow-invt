@@ -98,11 +98,19 @@ export function registerRealEstateTools(server: McpServer) {
         supabase.from('re_rentals').select('complex_name, deposit, area_pyeong')
           .gte('deal_date', threeMonthsAgo).eq('rent_type', '전세').in('complex_name', complexNames)
       )
-      const listings = await fetchAll(
+      // Use only the latest snapshot for listings
+      const { data: summarySnap } = await supabase
+        .from('re_naver_listings').select('snapshot_date')
+        .in('complex_name', complexNames)
+        .order('snapshot_date', { ascending: false }).limit(1)
+      const summarySnapDate = summarySnap?.[0]?.snapshot_date
+
+      const listings = summarySnapDate ? await fetchAll(
         supabase.from('re_naver_listings')
           .select('complex_name, trade_type, price, area_exclusive_sqm, area_type')
+          .eq('snapshot_date', summarySnapDate)
           .in('complex_name', complexNames)
-      )
+      ) : []
 
       // Compute PPP averages
       let tradePppSum = 0, tradePppCount = 0
@@ -294,11 +302,19 @@ export function registerRealEstateTools(server: McpServer) {
       const { data: trackedData } = await supabase.from('re_complexes').select('name').eq('is_tracked', true)
       const complexNames = trackedData?.map(c => c.name) || []
 
-      const listings = await fetchAll(
+      // Use only the latest snapshot
+      const { data: latestSnap } = await supabase
+        .from('re_naver_listings').select('snapshot_date')
+        .in('complex_name', complexNames)
+        .order('snapshot_date', { ascending: false }).limit(1)
+      const latestSnapshotDate = latestSnap?.[0]?.snapshot_date
+
+      const listings = latestSnapshotDate ? await fetchAll(
         supabase.from('re_naver_listings')
           .select('complex_name, trade_type, price, area_exclusive_sqm, area_type')
-          .eq('trade_type', tradeType).in('complex_name', complexNames)
-      )
+          .eq('trade_type', tradeType).eq('snapshot_date', latestSnapshotDate)
+          .in('complex_name', complexNames)
+      ) : []
 
       const now = new Date()
       const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().slice(0, 10)
@@ -366,11 +382,20 @@ export function registerRealEstateTools(server: McpServer) {
       const tradeType = trade_type || '매매'
       const maxItems = Math.min(limit || 50, 200)
 
-      const { data, error: dbError } = await supabase
+      // Use only the latest snapshot
+      const { data: listSnap } = await supabase
+        .from('re_naver_listings').select('snapshot_date')
+        .eq('complex_name', complex_name)
+        .order('snapshot_date', { ascending: false }).limit(1)
+      const listSnapDate = listSnap?.[0]?.snapshot_date
+
+      let query = supabase
         .from('re_naver_listings')
         .select('article_no, complex_name, trade_type, price, monthly_rent, area_type, area_exclusive_sqm, floor_info, direction, confirm_date, description, realtor_name')
         .eq('complex_name', complex_name)
         .eq('trade_type', tradeType)
+      if (listSnapDate) query = query.eq('snapshot_date', listSnapDate)
+      const { data, error: dbError } = await query
         .order('price', { ascending: true })
         .limit(maxItems)
 
