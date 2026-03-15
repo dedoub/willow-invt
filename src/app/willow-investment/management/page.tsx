@@ -5948,7 +5948,7 @@ export default function WillowManagementPage() {
                           <ComposedChart data={chartData} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis domain={[yMin, 'auto']} tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
+                            <YAxis domain={[yMin, 'auto']} tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} interval="preserveStartEnd" allowDecimals={false} tickCount={6} />
                             <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}만원/평`]} labelFormatter={(l) => String(l)} />
                             <Line type="monotone" dataKey="avg" name="평균 최저호가" stroke="#6366f1" dot={{ r: 3 }} strokeWidth={2} connectNulls />
                           </ComposedChart>
