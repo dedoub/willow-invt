@@ -104,13 +104,15 @@ function formatPrice(price: number): string {
 let rateLimitAbort = false
 
 // 단지 페이지 방문 + 스크롤 페이지네이션으로 전체 매물 수집
-// 네이버 API는 tradeType= (빈값)으로 매매+전세 혼합 반환 → tradeTypeCode로 분리
-const MAX_SCROLL_PAGES = 20 // 최대 20페이지 (400건)
+// 매매/전세를 분리 수집하여 대단지에서 매물 누락 방지
+const MAX_SCROLL_PAGES = 40 // 최대 40페이지 (800건)
 
-async function fetchAllArticles(
+// 단일 거래유형 수집 (tradeType: 'A1'=매매, 'B1'=전세)
+async function fetchArticlesByTradeType(
   page: Page,
   hscpNo: string,
-): Promise<{ sale: any[]; rent: any[] }> {
+  tradeType: 'A1' | 'B1',
+): Promise<any[]> {
   if (rateLimitAbort) throw new Error('Rate limit abort — 이전 차단으로 중단됨')
 
   const seenIds = new Set<string>()
@@ -141,12 +143,12 @@ async function fetchAllArticles(
     } catch {}
   })
 
-  // 1) 단지 페이지 방문 → 첫 번째 API 응답 수집
-  const pageUrl = `https://new.land.naver.com/complexes/${hscpNo}?ms=a1&a=APT&e=OPST`
+  // 1) 단지 페이지 방문 (거래유형 필터 적용: tradTpCd)
+  const pageUrl = `https://new.land.naver.com/complexes/${hscpNo}?ms=a1&a=APT&e=OPST&tradTpCd=${tradeType}`
   try { await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 20000 }) } catch {}
   await sleep(1500)
 
-  if (rateLimitAbort) return { sale: [], rent: [] }
+  if (rateLimitAbort) return []
 
   // 2) 스크롤로 추가 페이지 로드
   while (lastIsMore && pageCount < MAX_SCROLL_PAGES && !rateLimitAbort) {
@@ -163,11 +165,39 @@ async function fetchAllArticles(
     if (rawArticles.length === prevCount) break
   }
 
-  // tradeTypeCode로 분리 (A1=매매, B1=전세)
-  return {
-    sale: rawArticles.filter(a => a.tradeTypeCode === 'A1'),
-    rent: rawArticles.filter(a => a.tradeTypeCode === 'B1'),
+  return rawArticles
+}
+
+// 매매+전세 분리 수집 래퍼
+async function fetchAllArticles(
+  context: BrowserContext,
+  hscpNo: string,
+  collectSale: boolean,
+  collectRent: boolean,
+): Promise<{ sale: any[]; rent: any[] }> {
+  let sale: any[] = []
+  let rent: any[] = []
+
+  if (collectSale && !rateLimitAbort) {
+    const salePage = await context.newPage()
+    try {
+      sale = await fetchArticlesByTradeType(salePage, hscpNo, 'A1')
+    } finally {
+      await salePage.close()
+    }
+    if (!rateLimitAbort && collectRent) await sleep(randomDelay())
   }
+
+  if (collectRent && !rateLimitAbort) {
+    const rentPage = await context.newPage()
+    try {
+      rent = await fetchArticlesByTradeType(rentPage, hscpNo, 'B1')
+    } finally {
+      await rentPage.close()
+    }
+  }
+
+  return { sale, rent }
 }
 
 // ============================================================
@@ -443,10 +473,9 @@ async function runPipeline() {
 
       console.log(`🏢 ${name} (${district})`)
 
-      // 단지당 1회만 방문 → 매매+전세 동시 수집
-      const freshPage = await context.newPage()
+      // 매매/전세 분리 수집 (각각 별도 페이지)
       try {
-        const { sale, rent } = await fetchAllArticles(freshPage, hscpNo)
+        const { sale, rent } = await fetchAllArticles(context, hscpNo, !rentOnly, !saleOnly)
 
         // 매매 처리
         if (!rentOnly) {
@@ -481,8 +510,6 @@ async function runPipeline() {
         }
       } catch (e: any) {
         console.error(`  ❌ 오류: ${e.message}`)
-      } finally {
-        await freshPage.close()
       }
 
       // 단지 간 딜레이
