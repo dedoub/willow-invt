@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { LogOut, User, Moon, Sun, Menu } from 'lucide-react'
+import { LogOut, User, Moon, Sun, Menu, RefreshCw } from 'lucide-react'
 import { useTheme } from 'next-themes'
 
 interface HeaderProps {
@@ -77,10 +77,22 @@ export function Header({ title, onMobileMenuToggle }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <h1 className="text-lg md:text-xl font-semibold truncate">{title || t.dashboard.title}</h1>
+        <h1 className="text-lg md:text-xl font-semibold truncate">
+          <span className="hidden md:inline">{title || t.dashboard.title}</span>
+          <span className="md:hidden">{title?.includes(' - ') ? title.split(' - ').pop() : (title || t.dashboard.title)}</span>
+        </h1>
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Data refresh */}
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-lg p-2 hover:bg-accent"
+          title="새로고침"
+        >
+          <RefreshCw className="h-5 w-5" />
+        </button>
+
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

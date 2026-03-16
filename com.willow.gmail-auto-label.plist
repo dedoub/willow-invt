@@ -11,8 +11,13 @@
     </array>
     <key>WorkingDirectory</key>
     <string>/Volumes/PRO-G40/app-dev/willow-invt</string>
-    <key>StartInterval</key>
-    <integer>3600</integer>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>8</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
     <key>StandardOutPath</key>
     <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/logs/gmail-auto-label.log</string>
     <key>StandardErrorPath</key>

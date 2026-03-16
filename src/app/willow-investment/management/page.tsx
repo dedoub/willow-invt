@@ -93,6 +93,7 @@ import {
   ListTodo,
   Pin,
   Maximize2,
+  Tag,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -1145,6 +1146,7 @@ export default function WillowManagementPage() {
   // AI analysis states
   const [aiAnalysis, setAiAnalysis] = useState<OverallAnalysisResult | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isAutoLabeling, setIsAutoLabeling] = useState(false)
   const [showAiAnalysis, setShowAiAnalysis] = useState(false)
   const [savedTodos, setSavedTodos] = useState<SavedTodo[]>([])
   const [togglingTodoIdsEmail, setTogglingTodoIdsEmail] = useState<Set<string>>(new Set())
@@ -2868,6 +2870,25 @@ export default function WillowManagementPage() {
       console.error('Failed to load saved analysis:', error)
     }
   }, [gmailLabel])
+
+  const handleAutoLabel = async () => {
+    if (!syncStatus.isConnected || isAutoLabeling) return
+    setIsAutoLabeling(true)
+    try {
+      const gmailContext = gmailLabel === 'TENSW' ? 'tensoftworks' : 'default'
+      const res = await fetch(`/api/gmail/auto-label?context=${gmailContext}&range=1d`, { method: 'POST' })
+      const data = await res.json()
+      if (data.labeled > 0) {
+        alert(`${data.labeled}건 라벨 적용 완료`)
+      } else {
+        alert('분류할 이메일이 없습니다')
+      }
+    } catch {
+      alert('자동 라벨 분류 실패')
+    } finally {
+      setIsAutoLabeling(false)
+    }
+  }
 
   const handleAnalyzeEmails = async () => {
     setIsAnalyzing(true)
@@ -6296,13 +6317,20 @@ export default function WillowManagementPage() {
                     )}
                   </CardDescription>
                 </div>
-                <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
+                <div className="grid grid-cols-5 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
                   <button
                     onClick={syncEmails}
                     disabled={isSyncing || !syncStatus.isConnected}
                     className="flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 cursor-pointer"
                   >
                     <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    onClick={handleAutoLabel}
+                    disabled={isAutoLabeling || !syncStatus.isConnected}
+                    className="flex items-center justify-center gap-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 px-3 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isAutoLabeling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Tag className="h-4 w-4" />}
                   </button>
                   <button
                     onClick={handleAnalyzeEmails}
