@@ -5555,7 +5555,10 @@ export default function WillowManagementPage() {
             </CardContent>
           </Card>
 
-          {/* Investment Research Section */}
+        </div>
+      </div>
+
+      {/* Row 2.5 - Investment Research (full width, 2-col inside) */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -5874,6 +5877,9 @@ export default function WillowManagementPage() {
                       </div>
                     )}
 
+                    {/* 매매/전세 2열 그리드 */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                     {/* Section 1: 매매 실거래가 추이 */}
                     {reTrades && reTrades.months.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
@@ -6031,6 +6037,8 @@ export default function WillowManagementPage() {
                       )
                     })()}
 
+                    </div>
+                    <div className="space-y-4">
                     {/* Section 3: 전세 실거래가 추이 */}
                     {reRentals && reRentals.months.length > 0 && (
                       <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
@@ -6204,6 +6212,8 @@ export default function WillowManagementPage() {
                         </ResponsiveContainer>
                       </div>
                     )}
+                    </div>
+                    </div>
 
                     {/* Empty state */}
                     {!reTrades && !reSummary && (
@@ -6218,8 +6228,6 @@ export default function WillowManagementPage() {
               )}
             </CardContent>
           </Card>
-        </div>
-      </div>
 
       {/* Row 3 - Email (full width) */}
           <Card className="bg-slate-100 dark:bg-slate-800">
