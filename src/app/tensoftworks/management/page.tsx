@@ -3563,7 +3563,7 @@ export default function TenswManagementPage() {
                           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer"
                           onClick={() => setExpandedTaxInvoice(isExpanded ? null : inv.id)}
                         >
-                          <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium', statusStyle.bg, statusStyle.text)}>
+                          <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap', statusStyle.bg, statusStyle.text)}>
                             {statusStyle.label}
                           </span>
                           <span className="font-medium text-sm truncate">{inv.counterparty}</span>
