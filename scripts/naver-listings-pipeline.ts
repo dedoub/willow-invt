@@ -265,30 +265,42 @@ function getAreaBand(pyeong: number): number | null {
 async function buildAndUpsertDailySummary(snapshotDate: string): Promise<number> {
   console.log('\n📊 일일 요약 적재 중...')
 
-  // 해당 스냅샷 날짜의 모든 매물 조회
-  const { data: listings, error } = await supabase
-    .from('re_naver_listings')
-    .select('complex_name, district_name, trade_type, area_supply_sqm, price')
-    .eq('snapshot_date', snapshotDate)
-
-  if (error) {
-    console.error('  ❌ 매물 조회 오류:', error.message)
-    return 0
+  // 해당 스냅샷 날짜의 모든 매물 조회 (1000행 제한 우회를 위해 페이징)
+  const listings: any[] = []
+  const PAGE_SIZE = 1000
+  let offset = 0
+  while (true) {
+    const { data, error: fetchErr } = await supabase
+      .from('re_naver_listings')
+      .select('complex_name, district_name, trade_type, area_supply_sqm, area_type, price')
+      .eq('snapshot_date', snapshotDate)
+      .range(offset, offset + PAGE_SIZE - 1)
+    if (fetchErr) {
+      console.error('  ❌ 매물 조회 오류:', fetchErr.message)
+      return 0
+    }
+    if (!data || data.length === 0) break
+    listings.push(...data)
+    if (data.length < PAGE_SIZE) break
+    offset += PAGE_SIZE
   }
 
-  if (!listings || listings.length === 0) {
+  if (listings.length === 0) {
     console.log('  ⚠️ 해당 날짜 매물 없음')
     return 0
   }
+  console.log(`  📋 매물 ${listings.length}건 조회 완료`)
 
   // 단지별, 거래타입별, 평형대별 집계
   const buckets = new Map<string, { prices: number[] }>()
 
   for (const l of listings) {
-    const supplySqm = l.area_supply_sqm
-    if (!supplySqm || supplySqm <= 0) continue
+    const supplySqm = Number(l.area_supply_sqm) || 0
+    const typeSqm = parseFloat(l.area_type || '0') || 0
+    const sqm = supplySqm > 0 ? supplySqm : typeSqm
+    if (sqm <= 0) continue
 
-    const pyeong = supplySqm / 3.3058
+    const pyeong = sqm / 3.3058
     const band = getAreaBand(pyeong)
     if (band === null) continue
 

@@ -202,29 +202,34 @@ export async function GET(request: Request) {
         jeonsePppCount++
       }
 
-      // Listing gaps — grouped by complex+평형대 (latest snapshot only)
+      // Listing gaps — from daily summary table (consistent with listing-trend chart)
+      const bandFilter = areaRange === '20' ? 20 : areaRange === '30' ? 30 : areaRange === '40' ? 40 : areaRange === '50' ? 50 : areaRange === '60+' ? 60 : null
       const { data: summaryLatestSnap } = await supabase
-        .from('re_naver_listings').select('snapshot_date')
+        .from('re_listing_daily_summary').select('snapshot_date')
         .in('complex_name', complexNames)
         .order('snapshot_date', { ascending: false }).limit(1)
       const summarySnapshotDate = summaryLatestSnap?.[0]?.snapshot_date
 
-      const listings = summarySnapshotDate ? await fetchAll(
-        supabase.from('re_naver_listings')
-          .select('complex_name, trade_type, price, area_supply_sqm, area_type')
+      type BandKey = string
+      const listingBands: Record<BandKey, { trade: number | null; jeonse: number | null }> = {}
+      if (summarySnapshotDate) {
+        let lsQuery = supabase
+          .from('re_listing_daily_summary')
+          .select('complex_name, trade_type, area_band, min_ppp')
           .eq('snapshot_date', summarySnapshotDate)
           .in('complex_name', complexNames)
-      ) : []
-      type BandKey = string
-      const listingBands: Record<BandKey, { trade: number[]; jeonse: number[] }> = {}
-      for (const l of listings) {
-        const py = getListingPyeong(l)
-        if (py <= 0 || !matchesArea(py)) continue
-        const key = `${l.complex_name}|${getBandS(py)}`
-        if (!listingBands[key]) listingBands[key] = { trade: [], jeonse: [] }
-        const ppp = Number(l.price) / py
-        if (l.trade_type === '매매') listingBands[key].trade.push(ppp)
-        else if (l.trade_type === '전세') listingBands[key].jeonse.push(ppp)
+        if (bandFilter) {
+          lsQuery = lsQuery.eq('area_band', bandFilter)
+        } else {
+          lsQuery = lsQuery.gte('area_band', 20)
+        }
+        const { data: lsData } = await lsQuery
+        for (const row of lsData || []) {
+          const key = `${row.complex_name}|${row.area_band}`
+          if (!listingBands[key]) listingBands[key] = { trade: null, jeonse: null }
+          if (row.trade_type === '매매') listingBands[key].trade = row.min_ppp
+          else if (row.trade_type === '전세') listingBands[key].jeonse = row.min_ppp
+        }
       }
 
       // Actuals grouped by complex+band
@@ -253,22 +258,17 @@ export async function GET(request: Request) {
       const tradeGaps: number[] = []
       const jeonseGaps: number[] = []
       for (const [key, li] of Object.entries(listingBands)) {
-        if (li.trade.length > 0 && tradeActuals[key]?.length > 0) {
-          const minListing = Math.min(...li.trade)
+        if (li.trade !== null && tradeActuals[key]?.length > 0) {
           const avgActual = tradeActuals[key].reduce((s, v) => s + v, 0) / tradeActuals[key].length
-          if (avgActual > 0) tradeGaps.push(((minListing - avgActual) / avgActual) * 100)
+          if (avgActual > 0) tradeGaps.push(((li.trade - avgActual) / avgActual) * 100)
         }
-        if (li.jeonse.length > 0 && jeonseActuals[key]?.length > 0) {
-          const minListing = Math.min(...li.jeonse)
+        if (li.jeonse !== null && jeonseActuals[key]?.length > 0) {
           const avgActual = jeonseActuals[key].reduce((s, v) => s + v, 0) / jeonseActuals[key].length
-          if (avgActual > 0) jeonseGaps.push(((minListing - avgActual) / avgActual) * 100)
+          if (avgActual > 0) jeonseGaps.push(((li.jeonse - avgActual) / avgActual) * 100)
         }
       }
 
-      // Latest data dates
-      const { data: latestListing } = await supabase
-        .from('re_naver_listings').select('snapshot_date').in('complex_name', complexNames)
-        .order('snapshot_date', { ascending: false }).limit(1)
+      // Latest data dates (listing date already fetched from daily summary above)
       const { data: latestTrade } = await supabase
         .from('re_trades').select('deal_date').in('complex_name', complexNames).eq('cancel_yn', 'N')
         .order('deal_date', { ascending: false }).limit(1)
@@ -281,7 +281,7 @@ export async function GET(request: Request) {
           avgJeonsePpp: jeonsePppCount > 0 ? Math.round(jeonsePppSum / jeonsePppCount) : 0,
           tradeListingGap: tradeGaps.length ? Math.round(tradeGaps.reduce((s, v) => s + v, 0) / tradeGaps.length * 10) / 10 : 0,
           jeonseListingGap: jeonseGaps.length ? Math.round(jeonseGaps.reduce((s, v) => s + v, 0) / jeonseGaps.length * 10) / 10 : 0,
-          lastListingDate: latestListing?.[0]?.snapshot_date || null,
+          lastListingDate: summarySnapshotDate || null,
           lastTradeDate: latestTrade?.[0]?.deal_date || null,
         }
       })
@@ -484,8 +484,7 @@ export async function GET(request: Request) {
         query = query.gte('area_band', 20)
       }
 
-      const { data, error } = await query
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      const data = await fetchAll(query)
 
       // 2. Actual trade/rental data (recent 1 month) — same as summary
       const areaMapping = await buildAreaMapping(supabase, complexNames)
