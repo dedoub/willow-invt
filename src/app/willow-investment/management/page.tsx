@@ -215,6 +215,34 @@ function CalendarPanelSkeleton() {
   )
 }
 
+// Skeleton for Investment Research (full-width)
+function ResearchPanelSkeleton() {
+  return (
+    <Card className="bg-slate-100 dark:bg-slate-800 animate-pulse">
+      <CardHeader className="pb-2">
+        <div className="h-5 w-28 bg-slate-200 dark:bg-slate-700 rounded" />
+        <div className="h-3 w-40 bg-slate-200 dark:bg-slate-700 rounded mt-1" />
+      </CardHeader>
+      <CardContent className="pt-0 space-y-3">
+        <div className="flex gap-2">
+          <div className="h-6 w-12 bg-slate-200 dark:bg-slate-700 rounded-full" />
+          <div className="h-6 w-12 bg-slate-200 dark:bg-slate-700 rounded-full" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <div className="h-[220px] bg-slate-200 dark:bg-slate-700 rounded-lg" />
+            <div className="h-[220px] bg-slate-200 dark:bg-slate-700 rounded-lg" />
+          </div>
+          <div className="space-y-3">
+            <div className="h-[220px] bg-slate-200 dark:bg-slate-700 rounded-lg" />
+            <div className="h-[220px] bg-slate-200 dark:bg-slate-700 rounded-lg" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 // Full page skeleton
 function WillowManagementPageSkeleton() {
   return (
@@ -224,6 +252,7 @@ function WillowManagementPageSkeleton() {
         <ProjectsPanelSkeleton />
         <ProjectsPanelSkeleton />
       </div>
+      <ResearchPanelSkeleton />
     </div>
   )
 }
