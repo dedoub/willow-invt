@@ -985,7 +985,13 @@ export default function WillowManagementPage() {
     created_at: string
     updated_at: string
   }
-  const [wikiPerPage, setWikiPerPage] = useState(5)
+  const [wikiPerPage, setWikiPerPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('willow-wiki-per-page')
+      return saved ? Number(saved) : 5
+    }
+    return 5
+  })
   const [wikiNotes, setWikiNotes] = useState<WikiNote[]>([])
   const [isLoadingWiki, setIsLoadingWiki] = useState(true)
   const [isAddingNote, setIsAddingNote] = useState(false)
@@ -5528,7 +5534,9 @@ export default function WillowManagementPage() {
                       <select
                         value={wikiPerPage}
                         onChange={(e) => {
-                          setWikiPerPage(Number(e.target.value))
+                          const val = Number(e.target.value)
+                          setWikiPerPage(val)
+                          localStorage.setItem('willow-wiki-per-page', String(val))
                           setWikiPage(1)
                         }}
                         className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
