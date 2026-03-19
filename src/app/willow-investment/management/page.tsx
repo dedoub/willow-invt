@@ -4941,6 +4941,61 @@ export default function WillowManagementPage() {
                           trendData.push(entry)
                         }
 
+                        // Append a "today" data point using current quotes to match holdings tab
+                        if (Object.keys(stockQuotes).length > 0) {
+                          const today = new Date().toISOString().slice(0, 10)
+                          // Rebuild current state from holdingStates (already fully advanced)
+                          let todayTotalVal = 0, todayTotalCost = 0
+                          let todayKrVal = 0, todayKrCost = 0, todayUsVal = 0, todayUsCost = 0
+                          const todayThemeVal: Record<string, number> = {}
+                          const todayThemeCost: Record<string, number> = {}
+                          for (const k of themeKeys) { todayThemeVal[k] = 0; todayThemeCost[k] = 0 }
+                          let hasTodayData = false
+
+                          for (const [ticker, state] of holdingStates) {
+                            if (state.qty <= 0) continue
+                            const quote = stockQuotes[ticker]
+                            if (!quote?.price) continue
+                            hasTodayData = true
+
+                            const isUS = state.market === 'US'
+                            const fx = isUS ? usdKrwRate : 1
+                            const val = quote.price * state.qty * fx
+                            const cost = isUS ? state.krwCost : state.cost
+
+                            todayTotalVal += val; todayTotalCost += cost
+                            if (isUS) { todayUsVal += val; todayUsCost += cost } else { todayKrVal += val; todayKrCost += cost }
+
+                            const group = state.parentTheme || '미분류'
+                            todayThemeVal[group] = (todayThemeVal[group] || 0) + val
+                            todayThemeCost[group] = (todayThemeCost[group] || 0) + cost
+                          }
+
+                          if (hasTodayData && todayTotalCost > 0) {
+                            const todayEntry: { date: string; [key: string]: number | string } = {
+                              date: today,
+                              전체value: Math.round(todayTotalVal), 전체pnl: Math.round(todayTotalVal - todayTotalCost),
+                              전체pct: todayTotalCost > 0 ? Math.round((todayTotalVal - todayTotalCost) / todayTotalCost * 1000) / 10 : 0,
+                              국내value: Math.round(todayKrVal), 국내pnl: Math.round(todayKrVal - todayKrCost),
+                              국내pct: todayKrCost > 0 ? Math.round((todayKrVal - todayKrCost) / todayKrCost * 1000) / 10 : 0,
+                              해외value: Math.round(todayUsVal), 해외pnl: Math.round(todayUsVal - todayUsCost),
+                              해외pct: todayUsCost > 0 ? Math.round((todayUsVal - todayUsCost) / todayUsCost * 1000) / 10 : 0,
+                            }
+                            for (const k of themeKeys) {
+                              todayEntry[`${k}value`] = Math.round(todayThemeVal[k] || 0)
+                              todayEntry[`${k}pnl`] = Math.round((todayThemeVal[k] || 0) - (todayThemeCost[k] || 0))
+                              todayEntry[`${k}pct`] = (todayThemeCost[k] || 0) > 0
+                                ? Math.round(((todayThemeVal[k] || 0) - (todayThemeCost[k] || 0)) / (todayThemeCost[k] || 0) * 1000) / 10 : 0
+                            }
+                            // Replace if last entry is today, otherwise append
+                            if (trendData.length > 0 && trendData[trendData.length - 1].date === today) {
+                              trendData[trendData.length - 1] = todayEntry
+                            } else {
+                              trendData.push(todayEntry)
+                            }
+                          }
+                        }
+
                         // Sample data to ~120 points max for performance
                         const sampled = trendData.length > 120
                           ? trendData.filter((_, i) => i % Math.ceil(trendData.length / 120) === 0 || i === trendData.length - 1)
