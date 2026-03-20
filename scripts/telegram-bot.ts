@@ -1427,9 +1427,8 @@ async function marketMonitorCheck() {
       return
     }
 
-    // 개장/마감 감지 후 대기 — 실시간 가격이 반영될 시간 확보
-    // KR 개장: Yahoo Finance KRX 15분 딜레이 감안하여 20분 대기
-    const MARKET_BRIEFING_DELAY = briefingKey === 'krOpen' ? 20 * 60 * 1000 : 5 * 60 * 1000
+    // 개장/마감 감지 후 20분 대기 — 실시간 가격이 반영될 시간 확보
+    const MARKET_BRIEFING_DELAY = 20 * 60 * 1000
     console.log(`📊 ${briefingType} 감지! ${MARKET_BRIEFING_DELAY / 60000}분 후 브리핑 발송 예정 (US: ${prev.us}→${current.us}, KR: ${prev.kr}→${current.kr})`)
 
     // 중복 방지를 위해 즉시 마킹
@@ -2147,6 +2146,7 @@ function buildSystemPrompt(sections: Record<string, { content: string; version: 
 // MCP 도구 패턴
 const TENSW_MCP_TOOLS = 'mcp__claude_ai_tensw-todo__*'
 const PORTFOLIO_MCP_TOOLS = 'mcp__portfolio-monitor__*'
+const WILLOW_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__*'
 
 function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession?: boolean }): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -2159,8 +2159,13 @@ function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession
     if (opts?.fullSession) {
       args.push('--dangerously-skip-permissions')
     }
-    if (opts?.allowedTools?.length) {
-      args.push('--allowedTools', opts.allowedTools.join(','))
+    // allowedTools: MCP 도구 + fullSession이면 파일 편집 도구도 명시적 추가
+    const tools = [...(opts?.allowedTools || [])]
+    if (opts?.fullSession) {
+      tools.push('Edit', 'Write', 'Bash', 'Read', 'Glob', 'Grep')
+    }
+    if (tools.length) {
+      args.push('--allowedTools', tools.join(','))
     }
 
     const proc = spawn('claude', args, {
@@ -2858,7 +2863,7 @@ ${text}
     // 항상 풀 세션: Claude Code + 모든 도구 + MCP
     const response = await askClaude(fullPrompt, {
       fullSession: true,
-      allowedTools: [TENSW_MCP_TOOLS, PORTFOLIO_MCP_TOOLS],
+      allowedTools: [TENSW_MCP_TOOLS, PORTFOLIO_MCP_TOOLS, WILLOW_MCP_TOOLS],
     })
 
     clearInterval(typingInterval)
