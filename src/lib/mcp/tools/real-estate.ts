@@ -260,7 +260,7 @@ export function registerRealEstateTools(server: McpServer) {
   // 실거래가 추이
   // =============================================
   server.registerTool('re_get_trade_trends', {
-    description: '[부동산] 매매 실거래가 추이를 조회합니다 (월별 평당가)',
+    description: '[부동산] 매매 실거래가 추이를 조회합니다 (월별 공급면적 기준 평당가)',
     inputSchema: z.object({
       complex_name: z.string().optional().describe('단지명 (미지정 시 추적 전체 평균)'),
       months: z.number().optional().describe('조회 기간 (개월, 기본: 12)'),
@@ -282,15 +282,21 @@ export function registerRealEstateTools(server: McpServer) {
         complexNames = data?.map(c => c.name) || []
       }
 
+      const areaMap = await buildAreaMapping(supabase, complexNames)
+
       const trades = await fetchAll(
-        supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_pyeong, price_per_pyeong')
+        supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_sqm')
           .gte('deal_date', cutoffDate).eq('cancel_yn', 'N').in('complex_name', complexNames).order('deal_date')
       )
 
       const monthly: Record<string, { sum: number; count: number }> = {}
       for (const t of trades) {
         const month = t.deal_date.slice(0, 7)
-        const ppp = Number(t.price_per_pyeong) || (Number(t.area_pyeong) > 0 ? Number(t.deal_amount) / Number(t.area_pyeong) : 0)
+        const sqm = Number(t.area_sqm)
+        if (sqm <= 0) continue
+        const supplyPy = getSupplyPyeong(areaMap, t.complex_name, sqm)
+        if (supplyPy <= 0) continue
+        const ppp = Number(t.deal_amount) / supplyPy
         if (ppp <= 0) continue
         if (!monthly[month]) monthly[month] = { sum: 0, count: 0 }
         monthly[month].sum += ppp
@@ -314,7 +320,7 @@ export function registerRealEstateTools(server: McpServer) {
   // 전세 실거래가 추이
   // =============================================
   server.registerTool('re_get_rental_trends', {
-    description: '[부동산] 전세 실거래가 추이를 조회합니다 (월별 평당 보증금)',
+    description: '[부동산] 전세 실거래가 추이를 조회합니다 (월별 공급면적 기준 평당 보증금)',
     inputSchema: z.object({
       complex_name: z.string().optional().describe('단지명 (미지정 시 추적 전체 평균)'),
       months: z.number().optional().describe('조회 기간 (개월, 기본: 12)'),
@@ -336,16 +342,21 @@ export function registerRealEstateTools(server: McpServer) {
         complexNames = data?.map(c => c.name) || []
       }
 
+      const areaMap = await buildAreaMapping(supabase, complexNames)
+
       const rentals = await fetchAll(
-        supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_pyeong')
+        supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_sqm')
           .gte('deal_date', cutoffDate).eq('rent_type', '전세').in('complex_name', complexNames).order('deal_date')
       )
 
       const monthly: Record<string, { sum: number; count: number }> = {}
       for (const r of rentals) {
         const month = r.deal_date.slice(0, 7)
-        const pyeong = Number(r.area_pyeong)
-        const ppp = pyeong > 0 ? Number(r.deposit) / pyeong : 0
+        const sqm = Number(r.area_sqm)
+        if (sqm <= 0) continue
+        const supplyPy = getSupplyPyeong(areaMap, r.complex_name, sqm)
+        if (supplyPy <= 0) continue
+        const ppp = Number(r.deposit) / supplyPy
         if (ppp <= 0) continue
         if (!monthly[month]) monthly[month] = { sum: 0, count: 0 }
         monthly[month].sum += ppp

@@ -24,10 +24,42 @@ export interface McpTokenData {
 
 /**
  * Validate an MCP OAuth access token and resolve the user.
+ * Supports both regular OAuth tokens and service tokens.
  */
 export async function validateMcpToken(token: string): Promise<McpTokenData | null> {
   const supabase = getServiceSupabase()
 
+  // 1. Check service tokens first (no expiry)
+  const { data: serviceRow } = await supabase
+    .from('mcp_service_tokens')
+    .select('user_id, client_id, scope, name, revoked')
+    .eq('token', token)
+    .single()
+
+  if (serviceRow && !serviceRow.revoked) {
+    const { data: user } = await supabase
+      .from('willow_users')
+      .select('id, email, name, role, is_active')
+      .eq('id', serviceRow.user_id)
+      .single()
+
+    if (!user || !user.is_active) return null
+
+    return {
+      userId: user.id,
+      clientId: serviceRow.client_id || `service:${serviceRow.name}`,
+      scope: serviceRow.scope || '',
+      user: {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role as UserRole,
+        isActive: user.is_active,
+      },
+    }
+  }
+
+  // 2. Check regular OAuth tokens
   const { data: tokenRow } = await supabase
     .from('mcp_oauth_tokens')
     .select('user_id, client_id, scope, expires_at, revoked')
@@ -92,6 +124,60 @@ export function getUserFromAuthInfo(authInfo?: AuthInfo): McpUser | null {
     role: extra.role as UserRole,
     isActive: true,
   }
+}
+
+// =============================================
+// Service Token Management (CI/CD용 장기 토큰)
+// =============================================
+
+export async function createServiceToken(params: {
+  name: string
+  userId: string
+  scope: string
+}): Promise<{ token: string; id: string }> {
+  const supabase = getServiceSupabase()
+  const token = generateToken()
+
+  const { data, error } = await supabase
+    .from('mcp_service_tokens')
+    .insert({
+      token,
+      name: params.name,
+      user_id: params.userId,
+      scope: params.scope,
+      client_id: `service:${params.name}`,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(`Failed to create service token: ${error.message}`)
+
+  return { token, id: data.id }
+}
+
+export async function listServiceTokens(): Promise<Array<{
+  id: string
+  name: string
+  user_id: string
+  scope: string
+  revoked: boolean
+  created_at: string
+}>> {
+  const supabase = getServiceSupabase()
+  const { data } = await supabase
+    .from('mcp_service_tokens')
+    .select('id, name, user_id, scope, revoked, created_at')
+    .order('created_at', { ascending: false })
+
+  return data || []
+}
+
+export async function revokeServiceToken(id: string): Promise<void> {
+  const supabase = getServiceSupabase()
+  await supabase
+    .from('mcp_service_tokens')
+    .update({ revoked: true })
+    .eq('id', id)
 }
 
 // =============================================
