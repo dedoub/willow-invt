@@ -166,6 +166,9 @@ export async function POST(request: Request) {
       const to = headers.find(h => h.name === 'To')?.value || ''
       const subject = headers.find(h => h.name === 'Subject')?.value || ''
 
+      // 자동 발송 메일 제외
+      if (from.includes('TENSW Todo')) continue
+
       const label = classifyEmail(from, to, subject)
 
       if (label) {

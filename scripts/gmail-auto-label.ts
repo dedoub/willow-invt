@@ -130,7 +130,7 @@ async function getUnlabeledEmails(gmail: ReturnType<typeof google.gmail>, maxRes
   // 최근 2시간 이내 + 받은/보낸 이메일 중 미분류
   const res = await gmail.users.messages.list({
     userId: 'me',
-    q: 'newer_than:2h {in:inbox in:sent} -label:Akros -label:ETC -label:Willow',
+    q: 'newer_than:25h {in:inbox in:sent} -label:Akros -label:ETC -label:Willow',
     maxResults,
   })
 
@@ -353,49 +353,106 @@ async function sendTelegramNotification(results: ClassificationResult[], applied
 }
 
 // ============================================================
-// Main
+// 컨텍스트별 라벨 분류 실행
 // ============================================================
-async function main() {
-  log('📧 Gmail 자동 라벨 분류 시작')
+async function processContext(context: string, excludeLabels: string[]): Promise<{ applied: number; classifications: ClassificationResult[] }> {
+  log(`\n📧 [${context}] 컨텍스트 처리 시작`)
 
-  // default(willow) 컨텍스트에서 실행
-  const gmail = await getGmailClientForScript('default')
+  const gmail = await getGmailClientForScript(context)
   if (!gmail) {
-    log('❌ Gmail 클라이언트 생성 실패 — 토큰을 확인하세요')
-    process.exit(1)
+    log(`  ⚠️ [${context}] Gmail 클라이언트 생성 실패 — 스킵`)
+    return { applied: 0, classifications: [] }
   }
 
   // 1. 라벨 목록 조회
   const labels = await getUserLabels(gmail)
-  log(`📋 사용 가능한 라벨: ${labels.length}개`)
+  log(`  📋 사용 가능한 라벨: ${labels.length}개`)
 
   // 2. 미분류 이메일 조회
-  const emails = await getUnlabeledEmails(gmail)
-  log(`📨 미분류 이메일: ${emails.length}건`)
+  const excludeQuery = excludeLabels.map(l => `-label:${l}`).join(' ')
+  const res = await gmail.users.messages.list({
+    userId: 'me',
+    q: `newer_than:${process.env.GMAIL_LABEL_RANGE || '25h'} {in:inbox in:sent} ${excludeQuery}`,
+    maxResults: 50,
+  })
 
-  if (emails.length === 0) {
-    log('✅ 분류할 이메일 없음 — 종료')
-    return
+  const messages = res.data.messages || []
+  if (messages.length === 0) {
+    log(`  ✅ 분류할 이메일 없음`)
+    return { applied: 0, classifications: [] }
   }
 
+  const emails: EmailSummary[] = []
+  for (const msg of messages) {
+    if (!msg.id) continue
+    const detail = await gmail.users.messages.get({
+      userId: 'me',
+      id: msg.id,
+      format: 'metadata',
+      metadataHeaders: ['From', 'To', 'Subject'],
+    })
+    const headers = detail.data.payload?.headers || []
+    const from = headers.find(h => h.name === 'From')?.value || ''
+    const to = headers.find(h => h.name === 'To')?.value || ''
+    const subject = headers.find(h => h.name === 'Subject')?.value || ''
+    const labelIds = detail.data.labelIds || []
+    const isSent = labelIds.includes('SENT')
+    emails.push({ id: msg.id, from, to, subject, snippet: detail.data.snippet || '', labels: labelIds, isSent })
+  }
+
+  // 자동 발송 메일 제외 (분류 불필요)
+  const skipSenders = ['TENSW Todo']
+  const filtered = emails.filter(e => !skipSenders.some(s => e.from.includes(s)))
+  if (filtered.length < emails.length) {
+    log(`  🚫 자동 발송 메일 ${emails.length - filtered.length}건 제외 (${skipSenders.join(', ')})`)
+  }
+  const emailsToClassify = filtered
+
+  log(`  📨 미분류 이메일: ${emailsToClassify.length}건`)
+
   // 3. Claude로 분류
-  log('🤖 Claude로 이메일 분류 중...')
-  const classifications = await classifyEmails(emails, labels)
+  log(`  🤖 Claude로 이메일 분류 중...`)
+  const classifications = await classifyEmails(emailsToClassify, labels)
   const toLabel = classifications.filter(c => c.label)
-  log(`📊 분류 결과: ${toLabel.length}/${emails.length}건 라벨 할당`)
+  log(`  📊 분류 결과: ${toLabel.length}/${emailsToClassify.length}건 라벨 할당`)
 
   if (toLabel.length === 0) {
-    log('✅ 라벨 할당할 이메일 없음 — 종료')
-    return
+    return { applied: 0, classifications }
   }
 
   // 4. 라벨 적용
-  log('🏷️ 라벨 적용 중...')
+  log(`  🏷️ 라벨 적용 중...`)
   const applied = await applyLabels(gmail, classifications, labels)
-  log(`✅ ${applied}건 라벨 적용 완료`)
+  log(`  ✅ ${applied}건 라벨 적용 완료`)
 
-  // 5. 텔레그램 알림 (분류된 것이 있을 때만)
-  await sendTelegramNotification(classifications, applied)
+  return { applied, classifications }
+}
+
+// ============================================================
+// Main
+// ============================================================
+async function main() {
+  log('📧 Gmail 자동 라벨 분류 시작 (multi-context)')
+
+  let totalApplied = 0
+  let allClassifications: ClassificationResult[] = []
+
+  // 1. default (willowinvt) 컨텍스트
+  const defaultResult = await processContext('default', ['Akros', 'ETC', 'Willow'])
+  totalApplied += defaultResult.applied
+  allClassifications = allClassifications.concat(defaultResult.classifications)
+
+  // 2. tensoftworks 컨텍스트
+  const tenswResult = await processContext('tensoftworks', ['TENSW'])
+  totalApplied += tenswResult.applied
+  allClassifications = allClassifications.concat(tenswResult.classifications)
+
+  log(`\n📊 전체 결과: ${totalApplied}건 라벨 적용`)
+
+  // 텔레그램 알림
+  if (totalApplied > 0) {
+    await sendTelegramNotification(allClassifications, totalApplied)
+  }
 }
 
 main().catch(err => {
