@@ -260,7 +260,7 @@ src/app/mcp/
 
 ## Database 매핑
 
-### Willow DB (experiment-apps)
+### Willow DB (willow-dash-tensw-todo)
 | 테이블 | 용도 | 관련 도구 |
 |--------|------|-----------|
 | `work_wiki` | 업무위키 | `list_wiki_notes`, `create_wiki_note` 등 |
