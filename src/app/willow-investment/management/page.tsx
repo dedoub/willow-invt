@@ -1119,9 +1119,9 @@ export default function WillowManagementPage() {
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false)
   const [editingResearch, setEditingResearch] = useState<StockResearch | null>(null)
   const [isSavingResearch, setIsSavingResearch] = useState(false)
-  const [researchVerdictFilter, setResearchVerdictFilter] = useState<'all' | 'pass_tier1' | 'pass_tier2' | 'fail'>('all')
+  const [researchVerdictFilter, setResearchVerdictFilter] = useState<'all' | 'pass' | 'fail' | 'smallcap'>('all')
   const [researchPage, setResearchPage] = useState(1)
-  const [researchPerPage, setResearchPerPage] = useState(5)
+  const [researchPerPage, setResearchPerPage] = useState(10)
   const [expandedResearch, setExpandedResearch] = useState<Set<string>>(new Set())
 
   // Smallcap screening states
@@ -1158,7 +1158,7 @@ export default function WillowManagementPage() {
   const [researchFormNotes, setResearchFormNotes] = useState('')
 
   // Real estate states
-  const [researchSubTab, setResearchSubTab] = useState<'stock' | 'smallcap' | 'realestate'>('realestate')
+  const [researchSubTab, setResearchSubTab] = useState<'stock' | 'realestate'>('realestate')
   const [reComplexes, setReComplexes] = useState<{ id: string; name: string; district_name: string; dong_name: string | null; total_units: number | null; build_year: number | null; is_tracked: boolean }[]>([])
   const [reSummary, setReSummary] = useState<{ trackedComplexes: number; districtCount: number; avgTradePpp: number; avgJeonsePpp: number; tradeListingGap: number; jeonseListingGap: number; lastListingDate: string | null; lastTradeDate: string | null } | null>(null)
   const [reTrades, setReTrades] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
@@ -3162,9 +3162,9 @@ export default function WillowManagementPage() {
     }
   }, [researchSubTab, reDistrictFilter, reComplexFilter, reAreaFilter, rePeriodFilter, loadRealEstateData])
 
-  // Load smallcap screening data when sub-tab is selected
+  // Load smallcap screening data when stock tab is selected
   useEffect(() => {
-    if (researchSubTab === 'smallcap' && smallcapData.length === 0) {
+    if (researchSubTab === 'stock' && smallcapData.length === 0) {
       loadSmallcapScreening()
     }
   }, [researchSubTab, smallcapData.length, loadSmallcapScreening])
@@ -5778,7 +5778,7 @@ export default function WillowManagementPage() {
                   <Search className="h-5 w-5" />
                   투자리서치
                 </CardTitle>
-                <CardDescription>{researchSubTab === 'stock' ? '종목 스크리닝 & 분석' : researchSubTab === 'smallcap' ? '미국 소형주 자동 스크리닝' : '강남3구 부동산 리서치'}</CardDescription>
+                <CardDescription>{researchSubTab === 'stock' ? '종목 스크리닝 & 소형주 분석' : '강남3구 부동산 리서치'}</CardDescription>
               </div>
               {researchSubTab === 'stock' && (
                 <button
@@ -5794,67 +5794,31 @@ export default function WillowManagementPage() {
               {/* Sub-tab + verdict filter row */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-1">
-                  {(['stock', 'smallcap', 'realestate'] as const).map(tab => (
+                  {(['stock', 'realestate'] as const).map(tab => (
                     <button key={tab} onClick={() => setResearchSubTab(tab)}
                       className={cn('px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
                         researchSubTab === tab ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                       )}>
-                      {tab === 'stock' ? '주식' : tab === 'smallcap' ? '소형주' : '부동산'}
+                      {tab === 'stock' ? '주식' : '부동산'}
                     </button>
                   ))}
                 </div>
                 {researchSubTab === 'stock' ? (
                   <div className="flex items-center gap-1">
-                    {(['all', 'pass_tier1', 'pass_tier2', 'fail'] as const).map((v) => (
+                    {(['all', 'pass', 'fail', 'smallcap'] as const).map((f) => (
                       <button
-                        key={v}
-                        onClick={() => { setResearchVerdictFilter(v); setResearchPage(1) }}
+                        key={f}
+                        onClick={() => { setResearchVerdictFilter(f as typeof researchVerdictFilter); setResearchPage(1) }}
                         className={cn(
-                          'px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
-                          researchVerdictFilter === v
+                          'px-2 py-0.5 text-[11px] font-medium rounded-full transition-colors',
+                          researchVerdictFilter === f
                             ? 'bg-slate-900 text-white dark:bg-slate-600'
                             : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                         )}
                       >
-                        {v === 'all' ? '전체' : v === 'pass_tier1' ? 'T1' : v === 'pass_tier2' ? 'T2' : 'Fail'}
+                        {f === 'all' ? '전체' : f === 'pass' ? 'Pass' : f === 'fail' ? 'Fail' : '소형주'}
                       </button>
                     ))}
-                  </div>
-                ) : researchSubTab === 'smallcap' ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      {(['all', 'A', 'B', 'C', 'F'] as const).map((t) => (
-                        <button
-                          key={t}
-                          onClick={() => { setSmallcapTierFilter(t); setSmallcapPage(1) }}
-                          className={cn(
-                            'px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
-                            smallcapTierFilter === t
-                              ? 'bg-slate-900 text-white dark:bg-slate-600'
-                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                          )}
-                        >
-                          {t === 'all' ? '전체' : t}
-                        </button>
-                      ))}
-                    </div>
-                    <span className="text-slate-300 dark:text-slate-600">|</span>
-                    <div className="flex items-center gap-1">
-                      {(['all', 'profitable', 'hypergrowth'] as const).map((t) => (
-                        <button
-                          key={t}
-                          onClick={() => { setSmallcapTrackFilter(t); setSmallcapPage(1) }}
-                          className={cn(
-                            'px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
-                            smallcapTrackFilter === t
-                              ? 'bg-slate-900 text-white dark:bg-slate-600'
-                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                          )}
-                        >
-                          {t === 'all' ? '전체' : t === 'profitable' ? '흑자' : '성장'}
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
@@ -5877,15 +5841,8 @@ export default function WillowManagementPage() {
                 )}
               </div>
               {researchSubTab === 'stock' ? (
-              <>
-
-              {(() => {
-                const filtered = researchVerdictFilter === 'all'
-                  ? stockResearch
-                  : stockResearch.filter(r => r.verdict === researchVerdictFilter)
-                const totalPages = Math.ceil(filtered.length / researchPerPage)
-                const paginated = filtered.slice((researchPage - 1) * researchPerPage, researchPage * researchPerPage)
-
+              (() => {
+                // Unified card helpers
                 const verdictStyle = (v: string | null) => {
                   if (v === 'pass_tier1') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
                   if (v === 'pass_tier2') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
@@ -5898,39 +5855,92 @@ export default function WillowManagementPage() {
                   if (v === 'fail') return 'F'
                   return '-'
                 }
+                const tierStyle = (t: string) => {
+                  if (t === 'A') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
+                  if (t === 'B') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                  if (t === 'C') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
+                  return 'bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
+                }
+                const fmtPct = (v: number | null) => v != null ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '-'
+                const fmtNum = (v: number | null, d = 1) => v != null ? v.toFixed(d) : '-'
+                const fmtMcap = (v: number | null) => {
+                  if (v == null) return '-'
+                  if (v >= 1000) return `$${(v / 1000).toFixed(1)}B`
+                  return `$${v.toFixed(0)}M`
+                }
+                const scoreBar = (label: string, value: number | null, max = 100) => (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground w-8 shrink-0">{label}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
+                      <div
+                        className={cn('h-full rounded-full', (value ?? 0) >= 70 ? 'bg-emerald-500' : (value ?? 0) >= 40 ? 'bg-blue-500' : 'bg-slate-400')}
+                        style={{ width: `${Math.min(100, ((value ?? 0) / max) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-[11px] font-medium w-6 text-right">{value != null ? Math.round(value) : '-'}</span>
+                  </div>
+                )
 
-                return (
-                  <>
-                    <div className="space-y-2">
-                      {isLoadingResearch ? (
-                        <div className="text-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                        </div>
-                      ) : filtered.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Search className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                          <p className="text-sm">리서치 항목이 없습니다</p>
-                          <p className="text-xs">새 종목을 추가해주세요</p>
-                        </div>
-                      ) : (
-                        paginated.map((r) => {
-                          const isExpanded = expandedResearch.has(r.id)
+                // Build unified items (deduplicate stock research by ticker, keep latest)
+                type UnifiedItem = { kind: 'research'; data: StockResearch } | { kind: 'smallcap'; data: SmallcapScreening }
+                const dedupedResearch: StockResearch[] = []
+                const seenTickers = new Set<string>()
+                for (const r of stockResearch) {
+                  if (!seenTickers.has(r.ticker)) {
+                    seenTickers.add(r.ticker)
+                    dedupedResearch.push(r)
+                  }
+                }
+                const researchItems: UnifiedItem[] = dedupedResearch.map(r => ({ kind: 'research' as const, data: r }))
+                const smallcapFiltered = smallcapData.filter(s => {
+                  if (smallcapTierFilter !== 'all' && s.tier !== smallcapTierFilter) return false
+                  if (smallcapTrackFilter !== 'all' && s.track !== smallcapTrackFilter) return false
+                  return true
+                })
+                const smallcapSorted = [...smallcapFiltered].sort((a, b) => {
+                  const aVal = a[smallcapSortKey] ?? 0
+                  const bVal = b[smallcapSortKey] ?? 0
+                  return smallcapSortAsc ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
+                })
+                const smallcapItems: UnifiedItem[] = smallcapSorted.map(s => ({ kind: 'smallcap' as const, data: s }))
+
+                // Apply filter
+                let allItems: UnifiedItem[] = []
+                if (researchVerdictFilter === 'all') {
+                  allItems = [...researchItems, ...smallcapItems]
+                } else if (researchVerdictFilter === 'pass') {
+                  allItems = researchItems.filter(i => i.kind === 'research' && (i.data.verdict === 'pass_tier1' || i.data.verdict === 'pass_tier2'))
+                } else if (researchVerdictFilter === 'fail') {
+                  allItems = researchItems.filter(i => i.kind === 'research' && i.data.verdict === 'fail')
+                } else if (researchVerdictFilter === 'smallcap') {
+                  allItems = smallcapItems
+                }
+
+                // Pagination
+                const totalPages = Math.ceil(allItems.length / researchPerPage)
+                const paginated = allItems.slice((researchPage - 1) * researchPerPage, researchPage * researchPerPage)
+
+                const isLoading = isLoadingResearch || isLoadingSmallcap
+
+                return isLoading ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                  </div>
+                ) : allItems.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Search className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                    <p className="text-sm">리서치 항목이 없습니다</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {paginated.map((item) => {
+                        if (item.kind === 'research') {
+                          const r = item.data
                           return (
-                            <div
-                              key={r.id}
-                              className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2"
-                            >
-                              <div
-                                className="flex items-center gap-2 cursor-pointer"
-                                onClick={() => {
-                                  setExpandedResearch(prev => {
-                                    const next = new Set(prev)
-                                    if (next.has(r.id)) next.delete(r.id)
-                                    else next.add(r.id)
-                                    return next
-                                  })
-                                }}
-                              >
+                            <div key={`r-${r.id}`} className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2.5">
+                              {/* Header */}
+                              <div className="flex items-center gap-2">
                                 <span className={cn('px-1.5 py-0.5 rounded text-xs font-medium shrink-0', verdictStyle(r.verdict))}>
                                   {verdictLabel(r.verdict)}
                                 </span>
@@ -5944,60 +5954,139 @@ export default function WillowManagementPage() {
                                     {r.gap_from_high_pct > 0 ? '+' : ''}{r.gap_from_high_pct.toFixed(1)}%
                                   </span>
                                 )}
-                                {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
                               </div>
                               {/* Tags */}
                               {r.sector_tags && r.sector_tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1">
+                                <div className="flex flex-wrap gap-1 mt-1.5">
                                   {r.sector_tags.map((tag) => (
-                                    <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{tag}</span>
+                                    <span key={tag} className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{tag}</span>
                                   ))}
+                                  {r.market_cap_b != null && <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">${r.market_cap_b}B</span>}
                                 </div>
                               )}
-                              {/* Expanded details */}
-                              {isExpanded && (
-                                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-1.5">
-                                  {r.value_chain_position && (
-                                    <p className="text-xs text-muted-foreground"><span className="font-medium">밸류체인:</span> {r.value_chain_position}</p>
-                                  )}
-                                  {r.structural_thesis && (
-                                    <p className="text-xs text-muted-foreground"><span className="font-medium">투자논거:</span> {r.structural_thesis}</p>
-                                  )}
-                                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                    {r.current_price != null && <span>가격 ${r.current_price}</span>}
-                                    {r.market_cap_b != null && <span>시총 ${r.market_cap_b}B</span>}
-                                    {r.revenue_growth_yoy && <span>성장 {r.revenue_growth_yoy}</span>}
-                                    {r.margin && <span>마진 {r.margin}</span>}
-                                    {r.high_12m != null && <span>52주고 ${r.high_12m}</span>}
-                                    {r.trend_verdict && <span>추세 {r.trend_verdict}</span>}
-                                  </div>
-                                  {r.fail_reason && (
-                                    <p className="text-xs text-red-500"><span className="font-medium">탈락:</span> {r.fail_reason}</p>
-                                  )}
-                                  {r.notes && (
-                                    <p className="text-xs text-muted-foreground"><span className="font-medium">메모:</span> {r.notes}</p>
-                                  )}
-                                  <div className="flex items-center justify-between pt-1">
-                                    <span className="text-[11px] text-muted-foreground">{r.scan_date} · {r.source}</span>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); openEditResearchModal(r) }}
-                                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
-                                    >
-                                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                                    </button>
-                                  </div>
+                              {/* Analysis */}
+                              <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-1.5">
+                                {r.value_chain_position && (
+                                  <p className="text-xs text-muted-foreground"><span className="font-medium">밸류체인:</span> {r.value_chain_position}</p>
+                                )}
+                                {r.structural_thesis && (
+                                  <p className="text-xs text-muted-foreground"><span className="font-medium">투자논거:</span> {r.structural_thesis}</p>
+                                )}
+                                {r.notes && (
+                                  <p className="text-xs text-muted-foreground"><span className="font-medium">메모:</span> {r.notes}</p>
+                                )}
+                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                                  {r.current_price != null && <span>${r.current_price}</span>}
+                                  {r.revenue_growth_yoy && <span>성장 {r.revenue_growth_yoy}</span>}
+                                  {r.margin && <span>마진 {r.margin}</span>}
+                                  {r.high_12m != null && <span>52주고 ${r.high_12m}</span>}
+                                  {r.trend_verdict && <span>추세 {r.trend_verdict}</span>}
                                 </div>
-                              )}
+                                {r.fail_reason && (
+                                  <p className="text-xs text-red-500"><span className="font-medium">탈락:</span> {r.fail_reason}</p>
+                                )}
+                                <div className="flex items-center justify-between pt-0.5">
+                                  <span className="text-[11px] text-muted-foreground">{r.scan_date} · {r.source}</span>
+                                  <button
+                                    onClick={() => openEditResearchModal(r)}
+                                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           )
-                        })
-                      )}
+                        } else {
+                          const s = item.data
+                          return (
+                            <div key={`s-${s.id}`} className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2.5">
+                              {/* Header */}
+                              <div className="flex items-center gap-2">
+                                <span className={cn('px-1.5 py-0.5 rounded text-xs font-bold shrink-0', tierStyle(s.tier))}>
+                                  {s.tier}
+                                </span>
+                                {s.track === 'hypergrowth' && (
+                                  <span className="px-1.5 py-0.5 rounded text-[11px] font-medium shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400">성장</span>
+                                )}
+                                <span className="font-medium text-sm">{s.ticker}</span>
+                                <span className="text-xs text-muted-foreground truncate">{s.company_name}</span>
+                                <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                                  {s.composite_score != null && (
+                                    <span className={cn(
+                                      'text-xs font-bold px-1.5 py-0.5 rounded',
+                                      s.composite_score >= 70 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
+                                        : s.composite_score >= 50 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                                        : 'bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
+                                    )}>
+                                      {Math.round(s.composite_score)}
+                                    </span>
+                                  )}
+                                  {s.change_pct != null && (
+                                    <span className={cn('text-xs font-medium', s.change_pct > 0 ? 'text-red-600' : s.change_pct < 0 ? 'text-blue-600' : 'text-slate-500')}>
+                                      {fmtPct(s.change_pct)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {/* Tags */}
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {s.sector && <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{s.sector}</span>}
+                                <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{fmtMcap(s.market_cap_m)}</span>
+                                {s.industry && <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{s.industry}</span>}
+                                {s.rs_rank != null && s.rs_rank >= 70 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-400">RS {s.rs_rank}</span>}
+                                {s.insider_buys_3m > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400">내부자 {s.insider_buys_3m}건</span>}
+                                {s.reddit_mentions > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400">Reddit {s.reddit_mentions}</span>}
+                                {s.fail_reasons && s.fail_reasons.length > 0 && s.fail_reasons.map(r => (
+                                  <span key={r} className="text-[11px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">{r}</span>
+                                ))}
+                              </div>
+                              {/* Analysis: scores + metrics */}
+                              <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-1.5">
+                                <div className="grid grid-cols-3 gap-x-3 gap-y-0.5">
+                                  {scoreBar('성장', s.growth_score)}
+                                  {scoreBar('가치', s.value_score)}
+                                  {scoreBar('퀄리티', s.quality_score)}
+                                  {scoreBar('모멘텀', s.momentum_score)}
+                                  {scoreBar('내부자', s.insider_score)}
+                                  {scoreBar('센티', s.sentiment_score)}
+                                </div>
+                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                                  <span>${s.price?.toFixed(2)}</span>
+                                  <span>PE {fmtNum(s.pe)}</span>
+                                  <span>FPE {fmtNum(s.forward_pe)}</span>
+                                  <span>PEG {fmtNum(s.peg)}</span>
+                                  <span>ROE {fmtPct(s.roe)}</span>
+                                  <span>GM {fmtPct(s.gross_margin)}</span>
+                                  <span>영업 {fmtPct(s.operating_margin)}</span>
+                                  <span>순이익 {fmtPct(s.profit_margin)}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                                  <span>D/E {fmtNum(s.debt_to_equity)}</span>
+                                  <span>유동 {fmtNum(s.current_ratio)}</span>
+                                  {s.insider_own_pct != null && <span>내부자보유 {fmtPct(s.insider_own_pct)}</span>}
+                                  {s.inst_own_pct != null && <span>기관보유 {fmtPct(s.inst_own_pct)}</span>}
+                                  {s.short_float_pct != null && <span>공매도 {fmtPct(s.short_float_pct)}</span>}
+                                </div>
+                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                                  <span>1주 {fmtPct(s.perf_week)}</span>
+                                  <span>1월 {fmtPct(s.perf_month)}</span>
+                                  <span>분기 {fmtPct(s.perf_quarter)}</span>
+                                  <span>반기 {fmtPct(s.perf_half)}</span>
+                                  {s.perf_year != null && <span>1년 {fmtPct(s.perf_year)}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        }
+                      })}
                     </div>
-                    {filtered.length > 0 && (
-                      <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                    {/* Pagination */}
+                    {allItems.length > researchPerPage && (
+                      <div className="flex items-center justify-between gap-2 pt-3">
                         <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground whitespace-nowrap">
-                            {filtered.length}개 중 {(researchPage - 1) * researchPerPage + 1}-{Math.min(researchPage * researchPerPage, filtered.length)}
+                          <p className="text-xs text-muted-foreground">
+                            {allItems.length}개 중 {(researchPage - 1) * researchPerPage + 1}-{Math.min(researchPage * researchPerPage, allItems.length)}
                           </p>
                           <div className="relative">
                             <select
@@ -6005,9 +6094,9 @@ export default function WillowManagementPage() {
                               onChange={(e) => { setResearchPerPage(Number(e.target.value)); setResearchPage(1) }}
                               className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                             >
-                              <option value={5}>5개</option>
                               <option value={10}>10개</option>
-                              <option value={25}>25개</option>
+                              <option value={20}>20개</option>
+                              <option value={50}>50개</option>
                             </select>
                             <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
                           </div>
@@ -6023,268 +6112,9 @@ export default function WillowManagementPage() {
                         )}
                       </div>
                     )}
-                  </>
-                )
-              })()}
-              </>
-              ) : researchSubTab === 'smallcap' ? (
-              /* ========== Smallcap Screening Sub-Tab ========== */
-              <div className="space-y-3">
-                {/* Summary bar + date selector */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {smallcapSummary && (
-                    <div className="flex items-center gap-1.5 text-xs flex-wrap">
-                      <span className="text-muted-foreground">{smallcapSummary.total}개</span>
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 font-medium">A {smallcapSummary.byTier.A}</span>
-                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400 font-medium">B {smallcapSummary.byTier.B}</span>
-                      <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 font-medium">C {smallcapSummary.byTier.C}</span>
-                      <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400 font-medium">F {smallcapSummary.byTier.F}</span>
-                      <span className="text-slate-300 dark:text-slate-600">|</span>
-                      <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 font-medium">흑자 {smallcapSummary.byTrack?.profitable ?? 0}</span>
-                      <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400 font-medium">성장 {smallcapSummary.byTrack?.hypergrowth ?? 0}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1 ml-auto">
-                    {smallcapScanDates.length > 0 && (
-                      <div className="relative">
-                        <select
-                          value={smallcapSelectedDate}
-                          onChange={(e) => { setSmallcapSelectedDate(e.target.value); loadSmallcapScreening(e.target.value) }}
-                          className="text-xs bg-white dark:bg-slate-700 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
-                        >
-                          {smallcapScanDates.map(d => (
-                            <option key={d} value={d}>{d}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="relative">
-                      <select
-                        value={smallcapSortKey}
-                        onChange={(e) => setSmallcapSortKey(e.target.value as typeof smallcapSortKey)}
-                        className="text-xs bg-white dark:bg-slate-700 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
-                      >
-                        <option value="composite_score">종합점수</option>
-                        <option value="rs_rank">상대강도(RS)</option>
-                        <option value="market_cap_m">시가총액</option>
-                        <option value="change_pct">등락률</option>
-                        <option value="insider_buys_3m">내부자매수</option>
-                        <option value="reddit_mentions">레딧멘션</option>
-                      </select>
-                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
-                    </div>
-                    <button
-                      onClick={() => setSmallcapSortAsc(!smallcapSortAsc)}
-                      className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                    >
-                      {smallcapSortAsc ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                    </button>
                   </div>
-                </div>
-
-                {/* Results */}
-                {(() => {
-                  const filtered = smallcapData.filter(s => {
-                    if (smallcapTierFilter !== 'all' && s.tier !== smallcapTierFilter) return false
-                    if (smallcapTrackFilter !== 'all' && s.track !== smallcapTrackFilter) return false
-                    return true
-                  })
-                  const sorted = [...filtered].sort((a, b) => {
-                    const aVal = a[smallcapSortKey] ?? 0
-                    const bVal = b[smallcapSortKey] ?? 0
-                    return smallcapSortAsc ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
-                  })
-                  const totalPages = Math.ceil(sorted.length / smallcapPerPage)
-                  const paginated = sorted.slice((smallcapPage - 1) * smallcapPerPage, smallcapPage * smallcapPerPage)
-
-                  const tierStyle = (t: string) => {
-                    if (t === 'A') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
-                    if (t === 'B') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
-                    if (t === 'C') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
-                    return 'bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
-                  }
-
-                  const fmtPct = (v: number | null) => v != null ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '-'
-                  const fmtNum = (v: number | null, d = 1) => v != null ? v.toFixed(d) : '-'
-                  const fmtMcap = (v: number | null) => {
-                    if (v == null) return '-'
-                    if (v >= 1000) return `$${(v / 1000).toFixed(1)}B`
-                    return `$${v.toFixed(0)}M`
-                  }
-
-                  const scoreBar = (label: string, value: number | null, max = 100) => (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-muted-foreground w-8 shrink-0">{label}</span>
-                      <div className="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
-                        <div
-                          className={cn('h-full rounded-full', (value ?? 0) >= 70 ? 'bg-emerald-500' : (value ?? 0) >= 40 ? 'bg-blue-500' : 'bg-slate-400')}
-                          style={{ width: `${Math.min(100, ((value ?? 0) / max) * 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-[11px] font-medium w-6 text-right">{value != null ? Math.round(value) : '-'}</span>
-                    </div>
-                  )
-
-                  return (
-                    <>
-                      <div className="space-y-2">
-                        {isLoadingSmallcap ? (
-                          <div className="text-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                          </div>
-                        ) : sorted.length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <Search className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                            <p className="text-sm">스크리닝 결과가 없습니다</p>
-                            <p className="text-xs">매주 토요일 자동 실행됩니다</p>
-                          </div>
-                        ) : (
-                          paginated.map((s) => {
-                            const isExpanded = expandedSmallcap.has(s.id)
-                            return (
-                              <div key={s.id} className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                                <div
-                                  className="flex items-center gap-2 cursor-pointer"
-                                  onClick={() => {
-                                    setExpandedSmallcap(prev => {
-                                      const next = new Set(prev)
-                                      if (next.has(s.id)) next.delete(s.id)
-                                      else next.add(s.id)
-                                      return next
-                                    })
-                                  }}
-                                >
-                                  <span className={cn('px-1.5 py-0.5 rounded text-xs font-bold shrink-0', tierStyle(s.tier))}>
-                                    {s.tier}
-                                  </span>
-                                  {s.track === 'hypergrowth' && (
-                                    <span className="px-1.5 py-0.5 rounded text-[11px] font-medium shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400">
-                                      성장
-                                    </span>
-                                  )}
-                                  <span className="font-medium text-sm">{s.ticker}</span>
-                                  <span className="text-xs text-muted-foreground truncate hidden sm:inline">{s.company_name}</span>
-                                  <span className="text-[11px] text-muted-foreground hidden sm:inline">{fmtMcap(s.market_cap_m)}</span>
-                                  <div className="flex items-center gap-2 ml-auto shrink-0">
-                                    {s.composite_score != null && (
-                                      <span className={cn(
-                                        'text-xs font-bold px-1.5 py-0.5 rounded',
-                                        s.composite_score >= 70 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
-                                          : s.composite_score >= 50 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
-                                          : 'bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
-                                      )}>
-                                        {Math.round(s.composite_score)}
-                                      </span>
-                                    )}
-                                    {s.change_pct != null && (
-                                      <span className={cn('text-xs font-medium', s.change_pct > 0 ? 'text-red-600' : s.change_pct < 0 ? 'text-blue-600' : 'text-slate-500')}>
-                                        {fmtPct(s.change_pct)}
-                                      </span>
-                                    )}
-                                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
-                                  </div>
-                                </div>
-                                {/* Tags: sector + signals */}
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {s.sector && <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{s.sector}</span>}
-                                  {s.rs_rank != null && s.rs_rank >= 70 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-400">RS {s.rs_rank}</span>}
-                                  {s.rs_rank != null && s.rs_rank < 30 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400">RS {s.rs_rank}</span>}
-                                  {s.forward_pe != null && s.pe != null && s.pe > 0 && s.forward_pe < s.pe * 0.8 && (
-                                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-400">어닝가속</span>
-                                  )}
-                                  {s.insider_buys_3m > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400">내부자매수 {s.insider_buys_3m}건{s.insider_buy_value_3m >= 100000 ? ' $100K+' : ''}</span>}
-                                  {s.reddit_mentions > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400">Reddit {s.reddit_mentions}</span>}
-                                  {s.fail_reasons && s.fail_reasons.length > 0 && s.fail_reasons.map(r => (
-                                    <span key={r} className="text-[11px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">{r}</span>
-                                  ))}
-                                </div>
-                                {/* Expanded details */}
-                                {isExpanded && (
-                                  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-2">
-                                    {/* Score bars */}
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                      {scoreBar('성장', s.growth_score)}
-                                      {scoreBar('가치', s.value_score)}
-                                      {scoreBar('퀄리티', s.quality_score)}
-                                      {scoreBar('모멘텀', s.momentum_score)}
-                                      {scoreBar('내부자', s.insider_score)}
-                                      {scoreBar('센티', s.sentiment_score)}
-                                    </div>
-                                    {/* Key metrics */}
-                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                      <span>가격 ${s.price?.toFixed(2)}</span>
-                                      <span>PE {fmtNum(s.pe)}</span>
-                                      <span>FPE {fmtNum(s.forward_pe)}</span>
-                                      <span>PEG {fmtNum(s.peg)}</span>
-                                      <span>ROE {fmtPct(s.roe)}</span>
-                                      <span>GM {fmtPct(s.gross_margin)}</span>
-                                      <span>영업 {fmtPct(s.operating_margin)}</span>
-                                      <span>순이익 {fmtPct(s.profit_margin)}</span>
-                                      <span>D/E {fmtNum(s.debt_to_equity)}</span>
-                                      <span>유동 {fmtNum(s.current_ratio)}</span>
-                                    </div>
-                                    {/* Performance */}
-                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                      {s.rs_rank != null && <span className="font-medium">RS {s.rs_rank}</span>}
-                                      <span>1주 {fmtPct(s.perf_week)}</span>
-                                      <span>1월 {fmtPct(s.perf_month)}</span>
-                                      <span>분기 {fmtPct(s.perf_quarter)}</span>
-                                      <span>반기 {fmtPct(s.perf_half)}</span>
-                                      {s.perf_year != null && <span>1년 {fmtPct(s.perf_year)}</span>}
-                                    </div>
-                                    {/* Ownership & Social */}
-                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                      {s.insider_own_pct != null && <span>내부자보유 {fmtPct(s.insider_own_pct)}</span>}
-                                      {s.inst_own_pct != null && <span>기관보유 {fmtPct(s.inst_own_pct)}</span>}
-                                      {s.short_float_pct != null && <span>공매도 {fmtPct(s.short_float_pct)}</span>}
-                                      {s.insider_buy_value_3m > 0 && <span>내부자매수액 ${(s.insider_buy_value_3m / 1000).toFixed(0)}K</span>}
-                                      {s.reddit_sentiment != null && <span>레딧감성 {s.reddit_sentiment.toFixed(2)}</span>}
-                                    </div>
-                                    {s.industry && (
-                                      <p className="text-[11px] text-muted-foreground">{s.industry}</p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })
-                        )}
-                      </div>
-                      {sorted.length > 0 && (
-                        <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs text-muted-foreground whitespace-nowrap">
-                              {sorted.length}개 중 {(smallcapPage - 1) * smallcapPerPage + 1}-{Math.min(smallcapPage * smallcapPerPage, sorted.length)}
-                            </p>
-                            <div className="relative">
-                              <select
-                                value={smallcapPerPage}
-                                onChange={(e) => { setSmallcapPerPage(Number(e.target.value)); setSmallcapPage(1) }}
-                                className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                              >
-                                <option value={10}>10개</option>
-                                <option value={25}>25개</option>
-                                <option value={50}>50개</option>
-                              </select>
-                              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
-                            </div>
-                          </div>
-                          {totalPages > 1 && (
-                            <div className="flex items-center gap-0.5">
-                              <button onClick={() => setSmallcapPage(1)} disabled={smallcapPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
-                              <button onClick={() => setSmallcapPage(p => Math.max(1, p - 1))} disabled={smallcapPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
-                              <span className="px-2 py-1 text-xs font-medium">{smallcapPage}/{totalPages}</span>
-                              <button onClick={() => setSmallcapPage(p => Math.min(totalPages, p + 1))} disabled={smallcapPage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
-                              <button onClick={() => setSmallcapPage(totalPages)} disabled={smallcapPage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )
-                })()}
-              </div>
+                )
+              })()
               ) : (
               /* ========== Real Estate Research Sub-Tab ========== */
               <div className="space-y-4">

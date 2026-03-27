@@ -962,6 +962,7 @@ export default function TenswManagementPage() {
   const [isSavingTaxInvoice, setIsSavingTaxInvoice] = useState(false)
   const [expandedTaxInvoice, setExpandedTaxInvoice] = useState<string | null>(null)
   const [taxInvoiceStatusFilter, setTaxInvoiceStatusFilter] = useState<'all' | 'scheduled' | 'pending' | 'paid'>('all')
+  const [taxInvoiceYearFilter, setTaxInvoiceYearFilter] = useState<string>(new Date().getFullYear().toString())
   const [taxInvoicePage, setTaxInvoicePage] = useState(1)
   const [taxInvoicePerPage, setTaxInvoicePerPage] = useState(5)
 
@@ -2378,15 +2379,21 @@ export default function TenswManagementPage() {
     }
   }
 
-  const filteredTaxInvoices = (taxInvoiceStatusFilter === 'all'
+  // Year filter
+  const taxInvoiceYears = [...new Set(taxInvoices.map(i => new Date(i.issue_date).getFullYear()))].sort((a, b) => b - a)
+  const yearFilteredTaxInvoices = taxInvoiceYearFilter === 'all'
     ? taxInvoices
-    : taxInvoices.filter(i => i.payment_status === taxInvoiceStatusFilter)
+    : taxInvoices.filter(i => new Date(i.issue_date).getFullYear().toString() === taxInvoiceYearFilter)
+
+  const filteredTaxInvoices = (taxInvoiceStatusFilter === 'all'
+    ? yearFilteredTaxInvoices
+    : yearFilteredTaxInvoices.filter(i => i.payment_status === taxInvoiceStatusFilter)
   ).sort((a, b) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime())
 
-  const totalSalesAmount = taxInvoices.reduce((sum, i) => sum + i.total_amount, 0)
-  const scheduledSalesAmount = taxInvoices.filter(i => i.payment_status === 'scheduled').reduce((sum, i) => sum + i.total_amount, 0)
-  const pendingSalesAmount = taxInvoices.filter(i => i.payment_status === 'pending').reduce((sum, i) => sum + i.total_amount, 0)
-  const paidSalesAmount = taxInvoices.filter(i => i.payment_status === 'paid').reduce((sum, i) => sum + i.total_amount, 0)
+  const totalSalesAmount = yearFilteredTaxInvoices.reduce((sum, i) => sum + i.total_amount, 0)
+  const scheduledSalesAmount = yearFilteredTaxInvoices.filter(i => i.payment_status === 'scheduled').reduce((sum, i) => sum + i.total_amount, 0)
+  const pendingSalesAmount = yearFilteredTaxInvoices.filter(i => i.payment_status === 'pending').reduce((sum, i) => sum + i.total_amount, 0)
+  const paidSalesAmount = yearFilteredTaxInvoices.filter(i => i.payment_status === 'paid').reduce((sum, i) => sum + i.total_amount, 0)
   const totalTaxInvoicePages = Math.ceil(filteredTaxInvoices.length / taxInvoicePerPage)
   const paginatedTaxInvoices = filteredTaxInvoices.slice(
     (taxInvoicePage - 1) * taxInvoicePerPage,
@@ -3507,34 +3514,63 @@ export default function TenswManagementPage() {
               </button>
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
+              {/* Year filter */}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => { setTaxInvoiceYearFilter('all'); setTaxInvoiceStatusFilter('all'); setTaxInvoicePage(1) }}
+                  className={cn(
+                    'px-2.5 py-0.5 text-xs font-medium rounded transition-colors',
+                    taxInvoiceYearFilter === 'all'
+                      ? 'bg-slate-900 text-white dark:bg-slate-600'
+                      : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300'
+                  )}
+                >
+                  전체
+                </button>
+                {taxInvoiceYears.map((year) => (
+                  <button
+                    key={year}
+                    onClick={() => { setTaxInvoiceYearFilter(year.toString()); setTaxInvoiceStatusFilter('all'); setTaxInvoicePage(1) }}
+                    className={cn(
+                      'px-2.5 py-0.5 text-xs font-medium rounded transition-colors',
+                      taxInvoiceYearFilter === year.toString()
+                        ? 'bg-slate-900 text-white dark:bg-slate-600'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300'
+                    )}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+
               {/* Stats */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">총 매출</p>
                   <p className="text-sm font-bold">₩{totalSalesAmount.toLocaleString()}</p>
-                  <p className="text-[11px] text-slate-400">VAT ₩{taxInvoices.reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-400">VAT ₩{yearFilteredTaxInvoices.reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
                 </div>
                 <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">예정</p>
                   <p className="text-sm font-bold text-slate-500">₩{scheduledSalesAmount.toLocaleString()}</p>
-                  <p className="text-[11px] text-slate-400">VAT ₩{taxInvoices.filter(i => i.payment_status === 'scheduled').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-400">VAT ₩{yearFilteredTaxInvoices.filter(i => i.payment_status === 'scheduled').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
                 </div>
                 <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">미수금</p>
                   <p className="text-sm font-bold text-amber-600">₩{pendingSalesAmount.toLocaleString()}</p>
-                  <p className="text-[11px] text-slate-400">VAT ₩{taxInvoices.filter(i => i.payment_status === 'pending').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-400">VAT ₩{yearFilteredTaxInvoices.filter(i => i.payment_status === 'pending').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
                 </div>
                 <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">수금완료</p>
                   <p className="text-sm font-bold text-emerald-600">₩{paidSalesAmount.toLocaleString()}</p>
-                  <p className="text-[11px] text-slate-400">VAT ₩{taxInvoices.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-400">VAT ₩{yearFilteredTaxInvoices.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
                 </div>
               </div>
 
               {/* Status filter */}
               <div className="flex gap-1">
                 {(['all', 'scheduled', 'pending', 'paid'] as const).map((status) => {
-                  const count = status === 'all' ? taxInvoices.length : taxInvoices.filter(i => i.payment_status === status).length
+                  const count = status === 'all' ? yearFilteredTaxInvoices.length : yearFilteredTaxInvoices.filter(i => i.payment_status === status).length
                   return (
                     <button
                       key={status}
@@ -3579,11 +3615,8 @@ export default function TenswManagementPage() {
                               {inv.items[0].description}{inv.items.length > 1 ? ` 외 ${inv.items.length - 1}건` : ''}
                             </span>
                           )}
-                          <span className="ml-auto flex items-baseline gap-1 whitespace-nowrap">
-                            <span className="font-medium text-sm">₩{inv.total_amount.toLocaleString()}</span>
-                            <span className="hidden sm:inline text-[11px] text-slate-400">(VAT ₩{inv.tax_amount.toLocaleString()})</span>
-                          </span>
-                          <span className="hidden sm:inline text-xs text-slate-500">{inv.issue_date}</span>
+                          <span className="ml-auto font-medium text-sm whitespace-nowrap">₩{inv.total_amount.toLocaleString()}</span>
+                          <span className="text-xs text-slate-500 whitespace-nowrap">{inv.issue_date}</span>
                           {isExpanded ? <ChevronUp className="h-3 w-3 text-slate-400 flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-slate-400 flex-shrink-0" />}
                         </div>
                         {isExpanded && (
@@ -3606,7 +3639,7 @@ export default function TenswManagementPage() {
                                   {inv.items.map((item, idx) => (
                                     <div key={idx} className="flex justify-between items-center p-1.5 rounded bg-slate-50 dark:bg-slate-600">
                                       <span>{item.description}</span>
-                                      <span className="font-medium">₩{item.supply_amount.toLocaleString()}</span>
+                                      <span className="font-medium">₩{(item.supply_amount ?? 0).toLocaleString()}</span>
                                     </div>
                                   ))}
                                 </div>
