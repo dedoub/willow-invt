@@ -29,13 +29,27 @@ function getListingPyeong(l: { area_supply_sqm?: any; area_type?: any }): number
 // Built from Naver listings which have both area1 (supply) and area2 (exclusive)
 type AreaMapping = { exclusive: number; supply: number }[]
 async function buildAreaMapping(supabase: any, complexNames: string[]): Promise<Record<string, AreaMapping>> {
-  const { data } = await supabase
+  // Use latest snapshot only + pagination to avoid Supabase 1000-row default limit
+  // (re_naver_listings has 190K+ rows across all snapshots)
+  const { data: snap } = await supabase
     .from('re_naver_listings')
-    .select('complex_name, area_exclusive_sqm, area_supply_sqm')
+    .select('snapshot_date')
     .in('complex_name', complexNames)
-    .gt('area_exclusive_sqm', '0')
-    .gt('area_supply_sqm', '0')
-  if (!data) return {}
+    .order('snapshot_date', { ascending: false })
+    .limit(1)
+  const snapDate = snap?.[0]?.snapshot_date
+  if (!snapDate) return {}
+
+  const data = await fetchAll(
+    supabase
+      .from('re_naver_listings')
+      .select('complex_name, area_exclusive_sqm, area_supply_sqm')
+      .in('complex_name', complexNames)
+      .eq('snapshot_date', snapDate)
+      .gt('area_exclusive_sqm', '0')
+      .gt('area_supply_sqm', '0')
+  )
+  if (!data || data.length === 0) return {}
   const map: Record<string, Map<number, number>> = {}
   for (const row of data) {
     const excl = Number(row.area_exclusive_sqm)
@@ -203,33 +217,46 @@ export async function GET(request: Request) {
       }
 
       // Listing gaps — from daily summary table (consistent with listing-trend chart)
+      // trade_type별로 최신 snapshot_date를 따로 조회해야 차트와 일치
       const bandFilter = areaRange === '20' ? 20 : areaRange === '30' ? 30 : areaRange === '40' ? 40 : areaRange === '50' ? 50 : areaRange === '60+' ? 60 : null
-      const { data: summaryLatestSnap } = await supabase
-        .from('re_listing_daily_summary').select('snapshot_date')
-        .in('complex_name', complexNames)
-        .order('snapshot_date', { ascending: false }).limit(1)
-      const summarySnapshotDate = summaryLatestSnap?.[0]?.snapshot_date
+      const [{ data: tradeLatestSnap }, { data: jeonseLatestSnap }] = await Promise.all([
+        supabase.from('re_listing_daily_summary').select('snapshot_date')
+          .eq('trade_type', '매매').in('complex_name', complexNames)
+          .order('snapshot_date', { ascending: false }).limit(1),
+        supabase.from('re_listing_daily_summary').select('snapshot_date')
+          .eq('trade_type', '전세').in('complex_name', complexNames)
+          .order('snapshot_date', { ascending: false }).limit(1),
+      ])
+      const tradeSnapshotDate = tradeLatestSnap?.[0]?.snapshot_date
+      const jeonseSnapshotDate = jeonseLatestSnap?.[0]?.snapshot_date
+      const summarySnapshotDate = tradeSnapshotDate || jeonseSnapshotDate
 
       type BandKey = string
       const listingBands: Record<BandKey, { trade: number | null; jeonse: number | null }> = {}
-      if (summarySnapshotDate) {
-        let lsQuery = supabase
+
+      // 매매/전세 각각 자기 최신 snapshot으로 조회
+      const fetchListings = async (tradeType: string, snapDate: string | undefined) => {
+        if (!snapDate) return []
+        let q = supabase
           .from('re_listing_daily_summary')
           .select('complex_name, trade_type, area_band, min_ppp')
-          .eq('snapshot_date', summarySnapshotDate)
+          .eq('snapshot_date', snapDate)
+          .eq('trade_type', tradeType)
           .in('complex_name', complexNames)
-        if (bandFilter) {
-          lsQuery = lsQuery.eq('area_band', bandFilter)
-        } else {
-          lsQuery = lsQuery.gte('area_band', 20)
-        }
-        const { data: lsData } = await lsQuery
-        for (const row of lsData || []) {
-          const key = `${row.complex_name}|${row.area_band}`
-          if (!listingBands[key]) listingBands[key] = { trade: null, jeonse: null }
-          if (row.trade_type === '매매') listingBands[key].trade = row.min_ppp
-          else if (row.trade_type === '전세') listingBands[key].jeonse = row.min_ppp
-        }
+        if (bandFilter) q = q.eq('area_band', bandFilter)
+        else q = q.gte('area_band', 20)
+        const { data } = await q
+        return data || []
+      }
+      const [tradeLsData, jeonseLsData] = await Promise.all([
+        fetchListings('매매', tradeSnapshotDate),
+        fetchListings('전세', jeonseSnapshotDate),
+      ])
+      for (const row of [...tradeLsData, ...jeonseLsData]) {
+        const key = `${row.complex_name}|${row.area_band}`
+        if (!listingBands[key]) listingBands[key] = { trade: null, jeonse: null }
+        if (row.trade_type === '매매') listingBands[key].trade = row.min_ppp
+        else if (row.trade_type === '전세') listingBands[key].jeonse = row.min_ppp
       }
 
       // Actuals grouped by complex+band
