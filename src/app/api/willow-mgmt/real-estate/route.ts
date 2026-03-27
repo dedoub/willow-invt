@@ -138,14 +138,21 @@ export async function GET(request: Request) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyFilters = (query: any, table: 'trades' | 'rentals') => {
+    // Area filtering is done in code using supply pyeong (not DB area_pyeong which is exclusive-based)
     query = query.in('complex_name', complexNames)
-    if (areaRange === '20') query = query.gte('area_pyeong', 20).lt('area_pyeong', 30)
-    else if (areaRange === '30') query = query.gte('area_pyeong', 30).lt('area_pyeong', 40)
-    else if (areaRange === '40') query = query.gte('area_pyeong', 40).lt('area_pyeong', 50)
-    else if (areaRange === '50') query = query.gte('area_pyeong', 50).lt('area_pyeong', 60)
-    else if (areaRange === '60+') query = query.gte('area_pyeong', 60)
     if (table === 'trades') query = query.eq('cancel_yn', 'N')
     return query
+  }
+
+  // Supply pyeong area filter — consistent across all endpoints
+  function matchesSupplyArea(supplyPy: number): boolean {
+    if (!areaRange) return supplyPy >= 20
+    if (areaRange === '20') return supplyPy >= 20 && supplyPy < 30
+    if (areaRange === '30') return supplyPy >= 30 && supplyPy < 40
+    if (areaRange === '40') return supplyPy >= 40 && supplyPy < 50
+    if (areaRange === '50') return supplyPy >= 50 && supplyPy < 60
+    if (areaRange === '60+') return supplyPy >= 60
+    return true
   }
 
   try {
@@ -178,16 +185,7 @@ export async function GET(request: Request) {
           .gte('deal_date', oneMonthAgo).eq('rent_type', '전세').in('complex_name', complexNames)
       )
 
-      // Supply-pyeong area filter (consistent with listings)
-      function matchesArea(supplyPy: number): boolean {
-        if (!areaRange) return supplyPy >= 20
-        if (areaRange === '20') return supplyPy >= 20 && supplyPy < 30
-        if (areaRange === '30') return supplyPy >= 30 && supplyPy < 40
-        if (areaRange === '40') return supplyPy >= 40 && supplyPy < 50
-        if (areaRange === '50') return supplyPy >= 50 && supplyPy < 60
-        if (areaRange === '60+') return supplyPy >= 60
-        return true
-      }
+      // Use shared matchesSupplyArea for consistent filtering
       function getBandS(supplyPy: number): number {
         if (supplyPy < 30) return 20
         if (supplyPy < 40) return 30
@@ -202,7 +200,7 @@ export async function GET(request: Request) {
         const sqm = Number(t.area_sqm)
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
-        if (supplyPy <= 0 || !matchesArea(supplyPy)) continue
+        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
         tradePppSum += Number(t.deal_amount) / supplyPy
         tradePppCount++
       }
@@ -211,7 +209,7 @@ export async function GET(request: Request) {
         const sqm = Number(r.area_sqm)
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
-        if (supplyPy <= 0 || !matchesArea(supplyPy)) continue
+        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
         jeonsePppSum += Number(r.deposit) / supplyPy
         jeonsePppCount++
       }
@@ -265,7 +263,7 @@ export async function GET(request: Request) {
         const sqm = Number(t.area_sqm)
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
-        if (supplyPy <= 0 || !matchesArea(supplyPy)) continue
+        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
         const key = `${t.complex_name}|${getBandS(supplyPy)}`
         if (!tradeActuals[key]) tradeActuals[key] = []
         tradeActuals[key].push(Number(t.deal_amount) / supplyPy)
@@ -275,7 +273,7 @@ export async function GET(request: Request) {
         const sqm = Number(r.area_sqm)
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
-        if (supplyPy <= 0 || !matchesArea(supplyPy)) continue
+        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
         const key = `${r.complex_name}|${getBandS(supplyPy)}`
         if (!jeonseActuals[key]) jeonseActuals[key] = []
         jeonseActuals[key].push(Number(r.deposit) / supplyPy)
@@ -328,7 +326,10 @@ export async function GET(request: Request) {
       for (const t of data || []) {
         const month = t.deal_date.slice(0, 7)
         const sqm = Number(t.area_sqm)
-        const ppp = sqm > 0 ? Number(t.deal_amount) / getSupplyPyeong(areaMapping, t.complex_name, sqm) : 0
+        if (sqm <= 0) continue
+        const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
+        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
+        const ppp = Number(t.deal_amount) / supplyPy
         if (ppp <= 0) continue
 
         if (useAggregate) {
@@ -374,7 +375,10 @@ export async function GET(request: Request) {
       for (const r of data || []) {
         const month = r.deal_date.slice(0, 7)
         const sqm = Number(r.area_sqm)
-        const ppp = sqm > 0 ? Number(r.deposit) / getSupplyPyeong(areaMapping, r.complex_name, sqm) : 0
+        if (sqm <= 0) continue
+        const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
+        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
+        const ppp = Number(r.deposit) / supplyPy
         if (ppp <= 0) continue
         const key = useAggregate ? '전체' : r.complex_name
         if (!monthly[month]) monthly[month] = {}
@@ -519,15 +523,7 @@ export async function GET(request: Request) {
       const oneMonthCutoff = `${oma1.getFullYear()}-${String(oma1.getMonth() + 1).padStart(2, '0')}-01`
 
       function getBandT(py: number): number { return py < 30 ? 20 : py < 40 ? 30 : py < 50 ? 40 : py < 60 ? 50 : 60 }
-      function matchesAreaT(py: number): boolean {
-        if (!areaRange) return py >= 20
-        if (areaRange === '20') return py >= 20 && py < 30
-        if (areaRange === '30') return py >= 30 && py < 40
-        if (areaRange === '40') return py >= 40 && py < 50
-        if (areaRange === '50') return py >= 50 && py < 60
-        if (areaRange === '60+') return py >= 60
-        return true
-      }
+      // Use shared matchesSupplyArea
 
       // Actual avg PPP per complex+band (stays constant across dates)
       const actualBands: Record<string, { sum: number; count: number }> = {}
@@ -540,7 +536,7 @@ export async function GET(request: Request) {
           const sqm = Number(t.area_sqm)
           if (sqm <= 0) continue
           const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
-          if (supplyPy <= 0 || !matchesAreaT(supplyPy)) continue
+          if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
           const key = `${t.complex_name}|${getBandT(supplyPy)}`
           if (!actualBands[key]) actualBands[key] = { sum: 0, count: 0 }
           actualBands[key].sum += Number(t.deal_amount) / supplyPy
@@ -555,7 +551,7 @@ export async function GET(request: Request) {
           const sqm = Number(r.area_sqm)
           if (sqm <= 0) continue
           const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
-          if (supplyPy <= 0 || !matchesAreaT(supplyPy)) continue
+          if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
           const key = `${r.complex_name}|${getBandT(supplyPy)}`
           if (!actualBands[key]) actualBands[key] = { sum: 0, count: 0 }
           actualBands[key].sum += Number(r.deposit) / supplyPy
@@ -600,17 +596,21 @@ export async function GET(request: Request) {
 
     if (type === 'jeonse-ratio') {
       const trades = await fetchAll(applyFilters(
-        supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_pyeong').gte('deal_date', cutoffDate),
+        supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_sqm').gte('deal_date', cutoffDate),
         'trades'
       ))
 
       const rentals = await fetchAll(applyFilters(
-        supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_pyeong').gte('deal_date', cutoffDate).eq('rent_type', '전세'),
+        supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_sqm').gte('deal_date', cutoffDate).eq('rent_type', '전세'),
         'rentals'
       ))
 
       const tradeMonthly: Record<string, Record<string, number[]>> = {}
       for (const t of trades || []) {
+        const sqm = Number(t.area_sqm)
+        if (sqm <= 0) continue
+        const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
+        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
         const month = t.deal_date.slice(0, 7)
         if (!tradeMonthly[month]) tradeMonthly[month] = {}
         if (!tradeMonthly[month][t.complex_name]) tradeMonthly[month][t.complex_name] = []
@@ -619,6 +619,10 @@ export async function GET(request: Request) {
 
       const rentalMonthly: Record<string, Record<string, number[]>> = {}
       for (const r of rentals || []) {
+        const sqm = Number(r.area_sqm)
+        if (sqm <= 0) continue
+        const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
+        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
         const month = r.deal_date.slice(0, 7)
         if (!rentalMonthly[month]) rentalMonthly[month] = {}
         if (!rentalMonthly[month][r.complex_name]) rentalMonthly[month][r.complex_name] = []
