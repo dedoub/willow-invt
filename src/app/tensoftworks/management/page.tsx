@@ -961,7 +961,7 @@ export default function TenswManagementPage() {
   const [editingTaxInvoice, setEditingTaxInvoice] = useState<TenswTaxInvoice | null>(null)
   const [isSavingTaxInvoice, setIsSavingTaxInvoice] = useState(false)
   const [expandedTaxInvoice, setExpandedTaxInvoice] = useState<string | null>(null)
-  const [taxInvoiceStatusFilter, setTaxInvoiceStatusFilter] = useState<'all' | 'pending' | 'paid'>('all')
+  const [taxInvoiceStatusFilter, setTaxInvoiceStatusFilter] = useState<'all' | 'scheduled' | 'pending' | 'paid'>('all')
   const [taxInvoicePage, setTaxInvoicePage] = useState(1)
   const [taxInvoicePerPage, setTaxInvoicePerPage] = useState(5)
 
@@ -978,6 +978,7 @@ export default function TenswManagementPage() {
   const [taxFormItems, setTaxFormItems] = useState<Array<{ description: string; quantity: number; unit_price: number; supply_amount: number; tax_amount: number }>>([])
 
   const TAX_INVOICE_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+    scheduled: { bg: 'bg-slate-200 dark:bg-slate-700', text: 'text-slate-600 dark:text-slate-400', label: '예정' },
     pending: { bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-400', label: '미수금' },
     paid: { bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-400', label: '수금완료' },
   }
@@ -2383,6 +2384,7 @@ export default function TenswManagementPage() {
   ).sort((a, b) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime())
 
   const totalSalesAmount = taxInvoices.reduce((sum, i) => sum + i.total_amount, 0)
+  const scheduledSalesAmount = taxInvoices.filter(i => i.payment_status === 'scheduled').reduce((sum, i) => sum + i.total_amount, 0)
   const pendingSalesAmount = taxInvoices.filter(i => i.payment_status === 'pending').reduce((sum, i) => sum + i.total_amount, 0)
   const paidSalesAmount = taxInvoices.filter(i => i.payment_status === 'paid').reduce((sum, i) => sum + i.total_amount, 0)
   const totalTaxInvoicePages = Math.ceil(filteredTaxInvoices.length / taxInvoicePerPage)
@@ -3506,11 +3508,16 @@ export default function TenswManagementPage() {
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">총 매출</p>
                   <p className="text-sm font-bold">₩{totalSalesAmount.toLocaleString()}</p>
                   <p className="text-[11px] text-slate-400">VAT ₩{taxInvoices.reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
+                </div>
+                <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">예정</p>
+                  <p className="text-sm font-bold text-slate-500">₩{scheduledSalesAmount.toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-400">VAT ₩{taxInvoices.filter(i => i.payment_status === 'scheduled').reduce((s, i) => s + i.tax_amount, 0).toLocaleString()}</p>
                 </div>
                 <div className="rounded-lg p-2.5 bg-white dark:bg-slate-700 text-center">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">미수금</p>
@@ -3526,7 +3533,7 @@ export default function TenswManagementPage() {
 
               {/* Status filter */}
               <div className="flex gap-1">
-                {(['all', 'pending', 'paid'] as const).map((status) => {
+                {(['all', 'scheduled', 'pending', 'paid'] as const).map((status) => {
                   const count = status === 'all' ? taxInvoices.length : taxInvoices.filter(i => i.payment_status === status).length
                   return (
                     <button
@@ -3539,7 +3546,7 @@ export default function TenswManagementPage() {
                           : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300'
                       )}
                     >
-                      {status === 'all' ? '전체' : status === 'pending' ? '미수금' : '수금완료'} {count}
+                      {status === 'all' ? '전체' : status === 'scheduled' ? '예정' : status === 'pending' ? '미수금' : '수금완료'} {count}
                     </button>
                   )
                 })}
@@ -5862,6 +5869,7 @@ export default function TenswManagementPage() {
                 <Select value={taxFormPaymentStatus} onValueChange={setTaxFormPaymentStatus}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="scheduled">예정</SelectItem>
                     <SelectItem value="pending">미수금</SelectItem>
                     <SelectItem value="paid">수금완료</SelectItem>
                   </SelectContent>

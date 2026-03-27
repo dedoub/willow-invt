@@ -1059,6 +1059,61 @@ export default function WillowManagementPage() {
     created_at: string
     updated_at: string
   }
+  interface SmallcapScreening {
+    id: string
+    ticker: string
+    company_name: string | null
+    sector: string | null
+    industry: string | null
+    country: string | null
+    scan_date: string
+    market_cap_m: number | null
+    price: number | null
+    change_pct: number | null
+    volume: number | null
+    avg_volume: number | null
+    pe: number | null
+    forward_pe: number | null
+    peg: number | null
+    ps: number | null
+    pb: number | null
+    roe: number | null
+    roa: number | null
+    roi: number | null
+    gross_margin: number | null
+    operating_margin: number | null
+    profit_margin: number | null
+    current_ratio: number | null
+    quick_ratio: number | null
+    debt_to_equity: number | null
+    perf_week: number | null
+    perf_month: number | null
+    perf_quarter: number | null
+    perf_half: number | null
+    perf_year: number | null
+    perf_ytd: number | null
+    insider_own_pct: number | null
+    insider_trans_pct: number | null
+    inst_own_pct: number | null
+    inst_trans_pct: number | null
+    short_float_pct: number | null
+    insider_buys_3m: number
+    insider_buy_value_3m: number
+    reddit_mentions: number
+    reddit_sentiment: number | null
+    reddit_buzz_score: number | null
+    growth_score: number | null
+    value_score: number | null
+    quality_score: number | null
+    momentum_score: number | null
+    insider_score: number | null
+    sentiment_score: number | null
+    composite_score: number | null
+    rs_rank: number | null
+    tier: 'A' | 'B' | 'C' | 'F'
+    track: 'profitable' | 'hypergrowth' | null
+    fail_reasons: string[] | null
+  }
   const [stockResearch, setStockResearch] = useState<StockResearch[]>([])
   const [isLoadingResearch, setIsLoadingResearch] = useState(true)
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false)
@@ -1068,6 +1123,20 @@ export default function WillowManagementPage() {
   const [researchPage, setResearchPage] = useState(1)
   const [researchPerPage, setResearchPerPage] = useState(5)
   const [expandedResearch, setExpandedResearch] = useState<Set<string>>(new Set())
+
+  // Smallcap screening states
+  const [smallcapData, setSmallcapData] = useState<SmallcapScreening[]>([])
+  const [smallcapSummary, setSmallcapSummary] = useState<{ total: number; byTier: { A: number; B: number; C: number; F: number }; byTrack: { profitable: number; hypergrowth: number }; scanDate: string | null } | null>(null)
+  const [smallcapScanDates, setSmallcapScanDates] = useState<string[]>([])
+  const [smallcapSelectedDate, setSmallcapSelectedDate] = useState<string>('')
+  const [isLoadingSmallcap, setIsLoadingSmallcap] = useState(false)
+  const [smallcapTierFilter, setSmallcapTierFilter] = useState<'all' | 'A' | 'B' | 'C' | 'F'>('all')
+  const [smallcapTrackFilter, setSmallcapTrackFilter] = useState<'all' | 'profitable' | 'hypergrowth'>('all')
+  const [smallcapPage, setSmallcapPage] = useState(1)
+  const [smallcapPerPage, setSmallcapPerPage] = useState(10)
+  const [expandedSmallcap, setExpandedSmallcap] = useState<Set<string>>(new Set())
+  const [smallcapSortKey, setSmallcapSortKey] = useState<'composite_score' | 'market_cap_m' | 'change_pct' | 'insider_buys_3m' | 'reddit_mentions' | 'rs_rank'>('composite_score')
+  const [smallcapSortAsc, setSmallcapSortAsc] = useState(false)
 
   // Research form states
   const [researchFormTicker, setResearchFormTicker] = useState('')
@@ -1089,7 +1158,7 @@ export default function WillowManagementPage() {
   const [researchFormNotes, setResearchFormNotes] = useState('')
 
   // Real estate states
-  const [researchSubTab, setResearchSubTab] = useState<'stock' | 'realestate'>('realestate')
+  const [researchSubTab, setResearchSubTab] = useState<'stock' | 'smallcap' | 'realestate'>('realestate')
   const [reComplexes, setReComplexes] = useState<{ id: string; name: string; district_name: string; dong_name: string | null; total_units: number | null; build_year: number | null; is_tracked: boolean }[]>([])
   const [reSummary, setReSummary] = useState<{ trackedComplexes: number; districtCount: number; avgTradePpp: number; avgJeonsePpp: number; tradeListingGap: number; jeonseListingGap: number; lastListingDate: string | null; lastTradeDate: string | null } | null>(null)
   const [reTrades, setReTrades] = useState<{ months: string[]; complexes: { name: string; data: { month: string; avgPpp: number | null; count: number }[] }[] } | null>(null)
@@ -2423,6 +2492,29 @@ export default function WillowManagementPage() {
     }
   }, [])
 
+  // ====== Smallcap Screening Functions ======
+  const loadSmallcapScreening = useCallback(async (scanDate?: string) => {
+    setIsLoadingSmallcap(true)
+    try {
+      const params = new URLSearchParams()
+      if (scanDate) params.set('scan_date', scanDate)
+      const res = await fetch(`/api/willow-mgmt/smallcap-screening?${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        setSmallcapData(data.items || [])
+        setSmallcapSummary(data.summary || null)
+        setSmallcapScanDates(data.scanDates || [])
+        if (!scanDate && data.summary?.scanDate) {
+          setSmallcapSelectedDate(data.summary.scanDate)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load smallcap screening:', error)
+    } finally {
+      setIsLoadingSmallcap(false)
+    }
+  }, [])
+
   const loadRealEstateData = useCallback(async (districts: string[], complexIds: string[], area: string, period: string) => {
     setIsLoadingRe(true)
     try {
@@ -3069,6 +3161,13 @@ export default function WillowManagementPage() {
       loadRealEstateData(reDistrictFilter, reComplexFilter, reAreaFilter, rePeriodFilter)
     }
   }, [researchSubTab, reDistrictFilter, reComplexFilter, reAreaFilter, rePeriodFilter, loadRealEstateData])
+
+  // Load smallcap screening data when sub-tab is selected
+  useEffect(() => {
+    if (researchSubTab === 'smallcap' && smallcapData.length === 0) {
+      loadSmallcapScreening()
+    }
+  }, [researchSubTab, smallcapData.length, loadSmallcapScreening])
 
   // Auto-refresh stock quotes every 5 minutes
   useEffect(() => {
@@ -5679,7 +5778,7 @@ export default function WillowManagementPage() {
                   <Search className="h-5 w-5" />
                   투자리서치
                 </CardTitle>
-                <CardDescription>{researchSubTab === 'stock' ? '종목 스크리닝 & 분석' : '강남3구 부동산 리서치'}</CardDescription>
+                <CardDescription>{researchSubTab === 'stock' ? '종목 스크리닝 & 분석' : researchSubTab === 'smallcap' ? '미국 소형주 자동 스크리닝' : '강남3구 부동산 리서치'}</CardDescription>
               </div>
               {researchSubTab === 'stock' && (
                 <button
@@ -5695,12 +5794,12 @@ export default function WillowManagementPage() {
               {/* Sub-tab + verdict filter row */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-1">
-                  {(['stock', 'realestate'] as const).map(tab => (
+                  {(['stock', 'smallcap', 'realestate'] as const).map(tab => (
                     <button key={tab} onClick={() => setResearchSubTab(tab)}
                       className={cn('px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
                         researchSubTab === tab ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                       )}>
-                      {tab === 'stock' ? '주식' : '부동산'}
+                      {tab === 'stock' ? '주식' : tab === 'smallcap' ? '소형주' : '부동산'}
                     </button>
                   ))}
                 </div>
@@ -5720,6 +5819,42 @@ export default function WillowManagementPage() {
                         {v === 'all' ? '전체' : v === 'pass_tier1' ? 'T1' : v === 'pass_tier2' ? 'T2' : 'Fail'}
                       </button>
                     ))}
+                  </div>
+                ) : researchSubTab === 'smallcap' ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      {(['all', 'A', 'B', 'C', 'F'] as const).map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => { setSmallcapTierFilter(t); setSmallcapPage(1) }}
+                          className={cn(
+                            'px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
+                            smallcapTierFilter === t
+                              ? 'bg-slate-900 text-white dark:bg-slate-600'
+                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                          )}
+                        >
+                          {t === 'all' ? '전체' : t}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                    <div className="flex items-center gap-1">
+                      {(['all', 'profitable', 'hypergrowth'] as const).map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => { setSmallcapTrackFilter(t); setSmallcapPage(1) }}
+                          className={cn(
+                            'px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
+                            smallcapTrackFilter === t
+                              ? 'bg-slate-900 text-white dark:bg-slate-600'
+                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                          )}
+                        >
+                          {t === 'all' ? '전체' : t === 'profitable' ? '흑자' : '성장'}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
@@ -5892,6 +6027,264 @@ export default function WillowManagementPage() {
                 )
               })()}
               </>
+              ) : researchSubTab === 'smallcap' ? (
+              /* ========== Smallcap Screening Sub-Tab ========== */
+              <div className="space-y-3">
+                {/* Summary bar + date selector */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {smallcapSummary && (
+                    <div className="flex items-center gap-1.5 text-xs flex-wrap">
+                      <span className="text-muted-foreground">{smallcapSummary.total}개</span>
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 font-medium">A {smallcapSummary.byTier.A}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400 font-medium">B {smallcapSummary.byTier.B}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 font-medium">C {smallcapSummary.byTier.C}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400 font-medium">F {smallcapSummary.byTier.F}</span>
+                      <span className="text-slate-300 dark:text-slate-600">|</span>
+                      <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 font-medium">흑자 {smallcapSummary.byTrack?.profitable ?? 0}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400 font-medium">성장 {smallcapSummary.byTrack?.hypergrowth ?? 0}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 ml-auto">
+                    {smallcapScanDates.length > 0 && (
+                      <div className="relative">
+                        <select
+                          value={smallcapSelectedDate}
+                          onChange={(e) => { setSmallcapSelectedDate(e.target.value); loadSmallcapScreening(e.target.value) }}
+                          className="text-xs bg-white dark:bg-slate-700 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                        >
+                          {smallcapScanDates.map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="relative">
+                      <select
+                        value={smallcapSortKey}
+                        onChange={(e) => setSmallcapSortKey(e.target.value as typeof smallcapSortKey)}
+                        className="text-xs bg-white dark:bg-slate-700 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                      >
+                        <option value="composite_score">종합점수</option>
+                        <option value="rs_rank">상대강도(RS)</option>
+                        <option value="market_cap_m">시가총액</option>
+                        <option value="change_pct">등락률</option>
+                        <option value="insider_buys_3m">내부자매수</option>
+                        <option value="reddit_mentions">레딧멘션</option>
+                      </select>
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                    </div>
+                    <button
+                      onClick={() => setSmallcapSortAsc(!smallcapSortAsc)}
+                      className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                    >
+                      {smallcapSortAsc ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Results */}
+                {(() => {
+                  const filtered = smallcapData.filter(s => {
+                    if (smallcapTierFilter !== 'all' && s.tier !== smallcapTierFilter) return false
+                    if (smallcapTrackFilter !== 'all' && s.track !== smallcapTrackFilter) return false
+                    return true
+                  })
+                  const sorted = [...filtered].sort((a, b) => {
+                    const aVal = a[smallcapSortKey] ?? 0
+                    const bVal = b[smallcapSortKey] ?? 0
+                    return smallcapSortAsc ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
+                  })
+                  const totalPages = Math.ceil(sorted.length / smallcapPerPage)
+                  const paginated = sorted.slice((smallcapPage - 1) * smallcapPerPage, smallcapPage * smallcapPerPage)
+
+                  const tierStyle = (t: string) => {
+                    if (t === 'A') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
+                    if (t === 'B') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                    if (t === 'C') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
+                    return 'bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
+                  }
+
+                  const fmtPct = (v: number | null) => v != null ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '-'
+                  const fmtNum = (v: number | null, d = 1) => v != null ? v.toFixed(d) : '-'
+                  const fmtMcap = (v: number | null) => {
+                    if (v == null) return '-'
+                    if (v >= 1000) return `$${(v / 1000).toFixed(1)}B`
+                    return `$${v.toFixed(0)}M`
+                  }
+
+                  const scoreBar = (label: string, value: number | null, max = 100) => (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground w-8 shrink-0">{label}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full', (value ?? 0) >= 70 ? 'bg-emerald-500' : (value ?? 0) >= 40 ? 'bg-blue-500' : 'bg-slate-400')}
+                          style={{ width: `${Math.min(100, ((value ?? 0) / max) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[11px] font-medium w-6 text-right">{value != null ? Math.round(value) : '-'}</span>
+                    </div>
+                  )
+
+                  return (
+                    <>
+                      <div className="space-y-2">
+                        {isLoadingSmallcap ? (
+                          <div className="text-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                          </div>
+                        ) : sorted.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Search className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                            <p className="text-sm">스크리닝 결과가 없습니다</p>
+                            <p className="text-xs">매주 토요일 자동 실행됩니다</p>
+                          </div>
+                        ) : (
+                          paginated.map((s) => {
+                            const isExpanded = expandedSmallcap.has(s.id)
+                            return (
+                              <div key={s.id} className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                                <div
+                                  className="flex items-center gap-2 cursor-pointer"
+                                  onClick={() => {
+                                    setExpandedSmallcap(prev => {
+                                      const next = new Set(prev)
+                                      if (next.has(s.id)) next.delete(s.id)
+                                      else next.add(s.id)
+                                      return next
+                                    })
+                                  }}
+                                >
+                                  <span className={cn('px-1.5 py-0.5 rounded text-xs font-bold shrink-0', tierStyle(s.tier))}>
+                                    {s.tier}
+                                  </span>
+                                  {s.track === 'hypergrowth' && (
+                                    <span className="px-1.5 py-0.5 rounded text-[11px] font-medium shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400">
+                                      성장
+                                    </span>
+                                  )}
+                                  <span className="font-medium text-sm">{s.ticker}</span>
+                                  <span className="text-xs text-muted-foreground truncate hidden sm:inline">{s.company_name}</span>
+                                  <span className="text-[11px] text-muted-foreground hidden sm:inline">{fmtMcap(s.market_cap_m)}</span>
+                                  <div className="flex items-center gap-2 ml-auto shrink-0">
+                                    {s.composite_score != null && (
+                                      <span className={cn(
+                                        'text-xs font-bold px-1.5 py-0.5 rounded',
+                                        s.composite_score >= 70 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
+                                          : s.composite_score >= 50 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                                          : 'bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
+                                      )}>
+                                        {Math.round(s.composite_score)}
+                                      </span>
+                                    )}
+                                    {s.change_pct != null && (
+                                      <span className={cn('text-xs font-medium', s.change_pct > 0 ? 'text-red-600' : s.change_pct < 0 ? 'text-blue-600' : 'text-slate-500')}>
+                                        {fmtPct(s.change_pct)}
+                                      </span>
+                                    )}
+                                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                                  </div>
+                                </div>
+                                {/* Tags: sector + signals */}
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {s.sector && <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{s.sector}</span>}
+                                  {s.rs_rank != null && s.rs_rank >= 70 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-400">RS {s.rs_rank}</span>}
+                                  {s.rs_rank != null && s.rs_rank < 30 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400">RS {s.rs_rank}</span>}
+                                  {s.forward_pe != null && s.pe != null && s.pe > 0 && s.forward_pe < s.pe * 0.8 && (
+                                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-400">어닝가속</span>
+                                  )}
+                                  {s.insider_buys_3m > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400">내부자매수 {s.insider_buys_3m}건{s.insider_buy_value_3m >= 100000 ? ' $100K+' : ''}</span>}
+                                  {s.reddit_mentions > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400">Reddit {s.reddit_mentions}</span>}
+                                  {s.fail_reasons && s.fail_reasons.length > 0 && s.fail_reasons.map(r => (
+                                    <span key={r} className="text-[11px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">{r}</span>
+                                  ))}
+                                </div>
+                                {/* Expanded details */}
+                                {isExpanded && (
+                                  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-2">
+                                    {/* Score bars */}
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                      {scoreBar('성장', s.growth_score)}
+                                      {scoreBar('가치', s.value_score)}
+                                      {scoreBar('퀄리티', s.quality_score)}
+                                      {scoreBar('모멘텀', s.momentum_score)}
+                                      {scoreBar('내부자', s.insider_score)}
+                                      {scoreBar('센티', s.sentiment_score)}
+                                    </div>
+                                    {/* Key metrics */}
+                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                      <span>가격 ${s.price?.toFixed(2)}</span>
+                                      <span>PE {fmtNum(s.pe)}</span>
+                                      <span>FPE {fmtNum(s.forward_pe)}</span>
+                                      <span>PEG {fmtNum(s.peg)}</span>
+                                      <span>ROE {fmtPct(s.roe)}</span>
+                                      <span>GM {fmtPct(s.gross_margin)}</span>
+                                      <span>영업 {fmtPct(s.operating_margin)}</span>
+                                      <span>순이익 {fmtPct(s.profit_margin)}</span>
+                                      <span>D/E {fmtNum(s.debt_to_equity)}</span>
+                                      <span>유동 {fmtNum(s.current_ratio)}</span>
+                                    </div>
+                                    {/* Performance */}
+                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                      {s.rs_rank != null && <span className="font-medium">RS {s.rs_rank}</span>}
+                                      <span>1주 {fmtPct(s.perf_week)}</span>
+                                      <span>1월 {fmtPct(s.perf_month)}</span>
+                                      <span>분기 {fmtPct(s.perf_quarter)}</span>
+                                      <span>반기 {fmtPct(s.perf_half)}</span>
+                                      {s.perf_year != null && <span>1년 {fmtPct(s.perf_year)}</span>}
+                                    </div>
+                                    {/* Ownership & Social */}
+                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                      {s.insider_own_pct != null && <span>내부자보유 {fmtPct(s.insider_own_pct)}</span>}
+                                      {s.inst_own_pct != null && <span>기관보유 {fmtPct(s.inst_own_pct)}</span>}
+                                      {s.short_float_pct != null && <span>공매도 {fmtPct(s.short_float_pct)}</span>}
+                                      {s.insider_buy_value_3m > 0 && <span>내부자매수액 ${(s.insider_buy_value_3m / 1000).toFixed(0)}K</span>}
+                                      {s.reddit_sentiment != null && <span>레딧감성 {s.reddit_sentiment.toFixed(2)}</span>}
+                                    </div>
+                                    {s.industry && (
+                                      <p className="text-[11px] text-muted-foreground">{s.industry}</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                      {sorted.length > 0 && (
+                        <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground whitespace-nowrap">
+                              {sorted.length}개 중 {(smallcapPage - 1) * smallcapPerPage + 1}-{Math.min(smallcapPage * smallcapPerPage, sorted.length)}
+                            </p>
+                            <div className="relative">
+                              <select
+                                value={smallcapPerPage}
+                                onChange={(e) => { setSmallcapPerPage(Number(e.target.value)); setSmallcapPage(1) }}
+                                className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                              >
+                                <option value={10}>10개</option>
+                                <option value={25}>25개</option>
+                                <option value={50}>50개</option>
+                              </select>
+                              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                            </div>
+                          </div>
+                          {totalPages > 1 && (
+                            <div className="flex items-center gap-0.5">
+                              <button onClick={() => setSmallcapPage(1)} disabled={smallcapPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                              <button onClick={() => setSmallcapPage(p => Math.max(1, p - 1))} disabled={smallcapPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                              <span className="px-2 py-1 text-xs font-medium">{smallcapPage}/{totalPages}</span>
+                              <button onClick={() => setSmallcapPage(p => Math.min(totalPages, p + 1))} disabled={smallcapPage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                              <button onClick={() => setSmallcapPage(totalPages)} disabled={smallcapPage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
               ) : (
               /* ========== Real Estate Research Sub-Tab ========== */
               <div className="space-y-4">

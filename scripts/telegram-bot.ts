@@ -295,7 +295,7 @@ async function transcribeVoice(filePath: string): Promise<string> {
 }
 
 async function describePhoto(filePath: string, caption?: string): Promise<string> {
-  // Claude Code에 이미지 분석 요청
+  // Claude Code에 이미지 분석 요청 (파일은 삭제하지 않음 — 메인 핸들러에서 직접 Read 가능하도록)
   return new Promise((resolve, reject) => {
     const env = { ...process.env }
     delete env.CLAUDECODE
@@ -303,7 +303,11 @@ async function describePhoto(filePath: string, caption?: string): Promise<string
       ? `이 이미지를 분석해주세요. 사용자가 함께 보낸 메시지: "${caption}". 이미지에 보이는 내용을 간결하게 설명하세요.`
       : '이 이미지를 분석하고 내용을 간결하게 설명해주세요.'
 
-    const proc = spawn('claude', ['-p', '--output-format', 'text', '--dangerously-skip-permissions'], {
+    delete env.CLAUDE_CODE_SSE_PORT
+    delete env.CLAUDE_CODE_ENTRYPOINT
+    delete env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
+
+    const proc = spawn('claude', ['-p', '--output-format', 'json', '--verbose', '--dangerously-skip-permissions'], {
       cwd: process.cwd(),
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -311,11 +315,9 @@ async function describePhoto(filePath: string, caption?: string): Promise<string
     let stdout = ''
     proc.stdout.on('data', (d: Buffer) => (stdout += d.toString()))
     proc.on('close', () => {
-      try { unlinkSync(filePath) } catch {}
-      resolve(stdout.trim() || '이미지를 분석할 수 없었어요.')
+      resolve(extractTextFromVerboseJson(stdout) || '이미지를 분석할 수 없었어요.')
     })
     proc.on('error', (err: Error) => {
-      try { unlinkSync(filePath) } catch {}
       reject(err)
     })
     // Read tool로 이미지 경로 전달
@@ -2148,13 +2150,41 @@ const TENSW_MCP_TOOLS = 'mcp__claude_ai_tensw-todo__*'
 const PORTFOLIO_MCP_TOOLS = 'mcp__portfolio-monitor__*'
 const WILLOW_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__*'
 
+// verbose JSON에서 assistant 텍스트 추출 (result 필드 버그 우회)
+function extractTextFromVerboseJson(stdout: string): string {
+  try {
+    const parsed = JSON.parse(stdout)
+    const events = Array.isArray(parsed) ? parsed : [parsed]
+    // assistant 이벤트에서 텍스트 추출 (마지막 assistant 메시지 사용)
+    let lastText = ''
+    for (const event of events) {
+      if (event.type === 'assistant' && event.message?.content) {
+        const texts = event.message.content
+          .filter((c: { type: string }) => c.type === 'text')
+          .map((c: { text: string }) => c.text)
+        if (texts.length > 0) lastText = texts.join('\n').trim()
+      }
+    }
+    if (lastText) return lastText
+    // fallback: result 필드
+    const resultEvent = events.find((e: { type: string }) => e.type === 'result')
+    return resultEvent?.result?.trim() || ''
+  } catch {
+    return stdout.trim()
+  }
+}
+
 function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession?: boolean }): Promise<string> {
   return new Promise((resolve, reject) => {
     // CLAUDECODE 환경변수를 제거해야 중첩 세션 에러 방지
     const env = { ...process.env }
     delete env.CLAUDECODE
+    delete env.CLAUDE_CODE_SSE_PORT
+    delete env.CLAUDE_CODE_ENTRYPOINT
+    delete env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
 
-    const args = ['-p', '--output-format', 'text']
+    // --verbose + json: result 필드 버그 우회 — assistant 메시지에서 텍스트 추출
+    const args = ['-p', '--output-format', 'json', '--verbose']
     // 풀 세션: 파일 편집, Bash, git 등 모든 도구 사용 가능
     if (opts?.fullSession) {
       args.push('--dangerously-skip-permissions')
@@ -2182,7 +2212,7 @@ function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession
 
     proc.on('close', (code) => {
       if (code === 0) {
-        resolve(stdout.trim())
+        resolve(extractTextFromVerboseJson(stdout))
       } else {
         console.error('Claude CLI error:', stderr)
         reject(new Error(`Claude exited with code ${code}: ${stderr}`))
@@ -3097,16 +3127,18 @@ async function main() {
           try {
             await sendTyping(chatId)
             const description = await describePhoto(localPath, msg.caption)
-            // 사진 설명을 컨텍스트로 handleMessage에 전달
+            // 사진 설명 + 원본 파일 경로를 컨텍스트로 handleMessage에 전달
             const photoText = msg.caption
-              ? `[사진 전송 + 캡션: "${msg.caption}"]\n[이미지 분석 결과] ${description}`
-              : `[사진 전송]\n[이미지 분석 결과] ${description}`
+              ? `[사진 전송 + 캡션: "${msg.caption}"] 저장 경로: ${localPath}\n[이미지 분석 결과] ${description}`
+              : `[사진 전송] 저장 경로: ${localPath}\n[이미지 분석 결과] ${description}`
             const ac = new AbortController()
             processingAbort.set(chatId, ac)
             try {
               await handleMessage(chatId, photoText, ac.signal, msg.message_id)
             } finally {
               processingAbort.delete(chatId)
+              // 메인 핸들러 완료 후 사진 파일 정리
+              try { unlinkSync(localPath) } catch {}
             }
           } catch (err: any) {
             console.error('사진 분석 실패:', err.message)

@@ -4,6 +4,7 @@ config({ path: '.env.local' })
 import { google } from 'googleapis'
 import { createClient } from '@supabase/supabase-js'
 import { spawn } from 'child_process'
+import os from 'os'
 
 // ============================================================
 // Gmail Auto-Labeler — Claude가 이메일을 읽고 자동 라벨 분류
@@ -182,11 +183,15 @@ function askClaude(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const env = { ...process.env }
     delete (env as Record<string, string | undefined>).CLAUDECODE
+    delete (env as Record<string, string | undefined>).CLAUDE_CODE_SSE_PORT
+    delete (env as Record<string, string | undefined>).CLAUDE_CODE_ENTRYPOINT
+    delete (env as Record<string, string | undefined>).CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
 
-    const args = ['-p', '--output-format', 'text']
+    // --verbose + json: result 필드 버그 우회 — assistant 메시지에서 텍스트 추출
+    const args = ['-p', '--output-format', 'json', '--verbose', '--model', 'sonnet']
 
     const proc = spawn('claude', args, {
-      cwd: process.cwd(),
+      cwd: os.tmpdir(),
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
     })
@@ -199,7 +204,28 @@ function askClaude(prompt: string): Promise<string> {
 
     proc.on('close', (code) => {
       if (code === 0) {
-        resolve(stdout.trim())
+        try {
+          const parsed = JSON.parse(stdout)
+          const events = Array.isArray(parsed) ? parsed : [parsed]
+          // assistant 이벤트에서 텍스트 추출
+          for (const event of events) {
+            if (event.type === 'assistant' && event.message?.content) {
+              const texts = event.message.content
+                .filter((c: { type: string }) => c.type === 'text')
+                .map((c: { text: string }) => c.text)
+              if (texts.length > 0) {
+                resolve(texts.join('\n').trim())
+                return
+              }
+            }
+          }
+          // fallback: result 필드
+          const resultEvent = events.find((e: { type: string }) => e.type === 'result')
+          resolve(resultEvent?.result?.trim() || '')
+        } catch {
+          // JSON 파싱 실패 시 raw stdout 반환
+          resolve(stdout.trim())
+        }
       } else {
         log(`Claude CLI error: ${stderr}`)
         reject(new Error(`Claude exited with code ${code}: ${stderr}`))
