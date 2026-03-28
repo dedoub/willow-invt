@@ -41,6 +41,7 @@ import {
   GitCommit,
   Search,
   Clock,
+  Sparkles,
 } from 'lucide-react'
 
 // tensw-todo 사이트 URL
@@ -117,6 +118,7 @@ interface ProjectWithStats {
   schedules?: ProjectSchedule[]
   recentActivity: RecentActivity[]
   serviceUrls?: ServiceUrl[]
+  aiProgressScore?: number | null
 }
 
 function DashboardContent() {
@@ -340,26 +342,26 @@ function DashboardContent() {
               {/* 배정 대기 */}
               <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30">
                 <div className="flex items-center justify-between mb-1">
-                  <div className="text-sm text-amber-700 dark:text-amber-400">{tensw.stats.waiting}</div>
-                  <div className="rounded-lg bg-amber-100 dark:bg-amber-800/50 p-1.5">
-                    <Circle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <div className="text-xs text-amber-700 dark:text-amber-400">{tensw.stats.waiting}</div>
+                  <div className="rounded-lg bg-amber-100 dark:bg-amber-800/50 p-1">
+                    <Circle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                   </div>
                 </div>
-                <div className="text-xl font-bold text-amber-600 dark:text-amber-400">{waitingCount}</div>
+                <div className="text-base font-bold text-amber-600 dark:text-amber-400">{waitingCount}</div>
               </div>
 
               {/* 진행 중 (승인 대기 포함) */}
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30">
                 <div className="flex items-center justify-between mb-1">
-                  <div className="text-sm text-blue-700 dark:text-blue-400">{tensw.stats.inProgress}</div>
-                  <div className="rounded-lg bg-blue-200 dark:bg-blue-800/50 p-1.5">
-                    <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <div className="text-xs text-blue-700 dark:text-blue-400">{tensw.stats.inProgress}</div>
+                  <div className="rounded-lg bg-blue-100 dark:bg-blue-800/50 p-1">
+                    <Zap className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                   </div>
                 </div>
-                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="text-base font-bold text-blue-600 dark:text-blue-400">
                   {inProgressCount}
                   {pendingApprovalCount > 0 && (
-                    <span className="text-[11px] font-normal text-orange-600 dark:text-orange-400 ml-1 whitespace-nowrap">
+                    <span className="text-[10px] sm:text-xs font-normal text-orange-600 dark:text-orange-400 ml-1 whitespace-nowrap">
                       (승인대기 {pendingApprovalCount})
                     </span>
                   )}
@@ -369,23 +371,23 @@ function DashboardContent() {
               {/* 완료 */}
               <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30">
                 <div className="flex items-center justify-between mb-1">
-                  <div className="text-sm text-emerald-700 dark:text-emerald-400">{tensw.stats.completed}</div>
-                  <div className="rounded-lg bg-emerald-100 dark:bg-emerald-800/50 p-1.5">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <div className="text-xs text-emerald-700 dark:text-emerald-400">{tensw.stats.completed}</div>
+                  <div className="rounded-lg bg-emerald-100 dark:bg-emerald-800/50 p-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                 </div>
-                <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{completedCount}</div>
+                <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">{completedCount}</div>
               </div>
 
               {/* 진행률 */}
-              <div className="p-2 rounded-lg bg-slate-200 dark:bg-slate-600">
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-700">
                 <div className="flex items-center justify-between mb-1">
-                  <div className="text-sm text-slate-500 dark:text-slate-400">{tensw.stats.progress}</div>
-                  <div className="rounded-lg bg-white/50 dark:bg-slate-600/50 p-1.5">
-                    <TrendingUp className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{tensw.stats.progress}</div>
+                  <div className="rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1">
+                    <TrendingUp className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" />
                   </div>
                 </div>
-                <div className="text-xl font-bold text-slate-700 dark:text-slate-300">{progress}%</div>
+                <div className="text-base font-bold text-slate-700 dark:text-slate-300">{progress}%</div>
               </div>
             </div>
 
@@ -450,6 +452,27 @@ function DashboardContent() {
                   ) : (
                     <p className="text-sm text-slate-400">-</p>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* AI 평가 완성도 */}
+            {project.aiProgressScore != null && (
+              <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/30">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-xs text-purple-700 dark:text-purple-400">AI 평가 완성도</div>
+                  <div className="rounded-lg bg-purple-100 dark:bg-purple-800/50 p-1">
+                    <Sparkles className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-purple-200 dark:bg-purple-800/50 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
+                      style={{ width: `${project.aiProgressScore}%` }}
+                    />
+                  </div>
+                  <span className="text-base font-bold text-purple-600 dark:text-purple-400">{project.aiProgressScore}%</span>
                 </div>
               </div>
             )}

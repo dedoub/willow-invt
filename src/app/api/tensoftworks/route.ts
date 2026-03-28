@@ -90,6 +90,7 @@ export interface TenswProject {
   inProgressByMember: MemberTodoCount[]
   completedByMember: MemberTodoCount[]
   avgCompletionTime: string | null
+  aiProgressScore: number | null
 }
 
 // GET /api/tensoftworks - List all tensw projects with full details
@@ -158,6 +159,22 @@ export async function GET() {
       .select('id, project_id, name, url, description')
       .in('project_id', projectIds)
       .order('sort_order', { ascending: true })
+
+    // Get latest AI analysis progress_score per project
+    const { data: latestAnalyses } = await supabase
+      .from('tensw_project_analyses')
+      .select('project_id, progress_score, created_at')
+      .in('project_id', projectIds)
+      .order('created_at', { ascending: false })
+
+    const aiProgressMap = new Map<string, number>()
+    if (latestAnalyses) {
+      for (const a of latestAnalyses) {
+        if (!aiProgressMap.has(a.project_id) && a.progress_score != null) {
+          aiProgressMap.set(a.project_id, a.progress_score)
+        }
+      }
+    }
 
     // Get recent todo logs (last 7 days)
     const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -489,6 +506,7 @@ export async function GET() {
         inProgressByMember,
         completedByMember,
         avgCompletionTime,
+        aiProgressScore: aiProgressMap.get(project.id) ?? null,
       }
     })
 
