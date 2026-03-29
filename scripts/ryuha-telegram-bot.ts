@@ -22,9 +22,28 @@ const MESSAGE_BATCH_DELAY = 4000
 const LOG_DIR = join(__dirname, 'logs')
 const LOCK_FILE = join(LOG_DIR, 'ryuha-bot.lock')
 const OFFSET_FILE = join(LOG_DIR, 'ryuha-bot.offset')
+const ALLOWED_USERS_FILE = join(LOG_DIR, 'ryuha-bot-users.json')
+const REG_CODE = '공부시작2026'
+const MAX_USERS = 2
 
-// 류하 chat_id (첫 메시지 수신 시 등록)
-let ryuhaChatId: number | null = null
+// 허용된 chat_id 목록
+let allowedChatIds: number[] = []
+
+function loadAllowedUsers() {
+  try {
+    if (existsSync(ALLOWED_USERS_FILE)) {
+      allowedChatIds = JSON.parse(readFileSync(ALLOWED_USERS_FILE, 'utf-8'))
+    }
+  } catch { allowedChatIds = [] }
+}
+
+function saveAllowedUsers() {
+  writeFileSync(ALLOWED_USERS_FILE, JSON.stringify(allowedChatIds))
+}
+
+function isAllowedUser(chatId: number): boolean {
+  return allowedChatIds.includes(chatId)
+}
 
 // 메시지 배칭
 const messageBatchBuffer: Map<number, { messages: string[]; timer: ReturnType<typeof setTimeout>; lastMessageId: number }> = new Map()
@@ -295,13 +314,15 @@ function buildSystemPrompt(context: string, history: Message[]): string {
 2. 한 번에 너무 많은 정보 쏟아내지 마. 핵심만.
 3. 일정/숙제 완료하면 크게 칭찬! 🎉🥳
 4. 숙제 마감이 가까우면 부드럽게 알려줘 (절대 압박 X)
-5. 여러 메시지로 나눌 때: \\n---SPLIT---\\n 사용
-6. 선택지를 줄 때 버튼 제안:
+5. **일정 알려줄 때 시간도 같이 알려줘** (예: "3시 30분 대치해법수학")
+6. **학원 일정을 알려줄 때 관련 과제 완료여부도 체크** (예: "✅ 숙제 완료!" or "📝 숙제 아직 안 했어")
+7. 여러 메시지로 나눌 때: \\n---SPLIT---\\n 사용
+8. 선택지를 줄 때 버튼 제안:
 \`\`\`buttons
 [["오늘 일정 보기", "오늘 일정 알려줘"], ["숙제 확인", "숙제 뭐 있어?"]]
 \`\`\`
-7. 도구 실행 결과를 그대로 보여주지 마. 자연스럽게 요약해서 전달해.
-8. 날짜는 "3월 30일 (일)" 형태로 읽기 쉽게.
+9. 도구 실행 결과를 그대로 보여주지 마. 자연스럽게 요약해서 전달해.
+10. 날짜는 "3월 30일 (일)" 형태로 읽기 쉽게.
 
 ## 현재 학습 현황
 ${context}
@@ -652,54 +673,96 @@ async function flushBatch(chatId: number) {
 }
 
 // ============================================================
-// Daily greeting (아침 인사)
+// Daily greeting & reminders (아침 인사 + 저녁 알람)
 // ============================================================
 let lastGreetingDate = ''
+let lastEveningDate = ''
+
+async function sendScheduledMessage(chatId: number, prompt: string, tag: string) {
+  try {
+    const response = await askClaude(prompt)
+    const { messages, buttons } = parseResponse(response)
+    for (let i = 0; i < messages.length; i++) {
+      if (!messages[i]) continue
+      if (i === messages.length - 1 && buttons) {
+        await sendMessageWithButtons(chatId, messages[i], buttons)
+      } else {
+        await sendMessage(chatId, messages[i])
+      }
+    }
+
+    const history = await getConversation(chatId)
+    await saveConversation(chatId, [
+      ...history,
+      { role: 'assistant', content: `[${tag}] ${response.slice(0, 500)}`, timestamp: new Date().toISOString() },
+    ])
+  } catch (err) {
+    console.error(`[${tag}] error:`, err)
+  }
+}
 
 async function checkMorningGreeting() {
-  if (!ryuhaChatId) return
+  if (allowedChatIds.length === 0) return
 
   const now = new Date()
   const kst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
   const hour = kst.getHours()
+  const min = kst.getMinutes()
   const todayStr = kst.toISOString().split('T')[0]
 
   // 07:30~08:30 사이 한번만
-  if (hour === 7 || (hour === 8 && kst.getMinutes() <= 30)) {
+  if ((hour === 7 && min >= 30) || (hour === 8 && min <= 30)) {
     if (lastGreetingDate === todayStr) return
     lastGreetingDate = todayStr
 
     console.log('[greeting] sending morning greeting')
     const context = await buildContext()
-    const prompt = `너는 류하의 학습관리 도우미 봇 "공부친구"야.
+    const prompt = `너는 류하의 학습관리 도우미 봇 "리나(Rina)"야.
 현재 시각: ${kst.toLocaleString('ko-KR')}
 
 오늘의 학습 현황:
 ${context}
 
-류하에게 아침 인사를 해줘. 오늘 일정이 있으면 간단히 알려줘.
+류하에게 아침 인사를 해줘. 오늘 일정이 있으면 시간과 함께 간단히 알려줘.
+학원 수업이 있으면 관련 숙제 완료 여부도 체크해서 알려줘.
 밝고 에너지 넘치게! 짧게 2-3문장으로.`
 
-    try {
-      const response = await askClaude(prompt)
-      const { messages, buttons } = parseResponse(response)
-      for (let i = 0; i < messages.length; i++) {
-        if (!messages[i]) continue
-        if (i === messages.length - 1 && buttons) {
-          await sendMessageWithButtons(ryuhaChatId, messages[i], buttons)
-        } else {
-          await sendMessage(ryuhaChatId, messages[i])
-        }
-      }
+    for (const cid of allowedChatIds) {
+      await sendScheduledMessage(cid, prompt, '아침 인사')
+    }
+  }
+}
 
-      // Save to history
-      const history = await getConversation(ryuhaChatId)
-      await saveConversation(ryuhaChatId, [
-        ...history,
-        { role: 'assistant', content: `[아침 인사] ${response.slice(0, 500)}`, timestamp: new Date().toISOString() },
-      ])
-    } catch (err) {
-      console.error('[greeting] error:', err)
+async function checkEveningReminder() {
+  if (allowedChatIds.length === 0) return
+
+  const now = new Date()
+  const kst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+  const hour = kst.getHours()
+  const min = kst.getMinutes()
+  const todayStr = kst.toISOString().split('T')[0]
+
+  // 19:30~20:30 사이 한번만
+  if ((hour === 19 && min >= 30) || (hour === 20 && min <= 30)) {
+    if (lastEveningDate === todayStr) return
+    lastEveningDate = todayStr
+
+    console.log('[evening] sending evening reminder')
+    const context = await buildContext()
+    const prompt = `너는 류하의 학습관리 도우미 봇 "리나(Rina)"야.
+현재 시각: ${kst.toLocaleString('ko-KR')}
+
+오늘의 학습 현황:
+${context}
+
+류하에게 저녁 알람을 보내줘.
+- 오늘 완료한 일정이 있으면 칭찬해줘 🎉
+- 아직 안 끝낸 숙제가 있으면 부드럽게 알려줘 (압박 X)
+- 내일 일정이 있으면 미리 알려줘
+짧고 따뜻하게 2-3문장으로!`
+
+    for (const cid of allowedChatIds) {
+      await sendScheduledMessage(cid, prompt, '저녁 알람')
     }
   }
 }
@@ -733,7 +796,7 @@ async function poll() {
         const cbData = cb.data
         if (cbChatId && cbData) {
           await answerCallbackQuery(cb.id)
-          if (!ryuhaChatId) ryuhaChatId = cbChatId
+          if (!isAllowedUser(cbChatId)) continue
           onNewMessage(cbChatId, cbData, cb.message?.message_id || 0)
         }
         continue
@@ -744,14 +807,25 @@ async function poll() {
         const chatId = update.message.chat.id
         const text = update.message.text
 
-        if (!ryuhaChatId) {
-          ryuhaChatId = chatId
-          console.log(`[init] 류하 chat_id 등록: ${chatId}`)
+        // /start + 등록코드로 사용자 등록
+        if (text.startsWith('/start')) {
+          const code = text.replace('/start', '').trim()
+          if (isAllowedUser(chatId)) {
+            await sendMessage(chatId, '안녕! 나는 리나야 📚\n\n공부 일정이나 숙제 관리를 도와줄게!\n\n"오늘 일정 알려줘", "숙제 뭐 있어?" 같이 편하게 말해줘 😊')
+          } else if (code === REG_CODE && allowedChatIds.length < MAX_USERS) {
+            allowedChatIds.push(chatId)
+            saveAllowedUsers()
+            console.log(`[reg] 사용자 등록: ${chatId} (${allowedChatIds.length}/${MAX_USERS})`)
+            await sendMessage(chatId, '등록 완료! 안녕, 나는 리나야 📚\n\n공부 일정이나 숙제 관리를 도와줄게!\n\n"오늘 일정 알려줘", "숙제 뭐 있어?" 같이 편하게 말해줘 😊')
+          } else {
+            await sendMessage(chatId, '이 봇은 초대된 사용자만 이용할 수 있어요.')
+          }
+          continue
         }
 
-        // /start 명령어
-        if (text === '/start') {
-          await sendMessage(chatId, '안녕! 나는 공부친구야 📚\n\n공부 일정이나 숙제 관리를 도와줄게!\n\n"오늘 일정 알려줘", "숙제 뭐 있어?" 같이 편하게 말해줘 😊')
+        // 미등록 사용자 차단
+        if (!isAllowedUser(chatId)) {
+          await sendMessage(chatId, '이 봇은 초대된 사용자만 이용할 수 있어요.\n/start 등록코드 를 입력해주세요.')
           continue
         }
 
@@ -778,6 +852,9 @@ async function main() {
     process.exit(1)
   }
 
+  loadAllowedUsers()
+  console.log(`[init] 등록된 사용자: ${allowedChatIds.length}/${MAX_USERS}`)
+
   process.on('SIGINT', () => { releaseLock(); process.exit(0) })
   process.on('SIGTERM', () => { releaseLock(); process.exit(0) })
   process.on('uncaughtException', (err) => {
@@ -788,9 +865,11 @@ async function main() {
 
   console.log('🎓 류하 공부친구 봇 시작!')
 
-  // 아침 인사 체크 (30분 간격)
+  // 아침 인사 + 저녁 알람 체크 (30분 간격)
   setInterval(checkMorningGreeting, 30 * 60 * 1000)
+  setInterval(checkEveningReminder, 30 * 60 * 1000)
   checkMorningGreeting()
+  checkEveningReminder()
 
   // Polling loop
   while (true) {
