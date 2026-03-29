@@ -167,11 +167,11 @@ function RyuhaStudyPageSkeleton() {
   return (
     <div className="space-y-6">
       <CalendarPanelSkeleton />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 order-2 lg:order-1">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="order-2 lg:order-1">
           <TextbooksPanelSkeleton />
         </div>
-        <div className="lg:col-span-2 order-1 lg:order-2">
+        <div className="order-1 lg:order-2">
         </div>
       </div>
     </div>
@@ -2379,9 +2379,9 @@ export default function RyuhaStudyPage() {
             </CardContent>
           </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Textbooks & Chapters Panel */}
-        <div className="lg:col-span-1 order-2 lg:order-1">
+        <div className="order-2 lg:order-1">
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -2897,6 +2897,104 @@ export default function RyuhaStudyPage() {
             </CardContent>
           </Card>
 
+        </div>
+
+        {/* Right Panel - Progress Summary + Body Records */}
+        <div className="order-1 lg:order-2">
+          {/* Progress Summary */}
+          <Card className="bg-slate-100 dark:bg-slate-800">
+            <CardHeader
+              className={cn("cursor-pointer", progressExpanded ? "" : "-mb-2")}
+              onClick={() => setProgressExpanded(!progressExpanded)}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5" />
+                    진행 현황
+                  </CardTitle>
+                  <CardDescription>과목별 챕터 달성률</CardDescription>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 text-muted-foreground transition-transform',
+                    !progressExpanded && '-rotate-90'
+                  )}
+                />
+              </div>
+            </CardHeader>
+            {progressExpanded && <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                {subjects.map((subject) => {
+                  const subjectTextbooks = textbooks.filter((t) => t.subject_id === subject.id)
+                  const subjectChapters = chapters.filter((c) =>
+                    subjectTextbooks.some((t) => t.id === c.textbook_id)
+                  )
+                  const completed = subjectChapters.filter((c) => c.status === 'completed').length
+                  const total = subjectChapters.length
+                  const actualPercent = total > 0 ? Math.round((completed / total) * 100) : 0
+
+                  // Calculate target progress (chapters that should be done by today based on target_date)
+                  const today = new Date()
+                  today.setHours(0, 0, 0, 0)
+                  const shouldBeCompleted = subjectChapters.filter((c) => {
+                    if (!c.target_date) return false
+                    const target = new Date(c.target_date)
+                    target.setHours(0, 0, 0, 0)
+                    return target <= today
+                  }).length
+                  const targetPercent = total > 0 ? Math.round((shouldBeCompleted / total) * 100) : 0
+                  const diff = actualPercent - targetPercent
+
+                  return (
+                    <div key={subject.id} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1.5">
+                          <span>{subject.name}</span>
+                          {total > 0 && (
+                            <span
+                              className={cn(
+                                'text-xs font-medium',
+                                diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-500' : 'text-muted-foreground'
+                              )}
+                            >
+                              {diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : '±0%'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-muted-foreground text-xs">
+                          {completed}/{total}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-muted-foreground w-8">목표</span>
+                          <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all opacity-40"
+                              style={{ width: `${targetPercent}%`, backgroundColor: subject.color }}
+                            />
+                          </div>
+                          <span className="text-[11px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-muted-foreground w-8">실제</span>
+                          <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ width: `${actualPercent}%`, backgroundColor: subject.color }}
+                            />
+                          </div>
+                          <span className="text-[11px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>}
+          </Card>
+
           {/* Body Records Section */}
           <Card className="bg-slate-100 dark:bg-slate-800 mt-4">
             <CardHeader>
@@ -2997,103 +3095,6 @@ export default function RyuhaStudyPage() {
                   </div>
                 )}
               </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Panel - Progress Summary */}
-        <div className="lg:col-span-2 order-1 lg:order-2">
-          {/* Progress Summary */}
-          <Card className="bg-slate-100 dark:bg-slate-800">
-            <CardHeader
-              className={cn("cursor-pointer", progressExpanded ? "" : "-mb-2")}
-              onClick={() => setProgressExpanded(!progressExpanded)}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <GraduationCap className="h-5 w-5" />
-                    진행 현황
-                  </CardTitle>
-                  <CardDescription>과목별 챕터 달성률</CardDescription>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    'h-4 w-4 text-muted-foreground transition-transform',
-                    !progressExpanded && '-rotate-90'
-                  )}
-                />
-              </div>
-            </CardHeader>
-            {progressExpanded && <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                {subjects.map((subject) => {
-                  const subjectTextbooks = textbooks.filter((t) => t.subject_id === subject.id)
-                  const subjectChapters = chapters.filter((c) =>
-                    subjectTextbooks.some((t) => t.id === c.textbook_id)
-                  )
-                  const completed = subjectChapters.filter((c) => c.status === 'completed').length
-                  const total = subjectChapters.length
-                  const actualPercent = total > 0 ? Math.round((completed / total) * 100) : 0
-
-                  // Calculate target progress (chapters that should be done by today based on target_date)
-                  const today = new Date()
-                  today.setHours(0, 0, 0, 0)
-                  const shouldBeCompleted = subjectChapters.filter((c) => {
-                    if (!c.target_date) return false
-                    const target = new Date(c.target_date)
-                    target.setHours(0, 0, 0, 0)
-                    return target <= today
-                  }).length
-                  const targetPercent = total > 0 ? Math.round((shouldBeCompleted / total) * 100) : 0
-                  const diff = actualPercent - targetPercent
-
-                  return (
-                    <div key={subject.id} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-1.5">
-                          <span>{subject.name}</span>
-                          {total > 0 && (
-                            <span
-                              className={cn(
-                                'text-xs font-medium',
-                                diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-500' : 'text-muted-foreground'
-                              )}
-                            >
-                              {diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : '±0%'}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-muted-foreground text-xs">
-                          {completed}/{total}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-muted-foreground w-8">목표</span>
-                          <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all opacity-40"
-                              style={{ width: `${targetPercent}%`, backgroundColor: subject.color }}
-                            />
-                          </div>
-                          <span className="text-[11px] text-muted-foreground w-8 text-right">{targetPercent}%</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-muted-foreground w-8">실제</span>
-                          <div className="flex-1 h-1.5 bg-white dark:bg-slate-900 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{ width: `${actualPercent}%`, backgroundColor: subject.color }}
-                            />
-                          </div>
-                          <span className="text-[11px] text-muted-foreground w-8 text-right">{actualPercent}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>}
           </Card>
         </div>
       </div>
