@@ -153,6 +153,16 @@ async function sendTyping(chatId: number) {
   await tg('sendChatAction', { chat_id: chatId, action: 'typing' }).catch(() => {})
 }
 
+async function setReaction(chatId: number, messageId: number, emoji: string) {
+  try {
+    await tg('setMessageReaction', {
+      chat_id: chatId,
+      message_id: messageId,
+      reaction: [{ type: 'emoji', emoji }],
+    })
+  } catch { /* 리액션 실패해도 무시 */ }
+}
+
 async function sendMessageWithButtons(chatId: number, text: string, buttons: { text: string; callback_data: string }[][]) {
   for (let attempt = 0; attempt <= 2; attempt++) {
     try {
@@ -229,47 +239,69 @@ function buildSystemPrompt(context: string, history: Message[]): string {
       }).join('\n')
     : '(첫 대화)'
 
-  return `너는 류하의 학습관리 도우미 봇이야. 이름은 "공부친구".
-류하는 초등학생이야. 친근하고 다정하게 대해줘. 반말 사용.
+  return `너는 류하의 학습 도우미 "공부친구"야.
+류하는 초등학생이야. 친근한 친구처럼 반말로 대화해.
 
 현재 시각: ${timeStr} (${dayOfWeek}요일)
 
+## 성격 & 말투
+- 밝고 에너지 넘치는 친구 느낌
+- 이모지를 자연스럽게 섞어서 사용 (과하지 않게)
+- 류하의 말에 공감하고 리액션해줘 ("오 대박!", "진짜?", "멋지다!")
+- 짧은 메시지에는 짧게, 긴 질문에는 자세하게 답해
+- 류하가 힘들어하면 응원해주고, 잘하면 신나게 칭찬해줘
+- 공부 외 잡담(게임, 친구, 취미 등)에도 자연스럽게 대화해
+- 류하가 뭔가 재미있는 걸 말하면 같이 재미있어해줘
+
 ## 역할
-- 류하의 공부 일정, 숙제, 교재 진도, 체형 기록을 관리해줘
-- 오늘 할 일을 알려주고, 완료하면 체크해줘
-- 격려와 칭찬을 아끼지 마
-- 공부 관련 질문에 친절하게 답해줘
+1. **학습 매니저**: 일정, 숙제, 교재 진도 관리
+2. **응원단**: 공부하면 칭찬, 완료하면 축하 🎉
+3. **공부 도우미**: 모르는 거 물어보면 초등학생 눈높이에 맞게 설명
+4. **생활 친구**: 체형 기록, 일상 대화도 OK
 
-## MCP 도구 사용법
-류하가 일정/숙제/교재/체형 관련 요청을 하면 적절한 MCP 도구를 사용해.
-도구 이름은 모두 ryuha_ 접두사로 시작해.
+## MCP 도구
+류하가 일정/숙제/교재/체형 관련 요청을 하면 MCP 도구를 사용해.
+도구 이름은 모두 ryuha_ 접두사.
 
-주요 도구:
-- ryuha_list_schedules: 일정 조회 (start_date, end_date 파라미터)
-- ryuha_create_schedule: 일정 추가 (title, schedule_date 필수)
+### 일정 관리
+- ryuha_list_schedules: 일정 조회 (start_date, end_date)
+- ryuha_create_schedule: 일정 추가 (title, schedule_date 필수, type: 'homework'|'self_study')
 - ryuha_update_schedule: 일정 수정/완료 (is_completed: true)
-- ryuha_list_homework: 숙제 목록
+- ryuha_delete_schedule: 일정 삭제
+
+### 숙제 관리
+- ryuha_list_homework: 숙제 목록 (schedule_id로 필터)
 - ryuha_create_homework: 숙제 추가 (schedule_id, content, deadline)
 - ryuha_update_homework: 숙제 완료 (is_completed: true)
+- ryuha_delete_homework: 숙제 삭제
+
+### 교재 & 진도
 - ryuha_list_subjects: 과목 목록
-- ryuha_list_textbooks: 교재 목록
-- ryuha_list_chapters: 챕터 목록
+- ryuha_list_textbooks: 교재 목록 (subject_id로 필터)
+- ryuha_list_chapters: 챕터 목록 (textbook_id로 필터)
 - ryuha_update_chapter: 챕터 상태 변경 (status: pending/in_progress/completed)
-- ryuha_list_body_records: 체형 기록 조회
-- ryuha_create_body_record: 체형 기록 추가 (record_date, height_cm, weight_kg)
-- ryuha_list_memos: 메모 조회
-- ryuha_upsert_memo: 메모 작성
+- ryuha_create_subject/textbook/chapter: 새로 추가
+
+### 체형 기록
+- ryuha_list_body_records: 기록 조회
+- ryuha_create_body_record: 기록 추가 (record_date, height_cm, weight_kg)
+
+### 메모
+- ryuha_list_memos: 메모 조회 (start_date, end_date)
+- ryuha_upsert_memo: 메모 작성 (memo_date, content)
 
 ## 응답 규칙
-1. 짧고 읽기 쉽게. 이모지 적절히 사용.
-2. 한 번에 너무 많은 정보 X. 핵심만.
-3. 일정 완료하면 크게 칭찬해줘! 🎉
-4. 숙제 마감이 임박하면 부드럽게 알려줘.
+1. 텔레그램 메시지니까 짧고 읽기 쉽게!
+2. 한 번에 너무 많은 정보 쏟아내지 마. 핵심만.
+3. 일정/숙제 완료하면 크게 칭찬! 🎉🥳
+4. 숙제 마감이 가까우면 부드럽게 알려줘 (절대 압박 X)
 5. 여러 메시지로 나눌 때: \\n---SPLIT---\\n 사용
-6. 버튼 제안할 때:
+6. 선택지를 줄 때 버튼 제안:
 \`\`\`buttons
-[["버튼텍스트", "클릭시보낼메시지"], ...]
+[["오늘 일정 보기", "오늘 일정 알려줘"], ["숙제 확인", "숙제 뭐 있어?"]]
 \`\`\`
+7. 도구 실행 결과를 그대로 보여주지 마. 자연스럽게 요약해서 전달해.
+8. 날짜는 "3월 30일 (일)" 형태로 읽기 쉽게.
 
 ## 현재 학습 현황
 ${context}
@@ -500,8 +532,13 @@ function parseResponse(text: string): { messages: string[]; buttons?: { text: st
 // ============================================================
 // Message handler
 // ============================================================
-async function handleMessage(chatId: number, userText: string, abortSignal?: AbortSignal) {
+async function handleMessage(chatId: number, userText: string, abortSignal?: AbortSignal, lastMessageId?: number) {
   console.log(`[msg] ${chatId}: ${userText.slice(0, 100)}`)
+
+  // ❤️ 리액션으로 "읽었다" 표시
+  if (lastMessageId) {
+    await setReaction(chatId, lastMessageId, '❤️')
+  }
 
   await sendTyping(chatId)
 
@@ -513,11 +550,24 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
 
   if (abortSignal?.aborted) return
 
+  // 무거운 질문이면 확인 메시지 전송
+  const isHeavyQuery = userText.length > 50 || ['일정', '숙제', '진도', '현황', '알려줘', '보여줘', '정리', '기록'].some(k => userText.includes(k))
+  if (isHeavyQuery) {
+    const acks = ['잠깐만~ 확인해볼게! 🔍', '알겠어, 찾아볼게! 📚', '잠시만 기다려~ 👀', '확인하고 바로 알려줄게!']
+    const ack = acks[Math.floor(Math.random() * acks.length)]
+    await sendMessage(chatId, ack)
+  }
+
   const systemPrompt = buildSystemPrompt(context, history)
   const fullPrompt = `${systemPrompt}\n\n---\n류하: ${userText}`
 
+  // 타이핑 유지 (Claude 처리 중)
+  const typingInterval = setInterval(() => sendTyping(chatId), 4000)
+
   try {
     const response = await askClaude(fullPrompt)
+
+    clearInterval(typingInterval)
 
     if (abortSignal?.aborted) return
 
@@ -542,6 +592,7 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
     await saveConversation(chatId, newHistory)
 
   } catch (err) {
+    clearInterval(typingInterval)
     console.error('[handle] error:', err)
     await sendMessage(chatId, '앗, 잠깐 오류가 났어 😅 다시 한번 말해줄래?')
   }
@@ -588,7 +639,7 @@ async function flushBatch(chatId: number) {
   processingAbort.set(chatId, ac)
 
   try {
-    await handleMessage(chatId, combinedText, ac.signal)
+    await handleMessage(chatId, combinedText, ac.signal, batch.lastMessageId)
   } catch (err) {
     if (!ac.signal.aborted) {
       console.error('[flush] error:', err)
