@@ -840,4 +840,123 @@ export function registerRyuhaTools(server: McpServer) {
     await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'ryuha_delete_body_record', inputParams: { id } })
     return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, deleted_id: id }) }] }
   })
+
+  // =============================================
+  // 노트 (Notes) - 류하의 자유 노트
+  // =============================================
+
+  server.registerTool('ryuha_list_notes', {
+    description: '[류하 학습관리] 노트 목록을 조회합니다. 카테고리로 필터링 가능',
+    inputSchema: z.object({
+      category: z.string().optional().describe('카테고리 필터 (예: 메모, 일기, 공부)'),
+      search: z.string().optional().describe('제목/내용 검색어'),
+    }),
+  }, async (input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('ryuha_list_notes', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    let query = supabase.from('ryuha_notes').select('*').order('is_pinned', { ascending: false }).order('created_at', { ascending: false })
+
+    if (input.category) query = query.eq('category', input.category)
+    if (input.search) query = query.or(`title.ilike.%${input.search}%,content.ilike.%${input.search}%`)
+
+    const { data, error } = await query
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'ryuha_list_notes', inputParams: input })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+  })
+
+  server.registerTool('ryuha_create_note', {
+    description: '[류하 학습관리] 새 노트를 저장합니다',
+    inputSchema: z.object({
+      title: z.string().describe('노트 제목'),
+      content: z.string().describe('노트 내용'),
+      category: z.string().optional().describe('카테고리 (기본: 메모)'),
+      is_pinned: z.boolean().optional().describe('고정 여부'),
+    }),
+  }, async (input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('ryuha_create_note', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('ryuha_notes')
+      .insert({
+        title: input.title,
+        content: input.content,
+        category: input.category || '메모',
+        is_pinned: input.is_pinned || false,
+      })
+      .select()
+      .single()
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'ryuha_create_note', inputParams: input })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+  })
+
+  server.registerTool('ryuha_update_note', {
+    description: '[류하 학습관리] 노트를 수정합니다',
+    inputSchema: z.object({
+      id: z.string().describe('노트 ID'),
+      title: z.string().optional().describe('노트 제목'),
+      content: z.string().optional().describe('노트 내용'),
+      category: z.string().optional().describe('카테고리'),
+      is_pinned: z.boolean().optional().describe('고정 여부'),
+    }),
+  }, async (input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('ryuha_update_note', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const { id, ...updates } = input
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('ryuha_notes')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'ryuha_update_note', inputParams: input })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+  })
+
+  server.registerTool('ryuha_delete_note', {
+    description: '[류하 학습관리] 노트를 삭제합니다',
+    inputSchema: z.object({
+      id: z.string().describe('노트 ID'),
+    }),
+  }, async ({ id }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('ryuha_delete_note', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { error } = await supabase
+      .from('ryuha_notes')
+      .delete()
+      .eq('id', id)
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'ryuha_delete_note', inputParams: { id } })
+    return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, deleted_id: id }) }] }
+  })
 }
