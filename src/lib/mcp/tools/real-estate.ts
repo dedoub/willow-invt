@@ -440,6 +440,8 @@ export function registerRealEstateTools(server: McpServer) {
         r.listingMaxPpp = Math.max(r.listingMaxPpp, ppp)
       }
 
+      // Collect all actual trade PPPs per key first
+      const actualPpps: Record<RowKey, number[]> = {}
       for (const a of actuals) {
         const sqm = Number(a.area_sqm)
         if (sqm <= 0) continue
@@ -447,12 +449,26 @@ export function registerRealEstateTools(server: McpServer) {
         if (supplyPy < 20) continue
         const band = getBand(supplyPy)
         const key = `${a.complex_name}|${band}`
-        const r = rowMap[key]
-        if (!r) continue
+        if (!rowMap[key]) continue
         const price = tradeType === '매매' ? Number(a.deal_amount) : Number(a.deposit)
         const ppp = price / supplyPy
-        r.actualAvgPpp = r.actualAvgPpp ? (r.actualAvgPpp * r.actualCount + ppp) / (r.actualCount + 1) : ppp
-        r.actualCount++
+        if (!actualPpps[key]) actualPpps[key] = []
+        actualPpps[key].push(ppp)
+      }
+
+      // Filter outliers and compute average
+      // 1) Median-based: exclude >50% deviation from median
+      // 2) Listing cross-check: exclude trades below 40% of listing min PPP
+      for (const [key, ppps] of Object.entries(actualPpps)) {
+        if (ppps.length === 0) continue
+        const r = rowMap[key]
+        const sorted = [...ppps].sort((a, b) => a - b)
+        const median = sorted[Math.floor(sorted.length / 2)]
+        const listingFloor = r.listingMinPpp !== Infinity ? r.listingMinPpp * 0.5 : 0
+        const filtered = ppps.filter(p => Math.abs(p - median) / median <= 0.5 && p >= listingFloor)
+        if (filtered.length === 0) continue
+        r.actualAvgPpp = filtered.reduce((s, p) => s + p, 0) / filtered.length
+        r.actualCount = filtered.length
       }
 
       const rows = Object.values(rowMap)
