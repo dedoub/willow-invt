@@ -165,12 +165,14 @@ function CalendarPanelSkeleton() {
 // Full page skeleton
 function RyuhaStudyPageSkeleton() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1 order-2 lg:order-1">
-        <TextbooksPanelSkeleton />
-      </div>
-      <div className="lg:col-span-2 order-1 lg:order-2">
-        <CalendarPanelSkeleton />
+    <div className="space-y-6">
+      <CalendarPanelSkeleton />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 order-2 lg:order-1">
+          <TextbooksPanelSkeleton />
+        </div>
+        <div className="lg:col-span-2 order-1 lg:order-2">
+        </div>
       </div>
     </div>
   )
@@ -1886,6 +1888,497 @@ export default function RyuhaStudyPage() {
 
   return (
     <ProtectedPage pagePath="/others/ryuha-study">
+      <div className="space-y-6">
+      {/* Calendar */}
+      <Card className="bg-slate-100 dark:bg-slate-800">
+            <CardHeader className="pb-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    학습 일정
+                  </CardTitle>
+                  <CardDescription>학습 일정 및 목표일 관리</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    className={cn(
+                      'px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                      viewMode === 'week'
+                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
+                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    )}
+                    onClick={() => setViewMode('week')}
+                  >
+                    주간
+                  </button>
+                  <button
+                    className={cn(
+                      'px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                      viewMode === 'month'
+                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
+                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    )}
+                    onClick={() => setViewMode('month')}
+                  >
+                    월간
+                  </button>
+                  <button
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                    onClick={() => openScheduleDialog()}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">일정 추가</span>
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <button
+                  className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted transition-colors"
+                  onClick={() => navigate(-1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-sm font-medium">
+                  {viewMode === 'week'
+                    ? `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월 ${Math.ceil(currentDate.getDate() / 7)}주`
+                    : `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월`}
+                </span>
+                <button
+                  className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted transition-colors"
+                  onClick={() => navigate(1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 -mt-2">
+              <DndContext
+                sensors={sensors}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                {viewMode === 'week' ? (
+                  <>
+                    {/* Key Study Plan Section */}
+                    {(() => {
+                      const { overdueChapters, upcomingChapters } = getKeyStudyPlanChapters()
+                      if (overdueChapters.length === 0 && upcomingChapters.length === 0) return null
+
+                      // Group chapters by textbook
+                      const groupByTextbook = (chapterList: RyuhaChapter[]) => {
+                        const grouped: Map<string, { textbook: RyuhaTextbook | undefined; chapters: RyuhaChapter[] }> = new Map()
+                        for (const chapter of chapterList) {
+                          const textbook = textbooks.find(t => t.id === chapter.textbook_id)
+                          const existing = grouped.get(chapter.textbook_id)
+                          if (existing) {
+                            existing.chapters.push(chapter)
+                          } else {
+                            grouped.set(chapter.textbook_id, { textbook, chapters: [chapter] })
+                          }
+                        }
+                        return Array.from(grouped.values())
+                      }
+
+                      const overdueByTextbook = groupByTextbook(overdueChapters)
+                      const upcomingByTextbook = groupByTextbook(upcomingChapters)
+
+                      return (
+                        <div className="mb-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800">
+                          <button
+                            className="flex items-center justify-between w-full"
+                            onClick={() => {
+                              const newValue = !studyPlanExpanded
+                              setStudyPlanExpanded(newValue)
+                              localStorage.setItem('ryuha-study-plan-expanded', String(newValue))
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">오늘 기준 주요 학습 계획</span>
+                              <span className="text-xs text-blue-600 dark:text-blue-400">
+                                ({overdueChapters.length + upcomingChapters.length})
+                              </span>
+                            </div>
+                            <ChevronDown className={cn(
+                              'h-4 w-4 text-blue-600 dark:text-blue-400 transition-transform',
+                              !studyPlanExpanded && '-rotate-90'
+                            )} />
+                          </button>
+                          {studyPlanExpanded && (
+                          <div className="space-y-2 mt-3">
+                            {/* Overdue chapters grouped by textbook */}
+                            {overdueByTextbook.map(({ textbook, chapters: tbChapters }) => {
+                              const subject = subjects.find(s => s.id === textbook?.subject_id)
+                              return (
+                              <div key={`overdue-${textbook?.id}`} className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-xs font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded">
+                                  {subject?.name || '알 수 없음'} &gt; {textbook?.name || '알 수 없음'}
+                                </span>
+                                {tbChapters.map((chapter) => {
+                                  const daysOverdue = Math.floor((new Date().getTime() - new Date(chapter.target_date + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
+                                  return (
+                                    <div
+                                      key={chapter.id}
+                                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-xs cursor-pointer hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors"
+                                      onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
+                                    >
+                                      <span className="text-red-600 dark:text-red-400">{chapter.name}</span>
+                                      <span className="text-red-500 dark:text-red-400 text-xs font-medium">D+{daysOverdue}</span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                              )
+                            })}
+                            {/* Upcoming chapters grouped by textbook */}
+                            {upcomingByTextbook.map(({ textbook, chapters: tbChapters }) => {
+                              const subject = subjects.find(s => s.id === textbook?.subject_id)
+                              return (
+                              <div key={`upcoming-${textbook?.id}`} className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
+                                  {subject?.name || '알 수 없음'} &gt; {textbook?.name || '알 수 없음'}
+                                </span>
+                                {tbChapters.map((chapter) => {
+                                  const daysUntil = Math.ceil((new Date(chapter.target_date + 'T00:00:00').getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
+                                  return (
+                                    <div
+                                      key={chapter.id}
+                                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 text-xs cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors"
+                                      onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
+                                    >
+                                      <span className="text-blue-600 dark:text-blue-400">{chapter.name}</span>
+                                      <span className={cn(
+                                        'text-xs font-medium',
+                                        daysUntil === 0 ? 'text-orange-600 dark:text-orange-400' : 'text-blue-500 dark:text-blue-400'
+                                      )}>
+                                        {daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`}
+                                      </span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                              )
+                            })}
+                          </div>
+                          )}
+                        </div>
+                      )
+                    })()}
+                    <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+                    {getWeekDays().map((day, idx) => {
+                      const memo = getMemoForDate(day)
+                      return (
+                        <DroppableDay
+                          key={day.toISOString()}
+                          day={day}
+                          isToday={day.toDateString() === new Date().toDateString()}
+                          dayLabel={weekDays[idx]}
+                          onClick={() => openScheduleDialog(day)}
+                        >
+                          {/* Memo section */}
+                          <div
+                            className={cn(
+                              'mb-1 p-1 rounded text-[11px] cursor-pointer transition-colors',
+                              memo
+                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200'
+                                : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openMemoDialog(day)
+                            }}
+                          >
+                            <div className="flex items-start gap-1">
+                              <StickyNote className="h-2.5 w-2.5 mt-0.5 flex-shrink-0" />
+                              {memo ? (
+                                <span className="whitespace-pre-wrap">{memo.content}</span>
+                              ) : (
+                                <span className="opacity-50">메모</span>
+                              )}
+                            </div>
+                          </div>
+                          {/* Homework deadline items - displayed first (draggable) */}
+                          {getHomeworkForDate(day).map((hw, hwIdx) => {
+                            const toggleId = hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}`
+                            return (
+                              <DraggableHomeworkItem
+                                key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
+                                homework={hw}
+                                onToggleComplete={() => {
+                                  if (hw.isLegacy) {
+                                    toggleHomeworkComplete(hw.schedule)
+                                  } else if (hw.item) {
+                                    toggleHomeworkItemComplete(hw.item)
+                                  }
+                                }}
+                                onEdit={() => openScheduleDialog(undefined, hw.schedule)}
+                                isToggling={togglingIds.has(toggleId)}
+                              />
+                            )
+                          })}
+                          {/* Homework type schedules - displayed with orange style */}
+                          {getHomeworkTypeSchedulesForDate(day).map((schedule) => (
+                            <div
+                              key={schedule.id}
+                              className={cn(
+                                'text-xs p-1.5 rounded border-l-2 border-orange-500 cursor-pointer',
+                                schedule.is_completed
+                                  ? 'bg-muted line-through text-muted-foreground'
+                                  : 'bg-orange-100 dark:bg-orange-900/30'
+                              )}
+                              onClick={(e) => {
+                                if ((e.target as HTMLElement).closest('button')) return
+                                e.stopPropagation()
+                                openScheduleDialog(undefined, schedule)
+                              }}
+                            >
+                              <div className="flex items-start gap-1">
+                                <button
+                                  className="mt-0.5 flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (!togglingIds.has(schedule.id)) {
+                                      toggleScheduleComplete(schedule)
+                                    }
+                                  }}
+                                  disabled={togglingIds.has(schedule.id)}
+                                >
+                                  {togglingIds.has(schedule.id) ? (
+                                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                  ) : schedule.is_completed ? (
+                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Circle className="h-3 w-3 text-orange-600" />
+                                  )}
+                                </button>
+                                <span className="flex-1">
+                                  <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
+                                    <ClipboardList className="h-2.5 w-2.5" />
+                                    <span className="font-medium">과제</span>
+                                  </div>
+                                  <div className="text-muted-foreground">{schedule.title}</div>
+                                  {schedule.description && (
+                                    <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-2">
+                                      {schedule.description}
+                                    </div>
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          {getSchedulesForDate(day).map((schedule) => {
+                            const dateStr = formatDateLocal(day)
+                            return (
+                              <DraggableScheduleCard
+                                key={`${schedule.id}-${dateStr}`}
+                                schedule={schedule}
+                                currentDate={dateStr}
+                                onToggleComplete={() => toggleScheduleComplete(schedule, dateStr)}
+                                onEdit={() => openScheduleDialog(undefined, schedule)}
+                                isToggling={togglingIds.has(`${schedule.id}-${dateStr}`) || togglingIds.has(schedule.id)}
+                              />
+                            )
+                          })}
+                        </DroppableDay>
+                      )
+                    })}
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <div className="grid grid-cols-7 gap-1 mb-2">
+                      {weekDays.map((day) => (
+                        <div key={day} className="text-center text-sm font-medium py-2">
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {getMonthDays().map((day, idx) => {
+                        const isOtherMonth = day.getMonth() !== currentDate.getMonth()
+                        const memo = getMemoForDate(day)
+                        return (
+                          <DroppableMonthDay
+                            key={idx}
+                            day={day}
+                            isToday={day.toDateString() === new Date().toDateString()}
+                            isOtherMonth={isOtherMonth}
+                            onClick={() => openScheduleDialog(day)}
+                          >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm font-medium">{day.getDate()}</span>
+                                  <button
+                                    className={cn(
+                                      'p-0.5 rounded transition-colors',
+                                      memo
+                                        ? 'text-amber-600 dark:text-amber-400'
+                                        : 'text-muted-foreground/30 hover:text-muted-foreground'
+                                    )}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openMemoDialog(day)
+                                    }}
+                                    title={memo ? memo.content : '메모 추가'}
+                                  >
+                                    <StickyNote className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                <div className="space-y-0.5">
+                                  {/* Homework deadline items - displayed first (draggable) */}
+                                  {getHomeworkForDate(day).map((hw, hwIdx) => {
+                                    const toggleId = hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}`
+                                    return (
+                                      <DraggableMonthHomeworkItem
+                                        key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
+                                        homework={hw}
+                                        onToggleComplete={() => {
+                                          if (hw.isLegacy) {
+                                            toggleHomeworkComplete(hw.schedule)
+                                          } else if (hw.item) {
+                                            toggleHomeworkItemComplete(hw.item)
+                                          }
+                                        }}
+                                        onEdit={() => openScheduleDialog(undefined, hw.schedule)}
+                                        isToggling={togglingIds.has(toggleId)}
+                                      />
+                                    )
+                                  })}
+                                  {/* Homework type schedules - month view */}
+                                  {getHomeworkTypeSchedulesForDate(day).map((schedule) => (
+                                    <div
+                                      key={schedule.id}
+                                      className={cn(
+                                        'text-xs px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-pointer',
+                                        schedule.is_completed
+                                          ? 'bg-muted text-muted-foreground line-through'
+                                          : 'bg-orange-100 dark:bg-orange-900/30'
+                                      )}
+                                      onClick={(e) => {
+                                        if ((e.target as HTMLElement).closest('button')) return
+                                        e.stopPropagation()
+                                        openScheduleDialog(undefined, schedule)
+                                      }}
+                                    >
+                                      <button
+                                        className="flex-shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          if (!togglingIds.has(schedule.id)) {
+                                            toggleScheduleComplete(schedule)
+                                          }
+                                        }}
+                                        disabled={togglingIds.has(schedule.id)}
+                                      >
+                                        {togglingIds.has(schedule.id) ? (
+                                          <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />
+                                        ) : schedule.is_completed ? (
+                                          <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
+                                        ) : (
+                                          <Circle className="h-2.5 w-2.5 text-orange-600" />
+                                        )}
+                                      </button>
+                                      <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
+                                      <span className="truncate flex-1">
+                                        {schedule.title}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {getSchedulesForDate(day).map((schedule) => {
+                                    const dateStr = formatDateLocal(day)
+                                    return (
+                                      <DraggableMonthScheduleCard
+                                        key={`${schedule.id}-${dateStr}`}
+                                        schedule={schedule}
+                                        currentDate={dateStr}
+                                        onEdit={() => openScheduleDialog(undefined, schedule)}
+                                        onToggleComplete={() => toggleScheduleComplete(schedule, dateStr)}
+                                        isToggling={togglingIds.has(`${schedule.id}-${dateStr}`) || togglingIds.has(schedule.id)}
+                                      />
+                                    )
+                                  })}
+                                </div>
+                          </DroppableMonthDay>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+                <DragOverlay>
+                  {activeSchedule && (() => {
+                    const displayColor = activeSchedule.subject?.color || activeSchedule.color
+                    const subjectColor = activeSchedule.subject?.color
+                    return (
+                      <div
+                        className={cn(
+                          'text-xs p-1.5 rounded shadow-lg',
+                          activeSchedule.is_completed
+                            ? 'bg-muted line-through text-muted-foreground'
+                            : !displayColor && 'bg-slate-300/50 dark:bg-slate-600/50'
+                        )}
+                        style={{
+                          borderLeft: subjectColor
+                            ? `3px solid ${subjectColor}`
+                            : undefined,
+                          backgroundColor: !activeSchedule.is_completed && displayColor
+                            ? `${displayColor}20`
+                            : undefined,
+                        }}
+                      >
+                        <div className="flex items-center gap-1">
+                          {activeSchedule.is_completed ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Circle className="h-3 w-3" />
+                          )}
+                          <span>{activeSchedule.title}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                  {activeHomework && (() => {
+                    const isCompleted = activeHomework.isLegacy
+                      ? activeHomework.schedule.homework_completed
+                      : activeHomework.item?.is_completed
+                    const content = activeHomework.isLegacy
+                      ? activeHomework.schedule.homework_content
+                      : activeHomework.item?.content
+                    return (
+                      <div
+                        className={cn(
+                          'text-xs p-1.5 rounded shadow-lg border-l-2 border-orange-500',
+                          isCompleted
+                            ? 'bg-muted line-through text-muted-foreground'
+                            : 'bg-orange-100 dark:bg-orange-900/50'
+                        )}
+                      >
+                        <div className="flex items-start gap-1">
+                          {isCompleted ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0" />
+                          ) : (
+                            <Circle className="h-3 w-3 text-orange-600 flex-shrink-0" />
+                          )}
+                          <span className="flex-1">
+                            <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
+                              <ClipboardList className="h-2.5 w-2.5" />
+                              <span className="font-medium">과제</span>
+                            </div>
+                            <div className="text-muted-foreground">{activeHomework.schedule.title}</div>
+                            {content && (
+                              <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-1">
+                                {content}
+                              </div>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </DragOverlay>
+              </DndContext>
+            </CardContent>
+          </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Textbooks & Chapters Panel */}
         <div className="lg:col-span-1 order-2 lg:order-1">
@@ -2507,8 +3000,8 @@ export default function RyuhaStudyPage() {
           </Card>
         </div>
 
-        {/* Right Panel - Progress Summary + Calendar */}
-        <div className="lg:col-span-2 order-1 lg:order-2 space-y-4">
+        {/* Right Panel - Progress Summary */}
+        <div className="lg:col-span-2 order-1 lg:order-2">
           {/* Progress Summary */}
           <Card className="bg-slate-100 dark:bg-slate-800">
             <CardHeader
@@ -2602,497 +3095,8 @@ export default function RyuhaStudyPage() {
               </div>
             </CardContent>}
           </Card>
-
-          {/* Calendar */}
-          <Card className="bg-slate-100 dark:bg-slate-800">
-            <CardHeader className="pb-1">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    학습 일정
-                  </CardTitle>
-                  <CardDescription>학습 일정 및 목표일 관리</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    className={cn(
-                      'px-3 py-2 text-sm font-medium rounded-lg transition-colors',
-                      viewMode === 'week'
-                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
-                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
-                    )}
-                    onClick={() => setViewMode('week')}
-                  >
-                    주간
-                  </button>
-                  <button
-                    className={cn(
-                      'px-3 py-2 text-sm font-medium rounded-lg transition-colors',
-                      viewMode === 'month'
-                        ? 'bg-slate-900 dark:bg-slate-700 text-white'
-                        : 'border dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
-                    )}
-                    onClick={() => setViewMode('month')}
-                  >
-                    월간
-                  </button>
-                  <button
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
-                    onClick={() => openScheduleDialog()}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">일정 추가</span>
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center justify-center gap-2 mt-1">
-                <button
-                  className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                  onClick={() => navigate(-1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="text-sm font-medium">
-                  {viewMode === 'week'
-                    ? `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월 ${Math.ceil(currentDate.getDate() / 7)}주`
-                    : `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월`}
-                </span>
-                <button
-                  className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                  onClick={() => navigate(1)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 -mt-2">
-              <DndContext
-                sensors={sensors}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                {viewMode === 'week' ? (
-                  <>
-                    {/* Key Study Plan Section */}
-                    {(() => {
-                      const { overdueChapters, upcomingChapters } = getKeyStudyPlanChapters()
-                      if (overdueChapters.length === 0 && upcomingChapters.length === 0) return null
-
-                      // Group chapters by textbook
-                      const groupByTextbook = (chapterList: RyuhaChapter[]) => {
-                        const grouped: Map<string, { textbook: RyuhaTextbook | undefined; chapters: RyuhaChapter[] }> = new Map()
-                        for (const chapter of chapterList) {
-                          const textbook = textbooks.find(t => t.id === chapter.textbook_id)
-                          const existing = grouped.get(chapter.textbook_id)
-                          if (existing) {
-                            existing.chapters.push(chapter)
-                          } else {
-                            grouped.set(chapter.textbook_id, { textbook, chapters: [chapter] })
-                          }
-                        }
-                        return Array.from(grouped.values())
-                      }
-
-                      const overdueByTextbook = groupByTextbook(overdueChapters)
-                      const upcomingByTextbook = groupByTextbook(upcomingChapters)
-
-                      return (
-                        <div className="mb-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800">
-                          <button
-                            className="flex items-center justify-between w-full"
-                            onClick={() => {
-                              const newValue = !studyPlanExpanded
-                              setStudyPlanExpanded(newValue)
-                              localStorage.setItem('ryuha-study-plan-expanded', String(newValue))
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">오늘 기준 주요 학습 계획</span>
-                              <span className="text-xs text-blue-600 dark:text-blue-400">
-                                ({overdueChapters.length + upcomingChapters.length})
-                              </span>
-                            </div>
-                            <ChevronDown className={cn(
-                              'h-4 w-4 text-blue-600 dark:text-blue-400 transition-transform',
-                              !studyPlanExpanded && '-rotate-90'
-                            )} />
-                          </button>
-                          {studyPlanExpanded && (
-                          <div className="space-y-2 mt-3">
-                            {/* Overdue chapters grouped by textbook */}
-                            {overdueByTextbook.map(({ textbook, chapters: tbChapters }) => {
-                              const subject = subjects.find(s => s.id === textbook?.subject_id)
-                              return (
-                              <div key={`overdue-${textbook?.id}`} className="flex flex-wrap items-center gap-1.5">
-                                <span className="text-xs font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded">
-                                  {subject?.name || '알 수 없음'} &gt; {textbook?.name || '알 수 없음'}
-                                </span>
-                                {tbChapters.map((chapter) => {
-                                  const daysOverdue = Math.floor((new Date().getTime() - new Date(chapter.target_date + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
-                                  return (
-                                    <div
-                                      key={chapter.id}
-                                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-xs cursor-pointer hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors"
-                                      onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
-                                    >
-                                      <span className="text-red-600 dark:text-red-400">{chapter.name}</span>
-                                      <span className="text-red-500 dark:text-red-400 text-xs font-medium">D+{daysOverdue}</span>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                              )
-                            })}
-                            {/* Upcoming chapters grouped by textbook */}
-                            {upcomingByTextbook.map(({ textbook, chapters: tbChapters }) => {
-                              const subject = subjects.find(s => s.id === textbook?.subject_id)
-                              return (
-                              <div key={`upcoming-${textbook?.id}`} className="flex flex-wrap items-center gap-1.5">
-                                <span className="text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
-                                  {subject?.name || '알 수 없음'} &gt; {textbook?.name || '알 수 없음'}
-                                </span>
-                                {tbChapters.map((chapter) => {
-                                  const daysUntil = Math.ceil((new Date(chapter.target_date + 'T00:00:00').getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
-                                  return (
-                                    <div
-                                      key={chapter.id}
-                                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 text-xs cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors"
-                                      onClick={() => openChapterDialog(chapter.textbook_id, chapter)}
-                                    >
-                                      <span className="text-blue-600 dark:text-blue-400">{chapter.name}</span>
-                                      <span className={cn(
-                                        'text-xs font-medium',
-                                        daysUntil === 0 ? 'text-orange-600 dark:text-orange-400' : 'text-blue-500 dark:text-blue-400'
-                                      )}>
-                                        {daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`}
-                                      </span>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                              )
-                            })}
-                          </div>
-                          )}
-                        </div>
-                      )
-                    })()}
-                    <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
-                    {getWeekDays().map((day, idx) => {
-                      const memo = getMemoForDate(day)
-                      return (
-                        <DroppableDay
-                          key={day.toISOString()}
-                          day={day}
-                          isToday={day.toDateString() === new Date().toDateString()}
-                          dayLabel={weekDays[idx]}
-                          onClick={() => openScheduleDialog(day)}
-                        >
-                          {/* Memo section */}
-                          <div
-                            className={cn(
-                              'mb-1 p-1 rounded text-[11px] cursor-pointer transition-colors',
-                              memo
-                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200'
-                                : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                            )}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              openMemoDialog(day)
-                            }}
-                          >
-                            <div className="flex items-start gap-1">
-                              <StickyNote className="h-2.5 w-2.5 mt-0.5 flex-shrink-0" />
-                              {memo ? (
-                                <span className="whitespace-pre-wrap">{memo.content}</span>
-                              ) : (
-                                <span className="opacity-50">메모</span>
-                              )}
-                            </div>
-                          </div>
-                          {/* Homework deadline items - displayed first (draggable) */}
-                          {getHomeworkForDate(day).map((hw, hwIdx) => {
-                            const toggleId = hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}`
-                            return (
-                              <DraggableHomeworkItem
-                                key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
-                                homework={hw}
-                                onToggleComplete={() => {
-                                  if (hw.isLegacy) {
-                                    toggleHomeworkComplete(hw.schedule)
-                                  } else if (hw.item) {
-                                    toggleHomeworkItemComplete(hw.item)
-                                  }
-                                }}
-                                onEdit={() => openScheduleDialog(undefined, hw.schedule)}
-                                isToggling={togglingIds.has(toggleId)}
-                              />
-                            )
-                          })}
-                          {/* Homework type schedules - displayed with orange style */}
-                          {getHomeworkTypeSchedulesForDate(day).map((schedule) => (
-                            <div
-                              key={schedule.id}
-                              className={cn(
-                                'text-xs p-1.5 rounded border-l-2 border-orange-500 cursor-pointer',
-                                schedule.is_completed
-                                  ? 'bg-muted line-through text-muted-foreground'
-                                  : 'bg-orange-100 dark:bg-orange-900/30'
-                              )}
-                              onClick={(e) => {
-                                if ((e.target as HTMLElement).closest('button')) return
-                                e.stopPropagation()
-                                openScheduleDialog(undefined, schedule)
-                              }}
-                            >
-                              <div className="flex items-start gap-1">
-                                <button
-                                  className="mt-0.5 flex-shrink-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (!togglingIds.has(schedule.id)) {
-                                      toggleScheduleComplete(schedule)
-                                    }
-                                  }}
-                                  disabled={togglingIds.has(schedule.id)}
-                                >
-                                  {togglingIds.has(schedule.id) ? (
-                                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                                  ) : schedule.is_completed ? (
-                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                  ) : (
-                                    <Circle className="h-3 w-3 text-orange-600" />
-                                  )}
-                                </button>
-                                <span className="flex-1">
-                                  <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
-                                    <ClipboardList className="h-2.5 w-2.5" />
-                                    <span className="font-medium">과제</span>
-                                  </div>
-                                  <div className="text-muted-foreground">{schedule.title}</div>
-                                  {schedule.description && (
-                                    <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-2">
-                                      {schedule.description}
-                                    </div>
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                          {getSchedulesForDate(day).map((schedule) => {
-                            const dateStr = formatDateLocal(day)
-                            return (
-                              <DraggableScheduleCard
-                                key={`${schedule.id}-${dateStr}`}
-                                schedule={schedule}
-                                currentDate={dateStr}
-                                onToggleComplete={() => toggleScheduleComplete(schedule, dateStr)}
-                                onEdit={() => openScheduleDialog(undefined, schedule)}
-                                isToggling={togglingIds.has(`${schedule.id}-${dateStr}`) || togglingIds.has(schedule.id)}
-                              />
-                            )
-                          })}
-                        </DroppableDay>
-                      )
-                    })}
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <div className="grid grid-cols-7 gap-1 mb-2">
-                      {weekDays.map((day) => (
-                        <div key={day} className="text-center text-sm font-medium py-2">
-                          {day}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-7 gap-1">
-                      {getMonthDays().map((day, idx) => {
-                        const isOtherMonth = day.getMonth() !== currentDate.getMonth()
-                        const memo = getMemoForDate(day)
-                        return (
-                          <DroppableMonthDay
-                            key={idx}
-                            day={day}
-                            isToday={day.toDateString() === new Date().toDateString()}
-                            isOtherMonth={isOtherMonth}
-                            onClick={() => openScheduleDialog(day)}
-                          >
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-sm font-medium">{day.getDate()}</span>
-                                  <button
-                                    className={cn(
-                                      'p-0.5 rounded transition-colors',
-                                      memo
-                                        ? 'text-amber-600 dark:text-amber-400'
-                                        : 'text-muted-foreground/30 hover:text-muted-foreground'
-                                    )}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      openMemoDialog(day)
-                                    }}
-                                    title={memo ? memo.content : '메모 추가'}
-                                  >
-                                    <StickyNote className="h-3 w-3" />
-                                  </button>
-                                </div>
-                                <div className="space-y-0.5">
-                                  {/* Homework deadline items - displayed first (draggable) */}
-                                  {getHomeworkForDate(day).map((hw, hwIdx) => {
-                                    const toggleId = hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}`
-                                    return (
-                                      <DraggableMonthHomeworkItem
-                                        key={hw.isLegacy ? `hw-${hw.schedule.id}` : `hwi-${hw.item?.id}-${hwIdx}`}
-                                        homework={hw}
-                                        onToggleComplete={() => {
-                                          if (hw.isLegacy) {
-                                            toggleHomeworkComplete(hw.schedule)
-                                          } else if (hw.item) {
-                                            toggleHomeworkItemComplete(hw.item)
-                                          }
-                                        }}
-                                        onEdit={() => openScheduleDialog(undefined, hw.schedule)}
-                                        isToggling={togglingIds.has(toggleId)}
-                                      />
-                                    )
-                                  })}
-                                  {/* Homework type schedules - month view */}
-                                  {getHomeworkTypeSchedulesForDate(day).map((schedule) => (
-                                    <div
-                                      key={schedule.id}
-                                      className={cn(
-                                        'text-xs px-1 py-0.5 rounded flex items-center gap-0.5 border-l-2 border-orange-500 cursor-pointer',
-                                        schedule.is_completed
-                                          ? 'bg-muted text-muted-foreground line-through'
-                                          : 'bg-orange-100 dark:bg-orange-900/30'
-                                      )}
-                                      onClick={(e) => {
-                                        if ((e.target as HTMLElement).closest('button')) return
-                                        e.stopPropagation()
-                                        openScheduleDialog(undefined, schedule)
-                                      }}
-                                    >
-                                      <button
-                                        className="flex-shrink-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          if (!togglingIds.has(schedule.id)) {
-                                            toggleScheduleComplete(schedule)
-                                          }
-                                        }}
-                                        disabled={togglingIds.has(schedule.id)}
-                                      >
-                                        {togglingIds.has(schedule.id) ? (
-                                          <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />
-                                        ) : schedule.is_completed ? (
-                                          <CheckCircle2 className="h-2.5 w-2.5 text-green-600" />
-                                        ) : (
-                                          <Circle className="h-2.5 w-2.5 text-orange-600" />
-                                        )}
-                                      </button>
-                                      <ClipboardList className="h-2.5 w-2.5 text-orange-600 flex-shrink-0" />
-                                      <span className="truncate flex-1">
-                                        {schedule.title}
-                                      </span>
-                                    </div>
-                                  ))}
-                                  {getSchedulesForDate(day).map((schedule) => {
-                                    const dateStr = formatDateLocal(day)
-                                    return (
-                                      <DraggableMonthScheduleCard
-                                        key={`${schedule.id}-${dateStr}`}
-                                        schedule={schedule}
-                                        currentDate={dateStr}
-                                        onEdit={() => openScheduleDialog(undefined, schedule)}
-                                        onToggleComplete={() => toggleScheduleComplete(schedule, dateStr)}
-                                        isToggling={togglingIds.has(`${schedule.id}-${dateStr}`) || togglingIds.has(schedule.id)}
-                                      />
-                                    )
-                                  })}
-                                </div>
-                          </DroppableMonthDay>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-                <DragOverlay>
-                  {activeSchedule && (() => {
-                    const displayColor = activeSchedule.subject?.color || activeSchedule.color
-                    const subjectColor = activeSchedule.subject?.color
-                    return (
-                      <div
-                        className={cn(
-                          'text-xs p-1.5 rounded shadow-lg',
-                          activeSchedule.is_completed
-                            ? 'bg-muted line-through text-muted-foreground'
-                            : !displayColor && 'bg-slate-300/50 dark:bg-slate-600/50'
-                        )}
-                        style={{
-                          borderLeft: subjectColor
-                            ? `3px solid ${subjectColor}`
-                            : undefined,
-                          backgroundColor: !activeSchedule.is_completed && displayColor
-                            ? `${displayColor}20`
-                            : undefined,
-                        }}
-                      >
-                        <div className="flex items-center gap-1">
-                          {activeSchedule.is_completed ? (
-                            <CheckCircle2 className="h-3 w-3 text-green-600" />
-                          ) : (
-                            <Circle className="h-3 w-3" />
-                          )}
-                          <span>{activeSchedule.title}</span>
-                        </div>
-                      </div>
-                    )
-                  })()}
-                  {activeHomework && (() => {
-                    const isCompleted = activeHomework.isLegacy
-                      ? activeHomework.schedule.homework_completed
-                      : activeHomework.item?.is_completed
-                    const content = activeHomework.isLegacy
-                      ? activeHomework.schedule.homework_content
-                      : activeHomework.item?.content
-                    return (
-                      <div
-                        className={cn(
-                          'text-xs p-1.5 rounded shadow-lg border-l-2 border-orange-500',
-                          isCompleted
-                            ? 'bg-muted line-through text-muted-foreground'
-                            : 'bg-orange-100 dark:bg-orange-900/50'
-                        )}
-                      >
-                        <div className="flex items-start gap-1">
-                          {isCompleted ? (
-                            <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0" />
-                          ) : (
-                            <Circle className="h-3 w-3 text-orange-600 flex-shrink-0" />
-                          )}
-                          <span className="flex-1">
-                            <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
-                              <ClipboardList className="h-2.5 w-2.5" />
-                              <span className="font-medium">과제</span>
-                            </div>
-                            <div className="text-muted-foreground">{activeHomework.schedule.title}</div>
-                            {content && (
-                              <div className="text-muted-foreground mt-0.5 text-[11px] line-clamp-1">
-                                {content}
-                              </div>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })()}
-                </DragOverlay>
-              </DndContext>
-            </CardContent>
-          </Card>
         </div>
+      </div>
       </div>
 
       {/* Schedule Dialog */}
