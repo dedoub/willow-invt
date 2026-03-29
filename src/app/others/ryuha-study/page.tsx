@@ -548,19 +548,20 @@ function DroppableDay({
 function DroppableMonthDay({
   day,
   isToday,
+  isOtherMonth,
   children,
   onClick,
 }: {
-  day: Date | null
+  day: Date
   isToday: boolean
+  isOtherMonth?: boolean
   children: React.ReactNode
   onClick: () => void
 }) {
-  const dateStr = day ? formatDateLocal(day) : ''
+  const dateStr = formatDateLocal(day)
   const { isOver, setNodeRef } = useDroppable({
-    id: day ? `day-${dateStr}` : `empty-${Math.random()}`,
+    id: `day-${dateStr}`,
     data: { date: day, dateStr },
-    disabled: !day,
   })
 
   return (
@@ -568,12 +569,13 @@ function DroppableMonthDay({
       ref={setNodeRef}
       className={cn(
         'min-h-[80px] rounded-lg p-1',
-        day ? 'cursor-pointer bg-white dark:bg-slate-700' : 'bg-transparent',
-        day && !isOver && 'hover:bg-slate-50 dark:hover:bg-slate-600',
+        'cursor-pointer bg-white dark:bg-slate-700',
+        !isOver && 'hover:bg-slate-50 dark:hover:bg-slate-600',
         isOver && 'bg-slate-200 dark:bg-slate-600',
-        isToday && 'bg-slate-200 dark:bg-slate-600'
+        isToday && 'bg-slate-200 dark:bg-slate-600',
+        isOtherMonth && 'opacity-40'
       )}
-      onClick={() => day && onClick()}
+      onClick={() => onClick()}
     >
       {children}
     </div>
@@ -1033,9 +1035,18 @@ export default function RyuhaStudyPage() {
     const month = currentDate.getMonth()
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
-    const days: (Date | null)[] = []
-    for (let i = 0; i < firstDay.getDay(); i++) days.push(null)
+    const days: Date[] = []
+    // Previous month padding
+    for (let i = firstDay.getDay() - 1; i >= 0; i--) {
+      days.push(new Date(year, month, -i))
+    }
+    // Current month days
     for (let i = 1; i <= lastDay.getDate(); i++) days.push(new Date(year, month, i))
+    // Next month padding to complete last row
+    const remaining = 7 - (days.length % 7)
+    if (remaining < 7) {
+      for (let i = 1; i <= remaining; i++) days.push(new Date(year, month + 1, i))
+    }
     return days
   }
 
@@ -2893,16 +2904,16 @@ export default function RyuhaStudyPage() {
                     </div>
                     <div className="grid grid-cols-7 gap-1">
                       {getMonthDays().map((day, idx) => {
-                        const memo = day ? getMemoForDate(day) : null
+                        const isOtherMonth = day.getMonth() !== currentDate.getMonth()
+                        const memo = getMemoForDate(day)
                         return (
                           <DroppableMonthDay
                             key={idx}
                             day={day}
-                            isToday={day?.toDateString() === new Date().toDateString()}
-                            onClick={() => day && openScheduleDialog(day)}
+                            isToday={day.toDateString() === new Date().toDateString()}
+                            isOtherMonth={isOtherMonth}
+                            onClick={() => openScheduleDialog(day)}
                           >
-                            {day && (
-                              <>
                                 <div className="flex items-center justify-between mb-1">
                                   <span className="text-sm font-medium">{day.getDate()}</span>
                                   <button
@@ -2995,8 +3006,6 @@ export default function RyuhaStudyPage() {
                                     )
                                   })}
                                 </div>
-                              </>
-                            )}
                           </DroppableMonthDay>
                         )
                       })}
