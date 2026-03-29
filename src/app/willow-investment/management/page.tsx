@@ -1299,8 +1299,14 @@ export default function WillowManagementPage() {
       end.setDate(end.getDate() + 6)
       return { startDate: formatDate(start), endDate: formatDate(end) }
     } else {
-      const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-      const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+      const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+      const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+      // Extend range to cover prev/next month days shown in calendar grid
+      const start = new Date(firstDay)
+      start.setDate(start.getDate() - firstDay.getDay())
+      const end = new Date(lastDay)
+      const pad = 6 - lastDay.getDay()
+      if (pad > 0) end.setDate(end.getDate() + pad)
       return { startDate: formatDate(start), endDate: formatDate(end) }
     }
   }
