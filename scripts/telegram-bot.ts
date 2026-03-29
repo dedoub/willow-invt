@@ -22,6 +22,28 @@ const MESSAGE_BATCH_DELAY = 5000 // 메시지 배칭 디바운스 대기 시간 
 const PROACTIVE_CHECK_INTERVAL = 30 * 60 * 1000 // 30분마다 자율 점검
 const LOCK_FILE = join(__dirname, 'logs', 'telegram-bot.lock')
 const OFFSET_FILE = join(__dirname, 'logs', 'telegram-bot.offset')
+const ALLOWED_USERS_FILE = join(__dirname, 'logs', 'willy-bot-users.json')
+const WILLY_REG_CODE = '윌로우2026'
+const WILLY_MAX_USERS = 2
+
+// 허용된 chat_id 목록
+let allowedChatIds: number[] = []
+
+function loadAllowedUsers() {
+  try {
+    if (existsSync(ALLOWED_USERS_FILE)) {
+      allowedChatIds = JSON.parse(readFileSync(ALLOWED_USERS_FILE, 'utf-8'))
+    }
+  } catch { allowedChatIds = [] }
+}
+
+function saveAllowedUsers() {
+  writeFileSync(ALLOWED_USERS_FILE, JSON.stringify(allowedChatIds))
+}
+
+function isAllowedUser(chatId: number): boolean {
+  return allowedChatIds.includes(chatId)
+}
 
 // CEO chat_id 저장 (첫 메시지 수신 시 등록)
 let ceoChatId: number | null = null
@@ -3001,6 +3023,9 @@ async function main() {
   }
   console.log(`✅ Bot: @${me.result.username} (${me.result.first_name}) [PID: ${process.pid}]`)
 
+  loadAllowedUsers()
+  console.log(`📌 등록된 사용자: ${allowedChatIds.length}/${WILLY_MAX_USERS}`)
+
   // CEO chat_id 복원
   await loadCeoChatId()
 
@@ -3051,6 +3076,7 @@ async function main() {
         await answerCallbackQuery(cb.id)
 
         if (cbChatId && cbData) {
+          if (!isAllowedUser(cbChatId)) continue
           console.log(`[${cbChatId}] Button: ${cbData}`)
           // 버튼 데이터를 일반 메시지처럼 처리
           const ac = new AbortController()
@@ -3075,13 +3101,33 @@ async function main() {
       processingMessages.add(update.update_id)
       setTimeout(() => processingMessages.delete(update.update_id), 5 * 60 * 1000)
 
-      // CEO chat_id 등록
-      if (!ceoChatId) {
-        ceoChatId = msg.chat.id
-        console.log(`📌 CEO chat_id 등록: ${ceoChatId}`)
+      const chatId = msg.chat.id
+
+      // ── 사용자 등록 & 화이트리스트 체크 ──
+      if (msg.text?.startsWith('/start')) {
+        const code = msg.text.replace('/start', '').trim()
+        if (isAllowedUser(chatId)) {
+          // 이미 등록된 사용자 → 기존 /start 응답
+        } else if (code === WILLY_REG_CODE && allowedChatIds.length < WILLY_MAX_USERS) {
+          allowedChatIds.push(chatId)
+          saveAllowedUsers()
+          console.log(`📌 사용자 등록: ${chatId} (${allowedChatIds.length}/${WILLY_MAX_USERS})`)
+        } else {
+          await sendMessage(chatId, '이 봇은 초대된 사용자만 이용할 수 있습니다.\n/start 등록코드 를 입력해주세요.')
+          continue
+        }
       }
 
-      const chatId = msg.chat.id
+      if (!isAllowedUser(chatId)) {
+        await sendMessage(chatId, '이 봇은 초대된 사용자만 이용할 수 있습니다.\n/start 등록코드 를 입력해주세요.')
+        continue
+      }
+
+      // CEO chat_id 등록
+      if (!ceoChatId) {
+        ceoChatId = chatId
+        console.log(`📌 CEO chat_id 등록: ${ceoChatId}`)
+      }
 
       // ── 음성 메시지 처리 ──
       if (msg.voice || msg.audio) {
