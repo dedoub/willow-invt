@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/real-estate-sync",
       "schedule": "13 22 * * *"
+    },
+    {
+      "path": "/api/cron/gmail-scheduled-send",
+      "schedule": "* * * * *"
     }
   ]
 }
