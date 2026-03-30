@@ -76,12 +76,15 @@ import {
 } from 'lucide-react'
 import { useRef } from 'react'
 
-// Extended invoice status type (includes partial sent states)
-type ExtendedInvoiceStatus = InvoiceStatus | 'sent_etc' | 'sent_bank'
+// Extended invoice status type (includes partial sent states + scheduled states)
+type ExtendedInvoiceStatus = InvoiceStatus | 'sent_etc' | 'sent_bank' | 'scheduled_etc' | 'scheduled_bank' | 'scheduled_both'
 
 // Invoice status colors
 const INVOICE_STATUS_COLORS: Record<ExtendedInvoiceStatus, { bg: string; text: string; icon: typeof Check }> = {
   draft: { bg: 'bg-slate-100', text: 'text-slate-600', icon: FileText },
+  scheduled_etc: { bg: 'bg-purple-100', text: 'text-purple-700', icon: Clock },
+  scheduled_bank: { bg: 'bg-purple-100', text: 'text-purple-700', icon: Clock },
+  scheduled_both: { bg: 'bg-purple-100', text: 'text-purple-700', icon: Clock },
   sent_etc: { bg: 'bg-blue-100', text: 'text-blue-700', icon: Send },
   sent_bank: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Send },
   sent: { bg: 'bg-cyan-100', text: 'text-cyan-700', icon: Send },
@@ -97,6 +100,18 @@ const INVOICE_STATUS_COLORS: Record<ExtendedInvoiceStatus, { bg: string; text: s
 function getEffectiveInvoiceStatus(invoice: Invoice): ExtendedInvoiceStatus {
   if (invoice.status === 'paid' || invoice.status === 'cancelled' || invoice.status === 'overdue') {
     return invoice.status
+  }
+  // 예약 발송 상태가 있으면 우선 표시 (재발송 예약 포함)
+  const hasScheduledEtc = !!invoice.scheduled_etc_email_id
+  const hasScheduledBank = !!invoice.scheduled_bank_email_id
+  if (hasScheduledEtc && hasScheduledBank) {
+    return 'scheduled_both'
+  }
+  if (hasScheduledEtc) {
+    return 'scheduled_etc'
+  }
+  if (hasScheduledBank) {
+    return 'scheduled_bank'
   }
   // 둘 다 발송했으면 'sent'
   if (invoice.sent_to_etc_at && invoice.sent_to_bank_at) {
@@ -1077,7 +1092,7 @@ function ComposeEmailModal({
   originalEmail: ParsedEmail | null
   initialData?: Partial<ComposeEmailData>
   initialAttachments?: File[]
-  onSendSuccess?: () => void
+  onSendSuccess?: (result?: { scheduled?: boolean; scheduledEmailId?: string }) => void
   t: ReturnType<typeof useI18n>['t']
 }) {
   const [formData, setFormData] = useState<ComposeEmailData>({
@@ -1213,7 +1228,7 @@ function ComposeEmailModal({
           scheduledAt: scheduledAt.toISOString(),
         })
         if (result.success) {
-          onSendSuccess?.()
+          onSendSuccess?.({ scheduled: true, scheduledEmailId: result.id })
           onClose()
         } else {
           setError(result.error || t.gmail.scheduleFailed)
@@ -1454,6 +1469,9 @@ export default function ETCPage() {
   const getInvoiceStatusLabel = (status: ExtendedInvoiceStatus): string => {
     const labels: Record<ExtendedInvoiceStatus, string> = {
       draft: t.invoice.status.draft,
+      scheduled_etc: t.invoice.status.scheduled_etc,
+      scheduled_bank: t.invoice.status.scheduled_bank,
+      scheduled_both: t.invoice.status.scheduled_both,
       sent_etc: t.invoice.status.sent_etc,
       sent_bank: t.invoice.status.sent_bank,
       sent: t.invoice.status.sent,
@@ -1891,18 +1909,29 @@ Dongwook`
   }
 
   // 인보이스 이메일 발송 성공 시 상태 업데이트
-  const handleInvoiceEmailSent = async () => {
+  const handleInvoiceEmailSent = async (result?: { scheduled?: boolean; scheduledEmailId?: string }) => {
     if (!pendingInvoiceSend) return
 
     const { invoiceId, recipientType } = pendingInvoiceSend
-    const now = new Date().toISOString()
 
     try {
-      const updateData: Record<string, string> = {}
-      if (recipientType === 'etc') {
-        updateData.sent_to_etc_at = now
+      const updateData: Record<string, string | null> = {}
+
+      if (result?.scheduled && result.scheduledEmailId) {
+        // 예약 발송: scheduled email ID 저장
+        if (recipientType === 'etc') {
+          updateData.scheduled_etc_email_id = result.scheduledEmailId
+        } else {
+          updateData.scheduled_bank_email_id = result.scheduledEmailId
+        }
       } else {
-        updateData.sent_to_bank_at = now
+        // 즉시 발송: sent timestamp 저장
+        const now = new Date().toISOString()
+        if (recipientType === 'etc') {
+          updateData.sent_to_etc_at = now
+        } else {
+          updateData.sent_to_bank_at = now
+        }
       }
 
       const res = await fetch(`/api/invoices/${invoiceId}`, {
@@ -2777,38 +2806,46 @@ Dongwook`
                                   onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'etc') }}
                                   disabled={isSendingInvoice?.id === invoice.id && isSendingInvoice?.type === 'etc'}
                                   className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
-                                    invoice.sent_to_etc_at
-                                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    invoice.scheduled_etc_email_id
+                                      ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                      : invoice.sent_to_etc_at
+                                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700'
                                   }`}
                                 >
                                   {isSendingInvoice?.id === invoice.id && isSendingInvoice?.type === 'etc' ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : invoice.scheduled_etc_email_id ? (
+                                    <Clock className="h-3 w-3" />
                                   ) : invoice.sent_to_etc_at ? (
                                     <Check className="h-3 w-3" />
                                   ) : (
                                     <Send className="h-3 w-3" />
                                   )}
-                                  ETC 발송
+                                  {invoice.scheduled_etc_email_id ? 'ETC 예약됨' : invoice.sent_to_etc_at ? 'ETC 발송완료' : 'ETC 발송'}
                                 </button>
                                 {/* 은행 발송 버튼 */}
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'bank') }}
                                   disabled={isSendingInvoice?.id === invoice.id && isSendingInvoice?.type === 'bank'}
                                   className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
-                                    invoice.sent_to_bank_at
-                                      ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                      : 'bg-amber-600 text-white hover:bg-amber-700'
+                                    invoice.scheduled_bank_email_id
+                                      ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                      : invoice.sent_to_bank_at
+                                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                        : 'bg-amber-600 text-white hover:bg-amber-700'
                                   }`}
                                 >
                                   {isSendingInvoice?.id === invoice.id && isSendingInvoice?.type === 'bank' ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : invoice.scheduled_bank_email_id ? (
+                                    <Clock className="h-3 w-3" />
                                   ) : invoice.sent_to_bank_at ? (
                                     <Building className="h-3 w-3" />
                                   ) : (
                                     <Send className="h-3 w-3" />
                                   )}
-                                  은행 발송
+                                  {invoice.scheduled_bank_email_id ? '은행 예약됨' : invoice.sent_to_bank_at ? '은행 발송완료' : '은행 발송'}
                                 </button>
                                 {/* 입금확인 버튼 - 최소 하나 발송 완료 시 */}
                                 {(invoice.sent_to_etc_at || invoice.sent_to_bank_at) && (

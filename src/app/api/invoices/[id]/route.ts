@@ -63,6 +63,8 @@ export async function PATCH(
     if (body.gmail_message_id !== undefined) updateData.gmail_message_id = body.gmail_message_id
     if (body.sent_to_etc_at !== undefined) updateData.sent_to_etc_at = body.sent_to_etc_at
     if (body.sent_to_bank_at !== undefined) updateData.sent_to_bank_at = body.sent_to_bank_at
+    if (body.scheduled_etc_email_id !== undefined) updateData.scheduled_etc_email_id = body.scheduled_etc_email_id
+    if (body.scheduled_bank_email_id !== undefined) updateData.scheduled_bank_email_id = body.scheduled_bank_email_id
     if (body.paid_at !== undefined) updateData.paid_at = body.paid_at
     if (body.file_url !== undefined) updateData.file_url = body.file_url
 

@@ -24,6 +24,8 @@ export interface Invoice {
   gmail_message_id: string | null
   sent_to_etc_at: string | null
   sent_to_bank_at: string | null
+  scheduled_etc_email_id: string | null
+  scheduled_bank_email_id: string | null
   file_url: string | null  // 첨부된 인보이스 파일 URL
   notes: string | null
   created_at: string
@@ -51,6 +53,8 @@ export interface UpdateInvoiceInput {
   gmail_message_id?: string
   sent_to_etc_at?: string | null
   sent_to_bank_at?: string | null
+  scheduled_etc_email_id?: string | null
+  scheduled_bank_email_id?: string | null
   paid_at?: string | null
   file_url?: string | null
   notes?: string

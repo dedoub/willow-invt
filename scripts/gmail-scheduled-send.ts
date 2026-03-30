@@ -274,6 +274,27 @@ async function main() {
             .remove(attPaths.map(p => p.path))
         }
 
+        // Update linked invoice timestamps
+        const { data: linkedInvoices } = await supabase
+          .from('willow_invoices')
+          .select('id, scheduled_etc_email_id, scheduled_bank_email_id')
+          .or(`scheduled_etc_email_id.eq.${email.id},scheduled_bank_email_id.eq.${email.id}`)
+
+        if (linkedInvoices && linkedInvoices.length > 0) {
+          for (const inv of linkedInvoices) {
+            const invUpdate: Record<string, string | null> = {}
+            if (inv.scheduled_etc_email_id === email.id) {
+              invUpdate.sent_to_etc_at = new Date().toISOString()
+              invUpdate.scheduled_etc_email_id = null
+            }
+            if (inv.scheduled_bank_email_id === email.id) {
+              invUpdate.sent_to_bank_at = new Date().toISOString()
+              invUpdate.scheduled_bank_email_id = null
+            }
+            await supabase.from('willow_invoices').update(invUpdate).eq('id', inv.id)
+          }
+        }
+
         log(`✅ ${email.id} → ${email.to_recipients} (${email.subject})`)
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err)

@@ -396,6 +396,9 @@ export const en = {
     showingRange: '{start}-{end} of {total}',
     status: {
       draft: 'Draft',
+      scheduled_etc: 'ETC Scheduled',
+      scheduled_bank: 'Bank Scheduled',
+      scheduled_both: 'Scheduled',
       sent_etc: 'Sent to ETC',
       sent_bank: 'Sent to Bank',
       sent: 'Sent',

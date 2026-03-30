@@ -396,6 +396,9 @@ export const ko = {
     showingRange: '{total}개 중 {start}-{end}',
     status: {
       draft: '작성중',
+      scheduled_etc: 'ETC 예약됨',
+      scheduled_bank: '은행 예약됨',
+      scheduled_both: '예약발송',
       sent_etc: 'ETC 발송됨',
       sent_bank: '은행 발송됨',
       sent: '발송완료',
