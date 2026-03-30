@@ -56,6 +56,22 @@ export interface SendEmailParams {
   context?: 'default' | 'tensoftworks' | 'willow'
 }
 
+export interface ScheduledEmail {
+  id: string
+  gmail_context: string
+  to_recipients: string
+  cc_recipients: string | null
+  bcc_recipients: string | null
+  subject: string
+  body: string
+  scheduled_at: string
+  status: 'pending' | 'sending' | 'sent' | 'failed' | 'cancelled'
+  attachment_paths: { path: string; name: string; size: number; mimeType: string }[]
+  sent_at: string | null
+  error_message: string | null
+  created_at: string
+}
+
 export interface GmailTokens {
   access_token: string
   refresh_token: string
@@ -214,6 +230,63 @@ class GmailService {
       return { success: true, messageId: data.messageId }
     } catch (error) {
       console.error('Error sending email:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+
+  // 이메일 예약 발송
+  async scheduleEmail(params: SendEmailParams & { scheduledAt: string }): Promise<{ success: boolean; id?: string; error?: string }> {
+    try {
+      const formData = new FormData()
+      formData.append('to', params.to)
+      formData.append('subject', params.subject)
+      formData.append('body', params.body)
+      formData.append('scheduledAt', params.scheduledAt)
+      if (params.bodyHtml) formData.append('bodyHtml', params.bodyHtml)
+      if (params.cc) formData.append('cc', params.cc)
+      if (params.bcc) formData.append('bcc', params.bcc)
+      if (params.replyTo) formData.append('replyTo', params.replyTo)
+      if (params.attachments) {
+        params.attachments.forEach((file) => formData.append('attachments', file))
+      }
+
+      const url = params.context ? `/api/gmail/scheduled?context=${params.context}` : '/api/gmail/scheduled'
+      const res = await fetch(url, { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok) return { success: false, error: data.error || 'Failed to schedule email' }
+      return { success: true, id: data.id }
+    } catch (error) {
+      console.error('Error scheduling email:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+
+  // 예약 메일 목록 조회
+  async getScheduledEmails(status?: string): Promise<ScheduledEmail[]> {
+    try {
+      const params = new URLSearchParams()
+      if (status) params.set('status', status)
+      const res = await fetch(`/api/gmail/scheduled?${params}`)
+      if (!res.ok) return []
+      const data = await res.json()
+      return data.emails || []
+    } catch {
+      return []
+    }
+  }
+
+  // 예약 메일 취소
+  async cancelScheduledEmail(id: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const res = await fetch(`/api/gmail/scheduled/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      })
+      const data = await res.json()
+      if (!res.ok) return { success: false, error: data.error }
+      return { success: true }
+    } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }

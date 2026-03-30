@@ -1090,6 +1090,9 @@ function ComposeEmailModal({
   const [attachments, setAttachments] = useState<File[]>([])
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isScheduleMode, setIsScheduleMode] = useState(false)
+  const [scheduledDate, setScheduledDate] = useState('')
+  const [scheduledTime, setScheduledTime] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 모달이 열릴 때 폼 초기화
@@ -1148,6 +1151,9 @@ function ComposeEmailModal({
     }
     setAttachments([])
     setError(null)
+    setIsScheduleMode(false)
+    setScheduledDate('')
+    setScheduledTime('')
   }, [isOpen, mode, originalEmail, initialData, initialAttachments])
 
   // 파일 선택 핸들러
@@ -1183,6 +1189,43 @@ function ComposeEmailModal({
       return
     }
 
+    if (isScheduleMode) {
+      if (!scheduledDate || !scheduledTime) {
+        setError(t.gmail.errorNoScheduleTime)
+        return
+      }
+      const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}:00`)
+      if (scheduledAt <= new Date()) {
+        setError(t.gmail.schedulePast)
+        return
+      }
+
+      setIsSending(true)
+      setError(null)
+      try {
+        const result = await gmailService.scheduleEmail({
+          to: formData.to,
+          subject: formData.subject,
+          body: formData.body,
+          cc: formData.cc || undefined,
+          bcc: formData.bcc || undefined,
+          attachments: attachments.length > 0 ? attachments : undefined,
+          scheduledAt: scheduledAt.toISOString(),
+        })
+        if (result.success) {
+          onSendSuccess?.()
+          onClose()
+        } else {
+          setError(result.error || t.gmail.scheduleFailed)
+        }
+      } catch {
+        setError(t.gmail.scheduleFailed)
+      } finally {
+        setIsSending(false)
+      }
+      return
+    }
+
     setIsSending(true)
     setError(null)
 
@@ -1202,7 +1245,7 @@ function ComposeEmailModal({
       } else {
         setError(result.error || t.gmail.sendFailed)
       }
-    } catch (err) {
+    } catch {
       setError(t.gmail.sendFailed)
     } finally {
       setIsSending(false)
@@ -1341,7 +1384,40 @@ function ComposeEmailModal({
         </div>
 
         {/* Footer */}
-        <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0 space-y-3">
+          {/* 예약 발송 옵션 */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isScheduleMode}
+                onChange={(e) => setIsScheduleMode(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-sm font-medium flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                {t.gmail.scheduleSend}
+              </span>
+            </label>
+            {isScheduleMode && (
+              <div className="flex gap-2 mt-2">
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="flex-1 rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm"
+                />
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="w-32 rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm"
+                />
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-2">
             <button
               onClick={onClose}
@@ -1356,10 +1432,12 @@ function ComposeEmailModal({
             >
               {isSending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isScheduleMode ? (
+                <Clock className="h-4 w-4" />
               ) : (
                 <Send className="h-4 w-4" />
               )}
-              {t.gmail.send}
+              {isScheduleMode ? t.gmail.scheduleSend : t.gmail.send}
             </button>
           </div>
         </div>
