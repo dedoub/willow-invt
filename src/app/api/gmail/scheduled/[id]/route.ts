@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    const supabase = getServiceSupabase()
+
+    const { data, error } = await supabase
+      .from('gmail_scheduled_emails')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error || !data) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ email: data })
+  } catch (error) {
+    console.error('Error fetching scheduled email:', error)
+    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 })
+  }
+}
+
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params

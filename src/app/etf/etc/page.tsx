@@ -10,7 +10,7 @@ import { TiptapEditor, plainTextToHtml } from '@/components/ui/tiptap-editor'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n'
-import { gmailService, ParsedEmail, EmailSyncStatus, OverallAnalysisResult, SavedTodo, SavedAnalysis } from '@/lib/gmail'
+import { gmailService, ParsedEmail, ScheduledEmail, EmailSyncStatus, OverallAnalysisResult, SavedTodo, SavedAnalysis } from '@/lib/gmail'
 import type { Invoice, LineItem, InvoiceStatus, InvoiceItemType } from '@/lib/invoice'
 import { ITEM_TEMPLATES, MONTH_NAMES, DEFAULT_CLIENT, formatInvoiceDate as formatInvoiceDateUtil, formatAmount } from '@/lib/invoice'
 import {
@@ -1557,6 +1557,13 @@ export default function ETCPage() {
   const [composeInitialAttachments, setComposeInitialAttachments] = useState<File[] | undefined>(undefined)
   const [pendingInvoiceSend, setPendingInvoiceSend] = useState<{ invoiceId: string; recipientType: 'etc' | 'bank' } | null>(null)
 
+  // 예약 이메일 상세 모달
+  const [scheduledEmailDetail, setScheduledEmailDetail] = useState<ScheduledEmail | null>(null)
+  const [scheduledEmailInvoiceId, setScheduledEmailInvoiceId] = useState<string | null>(null)
+  const [scheduledEmailRecipientType, setScheduledEmailRecipientType] = useState<'etc' | 'bank' | null>(null)
+  const [isLoadingScheduledEmail, setIsLoadingScheduledEmail] = useState(false)
+  const [isCancellingScheduledEmail, setIsCancellingScheduledEmail] = useState(false)
+
   // AI 분석 상태
   const [aiAnalysis, setAiAnalysis] = useState<OverallAnalysisResult | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -1947,6 +1954,55 @@ Dongwook`
       console.error('Failed to update invoice status:', error)
     } finally {
       setPendingInvoiceSend(null)
+    }
+  }
+
+  // 예약 이메일 상세 보기
+  const handleViewScheduledEmail = async (scheduledEmailId: string, invoiceId: string, recipientType: 'etc' | 'bank') => {
+    setIsLoadingScheduledEmail(true)
+    setScheduledEmailInvoiceId(invoiceId)
+    setScheduledEmailRecipientType(recipientType)
+    try {
+      const email = await gmailService.getScheduledEmail(scheduledEmailId)
+      if (email) {
+        setScheduledEmailDetail(email)
+      }
+    } catch (error) {
+      console.error('Failed to fetch scheduled email:', error)
+    } finally {
+      setIsLoadingScheduledEmail(false)
+    }
+  }
+
+  // 예약 이메일 취소
+  const handleCancelScheduledEmail = async () => {
+    if (!scheduledEmailDetail || !scheduledEmailInvoiceId || !scheduledEmailRecipientType) return
+
+    setIsCancellingScheduledEmail(true)
+    try {
+      const result = await gmailService.cancelScheduledEmail(scheduledEmailDetail.id)
+      if (result.success) {
+        // 인보이스에서 scheduled email ID 제거
+        const updateData: Record<string, null> = {}
+        if (scheduledEmailRecipientType === 'etc') {
+          updateData.scheduled_etc_email_id = null
+        } else {
+          updateData.scheduled_bank_email_id = null
+        }
+        await fetch(`/api/invoices/${scheduledEmailInvoiceId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateData),
+        })
+        await loadInvoices()
+        setScheduledEmailDetail(null)
+        setScheduledEmailInvoiceId(null)
+        setScheduledEmailRecipientType(null)
+      }
+    } catch (error) {
+      console.error('Failed to cancel scheduled email:', error)
+    } finally {
+      setIsCancellingScheduledEmail(false)
     }
   }
 
@@ -2803,7 +2859,14 @@ Dongwook`
                               <>
                                 {/* ETC 발송 버튼 */}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'etc') }}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (invoice.scheduled_etc_email_id) {
+                                      handleViewScheduledEmail(invoice.scheduled_etc_email_id, invoice.id, 'etc')
+                                    } else {
+                                      handleSendInvoice(invoice.id, 'etc')
+                                    }
+                                  }}
                                   disabled={isSendingInvoice?.id === invoice.id && isSendingInvoice?.type === 'etc'}
                                   className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
                                     invoice.scheduled_etc_email_id
@@ -2826,7 +2889,14 @@ Dongwook`
                                 </button>
                                 {/* 은행 발송 버튼 */}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice.id, 'bank') }}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (invoice.scheduled_bank_email_id) {
+                                      handleViewScheduledEmail(invoice.scheduled_bank_email_id, invoice.id, 'bank')
+                                    } else {
+                                      handleSendInvoice(invoice.id, 'bank')
+                                    }
+                                  }}
                                   disabled={isSendingInvoice?.id === invoice.id && isSendingInvoice?.type === 'bank'}
                                   className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium disabled:opacity-50 cursor-pointer ${
                                     invoice.scheduled_bank_email_id
@@ -4348,6 +4418,134 @@ Dongwook`
         onSendSuccess={handleInvoiceEmailSent}
         t={t}
       />
+
+      {/* Scheduled Email Detail Modal */}
+      {(scheduledEmailDetail || isLoadingScheduledEmail) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white dark:bg-slate-800 max-h-[90vh] flex flex-col overflow-hidden p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Clock className="h-5 w-5 text-purple-600" />
+                예약 발송 상세
+              </h3>
+              <button
+                onClick={() => {
+                  setScheduledEmailDetail(null)
+                  setScheduledEmailInvoiceId(null)
+                  setScheduledEmailRecipientType(null)
+                }}
+                className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {isLoadingScheduledEmail ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+              </div>
+            ) : scheduledEmailDetail ? (
+              <>
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto py-4 space-y-4 px-1 -mx-1">
+                  {/* 예약 시간 */}
+                  <div className="rounded-lg bg-purple-50 dark:bg-purple-900/20 px-4 py-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-400">
+                      <Clock className="h-4 w-4" />
+                      발송 예정: {new Date(scheduledEmailDetail.scheduled_at).toLocaleString('ko-KR', {
+                        year: 'numeric', month: 'long', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 수신자 */}
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">받는 사람</label>
+                    <div className="text-sm">{scheduledEmailDetail.to_recipients}</div>
+                  </div>
+                  {scheduledEmailDetail.cc_recipients && (
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">참조</label>
+                      <div className="text-sm">{scheduledEmailDetail.cc_recipients}</div>
+                    </div>
+                  )}
+
+                  {/* 제목 */}
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                    <div className="text-sm font-medium">{scheduledEmailDetail.subject}</div>
+                  </div>
+
+                  {/* 본문 */}
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">본문</label>
+                    <div className="rounded-lg bg-slate-50 dark:bg-slate-700 px-3 py-2 text-sm whitespace-pre-wrap font-mono">
+                      {scheduledEmailDetail.body}
+                    </div>
+                  </div>
+
+                  {/* 첨부파일 */}
+                  {scheduledEmailDetail.attachment_paths && scheduledEmailDetail.attachment_paths.length > 0 && (
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">첨부파일</label>
+                      <div className="space-y-1">
+                        {scheduledEmailDetail.attachment_paths.map((att, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-sm">
+                            <FileText className="h-4 w-4 text-slate-400" />
+                            <span>{att.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ({att.size < 1024 * 1024
+                                ? `${(att.size / 1024).toFixed(1)} KB`
+                                : `${(att.size / 1024 / 1024).toFixed(1)} MB`})
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 상태 */}
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">상태</label>
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400">
+                      <Clock className="h-3 w-3" />
+                      발송 대기중
+                    </span>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700 flex gap-2">
+                  <button
+                    onClick={handleCancelScheduledEmail}
+                    disabled={isCancellingScheduledEmail}
+                    className="flex items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {isCancellingScheduledEmail ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Ban className="h-4 w-4" />
+                    )}
+                    예약 취소
+                  </button>
+                  <button
+                    onClick={() => {
+                      setScheduledEmailDetail(null)
+                      setScheduledEmailInvoiceId(null)
+                      setScheduledEmailRecipientType(null)
+                    }}
+                    className="rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600"
+                  >
+                    닫기
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
     </ProtectedPage>
   )

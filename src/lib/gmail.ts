@@ -275,6 +275,18 @@ class GmailService {
     }
   }
 
+  // 예약 메일 단건 조회
+  async getScheduledEmail(id: string): Promise<ScheduledEmail | null> {
+    try {
+      const res = await fetch(`/api/gmail/scheduled/${id}`)
+      if (!res.ok) return null
+      const data = await res.json()
+      return data.email || null
+    } catch {
+      return null
+    }
+  }
+
   // 예약 메일 취소
   async cancelScheduledEmail(id: string): Promise<{ success: boolean; error?: string }> {
     try {
