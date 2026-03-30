@@ -3874,7 +3874,7 @@ export default function TenswManagementPage() {
                                   onClick={() => openEditInvoiceModal(invoice)}
                                 >
                                   <span className={cn(
-                                    'px-2 py-0.5 rounded text-xs font-medium shrink-0',
+                                    'px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap shrink-0',
                                     invoice.type === 'revenue' ? 'bg-blue-100 text-blue-700' :
                                     invoice.type === 'expense' ? 'bg-orange-100 text-orange-700' :
                                     invoice.type === 'asset' ? 'bg-emerald-100 text-emerald-700' :
@@ -5078,7 +5078,7 @@ export default function TenswManagementPage() {
                                   {(email.categories?.length || email.category) && (
                                     <div className="flex flex-wrap gap-1 mb-1">
                                       {(email.categories || (email.category ? [email.category] : [])).map((cat, idx) => (
-                                        <span key={idx} className={`px-2 py-0.5 rounded text-xs font-medium ${getCategoryColor(cat, availableCategories).bg} ${getCategoryColor(cat, availableCategories).text}`}>
+                                        <span key={idx} className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${getCategoryColor(cat, availableCategories).bg} ${getCategoryColor(cat, availableCategories).text}`}>
                                           {cat}
                                         </span>
                                       ))}
@@ -5151,7 +5151,7 @@ export default function TenswManagementPage() {
                   {selectedEmail ? (
                     <div className="rounded-lg bg-white dark:bg-slate-700 p-4">
                       <div className="flex items-start justify-between gap-2 mb-3">
-                        <span className={`rounded-full px-2 py-0.5 text-xs ${selectedEmail.direction === 'outbound' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${selectedEmail.direction === 'outbound' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
                           {selectedEmail.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound}
                         </span>
                         <h3 className="text-lg font-semibold break-words flex-1">{selectedEmail.subject || t.gmail.noSubject}</h3>
@@ -5333,7 +5333,7 @@ export default function TenswManagementPage() {
                               }}
                             >
                               <div className="flex items-center gap-2 mb-2">
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${color.bg} ${color.text}`}>
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${color.bg} ${color.text}`}>
                                   {cat.category}
                                 </span>
                                 <span className="text-xs text-slate-500 dark:text-slate-400">{cat.emailCount} emails</span>

@@ -3968,7 +3968,7 @@ export default function WillowManagementPage() {
                                   onClick={() => openEditInvoiceModal(invoice)}
                                 >
                                   <span className={cn(
-                                    'px-2 py-0.5 rounded text-xs font-medium shrink-0',
+                                    'px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap shrink-0',
                                     invoice.type === 'revenue' ? 'bg-blue-100 text-blue-700' :
                                     invoice.type === 'expense' ? 'bg-orange-100 text-orange-700' :
                                     invoice.type === 'asset' ? 'bg-emerald-100 text-emerald-700' :
@@ -4438,13 +4438,13 @@ export default function WillowManagementPage() {
                                 onClick={() => openEditTradeModal(trade)}
                               >
                                 <span className={cn(
-                                  'px-2 py-0.5 rounded text-xs font-medium shrink-0',
+                                  'px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap shrink-0',
                                   trade.trade_type === 'buy' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
                                 )}>
                                   {trade.trade_type === 'buy' ? '매수' : '매도'}
                                 </span>
                                 <span className={cn(
-                                  'px-1.5 py-0.5 rounded text-xs font-medium shrink-0',
+                                  'px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap shrink-0',
                                   trade.market === 'KR' ? 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300' : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400'
                                 )}>
                                   {trade.market}
@@ -4773,7 +4773,7 @@ export default function WillowManagementPage() {
                           return (
                             <div key={theme}>
                               <div className="flex items-center gap-2 mb-2">
-                                <span className={cn('px-2 py-0.5 rounded text-xs font-medium', themeColors[theme] || themeColors['미분류'])}>
+                                <span className={cn('px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap', themeColors[theme] || themeColors['미분류'])}>
                                   {theme}
                                 </span>
                                 <span className="text-xs text-muted-foreground">{items.length}종목</span>
@@ -5342,7 +5342,7 @@ export default function WillowManagementPage() {
                                       return (
                                         <div key={d.chain}>
                                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
-                                            <span className={cn('px-1.5 py-0.5 rounded text-xs font-medium', aiChainBadge[d.chain])}>
+                                            <span className={cn('px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap', aiChainBadge[d.chain])}>
                                               {d.chain}
                                             </span>
                                             <span className="text-[11px] text-slate-400">{d.items.length}종목 · 비중 {weightPct.toFixed(0)}%</span>
@@ -5959,7 +5959,7 @@ export default function WillowManagementPage() {
                             <div key={`r-${r.id}`} className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2.5">
                               {/* Header */}
                               <div className="flex items-center gap-2">
-                                <span className={cn('px-1.5 py-0.5 rounded text-xs font-medium shrink-0', verdictStyle(r.verdict))}>
+                                <span className={cn('px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap shrink-0', verdictStyle(r.verdict))}>
                                   {verdictLabel(r.verdict)}
                                 </span>
                                 <span className="font-medium text-sm">{r.ticker}</span>
@@ -6021,7 +6021,7 @@ export default function WillowManagementPage() {
                             <div key={`s-${s.id}`} className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2.5">
                               {/* Header */}
                               <div className="flex items-center gap-2">
-                                <span className={cn('px-1.5 py-0.5 rounded text-xs font-bold shrink-0', tierStyle(s.tier))}>
+                                <span className={cn('px-1.5 py-0.5 rounded text-xs font-bold whitespace-nowrap shrink-0', tierStyle(s.tier))}>
                                   {s.tier}
                                 </span>
                                 {s.track === 'hypergrowth' && (
@@ -6818,7 +6818,7 @@ export default function WillowManagementPage() {
                                   {(email.categories?.length || email.category) && (
                                     <div className="flex flex-wrap gap-1 mb-1">
                                       {(email.categories || (email.category ? [email.category] : [])).map((cat, idx) => (
-                                        <span key={idx} className={`px-2 py-0.5 rounded text-xs font-medium ${getCategoryColor(cat, availableCategories).bg} ${getCategoryColor(cat, availableCategories).text}`}>
+                                        <span key={idx} className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${getCategoryColor(cat, availableCategories).bg} ${getCategoryColor(cat, availableCategories).text}`}>
                                           {cat}
                                         </span>
                                       ))}
@@ -6891,7 +6891,7 @@ export default function WillowManagementPage() {
                   {selectedEmail ? (
                     <div className="rounded-lg bg-white dark:bg-slate-700 p-4">
                       <div className="flex items-start justify-between gap-2 mb-3">
-                        <span className={`rounded-full px-2 py-0.5 text-xs ${selectedEmail.direction === 'outbound' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${selectedEmail.direction === 'outbound' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
                           {selectedEmail.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound}
                         </span>
                         <h3 className="text-lg font-semibold break-words flex-1">{selectedEmail.subject || t.gmail.noSubject}</h3>
@@ -7073,7 +7073,7 @@ export default function WillowManagementPage() {
                               }}
                             >
                               <div className="flex items-center gap-2 mb-2">
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${color.bg} ${color.text}`}>
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${color.bg} ${color.text}`}>
                                   {cat.category}
                                 </span>
                                 <span className="text-xs text-slate-500 dark:text-slate-400">{cat.emailCount} emails</span>

@@ -1008,11 +1008,11 @@ function EmailDetailModal({
           <div className="flex-1 min-w-0 pr-4">
             <div className="flex items-center gap-2 mb-2">
               {email.category && categoryColor && (
-                <span className={`rounded-full px-2 py-0.5 text-xs ${categoryColor.bg} ${categoryColor.text}`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${categoryColor.bg} ${categoryColor.text}`}>
                   {email.category}
                 </span>
               )}
-              <span className={`rounded-full px-2 py-0.5 text-xs ${
+              <span className={`rounded-full px-2 py-0.5 text-xs whitespace-nowrap ${
                 email.direction === 'outbound' ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
               }`}>
                 {email.direction === 'outbound' ? t.gmail.outbound : t.gmail.inbound}
@@ -2718,7 +2718,7 @@ export default function AkrosPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`rounded-full px-2 py-0.5 text-xs flex items-center gap-1 ${statusStyle.bg} ${statusStyle.text}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-xs whitespace-nowrap flex items-center gap-1 ${statusStyle.bg} ${statusStyle.text}`}>
                             <StatusIcon className="h-3 w-3" />
                             {getTaxInvoiceStatusLabel(effectiveStatus)}
                           </span>
@@ -3704,7 +3704,7 @@ export default function AkrosPage() {
                               {/* 카테고리 배지 (제목 위) */}
                               {email.category && (
                                 <div className="flex flex-wrap gap-1 mb-1">
-                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${getCategoryColor(email.category, availableCategories).bg} ${getCategoryColor(email.category, availableCategories).text}`}>
+                                  <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${getCategoryColor(email.category, availableCategories).bg} ${getCategoryColor(email.category, availableCategories).text}`}>
                                     {email.category}
                                   </span>
                                 </div>
@@ -3912,7 +3912,7 @@ export default function AkrosPage() {
                         }}
                       >
                         <div className="flex items-center gap-2 mb-2">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${color.bg} ${color.text}`}>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${color.bg} ${color.text}`}>
                             {cat.category}
                           </span>
                           <span className="text-xs text-slate-500 dark:text-slate-400">{cat.emailCount} emails</span>
