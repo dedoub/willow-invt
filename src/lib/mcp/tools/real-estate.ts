@@ -152,19 +152,28 @@ export function registerRealEstateTools(server: McpServer) {
         supabase.from('re_rentals').select('complex_name, deposit, area_sqm')
           .gte('deal_date', oneMonthAgo).eq('rent_type', '전세').in('complex_name', complexNames)
       )
-      // Use only the latest snapshot for listings
+      // Use per-complex latest snapshot (complexes may be scraped on different dates)
       const { data: summarySnap } = await supabase
         .from('re_naver_listings').select('snapshot_date')
         .in('complex_name', complexNames)
         .order('snapshot_date', { ascending: false }).limit(1)
       const summarySnapDate = summarySnap?.[0]?.snapshot_date
-
-      const listings = summarySnapDate ? await fetchAll(
+      const summarySnapCutoff = summarySnapDate
+        ? new Date(new Date(summarySnapDate).getTime() - 2 * 86400000).toISOString().slice(0, 10)
+        : null
+      const allSummaryListings = summarySnapCutoff ? await fetchAll(
         supabase.from('re_naver_listings')
-          .select('complex_name, trade_type, price, area_supply_sqm, area_type')
-          .eq('snapshot_date', summarySnapDate)
+          .select('complex_name, trade_type, price, area_supply_sqm, area_type, snapshot_date')
+          .gte('snapshot_date', summarySnapCutoff)
           .in('complex_name', complexNames)
       ) : []
+      const summaryComplexLatest: Record<string, string> = {}
+      for (const l of allSummaryListings) {
+        if (!summaryComplexLatest[l.complex_name] || l.snapshot_date > summaryComplexLatest[l.complex_name]) {
+          summaryComplexLatest[l.complex_name] = l.snapshot_date
+        }
+      }
+      const listings = allSummaryListings.filter(l => l.snapshot_date === summaryComplexLatest[l.complex_name])
 
       // Compute PPP averages (supply-area based)
       let tradePppSum = 0, tradePppCount = 0
@@ -396,19 +405,31 @@ export function registerRealEstateTools(server: McpServer) {
       // Build area mapping (exclusive → supply) for consistent PPP calculation
       const areaMap = await buildAreaMapping(supabase, complexNames)
 
-      // Use only the latest snapshot
+      // Use per-complex latest snapshot (complexes may be scraped on different dates)
       const { data: latestSnap } = await supabase
         .from('re_naver_listings').select('snapshot_date')
         .in('complex_name', complexNames)
         .order('snapshot_date', { ascending: false }).limit(1)
       const latestSnapshotDate = latestSnap?.[0]?.snapshot_date
-
-      const listings = latestSnapshotDate ? await fetchAll(
+      // Fetch latest 2 days to cover complexes scraped on different dates
+      const snapCutoff = latestSnapshotDate
+        ? new Date(new Date(latestSnapshotDate).getTime() - 2 * 86400000).toISOString().slice(0, 10)
+        : null
+      const allListings = snapCutoff ? await fetchAll(
         supabase.from('re_naver_listings')
-          .select('complex_name, trade_type, price, area_supply_sqm, area_type')
-          .eq('trade_type', tradeType).eq('snapshot_date', latestSnapshotDate)
+          .select('complex_name, trade_type, price, area_supply_sqm, area_type, snapshot_date')
+          .eq('trade_type', tradeType)
+          .gte('snapshot_date', snapCutoff)
           .in('complex_name', complexNames)
       ) : []
+      // Keep only each complex's latest snapshot
+      const complexLatest: Record<string, string> = {}
+      for (const l of allListings) {
+        if (!complexLatest[l.complex_name] || l.snapshot_date > complexLatest[l.complex_name]) {
+          complexLatest[l.complex_name] = l.snapshot_date
+        }
+      }
+      const listings = allListings.filter(l => l.snapshot_date === complexLatest[l.complex_name])
 
       // 1 month window (matching dashboard)
       const now = new Date()
@@ -425,6 +446,7 @@ export function registerRealEstateTools(server: McpServer) {
         listingMinPpp: number; listingMaxPpp: number; listingCount: number
         actualAvgPpp: number; actualCount: number
       }> = {}
+      const listingPpps: Record<RowKey, number[]> = {}
 
       for (const l of listings) {
         const py = getListingPyeong(l)
@@ -434,10 +456,18 @@ export function registerRealEstateTools(server: McpServer) {
         const band = getBand(py)
         const key = `${l.complex_name}|${band}`
         if (!rowMap[key]) rowMap[key] = { complexName: l.complex_name, areaBand: band, listingMinPpp: Infinity, listingMaxPpp: 0, listingCount: 0, actualAvgPpp: 0, actualCount: 0 }
+        if (!listingPpps[key]) listingPpps[key] = []
+        listingPpps[key].push(ppp)
         const r = rowMap[key]
         r.listingCount++
-        r.listingMinPpp = Math.min(r.listingMinPpp, ppp)
         r.listingMaxPpp = Math.max(r.listingMaxPpp, ppp)
+      }
+
+      // listingMinPpp = P10 (10th percentile) to avoid single-listing outlier skew
+      for (const [key, ppps] of Object.entries(listingPpps)) {
+        const sorted = [...ppps].sort((a, b) => a - b)
+        const p10Idx = Math.floor(sorted.length * 0.1)
+        rowMap[key].listingMinPpp = sorted[p10Idx]
       }
 
       // Collect all actual trade PPPs per key first

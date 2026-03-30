@@ -404,20 +404,29 @@ export async function GET(request: Request) {
     if (type === 'listings') {
       const tradeType = searchParams.get('tradeType') || '매매'
 
-      // Find the latest snapshot date
+      // Find the latest snapshot date, then fetch latest 2 days to cover complexes scraped on different dates
       const { data: latestSnap } = await supabase
         .from('re_naver_listings').select('snapshot_date')
         .in('complex_name', complexNames)
         .order('snapshot_date', { ascending: false }).limit(1)
       const latestSnapshotDate = latestSnap?.[0]?.snapshot_date
-
-      // Fetch listings (tracked complexes only, latest snapshot only)
-      const listings = latestSnapshotDate ? await fetchAll(
+      const snapCutoff = latestSnapshotDate
+        ? new Date(new Date(latestSnapshotDate).getTime() - 2 * 86400000).toISOString().slice(0, 10)
+        : null
+      const allListings = snapCutoff ? await fetchAll(
         supabase.from('re_naver_listings')
           .select('*').eq('trade_type', tradeType)
-          .eq('snapshot_date', latestSnapshotDate)
+          .gte('snapshot_date', snapCutoff)
           .in('complex_name', complexNames)
       ) : []
+      // Keep only each complex's latest snapshot
+      const complexLatest: Record<string, string> = {}
+      for (const l of allListings) {
+        if (!complexLatest[l.complex_name] || l.snapshot_date > complexLatest[l.complex_name]) {
+          complexLatest[l.complex_name] = l.snapshot_date
+        }
+      }
+      const listings = allListings.filter(l => l.snapshot_date === complexLatest[l.complex_name])
 
       // Group listings by complex + 평형대 (20평대, 30평대, 40평대, 50평대, 60평대+)
       function getBand(supplyPy: number): number {
@@ -433,6 +442,7 @@ export async function GET(request: Request) {
         listingMinPpp: number | null; listingMaxPpp: number | null; listingCount: number
         actualAvgPpp: number | null; actualCount: number; gap: number | null
       }> = {}
+      const listingPpps: Record<RowKey, number[]> = {}
 
       for (const l of listings || []) {
         const supply = Number(l.area_supply_sqm)
@@ -451,10 +461,18 @@ export async function GET(request: Request) {
         const band = getBand(py)
         const key = `${l.complex_name}|${band}`
         if (!rowMap[key]) rowMap[key] = { complexName: l.complex_name, complexNo: l.complex_no || null, areaBand: band, listingMinPpp: null, listingMaxPpp: null, listingCount: 0, actualAvgPpp: null, actualCount: 0, gap: null }
+        if (!listingPpps[key]) listingPpps[key] = []
+        listingPpps[key].push(ppp)
         const r = rowMap[key]
         r.listingCount += 1
-        if (!r.listingMinPpp || ppp < r.listingMinPpp) r.listingMinPpp = Math.round(ppp)
         if (!r.listingMaxPpp || ppp > r.listingMaxPpp) r.listingMaxPpp = Math.round(ppp)
+      }
+
+      // listingMinPpp = P10 (10th percentile) to avoid single-listing outlier skew
+      for (const [key, ppps] of Object.entries(listingPpps)) {
+        const sorted = [...ppps].sort((a, b) => a - b)
+        const p10Idx = Math.floor(sorted.length * 0.1)
+        rowMap[key].listingMinPpp = Math.round(sorted[p10Idx])
       }
 
       // Fetch actual prices (1-month window) and match to 평형대
