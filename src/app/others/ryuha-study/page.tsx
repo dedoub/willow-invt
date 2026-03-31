@@ -45,8 +45,15 @@ import {
   ClipboardList,
   Ruler,
   Scale,
+  Search,
+  X,
+  Pin,
+  Maximize2,
+  Paperclip,
+  NotebookPen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { TiptapEditor, plainTextToHtml } from '@/components/ui/tiptap-editor'
 import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule, RyuhaDailyMemo, RyuhaHomeworkItem, RyuhaBodyRecord } from '@/types/ryuha'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import {
@@ -759,6 +766,51 @@ export default function RyuhaStudyPage() {
     return true
   })
 
+  // ====== Notebook (류하 수첩) states ======
+  interface NotebookAttachment {
+    name: string
+    url: string
+    size: number
+    type: string
+  }
+  interface NotebookNote {
+    id: string
+    title: string
+    content: string
+    category: string | null
+    is_pinned: boolean
+    attachments: NotebookAttachment[] | null
+    created_at: string
+    updated_at: string
+  }
+  const [notebookNotes, setNotebookNotes] = useState<NotebookNote[]>([])
+  const [isLoadingNotebook, setIsLoadingNotebook] = useState(true)
+  const [isAddingNotebookNote, setIsAddingNotebookNote] = useState(false)
+  const [editingNotebookNote, setEditingNotebookNote] = useState<NotebookNote | null>(null)
+  const [notebookTitle, setNotebookTitle] = useState('')
+  const [notebookContent, setNotebookContent] = useState('')
+  const [notebookFiles, setNotebookFiles] = useState<File[]>([])
+  const [isDraggingNotebook, setIsDraggingNotebook] = useState(false)
+  const [isUploadingNotebook, setIsUploadingNotebook] = useState(false)
+  const [notebookSearch, setNotebookSearch] = useState('')
+  const [notebookPage, setNotebookPage] = useState(1)
+  const [notebookPerPage, setNotebookPerPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ryuha-notebook-per-page')
+      return saved ? Number(saved) : 5
+    }
+    return 5
+  })
+  const [expandedNotebookNotes, setExpandedNotebookNotes] = useState<Set<string>>(new Set())
+  const [viewingNotebookNote, setViewingNotebookNote] = useState<NotebookNote | null>(null)
+  const [notebookExpanded, setNotebookExpanded] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ryuha-notebook-expanded')
+      return saved !== 'false'
+    }
+    return true
+  })
+
   // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -959,6 +1011,148 @@ export default function RyuhaStudyPage() {
     setBodyRecordDialogOpen(true)
   }
 
+  // ====== Notebook (류하 수첩) functions ======
+  const fetchNotebookNotes = useCallback(async () => {
+    setIsLoadingNotebook(true)
+    try {
+      const res = await fetch('/api/ryuha/notes')
+      if (res.ok) {
+        const data = await res.json()
+        setNotebookNotes(data)
+      }
+    } catch (error) {
+      console.error('Failed to load notebook notes:', error)
+    } finally {
+      setIsLoadingNotebook(false)
+    }
+  }, [])
+
+  const handleAddNotebookNote = async () => {
+    if (!notebookTitle.trim() && !notebookContent.trim() && notebookFiles.length === 0) return
+    try {
+      setIsUploadingNotebook(true)
+      let attachments: NotebookAttachment[] | null = null
+
+      if (notebookFiles.length > 0) {
+        const formData = new FormData()
+        notebookFiles.forEach(file => formData.append('files', file))
+        const uploadRes = await fetch('/api/wiki/upload', { method: 'POST', body: formData })
+        if (!uploadRes.ok) {
+          alert('파일 업로드 실패')
+          return
+        }
+        const uploadData = await uploadRes.json()
+        attachments = uploadData.files
+      }
+
+      const res = await fetch('/api/ryuha/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: notebookTitle.trim(),
+          content: notebookContent.trim(),
+          attachments,
+        }),
+      })
+      if (res.ok) {
+        setNotebookTitle('')
+        setNotebookContent('')
+        setNotebookFiles([])
+        setIsAddingNotebookNote(false)
+        await fetchNotebookNotes()
+      }
+    } catch (error) {
+      console.error('Failed to add notebook note:', error)
+    } finally {
+      setIsUploadingNotebook(false)
+    }
+  }
+
+  const handleUpdateNotebookNote = async () => {
+    if (!editingNotebookNote) return
+    if (!notebookTitle.trim() && !notebookContent.trim()) return
+    try {
+      setIsUploadingNotebook(true)
+      let attachments = editingNotebookNote.attachments
+
+      if (notebookFiles.length > 0) {
+        const formData = new FormData()
+        notebookFiles.forEach(file => formData.append('files', file))
+        const uploadRes = await fetch('/api/wiki/upload', { method: 'POST', body: formData })
+        if (!uploadRes.ok) {
+          alert('파일 업로드 실패')
+          return
+        }
+        const uploadData = await uploadRes.json()
+        attachments = [...(attachments || []), ...uploadData.files]
+      }
+
+      const res = await fetch('/api/ryuha/notes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingNotebookNote.id,
+          title: notebookTitle.trim(),
+          content: notebookContent.trim(),
+          attachments,
+        }),
+      })
+      if (res.ok) {
+        setNotebookTitle('')
+        setNotebookContent('')
+        setNotebookFiles([])
+        setEditingNotebookNote(null)
+        await fetchNotebookNotes()
+      }
+    } catch (error) {
+      console.error('Failed to update notebook note:', error)
+    } finally {
+      setIsUploadingNotebook(false)
+    }
+  }
+
+  const handleDeleteNotebookNote = async (noteId: string) => {
+    try {
+      const res = await fetch(`/api/ryuha/notes?id=${noteId}`, { method: 'DELETE' })
+      if (res.ok) await fetchNotebookNotes()
+    } catch (error) {
+      console.error('Failed to delete notebook note:', error)
+    }
+  }
+
+  const handleToggleNotebookPin = async (note: NotebookNote) => {
+    try {
+      const res = await fetch('/api/ryuha/notes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: note.id, is_pinned: !note.is_pinned }),
+      })
+      if (res.ok) await fetchNotebookNotes()
+    } catch (error) {
+      console.error('Failed to toggle pin:', error)
+    }
+  }
+
+  const startEditNotebookNote = (note: NotebookNote) => {
+    setEditingNotebookNote(note)
+    setNotebookTitle(note.title)
+    setNotebookContent(note.content || '')
+    setNotebookFiles([])
+    setIsAddingNotebookNote(false)
+  }
+
+  const filteredNotebookNotes = notebookNotes.filter(note => {
+    if (!notebookSearch) return true
+    const search = notebookSearch.toLowerCase()
+    return note.title.toLowerCase().includes(search) || note.content.toLowerCase().includes(search)
+  })
+
+  const totalNotebookPages = Math.ceil(filteredNotebookNotes.length / notebookPerPage)
+  const paginatedNotebookNotes = filteredNotebookNotes.slice(
+    (notebookPage - 1) * notebookPerPage,
+    notebookPage * notebookPerPage
+  )
+
   const getDateRange = () => {
     if (viewMode === 'week') {
       const start = getWeekStart(currentDate)
@@ -989,6 +1183,7 @@ export default function RyuhaStudyPage() {
         fetchChaptersWithSchedules(),
         fetchMemos(),
         fetchBodyRecords(),
+        fetchNotebookNotes(),
       ])
       setLoading(false)
     }
@@ -1018,6 +1213,11 @@ export default function RyuhaStudyPage() {
   useEffect(() => {
     localStorage.setItem('ryuha-expanded-textbooks', JSON.stringify(expandedTextbooks))
   }, [expandedTextbooks])
+
+  // Save notebookExpanded to localStorage
+  useEffect(() => {
+    localStorage.setItem('ryuha-notebook-expanded', String(notebookExpanded))
+  }, [notebookExpanded])
 
   // Date helpers
   const getWeekStart = (date: Date) => {
@@ -3098,6 +3298,394 @@ export default function RyuhaStudyPage() {
           </Card>
         </div>
       </div>
+
+      {/* 류하 수첩 (Notebook) Section */}
+      <Card className="bg-slate-100 dark:bg-slate-800">
+        <CardHeader
+          className={cn("cursor-pointer", notebookExpanded ? "" : "-mb-2")}
+          onClick={() => setNotebookExpanded(!notebookExpanded)}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <NotebookPen className="h-5 w-5" />
+                류하 수첩
+              </CardTitle>
+              <CardDescription>자유롭게 기록하는 나만의 수첩</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsAddingNotebookNote(true); setNotebookExpanded(true) }}
+                className="flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">기록</span>
+              </button>
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 text-muted-foreground transition-transform',
+                  !notebookExpanded && '-rotate-90'
+                )}
+              />
+            </div>
+          </div>
+        </CardHeader>
+        {notebookExpanded && (
+          <CardContent>
+            <div className="mb-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={notebookSearch}
+                  onChange={(e) => { setNotebookSearch(e.target.value); setNotebookPage(1) }}
+                  placeholder="수첩 검색..."
+                  className="w-full rounded-lg bg-white dark:bg-slate-700 px-3 py-1.5 text-sm pl-8 outline-none transition-colors focus:bg-slate-50 dark:focus:bg-slate-600"
+                />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                {notebookSearch && (
+                  <button onClick={() => { setNotebookSearch(''); setNotebookPage(1) }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              {notebookSearch && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {filteredNotebookNotes.length}개 검색 결과
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              {isAddingNotebookNote && (
+                <div
+                  className={`rounded-lg p-3 transition-colors ${
+                    isDraggingNotebook ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-white dark:bg-slate-700'
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); setIsDraggingNotebook(true) }}
+                  onDragLeave={() => setIsDraggingNotebook(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDraggingNotebook(false); const files = Array.from(e.dataTransfer.files || []); if (files.length > 0) setNotebookFiles(prev => [...prev, ...files]) }}
+                >
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                      <Input
+                        value={notebookTitle}
+                        onChange={(e) => setNotebookTitle(e.target.value)}
+                        placeholder="제목을 입력하세요"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">내용</label>
+                      <TiptapEditor
+                        content={notebookContent}
+                        onChange={setNotebookContent}
+                        placeholder="내용을 입력하세요..."
+                        minHeight="80px"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">첨부 파일</label>
+                      <div className={`rounded-lg p-2 text-center transition-colors ${
+                        isDraggingNotebook ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-600'
+                      }`}>
+                        <input
+                          type="file"
+                          id="notebook-file-input-add"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || [])
+                            if (files.length > 0) setNotebookFiles(prev => [...prev, ...files])
+                            e.target.value = ''
+                          }}
+                        />
+                        <label
+                          htmlFor="notebook-file-input-add"
+                          className="flex items-center justify-center gap-1 text-xs text-slate-500 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300"
+                        >
+                          <Paperclip className="h-3 w-3" />
+                          <span>파일 첨부</span>
+                        </label>
+                      </div>
+                      {notebookFiles.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {notebookFiles.map((file, idx) => (
+                            <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
+                              <Paperclip className="h-3 w-3 text-slate-400" />
+                              <span className="flex-1 truncate">{file.name}</span>
+                              <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                              <button onClick={() => setNotebookFiles(files => files.filter((_, i) => i !== idx))} className="text-slate-400 hover:text-red-500">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4 pt-3">
+                    <Button variant="outline" size="sm" onClick={() => { setIsAddingNotebookNote(false); setNotebookTitle(''); setNotebookContent(''); setNotebookFiles([]) }}>
+                      취소
+                    </Button>
+                    <Button size="sm" onClick={handleAddNotebookNote} disabled={(!notebookTitle.trim() && !notebookContent.trim() && notebookFiles.length === 0) || isUploadingNotebook}>
+                      {isUploadingNotebook && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                      {isUploadingNotebook ? '저장 중...' : '저장'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {isLoadingNotebook ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                </div>
+              ) : filteredNotebookNotes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <NotebookPen className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                  <p className="text-sm">{notebookSearch ? '검색 결과가 없습니다' : '아직 기록이 없어요'}</p>
+                  {!notebookSearch && <p className="text-xs">위의 기록 버튼을 눌러 첫 수첩을 써보세요!</p>}
+                </div>
+              ) : (
+                paginatedNotebookNotes.map((note) => (
+                  <div key={note.id} className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                    {editingNotebookNote?.id === note.id ? (
+                      <div
+                        className={`rounded-lg p-3 -m-3 transition-colors ${
+                          isDraggingNotebook ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-white dark:bg-slate-700'
+                        }`}
+                        onDragOver={(e) => { e.preventDefault(); setIsDraggingNotebook(true) }}
+                        onDragLeave={() => setIsDraggingNotebook(false)}
+                        onDrop={(e) => { e.preventDefault(); setIsDraggingNotebook(false); const files = Array.from(e.dataTransfer.files || []); if (files.length > 0) setNotebookFiles(prev => [...prev, ...files]) }}
+                      >
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">제목</label>
+                            <Input value={notebookTitle} onChange={(e) => setNotebookTitle(e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">내용</label>
+                            <TiptapEditor content={notebookContent} onChange={setNotebookContent} placeholder="내용을 입력하세요..." minHeight="80px" />
+                          </div>
+                          <div>
+                            <span className="text-xs text-slate-500 mb-1 block">첨부 파일</span>
+                            <label
+                              htmlFor={`notebook-file-input-edit-${note.id}`}
+                              className={`rounded-lg p-2 text-center transition-colors cursor-pointer block ${
+                                isDraggingNotebook ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-slate-100 dark:bg-slate-600'
+                              }`}
+                            >
+                              <input
+                                type="file"
+                                id={`notebook-file-input-edit-${note.id}`}
+                                multiple
+                                className="hidden"
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || [])
+                                  if (files.length > 0) setNotebookFiles(prev => [...prev, ...files])
+                                  e.target.value = ''
+                                }}
+                              />
+                              <span className="flex items-center justify-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                <Paperclip className="h-3 w-3" />
+                                <span>파일 첨부</span>
+                              </span>
+                            </label>
+                            {(editingNotebookNote.attachments && editingNotebookNote.attachments.length > 0) && (
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs text-slate-400">기존 첨부파일:</p>
+                                {editingNotebookNote.attachments.map((att, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-600 rounded px-2 py-1.5">
+                                    <Paperclip className="h-3 w-3 text-slate-400" />
+                                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-blue-600 hover:underline">{att.name}</a>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newAttachments = editingNotebookNote.attachments?.filter((_, i) => i !== idx) || []
+                                        setEditingNotebookNote({ ...editingNotebookNote, attachments: newAttachments })
+                                      }}
+                                      className="text-slate-400 hover:text-red-500 transition-colors"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {notebookFiles.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs text-slate-400">새 첨부파일:</p>
+                                {notebookFiles.map((file, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-slate-600 rounded px-2 py-1.5">
+                                    <Paperclip className="h-3 w-3 text-slate-400" />
+                                    <span className="flex-1 truncate">{file.name}</span>
+                                    <span className="text-slate-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                                    <button onClick={() => setNotebookFiles(files => files.filter((_, i) => i !== idx))} className="text-slate-400 hover:text-red-500">
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex justify-between gap-2 mt-4 pt-3">
+                          <Button variant="destructive" size="sm" onClick={() => { if (confirm('이 기록을 삭제하시겠습니까?')) { handleDeleteNotebookNote(editingNotebookNote.id); setEditingNotebookNote(null); setNotebookTitle(''); setNotebookContent(''); setNotebookFiles([]) } }}>
+                            삭제
+                          </Button>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => { setEditingNotebookNote(null); setNotebookTitle(''); setNotebookContent(''); setNotebookFiles([]) }}>
+                              취소
+                            </Button>
+                            <Button size="sm" onClick={handleUpdateNotebookNote} disabled={(!notebookTitle.trim() && !notebookContent.trim()) || isUploadingNotebook}>
+                              {isUploadingNotebook && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                              {isUploadingNotebook ? '저장 중...' : '저장'}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {note.is_pinned && <Pin className="h-3 w-3 text-amber-500" />}
+                            <p className="font-medium text-sm">{note.title}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => setViewingNotebookNote(note)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 cursor-pointer">
+                              <Maximize2 className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => handleToggleNotebookPin(note)} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${note.is_pinned ? 'text-amber-500' : 'text-slate-400'}`}>
+                              <Pin className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => startEditNotebookNote(note)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 cursor-pointer">
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                        <div
+                          className={cn(
+                            "wiki-content mt-1 text-slate-600 dark:text-slate-400",
+                            !expandedNotebookNotes.has(note.id) && "line-clamp-3 overflow-hidden"
+                          )}
+                          dangerouslySetInnerHTML={{ __html: note.content?.startsWith('<') ? note.content : plainTextToHtml(note.content || '') }}
+                        />
+                        {note.content && (note.content.length > 150 || note.content.split('\n').length > 3) && (
+                          <button
+                            onClick={() => {
+                              const newExpanded = new Set(expandedNotebookNotes)
+                              if (newExpanded.has(note.id)) newExpanded.delete(note.id)
+                              else newExpanded.add(note.id)
+                              setExpandedNotebookNotes(newExpanded)
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mt-1"
+                          >
+                            {expandedNotebookNotes.has(note.id) ? '접기' : '펼치기'}
+                          </button>
+                        )}
+                        {note.attachments && note.attachments.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {note.attachments.map((att, idx) => (
+                              <a
+                                key={idx}
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
+                              >
+                                <Paperclip className="h-2.5 w-2.5" />
+                                <span>{att.name}</span>
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {new Date(note.updated_at).toLocaleDateString('ko-KR')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+            {filteredNotebookNotes.length > 0 && (
+              <div className="flex items-center justify-between gap-2 pt-3 mt-3">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">
+                    {filteredNotebookNotes.length}개 중 {(notebookPage - 1) * notebookPerPage + 1}-{Math.min(notebookPage * notebookPerPage, filteredNotebookNotes.length)}
+                  </p>
+                  <select
+                    value={notebookPerPage}
+                    onChange={(e) => {
+                      const val = Number(e.target.value)
+                      setNotebookPerPage(val)
+                      localStorage.setItem('ryuha-notebook-per-page', String(val))
+                      setNotebookPage(1)
+                    }}
+                    className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <option value={5}>5개</option>
+                    <option value={10}>10개</option>
+                    <option value={25}>25개</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setNotebookPage(p => Math.max(1, p - 1))}
+                    disabled={notebookPage <= 1}
+                    className="p-1 rounded hover:bg-white dark:hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="text-xs text-muted-foreground min-w-[3rem] text-center">{notebookPage}/{totalNotebookPages || 1}</span>
+                  <button
+                    onClick={() => setNotebookPage(p => Math.min(totalNotebookPages, p + 1))}
+                    disabled={notebookPage >= totalNotebookPages}
+                    className="p-1 rounded hover:bg-white dark:hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Notebook Full-Screen View Dialog */}
+      <Dialog open={!!viewingNotebookNote} onOpenChange={() => setViewingNotebookNote(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="pb-4 border-b flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              {viewingNotebookNote?.is_pinned && <Pin className="h-4 w-4 text-amber-500" />}
+              {viewingNotebookNote?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 py-4">
+            <div
+              className="wiki-content text-slate-600 dark:text-slate-400"
+              dangerouslySetInnerHTML={{ __html: viewingNotebookNote?.content?.startsWith('<') ? viewingNotebookNote.content : plainTextToHtml(viewingNotebookNote?.content || '') }}
+            />
+            {viewingNotebookNote?.attachments && viewingNotebookNote.attachments.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1">
+                {viewingNotebookNote.attachments.map((att, idx) => (
+                  <a
+                    key={idx}
+                    href={att.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
+                  >
+                    <Paperclip className="h-2.5 w-2.5" />
+                    <span>{att.name}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="pt-4 border-t flex-shrink-0 text-xs text-muted-foreground">
+            {viewingNotebookNote && new Date(viewingNotebookNote.updated_at).toLocaleDateString('ko-KR')}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       </div>
 
       {/* Schedule Dialog */}

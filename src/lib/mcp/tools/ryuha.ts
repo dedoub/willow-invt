@@ -846,7 +846,7 @@ export function registerRyuhaTools(server: McpServer) {
   // =============================================
 
   server.registerTool('ryuha_list_notes', {
-    description: '[류하 학습관리] 노트 목록을 조회합니다. 카테고리로 필터링 가능',
+    description: '[류하 수첩] 노트 목록을 조회합니다. 카테고리로 필터링 가능',
     inputSchema: z.object({
       category: z.string().optional().describe('카테고리 필터 (예: 메모, 일기, 공부)'),
       search: z.string().optional().describe('제목/내용 검색어'),
@@ -873,12 +873,18 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_create_note', {
-    description: '[류하 학습관리] 새 노트를 저장합니다',
+    description: '[류하 수첩] 새 노트를 저장합니다',
     inputSchema: z.object({
       title: z.string().describe('노트 제목'),
       content: z.string().describe('노트 내용'),
       category: z.string().optional().describe('카테고리 (기본: 메모)'),
       is_pinned: z.boolean().optional().describe('고정 여부'),
+      attachments: z.array(z.object({
+        name: z.string(),
+        url: z.string(),
+        size: z.number(),
+        type: z.string(),
+      })).optional().describe('첨부파일 배열 [{name, url, size, type}]'),
     }),
   }, async (input, { authInfo }) => {
     const user = getUserFromAuthInfo(authInfo)
@@ -895,6 +901,7 @@ export function registerRyuhaTools(server: McpServer) {
         content: input.content,
         category: input.category || '메모',
         is_pinned: input.is_pinned || false,
+        attachments: input.attachments || null,
       })
       .select()
       .single()
@@ -906,13 +913,19 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_update_note', {
-    description: '[류하 학습관리] 노트를 수정합니다',
+    description: '[류하 수첩] 노트를 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('노트 ID'),
       title: z.string().optional().describe('노트 제목'),
       content: z.string().optional().describe('노트 내용'),
       category: z.string().optional().describe('카테고리'),
       is_pinned: z.boolean().optional().describe('고정 여부'),
+      attachments: z.array(z.object({
+        name: z.string(),
+        url: z.string(),
+        size: z.number(),
+        type: z.string(),
+      })).optional().describe('첨부파일 배열 (전체 교체)'),
     }),
   }, async (input, { authInfo }) => {
     const user = getUserFromAuthInfo(authInfo)
@@ -937,7 +950,7 @@ export function registerRyuhaTools(server: McpServer) {
   })
 
   server.registerTool('ryuha_delete_note', {
-    description: '[류하 학습관리] 노트를 삭제합니다',
+    description: '[류하 수첩] 노트를 삭제합니다',
     inputSchema: z.object({
       id: z.string().describe('노트 ID'),
     }),

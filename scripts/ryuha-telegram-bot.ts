@@ -277,6 +277,7 @@ function buildSystemPrompt(context: string, history: Message[]): string {
 2. **응원단**: 공부하면 칭찬, 완료하면 축하 🎉
 3. **공부 도우미**: 모르는 거 물어보면 초등학생 눈높이에 맞게 설명
 4. **생활 친구**: 체형 기록, 일상 대화도 OK
+5. **수첩 관리**: 류하 수첩에 기록 추가/조회/수정 (기억해둘 것, 메모, 일기 등)
 
 ## MCP 도구
 류하가 일정/숙제/교재/체형 관련 요청을 하면 MCP 도구를 사용해.
@@ -308,6 +309,12 @@ function buildSystemPrompt(context: string, history: Message[]): string {
 ### 메모
 - ryuha_list_memos: 메모 조회 (start_date, end_date)
 - ryuha_upsert_memo: 메모 작성 (memo_date, content)
+
+### 류하 수첩 (노트)
+- ryuha_list_notes: 수첩 노트 목록 조회 (category, search로 필터)
+- ryuha_create_note: 수첩에 새 노트 작성 (title, content 필수)
+- ryuha_update_note: 수첩 노트 수정 (id 필수)
+- ryuha_delete_note: 수첩 노트 삭제 (id 필수)
 
 ## 응답 규칙
 1. 텔레그램 메시지니까 짧고 읽기 쉽게!
@@ -450,6 +457,27 @@ async function buildContext(): Promise<string> {
     }
   } catch (e) {
     console.error('[context] body records error:', e)
+  }
+
+  // 최근 수첩 노트
+  try {
+    const { data: notes } = await supabase
+      .from('ryuha_notes')
+      .select('id, title, category, is_pinned, updated_at')
+      .order('is_pinned', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(5)
+
+    if (notes?.length) {
+      parts.push(`\n### 류하 수첩 (최근 노트)`)
+      for (const n of notes) {
+        const pin = n.is_pinned ? '📌 ' : ''
+        const cat = n.category && n.category !== '메모' ? ` [${n.category}]` : ''
+        parts.push(`${pin}${n.title}${cat} (${n.updated_at?.split('T')[0]})`)
+      }
+    }
+  } catch (e) {
+    console.error('[context] notebook notes error:', e)
   }
 
   return parts.join('\n') || '(데이터 없음)'
