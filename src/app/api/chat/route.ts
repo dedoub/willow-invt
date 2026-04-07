@@ -45,7 +45,8 @@ function buildSystemPrompt(): string {
 - **re_get_summary**: 시장 요약 (평균 매매/전세 평당가)
 - **re_get_trade_trends**: 매매 실거래가 추이 (월별 평당가, 단지별/전체)
 - **re_get_rental_trends**: 전세 실거래가 추이 (월별 평당가, 단지별/전체)
-- **re_get_listing_gap**: 매도호가 vs 실거래가 괴리율 (단지별/평형대별)
+- **re_get_listing_gap**: 매도호가 vs 실거래가 괴리율 현재 스냅샷 (단지별/평형대별)
+- **re_get_listing_gap_trend**: 매매/전세 괴리율 일별 추이 (trade_type으로 매매/전세 선택)
 - **re_get_jeonse_ratio**: 전세가율 추이 (월별)
 
 ### 범용 CRUD 도구

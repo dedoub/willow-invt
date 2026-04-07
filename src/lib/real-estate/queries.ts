@@ -350,6 +350,110 @@ export async function reGetJeonseRatio(params: { months?: number }) {
   return { unit: '%', trend }
 }
 
+export async function reGetListingGapTrend(params: { trade_type?: string; area_band?: number }) {
+  const supabase = getServiceSupabase()
+  const tradeType = params.trade_type || '매매'
+  const complexNames = await getTrackedComplexNames(supabase)
+  if (complexNames.length === 0) return { error: '추적 단지가 없습니다.' }
+
+  // 1. Daily summary from pre-computed table
+  let query = supabase
+    .from('re_listing_daily_summary')
+    .select('snapshot_date, complex_name, area_band, min_ppp')
+    .eq('trade_type', tradeType)
+    .in('complex_name', complexNames)
+    .order('snapshot_date', { ascending: true })
+
+  if (params.area_band) {
+    query = query.eq('area_band', params.area_band)
+  } else {
+    query = query.gte('area_band', 20)
+  }
+
+  const data = await fetchAll(query)
+  const areaMapping = await buildAreaMapping(supabase, complexNames)
+
+  // Collect snapshot dates + listing data
+  const dateSet = new Set<string>()
+  const dateListings: Record<string, Record<string, number>> = {}
+  for (const row of data || []) {
+    const d = row.snapshot_date
+    dateSet.add(d)
+    if (!dateListings[d]) dateListings[d] = {}
+    const key = `${row.complex_name}|${row.area_band}`
+    const prev = dateListings[d][key]
+    if (prev === undefined || row.min_ppp < prev) {
+      dateListings[d][key] = row.min_ppp
+    }
+  }
+
+  const dates = [...dateSet].sort()
+  if (dates.length === 0) return { tradeType, trend: [] }
+
+  // Fetch trades covering all windows
+  const ed = new Date(dates[0])
+  ed.setMonth(ed.getMonth() - 1)
+  const tradeCutoff = `${ed.getFullYear()}-${String(ed.getMonth() + 1).padStart(2, '0')}-01`
+
+  type TradeRow = { complex_name: string; deal_amount?: number; deposit?: number; area_sqm: number; deal_date: string }
+  const allActuals: TradeRow[] = []
+  if (tradeType === '매매') {
+    allActuals.push(...await fetchAll(
+      supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date')
+        .gte('deal_date', tradeCutoff).eq('cancel_yn', 'N').in('complex_name', complexNames)
+    ))
+  } else {
+    allActuals.push(...await fetchAll(
+      supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date')
+        .gte('deal_date', tradeCutoff).eq('rent_type', '전세').in('complex_name', complexNames)
+    ))
+  }
+
+  // Pre-compute entries
+  const tradeEntries = allActuals.map(t => {
+    const sqm = Number(t.area_sqm)
+    if (sqm <= 0) return null
+    const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
+    if (supplyPy <= 0 || supplyPy < 20) return null
+    const key = `${t.complex_name}|${getBand(supplyPy)}`
+    const ppp = tradeType === '매매' ? Number(t.deal_amount) / supplyPy : Number(t.deposit) / supplyPy
+    return { key, ppp, dealDate: t.deal_date }
+  }).filter((e): e is { key: string; ppp: number; dealDate: string } => e !== null)
+
+  // Per-date gap rate
+  const trend = dates.map(d => {
+    const sd = new Date(d)
+    sd.setMonth(sd.getMonth() - 1)
+    const windowStart = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, '0')}-${String(sd.getDate()).padStart(2, '0')}`
+
+    const dateBands: Record<string, { sum: number; count: number }> = {}
+    for (const e of tradeEntries) {
+      if (e.dealDate >= windowStart && e.dealDate <= d) {
+        if (!dateBands[e.key]) dateBands[e.key] = { sum: 0, count: 0 }
+        dateBands[e.key].sum += e.ppp
+        dateBands[e.key].count += 1
+      }
+    }
+
+    const gaps: number[] = []
+    for (const [key, minPpp] of Object.entries(dateListings[d] || {})) {
+      const actual = dateBands[key]
+      if (actual && actual.count > 0) {
+        const avgActual = actual.sum / actual.count
+        if (avgActual > 0) {
+          gaps.push(((minPpp - avgActual) / avgActual) * 100)
+        }
+      }
+    }
+    return {
+      date: d,
+      gapRate: gaps.length > 0 ? Math.round(gaps.reduce((s, v) => s + v, 0) / gaps.length * 10) / 10 : null,
+    }
+  }).filter(t => t.gapRate !== null)
+
+  return { tradeType, unit: '%', trend }
+}
+
 export async function reGetSummary(params: { district?: string }) {
   const supabase = getServiceSupabase()
   let trackedQuery = supabase.from('re_complexes').select('name, district_name').eq('is_tracked', true)

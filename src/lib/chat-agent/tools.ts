@@ -4,7 +4,7 @@
 import { getServiceSupabase } from '@/lib/supabase'
 import {
   reListComplexes, reGetTradeTrends, reGetRentalTrends,
-  reGetListingGap, reGetJeonseRatio, reGetSummary,
+  reGetListingGap, reGetListingGapTrend, reGetJeonseRatio, reGetSummary,
 } from '@/lib/real-estate/queries'
 
 // ============================================================
@@ -215,11 +215,22 @@ export const agentTools = [
   },
   {
     name: 're_get_listing_gap',
-    description: '매도호가 vs 실거래가 괴리율을 단지별/평형대별로 비교합니다. 호가가 실거래 대비 몇% 높은지 분석.',
+    description: '매도호가 vs 실거래가 괴리율을 단지별/평형대별로 비교합니다 (현재 시점 스냅샷). 호가가 실거래 대비 몇% 높은지.',
     parameters: {
       type: 'object' as const,
       properties: {
         trade_type: { type: 'string', description: '거래유형: 매매 또는 전세 (기본: 매매)' },
+      },
+    },
+  },
+  {
+    name: 're_get_listing_gap_trend',
+    description: '매도호가 vs 실거래가 괴리율 추이를 일별로 조회합니다. 매매 괴리율 추이, 전세 괴리율 추이 분석에 사용.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        trade_type: { type: 'string', description: '거래유형: 매매 또는 전세 (기본: 매매)' },
+        area_band: { type: 'string', description: '평형대 필터: 20, 30, 40, 50, 60 (미지정 시 전체)' },
       },
     },
   },
@@ -472,6 +483,12 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
 
     case 're_get_listing_gap':
       return await reGetListingGap({ trade_type: args.trade_type as string | undefined })
+
+    case 're_get_listing_gap_trend':
+      return await reGetListingGapTrend({
+        trade_type: args.trade_type as string | undefined,
+        area_band: args.area_band ? Number(args.area_band) : undefined,
+      })
 
     case 're_get_jeonse_ratio':
       return await reGetJeonseRatio({
