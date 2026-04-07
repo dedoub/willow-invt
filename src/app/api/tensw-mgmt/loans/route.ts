@@ -6,7 +6,7 @@ export async function GET() {
   const supabase = getServiceSupabase()
 
   const { data, error } = await supabase
-    .from('tensw_loans')
+    .from('tensw_mgmt_loans')
     .select('*')
     .order('maturity_date', { ascending: true })
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   const supabase = getServiceSupabase()
 
   const { data, error } = await supabase
-    .from('tensw_loans')
+    .from('tensw_mgmt_loans')
     .insert({
       bank,
       account_number,
@@ -81,7 +81,7 @@ export async function PUT(request: Request) {
   const supabase = getServiceSupabase()
 
   const { data, error } = await supabase
-    .from('tensw_loans')
+    .from('tensw_mgmt_loans')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
@@ -106,7 +106,7 @@ export async function DELETE(request: Request) {
   const supabase = getServiceSupabase()
 
   const { error } = await supabase
-    .from('tensw_loans')
+    .from('tensw_mgmt_loans')
     .delete()
     .eq('id', id)
 

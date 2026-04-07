@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { ProtectedPage } from '@/components/auth/protected-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -1604,6 +1605,10 @@ export default function AkrosPage() {
   useEffect(() => {
     loadETFData()
   }, [])
+
+  // Refresh data when agent makes mutations to relevant tables
+  const refreshAkrosData = useCallback(() => { loadETFData() }, [])
+  useAgentRefresh(['akros_tax_invoices', 'etf_products', 'work_wiki'], refreshAkrosData)
 
   // 총 AUM 계산
   const totalAUM = etfs.reduce((sum, etf) => sum + (etf.aum || 0), 0)

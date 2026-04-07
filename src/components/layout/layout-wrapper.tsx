@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
+import { ChatPanel } from '@/components/chat/chat-panel'
 
 const PUBLIC_PATHS = ['/login', '/signup']
 const STANDALONE_PATHS = ['/mcp/authorize'] // 인증 여부와 무관하게 독립 렌더링
@@ -20,6 +21,17 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chat-panel-open') === 'true'
+    }
+    return false
+  })
+
+  const toggleChat = (open: boolean) => {
+    setChatOpen(open)
+    localStorage.setItem('chat-panel-open', String(open))
+  }
 
   const isPublicPath = PUBLIC_PATHS.includes(pathname)
   const isStandalonePath = STANDALONE_PATHS.includes(pathname)
@@ -90,11 +102,21 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
       )}
       <Sidebar mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header title={pageTitle} onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
+        <Header
+          title={pageTitle}
+          onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+          onChatToggle={() => toggleChat(!chatOpen)}
+          chatOpen={chatOpen}
+        />
         <main className="flex-1 overflow-auto bg-muted/30 p-4 md:p-6">
           <div className="animate-fade-in">{children}</div>
         </main>
       </div>
+      {chatOpen && (
+        <div className="border-l flex-shrink-0 hidden md:block">
+          <ChatPanel open={chatOpen} onClose={() => toggleChat(false)} />
+        </div>
+      )}
     </div>
   )
 }

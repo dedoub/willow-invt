@@ -222,17 +222,36 @@ interface Message {
 }
 
 async function getConversation(chatId: number): Promise<Message[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('telegram_conversations')
     .select('messages')
     .eq('chat_id', chatId)
     .eq('bot_type', 'ryuha')
-    .single()
+    .maybeSingle()
+  if (error) {
+    console.error(`[getConversation] DB error for chatId ${chatId}:`, error.message)
+    return []
+  }
   return data?.messages || []
 }
 
+// 대화 저장 락 (동시 저장 레이스 컨디션 방지)
+const conversationLocks = new Map<number, Promise<void>>()
+async function withConversationLock<T>(chatId: number, fn: () => Promise<T>): Promise<T> {
+  const existing = conversationLocks.get(chatId) || Promise.resolve()
+  let releaseLock: () => void
+  const newLock = new Promise<void>(r => { releaseLock = r })
+  conversationLocks.set(chatId, newLock)
+  try {
+    await existing
+    return await fn()
+  } finally {
+    releaseLock!()
+  }
+}
+
 async function saveConversation(chatId: number, messages: Message[]) {
-  await supabase
+  const { error } = await supabase
     .from('telegram_conversations')
     .upsert({
       chat_id: chatId,
@@ -240,6 +259,9 @@ async function saveConversation(chatId: number, messages: Message[]) {
       messages: messages.slice(-MAX_HISTORY),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'chat_id,bot_type' })
+  if (error) {
+    console.error(`[saveConversation] DB error for chatId ${chatId}:`, error.message)
+  }
 }
 
 // ============================================================
@@ -315,6 +337,14 @@ function buildSystemPrompt(context: string, history: Message[]): string {
 - ryuha_create_note: 수첩에 새 노트 작성 (title, content 필수)
 - ryuha_update_note: 수첩 노트 수정 (id 필수)
 - ryuha_delete_note: 수첩 노트 삭제 (id 필수)
+
+## Supabase 직접 접근
+ryuha_* MCP 도구로 안 되는 복잡한 작업은 Supabase MCP 도구로 직접 DB에 접근할 수 있어.
+- mcp__supabase__execute_sql: SQL 직접 실행 (SELECT/INSERT/UPDATE/DELETE)
+- mcp__supabase__list_tables: 테이블 목록 확인
+
+**주요 테이블**: ryuha_schedules, ryuha_homework_items, ryuha_subjects, ryuha_textbooks, ryuha_chapters, ryuha_body_records, ryuha_notes
+**주의**: ryuha_* 테이블만 접근할 것. 다른 테이블은 건드리지 마.
 
 ## 응답 규칙
 1. 텔레그램 메시지니까 짧고 읽기 쉽게!
@@ -487,6 +517,7 @@ async function buildContext(): Promise<string> {
 // Claude CLI
 // ============================================================
 const RYUHA_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__ryuha_*'
+const SUPABASE_MCP_TOOLS = 'mcp__supabase__*'
 
 function extractTextFromVerboseJson(stdout: string): string {
   try {
@@ -509,7 +540,7 @@ function extractTextFromVerboseJson(stdout: string): string {
   }
 }
 
-function askClaude(prompt: string): Promise<string> {
+function askClaude(prompt: string, options?: { noTools?: boolean }): Promise<string> {
   return new Promise((resolve, reject) => {
     const env = { ...process.env }
     delete env.CLAUDECODE
@@ -517,7 +548,10 @@ function askClaude(prompt: string): Promise<string> {
     delete env.CLAUDE_CODE_ENTRYPOINT
     delete env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
 
-    const args = ['-p', '--output-format', 'json', '--verbose', '--allowedTools', RYUHA_MCP_TOOLS]
+    const args = ['-p', '--output-format', 'json', '--verbose']
+    if (!options?.noTools) {
+      args.push('--allowedTools', [RYUHA_MCP_TOOLS, SUPABASE_MCP_TOOLS].join(','))
+    }
 
     const proc = spawn('claude', args, {
       cwd: process.cwd(),
@@ -632,13 +666,14 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
       }
     }
 
-    // Save conversation
-    const newHistory = [
-      ...history,
-      { role: 'user' as const, content: userText, timestamp: new Date().toISOString() },
-      { role: 'assistant' as const, content: response.slice(0, 1000), timestamp: new Date().toISOString() },
-    ]
-    await saveConversation(chatId, newHistory)
+    // Save conversation (락으로 보호)
+    const now = new Date().toISOString()
+    await withConversationLock(chatId, async () => {
+      const freshHistory = await getConversation(chatId)
+      freshHistory.push({ role: 'user', content: userText, timestamp: now })
+      freshHistory.push({ role: 'assistant', content: response.slice(0, 1000), timestamp: now })
+      await saveConversation(chatId, freshHistory)
+    })
 
   } catch (err) {
     clearInterval(typingInterval)
@@ -708,7 +743,7 @@ let lastEveningDate = ''
 
 async function sendScheduledMessage(chatId: number, prompt: string, tag: string) {
   try {
-    const response = await askClaude(prompt)
+    const response = await askClaude(prompt, { noTools: true })
     const { messages, buttons } = parseResponse(response)
     for (let i = 0; i < messages.length; i++) {
       if (!messages[i]) continue
@@ -719,11 +754,11 @@ async function sendScheduledMessage(chatId: number, prompt: string, tag: string)
       }
     }
 
-    const history = await getConversation(chatId)
-    await saveConversation(chatId, [
-      ...history,
-      { role: 'assistant', content: `[${tag}] ${response.slice(0, 500)}`, timestamp: new Date().toISOString() },
-    ])
+    await withConversationLock(chatId, async () => {
+      const history = await getConversation(chatId)
+      history.push({ role: 'assistant', content: `[${tag}] ${response.slice(0, 500)}`, timestamp: new Date().toISOString() })
+      await saveConversation(chatId, history)
+    })
   } catch (err) {
     console.error(`[${tag}] error:`, err)
   }
@@ -751,9 +786,12 @@ async function checkMorningGreeting() {
 오늘의 학습 현황:
 ${context}
 
-류하에게 아침 인사를 해줘. 오늘 일정이 있으면 시간과 함께 간단히 알려줘.
-학원 수업이 있으면 관련 숙제 완료 여부도 체크해서 알려줘.
-밝고 에너지 넘치게! 짧게 2-3문장으로.`
+아래 지시에 따라 류하에게 보낼 아침 인사 메시지 텍스트만 작성해.
+- 오늘 일정이 있으면 시간과 함께 간단히 알려줘
+- 학원 수업이 있으면 관련 숙제 완료 여부도 체크해서 알려줘
+- 밝고 에너지 넘치게! 짧게 2-3문장으로
+
+중요: 메시지 본문만 출력해. "전송완료", "보냈습니다" 같은 시스템 상태 정보나 설명은 절대 포함하지 마. MCP 도구도 사용하지 마.`
 
     for (const cid of allowedChatIds) {
       await sendScheduledMessage(cid, prompt, '아침 인사')
@@ -783,11 +821,13 @@ async function checkEveningReminder() {
 오늘의 학습 현황:
 ${context}
 
-류하에게 저녁 알람을 보내줘.
+아래 지시에 따라 류하에게 보낼 저녁 알람 메시지 텍스트만 작성해.
 - 오늘 완료한 일정이 있으면 칭찬해줘 🎉
 - 아직 안 끝낸 숙제가 있으면 부드럽게 알려줘 (압박 X)
 - 내일 일정이 있으면 미리 알려줘
-짧고 따뜻하게 2-3문장으로!`
+- 짧고 따뜻하게 2-3문장으로!
+
+중요: 메시지 본문만 출력해. "전송완료", "보냈습니다" 같은 시스템 상태 정보나 설명은 절대 포함하지 마. MCP 도구도 사용하지 마.`
 
     for (const cid of allowedChatIds) {
       await sendScheduledMessage(cid, prompt, '저녁 알람')

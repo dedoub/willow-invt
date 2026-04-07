@@ -797,7 +797,7 @@ export function registerWillowMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     let query = supabase
-      .from('willow_mgmt_invoices')
+      .from('willow_mgmt_cash')
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -839,7 +839,7 @@ export function registerWillowMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     const { data, error } = await supabase
-      .from('willow_mgmt_invoices')
+      .from('willow_mgmt_cash')
       .insert({
         type: input.type,
         counterparty: input.counterparty,
@@ -884,7 +884,7 @@ export function registerWillowMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     const { data, error } = await supabase
-      .from('willow_mgmt_invoices')
+      .from('willow_mgmt_cash')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -910,7 +910,7 @@ export function registerWillowMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     const { error } = await supabase
-      .from('willow_mgmt_invoices')
+      .from('willow_mgmt_cash')
       .delete()
       .eq('id', id)
 

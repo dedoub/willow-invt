@@ -84,6 +84,7 @@ cleanup() {
 }
 
 stop_existing() {
+  # PID 파일 기반 종료
   if [ -f "$PID_FILE" ]; then
     local old_pid
     old_pid=$(cat "$PID_FILE")
@@ -91,13 +92,15 @@ stop_existing() {
       log "⚠️ 기존 봇 프로세스 종료 중 (PID: $old_pid)"
       kill "$old_pid" 2>/dev/null || true
       sleep 2
-      # 아직 살아있으면 강제 종료
       if kill -0 "$old_pid" 2>/dev/null; then
         kill -9 "$old_pid" 2>/dev/null || true
       fi
     fi
     rm -f "$PID_FILE"
   fi
+  # 혹시 남아있는 telegram-bot.ts 프로세스 모두 종료
+  pkill -f 'scripts/telegram-bot.ts' 2>/dev/null || true
+  sleep 1
 }
 
 run_bot() {
@@ -120,7 +123,7 @@ run_bot() {
     cd "$PROJECT_DIR"
     npx tsx scripts/telegram-bot.ts &
     BOT_PID=$!
-    echo $$ > "$PID_FILE"  # 래퍼의 PID 저장
+    echo $BOT_PID > "$PID_FILE"  # 봇 프로세스 PID 저장
 
     # 봇 프로세스 대기
     wait "$BOT_PID"

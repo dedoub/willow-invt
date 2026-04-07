@@ -6,7 +6,7 @@ export async function GET() {
   const supabase = getServiceSupabase()
 
   const { data, error } = await supabase
-    .from('tensw_tax_invoices')
+    .from('tensw_mgmt_sales')
     .select('*')
     .order('issue_date', { ascending: false })
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   const supabase = getServiceSupabase()
 
   const { data, error } = await supabase
-    .from('tensw_tax_invoices')
+    .from('tensw_mgmt_sales')
     .insert({
       invoice_type: invoice_type || 'sales',
       issue_date,
@@ -81,7 +81,7 @@ export async function PUT(request: Request) {
   const supabase = getServiceSupabase()
 
   const { data, error } = await supabase
-    .from('tensw_tax_invoices')
+    .from('tensw_mgmt_sales')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
@@ -106,7 +106,7 @@ export async function DELETE(request: Request) {
   const supabase = getServiceSupabase()
 
   const { error } = await supabase
-    .from('tensw_tax_invoices')
+    .from('tensw_mgmt_sales')
     .delete()
     .eq('id', id)
 

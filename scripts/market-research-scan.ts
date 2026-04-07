@@ -30,9 +30,10 @@ async function getCeoChatId(): Promise<number | null> {
   const { data } = await supabase
     .from('telegram_conversations')
     .select('chat_id')
+    .eq('bot_type', 'ceo')
     .order('updated_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
   return data?.chat_id ?? null
 }
 

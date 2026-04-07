@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { ProtectedPage } from '@/components/auth/protected-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useI18n } from '@/lib/i18n'
@@ -1184,6 +1185,13 @@ export default function TenswManagementPage() {
     }
     loadData()
   }, [fetchClients, fetchProjects, fetchMilestones, fetchSchedules, fetchMilestonesWithSchedules, fetchMemos])
+
+  // Refresh data when agent makes mutations to relevant tables
+  const refreshAllData = useCallback(() => {
+    fetchClients(); fetchProjects(); fetchMilestones()
+    fetchSchedules(); fetchMilestonesWithSchedules(); fetchMemos()
+  }, [fetchClients, fetchProjects, fetchMilestones, fetchSchedules, fetchMilestonesWithSchedules, fetchMemos])
+  useAgentRefresh(['tensw_mgmt', 'work_wiki', 'financial', 'email_'], refreshAllData)
 
   // Save viewMode to localStorage
   useEffect(() => {

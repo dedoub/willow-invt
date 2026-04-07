@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { ProtectedPage } from '@/components/auth/protected-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -1189,6 +1190,14 @@ export default function RyuhaStudyPage() {
     }
     loadData()
   }, [fetchSubjects, fetchTextbooks, fetchChapters, fetchSchedules, fetchChaptersWithSchedules, fetchMemos])
+
+  // Refresh data when agent makes mutations to relevant tables
+  const refreshAllData = useCallback(() => {
+    fetchSubjects(); fetchTextbooks(); fetchChapters()
+    fetchSchedules(); fetchChaptersWithSchedules(); fetchMemos()
+    fetchBodyRecords(); fetchNotebookNotes()
+  }, [fetchSubjects, fetchTextbooks, fetchChapters, fetchSchedules, fetchChaptersWithSchedules, fetchMemos, fetchBodyRecords, fetchNotebookNotes])
+  useAgentRefresh(['ryuha_'], refreshAllData)
 
   // Save viewMode to localStorage
   useEffect(() => {

@@ -12,15 +12,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { LogOut, User, Moon, Sun, Menu, RefreshCw } from 'lucide-react'
+import { LogOut, User, Moon, Sun, Menu, RefreshCw, MessageSquare } from 'lucide-react'
 import { useTheme } from 'next-themes'
 
 interface HeaderProps {
   title?: string
   onMobileMenuToggle?: () => void
+  onChatToggle?: () => void
+  chatOpen?: boolean
 }
 
-export function Header({ title, onMobileMenuToggle }: HeaderProps) {
+export function Header({ title, onMobileMenuToggle, onChatToggle, chatOpen }: HeaderProps) {
   const { user, logout } = useAuth()
   const { t, language, setLanguage } = useI18n()
   const router = useRouter()
@@ -91,6 +93,15 @@ export function Header({ title, onMobileMenuToggle }: HeaderProps) {
           title="새로고침"
         >
           <RefreshCw className="h-5 w-5" />
+        </button>
+
+        {/* Chat agent toggle */}
+        <button
+          onClick={onChatToggle}
+          className={`hidden md:block rounded-lg p-2 hover:bg-accent ${chatOpen ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600' : ''}`}
+          title="에이전트"
+        >
+          <MessageSquare className="h-5 w-5" />
         </button>
 
         {/* Theme toggle */}

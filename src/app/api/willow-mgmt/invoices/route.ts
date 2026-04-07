@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   const supabase = getServiceSupabase()
 
   let query = supabase
-    .from('willow_mgmt_invoices')
+    .from('willow_mgmt_cash')
     .select('*')
     .order('created_at', { ascending: false })
 
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
   const supabase = getServiceSupabase()
 
   const { data, error } = await supabase
-    .from('willow_mgmt_invoices')
+    .from('willow_mgmt_cash')
     .insert({
       type,
       counterparty,
@@ -102,7 +102,7 @@ export async function PUT(request: Request) {
   const supabase = getServiceSupabase()
 
   const { data, error } = await supabase
-    .from('willow_mgmt_invoices')
+    .from('willow_mgmt_cash')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
@@ -127,7 +127,7 @@ export async function DELETE(request: Request) {
   const supabase = getServiceSupabase()
 
   const { error } = await supabase
-    .from('willow_mgmt_invoices')
+    .from('willow_mgmt_cash')
     .delete()
     .eq('id', id)
 

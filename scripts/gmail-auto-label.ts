@@ -299,12 +299,43 @@ ${emailList}
 
   try {
     const result = await askClaude(prompt)
-    const jsonMatch = result.match(/\[[\s\S]*\]/)
-    if (!jsonMatch) {
+
+    // JSON 배열 추출 — bracket 매칭으로 정확한 범위 추출
+    let json: ClassificationResult[] | null = null
+    const startIdx = result.indexOf('[')
+    if (startIdx !== -1) {
+      let depth = 0
+      for (let i = startIdx; i < result.length; i++) {
+        if (result[i] === '[') depth++
+        else if (result[i] === ']') depth--
+        if (depth === 0) {
+          try {
+            json = JSON.parse(result.slice(startIdx, i + 1))
+          } catch {
+            // bracket 매칭 실패 시 다음 시도
+          }
+          break
+        }
+      }
+    }
+
+    // fallback: 기존 regex (non-greedy)
+    if (!json) {
+      const jsonMatch = result.match(/\[[\s\S]*?\](?=\s*$|\s*[^,\s{])/)
+      if (jsonMatch) {
+        try {
+          json = JSON.parse(jsonMatch[0])
+        } catch { /* ignore */ }
+      }
+    }
+
+    if (!json) {
       log('⚠️ 분류 결과에서 JSON을 찾을 수 없음')
+      log(`  원본 (처음 500자): ${result.slice(0, 500)}`)
       return []
     }
-    return JSON.parse(jsonMatch[0]) as ClassificationResult[]
+
+    return json.filter(c => c.email_id)
   } catch (err) {
     log(`⚠️ 이메일 분류 실패: ${err}`)
     return []
@@ -362,9 +393,10 @@ async function sendTelegramNotification(results: ClassificationResult[], applied
   const { data } = await supabase
     .from('telegram_conversations')
     .select('chat_id')
+    .eq('bot_type', 'ceo')
     .order('updated_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (!data?.chat_id) return
 
