@@ -534,9 +534,9 @@ export async function willowGetDashboard() {
 
 export async function willowGetCashSummary(params?: { start_date?: string; end_date?: string }) {
   const sb = getServiceSupabase()
-  let query = sb.from('willow_mgmt_cash').select('*').order('issue_date', { ascending: false })
-  if (params?.start_date) query = query.gte('issue_date', params.start_date)
-  if (params?.end_date) query = query.lte('issue_date', params.end_date)
+  let query = sb.from('willow_mgmt_cash').select('*').order('payment_date', { ascending: false })
+  if (params?.start_date) query = query.gte('payment_date', params.start_date)
+  if (params?.end_date) query = query.lte('payment_date', params.end_date)
   const { data, error } = await query
   if (error) return { error: error.message }
 
