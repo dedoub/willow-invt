@@ -61,6 +61,7 @@ const ALLOWED_TABLES: Record<string, string> = {
   're_trades': '부동산 매매',
   're_rentals': '부동산 전세',
   're_naver_listings': '네이버 매물',
+  're_listing_daily_summary': '매물 일별 요약',
 }
 
 // ============================================================
@@ -325,11 +326,18 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
     }
 
     case 'analyze_data': {
-      const query = (args.query as string || '').trim()
+      // Strip markdown code fences, backticks, and leading/trailing whitespace
+      let query = (args.query as string || '').trim()
+        .replace(/^```(?:sql)?\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .replace(/^`|`$/g, '')
+        .trim()
+      // Strip leading comments (-- ...) before the SELECT
+      query = query.replace(/^(--[^\n]*\n\s*)+/g, '').trim()
 
       // Safety: only SELECT
       if (!query.match(/^\s*SELECT\b/i)) {
-        return { error: 'SELECT 쿼리만 허용됩니다.' }
+        return { error: `SELECT 쿼리만 허용됩니다. 받은 쿼리: "${query.slice(0, 60)}..."` }
       }
 
       // Safety: block mutations
@@ -342,7 +350,7 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       const tables = Object.keys(ALLOWED_TABLES)
       const hasAllowedTable = tables.some(t => query.includes(t))
       if (!hasAllowedTable) {
-        return { error: `허용된 테이블만 조회 가능합니다. 사용 가능: ${tables.join(', ')}` }
+        return { error: `허용된 테이블만 조회 가능합니다. 부동산: re_complexes, re_trades, re_rentals, re_naver_listings / 경영: willow_mgmt_*, tensw_mgmt_* / ETF: etf_products, willow_invoices / 기타: work_wiki, ryuha_*, financial_*, stock_*, smallcap_screening, knowledge_*` }
       }
 
       // Execute via fetch to Supabase REST API (raw SQL via PostgREST RPC)
@@ -369,7 +377,7 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
 
       if (!res.ok) {
         const err = await res.text()
-        return { error: `쿼리 실행 실패: ${err}` }
+        return { error: `쿼리 실행 실패: ${err}`, query: safeQuery }
       }
 
       const data = await res.json()

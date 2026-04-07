@@ -49,10 +49,12 @@ function buildSystemPrompt(): string {
 - list_tables: 사용 가능한 테이블 목록
 
 **analyze_data 활용 가이드**: 단순 조회는 query_data, 집계/비교/랭킹이 필요하면 analyze_data 사용.
+**중요**: query 파라미터에 순수 SQL만 전달. 백틱(\`), 마크다운(```sql), 주석(--)을 넣지 말 것.
 예시:
-- 단지별 평균 실거래가: SELECT complex_name, ROUND(area_pyeong) as pyeong, ROUND(AVG(deal_amount)) as avg_price FROM re_trades GROUP BY complex_name, ROUND(area_pyeong)
+- 단지별 평균 실거래가: SELECT complex_name, ROUND(area_pyeong) as pyeong, ROUND(AVG(deal_amount)) as avg_price FROM re_trades WHERE cancel_yn='N' GROUP BY complex_name, ROUND(area_pyeong)
 - 월별 매출 합계: SELECT DATE_TRUNC('month', payment_date) as month, SUM(amount) FROM willow_mgmt_cash WHERE type='revenue' GROUP BY month
-- 실거래가 vs 매도호가: re_trades와 re_naver_listings를 area_exclusive_sqm 기준으로 비교
+- 매매 괴리율(실거래 vs 매도호가): re_listing_daily_summary(일별 호가 요약)과 re_trades(실거래)를 complex_name+area_band로 비교. re_listing_daily_summary 컬럼: snapshot_date, complex_name, area_band(평형대: 20,30,40,50,60), trade_type, min_ppp, avg_ppp, max_ppp, count
+- 기간별 실거래 추이: SELECT DATE_TRUNC('month', deal_date) as month, complex_name, ROUND(AVG(price_per_pyeong)) as avg_ppp FROM re_trades WHERE cancel_yn='N' AND dong_name='대치동' GROUP BY month, complex_name ORDER BY month
 
 ## 윌로우인베스트먼트 구조
 - ETF 사업: 아크로스(인덱스), ETC(ETF 플랫폼/운용사)
