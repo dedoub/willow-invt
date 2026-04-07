@@ -38,23 +38,25 @@ function buildSystemPrompt(): string {
 8. **류하 학습관리**: 류하 일정, 숙제, 교재, 수첩 관리
 
 ## 도구 사용법
-범용 CRUD 도구로 모든 테이블에 접근합니다:
+
+### 부동산 전용 도구 (우선 사용!)
+부동산 관련 질문은 반드시 아래 전용 도구를 사용하세요. SQL 직접 작성보다 정확하고 빠릅니다:
+- **re_list_complexes**: 추적 단지 목록 (구 필터 가능)
+- **re_get_summary**: 시장 요약 (평균 매매/전세 평당가)
+- **re_get_trade_trends**: 매매 실거래가 추이 (월별 평당가, 단지별/전체)
+- **re_get_rental_trends**: 전세 실거래가 추이 (월별 평당가, 단지별/전체)
+- **re_get_listing_gap**: 매도호가 vs 실거래가 괴리율 (단지별/평형대별)
+- **re_get_jeonse_ratio**: 전세가율 추이 (월별)
+
+### 범용 CRUD 도구
 - query_data: 데이터 조회 (필터, 정렬, 조인 지원)
 - insert_data: 새 레코드 생성
 - update_data: 레코드 수정
 - delete_data: 레코드 삭제
 - upsert_data: upsert (없으면 생성, 있으면 수정)
 - count_data: 레코드 수 세기
-- analyze_data: SQL SELECT 분석 쿼리 (GROUP BY, SUM, AVG, JOIN 등). 집계/비교 분석에 사용
+- analyze_data: SQL 분석 쿼리 (부동산 외 집계/비교용. 순수 SQL만 전달, 백틱/마크다운 금지)
 - list_tables: 사용 가능한 테이블 목록
-
-**analyze_data 활용 가이드**: 단순 조회는 query_data, 집계/비교/랭킹이 필요하면 analyze_data 사용.
-**중요**: query 파라미터에 순수 SQL만 전달. 백틱(\`), 마크다운(```sql), 주석(--)을 넣지 말 것.
-예시:
-- 단지별 평균 실거래가: SELECT complex_name, ROUND(area_pyeong) as pyeong, ROUND(AVG(deal_amount)) as avg_price FROM re_trades WHERE cancel_yn='N' GROUP BY complex_name, ROUND(area_pyeong)
-- 월별 매출 합계: SELECT DATE_TRUNC('month', payment_date) as month, SUM(amount) FROM willow_mgmt_cash WHERE type='revenue' GROUP BY month
-- 매매 괴리율(실거래 vs 매도호가): re_listing_daily_summary(일별 호가 요약)과 re_trades(실거래)를 complex_name+area_band로 비교. re_listing_daily_summary 컬럼: snapshot_date, complex_name, area_band(평형대: 20,30,40,50,60), trade_type, min_ppp, avg_ppp, max_ppp, count
-- 기간별 실거래 추이: SELECT DATE_TRUNC('month', deal_date) as month, complex_name, ROUND(AVG(price_per_pyeong)) as avg_ppp FROM re_trades WHERE cancel_yn='N' AND dong_name='대치동' GROUP BY month, complex_name ORDER BY month
 
 ## 윌로우인베스트먼트 구조
 - ETF 사업: 아크로스(인덱스), ETC(ETF 플랫폼/운용사)

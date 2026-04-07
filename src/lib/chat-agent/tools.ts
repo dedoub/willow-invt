@@ -2,6 +2,10 @@
 // 모든 섹션의 데이터를 범용적으로 CRUD할 수 있는 메타도구
 
 import { getServiceSupabase } from '@/lib/supabase'
+import {
+  reListComplexes, reGetTradeTrends, reGetRentalTrends,
+  reGetListingGap, reGetJeonseRatio, reGetSummary,
+} from '@/lib/real-estate/queries'
 
 // ============================================================
 // 허용 테이블 목록 (안전장치)
@@ -157,13 +161,76 @@ export const agentTools = [
   },
   {
     name: 'analyze_data',
-    description: '복잡한 분석 쿼리를 실행합니다. GROUP BY, SUM, AVG, JOIN 등 집계/분석이 필요할 때 사용합니다. SELECT 쿼리만 허용됩니다.',
+    description: '복잡한 분석 쿼리를 실행합니다. GROUP BY, SUM, AVG, JOIN 등 집계/분석이 필요할 때 사용합니다. SELECT/WITH 쿼리만 허용됩니다. 부동산 분석은 re_* 전용 도구를 먼저 사용하세요.',
     parameters: {
       type: 'object' as const,
       properties: {
-        query: { type: 'string', description: 'SQL SELECT 쿼리. 예: SELECT complex_name, area_pyeong, AVG(deal_amount) FROM re_trades GROUP BY complex_name, area_pyeong' },
+        query: { type: 'string', description: 'SQL SELECT 쿼리 (백틱/마크다운 없이 순수 SQL만). 예: SELECT complex_name, ROUND(AVG(deal_amount)) FROM re_trades GROUP BY complex_name' },
       },
       required: ['query'],
+    },
+  },
+  // ---- 부동산 전용 도구 (MCP 로직 재사용) ----
+  {
+    name: 're_list_complexes',
+    description: '추적 중인 아파트 단지 목록을 조회합니다 (13개 주요 단지). 부동산 분석의 시작점.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        district: { type: 'string', description: '구 필터 (강남구, 서초구, 송파구)' },
+      },
+    },
+  },
+  {
+    name: 're_get_summary',
+    description: '부동산 시장 요약 — 추적 단지의 평균 매매/전세 평당가를 조회합니다.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        district: { type: 'string', description: '구 필터 (강남구, 서초구, 송파구)' },
+      },
+    },
+  },
+  {
+    name: 're_get_trade_trends',
+    description: '매매 실거래가 추이를 조회합니다 (월별 공급면적 기준 평당가). 단지별 또는 전체 추적 단지 평균.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        complex_name: { type: 'string', description: '단지명 (미지정 시 추적 전체 평균)' },
+        months: { type: 'string', description: '조회 기간 개월수 (기본: 12)' },
+      },
+    },
+  },
+  {
+    name: 're_get_rental_trends',
+    description: '전세 실거래가 추이를 조회합니다 (월별 공급면적 기준 평당 보증금). 단지별 또는 전체 추적 단지 평균.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        complex_name: { type: 'string', description: '단지명 (미지정 시 추적 전체 평균)' },
+        months: { type: 'string', description: '조회 기간 개월수 (기본: 12)' },
+      },
+    },
+  },
+  {
+    name: 're_get_listing_gap',
+    description: '매도호가 vs 실거래가 괴리율을 단지별/평형대별로 비교합니다. 호가가 실거래 대비 몇% 높은지 분석.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        trade_type: { type: 'string', description: '거래유형: 매매 또는 전세 (기본: 매매)' },
+      },
+    },
+  },
+  {
+    name: 're_get_jeonse_ratio',
+    description: '전세가율(전세/매매 비율) 추이를 조회합니다. 월별 전세가율 변화 추적.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        months: { type: 'string', description: '조회 기간 개월수 (기본: 12)' },
+      },
     },
   },
 ]
@@ -383,6 +450,33 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       const data = await res.json()
       return { data, count: Array.isArray(data) ? data.length : 0 }
     }
+
+    // ---- 부동산 전용 도구 ----
+    case 're_list_complexes':
+      return await reListComplexes({ district: args.district as string | undefined })
+
+    case 're_get_summary':
+      return await reGetSummary({ district: args.district as string | undefined })
+
+    case 're_get_trade_trends':
+      return await reGetTradeTrends({
+        complex_name: args.complex_name as string | undefined,
+        months: args.months ? Number(args.months) : undefined,
+      })
+
+    case 're_get_rental_trends':
+      return await reGetRentalTrends({
+        complex_name: args.complex_name as string | undefined,
+        months: args.months ? Number(args.months) : undefined,
+      })
+
+    case 're_get_listing_gap':
+      return await reGetListingGap({ trade_type: args.trade_type as string | undefined })
+
+    case 're_get_jeonse_ratio':
+      return await reGetJeonseRatio({
+        months: args.months ? Number(args.months) : undefined,
+      })
 
     default:
       return { error: `Unknown tool: ${name}` }
