@@ -20,7 +20,7 @@ import {
   tenswListClients, tenswCreateClient, tenswUpdateClient, tenswDeleteClient,
   tenswListProjects, tenswCreateProject, tenswUpdateProject, tenswDeleteProject,
   tenswListMilestones, tenswCreateMilestone, tenswUpdateMilestone, tenswDeleteMilestone,
-  tenswListSchedules, tenswCreateSchedule, tenswUpdateSchedule, tenswDeleteSchedule,
+  tenswListSchedules, tenswCreateSchedule, tenswUpdateSchedule, tenswDeleteSchedule, tenswToggleScheduleDate,
   tenswListTasks, tenswCreateTask, tenswUpdateTask, tenswDeleteTask,
   tenswListMemos, tenswUpsertMemo, tenswDeleteMemo,
   tenswListCash, tenswCreateCash, tenswUpdateCash, tenswDeleteCash,
@@ -518,6 +518,18 @@ export const agentTools = [
       required: ['id'],
     },
   },
+  {
+    name: 'willow_toggle_schedule_date',
+    description: '[윌로우] 일정의 특정 날짜 완료 토글 (캘린더에서 날짜별 체크)',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '일정 ID (필수)' },
+        date: { type: 'string', description: '토글할 날짜 YYYY-MM-DD (필수)' },
+      },
+      required: ['id', 'date'],
+    },
+  },
   // -- Tasks --
   {
     name: 'willow_list_tasks',
@@ -568,6 +580,17 @@ export const agentTools = [
     },
   },
   // -- Memos --
+  {
+    name: 'willow_list_memos',
+    description: '[윌로우] 캘린더 일일 메모 목록. 날짜 범위로 조회.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        start_date: { type: 'string', description: '시작일 YYYY-MM-DD' },
+        end_date: { type: 'string', description: '종료일 YYYY-MM-DD' },
+      },
+    },
+  },
   {
     name: 'willow_upsert_memo',
     description: '[윌로우] 일일 메모 작성/수정. 같은 날짜에 이미 메모가 있으면 덮어씁니다.',
@@ -676,12 +699,14 @@ export const agentTools = [
   { name: 'tensw_create_schedule', description: '[텐소프트웍스] 새 일정 생성', parameters: { type: 'object' as const, properties: { title: { type: 'string', description: '제목 (필수)' }, schedule_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, end_date: { type: 'string', description: '종료일' }, start_time: { type: 'string', description: '시작 시간 HH:MM' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'task|meeting|deadline' }, client_id: { type: 'string', description: '클라이언트 ID' }, description: { type: 'string', description: '설명' }, color: { type: 'string', description: '색상' }, task_content: { type: 'string', description: '태스크 내용' }, task_deadline: { type: 'string', description: '태스크 마감일' } }, required: ['title', 'schedule_date'] } },
   { name: 'tensw_update_schedule', description: '[텐소프트웍스] 일정 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, title: { type: 'string', description: '제목' }, schedule_date: { type: 'string', description: '날짜' }, end_date: { type: 'string', description: '종료일' }, start_time: { type: 'string', description: '시작 시간' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'task|meeting|deadline' }, client_id: { type: 'string', description: '클라이언트' }, description: { type: 'string', description: '설명' }, is_completed: { type: 'string', description: 'true/false' }, task_content: { type: 'string', description: '태스크 내용' }, task_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
   { name: 'tensw_delete_schedule', description: '[텐소프트웍스] 일정 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  { name: 'tensw_toggle_schedule_date', description: '[텐소프트웍스] 일정의 특정 날짜 완료 토글', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: '일정 ID (필수)' }, date: { type: 'string', description: '토글할 날짜 YYYY-MM-DD (필수)' } }, required: ['id', 'date'] } },
   // -- Tasks --
   { name: 'tensw_list_tasks', description: '[텐소프트웍스] 태스크 목록', parameters: { type: 'object' as const, properties: { schedule_id: { type: 'string', description: '일정 ID 필터' } } } },
   { name: 'tensw_create_task', description: '[텐소프트웍스] 새 태스크', parameters: { type: 'object' as const, properties: { schedule_id: { type: 'string', description: '일정 ID (필수)' }, content: { type: 'string', description: '내용 (필수)' }, deadline: { type: 'string', description: '마감일' } }, required: ['schedule_id', 'content'] } },
   { name: 'tensw_update_task', description: '[텐소프트웍스] 태스크 수정/완료 (completed_at 자동)', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, content: { type: 'string', description: '내용' }, deadline: { type: 'string', description: '마감일' }, is_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
   { name: 'tensw_delete_task', description: '[텐소프트웍스] 태스크 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
   // -- Memos --
+  { name: 'tensw_list_memos', description: '[텐소프트웍스] 캘린더 일일 메모 목록', parameters: { type: 'object' as const, properties: { start_date: { type: 'string', description: '시작일' }, end_date: { type: 'string', description: '종료일' } } } },
   { name: 'tensw_upsert_memo', description: '[텐소프트웍스] 일일 메모 작성/수정', parameters: { type: 'object' as const, properties: { memo_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, content: { type: 'string', description: '내용 (필수)' } }, required: ['memo_date', 'content'] } },
   { name: 'tensw_delete_memo', description: '[텐소프트웍스] 일일 메모 삭제', parameters: { type: 'object' as const, properties: { date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' } }, required: ['date'] } },
   // -- Cash --
@@ -747,6 +772,7 @@ export const agentTools = [
   { name: 'ryuha_update_homework', description: '[류하] 숙제 수정/완료 (completed_at 자동)', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, content: { type: 'string', description: '내용' }, deadline: { type: 'string', description: '마감일' }, is_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
   { name: 'ryuha_delete_homework', description: '[류하] 숙제 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
   // -- Memos --
+  { name: 'ryuha_list_memos', description: '[류하] 캘린더 일일 메모 목록', parameters: { type: 'object' as const, properties: { start_date: { type: 'string', description: '시작일' }, end_date: { type: 'string', description: '종료일' } } } },
   { name: 'ryuha_upsert_memo', description: '[류하] 일일 메모 작성/수정', parameters: { type: 'object' as const, properties: { memo_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, content: { type: 'string', description: '내용 (필수)' } }, required: ['memo_date', 'content'] } },
   { name: 'ryuha_delete_memo', description: '[류하] 일일 메모 삭제', parameters: { type: 'object' as const, properties: { date: { type: 'string', description: '날짜 (필수)' } }, required: ['date'] } },
   // -- Body Records --
@@ -1158,6 +1184,9 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
     case 'willow_delete_schedule':
       return await willowDeleteSchedule(args.id as string)
 
+    case 'willow_toggle_schedule_date':
+      return await willowToggleScheduleDate({ schedule_id: args.id as string, date: args.date as string })
+
     case 'willow_list_tasks':
       return await willowListTasks({
         schedule_id: args.schedule_id as string | undefined,
@@ -1180,6 +1209,9 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
 
     case 'willow_delete_task':
       return await willowDeleteTask(args.id as string)
+
+    case 'willow_list_memos':
+      return await willowListMemos({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined })
 
     case 'willow_upsert_memo':
       return await willowUpsertMemo({
@@ -1244,10 +1276,12 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
     case 'tensw_create_schedule': return await tenswCreateSchedule({ title: args.title as string, schedule_date: args.schedule_date as string, end_date: args.end_date as string | undefined, start_time: args.start_time as string | undefined, end_time: args.end_time as string | undefined, type: args.type as string | undefined, client_id: args.client_id as string | undefined, description: args.description as string | undefined, color: args.color as string | undefined, task_content: args.task_content as string | undefined, task_deadline: args.task_deadline as string | undefined })
     case 'tensw_update_schedule': return await tenswUpdateSchedule({ id: args.id as string, title: args.title as string | undefined, schedule_date: args.schedule_date as string | undefined, end_date: args.end_date as string | undefined, start_time: args.start_time as string | undefined, end_time: args.end_time as string | undefined, type: args.type as string | undefined, client_id: args.client_id as string | undefined, description: args.description as string | undefined, is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined, task_content: args.task_content as string | undefined, task_completed: args.task_completed === 'true' ? true : args.task_completed === 'false' ? false : undefined })
     case 'tensw_delete_schedule': return await tenswDeleteSchedule(args.id as string)
+    case 'tensw_toggle_schedule_date': return await tenswToggleScheduleDate({ schedule_id: args.id as string, date: args.date as string })
     case 'tensw_list_tasks': return await tenswListTasks({ schedule_id: args.schedule_id as string | undefined })
     case 'tensw_create_task': return await tenswCreateTask({ schedule_id: args.schedule_id as string, content: args.content as string, deadline: args.deadline as string | undefined })
     case 'tensw_update_task': return await tenswUpdateTask({ id: args.id as string, content: args.content as string | undefined, deadline: args.deadline as string | undefined, is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined })
     case 'tensw_delete_task': return await tenswDeleteTask(args.id as string)
+    case 'tensw_list_memos': return await tenswListMemos({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined })
     case 'tensw_upsert_memo': return await tenswUpsertMemo({ memo_date: args.memo_date as string, content: args.content as string })
     case 'tensw_delete_memo': return await tenswDeleteMemo(args.date as string)
     case 'tensw_list_cash': return await tenswListCash({ type: args.type as string | undefined, status: args.status as string | undefined })
@@ -1307,6 +1341,7 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
     case 'ryuha_create_homework': return await ryuhaCreateHomework({ schedule_id: args.schedule_id as string, content: args.content as string, deadline: args.deadline as string | undefined })
     case 'ryuha_update_homework': return await ryuhaUpdateHomework({ id: args.id as string, content: args.content as string | undefined, deadline: args.deadline as string | undefined, is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined })
     case 'ryuha_delete_homework': return await ryuhaDeleteHomework(args.id as string)
+    case 'ryuha_list_memos': return await ryuhaListMemos({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined })
     case 'ryuha_upsert_memo': return await ryuhaUpsertMemo({ memo_date: args.memo_date as string, content: args.content as string })
     case 'ryuha_delete_memo': return await ryuhaDeleteMemo(args.date as string)
     case 'ryuha_list_body_records': return await ryuhaListBodyRecords({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined })
