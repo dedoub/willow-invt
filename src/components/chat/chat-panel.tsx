@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { X, Send, Paperclip, MessageSquare, User, Loader2, FileSpreadsheet, FileText, Trash2, Plus, History, ChevronLeft, Sparkles } from 'lucide-react'
+import { X, Send, Paperclip, MessageSquare, User, Loader2, FileSpreadsheet, FileText, Trash2, Plus, History, ChevronLeft, Sparkles, Reply } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
@@ -58,6 +58,7 @@ export function ChatPanel({ open, onClose }: ChatPanelProps) {
   const [files, setFiles] = useState<File[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [showSessionList, setShowSessionList] = useState(false)
@@ -198,19 +199,26 @@ export function ChatPanel({ open, onClose }: ChatPanelProps) {
     if (!input.trim() && files.length === 0) return
     if (isLoading) return
 
+    // Build message with reply context
+    const replyPrefix = replyTo
+      ? `> ${replyTo.role === 'user' ? '내 메시지' : '에이전트'}: ${replyTo.content.slice(0, 100)}${replyTo.content.length > 100 ? '...' : ''}\n\n`
+      : ''
+    const fullMessage = replyPrefix + (input || '(파일 첨부)')
+
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: input || '(파일 첨부)',
+      content: fullMessage,
       attachments: files.map(f => ({ name: f.name, size: f.size, type: f.type })),
       created_at: new Date().toISOString(),
     }
 
     setMessages(prev => [...prev, userMessage])
-    const currentInput = input
+    const currentInput = fullMessage
     const currentFiles = files
     setInput('')
     setFiles([])
+    setReplyTo(null)
     setIsLoading(true)
 
     try {
@@ -392,7 +400,7 @@ export function ChatPanel({ open, onClose }: ChatPanelProps) {
             </div>
           )}
           {messages.map(msg => (
-            <MessageBubble key={msg.id} message={msg} />
+            <MessageBubble key={msg.id} message={msg} onReply={() => { setReplyTo(msg); textareaRef.current?.focus() }} />
           ))}
           {isLoading && (
             <div className="flex gap-2 items-start">
@@ -423,8 +431,22 @@ export function ChatPanel({ open, onClose }: ChatPanelProps) {
         </div>
       )}
 
+      {/* Reply preview */}
+      {replyTo && (
+        <div className="px-3 pt-2 bg-background border-t flex-shrink-0">
+          <div className="flex items-center gap-2 rounded-lg px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-xs">
+            <Reply className="h-3 w-3 text-emerald-500 flex-shrink-0" />
+            <span className="text-slate-400 flex-shrink-0">{replyTo.role === 'user' ? '내 메시지' : '에이전트'}:</span>
+            <span className="truncate text-slate-600 dark:text-slate-300">{replyTo.content.slice(0, 60)}{replyTo.content.length > 60 ? '...' : ''}</span>
+            <button onClick={() => setReplyTo(null)} className="ml-auto flex-shrink-0 hover:text-red-500">
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input */}
-      <div className="p-3 bg-background border-t flex-shrink-0">
+      <div className={cn("p-3 bg-background flex-shrink-0", !replyTo && "border-t")}>
         <div className="flex items-end gap-2">
           <input
             ref={fileInputRef}
@@ -468,11 +490,11 @@ export function ChatPanel({ open, onClose }: ChatPanelProps) {
 }
 
 // Message bubble component
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({ message, onReply }: { message: ChatMessage; onReply: () => void }) {
   const isUser = message.role === 'user'
 
   return (
-    <div className={cn('flex gap-2 items-start', isUser && 'flex-row-reverse')}>
+    <div className={cn('group flex gap-2 items-start', isUser && 'flex-row-reverse')}>
       <div className={cn(
         'rounded-full p-1.5 flex-shrink-0',
         isUser
@@ -484,8 +506,9 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           : <MessageSquare className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
         }
       </div>
+      <div className="flex flex-col max-w-[80%]">
       <div className={cn(
-        'rounded-lg px-3 py-2 max-w-[80%] text-sm',
+        'rounded-lg px-3 py-2 text-sm',
         isUser
           ? 'bg-slate-200 dark:bg-slate-700'
           : 'bg-white dark:bg-slate-800'
@@ -524,6 +547,18 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             </div>
           </div>
         )}
+      </div>
+      {/* Reply button */}
+      <button
+        onClick={onReply}
+        className={cn(
+          'opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] text-slate-400 hover:text-emerald-500 mt-0.5 px-1',
+          isUser && 'self-end'
+        )}
+      >
+        <Reply className="h-3 w-3" />
+        답글
+      </button>
       </div>
     </div>
   )
