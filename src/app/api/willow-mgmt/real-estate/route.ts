@@ -551,49 +551,13 @@ export async function GET(request: Request) {
 
       const data = await fetchAll(query)
 
-      // 2. Actual trade/rental data (recent 1 month) — same as summary
+      // 2. Actual trade/rental data — fetch wide range so each date can use its own 1-month window
       const areaMapping = await buildAreaMapping(supabase, complexNames)
-      const oma1 = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const oneMonthCutoff = `${oma1.getFullYear()}-${String(oma1.getMonth() + 1).padStart(2, '0')}-01`
 
       function getBandT(py: number): number { return py < 30 ? 20 : py < 40 ? 30 : py < 50 ? 40 : py < 60 ? 50 : 60 }
       // Use shared matchesSupplyArea
 
-      // Actual avg PPP per complex+band (stays constant across dates)
-      const actualBands: Record<string, { sum: number; count: number }> = {}
-      if (tradeType === '매매') {
-        const actuals = await fetchAll(
-          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm')
-            .gte('deal_date', oneMonthCutoff).eq('cancel_yn', 'N').in('complex_name', complexNames)
-        )
-        for (const t of actuals) {
-          const sqm = Number(t.area_sqm)
-          if (sqm <= 0) continue
-          const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
-          if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
-          const key = `${t.complex_name}|${getBandT(supplyPy)}`
-          if (!actualBands[key]) actualBands[key] = { sum: 0, count: 0 }
-          actualBands[key].sum += Number(t.deal_amount) / supplyPy
-          actualBands[key].count += 1
-        }
-      } else {
-        const actuals = await fetchAll(
-          supabase.from('re_rentals').select('complex_name, deposit, area_sqm')
-            .gte('deal_date', oneMonthCutoff).eq('rent_type', '전세').in('complex_name', complexNames)
-        )
-        for (const r of actuals) {
-          const sqm = Number(r.area_sqm)
-          if (sqm <= 0) continue
-          const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
-          if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
-          const key = `${r.complex_name}|${getBandT(supplyPy)}`
-          if (!actualBands[key]) actualBands[key] = { sum: 0, count: 0 }
-          actualBands[key].sum += Number(r.deposit) / supplyPy
-          actualBands[key].count += 1
-        }
-      }
-
-      // 3. Compute daily gap rate: for each date, compute per complex+band gap → average
+      // Collect all snapshot dates first
       const dateSet = new Set<string>()
       const dateListings: Record<string, Record<string, number>> = {} // date → "complex|band" → min_ppp
       for (const row of data || []) {
@@ -608,10 +572,62 @@ export async function GET(request: Request) {
       }
 
       const dates = [...dateSet].sort()
+      // Fetch trades from (earliest snapshot - 1 month) to cover all windows
+      const earliestDate = dates[0] || now.toISOString().slice(0, 10)
+      const ed = new Date(earliestDate)
+      ed.setMonth(ed.getMonth() - 1)
+      const tradeCutoff = `${ed.getFullYear()}-${String(ed.getMonth() + 1).padStart(2, '0')}-01`
+
+      // Pre-load all trades/rentals with deal_date for per-date windowing
+      type TradeRow = { complex_name: string; deal_amount?: number; deposit?: number; area_sqm: number; deal_date: string }
+      const allActuals: TradeRow[] = []
+      if (tradeType === '매매') {
+        const actuals = await fetchAll(
+          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date')
+            .gte('deal_date', tradeCutoff).eq('cancel_yn', 'N').in('complex_name', complexNames)
+        )
+        allActuals.push(...actuals)
+      } else {
+        const actuals = await fetchAll(
+          supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date')
+            .gte('deal_date', tradeCutoff).eq('rent_type', '전세').in('complex_name', complexNames)
+        )
+        allActuals.push(...actuals)
+      }
+
+      // Pre-compute band key + ppp for each trade row
+      const tradeEntries = allActuals.map(t => {
+        const sqm = Number(t.area_sqm)
+        if (sqm <= 0) return null
+        const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
+        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) return null
+        const key = `${t.complex_name}|${getBandT(supplyPy)}`
+        const ppp = tradeType === '매매'
+          ? Number(t.deal_amount) / supplyPy
+          : Number(t.deposit) / supplyPy
+        return { key, ppp, dealDate: t.deal_date }
+      }).filter((e): e is { key: string; ppp: number; dealDate: string } => e !== null)
+
+      // 3. Compute daily gap rate: each date uses trades from [date - 1 month, date]
       const trend: { date: string; gapRate: number | null }[] = dates.map(d => {
+        // Compute 1-month window for this snapshot date
+        const sd = new Date(d)
+        sd.setMonth(sd.getMonth() - 1)
+        const windowStart = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, '0')}-${String(sd.getDate()).padStart(2, '0')}`
+
+        // Build actualBands for this date's window
+        const dateBands: Record<string, { sum: number; count: number }> = {}
+        for (const e of tradeEntries) {
+          if (e.dealDate >= windowStart && e.dealDate <= d) {
+            if (!dateBands[e.key]) dateBands[e.key] = { sum: 0, count: 0 }
+            dateBands[e.key].sum += e.ppp
+            dateBands[e.key].count += 1
+          }
+        }
+
         const gaps: number[] = []
         for (const [key, minPpp] of Object.entries(dateListings[d] || {})) {
-          const actual = actualBands[key]
+          const actual = dateBands[key]
           if (actual && actual.count > 0) {
             const avgActual = actual.sum / actual.count
             if (avgActual > 0) {
