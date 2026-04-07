@@ -11,10 +11,46 @@ function getGemini() {
   return new GoogleGenerativeAI(apiKey)
 }
 
-function buildSystemPrompt(): string {
+async function loadMemories(): Promise<string> {
+  try {
+    const supabase = getServiceSupabase()
+    const { data } = await supabase
+      .from('chat_agent_memories')
+      .select('type, name, content, updated_at')
+      .order('type').order('updated_at', { ascending: false })
+    if (!data || data.length === 0) return ''
+
+    const grouped: Record<string, typeof data> = {}
+    for (const m of data) {
+      if (!grouped[m.type]) grouped[m.type] = []
+      grouped[m.type].push(m)
+    }
+
+    const typeLabels: Record<string, string> = {
+      user: '사용자 정보', feedback: '작업 방식 피드백',
+      project: '프로젝트/업무 현황', reference: '참조 정보',
+    }
+
+    let text = '\n\n## 에이전트 메모리 (이전 대화에서 축적된 지식)\n'
+    for (const [type, memories] of Object.entries(grouped)) {
+      text += `\n### ${typeLabels[type] || type}\n`
+      for (const m of memories) {
+        text += `- **${m.name}**: ${m.content}\n`
+      }
+    }
+    text += '\n이 메모리를 참고하되, 현재 데이터와 충돌하면 현재 데이터를 신뢰하세요. 중요한 새 정보를 알게 되면 save_memory로 저장하세요.\n'
+    return text
+  } catch {
+    return ''
+  }
+}
+
+async function buildSystemPrompt(): Promise<string> {
   const now = new Date()
   const timeStr = now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
   const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()]
+
+  const memories = await loadMemories()
 
   return `당신은 윌로우인베스트먼트 대시보드의 AI 비서입니다. CEO(김동욱)의 경영관리를 보조합니다.
 
@@ -138,7 +174,16 @@ willow_mgmt_*와 동일 구조. 테이블명만 tensw_mgmt_. 메모는 tensw_mgm
 3. 여러 건 삽입 시 몇 건 처리했는지 보고
 4. 도구 실행 결과를 그대로 보여주지 말고, 자연스럽게 요약
 5. list_tables 호출 불필요 — 위 스키마 참조
-6. 조회 결과가 많으면 핵심만 요약하고, 상세가 필요하면 물어보기`
+6. 조회 결과가 많으면 핵심만 요약하고, 상세가 필요하면 물어보기
+
+## 메모리 시스템
+대화 간 지속되는 메모리를 활용합니다. 이전 대화에서 저장한 메모리가 아래에 포함됩니다.
+- CEO가 알려준 선호/피드백 → save_memory(type:'feedback')
+- 진행중인 프로젝트/업무 상황 → save_memory(type:'project')
+- CEO에 대해 알게 된 정보 → save_memory(type:'user')
+- 외부 참조 링크/리소스 → save_memory(type:'reference')
+- 오래된 메모리는 delete_memory로 삭제
+${memories}`
 }
 
 // Parse uploaded file content
@@ -277,9 +322,10 @@ export async function POST(request: NextRequest) {
 
     // Initialize Gemini with function calling
     const genAI = getGemini()
+    const systemPrompt = await buildSystemPrompt()
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      systemInstruction: buildSystemPrompt(),
+      systemInstruction: systemPrompt,
       tools: [{
         functionDeclarations: agentTools.map(t => ({
           name: t.name,

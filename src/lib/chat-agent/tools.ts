@@ -66,6 +66,8 @@ const ALLOWED_TABLES: Record<string, string> = {
   're_rentals': '부동산 전세',
   're_naver_listings': '네이버 매물',
   're_listing_daily_summary': '매물 일별 요약',
+  // 에이전트 메모리
+  'chat_agent_memories': '에이전트 메모리',
 }
 
 // ============================================================
@@ -242,6 +244,31 @@ export const agentTools = [
       properties: {
         months: { type: 'string', description: '조회 기간 개월수 (기본: 12)' },
       },
+    },
+  },
+  // ---- 메모리 도구 ----
+  {
+    name: 'save_memory',
+    description: '중요한 정보를 메모리에 저장합니다. 대화가 끝나도 유지되며, 이후 대화에서 컨텍스트로 활용됩니다. 사용자의 선호, 업무 맥락, 프로젝트 현황, 피드백 등을 기억할 때 사용.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        type: { type: 'string', description: '메모리 유형: user(사용자정보), feedback(작업방식 피드백), project(진행중 업무/프로젝트), reference(외부 참조/링크)' },
+        name: { type: 'string', description: '메모리 이름 (짧고 고유하게). 동일 이름이 있으면 업데이트됨' },
+        content: { type: 'string', description: '저장할 내용' },
+      },
+      required: ['type', 'name', 'content'],
+    },
+  },
+  {
+    name: 'delete_memory',
+    description: '더 이상 유효하지 않은 메모리를 삭제합니다.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: '삭제할 메모리 이름' },
+      },
+      required: ['name'],
     },
   },
 ]
@@ -494,6 +521,36 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       return await reGetJeonseRatio({
         months: args.months ? Number(args.months) : undefined,
       })
+
+    // ---- 메모리 도구 ----
+    case 'save_memory': {
+      const memType = args.type as string
+      const memName = args.name as string
+      const memContent = args.content as string
+      if (!memType || !memName || !memContent) return { error: 'type, name, content 모두 필수' }
+
+      const supabase = getServiceSupabase()
+      // Upsert by name
+      const { data: existing } = await supabase.from('chat_agent_memories').select('id').eq('name', memName).limit(1)
+      if (existing && existing.length > 0) {
+        const { error } = await supabase.from('chat_agent_memories').update({ type: memType, content: memContent, updated_at: new Date().toISOString() }).eq('id', existing[0].id)
+        if (error) return { error: error.message }
+        return { result: `메모리 업데이트: ${memName}` }
+      } else {
+        const { error } = await supabase.from('chat_agent_memories').insert({ type: memType, name: memName, content: memContent })
+        if (error) return { error: error.message }
+        return { result: `메모리 저장: ${memName}` }
+      }
+    }
+
+    case 'delete_memory': {
+      const memName = args.name as string
+      if (!memName) return { error: 'name 필수' }
+      const supabase = getServiceSupabase()
+      const { error } = await supabase.from('chat_agent_memories').delete().eq('name', memName)
+      if (error) return { error: error.message }
+      return { result: `메모리 삭제: ${memName}` }
+    }
 
     default:
       return { error: `Unknown tool: ${name}` }
