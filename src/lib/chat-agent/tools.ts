@@ -329,19 +329,19 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       // Strip markdown code fences, backticks, and leading/trailing whitespace
       let query = (args.query as string || '').trim()
         .replace(/^```(?:sql)?\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .replace(/^`|`$/g, '')
+        .replace(/\s*```\s*$/i, '')
+        .replace(/^`+|`+$/g, '')
         .trim()
-      // Strip leading comments (-- ...) before the SELECT
-      query = query.replace(/^(--[^\n]*\n\s*)+/g, '').trim()
+      // Strip leading comments (-- ...) and block comments (/* ... */)
+      query = query.replace(/^(--[^\n]*\n\s*)+/g, '').replace(/^\/\*[\s\S]*?\*\/\s*/g, '').trim()
 
-      // Safety: only SELECT
-      if (!query.match(/^\s*SELECT\b/i)) {
-        return { error: `SELECT 쿼리만 허용됩니다. 받은 쿼리: "${query.slice(0, 60)}..."` }
+      // Safety: only SELECT or WITH (CTE) allowed
+      if (!query.match(/^\s*(SELECT|WITH)\b/i)) {
+        return { error: `SELECT 또는 WITH (CTE) 쿼리만 허용됩니다. 받은 쿼리 앞부분: "${query.slice(0, 80)}"` }
       }
 
-      // Safety: block mutations
-      const forbidden = /\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|GRANT|REVOKE)\b/i
+      // Safety: block mutations (but allow CREATE inside CTE subquery names like "created_at")
+      const forbidden = /\b(INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|DROP\s|ALTER\s|CREATE\s+(TABLE|INDEX|FUNCTION|VIEW)|TRUNCATE|GRANT|REVOKE)\b/i
       if (forbidden.test(query)) {
         return { error: '읽기 전용 쿼리만 허용됩니다. (INSERT/UPDATE/DELETE/DROP 등 금지)' }
       }
