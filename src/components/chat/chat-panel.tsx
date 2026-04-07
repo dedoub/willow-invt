@@ -43,12 +43,13 @@ const PAGE_CONTEXT: Record<string, string> = {
 
 // Page-contextual quick suggestions
 const QUICK_SUGGESTIONS: Record<string, string[]> = {
-  '/': ['이번 주 주요 일정 알려줘', '전체 미수금 현황', '오늘 메모 정리'],
-  '/etf/akros': ['이번 달 세금계산서 현황', '미처리 TODO 확인', 'AUM 추이 분석'],
-  '/etf/etc': ['ETF 상품별 수수료 비교', '미발행 인보이스 확인', '예약발송 이메일 상태'],
-  '/tensoftworks/management': ['이번 달 매출 현황', '미수금 정리', '대출 상환 스케줄', '현금흐름 요약'],
-  '/willow-investment/management': ['현금관리 이번 달 요약', '부동산 실거래가 vs 매도호가', '포트폴리오 종목 현황', '투자리서치 최신 스캔'],
-  '/others/ryuha-study': ['이번 주 수업 일정', '미완료 숙제 확인', '신체기록 추이'],
+  '/': ['윌로우 경영 대시보드', '텐소프트웍스 대시보드', '이번 주 전체 일정', '미수금 현황'],
+  '/etf/akros': ['Akros 대시보드', 'AUM 시계열 추이', '이번 달 세금계산서', '환율 조회'],
+  '/etf/etc': ['ETC 대시보드', 'ETF 상품별 수수료', '미발행 인보이스 확인', '인보이스 생성해줘'],
+  '/tensoftworks/management': ['텐소프트웍스 대시보드', '이번 달 매출 현황', '대출 상환 현황', '현금흐름 요약', '이번 주 일정'],
+  '/tensoftworks/projects': ['프로젝트 목록', '진행중 마일스톤', '미완료 태스크', '이번 주 일정'],
+  '/willow-investment/management': ['윌로우 경영 대시보드', '이번 달 현금흐름', '이번 주 일정', '진행중 마일스톤', '미수금 정리'],
+  '/others/ryuha-study': ['류하 학습 대시보드', '이번 주 수업 일정', '미완료 숙제', '신체기록 추이', '수첩 확인'],
 }
 
 export function ChatPanel({ open, onClose }: ChatPanelProps) {

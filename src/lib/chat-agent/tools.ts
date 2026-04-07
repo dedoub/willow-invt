@@ -6,6 +6,46 @@ import {
   reListComplexes, reGetTradeTrends, reGetRentalTrends,
   reGetListingGap, reGetListingGapTrend, reGetJeonseRatio, reGetSummary,
 } from '@/lib/real-estate/queries'
+import {
+  willowListClients, willowCreateClient, willowUpdateClient, willowDeleteClient,
+  willowListProjects, willowCreateProject, willowUpdateProject, willowDeleteProject,
+  willowListMilestones, willowCreateMilestone, willowUpdateMilestone, willowDeleteMilestone,
+  willowListSchedules, willowCreateSchedule, willowUpdateSchedule, willowDeleteSchedule, willowToggleScheduleDate,
+  willowListTasks, willowCreateTask, willowUpdateTask, willowDeleteTask,
+  willowListMemos, willowUpsertMemo, willowDeleteMemo,
+  willowListCash, willowCreateCash, willowUpdateCash, willowDeleteCash,
+  willowGetDashboard, willowGetCashSummary,
+} from '@/lib/willow-mgmt/queries'
+import {
+  tenswListClients, tenswCreateClient, tenswUpdateClient, tenswDeleteClient,
+  tenswListProjects, tenswCreateProject, tenswUpdateProject, tenswDeleteProject,
+  tenswListMilestones, tenswCreateMilestone, tenswUpdateMilestone, tenswDeleteMilestone,
+  tenswListSchedules, tenswCreateSchedule, tenswUpdateSchedule, tenswDeleteSchedule,
+  tenswListTasks, tenswCreateTask, tenswUpdateTask, tenswDeleteTask,
+  tenswListMemos, tenswUpsertMemo, tenswDeleteMemo,
+  tenswListCash, tenswCreateCash, tenswUpdateCash, tenswDeleteCash,
+  tenswGetCashSummary, tenswGetDashboard,
+  tenswListSales, tenswCreateSales, tenswUpdateSales, tenswDeleteSales,
+  tenswListLoans, tenswCreateLoan, tenswUpdateLoan, tenswDeleteLoan,
+} from '@/lib/tensw-mgmt/queries'
+import {
+  akrosListProducts, akrosGetAumData, akrosGetTimeSeries, akrosGetExchangeRates,
+  akrosListTaxInvoices, akrosCreateTaxInvoice, akrosUpdateTaxInvoice, akrosDeleteTaxInvoice,
+  akrosGetDashboard,
+  etcListProducts, etcCreateProduct, etcUpdateProduct, etcDeleteProduct,
+  etcListInvoices, etcCreateInvoice, etcGetInvoice, etcGetStats, etcGetDashboard,
+} from '@/lib/etf/queries'
+import {
+  ryuhaListSubjects, ryuhaCreateSubject, ryuhaUpdateSubject, ryuhaDeleteSubject,
+  ryuhaListTextbooks, ryuhaCreateTextbook, ryuhaUpdateTextbook, ryuhaDeleteTextbook,
+  ryuhaListChapters, ryuhaCreateChapter, ryuhaUpdateChapter, ryuhaDeleteChapter,
+  ryuhaListSchedules, ryuhaCreateSchedule, ryuhaUpdateSchedule, ryuhaDeleteSchedule,
+  ryuhaListHomework, ryuhaCreateHomework, ryuhaUpdateHomework, ryuhaDeleteHomework,
+  ryuhaListMemos, ryuhaUpsertMemo, ryuhaDeleteMemo,
+  ryuhaListBodyRecords, ryuhaCreateBodyRecord, ryuhaUpdateBodyRecord, ryuhaDeleteBodyRecord,
+  ryuhaListNotes, ryuhaCreateNote, ryuhaUpdateNote, ryuhaDeleteNote,
+  ryuhaGetDashboard,
+} from '@/lib/ryuha/queries'
 
 // ============================================================
 // 허용 테이블 목록 (안전장치)
@@ -246,6 +286,479 @@ export const agentTools = [
       },
     },
   },
+  // ---- 윌로우 경영관리 전용 도구 ----
+  // -- Dashboard --
+  {
+    name: 'willow_get_dashboard',
+    description: '[윌로우] 경영관리 대시보드 요약 — 현금(매출/지출/미수금/미지급금), 이번주 일정, 진행중 프로젝트, 대기중 마일스톤을 한눈에 봅니다.',
+    parameters: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'willow_get_cash_summary',
+    description: '[윌로우] 현금관리 요약 — 매출/지출/자산/부채 집계. 기간 필터 가능.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        start_date: { type: 'string', description: '시작일 (YYYY-MM-DD)' },
+        end_date: { type: 'string', description: '종료일 (YYYY-MM-DD)' },
+      },
+    },
+  },
+  // -- Clients --
+  {
+    name: 'willow_list_clients',
+    description: '[윌로우] 클라이언트 목록 조회',
+    parameters: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'willow_create_client',
+    description: '[윌로우] 새 클라이언트 생성',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: '클라이언트 이름 (필수)' },
+        color: { type: 'string', description: '색상 hex (예: #3B82F6)' },
+        icon: { type: 'string', description: '아이콘 이름' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'willow_update_client',
+    description: '[윌로우] 클라이언트 수정',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '클라이언트 ID (필수)' },
+        name: { type: 'string', description: '이름' },
+        color: { type: 'string', description: '색상 hex' },
+        icon: { type: 'string', description: '아이콘' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'willow_delete_client',
+    description: '[윌로우] 클라이언트 삭제',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '클라이언트 ID (필수)' },
+      },
+      required: ['id'],
+    },
+  },
+  // -- Projects --
+  {
+    name: 'willow_list_projects',
+    description: '[윌로우] 프로젝트 목록 (클라이언트 관계 포함). client_id로 필터 가능.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        client_id: { type: 'string', description: '클라이언트 ID 필터' },
+      },
+    },
+  },
+  {
+    name: 'willow_create_project',
+    description: '[윌로우] 새 프로젝트 생성',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        client_id: { type: 'string', description: '클라이언트 ID (필수)' },
+        name: { type: 'string', description: '프로젝트 이름 (필수)' },
+        description: { type: 'string', description: '설명' },
+        status: { type: 'string', description: 'active|completed|on_hold|cancelled (기본: active)' },
+      },
+      required: ['client_id', 'name'],
+    },
+  },
+  {
+    name: 'willow_update_project',
+    description: '[윌로우] 프로젝트 수정',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '프로젝트 ID (필수)' },
+        name: { type: 'string', description: '이름' },
+        description: { type: 'string', description: '설명' },
+        status: { type: 'string', description: 'active|completed|on_hold|cancelled' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'willow_delete_project',
+    description: '[윌로우] 프로젝트 삭제',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '프로젝트 ID (필수)' },
+      },
+      required: ['id'],
+    },
+  },
+  // -- Milestones --
+  {
+    name: 'willow_list_milestones',
+    description: '[윌로우] 마일스톤 목록 (프로젝트/클라이언트 관계 포함). project_id로 필터 가능.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '프로젝트 ID 필터' },
+      },
+    },
+  },
+  {
+    name: 'willow_create_milestone',
+    description: '[윌로우] 새 마일스톤 생성',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '프로젝트 ID (필수)' },
+        name: { type: 'string', description: '마일스톤 이름 (필수)' },
+        description: { type: 'string', description: '설명' },
+        status: { type: 'string', description: 'pending|in_progress|review_pending|completed (기본: pending)' },
+        target_date: { type: 'string', description: '목표일 (YYYY-MM-DD)' },
+      },
+      required: ['project_id', 'name'],
+    },
+  },
+  {
+    name: 'willow_update_milestone',
+    description: '[윌로우] 마일스톤 수정. status를 completed로 바꾸면 completed_at이 자동 설정됩니다.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '마일스톤 ID (필수)' },
+        name: { type: 'string', description: '이름' },
+        description: { type: 'string', description: '설명' },
+        status: { type: 'string', description: 'pending|in_progress|review_pending|completed' },
+        target_date: { type: 'string', description: '목표일 (YYYY-MM-DD)' },
+        review_completed: { type: 'string', description: '리뷰 완료 여부 (true/false)' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'willow_delete_milestone',
+    description: '[윌로우] 마일스톤 삭제',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '마일스톤 ID (필수)' },
+      },
+      required: ['id'],
+    },
+  },
+  // -- Schedules --
+  {
+    name: 'willow_list_schedules',
+    description: '[윌로우] 일정 목록 (클라이언트/마일스톤 관계 포함). 날짜 범위, 클라이언트 필터 가능.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        start_date: { type: 'string', description: '시작일 (YYYY-MM-DD)' },
+        end_date: { type: 'string', description: '종료일 (YYYY-MM-DD)' },
+        client_id: { type: 'string', description: '클라이언트 ID 필터' },
+      },
+    },
+  },
+  {
+    name: 'willow_create_schedule',
+    description: '[윌로우] 새 일정 생성. 미팅, 업무, 마감일 등.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string', description: '일정 제목 (필수)' },
+        schedule_date: { type: 'string', description: '일정 날짜 YYYY-MM-DD (필수)' },
+        end_date: { type: 'string', description: '종료일 YYYY-MM-DD (여러 날 일정)' },
+        start_time: { type: 'string', description: '시작 시간 HH:MM' },
+        end_time: { type: 'string', description: '종료 시간 HH:MM' },
+        type: { type: 'string', description: 'task|meeting|deadline (기본: task)' },
+        client_id: { type: 'string', description: '클라이언트 ID' },
+        description: { type: 'string', description: '설명' },
+        color: { type: 'string', description: '색상 hex' },
+        task_content: { type: 'string', description: '태스크 내용' },
+        task_deadline: { type: 'string', description: '태스크 마감일 YYYY-MM-DD' },
+      },
+      required: ['title', 'schedule_date'],
+    },
+  },
+  {
+    name: 'willow_update_schedule',
+    description: '[윌로우] 일정 수정. 완료 처리, 시간 변경 등.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '일정 ID (필수)' },
+        title: { type: 'string', description: '제목' },
+        schedule_date: { type: 'string', description: '날짜 YYYY-MM-DD' },
+        end_date: { type: 'string', description: '종료일' },
+        start_time: { type: 'string', description: '시작 시간' },
+        end_time: { type: 'string', description: '종료 시간' },
+        type: { type: 'string', description: 'task|meeting|deadline' },
+        client_id: { type: 'string', description: '클라이언트 ID' },
+        description: { type: 'string', description: '설명' },
+        is_completed: { type: 'string', description: '완료 여부 (true/false)' },
+        task_content: { type: 'string', description: '태스크 내용' },
+        task_completed: { type: 'string', description: '태스크 완료 (true/false)' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'willow_delete_schedule',
+    description: '[윌로우] 일정 삭제',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '일정 ID (필수)' },
+      },
+      required: ['id'],
+    },
+  },
+  // -- Tasks --
+  {
+    name: 'willow_list_tasks',
+    description: '[윌로우] 태스크 목록. schedule_id로 특정 일정의 태스크만 조회 가능.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        schedule_id: { type: 'string', description: '일정 ID 필터' },
+      },
+    },
+  },
+  {
+    name: 'willow_create_task',
+    description: '[윌로우] 새 태스크 생성 (일정에 연결)',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        schedule_id: { type: 'string', description: '일정 ID (필수)' },
+        content: { type: 'string', description: '태스크 내용 (필수)' },
+        deadline: { type: 'string', description: '마감일 YYYY-MM-DD' },
+      },
+      required: ['schedule_id', 'content'],
+    },
+  },
+  {
+    name: 'willow_update_task',
+    description: '[윌로우] 태스크 수정/완료 처리. is_completed를 true로 하면 completed_at이 자동 설정.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '태스크 ID (필수)' },
+        content: { type: 'string', description: '내용' },
+        deadline: { type: 'string', description: '마감일' },
+        is_completed: { type: 'string', description: '완료 여부 (true/false)' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'willow_delete_task',
+    description: '[윌로우] 태스크 삭제',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '태스크 ID (필수)' },
+      },
+      required: ['id'],
+    },
+  },
+  // -- Memos --
+  {
+    name: 'willow_upsert_memo',
+    description: '[윌로우] 일일 메모 작성/수정. 같은 날짜에 이미 메모가 있으면 덮어씁니다.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        memo_date: { type: 'string', description: '메모 날짜 YYYY-MM-DD (필수)' },
+        content: { type: 'string', description: '메모 내용 (필수)' },
+      },
+      required: ['memo_date', 'content'],
+    },
+  },
+  {
+    name: 'willow_delete_memo',
+    description: '[윌로우] 일일 메모 삭제',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        date: { type: 'string', description: '삭제할 메모 날짜 YYYY-MM-DD (필수)' },
+      },
+      required: ['date'],
+    },
+  },
+  // -- Cash --
+  {
+    name: 'willow_list_cash',
+    description: '[윌로우] 현금관리 항목 목록. type(revenue|expense|asset|liability)이나 status(issued|completed)로 필터 가능.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        type: { type: 'string', description: 'revenue|expense|asset|liability' },
+        status: { type: 'string', description: 'issued|completed' },
+      },
+    },
+  },
+  {
+    name: 'willow_create_cash',
+    description: '[윌로우] 현금관리 항목 생성 (매출/지출/자산/부채)',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        type: { type: 'string', description: 'revenue|expense|asset|liability (필수)' },
+        counterparty: { type: 'string', description: '거래처 (필수)' },
+        amount: { type: 'string', description: '금액 (필수)' },
+        description: { type: 'string', description: '설명' },
+        issue_date: { type: 'string', description: '발행일 YYYY-MM-DD' },
+        payment_date: { type: 'string', description: '입금/지급일 YYYY-MM-DD' },
+        status: { type: 'string', description: 'issued|completed (기본: issued)' },
+        notes: { type: 'string', description: '비고' },
+        account_number: { type: 'string', description: '계좌번호' },
+      },
+      required: ['type', 'counterparty', 'amount'],
+    },
+  },
+  {
+    name: 'willow_update_cash',
+    description: '[윌로우] 현금관리 항목 수정',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '항목 ID (필수)' },
+        type: { type: 'string', description: 'revenue|expense|asset|liability' },
+        counterparty: { type: 'string', description: '거래처' },
+        amount: { type: 'string', description: '금액' },
+        description: { type: 'string', description: '설명' },
+        issue_date: { type: 'string', description: '발행일' },
+        payment_date: { type: 'string', description: '입금/지급일' },
+        status: { type: 'string', description: 'issued|completed' },
+        notes: { type: 'string', description: '비고' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'willow_delete_cash',
+    description: '[윌로우] 현금관리 항목 삭제',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '항목 ID (필수)' },
+      },
+      required: ['id'],
+    },
+  },
+  // ---- 텐소프트웍스 경영관리 전용 도구 ----
+  // -- Dashboard --
+  { name: 'tensw_get_dashboard', description: '[텐소프트웍스] 경영관리 대시보드 요약 — 현금/매출/대출/일정/프로젝트/마일스톤 한눈에', parameters: { type: 'object' as const, properties: {} } },
+  { name: 'tensw_get_cash_summary', description: '[텐소프트웍스] 현금관리 요약 — 매출/지출/자산/부채 집계. 기간 필터 가능.', parameters: { type: 'object' as const, properties: { start_date: { type: 'string', description: '시작일 (YYYY-MM-DD)' }, end_date: { type: 'string', description: '종료일 (YYYY-MM-DD)' } } } },
+  // -- Clients --
+  { name: 'tensw_list_clients', description: '[텐소프트웍스] 클라이언트 목록', parameters: { type: 'object' as const, properties: {} } },
+  { name: 'tensw_create_client', description: '[텐소프트웍스] 새 클라이언트 생성', parameters: { type: 'object' as const, properties: { name: { type: 'string', description: '이름 (필수)' }, color: { type: 'string', description: '색상 hex' }, icon: { type: 'string', description: '아이콘' } }, required: ['name'] } },
+  { name: 'tensw_update_client', description: '[텐소프트웍스] 클라이언트 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, name: { type: 'string', description: '이름' }, color: { type: 'string', description: '색상' }, icon: { type: 'string', description: '아이콘' } }, required: ['id'] } },
+  { name: 'tensw_delete_client', description: '[텐소프트웍스] 클라이언트 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Projects --
+  { name: 'tensw_list_projects', description: '[텐소프트웍스] 프로젝트 목록 (클라이언트 관계 포함)', parameters: { type: 'object' as const, properties: { client_id: { type: 'string', description: '클라이언트 ID 필터' } } } },
+  { name: 'tensw_create_project', description: '[텐소프트웍스] 새 프로젝트 생성', parameters: { type: 'object' as const, properties: { client_id: { type: 'string', description: '클라이언트 ID (필수)' }, name: { type: 'string', description: '이름 (필수)' }, description: { type: 'string', description: '설명' }, status: { type: 'string', description: 'active|completed|on_hold|cancelled' } }, required: ['client_id', 'name'] } },
+  { name: 'tensw_update_project', description: '[텐소프트웍스] 프로젝트 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, name: { type: 'string', description: '이름' }, description: { type: 'string', description: '설명' }, status: { type: 'string', description: 'active|completed|on_hold|cancelled' } }, required: ['id'] } },
+  { name: 'tensw_delete_project', description: '[텐소프트웍스] 프로젝트 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Milestones --
+  { name: 'tensw_list_milestones', description: '[텐소프트웍스] 마일스톤 목록 (프로젝트/클라이언트 관계 포함)', parameters: { type: 'object' as const, properties: { project_id: { type: 'string', description: '프로젝트 ID 필터' } } } },
+  { name: 'tensw_create_milestone', description: '[텐소프트웍스] 새 마일스톤 생성', parameters: { type: 'object' as const, properties: { project_id: { type: 'string', description: '프로젝트 ID (필수)' }, name: { type: 'string', description: '이름 (필수)' }, description: { type: 'string', description: '설명' }, status: { type: 'string', description: 'pending|in_progress|review_pending|completed' }, target_date: { type: 'string', description: '목표일 YYYY-MM-DD' } }, required: ['project_id', 'name'] } },
+  { name: 'tensw_update_milestone', description: '[텐소프트웍스] 마일스톤 수정 (completed 시 completed_at 자동)', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, name: { type: 'string', description: '이름' }, description: { type: 'string', description: '설명' }, status: { type: 'string', description: 'pending|in_progress|review_pending|completed' }, target_date: { type: 'string', description: '목표일' }, review_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
+  { name: 'tensw_delete_milestone', description: '[텐소프트웍스] 마일스톤 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Schedules --
+  { name: 'tensw_list_schedules', description: '[텐소프트웍스] 일정 목록 (날짜/클라이언트 필터, 태스크 포함)', parameters: { type: 'object' as const, properties: { start_date: { type: 'string', description: '시작일' }, end_date: { type: 'string', description: '종료일' }, client_id: { type: 'string', description: '클라이언트 ID' } } } },
+  { name: 'tensw_create_schedule', description: '[텐소프트웍스] 새 일정 생성', parameters: { type: 'object' as const, properties: { title: { type: 'string', description: '제목 (필수)' }, schedule_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, end_date: { type: 'string', description: '종료일' }, start_time: { type: 'string', description: '시작 시간 HH:MM' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'task|meeting|deadline' }, client_id: { type: 'string', description: '클라이언트 ID' }, description: { type: 'string', description: '설명' }, color: { type: 'string', description: '색상' }, task_content: { type: 'string', description: '태스크 내용' }, task_deadline: { type: 'string', description: '태스크 마감일' } }, required: ['title', 'schedule_date'] } },
+  { name: 'tensw_update_schedule', description: '[텐소프트웍스] 일정 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, title: { type: 'string', description: '제목' }, schedule_date: { type: 'string', description: '날짜' }, end_date: { type: 'string', description: '종료일' }, start_time: { type: 'string', description: '시작 시간' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'task|meeting|deadline' }, client_id: { type: 'string', description: '클라이언트' }, description: { type: 'string', description: '설명' }, is_completed: { type: 'string', description: 'true/false' }, task_content: { type: 'string', description: '태스크 내용' }, task_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
+  { name: 'tensw_delete_schedule', description: '[텐소프트웍스] 일정 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Tasks --
+  { name: 'tensw_list_tasks', description: '[텐소프트웍스] 태스크 목록', parameters: { type: 'object' as const, properties: { schedule_id: { type: 'string', description: '일정 ID 필터' } } } },
+  { name: 'tensw_create_task', description: '[텐소프트웍스] 새 태스크', parameters: { type: 'object' as const, properties: { schedule_id: { type: 'string', description: '일정 ID (필수)' }, content: { type: 'string', description: '내용 (필수)' }, deadline: { type: 'string', description: '마감일' } }, required: ['schedule_id', 'content'] } },
+  { name: 'tensw_update_task', description: '[텐소프트웍스] 태스크 수정/완료 (completed_at 자동)', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, content: { type: 'string', description: '내용' }, deadline: { type: 'string', description: '마감일' }, is_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
+  { name: 'tensw_delete_task', description: '[텐소프트웍스] 태스크 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Memos --
+  { name: 'tensw_upsert_memo', description: '[텐소프트웍스] 일일 메모 작성/수정', parameters: { type: 'object' as const, properties: { memo_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, content: { type: 'string', description: '내용 (필수)' } }, required: ['memo_date', 'content'] } },
+  { name: 'tensw_delete_memo', description: '[텐소프트웍스] 일일 메모 삭제', parameters: { type: 'object' as const, properties: { date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' } }, required: ['date'] } },
+  // -- Cash --
+  { name: 'tensw_list_cash', description: '[텐소프트웍스] 현금관리 항목 목록', parameters: { type: 'object' as const, properties: { type: { type: 'string', description: 'revenue|expense|asset|liability' }, status: { type: 'string', description: 'issued|completed' } } } },
+  { name: 'tensw_create_cash', description: '[텐소프트웍스] 현금관리 항목 생성', parameters: { type: 'object' as const, properties: { type: { type: 'string', description: 'revenue|expense|asset|liability (필수)' }, counterparty: { type: 'string', description: '거래처 (필수)' }, amount: { type: 'string', description: '금액 (필수)' }, description: { type: 'string', description: '설명' }, issue_date: { type: 'string', description: '발행일' }, payment_date: { type: 'string', description: '입금/지급일' }, status: { type: 'string', description: 'issued|completed' }, notes: { type: 'string', description: '비고' }, account_number: { type: 'string', description: '계좌번호' } }, required: ['type', 'counterparty', 'amount'] } },
+  { name: 'tensw_update_cash', description: '[텐소프트웍스] 현금관리 항목 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, type: { type: 'string', description: 'revenue|expense|asset|liability' }, counterparty: { type: 'string', description: '거래처' }, amount: { type: 'string', description: '금액' }, description: { type: 'string', description: '설명' }, issue_date: { type: 'string', description: '발행일' }, payment_date: { type: 'string', description: '입금/지급일' }, status: { type: 'string', description: 'issued|completed' }, notes: { type: 'string', description: '비고' } }, required: ['id'] } },
+  { name: 'tensw_delete_cash', description: '[텐소프트웍스] 현금관리 항목 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Sales --
+  { name: 'tensw_list_sales', description: '[텐소프트웍스] 매출관리(세금계산서) 목록', parameters: { type: 'object' as const, properties: { status: { type: 'string', description: 'scheduled|pending|paid' } } } },
+  { name: 'tensw_create_sales', description: '[텐소프트웍스] 매출 항목 생성', parameters: { type: 'object' as const, properties: { invoice_date: { type: 'string', description: '계산서 발행일 (필수)' }, company: { type: 'string', description: '거래처 (필수)' }, description: { type: 'string', description: '설명' }, supply_amount: { type: 'string', description: '공급가액 (필수)' }, tax_amount: { type: 'string', description: '세액' }, total_amount: { type: 'string', description: '합계' }, status: { type: 'string', description: 'scheduled|pending|paid' }, notes: { type: 'string', description: '비고' } }, required: ['invoice_date', 'company', 'supply_amount'] } },
+  { name: 'tensw_update_sales', description: '[텐소프트웍스] 매출 항목 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, invoice_date: { type: 'string', description: '발행일' }, company: { type: 'string', description: '거래처' }, description: { type: 'string', description: '설명' }, supply_amount: { type: 'string', description: '공급가액' }, tax_amount: { type: 'string', description: '세액' }, total_amount: { type: 'string', description: '합계' }, status: { type: 'string', description: 'scheduled|pending|paid' }, notes: { type: 'string', description: '비고' } }, required: ['id'] } },
+  { name: 'tensw_delete_sales', description: '[텐소프트웍스] 매출 항목 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Loans --
+  { name: 'tensw_list_loans', description: '[텐소프트웍스] 대출관리 목록', parameters: { type: 'object' as const, properties: { status: { type: 'string', description: 'active|pending|closed' } } } },
+  { name: 'tensw_create_loan', description: '[텐소프트웍스] 대출 항목 생성', parameters: { type: 'object' as const, properties: { lender: { type: 'string', description: '대출기관 (필수)' }, loan_type: { type: 'string', description: '대출유형 (필수)' }, principal: { type: 'string', description: '대출원금 (필수)' }, interest_rate: { type: 'string', description: '이자율 (필수)' }, start_date: { type: 'string', description: '시작일 (필수)' }, end_date: { type: 'string', description: '만기일' }, repayment_type: { type: 'string', description: 'bullet|amortization' }, interest_payment_day: { type: 'string', description: '이자납입일 (일자)' }, status: { type: 'string', description: 'active|pending|closed' }, notes: { type: 'string', description: '비고' } }, required: ['lender', 'loan_type', 'principal', 'interest_rate', 'start_date'] } },
+  { name: 'tensw_update_loan', description: '[텐소프트웍스] 대출 항목 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, lender: { type: 'string', description: '대출기관' }, loan_type: { type: 'string', description: '유형' }, principal: { type: 'string', description: '원금' }, interest_rate: { type: 'string', description: '이자율' }, start_date: { type: 'string', description: '시작일' }, end_date: { type: 'string', description: '만기일' }, repayment_type: { type: 'string', description: 'bullet|amortization' }, interest_payment_day: { type: 'string', description: '이자납입일' }, status: { type: 'string', description: 'active|pending|closed' }, notes: { type: 'string', description: '비고' } }, required: ['id'] } },
+  { name: 'tensw_delete_loan', description: '[텐소프트웍스] 대출 항목 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // ---- ETF Akros 전용 도구 ----
+  { name: 'akros_get_dashboard', description: '[Akros] 대시보드 요약 — 상품수, 세금계산서 현황, 최신 AUM 시계열', parameters: { type: 'object' as const, properties: {} } },
+  { name: 'akros_list_products', description: '[Akros] ETF 상품 목록 (AUM/ARR 포함)', parameters: { type: 'object' as const, properties: { country: { type: 'string', description: '국가 필터 (KR, US, AU)' } } } },
+  { name: 'akros_get_aum_data', description: '[Akros] 특정 ETF 상품의 AUM 히스토리', parameters: { type: 'object' as const, properties: { symbol: { type: 'string', description: '심볼 (필수)' }, days: { type: 'string', description: '조회 일수 (기본: 30)' } }, required: ['symbol'] } },
+  { name: 'akros_get_time_series', description: '[Akros] 전체 AUM/ARR 시계열 데이터 (지역별 분류)', parameters: { type: 'object' as const, properties: { days: { type: 'string', description: '조회 일수' } } } },
+  { name: 'akros_get_exchange_rates', description: '[Akros] 최신 환율 조회 (KRW, AUD 등)', parameters: { type: 'object' as const, properties: { date: { type: 'string', description: '특정 날짜 YYYY-MM-DD' } } } },
+  { name: 'akros_list_tax_invoices', description: '[Akros] 세금계산서 목록', parameters: { type: 'object' as const, properties: {} } },
+  { name: 'akros_create_tax_invoice', description: '[Akros] 세금계산서 생성', parameters: { type: 'object' as const, properties: { invoice_date: { type: 'string', description: '발행일 (필수)' }, amount: { type: 'string', description: '금액 (필수)' }, notes: { type: 'string', description: '비고' } }, required: ['invoice_date', 'amount'] } },
+  { name: 'akros_update_tax_invoice', description: '[Akros] 세금계산서 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, invoice_date: { type: 'string', description: '발행일' }, amount: { type: 'string', description: '금액' }, notes: { type: 'string', description: '비고' }, issued_at: { type: 'string', description: '발급일' }, paid_at: { type: 'string', description: '입금일' } }, required: ['id'] } },
+  { name: 'akros_delete_tax_invoice', description: '[Akros] 세금계산서 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // ---- ETF ETC 전용 도구 ----
+  { name: 'etc_get_dashboard', description: '[ETC] 대시보드 요약 — 상품수, 인보이스 현황, 수수료 정보', parameters: { type: 'object' as const, properties: {} } },
+  { name: 'etc_get_stats', description: '[ETC] ETF 통계 — 총 AUM, 월간 수수료, 상품별 상세', parameters: { type: 'object' as const, properties: {} } },
+  { name: 'etc_list_products', description: '[ETC] ETF 상품 메타데이터 (수수료 구조 포함)', parameters: { type: 'object' as const, properties: { bank: { type: 'string', description: '발행사 필터' } } } },
+  { name: 'etc_create_product', description: '[ETC] ETF 상품 생성', parameters: { type: 'object' as const, properties: { symbol: { type: 'string', description: '심볼 (필수)' }, fund_name: { type: 'string', description: '펀드명 (필수)' }, fund_url: { type: 'string', description: 'URL' }, listing_date: { type: 'string', description: '상장일' }, bank: { type: 'string', description: '발행사' }, platform_fee_percent: { type: 'string', description: '플랫폼 수수료%' }, platform_min_fee: { type: 'string', description: '플랫폼 최소수수료' }, pm_fee_percent: { type: 'string', description: 'PM 수수료%' }, pm_min_fee: { type: 'string', description: 'PM 최소수수료' }, currency: { type: 'string', description: '통화 (기본: USD)' }, notes: { type: 'string', description: '비고' } }, required: ['symbol', 'fund_name'] } },
+  { name: 'etc_update_product', description: '[ETC] ETF 상품 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수, number)' }, symbol: { type: 'string', description: '심볼' }, fund_name: { type: 'string', description: '펀드명' }, fund_url: { type: 'string', description: 'URL' }, listing_date: { type: 'string', description: '상장일' }, bank: { type: 'string', description: '발행사' }, platform_fee_percent: { type: 'string', description: '플랫폼 수수료%' }, platform_min_fee: { type: 'string', description: '플랫폼 최소수수료' }, pm_fee_percent: { type: 'string', description: 'PM 수수료%' }, pm_min_fee: { type: 'string', description: 'PM 최소수수료' }, currency: { type: 'string', description: '통화' }, notes: { type: 'string', description: '비고' }, is_active: { type: 'string', description: 'true/false' } }, required: ['id'] } },
+  { name: 'etc_delete_product', description: '[ETC] ETF 상품 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수, number)' } }, required: ['id'] } },
+  { name: 'etc_list_invoices', description: '[ETC] 인보이스 목록', parameters: { type: 'object' as const, properties: { status: { type: 'string', description: 'draft|sent|paid|overdue|cancelled' }, limit: { type: 'string', description: '최대 건수 (기본: 50)' } } } },
+  { name: 'etc_create_invoice', description: '[ETC] 인보이스 생성', parameters: { type: 'object' as const, properties: { invoice_date: { type: 'string', description: '발행일 (필수)' }, bill_to_company: { type: 'string', description: '수신 회사 (기본: Exchange Traded Concepts, LLC)' }, attention: { type: 'string', description: '담당자 (기본: Garrett Stevens)' }, line_items: { type: 'string', description: 'JSON 배열 [{description, qty?, unitPrice?, amount}] (필수)' }, notes: { type: 'string', description: '비고' } }, required: ['invoice_date', 'line_items'] } },
+  { name: 'etc_get_invoice', description: '[ETC] 인보이스 상세 조회', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: '인보이스 ID (필수)' } }, required: ['id'] } },
+  // ---- 류하 학습관리 전용 도구 ----
+  { name: 'ryuha_get_dashboard', description: '[류하] 학습 대시보드 — 이번주 일정, 미완료 숙제, 최근 신체기록', parameters: { type: 'object' as const, properties: {} } },
+  // -- Subjects --
+  { name: 'ryuha_list_subjects', description: '[류하] 과목 목록', parameters: { type: 'object' as const, properties: {} } },
+  { name: 'ryuha_create_subject', description: '[류하] 과목 생성', parameters: { type: 'object' as const, properties: { name: { type: 'string', description: '과목명 (필수)' }, color: { type: 'string', description: '색상 hex' }, icon: { type: 'string', description: '아이콘' } }, required: ['name'] } },
+  { name: 'ryuha_update_subject', description: '[류하] 과목 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, name: { type: 'string', description: '이름' }, color: { type: 'string', description: '색상' }, icon: { type: 'string', description: '아이콘' } }, required: ['id'] } },
+  { name: 'ryuha_delete_subject', description: '[류하] 과목 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Textbooks --
+  { name: 'ryuha_list_textbooks', description: '[류하] 교재 목록 (과목 관계 포함)', parameters: { type: 'object' as const, properties: { subject_id: { type: 'string', description: '과목 ID 필터' } } } },
+  { name: 'ryuha_create_textbook', description: '[류하] 교재 생성', parameters: { type: 'object' as const, properties: { subject_id: { type: 'string', description: '과목 ID (필수)' }, name: { type: 'string', description: '교재명 (필수)' }, publisher: { type: 'string', description: '출판사' }, description: { type: 'string', description: '설명' } }, required: ['subject_id', 'name'] } },
+  { name: 'ryuha_update_textbook', description: '[류하] 교재 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, name: { type: 'string', description: '이름' }, publisher: { type: 'string', description: '출판사' }, description: { type: 'string', description: '설명' } }, required: ['id'] } },
+  { name: 'ryuha_delete_textbook', description: '[류하] 교재 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Chapters --
+  { name: 'ryuha_list_chapters', description: '[류하] 챕터 목록 (교재/과목 관계 포함)', parameters: { type: 'object' as const, properties: { textbook_id: { type: 'string', description: '교재 ID 필터' } } } },
+  { name: 'ryuha_create_chapter', description: '[류하] 챕터 생성', parameters: { type: 'object' as const, properties: { textbook_id: { type: 'string', description: '교재 ID (필수)' }, name: { type: 'string', description: '챕터명 (필수)' }, description: { type: 'string', description: '설명' }, status: { type: 'string', description: 'pending|in_progress|review_notes_pending|completed' }, target_date: { type: 'string', description: '목표일' } }, required: ['textbook_id', 'name'] } },
+  { name: 'ryuha_update_chapter', description: '[류하] 챕터 수정 (completed 시 completed_at 자동)', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, name: { type: 'string', description: '이름' }, description: { type: 'string', description: '설명' }, status: { type: 'string', description: 'pending|in_progress|review_notes_pending|completed' }, target_date: { type: 'string', description: '목표일' }, review_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
+  { name: 'ryuha_delete_chapter', description: '[류하] 챕터 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Schedules --
+  { name: 'ryuha_list_schedules', description: '[류하] 학습 일정 목록 (과목/숙제 포함, 날짜/과목 필터)', parameters: { type: 'object' as const, properties: { start_date: { type: 'string', description: '시작일' }, end_date: { type: 'string', description: '종료일' }, subject_id: { type: 'string', description: '과목 ID' } } } },
+  { name: 'ryuha_create_schedule', description: '[류하] 학습 일정 생성', parameters: { type: 'object' as const, properties: { title: { type: 'string', description: '제목 (필수)' }, schedule_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, end_date: { type: 'string', description: '종료일' }, start_time: { type: 'string', description: '시작 시간 HH:MM' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'homework|self_study' }, subject_id: { type: 'string', description: '과목 ID' }, description: { type: 'string', description: '설명' }, color: { type: 'string', description: '색상' }, homework_content: { type: 'string', description: '숙제 내용' }, homework_deadline: { type: 'string', description: '숙제 마감일' } }, required: ['title', 'schedule_date'] } },
+  { name: 'ryuha_update_schedule', description: '[류하] 학습 일정 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, title: { type: 'string', description: '제목' }, schedule_date: { type: 'string', description: '날짜' }, start_time: { type: 'string', description: '시작 시간' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'homework|self_study' }, subject_id: { type: 'string', description: '과목 ID' }, description: { type: 'string', description: '설명' }, is_completed: { type: 'string', description: 'true/false' }, homework_content: { type: 'string', description: '숙제 내용' }, homework_deadline: { type: 'string', description: '숙제 마감일' }, homework_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
+  { name: 'ryuha_delete_schedule', description: '[류하] 학습 일정 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Homework --
+  { name: 'ryuha_list_homework', description: '[류하] 숙제 목록', parameters: { type: 'object' as const, properties: { schedule_id: { type: 'string', description: '일정 ID 필터' } } } },
+  { name: 'ryuha_create_homework', description: '[류하] 숙제 생성', parameters: { type: 'object' as const, properties: { schedule_id: { type: 'string', description: '일정 ID (필수)' }, content: { type: 'string', description: '내용 (필수)' }, deadline: { type: 'string', description: '마감일' } }, required: ['schedule_id', 'content'] } },
+  { name: 'ryuha_update_homework', description: '[류하] 숙제 수정/완료 (completed_at 자동)', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, content: { type: 'string', description: '내용' }, deadline: { type: 'string', description: '마감일' }, is_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
+  { name: 'ryuha_delete_homework', description: '[류하] 숙제 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Memos --
+  { name: 'ryuha_upsert_memo', description: '[류하] 일일 메모 작성/수정', parameters: { type: 'object' as const, properties: { memo_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, content: { type: 'string', description: '내용 (필수)' } }, required: ['memo_date', 'content'] } },
+  { name: 'ryuha_delete_memo', description: '[류하] 일일 메모 삭제', parameters: { type: 'object' as const, properties: { date: { type: 'string', description: '날짜 (필수)' } }, required: ['date'] } },
+  // -- Body Records --
+  { name: 'ryuha_list_body_records', description: '[류하] 신체기록 목록', parameters: { type: 'object' as const, properties: { start_date: { type: 'string', description: '시작일' }, end_date: { type: 'string', description: '종료일' } } } },
+  { name: 'ryuha_create_body_record', description: '[류하] 신체기록 생성', parameters: { type: 'object' as const, properties: { record_date: { type: 'string', description: '날짜 (필수)' }, height_cm: { type: 'string', description: '키 cm' }, weight_kg: { type: 'string', description: '몸무게 kg' }, notes: { type: 'string', description: '비고' } }, required: ['record_date'] } },
+  { name: 'ryuha_update_body_record', description: '[류하] 신체기록 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, record_date: { type: 'string', description: '날짜' }, height_cm: { type: 'string', description: '키' }, weight_kg: { type: 'string', description: '몸무게' }, notes: { type: 'string', description: '비고' } }, required: ['id'] } },
+  { name: 'ryuha_delete_body_record', description: '[류하] 신체기록 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // -- Notes --
+  { name: 'ryuha_list_notes', description: '[류하] 수첩(노트) 목록. 카테고리/검색 필터 가능.', parameters: { type: 'object' as const, properties: { category: { type: 'string', description: '카테고리 필터' }, search: { type: 'string', description: '검색어 (제목/내용)' } } } },
+  { name: 'ryuha_create_note', description: '[류하] 수첩(노트) 생성', parameters: { type: 'object' as const, properties: { title: { type: 'string', description: '제목 (필수)' }, content: { type: 'string', description: '내용 (필수)' }, category: { type: 'string', description: '카테고리' }, is_pinned: { type: 'string', description: 'true/false' } }, required: ['title', 'content'] } },
+  { name: 'ryuha_update_note', description: '[류하] 수첩(노트) 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, title: { type: 'string', description: '제목' }, content: { type: 'string', description: '내용' }, category: { type: 'string', description: '카테고리' }, is_pinned: { type: 'string', description: 'true/false' } }, required: ['id'] } },
+  { name: 'ryuha_delete_note', description: '[류하] 수첩(노트) 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
   // ---- 메모리 도구 ----
   {
     name: 'save_memory',
@@ -521,6 +1034,289 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       return await reGetJeonseRatio({
         months: args.months ? Number(args.months) : undefined,
       })
+
+    // ---- 윌로우 경영관리 도구 ----
+    case 'willow_get_dashboard':
+      return await willowGetDashboard()
+
+    case 'willow_get_cash_summary':
+      return await willowGetCashSummary({
+        start_date: args.start_date as string | undefined,
+        end_date: args.end_date as string | undefined,
+      })
+
+    case 'willow_list_clients':
+      return await willowListClients()
+
+    case 'willow_create_client':
+      return await willowCreateClient({
+        name: args.name as string,
+        color: args.color as string | undefined,
+        icon: args.icon as string | undefined,
+      })
+
+    case 'willow_update_client':
+      return await willowUpdateClient({
+        id: args.id as string,
+        name: args.name as string | undefined,
+        color: args.color as string | undefined,
+        icon: args.icon as string | undefined,
+      })
+
+    case 'willow_delete_client':
+      return await willowDeleteClient(args.id as string)
+
+    case 'willow_list_projects':
+      return await willowListProjects({
+        client_id: args.client_id as string | undefined,
+      })
+
+    case 'willow_create_project':
+      return await willowCreateProject({
+        client_id: args.client_id as string,
+        name: args.name as string,
+        description: args.description as string | undefined,
+        status: args.status as string | undefined,
+      })
+
+    case 'willow_update_project':
+      return await willowUpdateProject({
+        id: args.id as string,
+        name: args.name as string | undefined,
+        description: args.description as string | undefined,
+        status: args.status as string | undefined,
+      })
+
+    case 'willow_delete_project':
+      return await willowDeleteProject(args.id as string)
+
+    case 'willow_list_milestones':
+      return await willowListMilestones({
+        project_id: args.project_id as string | undefined,
+      })
+
+    case 'willow_create_milestone':
+      return await willowCreateMilestone({
+        project_id: args.project_id as string,
+        name: args.name as string,
+        description: args.description as string | undefined,
+        status: args.status as string | undefined,
+        target_date: args.target_date as string | undefined,
+      })
+
+    case 'willow_update_milestone':
+      return await willowUpdateMilestone({
+        id: args.id as string,
+        name: args.name as string | undefined,
+        description: args.description as string | undefined,
+        status: args.status as string | undefined,
+        target_date: args.target_date as string | undefined,
+        review_completed: args.review_completed === 'true' ? true : args.review_completed === 'false' ? false : undefined,
+      })
+
+    case 'willow_delete_milestone':
+      return await willowDeleteMilestone(args.id as string)
+
+    case 'willow_list_schedules':
+      return await willowListSchedules({
+        start_date: args.start_date as string | undefined,
+        end_date: args.end_date as string | undefined,
+        client_id: args.client_id as string | undefined,
+      })
+
+    case 'willow_create_schedule':
+      return await willowCreateSchedule({
+        title: args.title as string,
+        schedule_date: args.schedule_date as string,
+        end_date: args.end_date as string | undefined,
+        start_time: args.start_time as string | undefined,
+        end_time: args.end_time as string | undefined,
+        type: args.type as string | undefined,
+        client_id: args.client_id as string | undefined,
+        description: args.description as string | undefined,
+        color: args.color as string | undefined,
+        task_content: args.task_content as string | undefined,
+        task_deadline: args.task_deadline as string | undefined,
+      })
+
+    case 'willow_update_schedule':
+      return await willowUpdateSchedule({
+        id: args.id as string,
+        title: args.title as string | undefined,
+        schedule_date: args.schedule_date as string | undefined,
+        end_date: args.end_date as string | undefined,
+        start_time: args.start_time as string | undefined,
+        end_time: args.end_time as string | undefined,
+        type: args.type as string | undefined,
+        client_id: args.client_id as string | undefined,
+        description: args.description as string | undefined,
+        is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined,
+        task_content: args.task_content as string | undefined,
+        task_completed: args.task_completed === 'true' ? true : args.task_completed === 'false' ? false : undefined,
+      })
+
+    case 'willow_delete_schedule':
+      return await willowDeleteSchedule(args.id as string)
+
+    case 'willow_list_tasks':
+      return await willowListTasks({
+        schedule_id: args.schedule_id as string | undefined,
+      })
+
+    case 'willow_create_task':
+      return await willowCreateTask({
+        schedule_id: args.schedule_id as string,
+        content: args.content as string,
+        deadline: args.deadline as string | undefined,
+      })
+
+    case 'willow_update_task':
+      return await willowUpdateTask({
+        id: args.id as string,
+        content: args.content as string | undefined,
+        deadline: args.deadline as string | undefined,
+        is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined,
+      })
+
+    case 'willow_delete_task':
+      return await willowDeleteTask(args.id as string)
+
+    case 'willow_upsert_memo':
+      return await willowUpsertMemo({
+        memo_date: args.memo_date as string,
+        content: args.content as string,
+      })
+
+    case 'willow_delete_memo':
+      return await willowDeleteMemo(args.date as string)
+
+    case 'willow_list_cash':
+      return await willowListCash({
+        type: args.type as string | undefined,
+        status: args.status as string | undefined,
+      })
+
+    case 'willow_create_cash':
+      return await willowCreateCash({
+        type: args.type as string,
+        counterparty: args.counterparty as string,
+        amount: Number(args.amount),
+        description: args.description as string | undefined,
+        issue_date: args.issue_date as string | undefined,
+        payment_date: args.payment_date as string | undefined,
+        status: args.status as string | undefined,
+        notes: args.notes as string | undefined,
+        account_number: args.account_number as string | undefined,
+      })
+
+    case 'willow_update_cash':
+      return await willowUpdateCash({
+        id: args.id as string,
+        type: args.type as string | undefined,
+        counterparty: args.counterparty as string | undefined,
+        amount: args.amount ? Number(args.amount) : undefined,
+        description: args.description as string | undefined,
+        issue_date: args.issue_date as string | undefined,
+        payment_date: args.payment_date as string | undefined,
+        status: args.status as string | undefined,
+        notes: args.notes as string | undefined,
+      })
+
+    case 'willow_delete_cash':
+      return await willowDeleteCash(args.id as string)
+
+    // ---- 텐소프트웍스 경영관리 도구 ----
+    case 'tensw_get_dashboard': return await tenswGetDashboard()
+    case 'tensw_get_cash_summary': return await tenswGetCashSummary({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined })
+    case 'tensw_list_clients': return await tenswListClients()
+    case 'tensw_create_client': return await tenswCreateClient({ name: args.name as string, color: args.color as string | undefined, icon: args.icon as string | undefined })
+    case 'tensw_update_client': return await tenswUpdateClient({ id: args.id as string, name: args.name as string | undefined, color: args.color as string | undefined, icon: args.icon as string | undefined })
+    case 'tensw_delete_client': return await tenswDeleteClient(args.id as string)
+    case 'tensw_list_projects': return await tenswListProjects({ client_id: args.client_id as string | undefined })
+    case 'tensw_create_project': return await tenswCreateProject({ client_id: args.client_id as string, name: args.name as string, description: args.description as string | undefined, status: args.status as string | undefined })
+    case 'tensw_update_project': return await tenswUpdateProject({ id: args.id as string, name: args.name as string | undefined, description: args.description as string | undefined, status: args.status as string | undefined })
+    case 'tensw_delete_project': return await tenswDeleteProject(args.id as string)
+    case 'tensw_list_milestones': return await tenswListMilestones({ project_id: args.project_id as string | undefined })
+    case 'tensw_create_milestone': return await tenswCreateMilestone({ project_id: args.project_id as string, name: args.name as string, description: args.description as string | undefined, status: args.status as string | undefined, target_date: args.target_date as string | undefined })
+    case 'tensw_update_milestone': return await tenswUpdateMilestone({ id: args.id as string, name: args.name as string | undefined, description: args.description as string | undefined, status: args.status as string | undefined, target_date: args.target_date as string | undefined, review_completed: args.review_completed === 'true' ? true : args.review_completed === 'false' ? false : undefined })
+    case 'tensw_delete_milestone': return await tenswDeleteMilestone(args.id as string)
+    case 'tensw_list_schedules': return await tenswListSchedules({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined, client_id: args.client_id as string | undefined })
+    case 'tensw_create_schedule': return await tenswCreateSchedule({ title: args.title as string, schedule_date: args.schedule_date as string, end_date: args.end_date as string | undefined, start_time: args.start_time as string | undefined, end_time: args.end_time as string | undefined, type: args.type as string | undefined, client_id: args.client_id as string | undefined, description: args.description as string | undefined, color: args.color as string | undefined, task_content: args.task_content as string | undefined, task_deadline: args.task_deadline as string | undefined })
+    case 'tensw_update_schedule': return await tenswUpdateSchedule({ id: args.id as string, title: args.title as string | undefined, schedule_date: args.schedule_date as string | undefined, end_date: args.end_date as string | undefined, start_time: args.start_time as string | undefined, end_time: args.end_time as string | undefined, type: args.type as string | undefined, client_id: args.client_id as string | undefined, description: args.description as string | undefined, is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined, task_content: args.task_content as string | undefined, task_completed: args.task_completed === 'true' ? true : args.task_completed === 'false' ? false : undefined })
+    case 'tensw_delete_schedule': return await tenswDeleteSchedule(args.id as string)
+    case 'tensw_list_tasks': return await tenswListTasks({ schedule_id: args.schedule_id as string | undefined })
+    case 'tensw_create_task': return await tenswCreateTask({ schedule_id: args.schedule_id as string, content: args.content as string, deadline: args.deadline as string | undefined })
+    case 'tensw_update_task': return await tenswUpdateTask({ id: args.id as string, content: args.content as string | undefined, deadline: args.deadline as string | undefined, is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined })
+    case 'tensw_delete_task': return await tenswDeleteTask(args.id as string)
+    case 'tensw_upsert_memo': return await tenswUpsertMemo({ memo_date: args.memo_date as string, content: args.content as string })
+    case 'tensw_delete_memo': return await tenswDeleteMemo(args.date as string)
+    case 'tensw_list_cash': return await tenswListCash({ type: args.type as string | undefined, status: args.status as string | undefined })
+    case 'tensw_create_cash': return await tenswCreateCash({ type: args.type as string, counterparty: args.counterparty as string, amount: Number(args.amount), description: args.description as string | undefined, issue_date: args.issue_date as string | undefined, payment_date: args.payment_date as string | undefined, status: args.status as string | undefined, notes: args.notes as string | undefined, account_number: args.account_number as string | undefined })
+    case 'tensw_update_cash': return await tenswUpdateCash({ id: args.id as string, type: args.type as string | undefined, counterparty: args.counterparty as string | undefined, amount: args.amount ? Number(args.amount) : undefined, description: args.description as string | undefined, issue_date: args.issue_date as string | undefined, payment_date: args.payment_date as string | undefined, status: args.status as string | undefined, notes: args.notes as string | undefined })
+    case 'tensw_delete_cash': return await tenswDeleteCash(args.id as string)
+    case 'tensw_list_sales': return await tenswListSales({ status: args.status as string | undefined })
+    case 'tensw_create_sales': return await tenswCreateSales({ invoice_date: args.invoice_date as string, company: args.company as string, description: args.description as string | undefined, supply_amount: Number(args.supply_amount), tax_amount: args.tax_amount ? Number(args.tax_amount) : undefined, total_amount: args.total_amount ? Number(args.total_amount) : undefined, status: args.status as string | undefined, notes: args.notes as string | undefined })
+    case 'tensw_update_sales': return await tenswUpdateSales({ id: args.id as string, invoice_date: args.invoice_date as string | undefined, company: args.company as string | undefined, description: args.description as string | undefined, supply_amount: args.supply_amount ? Number(args.supply_amount) : undefined, tax_amount: args.tax_amount ? Number(args.tax_amount) : undefined, total_amount: args.total_amount ? Number(args.total_amount) : undefined, status: args.status as string | undefined, notes: args.notes as string | undefined })
+    case 'tensw_delete_sales': return await tenswDeleteSales(args.id as string)
+    case 'tensw_list_loans': return await tenswListLoans({ status: args.status as string | undefined })
+    case 'tensw_create_loan': return await tenswCreateLoan({ lender: args.lender as string, loan_type: args.loan_type as string, principal: Number(args.principal), interest_rate: Number(args.interest_rate), start_date: args.start_date as string, end_date: args.end_date as string | undefined, repayment_type: args.repayment_type as string | undefined, interest_payment_day: args.interest_payment_day ? Number(args.interest_payment_day) : undefined, status: args.status as string | undefined, notes: args.notes as string | undefined })
+    case 'tensw_update_loan': return await tenswUpdateLoan({ id: args.id as string, lender: args.lender as string | undefined, loan_type: args.loan_type as string | undefined, principal: args.principal ? Number(args.principal) : undefined, interest_rate: args.interest_rate ? Number(args.interest_rate) : undefined, start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined, repayment_type: args.repayment_type as string | undefined, interest_payment_day: args.interest_payment_day ? Number(args.interest_payment_day) : undefined, status: args.status as string | undefined, notes: args.notes as string | undefined })
+    case 'tensw_delete_loan': return await tenswDeleteLoan(args.id as string)
+
+    // ---- ETF Akros 도구 ----
+    case 'akros_get_dashboard': return await akrosGetDashboard()
+    case 'akros_list_products': return await akrosListProducts({ country: args.country as string | undefined })
+    case 'akros_get_aum_data': return await akrosGetAumData({ symbol: args.symbol as string, days: args.days ? Number(args.days) : undefined })
+    case 'akros_get_time_series': return await akrosGetTimeSeries({ days: args.days ? Number(args.days) : undefined })
+    case 'akros_get_exchange_rates': return await akrosGetExchangeRates({ date: args.date as string | undefined })
+    case 'akros_list_tax_invoices': return await akrosListTaxInvoices()
+    case 'akros_create_tax_invoice': return await akrosCreateTaxInvoice({ invoice_date: args.invoice_date as string, amount: Number(args.amount), notes: args.notes as string | undefined })
+    case 'akros_update_tax_invoice': return await akrosUpdateTaxInvoice({ id: args.id as string, invoice_date: args.invoice_date as string | undefined, amount: args.amount ? Number(args.amount) : undefined, notes: args.notes as string | undefined, issued_at: args.issued_at as string | undefined, paid_at: args.paid_at as string | undefined })
+    case 'akros_delete_tax_invoice': return await akrosDeleteTaxInvoice(args.id as string)
+
+    // ---- ETF ETC 도구 ----
+    case 'etc_get_dashboard': return await etcGetDashboard()
+    case 'etc_get_stats': return await etcGetStats()
+    case 'etc_list_products': return await etcListProducts({ bank: args.bank as string | undefined })
+    case 'etc_create_product': return await etcCreateProduct({ symbol: args.symbol as string, fund_name: args.fund_name as string, fund_url: args.fund_url as string | undefined, listing_date: args.listing_date as string | undefined, bank: args.bank as string | undefined, platform_fee_percent: args.platform_fee_percent ? Number(args.platform_fee_percent) : undefined, platform_min_fee: args.platform_min_fee ? Number(args.platform_min_fee) : undefined, pm_fee_percent: args.pm_fee_percent ? Number(args.pm_fee_percent) : undefined, pm_min_fee: args.pm_min_fee ? Number(args.pm_min_fee) : undefined, currency: args.currency as string | undefined, notes: args.notes as string | undefined })
+    case 'etc_update_product': return await etcUpdateProduct({ id: Number(args.id), symbol: args.symbol as string | undefined, fund_name: args.fund_name as string | undefined, fund_url: args.fund_url as string | undefined, listing_date: args.listing_date as string | undefined, bank: args.bank as string | undefined, platform_fee_percent: args.platform_fee_percent ? Number(args.platform_fee_percent) : undefined, platform_min_fee: args.platform_min_fee ? Number(args.platform_min_fee) : undefined, pm_fee_percent: args.pm_fee_percent ? Number(args.pm_fee_percent) : undefined, pm_min_fee: args.pm_min_fee ? Number(args.pm_min_fee) : undefined, currency: args.currency as string | undefined, notes: args.notes as string | undefined, is_active: args.is_active === 'true' ? true : args.is_active === 'false' ? false : undefined })
+    case 'etc_delete_product': return await etcDeleteProduct(Number(args.id))
+    case 'etc_list_invoices': return await etcListInvoices({ status: args.status as string | undefined, limit: args.limit ? Number(args.limit) : undefined })
+    case 'etc_create_invoice': return await etcCreateInvoice({ invoice_date: args.invoice_date as string, bill_to_company: args.bill_to_company as string | undefined, attention: args.attention as string | undefined, line_items: typeof args.line_items === 'string' ? JSON.parse(args.line_items) : args.line_items as Array<{ description: string; qty?: number; unitPrice?: number; amount: number }>, notes: args.notes as string | undefined })
+    case 'etc_get_invoice': return await etcGetInvoice({ id: args.id as string })
+
+    // ---- 류하 학습관리 도구 ----
+    case 'ryuha_get_dashboard': return await ryuhaGetDashboard()
+    case 'ryuha_list_subjects': return await ryuhaListSubjects()
+    case 'ryuha_create_subject': return await ryuhaCreateSubject({ name: args.name as string, color: args.color as string | undefined, icon: args.icon as string | undefined })
+    case 'ryuha_update_subject': return await ryuhaUpdateSubject({ id: args.id as string, name: args.name as string | undefined, color: args.color as string | undefined, icon: args.icon as string | undefined })
+    case 'ryuha_delete_subject': return await ryuhaDeleteSubject(args.id as string)
+    case 'ryuha_list_textbooks': return await ryuhaListTextbooks({ subject_id: args.subject_id as string | undefined })
+    case 'ryuha_create_textbook': return await ryuhaCreateTextbook({ subject_id: args.subject_id as string, name: args.name as string, publisher: args.publisher as string | undefined, description: args.description as string | undefined })
+    case 'ryuha_update_textbook': return await ryuhaUpdateTextbook({ id: args.id as string, name: args.name as string | undefined, publisher: args.publisher as string | undefined, description: args.description as string | undefined })
+    case 'ryuha_delete_textbook': return await ryuhaDeleteTextbook(args.id as string)
+    case 'ryuha_list_chapters': return await ryuhaListChapters({ textbook_id: args.textbook_id as string | undefined })
+    case 'ryuha_create_chapter': return await ryuhaCreateChapter({ textbook_id: args.textbook_id as string, name: args.name as string, description: args.description as string | undefined, status: args.status as string | undefined, target_date: args.target_date as string | undefined })
+    case 'ryuha_update_chapter': return await ryuhaUpdateChapter({ id: args.id as string, name: args.name as string | undefined, description: args.description as string | undefined, status: args.status as string | undefined, target_date: args.target_date as string | undefined, review_completed: args.review_completed === 'true' ? true : args.review_completed === 'false' ? false : undefined })
+    case 'ryuha_delete_chapter': return await ryuhaDeleteChapter(args.id as string)
+    case 'ryuha_list_schedules': return await ryuhaListSchedules({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined, subject_id: args.subject_id as string | undefined })
+    case 'ryuha_create_schedule': return await ryuhaCreateSchedule({ title: args.title as string, schedule_date: args.schedule_date as string, end_date: args.end_date as string | undefined, start_time: args.start_time as string | undefined, end_time: args.end_time as string | undefined, type: args.type as string | undefined, subject_id: args.subject_id as string | undefined, description: args.description as string | undefined, color: args.color as string | undefined, homework_content: args.homework_content as string | undefined, homework_deadline: args.homework_deadline as string | undefined })
+    case 'ryuha_update_schedule': return await ryuhaUpdateSchedule({ id: args.id as string, title: args.title as string | undefined, schedule_date: args.schedule_date as string | undefined, start_time: args.start_time as string | undefined, end_time: args.end_time as string | undefined, type: args.type as string | undefined, subject_id: args.subject_id as string | undefined, description: args.description as string | undefined, is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined, homework_content: args.homework_content as string | undefined, homework_deadline: args.homework_deadline as string | undefined, homework_completed: args.homework_completed === 'true' ? true : args.homework_completed === 'false' ? false : undefined })
+    case 'ryuha_delete_schedule': return await ryuhaDeleteSchedule(args.id as string)
+    case 'ryuha_list_homework': return await ryuhaListHomework({ schedule_id: args.schedule_id as string | undefined })
+    case 'ryuha_create_homework': return await ryuhaCreateHomework({ schedule_id: args.schedule_id as string, content: args.content as string, deadline: args.deadline as string | undefined })
+    case 'ryuha_update_homework': return await ryuhaUpdateHomework({ id: args.id as string, content: args.content as string | undefined, deadline: args.deadline as string | undefined, is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined })
+    case 'ryuha_delete_homework': return await ryuhaDeleteHomework(args.id as string)
+    case 'ryuha_upsert_memo': return await ryuhaUpsertMemo({ memo_date: args.memo_date as string, content: args.content as string })
+    case 'ryuha_delete_memo': return await ryuhaDeleteMemo(args.date as string)
+    case 'ryuha_list_body_records': return await ryuhaListBodyRecords({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined })
+    case 'ryuha_create_body_record': return await ryuhaCreateBodyRecord({ record_date: args.record_date as string, height_cm: args.height_cm ? Number(args.height_cm) : undefined, weight_kg: args.weight_kg ? Number(args.weight_kg) : undefined, notes: args.notes as string | undefined })
+    case 'ryuha_update_body_record': return await ryuhaUpdateBodyRecord({ id: args.id as string, record_date: args.record_date as string | undefined, height_cm: args.height_cm ? Number(args.height_cm) : undefined, weight_kg: args.weight_kg ? Number(args.weight_kg) : undefined, notes: args.notes as string | undefined })
+    case 'ryuha_delete_body_record': return await ryuhaDeleteBodyRecord(args.id as string)
+    case 'ryuha_list_notes': return await ryuhaListNotes({ category: args.category as string | undefined, search: args.search as string | undefined })
+    case 'ryuha_create_note': return await ryuhaCreateNote({ title: args.title as string, content: args.content as string, category: args.category as string | undefined, is_pinned: args.is_pinned === 'true' ? true : undefined })
+    case 'ryuha_update_note': return await ryuhaUpdateNote({ id: args.id as string, title: args.title as string | undefined, content: args.content as string | undefined, category: args.category as string | undefined, is_pinned: args.is_pinned === 'true' ? true : args.is_pinned === 'false' ? false : undefined })
+    case 'ryuha_delete_note': return await ryuhaDeleteNote(args.id as string)
 
     // ---- 메모리 도구 ----
     case 'save_memory': {

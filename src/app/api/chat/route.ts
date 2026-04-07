@@ -83,25 +83,70 @@ async function buildSystemPrompt(): Promise<string> {
 
 ## 도구 사용법
 
-### 부동산 전용 도구 (우선 사용!)
-부동산 관련 질문은 반드시 아래 전용 도구를 사용하세요. SQL 직접 작성보다 정확하고 빠릅니다:
-- **re_list_complexes**: 추적 단지 목록 (구 필터 가능)
-- **re_get_summary**: 시장 요약 (평균 매매/전세 평당가)
-- **re_get_trade_trends**: 매매 실거래가 추이 (월별 평당가, 단지별/전체)
-- **re_get_rental_trends**: 전세 실거래가 추이 (월별 평당가, 단지별/전체)
-- **re_get_listing_gap**: 매도호가 vs 실거래가 괴리율 현재 스냅샷 (단지별/평형대별)
-- **re_get_listing_gap_trend**: 매매/전세 괴리율 일별 추이 (trade_type으로 매매/전세 선택)
-- **re_get_jeonse_ratio**: 전세가율 추이 (월별)
+### 윌로우 경영관리 전용 도구 (willow_*)
+윌로우인베스트먼트 경영관리 페이지 관련 질문은 반드시 아래 전용 도구를 사용하세요:
+- **willow_get_dashboard**: 경영 대시보드 요약 (현금/일정/프로젝트/마일스톤 한눈에)
+- **willow_get_cash_summary**: 현금관리 집계 (매출/지출/미수금/미지급금, 기간 필터)
+- **willow_list_clients / create / update / delete**: 클라이언트 CRUD
+- **willow_list_projects / create / update / delete**: 프로젝트 CRUD (클라이언트 관계 포함)
+- **willow_list_milestones / create / update / delete**: 마일스톤 CRUD (완료 시 completed_at 자동)
+- **willow_list_schedules / create / update / delete**: 일정 CRUD (날짜/클라이언트 필터, 마일스톤 연결)
+- **willow_list_tasks / create / update / delete**: 태스크 CRUD (완료 시 completed_at 자동)
+- **willow_upsert_memo / delete_memo**: 일일 메모 작성/삭제
+- **willow_list_cash / create / update / delete**: 현금관리 항목 CRUD (매출/지출/자산/부채)
 
-### 범용 CRUD 도구
-- query_data: 데이터 조회 (필터, 정렬, 조인 지원)
-- insert_data: 새 레코드 생성
-- update_data: 레코드 수정
-- delete_data: 레코드 삭제
-- upsert_data: upsert (없으면 생성, 있으면 수정)
-- count_data: 레코드 수 세기
-- analyze_data: SQL 분석 쿼리 (부동산 외 집계/비교용. 순수 SQL만 전달, 백틱/마크다운 금지)
+### 텐소프트웍스 경영관리 전용 도구 (tensw_*)
+텐소프트웍스 경영관리 관련 질문은 반드시 아래 전용 도구를 사용하세요:
+- **tensw_get_dashboard**: 경영 대시보드 요약 (현금/매출/대출/일정/프로젝트 한눈에)
+- **tensw_get_cash_summary**: 현금관리 집계
+- **tensw_list/create/update/delete_clients**: 클라이언트 CRUD
+- **tensw_list/create/update/delete_projects**: 프로젝트 CRUD
+- **tensw_list/create/update/delete_milestones**: 마일스톤 CRUD (completed_at 자동)
+- **tensw_list/create/update/delete_schedules**: 일정 CRUD
+- **tensw_list/create/update/delete_tasks**: 태스크 CRUD (completed_at 자동)
+- **tensw_upsert_memo / delete_memo**: 일일 메모
+- **tensw_list/create/update/delete_cash**: 현금관리 CRUD
+- **tensw_list/create/update/delete_sales**: 매출관리(세금계산서) CRUD
+- **tensw_list/create/update/delete_loans**: 대출관리 CRUD
+
+### ETF Akros 전용 도구 (akros_*)
+- **akros_get_dashboard**: Akros 대시보드 (상품수, 세금계산서, AUM 시계열)
+- **akros_list_products**: ETF 상품 목록 (AUM/ARR 포함, 국가 필터)
+- **akros_get_aum_data**: 특정 상품 AUM 히스토리
+- **akros_get_time_series**: 전체 AUM/ARR 시계열 (지역별)
+- **akros_get_exchange_rates**: 환율 조회
+- **akros_list/create/update/delete_tax_invoices**: 세금계산서 CRUD
+
+### ETF ETC 전용 도구 (etc_*)
+- **etc_get_dashboard**: ETC 대시보드 (상품수, 인보이스 현황, 수수료)
+- **etc_get_stats**: ETF 통계 (총 AUM, 월간 수수료, 상품별 상세)
+- **etc_list/create/update/delete_products**: ETF 상품 CRUD (수수료 구조 포함)
+- **etc_list_invoices / create_invoice / get_invoice**: 인보이스 관리
+
+### 류하 학습관리 전용 도구 (ryuha_*)
+- **ryuha_get_dashboard**: 학습 대시보드 (이번주 일정, 미완료 숙제, 신체기록)
+- **ryuha_list/create/update/delete_subjects**: 과목 CRUD
+- **ryuha_list/create/update/delete_textbooks**: 교재 CRUD
+- **ryuha_list/create/update/delete_chapters**: 챕터 CRUD (completed_at 자동)
+- **ryuha_list/create/update/delete_schedules**: 학습 일정 CRUD
+- **ryuha_list/create/update/delete_homework**: 숙제 CRUD (completed_at 자동)
+- **ryuha_upsert_memo / delete_memo**: 일일 메모
+- **ryuha_list/create/update/delete_body_records**: 신체기록 CRUD
+- **ryuha_list/create/update/delete_notes**: 수첩 CRUD
+
+### 부동산 전용 도구 (re_*)
+- **re_list_complexes**: 추적 단지 목록
+- **re_get_summary**: 시장 요약 (평균 매매/전세 평당가)
+- **re_get_trade_trends / re_get_rental_trends**: 실거래가 추이
+- **re_get_listing_gap / re_get_listing_gap_trend**: 괴리율 (현재/추이)
+- **re_get_jeonse_ratio**: 전세가율 추이
+
+### 범용 CRUD 도구 (전용 도구가 없는 테이블용)
+- query_data, insert_data, update_data, delete_data, upsert_data, count_data
+- analyze_data: SQL 분석 쿼리 (전용 도구로 안 되는 복잡한 크로스-도메인 집계용)
 - list_tables: 사용 가능한 테이블 목록
+
+**도구 우선순위**: 전용 도구(willow_*, tensw_*, akros_*, etc_*, ryuha_*, re_*) > 범용 CRUD > analyze_data(SQL)
 
 ## 윌로우인베스트먼트 구조
 - ETF 사업: 아크로스(인덱스), ETC(ETF 플랫폼/운용사)
