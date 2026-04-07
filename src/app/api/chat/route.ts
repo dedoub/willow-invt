@@ -95,8 +95,13 @@ async function buildSystemPrompt(): Promise<string> {
 - **willow_upsert_memo / delete_memo**: 일일 메모 작성/삭제
 - **willow_list_cash / create / update / delete**: 현금관리 항목 CRUD (매출/지출/자산/부채)
 
+### 텐소프트웍스 개발 프로젝트 현황 (tensw_todo_*)
+"프로젝트 현황", "프로젝트 리스트", "진행률" 등 개발 프로젝트 관련 질문은 반드시 아래 도구를 사용:
+- **tensw_todo_list_projects**: 전체 프로젝트 현황 (상태별 그룹, 태스크 통계, 진행률, AI 평가)
+- **tensw_todo_get_project**: 특정 프로젝트 상세 (태스크, 일정, 팀원)
+
 ### 텐소프트웍스 경영관리 전용 도구 (tensw_*)
-텐소프트웍스 경영관리 관련 질문은 반드시 아래 전용 도구를 사용하세요:
+텐소프트웍스 경영관리(매출/현금/대출/일정) 관련 질문은 아래 도구를 사용:
 - **tensw_get_dashboard**: 경영 대시보드 요약 (현금/매출/대출/일정/프로젝트 한눈에)
 - **tensw_get_cash_summary**: 현금관리 집계
 - **tensw_list/create/update/delete_clients**: 클라이언트 CRUD
@@ -440,7 +445,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract final text response
-    const finalText = response.response.text()
+    let finalText = response.response.text()
+
+    // Guard against empty responses (Gemini sometimes returns empty text after tool calls)
+    if (!finalText?.trim() && toolCallsLog.length > 0) {
+      const lastResult = toolCallsLog[toolCallsLog.length - 1].result
+      if (lastResult && typeof lastResult === 'object') {
+        const r = lastResult as Record<string, unknown>
+        if (Array.isArray(r.data)) {
+          finalText = `조회 결과 ${r.data.length}건이 있습니다.`
+        } else if (r.error) {
+          finalText = `오류가 발생했습니다: ${r.error}`
+        } else {
+          finalText = '요청을 처리했습니다.'
+        }
+      }
+    }
 
     // Save assistant message to DB and update session
     if (currentSessionId) {

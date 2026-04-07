@@ -27,6 +27,7 @@ import {
   tenswGetCashSummary, tenswGetDashboard,
   tenswListSales, tenswCreateSales, tenswUpdateSales, tenswDeleteSales,
   tenswListLoans, tenswCreateLoan, tenswUpdateLoan, tenswDeleteLoan,
+  tenswTodoListProjects, tenswTodoGetProject,
 } from '@/lib/tensw-mgmt/queries'
 import {
   akrosListProducts, akrosGetAumData, akrosGetTimeSeries, akrosGetExchangeRates,
@@ -675,6 +676,9 @@ export const agentTools = [
       required: ['id'],
     },
   },
+  // ---- 텐소프트웍스 개발 프로젝트 현황 (tensw-todo 시스템) ----
+  { name: 'tensw_todo_list_projects', description: '[텐소프트웍스] 개발 프로젝트 현황 리스트 — 상태별(active/managed/completed/poc) 그룹핑, 태스크 통계, 진행률, AI 평가 점수 포함', parameters: { type: 'object' as const, properties: { status: { type: 'string', description: 'active|managed|completed|poc 필터' } } } },
+  { name: 'tensw_todo_get_project', description: '[텐소프트웍스] 특정 개발 프로젝트 상세 — 태스크 목록, 일정, 팀원 포함', parameters: { type: 'object' as const, properties: { project_id: { type: 'string', description: '프로젝트 ID (필수)' } }, required: ['project_id'] } },
   // ---- 텐소프트웍스 경영관리 전용 도구 ----
   // -- Dashboard --
   { name: 'tensw_get_dashboard', description: '[텐소프트웍스] 경영관리 대시보드 요약 — 현금/매출/대출/일정/프로젝트/마일스톤 한눈에', parameters: { type: 'object' as const, properties: {} } },
@@ -1258,6 +1262,8 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       return await willowDeleteCash(args.id as string)
 
     // ---- 텐소프트웍스 경영관리 도구 ----
+    case 'tensw_todo_list_projects': return await tenswTodoListProjects({ status: args.status as string | undefined })
+    case 'tensw_todo_get_project': return await tenswTodoGetProject(args.project_id as string)
     case 'tensw_get_dashboard': return await tenswGetDashboard()
     case 'tensw_get_cash_summary': return await tenswGetCashSummary({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined })
     case 'tensw_list_clients': return await tenswListClients()

@@ -771,3 +771,106 @@ export async function tenswGetDashboard() {
     period: `${thisMonthStart} ~ ${today}`,
   }
 }
+
+// ============================================================
+// Tensw-Todo Projects (개발 프로젝트 현황 — tensw_projects 테이블)
+// ============================================================
+
+export async function tenswTodoListProjects(params?: { status?: string }) {
+  const sb = getServiceSupabase()
+  let query = sb.from('tensw_projects').select('*').order('status').order('updated_at', { ascending: false })
+  if (params?.status) query = query.eq('status', params.status)
+  const { data: projects, error } = await query
+  if (error) return { error: error.message }
+  if (!projects || projects.length === 0) return { data: [], count: 0 }
+
+  const projectIds = projects.map(p => p.id)
+
+  // Get todo counts per project
+  const { data: todos } = await sb
+    .from('tensw_todos')
+    .select('id, project_id, status')
+    .in('project_id', projectIds)
+
+  // Get latest AI analysis scores
+  const { data: analyses } = await sb
+    .from('tensw_project_analyses')
+    .select('project_id, progress_score, created_at')
+    .in('project_id', projectIds)
+    .order('created_at', { ascending: false })
+
+  const aiScoreMap = new Map<string, number>()
+  if (analyses) {
+    for (const a of analyses) {
+      if (!aiScoreMap.has(a.project_id) && a.progress_score != null) {
+        aiScoreMap.set(a.project_id, a.progress_score)
+      }
+    }
+  }
+
+  const enriched = projects.map(p => {
+    const projectTodos = (todos || []).filter(t => t.project_id === p.id)
+    const stats = {
+      total: projectTodos.length,
+      pending: projectTodos.filter(t => t.status === 'pending').length,
+      assigned: projectTodos.filter(t => t.status === 'assigned').length,
+      in_progress: projectTodos.filter(t => t.status === 'in_progress').length,
+      completed: projectTodos.filter(t => t.status === 'completed').length,
+      discarded: projectTodos.filter(t => t.status === 'discarded').length,
+    }
+    const active = stats.assigned + stats.in_progress
+    const done = stats.completed
+    const progress = stats.total > 0 ? Math.round((done / (stats.total - stats.discarded)) * 100) : 0
+
+    return {
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      status: p.status,
+      icon: p.icon,
+      todo_stats: stats,
+      progress_pct: progress,
+      ai_progress_score: aiScoreMap.get(p.id) ?? null,
+      updated_at: p.updated_at,
+    }
+  })
+
+  // Group by status
+  const grouped = {
+    active: enriched.filter(p => p.status === 'active'),
+    managed: enriched.filter(p => p.status === 'managed'),
+    completed: enriched.filter(p => p.status === 'completed'),
+    poc: enriched.filter(p => p.status === 'poc'),
+  }
+
+  return { data: enriched, grouped, count: enriched.length }
+}
+
+export async function tenswTodoGetProject(projectId: string) {
+  const sb = getServiceSupabase()
+
+  const [projRes, todosRes, schedRes, membersRes] = await Promise.all([
+    sb.from('tensw_projects').select('*').eq('id', projectId).single(),
+    sb.from('tensw_todos')
+      .select('id, title, status, priority, due_date, readable_id, completed_at, assignees:tensw_todo_assignees(member:tensw_project_members!tensw_todo_assignees_member_id_fkey(id, name))')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false }),
+    sb.from('tensw_project_schedules')
+      .select('id, title, start_date, end_date, milestone_type, status')
+      .eq('project_id', projectId)
+      .order('start_date'),
+    sb.from('tensw_project_members')
+      .select('id, name, role, is_manager')
+      .eq('project_id', projectId)
+      .order('is_manager', { ascending: false }),
+  ])
+
+  if (projRes.error) return { error: projRes.error.message }
+
+  return {
+    project: projRes.data,
+    todos: todosRes.data || [],
+    schedules: schedRes.data || [],
+    members: membersRes.data || [],
+  }
+}
