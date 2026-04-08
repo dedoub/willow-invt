@@ -3189,12 +3189,12 @@ export default function WillowManagementPage() {
     }
   }, [researchSubTab, reDistrictFilter, reComplexFilter, reAreaFilter, rePeriodFilter, loadRealEstateData])
 
-  // Load smallcap screening data when stock tab is selected
+  // Load smallcap screening data on mount (for investment kanban)
   useEffect(() => {
-    if (researchSubTab === 'stock' && smallcapData.length === 0) {
+    if (smallcapData.length === 0) {
       loadSmallcapScreening()
     }
-  }, [researchSubTab, smallcapData.length, loadSmallcapScreening])
+  }, [smallcapData.length, loadSmallcapScreening])
 
   // Auto-refresh stock quotes every 5 minutes
   useEffect(() => {

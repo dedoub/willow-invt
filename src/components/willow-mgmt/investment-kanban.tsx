@@ -45,7 +45,7 @@ interface StockTrade {
   quantity: number; price: number; currency: string
 }
 
-type ResearchFilter = 'all' | 'pass' | 'smallcap_ab' | 'fail'
+type ResearchFilter = 'all' | 'pass' | 'smallcap'
 
 interface Props {
   stockResearch: StockResearch[]
@@ -66,7 +66,7 @@ export function InvestmentKanban({
   const [signalData, setSignalData] = useState<SignalData[]>([])
   const [signalSummary, setSignalSummary] = useState<{ newHighs: number; near: number; weak: number; lastUpdated: string } | null>(null)
   const [isLoadingSignals, setIsLoadingSignals] = useState(true)
-  const [researchFilter, setResearchFilter] = useState<ResearchFilter>('pass')
+  const [researchFilter, setResearchFilter] = useState<ResearchFilter>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingResearch, setEditingResearch] = useState<StockResearch | null>(null)
 
@@ -162,24 +162,33 @@ export function InvestmentKanban({
     }
   })
 
-  // Build research column data — exclude tickers already in portfolio/watchlist
+  // Build research column data — only pass + A/B tier, exclude portfolio/watchlist tickers
   const researchCards: ResearchCardData[] = []
   const seenTickers = new Set<string>()
-  const sortedResearch = [...stockResearch].sort((a, b) => b.scan_date.localeCompare(a.scan_date))
+
+  // stock_research: only pass items, sorted by scan_date desc
+  const sortedResearch = [...stockResearch]
+    .filter(r => r.verdict?.startsWith('pass'))
+    .sort((a, b) => b.scan_date.localeCompare(a.scan_date))
   for (const r of sortedResearch) {
     if (seenTickers.has(r.ticker)) continue
     if (watchlistTickers.has(r.ticker)) continue
     seenTickers.add(r.ticker)
     researchCards.push({
       id: r.id, type: 'research', ticker: r.ticker, companyName: r.company_name,
-      verdict: r.verdict as 'pass_tier1' | 'pass_tier2' | 'fail' | undefined,
+      verdict: r.verdict as 'pass_tier1' | 'pass_tier2' | undefined,
       sectorTags: r.sector_tags, marketCapB: r.market_cap_b, currentPrice: r.current_price,
       thesis: r.structural_thesis, valueChain: r.value_chain_position,
       scanDate: r.scan_date, source: r.source,
       gapFromHighPct: r.gap_from_high_pct, failReason: r.fail_reason, notes: r.notes,
     })
   }
-  for (const s of smallcapData) {
+
+  // smallcap: only A/B tier, sorted by composite_score desc
+  const sortedSmallcap = [...smallcapData]
+    .filter(s => s.tier === 'A' || s.tier === 'B')
+    .sort((a, b) => (b.composite_score ?? 0) - (a.composite_score ?? 0))
+  for (const s of sortedSmallcap) {
     if (seenTickers.has(s.ticker)) continue
     if (watchlistTickers.has(s.ticker)) continue
     seenTickers.add(s.ticker)
@@ -196,9 +205,8 @@ export function InvestmentKanban({
   // Apply research filter
   const filteredResearch = researchCards.filter(card => {
     if (researchFilter === 'all') return true
-    if (researchFilter === 'pass') return card.type === 'research' && card.verdict?.startsWith('pass')
-    if (researchFilter === 'smallcap_ab') return card.type === 'smallcap' && (card.tier === 'A' || card.tier === 'B')
-    if (researchFilter === 'fail') return (card.type === 'research' && card.verdict === 'fail') || (card.type === 'smallcap' && (card.tier === 'C' || card.tier === 'F'))
+    if (researchFilter === 'pass') return card.type === 'research'
+    if (researchFilter === 'smallcap') return card.type === 'smallcap'
     return true
   })
 
@@ -357,7 +365,7 @@ export function InvestmentKanban({
             <div className="flex items-center justify-between mb-2 px-1">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">리서치 발굴</span>
               <div className="flex items-center gap-1">
-                {(['pass', 'smallcap_ab', 'fail', 'all'] as const).map(f => (
+                {(['all', 'pass', 'smallcap'] as const).map(f => (
                   <button
                     key={f}
                     onClick={() => setResearchFilter(f)}
@@ -368,7 +376,7 @@ export function InvestmentKanban({
                         : 'bg-slate-200 text-slate-500 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-400'
                     )}
                   >
-                    {f === 'pass' ? 'Pass' : f === 'smallcap_ab' ? '소형주' : f === 'fail' ? 'Fail' : '전체'}
+                    {f === 'all' ? '전체' : f === 'pass' ? 'Pass' : '소형주'}
                   </button>
                 ))}
               </div>
