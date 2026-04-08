@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
-const WATCHLIST_PATH = join(process.cwd(), '..', 'portfolio', 'monitor', 'watchlist.json')
+const LOCAL_PATH = join(process.cwd(), 'data', 'watchlist.json')
+const EXTERNAL_PATH = join(process.cwd(), '..', 'portfolio', 'monitor', 'watchlist.json')
+const WATCHLIST_PATH = existsSync(EXTERNAL_PATH) ? EXTERNAL_PATH : LOCAL_PATH
 
 interface QuoteData {
   price: number

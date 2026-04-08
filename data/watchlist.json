@@ -1,0 +1,270 @@
+{
+  "portfolio": {
+    "SK하이닉스": {
+      "ticker": "000660.KS",
+      "sector": "AI 반도체",
+      "axis": "AI 인프라"
+    },
+    "삼성전자": {
+      "ticker": "005930.KS",
+      "sector": "AI 반도체",
+      "axis": "AI 인프라"
+    },
+    "오클로": {
+      "ticker": "OKLO",
+      "sector": "AI 에너지",
+      "axis": "AI 인프라"
+    },
+    "블룸 에너지": {
+      "ticker": "BE",
+      "sector": "AI 에너지",
+      "axis": "AI 인프라"
+    },
+    "아이렌": {
+      "ticker": "IREN",
+      "sector": "AI 데이터센터",
+      "axis": "AI 인프라"
+    },
+    "한화에어로스페이스": {
+      "ticker": "012450.KS",
+      "sector": "방산 - 한국",
+      "axis": "지정학/안보"
+    },
+    "현대로템": {
+      "ticker": "064350.KS",
+      "sector": "방산 - 한국",
+      "axis": "지정학/안보"
+    },
+    "팔란티어": {
+      "ticker": "PLTR",
+      "sector": "방산 - 미국 AI",
+      "axis": "지정학/안보"
+    },
+    "로켓랩": {
+      "ticker": "RKLB",
+      "sector": "우주",
+      "axis": "지정학/안보"
+    },
+    "미래에셋증권": {
+      "ticker": "006800.KS",
+      "sector": "우주",
+      "axis": "지정학/안보"
+    },
+    "디웨이브 퀀텀": {
+      "ticker": "QBTS",
+      "sector": "양자컴퓨팅",
+      "axis": "넥스트"
+    },
+    "현대차": {
+      "ticker": "005380.KS",
+      "sector": "자동차/로보틱스",
+      "axis": "넥스트"
+    },
+    "시에나": {
+      "ticker": "CIEN",
+      "sector": "AI 네트워킹",
+      "axis": "AI 인프라"
+    },
+    "버티브": {
+      "ticker": "VRT",
+      "sector": "AI 냉각",
+      "axis": "AI 인프라"
+    }
+  },
+  "watchlist": {
+    "아리스타": {
+      "ticker": "ANET",
+      "sector": "AI 네트워킹",
+      "axis": "AI 인프라"
+    },
+    "파브리넷": {
+      "ticker": "FN",
+      "sector": "AI 네트워킹",
+      "axis": "AI 인프라"
+    },
+    "크레도": {
+      "ticker": "CRDO",
+      "sector": "AI 네트워킹",
+      "axis": "AI 인프라"
+    },
+    "마벨 테크놀로지": {
+      "ticker": "MRVL",
+      "sector": "AI 반도체",
+      "axis": "AI 인프라"
+    },
+    "아스테라 랩스": {
+      "ticker": "ALAB",
+      "sector": "AI 반도체",
+      "axis": "AI 인프라"
+    },
+    "코어위브": {
+      "ticker": "CRWV",
+      "sector": "AI 데이터센터",
+      "axis": "AI 인프라"
+    },
+    "이노데이터": {
+      "ticker": "INOD",
+      "sector": "AI 데이터",
+      "axis": "AI 인프라"
+    },
+    "세일즈포스": {
+      "ticker": "CRM",
+      "sector": "AI 소프트웨어",
+      "axis": "AI 인프라"
+    },
+    "포티넷": {
+      "ticker": "FTNT",
+      "sector": "AI 사이버보안",
+      "axis": "AI 인프라"
+    },
+    "템퍼스 AI": {
+      "ticker": "TEM",
+      "sector": "AI 헬스케어",
+      "axis": "넥스트"
+    },
+    "사운드하운드 AI": {
+      "ticker": "SOUN",
+      "sector": "AI 소프트웨어",
+      "axis": "넥스트"
+    },
+    "심보틱": {
+      "ticker": "SYM",
+      "sector": "산업용 로보틱스",
+      "axis": "넥스트"
+    },
+    "록웰 오토메이션": {
+      "ticker": "ROK",
+      "sector": "산업용 로보틱스",
+      "axis": "넥스트"
+    },
+    "뉴스케일파워": {
+      "ticker": "SMR",
+      "sector": "AI 에너지",
+      "axis": "AI 인프라"
+    },
+    "BWX 테크놀로지스": {
+      "ticker": "BWXT",
+      "sector": "AI 에너지",
+      "axis": "AI 인프라"
+    },
+    "카메코": {
+      "ticker": "CCJ",
+      "sector": "AI 에너지",
+      "axis": "AI 인프라"
+    },
+    "AST 스페이스모바일": {
+      "ticker": "ASTS",
+      "sector": "우주",
+      "axis": "지정학/안보"
+    },
+    "AIQ": {
+      "ticker": "AIQ",
+      "sector": "AI ETF",
+      "axis": "AI 인프라"
+    },
+    "QLD": {
+      "ticker": "QLD",
+      "sector": "레버리지 ETF",
+      "axis": "AI 인프라"
+    },
+    "SSO": {
+      "ticker": "SSO",
+      "sector": "레버리지 ETF",
+      "axis": "AI 인프라"
+    },
+    "크라토스 디펜스": {
+      "ticker": "KTOS",
+      "sector": "방산/드론",
+      "axis": "지정학·안보"
+    },
+    "웨스턴디지털": {
+      "ticker": "WDC",
+      "sector": "AI 데이터 저장소",
+      "axis": "AI 인프라"
+    },
+    "클라우드플레어": {
+      "ticker": "NET",
+      "sector": "AI 엣지/클라우드 플랫폼",
+      "axis": "AI 인프라"
+    },
+    "Teradyne": {
+      "ticker": "TER",
+      "sector": "산업자동화/ATE",
+      "axis": "넥스트"
+    }
+  },
+  "benchmark": {
+    "엔비디아": {
+      "ticker": "NVDA",
+      "sector": "AI 반도체"
+    },
+    "브로드컴": {
+      "ticker": "AVGO",
+      "sector": "AI 반도체"
+    },
+    "AMD": {
+      "ticker": "AMD",
+      "sector": "AI 반도체"
+    },
+    "TSMC": {
+      "ticker": "TSM",
+      "sector": "AI 반도체"
+    },
+    "이퀴닉스": {
+      "ticker": "EQIX",
+      "sector": "AI 데이터센터"
+    },
+    "디지털리얼티": {
+      "ticker": "DLR",
+      "sector": "AI 데이터센터"
+    },
+    "넥스트에라": {
+      "ticker": "NEE",
+      "sector": "AI 에너지"
+    },
+    "비스트라": {
+      "ticker": "VST",
+      "sector": "AI 에너지"
+    },
+    "L3해리스": {
+      "ticker": "LHX",
+      "sector": "방산 - 미국 AI"
+    },
+    "록히드마틴": {
+      "ticker": "LMT",
+      "sector": "방산 - 미국 AI"
+    },
+    "한국항공우주": {
+      "ticker": "047810.KS",
+      "sector": "방산 - 한국"
+    },
+    "스페이스X 경쟁": {
+      "ticker": "BA",
+      "sector": "우주"
+    },
+    "아이온큐": {
+      "ticker": "IONQ",
+      "sector": "양자컴퓨팅"
+    },
+    "리게티": {
+      "ticker": "RGTI",
+      "sector": "양자컴퓨팅"
+    },
+    "테슬라": {
+      "ticker": "TSLA",
+      "sector": "자동차/로보틱스"
+    },
+    "아리스타(벤치)": {
+      "ticker": "ANET",
+      "sector": "AI 네트워킹"
+    },
+    "트레인테크놀로지스": {
+      "ticker": "TT",
+      "sector": "AI 냉각"
+    },
+    "슈나이더일렉트릭": {
+      "ticker": "SBGSF",
+      "sector": "AI 냉각"
+    }
+  }
+}
