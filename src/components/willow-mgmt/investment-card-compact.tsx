@@ -65,7 +65,7 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
         {data.changePercent != null && (
           <span className={cn('text-xs font-medium flex items-center gap-0.5', changeColor)}>
             <ChangeIcon className="h-3 w-3" />
-            {data.changePercent > 0 ? '+' : ''}{data.changePercent.toFixed(1)}%
+            {data.changePercent > 0 ? '+' : ''}{data.changePercent.toFixed(1)}% <span className="text-[9px] text-slate-400 font-normal">3M</span>
           </span>
         )}
       </div>
