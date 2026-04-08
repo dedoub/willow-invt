@@ -302,7 +302,7 @@ export function InvestmentKanban({
         <div>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            투자 관제탑
+            주식 리서치
           </CardTitle>
           <CardDescription>포트폴리오 · 워치리스트 · 리서치 발굴</CardDescription>
         </div>
