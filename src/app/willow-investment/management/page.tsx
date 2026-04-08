@@ -97,6 +97,7 @@ import {
   Tag,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { InvestmentKanban } from '@/components/willow-mgmt/investment-kanban'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, Tooltip as RechartsTooltip, Legend as RechartsLegend,
@@ -5796,800 +5797,492 @@ export default function WillowManagementPage() {
         </div>
       </div>
 
-      {/* Row 2.5 - Investment Research (full width, 2-col inside) */}
-          <Card className="bg-slate-100 dark:bg-slate-800">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Search className="h-5 w-5" />
-                  투자리서치
-                </CardTitle>
-                <CardDescription>{researchSubTab === 'stock' ? '종목 스크리닝 & 소형주 분석' : '강남3구 부동산 리서치'}</CardDescription>
-              </div>
-              {researchSubTab === 'stock' && (
-                <button
-                  onClick={openNewResearchModal}
-                  className="flex items-center gap-2 rounded-lg border border-transparent bg-slate-900 dark:bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-600 cursor-pointer"
+      {/* Row 2.5 - Investment Kanban (full width) */}
+      <InvestmentKanban
+        stockResearch={stockResearch}
+        smallcapData={smallcapData}
+        loadStockResearch={loadStockResearch}
+        loadSmallcapScreening={loadSmallcapScreening}
+        isLoadingResearch={isLoadingResearch}
+        isLoadingSmallcap={isLoadingSmallcap}
+        stockTrades={stockTrades}
+      />
+
+      {/* Row 2.6 - Real Estate Research */}
+      <Card className="bg-slate-100 dark:bg-slate-800">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              부동산 리서치
+            </CardTitle>
+            <CardDescription>강남3구 부동산 리서치</CardDescription>
+          </div>
+          <div className="flex items-center gap-1">
+            {['강남구', '서초구', '송파구'].map(d => (
+              <button key={d} onClick={() => {
+                setReDistrictFilter(prev =>
+                  prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]
+                )
+                setReComplexFilter([])
+                setReTradeListPage(0)
+                setReJeonseListPage(0)
+              }}
+                className={cn('px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
+                  reDistrictFilter.includes(d) ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                )}>
+                {d.replace('구', '')}
+              </button>
+            ))}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Filter Bar: 단지 + 평형 + 기간 한 줄 */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <div className="flex items-center gap-1 w-full sm:w-auto flex-wrap">
+                <span className="text-[11px] text-slate-400 mr-0.5">단지</span>
+                {reComplexFilter.length === 0 ? (
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">전체 ({reComplexes.length}개)</span>
+                ) : (
+                  reComplexFilter.map(id => {
+                    const c = reComplexes.find(x => x.id === id)
+                    return c ? (
+                      <button key={id} onClick={() => { setReComplexFilter(prev => prev.filter(x => x !== id)); setReTradeListPage(0); setReJeonseListPage(0) }}
+                        className="px-2 py-0.5 text-xs rounded-full bg-slate-900 text-white dark:bg-slate-500 flex items-center gap-1">
+                        {c.name} <X className="h-2.5 w-2.5" />
+                      </button>
+                    ) : null
+                  })
+                )}
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value && !reComplexFilter.includes(e.target.value)) {
+                      setReComplexFilter(prev => [...prev, e.target.value])
+                      setReTradeListPage(0)
+                      setReJeonseListPage(0)
+                    }
+                  }}
+                  className="text-xs bg-white dark:bg-slate-700 rounded px-1.5 py-0.5 cursor-pointer"
                 >
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">추가</span>
-                </button>
-              )}
-            </CardHeader>
-            <CardContent>
-              {/* Sub-tab + verdict filter row */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-1">
-                  {(['stock', 'realestate'] as const).map(tab => (
-                    <button key={tab} onClick={() => setResearchSubTab(tab)}
-                      className={cn('px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
-                        researchSubTab === tab ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-                      )}>
-                      {tab === 'stock' ? '주식' : '부동산'}
-                    </button>
-                  ))}
-                </div>
-                {researchSubTab === 'stock' ? (
-                  <div className="flex items-center gap-1">
-                    {(['all', 'pass', 'fail', 'smallcap'] as const).map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => { setResearchVerdictFilter(f as typeof researchVerdictFilter); setResearchPage(1) }}
-                        className={cn(
-                          'px-2 py-0.5 text-[11px] font-medium rounded-full transition-colors',
-                          researchVerdictFilter === f
-                            ? 'bg-slate-900 text-white dark:bg-slate-600'
-                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                        )}
-                      >
-                        {f === 'all' ? '전체' : f === 'pass' ? 'Pass' : f === 'fail' ? 'Fail' : '소형주'}
-                      </button>
+                  <option value="">+</option>
+                  {reComplexes
+                    .filter(c => !reComplexFilter.includes(c.id))
+                    .map(c => (
+                      <option key={c.id} value={c.id}>{c.district_name.replace('구', '')} · {c.name}</option>
                     ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-slate-400 mr-0.5">평형</span>
+                {[{ v: '', l: '전체' }, { v: '20', l: '20평' }, { v: '30', l: '30평' }, { v: '40', l: '40평' }, { v: '50', l: '50평' }, { v: '60+', l: '60+' }].map(a => (
+                  <button key={a.v} onClick={() => { setReAreaFilter(a.v); setReTradeListPage(0); setReJeonseListPage(0) }}
+                    className={cn('px-2 py-0.5 text-xs font-medium rounded-full transition-colors',
+                      reAreaFilter === a.v ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                    )}>
+                    {a.l}
+                  </button>
+                ))}
+              </div>
+              {reSummary && (reSummary.lastListingDate || reSummary.lastTradeDate) && (
+                <span className="text-[11px] text-slate-400 sm:ml-auto whitespace-nowrap">
+                  호가 {reSummary.lastListingDate?.slice(5).replace('-', '/')} · 실거래 {reSummary.lastTradeDate?.slice(5).replace('-', '/')}
+                </span>
+              )}
+            </div>
+
+            {isLoadingRe ? (
+              <div className="text-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                <p className="text-xs text-muted-foreground mt-2">부동산 데이터 로딩중...</p>
+              </div>
+            ) : (
+              <>
+                {/* Summary Cards */}
+                {reSummary && (
+                  <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-2">
+                    <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                      <div className="text-[11px] text-muted-foreground">추적 단지</div>
+                      <div className="text-sm font-bold">{reSummary.trackedComplexes}개 <span className="text-[11px] text-slate-400 font-normal">({reSummary.districtCount}개구)</span></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 md:contents">
+                      <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                        <div className="text-[11px] text-muted-foreground">최근1월 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                        <div className="text-sm font-bold">{reSummary.avgTradePpp?.toLocaleString() || '-'}</div>
+                      </div>
+                      <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                        <div className="text-[11px] text-muted-foreground">매도호가 괴리율</div>
+                        <div className={cn('text-sm font-bold', reSummary.tradeListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                          {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 md:contents">
+                      <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                        <div className="text-[11px] text-muted-foreground">최근1월 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                        <div className="text-sm font-bold">{reSummary.avgJeonsePpp?.toLocaleString() || '-'}</div>
+                      </div>
+                      <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
+                        <div className="text-[11px] text-muted-foreground">전세호가 괴리율</div>
+                        <div className={cn('text-sm font-bold', reSummary.jeonseListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                          {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-1">
-                    {['강남구', '서초구', '송파구'].map(d => (
-                      <button key={d} onClick={() => {
-                        setReDistrictFilter(prev =>
-                          prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]
+                )}
+
+                {/* 매매/전세 2열 그리드 */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                {/* Section 1: 매매 실거래가 추이 */}
+                {reTrades && reTrades.months.length > 0 && (
+                  <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium">매매 실거래가 추이 <span className="text-[11px] text-slate-400 font-normal">(평당가, 만원)</span></span>
+                      {reTrades.complexes.length > 0 && (() => {
+                        // 전월 대비 변동률
+                        const months = reTrades.months
+                        if (months.length < 2) return null
+                        const curMonth = months[months.length - 1]
+                        const prevMonth = months[months.length - 2]
+                        let prevTotal = 0, prevCount = 0, curTotal = 0, curCount = 0
+                        for (const c of reTrades.complexes) {
+                          const prevD = c.data.find(d => d.month === prevMonth)
+                          if (prevD?.avgPpp) { prevTotal += prevD.avgPpp; prevCount++ }
+                          const curD = c.data.find(d => d.month === curMonth)
+                          if (curD?.avgPpp) { curTotal += curD.avgPpp; curCount++ }
+                        }
+                        if (prevCount === 0 || curCount === 0) return null
+                        const changePct = ((curTotal / curCount - prevTotal / prevCount) / (prevTotal / prevCount)) * 100
+                        return (
+                          <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded',
+                            changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                          )}>
+                            전월대비 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
+                          </span>
                         )
-                        setReComplexFilter([])
-                        setReTradeListPage(0)
-                        setReJeonseListPage(0)
-                      }}
-                        className={cn('px-2.5 py-1 text-xs font-medium rounded-full transition-colors',
-                          reDistrictFilter.includes(d) ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-                        )}>
-                        {d.replace('구', '')}
-                      </button>
-                    ))}
+                      })()}
+                    </div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <ComposedChart data={reTrades.months.map(m => {
+                        const entry: Record<string, string | number | null> = { month: m }
+                        let totalCount = 0
+                        for (const c of reTrades.complexes) {
+                          const d = c.data.find(dd => dd.month === m)
+                          entry[c.name] = d?.avgPpp ?? null
+                          totalCount += d?.count || 0
+                        }
+                        entry._count = totalCount
+                        return entry
+                      })} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                        <YAxis yAxisId="price" tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
+                        <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 8, fill: '#94a3b8' }} width={30} />
+                        <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value, name) => name === '_count' ? [`${value}건`, '거래량'] : [`${Number(value).toLocaleString()}만원/평`, name]} />
+                        <Bar yAxisId="count" dataKey="_count" fill="#cbd5e1" radius={[2, 2, 0, 0]} barSize={16} />
+                        {reTrades.complexes.slice(0, 10).map((c, i) => {
+                          const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
+                          return <Line key={c.name} yAxisId="price" type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
+                        })}
+                      </ComposedChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
-              </div>
-              {researchSubTab === 'stock' ? (
-              (() => {
-                // Unified card helpers
-                const verdictStyle = (v: string | null) => {
-                  if (v === 'pass_tier1') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
-                  if (v === 'pass_tier2') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
-                  if (v === 'fail') return 'bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
-                  return 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300'
-                }
-                const verdictLabel = (v: string | null) => {
-                  if (v === 'pass_tier1') return 'T1'
-                  if (v === 'pass_tier2') return 'T2'
-                  if (v === 'fail') return 'F'
-                  return '-'
-                }
-                const tierStyle = (t: string) => {
-                  if (t === 'A') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
-                  if (t === 'B') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
-                  if (t === 'C') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
-                  return 'bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
-                }
-                const fmtPct = (v: number | null) => v != null ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '-'
-                const fmtNum = (v: number | null, d = 1) => v != null ? v.toFixed(d) : '-'
-                const fmtMcap = (v: number | null) => {
-                  if (v == null) return '-'
-                  if (v >= 1000) return `$${(v / 1000).toFixed(1)}B`
-                  return `$${v.toFixed(0)}M`
-                }
-                const scoreBar = (label: string, value: number | null, max = 100) => (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-muted-foreground w-8 shrink-0">{label}</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-600 overflow-hidden">
-                      <div
-                        className={cn('h-full rounded-full', (value ?? 0) >= 70 ? 'bg-emerald-500' : (value ?? 0) >= 40 ? 'bg-blue-500' : 'bg-slate-400')}
-                        style={{ width: `${Math.min(100, ((value ?? 0) / max) * 100)}%` }}
-                      />
+
+                {/* Section 1.5: 매매 괴리율 일일 추이 */}
+                {reListingTrend && reListingTrend.trend.length > 1 && (
+                  <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium">매매 괴리율 추이 <span className="text-[11px] text-slate-400 font-normal">(호가 저 vs 실거래, %)</span></span>
+                      {reSummary?.tradeListingGap != null && (
+                        <span className={`text-[11px] font-medium ${reSummary.tradeListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>현재 {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap}%</span>
+                      )}
                     </div>
-                    <span className="text-[11px] font-medium w-6 text-right">{value != null ? Math.round(value) : '-'}</span>
+                    <ResponsiveContainer width="100%" height={220}>
+                      {(() => {
+                        const chartData = reListingTrend.trend.filter(d => d.gapRate != null)
+                        const allVals = chartData.map(d => d.gapRate!).filter((v): v is number => v != null)
+                        const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
+                        const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0
+                        const yMin = Math.floor(Math.min(minVal - 2, 0) / 5) * 5
+                        const yMax = Math.ceil(Math.max(maxVal + 2, 0) / 5) * 5
+                        const yTicks: number[] = []
+                        for (let t = yMin; t <= yMax; t += 5) yTicks.push(t)
+                        return (
+                      <ComposedChart data={chartData} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                        <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={40} />
+                        <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`]} labelFormatter={(l) => String(l)} />
+                        <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
+                        <Line type="monotone" dataKey="gapRate" name="괴리율" stroke="#6366f1" dot={{ r: 3 }} strokeWidth={2} connectNulls />
+                      </ComposedChart>
+                        )
+                      })()}
+                    </ResponsiveContainer>
                   </div>
-                )
+                )}
 
-                // Build unified items (deduplicate stock research by ticker, keep latest)
-                type UnifiedItem = { kind: 'research'; data: StockResearch } | { kind: 'smallcap'; data: SmallcapScreening }
-                const dedupedResearch: StockResearch[] = []
-                const seenTickers = new Set<string>()
-                for (const r of stockResearch) {
-                  if (!seenTickers.has(r.ticker)) {
-                    seenTickers.add(r.ticker)
-                    dedupedResearch.push(r)
-                  }
-                }
-                const researchItems: UnifiedItem[] = dedupedResearch.map(r => ({ kind: 'research' as const, data: r }))
-                const smallcapFiltered = smallcapData.filter(s => {
-                  if (smallcapTierFilter !== 'all' && s.tier !== smallcapTierFilter) return false
-                  if (smallcapTrackFilter !== 'all' && s.track !== smallcapTrackFilter) return false
-                  return true
-                })
-                const smallcapSorted = [...smallcapFiltered].sort((a, b) => {
-                  const aVal = a[smallcapSortKey] ?? 0
-                  const bVal = b[smallcapSortKey] ?? 0
-                  return smallcapSortAsc ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
-                })
-                const smallcapItems: UnifiedItem[] = smallcapSorted.map(s => ({ kind: 'smallcap' as const, data: s }))
-
-                // Apply filter
-                let allItems: UnifiedItem[] = []
-                if (researchVerdictFilter === 'all') {
-                  allItems = [...researchItems, ...smallcapItems]
-                } else if (researchVerdictFilter === 'pass') {
-                  allItems = researchItems.filter(i => i.kind === 'research' && (i.data.verdict === 'pass_tier1' || i.data.verdict === 'pass_tier2'))
-                } else if (researchVerdictFilter === 'fail') {
-                  allItems = researchItems.filter(i => i.kind === 'research' && i.data.verdict === 'fail')
-                } else if (researchVerdictFilter === 'smallcap') {
-                  allItems = smallcapItems
-                }
-
-                // Pagination
-                const totalPages = Math.ceil(allItems.length / researchPerPage)
-                const paginated = allItems.slice((researchPage - 1) * researchPerPage, researchPage * researchPerPage)
-
-                const isLoading = isLoadingResearch || isLoadingSmallcap
-
-                return isLoading ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                  </div>
-                ) : allItems.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <Search className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                    <p className="text-sm">리서치 항목이 없습니다</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {paginated.map((item) => {
-                        if (item.kind === 'research') {
-                          const r = item.data
-                          return (
-                            <div key={`r-${r.id}`} className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2.5">
-                              {/* Header */}
-                              <div className="flex items-center gap-2">
-                                <span className={cn('px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap shrink-0', verdictStyle(r.verdict))}>
-                                  {verdictLabel(r.verdict)}
-                                </span>
-                                <span className="font-medium text-sm">{r.ticker}</span>
-                                <span className="text-xs text-muted-foreground truncate">{r.company_name}</span>
-                                {r.gap_from_high_pct != null && (
-                                  <span className={cn(
-                                    'text-xs font-medium shrink-0 ml-auto',
-                                    r.gap_from_high_pct > -15 ? 'text-red-600' : r.gap_from_high_pct > -30 ? 'text-amber-600' : 'text-blue-600'
-                                  )}>
-                                    {r.gap_from_high_pct > 0 ? '+' : ''}{r.gap_from_high_pct.toFixed(1)}%
-                                  </span>
-                                )}
-                              </div>
-                              {/* Tags */}
-                              {r.sector_tags && r.sector_tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1.5">
-                                  {r.sector_tags.map((tag) => (
-                                    <span key={tag} className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{tag}</span>
-                                  ))}
-                                  {r.market_cap_b != null && <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">${r.market_cap_b}B</span>}
-                                </div>
-                              )}
-                              {/* Analysis */}
-                              <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-1.5">
-                                {r.value_chain_position && (
-                                  <p className="text-xs text-muted-foreground"><span className="font-medium">밸류체인:</span> {r.value_chain_position}</p>
-                                )}
-                                {r.structural_thesis && (
-                                  <p className="text-xs text-muted-foreground"><span className="font-medium">투자논거:</span> {r.structural_thesis}</p>
-                                )}
-                                {r.notes && (
-                                  <p className="text-xs text-muted-foreground"><span className="font-medium">메모:</span> {r.notes}</p>
-                                )}
-                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                                  {r.current_price != null && <span>${r.current_price}</span>}
-                                  {r.revenue_growth_yoy && <span>성장 {r.revenue_growth_yoy}</span>}
-                                  {r.margin && <span>마진 {r.margin}</span>}
-                                  {r.high_12m != null && <span>52주고 ${r.high_12m}</span>}
-                                  {r.trend_verdict && <span>추세 {r.trend_verdict}</span>}
-                                </div>
-                                {r.fail_reason && (
-                                  <p className="text-xs text-red-500"><span className="font-medium">탈락:</span> {r.fail_reason}</p>
-                                )}
-                                <div className="flex items-center justify-between pt-0.5">
-                                  <span className="text-[11px] text-muted-foreground">{r.scan_date} · {r.source}</span>
-                                  <button
-                                    onClick={() => openEditResearchModal(r)}
-                                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
-                                  >
-                                    <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        } else {
-                          const s = item.data
-                          return (
-                            <div key={`s-${s.id}`} className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2.5">
-                              {/* Header */}
-                              <div className="flex items-center gap-2">
-                                <span className={cn('px-1.5 py-0.5 rounded text-xs font-bold whitespace-nowrap shrink-0', tierStyle(s.tier))}>
-                                  {s.tier}
-                                </span>
-                                {s.track === 'hypergrowth' && (
-                                  <span className="px-1.5 py-0.5 rounded text-[11px] font-medium shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400">성장</span>
-                                )}
-                                <span className="font-medium text-sm">{s.ticker}</span>
-                                <span className="text-xs text-muted-foreground truncate">{s.company_name}</span>
-                                <div className="flex items-center gap-1.5 ml-auto shrink-0">
-                                  {s.composite_score != null && (
-                                    <span className={cn(
-                                      'text-xs font-bold px-1.5 py-0.5 rounded',
-                                      s.composite_score >= 70 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
-                                        : s.composite_score >= 50 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
-                                        : 'bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
-                                    )}>
-                                      {Math.round(s.composite_score)}
-                                    </span>
-                                  )}
-                                  {s.change_pct != null && (
-                                    <span className={cn('text-xs font-medium', s.change_pct > 0 ? 'text-red-600' : s.change_pct < 0 ? 'text-blue-600' : 'text-slate-500')}>
-                                      {fmtPct(s.change_pct)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              {/* Tags */}
-                              <div className="flex flex-wrap gap-1 mt-1.5">
-                                {s.sector && <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{s.sector}</span>}
-                                <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{fmtMcap(s.market_cap_m)}</span>
-                                {s.industry && <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 dark:bg-slate-600 dark:text-slate-400">{s.industry}</span>}
-                                {s.rs_rank != null && s.rs_rank >= 70 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-400">RS {s.rs_rank}</span>}
-                                {s.insider_buys_3m > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400">내부자 {s.insider_buys_3m}건</span>}
-                                {s.reddit_mentions > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400">Reddit {s.reddit_mentions}</span>}
-                                {s.fail_reasons && s.fail_reasons.length > 0 && s.fail_reasons.map(r => (
-                                  <span key={r} className="text-[11px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">{r}</span>
-                                ))}
-                              </div>
-                              {/* Analysis: scores + metrics */}
-                              <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-600 space-y-1.5">
-                                <div className="grid grid-cols-3 gap-x-3 gap-y-0.5">
-                                  {scoreBar('성장', s.growth_score)}
-                                  {scoreBar('가치', s.value_score)}
-                                  {scoreBar('퀄리티', s.quality_score)}
-                                  {scoreBar('모멘텀', s.momentum_score)}
-                                  {scoreBar('내부자', s.insider_score)}
-                                  {scoreBar('센티', s.sentiment_score)}
-                                </div>
-                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                                  <span>${s.price?.toFixed(2)}</span>
-                                  <span>PE {fmtNum(s.pe)}</span>
-                                  <span>FPE {fmtNum(s.forward_pe)}</span>
-                                  <span>PEG {fmtNum(s.peg)}</span>
-                                  <span>ROE {fmtPct(s.roe)}</span>
-                                  <span>GM {fmtPct(s.gross_margin)}</span>
-                                  <span>영업 {fmtPct(s.operating_margin)}</span>
-                                  <span>순이익 {fmtPct(s.profit_margin)}</span>
-                                </div>
-                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                                  <span>D/E {fmtNum(s.debt_to_equity)}</span>
-                                  <span>유동 {fmtNum(s.current_ratio)}</span>
-                                  {s.insider_own_pct != null && <span>내부자보유 {fmtPct(s.insider_own_pct)}</span>}
-                                  {s.inst_own_pct != null && <span>기관보유 {fmtPct(s.inst_own_pct)}</span>}
-                                  {s.short_float_pct != null && <span>공매도 {fmtPct(s.short_float_pct)}</span>}
-                                </div>
-                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                                  <span>1주 {fmtPct(s.perf_week)}</span>
-                                  <span>1월 {fmtPct(s.perf_month)}</span>
-                                  <span>분기 {fmtPct(s.perf_quarter)}</span>
-                                  <span>반기 {fmtPct(s.perf_half)}</span>
-                                  {s.perf_year != null && <span>1년 {fmtPct(s.perf_year)}</span>}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        }
-                      })}
-                    </div>
-                    {/* Pagination */}
-                    {allItems.length > researchPerPage && (
-                      <div className="flex items-center justify-between gap-2 pt-3">
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground">
-                            {allItems.length}개 중 {(researchPage - 1) * researchPerPage + 1}-{Math.min(researchPage * researchPerPage, allItems.length)}
-                          </p>
-                          <div className="relative">
-                            <select
-                              value={researchPerPage}
-                              onChange={(e) => { setResearchPerPage(Number(e.target.value)); setResearchPage(1) }}
-                              className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                            >
-                              <option value={10}>10개</option>
-                              <option value={20}>20개</option>
-                              <option value={50}>50개</option>
-                            </select>
-                            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
-                          </div>
+                {/* Section 2: 매도 호가 vs 실거래가 */}
+                {reListingsTrade.length > 0 && (() => {
+                  const sorted = [...reListingsTrade].sort((a, b) => {
+                    const av = a[reTradeSortKey], bv = b[reTradeSortKey]
+                    const an = typeof av === 'string' ? av : (av ?? (reTradeSortAsc ? Infinity : -Infinity))
+                    const bn = typeof bv === 'string' ? bv : (bv ?? (reTradeSortAsc ? Infinity : -Infinity))
+                    if (an < bn) return reTradeSortAsc ? -1 : 1
+                    if (an > bn) return reTradeSortAsc ? 1 : -1
+                    return 0
+                  })
+                  const totalPages = Math.ceil(sorted.length / RE_LIST_PAGE_SIZE)
+                  const paged = sorted.slice(reTradeListPage * RE_LIST_PAGE_SIZE, (reTradeListPage + 1) * RE_LIST_PAGE_SIZE)
+                  const thClick = (key: ReSortKey) => { if (reTradeSortKey === key) setReTradeSortAsc(!reTradeSortAsc); else { setReTradeSortKey(key); setReTradeSortAsc(key === 'gap' ? true : true) }; setReTradeListPage(0) }
+                  const thCls = (key: ReSortKey) => cn('font-normal pb-1 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 select-none', reTradeSortKey === key && 'text-slate-600 dark:text-slate-300 font-medium')
+                  return (
+                  <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium">매도 호가 vs 실거래가 <span className="text-[11px] text-slate-400 font-normal">(만원/평, 공급면적 기준)</span></span>
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setReTradeListPage(p => Math.max(0, p - 1))} disabled={reTradeListPage === 0} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button>
+                          <span className="text-[11px] text-slate-400">{reTradeListPage + 1}/{totalPages}</span>
+                          <button onClick={() => setReTradeListPage(p => Math.min(totalPages - 1, p + 1))} disabled={reTradeListPage >= totalPages - 1} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronRight className="h-3.5 w-3.5" /></button>
                         </div>
-                        {totalPages > 1 && (
-                          <div className="flex items-center gap-0.5">
-                            <button onClick={() => setResearchPage(1)} disabled={researchPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
-                            <button onClick={() => setResearchPage(p => Math.max(1, p - 1))} disabled={researchPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
-                            <span className="px-2 py-1 text-xs font-medium">{researchPage}/{totalPages}</span>
-                            <button onClick={() => setResearchPage(p => Math.min(totalPages, p + 1))} disabled={researchPage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
-                            <button onClick={() => setResearchPage(totalPages)} disabled={researchPage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })()
-              ) : (
-              /* ========== Real Estate Research Sub-Tab ========== */
-              <div className="space-y-4">
-                {/* Filter Bar: 단지 + 평형 + 기간 한 줄 */}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <div className="flex items-center gap-1 w-full sm:w-auto flex-wrap">
-                    <span className="text-[11px] text-slate-400 mr-0.5">단지</span>
-                    {reComplexFilter.length === 0 ? (
-                      <span className="text-[11px] text-slate-400 dark:text-slate-500">전체 ({reComplexes.length}개)</span>
-                    ) : (
-                      reComplexFilter.map(id => {
-                        const c = reComplexes.find(x => x.id === id)
-                        return c ? (
-                          <button key={id} onClick={() => { setReComplexFilter(prev => prev.filter(x => x !== id)); setReTradeListPage(0); setReJeonseListPage(0) }}
-                            className="px-2 py-0.5 text-xs rounded-full bg-slate-900 text-white dark:bg-slate-500 flex items-center gap-1">
-                            {c.name} <X className="h-2.5 w-2.5" />
-                          </button>
-                        ) : null
-                      })
-                    )}
-                    <select
-                      value=""
-                      onChange={(e) => {
-                        if (e.target.value && !reComplexFilter.includes(e.target.value)) {
-                          setReComplexFilter(prev => [...prev, e.target.value])
-                          setReTradeListPage(0)
-                          setReJeonseListPage(0)
-                        }
-                      }}
-                      className="text-xs bg-white dark:bg-slate-700 rounded px-1.5 py-0.5 cursor-pointer"
-                    >
-                      <option value="">+</option>
-                      {reComplexes
-                        .filter(c => !reComplexFilter.includes(c.id))
-                        .map(c => (
-                          <option key={c.id} value={c.id}>{c.district_name.replace('구', '')} · {c.name}</option>
+                      )}
+                    </div>
+                    <table className="w-full text-xs table-fixed">
+                      <colgroup>
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[10%]" />
+                      </colgroup>
+                      <thead>
+                        <tr className="text-[11px] text-slate-400">
+                          <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
+                          <th className={cn('text-right', thCls('areaBand'))} onClick={() => thClick('areaBand')}>평형</th>
+                          <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>실거래</th>
+                          <th className={cn('text-right', thCls('listingMinPpp'))} onClick={() => thClick('listingMinPpp')}>호가(저)</th>
+                          <th className={cn('text-right', thCls('listingMaxPpp'))} onClick={() => thClick('listingMaxPpp')}>호가(고)</th>
+                          <th className={cn('text-right', thCls('gap'))} onClick={() => thClick('gap')}>괴리율</th>
+                          <th className={cn('text-right', thCls('listingCount'))} onClick={() => thClick('listingCount')}>매물</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paged.map(r => (
+                          <tr key={`${r.complexName}-${r.areaBand}`} className="border-t border-slate-50 dark:border-slate-600">
+                            <td className="py-1 font-medium truncate">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=a1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
+                            <td className="py-1 text-right text-muted-foreground">{r.areaBand >= 60 ? '60+' : r.areaBand}평대</td>
+                            <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
+                            <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
+                            <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
+                            <td className={cn('py-1 text-right font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                              {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
+                            </td>
+                            <td className="py-1 text-right text-muted-foreground">{r.listingCount}</td>
+                          </tr>
                         ))}
-                    </select>
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px] text-slate-400 mr-0.5">평형</span>
-                    {[{ v: '', l: '전체' }, { v: '20', l: '20평' }, { v: '30', l: '30평' }, { v: '40', l: '40평' }, { v: '50', l: '50평' }, { v: '60+', l: '60+' }].map(a => (
-                      <button key={a.v} onClick={() => { setReAreaFilter(a.v); setReTradeListPage(0); setReJeonseListPage(0) }}
-                        className={cn('px-2 py-0.5 text-xs font-medium rounded-full transition-colors',
-                          reAreaFilter === a.v ? 'bg-slate-900 text-white dark:bg-slate-500' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-                        )}>
-                        {a.l}
-                      </button>
-                    ))}
+                  )
+                })()}
+
+                </div>
+                <div className="space-y-4">
+                {/* Section 3: 전세 실거래가 추이 */}
+                {reRentals && reRentals.months.length > 0 && (
+                  <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium">전세 실거래가 추이 <span className="text-[11px] text-slate-400 font-normal">(평당 보증금, 만원)</span></span>
+                      {reRentals.complexes.length > 0 && (() => {
+                        const months = reRentals.months
+                        if (months.length < 2) return null
+                        const curMonth = months[months.length - 1]
+                        const prevMonth = months[months.length - 2]
+                        let prevTotal = 0, prevCount = 0, curTotal = 0, curCount = 0
+                        for (const c of reRentals.complexes) {
+                          const prevD = c.data.find(d => d.month === prevMonth)
+                          if (prevD?.avgPpp) { prevTotal += prevD.avgPpp; prevCount++ }
+                          const curD = c.data.find(d => d.month === curMonth)
+                          if (curD?.avgPpp) { curTotal += curD.avgPpp; curCount++ }
+                        }
+                        if (prevCount === 0 || curCount === 0) return null
+                        const changePct = ((curTotal / curCount - prevTotal / prevCount) / (prevTotal / prevCount)) * 100
+                        return (
+                          <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded',
+                            changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                          )}>
+                            전월대비 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
+                          </span>
+                        )
+                      })()}
+                    </div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <ComposedChart data={reRentals.months.map(m => {
+                        const entry: Record<string, string | number | null> = { month: m }
+                        let totalCount = 0
+                        for (const c of reRentals.complexes) {
+                          const d = c.data.find(dd => dd.month === m)
+                          entry[c.name] = d?.avgPpp ?? null
+                          totalCount += d?.count || 0
+                        }
+                        entry._count = totalCount
+                        return entry
+                      })} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                        <YAxis yAxisId="price" tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
+                        <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 8, fill: '#94a3b8' }} width={30} />
+                        <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value, name) => name === '_count' ? [`${value}건`, '거래량'] : [`${Number(value).toLocaleString()}만원/평`, name]} />
+                        <Bar yAxisId="count" dataKey="_count" fill="#cbd5e1" radius={[2, 2, 0, 0]} barSize={16} />
+                        {reRentals.complexes.slice(0, 10).map((c, i) => {
+                          const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
+                          return <Line key={c.name} yAxisId="price" type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
+                        })}
+                      </ComposedChart>
+                    </ResponsiveContainer>
                   </div>
-                  {reSummary && (reSummary.lastListingDate || reSummary.lastTradeDate) && (
-                    <span className="text-[11px] text-slate-400 sm:ml-auto whitespace-nowrap">
-                      호가 {reSummary.lastListingDate?.slice(5).replace('-', '/')} · 실거래 {reSummary.lastTradeDate?.slice(5).replace('-', '/')}
-                    </span>
-                  )}
+                )}
+
+                {/* Section 3.5: 전세 괴리율 일일 추이 */}
+                {reListingTrendJeonse && reListingTrendJeonse.trend.length > 1 && (
+                  <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium">전세 괴리율 추이 <span className="text-[11px] text-slate-400 font-normal">(호가 저 vs 실거래, %)</span></span>
+                      {reSummary?.jeonseListingGap != null && (
+                        <span className={`text-[11px] font-medium ${reSummary.jeonseListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>현재 {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap}%</span>
+                      )}
+                    </div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      {(() => {
+                        const chartData = reListingTrendJeonse.trend.filter(d => d.gapRate != null)
+                        const allVals = chartData.map(d => d.gapRate!).filter((v): v is number => v != null)
+                        const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
+                        const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0
+                        const yMin = Math.floor(Math.min(minVal - 2, 0) / 5) * 5
+                        const yMax = Math.ceil(Math.max(maxVal + 2, 0) / 5) * 5
+                        const yTicks: number[] = []
+                        for (let t = yMin; t <= yMax; t += 5) yTicks.push(t)
+                        return (
+                      <ComposedChart data={chartData} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                        <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={40} />
+                        <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`]} labelFormatter={(l) => String(l)} />
+                        <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
+                        <Line type="monotone" dataKey="gapRate" name="괴리율" stroke="#10b981" dot={{ r: 3 }} strokeWidth={2} connectNulls />
+                      </ComposedChart>
+                        )
+                      })()}
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Section 4: 전세 호가 vs 실거래가 */}
+                {reListingsJeonse.length > 0 && (() => {
+                  const sorted = [...reListingsJeonse].sort((a, b) => {
+                    const av = a[reJeonseSortKey], bv = b[reJeonseSortKey]
+                    const an = typeof av === 'string' ? av : (av ?? (reJeonseSortAsc ? Infinity : -Infinity))
+                    const bn = typeof bv === 'string' ? bv : (bv ?? (reJeonseSortAsc ? Infinity : -Infinity))
+                    if (an < bn) return reJeonseSortAsc ? -1 : 1
+                    if (an > bn) return reJeonseSortAsc ? 1 : -1
+                    return 0
+                  })
+                  const totalPages = Math.ceil(sorted.length / RE_LIST_PAGE_SIZE)
+                  const paged = sorted.slice(reJeonseListPage * RE_LIST_PAGE_SIZE, (reJeonseListPage + 1) * RE_LIST_PAGE_SIZE)
+                  const thClick = (key: ReSortKey) => { if (reJeonseSortKey === key) setReJeonseSortAsc(!reJeonseSortAsc); else { setReJeonseSortKey(key); setReJeonseSortAsc(key === 'gap' ? true : true) }; setReJeonseListPage(0) }
+                  const thCls = (key: ReSortKey) => cn('font-normal pb-1 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 select-none', reJeonseSortKey === key && 'text-slate-600 dark:text-slate-300 font-medium')
+                  return (
+                  <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium">전세 호가 vs 실거래가 <span className="text-[11px] text-slate-400 font-normal">(만원/평, 공급면적 기준)</span></span>
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setReJeonseListPage(p => Math.max(0, p - 1))} disabled={reJeonseListPage === 0} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button>
+                          <span className="text-[11px] text-slate-400">{reJeonseListPage + 1}/{totalPages}</span>
+                          <button onClick={() => setReJeonseListPage(p => Math.min(totalPages - 1, p + 1))} disabled={reJeonseListPage >= totalPages - 1} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronRight className="h-3.5 w-3.5" /></button>
+                        </div>
+                      )}
+                    </div>
+                    <table className="w-full text-xs table-fixed">
+                      <colgroup>
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[10%]" />
+                      </colgroup>
+                      <thead>
+                        <tr className="text-[11px] text-slate-400">
+                          <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
+                          <th className={cn('text-right', thCls('areaBand'))} onClick={() => thClick('areaBand')}>평형</th>
+                          <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>실거래</th>
+                          <th className={cn('text-right', thCls('listingMinPpp'))} onClick={() => thClick('listingMinPpp')}>호가(저)</th>
+                          <th className={cn('text-right', thCls('listingMaxPpp'))} onClick={() => thClick('listingMaxPpp')}>호가(고)</th>
+                          <th className={cn('text-right', thCls('gap'))} onClick={() => thClick('gap')}>괴리율</th>
+                          <th className={cn('text-right', thCls('listingCount'))} onClick={() => thClick('listingCount')}>매물</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paged.map(r => (
+                          <tr key={`${r.complexName}-${r.areaBand}`} className="border-t border-slate-50 dark:border-slate-600">
+                            <td className="py-1 font-medium truncate">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=b1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
+                            <td className="py-1 text-right text-muted-foreground">{r.areaBand >= 60 ? '60+' : r.areaBand}평대</td>
+                            <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
+                            <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
+                            <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
+                            <td className={cn('py-1 text-right font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
+                              {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
+                            </td>
+                            <td className="py-1 text-right text-muted-foreground">{r.listingCount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  )
+                })()}
+
+                {/* Section 5: 전세가율 추이 */}
+                {reJeonseRatio.length > 0 && (
+                  <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
+                    <div className="text-xs font-medium mb-2">전세가율 추이</div>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <AreaChart data={reJeonseRatio} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                        <YAxis domain={[30, 70]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={35} />
+                        <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value) => [`${value}%`, '전세가율']} />
+                        <ReferenceLine y={40} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: '40%', position: 'right', fontSize: 9, fill: '#94a3b8' }} />
+                        <ReferenceLine y={60} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: '60%', position: 'right', fontSize: 9, fill: '#94a3b8' }} />
+                        <Area type="monotone" dataKey="ratio" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={1.5} connectNulls />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                </div>
                 </div>
 
-                {isLoadingRe ? (
-                  <div className="text-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                    <p className="text-xs text-muted-foreground mt-2">부동산 데이터 로딩중...</p>
+                {/* Empty state */}
+                {!reTrades && !reSummary && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Search className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                    <p className="text-sm">부동산 데이터가 없습니다</p>
                   </div>
-                ) : (
-                  <>
-                    {/* Summary Cards */}
-                    {reSummary && (
-                      <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-2">
-                        <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">추적 단지</div>
-                          <div className="text-sm font-bold">{reSummary.trackedComplexes}개 <span className="text-[11px] text-slate-400 font-normal">({reSummary.districtCount}개구)</span></div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 md:contents">
-                          <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                            <div className="text-[11px] text-muted-foreground">최근1월 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
-                            <div className="text-sm font-bold">{reSummary.avgTradePpp?.toLocaleString() || '-'}</div>
-                          </div>
-                          <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                            <div className="text-[11px] text-muted-foreground">매도호가 괴리율</div>
-                            <div className={cn('text-sm font-bold', reSummary.tradeListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                              {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap.toFixed(1)}%
-                            </div>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 md:contents">
-                          <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                            <div className="text-[11px] text-muted-foreground">최근1월 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
-                            <div className="text-sm font-bold">{reSummary.avgJeonsePpp?.toLocaleString() || '-'}</div>
-                          </div>
-                          <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                            <div className="text-[11px] text-muted-foreground">전세호가 괴리율</div>
-                            <div className={cn('text-sm font-bold', reSummary.jeonseListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                              {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap.toFixed(1)}%
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 매매/전세 2열 그리드 */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="space-y-4">
-                    {/* Section 1: 매매 실거래가 추이 */}
-                    {reTrades && reTrades.months.length > 0 && (
-                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">매매 실거래가 추이 <span className="text-[11px] text-slate-400 font-normal">(평당가, 만원)</span></span>
-                          {reTrades.complexes.length > 0 && (() => {
-                            // 전월 대비 변동률
-                            const months = reTrades.months
-                            if (months.length < 2) return null
-                            const curMonth = months[months.length - 1]
-                            const prevMonth = months[months.length - 2]
-                            let prevTotal = 0, prevCount = 0, curTotal = 0, curCount = 0
-                            for (const c of reTrades.complexes) {
-                              const prevD = c.data.find(d => d.month === prevMonth)
-                              if (prevD?.avgPpp) { prevTotal += prevD.avgPpp; prevCount++ }
-                              const curD = c.data.find(d => d.month === curMonth)
-                              if (curD?.avgPpp) { curTotal += curD.avgPpp; curCount++ }
-                            }
-                            if (prevCount === 0 || curCount === 0) return null
-                            const changePct = ((curTotal / curCount - prevTotal / prevCount) / (prevTotal / prevCount)) * 100
-                            return (
-                              <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded',
-                                changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                              )}>
-                                전월대비 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
-                              </span>
-                            )
-                          })()}
-                        </div>
-                        <ResponsiveContainer width="100%" height={220}>
-                          <ComposedChart data={reTrades.months.map(m => {
-                            const entry: Record<string, string | number | null> = { month: m }
-                            let totalCount = 0
-                            for (const c of reTrades.complexes) {
-                              const d = c.data.find(dd => dd.month === m)
-                              entry[c.name] = d?.avgPpp ?? null
-                              totalCount += d?.count || 0
-                            }
-                            entry._count = totalCount
-                            return entry
-                          })} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis yAxisId="price" tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
-                            <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 8, fill: '#94a3b8' }} width={30} />
-                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value, name) => name === '_count' ? [`${value}건`, '거래량'] : [`${Number(value).toLocaleString()}만원/평`, name]} />
-                            <Bar yAxisId="count" dataKey="_count" fill="#cbd5e1" radius={[2, 2, 0, 0]} barSize={16} />
-                            {reTrades.complexes.slice(0, 10).map((c, i) => {
-                              const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
-                              return <Line key={c.name} yAxisId="price" type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
-                            })}
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-
-                    {/* Section 1.5: 매매 괴리율 일일 추이 */}
-                    {reListingTrend && reListingTrend.trend.length > 1 && (
-                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium">매매 괴리율 추이 <span className="text-[11px] text-slate-400 font-normal">(호가 저 vs 실거래, %)</span></span>
-                          {reSummary?.tradeListingGap != null && (
-                            <span className={`text-[11px] font-medium ${reSummary.tradeListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>현재 {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap}%</span>
-                          )}
-                        </div>
-                        <ResponsiveContainer width="100%" height={220}>
-                          {(() => {
-                            const chartData = reListingTrend.trend.filter(d => d.gapRate != null)
-                            const allVals = chartData.map(d => d.gapRate!).filter((v): v is number => v != null)
-                            const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
-                            const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0
-                            const yMin = Math.floor(Math.min(minVal - 2, 0) / 5) * 5
-                            const yMax = Math.ceil(Math.max(maxVal + 2, 0) / 5) * 5
-                            const yTicks: number[] = []
-                            for (let t = yMin; t <= yMax; t += 5) yTicks.push(t)
-                            return (
-                          <ComposedChart data={chartData} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={40} />
-                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`]} labelFormatter={(l) => String(l)} />
-                            <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
-                            <Line type="monotone" dataKey="gapRate" name="괴리율" stroke="#6366f1" dot={{ r: 3 }} strokeWidth={2} connectNulls />
-                          </ComposedChart>
-                            )
-                          })()}
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-
-                    {/* Section 2: 매도 호가 vs 실거래가 */}
-                    {reListingsTrade.length > 0 && (() => {
-                      const sorted = [...reListingsTrade].sort((a, b) => {
-                        const av = a[reTradeSortKey], bv = b[reTradeSortKey]
-                        const an = typeof av === 'string' ? av : (av ?? (reTradeSortAsc ? Infinity : -Infinity))
-                        const bn = typeof bv === 'string' ? bv : (bv ?? (reTradeSortAsc ? Infinity : -Infinity))
-                        if (an < bn) return reTradeSortAsc ? -1 : 1
-                        if (an > bn) return reTradeSortAsc ? 1 : -1
-                        return 0
-                      })
-                      const totalPages = Math.ceil(sorted.length / RE_LIST_PAGE_SIZE)
-                      const paged = sorted.slice(reTradeListPage * RE_LIST_PAGE_SIZE, (reTradeListPage + 1) * RE_LIST_PAGE_SIZE)
-                      const thClick = (key: ReSortKey) => { if (reTradeSortKey === key) setReTradeSortAsc(!reTradeSortAsc); else { setReTradeSortKey(key); setReTradeSortAsc(key === 'gap' ? true : true) }; setReTradeListPage(0) }
-                      const thCls = (key: ReSortKey) => cn('font-normal pb-1 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 select-none', reTradeSortKey === key && 'text-slate-600 dark:text-slate-300 font-medium')
-                      return (
-                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">매도 호가 vs 실거래가 <span className="text-[11px] text-slate-400 font-normal">(만원/평, 공급면적 기준)</span></span>
-                          {totalPages > 1 && (
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => setReTradeListPage(p => Math.max(0, p - 1))} disabled={reTradeListPage === 0} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button>
-                              <span className="text-[11px] text-slate-400">{reTradeListPage + 1}/{totalPages}</span>
-                              <button onClick={() => setReTradeListPage(p => Math.min(totalPages - 1, p + 1))} disabled={reTradeListPage >= totalPages - 1} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronRight className="h-3.5 w-3.5" /></button>
-                            </div>
-                          )}
-                        </div>
-                        <table className="w-full text-xs table-fixed">
-                          <colgroup>
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[10%]" />
-                          </colgroup>
-                          <thead>
-                            <tr className="text-[11px] text-slate-400">
-                              <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
-                              <th className={cn('text-right', thCls('areaBand'))} onClick={() => thClick('areaBand')}>평형</th>
-                              <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>실거래</th>
-                              <th className={cn('text-right', thCls('listingMinPpp'))} onClick={() => thClick('listingMinPpp')}>호가(저)</th>
-                              <th className={cn('text-right', thCls('listingMaxPpp'))} onClick={() => thClick('listingMaxPpp')}>호가(고)</th>
-                              <th className={cn('text-right', thCls('gap'))} onClick={() => thClick('gap')}>괴리율</th>
-                              <th className={cn('text-right', thCls('listingCount'))} onClick={() => thClick('listingCount')}>매물</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {paged.map(r => (
-                              <tr key={`${r.complexName}-${r.areaBand}`} className="border-t border-slate-50 dark:border-slate-600">
-                                <td className="py-1 font-medium truncate">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=a1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
-                                <td className="py-1 text-right text-muted-foreground">{r.areaBand >= 60 ? '60+' : r.areaBand}평대</td>
-                                <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
-                                <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
-                                <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
-                                <td className={cn('py-1 text-right font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                                  {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
-                                </td>
-                                <td className="py-1 text-right text-muted-foreground">{r.listingCount}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      )
-                    })()}
-
-                    </div>
-                    <div className="space-y-4">
-                    {/* Section 3: 전세 실거래가 추이 */}
-                    {reRentals && reRentals.months.length > 0 && (
-                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">전세 실거래가 추이 <span className="text-[11px] text-slate-400 font-normal">(평당 보증금, 만원)</span></span>
-                          {reRentals.complexes.length > 0 && (() => {
-                            const months = reRentals.months
-                            if (months.length < 2) return null
-                            const curMonth = months[months.length - 1]
-                            const prevMonth = months[months.length - 2]
-                            let prevTotal = 0, prevCount = 0, curTotal = 0, curCount = 0
-                            for (const c of reRentals.complexes) {
-                              const prevD = c.data.find(d => d.month === prevMonth)
-                              if (prevD?.avgPpp) { prevTotal += prevD.avgPpp; prevCount++ }
-                              const curD = c.data.find(d => d.month === curMonth)
-                              if (curD?.avgPpp) { curTotal += curD.avgPpp; curCount++ }
-                            }
-                            if (prevCount === 0 || curCount === 0) return null
-                            const changePct = ((curTotal / curCount - prevTotal / prevCount) / (prevTotal / prevCount)) * 100
-                            return (
-                              <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded',
-                                changePct > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                              )}>
-                                전월대비 {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
-                              </span>
-                            )
-                          })()}
-                        </div>
-                        <ResponsiveContainer width="100%" height={220}>
-                          <ComposedChart data={reRentals.months.map(m => {
-                            const entry: Record<string, string | number | null> = { month: m }
-                            let totalCount = 0
-                            for (const c of reRentals.complexes) {
-                              const d = c.data.find(dd => dd.month === m)
-                              entry[c.name] = d?.avgPpp ?? null
-                              totalCount += d?.count || 0
-                            }
-                            entry._count = totalCount
-                            return entry
-                          })} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis yAxisId="price" tickFormatter={(v: number) => v.toLocaleString()} tick={{ fontSize: 9, fill: '#94a3b8' }} width={50} />
-                            <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 8, fill: '#94a3b8' }} width={30} />
-                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value, name) => name === '_count' ? [`${value}건`, '거래량'] : [`${Number(value).toLocaleString()}만원/평`, name]} />
-                            <Bar yAxisId="count" dataKey="_count" fill="#cbd5e1" radius={[2, 2, 0, 0]} barSize={16} />
-                            {reRentals.complexes.slice(0, 10).map((c, i) => {
-                              const colors = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
-                              return <Line key={c.name} yAxisId="price" type="monotone" dataKey={c.name} stroke={colors[i % colors.length]} dot={false} strokeWidth={1.5} connectNulls />
-                            })}
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-
-                    {/* Section 3.5: 전세 괴리율 일일 추이 */}
-                    {reListingTrendJeonse && reListingTrendJeonse.trend.length > 1 && (
-                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium">전세 괴리율 추이 <span className="text-[11px] text-slate-400 font-normal">(호가 저 vs 실거래, %)</span></span>
-                          {reSummary?.jeonseListingGap != null && (
-                            <span className={`text-[11px] font-medium ${reSummary.jeonseListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>현재 {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap}%</span>
-                          )}
-                        </div>
-                        <ResponsiveContainer width="100%" height={220}>
-                          {(() => {
-                            const chartData = reListingTrendJeonse.trend.filter(d => d.gapRate != null)
-                            const allVals = chartData.map(d => d.gapRate!).filter((v): v is number => v != null)
-                            const minVal = allVals.length > 0 ? Math.min(...allVals) : 0
-                            const maxVal = allVals.length > 0 ? Math.max(...allVals) : 0
-                            const yMin = Math.floor(Math.min(minVal - 2, 0) / 5) * 5
-                            const yMax = Math.ceil(Math.max(maxVal + 2, 0) / 5) * 5
-                            const yTicks: number[] = []
-                            for (let t = yMin; t <= yMax; t += 5) yTicks.push(t)
-                            return (
-                          <ComposedChart data={chartData} margin={{ top: 12, right: 5, bottom: 5, left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis domain={[yMin, yMax]} ticks={yTicks} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={40} />
-                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`]} labelFormatter={(l) => String(l)} />
-                            <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
-                            <Line type="monotone" dataKey="gapRate" name="괴리율" stroke="#10b981" dot={{ r: 3 }} strokeWidth={2} connectNulls />
-                          </ComposedChart>
-                            )
-                          })()}
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-
-                    {/* Section 4: 전세 호가 vs 실거래가 */}
-                    {reListingsJeonse.length > 0 && (() => {
-                      const sorted = [...reListingsJeonse].sort((a, b) => {
-                        const av = a[reJeonseSortKey], bv = b[reJeonseSortKey]
-                        const an = typeof av === 'string' ? av : (av ?? (reJeonseSortAsc ? Infinity : -Infinity))
-                        const bn = typeof bv === 'string' ? bv : (bv ?? (reJeonseSortAsc ? Infinity : -Infinity))
-                        if (an < bn) return reJeonseSortAsc ? -1 : 1
-                        if (an > bn) return reJeonseSortAsc ? 1 : -1
-                        return 0
-                      })
-                      const totalPages = Math.ceil(sorted.length / RE_LIST_PAGE_SIZE)
-                      const paged = sorted.slice(reJeonseListPage * RE_LIST_PAGE_SIZE, (reJeonseListPage + 1) * RE_LIST_PAGE_SIZE)
-                      const thClick = (key: ReSortKey) => { if (reJeonseSortKey === key) setReJeonseSortAsc(!reJeonseSortAsc); else { setReJeonseSortKey(key); setReJeonseSortAsc(key === 'gap' ? true : true) }; setReJeonseListPage(0) }
-                      const thCls = (key: ReSortKey) => cn('font-normal pb-1 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 select-none', reJeonseSortKey === key && 'text-slate-600 dark:text-slate-300 font-medium')
-                      return (
-                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">전세 호가 vs 실거래가 <span className="text-[11px] text-slate-400 font-normal">(만원/평, 공급면적 기준)</span></span>
-                          {totalPages > 1 && (
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => setReJeonseListPage(p => Math.max(0, p - 1))} disabled={reJeonseListPage === 0} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button>
-                              <span className="text-[11px] text-slate-400">{reJeonseListPage + 1}/{totalPages}</span>
-                              <button onClick={() => setReJeonseListPage(p => Math.min(totalPages - 1, p + 1))} disabled={reJeonseListPage >= totalPages - 1} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-30"><ChevronRight className="h-3.5 w-3.5" /></button>
-                            </div>
-                          )}
-                        </div>
-                        <table className="w-full text-xs table-fixed">
-                          <colgroup>
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[10%]" />
-                          </colgroup>
-                          <thead>
-                            <tr className="text-[11px] text-slate-400">
-                              <th className={cn('text-left', thCls('complexName'))} onClick={() => thClick('complexName')}>단지</th>
-                              <th className={cn('text-right', thCls('areaBand'))} onClick={() => thClick('areaBand')}>평형</th>
-                              <th className={cn('text-right', thCls('actualAvgPpp'))} onClick={() => thClick('actualAvgPpp')}>실거래</th>
-                              <th className={cn('text-right', thCls('listingMinPpp'))} onClick={() => thClick('listingMinPpp')}>호가(저)</th>
-                              <th className={cn('text-right', thCls('listingMaxPpp'))} onClick={() => thClick('listingMaxPpp')}>호가(고)</th>
-                              <th className={cn('text-right', thCls('gap'))} onClick={() => thClick('gap')}>괴리율</th>
-                              <th className={cn('text-right', thCls('listingCount'))} onClick={() => thClick('listingCount')}>매물</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {paged.map(r => (
-                              <tr key={`${r.complexName}-${r.areaBand}`} className="border-t border-slate-50 dark:border-slate-600">
-                                <td className="py-1 font-medium truncate">{r.complexNo ? <a href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=b1&a=APT&e=OPST`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-slate-300 dark:decoration-slate-500 underline-offset-2">{r.complexName}</a> : r.complexName}</td>
-                                <td className="py-1 text-right text-muted-foreground">{r.areaBand >= 60 ? '60+' : r.areaBand}평대</td>
-                                <td className="py-1 text-right text-muted-foreground">{r.actualAvgPpp ? Math.round(r.actualAvgPpp).toLocaleString() : '-'}</td>
-                                <td className="py-1 text-right">{r.listingMinPpp ? Math.round(r.listingMinPpp).toLocaleString() : '-'}</td>
-                                <td className="py-1 text-right text-muted-foreground">{r.listingMaxPpp ? Math.round(r.listingMaxPpp).toLocaleString() : '-'}</td>
-                                <td className={cn('py-1 text-right font-medium', r.gap != null && r.gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                                  {r.gap != null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
-                                </td>
-                                <td className="py-1 text-right text-muted-foreground">{r.listingCount}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      )
-                    })()}
-
-                    {/* Section 5: 전세가율 추이 */}
-                    {reJeonseRatio.length > 0 && (
-                      <div className="rounded-lg bg-white dark:bg-slate-700 p-3">
-                        <div className="text-xs font-medium mb-2">전세가율 추이</div>
-                        <ResponsiveContainer width="100%" height={180}>
-                          <AreaChart data={reJeonseRatio} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="month" tickFormatter={(m: string) => m.slice(5)} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                            <YAxis domain={[30, 70]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9, fill: '#94a3b8' }} width={35} />
-                            <RechartsTooltip contentStyle={{ fontSize: 11 }} formatter={(value) => [`${value}%`, '전세가율']} />
-                            <ReferenceLine y={40} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: '40%', position: 'right', fontSize: 9, fill: '#94a3b8' }} />
-                            <ReferenceLine y={60} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: '60%', position: 'right', fontSize: 9, fill: '#94a3b8' }} />
-                            <Area type="monotone" dataKey="ratio" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={1.5} connectNulls />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-                    </div>
-                    </div>
-
-                    {/* Empty state */}
-                    {!reTrades && !reSummary && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Search className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                        <p className="text-sm">부동산 데이터가 없습니다</p>
-                      </div>
-                    )}
-                  </>
                 )}
-              </div>
-              )}
-            </CardContent>
-          </Card>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Row 3 - Email (full width) */}
           <Card className="bg-slate-100 dark:bg-slate-800">
@@ -7756,149 +7449,6 @@ export default function WillowManagementPage() {
               </Button>
               <Button size="sm" onClick={handleSaveTrade} disabled={isSavingTrade}>
                 {isSavingTrade && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                저장
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Stock Research Modal */}
-      <Dialog open={isResearchModalOpen} onOpenChange={setIsResearchModalOpen}>
-        <DialogContent className="max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0 pb-4 border-b">
-            <DialogTitle>{editingResearch ? '리서치 수정' : '리서치 추가'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
-            {/* Verdict */}
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">판정</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button type="button" onClick={() => setResearchFormVerdict('pass_tier1')} className={cn('py-2 text-sm font-medium rounded-lg transition-colors', researchFormVerdict === 'pass_tier1' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300')}>Tier 1</button>
-                <button type="button" onClick={() => setResearchFormVerdict('pass_tier2')} className={cn('py-2 text-sm font-medium rounded-lg transition-colors', researchFormVerdict === 'pass_tier2' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300')}>Tier 2</button>
-                <button type="button" onClick={() => setResearchFormVerdict('fail')} className={cn('py-2 text-sm font-medium rounded-lg transition-colors', researchFormVerdict === 'fail' ? 'bg-slate-300 text-slate-700 dark:bg-slate-600 dark:text-slate-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300')}>Fail</button>
-              </div>
-            </div>
-
-            {/* Ticker & Company */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">종목코드 *</label>
-                <Input value={researchFormTicker} onChange={(e) => setResearchFormTicker(e.target.value)} placeholder="VRT" />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">종목명 *</label>
-                <Input value={researchFormCompanyName} onChange={(e) => setResearchFormCompanyName(e.target.value)} placeholder="버티브홀딩스" />
-              </div>
-            </div>
-
-            {/* Date & Source */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">스캔일</label>
-                <Input type="date" value={researchFormScanDate} onChange={(e) => setResearchFormScanDate(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">소스</label>
-                <Input value={researchFormSource} onChange={(e) => setResearchFormSource(e.target.value)} placeholder="reddit" />
-              </div>
-            </div>
-
-            {/* Value Chain & Thesis */}
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">밸류체인 포지션</label>
-              <Input value={researchFormValueChain} onChange={(e) => setResearchFormValueChain(e.target.value)} placeholder="AI 데이터센터 냉각/전력 인프라" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">투자논거</label>
-              <Textarea value={researchFormThesis} onChange={(e) => setResearchFormThesis(e.target.value)} rows={3} placeholder="구조적 성장 논거..." className="resize-none" />
-            </div>
-
-            {/* Sector Tags */}
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">섹터 태그 (콤마 구분)</label>
-              <Input value={researchFormSectorTags} onChange={(e) => setResearchFormSectorTags(e.target.value)} placeholder="AI인프라, 데이터저장" />
-            </div>
-
-            {/* Financials */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">현재가 ($)</label>
-                <Input value={researchFormCurrentPrice} onChange={(e) => setResearchFormCurrentPrice(e.target.value)} placeholder="266" />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">시총 ($B)</label>
-                <Input value={researchFormMarketCap} onChange={(e) => setResearchFormMarketCap(e.target.value)} placeholder="85" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">매출성장률</label>
-                <Input value={researchFormRevenueGrowth} onChange={(e) => setResearchFormRevenueGrowth(e.target.value)} placeholder="+25% YoY" />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">마진</label>
-                <Input value={researchFormMargin} onChange={(e) => setResearchFormMargin(e.target.value)} placeholder="46.1%" />
-              </div>
-            </div>
-
-            {/* Technical */}
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">52주고 ($)</label>
-                <Input value={researchFormHigh12m} onChange={(e) => setResearchFormHigh12m(e.target.value)} placeholder="309.75" />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">고점대비 (%)</label>
-                <Input value={researchFormGapPct} onChange={(e) => setResearchFormGapPct(e.target.value)} placeholder="-14.1" />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">추세</label>
-                <Input value={researchFormTrendVerdict} onChange={(e) => setResearchFormTrendVerdict(e.target.value)} placeholder="watch" />
-              </div>
-            </div>
-
-            {/* Fail Reason */}
-            {researchFormVerdict === 'fail' && (
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">탈락 사유</label>
-                <Input value={researchFormFailReason} onChange={(e) => setResearchFormFailReason(e.target.value)} placeholder="성장률 미미" />
-              </div>
-            )}
-
-            {/* Notes */}
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">메모</label>
-              <Textarea value={researchFormNotes} onChange={(e) => setResearchFormNotes(e.target.value)} rows={2} placeholder="메모 (선택)" className="resize-none" />
-            </div>
-          </div>
-          <div className="flex flex-row flex-nowrap justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
-            {editingResearch ? (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={async () => {
-                  if (!editingResearch) return
-                  try {
-                    const res = await fetch(`/api/willow-mgmt/stock-research?id=${editingResearch.id}`, { method: 'DELETE' })
-                    if (!res.ok) throw new Error('Failed to delete')
-                    setStockResearch(stockResearch.filter(r => r.id !== editingResearch.id))
-                    setIsResearchModalOpen(false)
-                    resetResearchForm()
-                  } catch (error) {
-                    console.error('Failed to delete research:', error)
-                  }
-                }}
-              >
-                삭제
-              </Button>
-            ) : (
-              <div />
-            )}
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setIsResearchModalOpen(false)}>취소</Button>
-              <Button size="sm" onClick={handleSaveResearch} disabled={isSavingResearch}>
-                {isSavingResearch && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                 저장
               </Button>
             </div>

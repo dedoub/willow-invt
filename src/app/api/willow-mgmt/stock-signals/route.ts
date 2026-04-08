@@ -97,7 +97,7 @@ export async function GET() {
           }
         })
       )
-      results.push(...quotes.filter((q): q is SignalResult => q !== null))
+      results.push(...(quotes.filter(Boolean) as SignalResult[]))
     }
 
     const summary = {
