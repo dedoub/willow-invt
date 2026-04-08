@@ -40,17 +40,12 @@ interface Props {
   onEdit?: () => void
 }
 
-const verdictConfig: Record<string, { label: string; bg: string; text: string }> = {
+// Unified badge config — distinguishes source via badge
+const badgeConfig: Record<string, { label: string; bg: string; text: string }> = {
   pass_tier1: { label: 'T1', bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-400' },
   pass_tier2: { label: 'T2', bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400' },
-  fail: { label: 'F', bg: 'bg-slate-200 dark:bg-slate-600', text: 'text-slate-600 dark:text-slate-300' },
-}
-
-const tierConfig: Record<string, { label: string; bg: string; text: string }> = {
-  A: { label: 'A', bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-400' },
-  B: { label: 'B', bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400' },
-  C: { label: 'C', bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-400' },
-  F: { label: 'F', bg: 'bg-slate-200 dark:bg-slate-600', text: 'text-slate-600 dark:text-slate-300' },
+  A: { label: '소형주 A', bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-400' },
+  B: { label: '소형주 B', bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400' },
 }
 
 function ScoreBar({ label, value }: { label: string; value: number | null | undefined }) {
@@ -69,33 +64,31 @@ function ScoreBar({ label, value }: { label: string; value: number | null | unde
   )
 }
 
-function formatMarketCap(type: 'research' | 'smallcap', capB?: number | null, capM?: number | null): string {
-  if (type === 'research' && capB != null) return `$${capB}B`
-  if (type === 'smallcap' && capM != null) return capM >= 1000 ? `$${(capM / 1000).toFixed(1)}B` : `$${capM.toFixed(0)}M`
+function formatMarketCap(capB?: number | null, capM?: number | null): string {
+  if (capB != null) return `$${capB}B`
+  if (capM != null) return capM >= 1000 ? `$${(capM / 1000).toFixed(1)}B` : `$${capM.toFixed(0)}M`
   return ''
 }
 
 export function InvestmentCardResearch({ data, onAddToWatchlist, onEdit }: Props) {
-  const badge = data.type === 'research'
-    ? (data.verdict ? verdictConfig[data.verdict] : null)
-    : (data.tier ? tierConfig[data.tier] : null)
+  const badgeKey = data.type === 'research' ? data.verdict : data.tier
+  const badge = badgeKey ? badgeConfig[badgeKey] : null
 
-  const isPass = data.type === 'research'
-    ? data.verdict?.startsWith('pass')
-    : (data.tier === 'A' || data.tier === 'B')
-
-  const mcap = formatMarketCap(data.type, data.marketCapB, data.marketCapM)
+  const mcap = formatMarketCap(data.marketCapB, data.marketCapM)
+  const sectors = data.sectorTags?.length ? data.sectorTags : (data.sector ? [data.sector] : [])
+  const hasScores = data.growthScore != null || data.valueScore != null
+  const hasThesis = data.thesis || data.valueChain
 
   return (
     <div className="group rounded-lg p-2.5 bg-white dark:bg-slate-700">
-      {/* Row 1: badge + ticker + company + edit */}
+      {/* Row 1: source badge + ticker + company + edit */}
       <div className="flex items-center gap-1.5">
         {badge && (
           <span className={cn('px-1.5 py-0.5 text-[10px] font-bold rounded', badge.bg, badge.text)}>
             {badge.label}
           </span>
         )}
-        {data.type === 'smallcap' && data.track === 'hypergrowth' && (
+        {data.track === 'hypergrowth' && (
           <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400">HG</span>
         )}
         <span className="text-xs font-bold text-slate-900 dark:text-white">{data.ticker}</span>
@@ -107,18 +100,15 @@ export function InvestmentCardResearch({ data, onAddToWatchlist, onEdit }: Props
         )}
       </div>
 
-      {/* Row 2: tags + mcap */}
+      {/* Row 2: sector tags + market cap + composite score */}
       <div className="flex items-center gap-1 mt-1 flex-wrap">
-        {data.type === 'research' && data.sectorTags?.map((tag, i) => (
+        {sectors.map((tag, i) => (
           <span key={i} className="px-1.5 py-0.5 text-[10px] rounded bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400">{tag}</span>
         ))}
-        {data.type === 'smallcap' && data.sector && (
-          <span className="px-1.5 py-0.5 text-[10px] rounded bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400">{data.sector}</span>
-        )}
         {mcap && (
           <span className="px-1.5 py-0.5 text-[10px] rounded bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400">{mcap}</span>
         )}
-        {data.type === 'smallcap' && data.compositeScore != null && (
+        {data.compositeScore != null && (
           <span className={cn('px-1.5 py-0.5 text-[10px] font-bold rounded',
             data.compositeScore >= 70 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
               : data.compositeScore >= 50 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
@@ -127,15 +117,16 @@ export function InvestmentCardResearch({ data, onAddToWatchlist, onEdit }: Props
         )}
       </div>
 
-      {/* Row 3: thesis or score bars */}
-      {data.type === 'research' && (data.thesis || data.valueChain) && (
+      {/* Row 3: thesis (if available) */}
+      {hasThesis && (
         <div className="mt-1.5 space-y-0.5">
           {data.valueChain && <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-1"><span className="text-slate-400">밸류체인:</span> {data.valueChain}</p>}
           {data.thesis && <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2"><span className="text-slate-400">논거:</span> {data.thesis}</p>}
         </div>
       )}
 
-      {data.type === 'smallcap' && (
+      {/* Row 4: score bars (if available) */}
+      {hasScores && (
         <div className="grid grid-cols-3 gap-x-2 gap-y-1 mt-1.5">
           <ScoreBar label="성장" value={data.growthScore} />
           <ScoreBar label="가치" value={data.valueScore} />
@@ -146,25 +137,13 @@ export function InvestmentCardResearch({ data, onAddToWatchlist, onEdit }: Props
         </div>
       )}
 
-      {/* Row 4: fail reason */}
-      {data.type === 'research' && data.verdict === 'fail' && data.failReason && (
-        <p className="text-[10px] text-red-500 mt-1">탈락: {data.failReason}</p>
-      )}
-      {data.type === 'smallcap' && data.failReasons && data.failReasons.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-1">
-          {data.failReasons.map((r, i) => (
-            <span key={i} className="px-1 py-0.5 text-[9px] rounded bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400">{r}</span>
-          ))}
-        </div>
-      )}
-
       {/* Row 5: footer — date/source + action */}
       <div className="flex items-center justify-between mt-2 pt-1.5">
         <span className="text-[10px] text-slate-400">
           {data.scanDate?.slice(5).replace('-', '/')}
           {data.source && data.source !== 'manual' && ` · ${data.source}`}
         </span>
-        {isPass && onAddToWatchlist && (
+        {onAddToWatchlist && (
           <button
             onClick={onAddToWatchlist}
             className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-emerald-600 px-1 py-0.5 rounded"

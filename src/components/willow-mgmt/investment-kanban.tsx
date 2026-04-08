@@ -45,8 +45,6 @@ interface StockTrade {
   quantity: number; price: number; currency: string
 }
 
-type ResearchFilter = 'all' | 'pass' | 'smallcap'
-
 interface Props {
   stockResearch: StockResearch[]
   smallcapData: SmallcapScreening[]
@@ -66,7 +64,6 @@ export function InvestmentKanban({
   const [signalData, setSignalData] = useState<SignalData[]>([])
   const [signalSummary, setSignalSummary] = useState<{ newHighs: number; near: number; weak: number; lastUpdated: string } | null>(null)
   const [isLoadingSignals, setIsLoadingSignals] = useState(true)
-  const [researchFilter, setResearchFilter] = useState<ResearchFilter>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingResearch, setEditingResearch] = useState<StockResearch | null>(null)
 
@@ -137,7 +134,7 @@ export function InvestmentKanban({
     }
   }
 
-  // Build portfolio column data
+  // Build portfolio column data — sorted by changePercent desc
   const portfolioCards: CompactCardData[] = (watchlistData?.portfolio || []).map(item => {
     const sig = signalMap.get(item.ticker) || signalMap.get(item.ticker.replace('.KS', ''))
     const hold = holdingsMap.get(item.ticker.replace('.KS', ''))
@@ -149,9 +146,9 @@ export function InvestmentKanban({
       holdingQty: hold && hold.qty > 0 ? hold.qty : undefined,
       avgPrice: hold?.avgPrice,
     }
-  })
+  }).sort((a, b) => (b.changePercent ?? 0) - (a.changePercent ?? 0))
 
-  // Build watchlist column data
+  // Build watchlist column data — sorted by changePercent desc
   const watchlistCards: CompactCardData[] = (watchlistData?.watchlist || []).map(item => {
     const sig = signalMap.get(item.ticker) || signalMap.get(item.ticker.replace('.KS', ''))
     return {
@@ -160,7 +157,7 @@ export function InvestmentKanban({
       price: sig?.price, changePercent: sig?.changePercent, currency: sig?.currency,
       signal: sig?.signal, gapFromHighPct: sig?.gapFromHighPct,
     }
-  })
+  }).sort((a, b) => (b.changePercent ?? 0) - (a.changePercent ?? 0))
 
   // Build research column data — only pass + A/B tier, exclude portfolio/watchlist tickers
   const researchCards: ResearchCardData[] = []
@@ -202,13 +199,6 @@ export function InvestmentKanban({
     })
   }
 
-  // Apply research filter
-  const filteredResearch = researchCards.filter(card => {
-    if (researchFilter === 'all') return true
-    if (researchFilter === 'pass') return card.type === 'research'
-    if (researchFilter === 'smallcap') return card.type === 'smallcap'
-    return true
-  })
 
   // Move actions
   const handleMoveToWatchlist = async (name: string, ticker: string, sector: string, axis?: string, fromGroup?: string) => {
@@ -364,31 +354,16 @@ export function InvestmentKanban({
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2 px-1">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">리서치 발굴</span>
-              <div className="flex items-center gap-1">
-                {(['all', 'pass', 'smallcap'] as const).map(f => (
-                  <button
-                    key={f}
-                    onClick={() => setResearchFilter(f)}
-                    className={cn(
-                      'px-1.5 py-0.5 text-[10px] font-medium rounded-full transition-colors',
-                      researchFilter === f
-                        ? 'bg-slate-900 text-white dark:bg-slate-600'
-                        : 'bg-slate-200 text-slate-500 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-400'
-                    )}
-                  >
-                    {f === 'all' ? '전체' : f === 'pass' ? 'Pass' : '소형주'}
-                  </button>
-                ))}
-              </div>
+              <span className="text-[10px] text-slate-400">{researchCards.length}종목</span>
             </div>
             <ScrollArea className="flex-1" style={{ maxHeight: '600px' }}>
               <div className="space-y-1.5">
                 {(isLoadingResearch || isLoadingSmallcap) ? (
                   <div className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-slate-400" /></div>
-                ) : filteredResearch.length === 0 ? (
+                ) : researchCards.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-4">리서치 항목이 없습니다</p>
                 ) : (
-                  filteredResearch.map(card => (
+                  researchCards.map(card => (
                     <InvestmentCardResearch
                       key={card.id}
                       data={card}
