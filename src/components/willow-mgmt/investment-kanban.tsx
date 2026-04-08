@@ -176,14 +176,19 @@ export function InvestmentKanban({
   }).sort(sortBySignal)
 
   // Build research column data — only pass + A/B tier, exclude portfolio/watchlist tickers
+  // Recommendation priority: pass_tier1 (0) > 소형주 A (1) > pass_tier2 (2) > 소형주 B (3)
+  const rankOrder: Record<string, number> = { pass_tier1: 0, A: 1, pass_tier2: 2, B: 3 }
+  function getRecommendRank(card: ResearchCardData): number {
+    const key = card.type === 'research' ? card.verdict : card.tier
+    return key ? (rankOrder[key] ?? 4) : 4
+  }
+
   const researchCards: ResearchCardData[] = []
   const seenTickers = new Set<string>()
 
-  // stock_research: only pass items, sorted by scan_date desc
-  const sortedResearch = [...stockResearch]
-    .filter(r => r.verdict?.startsWith('pass'))
-    .sort((a, b) => b.scan_date.localeCompare(a.scan_date))
-  for (const r of sortedResearch) {
+  // stock_research: only pass items
+  for (const r of stockResearch) {
+    if (!r.verdict?.startsWith('pass')) continue
     if (seenTickers.has(r.ticker)) continue
     if (watchlistTickers.has(r.ticker)) continue
     seenTickers.add(r.ticker)
@@ -197,11 +202,9 @@ export function InvestmentKanban({
     })
   }
 
-  // smallcap: only A/B tier, sorted by composite_score desc
-  const sortedSmallcap = [...smallcapData]
-    .filter(s => s.tier === 'A' || s.tier === 'B')
-    .sort((a, b) => (b.composite_score ?? 0) - (a.composite_score ?? 0))
-  for (const s of sortedSmallcap) {
+  // smallcap: only A/B tier
+  for (const s of smallcapData) {
+    if (s.tier !== 'A' && s.tier !== 'B') continue
     if (seenTickers.has(s.ticker)) continue
     if (watchlistTickers.has(s.ticker)) continue
     seenTickers.add(s.ticker)
@@ -216,6 +219,8 @@ export function InvestmentKanban({
     })
   }
 
+  // Sort all research cards by recommendation rank (T1 > A > T2 > B)
+  researchCards.sort((a, b) => getRecommendRank(a) - getRecommendRank(b))
 
   // Move actions
   const handleMoveToWatchlist = async (name: string, ticker: string, sector: string, axis?: string, fromGroup?: string) => {
