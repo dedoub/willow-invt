@@ -40,7 +40,7 @@ async function fetchYahooQuote(yahooSymbol: string): Promise<QuoteData | null> {
     if (!meta) return null
 
     const price = meta.regularMarketPrice
-    const prevClose = meta.chartPreviousClose || meta.previousClose
+    const prevClose = meta.previousClose || meta.chartPreviousClose
     const change = prevClose ? price - prevClose : 0
     const changePercent = prevClose ? (change / prevClose) * 100 : 0
 
