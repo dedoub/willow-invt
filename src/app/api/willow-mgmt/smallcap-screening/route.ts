@@ -109,3 +109,28 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ items, summary, scanDates: uniqueDates })
 }
+
+// PATCH - Update thesis/value_chain for a smallcap item
+export async function PATCH(request: Request) {
+  const body = await request.json()
+  const { id, structural_thesis, value_chain_position } = body
+
+  if (!id) {
+    return NextResponse.json({ error: 'id is required' }, { status: 400 })
+  }
+
+  const supabase = getServiceSupabase()
+  const { error } = await supabase
+    .from('smallcap_screening')
+    .update({
+      structural_thesis: structural_thesis ?? null,
+      value_chain_position: value_chain_position ?? null,
+    })
+    .eq('id', id)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
+}

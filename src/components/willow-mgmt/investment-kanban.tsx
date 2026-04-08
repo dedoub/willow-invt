@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search, Plus, RefreshCw, TrendingUp, AlertTriangle, ArrowUpRight } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { InvestmentCardCompact, type CompactCardData } from './investment-card-compact'
 import { InvestmentCardResearch, type ResearchCardData } from './investment-card-research'
@@ -26,6 +30,7 @@ interface SmallcapScreening {
   growth_score: number | null; value_score: number | null; quality_score: number | null
   momentum_score: number | null; insider_score: number | null; sentiment_score: number | null
   fail_reasons: string[] | null
+  structural_thesis: string | null; value_chain_position: string | null
 }
 
 interface WatchlistItem {
@@ -66,6 +71,9 @@ export function InvestmentKanban({
   const [isLoadingSignals, setIsLoadingSignals] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingResearch, setEditingResearch] = useState<StockResearch | null>(null)
+  const [isSmallcapModalOpen, setIsSmallcapModalOpen] = useState(false)
+  const [editingSmallcap, setEditingSmallcap] = useState<{ id: string; ticker: string; companyName: string; thesis: string; valueChain: string } | null>(null)
+  const [isSavingSmallcap, setIsSavingSmallcap] = useState(false)
 
   const loadWatchlist = useCallback(async () => {
     setIsLoadingWatchlist(true)
@@ -204,6 +212,7 @@ export function InvestmentKanban({
       growthScore: s.growth_score, valueScore: s.value_score, qualityScore: s.quality_score,
       momentumScore: s.momentum_score, insiderScore: s.insider_score, sentimentScore: s.sentiment_score,
       scanDate: s.scan_date, failReasons: s.fail_reasons,
+      thesis: s.structural_thesis, valueChain: s.value_chain_position,
     })
   }
 
@@ -245,6 +254,44 @@ export function InvestmentKanban({
   const openEditResearch = (id: string) => {
     const found = stockResearch.find(r => r.id === id)
     if (found) { setEditingResearch(found); setIsModalOpen(true) }
+  }
+
+  const openEditSmallcap = (id: string) => {
+    const found = smallcapData.find(s => s.id === id)
+    if (found) {
+      setEditingSmallcap({
+        id: found.id,
+        ticker: found.ticker,
+        companyName: found.company_name || found.ticker,
+        thesis: found.structural_thesis || '',
+        valueChain: found.value_chain_position || '',
+      })
+      setIsSmallcapModalOpen(true)
+    }
+  }
+
+  const handleSaveSmallcap = async () => {
+    if (!editingSmallcap) return
+    setIsSavingSmallcap(true)
+    try {
+      const res = await fetch('/api/willow-mgmt/smallcap-screening', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingSmallcap.id,
+          structural_thesis: editingSmallcap.thesis || null,
+          value_chain_position: editingSmallcap.valueChain || null,
+        }),
+      })
+      if (res.ok) {
+        setIsSmallcapModalOpen(false)
+        await loadSmallcapScreening()
+      }
+    } catch (error) {
+      console.error('Failed to save smallcap thesis:', error)
+    } finally {
+      setIsSavingSmallcap(false)
+    }
   }
 
   const isLoading = isLoadingWatchlist || isLoadingSignals
@@ -376,7 +423,7 @@ export function InvestmentKanban({
                       key={card.id}
                       data={card}
                       onAddToWatchlist={() => handleMoveToWatchlist(card.companyName, card.ticker, card.sectorTags?.[0] || card.sector || '미분류')}
-                      onEdit={card.type === 'research' ? () => openEditResearch(card.id) : undefined}
+                      onEdit={card.type === 'research' ? () => openEditResearch(card.id) : () => openEditSmallcap(card.id)}
                     />
                   ))
                 )}
@@ -392,6 +439,47 @@ export function InvestmentKanban({
         editing={editingResearch}
         onSaved={loadStockResearch}
       />
+
+      {/* Smallcap thesis/value chain edit modal */}
+      <Dialog open={isSmallcapModalOpen} onOpenChange={setIsSmallcapModalOpen}>
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
+            <DialogTitle>
+              {editingSmallcap?.ticker} {editingSmallcap?.companyName} — 리서치 메모
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">밸류체인 포지션</label>
+              <Input
+                value={editingSmallcap?.valueChain || ''}
+                onChange={(e) => setEditingSmallcap(prev => prev ? { ...prev, valueChain: e.target.value } : prev)}
+                placeholder="AI 데이터센터 냉각/전력 인프라"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">투자논거</label>
+              <Textarea
+                value={editingSmallcap?.thesis || ''}
+                onChange={(e) => setEditingSmallcap(prev => prev ? { ...prev, thesis: e.target.value } : prev)}
+                rows={4}
+                placeholder="구조적 성장 논거..."
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <div className="flex flex-row flex-nowrap justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsSmallcapModalOpen(false)}>취소</Button>
+              <Button size="sm" onClick={handleSaveSmallcap} disabled={isSavingSmallcap}>
+                {isSavingSmallcap && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                저장
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

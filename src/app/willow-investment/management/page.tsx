@@ -1118,6 +1118,8 @@ export default function WillowManagementPage() {
     tier: 'A' | 'B' | 'C' | 'F'
     track: 'profitable' | 'hypergrowth' | null
     fail_reasons: string[] | null
+    structural_thesis: string | null
+    value_chain_position: string | null
   }
   const [stockResearch, setStockResearch] = useState<StockResearch[]>([])
   const [isLoadingResearch, setIsLoadingResearch] = useState(true)
