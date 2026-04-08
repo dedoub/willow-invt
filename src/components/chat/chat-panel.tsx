@@ -490,9 +490,18 @@ export function ChatPanel({ open, onClose }: ChatPanelProps) {
   )
 }
 
+// Parse reply quote embedded as "> sender: preview\n\n..." in message content
+function parseReplyQuote(content: string): { sender: string; preview: string; message: string } | null {
+  const match = content.match(/^> (내 메시지|에이전트): (.+?)\n\n([\s\S]*)$/)
+  if (!match) return null
+  return { sender: match[1], preview: match[2], message: match[3] }
+}
+
 // Message bubble component
 function MessageBubble({ message, onReply }: { message: ChatMessage; onReply: () => void }) {
   const isUser = message.role === 'user'
+  const replyData = parseReplyQuote(message.content)
+  const displayContent = replyData ? replyData.message : message.content
 
   return (
     <div className={cn('group flex gap-2 items-start', isUser && 'flex-row-reverse')}>
@@ -514,6 +523,30 @@ function MessageBubble({ message, onReply }: { message: ChatMessage; onReply: ()
           ? 'bg-slate-200 dark:bg-slate-700'
           : 'bg-white dark:bg-slate-800'
       )}>
+        {/* Telegram-style reply quote */}
+        {replyData && (
+          <div className="flex gap-1.5 mb-2 pb-2">
+            <div className={cn(
+              'w-0.5 rounded-full flex-shrink-0',
+              replyData.sender === '에이전트'
+                ? 'bg-emerald-500'
+                : 'bg-slate-400 dark:bg-slate-500'
+            )} />
+            <div className="min-w-0">
+              <div className={cn(
+                'text-[11px] font-medium',
+                replyData.sender === '에이전트'
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-slate-600 dark:text-slate-400'
+              )}>
+                {replyData.sender}
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
+                {replyData.preview}
+              </div>
+            </div>
+          </div>
+        )}
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
           <div className="mb-1.5 space-y-1">
@@ -527,11 +560,11 @@ function MessageBubble({ message, onReply }: { message: ChatMessage; onReply: ()
         )}
         {/* Content */}
         {isUser ? (
-          <div className="whitespace-pre-wrap break-words">{message.content}</div>
+          <div className="whitespace-pre-wrap break-words">{displayContent}</div>
         ) : (
           <div className="chat-markdown break-words">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {message.content}
+              {displayContent}
             </ReactMarkdown>
           </div>
         )}
