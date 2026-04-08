@@ -134,7 +134,15 @@ export function InvestmentKanban({
     }
   }
 
-  // Build portfolio column data — sorted by changePercent desc
+  // Signal priority: new_high > near > weak > none
+  const signalOrder: Record<string, number> = { new_high: 0, near: 1, weak: 2 }
+  function sortBySignal(a: { signal?: 'new_high' | 'near' | 'weak' | null }, b: { signal?: 'new_high' | 'near' | 'weak' | null }) {
+    const oa = a.signal ? (signalOrder[a.signal] ?? 3) : 3
+    const ob = b.signal ? (signalOrder[b.signal] ?? 3) : 3
+    return oa - ob
+  }
+
+  // Build portfolio column data — sorted by signal (신고가 > 근접 > 부진 > 없음)
   const portfolioCards: CompactCardData[] = (watchlistData?.portfolio || []).map(item => {
     const sig = signalMap.get(item.ticker) || signalMap.get(item.ticker.replace('.KS', ''))
     const hold = holdingsMap.get(item.ticker.replace('.KS', ''))
@@ -146,9 +154,9 @@ export function InvestmentKanban({
       holdingQty: hold && hold.qty > 0 ? hold.qty : undefined,
       avgPrice: hold?.avgPrice,
     }
-  }).sort((a, b) => (b.changePercent ?? 0) - (a.changePercent ?? 0))
+  }).sort(sortBySignal)
 
-  // Build watchlist column data — sorted by changePercent desc
+  // Build watchlist column data — sorted by signal (신고가 > 근접 > 부진 > 없음)
   const watchlistCards: CompactCardData[] = (watchlistData?.watchlist || []).map(item => {
     const sig = signalMap.get(item.ticker) || signalMap.get(item.ticker.replace('.KS', ''))
     return {
@@ -157,7 +165,7 @@ export function InvestmentKanban({
       price: sig?.price, changePercent: sig?.changePercent, currency: sig?.currency,
       signal: sig?.signal, gapFromHighPct: sig?.gapFromHighPct,
     }
-  }).sort((a, b) => (b.changePercent ?? 0) - (a.changePercent ?? 0))
+  }).sort(sortBySignal)
 
   // Build research column data — only pass + A/B tier, exclude portfolio/watchlist tickers
   const researchCards: ResearchCardData[] = []
