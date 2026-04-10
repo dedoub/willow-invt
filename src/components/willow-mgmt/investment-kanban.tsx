@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Loader2, Search, Plus, RefreshCw, TrendingUp, AlertTriangle, ArrowUpRight } from 'lucide-react'
+import { Loader2, Search, Plus, RefreshCw, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownUp } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -43,6 +43,9 @@ interface SignalData {
   price: number; change: number; changePercent: number; currency: string
   signal: 'new_high' | 'near' | 'weak' | null
   gapFromHighPct: number | null; high52w: number | null; low52w: number | null
+  return1m: number | null; return3m: number | null
+  return6m: number | null; return12m: number | null
+  momentumScore: number | null
 }
 
 interface StockTrade {
@@ -69,11 +72,15 @@ export function InvestmentKanban({
   const [signalData, setSignalData] = useState<SignalData[]>([])
   const [signalSummary, setSignalSummary] = useState<{ newHighs: number; near: number; weak: number; lastUpdated: string } | null>(null)
   const [isLoadingSignals, setIsLoadingSignals] = useState(true)
+  const [usdKrw, setUsdKrw] = useState(1400)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingResearch, setEditingResearch] = useState<StockResearch | null>(null)
   const [isSmallcapModalOpen, setIsSmallcapModalOpen] = useState(false)
   const [editingSmallcap, setEditingSmallcap] = useState<{ id: string; ticker: string; companyName: string; thesis: string; valueChain: string } | null>(null)
   const [isSavingSmallcap, setIsSavingSmallcap] = useState(false)
+  const [portfolioSort, setPortfolioSort] = useState<'buy' | 'sell'>('buy')
+  const [watchlistSort, setWatchlistSort] = useState<'momentum' | 'signal'>('momentum')
+  const [researchSort, setResearchSort] = useState<'recommend' | 'momentum'>('recommend')
 
   const loadWatchlist = useCallback(async () => {
     setIsLoadingWatchlist(true)
@@ -98,6 +105,7 @@ export function InvestmentKanban({
         const data = await res.json()
         setSignalData(data.signals || [])
         setSignalSummary(data.summary || null)
+        if (data.usdKrw) setUsdKrw(data.usdKrw)
       }
     } catch (error) {
       console.error('Failed to load signals:', error)
@@ -150,21 +158,59 @@ export function InvestmentKanban({
     return oa - ob
   }
 
-  // Build portfolio column data — sorted by signal (신고가 > 근접 > 부진 > 없음)
-  const portfolioCards: CompactCardData[] = (watchlistData?.portfolio || []).map(item => {
+  // Build portfolio column — sorted by sell priority (모멘텀 약 × 비중 큰 = 매도 우선)
+  const portfolioRaw = (watchlistData?.portfolio || []).map(item => {
     const sig = signalMap.get(item.ticker) || signalMap.get(item.ticker.replace('.KS', ''))
     const hold = holdingsMap.get(item.ticker.replace('.KS', ''))
+    const qty = hold && hold.qty > 0 ? hold.qty : 0
+    const price = sig?.price ?? 0
+    const currency = sig?.currency ?? 'KRW'
+    const valueUsd = currency === 'KRW' ? (qty * price) / usdKrw : qty * price
     return {
       name: item.name, ticker: item.ticker, sector: item.sector, axis: item.axis,
       group: 'portfolio' as const,
       price: sig?.price, changePercent: sig?.changePercent, currency: sig?.currency,
       signal: sig?.signal, gapFromHighPct: sig?.gapFromHighPct,
-      holdingQty: hold && hold.qty > 0 ? hold.qty : undefined,
-      avgPrice: hold?.avgPrice,
+      holdingQty: qty > 0 ? qty : undefined, avgPrice: hold?.avgPrice,
+      momentumScore: sig?.momentumScore ?? null,
+      _valueUsd: valueUsd,
     }
-  }).sort(sortBySignal)
+  })
+  const totalValueUsd = portfolioRaw.reduce((s, c) => s + c._valueUsd, 0)
+  const withScores = portfolioRaw.map(c => {
+    const weightPct = totalValueUsd > 0 ? (c._valueUsd / totalValueUsd) * 100 : 0
+    const m = c.momentumScore ?? 50
+    const sellScore = (100 - m) * weightPct        // 약한 모멘텀 × 큰 비중 = 매도
+    const buyScore = m * (100 - weightPct)          // 강한 모멘텀 × 작은 비중 = 추매
+    return { ...c, weightPct, _sellScore: sellScore, _buyScore: buyScore }
+  })
+  // Assign sell ranks (high sell score = sell first)
+  const sellSorted = [...withScores].filter(c => c._valueUsd > 0).sort((a, b) => b._sellScore - a._sellScore)
+  const sellRankMap = new Map(sellSorted.map((c, i) => [c.ticker, i + 1]))
+  // Assign buy ranks (high buy score = buy first)
+  const buySorted = [...withScores].filter(c => c._valueUsd > 0).sort((a, b) => b._buyScore - a._buyScore)
+  const buyRankMap = new Map(buySorted.map((c, i) => [c.ticker, i + 1]))
+  // Sort display by selected priority
+  if (portfolioSort === 'sell') {
+    withScores.sort((a, b) => b._sellScore - a._sellScore)
+  } else {
+    withScores.sort((a, b) => b._buyScore - a._buyScore)
+  }
+  const portfolioCards: CompactCardData[] = withScores.map(card => {
+    const hasHoldings = card._valueUsd > 0
+    return {
+      name: card.name, ticker: card.ticker, sector: card.sector, axis: card.axis,
+      group: card.group, price: card.price, changePercent: card.changePercent,
+      currency: card.currency, signal: card.signal, gapFromHighPct: card.gapFromHighPct,
+      holdingQty: card.holdingQty, avgPrice: card.avgPrice,
+      momentumScore: card.momentumScore,
+      sellRank: hasHoldings ? sellRankMap.get(card.ticker) : undefined,
+      buyRank: hasHoldings ? buyRankMap.get(card.ticker) : undefined,
+      weightPct: card.weightPct > 0 ? Math.round(card.weightPct * 10) / 10 : undefined,
+    }
+  })
 
-  // Build watchlist column data — sorted by signal (신고가 > 근접 > 부진 > 없음)
+  // Build watchlist column data
   const watchlistCards: CompactCardData[] = (watchlistData?.watchlist || []).map(item => {
     const sig = signalMap.get(item.ticker) || signalMap.get(item.ticker.replace('.KS', ''))
     return {
@@ -172,8 +218,12 @@ export function InvestmentKanban({
       group: 'watchlist' as const,
       price: sig?.price, changePercent: sig?.changePercent, currency: sig?.currency,
       signal: sig?.signal, gapFromHighPct: sig?.gapFromHighPct,
+      momentumScore: sig?.momentumScore ?? null,
     }
-  }).sort(sortBySignal)
+  }).sort(watchlistSort === 'momentum'
+    ? (a, b) => (b.momentumScore ?? -1) - (a.momentumScore ?? -1)
+    : sortBySignal
+  )
 
   // Build research column data — only pass + A/B tier, exclude portfolio/watchlist tickers
   // Recommendation priority: pass_tier1 (0) > 소형주 A (1) > pass_tier2 (2) > 소형주 B (3)
@@ -219,8 +269,18 @@ export function InvestmentKanban({
     })
   }
 
-  // Sort all research cards by recommendation rank (T1 > A > T2 > B)
-  researchCards.sort((a, b) => getRecommendRank(a) - getRecommendRank(b))
+  // Sort research cards
+  function getResearchMomentum(card: ResearchCardData): number {
+    // smallcap: use momentumScore (0-100), research: use gapFromHighPct (closer to 0 = stronger)
+    if (card.type === 'smallcap' && card.momentumScore != null) return card.momentumScore
+    if (card.type === 'research' && card.gapFromHighPct != null) return Math.max(0, 100 + card.gapFromHighPct)
+    return -1
+  }
+  if (researchSort === 'recommend') {
+    researchCards.sort((a, b) => getRecommendRank(a) - getRecommendRank(b))
+  } else {
+    researchCards.sort((a, b) => getResearchMomentum(b) - getResearchMomentum(a))
+  }
 
   // Move actions
   const handleMoveToWatchlist = async (name: string, ticker: string, sector: string, axis?: string, fromGroup?: string) => {
@@ -360,7 +420,31 @@ export function InvestmentKanban({
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2 px-1">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">포트폴리오</span>
-              <span className="text-[10px] text-slate-400">{portfolioCards.length}종목</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPortfolioSort('buy')}
+                  className={cn(
+                    'px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors',
+                    portfolioSort === 'buy'
+                      ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  )}
+                >
+                  ↑추매
+                </button>
+                <button
+                  onClick={() => setPortfolioSort('sell')}
+                  className={cn(
+                    'px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors',
+                    portfolioSort === 'sell'
+                      ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  )}
+                >
+                  ↓매도
+                </button>
+                <span className="text-[10px] text-slate-400 ml-1">{portfolioCards.length}종목</span>
+              </div>
             </div>
             <ScrollArea className="flex-1" style={{ maxHeight: '600px' }}>
               <div className="space-y-1.5">
@@ -387,7 +471,31 @@ export function InvestmentKanban({
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2 px-1">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">워치리스트</span>
-              <span className="text-[10px] text-slate-400">{watchlistCards.length}종목</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setWatchlistSort('momentum')}
+                  className={cn(
+                    'px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors',
+                    watchlistSort === 'momentum'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400'
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  )}
+                >
+                  모멘텀
+                </button>
+                <button
+                  onClick={() => setWatchlistSort('signal')}
+                  className={cn(
+                    'px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors',
+                    watchlistSort === 'signal'
+                      ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400'
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  )}
+                >
+                  시그널
+                </button>
+                <span className="text-[10px] text-slate-400 ml-1">{watchlistCards.length}종목</span>
+              </div>
             </div>
             <ScrollArea className="flex-1" style={{ maxHeight: '600px' }}>
               <div className="space-y-1.5">
@@ -414,7 +522,31 @@ export function InvestmentKanban({
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2 px-1">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">리서치 발굴</span>
-              <span className="text-[10px] text-slate-400">{researchCards.length}종목</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setResearchSort('recommend')}
+                  className={cn(
+                    'px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors',
+                    researchSort === 'recommend'
+                      ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400'
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  )}
+                >
+                  추천순
+                </button>
+                <button
+                  onClick={() => setResearchSort('momentum')}
+                  className={cn(
+                    'px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors',
+                    researchSort === 'momentum'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400'
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  )}
+                >
+                  모멘텀
+                </button>
+                <span className="text-[10px] text-slate-400 ml-1">{researchCards.length}종목</span>
+              </div>
             </div>
             <ScrollArea className="flex-1" style={{ maxHeight: '600px' }}>
               <div className="space-y-1.5">

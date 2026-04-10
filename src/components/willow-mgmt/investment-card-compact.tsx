@@ -17,6 +17,10 @@ export interface CompactCardData {
   gapFromHighPct?: number | null
   holdingQty?: number
   avgPrice?: number
+  momentumScore?: number | null
+  sellRank?: number
+  buyRank?: number
+  weightPct?: number
 }
 
 interface Props {
@@ -30,6 +34,20 @@ const signalConfig = {
   weak: { label: '부진', bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400' },
 }
 
+const momentumColor = (score: number | null | undefined) => {
+  if (score == null) return 'text-slate-400'
+  if (score >= 60) return 'text-emerald-600 dark:text-emerald-400'
+  if (score >= 35) return 'text-amber-600 dark:text-amber-400'
+  return 'text-red-600 dark:text-red-400'
+}
+
+const momentumBg = (score: number | null | undefined) => {
+  if (score == null) return 'bg-slate-100 dark:bg-slate-600'
+  if (score >= 60) return 'bg-emerald-100 dark:bg-emerald-900/50'
+  if (score >= 35) return 'bg-amber-100 dark:bg-amber-900/50'
+  return 'bg-red-100 dark:bg-red-900/50'
+}
+
 export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data, onMove }: Props) {
   const changeColor = (data.changePercent ?? 0) > 0
     ? 'text-red-600 dark:text-red-400'
@@ -41,9 +59,29 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
 
   return (
     <div className="group rounded-lg p-2.5 bg-white dark:bg-slate-700 transition-colors">
-      {/* Row 1: ticker + name + price */}
+      {/* Row 1: sell rank + ticker + name + price */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
+          {data.buyRank != null && (
+            <span className={cn(
+              'flex-shrink-0 px-1 h-4 flex items-center justify-center rounded text-[9px] font-bold',
+              data.buyRank <= 3
+                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
+                : 'bg-slate-100 dark:bg-slate-600 text-slate-400'
+            )}>
+              ↑{data.buyRank}
+            </span>
+          )}
+          {data.sellRank != null && (
+            <span className={cn(
+              'flex-shrink-0 px-1 h-4 flex items-center justify-center rounded text-[9px] font-bold',
+              data.sellRank <= 3
+                ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
+                : 'bg-slate-100 dark:bg-slate-600 text-slate-400'
+            )}>
+              ↓{data.sellRank}
+            </span>
+          )}
           <span className="text-xs font-bold text-slate-900 dark:text-white">{data.ticker.replace('.KS', '')}</span>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{data.name}</span>
         </div>
@@ -70,7 +108,7 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
         )}
       </div>
 
-      {/* Row 3: signal + holdings (portfolio only) */}
+      {/* Row 3: signal + momentum + holdings/weight */}
       <div className="flex items-center justify-between mt-1.5">
         <div className="flex items-center gap-1">
           {data.signal && signalConfig[data.signal] && (
@@ -79,8 +117,15 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
               {data.gapFromHighPct != null && ` ${data.gapFromHighPct > 0 ? '+' : ''}${data.gapFromHighPct.toFixed(1)}%`}
             </span>
           )}
+          {data.momentumScore != null && (
+            <span className={cn('px-1.5 py-0.5 text-[10px] font-medium rounded-full', momentumBg(data.momentumScore), momentumColor(data.momentumScore))}>
+              M {data.momentumScore}
+            </span>
+          )}
           {data.group === 'portfolio' && data.holdingQty != null && (
-            <span className="text-[10px] text-slate-400">{data.holdingQty}주</span>
+            <span className="text-[10px] text-slate-400">
+              {data.holdingQty}주{data.weightPct != null && ` · ${data.weightPct}%`}
+            </span>
           )}
         </div>
 
