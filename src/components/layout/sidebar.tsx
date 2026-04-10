@@ -72,8 +72,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       title: t.sidebar.tenSoftworks,
       icon: <Image src="/tensw-icon-white.png" alt="" width={20} height={20} className="h-5 w-5 opacity-70" />,
       items: [
-        { title: t.sidebar.tenswProjects, href: '/tensoftworks/projects' },
         { title: t.sidebar.tenswManagement, href: '/tensoftworks/management' },
+        { title: t.sidebar.tenswProjects, href: '/tensoftworks/projects' },
       ],
     },
     {
