@@ -2600,7 +2600,7 @@ export default function AkrosPage() {
       </Card>
 
       {/* 세금계산서 & Work Wiki Section - Side by Side */}
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-start gap-4">
         {/* 세금계산서 Section */}
         <Card className="bg-slate-100 dark:bg-slate-800 w-full lg:w-1/2">
           <CardHeader className="pb-2">
