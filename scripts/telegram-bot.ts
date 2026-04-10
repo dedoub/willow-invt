@@ -175,6 +175,18 @@ async function sendMessage(chatId: number, text: string, maxRetries = 2) {
   }
 }
 
+// SPLIT 구분자를 처리하여 여러 메시지로 나눠 전송 (사람처럼 딜레이 포함)
+async function sendSplitMessage(chatId: number, text: string) {
+  const parts = text.split(/\n---SPLIT---\n/).map(p => p.trim()).filter(Boolean)
+  for (let i = 0; i < parts.length; i++) {
+    await sendMessage(chatId, parts[i])
+    if (i < parts.length - 1) {
+      await sendTyping(chatId)
+      await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500))
+    }
+  }
+}
+
 function splitMessage(text: string, maxLen: number): string[] {
   if (text.length <= maxLen) return [text]
   const chunks: string[] = []
@@ -1185,7 +1197,7 @@ async function checkFollowUps() {
       .in('id', dueFollowUps.map(f => f.id))
 
     // 메시지 전송
-    await sendMessage(ceoChatId, response)
+    await sendSplitMessage(ceoChatId, response)
 
     // 대화 기록 저장 (락으로 보호)
     await appendToConversation(ceoChatId, { role: 'assistant', content: `[팔로업]\n${response}`, timestamp: now.toISOString() })
@@ -1228,7 +1240,7 @@ ${rawData}`
   const response = await askClaude(prompt)
   clearInterval(typingInterval)
 
-  await sendMessage(chatId, response)
+  await sendSplitMessage(chatId, response)
 
   await appendToConversation(chatId, { role: 'assistant', content: `[주간 브리핑]\n${response}`, timestamp: new Date().toISOString() })
 
@@ -1256,7 +1268,7 @@ async function proactiveCheck() {
       const response = await askClaude(prompt)
       clearInterval(typingInterval)
 
-      await sendMessage(ceoChatId, response)
+      await sendSplitMessage(ceoChatId, response)
       proactiveState.morningBriefSent = todayStr
 
       // 대화 기록에도 저장 (락으로 보호)
@@ -1310,7 +1322,7 @@ async function proactiveCheck() {
     // 알림 전송
     console.log('📢 자율 알림 전송:', response.slice(0, 80))
     await sendTyping(ceoChatId)
-    await sendMessage(ceoChatId, response)
+    await sendSplitMessage(ceoChatId, response)
 
     // 보고 사항 기록 (중복 방지)
     proactiveState.lastReportedIssues.push(response.slice(0, 100))
@@ -1514,7 +1526,7 @@ async function marketMonitorCheck() {
         const response = await askClaude(prompt, { allowedTools: [PORTFOLIO_MCP_TOOLS] })
         clearInterval(typingInterval)
 
-        await sendMessage(capturedChatId!, response)
+        await sendSplitMessage(capturedChatId!, response)
 
         // 대화 기록 저장 (락으로 보호)
         await appendToConversation(capturedChatId!, { role: 'assistant', content: `[마켓 브리핑]\n${response}`, timestamp: new Date().toISOString() })
@@ -1945,7 +1957,7 @@ ${result.digest}`
   const response = await askClaude(prompt)
   clearInterval(typingInterval)
 
-  await sendMessage(ceoChatId, response)
+  await sendSplitMessage(ceoChatId, response)
   lastNewsDigestAt = now
 
   await appendToConversation(ceoChatId, { role: 'assistant', content: `[뉴스]\n${response}`, timestamp: new Date().toISOString() })
