@@ -1458,7 +1458,7 @@ export default function AkrosPage() {
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(true)
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null)
   const [invoicePage, setInvoicePage] = useState(1)
-  const INVOICES_PER_PAGE = 5
+  const [invoicesPerPage, setInvoicesPerPage] = useState(5)
   const [isSavingInvoice, setIsSavingInvoice] = useState(false)
   const [isUpdatingInvoiceStatus, setIsUpdatingInvoiceStatus] = useState<{ id: string; type: 'issued' | 'paid' } | null>(null)
 
@@ -1567,7 +1567,7 @@ export default function AkrosPage() {
   const [wikiPage, setWikiPage] = useState(1)
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
   const [viewingNote, setViewingNote] = useState<WikiNote | null>(null)
-  const WIKI_PER_PAGE = 5
+  const [wikiPerPage, setWikiPerPage] = useState(5)
 
   // ETF 데이터 로드
   const loadETFData = async () => {
@@ -2350,8 +2350,8 @@ export default function AkrosPage() {
     : wikiNotes
 
   // 위키 페이지네이션 계산
-  const totalWikiPages = Math.ceil(filteredWikiNotes.length / WIKI_PER_PAGE)
-  const paginatedWikiNotes = filteredWikiNotes.slice((wikiPage - 1) * WIKI_PER_PAGE, wikiPage * WIKI_PER_PAGE)
+  const totalWikiPages = Math.ceil(filteredWikiNotes.length / wikiPerPage)
+  const paginatedWikiNotes = filteredWikiNotes.slice((wikiPage - 1) * wikiPerPage, wikiPage * wikiPerPage)
 
   // 위키 검색 변경 시 페이지 초기화
   useEffect(() => {
@@ -2701,7 +2701,7 @@ export default function AkrosPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {taxInvoices.slice((invoicePage - 1) * INVOICES_PER_PAGE, invoicePage * INVOICES_PER_PAGE).map((invoice) => {
+                {taxInvoices.slice((invoicePage - 1) * invoicesPerPage, invoicePage * invoicesPerPage).map((invoice) => {
                   const effectiveStatus = getTaxInvoiceStatus(invoice)
                   const statusStyle = TAX_INVOICE_STATUS_COLORS[effectiveStatus]
                   const StatusIcon = statusStyle.icon
@@ -2905,32 +2905,36 @@ export default function AkrosPage() {
             )}
 
             {/* 페이지네이션 */}
-            {taxInvoices.length > INVOICES_PER_PAGE && (
-              <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
-                <p className="text-xs text-muted-foreground">
-                  {taxInvoices.length}개 중 {(invoicePage - 1) * INVOICES_PER_PAGE + 1}-{Math.min(invoicePage * INVOICES_PER_PAGE, taxInvoices.length)}
-                </p>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setInvoicePage(p => Math.max(1, p - 1))}
-                    disabled={invoicePage === 1}
-                    className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <span className="px-2 py-1 text-xs font-medium">
-                    {invoicePage}/{Math.ceil(taxInvoices.length / INVOICES_PER_PAGE)}
-                  </span>
-                  <button
-                    onClick={() => setInvoicePage(p => Math.min(Math.ceil(taxInvoices.length / INVOICES_PER_PAGE), p + 1))}
-                    disabled={invoicePage === Math.ceil(taxInvoices.length / INVOICES_PER_PAGE)}
-                    className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+            {taxInvoices.length > invoicesPerPage && (() => {
+              const totalPages = Math.ceil(taxInvoices.length / invoicesPerPage)
+              return (
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      {taxInvoices.length}개 중 {(invoicePage - 1) * invoicesPerPage + 1}-{Math.min(invoicePage * invoicesPerPage, taxInvoices.length)}
+                    </p>
+                    <div className="relative">
+                      <select value={invoicesPerPage} onChange={(e) => { setInvoicesPerPage(Number(e.target.value)); setInvoicePage(1) }} className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                        <option value={5}>5개</option>
+                        <option value={10}>10개</option>
+                        <option value={25}>25개</option>
+                        <option value={50}>50개</option>
+                      </select>
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                    </div>
+                  </div>
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => setInvoicePage(1)} disabled={invoicePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                      <button onClick={() => setInvoicePage(p => Math.max(1, p - 1))} disabled={invoicePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                      <span className="px-2 py-1 text-xs font-medium">{invoicePage}/{totalPages}</span>
+                      <button onClick={() => setInvoicePage(p => Math.min(totalPages, p + 1))} disabled={invoicePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                      <button onClick={() => setInvoicePage(totalPages)} disabled={invoicePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )
+            })()}
           </CardContent>
         </Card>
 
@@ -3313,47 +3317,32 @@ export default function AkrosPage() {
 
             {/* 페이지네이션 */}
             {filteredWikiNotes.length > 0 && (
-              <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 mt-3">
-                <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  <span className="hidden sm:inline">{t.wiki.showingRange
-                    .replace('{total}', String(filteredWikiNotes.length))
-                    .replace('{start}', String((wikiPage - 1) * WIKI_PER_PAGE + 1))
-                    .replace('{end}', String(Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)))}</span>
-                  <span className="sm:hidden">{filteredWikiNotes.length}개 중 {(wikiPage - 1) * WIKI_PER_PAGE + 1}-{Math.min(wikiPage * WIKI_PER_PAGE, filteredWikiNotes.length)}</span>
-                </p>
+              <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 mt-3">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">
+                    <span className="hidden sm:inline">{t.wiki.showingRange
+                      .replace('{total}', String(filteredWikiNotes.length))
+                      .replace('{start}', String((wikiPage - 1) * wikiPerPage + 1))
+                      .replace('{end}', String(Math.min(wikiPage * wikiPerPage, filteredWikiNotes.length)))}</span>
+                    <span className="sm:hidden">{filteredWikiNotes.length}개 중 {(wikiPage - 1) * wikiPerPage + 1}-{Math.min(wikiPage * wikiPerPage, filteredWikiNotes.length)}</span>
+                  </p>
+                  <div className="relative">
+                    <select value={wikiPerPage} onChange={(e) => { setWikiPerPage(Number(e.target.value)); setWikiPage(1) }} className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                      <option value={5}>5개</option>
+                      <option value={10}>10개</option>
+                      <option value={25}>25개</option>
+                      <option value={50}>50개</option>
+                    </select>
+                    <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                  </div>
+                </div>
                 {totalWikiPages > 1 && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setWikiPage(1)}
-                      disabled={wikiPage === 1}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      «
-                    </button>
-                    <button
-                      onClick={() => setWikiPage(p => Math.max(1, p - 1))}
-                      disabled={wikiPage === 1}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      ‹
-                    </button>
-                    <span className="px-2 py-1 text-xs font-medium">
-                      {wikiPage}/{totalWikiPages}
-                    </span>
-                    <button
-                      onClick={() => setWikiPage(p => Math.min(totalWikiPages, p + 1))}
-                      disabled={wikiPage === totalWikiPages}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      ›
-                    </button>
-                    <button
-                      onClick={() => setWikiPage(totalWikiPages)}
-                      disabled={wikiPage === totalWikiPages}
-                      className="rounded px-2 py-1 text-xs hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      »
-                    </button>
+                  <div className="flex items-center gap-0.5">
+                    <button onClick={() => setWikiPage(1)} disabled={wikiPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsLeft className="h-4 w-4" /></button>
+                    <button onClick={() => setWikiPage(p => Math.max(1, p - 1))} disabled={wikiPage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                    <span className="px-2 py-1 text-xs font-medium">{wikiPage}/{totalWikiPages}</span>
+                    <button onClick={() => setWikiPage(p => Math.min(totalWikiPages, p + 1))} disabled={wikiPage === totalWikiPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                    <button onClick={() => setWikiPage(totalWikiPages)} disabled={wikiPage === totalWikiPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronsRight className="h-4 w-4" /></button>
                   </div>
                 )}
               </div>
