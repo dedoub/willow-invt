@@ -121,6 +121,19 @@ async function tg(method: string, body: Record<string, unknown>) {
   return json
 }
 
+function markdownToTelegramHtml(text: string): string {
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  html = html.replace(/```(?:\w*)\n?([\s\S]*?)```/g, '<pre>$1</pre>')
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>')
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+  html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<i>$1</i>')
+  return html
+}
+
 async function sendMessage(chatId: number, text: string, maxRetries = 2) {
   const chunks = splitMessage(text, 4000)
   for (let i = 0; i < chunks.length; i++) {
@@ -130,8 +143,8 @@ async function sendMessage(chatId: number, text: string, maxRetries = 2) {
       try {
         const res = await tg('sendMessage', {
           chat_id: chatId,
-          text: chunk,
-          parse_mode: 'Markdown',
+          text: markdownToTelegramHtml(chunk),
+          parse_mode: 'HTML',
         })
         if (res.result?.message_id) {
           sent = true
@@ -187,8 +200,8 @@ async function sendMessageWithButtons(chatId: number, text: string, buttons: { t
     try {
       await tg('sendMessage', {
         chat_id: chatId,
-        text,
-        parse_mode: 'Markdown',
+        text: markdownToTelegramHtml(text),
+        parse_mode: 'HTML',
         reply_markup: { inline_keyboard: buttons },
       })
       return
@@ -548,9 +561,9 @@ function askClaude(prompt: string, options?: { noTools?: boolean }): Promise<str
     delete env.CLAUDE_CODE_ENTRYPOINT
     delete env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
 
-    const args = ['-p', '--output-format', 'json', '--verbose']
+    const args = ['-p', '--output-format', 'json', '--verbose', '--dangerously-skip-permissions']
     if (!options?.noTools) {
-      args.push('--allowedTools', [RYUHA_MCP_TOOLS, SUPABASE_MCP_TOOLS].join(','))
+      args.push('--allowedTools', [RYUHA_MCP_TOOLS, SUPABASE_MCP_TOOLS, 'Edit', 'Write', 'Bash', 'Read', 'Glob', 'Grep'].join(','))
     }
 
     const proc = spawn('claude', args, {

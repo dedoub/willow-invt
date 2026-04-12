@@ -132,6 +132,31 @@ async function tg(method: string, body: Record<string, unknown>) {
   return json
 }
 
+function markdownToTelegramHtml(text: string): string {
+  // Escape HTML entities first
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  // Code blocks (```...```)
+  html = html.replace(/```(?:\w*)\n?([\s\S]*?)```/g, '<pre>$1</pre>')
+
+  // Inline code (`...`)
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>')
+
+  // Links [text](url)
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+
+  // Bold **text** (double asterisks)
+  html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+
+  // Italic *text* (single asterisks, not preceded/followed by *)
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<i>$1</i>')
+
+  return html
+}
+
 async function sendMessage(chatId: number, text: string, maxRetries = 2) {
   // Telegram 메시지 길이 제한: 4096자
   const chunks = splitMessage(text, 4000)
@@ -140,11 +165,11 @@ async function sendMessage(chatId: number, text: string, maxRetries = 2) {
     let sent = false
     for (let attempt = 0; attempt <= maxRetries && !sent; attempt++) {
       try {
-        // 1차: Markdown으로 시도
+        // 1차: HTML로 시도
         const res = await tg('sendMessage', {
           chat_id: chatId,
-          text: chunk,
-          parse_mode: 'Markdown',
+          text: markdownToTelegramHtml(chunk),
+          parse_mode: 'HTML',
         })
         if (res.result?.message_id) {
           sent = true
@@ -214,8 +239,8 @@ async function sendMessageWithButtons(chatId: number, text: string, buttons: { t
     try {
       const res = await tg('sendMessage', {
         chat_id: chatId,
-        text,
-        parse_mode: 'Markdown',
+        text: markdownToTelegramHtml(text),
+        parse_mode: 'HTML',
         reply_markup: { inline_keyboard: buttons },
       })
       if (res.result?.message_id) {
@@ -2261,19 +2286,11 @@ function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession
     delete env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
 
     // --verbose + json: result 필드 버그 우회 — assistant 메시지에서 텍스트 추출
-    const args = ['-p', '--output-format', 'json', '--verbose']
-    // 풀 세션: 파일 편집, Bash, git 등 모든 도구 사용 가능
-    if (opts?.fullSession) {
-      args.push('--dangerously-skip-permissions')
-    }
-    // allowedTools: MCP 도구 + fullSession이면 파일 편집 도구도 명시적 추가
+    const args = ['-p', '--output-format', 'json', '--verbose', '--dangerously-skip-permissions']
+    // allowedTools: MCP 도구 + 파일 편집 도구 항상 포함
     const tools = [...(opts?.allowedTools || [])]
-    if (opts?.fullSession) {
-      tools.push('Edit', 'Write', 'Bash', 'Read', 'Glob', 'Grep')
-    }
-    if (tools.length) {
-      args.push('--allowedTools', tools.join(','))
-    }
+    tools.push('Edit', 'Write', 'Bash', 'Read', 'Glob', 'Grep')
+    args.push('--allowedTools', tools.join(','))
 
     const proc = spawn('claude', args, {
       cwd: process.cwd(),

@@ -62,7 +62,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     {
       key: 'willowInvest',
       title: t.sidebar.willowInvest,
-      icon: <Image src="/leaf-icon.png" alt="" width={20} height={20} className="h-5 w-5 brightness-0 invert opacity-70" />,
+      icon: <Image src="/leaf-icon.png" alt="" width={16} height={16} className="h-4 w-4 brightness-0 invert opacity-70" />,
       items: [
         { title: t.sidebar.willowManagement, href: '/willow-investment/management' },
       ],
@@ -70,7 +70,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     {
       key: 'tenSoftworks',
       title: t.sidebar.tenSoftworks,
-      icon: <Image src="/tensw-icon-white.png" alt="" width={20} height={20} className="h-5 w-5 opacity-70" />,
+      icon: <Image src="/tensw-icon-white.png" alt="" width={16} height={16} className="h-4 w-4 opacity-70" />,
       items: [
         { title: t.sidebar.tenswManagement, href: '/tensoftworks/management' },
         { title: t.sidebar.tenswProjects, href: '/tensoftworks/projects' },
@@ -79,7 +79,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     {
       key: 'etfIndexing',
       title: t.sidebar.etfIndexing,
-      icon: <Image src="/akros-icon.png" alt="" width={20} height={20} className="h-5 w-5 brightness-0 invert opacity-70" />,
+      icon: <Image src="/akros-icon.png" alt="" width={16} height={16} className="h-4 w-4 brightness-0 invert opacity-70" />,
       items: [
         { title: t.sidebar.etc, href: '/etf/etc' },
         { title: t.sidebar.akros, href: '/etf/akros' },
@@ -88,7 +88,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     {
       key: 'monoRApps',
       title: t.sidebar.monoRApps,
-      icon: <Image src="/ReviewNotes logo-10.svg" alt="" width={20} height={20} className="h-5 w-5 brightness-0 invert opacity-70" />,
+      icon: <Image src="/ReviewNotes logo-10.svg" alt="" width={16} height={16} className="h-4 w-4 brightness-0 invert opacity-70" />,
       items: [
         { title: t.sidebar.voiceCards, href: '/monor/voicecards' },
         { title: t.sidebar.reviewNotes, href: '/monor/reviewnotes' },
@@ -97,7 +97,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     {
       key: 'others',
       title: t.sidebar.others,
-      icon: <MoreHorizontal className="h-5 w-5" />,
+      icon: <MoreHorizontal className="h-4 w-4" />,
       items: [
         { title: t.sidebar.ryuhaStudy, href: '/others/ryuha-study' },
       ],
@@ -108,7 +108,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     {
       title: t.sidebar.users,
       href: '/admin/users',
-      icon: <Users className="h-5 w-5" />,
+      icon: <Users className="h-4 w-4" />,
       adminOnly: true,
     },
   ]
@@ -135,7 +135,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           </Link>
         ) : (
           <Link href="/" onClick={onMobileClose}>
-            <Image src="/leaf-icon.png" alt="Willow" width={28} height={28} priority />
+            <Image src="/leaf-icon.png" alt="Willow" width={20} height={20} priority />
           </Link>
         )}
         {/* Desktop collapse button */}
@@ -189,8 +189,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                     {section.icon}
                   </div>
                   {/* Hover tooltip menu */}
-                  <div className="absolute left-full top-0 ml-2 hidden group-hover:block z-50">
-                    <div className="bg-slate-900 rounded-lg py-2 min-w-[160px] shadow-lg">
+                  <div className="absolute left-full top-0 pl-2 hidden group-hover:block z-50">
+                    <div className="bg-slate-900 rounded-lg py-2 min-w-[160px]">
                       <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 border-b border-slate-700 mb-1">
                         {section.title}
                       </div>
