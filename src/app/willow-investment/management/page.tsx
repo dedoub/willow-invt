@@ -5901,7 +5901,7 @@ export default function WillowManagementPage() {
               </div>
             ) : (
               <>
-                {/* Summary Cards */}
+                {/* Summary Cards — values derived from chart data for consistency */}
                 {reSummary && (
                   <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-2">
                     <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
@@ -5910,26 +5910,48 @@ export default function WillowManagementPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-2 md:contents">
                       <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                        <div className="text-[11px] text-muted-foreground">최근1월 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
-                        <div className="text-sm font-bold">{reSummary.avgTradePpp?.toLocaleString() || '-'}</div>
+                        <div className="text-[11px] text-muted-foreground">현재월 매매가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                        <div className="text-sm font-bold">{(() => {
+                          if (!reTrades?.months.length || !reTrades.complexes.length) return '-'
+                          const curMonth = reTrades.months[reTrades.months.length - 1]
+                          let sum = 0, cnt = 0
+                          for (const c of reTrades.complexes) {
+                            const d = c.data.find(d => d.month === curMonth)
+                            if (d?.avgPpp) { sum += d.avgPpp; cnt++ }
+                          }
+                          return cnt > 0 ? Math.round(sum / cnt).toLocaleString() : '-'
+                        })()}</div>
                       </div>
                       <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
                         <div className="text-[11px] text-muted-foreground">매도호가 괴리율</div>
-                        <div className={cn('text-sm font-bold', reSummary.tradeListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                          {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap.toFixed(1)}%
-                        </div>
+                        {(() => {
+                          const gap = reListingTrend ? [...reListingTrend.trend].reverse().find(d => d.gapRate != null)?.gapRate : null
+                          if (gap == null) return <div className="text-sm font-bold">-</div>
+                          return <div className={cn('text-sm font-bold', gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>{gap > 0 ? '+' : ''}{gap.toFixed(1)}%</div>
+                        })()}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 md:contents">
                       <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
-                        <div className="text-[11px] text-muted-foreground">최근1월 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
-                        <div className="text-sm font-bold">{reSummary.avgJeonsePpp?.toLocaleString() || '-'}</div>
+                        <div className="text-[11px] text-muted-foreground">현재월 전세가 <span className="text-slate-400 dark:text-slate-500">(만/평)</span></div>
+                        <div className="text-sm font-bold">{(() => {
+                          if (!reRentals?.months.length || !reRentals.complexes.length) return '-'
+                          const curMonth = reRentals.months[reRentals.months.length - 1]
+                          let sum = 0, cnt = 0
+                          for (const c of reRentals.complexes) {
+                            const d = c.data.find(d => d.month === curMonth)
+                            if (d?.avgPpp) { sum += d.avgPpp; cnt++ }
+                          }
+                          return cnt > 0 ? Math.round(sum / cnt).toLocaleString() : '-'
+                        })()}</div>
                       </div>
                       <div className="rounded-lg bg-white dark:bg-slate-700 px-3 py-2">
                         <div className="text-[11px] text-muted-foreground">전세호가 괴리율</div>
-                        <div className={cn('text-sm font-bold', reSummary.jeonseListingGap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>
-                          {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap.toFixed(1)}%
-                        </div>
+                        {(() => {
+                          const gap = reListingTrendJeonse ? [...reListingTrendJeonse.trend].reverse().find(d => d.gapRate != null)?.gapRate : null
+                          if (gap == null) return <div className="text-sm font-bold">-</div>
+                          return <div className={cn('text-sm font-bold', gap > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')}>{gap > 0 ? '+' : ''}{gap.toFixed(1)}%</div>
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -5999,9 +6021,11 @@ export default function WillowManagementPage() {
                   <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium">매매 괴리율 추이 <span className="text-[11px] text-slate-400 font-normal">(호가 저 vs 실거래, %)</span></span>
-                      {reSummary?.tradeListingGap != null && (
-                        <span className={`text-[11px] font-medium ${reSummary.tradeListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>현재 {reSummary.tradeListingGap > 0 ? '+' : ''}{reSummary.tradeListingGap}%</span>
-                      )}
+                      {(() => {
+                        const lastGap = [...reListingTrend.trend].reverse().find(d => d.gapRate != null)?.gapRate
+                        if (lastGap == null) return null
+                        return <span className={`text-[11px] font-medium ${lastGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>현재 {lastGap > 0 ? '+' : ''}{lastGap}%</span>
+                      })()}
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
                       {(() => {
@@ -6157,9 +6181,11 @@ export default function WillowManagementPage() {
                   <div className="rounded-lg bg-white dark:bg-slate-700 p-3 pb-1">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium">전세 괴리율 추이 <span className="text-[11px] text-slate-400 font-normal">(호가 저 vs 실거래, %)</span></span>
-                      {reSummary?.jeonseListingGap != null && (
-                        <span className={`text-[11px] font-medium ${reSummary.jeonseListingGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>현재 {reSummary.jeonseListingGap > 0 ? '+' : ''}{reSummary.jeonseListingGap}%</span>
-                      )}
+                      {(() => {
+                        const lastGap = [...reListingTrendJeonse.trend].reverse().find(d => d.gapRate != null)?.gapRate
+                        if (lastGap == null) return null
+                        return <span className={`text-[11px] font-medium ${lastGap > 0 ? 'text-red-500' : 'text-blue-500'}`}>현재 {lastGap > 0 ? '+' : ''}{lastGap}%</span>
+                      })()}
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
                       {(() => {

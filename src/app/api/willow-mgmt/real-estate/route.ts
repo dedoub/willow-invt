@@ -2,12 +2,17 @@ import { NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 
 // Paginated fetch to bypass Supabase max_rows (default 1000)
+// Always appends .order('id') for deterministic pagination — without a
+// fully-deterministic ORDER BY, rows at page boundaries can be skipped or
+// duplicated across requests because PostgreSQL doesn't guarantee order for
+// ties (same snapshot_date, same deal_date, etc.).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchAll(query: any, pageSize = 1000): Promise<any[]> {
+  const q = query.order('id')
   const all: any[] = []
   let from = 0
   while (true) {
-    const { data } = await query.range(from, from + pageSize - 1)
+    const { data } = await q.range(from, from + pageSize - 1)
     if (!data || data.length === 0) break
     all.push(...data)
     if (data.length < pageSize) break
