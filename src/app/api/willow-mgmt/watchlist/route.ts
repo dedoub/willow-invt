@@ -1,59 +1,29 @@
 import { NextResponse } from 'next/server'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
-import { join } from 'path'
+import { getServiceSupabase } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
-// Try project-local first (works on Vercel), then external path (local dev with live sync)
-const LOCAL_PATH = join(process.cwd(), 'data', 'watchlist.json')
-const EXTERNAL_PATH = join(process.cwd(), '..', 'portfolio', 'monitor', 'watchlist.json')
-const TMP_PATH = '/tmp/watchlist.json'
-
-function getWatchlistPath(): string {
-  if (existsSync(EXTERNAL_PATH)) return EXTERNAL_PATH
-  if (existsSync(LOCAL_PATH)) return LOCAL_PATH
-  return TMP_PATH
-}
-
-interface WatchlistEntry {
-  ticker: string
-  sector: string
-  axis?: string
-  pinned?: boolean
-  monitorDate?: string
-  monitorPrice?: number
-}
-
-type WatchlistData = Record<string, Record<string, WatchlistEntry>>
-
-function readWatchlist(): WatchlistData {
-  const primary = getWatchlistPath()
-  // On Vercel: if primary is read-only, check if /tmp has a newer copy
-  if (existsSync(TMP_PATH) && primary !== TMP_PATH) {
-    try {
-      return JSON.parse(readFileSync(TMP_PATH, 'utf-8'))
-    } catch { /* fall through to primary */ }
-  }
-  return JSON.parse(readFileSync(primary, 'utf-8'))
-}
-
-function writeWatchlist(data: WatchlistData) {
-  const primary = getWatchlistPath()
-  try {
-    writeFileSync(primary, JSON.stringify(data, null, 2), 'utf-8')
-  } catch {
-    // Vercel read-only filesystem: write to /tmp instead
-    writeFileSync(TMP_PATH, JSON.stringify(data, null, 2), 'utf-8')
-  }
-}
+const TABLE = 'stock_watchlist'
 
 export async function GET() {
   try {
-    const data = readWatchlist()
-    const result = {
-      portfolio: Object.entries(data.portfolio || {}).map(([name, v]) => ({ name, ...v })),
-      watchlist: Object.entries(data.watchlist || {}).map(([name, v]) => ({ name, ...v })),
-      benchmark: Object.entries(data.benchmark || {}).map(([name, v]) => ({ name, ...v })),
+    const db = getServiceSupabase()
+    const { data, error } = await db.from(TABLE).select('*').order('created_at')
+    if (error) throw error
+
+    const result: Record<string, Array<Record<string, unknown>>> = { portfolio: [], watchlist: [], benchmark: [] }
+    for (const row of data || []) {
+      const group = row.group_name as string
+      if (!result[group]) result[group] = []
+      result[group].push({
+        name: row.name,
+        ticker: row.ticker,
+        sector: row.sector,
+        ...(row.axis ? { axis: row.axis } : {}),
+        ...(row.pinned ? { pinned: true } : {}),
+        ...(row.monitor_date ? { monitorDate: row.monitor_date } : {}),
+        ...(row.monitor_price ? { monitorPrice: Number(row.monitor_price) } : {}),
+      })
     }
     return NextResponse.json(result, {
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
@@ -68,15 +38,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { action, name, ticker, sector, axis, fromGroup, toGroup, monitorDate, monitorPrice } = body
-    const data = readWatchlist()
+    const db = getServiceSupabase()
 
     if (action === 'add') {
       if (!name || !ticker || !sector || !toGroup) {
         return NextResponse.json({ error: 'name, ticker, sector, toGroup required' }, { status: 400 })
       }
-      if (!data[toGroup]) data[toGroup] = {}
-      data[toGroup][name] = { ticker, sector, ...(axis ? { axis } : {}) }
-      writeWatchlist(data)
+      const { error } = await db.from(TABLE).upsert({
+        name, ticker, sector, group_name: toGroup,
+        ...(axis ? { axis } : {}),
+      }, { onConflict: 'name,group_name' })
+      if (error) throw error
       return NextResponse.json({ ok: true })
     }
 
@@ -84,10 +56,9 @@ export async function POST(request: Request) {
       if (!name || !fromGroup) {
         return NextResponse.json({ error: 'name, fromGroup required' }, { status: 400 })
       }
-      if (data[fromGroup]?.[name]) {
-        delete data[fromGroup][name]
-        writeWatchlist(data)
-      }
+      const { error } = await db.from(TABLE).delete()
+        .eq('name', name).eq('group_name', fromGroup)
+      if (error) throw error
       return NextResponse.json({ ok: true })
     }
 
@@ -95,35 +66,32 @@ export async function POST(request: Request) {
       if (!name || !fromGroup) {
         return NextResponse.json({ error: 'name, fromGroup required' }, { status: 400 })
       }
-      const entry = data[fromGroup]?.[name]
-      if (!entry) {
-        return NextResponse.json({ error: `${name} not found in ${fromGroup}` }, { status: 404 })
+      // Read current state
+      const { data: row, error: readErr } = await db.from(TABLE)
+        .select('pinned').eq('name', name).eq('group_name', fromGroup).single()
+      if (readErr) return NextResponse.json({ error: `${name} not found in ${fromGroup}` }, { status: 404 })
+
+      const newPinned = !row.pinned
+      const update: Record<string, unknown> = {
+        pinned: newPinned,
+        monitor_date: newPinned && monitorDate ? monitorDate : null,
+        monitor_price: newPinned && monitorPrice ? monitorPrice : null,
+        updated_at: new Date().toISOString(),
       }
-      entry.pinned = !entry.pinned
-      if (!entry.pinned) {
-        delete entry.pinned
-        delete entry.monitorDate
-        delete entry.monitorPrice
-      } else {
-        if (monitorDate) entry.monitorDate = monitorDate
-        if (monitorPrice) entry.monitorPrice = monitorPrice
-      }
-      writeWatchlist(data)
-      return NextResponse.json({ ok: true, pinned: !!entry.pinned })
+      const { error } = await db.from(TABLE).update(update)
+        .eq('name', name).eq('group_name', fromGroup)
+      if (error) throw error
+      return NextResponse.json({ ok: true, pinned: newPinned })
     }
 
     if (action === 'move') {
       if (!name || !fromGroup || !toGroup) {
         return NextResponse.json({ error: 'name, fromGroup, toGroup required' }, { status: 400 })
       }
-      const entry = data[fromGroup]?.[name]
-      if (!entry) {
-        return NextResponse.json({ error: `${name} not found in ${fromGroup}` }, { status: 404 })
-      }
-      delete data[fromGroup][name]
-      if (!data[toGroup]) data[toGroup] = {}
-      data[toGroup][name] = entry
-      writeWatchlist(data)
+      const { error } = await db.from(TABLE).update({
+        group_name: toGroup, updated_at: new Date().toISOString(),
+      }).eq('name', name).eq('group_name', fromGroup)
+      if (error) throw error
       return NextResponse.json({ ok: true })
     }
 
