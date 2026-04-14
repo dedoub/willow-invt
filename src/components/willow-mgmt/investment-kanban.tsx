@@ -267,8 +267,8 @@ export function InvestmentKanban({
       pyramiding,
     }
   })
-  // Sort by pyramiding status priority: BUY > HOUSE_MONEY > FREEZE > FULL > HOLD > no holdings
-  const statusOrder: Record<string, number> = { BUY: 0, HOUSE_MONEY: 1, FREEZE: 2, FULL: 3, HOLD: 4 }
+  // Sort by pyramiding status priority: BUY > HOUSE_MONEY > HOLD > FULL > FREEZE > no holdings
+  const statusOrder: Record<string, number> = { BUY: 0, HOUSE_MONEY: 1, HOLD: 2, FULL: 3, FREEZE: 4 }
   portfolioCards.sort((a, b) => {
     const aRank = a.pyramiding ? statusOrder[a.pyramiding.status] ?? 5 : 6
     const bRank = b.pyramiding ? statusOrder[b.pyramiding.status] ?? 5 : 6

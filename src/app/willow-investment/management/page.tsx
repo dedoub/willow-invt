@@ -4625,11 +4625,12 @@ export default function WillowManagementPage() {
                     const avgReturn = h.pnlPercent / 100
                     const currentTrigger = TRANCHE_TRIGGERS[tranche - 1]
                     const nextTrigger = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
+                    // Priority: BUY > HOUSE_MONEY > HOLD > FULL > FREEZE
                     if (avgReturn >= 2.00) return 1 // HOUSE_MONEY
                     if (tranche >= 10) return 3 // FULL
                     if (nextTrigger !== null && avgReturn >= nextTrigger) return 0 // BUY
-                    if (currentTrigger !== null && avgReturn < currentTrigger) return 2 // FREEZE
-                    return 4 // HOLD
+                    if (currentTrigger !== null && avgReturn < currentTrigger) return 4 // FREEZE
+                    return 2 // HOLD
                   }
                   for (const [, items] of themeGroups) {
                     items.sort((a, b) => {
