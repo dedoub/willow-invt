@@ -29,6 +29,15 @@ export interface CompactCardData {
     nextTriggerPct: number | null
     nextTriggerPrice: number | null
   }
+  monitor?: {
+    stage: number
+    changePct: number
+    days: number
+    nextThresholdPct: number | null
+    nextThresholdPrice: number | null
+    startDate: string
+    startPrice: number
+  }
 }
 
 interface Props {
@@ -177,7 +186,44 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
         </div>
       </div>
 
-      {/* Row 4: Pyramiding status (portfolio only) */}
+      {/* Row 4: Monitoring stage (pinned watchlist) */}
+      {data.monitor && (
+        <div className="flex items-center justify-between mt-1">
+          <div className="flex items-center gap-1">
+            <span className={cn(
+              'px-1 py-0.5 text-[9px] font-bold rounded',
+              data.monitor.stage >= 7 ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400'
+                : data.monitor.stage >= 4 ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
+                : 'bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400'
+            )}>
+              M{data.monitor.stage}
+            </span>
+            <span className={cn(
+              'text-[10px] font-medium',
+              data.monitor.changePct > 0 ? 'text-red-600 dark:text-red-400'
+                : data.monitor.changePct < 0 ? 'text-blue-600 dark:text-blue-400'
+                : 'text-slate-500'
+            )}>
+              {data.monitor.changePct > 0 ? '+' : ''}{data.monitor.changePct.toFixed(1)}%
+            </span>
+            {data.monitor.nextThresholdPct != null && (
+              <span className="text-[10px] text-slate-400">
+                → +{data.monitor.nextThresholdPct.toFixed(0)}%
+                {data.monitor.nextThresholdPrice != null && (
+                  <span className="text-slate-300 dark:text-slate-500 ml-0.5">
+                    {data.currency === 'KRW'
+                      ? `₩${Math.round(data.monitor.nextThresholdPrice / 10000).toLocaleString()}만`
+                      : `$${data.monitor.nextThresholdPrice.toFixed(0)}`}
+                  </span>
+                )}
+              </span>
+            )}
+            <span className="text-[10px] text-slate-300 dark:text-slate-500">{data.monitor.days}일</span>
+          </div>
+        </div>
+      )}
+
+      {/* Row 5: Pyramiding status (portfolio only) */}
       {data.pyramiding && (
         <div className="flex items-center justify-between mt-1">
           <div className="flex items-center gap-1">

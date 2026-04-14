@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { InvestmentCardCompact, type CompactCardData } from './investment-card-compact'
 import { InvestmentCardResearch, type ResearchCardData } from './investment-card-research'
@@ -35,6 +35,7 @@ interface SmallcapScreening {
 
 interface WatchlistItem {
   name: string; ticker: string; sector: string; axis?: string; pinned?: boolean
+  monitorDate?: string; monitorPrice?: number
 }
 
 interface SignalData {
@@ -84,6 +85,10 @@ export function InvestmentKanban({
   const [portfolioSort, setPortfolioSort] = useState<'buy' | 'sell'>('buy')
   const [watchlistSort, setWatchlistSort] = useState<'momentum' | 'signal'>('momentum')
   const [researchSort, setResearchSort] = useState<'recommend' | 'momentum'>('recommend')
+  const [pinTarget, setPinTarget] = useState<{ name: string; ticker: string; currency?: string } | null>(null)
+  const [pinDate, setPinDate] = useState('')
+  const [pinPrice, setPinPrice] = useState<number | string>('')
+  const [isPinPriceLoading, setIsPinPriceLoading] = useState(false)
 
   const loadWatchlist = useCallback(async () => {
     setIsLoadingWatchlist(true)
@@ -259,13 +264,37 @@ export function InvestmentKanban({
   // Build watchlist column data — pinned items always on top
   const watchlistCards: CompactCardData[] = (watchlistData?.watchlist || []).map(item => {
     const sig = signalMap.get(item.ticker) || signalMap.get(item.ticker.replace('.KS', ''))
+    const currentPrice = sig?.price
+    // Compute monitoring stage for pinned items
+    let monitor: CompactCardData['monitor'] = undefined
+    if (item.pinned && item.monitorDate && item.monitorPrice && currentPrice) {
+      const changePct = ((currentPrice - item.monitorPrice) / item.monitorPrice) * 100
+      const changeRatio = changePct / 100
+      let stage = 1
+      for (let i = 1; i < TRANCHE_TRIGGERS.length; i++) {
+        if (TRANCHE_TRIGGERS[i] !== null && changeRatio >= (TRANCHE_TRIGGERS[i] as number)) stage = i + 1
+        else break
+      }
+      const nextThreshold = stage < 10 ? TRANCHE_TRIGGERS[stage] : null
+      const days = Math.round((Date.now() - new Date(item.monitorDate).getTime()) / (24 * 60 * 60 * 1000))
+      monitor = {
+        stage,
+        changePct,
+        days,
+        nextThresholdPct: nextThreshold !== null ? nextThreshold * 100 : null,
+        nextThresholdPrice: nextThreshold !== null ? item.monitorPrice * (1 + nextThreshold) : null,
+        startDate: item.monitorDate,
+        startPrice: item.monitorPrice,
+      }
+    }
     return {
       name: item.name, ticker: item.ticker, sector: item.sector, axis: item.axis,
       group: 'watchlist' as const,
-      price: sig?.price, changePercent: sig?.changePercent, currency: sig?.currency,
+      price: currentPrice, changePercent: sig?.changePercent, currency: sig?.currency,
       signal: sig?.signal, gapFromHighPct: sig?.gapFromHighPct,
       momentumScore: sig?.momentumScore ?? null,
       pinned: item.pinned,
+      monitor,
     }
   }).sort((a, b) => {
     // Pinned items first
@@ -373,11 +402,14 @@ export function InvestmentKanban({
     }
   }
 
-  const handleTogglePin = async (name: string, group: string) => {
+  const handleTogglePin = async (name: string, group: string, monitorDate?: string, monitorPrice?: number) => {
     try {
+      const body: Record<string, unknown> = { action: 'pin', name, fromGroup: group }
+      if (monitorDate) body.monitorDate = monitorDate
+      if (monitorPrice) body.monitorPrice = monitorPrice
       const res = await fetch('/api/willow-mgmt/watchlist', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'pin', name, fromGroup: group }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -387,6 +419,41 @@ export function InvestmentKanban({
       await loadWatchlist()
     } catch (error) {
       console.error('Failed to toggle pin:', error)
+    }
+  }
+
+  const handleConfirmPin = async () => {
+    if (!pinTarget) return
+    const price = typeof pinPrice === 'string' ? parseFloat(pinPrice) : pinPrice
+    await handleTogglePin(pinTarget.name, 'watchlist', pinDate || undefined, price || undefined)
+    setPinTarget(null)
+  }
+
+  const handlePinDateChange = async (newDate: string) => {
+    setPinDate(newDate)
+    if (!pinTarget || !newDate) return
+    setIsPinPriceLoading(true)
+    try {
+      const market = pinTarget.ticker.endsWith('.KS') ? 'KR' : 'US'
+      const tickerParam = pinTarget.ticker.replace('.KS', '')
+      const res = await fetch(`/api/willow-mgmt/stock-history?tickers=${tickerParam}&markets=${market}&range=1y`)
+      if (!res.ok) return
+      const data = await res.json()
+      const history = data.history?.[tickerParam]
+      if (!history?.dates?.length) return
+      // Find closest trading day to selected date
+      const target = new Date(newDate).getTime()
+      let bestIdx = 0
+      let bestDiff = Infinity
+      for (let i = 0; i < history.dates.length; i++) {
+        const diff = Math.abs(new Date(history.dates[i]).getTime() - target)
+        if (diff < bestDiff) { bestDiff = diff; bestIdx = i }
+      }
+      if (history.prices[bestIdx] > 0) setPinPrice(history.prices[bestIdx])
+    } catch (err) {
+      console.error('Failed to fetch price for date:', err)
+    } finally {
+      setIsPinPriceLoading(false)
     }
   }
 
@@ -592,7 +659,15 @@ export function InvestmentKanban({
                       onMove={(dir) => {
                         if (dir === 'demote') handleRemoveFromWatchlist(card.name, 'watchlist')
                       }}
-                      onPin={() => handleTogglePin(card.name, 'watchlist')}
+                      onPin={() => {
+                        if (card.pinned) {
+                          handleTogglePin(card.name, 'watchlist')
+                        } else {
+                          setPinDate(new Date().toISOString().slice(0, 10))
+                          setPinPrice(card.price || '')
+                          setPinTarget({ name: card.name, ticker: card.ticker, currency: card.currency })
+                        }
+                      }}
                     />
                   ))
                 )}
@@ -697,6 +772,42 @@ export function InvestmentKanban({
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pin monitoring start dialog */}
+      <Dialog open={!!pinTarget} onOpenChange={(open) => !open && setPinTarget(null)}>
+        <DialogContent className="max-h-[90vh] flex flex-col max-w-sm">
+          <DialogHeader className="flex-shrink-0 pb-4">
+            <DialogTitle className="text-base">모니터링 시작</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="text-sm font-medium">{pinTarget?.ticker}</div>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">시작일</label>
+              <Input type="date" value={pinDate} onChange={(e) => handlePinDateChange(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block flex items-center gap-1">
+                시작 기준가 {pinTarget?.currency === 'KRW' ? '(원)' : '($)'}
+                {isPinPriceLoading && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
+              </label>
+              <Input
+                type="number"
+                step={pinTarget?.currency === 'KRW' ? '100' : '0.01'}
+                value={pinPrice}
+                onChange={(e) => setPinPrice(e.target.value)}
+                placeholder="모니터링 시작 시점의 가격"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex-row justify-between sm:justify-between flex-shrink-0 pt-4">
+            <div />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPinTarget(null)}>취소</Button>
+              <Button size="sm" onClick={handleConfirmPin}>시작</Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

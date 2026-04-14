@@ -20,6 +20,8 @@ interface WatchlistEntry {
   sector: string
   axis?: string
   pinned?: boolean
+  monitorDate?: string
+  monitorPrice?: number
 }
 
 type WatchlistData = Record<string, Record<string, WatchlistEntry>>
@@ -65,7 +67,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { action, name, ticker, sector, axis, fromGroup, toGroup } = body
+    const { action, name, ticker, sector, axis, fromGroup, toGroup, monitorDate, monitorPrice } = body
     const data = readWatchlist()
 
     if (action === 'add') {
@@ -98,7 +100,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `${name} not found in ${fromGroup}` }, { status: 404 })
       }
       entry.pinned = !entry.pinned
-      if (!entry.pinned) delete entry.pinned
+      if (!entry.pinned) {
+        delete entry.pinned
+        delete entry.monitorDate
+        delete entry.monitorPrice
+      } else {
+        if (monitorDate) entry.monitorDate = monitorDate
+        if (monitorPrice) entry.monitorPrice = monitorPrice
+      }
       writeWatchlist(data)
       return NextResponse.json({ ok: true, pinned: !!entry.pinned })
     }
