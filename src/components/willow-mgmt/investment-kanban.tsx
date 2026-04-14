@@ -51,7 +51,7 @@ interface SignalData {
 
 interface StockTrade {
   ticker: string; company_name: string; trade_type: 'buy' | 'sell'
-  quantity: number; price: number; currency: string
+  quantity: number; price: number; total_amount?: number; currency: string
 }
 
 // Pyramiding tranche triggers (avg return rate to trigger each tranche buy)
@@ -82,7 +82,6 @@ export function InvestmentKanban({
   const [isSmallcapModalOpen, setIsSmallcapModalOpen] = useState(false)
   const [editingSmallcap, setEditingSmallcap] = useState<{ id: string; ticker: string; companyName: string; thesis: string; valueChain: string } | null>(null)
   const [isSavingSmallcap, setIsSavingSmallcap] = useState(false)
-  const [portfolioSort, setPortfolioSort] = useState<'buy' | 'sell'>('buy')
   const [watchlistSort, setWatchlistSort] = useState<'momentum' | 'signal'>('momentum')
   const [researchSort, setResearchSort] = useState<'recommend' | 'momentum'>('recommend')
   const [pinTarget, setPinTarget] = useState<{ name: string; ticker: string; currency?: string } | null>(null)
@@ -127,27 +126,36 @@ export function InvestmentKanban({
     loadSignals()
   }, [loadWatchlist, loadSignals])
 
-  // Compute holdings from stock_trades
-  const holdingsMap = new Map<string, { qty: number; avgPrice: number; currency: string }>()
-  for (const t of stockTrades) {
+  // Compute holdings from stock_trades (matches management page: moving avg with cost reduction on sell)
+  const holdingsMap = new Map<string, { qty: number; totalCost: number; currency: string }>()
+  const sortedTrades = [...stockTrades]
+  for (const t of sortedTrades) {
     const key = t.ticker.replace('.KS', '')
-    const prev = holdingsMap.get(key) || { qty: 0, avgPrice: 0, currency: t.currency }
+    const prev = holdingsMap.get(key) || { qty: 0, totalCost: 0, currency: t.currency }
+    const amount = t.total_amount ?? t.quantity * t.price
     if (t.trade_type === 'buy') {
-      const totalCost = prev.qty * prev.avgPrice + t.quantity * t.price
+      prev.totalCost += amount
       prev.qty += t.quantity
-      prev.avgPrice = prev.qty > 0 ? totalCost / prev.qty : 0
     } else {
+      const currentAvg = prev.qty > 0 ? prev.totalCost / prev.qty : 0
+      prev.totalCost -= currentAvg * t.quantity
       prev.qty -= t.quantity
+      if (prev.qty <= 0) { prev.qty = 0; prev.totalCost = 0 }
     }
     holdingsMap.set(key, prev)
   }
+  const holdingsAvgMap = new Map<string, { qty: number; avgPrice: number; currency: string }>()
+  for (const [key, h] of holdingsMap) {
+    holdingsAvgMap.set(key, { qty: h.qty, avgPrice: h.qty > 0 ? h.totalCost / h.qty : 0, currency: h.currency })
+  }
 
-  // Total bought amount per ticker (for pyramiding tranche count)
+  // Total bought amount per ticker (for pyramiding tranche count) — uses t.total_amount to match management page
   const totalBoughtMap = new Map<string, number>()
   for (const t of stockTrades) {
     if (t.trade_type !== 'buy') continue
     const key = t.ticker.replace('.KS', '')
-    totalBoughtMap.set(key, (totalBoughtMap.get(key) || 0) + t.quantity * t.price)
+    const amount = t.total_amount ?? t.quantity * t.price
+    totalBoughtMap.set(key, (totalBoughtMap.get(key) || 0) + amount)
   }
 
   // Build signal lookup
@@ -174,10 +182,10 @@ export function InvestmentKanban({
     return oa - ob
   }
 
-  // Build portfolio column — sorted by sell priority (모멘텀 약 × 비중 큰 = 매도 우선)
+  // Build portfolio column — sorted by pyramiding status priority
   const portfolioRaw = (watchlistData?.portfolio || []).map(item => {
     const sig = signalMap.get(item.ticker) || signalMap.get(item.ticker.replace('.KS', ''))
-    const hold = holdingsMap.get(item.ticker.replace('.KS', ''))
+    const hold = holdingsAvgMap.get(item.ticker.replace('.KS', ''))
     const qty = hold && hold.qty > 0 ? hold.qty : 0
     const price = sig?.price ?? 0
     const currency = sig?.currency ?? 'KRW'
@@ -195,23 +203,8 @@ export function InvestmentKanban({
   const totalValueUsd = portfolioRaw.reduce((s, c) => s + c._valueUsd, 0)
   const withScores = portfolioRaw.map(c => {
     const weightPct = totalValueUsd > 0 ? (c._valueUsd / totalValueUsd) * 100 : 0
-    const m = c.momentumScore ?? 50
-    const sellScore = (100 - m) * weightPct        // 약한 모멘텀 × 큰 비중 = 매도
-    const buyScore = m * (100 - weightPct)          // 강한 모멘텀 × 작은 비중 = 추매
-    return { ...c, weightPct, _sellScore: sellScore, _buyScore: buyScore }
+    return { ...c, weightPct }
   })
-  // Assign sell ranks (high sell score = sell first)
-  const sellSorted = [...withScores].filter(c => c._valueUsd > 0).sort((a, b) => b._sellScore - a._sellScore)
-  const sellRankMap = new Map(sellSorted.map((c, i) => [c.ticker, i + 1]))
-  // Assign buy ranks (high buy score = buy first)
-  const buySorted = [...withScores].filter(c => c._valueUsd > 0).sort((a, b) => b._buyScore - a._buyScore)
-  const buyRankMap = new Map(buySorted.map((c, i) => [c.ticker, i + 1]))
-  // Sort display by selected priority
-  if (portfolioSort === 'sell') {
-    withScores.sort((a, b) => b._sellScore - a._sellScore)
-  } else {
-    withScores.sort((a, b) => b._buyScore - a._buyScore)
-  }
   const portfolioCards: CompactCardData[] = withScores.map(card => {
     const hasHoldings = card._valueUsd > 0
     const tickerKey = card.ticker.replace('.KS', '')
@@ -254,11 +247,17 @@ export function InvestmentKanban({
       currency: card.currency, signal: card.signal, gapFromHighPct: card.gapFromHighPct,
       holdingQty: card.holdingQty, avgPrice: card.avgPrice,
       momentumScore: card.momentumScore,
-      sellRank: hasHoldings ? sellRankMap.get(card.ticker) : undefined,
-      buyRank: hasHoldings ? buyRankMap.get(card.ticker) : undefined,
       weightPct: card.weightPct > 0 ? Math.round(card.weightPct * 10) / 10 : undefined,
       pyramiding,
     }
+  })
+  // Sort by pyramiding status priority: BUY > HOUSE_MONEY > FREEZE > FULL > HOLD > no holdings
+  const statusOrder: Record<string, number> = { BUY: 0, HOUSE_MONEY: 1, FREEZE: 2, FULL: 3, HOLD: 4 }
+  portfolioCards.sort((a, b) => {
+    const aRank = a.pyramiding ? statusOrder[a.pyramiding.status] ?? 5 : 6
+    const bRank = b.pyramiding ? statusOrder[b.pyramiding.status] ?? 5 : 6
+    if (aRank !== bRank) return aRank - bRank
+    return (b.weightPct ?? 0) - (a.weightPct ?? 0)
   })
 
   // Build watchlist column data — pinned items always on top
@@ -558,31 +557,7 @@ export function InvestmentKanban({
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2 px-1">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">포트폴리오</span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setPortfolioSort('buy')}
-                  className={cn(
-                    'px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors',
-                    portfolioSort === 'buy'
-                      ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                  )}
-                >
-                  ↑추매
-                </button>
-                <button
-                  onClick={() => setPortfolioSort('sell')}
-                  className={cn(
-                    'px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors',
-                    portfolioSort === 'sell'
-                      ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
-                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                  )}
-                >
-                  ↓매도
-                </button>
-                <span className="text-[10px] text-slate-400 ml-1">{portfolioCards.length}종목</span>
-              </div>
+              <span className="text-[10px] text-slate-400">{portfolioCards.length}종목</span>
             </div>
             <ScrollArea className="flex-1" style={{ maxHeight: '600px' }}>
               <div className="space-y-1.5">

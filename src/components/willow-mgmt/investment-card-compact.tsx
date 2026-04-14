@@ -18,8 +18,6 @@ export interface CompactCardData {
   holdingQty?: number
   avgPrice?: number
   momentumScore?: number | null
-  sellRank?: number
-  buyRank?: number
   weightPct?: number
   pinned?: boolean
   pyramiding?: {
@@ -96,26 +94,6 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
         <div className="flex items-center gap-1.5 min-w-0">
           {data.pinned && (
             <Pin className="h-3 w-3 text-amber-500 flex-shrink-0 fill-amber-500" />
-          )}
-          {data.buyRank != null && (
-            <span className={cn(
-              'flex-shrink-0 px-1 h-4 flex items-center justify-center rounded text-[9px] font-bold',
-              data.buyRank <= 3
-                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-                : 'bg-slate-100 dark:bg-slate-600 text-slate-400'
-            )}>
-              ↑{data.buyRank}
-            </span>
-          )}
-          {data.sellRank != null && (
-            <span className={cn(
-              'flex-shrink-0 px-1 h-4 flex items-center justify-center rounded text-[9px] font-bold',
-              data.sellRank <= 3
-                ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
-                : 'bg-slate-100 dark:bg-slate-600 text-slate-400'
-            )}>
-              ↓{data.sellRank}
-            </span>
           )}
           <span className="text-xs font-bold text-slate-900 dark:text-white">{data.ticker.replace('.KS', '')}</span>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{data.name}</span>

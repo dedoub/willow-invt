@@ -4617,8 +4617,27 @@ export default function WillowManagementPage() {
                     themeGroups.get(group)!.push(h)
                   }
                   const toKrw = (pnl: number, currency: 'KRW' | 'USD') => currency === 'USD' ? pnl * usdKrwRate : pnl
+                  // Sort each theme group by pyramiding status priority
+                  const pyramidingStatusRank = (h: typeof holdings[0]): number => {
+                    if (!(h.currentPrice > 0 && h.totalBought > 0)) return 6
+                    const trancheSize = h.currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrwRate
+                    const tranche = Math.min(10, Math.max(1, Math.round(h.totalBought / trancheSize)))
+                    const avgReturn = h.pnlPercent / 100
+                    const currentTrigger = TRANCHE_TRIGGERS[tranche - 1]
+                    const nextTrigger = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
+                    if (avgReturn >= 2.00) return 1 // HOUSE_MONEY
+                    if (tranche >= 10) return 3 // FULL
+                    if (nextTrigger !== null && avgReturn >= nextTrigger) return 0 // BUY
+                    if (currentTrigger !== null && avgReturn < currentTrigger) return 2 // FREEZE
+                    return 4 // HOLD
+                  }
                   for (const [, items] of themeGroups) {
-                    items.sort((a, b) => toKrw(b.pnl, b.currency) - toKrw(a.pnl, a.currency))
+                    items.sort((a, b) => {
+                      const aRank = pyramidingStatusRank(a)
+                      const bRank = pyramidingStatusRank(b)
+                      if (aRank !== bRank) return aRank - bRank
+                      return toKrw(b.pnl, b.currency) - toKrw(a.pnl, a.currency)
+                    })
                   }
 
                   // Theme colors
