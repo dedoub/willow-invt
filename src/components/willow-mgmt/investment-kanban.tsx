@@ -429,20 +429,18 @@ export function InvestmentKanban({
     setPinTarget(null)
   }
 
-  const handlePinDateChange = async (newDate: string) => {
-    setPinDate(newDate)
-    if (!pinTarget || !newDate) return
+  const handlePinDateChange = async (dateToLookup: string) => {
+    if (!pinTarget || !dateToLookup) return
     setIsPinPriceLoading(true)
     try {
       const market = pinTarget.ticker.endsWith('.KS') ? 'KR' : 'US'
       const tickerParam = pinTarget.ticker.replace('.KS', '')
-      const res = await fetch(`/api/willow-mgmt/stock-history?tickers=${tickerParam}&markets=${market}&range=1y`)
+      const res = await fetch(`/api/willow-mgmt/stock-history?tickers=${tickerParam}&markets=${market}&range=2y`)
       if (!res.ok) return
-      const data = await res.json()
-      const history = data.history?.[tickerParam]
+      const json = await res.json()
+      const history = json.history?.[tickerParam] || Object.values(json.history || {})[0] as { dates: string[]; prices: number[] } | undefined
       if (!history?.dates?.length) return
-      // Find closest trading day to selected date
-      const target = new Date(newDate).getTime()
+      const target = new Date(dateToLookup).getTime()
       let bestIdx = 0
       let bestDiff = Infinity
       for (let i = 0; i < history.dates.length; i++) {
@@ -450,11 +448,8 @@ export function InvestmentKanban({
         if (diff < bestDiff) { bestDiff = diff; bestIdx = i }
       }
       if (history.prices[bestIdx] > 0) setPinPrice(history.prices[bestIdx])
-    } catch (err) {
-      console.error('Failed to fetch price for date:', err)
-    } finally {
-      setIsPinPriceLoading(false)
-    }
+    } catch { /* silent */ }
+    finally { setIsPinPriceLoading(false) }
   }
 
   const openNewResearch = () => { setEditingResearch(null); setIsModalOpen(true) }
@@ -785,7 +780,7 @@ export function InvestmentKanban({
             <div className="text-sm font-medium">{pinTarget?.ticker}</div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">시작일</label>
-              <Input type="date" value={pinDate} onChange={(e) => handlePinDateChange(e.target.value)} />
+              <Input type="date" value={pinDate} onChange={(e) => { setPinDate(e.target.value); handlePinDateChange(e.target.value) }} />
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block flex items-center gap-1">
