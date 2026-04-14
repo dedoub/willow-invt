@@ -65,11 +65,13 @@ interface Props {
   isLoadingResearch: boolean
   isLoadingSmallcap: boolean
   stockTrades: StockTrade[]
+  stockQuotes?: Record<string, { price: number; change: number; changePercent: number; currency: string }>
+  usdKrwRate?: number
 }
 
 export function InvestmentKanban({
   stockResearch, smallcapData, loadStockResearch, loadSmallcapScreening,
-  isLoadingResearch, isLoadingSmallcap, stockTrades,
+  isLoadingResearch, isLoadingSmallcap, stockTrades, stockQuotes, usdKrwRate,
 }: Props) {
   const [watchlistData, setWatchlistData] = useState<{ portfolio: WatchlistItem[]; watchlist: WatchlistItem[]; benchmark: WatchlistItem[] } | null>(null)
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true)
@@ -121,6 +123,9 @@ export function InvestmentKanban({
     }
   }, [])
 
+  // Prefer shared rate from parent (management page) for consistent pyramiding tranche calculation
+  const effectiveUsdKrw = usdKrwRate ?? usdKrw
+
   useEffect(() => {
     loadWatchlist()
     loadSignals()
@@ -158,11 +163,16 @@ export function InvestmentKanban({
     totalBoughtMap.set(key, (totalBoughtMap.get(key) || 0) + amount)
   }
 
-  // Build signal lookup
+  // Build signal lookup — override current price from shared stockQuotes when available (matches management page)
   const signalMap = new Map<string, SignalData>()
   for (const s of signalData) {
-    signalMap.set(s.ticker, s)
-    signalMap.set(s.ticker.replace('.KS', ''), s)
+    const key = s.ticker.replace('.KS', '')
+    const quote = stockQuotes?.[key]
+    const merged: SignalData = quote
+      ? { ...s, price: quote.price, change: quote.change, changePercent: s.changePercent, currency: quote.currency }
+      : s
+    signalMap.set(s.ticker, merged)
+    signalMap.set(key, merged)
   }
 
   // Watchlist ticker sets for filtering research column
@@ -189,7 +199,7 @@ export function InvestmentKanban({
     const qty = hold && hold.qty > 0 ? hold.qty : 0
     const price = sig?.price ?? 0
     const currency = sig?.currency ?? 'KRW'
-    const valueUsd = currency === 'KRW' ? (qty * price) / usdKrw : qty * price
+    const valueUsd = currency === 'KRW' ? (qty * price) / effectiveUsdKrw : qty * price
     return {
       name: item.name, ticker: item.ticker, sector: item.sector, axis: item.axis,
       group: 'portfolio' as const,
@@ -213,7 +223,7 @@ export function InvestmentKanban({
 
     let pyramiding: CompactCardData['pyramiding'] = undefined
     if (hasHoldings && card.avgPrice && card.price && totalBought) {
-      const trancheSize = currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrw
+      const trancheSize = currency === 'KRW' ? 5_000_000 : 5_000_000 / effectiveUsdKrw
       const tranche = Math.min(10, Math.max(1, Math.round(totalBought / trancheSize)))
       const avgReturnPct = ((card.price - card.avgPrice) / card.avgPrice) * 100
       const currentTrigger = TRANCHE_TRIGGERS[tranche - 1]

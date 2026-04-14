@@ -5897,6 +5897,8 @@ export default function WillowManagementPage() {
         isLoadingResearch={isLoadingResearch}
         isLoadingSmallcap={isLoadingSmallcap}
         stockTrades={stockTrades}
+        stockQuotes={stockQuotes}
+        usdKrwRate={usdKrwRate}
       />
 
       {/* Row 2.6 - Real Estate Research */}
