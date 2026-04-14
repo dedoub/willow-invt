@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server'
-import { readFileSync, existsSync } from 'fs'
-import { join } from 'path'
+import { getServiceSupabase } from '@/lib/supabase'
 
-const LOCAL_PATH = join(process.cwd(), 'data', 'watchlist.json')
-const EXTERNAL_PATH = join(process.cwd(), '..', 'portfolio', 'monitor', 'watchlist.json')
-const WATCHLIST_PATH = existsSync(EXTERNAL_PATH) ? EXTERNAL_PATH : LOCAL_PATH
+export const dynamic = 'force-dynamic'
 
 interface QuoteData {
   price: number
@@ -126,14 +123,21 @@ function calcSignal(price: number, high52w: number | null): { signal: 'new_high'
 
 export async function GET() {
   try {
-    const raw = JSON.parse(readFileSync(WATCHLIST_PATH, 'utf-8'))
-    const entries: { name: string; ticker: string; sector: string; axis?: string; group: string }[] = []
+    const db = getServiceSupabase()
+    const { data: rows, error } = await db
+      .from('stock_watchlist')
+      .select('name, ticker, sector, axis, group_name')
+      .order('created_at')
+    if (error) throw error
 
-    for (const [group, stocks] of Object.entries(raw)) {
-      for (const [name, info] of Object.entries(stocks as Record<string, { ticker: string; sector: string; axis?: string }>)) {
-        entries.push({ name, ...info, group })
-      }
-    }
+    const entries: { name: string; ticker: string; sector: string; axis?: string; group: string }[] =
+      (rows || []).map((r) => ({
+        name: r.name as string,
+        ticker: r.ticker as string,
+        sector: (r.sector as string) || '',
+        ...(r.axis ? { axis: r.axis as string } : {}),
+        group: r.group_name as string,
+      }))
 
     // Fetch all quotes in parallel (batch of 10 to avoid rate limiting)
     const results: SignalResult[] = []
