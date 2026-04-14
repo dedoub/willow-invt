@@ -2,25 +2,47 @@ import { NextResponse } from 'next/server'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
+export const dynamic = 'force-dynamic'
+
 // Try project-local first (works on Vercel), then external path (local dev with live sync)
 const LOCAL_PATH = join(process.cwd(), 'data', 'watchlist.json')
 const EXTERNAL_PATH = join(process.cwd(), '..', 'portfolio', 'monitor', 'watchlist.json')
-const WATCHLIST_PATH = existsSync(EXTERNAL_PATH) ? EXTERNAL_PATH : LOCAL_PATH
+const TMP_PATH = '/tmp/watchlist.json'
+
+function getWatchlistPath(): string {
+  if (existsSync(EXTERNAL_PATH)) return EXTERNAL_PATH
+  if (existsSync(LOCAL_PATH)) return LOCAL_PATH
+  return TMP_PATH
+}
 
 interface WatchlistEntry {
   ticker: string
   sector: string
   axis?: string
+  pinned?: boolean
 }
 
 type WatchlistData = Record<string, Record<string, WatchlistEntry>>
 
 function readWatchlist(): WatchlistData {
-  return JSON.parse(readFileSync(WATCHLIST_PATH, 'utf-8'))
+  const primary = getWatchlistPath()
+  // On Vercel: if primary is read-only, check if /tmp has a newer copy
+  if (existsSync(TMP_PATH) && primary !== TMP_PATH) {
+    try {
+      return JSON.parse(readFileSync(TMP_PATH, 'utf-8'))
+    } catch { /* fall through to primary */ }
+  }
+  return JSON.parse(readFileSync(primary, 'utf-8'))
 }
 
 function writeWatchlist(data: WatchlistData) {
-  writeFileSync(WATCHLIST_PATH, JSON.stringify(data, null, 2), 'utf-8')
+  const primary = getWatchlistPath()
+  try {
+    writeFileSync(primary, JSON.stringify(data, null, 2), 'utf-8')
+  } catch {
+    // Vercel read-only filesystem: write to /tmp instead
+    writeFileSync(TMP_PATH, JSON.stringify(data, null, 2), 'utf-8')
+  }
 }
 
 export async function GET() {
@@ -31,7 +53,9 @@ export async function GET() {
       watchlist: Object.entries(data.watchlist || {}).map(([name, v]) => ({ name, ...v })),
       benchmark: Object.entries(data.benchmark || {}).map(([name, v]) => ({ name, ...v })),
     }
-    return NextResponse.json(result)
+    return NextResponse.json(result, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    })
   } catch (error) {
     console.error('Failed to read watchlist:', error)
     return NextResponse.json({ error: 'Failed to read watchlist' }, { status: 500 })
@@ -63,6 +87,20 @@ export async function POST(request: Request) {
         writeWatchlist(data)
       }
       return NextResponse.json({ ok: true })
+    }
+
+    if (action === 'pin') {
+      if (!name || !fromGroup) {
+        return NextResponse.json({ error: 'name, fromGroup required' }, { status: 400 })
+      }
+      const entry = data[fromGroup]?.[name]
+      if (!entry) {
+        return NextResponse.json({ error: `${name} not found in ${fromGroup}` }, { status: 404 })
+      }
+      entry.pinned = !entry.pinned
+      if (!entry.pinned) delete entry.pinned
+      writeWatchlist(data)
+      return NextResponse.json({ ok: true, pinned: !!entry.pinned })
     }
 
     if (action === 'move') {

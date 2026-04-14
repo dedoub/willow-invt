@@ -2,7 +2,7 @@
 
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
-import { ArrowRight, ArrowLeft, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { ArrowRight, ArrowLeft, TrendingUp, TrendingDown, Minus, Pin } from 'lucide-react'
 
 export interface CompactCardData {
   name: string
@@ -21,11 +21,20 @@ export interface CompactCardData {
   sellRank?: number
   buyRank?: number
   weightPct?: number
+  pinned?: boolean
+  pyramiding?: {
+    tranche: number
+    avgReturnPct: number
+    status: 'BUY' | 'HOLD' | 'FREEZE' | 'HOUSE_MONEY' | 'FULL'
+    nextTriggerPct: number | null
+    nextTriggerPrice: number | null
+  }
 }
 
 interface Props {
   data: CompactCardData
   onMove?: (direction: 'promote' | 'demote') => void
+  onPin?: () => void
 }
 
 const signalConfig = {
@@ -41,6 +50,20 @@ const momentumColor = (score: number | null | undefined) => {
   return 'text-red-600 dark:text-red-400'
 }
 
+const pyramidingStatus: Record<string, { label: string; style: string }> = {
+  BUY: { label: '추매', style: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' },
+  HOLD: { label: '대기', style: 'bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400' },
+  FREEZE: { label: '동결', style: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400' },
+  HOUSE_MONEY: { label: '원금회수', style: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400' },
+  FULL: { label: '풀', style: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' },
+}
+
+const trancheBg = (t: number) => {
+  if (t >= 8) return 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400'
+  if (t >= 5) return 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
+  return 'bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400'
+}
+
 const momentumBg = (score: number | null | undefined) => {
   if (score == null) return 'bg-slate-100 dark:bg-slate-600'
   if (score >= 60) return 'bg-emerald-100 dark:bg-emerald-900/50'
@@ -48,7 +71,7 @@ const momentumBg = (score: number | null | undefined) => {
   return 'bg-red-100 dark:bg-red-900/50'
 }
 
-export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data, onMove }: Props) {
+export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data, onMove, onPin }: Props) {
   const changeColor = (data.changePercent ?? 0) > 0
     ? 'text-red-600 dark:text-red-400'
     : (data.changePercent ?? 0) < 0
@@ -58,10 +81,13 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
   const ChangeIcon = (data.changePercent ?? 0) > 0 ? TrendingUp : (data.changePercent ?? 0) < 0 ? TrendingDown : Minus
 
   return (
-    <div className="group rounded-lg p-2.5 bg-white dark:bg-slate-700 transition-colors">
-      {/* Row 1: sell rank + ticker + name + price */}
+    <div className={cn('group rounded-lg p-2.5 transition-colors', data.pinned ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-700')}>
+      {/* Row 1: pin + sell rank + ticker + name + price */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
+          {data.pinned && (
+            <Pin className="h-3 w-3 text-amber-500 flex-shrink-0 fill-amber-500" />
+          )}
           {data.buyRank != null && (
             <span className={cn(
               'flex-shrink-0 px-1 h-4 flex items-center justify-center rounded text-[9px] font-bold',
@@ -129,24 +155,63 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
           )}
         </div>
 
-        {/* Move action - visible on hover */}
-        {onMove && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
-            {data.group === 'portfolio' && (
-              <button onClick={() => onMove('demote')} className="flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-amber-600 px-1 py-0.5 rounded">
-                <ArrowRight className="h-3 w-3" />
-                <span>워치리스트로</span>
-              </button>
-            )}
-            {data.group === 'watchlist' && (
-              <button onClick={() => onMove('demote')} className="flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-slate-600 px-1 py-0.5 rounded">
-                <ArrowLeft className="h-3 w-3" />
-                <span>리서치로</span>
-              </button>
+        {/* Actions - visible on hover */}
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+          {onPin && data.group === 'watchlist' && (
+            <button onClick={onPin} className={cn('flex items-center gap-0.5 text-[10px] px-1 py-0.5 rounded', data.pinned ? 'text-amber-500 hover:text-amber-600' : 'text-slate-400 hover:text-amber-500')}>
+              <Pin className={cn('h-3 w-3', data.pinned && 'fill-amber-500')} />
+            </button>
+          )}
+          {onMove && data.group === 'portfolio' && (
+            <button onClick={() => onMove('demote')} className="flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-amber-600 px-1 py-0.5 rounded">
+              <ArrowRight className="h-3 w-3" />
+              <span>워치리스트로</span>
+            </button>
+          )}
+          {onMove && data.group === 'watchlist' && (
+            <button onClick={() => onMove('demote')} className="flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-slate-600 px-1 py-0.5 rounded">
+              <ArrowLeft className="h-3 w-3" />
+              <span>리서치로</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Row 4: Pyramiding status (portfolio only) */}
+      {data.pyramiding && (
+        <div className="flex items-center justify-between mt-1">
+          <div className="flex items-center gap-1">
+            <span className={cn('px-1 py-0.5 text-[9px] font-bold rounded', trancheBg(data.pyramiding.tranche))}>
+              T{data.pyramiding.tranche}
+            </span>
+            <span className={cn(
+              'text-[10px] font-medium',
+              data.pyramiding.avgReturnPct > 0 ? 'text-red-600 dark:text-red-400'
+                : data.pyramiding.avgReturnPct < 0 ? 'text-blue-600 dark:text-blue-400'
+                : 'text-slate-500'
+            )}>
+              {data.pyramiding.avgReturnPct > 0 ? '+' : ''}{data.pyramiding.avgReturnPct.toFixed(1)}%
+            </span>
+            {data.pyramiding.status === 'HOUSE_MONEY' ? (
+              <span className="text-[10px] text-purple-500">→ 1/3 매도</span>
+            ) : data.pyramiding.nextTriggerPct != null && (
+              <span className="text-[10px] text-slate-400">
+                → +{data.pyramiding.nextTriggerPct.toFixed(0)}%
+                {data.pyramiding.nextTriggerPrice != null && (
+                  <span className="text-slate-300 dark:text-slate-500 ml-0.5">
+                    {data.currency === 'KRW'
+                      ? `₩${Math.round(data.pyramiding.nextTriggerPrice / 10000).toLocaleString()}만`
+                      : `$${data.pyramiding.nextTriggerPrice.toFixed(0)}`}
+                  </span>
+                )}
+              </span>
             )}
           </div>
-        )}
-      </div>
+          <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-full', pyramidingStatus[data.pyramiding.status]?.style)}>
+            {pyramidingStatus[data.pyramiding.status]?.label}
+          </span>
+        </div>
+      )}
     </div>
   )
 })

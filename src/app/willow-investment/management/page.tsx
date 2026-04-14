@@ -912,6 +912,9 @@ export default function WillowManagementPage() {
   const [expandedSummaryPeriod, setExpandedSummaryPeriod] = useState<string | null>(null)
   const [summaryCounterpartyFilter, setSummaryCounterpartyFilter] = useState<string | null>(null)
 
+  // Pyramiding tranche triggers (avg return rate to trigger each tranche buy)
+  const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
+
   // Stock trade types
   interface StockTrade {
     id: string
@@ -4594,8 +4597,13 @@ export default function WillowManagementPage() {
                       // KRW invested using historical FX rates (for US stocks, KR stocks use as-is)
                       const krwInvested = h.currency === 'USD' ? h.krwCost : totalInvested
 
+                      // Pyramiding: total ever bought (sum of all buy amounts, not moving avg)
+                      const totalBought = stockTrades
+                        .filter(t => t.ticker === h.ticker && t.trade_type === 'buy')
+                        .reduce((s, t) => s + t.total_amount, 0)
+
                       return {
-                        ...h, netQty, avgBuyPrice, totalInvested, currentPrice, currentValue, pnl, pnlPercent, parentTheme, dailyChangePercent, irr, holdingDays, krwInvested,
+                        ...h, netQty, avgBuyPrice, totalInvested, currentPrice, currentValue, pnl, pnlPercent, parentTheme, dailyChangePercent, irr, holdingDays, krwInvested, totalBought,
                         themes: tickerThemes.map(t => t.theme),
                       }
                     })
@@ -4916,6 +4924,68 @@ export default function WillowManagementPage() {
                                           </>
                                         )}
                                       </div>
+                                      {/* Pyramiding status */}
+                                      {h.currentPrice > 0 && h.totalBought > 0 && (() => {
+                                        const trancheSize = h.currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrwRate
+                                        const tranche = Math.min(10, Math.max(1, Math.round(h.totalBought / trancheSize)))
+                                        const avgReturn = h.pnlPercent / 100
+                                        const currentTrigger = TRANCHE_TRIGGERS[tranche - 1]
+                                        const nextTrigger = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
+
+                                        let status: 'BUY' | 'HOLD' | 'FREEZE' | 'HOUSE_MONEY' | 'FULL'
+                                        if (avgReturn >= 2.00) status = 'HOUSE_MONEY'
+                                        else if (tranche >= 10) status = 'FULL'
+                                        else if (nextTrigger !== null && avgReturn >= nextTrigger) status = 'BUY'
+                                        else if (currentTrigger !== null && avgReturn < currentTrigger) status = 'FREEZE'
+                                        else status = 'HOLD'
+
+                                        const nextTriggerPrice = nextTrigger !== null ? h.avgBuyPrice * (1 + nextTrigger) : null
+                                        const statusConfig: Record<string, { label: string; style: string }> = {
+                                          BUY: { label: '추매', style: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' },
+                                          HOLD: { label: '대기', style: 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400' },
+                                          FREEZE: { label: '동결', style: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400' },
+                                          HOUSE_MONEY: { label: '원금회수', style: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400' },
+                                          FULL: { label: '풀', style: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' },
+                                        }
+                                        const trancheColor = tranche >= 8
+                                          ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400'
+                                          : tranche >= 5
+                                            ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
+                                            : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400'
+
+                                        return (
+                                          <div className="flex items-center justify-between mt-1.5 pt-1">
+                                            <div className="flex items-center gap-1.5">
+                                              <span className={cn('px-1.5 py-0.5 text-[10px] font-bold rounded', trancheColor)}>
+                                                T{tranche}
+                                              </span>
+                                              <span className={cn(
+                                                'text-xs font-medium',
+                                                h.pnlPercent > 0 ? 'text-red-600 dark:text-red-400' : h.pnlPercent < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'
+                                              )}>
+                                                {h.pnlPercent > 0 ? '+' : ''}{h.pnlPercent.toFixed(1)}%
+                                              </span>
+                                              {status === 'HOUSE_MONEY' ? (
+                                                <span className="text-[11px] text-purple-500">→ 1/3 매도</span>
+                                              ) : nextTrigger != null && (
+                                                <span className="text-[11px] text-slate-400">
+                                                  → +{(nextTrigger * 100).toFixed(0)}%
+                                                  {nextTriggerPrice != null && (
+                                                    <span className="text-slate-300 dark:text-slate-500 ml-0.5">
+                                                      {h.currency === 'KRW'
+                                                        ? `₩${Math.round(nextTriggerPrice / 10000).toLocaleString()}만`
+                                                        : `$${nextTriggerPrice.toFixed(0)}`}
+                                                    </span>
+                                                  )}
+                                                </span>
+                                              )}
+                                            </div>
+                                            <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full', statusConfig[status]?.style)}>
+                                              {statusConfig[status]?.label}
+                                            </span>
+                                          </div>
+                                        )
+                                      })()}
                                     </div>
                                   )
                                 }

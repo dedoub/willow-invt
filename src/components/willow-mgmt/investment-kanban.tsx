@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Loader2, Search, Plus, RefreshCw, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownUp } from 'lucide-react'
+import { Loader2, Search, Plus, RefreshCw, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownUp, Pin } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -34,7 +34,7 @@ interface SmallcapScreening {
 }
 
 interface WatchlistItem {
-  name: string; ticker: string; sector: string; axis?: string
+  name: string; ticker: string; sector: string; axis?: string; pinned?: boolean
 }
 
 interface SignalData {
@@ -52,6 +52,9 @@ interface StockTrade {
   ticker: string; company_name: string; trade_type: 'buy' | 'sell'
   quantity: number; price: number; currency: string
 }
+
+// Pyramiding tranche triggers (avg return rate to trigger each tranche buy)
+const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
 
 interface Props {
   stockResearch: StockResearch[]
@@ -85,7 +88,7 @@ export function InvestmentKanban({
   const loadWatchlist = useCallback(async () => {
     setIsLoadingWatchlist(true)
     try {
-      const res = await fetch('/api/willow-mgmt/watchlist')
+      const res = await fetch('/api/willow-mgmt/watchlist', { cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
         setWatchlistData(data)
@@ -132,6 +135,14 @@ export function InvestmentKanban({
       prev.qty -= t.quantity
     }
     holdingsMap.set(key, prev)
+  }
+
+  // Total bought amount per ticker (for pyramiding tranche count)
+  const totalBoughtMap = new Map<string, number>()
+  for (const t of stockTrades) {
+    if (t.trade_type !== 'buy') continue
+    const key = t.ticker.replace('.KS', '')
+    totalBoughtMap.set(key, (totalBoughtMap.get(key) || 0) + t.quantity * t.price)
   }
 
   // Build signal lookup
@@ -198,6 +209,40 @@ export function InvestmentKanban({
   }
   const portfolioCards: CompactCardData[] = withScores.map(card => {
     const hasHoldings = card._valueUsd > 0
+    const tickerKey = card.ticker.replace('.KS', '')
+    const totalBought = totalBoughtMap.get(tickerKey)
+    const currency = card.currency || 'KRW'
+
+    let pyramiding: CompactCardData['pyramiding'] = undefined
+    if (hasHoldings && card.avgPrice && card.price && totalBought) {
+      const trancheSize = currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrw
+      const tranche = Math.min(10, Math.max(1, Math.round(totalBought / trancheSize)))
+      const avgReturnPct = ((card.price - card.avgPrice) / card.avgPrice) * 100
+      const currentTrigger = TRANCHE_TRIGGERS[tranche - 1]
+      const nextTrigger = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
+
+      let status: 'BUY' | 'HOLD' | 'FREEZE' | 'HOUSE_MONEY' | 'FULL'
+      if (avgReturnPct >= 200) {
+        status = 'HOUSE_MONEY'
+      } else if (tranche >= 10) {
+        status = 'FULL'
+      } else if (nextTrigger !== null && avgReturnPct / 100 >= nextTrigger) {
+        status = 'BUY'
+      } else if (currentTrigger !== null && avgReturnPct / 100 < currentTrigger) {
+        status = 'FREEZE'
+      } else {
+        status = 'HOLD'
+      }
+
+      pyramiding = {
+        tranche,
+        avgReturnPct,
+        status,
+        nextTriggerPct: nextTrigger !== null ? nextTrigger * 100 : null,
+        nextTriggerPrice: nextTrigger !== null ? card.avgPrice * (1 + nextTrigger) : null,
+      }
+    }
+
     return {
       name: card.name, ticker: card.ticker, sector: card.sector, axis: card.axis,
       group: card.group, price: card.price, changePercent: card.changePercent,
@@ -207,10 +252,11 @@ export function InvestmentKanban({
       sellRank: hasHoldings ? sellRankMap.get(card.ticker) : undefined,
       buyRank: hasHoldings ? buyRankMap.get(card.ticker) : undefined,
       weightPct: card.weightPct > 0 ? Math.round(card.weightPct * 10) / 10 : undefined,
+      pyramiding,
     }
   })
 
-  // Build watchlist column data
+  // Build watchlist column data — pinned items always on top
   const watchlistCards: CompactCardData[] = (watchlistData?.watchlist || []).map(item => {
     const sig = signalMap.get(item.ticker) || signalMap.get(item.ticker.replace('.KS', ''))
     return {
@@ -219,11 +265,16 @@ export function InvestmentKanban({
       price: sig?.price, changePercent: sig?.changePercent, currency: sig?.currency,
       signal: sig?.signal, gapFromHighPct: sig?.gapFromHighPct,
       momentumScore: sig?.momentumScore ?? null,
+      pinned: item.pinned,
     }
-  }).sort(watchlistSort === 'momentum'
-    ? (a, b) => (b.momentumScore ?? -1) - (a.momentumScore ?? -1)
-    : sortBySignal
-  )
+  }).sort((a, b) => {
+    // Pinned items first
+    if (a.pinned && !b.pinned) return -1
+    if (!a.pinned && b.pinned) return 1
+    // Then sort by selected criteria
+    if (watchlistSort === 'momentum') return (b.momentumScore ?? -1) - (a.momentumScore ?? -1)
+    return sortBySignal(a, b)
+  })
 
   // Build research column data — only pass + A/B tier, exclude portfolio/watchlist tickers
   // Recommendation priority: pass_tier1 (0) > 소형주 A (1) > pass_tier2 (2) > 소형주 B (3)
@@ -285,16 +336,19 @@ export function InvestmentKanban({
   // Move actions
   const handleMoveToWatchlist = async (name: string, ticker: string, sector: string, axis?: string, fromGroup?: string) => {
     try {
-      if (fromGroup) {
-        await fetch('/api/willow-mgmt/watchlist', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'move', name, fromGroup, toGroup: 'watchlist' }),
-        })
-      } else {
-        await fetch('/api/willow-mgmt/watchlist', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'add', name, ticker, sector, axis, toGroup: 'watchlist' }),
-        })
+      const res = fromGroup
+        ? await fetch('/api/willow-mgmt/watchlist', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'move', name, fromGroup, toGroup: 'watchlist' }),
+          })
+        : await fetch('/api/willow-mgmt/watchlist', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'add', name, ticker, sector, axis, toGroup: 'watchlist' }),
+          })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.error('Watchlist move failed:', err)
+        return
       }
       await loadWatchlist()
     } catch (error) {
@@ -304,13 +358,35 @@ export function InvestmentKanban({
 
   const handleRemoveFromWatchlist = async (name: string, group: string) => {
     try {
-      await fetch('/api/willow-mgmt/watchlist', {
+      const res = await fetch('/api/willow-mgmt/watchlist', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'remove', name, fromGroup: group }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.error('Watchlist remove failed:', err)
+        return
+      }
       await loadWatchlist()
     } catch (error) {
       console.error('Failed to remove from watchlist:', error)
+    }
+  }
+
+  const handleTogglePin = async (name: string, group: string) => {
+    try {
+      const res = await fetch('/api/willow-mgmt/watchlist', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'pin', name, fromGroup: group }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.error('Pin toggle failed:', err)
+        return
+      }
+      await loadWatchlist()
+    } catch (error) {
+      console.error('Failed to toggle pin:', error)
     }
   }
 
@@ -494,6 +570,11 @@ export function InvestmentKanban({
                 >
                   시그널
                 </button>
+                {watchlistCards.some(c => c.pinned) && (
+                  <span className="text-[10px] text-amber-500 ml-0.5">
+                    <Pin className="h-2.5 w-2.5 inline fill-amber-500" />{watchlistCards.filter(c => c.pinned).length}
+                  </span>
+                )}
                 <span className="text-[10px] text-slate-400 ml-1">{watchlistCards.length}종목</span>
               </div>
             </div>
@@ -511,6 +592,7 @@ export function InvestmentKanban({
                       onMove={(dir) => {
                         if (dir === 'demote') handleRemoveFromWatchlist(card.name, 'watchlist')
                       }}
+                      onPin={() => handleTogglePin(card.name, 'watchlist')}
                     />
                   ))
                 )}
