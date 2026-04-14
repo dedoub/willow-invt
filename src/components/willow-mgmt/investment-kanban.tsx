@@ -50,6 +50,7 @@ interface SignalData {
 }
 
 interface StockTrade {
+  id?: string; trade_date?: string
   ticker: string; company_name: string; trade_type: 'buy' | 'sell'
   quantity: number; price: number; total_amount?: number; currency: string
 }
@@ -133,7 +134,12 @@ export function InvestmentKanban({
 
   // Compute holdings from stock_trades (matches management page: moving avg with cost reduction on sell)
   const holdingsMap = new Map<string, { qty: number; totalCost: number; currency: string }>()
-  const sortedTrades = [...stockTrades]
+  const sortedTrades = [...stockTrades].sort((a, b) => {
+    const ta = a.trade_date ? new Date(a.trade_date).getTime() : 0
+    const tb = b.trade_date ? new Date(b.trade_date).getTime() : 0
+    if (ta !== tb) return ta - tb
+    return (a.id || '').localeCompare(b.id || '')
+  })
   for (const t of sortedTrades) {
     const key = t.ticker.replace('.KS', '')
     const prev = holdingsMap.get(key) || { qty: 0, totalCost: 0, currency: t.currency }
