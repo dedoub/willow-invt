@@ -32,6 +32,14 @@ interface StockResearch {
   verdict: string | null
   fail_reason: string | null
   notes: string | null
+  source_type: 'valuechain' | 'smallcap'
+  composite_score: number | null
+  growth_score: number | null
+  value_score: number | null
+  quality_score: number | null
+  momentum_score: number | null
+  insider_score: number | null
+  sentiment_score: number | null
   created_at: string
   updated_at: string
 }
@@ -61,6 +69,14 @@ export function InvestmentResearchModal({ open, onOpenChange, editing, onSaved }
   const [verdict, setVerdict] = useState<'pass_tier1' | 'pass_tier2' | 'fail'>('pass_tier1')
   const [failReason, setFailReason] = useState('')
   const [notes, setNotes] = useState('')
+  const [sourceType, setSourceType] = useState<'valuechain' | 'smallcap'>('valuechain')
+  const [compositeScore, setCompositeScore] = useState('')
+  const [growthScore, setGrowthScore] = useState('')
+  const [valueScore, setValueScore] = useState('')
+  const [qualityScore, setQualityScore] = useState('')
+  const [momentumScore, setMomentumScore] = useState('')
+  const [insiderScore, setInsiderScore] = useState('')
+  const [sentimentScore, setSentimentScore] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -82,12 +98,24 @@ export function InvestmentResearchModal({ open, onOpenChange, editing, onSaved }
       setVerdict((editing.verdict as 'pass_tier1' | 'pass_tier2' | 'fail') || 'pass_tier1')
       setFailReason(editing.fail_reason || '')
       setNotes(editing.notes || '')
+      setSourceType((editing.source_type as 'valuechain' | 'smallcap') || 'valuechain')
+      setCompositeScore(editing.composite_score?.toString() || '')
+      setGrowthScore(editing.growth_score?.toString() || '')
+      setValueScore(editing.value_score?.toString() || '')
+      setQualityScore(editing.quality_score?.toString() || '')
+      setMomentumScore(editing.momentum_score?.toString() || '')
+      setInsiderScore(editing.insider_score?.toString() || '')
+      setSentimentScore(editing.sentiment_score?.toString() || '')
     } else {
       setTicker(''); setCompanyName(''); setScanDate(''); setSource('manual')
       setMarketCap(''); setCurrentPrice(''); setRevenueGrowth(''); setMargin('')
       setValueChain(''); setThesis(''); setSectorTags(''); setHigh12m('')
       setGapPct(''); setTrendVerdict(''); setVerdict('pass_tier1')
       setFailReason(''); setNotes('')
+      setSourceType('valuechain')
+      setCompositeScore(''); setGrowthScore(''); setValueScore('')
+      setQualityScore(''); setMomentumScore(''); setInsiderScore('')
+      setSentimentScore('')
     }
   }, [editing, open])
 
@@ -117,6 +145,14 @@ export function InvestmentResearchModal({ open, onOpenChange, editing, onSaved }
         verdict,
         fail_reason: failReason || null,
         notes: notes || null,
+        source_type: sourceType,
+        composite_score: compositeScore ? parseFloat(compositeScore) : null,
+        growth_score: growthScore ? parseFloat(growthScore) : null,
+        value_score: valueScore ? parseFloat(valueScore) : null,
+        quality_score: qualityScore ? parseFloat(qualityScore) : null,
+        momentum_score: momentumScore ? parseFloat(momentumScore) : null,
+        insider_score: insiderScore ? parseFloat(insiderScore) : null,
+        sentiment_score: sentimentScore ? parseFloat(sentimentScore) : null,
       }
       const res = await fetch('/api/willow-mgmt/stock-research', {
         method: editing ? 'PUT' : 'POST',
@@ -165,6 +201,14 @@ export function InvestmentResearchModal({ open, onOpenChange, editing, onSaved }
               <button type="button" onClick={() => setVerdict('fail')} className={cn('py-2 text-sm font-medium rounded-lg transition-colors', verdict === 'fail' ? 'bg-slate-300 text-slate-700 dark:bg-slate-600 dark:text-slate-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300')}>Fail</button>
             </div>
           </div>
+          {/* Source Type */}
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">소스</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setSourceType('valuechain')} className={cn('py-2 text-sm font-medium rounded-lg transition-colors', sourceType === 'valuechain' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300')}>밸류체인</button>
+              <button type="button" onClick={() => setSourceType('smallcap')} className={cn('py-2 text-sm font-medium rounded-lg transition-colors', sourceType === 'smallcap' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300')}>소형주</button>
+            </div>
+          </div>
           {/* Ticker & Company */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -200,6 +244,36 @@ export function InvestmentResearchModal({ open, onOpenChange, editing, onSaved }
           <div>
             <label className="text-xs text-slate-500 mb-1 block">섹터 태그 (콤마 구분)</label>
             <Input value={sectorTags} onChange={(e) => setSectorTags(e.target.value)} placeholder="AI인프라, 데이터저장" />
+          </div>
+          {/* Scores */}
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">스코어 (0-100, 선택)</label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="text-[10px] text-slate-400 mb-0.5 block">종합</label>
+                <Input value={compositeScore} onChange={(e) => setCompositeScore(e.target.value)} placeholder="—" />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 mb-0.5 block">성장</label>
+                <Input value={growthScore} onChange={(e) => setGrowthScore(e.target.value)} placeholder="—" />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 mb-0.5 block">가치</label>
+                <Input value={valueScore} onChange={(e) => setValueScore(e.target.value)} placeholder="—" />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 mb-0.5 block">품질</label>
+                <Input value={qualityScore} onChange={(e) => setQualityScore(e.target.value)} placeholder="—" />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 mb-0.5 block">모멘텀</label>
+                <Input value={momentumScore} onChange={(e) => setMomentumScore(e.target.value)} placeholder="—" />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 mb-0.5 block">내부자</label>
+                <Input value={insiderScore} onChange={(e) => setInsiderScore(e.target.value)} placeholder="—" />
+              </div>
+            </div>
           </div>
           {/* Financials */}
           <div className="grid grid-cols-2 gap-3">
