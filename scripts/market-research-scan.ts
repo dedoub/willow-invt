@@ -5,13 +5,16 @@ import { createClient } from '@supabase/supabase-js'
 import { spawn } from 'child_process'
 
 // ============================================================
-// Market Research Scanner — 통합 종목 리서치 스캔
+// Unified Research Scanner — 통합 종목 리서치 스캔
 // ============================================================
-// 매일 오후 4:15 실행
-// Phase 1: 포트폴리오 스캔 + 시장 데이터 기반 종목 발굴
-// Phase 2: 레딧 버즈 수집 + 소셜 센티먼트 분석
-// Phase 3: 교차 검증 — 양쪽에서 겹치는 종목 = 강한 신호
+// --phase=valuechain (09:00): 포트폴리오 기반 밸류체인 발굴 → 텔레그램 전송
+// --phase=smallcap   (16:15): 시장 데이터 + 레딧 버즈 → DB 적재 + 텔레그램 전송
+// 플래그 없이 실행: 둘 다 순차 실행
 // ============================================================
+
+// Parse --phase argument
+const phaseArg = process.argv.find(a => a.startsWith('--phase='))
+const phase = phaseArg ? phaseArg.split('=')[1] : 'all' // 'valuechain' | 'smallcap' | 'all'
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`
@@ -109,6 +112,93 @@ function askClaude(prompt: string): Promise<string> {
     proc.stdin.write(prompt)
     proc.stdin.end()
   })
+}
+
+function askClaudePortfolioOnly(prompt: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const env = { ...process.env }
+    delete (env as Record<string, string | undefined>).CLAUDECODE
+
+    const args = ['-p', '--output-format', 'text', '--allowedTools', 'mcp__portfolio-monitor__*']
+
+    const proc = spawn('claude', args, {
+      cwd: process.cwd(),
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+
+    let stdout = ''
+    let stderr = ''
+
+    proc.stdout.on('data', (data: Buffer) => { stdout += data.toString() })
+    proc.stderr.on('data', (data: Buffer) => { stderr += data.toString() })
+
+    proc.on('close', (code: number | null) => {
+      if (code === 0) {
+        resolve(stdout.trim())
+      } else {
+        log(`Claude CLI error: ${stderr}`)
+        reject(new Error(`Claude exited with code ${code}: ${stderr}`))
+      }
+    })
+
+    proc.on('error', (err: Error) => {
+      reject(new Error(`Failed to spawn claude: ${err.message}`))
+    })
+
+    const timeout = setTimeout(() => {
+      proc.kill('SIGTERM')
+      reject(new Error('Claude CLI timeout (10min)'))
+    }, 10 * 60 * 1000)
+
+    proc.on('close', () => clearTimeout(timeout))
+
+    proc.stdin.write(prompt)
+    proc.stdin.end()
+  })
+}
+
+async function runValuechainScan(): Promise<string> {
+  const now = new Date()
+  const dateStr = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+  const dayOfWeek = now.getDay()
+
+  let prompt = `당신은 윌리(Willy)입니다. 윌로우인베스트먼트의 COO.
+오늘은 ${dateStr}이고 매일 아침 종목 발굴 스캔 시간입니다.
+
+아래 작업을 순서대로 수행하고, CEO에게 텔레그램으로 보낼 간결한 리포트를 작성하세요.
+
+## 1단계: 포트폴리오 전체 스캔
+portfolio_scan 도구를 사용해서 보유 종목 전체 스캔을 돌려주세요.
+- 신고가 돌파/근접 종목
+- 부진 종목 (12M 고점 대비 -20% 이상)
+- 주요 시그널
+
+## 2단계: 종목 발굴
+portfolio_watchlist 도구로 현재 워치리스트를 확인하고,
+portfolio_signals 도구로 시그널 현황을 확인하세요.
+
+## 리포트 형식
+텔레그램 메시지로 보낼 거라 간결하게 작성해주세요.
+- 이모지 적절히 사용
+- 핵심 수치 위주
+- 신호 없으면 "특이사항 없음"으로 짧게
+- "---SPLIT---"으로 메시지 분할 가능 (너무 길 때만)
+- 리포트 상단에 "🔍 종목 리서치 데일리 스캔 (${dateStr})" 제목 포함
+
+중요: 도구 호출 결과만 기반으로 사실만 보고. 추측이나 예측 금지.`
+
+  if (dayOfWeek === 3) {
+    prompt += `
+
+## 3단계: 주간 테마 스캔 (수요일 추가)
+이번 주 주목할 테마나 섹터 변화가 있는지 포트폴리오 데이터를 기반으로 분석해주세요.
+- 섹터별 모멘텀 변화
+- 워치리스트 중 진입 시그널 근접 종목
+- 리포트에 "[주간 테마]" 섹션으로 추가`
+  }
+
+  return askClaudePortfolioOnly(prompt)
 }
 
 async function runMarketResearchScan(): Promise<string> {
@@ -225,7 +315,7 @@ async function extractResearchEntries(report: string): Promise<ResearchEntry[]> 
     "gap_from_high_pct": -12.3,
     "current_price": 75.0,
     "market_cap_b": 12.5,
-    "trend_verdict": "uptrend",
+    "trend_verdict": "near_breakout",
     "verdict": "pass_tier2",
     "notes": "레딧 r/stocks 다수 언급. 신고가 근접."
   }
@@ -234,8 +324,8 @@ async function extractResearchEntries(report: string): Promise<ResearchEntry[]> 
 규칙:
 - 숫자를 모르면 null
 - source: "market_scan" (데이터 기반), "reddit_buzz" (레딧 기반), "cross_signal" (교차 검증)
-- verdict: "pass_tier1" (강한 후보), "pass_tier2" (관심 후보), "watch" (관찰)
-- trend_verdict: "uptrend", "downtrend", "sideways", null
+- verdict: "pass_tier1" (강한 후보), "pass_tier2" (관심 후보), "fail" (탈락)
+- trend_verdict: "near_breakout" (신고가 근접), "watch" (관찰 중), "too_far" (고점 대비 너무 멀음), null (판단 불가)
 - 한국 종목 ticker: "005930" (숫자만, .KS 제외)
 - 후보 종목이 없으면 빈 배열 [] 출력
 - 이미 워치리스트에 있는 종목도 포함 (최신 상태 업데이트용)
@@ -252,15 +342,29 @@ ${report}`
       log('⚠️ 종목 추출 결과에서 JSON을 찾을 수 없음')
       return []
     }
-    const entries: ResearchEntry[] = JSON.parse(jsonMatch[0])
-    return entries.filter(e => e.ticker && e.company_name)
+    const raw: ResearchEntry[] = JSON.parse(jsonMatch[0])
+    const VALID_TREND = new Set(['watch', 'near_breakout', 'too_far'])
+    const VALID_VERDICT = new Set(['pass_tier1', 'pass_tier2', 'fail'])
+    const TREND_MAP: Record<string, string> = { uptrend: 'near_breakout', sideways: 'watch', downtrend: 'too_far' }
+    const VERDICT_MAP: Record<string, string> = { watch: 'pass_tier2' }
+
+    const entries = raw.filter(e => e.ticker && e.company_name).map(e => ({
+      ...e,
+      trend_verdict: e.trend_verdict
+        ? VALID_TREND.has(e.trend_verdict) ? e.trend_verdict : (TREND_MAP[e.trend_verdict] || null)
+        : null,
+      verdict: e.verdict
+        ? VALID_VERDICT.has(e.verdict) ? e.verdict : (VERDICT_MAP[e.verdict] || 'pass_tier2')
+        : 'pass_tier2',
+    }))
+    return entries
   } catch (err) {
     log(`⚠️ 종목 추출 실패: ${err}`)
     return []
   }
 }
 
-async function upsertResearchEntries(entries: ResearchEntry[]): Promise<number> {
+async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valuechain' | 'smallcap' = 'smallcap'): Promise<number> {
   if (entries.length === 0) return 0
 
   const today = new Date().toISOString().split('T')[0]
@@ -281,6 +385,7 @@ async function upsertResearchEntries(entries: ResearchEntry[]): Promise<number> 
         .update({
           company_name: entry.company_name,
           source: entry.source,
+          source_type: sourceType,
           sector_tags: entry.sector_tags,
           structural_thesis: entry.structural_thesis,
           high_12m: entry.high_12m,
@@ -294,7 +399,11 @@ async function upsertResearchEntries(entries: ResearchEntry[]): Promise<number> 
         })
         .eq('id', existing[0].id)
 
-      if (!error) upserted++
+      if (error) {
+        log(`  ⚠️ UPDATE 실패 (${entry.ticker}): ${error.message}`)
+      } else {
+        upserted++
+      }
     } else {
       const { error } = await supabase
         .from('stock_research')
@@ -302,7 +411,8 @@ async function upsertResearchEntries(entries: ResearchEntry[]): Promise<number> 
           ticker: entry.ticker,
           company_name: entry.company_name,
           scan_date: today,
-          source: entry.source,
+          source: entry.source || 'market_scan',
+          source_type: sourceType,
           sector_tags: entry.sector_tags || [],
           structural_thesis: entry.structural_thesis,
           high_12m: entry.high_12m,
@@ -314,7 +424,11 @@ async function upsertResearchEntries(entries: ResearchEntry[]): Promise<number> 
           notes: entry.notes,
         })
 
-      if (!error) upserted++
+      if (error) {
+        log(`  ⚠️ INSERT 실패 (${entry.ticker}): ${error.message}`)
+      } else {
+        upserted++
+      }
     }
   }
 
@@ -322,7 +436,7 @@ async function upsertResearchEntries(entries: ResearchEntry[]): Promise<number> 
 }
 
 async function main() {
-  log('🔍 통합 마켓 리서치 스캔 시작')
+  log(`🔍 통합 리서치 스캔 시작 (phase: ${phase})`)
 
   const chatId = await getCeoChatId()
   if (!chatId) {
@@ -331,47 +445,72 @@ async function main() {
   }
 
   try {
-    const report = await runMarketResearchScan()
+    // Phase: valuechain (morning scan)
+    if (phase === 'valuechain' || phase === 'all') {
+      log('📡 Phase: 밸류체인 스캔')
+      const report = await runValuechainScan()
 
-    if (!report || report.length < 10) {
-      log('⚠️ 리포트가 비어있거나 너무 짧습니다')
-      await sendTelegramMessage(chatId, '🔍 마켓 리서치 스캔: 데이터 조회에 실패했어요. 나중에 다시 시도할게요.')
-      process.exit(1)
-    }
-
-    // 텔레그램 전송
-    const parts = report.split(/\n---SPLIT---\n/)
-    for (const part of parts) {
-      const trimmed = part.trim()
-      if (trimmed) {
-        await sendTelegramMessage(chatId, trimmed)
-        if (parts.length > 1) await new Promise(r => setTimeout(r, 1000))
+      if (report && report.length >= 10) {
+        const parts = report.split(/\n---SPLIT---\n/)
+        for (const part of parts) {
+          const trimmed = part.trim()
+          if (trimmed) {
+            await sendTelegramMessage(chatId, trimmed)
+            if (parts.length > 1) await new Promise(r => setTimeout(r, 1000))
+          }
+        }
+        log(`✅ 밸류체인 리포트 전송 완료`)
+      } else {
+        log('⚠️ 밸류체인 리포트가 비어있거나 너무 짧습니다')
+        await sendTelegramMessage(chatId, '🔍 밸류체인 스캔: 데이터 조회에 실패했어요.')
       }
     }
 
-    log(`✅ 리포트 전송 완료 (${parts.length}개 메시지)`)
+    // Phase: smallcap (afternoon scan)
+    if (phase === 'smallcap' || phase === 'all') {
+      log('📡 Phase: 마켓 리서치 (소형주) 스캔')
+      const report = await runMarketResearchScan()
 
-    // stock_research 테이블 적재
-    log('📊 리포트에서 종목 데이터 추출 중...')
-    const entries = await extractResearchEntries(report)
+      if (!report || report.length < 10) {
+        log('⚠️ 마켓 리포트가 비어있거나 너무 짧습니다')
+        await sendTelegramMessage(chatId, '🔍 마켓 리서치 스캔: 데이터 조회에 실패했어요.')
+        if (phase === 'smallcap') process.exit(1)
+        return
+      }
 
-    if (entries.length > 0) {
-      log(`  📋 ${entries.length}개 종목 추출: ${entries.map(e => e.ticker).join(', ')}`)
-      const upserted = await upsertResearchEntries(entries)
-      log(`  ✅ stock_research 테이블 ${upserted}건 적재 완료`)
+      const parts = report.split(/\n---SPLIT---\n/)
+      for (const part of parts) {
+        const trimmed = part.trim()
+        if (trimmed) {
+          await sendTelegramMessage(chatId, trimmed)
+          if (parts.length > 1) await new Promise(r => setTimeout(r, 1000))
+        }
+      }
+      log(`✅ 마켓 리포트 전송 완료`)
 
-      // 텔레그램으로 적재 결과 알림
-      const dbLines = entries.map(e => {
-        const verdict = e.verdict === 'pass_tier1' ? '⭐' : e.verdict === 'pass_tier2' ? '✅' : '👀'
-        return `${verdict} ${e.ticker} (${e.company_name})${e.gap_from_high_pct != null ? ` | 고점대비 ${e.gap_from_high_pct}%` : ''}`
-      })
-      await sendTelegramMessage(chatId, `📊 리서치 DB 업데이트 (${upserted}건)\n\n${dbLines.join('\n')}\n\n대시보드에서 확인: 투자리서치 탭`)
-    } else {
-      log('  ℹ️ 신규 후보 종목 없음 — DB 적재 스킵')
+      // Extract and upsert to DB
+      log('📊 리포트에서 종목 데이터 추출 중...')
+      const entries = await extractResearchEntries(report)
+
+      if (entries.length > 0) {
+        log(`  📋 ${entries.length}개 종목 추출: ${entries.map(e => e.ticker).join(', ')}`)
+        const upserted = await upsertResearchEntries(entries, 'smallcap')
+        log(`  ✅ stock_research 테이블 ${upserted}건 적재 완료`)
+
+        const dbLines = entries.map(e => {
+          const verdict = e.verdict === 'pass_tier1' ? '⭐' : e.verdict === 'pass_tier2' ? '✅' : '👀'
+          return `${verdict} ${e.ticker} (${e.company_name})${e.gap_from_high_pct != null ? ` | 고점대비 ${e.gap_from_high_pct}%` : ''}`
+        })
+        await sendTelegramMessage(chatId, `📊 리서치 DB 업데이트 (${upserted}건)\n\n${dbLines.join('\n')}\n\n대시보드에서 확인: 투자리서치 탭`)
+      } else {
+        log('  ℹ️ 신규 후보 종목 없음 — DB 적재 스킵')
+      }
     }
+
+    log('🏁 통합 리서치 스캔 완료')
   } catch (err) {
     log(`❌ 스캔 실패: ${err}`)
-    await sendTelegramMessage(chatId, '🔍 마켓 리서치 스캔에서 오류가 발생했어요. 로그를 확인해주세요.')
+    await sendTelegramMessage(chatId, '🔍 리서치 스캔에서 오류가 발생했어요. 로그를 확인해주세요.')
     process.exit(1)
   }
 }
