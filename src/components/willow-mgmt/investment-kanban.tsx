@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { InvestmentCardCompact, type CompactCardData } from './investment-card-compact'
@@ -15,22 +14,19 @@ import { InvestmentResearchModal } from './investment-research-modal'
 
 interface StockResearch {
   id: string; ticker: string; company_name: string; scan_date: string; source: string
-  market_cap_b: number | null; current_price: number | null; revenue_growth_yoy: string | null
+  source_type: 'valuechain' | 'smallcap'
+  market_cap_b: number | null; market_cap_m: number | null
+  current_price: number | null; revenue_growth_yoy: string | null
   margin: string | null; value_chain_position: string | null; structural_thesis: string | null
-  sector_tags: string[]; high_12m: number | null; gap_from_high_pct: number | null
-  trend_verdict: string | null; verdict: string | null; fail_reason: string | null
-  notes: string | null; created_at: string; updated_at: string
-}
-
-interface SmallcapScreening {
-  id: string; ticker: string; company_name: string | null; sector: string | null
-  scan_date: string; market_cap_m: number | null; change_pct: number | null
-  composite_score: number | null; tier: 'A' | 'B' | 'C' | 'F'
+  sector_tags: string[]; sector: string | null; high_12m: number | null
+  gap_from_high_pct: number | null; trend_verdict: string | null
+  verdict: string | null; fail_reason: string | null; notes: string | null
   track: 'profitable' | 'hypergrowth' | null
-  growth_score: number | null; value_score: number | null; quality_score: number | null
-  momentum_score: number | null; insider_score: number | null; sentiment_score: number | null
-  fail_reasons: string[] | null
-  structural_thesis: string | null; value_chain_position: string | null
+  composite_score: number | null; growth_score: number | null; value_score: number | null
+  quality_score: number | null; momentum_score: number | null
+  insider_score: number | null; sentiment_score: number | null
+  fail_reasons: string[] | null; change_pct: number | null
+  created_at: string; updated_at: string
 }
 
 interface WatchlistItem {
@@ -60,19 +56,16 @@ const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 
 
 interface Props {
   stockResearch: StockResearch[]
-  smallcapData: SmallcapScreening[]
   loadStockResearch: () => Promise<void>
-  loadSmallcapScreening: (scanDate?: string) => Promise<void>
   isLoadingResearch: boolean
-  isLoadingSmallcap: boolean
   stockTrades: StockTrade[]
   stockQuotes?: Record<string, { price: number; change: number; changePercent: number; currency: string }>
   usdKrwRate?: number
 }
 
 export function InvestmentKanban({
-  stockResearch, smallcapData, loadStockResearch, loadSmallcapScreening,
-  isLoadingResearch, isLoadingSmallcap, stockTrades, stockQuotes, usdKrwRate,
+  stockResearch, loadStockResearch,
+  isLoadingResearch, stockTrades, stockQuotes, usdKrwRate,
 }: Props) {
   const [watchlistData, setWatchlistData] = useState<{ portfolio: WatchlistItem[]; watchlist: WatchlistItem[]; benchmark: WatchlistItem[] } | null>(null)
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true)
@@ -82,11 +75,9 @@ export function InvestmentKanban({
   const [usdKrw, setUsdKrw] = useState(1400)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingResearch, setEditingResearch] = useState<StockResearch | null>(null)
-  const [isSmallcapModalOpen, setIsSmallcapModalOpen] = useState(false)
-  const [editingSmallcap, setEditingSmallcap] = useState<{ id: string; ticker: string; companyName: string; thesis: string; valueChain: string } | null>(null)
-  const [isSavingSmallcap, setIsSavingSmallcap] = useState(false)
   const [watchlistSort, setWatchlistSort] = useState<'momentum' | 'signal'>('momentum')
   const [researchSort, setResearchSort] = useState<'recommend' | 'momentum'>('recommend')
+  const [researchSourceFilter, setResearchSourceFilter] = useState<'all' | 'valuechain' | 'smallcap'>('all')
   const [pinTarget, setPinTarget] = useState<{ name: string; ticker: string; currency?: string } | null>(null)
   const [pinDate, setPinDate] = useState('')
   const [pinPrice, setPinPrice] = useState<number | string>('')
@@ -320,55 +311,44 @@ export function InvestmentKanban({
     return sortBySignal(a, b)
   })
 
-  // Build research column data — only pass + A/B tier, exclude portfolio/watchlist tickers
-  // Recommendation priority: pass_tier1 (0) > 소형주 A (1) > pass_tier2 (2) > 소형주 B (3)
-  const rankOrder: Record<string, number> = { pass_tier1: 0, A: 1, pass_tier2: 2, B: 3 }
+  // Build research column data — only pass verdicts, exclude portfolio/watchlist tickers
+  const rankOrder: Record<string, number> = { pass_tier1: 0, pass_tier2: 1 }
   function getRecommendRank(card: ResearchCardData): number {
-    const key = card.type === 'research' ? card.verdict : card.tier
-    return key ? (rankOrder[key] ?? 4) : 4
+    return card.verdict ? (rankOrder[card.verdict] ?? 2) : 2
   }
 
   const researchCards: ResearchCardData[] = []
   const seenTickers = new Set<string>()
 
-  // stock_research: only pass items
   for (const r of stockResearch) {
     if (!r.verdict?.startsWith('pass')) continue
     if (seenTickers.has(r.ticker)) continue
     if (watchlistTickers.has(r.ticker)) continue
     seenTickers.add(r.ticker)
     researchCards.push({
-      id: r.id, type: 'research', ticker: r.ticker, companyName: r.company_name,
+      id: r.id, sourceType: r.source_type, ticker: r.ticker,
+      companyName: r.company_name || r.ticker,
       verdict: r.verdict as 'pass_tier1' | 'pass_tier2' | undefined,
-      sectorTags: r.sector_tags, marketCapB: r.market_cap_b, currentPrice: r.current_price,
+      sectorTags: r.sector_tags, sector: r.sector,
+      marketCapB: r.market_cap_b, marketCapM: r.market_cap_m,
+      currentPrice: r.current_price,
       thesis: r.structural_thesis, valueChain: r.value_chain_position,
       scanDate: r.scan_date, source: r.source,
-      gapFromHighPct: r.gap_from_high_pct, failReason: r.fail_reason, notes: r.notes,
-    })
-  }
-
-  // smallcap: only A/B tier
-  for (const s of smallcapData) {
-    if (s.tier !== 'A' && s.tier !== 'B') continue
-    if (seenTickers.has(s.ticker)) continue
-    if (watchlistTickers.has(s.ticker)) continue
-    seenTickers.add(s.ticker)
-    researchCards.push({
-      id: s.id, type: 'smallcap', ticker: s.ticker, companyName: s.company_name || s.ticker,
-      tier: s.tier, track: s.track, compositeScore: s.composite_score,
-      marketCapM: s.market_cap_m, changePct: s.change_pct, sector: s.sector,
-      growthScore: s.growth_score, valueScore: s.value_score, qualityScore: s.quality_score,
-      momentumScore: s.momentum_score, insiderScore: s.insider_score, sentimentScore: s.sentiment_score,
-      scanDate: s.scan_date, failReasons: s.fail_reasons,
-      thesis: s.structural_thesis, valueChain: s.value_chain_position,
+      gapFromHighPct: r.gap_from_high_pct,
+      failReason: r.fail_reason, failReasons: r.fail_reasons,
+      notes: r.notes,
+      track: r.track, compositeScore: r.composite_score,
+      changePct: r.change_pct,
+      growthScore: r.growth_score, valueScore: r.value_score,
+      qualityScore: r.quality_score, momentumScore: r.momentum_score,
+      insiderScore: r.insider_score, sentimentScore: r.sentiment_score,
     })
   }
 
   // Sort research cards
   function getResearchMomentum(card: ResearchCardData): number {
-    // smallcap: use momentumScore (0-100), research: use gapFromHighPct (closer to 0 = stronger)
-    if (card.type === 'smallcap' && card.momentumScore != null) return card.momentumScore
-    if (card.type === 'research' && card.gapFromHighPct != null) return Math.max(0, 100 + card.gapFromHighPct)
+    if (card.momentumScore != null) return card.momentumScore
+    if (card.gapFromHighPct != null) return Math.max(0, 100 + card.gapFromHighPct)
     return -1
   }
   if (researchSort === 'recommend') {
@@ -376,6 +356,10 @@ export function InvestmentKanban({
   } else {
     researchCards.sort((a, b) => getResearchMomentum(b) - getResearchMomentum(a))
   }
+
+  const filteredResearchCards = researchSourceFilter === 'all'
+    ? researchCards
+    : researchCards.filter(c => c.sourceType === researchSourceFilter)
 
   // Move actions
   const handleMoveToWatchlist = async (name: string, ticker: string, sector: string, axis?: string, fromGroup?: string) => {
@@ -472,44 +456,6 @@ export function InvestmentKanban({
   const openEditResearch = (id: string) => {
     const found = stockResearch.find(r => r.id === id)
     if (found) { setEditingResearch(found); setIsModalOpen(true) }
-  }
-
-  const openEditSmallcap = (id: string) => {
-    const found = smallcapData.find(s => s.id === id)
-    if (found) {
-      setEditingSmallcap({
-        id: found.id,
-        ticker: found.ticker,
-        companyName: found.company_name || found.ticker,
-        thesis: found.structural_thesis || '',
-        valueChain: found.value_chain_position || '',
-      })
-      setIsSmallcapModalOpen(true)
-    }
-  }
-
-  const handleSaveSmallcap = async () => {
-    if (!editingSmallcap) return
-    setIsSavingSmallcap(true)
-    try {
-      const res = await fetch('/api/willow-mgmt/smallcap-screening', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: editingSmallcap.id,
-          structural_thesis: editingSmallcap.thesis || null,
-          value_chain_position: editingSmallcap.valueChain || null,
-        }),
-      })
-      if (res.ok) {
-        setIsSmallcapModalOpen(false)
-        await loadSmallcapScreening()
-      }
-    } catch (error) {
-      console.error('Failed to save smallcap thesis:', error)
-    } finally {
-      setIsSavingSmallcap(false)
-    }
   }
 
   const isLoading = isLoadingWatchlist || isLoadingSignals
@@ -688,22 +634,28 @@ export function InvestmentKanban({
                 >
                   모멘텀
                 </button>
-                <span className="text-[10px] text-slate-400 ml-1">{researchCards.length}종목</span>
+                <button
+                  onClick={() => setResearchSourceFilter(f => f === 'all' ? 'valuechain' : f === 'valuechain' ? 'smallcap' : 'all')}
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-500"
+                >
+                  {researchSourceFilter === 'all' ? '전체' : researchSourceFilter === 'valuechain' ? '밸류체인' : '소형주'}
+                </button>
+                <span className="text-[10px] text-slate-400 ml-1">{filteredResearchCards.length}종목</span>
               </div>
             </div>
             <ScrollArea className="flex-1" style={{ maxHeight: '600px' }}>
               <div className="space-y-1.5">
-                {(isLoadingResearch || isLoadingSmallcap) ? (
+                {isLoadingResearch ? (
                   <div className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-slate-400" /></div>
-                ) : researchCards.length === 0 ? (
+                ) : filteredResearchCards.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-4">리서치 항목이 없습니다</p>
                 ) : (
-                  researchCards.map(card => (
+                  filteredResearchCards.map(card => (
                     <InvestmentCardResearch
                       key={card.id}
                       data={card}
                       onAddToWatchlist={() => handleMoveToWatchlist(card.companyName, card.ticker, card.sectorTags?.[0] || card.sector || '미분류')}
-                      onEdit={card.type === 'research' ? () => openEditResearch(card.id) : () => openEditSmallcap(card.id)}
+                      onEdit={() => openEditResearch(card.id)}
                     />
                   ))
                 )}
@@ -719,47 +671,6 @@ export function InvestmentKanban({
         editing={editingResearch}
         onSaved={loadStockResearch}
       />
-
-      {/* Smallcap thesis/value chain edit modal */}
-      <Dialog open={isSmallcapModalOpen} onOpenChange={setIsSmallcapModalOpen}>
-        <DialogContent className="max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0 pb-4 border-b">
-            <DialogTitle>
-              {editingSmallcap?.ticker} {editingSmallcap?.companyName} — 리서치 메모
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 px-1 -mx-1 py-4">
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">밸류체인 포지션</label>
-              <Input
-                value={editingSmallcap?.valueChain || ''}
-                onChange={(e) => setEditingSmallcap(prev => prev ? { ...prev, valueChain: e.target.value } : prev)}
-                placeholder="AI 데이터센터 냉각/전력 인프라"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">투자논거</label>
-              <Textarea
-                value={editingSmallcap?.thesis || ''}
-                onChange={(e) => setEditingSmallcap(prev => prev ? { ...prev, thesis: e.target.value } : prev)}
-                rows={4}
-                placeholder="구조적 성장 논거..."
-                className="resize-none"
-              />
-            </div>
-          </div>
-          <div className="flex flex-row flex-nowrap justify-between flex-shrink-0 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <div />
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setIsSmallcapModalOpen(false)}>취소</Button>
-              <Button size="sm" onClick={handleSaveSmallcap} disabled={isSavingSmallcap}>
-                {isSavingSmallcap && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                저장
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Pin monitoring start dialog */}
       <Dialog open={!!pinTarget} onOpenChange={(open) => !open && setPinTarget(null)}>
