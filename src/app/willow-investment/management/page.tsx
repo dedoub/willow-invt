@@ -1066,63 +1066,20 @@ export default function WillowManagementPage() {
     notes: string | null
     created_at: string
     updated_at: string
-  }
-  interface SmallcapScreening {
-    id: string
-    ticker: string
-    company_name: string | null
+    source_type: 'valuechain' | 'smallcap'
+    market: string
     sector: string | null
-    industry: string | null
-    country: string | null
-    scan_date: string
+    track: 'profitable' | 'hypergrowth' | null
     market_cap_m: number | null
-    price: number | null
-    change_pct: number | null
-    volume: number | null
-    avg_volume: number | null
-    pe: number | null
-    forward_pe: number | null
-    peg: number | null
-    ps: number | null
-    pb: number | null
-    roe: number | null
-    roa: number | null
-    roi: number | null
-    gross_margin: number | null
-    operating_margin: number | null
-    profit_margin: number | null
-    current_ratio: number | null
-    quick_ratio: number | null
-    debt_to_equity: number | null
-    perf_week: number | null
-    perf_month: number | null
-    perf_quarter: number | null
-    perf_half: number | null
-    perf_year: number | null
-    perf_ytd: number | null
-    insider_own_pct: number | null
-    insider_trans_pct: number | null
-    inst_own_pct: number | null
-    inst_trans_pct: number | null
-    short_float_pct: number | null
-    insider_buys_3m: number
-    insider_buy_value_3m: number
-    reddit_mentions: number
-    reddit_sentiment: number | null
-    reddit_buzz_score: number | null
+    composite_score: number | null
     growth_score: number | null
     value_score: number | null
     quality_score: number | null
     momentum_score: number | null
     insider_score: number | null
     sentiment_score: number | null
-    composite_score: number | null
-    rs_rank: number | null
-    tier: 'A' | 'B' | 'C' | 'F'
-    track: 'profitable' | 'hypergrowth' | null
     fail_reasons: string[] | null
-    structural_thesis: string | null
-    value_chain_position: string | null
+    change_pct: number | null
   }
   const [stockResearch, setStockResearch] = useState<StockResearch[]>([])
   const [isLoadingResearch, setIsLoadingResearch] = useState(true)
@@ -1133,20 +1090,6 @@ export default function WillowManagementPage() {
   const [researchPage, setResearchPage] = useState(1)
   const [researchPerPage, setResearchPerPage] = useState(10)
   const [expandedResearch, setExpandedResearch] = useState<Set<string>>(new Set())
-
-  // Smallcap screening states
-  const [smallcapData, setSmallcapData] = useState<SmallcapScreening[]>([])
-  const [smallcapSummary, setSmallcapSummary] = useState<{ total: number; byTier: { A: number; B: number; C: number; F: number }; byTrack: { profitable: number; hypergrowth: number }; scanDate: string | null } | null>(null)
-  const [smallcapScanDates, setSmallcapScanDates] = useState<string[]>([])
-  const [smallcapSelectedDate, setSmallcapSelectedDate] = useState<string>('')
-  const [isLoadingSmallcap, setIsLoadingSmallcap] = useState(false)
-  const [smallcapTierFilter, setSmallcapTierFilter] = useState<'all' | 'A' | 'B' | 'C' | 'F'>('all')
-  const [smallcapTrackFilter, setSmallcapTrackFilter] = useState<'all' | 'profitable' | 'hypergrowth'>('all')
-  const [smallcapPage, setSmallcapPage] = useState(1)
-  const [smallcapPerPage, setSmallcapPerPage] = useState(10)
-  const [expandedSmallcap, setExpandedSmallcap] = useState<Set<string>>(new Set())
-  const [smallcapSortKey, setSmallcapSortKey] = useState<'composite_score' | 'market_cap_m' | 'change_pct' | 'insider_buys_3m' | 'reddit_mentions' | 'rs_rank'>('composite_score')
-  const [smallcapSortAsc, setSmallcapSortAsc] = useState(false)
 
   // Research form states
   const [researchFormTicker, setResearchFormTicker] = useState('')
@@ -1339,7 +1282,7 @@ export default function WillowManagementPage() {
     fetchClients(); fetchProjects(); fetchMilestones()
     fetchSchedules(); fetchMilestonesWithSchedules(); fetchMemos()
   }, [fetchClients, fetchProjects, fetchMilestones, fetchSchedules, fetchMilestonesWithSchedules, fetchMemos])
-  useAgentRefresh(['willow_mgmt', 'work_wiki', 'financial', 'stock_research', 'stock_trades', 'smallcap_screening', 're_'], refreshAllData)
+  useAgentRefresh(['willow_mgmt', 'work_wiki', 'financial', 'stock_research', 'stock_trades', 're_'], refreshAllData)
 
   // Save viewMode to localStorage
   useEffect(() => {
@@ -2524,29 +2467,6 @@ export default function WillowManagementPage() {
     }
   }, [])
 
-  // ====== Smallcap Screening Functions ======
-  const loadSmallcapScreening = useCallback(async (scanDate?: string) => {
-    setIsLoadingSmallcap(true)
-    try {
-      const params = new URLSearchParams()
-      if (scanDate) params.set('scan_date', scanDate)
-      const res = await fetch(`/api/willow-mgmt/smallcap-screening?${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        setSmallcapData(data.items || [])
-        setSmallcapSummary(data.summary || null)
-        setSmallcapScanDates(data.scanDates || [])
-        if (!scanDate && data.summary?.scanDate) {
-          setSmallcapSelectedDate(data.summary.scanDate)
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load smallcap screening:', error)
-    } finally {
-      setIsLoadingSmallcap(false)
-    }
-  }, [])
-
   const loadRealEstateData = useCallback(async (districts: string[], complexIds: string[], area: string, period: string) => {
     setIsLoadingRe(true)
     try {
@@ -3193,13 +3113,6 @@ export default function WillowManagementPage() {
       loadRealEstateData(reDistrictFilter, reComplexFilter, reAreaFilter, rePeriodFilter)
     }
   }, [researchSubTab, reDistrictFilter, reComplexFilter, reAreaFilter, rePeriodFilter, loadRealEstateData])
-
-  // Load smallcap screening data on mount (for investment kanban)
-  useEffect(() => {
-    if (smallcapData.length === 0) {
-      loadSmallcapScreening()
-    }
-  }, [smallcapData.length, loadSmallcapScreening])
 
   // Auto-refresh stock quotes every 5 minutes
   useEffect(() => {
@@ -5892,11 +5805,8 @@ export default function WillowManagementPage() {
       {/* Row 2.5 - Investment Kanban (full width) */}
       <InvestmentKanban
         stockResearch={stockResearch}
-        smallcapData={smallcapData}
         loadStockResearch={loadStockResearch}
-        loadSmallcapScreening={loadSmallcapScreening}
         isLoadingResearch={isLoadingResearch}
-        isLoadingSmallcap={isLoadingSmallcap}
         stockTrades={stockTrades}
         stockQuotes={stockQuotes}
         usdKrwRate={usdKrwRate}
