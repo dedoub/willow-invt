@@ -5,7 +5,7 @@ import { ArrowRight, Pencil } from 'lucide-react'
 
 export interface ResearchCardData {
   id: string
-  type: 'research' | 'smallcap'
+  sourceType: 'valuechain' | 'smallcap'
   ticker: string
   companyName: string
   verdict?: 'pass_tier1' | 'pass_tier2' | 'fail'
@@ -19,7 +19,6 @@ export interface ResearchCardData {
   gapFromHighPct?: number | null
   failReason?: string | null
   notes?: string | null
-  tier?: 'A' | 'B' | 'C' | 'F'
   track?: 'profitable' | 'hypergrowth' | null
   compositeScore?: number | null
   marketCapM?: number | null
@@ -40,12 +39,14 @@ interface Props {
   onEdit?: () => void
 }
 
-// Unified badge config — distinguishes source via badge
-const badgeConfig: Record<string, { label: string; bg: string; text: string }> = {
+const verdictBadge: Record<string, { label: string; bg: string; text: string }> = {
   pass_tier1: { label: 'T1', bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-400' },
   pass_tier2: { label: 'T2', bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400' },
-  A: { label: '소형주 A', bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-400' },
-  B: { label: '소형주 B', bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400' },
+}
+
+const sourceLabel: Record<string, string> = {
+  valuechain: '밸류체인',
+  smallcap: '소형주',
 }
 
 function ScoreBar({ label, value }: { label: string; value: number | null | undefined }) {
@@ -71,8 +72,8 @@ function formatMarketCap(capB?: number | null, capM?: number | null): string {
 }
 
 export function InvestmentCardResearch({ data, onAddToWatchlist, onEdit }: Props) {
-  const badgeKey = data.type === 'research' ? data.verdict : data.tier
-  const badge = badgeKey ? badgeConfig[badgeKey] : null
+  const badge = data.verdict ? verdictBadge[data.verdict] : null
+  const srcLabel = sourceLabel[data.sourceType] || ''
 
   const mcap = formatMarketCap(data.marketCapB, data.marketCapM)
   const sectors = data.sectorTags?.length ? data.sectorTags : (data.sector ? [data.sector] : [])
@@ -88,6 +89,7 @@ export function InvestmentCardResearch({ data, onAddToWatchlist, onEdit }: Props
             {badge.label}
           </span>
         )}
+        {srcLabel && <span className="text-[9px] text-slate-400 dark:text-slate-500">{srcLabel}</span>}
         {data.track === 'hypergrowth' && (
           <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400">HG</span>
         )}
