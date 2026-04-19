@@ -296,7 +296,9 @@ function buildSystemPrompt(context: string, history: Message[]): string {
   return `너는 류하의 학습 도우미 "공부친구"야.
 류하는 초등학생이야. 친근한 친구처럼 반말로 대화해.
 
-현재 시각: ${timeStr} (${dayOfWeek}요일)
+오늘 날짜: ${now.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+현재 시각: ${timeStr}
+(중요: 날짜를 말할 때는 반드시 위 "오늘 날짜"를 기준으로 해. 추측하지 마.)
 
 ## 성격 & 말투
 - 밝고 에너지 넘치는 친구 느낌
@@ -794,6 +796,7 @@ async function checkMorningGreeting() {
     console.log('[greeting] sending morning greeting')
     const context = await buildContext()
     const prompt = `너는 류하의 학습관리 도우미 봇 "리나(Rina)"야.
+오늘 날짜: ${kst.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
 현재 시각: ${kst.toLocaleString('ko-KR')}
 
 오늘의 학습 현황:
@@ -829,6 +832,7 @@ async function checkEveningReminder() {
     console.log('[evening] sending evening reminder')
     const context = await buildContext()
     const prompt = `너는 류하의 학습관리 도우미 봇 "리나(Rina)"야.
+오늘 날짜: ${kst.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
 현재 시각: ${kst.toLocaleString('ko-KR')}
 
 오늘의 학습 현황:
