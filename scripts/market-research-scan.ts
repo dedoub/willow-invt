@@ -3,6 +3,7 @@ config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import { spawn } from 'child_process'
+import { markdownToTelegramHtml } from './telegram-utils'
 
 // ============================================================
 // Unified Research Scanner — 통합 종목 리서치 스캔
@@ -56,13 +57,26 @@ async function sendTelegramMessage(chatId: number, text: string) {
   }
 
   for (const chunk of chunks) {
-    const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: chunk }),
-    })
-    if (!res.ok) {
-      log(`❌ 텔레그램 전송 실패: ${res.status} ${await res.text()}`)
+    try {
+      const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: markdownToTelegramHtml(chunk), parse_mode: 'HTML' }),
+      })
+      if (!res.ok) {
+        log(`HTML 전송 실패, plain text 재시도: ${res.status}`)
+        await fetch(`${TELEGRAM_API}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text: chunk }),
+        })
+      }
+    } catch {
+      await fetch(`${TELEGRAM_API}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: chunk }),
+      }).catch(e => log(`❌ 텔레그램 전송 실패: ${e}`))
     }
     if (chunks.length > 1) await new Promise(r => setTimeout(r, 500))
   }
@@ -296,10 +310,27 @@ interface ResearchEntry {
   trend_verdict: string | null
   verdict: string | null
   notes: string | null
+  sector: string | null
+  track: string | null
+  composite_score: number | null
+  growth_score: number | null
+  value_score: number | null
+  quality_score: number | null
+  momentum_score: number | null
+  insider_score: number | null
+  sentiment_score: number | null
 }
 
-async function extractResearchEntries(report: string): Promise<ResearchEntry[]> {
-  const extractPrompt = `아래 마켓 리서치 리포트에서 언급된 **비보유 신규 후보 종목**만 추출하세요.
+function deriveVerdict(compositeScore: number | null): string {
+  if (compositeScore == null) return 'pass_tier2'
+  if (compositeScore >= 65) return 'pass_tier1'
+  if (compositeScore >= 50) return 'pass_tier2'
+  return 'fail'
+}
+
+async function extractResearchEntries(report: string, sourceType: 'valuechain' | 'smallcap'): Promise<ResearchEntry[]> {
+  const sourceLabel = sourceType === 'valuechain' ? '밸류체인 리서치' : '마켓 리서치'
+  const extractPrompt = `아래 ${sourceLabel} 리포트에서 언급된 **비보유 신규 후보 종목**만 추출하세요.
 기존 보유 종목(SK하이닉스, 삼성전자, 시에나, 버티브, 블룸에너지, 아이렌, 오클로, 한화에어로스페이스, 현대로템, 팔란티어, 로켓랩, 디웨이브, 현대차, 미래에셋증권)은 제외합니다.
 
 각 종목에 대해 아래 JSON 배열 형식으로만 출력하세요. 설명 텍스트 없이 순수 JSON만:
@@ -308,24 +339,49 @@ async function extractResearchEntries(report: string): Promise<ResearchEntry[]> 
   {
     "ticker": "CRDO",
     "company_name": "Credo Technology",
-    "source": "market_scan",
+    "source": "${sourceType === 'valuechain' ? 'valuechain' : 'market_scan'}",
     "sector_tags": ["AI 인프라", "네트워킹"],
-    "structural_thesis": "AI 데이터센터 네트워킹 수요 증가 수혜",
+    "sector": "Technology",
+    "track": "AI Infra",
+    "structural_thesis": "AI 데이터센터 네트워킹 수요 증가 수혜. 400G/800G 이더넷 스위치 수요 급증에 따른 연결 솔루션 시장 확대.",
     "high_12m": 85.5,
     "gap_from_high_pct": -12.3,
     "current_price": 75.0,
     "market_cap_b": 12.5,
     "trend_verdict": "near_breakout",
-    "verdict": "pass_tier2",
-    "notes": "레딧 r/stocks 다수 언급. 신고가 근접."
+    "notes": "레딧 r/stocks 다수 언급. 신고가 근접.",
+    "composite_score": 72,
+    "growth_score": 80,
+    "value_score": 55,
+    "quality_score": 70,
+    "momentum_score": 75,
+    "insider_score": 65,
+    "sentiment_score": 78
   }
 ]
 
-규칙:
+## 점수 채점 기준 (0-100 스케일)
+각 항목을 리포트 내용 + 종목 특성에 기반해 채점:
+- **growth_score**: 매출/이익 성장률, TAM 확대 가능성
+- **value_score**: PER/PSR 수준, 동종 대비 밸류에이션
+- **quality_score**: 마진 추세, 재무 건전성, 경쟁 우위
+- **momentum_score**: 주가 추세, 신고가 근접도, 거래량 추세
+- **insider_score**: 내부자 매수/매도, 기관 보유 변동
+- **sentiment_score**: 애널리스트 의견, 소셜 센티먼트, 뉴스 톤
+- **composite_score**: 위 6개 가중평균 (growth 25%, quality 20%, momentum 20%, value 15%, sentiment 10%, insider 10%)
+
+## verdict 규칙 (composite_score 기반)
+- composite_score ≥ 65 → "pass_tier1" (강한 후보)
+- composite_score ≥ 50 → "pass_tier2" (관심 후보)
+- composite_score < 50 → "fail" (탈락)
+
+## 기타 규칙
 - 숫자를 모르면 null
-- source: "market_scan" (데이터 기반), "reddit_buzz" (레딧 기반), "cross_signal" (교차 검증)
-- verdict: "pass_tier1" (강한 후보), "pass_tier2" (관심 후보), "fail" (탈락)
+- source: "${sourceType === 'valuechain' ? 'valuechain' : 'market_scan'}" (데이터 기반), "reddit_buzz" (레딧 기반), "cross_signal" (교차 검증)
 - trend_verdict: "near_breakout" (신고가 근접), "watch" (관찰 중), "too_far" (고점 대비 너무 멀음), null (판단 불가)
+- sector: 섹터명 (Technology, Healthcare, Industrials, Energy, etc.)
+- track: 포트폴리오 축 ("AI Infra", "Geopolitics", "Next Gen", "ETF", 또는 null)
+- structural_thesis: 2-3문장 구조적 투자 논거 (절대 null 금지, 반드시 작성)
 - 한국 종목 ticker: "005930" (숫자만, .KS 제외)
 - 후보 종목이 없으면 빈 배열 [] 출력
 - 이미 워치리스트에 있는 종목도 포함 (최신 상태 업데이트용)
@@ -353,9 +409,17 @@ ${report}`
       trend_verdict: e.trend_verdict
         ? VALID_TREND.has(e.trend_verdict) ? e.trend_verdict : (TREND_MAP[e.trend_verdict] || null)
         : null,
-      verdict: e.verdict
-        ? VALID_VERDICT.has(e.verdict) ? e.verdict : (VERDICT_MAP[e.verdict] || 'pass_tier2')
-        : 'pass_tier2',
+      // Derive verdict from composite_score (≥65=T1, ≥50=T2, <50=fail)
+      verdict: deriveVerdict(e.composite_score),
+      sector: e.sector || null,
+      track: e.track || null,
+      composite_score: e.composite_score ?? null,
+      growth_score: e.growth_score ?? null,
+      value_score: e.value_score ?? null,
+      quality_score: e.quality_score ?? null,
+      momentum_score: e.momentum_score ?? null,
+      insider_score: e.insider_score ?? null,
+      sentiment_score: e.sentiment_score ?? null,
     }))
     return entries
   } catch (err) {
@@ -387,6 +451,8 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
           source: entry.source,
           source_type: sourceType,
           sector_tags: entry.sector_tags,
+          sector: entry.sector,
+          track: entry.track,
           structural_thesis: entry.structural_thesis,
           high_12m: entry.high_12m,
           gap_from_high_pct: entry.gap_from_high_pct,
@@ -395,6 +461,13 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
           trend_verdict: entry.trend_verdict,
           verdict: entry.verdict,
           notes: entry.notes,
+          composite_score: entry.composite_score,
+          growth_score: entry.growth_score,
+          value_score: entry.value_score,
+          quality_score: entry.quality_score,
+          momentum_score: entry.momentum_score,
+          insider_score: entry.insider_score,
+          sentiment_score: entry.sentiment_score,
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing[0].id)
@@ -414,6 +487,8 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
           source: entry.source || 'market_scan',
           source_type: sourceType,
           sector_tags: entry.sector_tags || [],
+          sector: entry.sector,
+          track: entry.track,
           structural_thesis: entry.structural_thesis,
           high_12m: entry.high_12m,
           gap_from_high_pct: entry.gap_from_high_pct,
@@ -422,6 +497,13 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
           trend_verdict: entry.trend_verdict,
           verdict: entry.verdict,
           notes: entry.notes,
+          composite_score: entry.composite_score,
+          growth_score: entry.growth_score,
+          value_score: entry.value_score,
+          quality_score: entry.quality_score,
+          momentum_score: entry.momentum_score,
+          insider_score: entry.insider_score,
+          sentiment_score: entry.sentiment_score,
         })
 
       if (error) {
@@ -460,6 +542,18 @@ async function main() {
           }
         }
         log(`✅ 밸류체인 리포트 전송 완료`)
+
+        // Extract and upsert to DB
+        log('📊 밸류체인 리포트에서 종목 데이터 추출 중...')
+        const entries = await extractResearchEntries(report, 'valuechain')
+
+        if (entries.length > 0) {
+          log(`  📋 ${entries.length}개 종목 추출: ${entries.map(e => e.ticker).join(', ')}`)
+          const upserted = await upsertResearchEntries(entries, 'valuechain')
+          log(`  ✅ stock_research 테이블 ${upserted}건 적재 완료`)
+        } else {
+          log('  ℹ️ 밸류체인 신규 후보 종목 없음 — DB 적재 스킵')
+        }
       } else {
         log('⚠️ 밸류체인 리포트가 비어있거나 너무 짧습니다')
         await sendTelegramMessage(chatId, '🔍 밸류체인 스캔: 데이터 조회에 실패했어요.')
@@ -490,7 +584,7 @@ async function main() {
 
       // Extract and upsert to DB
       log('📊 리포트에서 종목 데이터 추출 중...')
-      const entries = await extractResearchEntries(report)
+      const entries = await extractResearchEntries(report, 'smallcap')
 
       if (entries.length > 0) {
         log(`  📋 ${entries.length}개 종목 추출: ${entries.map(e => e.ticker).join(', ')}`)

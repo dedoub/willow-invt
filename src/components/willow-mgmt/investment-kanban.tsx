@@ -312,9 +312,8 @@ export function InvestmentKanban({
   })
 
   // Build research column data — only pass verdicts, exclude portfolio/watchlist tickers
-  const rankOrder: Record<string, number> = { pass_tier1: 0, pass_tier2: 1 }
-  function getRecommendRank(card: ResearchCardData): number {
-    return card.verdict ? (rankOrder[card.verdict] ?? 2) : 2
+  function getCompositeRank(card: ResearchCardData): number {
+    return -(card.compositeScore ?? 0)  // negative for descending sort
   }
 
   const researchCards: ResearchCardData[] = []
@@ -352,7 +351,7 @@ export function InvestmentKanban({
     return -1
   }
   if (researchSort === 'recommend') {
-    researchCards.sort((a, b) => getRecommendRank(a) - getRecommendRank(b))
+    researchCards.sort((a, b) => getCompositeRank(a) - getCompositeRank(b))
   } else {
     researchCards.sort((a, b) => getResearchMomentum(b) - getResearchMomentum(a))
   }
