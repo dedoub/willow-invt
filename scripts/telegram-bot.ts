@@ -1546,12 +1546,12 @@ async function marketMonitorCheck() {
       return
     }
 
-    // 미국장 휴장 감지: KST 00:00~00:10 (써머타임) 또는 01:00~01:10 (일반) 사이에 여전히 CLOSED면 휴장 (평일만)
-    // 써머타임 여부와 무관하게 넉넉하게 00:00~01:10 범위로 체크
-    // 미국장 체크 시점(KST 자정~01시)의 요일: 미국 기준 월~금 야간이면 KST 화~토 자정이므로 토요일(6)도 체크 대상
-    // 단, KST 일요일 자정(=미국 토요일)은 스킵
+    // 미국장 휴장 감지: KST 00:00~01:10 사이에 여전히 CLOSED면 휴장 (미국 기준 평일만)
+    // KST 자정~01시 = 미국 전날 오전/오후이므로, 미국 기준 요일로 판단해야 함
+    // KST 일요일 자정 = 미국 토요일, KST 월요일 자정 = 미국 일요일 → 둘 다 주말
+    // KST 화~토 자정 = 미국 월~금 → 평일
     const usCheckDay = now.getDay() // KST 기준 요일
-    const isUsWeekend = usCheckDay === 0 // KST 일요일 자정 = 미국 토요일밤 → 휴장 당연
+    const isUsWeekend = usCheckDay === 0 || usCheckDay === 1 // KST 일·월 자정 = 미국 토·일
     if (!briefingKey && !isUsWeekend && ((kstHour === 0 && kstMinute >= 0) || (kstHour === 1 && kstMinute <= 10))
       && current.us !== 'REGULAR' && current.us !== 'PRE' && current.us !== 'ERROR' && current.us !== 'UNKNOWN'
       && proactiveState.lastMarketBriefing.usHoliday !== todayStr
