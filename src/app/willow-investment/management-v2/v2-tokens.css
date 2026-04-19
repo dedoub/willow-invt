@@ -1,0 +1,186 @@
+/* A (Refined) Design Tokens — scoped to .mgmt-v2 */
+
+.mgmt-v2 {
+  /* ── Override Tailwind/shadcn CSS variables ── */
+  --background: #F7F6F3;
+  --foreground: #1C1917;
+  --card: #EFEDE8;
+  --card-foreground: #1C1917;
+  --popover: #FFFFFF;
+  --popover-foreground: #1C1917;
+  --primary: #3F93C6;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EFEDE8;
+  --secondary-foreground: #1C1917;
+  --muted: #EFEDE8;
+  --muted-foreground: #6B6760;
+  --accent: #EAF5FB;
+  --accent-foreground: #265E87;
+  --destructive: #B0413E;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(17,24,39,0.06);
+  --input: rgba(17,24,39,0.06);
+  --ring: #3F93C6;
+  --radius: 0.5rem;
+
+  /* ── Font family override ── */
+  font-family: var(--font-v2-sans), 'Inter', system-ui, sans-serif;
+
+  /* ── Numeric alignment ── */
+  font-variant-numeric: tabular-nums;
+
+  /* ── Page background ── */
+  background-color: #F7F6F3;
+  color: #1C1917;
+}
+
+/* ── Override slate palette → warm gray ── */
+.mgmt-v2 .bg-slate-50 { background-color: #F7F6F3 !important; }
+.mgmt-v2 .bg-slate-100 { background-color: #EFEDE8 !important; }
+.mgmt-v2 .bg-slate-200 { background-color: #E8E6E0 !important; }
+.mgmt-v2 .bg-slate-800 { background-color: #EFEDE8 !important; }
+.mgmt-v2 .bg-slate-900 { background-color: #1C1917 !important; }
+.mgmt-v2 .bg-white { background-color: #FFFFFF !important; }
+.mgmt-v2 .bg-background { background-color: #F7F6F3 !important; }
+.mgmt-v2 .bg-card { background-color: #EFEDE8 !important; }
+
+/* ── Dark mode overrides (disable dark, force light) ── */
+.mgmt-v2 .dark\:bg-slate-600,
+.mgmt-v2 .dark\:bg-slate-700,
+.mgmt-v2 .dark\:bg-slate-800,
+.mgmt-v2 .dark\:bg-slate-900 {
+  background-color: inherit !important;
+}
+.mgmt-v2 .dark\:text-slate-200,
+.mgmt-v2 .dark\:text-slate-300,
+.mgmt-v2 .dark\:text-slate-400 {
+  color: inherit !important;
+}
+
+/* ── Text colors ── */
+.mgmt-v2 .text-slate-500,
+.mgmt-v2 .text-slate-400,
+.mgmt-v2 .text-muted-foreground { color: #6B6760 !important; }
+.mgmt-v2 .text-slate-600 { color: #6B6760 !important; }
+.mgmt-v2 .text-slate-700 { color: #1C1917 !important; }
+.mgmt-v2 .text-slate-800,
+.mgmt-v2 .text-slate-900 { color: #1C1917 !important; }
+
+/* ── Border overrides — subtle line only ── */
+.mgmt-v2 .border,
+.mgmt-v2 .border-b,
+.mgmt-v2 .border-t,
+.mgmt-v2 .border-l,
+.mgmt-v2 .border-r,
+.mgmt-v2 [class*="border-slate"],
+.mgmt-v2 [class*="border-gray"] {
+  border-color: rgba(17,24,39,0.06) !important;
+}
+
+/* ── Remove shadows ── */
+.mgmt-v2 .shadow,
+.mgmt-v2 .shadow-sm,
+.mgmt-v2 .shadow-md,
+.mgmt-v2 .shadow-lg,
+.mgmt-v2 .shadow-xl {
+  box-shadow: none !important;
+}
+
+/* ── Radius refinement ── */
+.mgmt-v2 .rounded-lg { border-radius: 10px !important; }
+.mgmt-v2 .rounded-md { border-radius: 8px !important; }
+.mgmt-v2 .rounded { border-radius: 6px !important; }
+
+/* ── Brand colors (blue buttons, active states) ── */
+.mgmt-v2 .bg-brand-600 { background-color: #3078AA !important; }
+.mgmt-v2 .bg-brand-700 { background-color: #265E87 !important; }
+.mgmt-v2 .text-brand-600 { color: #3078AA !important; }
+.mgmt-v2 .text-brand-700 { color: #265E87 !important; }
+
+/* ── Status badge colors (warm tones) ── */
+.mgmt-v2 .bg-amber-100 { background-color: #FBEFD5 !important; }
+.mgmt-v2 .text-amber-700 { color: #8B5A12 !important; }
+.mgmt-v2 .bg-blue-100 { background-color: #DCE8F5 !important; }
+.mgmt-v2 .text-blue-700 { color: #1F4E79 !important; }
+.mgmt-v2 .bg-emerald-100 { background-color: #DAEEDD !important; }
+.mgmt-v2 .text-emerald-700 { color: #1F5F3D !important; }
+.mgmt-v2 .bg-red-100 { background-color: #F3DADA !important; }
+.mgmt-v2 .text-red-700 { color: #8A2A2A !important; }
+
+/* ── Gain/loss colors ── */
+.mgmt-v2 .text-green-600,
+.mgmt-v2 .text-green-700,
+.mgmt-v2 .text-emerald-600 { color: #2F8F5B !important; }
+.mgmt-v2 .text-red-500,
+.mgmt-v2 .text-red-600 { color: #B0413E !important; }
+
+/* ── Table zebra striping ── */
+.mgmt-v2 table tbody tr:nth-child(odd) {
+  background-color: #FFFFFF;
+}
+.mgmt-v2 table tbody tr:nth-child(even) {
+  background-color: transparent;
+}
+
+/* ── Table rows — 40px height ── */
+.mgmt-v2 table tbody tr {
+  height: 40px;
+}
+.mgmt-v2 table th {
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #9A9590;
+  padding: 8px 12px;
+}
+
+/* ── Card padding ── */
+.mgmt-v2 .p-6 { padding: 16px !important; }
+
+/* ── Section title styling ── */
+.mgmt-v2 [class*="CardTitle"] {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+/* ── Monospace elements (dates, codes) ── */
+.mgmt-v2 .font-mono,
+.mgmt-v2 [class*="mono"] {
+  font-family: var(--font-v2-mono), 'JetBrains Mono', monospace !important;
+}
+
+/* ── Input/Select fields ── */
+.mgmt-v2 input,
+.mgmt-v2 textarea,
+.mgmt-v2 select,
+.mgmt-v2 [role="combobox"] {
+  background-color: #FFFFFF !important;
+  border-color: rgba(17,24,39,0.06) !important;
+  border-radius: 8px !important;
+}
+.mgmt-v2 input:focus,
+.mgmt-v2 textarea:focus {
+  border-color: #3F93C6 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px #3F93C6 !important;
+}
+
+/* ── Button overrides ── */
+.mgmt-v2 button[class*="bg-slate-900"] {
+  background-color: #1C1917 !important;
+}
+
+/* ── Positive/negative number formatting ── */
+.mgmt-v2 .tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Scrollbar (keep thin, match warm gray) ── */
+.mgmt-v2 ::-webkit-scrollbar-thumb {
+  background: rgba(28, 25, 23, 0.3);
+}
+.mgmt-v2 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(28, 25, 23, 0.5);
+}

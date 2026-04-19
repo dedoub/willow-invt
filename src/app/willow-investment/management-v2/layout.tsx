@@ -1,5 +1,5 @@
-// src/app/willow-investment/management-v2/layout.tsx
 import { Inter, JetBrains_Mono } from 'next/font/google'
+import './v2-tokens.css'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -21,7 +21,7 @@ export default function ManagementV2Layout({
   children: React.ReactNode
 }) {
   return (
-    <div className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <div className={`${inter.variable} ${jetbrainsMono.variable} mgmt-v2`}>
       {children}
     </div>
   )
