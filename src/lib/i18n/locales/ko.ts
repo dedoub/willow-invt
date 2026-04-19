@@ -87,6 +87,7 @@ export const ko = {
     // 윌로우인베스트먼트
     willowInvest: '윌로우인베스트먼트',
     willowManagement: '사업관리',
+    willowManagementV2: '사업관리 v2',
     // 메뉴 섹션
     etfIndexing: 'ETF/Index',
     etc: 'ETC',

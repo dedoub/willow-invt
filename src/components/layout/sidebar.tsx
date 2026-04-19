@@ -65,6 +65,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       icon: <Image src="/leaf-icon.png" alt="" width={16} height={16} className="h-4 w-4 brightness-0 invert opacity-70" />,
       items: [
         { title: t.sidebar.willowManagement, href: '/willow-investment/management' },
+        { title: t.sidebar.willowManagementV2, href: '/willow-investment/management-v2' },
       ],
     },
     {

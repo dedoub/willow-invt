@@ -87,6 +87,7 @@ export const en = {
     // Willow Investment
     willowInvest: 'Willow Investment',
     willowManagement: 'Management',
+    willowManagementV2: 'Management v2',
     // Menu sections
     etfIndexing: 'ETF/Index',
     etc: 'ETC',
