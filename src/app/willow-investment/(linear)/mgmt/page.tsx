@@ -29,7 +29,6 @@ interface EmailItem {
 
 export default function MgmtPage() {
   const [loading, setLoading] = useState(true)
-  const [currentDate, setCurrentDate] = useState(new Date())
   const [schedules, setSchedules] = useState<WillowMgmtSchedule[]>([])
   const [clients, setClients] = useState<WillowMgmtClient[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -51,15 +50,14 @@ export default function MgmtPage() {
         setInvoices(Array.isArray(data) ? data : data.invoices || [])
       }
 
-      // Gmail
+      // Gmail — uses context=willow, label=WILLOW (matching existing management page)
       try {
-        const gmailLabel = 'willow-mgmt'
-        const statusRes = await fetch(`/api/gmail/status?label=${gmailLabel}`)
+        const statusRes = await fetch('/api/gmail/status?context=willow')
         if (statusRes.ok) {
           const status = await statusRes.json()
-          setGmailConnected(status.connected)
-          if (status.connected) {
-            const emailsRes = await fetch(`/api/gmail/emails?label=${gmailLabel}&limit=10`)
+          setGmailConnected(status.isConnected === true)
+          if (status.isConnected) {
+            const emailsRes = await fetch('/api/gmail/emails?context=willow&label=WILLOW')
             if (emailsRes.ok) {
               const emailData = await emailsRes.json()
               const parsed: EmailItem[] = (emailData.emails || []).map((e: Record<string, unknown>) => ({
@@ -80,14 +78,6 @@ export default function MgmtPage() {
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
-
-  const navigate = (dir: -1 | 1) => {
-    setCurrentDate(prev => {
-      const d = new Date(prev)
-      d.setDate(d.getDate() + dir * 7)
-      return d
-    })
-  }
 
   if (loading) {
     return (
@@ -123,8 +113,6 @@ export default function MgmtPage() {
         <ScheduleBlock
           schedules={schedules}
           clients={clients}
-          currentDate={currentDate}
-          onNavigate={navigate}
           onAddSchedule={() => {}}
         />
         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 14 }}>
