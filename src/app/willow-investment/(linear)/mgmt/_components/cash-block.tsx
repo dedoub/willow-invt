@@ -17,7 +17,7 @@ interface Invoice {
   amount: number
   issue_date: string | null
   payment_date: string | null
-  status: 'issued' | 'completed'
+  status: string
 }
 
 interface CashBlockProps {
@@ -32,9 +32,9 @@ export function CashBlock({ invoices, onAddInvoice }: CashBlockProps) {
   const expense = invoices.filter(i => i.type === 'expense').reduce((s, i) => s + i.amount, 0)
   const pending = invoices.filter(i => i.type === 'revenue' && i.status === 'issued').reduce((s, i) => s + i.amount, 0)
 
-  const recentInvoices = invoices
-    .sort((a, b) => (b.issue_date || '').localeCompare(a.issue_date || ''))
-    .slice(0, 5)
+  const recentInvoices = [...invoices]
+    .sort((a, b) => (b.payment_date || b.issue_date || '').localeCompare(a.payment_date || a.issue_date || ''))
+    .slice(0, 8)
 
   return (
     <LCard pad={0}>
@@ -85,8 +85,9 @@ export function CashBlock({ invoices, onAddInvoice }: CashBlockProps) {
       <div style={{ padding: '0 16px 16px' }}>
         {recentInvoices.map((v) => {
           const isIncome = v.type === 'revenue'
-          const statusTone = v.status === 'completed' ? 'done' as const : 'pending' as const
-          const statusLabel = v.status === 'completed' ? '완료' : '미수'
+          const isDone = v.status === 'completed' || v.status === 'paid'
+          const statusTone = isDone ? 'done' as const : 'pending' as const
+          const statusLabel = isDone ? '완료' : '미수'
           return (
             <div key={v.id} style={{
               display: 'grid', gridTemplateColumns: '55px 1.2fr 1.8fr 1fr 60px',
@@ -95,7 +96,7 @@ export function CashBlock({ invoices, onAddInvoice }: CashBlockProps) {
               fontSize: 12,
             }}>
               <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 11 }}>
-                {(v.issue_date || '').slice(5)}
+                {(v.payment_date || v.issue_date || '').slice(5)}
               </span>
               <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {v.counterparty}

@@ -16,7 +16,7 @@ interface Invoice {
   amount: number
   issue_date: string | null
   payment_date: string | null
-  status: 'issued' | 'completed'
+  status: string
 }
 
 interface EmailItem {
