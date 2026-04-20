@@ -32,26 +32,35 @@ function getWeekDays(date: Date) {
   })
 }
 
-function getMonthGrid(year: number, month: number): (Date | null)[][] {
+function getMonthGrid(year: number, month: number): Date[][] {
   const first = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0).getDate()
   // Monday = 0
   let startOffset = first.getDay() - 1
   if (startOffset < 0) startOffset = 6
 
-  const weeks: (Date | null)[][] = []
-  let week: (Date | null)[] = Array(startOffset).fill(null)
+  const days: Date[] = []
 
-  for (let d = 1; d <= lastDay; d++) {
-    week.push(new Date(year, month, d))
-    if (week.length === 7) {
-      weeks.push(week)
-      week = []
-    }
+  // Fill previous month days
+  for (let i = startOffset - 1; i >= 0; i--) {
+    const d = new Date(year, month, -i)
+    days.push(d)
   }
-  if (week.length > 0) {
-    while (week.length < 7) week.push(null)
-    weeks.push(week)
+
+  // Current month
+  for (let d = 1; d <= lastDay; d++) {
+    days.push(new Date(year, month, d))
+  }
+
+  // Fill next month days
+  while (days.length % 7 !== 0) {
+    const d = new Date(year, month + 1, days.length - startOffset - lastDay + 1)
+    days.push(d)
+  }
+
+  const weeks: Date[][] = []
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7))
   }
   return weeks
 }
@@ -158,7 +167,7 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule }: ScheduleBlo
           background: 'transparent', border: 'none', cursor: 'pointer',
           padding: 4, borderRadius: 4, color: t.neutrals.muted,
         }}>
-          <LIcon name="chevronDown" size={14} stroke={2} />
+          <LIcon name="chevronLeft" size={14} stroke={2} />
         </button>
         <span style={{ fontSize: 12, fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
           {navLabel}
@@ -167,7 +176,7 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule }: ScheduleBlo
           background: 'transparent', border: 'none', cursor: 'pointer',
           padding: 4, borderRadius: 4, color: t.neutrals.muted,
         }}>
-          <LIcon name="chevronDown" size={14} stroke={2} />
+          <LIcon name="chevronRight" size={14} stroke={2} />
         </button>
       </div>
 
@@ -233,21 +242,16 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule }: ScheduleBlo
               borderTop: wi > 0 ? `1px solid ${t.neutrals.line}` : 'none',
             }}>
               {week.map((day, di) => {
-                if (!day) {
-                  return <div key={`empty-${di}`} style={{
-                    minHeight: 72, padding: 6,
-                    borderRight: di < 6 ? `1px solid ${t.neutrals.line}` : 'none',
-                    background: t.neutrals.inner + '80',
-                  }} />
-                }
                 const dateStr = formatDateLocal(day)
                 const isToday = dateStr === todayStr
+                const isCurrentMonth = day.getMonth() === baseDate.getMonth()
                 const daySchedules = schedules.filter(s => matchesDate(s, dateStr))
                 return (
                   <div key={dateStr} style={{
                     minHeight: 72, padding: 6,
                     borderRight: di < 6 ? `1px solid ${t.neutrals.line}` : 'none',
                     background: isToday ? t.brand[50] : 'transparent',
+                    opacity: isCurrentMonth ? 1 : 0.35,
                     minWidth: 0, overflow: 'hidden',
                   }}>
                     <div style={{

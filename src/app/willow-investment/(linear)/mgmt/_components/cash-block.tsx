@@ -129,7 +129,7 @@ export function CashBlock({ invoices, onAddInvoice }: CashBlockProps) {
               background: 'transparent', border: 'none', cursor: 'pointer',
               padding: 4, borderRadius: 4, color: t.neutrals.muted,
             }}>
-              <LIcon name="chevronDown" size={13} stroke={2} />
+              <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
             <span style={{ fontSize: 12, fontWeight: 500, fontFamily: t.font.sans, minWidth: 90, textAlign: 'center' }}>
               {periodLabel}
@@ -138,7 +138,7 @@ export function CashBlock({ invoices, onAddInvoice }: CashBlockProps) {
               background: 'transparent', border: 'none', cursor: 'pointer',
               padding: 4, borderRadius: 4, color: t.neutrals.muted,
             }}>
-              <LIcon name="chevronDown" size={13} stroke={2} />
+              <LIcon name="chevronRight" size={13} stroke={2} />
             </button>
           </div>
         </div>
