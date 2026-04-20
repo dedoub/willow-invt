@@ -1114,15 +1114,40 @@ interface ProactiveState {
   lastMarketBriefing: { usOpen: string; usClose: string; krOpen: string; krClose: string; usHoliday: string; krHoliday: string } // 브리핑 중복 방지 (날짜)
 }
 
-let proactiveState: ProactiveState = {
-  lastCheckAt: '',
-  lastSnapshotHash: '',
-  lastReportedIssues: [],
-  morningBriefSent: null,
-  weeklyBriefSent: null,
-  marketState: { us: '', kr: '' },
-  lastMarketBriefing: { usOpen: '', usClose: '', krOpen: '', krClose: '', usHoliday: '', krHoliday: '' },
+const PROACTIVE_STATE_FILE = join(__dirname, 'logs', 'proactive-state.json')
+
+function loadProactiveState(): ProactiveState {
+  try {
+    const data = readFileSync(PROACTIVE_STATE_FILE, 'utf-8')
+    const saved = JSON.parse(data)
+    console.log('📌 proactiveState 복원:', saved.morningBriefSent ? `아침브리핑=${saved.morningBriefSent}` : '(초기)')
+    return { ...defaultProactiveState(), ...saved }
+  } catch {
+    return defaultProactiveState()
+  }
 }
+
+function defaultProactiveState(): ProactiveState {
+  return {
+    lastCheckAt: '',
+    lastSnapshotHash: '',
+    lastReportedIssues: [],
+    morningBriefSent: null,
+    weeklyBriefSent: null,
+    marketState: { us: '', kr: '' },
+    lastMarketBriefing: { usOpen: '', usClose: '', krOpen: '', krClose: '', usHoliday: '', krHoliday: '' },
+  }
+}
+
+function saveProactiveState() {
+  try {
+    writeFileSync(PROACTIVE_STATE_FILE, JSON.stringify(proactiveState, null, 2))
+  } catch (err) {
+    console.error('proactiveState 저장 실패:', err)
+  }
+}
+
+let proactiveState: ProactiveState = loadProactiveState()
 
 // 간단한 해시 함수 (데이터 변화 감지)
 function simpleHash(str: string): string {
@@ -1342,6 +1367,7 @@ async function proactiveCheck() {
 
       await sendSplitMessage(ceoChatId, response)
       proactiveState.morningBriefSent = todayStr
+      saveProactiveState()
 
       // 대화 기록에도 저장 (락으로 보호)
       await appendToConversation(ceoChatId, { role: 'assistant', content: `[아침 브리핑]\n${response}`, timestamp: now.toISOString() })
@@ -1357,6 +1383,7 @@ async function proactiveCheck() {
     if (dayOfWeek === 1 && hour === 10 && minute >= 30 && proactiveState.weeklyBriefSent !== weekId) {
       await sendWeeklyBriefing(ceoChatId)
       proactiveState.weeklyBriefSent = weekId
+      saveProactiveState()
       return
     }
 
@@ -1385,6 +1412,7 @@ async function proactiveCheck() {
 
     proactiveState.lastSnapshotHash = currentHash
     proactiveState.lastCheckAt = todayStr
+    saveProactiveState()
 
     if (response.trim() === 'SKIP') {
       console.log('  → 알릴 사항 없음')
@@ -1402,6 +1430,7 @@ async function proactiveCheck() {
     if (proactiveState.lastReportedIssues.length > 20) {
       proactiveState.lastReportedIssues = proactiveState.lastReportedIssues.slice(-20)
     }
+    saveProactiveState()
 
     // 대화 기록 저장 (락으로 보호)
     await appendToConversation(ceoChatId, { role: 'assistant', content: `[자율 알림]\n${response}`, timestamp: now.toISOString() })
@@ -1540,6 +1569,7 @@ async function marketMonitorCheck() {
       && proactiveState.lastMarketBriefing.krOpen !== todayStr) {
       proactiveState.lastMarketBriefing.krHoliday = todayStr
       proactiveState.marketState = current
+      saveProactiveState()
       console.log(`📊 한국장 휴장 감지 (${current.kr})`)
       await sendMessage(ceoChatId, '오늘은 한국장 휴장이에요 🇰🇷')
       await appendToConversation(ceoChatId, { role: 'assistant', content: '[마켓 브리핑]\n오늘은 한국장 휴장이에요 🇰🇷', timestamp: new Date().toISOString() })
@@ -1558,6 +1588,7 @@ async function marketMonitorCheck() {
       && proactiveState.lastMarketBriefing.usOpen !== todayStr) {
       proactiveState.lastMarketBriefing.usHoliday = todayStr
       proactiveState.marketState = current
+      saveProactiveState()
       console.log(`📊 미국장 휴장 감지 (${current.us})`)
       await sendMessage(ceoChatId, '오늘은 미국장 휴장이에요 🇺🇸')
       await appendToConversation(ceoChatId, { role: 'assistant', content: '[마켓 브리핑]\n오늘은 미국장 휴장이에요 🇺🇸', timestamp: new Date().toISOString() })
@@ -1566,6 +1597,7 @@ async function marketMonitorCheck() {
 
     // 상태 업데이트 (브리핑 여부와 무관하게 항상)
     proactiveState.marketState = current
+    saveProactiveState()
 
     if (!briefingType || !briefingKey) {
       // 상태 변화 로깅 (디버깅용)
