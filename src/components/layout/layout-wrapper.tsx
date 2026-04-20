@@ -10,6 +10,7 @@ import { ChatPanel } from '@/components/chat/chat-panel'
 
 const PUBLIC_PATHS = ['/login', '/signup']
 const STANDALONE_PATHS = ['/mcp/authorize'] // 인증 여부와 무관하게 독립 렌더링
+const LINEAR_ROUTES = ['/willow-investment/mgmt', '/willow-investment/invest', '/willow-investment/wiki']
 
 interface LayoutWrapperProps {
   children: React.ReactNode
@@ -38,6 +39,23 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
 
   // Standalone paths: render without layout or redirects
   if (isStandalonePath) {
+    return <>{children}</>
+  }
+
+  // Linear routes: render with auth check but without default layout
+  const isLinearRoute = LINEAR_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
+  if (isLinearRoute) {
+    if (isLoading) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+        </div>
+      )
+    }
+    if (!user) {
+      router.push('/login')
+      return null
+    }
     return <>{children}</>
   }
 
