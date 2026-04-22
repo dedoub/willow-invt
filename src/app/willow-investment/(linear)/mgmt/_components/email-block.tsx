@@ -53,10 +53,10 @@ function ActionBtn({ icon, label, onClick, spinning, disabled }: {
       title={label}
       style={{
         display: 'flex', alignItems: 'center', gap: 4,
-        padding: '4px 8px', borderRadius: t.radius.sm,
+        padding: '4px 10px', borderRadius: t.radius.sm,
         background: t.neutrals.inner, border: 'none',
         fontSize: 11.5, fontFamily: t.font.sans, fontWeight: 500,
-        color: disabled ? t.neutrals.subtle : t.neutrals.muted,
+        color: disabled ? t.neutrals.subtle : t.neutrals.text,
         cursor: disabled ? 'default' : 'pointer',
         opacity: disabled ? 0.5 : 1,
         whiteSpace: 'nowrap',
