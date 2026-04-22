@@ -161,7 +161,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
           </div>
 
           {/* Note rows */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 4px 4px' }}>
+          <div style={{ flex: 1, overflow: 'hidden', padding: '0 4px 4px' }}>
             {loading ? (
               <div style={{ padding: '30px 14px', textAlign: 'center', fontSize: 12, color: t.neutrals.subtle }}>
                 로딩 중...
