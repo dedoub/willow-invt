@@ -46,6 +46,7 @@ export interface StockCardData {
   compositeScore?: number | null
   sourceType?: string
   researchId?: string
+  marketCapLabel?: string
 }
 
 /* ── Configs ── */
@@ -160,7 +161,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
           )}
         </div>
       )}
-      {/* Row 1: ticker + name + price */}
+      {/* Row 1: ticker + name + price/mcap */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
           <span style={{ fontSize: 12, fontWeight: t.weight.bold, fontFamily: t.font.mono, color: t.neutrals.text }}>
@@ -171,11 +172,18 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{data.name}</span>
         </div>
-        {data.price != null && (
-          <span style={{ fontSize: 11.5, fontWeight: t.weight.medium, fontFamily: t.font.mono, flexShrink: 0 }}>
-            {fmtPrice(data.price, data.currency)}
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {data.marketCapLabel && (
+            <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+              {data.marketCapLabel}
+            </span>
+          )}
+          {data.group !== 'research' && data.price != null && (
+            <span style={{ fontSize: 11.5, fontWeight: t.weight.medium, fontFamily: t.font.mono }}>
+              {fmtPrice(data.price, data.currency)}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Row 2: axis/sector + change% */}

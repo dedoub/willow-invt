@@ -12,6 +12,7 @@ interface ComposeEmailDialogProps {
   open: boolean
   mode: ComposeMode
   originalEmail?: FullEmail | null
+  gmailContext?: string
   onClose: () => void
   onSent: () => void
 }
@@ -44,7 +45,7 @@ function buildBody(mode: ComposeMode, orig?: FullEmail | null) {
   return header + (orig.body || orig.snippet || '')
 }
 
-export function ComposeEmailDialog({ open, mode, originalEmail, onClose, onSent }: ComposeEmailDialogProps) {
+export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, onClose, onSent }: ComposeEmailDialogProps) {
   const [to, setTo] = useState('')
   const [cc, setCc] = useState('')
   const [subject, setSubject] = useState('')
@@ -76,7 +77,8 @@ export function ComposeEmailDialog({ open, mode, originalEmail, onClose, onSent 
       if (cc) form.append('cc', cc)
       for (const f of files) form.append('attachments', f)
 
-      const res = await fetch('/api/gmail/send?context=willow', { method: 'POST', body: form })
+      const ctx = gmailContext || originalEmail?.gmailContext || 'willow'
+      const res = await fetch(`/api/gmail/send?context=${ctx}`, { method: 'POST', body: form })
       if (!res.ok) throw new Error('Send failed')
       onSent()
       onClose()

@@ -1,6 +1,7 @@
 'use client'
 
-import { t } from '@/app/willow-investment/_components/linear-tokens'
+import { useState, useMemo } from 'react'
+import { t, tonePalettes } from '@/app/willow-investment/_components/linear-tokens'
 import { LCard } from '@/app/willow-investment/_components/linear-card'
 import { LSectionHead } from '@/app/willow-investment/_components/linear-section-head'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
@@ -13,6 +14,21 @@ interface EmailBlockProps {
   onSync: () => void
   onCompose: () => void
   isSyncing?: boolean
+}
+
+const SOURCE_FILTERS = [
+  { key: 'all',    label: '전체' },
+  { key: 'WILLOW', label: '윌로우' },
+  { key: 'TENSW',  label: '텐소프트' },
+  { key: 'ETC',    label: 'ETC' },
+  { key: 'Akros',  label: '아크로스' },
+] as const
+
+const SOURCE_TONE: Record<string, { bg: string; fg: string }> = {
+  WILLOW: tonePalettes.done,
+  TENSW:  tonePalettes.warn,
+  ETC:    tonePalettes.info,
+  Akros:  { bg: '#E0F2F1', fg: '#00695C' },
 }
 
 function timeAgo(dateStr: string): string {
@@ -56,10 +72,34 @@ function ActionBtn({ icon, label, onClick, spinning, disabled }: {
 export function EmailBlock({
   emails, connected, onSelectEmail, onSync, onCompose, isSyncing,
 }: EmailBlockProps) {
+  const [sourceFilter, setSourceFilter] = useState<string>('all')
+
+  // Count emails per source
+  const sourceCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const e of emails) {
+      const src = e.sourceLabel || 'WILLOW'
+      counts[src] = (counts[src] || 0) + 1
+    }
+    return counts
+  }, [emails])
+
+  // Only show filters for sources that have emails
+  const activeFilters = useMemo(() => {
+    const available = SOURCE_FILTERS.filter(f => f.key === 'all' || sourceCounts[f.key])
+    // Don't show filters if only one source exists
+    return available.length <= 2 ? [] : available
+  }, [sourceCounts])
+
+  const filtered = useMemo(() => {
+    if (sourceFilter === 'all') return emails
+    return emails.filter(e => (e.sourceLabel || 'WILLOW') === sourceFilter)
+  }, [emails, sourceFilter])
+
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
-        <LSectionHead eyebrow="EMAIL · WILLOW" title="이메일" action={
+        <LSectionHead eyebrow="EMAIL" title="이메일" action={
           <span style={{
             fontSize: 11, fontFamily: t.font.mono,
             color: connected ? t.accent.pos : t.accent.neg,
@@ -74,68 +114,111 @@ export function EmailBlock({
         } />
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons + Source filter */}
       {connected && (
-        <div style={{
-          padding: '0 16px 10px', display: 'flex', gap: 4, flexWrap: 'wrap',
-        }}>
-          <ActionBtn icon="refresh" label="동기화" onClick={onSync} spinning={isSyncing} />
-          <div style={{ flex: 1 }} />
-          <ActionBtn icon="send" label="이메일 작성" onClick={onCompose} />
+        <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <ActionBtn icon="refresh" label="동기화" onClick={onSync} spinning={isSyncing} />
+            <div style={{ flex: 1 }} />
+            <ActionBtn icon="send" label="이메일 작성" onClick={onCompose} />
+          </div>
+          {activeFilters.length > 0 && (
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {activeFilters.map(f => {
+                const active = sourceFilter === f.key
+                const tone = f.key !== 'all' ? SOURCE_TONE[f.key] : undefined
+                return (
+                  <button
+                    key={f.key}
+                    onClick={() => setSourceFilter(f.key)}
+                    style={{
+                      padding: '2px 8px', borderRadius: t.radius.pill,
+                      border: 'none', cursor: 'pointer',
+                      fontSize: 10, fontWeight: t.weight.medium, fontFamily: t.font.sans,
+                      background: active
+                        ? (tone?.bg || t.neutrals.text)
+                        : t.neutrals.inner,
+                      color: active
+                        ? (tone?.fg || '#fff')
+                        : t.neutrals.muted,
+                      transition: 'all .15s',
+                    }}
+                  >
+                    {f.label}
+                    {f.key !== 'all' && sourceCounts[f.key] ? ` ${sourceCounts[f.key]}` : ''}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {/* Email list */}
       <div>
-        {emails.slice(0, 8).map((m) => (
-          <div
-            key={m.id}
-            onClick={() => onSelectEmail(m)}
-            style={{
-              display: 'grid', gridTemplateColumns: '1fr 50px',
-              gap: 8, padding: '9px 16px', alignItems: 'center',
-              borderTop: `1px solid ${t.neutrals.line}`,
-              fontSize: 12, cursor: 'pointer',
-              background: m.unread ? 'transparent' : t.neutrals.inner + '40',
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                {m.unread && <span style={{ width: 5, height: 5, borderRadius: 3, background: t.brand[600], flexShrink: 0 }} />}
-                {m.direction === 'outbound' && (
+        {filtered.slice(0, 12).map((m) => {
+          const srcTone = m.sourceLabel ? SOURCE_TONE[m.sourceLabel] : undefined
+          return (
+            <div
+              key={`${m.sourceLabel || ''}-${m.id}`}
+              onClick={() => onSelectEmail(m)}
+              style={{
+                display: 'grid', gridTemplateColumns: '1fr 50px',
+                gap: 8, padding: '9px 16px', alignItems: 'center',
+                borderTop: `1px solid ${t.neutrals.line}`,
+                fontSize: 12, cursor: 'pointer',
+                background: m.unread ? 'transparent' : t.neutrals.inner + '40',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  {m.unread && <span style={{ width: 5, height: 5, borderRadius: 3, background: t.brand[600], flexShrink: 0 }} />}
+                  {m.direction === 'outbound' && (
+                    <span style={{
+                      fontSize: 8.5, fontFamily: t.font.mono, fontWeight: 600,
+                      padding: '0 4px', borderRadius: 2,
+                      background: '#DAEEDD', color: '#1F5F3D',
+                    }}>발신</span>
+                  )}
+                  {m.sourceLabel && sourceFilter === 'all' && activeFilters.length > 0 && (
+                    <span style={{
+                      fontSize: 8, fontFamily: t.font.mono, fontWeight: 600,
+                      padding: '0 4px', borderRadius: 2,
+                      background: srcTone?.bg || t.neutrals.inner,
+                      color: srcTone?.fg || t.neutrals.subtle,
+                      flexShrink: 0,
+                    }}>
+                      {SOURCE_FILTERS.find(f => f.key === m.sourceLabel)?.label || m.sourceLabel}
+                    </span>
+                  )}
                   <span style={{
-                    fontSize: 8.5, fontFamily: t.font.mono, fontWeight: 600,
-                    padding: '0 4px', borderRadius: 2,
-                    background: '#DAEEDD', color: '#1F5F3D',
-                  }}>발신</span>
-                )}
-                <span style={{
-                  fontSize: 10.5, color: t.neutrals.muted,
+                    fontSize: 10.5, color: t.neutrals.muted,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
+                    {m.fromName || m.from.replace(/<.*>/, '').trim() || m.from}
+                  </span>
+                  {m.category && (
+                    <span style={{
+                      fontSize: 8.5, fontFamily: t.font.mono,
+                      padding: '0 4px', borderRadius: 2,
+                      background: t.neutrals.inner, color: t.neutrals.subtle,
+                      flexShrink: 0,
+                    }}>{m.category}</span>
+                  )}
+                </div>
+                <div style={{
+                  fontWeight: m.unread ? 500 : 400,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>
-                  {m.fromName || m.from.replace(/<.*>/, '').trim() || m.from}
-                </span>
-                {m.category && (
-                  <span style={{
-                    fontSize: 8.5, fontFamily: t.font.mono,
-                    padding: '0 4px', borderRadius: 2,
-                    background: t.neutrals.inner, color: t.neutrals.subtle,
-                    flexShrink: 0,
-                  }}>{m.category}</span>
-                )}
+                }}>{m.subject || '(제목 없음)'}</div>
               </div>
-              <div style={{
-                fontWeight: m.unread ? 500 : 400,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>{m.subject || '(제목 없음)'}</div>
+              <span style={{
+                fontFamily: t.font.mono, fontSize: 10, color: t.neutrals.subtle,
+                textAlign: 'right',
+              }}>{timeAgo(m.date)} 전</span>
             </div>
-            <span style={{
-              fontFamily: t.font.mono, fontSize: 10, color: t.neutrals.subtle,
-              textAlign: 'right',
-            }}>{timeAgo(m.date)} 전</span>
-          </div>
-        ))}
-        {emails.length === 0 && connected && (
+          )
+        })}
+        {filtered.length === 0 && connected && (
           <div style={{
             padding: '20px 16px', textAlign: 'center',
             fontSize: 12, color: t.neutrals.subtle,

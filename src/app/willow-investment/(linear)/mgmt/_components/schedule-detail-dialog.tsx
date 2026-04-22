@@ -1,13 +1,28 @@
 'use client'
 
-import { t, eventTones } from '@/app/willow-investment/_components/linear-tokens'
+import { t, eventTones, tonePalettes } from '@/app/willow-investment/_components/linear-tokens'
 import { LBtn } from '@/app/willow-investment/_components/linear-btn'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
-import { WillowMgmtSchedule, WillowMgmtClient } from '@/types/willow-mgmt'
+import { WillowMgmtSchedule } from '@/types/willow-mgmt'
+
+const CATEGORY_TONES: Record<string, { bg: string; fg: string }> = {
+  'willow-mgmt': tonePalettes.done,
+  'tensw-mgmt':  tonePalettes.warn,
+  'etf-etc':     tonePalettes.info,
+  'akros':       tonePalettes.brand,
+  'other':       tonePalettes.neutral,
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  'willow-mgmt': '윌로우',
+  'tensw-mgmt':  '텐소프트웍스',
+  'etf-etc':     'ETC',
+  'akros':       '아크로스',
+  'other':       '기타',
+}
 
 interface ScheduleDetailDialogProps {
   schedule: WillowMgmtSchedule | null
-  clients: WillowMgmtClient[]
   onClose: () => void
   onToggleComplete: (id: string, completed: boolean) => void
   onDelete: (id: string) => void
@@ -23,15 +38,18 @@ function InfoRow({ icon, children }: { icon: string; children: React.ReactNode }
   )
 }
 
-export function ScheduleDetailDialog({ schedule, clients, onClose, onToggleComplete, onDelete, onEdit }: ScheduleDetailDialogProps) {
+export function ScheduleDetailDialog({ schedule, onClose, onToggleComplete, onDelete, onEdit }: ScheduleDetailDialogProps) {
   if (!schedule) return null
 
-  const client = schedule.client_id ? clients.find(c => c.id === schedule.client_id) : null
   const done = schedule.is_completed
 
   // Tone color for the status pill
   const toneKey = done ? 'done' : schedule.type === 'deadline' ? 'warn' : 'neutral'
   const tone = eventTones[toneKey] || eventTones.neutral
+
+  // Category
+  const catTone = CATEGORY_TONES[schedule.category] || tonePalettes.neutral
+  const catLabel = CATEGORY_LABELS[schedule.category] || schedule.category
 
   // Date display
   const dateDisplay = schedule.end_date && schedule.end_date !== schedule.schedule_date
@@ -89,15 +107,13 @@ export function ScheduleDetailDialog({ schedule, clients, onClose, onToggleCompl
           }}>
             {done ? '완료' : schedule.type === 'deadline' ? '마감' : '예정'}
           </span>
-          {client && (
-            <span style={{
-              display: 'inline-block', padding: '3px 10px', borderRadius: t.radius.pill,
-              fontSize: 11, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-              background: t.neutrals.inner, color: t.neutrals.muted,
-            }}>
-              {client.name}
-            </span>
-          )}
+          <span style={{
+            display: 'inline-block', padding: '3px 10px', borderRadius: t.radius.pill,
+            fontSize: 11, fontWeight: t.weight.medium, fontFamily: t.font.sans,
+            background: catTone.bg, color: catTone.fg,
+          }}>
+            {catLabel}
+          </span>
         </div>
 
         {/* Body */}

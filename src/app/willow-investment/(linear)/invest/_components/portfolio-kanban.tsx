@@ -38,6 +38,7 @@ export interface StockResearch {
   composite_score: number | null; momentum_score: number | null
   gap_from_high_pct: number | null; change_pct: number | null
   structural_thesis: string | null; track: string | null
+  market_cap_b: number | null; market_cap_m: number | null
 }
 
 export interface StockQuote {
@@ -293,6 +294,17 @@ export function PortfolioKanban({
       if (watchlistTickers.has(r.ticker)) continue
       seen.add(r.ticker)
       const sig = signalMap.get(r.ticker) || signalMap.get(r.ticker.replace('.KS', ''))
+      // Format market cap label — fallback to any scan entry for same ticker
+      const mcap = (r.market_cap_b || r.market_cap_m)
+        ? r
+        : stockResearch.find(sr => sr.ticker === r.ticker && (sr.market_cap_b || sr.market_cap_m))
+      let marketCapLabel: string | undefined
+      if (mcap?.market_cap_b != null && mcap.market_cap_b > 0) {
+        marketCapLabel = mcap.market_cap_b >= 1 ? `$${mcap.market_cap_b.toFixed(1)}B` : `$${Math.round(mcap.market_cap_b * 1000)}M`
+      } else if (mcap?.market_cap_m != null && mcap.market_cap_m > 0) {
+        marketCapLabel = mcap.market_cap_m >= 10000 ? `${(mcap.market_cap_m / 10000).toFixed(1)}조` : `${Math.round(mcap.market_cap_m).toLocaleString()}억`
+      }
+
       cards.push({
         name: r.company_name || r.ticker, ticker: r.ticker,
         sector: r.sector || '', group: 'research',
@@ -302,6 +314,7 @@ export function PortfolioKanban({
         momentumScore: sig?.momentumScore ?? r.momentum_score ?? null,
         verdict: r.verdict, compositeScore: r.composite_score,
         sourceType: r.source_type, researchId: r.id,
+        marketCapLabel,
       })
     }
     cards.sort((a, b) => -(a.compositeScore ?? 0) + (b.compositeScore ?? 0))

@@ -53,6 +53,14 @@ export default function MgmtPage() {
   const [composeOriginal, setComposeOriginal] = useState<FullEmail | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
 
+  // Email source definitions: { context, label, sourceLabel }
+  const EMAIL_SOURCES = [
+    { context: 'willow',       label: 'WILLOW', sourceLabel: 'WILLOW' },
+    { context: 'tensoftworks', label: 'TENSW',  sourceLabel: 'TENSW' },
+    { context: 'default',      label: 'ETC',    sourceLabel: 'ETC' },
+    { context: 'default',      label: 'Akros',  sourceLabel: 'Akros' },
+  ] as const
+
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
@@ -68,15 +76,19 @@ export default function MgmtPage() {
         setInvoices(Array.isArray(data) ? data : data.invoices || [])
       }
 
-      // Gmail
+      // Gmail — check all unique contexts
       try {
-        const statusRes = await fetch('/api/gmail/status?context=willow')
-        if (statusRes.ok) {
-          const status = await statusRes.json()
-          setGmailConnected(status.isConnected === true)
-          if (status.isConnected) {
-            await fetchEmails()
-          }
+        const contexts = [...new Set(EMAIL_SOURCES.map(s => s.context))]
+        const statusResults = await Promise.all(
+          contexts.map(ctx => fetch(`/api/gmail/status?context=${ctx}`).then(r => r.ok ? r.json() : null).catch(() => null))
+        )
+        const connectedContexts = new Set<string>()
+        for (let i = 0; i < contexts.length; i++) {
+          if (statusResults[i]?.isConnected) connectedContexts.add(contexts[i])
+        }
+        setGmailConnected(connectedContexts.size > 0)
+        if (connectedContexts.size > 0) {
+          await fetchEmails(connectedContexts)
         }
       } catch { /* Gmail not critical */ }
     } finally {
@@ -84,26 +96,58 @@ export default function MgmtPage() {
     }
   }, [])
 
-  const fetchEmails = async () => {
-    const emailsRes = await fetch('/api/gmail/emails?context=willow&label=WILLOW')
-    if (emailsRes.ok) {
-      const emailData = await emailsRes.json()
-      const parsed: FullEmail[] = (emailData.emails || []).map((e: Record<string, unknown>) => ({
-        id: e.id as string,
-        from: (e.from as string) || '',
-        fromName: (e.fromName as string) || undefined,
-        to: (e.to as string) || '',
-        subject: (e.subject as string) || '(제목 없음)',
-        date: (e.date as string) || new Date().toISOString(),
-        body: (e.body as string) || undefined,
-        snippet: (e.snippet as string) || undefined,
-        direction: (e.direction as 'inbound' | 'outbound') || 'inbound',
-        category: (e.category as string) || null,
-        attachments: (e.attachments as FullEmail['attachments']) || undefined,
-        unread: !(e.isRead as boolean),
-      }))
-      setEmails(parsed)
+  const fetchEmails = async (connectedContexts?: Set<string>) => {
+    // Determine which contexts are connected
+    let connected = connectedContexts
+    if (!connected) {
+      const contexts = [...new Set(EMAIL_SOURCES.map(s => s.context))]
+      const statusResults = await Promise.all(
+        contexts.map(ctx => fetch(`/api/gmail/status?context=${ctx}`).then(r => r.ok ? r.json() : null).catch(() => null))
+      )
+      connected = new Set<string>()
+      for (let i = 0; i < contexts.length; i++) {
+        if (statusResults[i]?.isConnected) connected.add(contexts[i])
+      }
     }
+
+    // Fetch emails from all connected sources in parallel
+    const sourcesToFetch = EMAIL_SOURCES.filter(s => connected!.has(s.context))
+    const results = await Promise.all(
+      sourcesToFetch.map(src =>
+        fetch(`/api/gmail/emails?context=${src.context}&label=${src.label}&maxResults=20&autoAnalyze=false`)
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null)
+      )
+    )
+
+    const allEmails: FullEmail[] = []
+    for (let i = 0; i < sourcesToFetch.length; i++) {
+      const data = results[i]
+      if (!data?.emails) continue
+      const src = sourcesToFetch[i]
+      for (const e of data.emails) {
+        allEmails.push({
+          id: e.id,
+          from: e.from || '',
+          fromName: e.fromName || undefined,
+          to: e.to || '',
+          subject: e.subject || '(제목 없음)',
+          date: e.date || new Date().toISOString(),
+          body: e.body || undefined,
+          snippet: e.snippet || undefined,
+          direction: e.direction || 'inbound',
+          category: e.category || null,
+          attachments: e.attachments || undefined,
+          unread: !e.isRead,
+          sourceLabel: src.sourceLabel,
+          gmailContext: src.context,
+        })
+      }
+    }
+
+    // Sort by date descending
+    allEmails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    setEmails(allEmails)
   }
 
   useEffect(() => { loadData() }, [loadData])
@@ -150,6 +194,7 @@ export default function MgmtPage() {
       title: data.title,
       schedule_date: data.schedule_date,
       type: data.type,
+      category: data.category,
     }
     if (isEdit) body.id = data.id
     if (data.end_date) body.end_date = data.end_date
@@ -158,8 +203,6 @@ export default function MgmtPage() {
     else if (isEdit) body.start_time = null
     if (data.end_time) body.end_time = data.end_time
     else if (isEdit) body.end_time = null
-    if (data.client_id) body.client_id = data.client_id
-    else if (isEdit) body.client_id = null
     if (data.description) body.description = data.description
     else if (isEdit) body.description = null
 
@@ -308,7 +351,6 @@ export default function MgmtPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <ScheduleBlock
           schedules={schedules}
-          clients={clients}
           onAddSchedule={handleAddSchedule}
           onToggleComplete={handleToggleComplete}
           onSelectSchedule={setSelectedSchedule}
@@ -335,7 +377,6 @@ export default function MgmtPage() {
       {/* Schedule dialogs */}
       <ScheduleDetailDialog
         schedule={selectedSchedule}
-        clients={clients}
         onClose={() => setSelectedSchedule(null)}
         onToggleComplete={handleToggleComplete}
         onDelete={handleDeleteSchedule}
@@ -345,7 +386,6 @@ export default function MgmtPage() {
         open={scheduleDialogOpen}
         defaultDate={scheduleDialogDate}
         editingSchedule={editingSchedule}
-        clients={clients}
         onClose={() => { setScheduleDialogOpen(false); setEditingSchedule(null) }}
         onSave={handleSaveSchedule}
       />
@@ -382,6 +422,7 @@ export default function MgmtPage() {
         open={composeOpen}
         mode={composeMode}
         originalEmail={composeOriginal}
+        gmailContext={composeOriginal?.gmailContext || 'willow'}
         onClose={() => { setComposeOpen(false); setComposeOriginal(null) }}
         onSent={() => { fetchEmails() }}
       />

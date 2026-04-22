@@ -42,6 +42,7 @@ export interface WillowMgmtSchedule {
   start_time: string | null
   end_time: string | null
   type: 'task' | 'meeting' | 'deadline'
+  category: 'willow-mgmt' | 'tensw-mgmt' | 'etf-etc' | 'akros' | 'other'
   color: string | null
   client_id: string | null
   milestone_id: string | null

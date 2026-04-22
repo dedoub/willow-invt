@@ -428,6 +428,58 @@ ${report}`
   }
 }
 
+/** Fetch market cap from Yahoo Finance for entries missing it */
+async function fillMarketCaps(entries: ResearchEntry[]): Promise<void> {
+  const missing = entries.filter(e => e.market_cap_b == null)
+  if (missing.length === 0) return
+  log(`📊 시가총액 조회: ${missing.length}개 종목 (Yahoo Finance)`)
+
+  const batchSize = 5
+  for (let i = 0; i < missing.length; i += batchSize) {
+    const batch = missing.slice(i, i + batchSize)
+    await Promise.all(batch.map(async (entry) => {
+      try {
+        const isKR = /^\d{6}$/.test(entry.ticker)
+        const symbol = isKR ? `${entry.ticker}.KS` : entry.ticker
+        const res = await fetch(
+          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
+          { headers: { 'User-Agent': 'Mozilla/5.0' } }
+        )
+        if (!res.ok) return
+        const data = await res.json()
+        const meta = data?.chart?.result?.[0]?.meta
+        if (!meta) return
+
+        // Try marketCap from chart meta, or estimate from price * sharesOutstanding
+        let mcap: number | null = null
+        if (meta.marketCap) {
+          mcap = meta.marketCap
+        } else if (meta.regularMarketPrice && meta.sharesOutstanding) {
+          mcap = meta.regularMarketPrice * meta.sharesOutstanding
+        }
+
+        if (mcap && mcap > 0) {
+          entry.market_cap_b = Math.round(mcap / 1e9 * 10) / 10  // to billions, 1 decimal
+          if (entry.market_cap_b < 0.1) entry.market_cap_b = Math.round(mcap / 1e6) / 1000  // sub-100M: keep precision
+          log(`  ✅ ${entry.ticker}: $${entry.market_cap_b}B`)
+        }
+
+        // Also fill current_price if missing
+        if (entry.current_price == null && meta.regularMarketPrice) {
+          entry.current_price = meta.regularMarketPrice
+        }
+      } catch {
+        // silently skip
+      }
+    }))
+    // Rate limit between batches
+    if (i + batchSize < missing.length) await new Promise(r => setTimeout(r, 500))
+  }
+
+  const filled = missing.filter(e => e.market_cap_b != null).length
+  log(`📊 시가총액 조회 완료: ${filled}/${missing.length}개 성공`)
+}
+
 async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valuechain' | 'smallcap' = 'smallcap'): Promise<number> {
   if (entries.length === 0) return 0
 
@@ -549,6 +601,7 @@ async function main() {
 
         if (entries.length > 0) {
           log(`  📋 ${entries.length}개 종목 추출: ${entries.map(e => e.ticker).join(', ')}`)
+          await fillMarketCaps(entries)
           const upserted = await upsertResearchEntries(entries, 'valuechain')
           log(`  ✅ stock_research 테이블 ${upserted}건 적재 완료`)
         } else {
@@ -588,6 +641,7 @@ async function main() {
 
       if (entries.length > 0) {
         log(`  📋 ${entries.length}개 종목 추출: ${entries.map(e => e.ticker).join(', ')}`)
+        await fillMarketCaps(entries)
         const upserted = await upsertResearchEntries(entries, 'smallcap')
         log(`  ✅ stock_research 테이블 ${upserted}건 적재 완료`)
 

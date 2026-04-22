@@ -20,14 +20,14 @@ interface WikiNoteFormProps {
 }
 
 const SECTIONS: { value: WikiSection; label: string }[] = [
-  { value: 'akros', label: 'Akros' },
-  { value: 'etf-etc', label: 'ETC' },
   { value: 'willow-mgmt', label: '윌로우' },
-  { value: 'tensw-mgmt', label: '텐소프트' },
+  { value: 'tensw-mgmt', label: '텐소프트웍스' },
+  { value: 'etf-etc', label: 'ETC' },
+  { value: 'akros', label: '아크로스' },
 ]
 
 export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFormProps) {
-  const [section, setSection] = useState<WikiSection>(initial?.section || 'akros')
+  const [section, setSection] = useState<WikiSection>(initial?.section || 'willow-mgmt')
   const [title, setTitle] = useState(initial?.title || '')
   const [content, setContent] = useState(initial?.content || '')
   const [existingFiles, setExistingFiles] = useState(initial?.attachments || [])
@@ -80,10 +80,11 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
   return (
     <div style={{
       background: t.neutrals.card, borderRadius: t.radius.md,
-      padding: 14, marginBottom: 8,
+      padding: 14, display: 'flex', flexDirection: 'column',
+      height: '100%', boxSizing: 'border-box',
     }}>
       {/* Section selector */}
-      <div style={{ marginBottom: 10 }}>
+      <div style={{ marginBottom: 10, flexShrink: 0 }}>
         <div style={{ fontSize: 10.5, color: t.neutrals.subtle, marginBottom: 4, fontFamily: t.font.mono, textTransform: 'uppercase', letterSpacing: 0.8 }}>
           섹션
         </div>
@@ -101,7 +102,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
       </div>
 
       {/* Title */}
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ marginBottom: 8, flexShrink: 0 }}>
         <input
           value={title} onChange={e => setTitle(e.target.value)}
           placeholder="제목"
@@ -109,18 +110,17 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
         />
       </div>
 
-      {/* Content */}
-      <div style={{ marginBottom: 8 }}>
+      {/* Content — fills remaining space */}
+      <div style={{ marginBottom: 8, flex: 1, display: 'flex', flexDirection: 'column' }}>
         <textarea
           value={content} onChange={e => setContent(e.target.value)}
           placeholder="내용을 입력하세요..."
-          rows={4}
-          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
+          style={{ ...inputStyle, resize: 'none', lineHeight: 1.6, flex: 1 }}
         />
       </div>
 
       {/* File attachments */}
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 12, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
           <button onClick={() => fileRef.current?.click()} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,

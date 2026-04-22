@@ -4,13 +4,12 @@ import { useState, useEffect } from 'react'
 import { t } from '@/app/willow-investment/_components/linear-tokens'
 import { LBtn } from '@/app/willow-investment/_components/linear-btn'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
-import { WillowMgmtClient, WillowMgmtSchedule } from '@/types/willow-mgmt'
+import { WillowMgmtSchedule } from '@/types/willow-mgmt'
 
 interface AddScheduleDialogProps {
   open: boolean
   defaultDate: string
   editingSchedule?: WillowMgmtSchedule | null
-  clients: WillowMgmtClient[]
   onClose: () => void
   onSave: (data: ScheduleFormData) => Promise<void>
 }
@@ -23,9 +22,17 @@ export interface ScheduleFormData {
   start_time: string
   end_time: string
   type: 'meeting'
-  client_id: string
+  category: string
   description: string
 }
+
+const CATEGORY_OPTIONS: { key: string; label: string }[] = [
+  { key: 'willow-mgmt', label: '윌로우' },
+  { key: 'tensw-mgmt', label: '텐소프트웍스' },
+  { key: 'etf-etc', label: 'ETC' },
+  { key: 'akros', label: '아크로스' },
+  { key: 'other', label: '기타' },
+]
 
 const inputBase: React.CSSProperties = {
   width: '100%', padding: '8px 10px', fontSize: 13,
@@ -36,7 +43,7 @@ const inputBase: React.CSSProperties = {
 }
 
 function emptyForm(date: string): ScheduleFormData {
-  return { title: '', schedule_date: date, end_date: '', start_time: '', end_time: '', type: 'meeting', client_id: '', description: '' }
+  return { title: '', schedule_date: date, end_date: '', start_time: '', end_time: '', type: 'meeting', category: 'willow-mgmt', description: '' }
 }
 
 function fromSchedule(s: WillowMgmtSchedule): ScheduleFormData {
@@ -48,12 +55,12 @@ function fromSchedule(s: WillowMgmtSchedule): ScheduleFormData {
     start_time: s.start_time || '',
     end_time: s.end_time || '',
     type: 'meeting',
-    client_id: s.client_id || '',
+    category: s.category || 'willow-mgmt',
     description: s.description || '',
   }
 }
 
-export function AddScheduleDialog({ open, defaultDate, editingSchedule, clients, onClose, onSave }: AddScheduleDialogProps) {
+export function AddScheduleDialog({ open, defaultDate, editingSchedule, onClose, onSave }: AddScheduleDialogProps) {
   const isEdit = !!editingSchedule
   const [form, setForm] = useState<ScheduleFormData>(emptyForm(defaultDate))
   const [saving, setSaving] = useState(false)
@@ -129,20 +136,17 @@ export function AddScheduleDialog({ open, defaultDate, editingSchedule, clients,
             />
           </div>
 
-          {/* Client chips */}
-          {clients.length > 0 && (
-            <div>
-              <Label>클라이언트</Label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <ChipBtn active={!form.client_id} onClick={() => set('client_id', '')}>없음</ChipBtn>
-                {clients.map(c => (
-                  <ChipBtn key={c.id} active={form.client_id === c.id} onClick={() => set('client_id', c.id)}>
-                    {c.name}
-                  </ChipBtn>
-                ))}
-              </div>
+          {/* Category chips */}
+          <div>
+            <Label>유형</Label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {CATEGORY_OPTIONS.map(c => (
+                <ChipBtn key={c.key} active={form.category === c.key} onClick={() => set('category', c.key)}>
+                  {c.label}
+                </ChipBtn>
+              ))}
             </div>
-          )}
+          </div>
 
           {/* Dates */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

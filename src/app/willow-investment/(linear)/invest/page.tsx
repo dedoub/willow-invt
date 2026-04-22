@@ -145,8 +145,18 @@ export default function InvestPage() {
 
   // Compute portfolio summary stats for signal bar
   const portfolioStats = useMemo(() => {
-    // Build holdings map from trades
-    const holdMap = new Map<string, { qty: number; totalCost: number; currency: string; totalBought: number }>()
+    // Build holdings map from trades (using historical FX for cost, matching holdings-block)
+    const getFxRate = (date: string): number => {
+      const d = new Date(date)
+      for (let i = 0; i < 5; i++) {
+        const key = d.toISOString().slice(0, 10)
+        if (fxHistory[key]) return fxHistory[key]
+        d.setDate(d.getDate() - 1)
+      }
+      return usdKrw
+    }
+
+    const holdMap = new Map<string, { qty: number; totalCost: number; krwCost: number; currency: string; totalBought: number }>()
     const sorted = [...stockTrades].sort((a, b) => {
       const ta = a.trade_date ? new Date(a.trade_date).getTime() : 0
       const tb = b.trade_date ? new Date(b.trade_date).getTime() : 0
@@ -154,14 +164,19 @@ export default function InvestPage() {
     })
     for (const tr of sorted) {
       const key = tr.ticker.replace('.KS', '')
-      const prev = holdMap.get(key) || { qty: 0, totalCost: 0, currency: tr.currency, totalBought: 0 }
+      const prev = holdMap.get(key) || { qty: 0, totalCost: 0, krwCost: 0, currency: tr.currency, totalBought: 0 }
       const amt = tr.total_amount ?? tr.quantity * tr.price
+      const isUS = tr.currency === 'USD' || tr.currency === 'US'
+      const histRate = isUS && tr.trade_date ? getFxRate(tr.trade_date) : 1
       if (tr.trade_type === 'buy') {
         prev.qty += tr.quantity; prev.totalCost += amt; prev.totalBought += amt
+        prev.krwCost += amt * histRate
       } else {
         const avg = prev.qty > 0 ? prev.totalCost / prev.qty : 0
+        const krwAvg = prev.qty > 0 ? prev.krwCost / prev.qty : 0
         prev.totalCost -= avg * tr.quantity; prev.qty -= tr.quantity
-        if (prev.qty <= 0) { prev.qty = 0; prev.totalCost = 0 }
+        prev.krwCost -= krwAvg * tr.quantity
+        if (prev.qty <= 0) { prev.qty = 0; prev.totalCost = 0; prev.krwCost = 0 }
       }
       holdMap.set(key, prev)
     }
@@ -183,7 +198,7 @@ export default function InvestPage() {
       const isUS = h.currency === 'USD' || h.currency === 'US'
       const fx = isUS ? usdKrw : 1
       const val = quote.price * h.qty * fx
-      const cost = h.totalCost * fx
+      const cost = isUS ? h.krwCost : h.totalCost
       totalValKrw += val; totalCostKrw += cost
 
       // Pyramiding status
@@ -208,7 +223,7 @@ export default function InvestPage() {
 
     const cumulativeReturnPct = totalCostKrw > 0 ? (totalValKrw - totalCostKrw) / totalCostKrw * 100 : 0
     return { totalValKrw, totalCostKrw, cumulativeReturnPct, buyTickers, holdTickers }
-  }, [stockTrades, stockQuotes, usdKrw, watchlistData])
+  }, [stockTrades, stockQuotes, usdKrw, fxHistory, watchlistData])
 
   const totalValKrw = portfolioStats.totalValKrw > 0
     ? portfolioStats.totalValKrw
@@ -222,6 +237,13 @@ export default function InvestPage() {
     ? gain > 0
       ? `${fmtKrwShort(totalValKrw)} (${fmtKrwShort(afterTaxVal)})`
       : fmtKrwShort(totalValKrw)
+    : undefined
+
+  const afterTaxGain = gain > 0 ? gain * (1 - 0.222) : gain
+  const gainSub = totalValKrw > 0
+    ? gain > 0
+      ? `${fmtKrwShort(gain)} (세후 ${fmtKrwShort(afterTaxGain)})`
+      : fmtKrwShort(gain)
     : undefined
 
   if (loading) {
@@ -254,6 +276,7 @@ export default function InvestPage() {
         <SignalBar
           totalValue={fmtTotalValue}
           cumulativeReturnPct={portfolioStats.cumulativeReturnPct}
+          gainSub={gainSub}
           buyTickers={portfolioStats.buyTickers}
           holdTickers={portfolioStats.holdTickers}
           usdKrw={usdKrw}

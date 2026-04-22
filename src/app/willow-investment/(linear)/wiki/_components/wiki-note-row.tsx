@@ -20,10 +20,10 @@ export interface WikiNote {
 type WikiSection = 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt'
 
 const SECTION_BADGES: Record<string, { label: string; bg: string; fg: string }> = {
-  'akros':      { label: 'Akros',    ...tonePalettes.brand },
-  'etf-etc':    { label: 'ETC',      ...tonePalettes.info },
-  'willow-mgmt':{ label: '윌로우',   ...tonePalettes.done },
-  'tensw-mgmt': { label: '텐소프트', ...tonePalettes.warn },
+  'willow-mgmt':{ label: '윌로우',       ...tonePalettes.done },
+  'tensw-mgmt': { label: '텐소프트웍스', ...tonePalettes.warn },
+  'etf-etc':    { label: 'ETC',          ...tonePalettes.info },
+  'akros':      { label: '아크로스',     ...tonePalettes.brand },
 }
 
 interface WikiNoteRowProps {

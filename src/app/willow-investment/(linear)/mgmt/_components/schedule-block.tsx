@@ -1,15 +1,14 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t, eventTones } from '@/app/willow-investment/_components/linear-tokens'
+import { t, eventTones, tonePalettes } from '@/app/willow-investment/_components/linear-tokens'
 import { LCard } from '@/app/willow-investment/_components/linear-card'
 import { LSectionHead } from '@/app/willow-investment/_components/linear-section-head'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
-import { WillowMgmtSchedule, WillowMgmtClient } from '@/types/willow-mgmt'
+import { WillowMgmtSchedule } from '@/types/willow-mgmt'
 
 interface ScheduleBlockProps {
   schedules: WillowMgmtSchedule[]
-  clients: WillowMgmtClient[]
   onAddSchedule: (date: string) => void
   onToggleComplete: (id: string, completed: boolean) => void
   onSelectSchedule: (schedule: WillowMgmtSchedule) => void
@@ -49,22 +48,24 @@ function getMonthGrid(year: number, month: number): Date[][] {
   return weeks
 }
 
-function getClientTone(clientId: string | null, clients: WillowMgmtClient[]): keyof typeof eventTones {
-  if (!clientId) return 'neutral'
-  const client = clients.find(c => c.id === clientId)
-  if (!client) return 'neutral'
-  const name = client.name.toLowerCase()
-  if (name.includes('아크로스') || name.includes('akros')) return 'brand'
-  if (name.includes('텐소프트') || name.includes('tensw')) return 'info'
-  if (name.includes('류하')) return 'brand'
-  return 'neutral'
+const CATEGORY_TONES: Record<string, { bg: string; fg: string }> = {
+  'willow-mgmt': tonePalettes.done,
+  'tensw-mgmt':  tonePalettes.warn,
+  'etf-etc':     tonePalettes.info,
+  'akros':       tonePalettes.brand,
+  'other':       tonePalettes.neutral,
 }
 
-function getScheduleTone(s: WillowMgmtSchedule, clients: WillowMgmtClient[]) {
-  const tone = s.type === 'deadline' ? 'warn'
-    : s.is_completed ? 'done'
-    : getClientTone(s.client_id, clients)
-  return eventTones[tone] || eventTones.neutral
+const CATEGORY_LABELS: Record<string, string> = {
+  'willow-mgmt': '윌로우',
+  'tensw-mgmt':  '텐소프트웍스',
+  'etf-etc':     'ETC',
+  'akros':       '아크로스',
+  'other':       '기타',
+}
+
+function getScheduleTone(s: WillowMgmtSchedule) {
+  return CATEGORY_TONES[s.category] || eventTones.neutral
 }
 
 function matchesDate(s: WillowMgmtSchedule, dateStr: string) {
@@ -72,12 +73,12 @@ function matchesDate(s: WillowMgmtSchedule, dateStr: string) {
   return s.schedule_date === dateStr
 }
 
-function EventChip({ s, clients, compact, onToggle, onSelect }: {
-  s: WillowMgmtSchedule; clients: WillowMgmtClient[]; compact?: boolean
+function EventChip({ s, compact, onToggle, onSelect }: {
+  s: WillowMgmtSchedule; compact?: boolean
   onToggle: (id: string, completed: boolean) => void
   onSelect: (schedule: WillowMgmtSchedule) => void
 }) {
-  const colors = getScheduleTone(s, clients)
+  const colors = getScheduleTone(s)
   const done = s.is_completed
   return (
     <div style={{
@@ -129,10 +130,10 @@ function EventChip({ s, clients, compact, onToggle, onSelect }: {
 
 /** Day cell with hover + button */
 function DayCell({
-  day, dateStr, isToday, schedules, clients, onAdd, onToggle, onSelect, compact, dimmed, borderRight, minHeight,
+  day, dateStr, isToday, schedules, onAdd, onToggle, onSelect, compact, dimmed, borderRight, minHeight,
 }: {
   day: Date; dateStr: string; isToday: boolean
-  schedules: WillowMgmtSchedule[]; clients: WillowMgmtClient[]
+  schedules: WillowMgmtSchedule[]
   onAdd: (date: string) => void
   onToggle: (id: string, completed: boolean) => void
   onSelect: (schedule: WillowMgmtSchedule) => void
@@ -183,7 +184,7 @@ function DayCell({
       <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 2 : 3 }}>
         {compact ? (
           <>
-            {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} clients={clients} compact onToggle={onToggle} onSelect={onSelect} />)}
+            {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} compact onToggle={onToggle} onSelect={onSelect} />)}
             {schedules.length > 2 && (
               <div style={{ fontSize: 8.5, color: t.neutrals.muted, fontFamily: t.font.mono }}>
                 +{schedules.length - 2}
@@ -191,14 +192,23 @@ function DayCell({
             )}
           </>
         ) : (
-          schedules.map(s => <EventChip key={s.id} s={s} clients={clients} onToggle={onToggle} onSelect={onSelect} />)
+          schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={onSelect} />)
         )}
       </div>
     </div>
   )
 }
 
-export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleComplete, onSelectSchedule }: ScheduleBlockProps) {
+const CATEGORY_FILTERS: { key: string; label: string }[] = [
+  { key: 'all', label: '전체' },
+  { key: 'willow-mgmt', label: '윌로우' },
+  { key: 'tensw-mgmt', label: '텐소프트웍스' },
+  { key: 'etf-etc', label: 'ETC' },
+  { key: 'akros', label: '아크로스' },
+  { key: 'other', label: '기타' },
+]
+
+export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSelectSchedule }: ScheduleBlockProps) {
   const [viewMode, setViewMode] = useState<'week' | 'month'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('schedule-view-mode')
@@ -212,7 +222,13 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
     localStorage.setItem('schedule-view-mode', mode)
   }
   const [baseDate, setBaseDate] = useState(new Date())
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const todayStr = formatDateLocal(new Date())
+
+  const filteredSchedules = useMemo(() => {
+    if (categoryFilter === 'all') return schedules
+    return schedules.filter(s => s.category === categoryFilter)
+  }, [schedules, categoryFilter])
 
   const navigate = (dir: -1 | 1) => {
     setBaseDate(prev => {
@@ -275,6 +291,26 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
         </button>
       </div>
 
+      {/* Category filter */}
+      <div style={{
+        display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap',
+      }}>
+        {CATEGORY_FILTERS.map(({ key, label }) => {
+          const active = categoryFilter === key
+          const tone = key !== 'all' ? CATEGORY_TONES[key] : null
+          return (
+            <button key={key} onClick={() => setCategoryFilter(key)} style={{
+              border: 'none', cursor: 'pointer',
+              padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+              fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
+              background: active ? (tone ? tone.bg : t.brand[100]) : t.neutrals.inner,
+              color: active ? (tone ? tone.fg : t.brand[700]) : t.neutrals.muted,
+              transition: 'all .12s',
+            }}>{label}</button>
+          )
+        })}
+      </div>
+
       {/* Day headers */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
@@ -303,8 +339,8 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
               <DayCell
                 key={dateStr} day={day} dateStr={dateStr}
                 isToday={dateStr === todayStr}
-                schedules={schedules.filter(s => matchesDate(s, dateStr))}
-                clients={clients} onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onSelectSchedule}
+                schedules={filteredSchedules.filter(s => matchesDate(s, dateStr))}
+                onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onSelectSchedule}
                 borderRight={i < 6} minHeight={128}
               />
             )
@@ -328,8 +364,8 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
                     key={dateStr} day={day} dateStr={dateStr}
                     isToday={dateStr === todayStr}
                     dimmed={day.getMonth() !== baseDate.getMonth()}
-                    schedules={schedules.filter(s => matchesDate(s, dateStr))}
-                    clients={clients} onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onSelectSchedule}
+                    schedules={filteredSchedules.filter(s => matchesDate(s, dateStr))}
+                    onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onSelectSchedule}
                     compact borderRight={di < 6} minHeight={72}
                   />
                 )

@@ -17,6 +17,8 @@ export interface FullEmail {
   category?: string | null
   attachments?: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>
   unread?: boolean
+  sourceLabel?: string        // WILLOW | TENSW | ETC | Akros
+  gmailContext?: string       // willow | tensoftworks | default
 }
 
 interface EmailDetailDialogProps {
@@ -102,7 +104,7 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
             {email.attachments.map((att, i) => (
               <a
                 key={i}
-                href={`/api/gmail/attachments/${email.id}/${att.attachmentId}?context=willow`}
+                href={`/api/gmail/attachments/${email.id}/${att.attachmentId}?context=${email.gmailContext || 'willow'}`}
                 target="_blank" rel="noopener noreferrer"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px',
