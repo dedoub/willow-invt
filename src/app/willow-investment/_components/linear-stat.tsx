@@ -6,10 +6,11 @@ interface LStatProps {
   label: string
   value: string
   unit?: string
+  sub?: string
   tone?: 'pos' | 'neg' | 'warn' | 'info' | 'default'
 }
 
-export function LStat({ label, value, unit, tone = 'default' }: LStatProps) {
+export function LStat({ label, value, unit, sub, tone = 'default' }: LStatProps) {
   const color = tone === 'pos' ? t.accent.pos
     : tone === 'neg' ? t.accent.neg
     : tone === 'warn' ? t.accent.warn
@@ -34,6 +35,12 @@ export function LStat({ label, value, unit, tone = 'default' }: LStatProps) {
         {value}
         {unit && <span style={{ fontSize: 11, marginLeft: 3, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
       </div>
+      {sub && (
+        <div style={{
+          fontSize: 9.5, color: t.neutrals.muted, marginTop: 1,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{sub}</div>
+      )}
     </div>
   )
 }

@@ -6,13 +6,13 @@ import { LStat } from '@/app/willow-investment/_components/linear-stat'
 interface SignalBarProps {
   totalValue?: string
   cumulativeReturnPct?: number
-  buyCount: number
-  holdCount: number
+  buyTickers: string[]
+  holdTickers: string[]
   usdKrw: number
   loading?: boolean
 }
 
-export function SignalBar({ totalValue, cumulativeReturnPct, buyCount, holdCount, usdKrw, loading }: SignalBarProps) {
+export function SignalBar({ totalValue, cumulativeReturnPct, buyTickers, holdTickers, usdKrw, loading }: SignalBarProps) {
   if (loading) {
     return (
       <div style={{
@@ -31,14 +31,17 @@ export function SignalBar({ totalValue, cumulativeReturnPct, buyCount, holdCount
   const retPct = cumulativeReturnPct ?? 0
   const retTone = retPct > 0 ? 'neg' as const : retPct < 0 ? 'pos' as const : 'default' as const
 
+  const buyLabel = buyTickers.length > 0 ? buyTickers.join(', ') : '-'
+  const holdLabel = holdTickers.length > 0 ? holdTickers.join(', ') : '-'
+
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8,
     }}>
-      <LStat label="전체 평가액" value={totalValue || '-'} tone="default" />
+      <LStat label="평가액 (세후)" value={totalValue || '-'} tone="default" />
       <LStat label="누적수익률" value={`${retPct > 0 ? '+' : ''}${retPct.toFixed(1)}%`} tone={retTone} />
-      <LStat label="추매" value={String(buyCount)} tone={buyCount > 0 ? 'pos' : 'default'} unit="종목" />
-      <LStat label="대기" value={String(holdCount)} tone="default" unit="종목" />
+      <LStat label="추매" value={String(buyTickers.length)} tone={buyTickers.length > 0 ? 'pos' : 'default'} sub={buyLabel} />
+      <LStat label="대기" value={String(holdTickers.length)} tone="default" sub={holdLabel} />
       <LStat label="USD/KRW" value={usdKrw.toLocaleString()} tone="default" />
     </div>
   )

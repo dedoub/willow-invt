@@ -166,7 +166,16 @@ export default function InvestPage() {
       holdMap.set(key, prev)
     }
 
-    let totalValKrw = 0, totalCostKrw = 0, buyCount = 0, holdCount = 0
+    // Build ticker→name map from watchlist
+    const nameMap = new Map<string, string>()
+    if (watchlistData) {
+      for (const item of [...watchlistData.portfolio, ...watchlistData.watchlist]) {
+        nameMap.set(item.ticker.replace('.KS', ''), item.name)
+      }
+    }
+
+    let totalValKrw = 0, totalCostKrw = 0
+    const buyTickers: string[] = [], holdTickers: string[] = []
     for (const [ticker, h] of holdMap) {
       if (h.qty <= 0) continue
       const quote = stockQuotes[ticker]
@@ -192,13 +201,14 @@ export default function InvestPage() {
       else if (currentTrigger !== null && avgReturnPct / 100 < currentTrigger) status = 'FREEZE'
       else status = 'HOLD'
 
-      if (status === 'BUY') buyCount++
-      if (status === 'HOLD') holdCount++
+      const name = nameMap.get(ticker) || ticker
+      if (status === 'BUY') buyTickers.push(name)
+      if (status === 'HOLD') holdTickers.push(name)
     }
 
     const cumulativeReturnPct = totalCostKrw > 0 ? (totalValKrw - totalCostKrw) / totalCostKrw * 100 : 0
-    return { totalValKrw, totalCostKrw, cumulativeReturnPct, buyCount, holdCount }
-  }, [stockTrades, stockQuotes, usdKrw])
+    return { totalValKrw, totalCostKrw, cumulativeReturnPct, buyTickers, holdTickers }
+  }, [stockTrades, stockQuotes, usdKrw, watchlistData])
 
   const totalValKrw = portfolioStats.totalValKrw > 0
     ? portfolioStats.totalValKrw
@@ -244,8 +254,8 @@ export default function InvestPage() {
         <SignalBar
           totalValue={fmtTotalValue}
           cumulativeReturnPct={portfolioStats.cumulativeReturnPct}
-          buyCount={portfolioStats.buyCount}
-          holdCount={portfolioStats.holdCount}
+          buyTickers={portfolioStats.buyTickers}
+          holdTickers={portfolioStats.holdTickers}
           usdKrw={usdKrw}
         />
 

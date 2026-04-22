@@ -98,8 +98,11 @@ interface Holding {
   parentTheme: string | null; themes: string[]
 }
 
+type MarketFilter = 'all' | 'KR' | 'US'
+
 export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory }: HoldingsBlockProps) {
   const [currencyMode, setCurrencyMode] = useState<'original' | 'KRW'>('original')
+  const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
   const isKrw = currencyMode === 'KRW'
 
   const holdings = useMemo((): Holding[] => {
@@ -173,10 +176,15 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       .sort((a, b) => b.currentValue - a.currentValue)
   }, [stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory])
 
+  const filteredHoldings = useMemo(() => {
+    if (marketFilter === 'all') return holdings
+    return holdings.filter(h => h.market === marketFilter)
+  }, [holdings, marketFilter])
+
   // Group by theme
   const themeGroups = useMemo(() => {
     const groups = new Map<string, Holding[]>()
-    for (const h of holdings) {
+    for (const h of filteredHoldings) {
       const g = h.parentTheme || '미분류'
       if (!groups.has(g)) groups.set(g, [])
       groups.get(g)!.push(h)
@@ -201,12 +209,12 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       })
     }
     return THEME_ORDER.filter(th => groups.has(th)).map(th => ({ theme: th, items: groups.get(th)! }))
-  }, [holdings, usdKrwRate])
+  }, [filteredHoldings, usdKrwRate])
 
   // Portfolio summary
   const summary = useMemo(() => {
-    const krH = holdings.filter(h => h.currency === 'KRW')
-    const usH = holdings.filter(h => h.currency === 'USD')
+    const krH = filteredHoldings.filter(h => h.currency === 'KRW')
+    const usH = filteredHoldings.filter(h => h.currency === 'USD')
     const krInv = krH.reduce((s, h) => s + h.totalInvested, 0)
     const krVal = krH.reduce((s, h) => s + h.currentValue, 0)
     const usInv = usH.reduce((s, h) => s + h.totalInvested, 0)
@@ -216,8 +224,8 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
     const totalVal = krVal + usVal * usdKrwRate
     const totalPnl = totalVal - totalInv
     const totalPct = totalInv > 0 ? (totalPnl / totalInv) * 100 : 0
-    return { krH, usH, krInv, krVal, usInv, usVal, totalInv, totalVal, totalPnl, totalPct, count: holdings.length }
-  }, [holdings, usdKrwRate])
+    return { krH, usH, krInv, krVal, usInv, usVal, totalInv, totalVal, totalPnl, totalPct, count: filteredHoldings.length }
+  }, [filteredHoldings, usdKrwRate])
 
   const hasQuotes = Object.keys(stockQuotes).length > 0
 
@@ -238,19 +246,27 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead eyebrow="HOLDINGS" title="보유 현황" action={
-          <button
-            onClick={() => setCurrencyMode(prev => prev === 'original' ? 'KRW' : 'original')}
-            style={{
-              border: 'none', cursor: 'pointer',
-              padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
-              fontFamily: t.font.sans, fontWeight: t.weight.medium,
-              background: isKrw ? t.neutrals.text : t.neutrals.inner,
-              color: isKrw ? t.neutrals.card : t.neutrals.muted,
-              transition: 'all .12s',
-            }}
-          >
-            {isKrw ? '₩ 원화 통합' : '원화/달러'}
-          </button>
+          <div style={{ display: 'inline-flex', background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
+            {([['all', '전체'], ['KR', '국내'], ['US', '해외']] as const).map(([val, label]) => (
+              <button key={val} onClick={() => setMarketFilter(val)}
+                style={{
+                  border: 'none', cursor: 'pointer', padding: '4px 10px', fontSize: 11,
+                  borderRadius: 4, fontFamily: t.font.sans, fontWeight: marketFilter === val ? t.weight.medium : t.weight.regular,
+                  background: marketFilter === val ? t.neutrals.card : 'transparent',
+                  color: t.neutrals.text,
+                }}>{label}</button>
+            ))}
+            <span style={{ width: 1, margin: '3px 1px', background: t.neutrals.line }} />
+            {([['original', '원화/달러'], ['KRW', '₩ 통합']] as const).map(([val, label]) => (
+              <button key={val} onClick={() => setCurrencyMode(val)}
+                style={{
+                  border: 'none', cursor: 'pointer', padding: '4px 10px', fontSize: 11,
+                  borderRadius: 4, fontFamily: t.font.sans, fontWeight: currencyMode === val ? t.weight.medium : t.weight.regular,
+                  background: currencyMode === val ? t.neutrals.card : 'transparent',
+                  color: t.neutrals.text,
+                }}>{label}</button>
+            ))}
+          </div>
         } />
       </div>
 
