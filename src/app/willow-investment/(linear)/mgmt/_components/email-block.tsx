@@ -55,7 +55,7 @@ function ActionBtn({ icon, label, onClick, spinning, disabled }: {
         display: 'flex', alignItems: 'center', gap: 4,
         padding: '4px 8px', borderRadius: t.radius.sm,
         background: t.neutrals.inner, border: 'none',
-        fontSize: 10, fontFamily: t.font.sans, fontWeight: 500,
+        fontSize: 11.5, fontFamily: t.font.sans, fontWeight: 500,
         color: disabled ? t.neutrals.subtle : t.neutrals.muted,
         cursor: disabled ? 'default' : 'pointer',
         opacity: disabled ? 0.5 : 1,
@@ -110,29 +110,33 @@ export function EmailBlock({
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
-        <LSectionHead eyebrow="EMAIL" title="이메일" action={
-          <span style={{
-            fontSize: 11, fontFamily: t.font.mono,
-            color: connected ? t.accent.pos : t.accent.neg,
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-          }}>
+        <LSectionHead eyebrow={
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            EMAIL
             <span style={{
-              width: 6, height: 6, borderRadius: 3,
-              background: connected ? t.accent.pos : t.accent.neg,
-            }} />
-            {connected ? 'Gmail 연결됨' : '미연결'}
+              fontSize: 9, fontFamily: t.font.mono,
+              color: connected ? t.accent.pos : t.accent.neg,
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontWeight: t.weight.medium,
+            }}>
+              <span style={{
+                width: 5, height: 5, borderRadius: 3,
+                background: connected ? t.accent.pos : t.accent.neg,
+              }} />
+              {connected ? '연결됨' : '미연결'}
+            </span>
           </span>
-        } />
-      </div>
-
-      {/* Action buttons + Source filter */}
-      {connected && (
-        <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        } title="이메일" action={connected ? (
+          <div style={{ display: 'flex', gap: 4 }}>
             <ActionBtn icon="refresh" label="동기화" onClick={onSync} spinning={isSyncing} />
-            <div style={{ flex: 1 }} />
             <ActionBtn icon="send" label="이메일 작성" onClick={onCompose} />
           </div>
+        ) : undefined} />
+      </div>
+
+      {/* Source filter */}
+      {connected && (
+        <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {activeFilters.length > 0 && (
             <div style={{ display: 'flex', gap: 5 }}>
               {activeFilters.map(f => {

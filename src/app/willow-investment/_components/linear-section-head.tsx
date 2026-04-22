@@ -4,7 +4,7 @@ import { t } from './linear-tokens'
 import { ReactNode } from 'react'
 
 interface LSectionHeadProps {
-  eyebrow?: string
+  eyebrow?: ReactNode
   title: string
   action?: ReactNode
 }
