@@ -30,13 +30,18 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const section = searchParams.get('section') || 'etf-etc'
+    const section = searchParams.get('section')
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('work_wiki')
       .select('*')
       .eq('user_id', userId)
-      .eq('section', section)
+
+    if (section) {
+      query = query.eq('section', section)
+    }
+
+    const { data, error } = await query
       .order('is_pinned', { ascending: false })
       .order('updated_at', { ascending: false })
 
