@@ -105,7 +105,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
 
   return (
     <LCard pad={0}>
-      <div style={{ display: 'flex', minHeight: 480 }}>
+      <div style={{ display: 'flex', height: 640 }}>
         {/* ===== LEFT PANEL: list ===== */}
         <div style={{
           width: '42%', minWidth: 280, display: 'flex', flexDirection: 'column',
@@ -264,7 +264,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
         </div>
 
         {/* ===== RIGHT PANEL: detail ===== */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
           {adding ? (
             /* New note form */
             <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column' }}>
