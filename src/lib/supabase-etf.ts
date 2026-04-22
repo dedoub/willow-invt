@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Akros DB - AUM 데이터용 (읽기 전용)
-const akrosUrl = 'https://iiicccnrnwdfawsvbacu.supabase.co'
-const akrosAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpaWNjY25ybndkZmF3c3ZiYWN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExNDg2ODEsImV4cCI6MjA1NjcyNDY4MX0.7dgnyX-EYMolEVvemR7c3chB194ay_mPtaVbY1qx7S4'
-export const akrosDb = createClient(akrosUrl, akrosAnonKey)
+// Akros DB - AUM 데이터용 (읽기 전용, 클라이언트 컴포넌트에서도 사용)
+const akrosUrl = process.env.NEXT_PUBLIC_AKROS_SUPABASE_URL!
+const akrosKey = process.env.NEXT_PUBLIC_AKROS_SUPABASE_KEY!
+export const akrosDb = createClient(akrosUrl, akrosKey)
 
 // Willow Dashboard DB - ETF 메타 데이터용
 const willowUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!

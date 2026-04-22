@@ -4,14 +4,15 @@ import { useState, useMemo } from 'react'
 import { t, eventTones } from '@/app/willow-investment/_components/linear-tokens'
 import { LCard } from '@/app/willow-investment/_components/linear-card'
 import { LSectionHead } from '@/app/willow-investment/_components/linear-section-head'
-import { LBtn } from '@/app/willow-investment/_components/linear-btn'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
 import { WillowMgmtSchedule, WillowMgmtClient } from '@/types/willow-mgmt'
 
 interface ScheduleBlockProps {
   schedules: WillowMgmtSchedule[]
   clients: WillowMgmtClient[]
-  onAddSchedule: () => void
+  onAddSchedule: (date: string) => void
+  onToggleComplete: (id: string, completed: boolean) => void
+  onSelectSchedule: (schedule: WillowMgmtSchedule) => void
 }
 
 function formatDateLocal(date: Date) {
@@ -35,33 +36,16 @@ function getWeekDays(date: Date) {
 function getMonthGrid(year: number, month: number): Date[][] {
   const first = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0).getDate()
-  // Monday = 0
   let startOffset = first.getDay() - 1
   if (startOffset < 0) startOffset = 6
 
   const days: Date[] = []
-
-  // Fill previous month days
-  for (let i = startOffset - 1; i >= 0; i--) {
-    const d = new Date(year, month, -i)
-    days.push(d)
-  }
-
-  // Current month
-  for (let d = 1; d <= lastDay; d++) {
-    days.push(new Date(year, month, d))
-  }
-
-  // Fill next month days
-  while (days.length % 7 !== 0) {
-    const d = new Date(year, month + 1, days.length - startOffset - lastDay + 1)
-    days.push(d)
-  }
+  for (let i = startOffset - 1; i >= 0; i--) days.push(new Date(year, month, -i))
+  for (let d = 1; d <= lastDay; d++) days.push(new Date(year, month, d))
+  while (days.length % 7 !== 0) days.push(new Date(year, month + 1, days.length - startOffset - lastDay + 1))
 
   const weeks: Date[][] = []
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7))
-  }
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7))
   return weeks
 }
 
@@ -88,28 +72,133 @@ function matchesDate(s: WillowMgmtSchedule, dateStr: string) {
   return s.schedule_date === dateStr
 }
 
-function EventChip({ s, clients, compact }: { s: WillowMgmtSchedule; clients: WillowMgmtClient[]; compact?: boolean }) {
+function EventChip({ s, clients, compact, onToggle, onSelect }: {
+  s: WillowMgmtSchedule; clients: WillowMgmtClient[]; compact?: boolean
+  onToggle: (id: string, completed: boolean) => void
+  onSelect: (schedule: WillowMgmtSchedule) => void
+}) {
   const colors = getScheduleTone(s, clients)
+  const done = s.is_completed
   return (
     <div style={{
       padding: compact ? '2px 4px' : '3px 5px', borderRadius: 3,
       background: colors.bg, color: colors.fg,
       fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1.3,
       minWidth: 0, overflow: 'hidden',
+      display: 'flex', alignItems: 'flex-start', gap: 4,
     }}>
-      {!compact && s.start_time && (
-        <div style={{ fontFamily: t.font.mono, fontSize: 8.5, opacity: 0.7 }}>
-          {s.start_time.slice(0, 5)}
+      {/* Check circle */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggle(s.id, !done) }}
+        style={{
+          flexShrink: 0, width: compact ? 10 : 12, height: compact ? 10 : 12,
+          marginTop: compact ? 1 : 2,
+          borderRadius: 999, border: `1.5px solid ${colors.fg}`,
+          background: done ? colors.fg : 'transparent',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 0, opacity: done ? 1 : 0.5,
+        }}
+      >
+        {done && (
+          <svg width={compact ? 6 : 7} height={compact ? 6 : 7} viewBox="0 0 24 24" fill="none"
+            stroke={colors.bg} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12l5 5L20 7" />
+          </svg>
+        )}
+      </button>
+      <div
+        onClick={(e) => { e.stopPropagation(); onSelect(s) }}
+        style={{ minWidth: 0, flex: 1, cursor: 'pointer' }}
+      >
+        {!compact && s.start_time && (
+          <div style={{ fontFamily: t.font.mono, fontSize: 8.5, opacity: 0.7 }}>
+            {s.start_time.slice(0, 5)}
+          </div>
+        )}
+        <div style={{
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          textDecoration: done ? 'line-through' : 'none',
+          opacity: done ? 0.6 : 1,
+        }}>
+          {s.title}
         </div>
-      )}
-      <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {s.title}
       </div>
     </div>
   )
 }
 
-export function ScheduleBlock({ schedules, clients, onAddSchedule }: ScheduleBlockProps) {
+/** Day cell with hover + button */
+function DayCell({
+  day, dateStr, isToday, schedules, clients, onAdd, onToggle, onSelect, compact, dimmed, borderRight, minHeight,
+}: {
+  day: Date; dateStr: string; isToday: boolean
+  schedules: WillowMgmtSchedule[]; clients: WillowMgmtClient[]
+  onAdd: (date: string) => void
+  onToggle: (id: string, completed: boolean) => void
+  onSelect: (schedule: WillowMgmtSchedule) => void
+  compact?: boolean; dimmed?: boolean
+  borderRight: boolean; minHeight: number
+}) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        minHeight, padding: compact ? 6 : 8, position: 'relative',
+        borderRight: borderRight ? `1px solid ${t.neutrals.line}` : 'none',
+        background: isToday ? t.brand[50] : 'transparent',
+        opacity: dimmed ? 0.35 : 1,
+        minWidth: 0, overflow: 'hidden',
+      }}
+    >
+      {/* Date label */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: compact ? 3 : 6,
+      }}>
+        <span style={{
+          fontSize: compact ? 10 : 10.5, fontFamily: t.font.mono, fontWeight: 500,
+          color: isToday ? t.brand[700] : t.neutrals.subtle,
+          letterSpacing: 0.3,
+        }}>
+          {day.getDate()}
+          {!compact && isToday && ' · TODAY'}
+        </span>
+        {hovered && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onAdd(dateStr) }}
+            style={{
+              width: 16, height: 16, borderRadius: 4, border: 'none',
+              background: t.brand[100], color: t.brand[700],
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 0, flexShrink: 0,
+            }}
+          >
+            <LIcon name="plus" size={10} stroke={2.5} />
+          </button>
+        )}
+      </div>
+      {/* Events */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 2 : 3 }}>
+        {compact ? (
+          <>
+            {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} clients={clients} compact onToggle={onToggle} onSelect={onSelect} />)}
+            {schedules.length > 2 && (
+              <div style={{ fontSize: 8.5, color: t.neutrals.muted, fontFamily: t.font.mono }}>
+                +{schedules.length - 2}
+              </div>
+            )}
+          </>
+        ) : (
+          schedules.map(s => <EventChip key={s.id} s={s} clients={clients} onToggle={onToggle} onSelect={onSelect} />)
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleComplete, onSelectSchedule }: ScheduleBlockProps) {
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week')
   const [baseDate, setBaseDate] = useState(new Date())
   const todayStr = formatDateLocal(new Date())
@@ -138,24 +227,19 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule }: ScheduleBlo
   return (
     <LCard>
       <LSectionHead eyebrow={eyebrow} title="일정" action={
-        <div style={{ display: 'flex', gap: 6 }}>
-          <div style={{
-            display: 'inline-flex', background: t.neutrals.inner,
-            borderRadius: t.radius.sm, padding: 2,
-          }}>
-            {(['week', 'month'] as const).map((v) => (
-              <button key={v} onClick={() => setViewMode(v)} style={{
-                border: 'none',
-                background: viewMode === v ? t.neutrals.card : 'transparent',
-                padding: '4px 10px', fontSize: 11.5, borderRadius: 4, cursor: 'pointer',
-                fontWeight: viewMode === v ? 500 : 400, color: t.neutrals.text,
-                fontFamily: t.font.sans,
-              }}>{v === 'week' ? '주' : '월'}</button>
-            ))}
-          </div>
-          <LBtn size="sm" icon={<LIcon name="plus" size={12} stroke={2.2} />} onClick={onAddSchedule}>
-            추가
-          </LBtn>
+        <div style={{
+          display: 'inline-flex', background: t.neutrals.inner,
+          borderRadius: t.radius.sm, padding: 2,
+        }}>
+          {(['week', 'month'] as const).map((v) => (
+            <button key={v} onClick={() => setViewMode(v)} style={{
+              border: 'none',
+              background: viewMode === v ? t.neutrals.card : 'transparent',
+              padding: '4px 10px', fontSize: 11.5, borderRadius: 4, cursor: 'pointer',
+              fontWeight: viewMode === v ? 500 : 400, color: t.neutrals.text,
+              fontFamily: t.font.sans,
+            }}>{v === 'week' ? '주' : '월'}</button>
+          ))}
         </div>
       } />
 
@@ -196,7 +280,6 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule }: ScheduleBlo
       </div>
 
       {viewMode === 'week' ? (
-        /* Week grid */
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
           background: t.neutrals.inner,
@@ -205,32 +288,18 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule }: ScheduleBlo
         }}>
           {weekDays.map((day, i) => {
             const dateStr = formatDateLocal(day)
-            const isToday = dateStr === todayStr
-            const daySchedules = schedules.filter(s => matchesDate(s, dateStr))
             return (
-              <div key={dateStr} style={{
-                minHeight: 128, padding: 8,
-                borderRight: i < 6 ? `1px solid ${t.neutrals.line}` : 'none',
-                background: isToday ? t.brand[50] : 'transparent',
-                minWidth: 0, overflow: 'hidden',
-              }}>
-                <div style={{
-                  fontSize: 10.5, fontFamily: t.font.mono, fontWeight: 500,
-                  color: isToday ? t.brand[700] : t.neutrals.subtle,
-                  letterSpacing: 0.3, marginBottom: 6,
-                }}>
-                  {day.getDate()}
-                  {isToday && ' · TODAY'}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {daySchedules.map(s => <EventChip key={s.id} s={s} clients={clients} />)}
-                </div>
-              </div>
+              <DayCell
+                key={dateStr} day={day} dateStr={dateStr}
+                isToday={dateStr === todayStr}
+                schedules={schedules.filter(s => matchesDate(s, dateStr))}
+                clients={clients} onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onSelectSchedule}
+                borderRight={i < 6} minHeight={128}
+              />
             )
           })}
         </div>
       ) : (
-        /* Month grid */
         <div style={{
           background: t.neutrals.inner,
           borderRadius: `0 0 ${t.radius.md}px ${t.radius.md}px`,
@@ -243,33 +312,15 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule }: ScheduleBlo
             }}>
               {week.map((day, di) => {
                 const dateStr = formatDateLocal(day)
-                const isToday = dateStr === todayStr
-                const isCurrentMonth = day.getMonth() === baseDate.getMonth()
-                const daySchedules = schedules.filter(s => matchesDate(s, dateStr))
                 return (
-                  <div key={dateStr} style={{
-                    minHeight: 72, padding: 6,
-                    borderRight: di < 6 ? `1px solid ${t.neutrals.line}` : 'none',
-                    background: isToday ? t.brand[50] : 'transparent',
-                    opacity: isCurrentMonth ? 1 : 0.35,
-                    minWidth: 0, overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      fontSize: 10, fontFamily: t.font.mono, fontWeight: 500,
-                      color: isToday ? t.brand[700] : t.neutrals.subtle,
-                      marginBottom: 3,
-                    }}>
-                      {day.getDate()}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {daySchedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} clients={clients} compact />)}
-                      {daySchedules.length > 2 && (
-                        <div style={{ fontSize: 8.5, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-                          +{daySchedules.length - 2}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <DayCell
+                    key={dateStr} day={day} dateStr={dateStr}
+                    isToday={dateStr === todayStr}
+                    dimmed={day.getMonth() !== baseDate.getMonth()}
+                    schedules={schedules.filter(s => matchesDate(s, dateStr))}
+                    clients={clients} onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onSelectSchedule}
+                    compact borderRight={di < 6} minHeight={72}
+                  />
                 )
               })}
             </div>

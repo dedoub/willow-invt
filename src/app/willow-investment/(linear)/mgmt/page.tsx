@@ -6,6 +6,8 @@ import { LinearLayout } from '@/app/willow-investment/_components/linear-layout'
 import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
 import { EmailBlock } from './_components/email-block'
+import { AddScheduleDialog, ScheduleFormData } from './_components/add-schedule-dialog'
+import { ScheduleDetailDialog } from './_components/schedule-detail-dialog'
 import { WillowMgmtSchedule, WillowMgmtClient } from '@/types/willow-mgmt'
 
 interface Invoice {
@@ -34,6 +36,9 @@ export default function MgmtPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [emails, setEmails] = useState<EmailItem[]>([])
   const [gmailConnected, setGmailConnected] = useState(false)
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [scheduleDialogDate, setScheduleDialogDate] = useState('')
+  const [selectedSchedule, setSelectedSchedule] = useState<WillowMgmtSchedule | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -79,6 +84,58 @@ export default function MgmtPage() {
 
   useEffect(() => { loadData() }, [loadData])
 
+  const handleToggleComplete = async (id: string, completed: boolean) => {
+    // Optimistic update
+    setSchedules(prev => prev.map(s => s.id === id ? { ...s, is_completed: completed } : s))
+    try {
+      const res = await fetch('/api/willow-mgmt/schedules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, is_completed: completed }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      // Revert on failure
+      setSchedules(prev => prev.map(s => s.id === id ? { ...s, is_completed: !completed } : s))
+    }
+  }
+
+  const handleDeleteSchedule = async (id: string) => {
+    setSchedules(prev => prev.filter(s => s.id !== id))
+    try {
+      await fetch(`/api/willow-mgmt/schedules?id=${id}`, { method: 'DELETE' })
+    } catch {
+      loadData()
+    }
+  }
+
+  const handleAddSchedule = (date: string) => {
+    setScheduleDialogDate(date)
+    setScheduleDialogOpen(true)
+  }
+
+  const handleSaveSchedule = async (data: ScheduleFormData) => {
+    const body: Record<string, unknown> = {
+      title: data.title,
+      schedule_date: data.schedule_date,
+      type: data.type,
+    }
+    if (data.end_date) body.end_date = data.end_date
+    if (data.start_time) body.start_time = data.start_time
+    if (data.end_time) body.end_time = data.end_time
+    if (data.client_id) body.client_id = data.client_id
+    if (data.description) body.description = data.description
+
+    const res = await fetch('/api/willow-mgmt/schedules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) throw new Error('Failed to save schedule')
+    setScheduleDialogOpen(false)
+    loadData()
+  }
+
   if (loading) {
     return (
       <LinearLayout title="사업관리">
@@ -113,13 +170,29 @@ export default function MgmtPage() {
         <ScheduleBlock
           schedules={schedules}
           clients={clients}
-          onAddSchedule={() => {}}
+          onAddSchedule={handleAddSchedule}
+          onToggleComplete={handleToggleComplete}
+          onSelectSchedule={setSelectedSchedule}
         />
         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 14 }}>
           <CashBlock invoices={invoices} onAddInvoice={() => {}} />
           <EmailBlock emails={emails} connected={gmailConnected} />
         </div>
       </div>
+      <ScheduleDetailDialog
+        schedule={selectedSchedule}
+        clients={clients}
+        onClose={() => setSelectedSchedule(null)}
+        onToggleComplete={handleToggleComplete}
+        onDelete={handleDeleteSchedule}
+      />
+      <AddScheduleDialog
+        open={scheduleDialogOpen}
+        defaultDate={scheduleDialogDate}
+        clients={clients}
+        onClose={() => setScheduleDialogOpen(false)}
+        onSave={handleSaveSchedule}
+      />
     </LinearLayout>
   )
 }
