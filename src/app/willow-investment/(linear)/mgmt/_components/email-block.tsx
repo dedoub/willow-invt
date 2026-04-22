@@ -19,7 +19,7 @@ interface EmailBlockProps {
 const SOURCE_FILTERS = [
   { key: 'all',    label: '전체' },
   { key: 'WILLOW', label: '윌로우' },
-  { key: 'TENSW',  label: '텐소프트' },
+  { key: 'TENSW',  label: '텐소프트웍스' },
   { key: 'ETC',    label: 'ETC' },
   { key: 'Akros',  label: '아크로스' },
 ] as const

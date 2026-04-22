@@ -142,16 +142,21 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
                 새 노트
               </LBtn>
             </div>
-            <div style={{ display: 'inline-flex', background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
-              {SECTION_FILTERS.map(f => (
-                <button key={f.value} onClick={() => handleFilterChange(f.value)} style={{
-                  border: 'none', cursor: 'pointer', padding: '3px 8px', fontSize: 10.5,
-                  borderRadius: 3, fontFamily: t.font.sans,
-                  fontWeight: sectionFilter === f.value ? t.weight.medium : t.weight.regular,
-                  background: sectionFilter === f.value ? t.neutrals.card : 'transparent',
-                  color: t.neutrals.text,
-                }}>{f.label}</button>
-              ))}
+            <div style={{ display: 'flex', gap: 5 }}>
+              {SECTION_FILTERS.map(f => {
+                const active = sectionFilter === f.value
+                return (
+                  <button key={f.value} onClick={() => handleFilterChange(f.value)} style={{
+                    border: 'none', cursor: 'pointer',
+                    padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+                    fontFamily: t.font.sans,
+                    fontWeight: active ? t.weight.medium : t.weight.regular,
+                    background: active ? t.brand[100] : t.neutrals.inner,
+                    color: active ? t.brand[700] : t.neutrals.muted,
+                    transition: 'all .12s',
+                  }}>{f.label}</button>
+                )
+              })}
             </div>
           </div>
 
