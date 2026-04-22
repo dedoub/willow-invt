@@ -35,6 +35,14 @@ const paths: Record<string, string> = {
   refresh: 'M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10M3.51 15a9 9 0 0014.85 3.36L23 14',
   tag: 'M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01',
   forward: 'M13 9l3 3-3 3M9 9l3 3-3 3M4 12h12',
+  menu: 'M3 6h18M3 12h18M3 18h18',
+  bookOpen: 'M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2V3zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7V3z',
+  clipboardList: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M12 12h4M12 16h4M8 12h.01M8 16h.01',
+  circle: 'M12 12m-9 0a9 9 0 1018 0 9 9 0 10-18 0',
+  checkCircle: 'M9 12l2 2 4-4M12 3a9 9 0 100 18 9 9 0 000-18z',
+  clock: 'M12 6v6l4 2M12 3a9 9 0 100 18 9 9 0 000-18z',
+  pin: 'M12 2l4 4-1 9-3 3-3-3-1-9 4-4z',
+  pencil: 'M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z',
 }
 
 interface LIconProps {

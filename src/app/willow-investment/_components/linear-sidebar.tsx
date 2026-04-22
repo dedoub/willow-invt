@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { key: 'mgmt',   href: '/willow-investment/mgmt',   label: '사업관리',  icon: 'briefcase' },
   { key: 'invest', href: '/willow-investment/invest',  label: '투자관리',  icon: 'trending' },
   { key: 'wiki',   href: '/willow-investment/wiki',    label: '업무위키',  icon: 'book' },
-  { key: 'ryuha',  href: '/others/ryuha-study',       label: '류하일정',  icon: 'calendar' },
+  { key: 'ryuha',  href: '/willow-investment/ryuha',   label: '류하일정',  icon: 'calendar' },
 ]
 
 const CLIENTS = [
@@ -28,23 +28,38 @@ function GroupLabel({ label }: { label: string }) {
   )
 }
 
-export function LinearSidebar() {
+interface LinearSidebarProps {
+  mobile?: boolean
+  open?: boolean
+  onClose?: () => void
+}
+
+export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
   const pathname = usePathname()
 
-  return (
+  const sidebar = (
     <aside style={{
       width: 232, background: t.neutrals.page,
-      borderRight: `1px solid ${t.neutrals.line}`,
+      borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
       display: 'flex', flexDirection: 'column', flexShrink: 0,
       fontFamily: t.font.sans,
+      height: mobile ? '100vh' : undefined,
     }}>
       {/* Logo */}
-      <div style={{ height: 52, padding: '0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{
-          width: 24, height: 24, borderRadius: 6,
-          background: `linear-gradient(135deg, ${t.brand[400]}, ${t.brand[700]})`,
-        }} />
-        <span style={{ fontSize: 13.5, fontWeight: 600, letterSpacing: -0.2, color: t.neutrals.text }}>Willow</span>
+      <div style={{
+        height: 52, padding: '0 14px', display: 'flex', alignItems: 'center',
+        justifyContent: mobile ? 'space-between' : undefined,
+        background: t.brand[800],
+      }}>
+        <img src="/willow-text.png" alt="willowinvt" style={{ height: 15 }} />
+        {mobile && (
+          <button onClick={onClose} style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+            color: t.brand[200],
+          }}>
+            <LIcon name="x" size={16} />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -53,7 +68,7 @@ export function LinearSidebar() {
         {NAV_ITEMS.map(n => {
           const isActive = pathname === n.href || pathname.startsWith(n.href + '/')
           return (
-            <Link key={n.key} href={n.href} style={{
+            <Link key={n.key} href={n.href} onClick={onClose} style={{
               width: '100%', display: 'flex', alignItems: 'center',
               gap: 10, padding: '7px 10px',
               background: isActive ? t.brand[600] + '14' : 'transparent',
@@ -98,5 +113,24 @@ export function LinearSidebar() {
         </div>
       </div>
     </aside>
+  )
+
+  // Desktop: render inline
+  if (!mobile) return sidebar
+
+  // Mobile: overlay
+  if (!open) return null
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.35)',
+      }}
+    >
+      <div onClick={e => e.stopPropagation()}>
+        {sidebar}
+      </div>
+    </div>
   )
 }
