@@ -123,29 +123,24 @@ export function EmailBlock({
             <ActionBtn icon="send" label="이메일 작성" onClick={onCompose} />
           </div>
           {activeFilters.length > 0 && (
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 5 }}>
               {activeFilters.map(f => {
                 const active = sourceFilter === f.key
-                const tone = f.key !== 'all' ? SOURCE_TONE[f.key] : undefined
                 return (
                   <button
                     key={f.key}
                     onClick={() => setSourceFilter(f.key)}
                     style={{
-                      padding: '2px 8px', borderRadius: t.radius.pill,
+                      padding: '4px 10px', borderRadius: t.radius.pill,
                       border: 'none', cursor: 'pointer',
-                      fontSize: 10, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-                      background: active
-                        ? (tone?.bg || t.neutrals.text)
-                        : t.neutrals.inner,
-                      color: active
-                        ? (tone?.fg || '#fff')
-                        : t.neutrals.muted,
-                      transition: 'all .15s',
+                      fontSize: 11, fontFamily: t.font.sans,
+                      fontWeight: active ? t.weight.medium : t.weight.regular,
+                      background: active ? t.brand[100] : t.neutrals.inner,
+                      color: active ? t.brand[700] : t.neutrals.muted,
+                      transition: 'all .12s',
                     }}
                   >
                     {f.label}
-                    {f.key !== 'all' && sourceCounts[f.key] ? ` ${sourceCounts[f.key]}` : ''}
                   </button>
                 )
               })}
