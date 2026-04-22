@@ -115,7 +115,7 @@ export default function MgmtPage() {
     const sourcesToFetch = EMAIL_SOURCES.filter(s => connected!.has(s.context))
     const results = await Promise.all(
       sourcesToFetch.map(src =>
-        fetch(`/api/gmail/emails?context=${src.context}&label=${src.label}&maxResults=20&autoAnalyze=false`)
+        fetch(`/api/gmail/emails?context=${src.context}&label=${src.label}&maxResults=0&daysBack=30&autoAnalyze=false`)
           .then(r => r.ok ? r.json() : null)
           .catch(() => null)
       )
