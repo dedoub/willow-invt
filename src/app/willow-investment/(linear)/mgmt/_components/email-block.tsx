@@ -69,7 +69,7 @@ function ActionBtn({ icon, label, onClick, spinning, disabled }: {
   )
 }
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 25
 
 export function EmailBlock({
   emails, connected, onSelectEmail, onSync, onCompose, isSyncing,
