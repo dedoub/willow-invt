@@ -69,10 +69,13 @@ function ActionBtn({ icon, label, onClick, spinning, disabled }: {
   )
 }
 
+const PAGE_SIZE = 15
+
 export function EmailBlock({
   emails, connected, onSelectEmail, onSync, onCompose, isSyncing,
 }: EmailBlockProps) {
   const [sourceFilter, setSourceFilter] = useState<string>('all')
+  const [page, setPage] = useState(0)
 
   // Count emails per source
   const sourceCounts = useMemo(() => {
@@ -95,6 +98,14 @@ export function EmailBlock({
     if (sourceFilter === 'all') return emails
     return emails.filter(e => (e.sourceLabel || 'WILLOW') === sourceFilter)
   }, [emails, sourceFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+
+  const handleFilterChange = (key: string) => {
+    setSourceFilter(key)
+    setPage(0)
+  }
 
   return (
     <LCard pad={0}>
@@ -129,7 +140,7 @@ export function EmailBlock({
                 return (
                   <button
                     key={f.key}
-                    onClick={() => setSourceFilter(f.key)}
+                    onClick={() => handleFilterChange(f.key)}
                     style={{
                       padding: '4px 10px', borderRadius: t.radius.pill,
                       border: 'none', cursor: 'pointer',
@@ -151,7 +162,7 @@ export function EmailBlock({
 
       {/* Email list */}
       <div>
-        {filtered.slice(0, 12).map((m) => {
+        {paged.map((m) => {
           const srcTone = m.sourceLabel ? SOURCE_TONE[m.sourceLabel] : undefined
           return (
             <div
@@ -226,6 +237,42 @@ export function EmailBlock({
           }}>Gmail 연결이 필요합니다</div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 8, padding: '8px 16px 12px',
+          borderTop: `1px solid ${t.neutrals.line}`,
+        }}>
+          <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+            style={{
+              background: 'transparent', border: 'none',
+              cursor: page === 0 ? 'default' : 'pointer',
+              padding: 4, borderRadius: 4,
+              color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+              opacity: page === 0 ? 0.4 : 1,
+            }}>
+            <LIcon name="chevronLeft" size={14} stroke={2} />
+          </button>
+          <span style={{
+            fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted,
+            minWidth: 80, textAlign: 'center',
+          }}>
+            {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, filtered.length)} / {filtered.length}
+          </span>
+          <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
+            style={{
+              background: 'transparent', border: 'none',
+              cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+              padding: 4, borderRadius: 4,
+              color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
+              opacity: page >= totalPages - 1 ? 0.4 : 1,
+            }}>
+            <LIcon name="chevronRight" size={14} stroke={2} />
+          </button>
+        </div>
+      )}
     </LCard>
   )
 }
