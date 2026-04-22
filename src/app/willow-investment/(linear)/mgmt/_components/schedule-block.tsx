@@ -199,7 +199,18 @@ function DayCell({
 }
 
 export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleComplete, onSelectSchedule }: ScheduleBlockProps) {
-  const [viewMode, setViewMode] = useState<'week' | 'month'>('week')
+  const [viewMode, setViewMode] = useState<'week' | 'month'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('schedule-view-mode')
+      if (saved === 'week' || saved === 'month') return saved
+    }
+    return 'week'
+  })
+
+  const updateViewMode = (mode: 'week' | 'month') => {
+    setViewMode(mode)
+    localStorage.setItem('schedule-view-mode', mode)
+  }
   const [baseDate, setBaseDate] = useState(new Date())
   const todayStr = formatDateLocal(new Date())
 
@@ -232,7 +243,7 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
           borderRadius: t.radius.sm, padding: 2,
         }}>
           {(['week', 'month'] as const).map((v) => (
-            <button key={v} onClick={() => setViewMode(v)} style={{
+            <button key={v} onClick={() => updateViewMode(v)} style={{
               border: 'none',
               background: viewMode === v ? t.neutrals.card : 'transparent',
               padding: '4px 10px', fontSize: 11.5, borderRadius: 4, cursor: 'pointer',

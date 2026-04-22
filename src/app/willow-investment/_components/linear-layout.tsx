@@ -4,6 +4,7 @@ import { useState, useEffect, ReactNode } from 'react'
 import { t } from './linear-tokens'
 import { LinearSidebar } from './linear-sidebar'
 import { LinearHeader } from './linear-header'
+import { LinearChatPanel } from './linear-chat-panel'
 
 interface LinearLayoutProps {
   title: string
@@ -30,11 +31,13 @@ export function LinearLayout({ title, children, headerActions }: LinearLayoutPro
 
   return (
     <div style={{
-      minHeight: '100vh', background: t.neutrals.page,
+      height: '100vh', background: t.neutrals.page,
       color: t.neutrals.text, fontFamily: t.font.sans,
-      display: 'flex',
+      display: 'flex', overflow: 'hidden',
     }}>
       <LinearSidebar />
+
+      {/* Main column: header + content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <LinearHeader
           title={title}
@@ -42,13 +45,13 @@ export function LinearLayout({ title, children, headerActions }: LinearLayoutPro
           agentOpen={chatOpen}
           actions={headerActions}
         />
-        <div style={{ flex: 1, display: 'flex', minHeight: 0, position: 'relative' }}>
-          <main style={{ flex: 1, overflow: 'auto', padding: '0 20px 24px', minWidth: 0 }}>
-            {children}
-          </main>
-          {/* Agent chat placeholder */}
-        </div>
+        <main style={{ flex: 1, overflow: 'auto', padding: '0 20px 24px' }}>
+          {children}
+        </main>
       </div>
+
+      {/* Agent panel: full height from top to bottom */}
+      <LinearChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   )
 }

@@ -22,7 +22,7 @@ export function LinearHeader({ title, onAgentToggle, agentOpen, actions }: Linea
     }}>
       {/* Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, minWidth: 0 }}>
-        <span style={{ color: t.neutrals.muted }}>Willow</span>
+        <span style={{ color: t.neutrals.muted }}>윌로우인베스트먼트</span>
         <LIcon name="chevronRight" size={11} color={t.neutrals.subtle} stroke={2} />
         <span style={{ color: t.neutrals.text, fontWeight: 500 }}>{title}</span>
       </div>

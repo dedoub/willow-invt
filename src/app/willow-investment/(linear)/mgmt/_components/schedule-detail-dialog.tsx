@@ -11,6 +11,7 @@ interface ScheduleDetailDialogProps {
   onClose: () => void
   onToggleComplete: (id: string, completed: boolean) => void
   onDelete: (id: string) => void
+  onEdit: (schedule: WillowMgmtSchedule) => void
 }
 
 function InfoRow({ icon, children }: { icon: string; children: React.ReactNode }) {
@@ -22,7 +23,7 @@ function InfoRow({ icon, children }: { icon: string; children: React.ReactNode }
   )
 }
 
-export function ScheduleDetailDialog({ schedule, clients, onClose, onToggleComplete, onDelete }: ScheduleDetailDialogProps) {
+export function ScheduleDetailDialog({ schedule, clients, onClose, onToggleComplete, onDelete, onEdit }: ScheduleDetailDialogProps) {
   if (!schedule) return null
 
   const client = schedule.client_id ? clients.find(c => c.id === schedule.client_id) : null
@@ -178,10 +179,13 @@ export function ScheduleDetailDialog({ schedule, clients, onClose, onToggleCompl
             삭제
           </LBtn>
           <div style={{ display: 'flex', gap: 8 }}>
-            <LBtn variant="ghost" size="sm" onClick={onClose}>닫기</LBtn>
-            <LBtn variant="brand" size="sm"
+            <LBtn variant="ghost" size="sm"
               onClick={() => { onToggleComplete(schedule.id, !done); onClose() }}>
               {done ? '미완료로 변경' : '완료 처리'}
+            </LBtn>
+            <LBtn variant="secondary" size="sm"
+              onClick={() => { onEdit(schedule); onClose() }}>
+              수정
             </LBtn>
           </div>
         </div>

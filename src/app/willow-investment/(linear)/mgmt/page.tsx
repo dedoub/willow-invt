@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { t } from '@/app/willow-investment/_components/linear-tokens'
-import { LinearLayout } from '@/app/willow-investment/_components/linear-layout'
 import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
 import { EmailBlock } from './_components/email-block'
 import { AddScheduleDialog, ScheduleFormData } from './_components/add-schedule-dialog'
+import { AddInvoiceDialog, InvoiceFormData } from './_components/add-invoice-dialog'
+import { InvoiceDetailDialog } from './_components/invoice-detail-dialog'
+import { ParsePreviewDialog, ParsedTransaction } from './_components/parse-preview-dialog'
 import { ScheduleDetailDialog } from './_components/schedule-detail-dialog'
+import { EmailDetailDialog, FullEmail } from './_components/email-detail-dialog'
+import { ComposeEmailDialog } from './_components/compose-email-dialog'
 import { WillowMgmtSchedule, WillowMgmtClient } from '@/types/willow-mgmt'
 
 interface Invoice {
@@ -21,24 +25,33 @@ interface Invoice {
   status: string
 }
 
-interface EmailItem {
-  id: string
-  from: string
-  subject: string
-  date: string
-  unread: boolean
-}
+type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 export default function MgmtPage() {
   const [loading, setLoading] = useState(true)
   const [schedules, setSchedules] = useState<WillowMgmtSchedule[]>([])
   const [clients, setClients] = useState<WillowMgmtClient[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [emails, setEmails] = useState<EmailItem[]>([])
-  const [gmailConnected, setGmailConnected] = useState(false)
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
   const [scheduleDialogDate, setScheduleDialogDate] = useState('')
+  const [editingSchedule, setEditingSchedule] = useState<WillowMgmtSchedule | null>(null)
   const [selectedSchedule, setSelectedSchedule] = useState<WillowMgmtSchedule | null>(null)
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
+  const [parsing, setParsing] = useState(false)
+  const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([])
+  const [parsedBankName, setParsedBankName] = useState<string | null>(null)
+  const [parsePreviewOpen, setParsePreviewOpen] = useState(false)
+
+  // Email states
+  const [emails, setEmails] = useState<FullEmail[]>([])
+  const [gmailConnected, setGmailConnected] = useState(false)
+  const [selectedEmail, setSelectedEmail] = useState<FullEmail | null>(null)
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [composeMode, setComposeMode] = useState<ComposeMode>('new')
+  const [composeOriginal, setComposeOriginal] = useState<FullEmail | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -55,25 +68,14 @@ export default function MgmtPage() {
         setInvoices(Array.isArray(data) ? data : data.invoices || [])
       }
 
-      // Gmail — uses context=willow, label=WILLOW (matching existing management page)
+      // Gmail
       try {
         const statusRes = await fetch('/api/gmail/status?context=willow')
         if (statusRes.ok) {
           const status = await statusRes.json()
           setGmailConnected(status.isConnected === true)
           if (status.isConnected) {
-            const emailsRes = await fetch('/api/gmail/emails?context=willow&label=WILLOW')
-            if (emailsRes.ok) {
-              const emailData = await emailsRes.json()
-              const parsed: EmailItem[] = (emailData.emails || []).map((e: Record<string, unknown>) => ({
-                id: e.id as string,
-                from: ((e.from as string) || '').replace(/<.*>/, '').trim() || 'Unknown',
-                subject: (e.subject as string) || '(제목 없음)',
-                date: (e.date as string) || new Date().toISOString(),
-                unread: !(e.isRead as boolean),
-              }))
-              setEmails(parsed)
-            }
+            await fetchEmails()
           }
         }
       } catch { /* Gmail not critical */ }
@@ -82,10 +84,32 @@ export default function MgmtPage() {
     }
   }, [])
 
+  const fetchEmails = async () => {
+    const emailsRes = await fetch('/api/gmail/emails?context=willow&label=WILLOW')
+    if (emailsRes.ok) {
+      const emailData = await emailsRes.json()
+      const parsed: FullEmail[] = (emailData.emails || []).map((e: Record<string, unknown>) => ({
+        id: e.id as string,
+        from: (e.from as string) || '',
+        fromName: (e.fromName as string) || undefined,
+        to: (e.to as string) || '',
+        subject: (e.subject as string) || '(제목 없음)',
+        date: (e.date as string) || new Date().toISOString(),
+        body: (e.body as string) || undefined,
+        snippet: (e.snippet as string) || undefined,
+        direction: (e.direction as 'inbound' | 'outbound') || 'inbound',
+        category: (e.category as string) || null,
+        attachments: (e.attachments as FullEmail['attachments']) || undefined,
+        unread: !(e.isRead as boolean),
+      }))
+      setEmails(parsed)
+    }
+  }
+
   useEffect(() => { loadData() }, [loadData])
 
+  // ── Schedule handlers ──
   const handleToggleComplete = async (id: string, completed: boolean) => {
-    // Optimistic update
     setSchedules(prev => prev.map(s => s.id === id ? { ...s, is_completed: completed } : s))
     try {
       const res = await fetch('/api/willow-mgmt/schedules', {
@@ -95,7 +119,6 @@ export default function MgmtPage() {
       })
       if (!res.ok) throw new Error()
     } catch {
-      // Revert on failure
       setSchedules(prev => prev.map(s => s.id === id ? { ...s, is_completed: !completed } : s))
     }
   }
@@ -110,47 +133,163 @@ export default function MgmtPage() {
   }
 
   const handleAddSchedule = (date: string) => {
+    setEditingSchedule(null)
     setScheduleDialogDate(date)
     setScheduleDialogOpen(true)
   }
 
+  const handleEditSchedule = (schedule: WillowMgmtSchedule) => {
+    setEditingSchedule(schedule)
+    setScheduleDialogDate(schedule.schedule_date)
+    setScheduleDialogOpen(true)
+  }
+
   const handleSaveSchedule = async (data: ScheduleFormData) => {
+    const isEdit = !!data.id
     const body: Record<string, unknown> = {
       title: data.title,
       schedule_date: data.schedule_date,
       type: data.type,
     }
+    if (isEdit) body.id = data.id
     if (data.end_date) body.end_date = data.end_date
+    else if (isEdit) body.end_date = null
     if (data.start_time) body.start_time = data.start_time
+    else if (isEdit) body.start_time = null
     if (data.end_time) body.end_time = data.end_time
+    else if (isEdit) body.end_time = null
     if (data.client_id) body.client_id = data.client_id
+    else if (isEdit) body.client_id = null
     if (data.description) body.description = data.description
+    else if (isEdit) body.description = null
 
     const res = await fetch('/api/willow-mgmt/schedules', {
-      method: 'POST',
+      method: isEdit ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
     if (!res.ok) throw new Error('Failed to save schedule')
     setScheduleDialogOpen(false)
+    setEditingSchedule(null)
     loadData()
+  }
+
+  // ── Invoice handlers ──
+  const handleEditInvoice = (invoice: Invoice) => {
+    setEditingInvoice(invoice)
+    setInvoiceDialogOpen(true)
+  }
+
+  const handleDeleteInvoice = async (id: string) => {
+    setInvoices(prev => prev.filter(i => i.id !== id))
+    try {
+      await fetch(`/api/willow-mgmt/invoices?id=${id}`, { method: 'DELETE' })
+    } catch {
+      loadData()
+    }
+  }
+
+  const handleSaveInvoice = async (data: InvoiceFormData) => {
+    const isEdit = !!data.id
+    const body: Record<string, unknown> = {
+      type: data.type,
+      counterparty: data.counterparty,
+      amount: Number(data.amount),
+      description: data.description || null,
+      issue_date: data.issue_date || null,
+      payment_date: data.payment_date || null,
+    }
+    if (isEdit) body.id = data.id
+    const res = await fetch('/api/willow-mgmt/invoices', {
+      method: isEdit ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) throw new Error('Failed to save invoice')
+    setInvoiceDialogOpen(false)
+    setEditingInvoice(null)
+    loadData()
+  }
+
+  const handleFileUpload = async (file: File) => {
+    setParsing(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/willow-mgmt/invoices/parse', { method: 'POST', body: form })
+      if (!res.ok) throw new Error('Parse failed')
+      const data = await res.json()
+      const txs: ParsedTransaction[] = (data.transactions || []).map((tx: Omit<ParsedTransaction, '_selected'>) => ({ ...tx, _selected: true }))
+      setParsedTransactions(txs)
+      setParsedBankName(data.bankName || null)
+      setParsePreviewOpen(true)
+    } catch (err) {
+      console.error('File parse error:', err)
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  const handleConfirmParsed = async (txs: ParsedTransaction[]) => {
+    for (const tx of txs) {
+      await fetch('/api/willow-mgmt/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: tx.type,
+          counterparty: tx.counterparty,
+          description: tx.description || null,
+          amount: tx.amount,
+          payment_date: tx.date || null,
+        }),
+      })
+    }
+    setParsePreviewOpen(false)
+    setParsedTransactions([])
+    loadData()
+  }
+
+  // ── Email handlers ──
+  const handleSyncEmails = async () => {
+    setIsSyncing(true)
+    try {
+      await fetchEmails()
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  const handleReply = (email: FullEmail) => {
+    setComposeMode('reply')
+    setComposeOriginal(email)
+    setComposeOpen(true)
+  }
+
+  const handleForward = (email: FullEmail) => {
+    setComposeMode('forward')
+    setComposeOriginal(email)
+    setComposeOpen(true)
+  }
+
+  const handleCompose = () => {
+    setComposeMode('new')
+    setComposeOriginal(null)
+    setComposeOpen(true)
   }
 
   if (loading) {
     return (
-      <LinearLayout title="사업관리">
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          height: '60vh', color: t.neutrals.subtle, fontSize: 13,
-        }}>
-          로딩 중...
-        </div>
-      </LinearLayout>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '60vh', color: t.neutrals.subtle, fontSize: 13,
+      }}>
+        로딩 중...
+      </div>
     )
   }
 
   return (
-    <LinearLayout title="사업관리">
+    <>
       {/* Page title */}
       <div style={{ padding: '20px 0 0' }}>
         <h1 style={{
@@ -175,24 +314,77 @@ export default function MgmtPage() {
           onSelectSchedule={setSelectedSchedule}
         />
         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 14 }}>
-          <CashBlock invoices={invoices} onAddInvoice={() => {}} />
-          <EmailBlock emails={emails} connected={gmailConnected} />
+          <CashBlock
+            invoices={invoices}
+            onAddInvoice={() => { setEditingInvoice(null); setInvoiceDialogOpen(true) }}
+            onSelectInvoice={setSelectedInvoice}
+            onFileUpload={handleFileUpload}
+            parsing={parsing}
+          />
+          <EmailBlock
+            emails={emails}
+            connected={gmailConnected}
+            onSelectEmail={setSelectedEmail}
+            onSync={handleSyncEmails}
+            onCompose={handleCompose}
+            isSyncing={isSyncing}
+          />
         </div>
       </div>
+
+      {/* Schedule dialogs */}
       <ScheduleDetailDialog
         schedule={selectedSchedule}
         clients={clients}
         onClose={() => setSelectedSchedule(null)}
         onToggleComplete={handleToggleComplete}
         onDelete={handleDeleteSchedule}
+        onEdit={handleEditSchedule}
       />
       <AddScheduleDialog
         open={scheduleDialogOpen}
         defaultDate={scheduleDialogDate}
+        editingSchedule={editingSchedule}
         clients={clients}
-        onClose={() => setScheduleDialogOpen(false)}
+        onClose={() => { setScheduleDialogOpen(false); setEditingSchedule(null) }}
         onSave={handleSaveSchedule}
       />
-    </LinearLayout>
+
+      {/* Invoice dialogs */}
+      <InvoiceDetailDialog
+        invoice={selectedInvoice}
+        onClose={() => setSelectedInvoice(null)}
+        onDelete={handleDeleteInvoice}
+        onEdit={handleEditInvoice}
+      />
+      <AddInvoiceDialog
+        open={invoiceDialogOpen}
+        editingInvoice={editingInvoice}
+        onClose={() => { setInvoiceDialogOpen(false); setEditingInvoice(null) }}
+        onSave={handleSaveInvoice}
+      />
+      <ParsePreviewDialog
+        open={parsePreviewOpen}
+        transactions={parsedTransactions}
+        bankName={parsedBankName}
+        onClose={() => { setParsePreviewOpen(false); setParsedTransactions([]) }}
+        onConfirm={handleConfirmParsed}
+      />
+
+      {/* Email dialogs */}
+      <EmailDetailDialog
+        email={selectedEmail}
+        onClose={() => setSelectedEmail(null)}
+        onReply={handleReply}
+        onForward={handleForward}
+      />
+      <ComposeEmailDialog
+        open={composeOpen}
+        mode={composeMode}
+        originalEmail={composeOriginal}
+        onClose={() => { setComposeOpen(false); setComposeOriginal(null) }}
+        onSent={() => { fetchEmails() }}
+      />
+    </>
   )
 }

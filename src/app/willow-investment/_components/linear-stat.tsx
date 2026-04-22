@@ -6,13 +6,14 @@ interface LStatProps {
   label: string
   value: string
   unit?: string
-  tone?: 'pos' | 'neg' | 'warn' | 'default'
+  tone?: 'pos' | 'neg' | 'warn' | 'info' | 'default'
 }
 
 export function LStat({ label, value, unit, tone = 'default' }: LStatProps) {
   const color = tone === 'pos' ? t.accent.pos
     : tone === 'neg' ? t.accent.neg
     : tone === 'warn' ? t.accent.warn
+    : tone === 'info' ? t.brand[600]
     : t.neutrals.text
   return (
     <div style={{

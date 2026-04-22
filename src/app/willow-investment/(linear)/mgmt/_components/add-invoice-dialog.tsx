@@ -4,28 +4,41 @@ import { useState, useEffect } from 'react'
 import { t } from '@/app/willow-investment/_components/linear-tokens'
 import { LBtn } from '@/app/willow-investment/_components/linear-btn'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
-import { WillowMgmtClient, WillowMgmtSchedule } from '@/types/willow-mgmt'
 
-interface AddScheduleDialogProps {
+interface Invoice {
+  id: string
+  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  counterparty: string
+  description: string | null
+  amount: number
+  issue_date: string | null
+  payment_date: string | null
+  status: string
+}
+
+interface AddInvoiceDialogProps {
   open: boolean
-  defaultDate: string
-  editingSchedule?: WillowMgmtSchedule | null
-  clients: WillowMgmtClient[]
+  editingInvoice?: Invoice | null
   onClose: () => void
-  onSave: (data: ScheduleFormData) => Promise<void>
+  onSave: (data: InvoiceFormData) => Promise<void>
 }
 
-export interface ScheduleFormData {
+export interface InvoiceFormData {
   id?: string
-  title: string
-  schedule_date: string
-  end_date: string
-  start_time: string
-  end_time: string
-  type: 'meeting'
-  client_id: string
+  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  counterparty: string
   description: string
+  amount: string
+  issue_date: string
+  payment_date: string
 }
+
+const TYPE_OPTIONS: { value: InvoiceFormData['type']; label: string }[] = [
+  { value: 'revenue', label: '매출' },
+  { value: 'expense', label: '비용' },
+  { value: 'asset', label: '자산' },
+  { value: 'liability', label: '부채' },
+]
 
 const inputBase: React.CSSProperties = {
   width: '100%', padding: '8px 10px', fontSize: 13,
@@ -35,45 +48,42 @@ const inputBase: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
-function emptyForm(date: string): ScheduleFormData {
-  return { title: '', schedule_date: date, end_date: '', start_time: '', end_time: '', type: 'meeting', client_id: '', description: '' }
+function emptyForm(): InvoiceFormData {
+  return { type: 'expense', counterparty: '', description: '', amount: '', issue_date: '', payment_date: '' }
 }
 
-function fromSchedule(s: WillowMgmtSchedule): ScheduleFormData {
+function fromInvoice(inv: Invoice): InvoiceFormData {
   return {
-    id: s.id,
-    title: s.title,
-    schedule_date: s.schedule_date,
-    end_date: s.end_date || '',
-    start_time: s.start_time || '',
-    end_time: s.end_time || '',
-    type: 'meeting',
-    client_id: s.client_id || '',
-    description: s.description || '',
+    id: inv.id,
+    type: inv.type,
+    counterparty: inv.counterparty,
+    description: inv.description || '',
+    amount: String(inv.amount),
+    issue_date: inv.issue_date || '',
+    payment_date: inv.payment_date || '',
   }
 }
 
-export function AddScheduleDialog({ open, defaultDate, editingSchedule, clients, onClose, onSave }: AddScheduleDialogProps) {
-  const isEdit = !!editingSchedule
-  const [form, setForm] = useState<ScheduleFormData>(emptyForm(defaultDate))
+export function AddInvoiceDialog({ open, editingInvoice, onClose, onSave }: AddInvoiceDialogProps) {
+  const isEdit = !!editingInvoice
+  const [form, setForm] = useState<InvoiceFormData>(emptyForm())
   const [saving, setSaving] = useState(false)
 
-  // Sync form when dialog opens/changes
   useEffect(() => {
     if (!open) return
-    if (editingSchedule) {
-      setForm(fromSchedule(editingSchedule))
+    if (editingInvoice) {
+      setForm(fromInvoice(editingInvoice))
     } else {
-      setForm(emptyForm(defaultDate))
+      setForm(emptyForm())
     }
-  }, [open, editingSchedule, defaultDate])
+  }, [open, editingInvoice])
 
   if (!open) return null
 
   const set = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }))
 
   const handleSave = async () => {
-    if (!form.title.trim()) return
+    if (!form.counterparty.trim() || !form.amount.trim()) return
     setSaving(true)
     try {
       await onSave(form)
@@ -99,10 +109,10 @@ export function AddScheduleDialog({ open, defaultDate, editingSchedule, clients,
         }}>
           <div>
             <div style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
-              SCHEDULE
+              CASHFLOW
             </div>
             <div style={{ fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              {isEdit ? '일정 수정' : '일정 추가'}
+              {isEdit ? '거래 수정' : '거래 추가'}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -119,52 +129,48 @@ export function AddScheduleDialog({ open, defaultDate, editingSchedule, clients,
           padding: '0 20px 16px', overflowY: 'auto', flex: 1,
           display: 'flex', flexDirection: 'column', gap: 16,
         }}>
-          {/* Title */}
+          {/* Type chips */}
           <div>
-            <Label required>제목</Label>
+            <Label>유형</Label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {TYPE_OPTIONS.map(o => (
+                <ChipBtn key={o.value} active={form.type === o.value} onClick={() => set('type', o.value)}>
+                  {o.label}
+                </ChipBtn>
+              ))}
+            </div>
+          </div>
+
+          {/* Counterparty */}
+          <div>
+            <Label required>거래처</Label>
             <input
-              value={form.title} onChange={e => set('title', e.target.value)}
-              placeholder="일정 제목을 입력하세요"
+              value={form.counterparty} onChange={e => set('counterparty', e.target.value)}
+              placeholder="거래처명을 입력하세요"
               style={inputBase} autoFocus
             />
           </div>
 
-          {/* Client chips */}
-          {clients.length > 0 && (
-            <div>
-              <Label>클라이언트</Label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <ChipBtn active={!form.client_id} onClick={() => set('client_id', '')}>없음</ChipBtn>
-                {clients.map(c => (
-                  <ChipBtn key={c.id} active={form.client_id === c.id} onClick={() => set('client_id', c.id)}>
-                    {c.name}
-                  </ChipBtn>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Amount */}
+          <div>
+            <Label required>금액</Label>
+            <input
+              value={form.amount} onChange={e => set('amount', e.target.value)}
+              placeholder="0"
+              type="number"
+              style={inputBase}
+            />
+          </div>
 
           {/* Dates */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <Label>시작일</Label>
-              <input type="date" value={form.schedule_date} onChange={e => set('schedule_date', e.target.value)} style={inputBase} />
+              <Label>발행일</Label>
+              <input type="date" value={form.issue_date} onChange={e => set('issue_date', e.target.value)} style={inputBase} />
             </div>
             <div>
-              <Label>종료일</Label>
-              <input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} style={inputBase} />
-            </div>
-          </div>
-
-          {/* Times */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div>
-              <Label>시작 시간</Label>
-              <input type="time" value={form.start_time} onChange={e => set('start_time', e.target.value)} style={inputBase} />
-            </div>
-            <div>
-              <Label>종료 시간</Label>
-              <input type="time" value={form.end_time} onChange={e => set('end_time', e.target.value)} style={inputBase} />
+              <Label>입금/지급일</Label>
+              <input type="date" value={form.payment_date} onChange={e => set('payment_date', e.target.value)} style={inputBase} />
             </div>
           </div>
 
@@ -174,7 +180,7 @@ export function AddScheduleDialog({ open, defaultDate, editingSchedule, clients,
             <textarea
               value={form.description} onChange={e => set('description', e.target.value)}
               placeholder="상세 내용 (선택)"
-              rows={3}
+              rows={2}
               style={{ ...inputBase, resize: 'vertical' as const, lineHeight: 1.5 }}
             />
           </div>
@@ -186,7 +192,7 @@ export function AddScheduleDialog({ open, defaultDate, editingSchedule, clients,
           display: 'flex', justifyContent: 'flex-end', gap: 8,
         }}>
           <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
-          <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.title.trim()}>
+          <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.counterparty.trim() || !form.amount.trim()}>
             {saving ? '저장 중...' : '저장'}
           </LBtn>
         </div>

@@ -65,11 +65,17 @@ export async function analyzeEmails(
     }
   })
 
-  // 카테고리별로 이메일 그룹화
+  // 카테고리별로 이메일 그룹화 — 서브라벨 없으면 발신자 도메인별로 분류
   const emailsByCategory = new Map<string, EmailForAnalysis[]>()
 
   for (const email of emails) {
-    const category = email.category || 'Uncategorized'
+    let category = email.category
+    if (!category) {
+      // 서브라벨 없는 이메일은 발신자 도메인으로 그룹화
+      const fromAddr = email.from.match(/<(.+?)>/)?.[1] || email.from
+      const domain = fromAddr.split('@')[1]?.split('.').slice(-2).join('.') || '기타'
+      category = domain
+    }
     if (!emailsByCategory.has(category)) {
       emailsByCategory.set(category, [])
     }
@@ -108,7 +114,7 @@ ${customContext}
 
     const prompt = `
 당신은 금융/투자 업계의 비즈니스 이메일 분석 전문가입니다.
-"${category}" 거래처와의 이메일 커뮤니케이션을 분석하여 실행 가능한 인사이트를 제공해주세요.
+"${category}" 관련 이메일 커뮤니케이션을 분석하여 실행 가능한 인사이트를 제공해주세요.
 ${contextSection}
 분석할 이메일들:
 ${emailsContext}

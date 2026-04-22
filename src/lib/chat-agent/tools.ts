@@ -36,6 +36,8 @@ import {
   etcListProducts, etcCreateProduct, etcUpdateProduct, etcDeleteProduct,
   etcListInvoices, etcCreateInvoice, etcGetInvoice, etcGetStats, etcGetDashboard,
 } from '@/lib/etf/queries'
+import { getGmailClient, parseEmail, createMimeMessage, GmailContext } from '@/lib/gmail-server'
+import { analyzeEmails as geminiAnalyzeEmails, type EmailForAnalysis } from '@/lib/gemini-server'
 import {
   ryuhaListSubjects, ryuhaCreateSubject, ryuhaUpdateSubject, ryuhaDeleteSubject,
   ryuhaListTextbooks, ryuhaCreateTextbook, ryuhaUpdateTextbook, ryuhaDeleteTextbook,
@@ -748,6 +750,11 @@ export const agentTools = [
   { name: 'etc_list_invoices', description: '[ETC] 인보이스 목록', parameters: { type: 'object' as const, properties: { status: { type: 'string', description: 'draft|sent|paid|overdue|cancelled' }, limit: { type: 'string', description: '최대 건수 (기본: 50)' } } } },
   { name: 'etc_create_invoice', description: '[ETC] 인보이스 생성', parameters: { type: 'object' as const, properties: { invoice_date: { type: 'string', description: '발행일 (필수)' }, bill_to_company: { type: 'string', description: '수신 회사 (기본: Exchange Traded Concepts, LLC)' }, attention: { type: 'string', description: '담당자 (기본: Garrett Stevens)' }, line_items: { type: 'string', description: 'JSON 배열 [{description, qty?, unitPrice?, amount}] (필수)' }, notes: { type: 'string', description: '비고' } }, required: ['invoice_date', 'line_items'] } },
   { name: 'etc_get_invoice', description: '[ETC] 인보이스 상세 조회', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: '인보이스 ID (필수)' } }, required: ['id'] } },
+  // ---- Gmail 이메일 전용 도구 ----
+  { name: 'gmail_list_emails', description: '[Gmail] 이메일 목록 조회 — 라벨별, 최근 N일, 카테고리/방향(수신/발신) 정보 포함. "이메일 보여줘", "최근 메일" 등에 사용', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default (기본: willow)' }, label: { type: 'string', description: '라벨명 (기본: WILLOW). INBOX, WILLOW, ETC 등' }, days_back: { type: 'string', description: '조회 기간 일수 (기본: 30)' }, max_results: { type: 'string', description: '최대 건수 (기본: 20)' } } } },
+  { name: 'gmail_search_emails', description: '[Gmail] 이메일 검색 — 키워드, 발신자, 기간 등으로 검색. "아크로스에서 온 메일", "계약서 관련 메일" 등에 사용', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default (기본: willow)' }, query: { type: 'string', description: 'Gmail 검색 쿼리 (필수). 예: "from:akros", "subject:계약서", "newer_than:7d 아크로스"' }, max_results: { type: 'string', description: '최대 건수 (기본: 10)' } }, required: ['query'] } },
+  { name: 'gmail_analyze_emails', description: '[Gmail] 이메일 AI 분석 — 최근 이메일을 Gemini로 분석하여 카테고리별 요약, 이슈, TODO 추출. "이메일 분석해줘", "이메일 요약" 등에 사용. 시간이 걸릴 수 있음', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default (기본: willow)' }, label: { type: 'string', description: '분석할 라벨 (기본: WILLOW)' }, days_back: { type: 'string', description: '분석 기간 일수 (기본: 30)' } } } },
+  { name: 'gmail_send_email', description: '[Gmail] 이메일 발송 — 새 이메일 또는 답장 발송. "이메일 보내줘", "답장 해줘" 등에 사용', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default (기본: willow)' }, to: { type: 'string', description: '수신자 이메일 (필수)' }, subject: { type: 'string', description: '제목 (필수)' }, body: { type: 'string', description: '본문 (필수)' }, cc: { type: 'string', description: '참조' } }, required: ['to', 'subject', 'body'] } },
   // ---- 류하 학습관리 전용 도구 ----
   { name: 'ryuha_get_dashboard', description: '[류하] 학습 대시보드 — 이번주 일정, 미완료 숙제, 최근 신체기록', parameters: { type: 'object' as const, properties: {} } },
   // -- Subjects --
@@ -1324,6 +1331,140 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
     case 'etc_list_invoices': return await etcListInvoices({ status: args.status as string | undefined, limit: args.limit ? Number(args.limit) : undefined })
     case 'etc_create_invoice': return await etcCreateInvoice({ invoice_date: args.invoice_date as string, bill_to_company: args.bill_to_company as string | undefined, attention: args.attention as string | undefined, line_items: typeof args.line_items === 'string' ? JSON.parse(args.line_items) : args.line_items as Array<{ description: string; qty?: number; unitPrice?: number; amount: number }>, notes: args.notes as string | undefined })
     case 'etc_get_invoice': return await etcGetInvoice({ id: args.id as string })
+
+    // ---- Gmail 이메일 도구 ----
+    case 'gmail_list_emails': {
+      const ctx = (args.context as GmailContext) || 'willow'
+      const label = (args.label as string) || 'WILLOW'
+      const daysBack = args.days_back ? Number(args.days_back) : 30
+      const maxResults = args.max_results ? Number(args.max_results) : 20
+      const gmail = await getGmailClient(ctx)
+      if (!gmail) return { error: 'Gmail 미연결. 먼저 Gmail OAuth 인증이 필요해요.' }
+
+      const afterDate = new Date()
+      afterDate.setDate(afterDate.getDate() - daysBack)
+      const afterStr = `${afterDate.getFullYear()}/${String(afterDate.getMonth() + 1).padStart(2, '0')}/${String(afterDate.getDate()).padStart(2, '0')}`
+
+      // Get labels
+      const labelsRes = await gmail.users.labels.list({ userId: 'me' })
+      const allLabels = labelsRes.data.labels || []
+      const labelMap = new Map(allLabels.filter(l => l.id && l.name).map(l => [l.id!, l.name!]))
+      let parentLabelId: string | null = null
+      const subLabelIds: string[] = []
+      for (const l of allLabels) {
+        if (!l.name || !l.id) continue
+        if (l.name.toLowerCase() === label.toLowerCase()) parentLabelId = l.id
+        if (l.name.toLowerCase().startsWith(label.toLowerCase() + '/')) subLabelIds.push(l.id)
+      }
+      const labelIds = parentLabelId ? [parentLabelId, ...subLabelIds] : subLabelIds
+      if (labelIds.length === 0) return { emails: [], message: `라벨 "${label}" 없음` }
+
+      const msgIds: string[] = []
+      for (const lid of labelIds) {
+        const res = await gmail.users.messages.list({ userId: 'me', labelIds: [lid], maxResults, q: `after:${afterStr}` })
+        for (const m of res.data.messages || []) { if (m.id && !msgIds.includes(m.id)) msgIds.push(m.id) }
+      }
+      const emails = await Promise.all(msgIds.slice(0, maxResults).map(async id => {
+        const msg = await gmail.users.messages.get({ userId: 'me', id, format: 'full' })
+        const parsed = parseEmail(msg.data)
+        const msgLabels = msg.data.labelIds || []
+        let category: string | null = null
+        for (const lid of msgLabels) {
+          const name = labelMap.get(lid)
+          if (name && name.toLowerCase().startsWith(label.toLowerCase() + '/')) { category = name.substring(label.length + 1); break }
+        }
+        const direction = msgLabels.includes('SENT') ? 'outbound' : 'inbound'
+        return { id: parsed.id, from: parsed.from, fromName: parsed.fromName, to: parsed.to, subject: parsed.subject, date: parsed.date, snippet: parsed.snippet, direction, category }
+      }))
+      emails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      return { count: emails.length, emails }
+    }
+
+    case 'gmail_search_emails': {
+      const ctx = (args.context as GmailContext) || 'willow'
+      const query = args.query as string
+      const maxResults = args.max_results ? Number(args.max_results) : 10
+      const gmail = await getGmailClient(ctx)
+      if (!gmail) return { error: 'Gmail 미연결' }
+
+      const res = await gmail.users.messages.list({ userId: 'me', q: query, maxResults })
+      const messages = res.data.messages || []
+      if (messages.length === 0) return { count: 0, emails: [], query }
+
+      const emails = await Promise.all(messages.map(async m => {
+        const msg = await gmail.users.messages.get({ userId: 'me', id: m.id!, format: 'full' })
+        const parsed = parseEmail(msg.data)
+        const direction = (msg.data.labelIds || []).includes('SENT') ? 'outbound' : 'inbound'
+        return { id: parsed.id, from: parsed.from, fromName: parsed.fromName, to: parsed.to, subject: parsed.subject, date: parsed.date, snippet: parsed.snippet, body: (parsed.body || '').slice(0, 500), direction }
+      }))
+      return { count: emails.length, query, emails }
+    }
+
+    case 'gmail_analyze_emails': {
+      const ctx = (args.context as GmailContext) || 'willow'
+      const label = (args.label as string) || 'WILLOW'
+      const daysBack = args.days_back ? Number(args.days_back) : 30
+      const gmail = await getGmailClient(ctx)
+      if (!gmail) return { error: 'Gmail 미연결' }
+
+      const afterDate = new Date()
+      afterDate.setDate(afterDate.getDate() - daysBack)
+      const afterStr = `${afterDate.getFullYear()}/${String(afterDate.getMonth() + 1).padStart(2, '0')}/${String(afterDate.getDate()).padStart(2, '0')}`
+
+      // Collect messages from label + sublabels
+      const labelsRes = await gmail.users.labels.list({ userId: 'me' })
+      const allLabels = labelsRes.data.labels || []
+      const labelMap = new Map(allLabels.filter(l => l.id && l.name).map(l => [l.id!, l.name!]))
+      let parentLabelId: string | null = null
+      const subLabelIds: string[] = []
+      for (const l of allLabels) {
+        if (!l.name || !l.id) continue
+        if (l.name.toLowerCase() === label.toLowerCase()) parentLabelId = l.id
+        if (l.name.toLowerCase().startsWith(label.toLowerCase() + '/')) subLabelIds.push(l.id)
+      }
+      const labelIds = parentLabelId ? [parentLabelId, ...subLabelIds] : subLabelIds
+      if (labelIds.length === 0) return { error: `라벨 "${label}" 없음` }
+
+      const msgIds = new Set<string>()
+      for (const lid of labelIds) {
+        let pageToken: string | undefined
+        do {
+          const res = await gmail.users.messages.list({ userId: 'me', labelIds: [lid], maxResults: 100, q: `after:${afterStr}`, ...(pageToken ? { pageToken } : {}) })
+          for (const m of res.data.messages || []) { if (m.id) msgIds.add(m.id) }
+          pageToken = res.data.nextPageToken || undefined
+        } while (pageToken)
+      }
+
+      const ids = Array.from(msgIds).slice(0, 100)
+      const emailsForAnalysis: EmailForAnalysis[] = await Promise.all(ids.map(async id => {
+        const msg = await gmail.users.messages.get({ userId: 'me', id, format: 'full' })
+        const parsed = parseEmail(msg.data)
+        const msgLabels = msg.data.labelIds || []
+        let category: string | null = null
+        for (const lid of msgLabels) {
+          const name = labelMap.get(lid)
+          if (name && name.toLowerCase().startsWith(label.toLowerCase() + '/')) { category = name.substring(label.length + 1); break }
+        }
+        return { id: parsed.id, from: parsed.from || '', fromName: parsed.fromName, to: parsed.to || '', subject: parsed.subject || '', body: parsed.body || parsed.snippet || '', date: parsed.date, category, direction: (msgLabels.includes('SENT') ? 'outbound' : 'inbound') as 'inbound' | 'outbound' }
+      }))
+
+      const result = await geminiAnalyzeEmails(emailsForAnalysis, label)
+      return { totalEmails: emailsForAnalysis.length, daysBack, ...result }
+    }
+
+    case 'gmail_send_email': {
+      const ctx = (args.context as GmailContext) || 'willow'
+      const to = args.to as string
+      const subject = args.subject as string
+      const body = args.body as string
+      const cc = args.cc as string | undefined
+      const gmail = await getGmailClient(ctx)
+      if (!gmail) return { error: 'Gmail 미연결' }
+
+      const raw = createMimeMessage({ to, subject, body, cc })
+      const res = await gmail.users.messages.send({ userId: 'me', requestBody: { raw } })
+      return { success: true, messageId: res.data.id, to, subject }
+    }
 
     // ---- 류하 학습관리 도구 ----
     case 'ryuha_get_dashboard': return await ryuhaGetDashboard()

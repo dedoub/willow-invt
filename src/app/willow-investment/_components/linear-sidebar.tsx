@@ -8,14 +8,14 @@ import { usePathname } from 'next/navigation'
 const NAV_ITEMS = [
   { key: 'mgmt',   href: '/willow-investment/mgmt',   label: '사업관리',  icon: 'briefcase' },
   { key: 'invest', href: '/willow-investment/invest',  label: '투자관리',  icon: 'trending' },
-  { key: 'wiki',   href: '/willow-investment/wiki',    label: '업무 위키', icon: 'book' },
+  { key: 'wiki',   href: '/willow-investment/wiki',    label: '업무위키',  icon: 'book' },
+  { key: 'ryuha',  href: '/others/ryuha-study',       label: '류하일정',  icon: 'calendar' },
 ]
 
 const CLIENTS = [
   { id: 'akros', name: '아크로스자산운용', tag: 'ETF', dot: '#3F93C6' },
   { id: 'tensw', name: '텐소프트웍스',    tag: 'SI',  dot: '#B88A2A' },
   { id: 'monor', name: '모노알',          tag: 'App', dot: '#2F8F5B' },
-  { id: 'ryuha', name: '류하학원',        tag: 'EDU', dot: '#8B5CF6' },
 ]
 
 function GroupLabel({ label }: { label: string }) {
@@ -49,7 +49,7 @@ export function LinearSidebar() {
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '4px 8px', overflowY: 'auto' }}>
-        <GroupLabel label="Willow" />
+        <GroupLabel label="윌로우인베스트먼트" />
         {NAV_ITEMS.map(n => {
           const isActive = pathname === n.href || pathname.startsWith(n.href + '/')
           return (

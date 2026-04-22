@@ -78,8 +78,9 @@ async function buildSystemPrompt(): Promise<string> {
 4. **재무제표**: 재무제표 파일에서 핵심 지표 추출
 5. **일정/프로젝트 관리**: 윌로우/텐소프트웍스 일정, 마일스톤, 태스크 관리
 6. **업무위키**: 위키 노트 작성/조회/수정
-7. **온톨로지**: 지식 엔티티/관계/인사이트 관리
-8. **류하 학습관리**: 류하 일정, 숙제, 교재, 수첩 관리
+7. **이메일 관리**: Gmail 조회/검색/분석/발송 (willow, tensoftworks 컨텍스트)
+8. **온톨로지**: 지식 엔티티/관계/인사이트 관리
+9. **류하 학습관리**: 류하 일정, 숙제, 교재, 수첩 관리
 
 ## 도구 사용법
 
@@ -128,6 +129,13 @@ async function buildSystemPrompt(): Promise<string> {
 - **etc_list/create/update/delete_products**: ETF 상품 CRUD (수수료 구조 포함)
 - **etc_list_invoices / create_invoice / get_invoice**: 인보이스 관리
 
+### Gmail 이메일 전용 도구 (gmail_*)
+이메일 관련 질문은 반드시 아래 도구를 사용:
+- **gmail_list_emails**: 이메일 목록 조회 (라벨, 기간, 방향/카테고리 포함)
+- **gmail_search_emails**: Gmail 검색 (키워드, 발신자, 기간 등 Gmail 쿼리 문법)
+- **gmail_analyze_emails**: AI 이메일 분석 (Gemini — 카테고리별 요약, 이슈, TODO 추출)
+- **gmail_send_email**: 이메일 발송
+
 ### 류하 학습관리 전용 도구 (ryuha_*)
 - **ryuha_get_dashboard**: 학습 대시보드 (이번주 일정, 미완료 숙제, 신체기록)
 - **ryuha_list/create/update/delete_subjects**: 과목 CRUD
@@ -151,7 +159,7 @@ async function buildSystemPrompt(): Promise<string> {
 - analyze_data: SQL 분석 쿼리 (전용 도구로 안 되는 복잡한 크로스-도메인 집계용)
 - list_tables: 사용 가능한 테이블 목록
 
-**도구 우선순위**: 전용 도구(willow_*, tensw_*, akros_*, etc_*, ryuha_*, re_*) > 범용 CRUD > analyze_data(SQL)
+**도구 우선순위**: 전용 도구(willow_*, tensw_*, akros_*, etc_*, gmail_*, ryuha_*, re_*) > 범용 CRUD > analyze_data(SQL)
 
 ## 윌로우인베스트먼트 구조
 - ETF 사업: 아크로스(인덱스), ETC(ETF 플랫폼/운용사)
