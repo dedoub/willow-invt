@@ -7,6 +7,7 @@ import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, 
 import { HoldingsBlock, StockTradeFull, StockQuoteFull, TickerTheme } from './_components/holdings-block'
 import { AnalysisBlock } from './_components/analysis-block'
 import { TradeLog } from './_components/trade-log'
+import { InvestSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
 
 const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
 
@@ -246,17 +247,6 @@ export default function InvestPage() {
       : fmtKrwShort(gain)
     : undefined
 
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        height: '60vh', color: t.neutrals.subtle, fontSize: 13,
-      }}>
-        로딩 중...
-      </div>
-    )
-  }
-
   return (
     <>
       <div style={{ padding: '20px 0 0' }}>
@@ -272,6 +262,7 @@ export default function InvestPage() {
         </p>
       </div>
 
+      {loading ? <InvestSkeleton /> : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <SignalBar
           totalValue={fmtTotalValue}
@@ -318,6 +309,7 @@ export default function InvestPage() {
           </div>
         </div>
       </div>
+      )}
     </>
   )
 }

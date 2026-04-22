@@ -12,6 +12,7 @@ import { ParsePreviewDialog, ParsedTransaction } from './_components/parse-previ
 import { ScheduleDetailDialog } from './_components/schedule-detail-dialog'
 import { EmailDetailDialog, FullEmail } from './_components/email-detail-dialog'
 import { ComposeEmailDialog } from './_components/compose-email-dialog'
+import { MgmtSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
 import { WillowMgmtSchedule, WillowMgmtClient } from '@/types/willow-mgmt'
 
 interface Invoice {
@@ -320,17 +321,6 @@ export default function MgmtPage() {
     setComposeOpen(true)
   }
 
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        height: '60vh', color: t.neutrals.subtle, fontSize: 13,
-      }}>
-        로딩 중...
-      </div>
-    )
-  }
-
   return (
     <>
       {/* Page title */}
@@ -346,6 +336,9 @@ export default function MgmtPage() {
           일정 · 현금관리 · 이메일 — 오늘의 허브
         </p>
       </div>
+
+      {loading ? <MgmtSkeleton /> : (
+      <>
 
       {/* 3 blocks */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -426,6 +419,8 @@ export default function MgmtPage() {
         onClose={() => { setComposeOpen(false); setComposeOriginal(null) }}
         onSent={() => { fetchEmails() }}
       />
+      </>
+      )}
     </>
   )
 }

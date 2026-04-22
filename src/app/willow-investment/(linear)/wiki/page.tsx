@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { t } from '@/app/willow-investment/_components/linear-tokens'
+import { WikiSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
 import { WikiList } from './_components/wiki-list'
 import { WikiNote } from './_components/wiki-note-row'
 
@@ -72,13 +73,15 @@ export default function WikiPage() {
         </p>
       </div>
 
-      <WikiList
-        notes={notes}
-        loading={loading}
-        onCreate={handleCreate}
-        onUpdate={handleUpdate}
-        onDelete={handleDelete}
-      />
+      {loading ? <WikiSkeleton /> : (
+        <WikiList
+          notes={notes}
+          loading={false}
+          onCreate={handleCreate}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+        />
+      )}
     </>
   )
 }
