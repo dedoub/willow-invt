@@ -27,6 +27,7 @@ export function AkrosWikiBlock({ notes, loading, onCreate, onUpdate, onDelete }:
       onCreate={handleCreate}
       onUpdate={onUpdate}
       onDelete={onDelete}
+      hideFilter
     />
   )
 }

@@ -49,6 +49,7 @@ interface WikiListProps {
   onCreate: (data: { section: WikiSection; title: string; content: string; attachments?: unknown }) => Promise<void>
   onUpdate: (id: string, data: Partial<{ title: string; content: string; section: string; is_pinned: boolean; attachments: unknown }>) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  hideFilter?: boolean
 }
 
 function fmtDate(dateStr: string): string {
@@ -56,7 +57,7 @@ function fmtDate(dateStr: string): string {
   return `${d.getMonth() + 1}월 ${d.getDate()}일`
 }
 
-export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiListProps) {
+export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFilter }: WikiListProps) {
   const mobile = useIsMobile()
   const [sectionFilter, setSectionFilter] = useState<SectionFilter>('all')
   const [search, setSearch] = useState('')
@@ -182,6 +183,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
                 새 노트
               </LBtn>
             </div>
+            {!hideFilter && (
             <div style={{ display: 'flex', gap: 5 }}>
               {SECTION_FILTERS.map(f => {
                 const active = sectionFilter === f.value
@@ -198,6 +200,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
                 )
               })}
             </div>
+            )}
           </div>
 
           {/* Note rows */}

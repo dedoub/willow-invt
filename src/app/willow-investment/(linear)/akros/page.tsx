@@ -8,9 +8,12 @@ import { AumBlock } from './_components/aum-block'
 import { ProductBlock } from './_components/product-block'
 import { TaxInvoiceBlock, AkrosTaxInvoice } from './_components/tax-invoice-block'
 import { AkrosWikiBlock } from './_components/wiki-block'
-import { AkrosEmailBlock } from './_components/akros-email-block'
+import { EmailBlock } from '@/app/willow-investment/(linear)/mgmt/_components/email-block'
+import { EmailDetailDialog, FullEmail } from '@/app/willow-investment/(linear)/mgmt/_components/email-detail-dialog'
+import { ComposeEmailDialog } from '@/app/willow-investment/(linear)/mgmt/_components/compose-email-dialog'
 import { WikiNote } from '@/app/willow-investment/(linear)/wiki/_components/wiki-note-row'
-import { FullEmail } from '@/app/willow-investment/(linear)/mgmt/_components/email-detail-dialog'
+
+type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 export default function AkrosPage() {
   const mobile = useIsMobile()
@@ -31,6 +34,10 @@ export default function AkrosPage() {
   const [emails, setEmails] = useState<FullEmail[]>([])
   const [emailConnected, setEmailConnected] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [selectedEmail, setSelectedEmail] = useState<FullEmail | null>(null)
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [composeMode, setComposeMode] = useState<ComposeMode>('new')
+  const [composeOriginal, setComposeOriginal] = useState<FullEmail | null>(null)
 
   const loadProducts = useCallback(async () => {
     const [ts, prods] = await Promise.all([
@@ -59,32 +66,65 @@ export default function AkrosPage() {
     setWikiLoading(false)
   }, [])
 
-  const loadEmails = useCallback(async () => {
+  const fetchEmails = useCallback(async () => {
     try {
       const statusRes = await fetch('/api/gmail/status?context=default')
-      if (statusRes.ok) {
-        const statusData = await statusRes.json()
-        setEmailConnected(statusData.connected)
-        if (statusData.connected) {
-          const emailRes = await fetch('/api/gmail/emails?context=default&label=Akros&maxResults=50&daysBack=30&autoAnalyze=false')
-          if (emailRes.ok) {
-            const emailData = await emailRes.json()
-            setEmails((emailData.emails || []).map((e: FullEmail) => ({ ...e, sourceLabel: 'Akros', gmailContext: 'default' })))
-          }
+      if (!statusRes.ok) return
+      const statusData = await statusRes.json()
+      setEmailConnected(statusData.isConnected)
+      if (statusData.isConnected) {
+        const emailRes = await fetch('/api/gmail/emails?context=default&label=Akros&maxResults=50&daysBack=30&autoAnalyze=false')
+        if (emailRes.ok) {
+          const emailData = await emailRes.json()
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setEmails((emailData.emails || []).map((e: any) => ({
+            id: e.id,
+            from: e.from || '',
+            fromName: e.fromName || undefined,
+            to: e.to || '',
+            subject: e.subject || '(제목 없음)',
+            date: e.date || new Date().toISOString(),
+            body: e.body || undefined,
+            snippet: e.snippet || undefined,
+            direction: e.direction || 'inbound',
+            category: e.category || null,
+            attachments: e.attachments || undefined,
+            unread: !e.isRead,
+            sourceLabel: 'Akros',
+            gmailContext: 'default',
+          })))
         }
       }
     } catch { /* ignore */ }
   }, [])
 
   useEffect(() => {
-    Promise.all([loadProducts(), loadInvoices(), loadWiki(), loadEmails()])
+    Promise.all([loadProducts(), loadInvoices(), loadWiki(), fetchEmails()])
       .finally(() => setLoading(false))
-  }, [loadProducts, loadInvoices, loadWiki, loadEmails])
+  }, [loadProducts, loadInvoices, loadWiki, fetchEmails])
 
-  const handleSyncEmail = async () => {
+  // Email handlers
+  const handleSyncEmails = async () => {
     setIsSyncing(true)
-    await loadEmails()
-    setIsSyncing(false)
+    try { await fetchEmails() } finally { setIsSyncing(false) }
+  }
+
+  const handleReply = (email: FullEmail) => {
+    setComposeMode('reply')
+    setComposeOriginal(email)
+    setComposeOpen(true)
+  }
+
+  const handleForward = (email: FullEmail) => {
+    setComposeMode('forward')
+    setComposeOriginal(email)
+    setComposeOpen(true)
+  }
+
+  const handleCompose = () => {
+    setComposeMode('new')
+    setComposeOriginal(null)
+    setComposeOpen(true)
   }
 
   // Wiki CRUD handlers
@@ -125,6 +165,7 @@ export default function AkrosPage() {
       </div>
 
       {loading ? <AkrosSkeleton /> : (
+        <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* AUM Dashboard */}
           <AumBlock timeSeries={timeSeries} productCount={products.length} />
@@ -142,7 +183,7 @@ export default function AkrosPage() {
           {/* Wiki + Email */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+            gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
             gap: 14,
           }}>
             <AkrosWikiBlock
@@ -152,16 +193,33 @@ export default function AkrosPage() {
               onUpdate={handleUpdateWiki}
               onDelete={handleDeleteWiki}
             />
-            <AkrosEmailBlock
+            <EmailBlock
               emails={emails}
               connected={emailConnected}
-              onSelectEmail={() => {}}
-              onSync={handleSyncEmail}
-              onCompose={() => {}}
+              onSelectEmail={setSelectedEmail}
+              onSync={handleSyncEmails}
+              onCompose={handleCompose}
               isSyncing={isSyncing}
             />
           </div>
         </div>
+
+        {/* Email dialogs */}
+        <EmailDetailDialog
+          email={selectedEmail}
+          onClose={() => setSelectedEmail(null)}
+          onReply={handleReply}
+          onForward={handleForward}
+        />
+        <ComposeEmailDialog
+          open={composeOpen}
+          mode={composeMode}
+          originalEmail={composeOriginal}
+          gmailContext={composeOriginal?.gmailContext || 'default'}
+          onClose={() => { setComposeOpen(false); setComposeOriginal(null) }}
+          onSent={() => { fetchEmails() }}
+        />
+        </>
       )}
     </>
   )
