@@ -166,8 +166,8 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
                 </div>
               ) : (
                 /* Read row — 2-line layout for narrow containers */
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                       <span style={{
                         fontSize: 9, fontFamily: t.font.mono, padding: '2px 6px',

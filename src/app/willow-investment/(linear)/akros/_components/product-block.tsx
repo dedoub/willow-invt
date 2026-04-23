@@ -116,7 +116,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
               <th style={thStyle}>상품명</th>
               <th style={thStyle}>설정일</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>AUM</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>FLOW</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>1M FLOW</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>ARR</th>
             </tr>
           </thead>

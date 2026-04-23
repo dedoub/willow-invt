@@ -180,7 +180,7 @@ export default function AkrosPage() {
             <div style={mobile ? {} : { gridColumn: 1, gridRow: 1 }}>
               <AumBlock timeSeries={timeSeries} productCount={products.length} yearLaunches={yearLaunches} />
             </div>
-            <div style={mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }}>
+            <div style={mobile ? {} : { gridColumn: 2, gridRow: '1 / -1', minWidth: 0 }}>
               <TaxInvoiceBlock invoices={invoices} onRefresh={loadInvoices} style={{ height: '100%' }} />
             </div>
             <div style={mobile ? {} : { gridColumn: 1, gridRow: 2 }}>

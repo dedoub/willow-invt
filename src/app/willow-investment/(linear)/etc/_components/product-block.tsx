@@ -103,7 +103,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
               <th style={thStyle}>FUND NAME</th>
               <th style={thStyle}>LISTING</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>AUM</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>FLOW</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>1M FLOW</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>FEE/MO</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>REMAINING</th>
               <th style={thStyle}></th>
