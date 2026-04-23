@@ -85,16 +85,25 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
         })}
 
         <GroupLabel label="프로젝트" />
-        {CLIENTS.map(c => (
-          <div key={c.id} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px',
-            fontSize: 12.5, color: t.neutrals.muted, borderRadius: 6, cursor: 'pointer',
-          }}>
-            <span style={{ width: 7, height: 7, borderRadius: 2, background: c.dot, flexShrink: 0 }} />
-            <span style={{ flex: 1 }}>{c.name}</span>
-            <span style={{ fontFamily: t.font.mono, fontSize: 10, color: t.neutrals.subtle }}>{c.tag}</span>
-          </div>
-        ))}
+        {CLIENTS.map(c => {
+          const href = c.id === 'akros' ? '/willow-investment/akros' : undefined
+          const isActive = href ? (pathname === href || pathname.startsWith(href + '/')) : false
+          const Wrapper = href ? Link : 'div' as any
+          return (
+            <Wrapper key={c.id} {...(href ? { href, onClick: onClose } : {})} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px',
+              fontSize: 12.5, color: isActive ? t.brand[700] : t.neutrals.muted, borderRadius: 6,
+              cursor: href ? 'pointer' : 'default',
+              textDecoration: 'none',
+              background: isActive ? t.brand[600] + '14' : 'transparent',
+              fontWeight: isActive ? 500 : 400,
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: 2, background: c.dot, flexShrink: 0 }} />
+              <span style={{ flex: 1 }}>{c.name}</span>
+              <span style={{ fontFamily: t.font.mono, fontSize: 10, color: t.neutrals.subtle }}>{c.tag}</span>
+            </Wrapper>
+          )
+        })}
       </nav>
 
       {/* User */}

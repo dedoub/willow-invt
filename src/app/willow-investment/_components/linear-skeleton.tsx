@@ -274,6 +274,86 @@ export function RyuhaSkeleton() {
   )
 }
 
+/** 아크로스 skeleton: AUM bar + 2-col (products + invoices) + 2-col (wiki + email) */
+export function AkrosSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* AUM Dashboard */}
+      <CardSkel>
+        <Bone w={100} h={8} />
+        <Bone w={80} h={14} style={{ marginTop: 6 }} />
+        <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+          <Bone w={120} h={46} r={6} />
+          <Bone w={120} h={46} r={6} />
+          <Bone w={120} h={46} r={6} />
+        </div>
+      </CardSkel>
+
+      {/* Products + Tax Invoices */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <CardSkel pad={0}>
+          <div style={{ padding: '16px 16px 10px' }}>
+            <Bone w={60} h={8} />
+            <Bone w={80} h={14} style={{ marginTop: 6 }} />
+          </div>
+          <div style={{ padding: '0 16px 16px' }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Bone key={i} h={20} style={{ marginTop: 8 }} />
+            ))}
+          </div>
+        </CardSkel>
+        <CardSkel pad={0}>
+          <div style={{ padding: '16px 16px 10px' }}>
+            <Bone w={80} h={8} />
+            <Bone w={80} h={14} style={{ marginTop: 6 }} />
+          </div>
+          <div style={{ padding: '0 16px 16px' }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Bone key={i} h={20} style={{ marginTop: 8 }} />
+            ))}
+          </div>
+        </CardSkel>
+      </div>
+
+      {/* Wiki + Email */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <CardSkel pad={0}>
+          <div style={{ display: 'flex', minHeight: 300 }}>
+            <div style={{ width: '42%', minWidth: 180, borderRight: '1px solid #e2e8f0', padding: 12 }}>
+              <Bone h={30} r={6} />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Bone key={i} h={36} style={{ marginTop: 8 }} />
+              ))}
+            </div>
+            <div style={{ flex: 1, padding: 16 }}>
+              <Bone w="50%" h={16} />
+              <Bone h={12} style={{ marginTop: 12 }} />
+              <Bone h={12} w="80%" style={{ marginTop: 6 }} />
+            </div>
+          </div>
+        </CardSkel>
+        <CardSkel pad={0}>
+          <div style={{ padding: '16px 16px 10px' }}>
+            <Bone w={50} h={8} />
+            <Bone w={60} h={14} style={{ marginTop: 6 }} />
+          </div>
+          <div style={{ padding: '0 16px 16px' }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0' }}>
+                <div style={{ flex: 1 }}>
+                  <Bone w="60%" h={10} />
+                  <Bone w="90%" h={12} style={{ marginTop: 4 }} />
+                </div>
+                <Bone w={30} h={10} />
+              </div>
+            ))}
+          </div>
+        </CardSkel>
+      </div>
+    </div>
+  )
+}
+
 /** 업무위키 skeleton: two-panel layout inside card */
 export function WikiSkeleton() {
   return (
