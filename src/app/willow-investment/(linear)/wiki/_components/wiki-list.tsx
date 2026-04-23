@@ -3,8 +3,9 @@
 import { useState, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { t, tonePalettes } from '@/app/willow-investment/_components/linear-tokens'
+import { t, tonePalettes, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { LCard } from '@/app/willow-investment/_components/linear-card'
+import { LSectionHead } from '@/app/willow-investment/_components/linear-section-head'
 import { LBtn } from '@/app/willow-investment/_components/linear-btn'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
 import { WikiNote } from './wiki-note-row'
@@ -28,7 +29,19 @@ const SECTION_BADGES: Record<string, { label: string; bg: string; fg: string }> 
   'akros':       { label: '아크로스',     ...tonePalettes.brand },
 }
 
-const PAGE_SIZE = 15
+const PAGE_SIZE_KEY = 'wiki-page-size'
+const DEFAULT_PAGE_SIZE = 10
+const ROW_H = 47
+const FILTER_H = 80
+const PAGI_H = 33
+
+function getStoredPageSize(): number {
+  if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
+  const v = localStorage.getItem(PAGE_SIZE_KEY)
+  if (!v) return DEFAULT_PAGE_SIZE
+  const n = Number(v)
+  return n >= 5 && n <= 50 ? n : DEFAULT_PAGE_SIZE
+}
 
 interface WikiListProps {
   notes: WikiNote[]
@@ -44,12 +57,15 @@ function fmtDate(dateStr: string): string {
 }
 
 export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiListProps) {
+  const mobile = useIsMobile()
   const [sectionFilter, setSectionFilter] = useState<SectionFilter>('all')
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(getStoredPageSize)
+  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
 
   const filtered = useMemo(() => {
     let result = notes
@@ -65,8 +81,9 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
     return result
   }, [notes, sectionFilter, search])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
+  const containerH = FILTER_H + pageSize * ROW_H + 4 + PAGI_H
   const selectedNote = selectedId ? notes.find(n => n.id === selectedId) : null
 
   const handleFilterChange = (f: SectionFilter) => {
@@ -77,6 +94,14 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
   const handleSearchChange = (v: string) => {
     setSearch(v)
     setPage(0)
+  }
+
+  const commitPageSize = () => {
+    const n = Math.max(5, Math.min(50, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
+    setPageSizeInput(String(n))
+    setPageSize(n)
+    setPage(0)
+    localStorage.setItem(PAGE_SIZE_KEY, String(n))
   }
 
   const handleCreate = async (data: { section: WikiSection; title: string; content: string; attachments?: unknown }) => {
@@ -105,11 +130,26 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
 
   return (
     <LCard pad={0}>
-      <div style={{ display: 'flex', height: 640 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+        <LSectionHead eyebrow="WIKI" title="업무 위키" action={
+          <span style={{ fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.mono }}>
+            {notes.length}건
+          </span>
+        } />
+      </div>
+
+      <div style={{
+        display: 'flex',
+        flexDirection: mobile ? 'column' : 'row',
+        height: mobile ? 'auto' : containerH,
+      }}>
         {/* ===== LEFT PANEL: list ===== */}
+        {(!mobile || (!selectedId && !adding)) && (
         <div style={{
-          width: '42%', minWidth: 280, display: 'flex', flexDirection: 'column',
-          borderRight: `1px solid ${t.neutrals.line}`,
+          width: mobile ? '100%' : '42%',
+          minWidth: mobile ? undefined : 280,
+          display: 'flex', flexDirection: 'column',
+          borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
         }}>
           {/* Filter bar */}
           <div style={{ padding: '10px 12px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -226,45 +266,81 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
             )}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              gap: 8, padding: '8px 12px',
-              borderTop: `1px solid ${t.neutrals.line}`,
-            }}>
-              <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+          {/* Pagination bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '6px 12px',
+            borderTop: `1px solid ${t.neutrals.line}`,
+          }}>
+            {/* Page size input */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input
+                value={pageSizeInput}
+                onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
+                onBlur={commitPageSize}
+                onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
                 style={{
-                  background: 'transparent', border: 'none',
-                  cursor: page === 0 ? 'default' : 'pointer',
-                  padding: 4, borderRadius: 4,
-                  color: page === 0 ? t.neutrals.line : t.neutrals.muted,
-                  opacity: page === 0 ? 0.4 : 1,
-                }}>
-                <LIcon name="chevronLeft" size={14} stroke={2} />
-              </button>
-              <span style={{
-                fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted,
-                minWidth: 80, textAlign: 'center',
-              }}>
-                {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, filtered.length)} / {filtered.length}
-              </span>
-              <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-                style={{
-                  background: 'transparent', border: 'none',
-                  cursor: page >= totalPages - 1 ? 'default' : 'pointer',
-                  padding: 4, borderRadius: 4,
-                  color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
-                  opacity: page >= totalPages - 1 ? 0.4 : 1,
-                }}>
-                <LIcon name="chevronRight" size={14} stroke={2} />
-              </button>
+                  width: 32, textAlign: 'center', border: 'none',
+                  background: t.neutrals.inner, borderRadius: t.radius.sm,
+                  fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted,
+                  padding: '2px 0', outline: 'none',
+                }}
+              />
+              <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
             </div>
-          )}
+
+            {/* Page navigation */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+                  style={{
+                    background: 'transparent', border: 'none',
+                    cursor: page === 0 ? 'default' : 'pointer',
+                    padding: 4, borderRadius: 4,
+                    color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+                    opacity: page === 0 ? 0.4 : 1,
+                  }}>
+                  <LIcon name="chevronLeft" size={13} stroke={2} />
+                </button>
+                <span style={{
+                  fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted,
+                }}>
+                  {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
+                </span>
+                <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
+                  style={{
+                    background: 'transparent', border: 'none',
+                    cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+                    padding: 4, borderRadius: 4,
+                    color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
+                    opacity: page >= totalPages - 1 ? 0.4 : 1,
+                  }}>
+                  <LIcon name="chevronRight" size={13} stroke={2} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+        )}
 
         {/* ===== RIGHT PANEL: detail ===== */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+        {(!mobile || selectedId || adding) && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: mobile ? 'visible' : 'hidden', minHeight: 0 }}>
+          {/* Mobile back button */}
+          {mobile && (
+            <button
+              onClick={() => { setSelectedId(null); setAdding(false); setEditing(false) }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '10px 14px', fontSize: 12, color: t.brand[600],
+                fontFamily: t.font.sans,
+              }}
+            >
+              <LIcon name="chevronLeft" size={13} stroke={2} />
+              목록으로
+            </button>
+          )}
           {adding ? (
             /* New note form */
             <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -416,6 +492,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete }: WikiL
             </div>
           )}
         </div>
+        )}
       </div>
     </LCard>
   )

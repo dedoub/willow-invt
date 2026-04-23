@@ -13,9 +13,10 @@ const NAV_ITEMS = [
 ]
 
 const CLIENTS = [
-  { id: 'akros', name: '아크로스자산운용', tag: 'ETF', dot: '#3F93C6' },
-  { id: 'tensw', name: '텐소프트웍스',    tag: 'SI',  dot: '#B88A2A' },
-  { id: 'monor', name: '모노알',          tag: 'App', dot: '#2F8F5B' },
+  { id: 'akros', name: '아크로스',      tag: 'Indexing',  dot: '#3F93C6' },
+  { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#1F4E79' },
+  { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#B88A2A' },
+  { id: 'monor', name: 'MonoR Apps',    tag: 'Education', dot: '#2F8F5B' },
 ]
 
 function GroupLabel({ label }: { label: string }) {
@@ -83,7 +84,7 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
           )
         })}
 
-        <GroupLabel label="Clients" />
+        <GroupLabel label="프로젝트" />
         {CLIENTS.map(c => (
           <div key={c.id} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px',
