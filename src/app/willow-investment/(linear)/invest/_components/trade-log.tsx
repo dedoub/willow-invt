@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t } from '@/app/willow-investment/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { LCard } from '@/app/willow-investment/_components/linear-card'
 import { LSectionHead } from '@/app/willow-investment/_components/linear-section-head'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
@@ -24,10 +24,22 @@ interface TradeLogProps {
   trades: StockTrade[]
 }
 
-const PAGE_SIZE = 20
+const TRADE_PAGE_KEY = 'trade-page-size'
+const DEFAULT_PAGE_SIZE = 20
+
+function getStoredPageSize(): number {
+  if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
+  const v = localStorage.getItem(TRADE_PAGE_KEY)
+  if (!v) return DEFAULT_PAGE_SIZE
+  const n = Number(v)
+  return n >= 5 && n <= 100 ? n : DEFAULT_PAGE_SIZE
+}
 
 export function TradeLog({ trades }: TradeLogProps) {
+  const mobile = useIsMobile()
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(getStoredPageSize)
+  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
 
   const sorted = useMemo(() => {
     return [...trades].sort((a, b) => {
@@ -37,8 +49,16 @@ export function TradeLog({ trades }: TradeLogProps) {
     })
   }, [trades])
 
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
-  const paged = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const commitPageSize = () => {
+    const n = Math.max(5, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
+    setPageSizeInput(String(n))
+    setPageSize(n)
+    setPage(0)
+    localStorage.setItem(TRADE_PAGE_KEY, String(n))
+  }
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const paged = sorted.slice(page * pageSize, (page + 1) * pageSize)
 
   return (
     <LCard pad={0}>
@@ -51,11 +71,13 @@ export function TradeLog({ trades }: TradeLogProps) {
       </div>
 
       {/* Header row */}
+      <div style={{ overflowX: mobile ? 'auto' : undefined }}>
       <div style={{
         display: 'grid', gridTemplateColumns: '70px 50px 1.2fr 60px 90px 100px',
         gap: 8, padding: '6px 14px', fontSize: 10, fontWeight: t.weight.semibold,
         color: t.neutrals.subtle, fontFamily: t.font.mono,
         textTransform: 'uppercase' as const, letterSpacing: 0.5,
+        minWidth: mobile ? 500 : undefined,
       }}>
         <span>날짜</span>
         <span>구분</span>
@@ -77,6 +99,7 @@ export function TradeLog({ trades }: TradeLogProps) {
               gap: 8, padding: '8px 14px', alignItems: 'center',
               borderTop: `1px solid ${t.neutrals.line}`,
               fontSize: 12,
+              minWidth: mobile ? 500 : undefined,
             }}>
               <span style={{ fontFamily: t.font.mono, fontSize: 11, color: t.neutrals.muted }}>
                 {(tr.trade_date || '').slice(5)}
@@ -125,46 +148,62 @@ export function TradeLog({ trades }: TradeLogProps) {
           }}>매매 기록이 없습니다</div>
         )}
       </div>
+      </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: 8, padding: '10px 14px',
-          borderTop: `1px solid ${t.neutrals.line}`,
-        }}>
-          <button
-            disabled={page === 0}
-            onClick={() => setPage(p => p - 1)}
+      {/* Pagination bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 14px',
+        borderTop: `1px solid ${t.neutrals.line}`,
+      }}>
+        {/* Page size input */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            value={pageSizeInput}
+            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
+            onBlur={commitPageSize}
+            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
             style={{
-              background: 'transparent', border: 'none', cursor: page === 0 ? 'default' : 'pointer',
-              padding: 4, borderRadius: 4, color: page === 0 ? t.neutrals.line : t.neutrals.muted,
-              opacity: page === 0 ? 0.4 : 1,
+              width: 32, textAlign: 'center', border: 'none',
+              background: t.neutrals.inner, borderRadius: t.radius.sm,
+              fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted,
+              padding: '2px 0', outline: 'none',
             }}
-          >
-            <LIcon name="chevronLeft" size={14} stroke={2} />
-          </button>
-          <span style={{
-            fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted,
-            minWidth: 60, textAlign: 'center',
-          }}>
-            {page + 1} / {totalPages}
-          </span>
-          <button
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage(p => p + 1)}
-            style={{
-              background: 'transparent', border: 'none',
-              cursor: page >= totalPages - 1 ? 'default' : 'pointer',
-              padding: 4, borderRadius: 4,
-              color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
-              opacity: page >= totalPages - 1 ? 0.4 : 1,
-            }}
-          >
-            <LIcon name="chevronRight" size={14} stroke={2} />
-          </button>
+          />
+          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
-      )}
+
+        {/* Page navigation */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+              style={{
+                background: 'transparent', border: 'none',
+                cursor: page === 0 ? 'default' : 'pointer',
+                padding: 4, borderRadius: 4,
+                color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page === 0 ? 0.4 : 1,
+              }}>
+              <LIcon name="chevronLeft" size={13} stroke={2} />
+            </button>
+            <span style={{
+              fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted,
+            }}>
+              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sorted.length)} / {sorted.length}
+            </span>
+            <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
+              style={{
+                background: 'transparent', border: 'none',
+                cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+                padding: 4, borderRadius: 4,
+                color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page >= totalPages - 1 ? 0.4 : 1,
+              }}>
+              <LIcon name="chevronRight" size={13} stroke={2} />
+            </button>
+          </div>
+        )}
+      </div>
     </LCard>
   )
 }

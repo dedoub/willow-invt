@@ -4,7 +4,7 @@ import { useState, useEffect, ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { Inter as InterTight } from 'next/font/google'
 import { JetBrains_Mono } from 'next/font/google'
-import { t } from '@/app/willow-investment/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { LinearSidebar } from '@/app/willow-investment/_components/linear-sidebar'
 import { LinearHeader } from '@/app/willow-investment/_components/linear-header'
 import { LinearChatPanel } from '@/app/willow-investment/_components/linear-chat-panel'
@@ -46,9 +46,13 @@ export default function LinearRouteLayout({
 }) {
   const pathname = usePathname()
   const narrow = useNarrow()
+  const mobile = useIsMobile()
   const [chatOpen, setChatOpen] = useState(!narrow)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => { setChatOpen(!narrow) }, [narrow])
+  // Close menu on route change
+  useEffect(() => { setMenuOpen(false) }, [pathname])
 
   const title = PAGE_TITLES[pathname] || ''
 
@@ -59,20 +63,25 @@ export default function LinearRouteLayout({
         color: t.neutrals.text, fontFamily: t.font.sans,
         display: 'flex', overflow: 'hidden',
       }}>
-        <LinearSidebar />
+        {/* Desktop sidebar */}
+        {!mobile && <LinearSidebar />}
+        {/* Mobile sidebar overlay */}
+        {mobile && <LinearSidebar mobile open={menuOpen} onClose={() => setMenuOpen(false)} />}
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <LinearHeader
             title={title}
             onAgentToggle={() => setChatOpen(v => !v)}
             agentOpen={chatOpen}
+            mobile={mobile}
+            onMenuToggle={() => setMenuOpen(v => !v)}
           />
-          <main style={{ flex: 1, overflow: 'auto', padding: '0 20px 24px' }}>
+          <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '0 12px 24px' : '0 20px 24px' }}>
             {children}
           </main>
         </div>
 
-        <LinearChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+        {!mobile && <LinearChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />}
       </div>
     </div>
   )

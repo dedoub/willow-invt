@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState, useCallback } from 'react'
-import { t } from '@/app/willow-investment/_components/linear-tokens'
+import { useMemo, useState, useCallback, useEffect } from 'react'
+import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { LCard } from '@/app/willow-investment/_components/linear-card'
 import { LSectionHead } from '@/app/willow-investment/_components/linear-section-head'
 import { StockCard, StockCardData, PyramidingInfo, MonitorInfo } from './stock-card'
@@ -65,6 +65,7 @@ export function PortfolioKanban({
   watchlistData, signalData, stockTrades, stockQuotes, stockResearch, usdKrw,
   onTotalValueChange, onDataChanged,
 }: KanbanProps) {
+  const mobile = useIsMobile()
   const [dragOverCol, setDragOverCol] = useState<string | null>(null)
 
   const handleRemoveWatchlist = useCallback(async (name: string, group: string) => {
@@ -192,7 +193,6 @@ export function PortfolioKanban({
       return { item, sig, hold, qty, price, currency, valueUsd }
     })
     const totalUsd = raw.reduce((s, c) => s + c.valueUsd, 0)
-    onTotalValueChange?.(totalUsd)
 
     const cards: StockCardData[] = raw.map(({ item, sig, hold, qty, price, currency, valueUsd }) => {
       const weightPct = totalUsd > 0 ? (valueUsd / totalUsd) * 100 : 0
@@ -241,7 +241,23 @@ export function PortfolioKanban({
       return (b.weightPct ?? 0) - (a.weightPct ?? 0)
     })
     return cards
-  }, [watchlistData, signalMap, holdingsAvgMap, totalBoughtMap, usdKrw, onTotalValueChange])
+  }, [watchlistData, signalMap, holdingsAvgMap, totalBoughtMap, usdKrw])
+
+  const portfolioTotalUsd = useMemo(() => {
+    if (!watchlistData) return 0
+    return watchlistData.portfolio.reduce((s, item) => {
+      const sig = signalMap.get(item.ticker) || signalMap.get(item.ticker.replace('.KS', ''))
+      const hold = holdingsAvgMap.get(item.ticker.replace('.KS', ''))
+      const qty = hold && hold.qty > 0 ? hold.qty : 0
+      const price = sig?.price ?? 0
+      const currency = sig?.currency ?? 'KRW'
+      return s + (currency === 'KRW' ? (qty * price) / usdKrw : qty * price)
+    }, 0)
+  }, [watchlistData, signalMap, holdingsAvgMap, usdKrw])
+
+  useEffect(() => {
+    onTotalValueChange?.(portfolioTotalUsd)
+  }, [portfolioTotalUsd, onTotalValueChange])
 
   /* ── Watchlist column ── */
   const watchlistCards = useMemo((): StockCardData[] => {
@@ -342,8 +358,10 @@ export function PortfolioKanban({
       </div>
 
       <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10,
-        padding: '0 10px 14px',
+        display: 'grid',
+        gridTemplateColumns: mobile ? 'repeat(3, minmax(220px, 1fr))' : '1fr 1fr 1fr',
+        gap: 10, padding: '0 10px 14px',
+        overflowX: mobile ? 'auto' : undefined,
       }}>
         {/* Portfolio */}
         <div style={colStyle('portfolio')} {...dropHandlers('portfolio')}>

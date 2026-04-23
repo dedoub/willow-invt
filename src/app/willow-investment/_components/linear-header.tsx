@@ -9,9 +9,11 @@ interface LinearHeaderProps {
   onAgentToggle?: () => void
   agentOpen?: boolean
   actions?: ReactNode
+  mobile?: boolean
+  onMenuToggle?: () => void
 }
 
-export function LinearHeader({ title, onAgentToggle, agentOpen, actions }: LinearHeaderProps) {
+export function LinearHeader({ title, onAgentToggle, agentOpen, actions, mobile, onMenuToggle }: LinearHeaderProps) {
   return (
     <header style={{
       height: 52, padding: '0 20px',
@@ -22,15 +24,27 @@ export function LinearHeader({ title, onAgentToggle, agentOpen, actions }: Linea
     }}>
       {/* Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, minWidth: 0 }}>
-        <span style={{ color: t.neutrals.muted }}>윌로우인베스트먼트</span>
-        <LIcon name="chevronRight" size={11} color={t.neutrals.subtle} stroke={2} />
+        {mobile && onMenuToggle && (
+          <button onClick={onMenuToggle} style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+            color: t.neutrals.muted, marginRight: 4,
+          }}>
+            <LIcon name="menu" size={18} stroke={1.8} />
+          </button>
+        )}
+        {!mobile && (
+          <>
+            <span style={{ color: t.neutrals.muted }}>윌로우인베스트먼트</span>
+            <LIcon name="chevronRight" size={11} color={t.neutrals.subtle} stroke={2} />
+          </>
+        )}
         <span style={{ color: t.neutrals.text, fontWeight: 500 }}>{title}</span>
       </div>
 
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {actions}
-        {onAgentToggle && (
+        {onAgentToggle && !mobile && (
           <button onClick={onAgentToggle} style={{
             height: 28, padding: '0 10px', borderRadius: 6,
             background: agentOpen ? t.brand[600] : t.neutrals.inner,

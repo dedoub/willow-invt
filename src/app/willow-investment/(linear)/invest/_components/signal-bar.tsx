@@ -1,6 +1,6 @@
 'use client'
 
-import { t } from '@/app/willow-investment/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { LStat } from '@/app/willow-investment/_components/linear-stat'
 
 interface SignalBarProps {
@@ -14,11 +14,12 @@ interface SignalBarProps {
 }
 
 export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyTickers, holdTickers, usdKrw, loading }: SignalBarProps) {
+  const mobile = useIsMobile()
+  const cols = mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)'
+
   if (loading) {
     return (
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8,
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8 }}>
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} style={{
             background: t.neutrals.inner, borderRadius: t.radius.sm,
@@ -36,9 +37,7 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyTickers
   const holdLabel = holdTickers.length > 0 ? holdTickers.join(', ') : '-'
 
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8,
-    }}>
+    <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8 }}>
       <LStat label="평가액 (세후)" value={totalValue || '-'} tone="default" />
       <LStat label="누적수익률" value={`${retPct > 0 ? '+' : ''}${retPct.toFixed(1)}%`} tone={retTone} sub={gainSub} />
       <LStat label="추매" value={String(buyTickers.length)} tone={buyTickers.length > 0 ? 'pos' : 'default'} sub={buyLabel} />

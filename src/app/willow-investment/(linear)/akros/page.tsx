@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { AkrosSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
-import { fetchAllTimeSeriesData, fetchAkrosProducts, AkrosProduct, TimeSeriesData } from '@/lib/supabase-etf'
+import { fetchAllTimeSeriesData, fetchAkrosProducts, fetchYearLaunches, AkrosProduct, TimeSeriesData } from '@/lib/supabase-etf'
 import { AumBlock } from './_components/aum-block'
 import { ProductBlock } from './_components/product-block'
 import { TaxInvoiceBlock, AkrosTaxInvoice } from './_components/tax-invoice-block'
@@ -22,6 +22,7 @@ export default function AkrosPage() {
   // AUM + Products
   const [timeSeries, setTimeSeries] = useState<TimeSeriesData[]>([])
   const [products, setProducts] = useState<AkrosProduct[]>([])
+  const [yearLaunches, setYearLaunches] = useState(0)
 
   // Tax invoices
   const [invoices, setInvoices] = useState<AkrosTaxInvoice[]>([])
@@ -40,12 +41,14 @@ export default function AkrosPage() {
   const [composeOriginal, setComposeOriginal] = useState<FullEmail | null>(null)
 
   const loadProducts = useCallback(async () => {
-    const [ts, prods] = await Promise.all([
+    const [ts, prods, launches] = await Promise.all([
       fetchAllTimeSeriesData(),
       fetchAkrosProducts(),
+      fetchYearLaunches(new Date().getFullYear()),
     ])
     setTimeSeries(ts)
     setProducts(prods)
+    setYearLaunches(launches)
   }, [])
 
   const loadInvoices = useCallback(async () => {
@@ -167,17 +170,22 @@ export default function AkrosPage() {
       {loading ? <AkrosSkeleton /> : (
         <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* AUM Dashboard */}
-          <AumBlock timeSeries={timeSeries} productCount={products.length} />
-
-          {/* Products + Tax Invoices */}
+          {/* AUM + Products (left 2/3) + Tax Invoices (right 1/3, full height) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+            gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
+            gridTemplateRows: mobile ? 'auto auto auto' : 'auto 1fr',
             gap: 14,
           }}>
-            <ProductBlock products={products} />
-            <TaxInvoiceBlock invoices={invoices} onRefresh={loadInvoices} />
+            <div style={mobile ? {} : { gridColumn: 1, gridRow: 1 }}>
+              <AumBlock timeSeries={timeSeries} productCount={products.length} yearLaunches={yearLaunches} />
+            </div>
+            <div style={mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }}>
+              <TaxInvoiceBlock invoices={invoices} onRefresh={loadInvoices} style={{ height: '100%' }} />
+            </div>
+            <div style={mobile ? {} : { gridColumn: 1, gridRow: 2 }}>
+              <ProductBlock products={products} />
+            </div>
           </div>
 
           {/* Wiki + Email */}

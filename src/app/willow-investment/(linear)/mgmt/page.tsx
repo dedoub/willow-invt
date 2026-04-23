@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { t } from '@/app/willow-investment/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
 import { EmailBlock } from './_components/email-block'
@@ -29,6 +29,7 @@ interface Invoice {
 type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 export default function MgmtPage() {
+  const mobile = useIsMobile()
   const [loading, setLoading] = useState(true)
   const [schedules, setSchedules] = useState<WillowMgmtSchedule[]>([])
   const [clients, setClients] = useState<WillowMgmtClient[]>([])
@@ -348,7 +349,7 @@ export default function MgmtPage() {
           onToggleComplete={handleToggleComplete}
           onSelectSchedule={setSelectedSchedule}
         />
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: 14 }}>
           <CashBlock
             invoices={invoices}
             onAddInvoice={() => { setEditingInvoice(null); setInvoiceDialogOpen(true) }}

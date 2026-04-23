@@ -17,6 +17,7 @@ export function LCard({ children, pad, style }: LCardProps) {
       padding: pad ?? t.density.cardPad,
       fontFamily: t.font.sans,
       color: t.neutrals.text,
+      minWidth: 0,
       ...style,
     }}>
       {children}

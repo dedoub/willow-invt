@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { t } from '@/app/willow-investment/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { SignalBar } from './_components/signal-bar'
 import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, StockQuote } from './_components/portfolio-kanban'
 import { HoldingsBlock, StockTradeFull, StockQuoteFull, TickerTheme } from './_components/holdings-block'
@@ -12,6 +12,7 @@ import { InvestSkeleton } from '@/app/willow-investment/_components/linear-skele
 const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
 
 export default function InvestPage() {
+  const mobile = useIsMobile()
   const [loading, setLoading] = useState(true)
   const [watchlistData, setWatchlistData] = useState<{ portfolio: WatchlistItem[]; watchlist: WatchlistItem[]; benchmark: WatchlistItem[] } | null>(null)
   const [signalData, setSignalData] = useState<SignalData[]>([])
@@ -284,7 +285,7 @@ export default function InvestPage() {
           onDataChanged={loadData}
         />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, overflow: 'hidden' }}>
           <HoldingsBlock
             stockTrades={stockTradesFull}
             stockQuotes={stockQuotesFull}
@@ -293,7 +294,7 @@ export default function InvestPage() {
             fxHistory={fxHistory}
           />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minHeight: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, minHeight: 0 }}>
             <AnalysisBlock
               stockTrades={stockTradesFull}
               stockQuotes={stockQuotesFull}

@@ -69,13 +69,24 @@ function ActionBtn({ icon, label, onClick, spinning, disabled }: {
   )
 }
 
-const PAGE_SIZE = 25
+const EMAIL_PAGE_KEY = 'email-page-size'
+const DEFAULT_PAGE_SIZE = 25
+
+function getStoredPageSize(): number {
+  if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
+  const v = localStorage.getItem(EMAIL_PAGE_KEY)
+  if (!v) return DEFAULT_PAGE_SIZE
+  const n = Number(v)
+  return n >= 5 && n <= 100 ? n : DEFAULT_PAGE_SIZE
+}
 
 export function EmailBlock({
   emails, connected, onSelectEmail, onSync, onCompose, isSyncing,
 }: EmailBlockProps) {
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(getStoredPageSize)
+  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
 
   // Count emails per source
   const sourceCounts = useMemo(() => {
@@ -99,12 +110,20 @@ export function EmailBlock({
     return emails.filter(e => (e.sourceLabel || 'WILLOW') === sourceFilter)
   }, [emails, sourceFilter])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
   const handleFilterChange = (key: string) => {
     setSourceFilter(key)
     setPage(0)
+  }
+
+  const commitPageSize = () => {
+    const n = Math.max(5, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
+    setPageSizeInput(String(n))
+    setPageSize(n)
+    setPage(0)
+    localStorage.setItem(EMAIL_PAGE_KEY, String(n))
   }
 
   return (
@@ -242,41 +261,60 @@ export function EmailBlock({
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: 8, padding: '8px 16px 12px',
-          borderTop: `1px solid ${t.neutrals.line}`,
-        }}>
-          <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+      {/* Pagination bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 16px',
+        borderTop: `1px solid ${t.neutrals.line}`,
+      }}>
+        {/* Page size input */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            value={pageSizeInput}
+            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
+            onBlur={commitPageSize}
+            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
             style={{
-              background: 'transparent', border: 'none',
-              cursor: page === 0 ? 'default' : 'pointer',
-              padding: 4, borderRadius: 4,
-              color: page === 0 ? t.neutrals.line : t.neutrals.muted,
-              opacity: page === 0 ? 0.4 : 1,
-            }}>
-            <LIcon name="chevronLeft" size={14} stroke={2} />
-          </button>
-          <span style={{
-            fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted,
-            minWidth: 80, textAlign: 'center',
-          }}>
-            {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, filtered.length)} / {filtered.length}
-          </span>
-          <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-            style={{
-              background: 'transparent', border: 'none',
-              cursor: page >= totalPages - 1 ? 'default' : 'pointer',
-              padding: 4, borderRadius: 4,
-              color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
-              opacity: page >= totalPages - 1 ? 0.4 : 1,
-            }}>
-            <LIcon name="chevronRight" size={14} stroke={2} />
-          </button>
+              width: 32, textAlign: 'center', border: 'none',
+              background: t.neutrals.inner, borderRadius: t.radius.sm,
+              fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted,
+              padding: '2px 0', outline: 'none',
+            }}
+          />
+          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
-      )}
+
+        {/* Page navigation */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+              style={{
+                background: 'transparent', border: 'none',
+                cursor: page === 0 ? 'default' : 'pointer',
+                padding: 4, borderRadius: 4,
+                color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page === 0 ? 0.4 : 1,
+              }}>
+              <LIcon name="chevronLeft" size={13} stroke={2} />
+            </button>
+            <span style={{
+              fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted,
+            }}>
+              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
+            </span>
+            <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
+              style={{
+                background: 'transparent', border: 'none',
+                cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+                padding: 4, borderRadius: 4,
+                color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page >= totalPages - 1 ? 0.4 : 1,
+              }}>
+              <LIcon name="chevronRight" size={13} stroke={2} />
+            </button>
+          </div>
+        )}
+      </div>
     </LCard>
   )
 }

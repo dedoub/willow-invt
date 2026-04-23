@@ -36,11 +36,12 @@ const STATUS_STYLES: Record<InvoiceStatus, { label: string; bg: string; fg: stri
 interface TaxInvoiceBlockProps {
   invoices: AkrosTaxInvoice[]
   onRefresh: () => void
+  style?: React.CSSProperties
 }
 
 const PAGE_SIZE = 8
 
-export function TaxInvoiceBlock({ invoices, onRefresh }: TaxInvoiceBlockProps) {
+export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockProps) {
   const [page, setPage] = useState(0)
   const [addOpen, setAddOpen] = useState(false)
   const [editInv, setEditInv] = useState<AkrosTaxInvoice | null>(null)
@@ -130,7 +131,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh }: TaxInvoiceBlockProps) {
   }
 
   return (
-    <LCard pad={0}>
+    <LCard pad={0} style={style}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
         <LSectionHead eyebrow="TAX INVOICES" title="세금계산서" action={
           <LBtn size="sm" icon={<LIcon name="plus" size={14} color="#fff" />}
@@ -164,47 +165,56 @@ export function TaxInvoiceBlock({ invoices, onRefresh }: TaxInvoiceBlockProps) {
                   </div>
                 </div>
               ) : (
-                /* Read row */
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{
-                    fontSize: 9, fontFamily: t.font.mono, padding: '2px 6px',
-                    borderRadius: t.radius.sm, background: sty.bg, color: sty.fg, fontWeight: 500,
-                  }}>{sty.label}</span>
-                  <span style={{ fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.subtle, minWidth: 72 }}>
-                    {inv.invoice_date}
-                  </span>
-                  <span style={{ flex: 1, fontSize: 12, fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text }}>
-                    {inv.amount.toLocaleString()}원
-                  </span>
-                  {inv.notes && (
-                    <span style={{ fontSize: 10, color: t.neutrals.subtle, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {inv.notes}
+                /* Read row — 2-line layout for narrow containers */
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                      <span style={{
+                        fontSize: 9, fontFamily: t.font.mono, padding: '2px 6px',
+                        borderRadius: t.radius.sm, background: sty.bg, color: sty.fg, fontWeight: 500,
+                        flexShrink: 0,
+                      }}>{sty.label}</span>
+                      <span style={{ fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.subtle, flexShrink: 0 }}>
+                        {inv.invoice_date}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      {inv.file_url && (
+                        <a href={inv.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: 4, color: t.neutrals.subtle }}>
+                          <LIcon name="file" size={12} />
+                        </a>
+                      )}
+                      <button onClick={() => toggleStatus(inv, 'issued_at')} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        padding: '2px 5px', borderRadius: t.radius.sm,
+                        fontSize: 9, fontFamily: t.font.mono, fontWeight: 500,
+                        color: inv.issued_at ? tonePalettes.info.fg : t.neutrals.line,
+                        backgroundColor: inv.issued_at ? tonePalettes.info.bg : 'transparent',
+                      }}>발행</button>
+                      <button onClick={() => toggleStatus(inv, 'paid_at')} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        padding: '2px 5px', borderRadius: t.radius.sm,
+                        fontSize: 9, fontFamily: t.font.mono, fontWeight: 500,
+                        color: inv.paid_at ? tonePalettes.done.fg : t.neutrals.line,
+                        backgroundColor: inv.paid_at ? tonePalettes.done.bg : 'transparent',
+                      }}>입금</button>
+                      <button onClick={() => openEdit(inv)} style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+                        color: t.neutrals.subtle,
+                      }}>
+                        <LIcon name="pencil" size={12} />
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, paddingLeft: 2, minWidth: 0 }}>
+                    <span style={{ fontSize: 12, fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      {inv.amount.toLocaleString()}원
                     </span>
-                  )}
-                  <div style={{ display: 'flex', gap: 2 }}>
-                    {inv.file_url && (
-                      <a href={inv.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: 4, color: t.neutrals.subtle }}>
-                        <LIcon name="file" size={12} />
-                      </a>
+                    {inv.notes && (
+                      <span style={{ flex: 1, fontSize: 10, color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                        {inv.notes}
+                      </span>
                     )}
-                    <button onClick={() => toggleStatus(inv, 'issued_at')} title="발행 토글" style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-                      color: inv.issued_at ? tonePalettes.info.fg : t.neutrals.line,
-                    }}>
-                      <LIcon name="check" size={12} />
-                    </button>
-                    <button onClick={() => toggleStatus(inv, 'paid_at')} title="입금 토글" style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-                      color: inv.paid_at ? tonePalettes.done.fg : t.neutrals.line,
-                    }}>
-                      <LIcon name="check" size={12} stroke={2.5} />
-                    </button>
-                    <button onClick={() => openEdit(inv)} style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-                      color: t.neutrals.subtle,
-                    }}>
-                      <LIcon name="pencil" size={12} />
-                    </button>
                   </div>
                 </div>
               )}

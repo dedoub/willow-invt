@@ -11,7 +11,16 @@ interface ProductBlockProps {
   products: AkrosProduct[]
 }
 
-const PAGE_SIZE = 10
+const DEFAULT_PAGE_SIZE = 10
+const PAGE_SIZE_KEY = 'akros-product-page-size'
+
+function getStoredPageSize(): number {
+  if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
+  const v = localStorage.getItem(PAGE_SIZE_KEY)
+  if (!v) return DEFAULT_PAGE_SIZE
+  const n = Number(v)
+  return n >= 5 && n <= 50 ? n : DEFAULT_PAGE_SIZE
+}
 
 function fmtAum(v: number | null, currency: string): string {
   if (v == null) return '-'
@@ -56,8 +65,18 @@ function fmtArr(v: number | null, currency: string): string {
 
 export function ProductBlock({ products }: ProductBlockProps) {
   const [page, setPage] = useState(0)
-  const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE))
-  const paged = products.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const [pageSize, setPageSize] = useState(getStoredPageSize)
+  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
+  const totalPages = Math.max(1, Math.ceil(products.length / pageSize))
+  const paged = products.slice(page * pageSize, (page + 1) * pageSize)
+
+  const commitPageSize = () => {
+    const n = Math.max(5, Math.min(50, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
+    setPageSizeInput(String(n))
+    setPageSize(n)
+    setPage(0)
+    localStorage.setItem(PAGE_SIZE_KEY, String(n))
+  }
 
   const thStyle: React.CSSProperties = {
     padding: '6px 10px', fontSize: 10, fontFamily: t.font.mono,
@@ -79,8 +98,17 @@ export function ProductBlock({ products }: ProductBlockProps) {
         } />
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: 72 }} />
+            <col style={{ width: 52 }} />
+            <col />
+            <col style={{ width: 78 }} />
+            <col style={{ width: 80 }} />
+            <col style={{ width: 80 }} />
+            <col style={{ width: 72 }} />
+          </colgroup>
           <thead>
             <tr style={{ background: t.neutrals.inner, borderBottom: `1px solid ${t.neutrals.line}` }}>
               <th style={thStyle}>TICKER</th>
@@ -97,7 +125,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
               <tr key={p.symbol} style={{ borderBottom: `1px solid ${t.neutrals.line}` }}>
                 <td style={{ ...tdStyle, fontFamily: t.font.mono, fontWeight: 500 }}>{p.symbol}</td>
                 <td style={{ ...tdStyle, fontSize: 10 }}>{p.country}</td>
-                <td style={{ ...tdStyle, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {p.product_name_local || p.product_name}
                 </td>
                 <td style={{ ...tdStyle, fontFamily: t.font.mono, fontSize: 10, color: t.neutrals.muted }}>
@@ -129,33 +157,52 @@ export function ProductBlock({ products }: ProductBlockProps) {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-          padding: '8px 14px', gap: 6,
-          borderTop: `1px solid ${t.neutrals.line}`,
-        }}>
-          <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 16px',
+        borderTop: `1px solid ${t.neutrals.line}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            value={pageSizeInput}
+            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
+            onBlur={commitPageSize}
+            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
             style={{
-              background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
-              cursor: page === 0 ? 'default' : 'pointer',
-              color: page === 0 ? t.neutrals.line : t.neutrals.muted,
-            }}>
-            <LIcon name="chevronLeft" size={13} stroke={2} />
-          </button>
-          <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
-            {page + 1} / {totalPages}
-          </span>
-          <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-            style={{
-              background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
-              cursor: page >= totalPages - 1 ? 'default' : 'pointer',
-              color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
-            }}>
-            <LIcon name="chevronRight" size={13} stroke={2} />
-          </button>
+              width: 32, textAlign: 'center', border: 'none',
+              background: t.neutrals.inner, borderRadius: t.radius.sm,
+              fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted,
+              padding: '2px 0', outline: 'none',
+            }}
+          />
+          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
-      )}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+              style={{
+                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                cursor: page === 0 ? 'default' : 'pointer',
+                color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page === 0 ? 0.4 : 1,
+              }}>
+              <LIcon name="chevronLeft" size={13} stroke={2} />
+            </button>
+            <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, products.length)} / {products.length}
+            </span>
+            <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
+              style={{
+                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+                color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page >= totalPages - 1 ? 0.4 : 1,
+              }}>
+              <LIcon name="chevronRight" size={13} stroke={2} />
+            </button>
+          </div>
+        )}
+      </div>
     </LCard>
   )
 }
