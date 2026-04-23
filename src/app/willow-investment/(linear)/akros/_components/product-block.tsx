@@ -15,19 +15,43 @@ const PAGE_SIZE = 10
 
 function fmtAum(v: number | null, currency: string): string {
   if (v == null) return '-'
-  if (currency === 'KRW') return `₩${(v / 100000000).toFixed(1)}억`
-  return `$${(v / 1000000).toFixed(1)}M`
+  if (currency === 'KRW') return `${Math.round(v).toLocaleString('ko-KR')}억원`
+  if (currency === 'AUD') {
+    if (v >= 1000000) return `A$${(v / 1000000).toFixed(2)}M`
+    if (v >= 1000) return `A$${(v / 1000).toFixed(1)}K`
+    return `A$${v.toFixed(0)}`
+  }
+  if (v >= 1000000) return `$${(v / 1000000).toFixed(2)}M`
+  if (v >= 1000) return `$${(v / 1000).toFixed(1)}K`
+  return `$${v.toFixed(0)}`
 }
 
-function fmtFlow(v: number | null): string {
+function fmtFlow(v: number | null, currency: string): string {
   if (v == null) return '-'
-  const prefix = v >= 0 ? '+' : ''
-  return `${prefix}$${(v / 1000000).toFixed(1)}M`
+  const sign = v >= 0 ? '+' : '-'
+  const abs = Math.abs(v)
+  if (currency === 'KRW') return `${sign}${Math.round(abs).toLocaleString()}억원`
+  if (currency === 'AUD') {
+    if (abs >= 1000000) return `${sign}A$${(abs / 1000000).toFixed(2)}M`
+    if (abs >= 1000) return `${sign}A$${(abs / 1000).toFixed(1)}K`
+    return `${sign}A$${abs.toFixed(0)}`
+  }
+  if (abs >= 1000000) return `${sign}$${(abs / 1000000).toFixed(2)}M`
+  if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(1)}K`
+  return `${sign}$${abs.toFixed(0)}`
 }
 
-function fmtDate(d: string | null): string {
-  if (!d) return '-'
-  return d.slice(0, 10)
+function fmtArr(v: number | null, currency: string): string {
+  if (v == null) return '-'
+  if (currency === 'KRW') return `${v.toFixed(1)}억원`
+  if (currency === 'AUD') {
+    if (v >= 1000000) return `A$${(v / 1000000).toFixed(2)}M`
+    if (v >= 1000) return `A$${(v / 1000).toFixed(1)}K`
+    return `A$${v.toFixed(0)}`
+  }
+  if (v >= 1000000) return `$${(v / 1000000).toFixed(2)}M`
+  if (v >= 1000) return `$${(v / 1000).toFixed(1)}K`
+  return `$${v.toFixed(0)}`
 }
 
 export function ProductBlock({ products }: ProductBlockProps) {
@@ -60,21 +84,25 @@ export function ProductBlock({ products }: ProductBlockProps) {
           <thead>
             <tr style={{ background: t.neutrals.inner, borderBottom: `1px solid ${t.neutrals.line}` }}>
               <th style={thStyle}>TICKER</th>
-              <th style={thStyle}>상품명</th>
               <th style={thStyle}>COUNTRY</th>
+              <th style={thStyle}>상품명</th>
+              <th style={thStyle}>설정일</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>AUM</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>FLOW</th>
-              <th style={thStyle}>설정일</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>ARR</th>
             </tr>
           </thead>
           <tbody>
             {paged.map(p => (
               <tr key={p.symbol} style={{ borderBottom: `1px solid ${t.neutrals.line}` }}>
                 <td style={{ ...tdStyle, fontFamily: t.font.mono, fontWeight: 500 }}>{p.symbol}</td>
-                <td style={{ ...tdStyle, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <td style={{ ...tdStyle, fontSize: 10 }}>{p.country}</td>
+                <td style={{ ...tdStyle, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {p.product_name_local || p.product_name}
                 </td>
-                <td style={tdStyle}>{p.country}</td>
+                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontSize: 10, color: t.neutrals.muted }}>
+                  {p.listing_date || '-'}
+                </td>
                 <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono }}>
                   {fmtAum(p.market_cap, p.currency)}
                 </td>
@@ -82,16 +110,16 @@ export function ProductBlock({ products }: ProductBlockProps) {
                   ...tdStyle, textAlign: 'right', fontFamily: t.font.mono,
                   color: (p.product_flow ?? 0) >= 0 ? '#16A34A' : '#DC2626',
                 }}>
-                  {fmtFlow(p.product_flow)}
+                  {fmtFlow(p.product_flow, p.currency)}
                 </td>
-                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontSize: 10 }}>
-                  {fmtDate(p.listing_date)}
+                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono, fontWeight: 500 }}>
+                  {fmtArr(p.arr, p.currency)}
                 </td>
               </tr>
             ))}
             {paged.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', color: t.neutrals.subtle, padding: 30 }}>
+                <td colSpan={7} style={{ ...tdStyle, textAlign: 'center', color: t.neutrals.subtle, padding: 30 }}>
                   상품 데이터가 없습니다
                 </td>
               </tr>
