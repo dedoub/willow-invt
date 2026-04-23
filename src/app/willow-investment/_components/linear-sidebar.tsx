@@ -88,6 +88,7 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
         {CLIENTS.map(c => {
           const href = c.id === 'akros' ? '/willow-investment/akros'
             : c.id === 'etc' ? '/willow-investment/etc'
+            : c.id === 'tensw' ? '/willow-investment/tensw'
             : undefined
           const isActive = href ? (pathname === href || pathname.startsWith(href + '/')) : false
           const Wrapper = href ? Link : 'div' as any

@@ -78,3 +78,49 @@ export interface TenswMgmtTask {
   order_index: number
   created_at: string
 }
+
+export interface TenswCashItem {
+  id: string
+  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  counterparty: string
+  description: string | null
+  amount: number
+  issue_date: string | null
+  payment_date: string | null
+  status: string
+  notes: string | null
+  account_number: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TenswTaxInvoice {
+  id: string
+  invoice_date: string
+  company: string
+  description: string | null
+  supply_amount: number
+  tax_amount: number
+  total_amount: number
+  status: string
+  items: Array<{ description: string; quantity: number; unit_price: number; supply_amount: number; tax_amount: number }>
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TenswLoan {
+  id: string
+  lender: string
+  loan_type: string
+  principal: number
+  interest_rate: number
+  start_date: string
+  end_date: string | null
+  repayment_type: string
+  interest_payment_day: number | null
+  status: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+}

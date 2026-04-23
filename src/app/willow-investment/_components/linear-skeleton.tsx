@@ -439,6 +439,128 @@ export function EtcSkeleton() {
   )
 }
 
+/** 텐소프트웍스 skeleton: Projects + Schedule + Cash/Sales + Loans + Wiki + Email */
+export function TenswSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Projects */}
+      <CardSkel pad={0}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <Bone w={90} h={8} />
+          <Bone w={100} h={14} style={{ marginTop: 6 }} />
+        </div>
+        <div style={{ padding: '0 16px 16px' }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Bone key={i} h={28} style={{ marginTop: 8 }} />
+          ))}
+        </div>
+      </CardSkel>
+      {/* Schedule */}
+      <CardSkel pad={0}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <Bone w={100} h={8} />
+          <Bone w={80} h={14} style={{ marginTop: 6 }} />
+        </div>
+        <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Bone key={`h-${i}`} h={12} />
+            ))}
+            {Array.from({ length: 14 }).map((_, i) => (
+              <Bone key={`c-${i}`} h={60} r={t.radius.sm} />
+            ))}
+          </div>
+        </div>
+      </CardSkel>
+      {/* Cash+Sales + Loans */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <CardSkel pad={0}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+              <Bone w={80} h={8} />
+              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            </div>
+            <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Bone key={i} h={46} r={t.radius.sm} />
+              ))}
+            </div>
+            <div style={{ padding: '12px 16px 16px' }}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Bone key={i} h={16} style={{ marginTop: 8 }} />
+              ))}
+            </div>
+          </CardSkel>
+          <CardSkel pad={0}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+              <Bone w={80} h={8} />
+              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            </div>
+            <div style={{ padding: '0 16px 16px' }}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Bone key={i} h={36} style={{ marginTop: 6 }} />
+              ))}
+            </div>
+          </CardSkel>
+        </div>
+        <CardSkel pad={0}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+            <Bone w={70} h={8} />
+            <Bone w={60} h={14} style={{ marginTop: 6 }} />
+          </div>
+          <div style={{ padding: '0 16px 16px' }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Bone key={i} h={36} style={{ marginTop: 6 }} />
+            ))}
+          </div>
+        </CardSkel>
+      </div>
+      {/* Wiki + Email */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+        <CardSkel pad={0}>
+          <div style={{ display: 'flex', minHeight: 300 }}>
+            <div style={{ width: '42%', minWidth: 180, borderRight: '1px solid #e2e8f0', padding: 12 }}>
+              <Bone h={30} r={6} />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Bone key={i} h={36} style={{ marginTop: 8 }} />
+              ))}
+            </div>
+            <div style={{ flex: 1, padding: 16 }}>
+              <Bone w="50%" h={18} />
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <Bone w={56} h={16} r={3} />
+                <Bone w={50} h={12} />
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Bone h={12} />
+                <Bone h={12} w="90%" />
+                <Bone h={12} w="75%" />
+              </div>
+            </div>
+          </div>
+        </CardSkel>
+        <CardSkel pad={0}>
+          <div style={{ padding: '16px 16px 10px' }}>
+            <Bone w={50} h={8} />
+            <Bone w={60} h={14} style={{ marginTop: 6 }} />
+          </div>
+          <div style={{ padding: '0 16px 16px' }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0' }}>
+                <div style={{ flex: 1 }}>
+                  <Bone w="60%" h={10} />
+                  <Bone w="90%" h={12} style={{ marginTop: 4 }} />
+                </div>
+                <Bone w={30} h={10} />
+              </div>
+            ))}
+          </div>
+        </CardSkel>
+      </div>
+    </div>
+  )
+}
+
 /** 업무위키 skeleton: two-panel layout inside card */
 export function WikiSkeleton() {
   return (
