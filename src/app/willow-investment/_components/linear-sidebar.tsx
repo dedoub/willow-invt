@@ -86,7 +86,9 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
 
         <GroupLabel label="프로젝트" />
         {CLIENTS.map(c => {
-          const href = c.id === 'akros' ? '/willow-investment/akros' : undefined
+          const href = c.id === 'akros' ? '/willow-investment/akros'
+            : c.id === 'etc' ? '/willow-investment/etc'
+            : undefined
           const isActive = href ? (pathname === href || pathname.startsWith(href + '/')) : false
           const Wrapper = href ? Link : 'div' as any
           return (
