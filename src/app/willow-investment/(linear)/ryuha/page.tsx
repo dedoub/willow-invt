@@ -6,7 +6,6 @@ import { RyuhaSkeleton } from '@/app/willow-investment/_components/linear-skelet
 import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule, RyuhaDailyMemo, RyuhaBodyRecord } from '@/types/ryuha'
 import { CalendarBlock } from './_components/calendar-block'
 import { ScheduleDialog, ScheduleFormData } from './_components/schedule-dialog'
-import { DailyMemo } from './_components/daily-memo'
 import { TextbookBlock } from './_components/textbook-block'
 import { SubjectDialog, TextbookDialog, ChapterDialog } from './_components/textbook-dialog'
 import { ProgressBlock } from './_components/progress-block'
@@ -341,13 +340,23 @@ export default function RyuhaPage() {
             onAddSchedule={handleAddSchedule}
             onEditSchedule={handleEditSchedule}
             onToggleComplete={handleToggleComplete}
+            memos={memos}
+            onSaveMemo={handleSaveMemo}
           />
 
-          {/* Daily Memo */}
-          <DailyMemo
-            memos={memos}
-            selectedDate={selectedDate}
-            onSave={handleSaveMemo}
+          {/* Notebook */}
+          <NotebookBlock
+            notes={notes}
+            onCreate={handleCreateNote}
+            onUpdate={handleUpdateNote}
+            onDelete={handleDeleteNote}
+          />
+
+          {/* Growth records */}
+          <GrowthBlock
+            records={bodyRecords}
+            onSave={handleSaveBodyRecord}
+            onDelete={handleDeleteBodyRecord}
           />
 
           {/* Textbook + Progress 2-col grid */}
@@ -372,21 +381,6 @@ export default function RyuhaPage() {
               chapters={chapters}
             />
           </div>
-
-          {/* Notebook */}
-          <NotebookBlock
-            notes={notes}
-            onCreate={handleCreateNote}
-            onUpdate={handleUpdateNote}
-            onDelete={handleDeleteNote}
-          />
-
-          {/* Growth records */}
-          <GrowthBlock
-            records={bodyRecords}
-            onSave={handleSaveBodyRecord}
-            onDelete={handleDeleteBodyRecord}
-          />
         </div>
       )}
 

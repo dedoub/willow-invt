@@ -322,7 +322,7 @@ function buildSystemPrompt(context: string, history: Message[]): string {
 
 ### 일정 관리
 - ryuha_list_schedules: 일정 조회 (start_date, end_date)
-- ryuha_create_schedule: 일정 추가 (title, schedule_date 필수, type: 'homework'|'self_study')
+- ryuha_create_schedule: 일정 추가 (title, schedule_date 필수, type: 'school'|'academy'|'homework'|'etc')
 - ryuha_update_schedule: 일정 수정/완료 (is_completed: true)
 - ryuha_delete_schedule: 일정 삭제
 

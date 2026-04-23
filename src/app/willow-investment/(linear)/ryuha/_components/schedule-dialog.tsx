@@ -25,7 +25,7 @@ export interface ScheduleFormData {
   end_date: string
   start_time: string
   end_time: string
-  type: 'homework' | 'self_study'
+  type: 'school' | 'academy' | 'homework' | 'etc'
   subject_id: string
   chapter_ids: string[]
   color: string
@@ -41,7 +41,7 @@ export function ScheduleDialog({
 }: ScheduleDialogProps) {
   const [form, setForm] = useState<ScheduleFormData>({
     title: '', description: '', schedule_date: '', end_date: '',
-    start_time: '', end_time: '', type: 'self_study',
+    start_time: '', end_time: '', type: 'etc',
     subject_id: '', chapter_ids: [], color: '',
     email_reminder: false, homework_items: [],
   })
@@ -72,7 +72,7 @@ export function ScheduleDialog({
         title: '', description: '',
         schedule_date: initialDate || '',
         end_date: '', start_time: '', end_time: '',
-        type: 'self_study', subject_id: '', chapter_ids: [],
+        type: 'etc', subject_id: '', chapter_ids: [],
         color: '', email_reminder: false, homework_items: [],
       })
     }
@@ -203,18 +203,23 @@ export function ScheduleDialog({
           <div>
             <label style={labelStyle}>유형</label>
             <div style={{ display: 'flex', gap: 6 }}>
-              {(['self_study', 'homework'] as const).map(tp => (
-                <button key={tp} onClick={() => setForm({ ...form, type: tp })}
+              {([
+                { key: 'school', label: '학교' },
+                { key: 'academy', label: '학원' },
+                { key: 'homework', label: '과제' },
+                { key: 'etc', label: '기타' },
+              ] as const).map(({ key, label }) => (
+                <button key={key} onClick={() => setForm({ ...form, type: key })}
                   style={{
                     padding: '4px 12px', borderRadius: t.radius.pill,
                     border: 'none', cursor: 'pointer',
                     fontSize: 11, fontFamily: t.font.sans,
-                    fontWeight: form.type === tp ? t.weight.medium : t.weight.regular,
-                    background: form.type === tp ? t.brand[100] : t.neutrals.inner,
-                    color: form.type === tp ? t.brand[700] : t.neutrals.muted,
+                    fontWeight: form.type === key ? t.weight.medium : t.weight.regular,
+                    background: form.type === key ? t.brand[100] : t.neutrals.inner,
+                    color: form.type === key ? t.brand[700] : t.neutrals.muted,
                   }}
                 >
-                  {tp === 'self_study' ? '자율학습' : '숙제'}
+                  {label}
                 </button>
               ))}
             </div>

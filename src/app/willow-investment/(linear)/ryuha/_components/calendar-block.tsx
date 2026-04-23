@@ -1,13 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
+import { useState, useMemo, useEffect } from 'react'
+import { t, tonePalettes } from '@/app/willow-investment/_components/linear-tokens'
 import { LCard } from '@/app/willow-investment/_components/linear-card'
 import { LSectionHead } from '@/app/willow-investment/_components/linear-section-head'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
-import { RyuhaSchedule, RyuhaSubject } from '@/types/ryuha'
-
-type ViewMode = 'week' | 'month'
+import { RyuhaSchedule, RyuhaSubject, RyuhaDailyMemo } from '@/types/ryuha'
 
 interface CalendarBlockProps {
   schedules: RyuhaSchedule[]
@@ -17,94 +15,250 @@ interface CalendarBlockProps {
   onAddSchedule: (date: string) => void
   onEditSchedule: (schedule: RyuhaSchedule) => void
   onToggleComplete: (schedule: RyuhaSchedule, date?: string) => void
+  memos: RyuhaDailyMemo[]
+  onSaveMemo: (date: string, content: string) => Promise<void>
 }
 
-const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
+const DAY_NAMES = ['월', '화', '수', '목', '금', '토', '일']
 
 function formatDateLocal(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date)
-  d.setDate(d.getDate() + days)
-  return d
-}
-
-function getWeekStart(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  d.setDate(d.getDate() - day)
-  return d
-}
-
-function getMonthDays(year: number, month: number): Date[] {
-  const firstDay = new Date(year, month, 1)
-  const startOffset = firstDay.getDay()
-  const start = addDays(firstDay, -startOffset)
-  const days: Date[] = []
-  for (let i = 0; i < 42; i++) {
-    days.push(addDays(start, i))
-  }
-  return days
-}
-
-function getSchedulesForDate(schedules: RyuhaSchedule[], dateStr: string): RyuhaSchedule[] {
-  return schedules.filter(s => {
-    if (s.schedule_date === dateStr) return true
-    if (s.end_date && s.schedule_date <= dateStr && s.end_date >= dateStr) return true
-    return false
+function getWeekDays(date: Date): Date[] {
+  const start = new Date(date)
+  const day = start.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  start.setDate(start.getDate() + diff)
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    return d
   })
 }
 
-function ScheduleCard({ schedule, dateStr, onEdit, onToggle }: {
-  schedule: RyuhaSchedule
-  dateStr: string
-  onEdit: () => void
-  onToggle: () => void
+function getMonthGrid(year: number, month: number): Date[][] {
+  const first = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  let startOffset = first.getDay() - 1
+  if (startOffset < 0) startOffset = 6
+
+  const days: Date[] = []
+  for (let i = startOffset - 1; i >= 0; i--) days.push(new Date(year, month, -i))
+  for (let d = 1; d <= lastDay; d++) days.push(new Date(year, month, d))
+  while (days.length % 7 !== 0) days.push(new Date(year, month + 1, days.length - startOffset - lastDay + 1))
+
+  const weeks: Date[][] = []
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7))
+  return weeks
+}
+
+function matchesDate(s: RyuhaSchedule, dateStr: string) {
+  if (s.end_date) return dateStr >= s.schedule_date && dateStr <= s.end_date
+  return s.schedule_date === dateStr
+}
+
+const CATEGORY_TONES: Record<string, { bg: string; fg: string }> = {
+  school:   { bg: '#DBEAFE', fg: '#1E40AF' },   // 파랑
+  academy:  { bg: '#FEF3C7', fg: '#92400E' },   // 주황/앰버
+  homework: { bg: '#EDE9FE', fg: '#5B21B6' },   // 보라
+  etc:      tonePalettes.neutral,                // 회색
+}
+
+const CATEGORY_FILTERS = [
+  { key: 'all',      label: '전체' },
+  { key: 'school',   label: '학교' },
+  { key: 'academy',  label: '학원' },
+  { key: 'homework', label: '과제' },
+  { key: 'etc',      label: '기타' },
+] as const
+
+function getScheduleTone(s: RyuhaSchedule): { bg: string; fg: string } {
+  return CATEGORY_TONES[s.type] || tonePalettes.neutral
+}
+
+function EventChip({ s, dateStr, compact, onToggle, onSelect }: {
+  s: RyuhaSchedule; dateStr: string; compact?: boolean
+  onToggle: (schedule: RyuhaSchedule, date?: string) => void
+  onSelect: (schedule: RyuhaSchedule) => void
 }) {
-  const subjectColor = schedule.subject?.color
-  const isMultiDay = !!schedule.end_date
-  const isCompleted = isMultiDay
-    ? (schedule.completed_dates || []).includes(dateStr)
-    : schedule.is_completed
+  const colors = getScheduleTone(s)
+  const isMultiDay = !!s.end_date
+  const done = isMultiDay
+    ? (s.completed_dates || []).includes(dateStr)
+    : s.is_completed
 
   return (
+    <div style={{
+      padding: compact ? '2px 4px' : '3px 5px', borderRadius: 3,
+      background: colors.bg, color: colors.fg,
+      fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1.3,
+      minWidth: 0, overflow: 'hidden',
+      display: 'flex', alignItems: 'flex-start', gap: 4,
+    }}>
+      {/* Check circle */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggle(s, dateStr) }}
+        style={{
+          flexShrink: 0, width: compact ? 10 : 12, height: compact ? 10 : 12,
+          marginTop: compact ? 1 : 2,
+          borderRadius: 999, border: `1.5px solid ${colors.fg}`,
+          background: done ? colors.fg : 'transparent',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 0, opacity: done ? 1 : 0.5,
+        }}
+      >
+        {done && (
+          <svg width={compact ? 6 : 7} height={compact ? 6 : 7} viewBox="0 0 24 24" fill="none"
+            stroke={colors.bg} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12l5 5L20 7" />
+          </svg>
+        )}
+      </button>
+      <div
+        onClick={(e) => { e.stopPropagation(); onSelect(s) }}
+        style={{ minWidth: 0, flex: 1, cursor: 'pointer' }}
+      >
+        {!compact && s.start_time && (
+          <div style={{ fontFamily: t.font.mono, fontSize: 8.5, opacity: 0.7 }}>
+            {s.start_time.slice(0, 5)}
+          </div>
+        )}
+        <div style={{
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          textDecoration: done ? 'line-through' : 'none',
+          opacity: done ? 0.6 : 1,
+        }}>
+          {s.title}
+        </div>
+        {!compact && s.homework_items && s.homework_items.length > 0 && (
+          <div style={{ fontSize: 8.5, opacity: 0.7 }}>
+            과제 {s.homework_items.filter(h => h.is_completed).length}/{s.homework_items.length}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Memo chip in day cell */
+function MemoChip({ content, compact, onClick }: {
+  content: string; compact?: boolean; onClick: () => void
+}) {
+  const preview = content.length > (compact ? 8 : 20) ? content.slice(0, compact ? 8 : 20) + '…' : content
+  return (
     <div
-      onClick={onEdit}
+      onClick={(e) => { e.stopPropagation(); onClick() }}
       style={{
-        padding: '4px 6px', borderRadius: t.radius.sm,
-        borderLeft: subjectColor ? `3px solid ${subjectColor}` : `3px solid ${t.neutrals.subtle}`,
-        background: isCompleted ? t.neutrals.inner : (subjectColor ? `${subjectColor}15` : t.neutrals.inner),
-        cursor: 'pointer', fontSize: 11, lineHeight: 1.3,
-        opacity: isCompleted ? 0.6 : 1,
-        textDecoration: isCompleted ? 'line-through' : 'none',
+        padding: compact ? '2px 4px' : '3px 5px', borderRadius: 3,
+        background: tonePalettes.done.bg, color: tonePalettes.done.fg,
+        fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1.3,
+        minWidth: 0, overflow: 'hidden', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 3,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'start', gap: 4 }}>
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggle() }}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: 0, marginTop: 1, flexShrink: 0,
-            color: isCompleted ? t.accent.pos : t.neutrals.subtle,
-          }}
-        >
-          <LIcon name={isCompleted ? 'checkCircle' : 'circle'} size={12} stroke={2} />
-        </button>
-        <span style={{ flex: 1, fontWeight: t.weight.medium }}>{schedule.title}</span>
+      <span style={{ flexShrink: 0, fontSize: compact ? 8 : 9 }}>memo</span>
+      <span style={{
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        opacity: 0.8,
+      }}>{preview}</span>
+    </div>
+  )
+}
+
+/** Day cell with hover + button */
+function DayCell({
+  day, dateStr, isToday, schedules, memo, onAdd, onToggle, onSelect, onMemoClick, onClickDate, compact, dimmed, borderRight, minHeight,
+}: {
+  day: Date; dateStr: string; isToday: boolean
+  schedules: RyuhaSchedule[]
+  memo?: string
+  onAdd: (date: string) => void
+  onToggle: (schedule: RyuhaSchedule, date?: string) => void
+  onSelect: (schedule: RyuhaSchedule) => void
+  onMemoClick: (date: string) => void
+  onClickDate?: (date: string) => void
+  compact?: boolean; dimmed?: boolean
+  borderRight: boolean; minHeight: number
+}) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => onClickDate?.(dateStr)}
+      style={{
+        minHeight, padding: compact ? 6 : 8, position: 'relative',
+        borderRight: borderRight ? `1px solid ${t.neutrals.line}` : 'none',
+        background: isToday ? t.brand[50] : 'transparent',
+        opacity: dimmed ? 0.35 : 1,
+        minWidth: 0, overflow: 'hidden',
+        cursor: onClickDate ? 'pointer' : undefined,
+      }}
+    >
+      {/* Date label */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: compact ? 3 : 6,
+      }}>
+        <span style={{
+          fontSize: compact ? 10 : 10.5, fontFamily: t.font.mono, fontWeight: 500,
+          color: isToday ? t.brand[700] : t.neutrals.subtle,
+          letterSpacing: 0.3,
+        }}>
+          {day.getDate()}
+          {!compact && isToday && ' · TODAY'}
+        </span>
+        {hovered && (
+          <div style={{ display: 'flex', gap: 2 }}>
+            {!memo && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onMemoClick(dateStr) }}
+                title="메모 추가"
+                style={{
+                  width: 16, height: 16, borderRadius: 4, border: 'none',
+                  background: tonePalettes.done.bg, color: tonePalettes.done.fg,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: 0, flexShrink: 0, fontSize: 9,
+                }}
+              >
+                <LIcon name="file" size={9} stroke={2} />
+              </button>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); onAdd(dateStr) }}
+              title="일정 추가"
+              style={{
+                width: 16, height: 16, borderRadius: 4, border: 'none',
+                background: t.brand[100], color: t.brand[700],
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 0, flexShrink: 0,
+              }}
+            >
+              <LIcon name="plus" size={10} stroke={2.5} />
+            </button>
+          </div>
+        )}
       </div>
-      {(schedule.start_time || schedule.end_time) && (
-        <div style={{ fontSize: 10, color: t.neutrals.subtle, marginTop: 2, paddingLeft: 16 }}>
-          <LIcon name="clock" size={9} stroke={2} />
-          {' '}{schedule.start_time?.slice(0, 5) || ''}{schedule.start_time && schedule.end_time ? ' - ' : ''}{schedule.end_time?.slice(0, 5) || ''}
-        </div>
-      )}
-      {schedule.homework_items && schedule.homework_items.length > 0 && (
-        <div style={{ fontSize: 10, color: t.accent.warn, marginTop: 2, paddingLeft: 16 }}>
-          과제 {schedule.homework_items.filter(h => h.is_completed).length}/{schedule.homework_items.length}
-        </div>
-      )}
+      {/* Events + Memo */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 2 : 3 }}>
+        {compact ? (
+          <>
+            {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} dateStr={dateStr} compact onToggle={onToggle} onSelect={onSelect} />)}
+            {memo && schedules.length < 2 && <MemoChip content={memo} compact onClick={() => onMemoClick(dateStr)} />}
+            {(schedules.length > 2 || (memo && schedules.length >= 2)) && (
+              <div style={{ fontSize: 8.5, color: t.neutrals.muted, fontFamily: t.font.mono }}>
+                +{schedules.length - 2 + (memo && schedules.length >= 2 ? 1 : 0)}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {schedules.map(s => <EventChip key={s.id} s={s} dateStr={dateStr} onToggle={onToggle} onSelect={onSelect} />)}
+            {memo && <MemoChip content={memo} onClick={() => onMemoClick(dateStr)} />}
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -112,257 +266,316 @@ function ScheduleCard({ schedule, dateStr, onEdit, onToggle }: {
 export function CalendarBlock({
   schedules, subjects, selectedDate, onSelectDate,
   onAddSchedule, onEditSchedule, onToggleComplete,
+  memos, onSaveMemo,
 }: CalendarBlockProps) {
-  const mobile = useIsMobile()
-  const [viewMode, setViewMode] = useState<ViewMode>('week')
-  const [currentDate, setCurrentDate] = useState(() => new Date(selectedDate))
+  const [viewMode, setViewMode] = useState<'week' | 'month'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ryuha-calendar-view')
+      if (saved === 'week' || saved === 'month') return saved
+    }
+    return 'week'
+  })
 
-  const todayStr = useMemo(() => formatDateLocal(new Date()), [])
+  const updateViewMode = (mode: 'week' | 'month') => {
+    setViewMode(mode)
+    localStorage.setItem('ryuha-calendar-view', mode)
+  }
+  const [baseDate, setBaseDate] = useState(new Date())
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [memoDialogDate, setMemoDialogDate] = useState<string | null>(null)
+  const todayStr = formatDateLocal(new Date())
 
-  // Week view data
-  const weekDays = useMemo(() => {
-    const start = getWeekStart(currentDate)
-    return Array.from({ length: 7 }, (_, i) => addDays(start, i))
-  }, [currentDate])
+  const memoMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const m of memos) if (m.content?.trim()) map[m.memo_date] = m.content
+    return map
+  }, [memos])
 
-  // Month view data
-  const monthDays = useMemo(() => {
-    return getMonthDays(currentDate.getFullYear(), currentDate.getMonth())
-  }, [currentDate])
+  const filteredSchedules = useMemo(() => {
+    if (categoryFilter === 'all') return schedules
+    return schedules.filter(s => s.type === categoryFilter)
+  }, [schedules, categoryFilter])
 
-  const navigate = (dir: number) => {
-    const d = new Date(currentDate)
-    if (viewMode === 'week') d.setDate(d.getDate() + dir * 7)
-    else d.setMonth(d.getMonth() + dir)
-    setCurrentDate(d)
+  const navigate = (dir: -1 | 1) => {
+    setBaseDate(prev => {
+      const d = new Date(prev)
+      if (viewMode === 'week') d.setDate(d.getDate() + dir * 7)
+      else d.setMonth(d.getMonth() + dir)
+      return d
+    })
   }
 
-  const goToday = () => {
-    setCurrentDate(new Date())
-    onSelectDate(todayStr)
-  }
+  const weekDays = useMemo(() => getWeekDays(baseDate), [baseDate])
+  const monthGrid = useMemo(() => getMonthGrid(baseDate.getFullYear(), baseDate.getMonth()), [baseDate])
 
-  const headerLabel = viewMode === 'week'
+  const eyebrow = viewMode === 'week' ? 'CALENDAR · 주간' : 'CALENDAR · 월간'
+  const navLabel = viewMode === 'week'
     ? (() => {
-        const start = weekDays[0]
-        const end = weekDays[6]
-        return `${start.getFullYear()}년 ${start.getMonth() + 1}월 ${start.getDate()}일 - ${end.getMonth() + 1}월 ${end.getDate()}일`
+        const w0 = weekDays[0], w6 = weekDays[6]
+        if (w0.getMonth() === w6.getMonth()) return `${w0.getFullYear()}년 ${w0.getMonth() + 1}월`
+        return `${w0.getMonth() + 1}월 — ${w6.getMonth() + 1}월`
       })()
-    : `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월`
+    : `${baseDate.getFullYear()}년 ${baseDate.getMonth() + 1}월`
 
   return (
-    <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
-        <LSectionHead eyebrow="CALENDAR" title="일정" action={
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <button
-              onClick={() => setViewMode(viewMode === 'week' ? 'month' : 'week')}
-              style={{
-                padding: '4px 10px', borderRadius: t.radius.sm,
-                background: t.neutrals.inner, border: 'none',
-                fontSize: 11, fontFamily: t.font.sans, fontWeight: t.weight.medium,
-                color: t.neutrals.muted, cursor: 'pointer',
-              }}
-            >
-              {viewMode === 'week' ? '월간' : '주간'}
-            </button>
-            <button
-              onClick={() => onAddSchedule(selectedDate)}
-              style={{
-                padding: '4px 10px', borderRadius: t.radius.sm,
-                background: t.neutrals.inner, border: 'none',
-                fontSize: 11, fontFamily: t.font.sans, fontWeight: t.weight.medium,
-                color: t.neutrals.muted, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 3,
-              }}
-            >
-              <LIcon name="plus" size={11} stroke={2} /> 일정
-            </button>
-          </div>
-        } />
-      </div>
+    <LCard>
+      <LSectionHead eyebrow={eyebrow} title="일정" action={
+        <div style={{
+          display: 'inline-flex', background: t.neutrals.inner,
+          borderRadius: t.radius.sm, padding: 2,
+        }}>
+          {(['week', 'month'] as const).map((v) => (
+            <button key={v} onClick={() => updateViewMode(v)} style={{
+              border: 'none',
+              background: viewMode === v ? t.neutrals.card : 'transparent',
+              padding: '4px 10px', fontSize: 11.5, borderRadius: 4, cursor: 'pointer',
+              fontWeight: viewMode === v ? 500 : 400, color: t.neutrals.text,
+              fontFamily: t.font.sans,
+            }}>{v === 'week' ? '주' : '월'}</button>
+          ))}
+        </div>
+      } />
 
       {/* Navigation */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 12, padding: '0 16px 10px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10,
       }}>
         <button onClick={() => navigate(-1)} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          padding: 4, color: t.neutrals.muted,
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          padding: 4, borderRadius: 4, color: t.neutrals.muted,
         }}>
-          <LIcon name="chevronLeft" size={16} stroke={2} />
+          <LIcon name="chevronLeft" size={14} stroke={2} />
         </button>
-        <span style={{
-          fontSize: 13, fontWeight: t.weight.medium, color: t.neutrals.text,
-          fontFamily: t.font.sans, minWidth: 200, textAlign: 'center',
-        }}>
-          {headerLabel}
+        <span style={{ fontSize: 12, fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+          {navLabel}
         </span>
         <button onClick={() => navigate(1)} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          padding: 4, color: t.neutrals.muted,
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          padding: 4, borderRadius: 4, color: t.neutrals.muted,
         }}>
-          <LIcon name="chevronRight" size={16} stroke={2} />
-        </button>
-        <button onClick={goToday} style={{
-          padding: '3px 8px', borderRadius: t.radius.sm,
-          background: t.neutrals.inner, border: 'none',
-          fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted,
-          cursor: 'pointer',
-        }}>
-          오늘
+          <LIcon name="chevronRight" size={14} stroke={2} />
         </button>
       </div>
 
-      {/* Week View */}
-      {viewMode === 'week' && (
-        <div style={{ padding: '0 10px 14px' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: mobile ? 'repeat(3, 1fr)' : 'repeat(7, 1fr)',
-            gap: 4,
-          }}>
-            {weekDays.map((day, i) => {
-              const dateStr = formatDateLocal(day)
-              const daySchedules = getSchedulesForDate(schedules, dateStr)
-              const isToday = dateStr === todayStr
-              const isSelected = dateStr === selectedDate
-              const isSunday = day.getDay() === 0
-              const isSaturday = day.getDay() === 6
+      {/* Category filter */}
+      <div style={{
+        display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap',
+      }}>
+        {CATEGORY_FILTERS.map(({ key, label }) => {
+          const active = categoryFilter === key
+          const tone = key !== 'all' ? CATEGORY_TONES[key] : null
+          return (
+            <button key={key} onClick={() => setCategoryFilter(key)} style={{
+              border: 'none', cursor: 'pointer',
+              padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+              fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
+              background: active ? (tone ? tone.bg : t.brand[100]) : t.neutrals.inner,
+              color: active ? (tone ? tone.fg : t.brand[700]) : t.neutrals.muted,
+              transition: 'all .12s',
+            }}>{label}</button>
+          )
+        })}
+      </div>
 
-              return (
-                <div
-                  key={dateStr}
-                  onClick={() => onSelectDate(dateStr)}
-                  style={{
-                    borderRadius: t.radius.sm,
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    outline: isSelected ? `2px solid ${t.brand[400]}` : 'none',
-                    outlineOffset: -2,
-                  }}
-                >
-                  {/* Day header */}
-                  <div style={{
-                    textAlign: 'center', padding: '4px 0',
-                    background: isToday ? t.brand[600] : t.neutrals.inner,
-                    color: isToday ? '#fff' : isSunday ? t.accent.neg : isSaturday ? t.brand[600] : t.neutrals.muted,
-                    fontSize: 10, fontFamily: t.font.mono,
-                  }}>
-                    <div style={{ fontSize: 9 }}>{DAY_NAMES[day.getDay()]}</div>
-                    <div style={{ fontWeight: t.weight.semibold, fontSize: 13 }}>{day.getDate()}</div>
-                  </div>
-                  {/* Schedule cards */}
-                  <div style={{
-                    minHeight: 80, padding: 3,
-                    display: 'flex', flexDirection: 'column', gap: 3,
-                    background: t.neutrals.card,
-                  }}>
-                    {daySchedules.map(s => (
-                      <ScheduleCard
-                        key={s.id}
-                        schedule={s}
-                        dateStr={dateStr}
-                        onEdit={() => onEditSchedule(s)}
-                        onToggle={() => onToggleComplete(s, dateStr)}
-                      />
-                    ))}
-                    {daySchedules.length === 0 && (
-                      <div
-                        onClick={(e) => { e.stopPropagation(); onAddSchedule(dateStr) }}
-                        style={{
-                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: t.neutrals.line, fontSize: 16,
-                        }}
-                      >
-                        +
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+      {/* Day headers */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+        background: t.neutrals.inner, borderRadius: `${t.radius.md}px ${t.radius.md}px 0 0`,
+        borderBottom: `1px solid ${t.neutrals.line}`,
+      }}>
+        {DAY_NAMES.map((name, i) => (
+          <div key={name} style={{
+            padding: '6px 8px', fontSize: 10, fontFamily: t.font.mono, fontWeight: 600,
+            color: i >= 5 ? t.neutrals.subtle : t.neutrals.muted,
+            letterSpacing: 0.5, textAlign: 'center',
+          }}>{name}</div>
+        ))}
+      </div>
+
+      {viewMode === 'week' ? (
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+          background: t.neutrals.inner,
+          borderRadius: `0 0 ${t.radius.md}px ${t.radius.md}px`,
+          overflow: 'hidden',
+        }}>
+          {weekDays.map((day, i) => {
+            const dateStr = formatDateLocal(day)
+            return (
+              <DayCell
+                key={dateStr} day={day} dateStr={dateStr}
+                isToday={dateStr === todayStr}
+                schedules={filteredSchedules.filter(s => matchesDate(s, dateStr))}
+                memo={memoMap[dateStr]}
+                onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onEditSchedule}
+                onMemoClick={setMemoDialogDate}
+                onClickDate={onSelectDate}
+                borderRight={i < 6} minHeight={128}
+              />
+            )
+          })}
+        </div>
+      ) : (
+        <div style={{
+          background: t.neutrals.inner,
+          borderRadius: `0 0 ${t.radius.md}px ${t.radius.md}px`,
+          overflow: 'hidden',
+        }}>
+          {monthGrid.map((week, wi) => (
+            <div key={wi} style={{
+              display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+              borderTop: wi > 0 ? `1px solid ${t.neutrals.line}` : 'none',
+            }}>
+              {week.map((day, di) => {
+                const dateStr = formatDateLocal(day)
+                return (
+                  <DayCell
+                    key={dateStr} day={day} dateStr={dateStr}
+                    isToday={dateStr === todayStr}
+                    dimmed={day.getMonth() !== baseDate.getMonth()}
+                    schedules={filteredSchedules.filter(s => matchesDate(s, dateStr))}
+                    memo={memoMap[dateStr]}
+                    onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onEditSchedule}
+                    onMemoClick={setMemoDialogDate}
+                    onClickDate={onSelectDate}
+                    compact borderRight={di < 6} minHeight={72}
+                  />
+                )
+              })}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Month View */}
-      {viewMode === 'month' && (
-        <div style={{ padding: '0 10px 14px' }}>
-          {/* Day headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 2 }}>
-            {DAY_NAMES.map((name, i) => (
-              <div key={name} style={{
-                textAlign: 'center', fontSize: 9, fontFamily: t.font.mono,
-                color: i === 0 ? t.accent.neg : i === 6 ? t.brand[600] : t.neutrals.subtle,
-                padding: '4px 0',
-              }}>
-                {name}
-              </div>
-            ))}
-          </div>
-          {/* Day cells */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
-            {monthDays.map((day) => {
-              const dateStr = formatDateLocal(day)
-              const isCurrentMonth = day.getMonth() === currentDate.getMonth()
-              const isToday = dateStr === todayStr
-              const isSelected = dateStr === selectedDate
-              const daySchedules = getSchedulesForDate(schedules, dateStr)
-
-              return (
-                <div
-                  key={dateStr}
-                  onClick={() => { onSelectDate(dateStr); setViewMode('week'); setCurrentDate(day) }}
-                  style={{
-                    minHeight: mobile ? 36 : 60, padding: 3,
-                    borderRadius: t.radius.sm, cursor: 'pointer',
-                    background: isToday ? `${t.brand[100]}` : isSelected ? `${t.brand[50]}` : t.neutrals.card,
-                    opacity: isCurrentMonth ? 1 : 0.35,
-                    outline: isSelected ? `2px solid ${t.brand[400]}` : 'none',
-                    outlineOffset: -2,
-                  }}
-                >
-                  <div style={{
-                    fontSize: 10, fontFamily: t.font.mono,
-                    fontWeight: isToday ? t.weight.semibold : t.weight.regular,
-                    color: isToday ? t.brand[700] : t.neutrals.muted,
-                    marginBottom: 2,
-                  }}>
-                    {day.getDate()}
-                  </div>
-                  {!mobile && daySchedules.slice(0, 3).map(s => (
-                    <div key={s.id} style={{
-                      fontSize: 9, padding: '1px 3px', borderRadius: 2,
-                      marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      background: s.subject?.color ? `${s.subject.color}20` : t.neutrals.inner,
-                      borderLeft: s.subject?.color ? `2px solid ${s.subject.color}` : undefined,
-                      textDecoration: s.is_completed ? 'line-through' : 'none',
-                      color: s.is_completed ? t.neutrals.subtle : t.neutrals.text,
-                    }}>
-                      {s.title}
-                    </div>
-                  ))}
-                  {!mobile && daySchedules.length > 3 && (
-                    <div style={{ fontSize: 9, color: t.neutrals.subtle }}>+{daySchedules.length - 3}</div>
-                  )}
-                  {mobile && daySchedules.length > 0 && (
-                    <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                      {daySchedules.slice(0, 3).map(s => (
-                        <span key={s.id} style={{
-                          width: 5, height: 5, borderRadius: 3,
-                          background: s.subject?.color || t.neutrals.subtle,
-                        }} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+      {/* ── Memo Dialog ── */}
+      <MemoDialog
+        date={memoDialogDate}
+        content={memoDialogDate ? memoMap[memoDialogDate] || '' : ''}
+        onSave={onSaveMemo}
+        onClose={() => setMemoDialogDate(null)}
+      />
     </LCard>
+  )
+}
+
+/* ── Memo Dialog ─────────────────────────────────────────── */
+function MemoDialog({ date, content: initialContent, onSave, onClose }: {
+  date: string | null
+  content: string
+  onSave: (date: string, content: string) => Promise<void>
+  onClose: () => void
+}) {
+  const [content, setContent] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (date) setContent(initialContent)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date])
+
+  if (!date) return null
+
+  const dp = date.split('-')
+  const dateLabel = `${parseInt(dp[1])}월 ${parseInt(dp[2])}일`
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await onSave(date, content.trim())
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setSaving(true)
+    try {
+      await onSave(date, '')
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '8px 10px', borderRadius: t.radius.sm,
+    border: 'none', background: t.neutrals.inner,
+    fontSize: 12, fontFamily: t.font.sans, color: t.neutrals.text,
+    resize: 'vertical', outline: 'none', lineHeight: 1.6,
+    boxSizing: 'border-box',
+  }
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(0,0,0,0.35)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 16,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: t.neutrals.card, borderRadius: t.radius.lg,
+        width: '100%', maxWidth: 440, padding: 20,
+        maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginBottom: 14,
+        }}>
+          <h3 style={{
+            margin: 0, fontSize: 14, fontWeight: 600,
+            color: t.neutrals.text, fontFamily: t.font.sans,
+          }}>
+            {dateLabel} 메모
+          </h3>
+          <button onClick={onClose} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: 4, borderRadius: t.radius.sm,
+            color: t.neutrals.subtle,
+          }}>
+            <LIcon name="x" size={16} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <textarea
+          value={content}
+          onChange={e => setContent(e.target.value)}
+          placeholder="메모를 작성하세요..."
+          rows={6}
+          style={inputStyle}
+          autoFocus
+        />
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', justifyContent: initialContent ? 'space-between' : 'flex-end',
+          alignItems: 'center', gap: 8, marginTop: 14,
+        }}>
+          {initialContent && (
+            <button onClick={handleDelete} disabled={saving} style={{
+              padding: '5px 12px', borderRadius: t.radius.sm,
+              background: '#FEE2E2', border: 'none', fontSize: 12,
+              color: '#DC2626', cursor: 'pointer', fontFamily: t.font.sans,
+              opacity: saving ? 0.5 : 1,
+            }}>삭제</button>
+          )}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={onClose} style={{
+              padding: '5px 12px', borderRadius: t.radius.sm,
+              background: t.neutrals.inner, border: 'none', fontSize: 12,
+              color: t.neutrals.muted, cursor: 'pointer', fontFamily: t.font.sans,
+            }}>취소</button>
+            <button onClick={handleSave} disabled={saving} style={{
+              padding: '5px 12px', borderRadius: t.radius.sm,
+              background: t.brand[600], border: 'none', fontSize: 12,
+              color: '#fff', cursor: 'pointer', fontFamily: t.font.sans,
+              opacity: saving ? 0.5 : 1,
+            }}>{saving ? '저장중...' : '저장'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

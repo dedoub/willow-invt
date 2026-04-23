@@ -774,8 +774,8 @@ export const agentTools = [
   { name: 'ryuha_delete_chapter', description: '[류하] 챕터 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
   // -- Schedules --
   { name: 'ryuha_list_schedules', description: '[류하] 학습 일정 목록 (과목/숙제 포함, 날짜/과목 필터)', parameters: { type: 'object' as const, properties: { start_date: { type: 'string', description: '시작일' }, end_date: { type: 'string', description: '종료일' }, subject_id: { type: 'string', description: '과목 ID' } } } },
-  { name: 'ryuha_create_schedule', description: '[류하] 학습 일정 생성', parameters: { type: 'object' as const, properties: { title: { type: 'string', description: '제목 (필수)' }, schedule_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, end_date: { type: 'string', description: '종료일' }, start_time: { type: 'string', description: '시작 시간 HH:MM' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'homework|self_study' }, subject_id: { type: 'string', description: '과목 ID' }, description: { type: 'string', description: '설명' }, color: { type: 'string', description: '색상' }, homework_content: { type: 'string', description: '숙제 내용' }, homework_deadline: { type: 'string', description: '숙제 마감일' } }, required: ['title', 'schedule_date'] } },
-  { name: 'ryuha_update_schedule', description: '[류하] 학습 일정 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, title: { type: 'string', description: '제목' }, schedule_date: { type: 'string', description: '날짜' }, start_time: { type: 'string', description: '시작 시간' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'homework|self_study' }, subject_id: { type: 'string', description: '과목 ID' }, description: { type: 'string', description: '설명' }, is_completed: { type: 'string', description: 'true/false' }, homework_content: { type: 'string', description: '숙제 내용' }, homework_deadline: { type: 'string', description: '숙제 마감일' }, homework_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
+  { name: 'ryuha_create_schedule', description: '[류하] 학습 일정 생성', parameters: { type: 'object' as const, properties: { title: { type: 'string', description: '제목 (필수)' }, schedule_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, end_date: { type: 'string', description: '종료일' }, start_time: { type: 'string', description: '시작 시간 HH:MM' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'school|academy|homework|etc' }, subject_id: { type: 'string', description: '과목 ID' }, description: { type: 'string', description: '설명' }, color: { type: 'string', description: '색상' }, homework_content: { type: 'string', description: '숙제 내용' }, homework_deadline: { type: 'string', description: '숙제 마감일' } }, required: ['title', 'schedule_date'] } },
+  { name: 'ryuha_update_schedule', description: '[류하] 학습 일정 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, title: { type: 'string', description: '제목' }, schedule_date: { type: 'string', description: '날짜' }, start_time: { type: 'string', description: '시작 시간' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'school|academy|homework|etc' }, subject_id: { type: 'string', description: '과목 ID' }, description: { type: 'string', description: '설명' }, is_completed: { type: 'string', description: 'true/false' }, homework_content: { type: 'string', description: '숙제 내용' }, homework_deadline: { type: 'string', description: '숙제 마감일' }, homework_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
   { name: 'ryuha_delete_schedule', description: '[류하] 학습 일정 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
   // -- Homework --
   { name: 'ryuha_list_homework', description: '[류하] 숙제 목록', parameters: { type: 'object' as const, properties: { schedule_id: { type: 'string', description: '일정 ID 필터' } } } },
@@ -796,6 +796,134 @@ export const agentTools = [
   { name: 'ryuha_create_note', description: '[류하] 수첩(노트) 생성', parameters: { type: 'object' as const, properties: { title: { type: 'string', description: '제목 (필수)' }, content: { type: 'string', description: '내용 (필수)' }, category: { type: 'string', description: '카테고리' }, is_pinned: { type: 'string', description: 'true/false' } }, required: ['title', 'content'] } },
   { name: 'ryuha_update_note', description: '[류하] 수첩(노트) 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, title: { type: 'string', description: '제목' }, content: { type: 'string', description: '내용' }, category: { type: 'string', description: '카테고리' }, is_pinned: { type: 'string', description: 'true/false' } }, required: ['id'] } },
   { name: 'ryuha_delete_note', description: '[류하] 수첩(노트) 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
+  // ---- 투자관리 전용 도구 ----
+  {
+    name: 'invest_list_trades',
+    description: '[투자] 주식 매매기록 목록 조회. market(KR/US)이나 trade_type(buy/sell)으로 필터 가능.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        market: { type: 'string', description: '시장 필터: KR 또는 US' },
+        trade_type: { type: 'string', description: '거래유형 필터: buy 또는 sell' },
+      },
+    },
+  },
+  {
+    name: 'invest_create_trade',
+    description: '[투자] 주식 매매기록 추가. 증권앱 캡처/거래내역 이미지에서 파싱한 정보를 기반으로 매매기록을 등록합니다. 여러 건이면 invest_create_trades_batch를 사용하세요.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        ticker: { type: 'string', description: '종목코드 (필수). 한국: 6자리(예: 005930), 미국: 심볼(예: AAPL)' },
+        company_name: { type: 'string', description: '회사명 (필수). 예: 삼성전자, Apple Inc' },
+        market: { type: 'string', description: 'KR 또는 US (필수)' },
+        trade_date: { type: 'string', description: '거래일 YYYY-MM-DD (필수)' },
+        trade_type: { type: 'string', description: 'buy 또는 sell (기본: buy)' },
+        quantity: { type: 'string', description: '수량 (필수)' },
+        price: { type: 'string', description: '단가 (필수)' },
+        total_amount: { type: 'string', description: '총금액 (미입력 시 quantity × price)' },
+        currency: { type: 'string', description: 'KRW 또는 USD (미입력 시 market에 따라 자동)' },
+        broker: { type: 'string', description: '증권사 (기본: 토스증권)' },
+        memo: { type: 'string', description: '메모' },
+      },
+      required: ['ticker', 'company_name', 'market', 'trade_date', 'quantity', 'price'],
+    },
+  },
+  {
+    name: 'invest_create_trades_batch',
+    description: '[투자] 주식 매매기록 일괄 추가. 거래내역 이미지에서 여러 건을 한번에 등록할 때 사용합니다. trades는 JSON 배열.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        trades: { type: 'string', description: 'JSON 배열. 각 항목: { ticker, company_name, market, trade_date, trade_type, quantity, price, total_amount?, currency?, broker?, memo? }' },
+      },
+      required: ['trades'],
+    },
+  },
+  {
+    name: 'invest_update_trade',
+    description: '[투자] 주식 매매기록 수정',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '매매기록 ID (필수)' },
+        ticker: { type: 'string', description: '종목코드' },
+        company_name: { type: 'string', description: '회사명' },
+        market: { type: 'string', description: 'KR 또는 US' },
+        trade_date: { type: 'string', description: '거래일 YYYY-MM-DD' },
+        trade_type: { type: 'string', description: 'buy 또는 sell' },
+        quantity: { type: 'string', description: '수량' },
+        price: { type: 'string', description: '단가' },
+        total_amount: { type: 'string', description: '총금액' },
+        currency: { type: 'string', description: 'KRW 또는 USD' },
+        broker: { type: 'string', description: '증권사' },
+        memo: { type: 'string', description: '메모' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'invest_delete_trade',
+    description: '[투자] 주식 매매기록 삭제',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '매매기록 ID (필수)' },
+      },
+      required: ['id'],
+    },
+  },
+  // ---- 업무위키 전용 도구 ----
+  {
+    name: 'wiki_list_notes',
+    description: '[위키] 업무위키 노트 목록 조회. section으로 필터 가능 (akros, etf-etc, willow-mgmt, tensw-mgmt). 미지정 시 전체.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        section: { type: 'string', description: '섹션 필터: akros | etf-etc | willow-mgmt | tensw-mgmt' },
+      },
+    },
+  },
+  {
+    name: 'wiki_create_note',
+    description: '[위키] 업무위키 노트 생성. 마크다운 내용 지원.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        section: { type: 'string', description: '섹션 (필수): akros | etf-etc | willow-mgmt | tensw-mgmt' },
+        title: { type: 'string', description: '제목' },
+        content: { type: 'string', description: '내용 (마크다운 가능)' },
+        is_pinned: { type: 'string', description: '고정 여부: true/false (기본 false)' },
+      },
+      required: ['section'],
+    },
+  },
+  {
+    name: 'wiki_update_note',
+    description: '[위키] 업무위키 노트 수정. 변경할 필드만 전달.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '노트 ID (필수)' },
+        section: { type: 'string', description: '섹션: akros | etf-etc | willow-mgmt | tensw-mgmt' },
+        title: { type: 'string', description: '제목' },
+        content: { type: 'string', description: '내용 (마크다운 가능)' },
+        is_pinned: { type: 'string', description: '고정 여부: true/false' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'wiki_delete_note',
+    description: '[위키] 업무위키 노트 삭제',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: '노트 ID (필수)' },
+      },
+      required: ['id'],
+    },
+  },
   // ---- 메모리 도구 ----
   {
     name: 'save_memory',
@@ -1499,6 +1627,138 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
     case 'ryuha_create_note': return await ryuhaCreateNote({ title: args.title as string, content: args.content as string, category: args.category as string | undefined, is_pinned: args.is_pinned === 'true' ? true : undefined })
     case 'ryuha_update_note': return await ryuhaUpdateNote({ id: args.id as string, title: args.title as string | undefined, content: args.content as string | undefined, category: args.category as string | undefined, is_pinned: args.is_pinned === 'true' ? true : args.is_pinned === 'false' ? false : undefined })
     case 'ryuha_delete_note': return await ryuhaDeleteNote(args.id as string)
+
+    // ---- 투자관리 도구 ----
+    case 'invest_list_trades': {
+      let url = '/api/willow-mgmt/stock-trades'
+      const params: string[] = []
+      if (args.market) params.push(`market=${args.market}`)
+      if (args.trade_type) params.push(`trade_type=${args.trade_type}`)
+      if (params.length > 0) url += `?${params.join('&')}`
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}${url}`)
+      if (!res.ok) return { error: `API error: ${res.status}` }
+      return await res.json()
+    }
+
+    case 'invest_create_trade': {
+      const body = {
+        ticker: args.ticker as string,
+        company_name: args.company_name as string,
+        market: args.market as string,
+        trade_date: args.trade_date as string,
+        trade_type: (args.trade_type as string) || 'buy',
+        quantity: Number(args.quantity),
+        price: Number(args.price),
+        total_amount: args.total_amount ? Number(args.total_amount) : undefined,
+        currency: args.currency as string | undefined,
+        broker: args.broker as string | undefined,
+        memo: args.memo as string | undefined,
+      }
+      const { data, error } = await supabase
+        .from('stock_trades')
+        .insert({
+          ...body,
+          total_amount: body.total_amount || body.quantity * body.price,
+          currency: body.currency || (body.market === 'US' ? 'USD' : 'KRW'),
+          broker: body.broker || '토스증권',
+          memo: body.memo || null,
+        })
+        .select()
+        .single()
+      if (error) return { error: error.message }
+      return { result: '매매기록 추가 완료', trade: data }
+    }
+
+    case 'invest_create_trades_batch': {
+      const trades = safeJsonParse(args.trades as string, [])
+      if (!Array.isArray(trades) || trades.length === 0) return { error: 'trades는 비어있지 않은 JSON 배열이어야 합니다.' }
+      const records = trades.map((tr: Record<string, unknown>) => ({
+        ticker: tr.ticker as string,
+        company_name: tr.company_name as string,
+        market: tr.market as string,
+        trade_date: tr.trade_date as string,
+        trade_type: (tr.trade_type as string) || 'buy',
+        quantity: Number(tr.quantity),
+        price: Number(tr.price),
+        total_amount: tr.total_amount ? Number(tr.total_amount) : Number(tr.quantity) * Number(tr.price),
+        currency: (tr.currency as string) || ((tr.market as string) === 'US' ? 'USD' : 'KRW'),
+        broker: (tr.broker as string) || '토스증권',
+        memo: (tr.memo as string) || null,
+      }))
+      const { data, error } = await supabase.from('stock_trades').insert(records).select()
+      if (error) return { error: error.message }
+      return { result: `${(data || []).length}건 매매기록 일괄 추가 완료`, trades: data }
+    }
+
+    case 'invest_update_trade': {
+      const id = args.id as string
+      if (!id) return { error: 'id 필수' }
+      const updates: Record<string, unknown> = {}
+      for (const key of ['ticker', 'company_name', 'market', 'trade_date', 'trade_type', 'currency', 'broker', 'memo']) {
+        if (args[key] !== undefined) updates[key] = args[key]
+      }
+      for (const key of ['quantity', 'price', 'total_amount']) {
+        if (args[key] !== undefined) updates[key] = Number(args[key])
+      }
+      const { data, error } = await supabase.from('stock_trades').update(updates).eq('id', id).select().single()
+      if (error) return { error: error.message }
+      return { result: '매매기록 수정 완료', trade: data }
+    }
+
+    case 'invest_delete_trade': {
+      const id = args.id as string
+      if (!id) return { error: 'id 필수' }
+      const { error } = await supabase.from('stock_trades').delete().eq('id', id)
+      if (error) return { error: error.message }
+      return { result: '매매기록 삭제 완료' }
+    }
+
+    // ---- 업무위키 도구 ----
+    case 'wiki_list_notes': {
+      const wikiUid = 'dw.kim@willowinvt.com'
+      const section = args.section as string | undefined
+      let query = supabase.from('work_wiki').select('id, section, title, content, is_pinned, attachments, updated_at').eq('user_id', wikiUid)
+      if (section) query = query.eq('section', section)
+      const { data, error } = await query.order('is_pinned', { ascending: false }).order('updated_at', { ascending: false })
+      if (error) return { error: error.message }
+      return { notes: data || [], count: (data || []).length }
+    }
+
+    case 'wiki_create_note': {
+      const wikiUid = 'dw.kim@willowinvt.com'
+      const { data, error } = await supabase.from('work_wiki').insert({
+        user_id: wikiUid,
+        section: args.section as string,
+        title: (args.title as string) || '',
+        content: (args.content as string) || '',
+        is_pinned: args.is_pinned === 'true',
+      }).select().single()
+      if (error) return { error: error.message }
+      return { result: '위키 노트 생성 완료', note: data }
+    }
+
+    case 'wiki_update_note': {
+      const wikiUid = 'dw.kim@willowinvt.com'
+      const id = args.id as string
+      if (!id) return { error: 'id 필수' }
+      const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+      if (args.section !== undefined) updates.section = args.section
+      if (args.title !== undefined) updates.title = args.title
+      if (args.content !== undefined) updates.content = args.content
+      if (args.is_pinned !== undefined) updates.is_pinned = args.is_pinned === 'true'
+      const { data, error } = await supabase.from('work_wiki').update(updates).eq('id', id).eq('user_id', wikiUid).select().single()
+      if (error) return { error: error.message }
+      return { result: '위키 노트 수정 완료', note: data }
+    }
+
+    case 'wiki_delete_note': {
+      const wikiUid = 'dw.kim@willowinvt.com'
+      const id = args.id as string
+      if (!id) return { error: 'id 필수' }
+      const { error } = await supabase.from('work_wiki').delete().eq('id', id).eq('user_id', wikiUid)
+      if (error) return { error: error.message }
+      return { result: '위키 노트 삭제 완료' }
+    }
 
     // ---- 메모리 도구 ----
     case 'save_memory': {

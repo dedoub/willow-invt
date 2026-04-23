@@ -856,7 +856,7 @@ export default function RyuhaStudyPage() {
     end_date: '',
     start_time: '',
     end_time: '',
-    type: 'self_study' as 'homework' | 'self_study',
+    type: 'etc' as RyuhaSchedule['type'],
     color: '',
     subject_id: '',
     textbook_id: '',
@@ -1461,7 +1461,7 @@ export default function RyuhaStudyPage() {
         end_date: '',
         start_time: '',
         end_time: '',
-        type: 'self_study',
+        type: 'etc',
         color: '',
         subject_id: '',
         textbook_id: '',
@@ -3798,7 +3798,7 @@ export default function RyuhaStudyPage() {
                 onCheckedChange={(checked) => {
                   setScheduleForm({
                     ...scheduleForm,
-                    type: checked ? 'homework' : 'self_study',
+                    type: checked ? 'homework' : 'etc',
                   })
                 }}
               />
