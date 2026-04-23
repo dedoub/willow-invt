@@ -58,7 +58,7 @@ export default function AkrosPage() {
 
   const loadWiki = useCallback(async () => {
     setWikiLoading(true)
-    const res = await fetch('/api/wiki?section=akros')
+    const res = await fetch('/api/wiki')
     if (res.ok) {
       const data = await res.json()
       setWikiNotes(data.notes || [])
