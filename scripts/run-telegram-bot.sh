@@ -84,23 +84,38 @@ cleanup() {
 }
 
 stop_existing() {
-  # PID 파일 기반 종료
+  # PID 파일 기반: 프로세스 그룹 전체 종료 (자식 포함)
   if [ -f "$PID_FILE" ]; then
     local old_pid
     old_pid=$(cat "$PID_FILE")
     if kill -0 "$old_pid" 2>/dev/null; then
-      log "⚠️ 기존 봇 프로세스 종료 중 (PID: $old_pid)"
-      kill "$old_pid" 2>/dev/null || true
+      log "⚠️ 기존 봇 프로세스 그룹 종료 중 (PID: $old_pid)"
+      kill -- -"$old_pid" 2>/dev/null || kill "$old_pid" 2>/dev/null || true
       sleep 2
-      if kill -0 "$old_pid" 2>/dev/null; then
-        kill -9 "$old_pid" 2>/dev/null || true
-      fi
     fi
     rm -f "$PID_FILE"
   fi
-  # 혹시 남아있는 telegram-bot.ts 프로세스 모두 종료
+  # Lock 파일 기반: 실제 node 프로세스도 종료
+  local LOCK_FILE="${LOG_DIR}/telegram-bot.lock"
+  if [ -f "$LOCK_FILE" ]; then
+    local lock_pid
+    lock_pid=$(cat "$LOCK_FILE")
+    if kill -0 "$lock_pid" 2>/dev/null; then
+      log "⚠️ lock 파일 프로세스 종료 중 (PID: $lock_pid)"
+      kill "$lock_pid" 2>/dev/null || true
+      sleep 1
+    fi
+    rm -f "$LOCK_FILE"
+  fi
+  # 최종 안전망: 남아있는 telegram-bot.ts 프로세스 모두 종료
   pkill -f 'scripts/telegram-bot.ts' 2>/dev/null || true
-  sleep 1
+  sleep 2
+  # 강제 종료가 필요한 경우
+  if pgrep -f 'scripts/telegram-bot.ts' >/dev/null 2>&1; then
+    log "⚠️ 강제 종료 (SIGKILL)"
+    pkill -9 -f 'scripts/telegram-bot.ts' 2>/dev/null || true
+    sleep 1
+  fi
 }
 
 run_bot() {

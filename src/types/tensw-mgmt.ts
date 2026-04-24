@@ -96,31 +96,44 @@ export interface TenswCashItem {
 
 export interface TenswTaxInvoice {
   id: string
-  invoice_date: string
-  company: string
-  description: string | null
+  invoice_type: string
+  issue_date: string
+  counterparty: string
+  business_number: string | null
+  representative: string | null
   supply_amount: number
   tax_amount: number
   total_amount: number
-  status: string
   items: Array<{ description: string; quantity: number; unit_price: number; supply_amount: number; tax_amount: number }>
+  expected_payment_date: string | null
+  paid_at: string | null
+  payment_status: string
+  paid_amount: number | null
+  bank_ref: string | null
   notes: string | null
+  file_url: string | null
   created_at: string
   updated_at: string
 }
 
 export interface TenswLoan {
   id: string
-  lender: string
+  bank: string
+  account_number: string
   loan_type: string
   principal: number
-  interest_rate: number
-  start_date: string
-  end_date: string | null
-  repayment_type: string
+  interest_rate: number | null
+  monthly_interest_avg: number | null
+  annual_interest_2025: number | null
+  loan_date: string | null
+  maturity_date: string | null
+  last_extension_date: string | null
+  next_interest_date: string | null
   interest_payment_day: number | null
+  repayment_type: string
   status: string
-  notes: string | null
+  memo: string | null
+  attachments: Array<{ name: string; url: string; size: number; type: string }>
   created_at: string
   updated_at: string
 }

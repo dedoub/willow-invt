@@ -397,8 +397,9 @@ export function registerTenswMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     let query = supabase
-      .from('tensw_mgmt_schedules')
-      .select('*, client:tensw_mgmt_clients(*), milestone:tensw_mgmt_milestones(*, project:tensw_mgmt_projects(*)), tasks:tensw_mgmt_tasks(*)')
+      .from('willow_mgmt_schedules')
+      .select('*')
+      .eq('category', 'tensw-mgmt')
       .order('schedule_date')
       .order('start_time')
 
@@ -410,35 +411,8 @@ export function registerTenswMgmtTools(server: McpServer) {
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
-    // Fetch milestones for milestone_ids arrays
-    const allMilestoneIds = new Set<string>()
-    for (const schedule of data || []) {
-      if (schedule.milestone_ids?.length > 0) {
-        schedule.milestone_ids.forEach((id: string) => allMilestoneIds.add(id))
-      }
-    }
-
-    let milestonesMap: Record<string, unknown> = {}
-    if (allMilestoneIds.size > 0) {
-      const { data: milestones } = await supabase
-        .from('tensw_mgmt_milestones')
-        .select('*, project:tensw_mgmt_projects(*, client:tensw_mgmt_clients(*))')
-        .in('id', Array.from(allMilestoneIds))
-
-      if (milestones) {
-        milestonesMap = Object.fromEntries(milestones.map(m => [m.id, m]))
-      }
-    }
-
-    const schedulesWithMilestones = (data || []).map(schedule => ({
-      ...schedule,
-      milestones: schedule.milestone_ids?.length > 0
-        ? schedule.milestone_ids.map((id: string) => milestonesMap[id]).filter(Boolean)
-        : [],
-    }))
-
     await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'tensw_list_schedules', inputParams: { start_date, end_date, client_id } })
-    return { content: [{ type: 'text' as const, text: JSON.stringify(schedulesWithMilestones, null, 2) }] }
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
   })
 
   server.registerTool('tensw_create_schedule', {
@@ -467,9 +441,9 @@ export function registerTenswMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     const { data, error } = await supabase
-      .from('tensw_mgmt_schedules')
-      .insert(input)
-      .select('*, client:tensw_mgmt_clients(*), milestone:tensw_mgmt_milestones(*, project:tensw_mgmt_projects(*)), tasks:tensw_mgmt_tasks(*)')
+      .from('willow_mgmt_schedules')
+      .insert({ ...input, category: 'tensw-mgmt' })
+      .select('*')
       .single()
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
@@ -507,10 +481,11 @@ export function registerTenswMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     const { data, error } = await supabase
-      .from('tensw_mgmt_schedules')
+      .from('willow_mgmt_schedules')
       .update(updates)
       .eq('id', id)
-      .select('*, client:tensw_mgmt_clients(*), milestone:tensw_mgmt_milestones(*, project:tensw_mgmt_projects(*)), tasks:tensw_mgmt_tasks(*)')
+      .eq('category', 'tensw-mgmt')
+      .select('*')
       .single()
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
@@ -533,9 +508,10 @@ export function registerTenswMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     const { error } = await supabase
-      .from('tensw_mgmt_schedules')
+      .from('willow_mgmt_schedules')
       .delete()
       .eq('id', id)
+      .eq('category', 'tensw-mgmt')
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
@@ -559,9 +535,10 @@ export function registerTenswMgmtTools(server: McpServer) {
     const supabase = getServiceSupabase()
 
     const { data: schedule, error: fetchError } = await supabase
-      .from('tensw_mgmt_schedules')
+      .from('willow_mgmt_schedules')
       .select('completed_dates, schedule_date, end_date')
       .eq('id', schedule_id)
+      .eq('category', 'tensw-mgmt')
       .single()
 
     if (fetchError) return { content: [{ type: 'text' as const, text: `Error: ${fetchError.message}` }], isError: true }
@@ -579,12 +556,13 @@ export function registerTenswMgmtTools(server: McpServer) {
     const allCompleted = newCompletedDates.length >= totalDays
 
     const { data, error } = await supabase
-      .from('tensw_mgmt_schedules')
+      .from('willow_mgmt_schedules')
       .update({
         completed_dates: newCompletedDates,
         is_completed: allCompleted,
       })
       .eq('id', schedule_id)
+      .eq('category', 'tensw-mgmt')
       .select('*, client:tensw_mgmt_clients(*), milestone:tensw_mgmt_milestones(*, project:tensw_mgmt_projects(*)), tasks:tensw_mgmt_tasks(*)')
       .single()
 

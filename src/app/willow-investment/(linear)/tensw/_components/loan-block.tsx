@@ -16,13 +16,31 @@ interface LoanBlockProps {
   style?: React.CSSProperties
 }
 
-type StatusFilter = 'all' | 'active' | 'completed'
+type StatusFilter = 'all' | 'active' | 'pending' | 'closed'
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: '전체' },
-  { value: 'active', label: '진행' },
-  { value: 'completed', label: '완료' },
+  { value: 'active', label: '실행중' },
+  { value: 'pending', label: '대기' },
+  { value: 'closed', label: '상환완료' },
 ]
+
+const STATUS_TONES: Record<string, { bg: string; fg: string }> = {
+  active:  tonePalettes.info,
+  pending: tonePalettes.pending,
+  closed:  tonePalettes.neutral,
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  active: '실행중', pending: '대기', closed: '상환완료',
+}
+
+const REPAYMENT_LABELS: Record<string, string> = {
+  bullet: '만기일시상환',
+  amortizing: '원리금균등',
+  principal_equal: '원금균등',
+  custom: '기타',
+}
 
 const DEFAULT_PAGE_SIZE = 8
 const PAGE_SIZE_KEY = 'tensw-loan-page-size'
@@ -35,20 +53,40 @@ function getStoredPageSize(): number {
   return n >= 5 && n <= 100 ? n : DEFAULT_PAGE_SIZE
 }
 
+function daysToMaturity(maturityDate: string | null): number | null {
+  if (!maturityDate) return null
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const maturity = new Date(maturityDate)
+  const diff = maturity.getTime() - now.getTime()
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
+
 export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const activePrincipal = useMemo(
-    () => loans.filter(l => l.status === 'active').reduce((s, l) => s + l.principal, 0),
-    [loans],
+  // Summary KPIs (active loans only)
+  const activeLoans = useMemo(() => loans.filter(l => l.status === 'active'), [loans])
+  const totalPrincipal = useMemo(() => activeLoans.reduce((s, l) => s + l.principal, 0), [activeLoans])
+  const totalMonthlyInterest = useMemo(
+    () => activeLoans.reduce((s, l) => s + (l.monthly_interest_avg || 0), 0),
+    [activeLoans],
   )
+  const avgRate = useMemo(() => {
+    const withRate = activeLoans.filter(l => l.interest_rate != null)
+    if (withRate.length === 0) return 0
+    const totalWeight = withRate.reduce((s, l) => s + l.principal, 0)
+    if (totalWeight === 0) return 0
+    return withRate.reduce((s, l) => s + (l.interest_rate || 0) * l.principal, 0) / totalWeight
+  }, [activeLoans])
 
   const filtered = useMemo(() => {
-    if (statusFilter === 'all') return loans
-    return loans.filter(l => l.status === statusFilter)
+    const list = statusFilter === 'all' ? loans : loans.filter(l => l.status === statusFilter)
+    return [...list].sort((a, b) => b.principal - a.principal)
   }, [loans, statusFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
@@ -89,20 +127,19 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
           }
         />
 
-        {/* Summary stat */}
-        <div style={{ marginBottom: 10 }}>
-          <LStat label="총 원금" value={`${activePrincipal.toLocaleString()}원`} tone="info" />
+        {/* Summary KPIs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 10 }}>
+          <LStat label="총 원금" value={`${totalPrincipal.toLocaleString()}원`} tone="info" />
+          <LStat label="평균 이율" value={avgRate > 0 ? `${avgRate.toFixed(2)}%` : '-'} tone="default" />
+          <LStat label="월 이자" value={totalMonthlyInterest > 0 ? `${totalMonthlyInterest.toLocaleString()}원` : '-'} tone="warn" />
+          <LStat label="연 이자" value={totalMonthlyInterest > 0 ? `${(totalMonthlyInterest * 12).toLocaleString()}원` : '-'} tone="neg" />
         </div>
 
         {/* Status filter chips */}
         <div style={{ display: 'flex', gap: 5 }}>
           {STATUS_FILTERS.map(f => {
             const active = statusFilter === f.value
-            const tone = f.value === 'active'
-              ? tonePalettes.info
-              : f.value === 'completed'
-                ? tonePalettes.done
-                : null
+            const tone = f.value !== 'all' ? STATUS_TONES[f.value] : null
             return (
               <button
                 key={f.value}
@@ -124,7 +161,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
       </div>
 
       {/* Loan rows */}
-      <div>
+      <div style={{ padding: '0 0 4px' }}>
         {paged.length === 0 && (
           <div style={{
             padding: '20px 16px', textAlign: 'center',
@@ -133,35 +170,146 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
             차입금 데이터가 없습니다
           </div>
         )}
-        {paged.map((loan) => (
-          <div
-            key={loan.id}
-            style={{
-              padding: '10px 16px', borderTop: `1px solid ${t.neutrals.line}`,
-              cursor: 'pointer',
-            }}
-            onClick={() => onEdit(loan)}
-          >
-            {/* Line 1: lender + loan_type badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-              <span style={{ fontSize: 12.5, fontWeight: 500, color: t.neutrals.text }}>
-                {loan.lender}
-              </span>
-              <span style={{
-                padding: '1px 6px', borderRadius: t.radius.sm, fontSize: 10,
-                background: t.neutrals.inner, color: t.neutrals.muted,
-              }}>
-                {loan.loan_type}
-              </span>
+        {paged.map((loan) => {
+          const statusTone = STATUS_TONES[loan.status] ?? tonePalettes.neutral
+          const expanded = expandedId === loan.id
+          const maturityDays = daysToMaturity(loan.maturity_date)
+          const maturityWarning = maturityDays != null && maturityDays >= 0 && maturityDays <= 90
+
+          return (
+            <div key={loan.id} style={{ borderTop: `1px solid ${t.neutrals.line}` }}>
+              {/* Compact row */}
+              <div
+                style={{
+                  padding: '10px 16px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}
+                onClick={() => setExpandedId(expanded ? null : loan.id)}
+              >
+                {/* Status badge */}
+                <span style={{
+                  display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
+                  fontSize: 10, fontWeight: t.weight.medium, textAlign: 'center',
+                  background: statusTone.bg, color: statusTone.fg,
+                  flexShrink: 0,
+                }}>
+                  {STATUS_LABELS[loan.status] ?? loan.status}
+                </span>
+
+                {/* Bank name */}
+                <span style={{ fontSize: 12.5, fontWeight: 500, color: t.neutrals.text, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {loan.bank}
+                </span>
+
+                {/* Principal */}
+                <span style={{ fontSize: 11, fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap' }}>
+                  {loan.principal.toLocaleString()}원
+                </span>
+
+                {/* Rate */}
+                {loan.interest_rate != null && (
+                  <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>
+                    {loan.interest_rate}%
+                  </span>
+                )}
+
+                {/* Maturity warning */}
+                {maturityWarning && (
+                  <span style={{
+                    fontSize: 9, fontFamily: t.font.mono, fontWeight: 600,
+                    padding: '1px 5px', borderRadius: t.radius.sm,
+                    background: tonePalettes.danger.bg, color: tonePalettes.danger.fg,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    D-{maturityDays}
+                  </span>
+                )}
+
+                {/* Expand chevron */}
+                <span style={{ color: t.neutrals.subtle, flexShrink: 0 }}>
+                  <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
+                </span>
+              </div>
+
+              {/* Expanded detail */}
+              {expanded && (
+                <div style={{ padding: '0 16px 12px' }}>
+                  <div style={{
+                    background: t.neutrals.inner, borderRadius: t.radius.md,
+                    padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+                    fontSize: 11, fontFamily: t.font.sans,
+                  }}>
+                    <DetailRow label="대출유형" value={loan.loan_type} />
+                    <DetailRow label="계좌번호" value={loan.account_number} mono />
+                    <DetailRow label="이자율" value={loan.interest_rate != null ? `${loan.interest_rate}%` : '-'} />
+                    <DetailRow label="월평균 이자" value={loan.monthly_interest_avg != null ? `${loan.monthly_interest_avg.toLocaleString()}원` : '-'} />
+                    <DetailRow label="대출일" value={loan.loan_date || '-'} mono />
+                    <DetailRow label="만기일" value={loan.maturity_date || '-'} mono />
+                    <DetailRow label="상환방식" value={REPAYMENT_LABELS[loan.repayment_type] || loan.repayment_type || '-'} />
+                    <DetailRow label="이자납입일" value={loan.interest_payment_day != null ? `매월 ${loan.interest_payment_day}일` : '-'} />
+                    {loan.last_extension_date && (
+                      <DetailRow label="최근 연장일" value={loan.last_extension_date} mono />
+                    )}
+                    {loan.next_interest_date && (
+                      <DetailRow label="다음 이자일" value={loan.next_interest_date} mono />
+                    )}
+                  </div>
+
+                  {/* Memo */}
+                  {loan.memo && (
+                    <div style={{
+                      marginTop: 8, padding: '8px 12px', borderRadius: t.radius.md,
+                      background: t.neutrals.inner, fontSize: 11, color: t.neutrals.muted,
+                      lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                    }}>
+                      {loan.memo}
+                    </div>
+                  )}
+
+                  {/* Attachments */}
+                  {loan.attachments?.length > 0 && (
+                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {loan.attachments.map((att, i) => (
+                        <a
+                          key={i}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '4px 8px', borderRadius: t.radius.sm,
+                            background: t.neutrals.inner, fontSize: 11,
+                            color: t.brand[700], textDecoration: 'none',
+                          }}
+                        >
+                          <LIcon name="file" size={11} stroke={1.8} />
+                          {att.name}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Edit button */}
+                  <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEdit(loan) }}
+                      style={{
+                        padding: '4px 12px', borderRadius: t.radius.sm,
+                        background: t.neutrals.inner, border: 'none',
+                        fontSize: 11, fontFamily: t.font.sans, fontWeight: 500,
+                        color: t.neutrals.text, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 4,
+                      }}
+                    >
+                      <LIcon name="pencil" size={10} stroke={2} />
+                      수정
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            {/* Line 2: principal + rate + end_date */}
-            <div style={{ display: 'flex', gap: 12, fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted }}>
-              <span>{loan.principal.toLocaleString()}원</span>
-              <span>{loan.interest_rate}%</span>
-              {loan.end_date && <span>만기 {loan.end_date}</span>}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Pagination */}
@@ -221,5 +369,16 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
         )}
       </div>
     </LCard>
+  )
+}
+
+function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>
+        {value}
+      </div>
+    </div>
   )
 }

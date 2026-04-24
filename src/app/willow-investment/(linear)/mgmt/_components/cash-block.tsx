@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { t } from '@/app/willow-investment/_components/linear-tokens'
 import { LCard } from '@/app/willow-investment/_components/linear-card'
 import { LSectionHead } from '@/app/willow-investment/_components/linear-section-head'
@@ -86,12 +86,26 @@ function navigatePeriod(base: Date, dir: -1 | 1, mode: PeriodMode): Date {
 
 const MODE_LABELS: Record<PeriodMode, string> = { month: '월간', quarter: '분기', year: '연간' }
 
+const CASH_PAGE_SIZE_KEY = 'willow-cash-page-size'
+const DEFAULT_CASH_PAGE_SIZE = 15
+
+function getStoredCashPageSize(): number {
+  if (typeof window === 'undefined') return DEFAULT_CASH_PAGE_SIZE
+  const v = localStorage.getItem(CASH_PAGE_SIZE_KEY)
+  if (!v) return DEFAULT_CASH_PAGE_SIZE
+  const n = Number(v)
+  return n >= 5 && n <= 100 ? n : DEFAULT_CASH_PAGE_SIZE
+}
+
 export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUpload, parsing }: CashBlockProps) {
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(getStoredCashPageSize)
+  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredCashPageSize()))
 
   const [rangeStart, rangeEnd] = useMemo(() => getDateRange(baseDate, periodMode), [baseDate, periodMode])
   const periodLabel = useMemo(() => getPeriodLabel(baseDate, periodMode), [baseDate, periodMode])
@@ -115,6 +129,19 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
     const list = typeFilter === 'all' ? periodFiltered : periodFiltered.filter(i => i.type === typeFilter)
     return [...list].sort((a, b) => (b.payment_date || b.issue_date || '').localeCompare(a.payment_date || a.issue_date || ''))
   }, [periodFiltered, typeFilter])
+
+  const totalPages = Math.max(1, Math.ceil(displayList.length / pageSize))
+  const paged = displayList.slice(page * pageSize, (page + 1) * pageSize)
+
+  const commitPageSize = useCallback(() => {
+    const n = Math.max(5, Math.min(100, Number(pageSizeInput) || DEFAULT_CASH_PAGE_SIZE))
+    setPageSizeInput(String(n))
+    setPageSize(n)
+    setPage(0)
+    localStorage.setItem(CASH_PAGE_SIZE_KEY, String(n))
+  }, [pageSizeInput])
+
+  useEffect(() => { setPage(0) }, [typeFilter, periodMode, baseDate])
 
   const eyebrowLabel = periodMode === 'month' ? 'CASHFLOW · 월간'
     : periodMode === 'quarter' ? 'CASHFLOW · 분기' : 'CASHFLOW · 연간'
@@ -243,12 +270,12 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
 
       {/* Transactions */}
       <div style={{ padding: '0 16px 16px' }}>
-        {displayList.length === 0 && (
+        {paged.length === 0 && (
           <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 12, color: t.neutrals.subtle }}>
             해당 기간 거래 내역이 없습니다
           </div>
         )}
-        {displayList.map((v) => {
+        {paged.map((v) => {
           const typeTone = TYPE_TONES[v.type]
           const isIncome = v.type === 'revenue' || v.type === 'asset'
           return (
@@ -283,6 +310,63 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
             </div>
           )
         })}
+      </div>
+
+      {/* Pagination */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            value={pageSizeInput}
+            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
+            onBlur={commitPageSize}
+            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
+            style={{
+              width: 32, textAlign: 'center',
+              border: 'none', background: t.neutrals.inner,
+              borderRadius: t.radius.sm, fontSize: 11,
+              fontFamily: t.font.mono, color: t.neutrals.muted,
+              padding: '2px 0', outline: 'none',
+            }}
+          />
+          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+        </div>
+
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              disabled={page === 0}
+              onClick={() => setPage(p => p - 1)}
+              style={{
+                background: 'transparent', border: 'none',
+                padding: 4, borderRadius: 4,
+                cursor: page === 0 ? 'default' : 'pointer',
+                color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page === 0 ? 0.4 : 1,
+              }}
+            >
+              <LIcon name="chevronLeft" size={13} stroke={2} />
+            </button>
+            <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, displayList.length)} / {displayList.length}
+            </span>
+            <button
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage(p => p + 1)}
+              style={{
+                background: 'transparent', border: 'none',
+                padding: 4, borderRadius: 4,
+                cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+                color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page >= totalPages - 1 ? 0.4 : 1,
+              }}
+            >
+              <LIcon name="chevronRight" size={13} stroke={2} />
+            </button>
+          </div>
+        )}
       </div>
     </LCard>
   )

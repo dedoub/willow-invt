@@ -13,23 +13,23 @@ import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 const DEFAULT_PAGE_SIZE = 8
 const PAGE_SIZE_KEY = 'tensw-sales-page-size'
 
-type StatusFilter = 'all' | 'pending' | 'issued' | 'completed'
+type StatusFilter = 'all' | 'scheduled' | 'pending' | 'paid'
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: '전체' },
-  { value: 'pending', label: '대기' },
-  { value: 'issued', label: '발행' },
-  { value: 'completed', label: '완료' },
+  { value: 'scheduled', label: '예정' },
+  { value: 'pending', label: '미수금' },
+  { value: 'paid', label: '수금완료' },
 ]
 
 const STATUS_TONES: Record<string, { bg: string; fg: string }> = {
-  pending:   tonePalettes.neutral,
-  issued:    tonePalettes.info,
-  completed: tonePalettes.done,
+  scheduled: tonePalettes.info,
+  pending:   tonePalettes.pending,
+  paid:      tonePalettes.done,
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: '대기', issued: '발행', completed: '완료',
+  scheduled: '예정', pending: '미수금', paid: '수금완료',
 }
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
@@ -61,21 +61,22 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Filter by year
   const yearFiltered = useMemo(() => {
-    return invoices.filter(inv => inv.invoice_date.startsWith(String(year)))
+    return invoices.filter(inv => inv.issue_date?.startsWith(String(year)))
   }, [invoices, year])
 
-  // Filter by status
+  // Filter by payment_status
   const filtered = useMemo(() => {
     if (statusFilter === 'all') return yearFiltered
-    return yearFiltered.filter(inv => inv.status === statusFilter)
+    return yearFiltered.filter(inv => inv.payment_status === statusFilter)
   }, [yearFiltered, statusFilter])
 
   // Sorted by date desc
   const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => b.invoice_date.localeCompare(a.invoice_date))
+    return [...filtered].sort((a, b) => b.issue_date.localeCompare(a.issue_date))
   }, [filtered])
 
   // Pagination
@@ -99,6 +100,8 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
   const totalSupply = yearFiltered.reduce((s, i) => s + i.supply_amount, 0)
   const totalTax = yearFiltered.reduce((s, i) => s + i.tax_amount, 0)
   const totalAmount = yearFiltered.reduce((s, i) => s + i.total_amount, 0)
+  const paidAmount = yearFiltered.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.total_amount, 0)
+  const unpaidAmount = totalAmount - paidAmount
 
   return (
     <LCard pad={0} style={style}>
@@ -153,8 +156,8 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
         {/* Summary stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
           <LStat label="공급가액" value={`${totalSupply.toLocaleString()}원`} tone="default" />
-          <LStat label="세액" value={`${totalTax.toLocaleString()}원`} tone="info" />
           <LStat label="합계" value={`${totalAmount.toLocaleString()}원`} tone="pos" />
+          <LStat label="미수금" value={`${unpaidAmount.toLocaleString()}원`} tone={unpaidAmount > 0 ? 'warn' : 'pos'} />
         </div>
 
         {/* Status filter chips */}
@@ -176,54 +179,150 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
       </div>
 
       {/* Invoice rows */}
-      <div style={{ padding: '0 16px 0' }}>
+      <div style={{ padding: '0 0 4px' }}>
         {paged.length === 0 && (
-          <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 12, color: t.neutrals.subtle }}>
+          <div style={{
+            padding: '20px 16px', textAlign: 'center',
+            fontSize: 12, color: t.neutrals.subtle,
+          }}>
             해당 연도 세금계산서가 없습니다
           </div>
         )}
         {paged.map(inv => {
-          const tone = STATUS_TONES[inv.status] ?? tonePalettes.neutral
-          const dateSlice = inv.invoice_date.slice(5) // MM-DD
+          const tone = STATUS_TONES[inv.payment_status] ?? tonePalettes.neutral
+          const dateSlice = inv.issue_date.slice(5)
+          const expanded = expandedId === inv.id
+
           return (
-            <div key={inv.id} onClick={() => onEdit(inv)} style={{
-              display: 'grid',
-              gridTemplateColumns: '48px 52px 1fr auto',
-              gap: 8,
-              padding: '10px 0',
-              alignItems: 'center',
-              borderTop: `1px solid ${t.neutrals.line}`,
-              fontSize: 12,
-              cursor: 'pointer',
-            }}>
-              {/* Status badge */}
-              <span style={{
-                display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-                fontSize: 10, fontWeight: t.weight.medium, textAlign: 'center',
-                background: tone.bg, color: tone.fg,
-              }}>
-                {STATUS_LABELS[inv.status] ?? inv.status}
-              </span>
+            <div key={inv.id} style={{ borderTop: `1px solid ${t.neutrals.line}` }}>
+              {/* Compact row */}
+              <div
+                style={{
+                  padding: '10px 16px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}
+                onClick={() => setExpandedId(expanded ? null : inv.id)}
+              >
+                {/* Status badge */}
+                <span style={{
+                  display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
+                  fontSize: 10, fontWeight: t.weight.medium, textAlign: 'center',
+                  background: tone.bg, color: tone.fg, flexShrink: 0,
+                }}>
+                  {STATUS_LABELS[inv.payment_status] ?? inv.payment_status}
+                </span>
 
-              {/* Date */}
-              <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 11 }}>
-                {dateSlice}
-              </span>
+                {/* Date */}
+                <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 11, flexShrink: 0 }}>
+                  {dateSlice}
+                </span>
 
-              {/* Company */}
-              <span style={{
-                fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
-                {inv.company}
-              </span>
+                {/* Counterparty */}
+                <span style={{
+                  flex: 1, fontWeight: 500, fontSize: 12.5,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
+                  {inv.counterparty}
+                </span>
 
-              {/* Total amount */}
-              <span style={{
-                textAlign: 'right', fontWeight: 500, fontVariantNumeric: 'tabular-nums',
-                color: t.neutrals.text, whiteSpace: 'nowrap',
-              }}>
-                {inv.total_amount.toLocaleString()}원
-              </span>
+                {/* Total amount */}
+                <span style={{
+                  fontWeight: 500, fontVariantNumeric: 'tabular-nums',
+                  color: t.neutrals.text, whiteSpace: 'nowrap', fontSize: 11,
+                  fontFamily: t.font.mono, flexShrink: 0,
+                }}>
+                  {inv.total_amount.toLocaleString()}원
+                </span>
+
+                {/* Expand chevron */}
+                <span style={{ color: t.neutrals.subtle, flexShrink: 0 }}>
+                  <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
+                </span>
+              </div>
+
+              {/* Expanded detail */}
+              {expanded && (
+                <div style={{ padding: '0 16px 12px' }}>
+                  <div style={{
+                    background: t.neutrals.inner, borderRadius: t.radius.md,
+                    padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+                    fontSize: 11, fontFamily: t.font.sans,
+                  }}>
+                    <DetailRow label="거래처" value={inv.counterparty} />
+                    <DetailRow label="발행일" value={inv.issue_date} mono />
+                    <DetailRow label="사업자번호" value={inv.business_number || '-'} mono />
+                    <DetailRow label="대표자" value={inv.representative || '-'} />
+                    <DetailRow label="공급가액" value={`${inv.supply_amount.toLocaleString()}원`} mono />
+                    <DetailRow label="세액" value={`${inv.tax_amount.toLocaleString()}원`} mono />
+                    <DetailRow label="합계" value={`${inv.total_amount.toLocaleString()}원`} mono />
+                    <DetailRow label="수금상태" value={STATUS_LABELS[inv.payment_status] || inv.payment_status} />
+                    <DetailRow label="입금예정일" value={inv.expected_payment_date || '-'} mono />
+                    {inv.paid_amount != null && (
+                      <DetailRow label="수금액" value={`${inv.paid_amount.toLocaleString()}원`} mono />
+                    )}
+                    {inv.bank_ref && (
+                      <DetailRow label="은행참조" value={inv.bank_ref} mono />
+                    )}
+                  </div>
+
+                  {/* Items */}
+                  {inv.items && inv.items.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{
+                        fontSize: 10, fontWeight: 600, color: t.neutrals.subtle,
+                        fontFamily: t.font.mono, marginBottom: 4, letterSpacing: 0.3,
+                      }}>
+                        품목
+                      </div>
+                      <div style={{
+                        background: t.neutrals.inner, borderRadius: t.radius.md,
+                        padding: '8px 12px',
+                      }}>
+                        {inv.items.map((item, i) => (
+                          <div key={i} style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            fontSize: 11, padding: '3px 0',
+                            borderTop: i > 0 ? `1px solid ${t.neutrals.line}` : 'none',
+                          }}>
+                            <span style={{ color: t.neutrals.text }}>{item.description}</span>
+                            <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                              {item.quantity} x {item.unit_price.toLocaleString()} = {item.supply_amount.toLocaleString()}원
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  {inv.notes && (
+                    <div style={{
+                      marginTop: 8, padding: '8px 12px', borderRadius: t.radius.md,
+                      background: t.neutrals.inner, fontSize: 11, color: t.neutrals.muted,
+                      lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                    }}>
+                      {inv.notes}
+                    </div>
+                  )}
+
+                  {/* Edit button */}
+                  <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEdit(inv) }}
+                      style={{
+                        padding: '4px 12px', borderRadius: t.radius.sm,
+                        background: t.neutrals.inner, border: 'none',
+                        fontSize: 11, fontFamily: t.font.sans, fontWeight: 500,
+                        color: t.neutrals.text, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 4,
+                      }}
+                    >
+                      <LIcon name="pencil" size={10} stroke={2} />
+                      수정
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}
@@ -234,7 +333,6 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        {/* Left: page size input */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input
             value={pageSizeInput}
@@ -251,7 +349,6 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
           <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
 
-        {/* Right: chevron navigation */}
         {totalPages > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button
@@ -285,5 +382,18 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
         )}
       </div>
     </LCard>
+  )
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>
+        {value}
+      </div>
+    </div>
   )
 }

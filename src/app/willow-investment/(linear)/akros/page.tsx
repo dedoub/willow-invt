@@ -164,7 +164,7 @@ export default function AkrosPage() {
         <p style={{
           margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
           fontFamily: t.font.sans,
-        }}>ETF 운용 · 세금계산서 · 위키 · 이메일</p>
+        }}>인덱스 AUM 100조 원을 목표로 성장 중. 그 과정 중에 매각.</p>
       </div>
 
       {loading ? <AkrosSkeleton /> : (

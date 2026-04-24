@@ -60,27 +60,67 @@ export async function GET(request: Request) {
       renewedSubscriptions: 0,
       refundCount: 0,
       refundAmount: 0,
+      newDownloads: 0,
     }
 
     // Sales Report 파싱 (TSV 형식)
+    // Apple TSV 컬럼:
+    //  0: Provider  1: Provider Country  2: SKU  3: Developer  4: Title
+    //  5: Version  6: Product Type Identifier  7: Units  8: Developer Proceeds
+    //  9: Begin Date  10: End Date  11: Customer Currency  12: Country Code
+    //  13: Currency of Proceeds  14: Apple Identifier  15: Customer Price
+    //  16: Promo Code  17: Parent Identifier  18: Subscription  19: Period
+    //  20: Category  21: CMB  22: Device  23: Supported Platforms
+    //
+    // Product Type Identifiers:
+    //  1, 1F, 1T, F1, FI1 = App download (new installs)
+    //  7, 7F, 7T          = Update (not new download)
+    //  IA1, IA9, IAC, IAY = In-App Purchase / Subscription
+    const DOWNLOAD_TYPES = new Set(['1', '1F', '1T', 'F1', 'FI1'])
+    const SUBSCRIPTION_TYPES = new Set(['IAC', 'IAY'])
+
     if (salesResult.success && typeof salesResult.data === 'string') {
       const lines = salesResult.data.split('\n')
-      // TSV 헤더 및 데이터 파싱
-      // 실제 형식에 맞게 구현 필요
+      const header = lines[0]?.split('\t') || []
+      const colIdx = (name: string) => header.findIndex(h => h.trim().toLowerCase().includes(name.toLowerCase()))
+
+      // 컬럼 인덱스 (헤더 기반, 없으면 고정 위치 fallback)
+      const iType = colIdx('Product Type Identifier') !== -1 ? colIdx('Product Type Identifier') : 6
+      const iUnits = colIdx('Units') !== -1 ? colIdx('Units') : 7
+      const iProceeds = colIdx('Developer Proceeds') !== -1 ? colIdx('Developer Proceeds') : 8
+
       for (const line of lines.slice(1)) {
+        if (!line.trim()) continue
         const cols = line.split('\t')
-        if (cols.length > 0) {
-          // 매출 합산 로직
-          const proceeds = parseFloat(cols[8]) || 0 // Developer Proceeds column
-          stats.revenue += proceeds
+        if (cols.length <= iType) continue
+
+        const productType = cols[iType]?.trim()
+        const units = parseInt(cols[iUnits]) || 0
+        const proceeds = parseFloat(cols[iProceeds]) || 0
+
+        // 매출 합산 (모든 항목)
+        stats.revenue += proceeds
+
+        // 신규 다운로드 (앱 설치만)
+        if (DOWNLOAD_TYPES.has(productType)) {
+          stats.newDownloads += Math.max(0, units)
+        }
+
+        // 구독 관련
+        if (SUBSCRIPTION_TYPES.has(productType)) {
+          if (units > 0) stats.newSubscriptions += units
+          if (units < 0) stats.churnedSubscriptions += Math.abs(units)
         }
       }
     }
 
-    // Subscription 데이터 파싱
+    // Subscription groups 데이터에서 활성 구독자 수 추출
     if (subscriptionResult.success && subscriptionResult.data) {
-      // Subscription groups 데이터에서 통계 추출
-      // 실제 응답 형식에 맞게 구현 필요
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subData = subscriptionResult.data as any
+      if (subData?.data && Array.isArray(subData.data)) {
+        stats.activeSubscriptions = subData.data.length
+      }
     }
 
     // 캐시 저장

@@ -81,6 +81,7 @@ async function buildSystemPrompt(): Promise<string> {
 7. **이메일 관리**: Gmail 조회/검색/분석/발송 (willow, tensoftworks 컨텍스트)
 8. **온톨로지**: 지식 엔티티/관계/인사이트 관리
 9. **류하 학습관리**: 류하 일정, 숙제, 교재, 수첩 관리
+10. **투자관리**: 주식 매매기록 CRUD, 거래내역 이미지 파싱 후 자동 등록
 
 ## 도구 사용법
 
@@ -147,6 +148,27 @@ async function buildSystemPrompt(): Promise<string> {
 - **ryuha_list/create/update/delete_body_records**: 신체기록 CRUD
 - **ryuha_list/create/update/delete_notes**: 수첩 CRUD
 
+### 투자관리 전용 도구 (invest_*)
+주식 매매기록 관련 질문이나 거래내역 이미지 파싱 후 등록에 사용:
+- **invest_list_trades**: 매매기록 조회 (market/trade_type 필터)
+- **invest_create_trade**: 매매기록 1건 추가
+- **invest_create_trades_batch**: 매매기록 일괄 추가 (이미지에서 여러 건 파싱 시)
+- **invest_update_trade**: 매매기록 수정
+- **invest_delete_trade**: 매매기록 삭제
+
+**거래내역 이미지 처리 흐름:**
+1. 사용자가 증권앱 캡처/거래내역 이미지를 첨부하면 이미지에서 종목코드, 회사명, 거래일, 매수/매도, 수량, 단가를 파싱
+2. 한국주식은 market=KR, currency=KRW / 미국주식은 market=US, currency=USD
+3. invest_create_trade (1건) 또는 invest_create_trades_batch (여러 건)으로 등록
+4. 등록 결과를 사용자에게 확인
+
+### 업무위키 전용 도구 (wiki_*)
+업무위키 노트 CRUD. 섹션: akros(아크로스), etf-etc(ETC), willow-mgmt(윌로우), tensw-mgmt(텐소프트웍스). 마크다운 내용 지원.
+- **wiki_list_notes**: 위키 노트 목록 (section 필터 가능)
+- **wiki_create_note**: 위키 노트 생성
+- **wiki_update_note**: 위키 노트 수정
+- **wiki_delete_note**: 위키 노트 삭제
+
 ### 부동산 전용 도구 (re_*)
 - **re_list_complexes**: 추적 단지 목록
 - **re_get_summary**: 시장 요약 (평균 매매/전세 평당가)
@@ -159,7 +181,7 @@ async function buildSystemPrompt(): Promise<string> {
 - analyze_data: SQL 분석 쿼리 (전용 도구로 안 되는 복잡한 크로스-도메인 집계용)
 - list_tables: 사용 가능한 테이블 목록
 
-**도구 우선순위**: 전용 도구(willow_*, tensw_*, akros_*, etc_*, gmail_*, ryuha_*, re_*) > 범용 CRUD > analyze_data(SQL)
+**도구 우선순위**: 전용 도구(willow_*, tensw_*, akros_*, etc_*, gmail_*, ryuha_*, re_*, invest_*, wiki_*) > 범용 CRUD > analyze_data(SQL)
 
 ## 윌로우인베스트먼트 구조
 - ETF 사업: 아크로스(인덱스), ETC(ETF 플랫폼/운용사)

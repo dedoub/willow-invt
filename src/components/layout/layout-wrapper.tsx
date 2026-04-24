@@ -10,7 +10,7 @@ import { ChatPanel } from '@/components/chat/chat-panel'
 
 const PUBLIC_PATHS = ['/login', '/signup']
 const STANDALONE_PATHS = ['/mcp/authorize'] // 인증 여부와 무관하게 독립 렌더링
-const LINEAR_ROUTES = ['/willow-investment/mgmt', '/willow-investment/invest', '/willow-investment/wiki', '/willow-investment/ryuha', '/willow-investment/akros', '/willow-investment/etc']
+const LINEAR_ROUTES = ['/willow-investment/mgmt', '/willow-investment/invest', '/willow-investment/wiki', '/willow-investment/ryuha', '/willow-investment/akros', '/willow-investment/etc', '/willow-investment/tensw', '/willow-investment/monor']
 
 interface LayoutWrapperProps {
   children: React.ReactNode

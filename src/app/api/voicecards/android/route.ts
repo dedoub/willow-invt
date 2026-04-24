@@ -56,6 +56,7 @@ export async function GET(request: Request) {
       renewedSubscriptions: 0,
       refundCount: 0,
       refundAmount: 0,
+      newDownloads: 0,
     }
 
     // Earnings Report 파싱

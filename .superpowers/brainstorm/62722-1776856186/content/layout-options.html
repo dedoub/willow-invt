@@ -1,0 +1,134 @@
+<h2>업무위키 페이지 레이아웃</h2>
+<p class="subtitle">전체 섹션 통합 위키 — 어떤 레이아웃이 좋을까요?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>리스트 뷰 (노션 스타일)</h3>
+      <p>상단에 섹션 필터 탭 + 검색 + 추가 버튼. 아래에 노트 리스트가 세로로 나열. 노트 클릭하면 인라인 확장 또는 사이드 패널로 내용 표시.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-body" style="padding:16px;font-size:12px;font-family:monospace">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+            <span style="padding:4px 10px;background:#E8EAED;border-radius:4px;font-size:11px;font-weight:600">전체</span>
+            <span style="padding:4px 10px;border-radius:4px;font-size:11px;color:#888">Akros</span>
+            <span style="padding:4px 10px;border-radius:4px;font-size:11px;color:#888">ETC</span>
+            <span style="padding:4px 10px;border-radius:4px;font-size:11px;color:#888">윌로우</span>
+            <span style="padding:4px 10px;border-radius:4px;font-size:11px;color:#888">텐소프트</span>
+            <span style="flex:1"></span>
+            <span style="padding:4px 10px;background:#f5f5f5;border-radius:4px;font-size:11px;color:#999">🔍 검색</span>
+            <span style="padding:4px 10px;background:#0E0F12;color:white;border-radius:4px;font-size:11px">+ 새 노트</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:1px">
+            <div style="display:flex;align-items:center;padding:8px 10px;background:#fff;border-radius:4px;gap:10px">
+              <span style="color:#D97706;font-size:10px">📌</span>
+              <span style="font-weight:600;font-size:11px;flex:1">ETF 수수료 체계 정리</span>
+              <span style="font-size:10px;padding:2px 6px;background:#E8F0FE;border-radius:3px;color:#1A73E8">Akros</span>
+              <span style="font-size:10px;color:#999">4월 20일</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 10px;background:#fff;border-radius:4px;gap:10px">
+              <span style="color:transparent;font-size:10px">📌</span>
+              <span style="font-weight:600;font-size:11px;flex:1">2026 사업계획 초안</span>
+              <span style="font-size:10px;padding:2px 6px;background:#E8F5E9;border-radius:3px;color:#2E7D32">윌로우</span>
+              <span style="font-size:10px;color:#999">4월 18일</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 10px;background:#fff;border-radius:4px;gap:10px">
+              <span style="color:transparent;font-size:10px">📌</span>
+              <span style="font-weight:600;font-size:11px;flex:1">신규 클라이언트 온보딩 절차</span>
+              <span style="font-size:10px;padding:2px 6px;background:#FFF3E0;border-radius:3px;color:#E65100">텐소프트</span>
+              <span style="font-size:10px;color:#999">4월 15일</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 10px;background:#fff;border-radius:4px;gap:10px">
+              <span style="color:transparent;font-size:10px">📌</span>
+              <span style="font-weight:600;font-size:11px;flex:1">LP 보고서 템플릿</span>
+              <span style="font-size:10px;padding:2px 6px;background:#F3E5F5;border-radius:3px;color:#7B1FA2">ETC</span>
+              <span style="font-size:10px;color:#999">4월 12일</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;font-size:10px;color:#999;text-align:right">1-4 / 12</div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>한눈에 전체 목록 파악</li><li>검색/필터 빠름</li><li>많은 노트에 적합</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>내용 확인하려면 클릭 필요</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>카드 그리드 (2-3열)</h3>
+      <p>노트를 카드 그리드로 배치. 각 카드에 제목 + 내용 미리보기 + 첨부파일 표시.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-body" style="padding:16px;font-size:12px;font-family:monospace">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="background:#fff;border-radius:6px;padding:10px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span style="font-weight:600;font-size:11px">ETF 수수료 체계</span>
+                <span style="color:#D97706;font-size:9px">📌</span>
+              </div>
+              <div style="font-size:10px;color:#888;line-height:1.4;max-height:36px;overflow:hidden">수수료 구조는 플랫폼 수수료와 PM 수수료로...</div>
+              <div style="margin-top:6px;display:flex;gap:4px">
+                <span style="font-size:9px;padding:2px 5px;background:#E8F0FE;border-radius:3px;color:#1A73E8">Akros</span>
+                <span style="font-size:9px;color:#bbb">📎 2</span>
+              </div>
+            </div>
+            <div style="background:#fff;border-radius:6px;padding:10px">
+              <div style="margin-bottom:6px"><span style="font-weight:600;font-size:11px">사업계획 초안</span></div>
+              <div style="font-size:10px;color:#888;line-height:1.4;max-height:36px;overflow:hidden">2026년 주요 목표: AUM 확대, 신규 ETF 3종...</div>
+              <div style="margin-top:6px"><span style="font-size:9px;padding:2px 5px;background:#E8F5E9;border-radius:3px;color:#2E7D32">윌로우</span></div>
+            </div>
+            <div style="background:#fff;border-radius:6px;padding:10px">
+              <div style="margin-bottom:6px"><span style="font-weight:600;font-size:11px">온보딩 절차</span></div>
+              <div style="font-size:10px;color:#888;line-height:1.4;max-height:36px;overflow:hidden">1단계: NDA 체결, 2단계: 요구사항 정의...</div>
+              <div style="margin-top:6px"><span style="font-size:9px;padding:2px 5px;background:#FFF3E0;border-radius:3px;color:#E65100">텐소프트</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>내용 미리보기 가능</li><li>시각적으로 풍부</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>노트 많으면 스크롤 길어짐</li><li>긴 내용 카드에 안 담김</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>마스터-디테일 (2패널)</h3>
+      <p>좌측 노트 리스트 + 우측 선택된 노트 전문. 이메일 클라이언트 스타일.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-body" style="padding:0;font-size:12px;font-family:monospace;display:flex;min-height:160px">
+          <div style="width:42%;border-right:1px solid #eee;padding:10px">
+            <div style="padding:6px 8px;background:#E8F0FE;border-radius:4px;margin-bottom:2px">
+              <div style="font-weight:600;font-size:10px">📌 ETF 수수료 체계</div>
+              <div style="font-size:9px;color:#888;margin-top:2px">Akros · 4월 20일</div>
+            </div>
+            <div style="padding:6px 8px;border-radius:4px;margin-bottom:2px">
+              <div style="font-size:10px">사업계획 초안</div>
+              <div style="font-size:9px;color:#888;margin-top:2px">윌로우 · 4월 18일</div>
+            </div>
+            <div style="padding:6px 8px;border-radius:4px">
+              <div style="font-size:10px">온보딩 절차</div>
+              <div style="font-size:9px;color:#888;margin-top:2px">텐소프트 · 4월 15일</div>
+            </div>
+          </div>
+          <div style="flex:1;padding:14px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:6px">ETF 수수료 체계 정리</div>
+            <div style="font-size:10px;color:#555;line-height:1.6">
+              수수료 구조는 플랫폼 수수료와 PM 수수료로 나뉩니다.<br><br>
+              <b>플랫폼:</b> AUM 0.05% (최소 월 200만원)<br>
+              <b>PM:</b> AUM 0.03% (최소 월 100만원)
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>목록+내용 동시 확인</li><li>긴 노트에 적합</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>사이드바+채팅패널과 함께 공간 압박</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

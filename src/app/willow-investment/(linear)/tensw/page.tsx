@@ -159,6 +159,11 @@ export default function TenswPage() {
 
   useEffect(() => { loadData() }, [loadData])
 
+  const reloadClients = useCallback(async () => {
+    const res = await fetch('/api/tensw-mgmt/clients')
+    if (res.ok) setClients(await res.json())
+  }, [])
+
   // ── Schedule handlers ─────────────────────────────────────────────────────
 
   const handleToggleComplete = async (id: string, completed: boolean) => {
@@ -262,13 +267,19 @@ export default function TenswPage() {
 
   const handleSaveSales = async (data: TenswSalesFormData) => {
     const isEdit = !!data.id
+    const parseCurrency = (v: string) => Number(v.replace(/,/g, '')) || 0
+    const supply = parseCurrency(data.supply_amount)
+    const tax = parseCurrency(data.tax_amount)
     const body: Record<string, unknown> = {
-      invoice_date: data.invoice_date,
-      company: data.company,
-      description: data.description || null,
-      supply_amount: Number(data.supply_amount),
-      tax_amount: Number(data.tax_amount),
-      total_amount: Number(data.supply_amount) + Number(data.tax_amount),
+      issue_date: data.issue_date || null,
+      counterparty: data.counterparty,
+      business_number: data.business_number || null,
+      representative: data.representative || null,
+      supply_amount: supply,
+      tax_amount: tax,
+      total_amount: supply + tax,
+      expected_payment_date: data.expected_payment_date || null,
+      payment_status: data.payment_status || 'pending',
       notes: data.notes || null,
     }
     if (isEdit) body.id = data.id
@@ -296,16 +307,22 @@ export default function TenswPage() {
 
   const handleSaveLoan = async (data: TenswLoanFormData) => {
     const isEdit = !!data.id
+    const parseCurrency = (v: string) => Number(v.replace(/,/g, '')) || 0
     const body: Record<string, unknown> = {
-      lender: data.lender,
+      bank: data.bank,
+      account_number: data.account_number || null,
       loan_type: data.loan_type,
-      principal: Number(data.principal),
-      interest_rate: Number(data.interest_rate),
-      start_date: data.start_date || null,
-      end_date: data.end_date || null,
-      repayment_type: data.repayment_type || null,
+      principal: parseCurrency(data.principal),
+      interest_rate: data.interest_rate ? Number(data.interest_rate) : null,
+      monthly_interest_avg: data.monthly_interest_avg ? parseCurrency(data.monthly_interest_avg) : null,
+      loan_date: data.loan_date || null,
+      maturity_date: data.maturity_date || null,
+      last_extension_date: data.last_extension_date || null,
+      next_interest_date: data.next_interest_date || null,
       interest_payment_day: data.interest_payment_day ? Number(data.interest_payment_day) : null,
-      notes: data.notes || null,
+      repayment_type: data.repayment_type || 'bullet',
+      status: data.status || 'active',
+      memo: data.memo || null,
     }
     if (isEdit) body.id = data.id
     const res = await fetch('/api/tensw-mgmt/loans', {
@@ -391,15 +408,12 @@ export default function TenswPage() {
         <p style={{
           margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
           fontFamily: t.font.sans,
-        }}>프로젝트 · 일정 · 경영관리 · 위키 · 이메일</p>
+        }}>AI 서비스에 필요한 데이터 구축 및 관리 솔루션을 제공.</p>
       </div>
 
       {loading ? <TenswSkeleton /> : (
         <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Projects (full width) */}
-          <ProjectBlock projects={projects} />
-
           {/* Schedule (full width) */}
           <ScheduleBlock
             schedules={schedules}
@@ -409,18 +423,18 @@ export default function TenswPage() {
             onSelectSchedule={setSelectedSchedule}
           />
 
-          {/* Cash+Sales (2fr) + Loans (1fr) */}
+          {/* Cash (1.5fr) + Sales+Loans (1fr) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
+            gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr',
             gap: 14,
           }}>
+            <CashBlock
+              items={cashItems}
+              onAdd={() => { setEditingCash(null); setCashDialogOpen(true) }}
+              onSelect={(item) => { setEditingCash(item); setCashDialogOpen(true) }}
+            />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <CashBlock
-                items={cashItems}
-                onAdd={() => { setEditingCash(null); setCashDialogOpen(true) }}
-                onSelect={(item) => { setEditingCash(item); setCashDialogOpen(true) }}
-              />
               <SalesBlock
                 invoices={invoices}
                 onAdd={() => { setEditingSales(null); setSalesDialogOpen(true) }}
@@ -428,20 +442,20 @@ export default function TenswPage() {
                 onDelete={handleDeleteSales}
                 onRefresh={loadData}
               />
+              <LoanBlock
+                loans={loans}
+                onAdd={() => { setEditingLoan(null); setLoanDialogOpen(true) }}
+                onEdit={(loan) => { setEditingLoan(loan); setLoanDialogOpen(true) }}
+                onDelete={handleDeleteLoan}
+                style={{ height: 'fit-content' }}
+              />
             </div>
-            <LoanBlock
-              loans={loans}
-              onAdd={() => { setEditingLoan(null); setLoanDialogOpen(true) }}
-              onEdit={(loan) => { setEditingLoan(loan); setLoanDialogOpen(true) }}
-              onDelete={handleDeleteLoan}
-              style={{ height: 'fit-content' }}
-            />
           </div>
 
           {/* Wiki (2fr) + Email (1fr) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
+            gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr',
             gap: 14,
           }}>
             <TenswWikiBlock
@@ -460,6 +474,9 @@ export default function TenswPage() {
               isSyncing={isSyncing}
             />
           </div>
+
+          {/* Projects (full width) */}
+          <ProjectBlock projects={projects} />
         </div>
 
         {/* Schedule dialogs */}
@@ -477,6 +494,7 @@ export default function TenswPage() {
           clients={clients}
           onClose={() => { setScheduleDialogOpen(false); setEditingSchedule(null) }}
           onSave={handleSaveSchedule}
+          onClientCreated={reloadClients}
         />
 
         {/* Cash dialog */}

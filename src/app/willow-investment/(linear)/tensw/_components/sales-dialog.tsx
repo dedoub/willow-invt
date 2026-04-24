@@ -10,11 +10,14 @@ import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
 export interface TenswSalesFormData {
   id?: string
-  invoice_date: string
-  company: string
-  description: string
+  issue_date: string
+  counterparty: string
+  business_number: string
+  representative: string
   supply_amount: string
   tax_amount: string
+  expected_payment_date: string
+  payment_status: string
   notes: string
 }
 
@@ -25,6 +28,14 @@ interface SalesDialogProps {
   onSave: (data: TenswSalesFormData) => Promise<void>
   onDelete?: (id: string) => Promise<void>
 }
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const PAYMENT_STATUS_OPTIONS = [
+  { key: 'scheduled', label: '예정' },
+  { key: 'pending', label: '미수금' },
+  { key: 'paid', label: '수금완료' },
+]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -38,11 +49,14 @@ const inputBase: React.CSSProperties = {
 
 function emptyForm(): TenswSalesFormData {
   return {
-    invoice_date: '',
-    company: '',
-    description: '',
+    issue_date: '',
+    counterparty: '',
+    business_number: '',
+    representative: '',
     supply_amount: '',
     tax_amount: '',
+    expected_payment_date: '',
+    payment_status: 'pending',
     notes: '',
   }
 }
@@ -50,11 +64,14 @@ function emptyForm(): TenswSalesFormData {
 function fromInvoice(inv: TenswTaxInvoice): TenswSalesFormData {
   return {
     id: inv.id,
-    invoice_date: inv.invoice_date,
-    company: inv.company,
-    description: inv.description || '',
-    supply_amount: String(inv.supply_amount),
-    tax_amount: String(inv.tax_amount),
+    issue_date: inv.issue_date,
+    counterparty: inv.counterparty,
+    business_number: inv.business_number || '',
+    representative: inv.representative || '',
+    supply_amount: inv.supply_amount ? inv.supply_amount.toLocaleString() : '',
+    tax_amount: inv.tax_amount ? inv.tax_amount.toLocaleString() : '',
+    expected_payment_date: inv.expected_payment_date || '',
+    payment_status: inv.payment_status || 'pending',
     notes: inv.notes || '',
   }
 }
@@ -82,15 +99,22 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
     setForm(prev => ({ ...prev, [key]: val }))
 
   const handleSupplyChange = (val: string) => {
-    set('supply_amount', val)
-    const supply = Number(val)
+    const raw = val.replace(/[^0-9]/g, '')
+    const formatted = raw ? Number(raw).toLocaleString() : ''
+    set('supply_amount', formatted)
+    const supply = Number(raw)
     if (!isNaN(supply) && supply >= 0) {
-      set('tax_amount', String(Math.round(supply * 0.1)))
+      set('tax_amount', Math.round(supply * 0.1).toLocaleString())
     }
   }
 
+  const handleTaxChange = (val: string) => {
+    const raw = val.replace(/[^0-9]/g, '')
+    set('tax_amount', raw ? Number(raw).toLocaleString() : '')
+  }
+
   const handleSave = async () => {
-    if (!form.company.trim() || !form.supply_amount.trim()) return
+    if (!form.counterparty.trim() || !form.supply_amount.trim()) return
     setSaving(true)
     try {
       await onSave(form)
@@ -120,7 +144,7 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
 
       {/* Panel */}
       <div style={{
-        position: 'relative', width: 440, maxHeight: '85vh',
+        position: 'relative', width: 480, maxHeight: '85vh',
         background: t.neutrals.card, borderRadius: t.radius.lg + 2,
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
@@ -153,67 +177,105 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
         {/* Body */}
         <div style={{
           padding: '0 20px 16px', overflowY: 'auto', flex: 1,
-          display: 'flex', flexDirection: 'column', gap: 16,
+          display: 'flex', flexDirection: 'column', gap: 14,
         }}>
-          {/* Invoice date */}
-          <div>
-            <Label>발행일</Label>
-            <input
-              type="date"
-              value={form.invoice_date}
-              onChange={e => set('invoice_date', e.target.value)}
-              style={inputBase}
-            />
+          {/* 거래처 + 발행일 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <Label required>거래처</Label>
+              <input
+                value={form.counterparty}
+                onChange={e => set('counterparty', e.target.value)}
+                placeholder="거래처명"
+                style={inputBase}
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label required>발행일</Label>
+              <input
+                type="date"
+                value={form.issue_date}
+                onChange={e => set('issue_date', e.target.value)}
+                style={inputBase}
+              />
+            </div>
           </div>
 
-          {/* Company */}
-          <div>
-            <Label required>거래처</Label>
-            <input
-              value={form.company}
-              onChange={e => set('company', e.target.value)}
-              placeholder="거래처명을 입력하세요"
-              style={inputBase}
-              autoFocus
-            />
+          {/* 사업자번호 + 대표자 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <Label>사업자번호</Label>
+              <input
+                value={form.business_number}
+                onChange={e => set('business_number', e.target.value)}
+                placeholder="000-00-00000"
+                style={inputBase}
+              />
+            </div>
+            <div>
+              <Label>대표자</Label>
+              <input
+                value={form.representative}
+                onChange={e => set('representative', e.target.value)}
+                placeholder="대표자명"
+                style={inputBase}
+              />
+            </div>
           </div>
 
-          {/* Description */}
-          <div>
-            <Label>내용</Label>
-            <input
-              value={form.description}
-              onChange={e => set('description', e.target.value)}
-              placeholder="품목 또는 서비스 내용"
-              style={inputBase}
-            />
-          </div>
-
-          {/* Supply amount + Tax amount */}
+          {/* 공급가액 + 세액 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <Label required>공급가액</Label>
               <input
-                type="number"
                 value={form.supply_amount}
                 onChange={e => handleSupplyChange(e.target.value)}
                 placeholder="0"
                 style={inputBase}
+                inputMode="numeric"
               />
             </div>
             <div>
-              <Label>세액 (자동 계산)</Label>
+              <Label>세액 (자동 10%)</Label>
               <input
-                type="number"
                 value={form.tax_amount}
-                onChange={e => set('tax_amount', e.target.value)}
+                onChange={e => handleTaxChange(e.target.value)}
                 placeholder="0"
                 style={inputBase}
+                inputMode="numeric"
               />
             </div>
           </div>
 
-          {/* Notes */}
+          {/* 입금예정일 + 수금상태 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <Label>입금예정일</Label>
+              <input
+                type="date"
+                value={form.expected_payment_date}
+                onChange={e => set('expected_payment_date', e.target.value)}
+                style={inputBase}
+              />
+            </div>
+            <div>
+              <Label>수금상태</Label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {PAYMENT_STATUS_OPTIONS.map(s => (
+                  <ChipBtn
+                    key={s.key}
+                    active={form.payment_status === s.key}
+                    onClick={() => set('payment_status', s.key)}
+                  >
+                    {s.label}
+                  </ChipBtn>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 메모 */}
           <div>
             <Label>비고</Label>
             <textarea
@@ -246,7 +308,7 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
               variant="brand"
               size="sm"
               onClick={handleSave}
-              disabled={saving || !form.company.trim() || !form.supply_amount.trim()}
+              disabled={saving || !form.counterparty.trim() || !form.supply_amount.trim()}
             >
               {saving ? '저장 중...' : '저장'}
             </LBtn>
@@ -270,3 +332,20 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
   )
 }
 
+function ChipBtn({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        border: 'none', cursor: 'pointer',
+        padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+        fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
+        background: active ? t.brand[100] : t.neutrals.inner,
+        color: active ? t.brand[700] : t.neutrals.muted,
+        transition: 'all .12s',
+      }}
+    >
+      {children}
+    </button>
+  )
+}

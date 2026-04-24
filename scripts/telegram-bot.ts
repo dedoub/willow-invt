@@ -65,13 +65,19 @@ function acquireLock(): boolean {
   try {
     if (existsSync(LOCK_FILE)) {
       const lockPid = parseInt(readFileSync(LOCK_FILE, 'utf-8').trim(), 10)
-      // PID가 아직 살아있는지 확인
       try {
-        process.kill(lockPid, 0) // signal 0 = 존재 확인만
-        console.error(`❌ 봇이 이미 실행 중입니다 (PID: ${lockPid}). 중복 실행 차단.`)
-        return false
+        process.kill(lockPid, 0)
+        if (lockPid !== process.pid) {
+          console.log(`⚠️ 기존 봇 프로세스 발견 (PID: ${lockPid}). 종료 후 인수합니다.`)
+          try { process.kill(lockPid, 15) } catch { /* already dead */ }
+          const deadline = Date.now() + 5000
+          while (Date.now() < deadline) {
+            try { process.kill(lockPid, 0); /* still alive */ } catch { break }
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200)
+          }
+          try { process.kill(lockPid, 9) } catch { /* already dead */ }
+        }
       } catch {
-        // 프로세스 없음 — stale lock 제거
         console.log(`⚠️ 이전 lock 파일 정리 (PID ${lockPid} 없음)`)
       }
     }
@@ -1539,8 +1545,15 @@ async function marketMonitorCheck() {
       greeting = '미국장이 마감됐어요 🇺🇸'
       briefingKey = 'usClose'
     }
-    // KR 장 개시 감지
+    // KR 장 개시 감지 (아침 브리핑이 이미 나갔으면 스킵 — 내용 겹침)
     else if (prev.kr !== 'REGULAR' && current.kr === 'REGULAR' && proactiveState.lastMarketBriefing.krOpen !== todayStr) {
+      if (proactiveState.morningBriefSent === todayStr) {
+        proactiveState.lastMarketBriefing.krOpen = todayStr
+        proactiveState.marketState = current
+        saveProactiveState()
+        console.log('📊 한국장 개장 감지 → 아침 브리핑에서 커버됨, 스킵')
+        return
+      }
       briefingType = '한국장 개장 브리핑'
       marketGroup = 'portfolio'
       greeting = '한국장이 열렸어요 🇰🇷'
@@ -1611,8 +1624,9 @@ async function marketMonitorCheck() {
     const MARKET_BRIEFING_DELAY = 20 * 60 * 1000
     console.log(`📊 ${briefingType} 감지! ${MARKET_BRIEFING_DELAY / 60000}분 후 브리핑 발송 예정 (US: ${prev.us}→${current.us}, KR: ${prev.kr}→${current.kr})`)
 
-    // 중복 방지를 위해 즉시 마킹
+    // 중복 방지를 위해 즉시 마킹 + 디스크 저장
     proactiveState.lastMarketBriefing[briefingKey] = todayStr
+    saveProactiveState()
 
     const capturedChatId = ceoChatId
     const capturedBriefingType = briefingType
@@ -1643,7 +1657,7 @@ async function marketMonitorCheck() {
       }
     }, MARKET_BRIEFING_DELAY)
 
-    console.log(`✅ ${briefingType} 전송 완료`)
+    console.log(`⏳ ${briefingType} 예약 완료 (${MARKET_BRIEFING_DELAY / 60000}분 후 발송)`)
 
   } catch (err) {
     console.error('Market monitor error:', err)
@@ -1924,7 +1938,10 @@ async function breakingNewsCheck() {
       if (!isBreaking) continue
       // 메이저 언론사만 속보 발송
       if (!isMajorMedia(n.source)) {
-        console.log(`⏭️ 속보 스킵 (마이너 매체): ${n.source} — ${n.title.slice(0, 40)}`)
+        if (!isDuplicateBreaking(n.title, topic.topic)) {
+          console.log(`⏭️ 속보 스킵 (마이너 매체): ${n.source} — ${n.title.slice(0, 40)}`)
+          sentBreakingNews.push({ title: n.title, topic: topic.topic, sentAt: now })
+        }
         continue
       }
       // 유사도 기반 중복 체크

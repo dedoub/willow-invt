@@ -13,6 +13,7 @@ interface ScheduleAddDialogProps {
   clients: TenswMgmtClient[]
   onClose: () => void
   onSave: (data: TenswScheduleFormData) => Promise<void>
+  onClientCreated?: () => void
 }
 
 export interface TenswScheduleFormData {
@@ -63,12 +64,18 @@ function fromSchedule(s: TenswMgmtSchedule): TenswScheduleFormData {
   }
 }
 
+const CLIENT_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316']
+
 export function ScheduleAddDialog({
-  open, defaultDate, editingSchedule, clients, onClose, onSave,
+  open, defaultDate, editingSchedule, clients, onClose, onSave, onClientCreated,
 }: ScheduleAddDialogProps) {
   const isEdit = !!editingSchedule
   const [form, setForm] = useState<TenswScheduleFormData>(emptyForm(defaultDate))
   const [saving, setSaving] = useState(false)
+  const [addingClient, setAddingClient] = useState(false)
+  const [newClientName, setNewClientName] = useState('')
+  const [newClientColor, setNewClientColor] = useState(CLIENT_COLORS[0])
+  const [savingClient, setSavingClient] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -90,6 +97,27 @@ export function ScheduleAddDialog({
       await onSave(form)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleAddClient = async () => {
+    if (!newClientName.trim()) return
+    setSavingClient(true)
+    try {
+      const res = await fetch('/api/tensw-mgmt/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newClientName.trim(), color: newClientColor, icon: 'briefcase', order_index: clients.length }),
+      })
+      if (res.ok) {
+        const created = await res.json()
+        set('client_id', created.id ?? '')
+        setAddingClient(false)
+        setNewClientName('')
+        onClientCreated?.()
+      }
+    } finally {
+      setSavingClient(false)
     }
   }
 
@@ -157,33 +185,95 @@ export function ScheduleAddDialog({
           </div>
 
           {/* Client chips */}
-          {clients.length > 0 && (
-            <div>
-              <Label>클라이언트</Label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {/* No client option */}
+          <div>
+            <Label>클라이언트</Label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              {/* No client option */}
+              <ChipBtn
+                active={form.client_id === ''}
+                onClick={() => set('client_id', '')}
+              >
+                없음
+              </ChipBtn>
+              {clients.map(client => (
                 <ChipBtn
-                  active={form.client_id === ''}
-                  onClick={() => set('client_id', '')}
+                  key={client.id}
+                  active={form.client_id === client.id}
+                  onClick={() => set('client_id', client.id)}
+                  activeStyle={{
+                    background: client.color + '20',
+                    color: client.color,
+                  }}
                 >
-                  없음
+                  {client.name}
                 </ChipBtn>
-                {clients.map(client => (
-                  <ChipBtn
-                    key={client.id}
-                    active={form.client_id === client.id}
-                    onClick={() => set('client_id', client.id)}
-                    activeStyle={{
-                      background: client.color + '20',
-                      color: client.color,
-                    }}
-                  >
-                    {client.name}
-                  </ChipBtn>
-                ))}
-              </div>
+              ))}
+              {/* Add client button */}
+              <button
+                onClick={() => setAddingClient(true)}
+                style={{
+                  width: 24, height: 24, borderRadius: t.radius.pill,
+                  background: t.neutrals.inner, border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: t.neutrals.muted, flexShrink: 0,
+                }}
+                title="클라이언트 추가"
+              >
+                <LIcon name="plus" size={11} stroke={2.5} />
+              </button>
             </div>
-          )}
+            {/* Inline add client form */}
+            {addingClient && (
+              <div style={{
+                marginTop: 8, padding: 10, borderRadius: t.radius.md,
+                background: t.neutrals.inner,
+                display: 'flex', flexDirection: 'column', gap: 8,
+              }}>
+                <input
+                  value={newClientName}
+                  onChange={e => setNewClientName(e.target.value)}
+                  placeholder="클라이언트명"
+                  style={{ ...inputBase, background: t.neutrals.card }}
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddClient() }}
+                />
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {CLIENT_COLORS.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setNewClientColor(c)}
+                      style={{
+                        width: 20, height: 20, borderRadius: 999,
+                        background: c, border: 'none', cursor: 'pointer',
+                        outline: newClientColor === c ? `2px solid ${c}` : 'none',
+                        outlineOffset: 2,
+                      }}
+                    />
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setAddingClient(false); setNewClientName('') }}
+                    style={{
+                      padding: '4px 10px', fontSize: 11, borderRadius: t.radius.sm,
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: t.neutrals.muted, fontFamily: t.font.sans,
+                    }}
+                  >취소</button>
+                  <button
+                    onClick={handleAddClient}
+                    disabled={savingClient || !newClientName.trim()}
+                    style={{
+                      padding: '4px 10px', fontSize: 11, borderRadius: t.radius.sm,
+                      background: t.brand[600], border: 'none', cursor: 'pointer',
+                      color: '#fff', fontFamily: t.font.sans, fontWeight: 500,
+                      opacity: !newClientName.trim() ? 0.5 : 1,
+                    }}
+                  >{savingClient ? '...' : '추가'}</button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Dates */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

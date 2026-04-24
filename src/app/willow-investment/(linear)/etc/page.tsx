@@ -176,7 +176,7 @@ export default function EtcPage() {
         <p style={{
           margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
           fontFamily: t.font.sans,
-        }}>ETF Platform · 인보이스 · 위키 · 이메일</p>
+        }}>국내 금융투자업자들에게 미국 상장 ETF 플랫폼을 제공.</p>
       </div>
 
       {loading ? <EtcSkeleton /> : (
