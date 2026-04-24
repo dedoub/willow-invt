@@ -118,7 +118,7 @@ export function InvoiceBlock({
           action={
             <LBtn
               size="sm"
-              icon={<LIcon name="plus" size={14} color="#fff" />}
+              icon={<LIcon name="plus" size={14} color={t.neutrals.text} />}
               onClick={onAdd}
             >
               추가

@@ -266,7 +266,7 @@ export function ScheduleAddDialog({
                     style={{
                       padding: '4px 10px', fontSize: 11, borderRadius: t.radius.sm,
                       background: t.brand[600], border: 'none', cursor: 'pointer',
-                      color: '#fff', fontFamily: t.font.sans, fontWeight: 500,
+                      color: '#fff', fontFamily: t.font.sans, fontWeight: t.weight.regular,
                       opacity: !newClientName.trim() ? 0.5 : 1,
                     }}
                   >{savingClient ? '...' : '추가'}</button>

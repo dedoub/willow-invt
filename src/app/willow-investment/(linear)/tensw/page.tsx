@@ -408,7 +408,7 @@ export default function TenswPage() {
         <p style={{
           margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
           fontFamily: t.font.sans,
-        }}>AI 서비스에 필요한 데이터 구축 및 관리 솔루션을 제공.</p>
+        }}>AI 서비스에 필요한 데이터 구축 및 관리 솔루션을 제공</p>
       </div>
 
       {loading ? <TenswSkeleton /> : (

@@ -290,7 +290,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                 </button>
               )}
             </div>
-            <LBtn size="sm" icon={<LIcon name="plus" size={14} color="#fff" />} onClick={() => { setAdding(true); setSelectedId(null); setEditing(false) }}>
+            <LBtn size="sm" icon={<LIcon name="plus" size={14} color={t.neutrals.text} />} onClick={() => { setAdding(true); setSelectedId(null); setEditing(false) }}>
               새 노트
             </LBtn>
           </div>

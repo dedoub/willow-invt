@@ -47,9 +47,9 @@ export function LinearHeader({ title, onAgentToggle, agentOpen, actions, mobile,
         {onAgentToggle && !mobile && (
           <button onClick={onAgentToggle} style={{
             height: 28, padding: '0 10px', borderRadius: 6,
-            background: agentOpen ? t.brand[600] : t.neutrals.inner,
+            background: agentOpen ? t.brand[800] : t.neutrals.inner,
             color: agentOpen ? '#fff' : t.neutrals.text,
-            border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 500,
+            border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: t.weight.regular,
             display: 'inline-flex', alignItems: 'center', gap: 5,
             fontFamily: t.font.sans,
           }}>

@@ -55,7 +55,7 @@ function ActionBtn({ icon, label, onClick, spinning, disabled }: {
         display: 'flex', alignItems: 'center', gap: 4,
         padding: '4px 10px', borderRadius: t.radius.sm,
         background: t.neutrals.inner, border: 'none',
-        fontSize: 11.5, fontFamily: t.font.sans, fontWeight: 500,
+        fontSize: 11.5, fontFamily: t.font.sans, fontWeight: t.weight.regular,
         color: disabled ? t.neutrals.subtle : t.neutrals.text,
         cursor: disabled ? 'default' : 'pointer',
         opacity: disabled ? 0.5 : 1,

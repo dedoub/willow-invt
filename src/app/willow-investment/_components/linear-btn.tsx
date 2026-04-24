@@ -23,8 +23,8 @@ const sizes = {
 }
 
 const variants = {
-  primary:   { bg: t.neutrals.text, fg: '#fff' },
-  secondary: { bg: t.neutrals.inner, fg: t.neutrals.text },
+  primary:   { bg: t.neutrals.inner, fg: t.neutrals.text },
+  secondary: { bg: t.neutrals.inner, fg: t.neutrals.muted },
   ghost:     { bg: 'transparent', fg: t.neutrals.text },
   brand:     { bg: t.brand[600], fg: '#fff' },
   danger:    { bg: t.accent.neg, fg: '#fff' },
@@ -38,7 +38,7 @@ export function LBtn({ variant = 'primary', size = 'md', children, icon, onClick
       display: 'inline-flex', alignItems: 'center', gap: 6,
       height: s.h, padding: `0 ${s.px}px`, fontSize: s.fs,
       background: v.bg, color: v.fg,
-      fontWeight: t.weight.medium, fontFamily: t.font.sans,
+      fontWeight: t.weight.regular, fontFamily: t.font.sans,
       borderRadius: t.radius.sm, border: 'none', cursor: disabled ? 'default' : 'pointer',
       opacity: disabled ? 0.5 : 1,
       ...style,

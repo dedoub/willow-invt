@@ -80,7 +80,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
             <button onClick={onRefresh} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: t.neutrals.subtle }}>
               <LIcon name="refresh" size={13} />
             </button>
-            <LBtn size="sm" icon={<LIcon name="plus" size={14} color="#fff" />} onClick={onAdd}>추가</LBtn>
+            <LBtn size="sm" icon={<LIcon name="plus" size={14} color={t.neutrals.text} />} onClick={onAdd}>추가</LBtn>
           </div>
         } />
       </div>

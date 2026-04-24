@@ -134,7 +134,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
     <LCard pad={0} style={style}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
         <LSectionHead eyebrow="TAX INVOICES" title="세금계산서" action={
-          <LBtn size="sm" icon={<LIcon name="plus" size={14} color="#fff" />}
+          <LBtn size="sm" icon={<LIcon name="plus" size={14} color={t.neutrals.text} />}
             onClick={() => setAddOpen(true)}>추가</LBtn>
         } />
       </div>
