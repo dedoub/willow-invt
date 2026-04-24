@@ -23,13 +23,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push('/')
+      router.push('/willow-investment')
     }
   }, [authLoading, isAuthenticated, router])
 
   if (authLoading || isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900" style={{ fontFamily: '"Inter Tight", "Inter", system-ui, sans-serif' }}>
         <Loader2 className="h-8 w-8 animate-spin text-brand-300" />
       </div>
     )
@@ -43,7 +43,7 @@ export default function LoginPage() {
     const result = await login(email, password)
 
     if (result.success) {
-      router.push('/')
+      router.push('/willow-investment')
     } else {
       setError(result.error || t.auth.login.error)
     }
@@ -52,7 +52,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900">
+    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900" style={{ fontFamily: '"Inter Tight", "Inter", system-ui, sans-serif' }}>
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12">
         <div className="max-w-md text-center">
@@ -85,7 +85,7 @@ export default function LoginPage() {
           </div>
 
           {/* Login Card */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-white/10">
+          <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 shadow-2xl border border-white/10">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-white">{t.auth.login.title}</h2>
               <p className="text-brand-100/70 mt-2">{t.auth.login.subtitle}</p>
@@ -139,7 +139,7 @@ export default function LoginPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 text-sm">
+                <div className="p-3 rounded-md bg-red-500/20 border border-red-500/30 text-red-200 text-sm">
                   {error}
                 </div>
               )}
