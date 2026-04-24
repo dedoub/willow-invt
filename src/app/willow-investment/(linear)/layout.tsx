@@ -26,6 +26,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/willow-investment/invest': '투자관리',
   '/willow-investment/wiki': '업무위키',
   '/willow-investment/ryuha': '류하일정',
+  '/willow-investment/tensw': '텐소프트웍스',
+  '/willow-investment/monor': 'MonoR Apps',
 }
 
 function useNarrow(threshold = 1180) {
