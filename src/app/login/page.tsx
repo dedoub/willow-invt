@@ -23,7 +23,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push('/willow-investment')
+      router.push('/willow-investment/mgmt')
     }
   }, [authLoading, isAuthenticated, router])
 
@@ -43,7 +43,7 @@ export default function LoginPage() {
     const result = await login(email, password)
 
     if (result.success) {
-      router.push('/willow-investment')
+      router.push('/willow-investment/mgmt')
     } else {
       setError(result.error || t.auth.login.error)
     }
