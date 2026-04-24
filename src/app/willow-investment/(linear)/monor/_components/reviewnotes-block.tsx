@@ -5,7 +5,7 @@ import { LCard } from '@/app/willow-investment/_components/linear-card'
 import { LSectionHead } from '@/app/willow-investment/_components/linear-section-head'
 import { LStat } from '@/app/willow-investment/_components/linear-stat'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
-import type { ReviewNotesStats, LemonSqueezyOrder, LemonSqueezySubscription } from '@/lib/lemonsqueezy'
+import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats } from '@/lib/reviewnotes-supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -13,8 +13,6 @@ import type { ReviewNotesUserStats } from '@/lib/reviewnotes-supabase'
 export interface ReviewnotesBlockProps {
   loading: boolean
   stats: ReviewNotesStats | null
-  recentOrders: LemonSqueezyOrder[]
-  subscriptions: LemonSqueezySubscription[]
   userStats: ReviewNotesUserStats | null
   onRefresh: () => void
   refreshing: boolean
@@ -30,31 +28,10 @@ function formatCurrency(value: number): string {
   }).format(value / 100)
 }
 
-function formatNumber(value: number): string {
-  return value.toLocaleString()
-}
-
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('ko-KR', {
     year: 'numeric', month: 'short', day: 'numeric',
   })
-}
-
-const ORDER_STATUS_TONES: Record<string, { bg: string; fg: string }> = {
-  paid:     tonePalettes.pos,
-  pending:  tonePalettes.warn,
-  refunded: tonePalettes.neg,
-  failed:   tonePalettes.neg,
-}
-
-const SUB_STATUS_TONES: Record<string, { bg: string; fg: string }> = {
-  active:    tonePalettes.pos,
-  on_trial:  tonePalettes.info,
-  cancelled: tonePalettes.neg,
-  expired:   tonePalettes.neg,
-  paused:    tonePalettes.warn,
-  past_due:  tonePalettes.warn,
-  unpaid:    tonePalettes.warn,
 }
 
 const PLAN_TONES: Record<string, { bg: string; fg: string }> = {
@@ -71,18 +48,17 @@ function getTone(map: Record<string, { bg: string; fg: string }>, key: string) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ReviewnotesBlock({
-  loading, stats, recentOrders, subscriptions, userStats,
+  loading, stats, userStats,
   onRefresh, refreshing, error,
 }: ReviewnotesBlockProps) {
   const mobile = useIsMobile()
-  const activeSubscribers = subscriptions.filter(s => s.attributes.status === 'active')
 
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead
           eyebrow="REVIEWNOTES"
-          title="ReviewNotes 매출 현황"
+          title="ReviewNotes"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <a
@@ -125,130 +101,31 @@ export function ReviewnotesBlock({
           </div>
         )}
 
-        {/* KPI row */}
+        {/* KPI row: 총 매출, MRR, 활성 구독자 */}
         {loading ? (
-          <SkeletonRow count={4} />
+          <SkeletonRow count={3} />
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
-            <LStat label="총 매출" value={stats ? formatCurrency(stats.totalRevenueUSD) : '-'} sub={stats ? `이번 달 ${formatCurrency(stats.monthlyRevenueUSD)}` : undefined} />
-            <LStat label="MRR" value={stats ? formatCurrency(stats.mrr) : '-'} sub="월간 반복 매출" tone="info" />
-            <LStat label="활성 구독자" value={stats ? formatNumber(stats.activeSubscriptions) : '-'} sub={stats ? `체험 ${stats.trialSubscriptions} · 취소 ${stats.cancelledSubscriptions}` : undefined} tone="pos" />
-            <LStat label="총 고객" value={stats ? formatNumber(stats.totalCustomers) : '-'} sub={stats ? `이번 달 +${stats.newCustomersThisMonth}` : undefined} />
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+            <LStat
+              label="총 매출"
+              value={stats ? formatCurrency(stats.totalRevenueUSD) : '-'}
+              sub={stats ? `이번 달 ${formatCurrency(stats.monthlyRevenueUSD)}` : undefined}
+            />
+            <LStat
+              label="MRR"
+              value={stats ? formatCurrency(stats.mrr) : '-'}
+              sub="월간 반복 매출"
+              tone="info"
+            />
+            <LStat
+              label="활성 구독자"
+              value={stats ? String(stats.activeSubscriptions) : '-'}
+              sub={stats ? `체험 ${stats.trialSubscriptions} · 취소 ${stats.cancelledSubscriptions}` : undefined}
+              tone="pos"
+            />
           </div>
         )}
       </div>
-
-      {/* Orders + Subscribers 2-col */}
-      {!loading && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
-          gap: 0,
-        }}>
-          {/* Recent Orders */}
-          <div style={{ padding: `12px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase' as const }}>
-                최근 주문
-              </div>
-              <span style={{ fontSize: 10, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-                총 {stats?.totalOrders ?? 0}건
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 260, overflowY: 'auto' }}>
-              {recentOrders.length === 0 && (
-                <div style={{ fontSize: 11, color: t.neutrals.muted, textAlign: 'center', padding: '12px 0' }}>주문 없음</div>
-              )}
-              {recentOrders.slice(0, 10).map(order => {
-                const tone = getTone(ORDER_STATUS_TONES, order.attributes.status)
-                return (
-                  <div key={order.id} style={{
-                    padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11, fontWeight: 500, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {order.attributes.user_name || order.attributes.user_email}
-                      </div>
-                      <div style={{ fontSize: 9.5, color: t.neutrals.muted }}>
-                        {order.attributes.first_order_item?.product_name || 'Product'} · {formatDate(order.attributes.created_at)}
-                      </div>
-                    </div>
-                    <span style={{
-                      fontSize: 9, padding: '2px 6px', borderRadius: t.radius.sm,
-                      background: tone.bg, color: tone.fg, fontWeight: 600, flexShrink: 0,
-                    }}>
-                      {order.attributes.status_formatted}
-                    </span>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: t.neutrals.text, flexShrink: 0, fontFamily: t.font.mono }}>
-                      {order.attributes.total_formatted}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Active Subscribers */}
-          <div style={{
-            padding: `12px ${t.density.cardPad}px`,
-            borderTop: `1px solid ${t.neutrals.line}`,
-            ...(mobile ? {} : { borderLeft: `1px solid ${t.neutrals.line}` }),
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase' as const }}>
-                활성 구독자
-              </div>
-              <span style={{ fontSize: 10, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-                {activeSubscribers.length}명
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 260, overflowY: 'auto' }}>
-              {activeSubscribers.length === 0 && (
-                <div style={{ fontSize: 11, color: t.neutrals.muted, textAlign: 'center', padding: '12px 0' }}>활성 구독자 없음</div>
-              )}
-              {activeSubscribers.map(sub => {
-                const tone = getTone(SUB_STATUS_TONES, sub.attributes.status)
-                return (
-                  <div key={sub.id} style={{
-                    padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11, fontWeight: 500, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {sub.attributes.user_name || sub.attributes.user_email}
-                      </div>
-                      <div style={{ fontSize: 9.5, color: t.neutrals.muted }}>
-                        {sub.attributes.product_name} · {sub.attributes.variant_name}
-                      </div>
-                    </div>
-                    <span style={{
-                      fontSize: 9, padding: '2px 6px', borderRadius: t.radius.sm,
-                      background: tone.bg, color: tone.fg, fontWeight: 600, flexShrink: 0,
-                    }}>
-                      {sub.attributes.status_formatted}
-                    </span>
-                    <span style={{ fontSize: 9.5, color: t.neutrals.muted, flexShrink: 0 }}>
-                      갱신 {formatDate(sub.attributes.renews_at)}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Order stats row */}
-      {!loading && stats && (
-        <div style={{ padding: `12px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}` }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            <LStat label="이번 달 주문" value={String(stats.ordersThisMonth)} />
-            <LStat label="총 주문" value={String(stats.totalOrders)} />
-            <LStat label="환불" value={String(stats.refundedOrders)} tone="neg" />
-          </div>
-        </div>
-      )}
 
       {/* User stats section */}
       {!loading && userStats && (
@@ -375,7 +252,7 @@ function PlanStat({ userStats }: { userStats: ReviewNotesUserStats }) {
 
 function SkeletonRow({ count }: { count: number }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count}, 1fr)`, gap: 8, marginBottom: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count}, 1fr)`, gap: 8 }}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} style={{
           height: 52, borderRadius: t.radius.sm, background: t.neutrals.inner,

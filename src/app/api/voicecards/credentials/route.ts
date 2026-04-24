@@ -1,15 +1,35 @@
 import { NextResponse } from 'next/server'
 import {
   getCredentials,
+  getAnyCredentials,
   saveCredentials,
   getConnectionStatus,
 } from '@/lib/voicecards-server'
 
-// GET: 인증 정보 조회 (연결 상태만 반환, 민감 정보 제외)
+function mask(value: string | null | undefined): string | null {
+  if (!value) return null
+  if (value.length <= 6) return '••••••'
+  return value.slice(0, 3) + '•'.repeat(Math.min(value.length - 6, 10)) + value.slice(-3)
+}
+
+// GET: 인증 정보 조회 (마스킹 처리)
 export async function GET() {
   try {
+    const creds = await getCredentials() || await getAnyCredentials()
     const status = await getConnectionStatus()
-    return NextResponse.json(status)
+
+    return NextResponse.json({
+      ...status,
+      credentials: creds ? {
+        ios_issuer_id: mask(creds.ios_issuer_id),
+        ios_key_id: mask(creds.ios_key_id),
+        ios_private_key: creds.ios_private_key ? '••••••(설정됨)' : null,
+        ios_app_id: creds.ios_app_id || null,
+        ios_vendor_number: creds.ios_vendor_number || null,
+        android_service_account: creds.android_service_account ? '••••••(설정됨)' : null,
+        android_package_name: creds.android_package_name || null,
+      } : null,
+    })
   } catch (error) {
     console.error('Error getting credentials:', error)
     return NextResponse.json(
@@ -29,6 +49,7 @@ export async function POST(request: Request) {
       ios_key_id: body.ios_key_id,
       ios_private_key: body.ios_private_key,
       ios_app_id: body.ios_app_id,
+      ios_vendor_number: body.ios_vendor_number,
       android_service_account: body.android_service_account,
       android_package_name: body.android_package_name,
     })
