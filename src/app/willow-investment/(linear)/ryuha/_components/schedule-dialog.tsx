@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { t } from '@/app/willow-investment/_components/linear-tokens'
+import { LBtn } from '@/app/willow-investment/_components/linear-btn'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
 import { RyuhaSchedule, RyuhaSubject, RyuhaTextbook, RyuhaChapter } from '@/types/ryuha'
 
@@ -34,6 +35,14 @@ export interface ScheduleFormData {
 }
 
 const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1']
+
+const inputBase: React.CSSProperties = {
+  width: '100%', padding: '8px 10px', fontSize: 13,
+  fontFamily: t.font.sans, fontWeight: t.weight.regular,
+  background: t.neutrals.inner, color: t.neutrals.text,
+  border: 'none', borderRadius: t.radius.sm, outline: 'none',
+  boxSizing: 'border-box',
+}
 
 export function ScheduleDialog({
   open, schedule, initialDate, subjects, textbooks, chapters,
@@ -119,140 +128,130 @@ export function ScheduleDialog({
 
   if (!open) return null
 
-  const labelStyle: React.CSSProperties = {
-    fontSize: 11, color: t.neutrals.subtle, fontFamily: t.font.sans,
-    marginBottom: 4, display: 'block',
-  }
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', borderRadius: t.radius.sm,
-    border: 'none', background: t.neutrals.inner,
-    fontSize: 12, fontFamily: t.font.sans, color: t.neutrals.text,
-    outline: 'none',
-  }
+  const isEdit = !!schedule
 
   return (
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 200,
-      background: 'rgba(0,0,0,0.35)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 16,
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: t.neutrals.card, borderRadius: t.radius.lg,
-        width: '100%', maxWidth: 480, maxHeight: '90vh',
-        display: 'flex', flexDirection: 'column',
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Backdrop */}
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
+
+      {/* Panel */}
+      <div style={{
+        position: 'relative', width: 440, maxHeight: '85vh',
+        background: t.neutrals.card, borderRadius: t.radius.lg + 2,
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
         fontFamily: t.font.sans,
       }}>
         {/* Header */}
         <div style={{
-          padding: '14px 16px', display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', borderBottom: `1px solid ${t.neutrals.line}`,
+          padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <span style={{ fontSize: 15, fontWeight: t.weight.semibold }}>
-            {schedule ? '일정 수정' : '일정 추가'}
-          </span>
+          <div>
+            <div style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+              SCHEDULE
+            </div>
+            <div style={{ fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+              {isEdit ? '일정 수정' : '일정 추가'}
+            </div>
+          </div>
           <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: t.neutrals.subtle, padding: 4,
+            width: 28, height: 28, borderRadius: t.radius.sm,
+            background: t.neutrals.inner, border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
-            <LIcon name="x" size={16} />
+            <LIcon name="x" size={14} stroke={2} />
           </button>
         </div>
 
         {/* Body */}
         <div style={{
-          flex: 1, overflow: 'auto', padding: 16,
-          display: 'flex', flexDirection: 'column', gap: 12,
+          padding: '0 20px 16px', overflowY: 'auto', flex: 1,
+          display: 'flex', flexDirection: 'column', gap: 16,
         }}>
+          {/* Title */}
           <div>
-            <label style={labelStyle}>제목 *</label>
+            <Label required>제목</Label>
             <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
-              placeholder="일정 제목" style={inputStyle} />
+              placeholder="일정 제목을 입력하세요" style={inputBase} autoFocus />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div>
-              <label style={labelStyle}>시작일 *</label>
-              <input type="date" value={form.schedule_date}
-                onChange={e => setForm({ ...form, schedule_date: e.target.value })}
-                style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>종료일</label>
-              <input type="date" value={form.end_date}
-                onChange={e => setForm({ ...form, end_date: e.target.value })}
-                style={inputStyle} />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div>
-              <label style={labelStyle}>시작시간</label>
-              <input type="time" value={form.start_time}
-                onChange={e => setForm({ ...form, start_time: e.target.value })}
-                style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>종료시간</label>
-              <input type="time" value={form.end_time}
-                onChange={e => setForm({ ...form, end_time: e.target.value })}
-                style={inputStyle} />
-            </div>
-          </div>
-
+          {/* Type chips */}
           <div>
-            <label style={labelStyle}>유형</label>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <Label>유형</Label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {([
                 { key: 'school', label: '학교' },
                 { key: 'academy', label: '학원' },
                 { key: 'homework', label: '과제' },
                 { key: 'etc', label: '기타' },
               ] as const).map(({ key, label }) => (
-                <button key={key} onClick={() => setForm({ ...form, type: key })}
-                  style={{
-                    padding: '4px 12px', borderRadius: t.radius.pill,
-                    border: 'none', cursor: 'pointer',
-                    fontSize: 11, fontFamily: t.font.sans,
-                    fontWeight: form.type === key ? t.weight.medium : t.weight.regular,
-                    background: form.type === key ? t.brand[100] : t.neutrals.inner,
-                    color: form.type === key ? t.brand[700] : t.neutrals.muted,
-                  }}
-                >
+                <ChipBtn key={key} active={form.type === key} onClick={() => setForm({ ...form, type: key })}>
                   {label}
-                </button>
+                </ChipBtn>
               ))}
             </div>
           </div>
 
+          {/* Dates */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <Label required>시작일</Label>
+              <input type="date" value={form.schedule_date}
+                onChange={e => setForm({ ...form, schedule_date: e.target.value })}
+                style={inputBase} />
+            </div>
+            <div>
+              <Label>종료일</Label>
+              <input type="date" value={form.end_date}
+                onChange={e => setForm({ ...form, end_date: e.target.value })}
+                style={inputBase} />
+            </div>
+          </div>
+
+          {/* Times */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <Label>시작 시간</Label>
+              <input type="time" value={form.start_time}
+                onChange={e => setForm({ ...form, start_time: e.target.value })}
+                style={inputBase} />
+            </div>
+            <div>
+              <Label>종료 시간</Label>
+              <input type="time" value={form.end_time}
+                onChange={e => setForm({ ...form, end_time: e.target.value })}
+                style={inputBase} />
+            </div>
+          </div>
+
+          {/* Subject chips */}
           <div>
-            <label style={labelStyle}>과목</label>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              <button onClick={() => setForm({ ...form, subject_id: '', chapter_ids: [] })}
-                style={{
-                  padding: '3px 8px', borderRadius: t.radius.pill,
-                  border: 'none', fontSize: 11, cursor: 'pointer',
-                  background: !form.subject_id ? t.brand[100] : t.neutrals.inner,
-                  color: !form.subject_id ? t.brand[700] : t.neutrals.muted,
-                }}>전체</button>
+            <Label>과목</Label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <ChipBtn active={!form.subject_id} onClick={() => setForm({ ...form, subject_id: '', chapter_ids: [] })}>
+                전체
+              </ChipBtn>
               {subjects.map(s => (
                 <button key={s.id} onClick={() => setForm({ ...form, subject_id: s.id, chapter_ids: [] })}
                   style={{
-                    padding: '3px 8px', borderRadius: t.radius.pill,
-                    border: 'none', fontSize: 11, cursor: 'pointer',
+                    border: 'none', cursor: 'pointer',
+                    padding: '5px 12px', fontSize: 12, borderRadius: t.radius.pill,
+                    fontFamily: t.font.sans, fontWeight: form.subject_id === s.id ? t.weight.medium : t.weight.regular,
                     background: form.subject_id === s.id ? `${s.color}25` : t.neutrals.inner,
                     color: form.subject_id === s.id ? s.color : t.neutrals.muted,
+                    transition: 'all .12s',
                   }}>{s.name}</button>
               ))}
             </div>
           </div>
 
+          {/* Chapters */}
           {filteredChapters.length > 0 && (
             <div>
-              <label style={labelStyle}>단원 연결</label>
+              <Label>단원 연결</Label>
               <div style={{
                 maxHeight: 120, overflow: 'auto', borderRadius: t.radius.sm,
-                background: t.neutrals.inner, padding: 6,
+                background: t.neutrals.inner, padding: 8,
               }}>
                 {filteredTextbooks.map(tb => {
                   const tbChapters = filteredChapters.filter(ch => ch.textbook_id === tb.id)
@@ -265,7 +264,7 @@ export function ScheduleDialog({
                       {tbChapters.map(ch => (
                         <label key={ch.id} style={{
                           display: 'flex', alignItems: 'center', gap: 6,
-                          padding: '2px 4px', cursor: 'pointer', fontSize: 11,
+                          padding: '3px 4px', cursor: 'pointer', fontSize: 12,
                         }}>
                           <input type="checkbox" checked={form.chapter_ids.includes(ch.id)}
                             onChange={() => toggleChapter(ch.id)} />
@@ -279,12 +278,13 @@ export function ScheduleDialog({
             </div>
           )}
 
+          {/* Color */}
           <div>
-            <label style={labelStyle}>색상</label>
+            <Label>색상</Label>
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={() => setForm({ ...form, color: '' })}
                 style={{
-                  width: 20, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer',
+                  width: 22, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
                   background: t.neutrals.inner,
                   outline: !form.color ? `2px solid ${t.neutrals.muted}` : 'none',
                   outlineOffset: 2,
@@ -292,7 +292,7 @@ export function ScheduleDialog({
               {COLORS.map(c => (
                 <button key={c} onClick={() => setForm({ ...form, color: c })}
                   style={{
-                    width: 20, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer',
+                    width: 22, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
                     background: c,
                     outline: form.color === c ? `2px solid ${c}` : 'none',
                     outlineOffset: 2,
@@ -301,15 +301,17 @@ export function ScheduleDialog({
             </div>
           </div>
 
+          {/* Description */}
           <div>
-            <label style={labelStyle}>설명</label>
+            <Label>설명</Label>
             <textarea value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
-              placeholder="설명 (선택)" rows={2}
-              style={{ ...inputStyle, resize: 'vertical' }} />
+              placeholder="상세 내용 (선택)" rows={3}
+              style={{ ...inputBase, resize: 'vertical' as const, lineHeight: 1.5 }} />
           </div>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
+          {/* Email reminder */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', color: t.neutrals.text }}>
             <input type="checkbox" checked={form.email_reminder}
               onChange={e => setForm({ ...form, email_reminder: e.target.checked })} />
             이메일 리마인더
@@ -318,21 +320,22 @@ export function ScheduleDialog({
           {/* Homework items */}
           {form.type === 'homework' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <label style={{ ...labelStyle, marginBottom: 0 }}>과제 항목</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                <Label>과제 항목</Label>
                 <button onClick={() => setForm({
                   ...form,
                   homework_items: [...form.homework_items, { content: '', deadline: form.schedule_date }],
                 })} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 11, color: t.brand[600], display: 'flex', alignItems: 'center', gap: 2,
+                  fontSize: 12, color: t.brand[600], display: 'flex', alignItems: 'center', gap: 3,
+                  fontFamily: t.font.sans,
                 }}>
-                  <LIcon name="plus" size={10} stroke={2} /> 추가
+                  <LIcon name="plus" size={11} stroke={2} /> 추가
                 </button>
               </div>
               {form.homework_items.map((item, idx) => (
                 <div key={idx} style={{
-                  display: 'flex', gap: 6, marginBottom: 6, alignItems: 'center',
+                  display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center',
                 }}>
                   <input value={item.content}
                     onChange={e => {
@@ -340,21 +343,21 @@ export function ScheduleDialog({
                       items[idx] = { ...items[idx], content: e.target.value }
                       setForm({ ...form, homework_items: items })
                     }}
-                    placeholder="과제 내용" style={{ ...inputStyle, flex: 1 }} />
+                    placeholder="과제 내용" style={{ ...inputBase, flex: 1 }} />
                   <input type="date" value={item.deadline}
                     onChange={e => {
                       const items = [...form.homework_items]
                       items[idx] = { ...items[idx], deadline: e.target.value }
                       setForm({ ...form, homework_items: items })
                     }}
-                    style={{ ...inputStyle, width: 130 }} />
+                    style={{ ...inputBase, width: 140 }} />
                   <button onClick={() => {
                     setForm({ ...form, homework_items: form.homework_items.filter((_, i) => i !== idx) })
                   }} style={{
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: t.accent.neg, padding: 2,
                   }}>
-                    <LIcon name="x" size={12} stroke={2} />
+                    <LIcon name="x" size={13} stroke={2} />
                   </button>
                 </div>
               ))}
@@ -364,35 +367,46 @@ export function ScheduleDialog({
 
         {/* Footer */}
         <div style={{
-          padding: '12px 16px', borderTop: `1px solid ${t.neutrals.line}`,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '12px 20px', background: t.neutrals.inner,
+          display: 'flex', justifyContent: isEdit ? 'space-between' : 'flex-end', alignItems: 'center', gap: 8,
         }}>
-          {schedule && onDelete ? (
-            <button onClick={handleDelete} disabled={saving}
-              style={{
-                padding: '6px 12px', borderRadius: t.radius.sm,
-                background: '#FEE2E2', border: 'none', fontSize: 12,
-                color: t.accent.neg, cursor: 'pointer', fontWeight: t.weight.medium,
-              }}>삭제</button>
-          ) : <div />}
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={onClose} style={{
-              padding: '6px 14px', borderRadius: t.radius.sm,
-              background: t.neutrals.inner, border: 'none', fontSize: 12,
-              color: t.neutrals.muted, cursor: 'pointer',
-            }}>취소</button>
-            <button onClick={handleSave} disabled={saving || !form.title.trim()}
-              style={{
-                padding: '6px 14px', borderRadius: t.radius.sm,
-                background: t.brand[600], border: 'none', fontSize: 12,
-                color: '#fff', cursor: 'pointer', fontWeight: t.weight.medium,
-                opacity: saving || !form.title.trim() ? 0.5 : 1,
-              }}>
-              {saving ? '저장중...' : '저장'}
-            </button>
+          {isEdit && onDelete && (
+            <LBtn variant="danger" size="sm" onClick={handleDelete} disabled={saving}>삭제</LBtn>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
+            <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.title.trim()}>
+              {saving ? '저장 중...' : '저장'}
+            </LBtn>
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+/* ── Sub-components ── */
+
+function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.subtle,
+      fontFamily: t.font.sans, marginBottom: 5,
+    }}>
+      {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
+    </div>
+  )
+}
+
+function ChipBtn({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick} style={{
+      border: 'none', cursor: 'pointer',
+      padding: '5px 12px', fontSize: 12, borderRadius: t.radius.pill,
+      fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
+      background: active ? t.brand[100] : t.neutrals.inner,
+      color: active ? t.brand[700] : t.neutrals.muted,
+      transition: 'all .12s',
+    }}>{children}</button>
   )
 }

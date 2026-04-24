@@ -68,10 +68,15 @@ export async function POST(request: Request) {
   try {
     const supabase = getServiceSupabase()
     const body = await request.json()
+    // Strip homework_items (separate table) and convert empty strings to null
+    const { homework_items: hwItems, ...raw } = body
+    const insertData = Object.fromEntries(
+      Object.entries(raw).map(([k, v]) => [k, v === '' ? null : v])
+    )
 
     const { data, error } = await supabase
       .from('ryuha_schedules')
-      .insert(body)
+      .insert(insertData)
       .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*)), homework_items:ryuha_homework_items(*)')
       .single()
 
@@ -98,7 +103,13 @@ export async function PUT(request: Request) {
   try {
     const supabase = getServiceSupabase()
     const body = await request.json()
-    const { id, ...updates } = body
+    // Strip homework_items (separate table) to avoid Supabase column error
+    const { id, homework_items, ...raw } = body
+
+    // Convert empty strings to null for nullable fields
+    const updates = Object.fromEntries(
+      Object.entries(raw).map(([k, v]) => [k, v === '' ? null : v])
+    )
 
     const { data, error } = await supabase
       .from('ryuha_schedules')
@@ -108,6 +119,21 @@ export async function PUT(request: Request) {
       .single()
 
     if (error) throw error
+
+    // Sync homework items if provided
+    if (homework_items && Array.isArray(homework_items)) {
+      // Delete existing items
+      await supabase.from('ryuha_homework_items').delete().eq('schedule_id', id)
+      // Insert new items
+      const validItems = homework_items.filter((item: { content: string }) => item.content?.trim())
+      if (validItems.length > 0) {
+        await supabase.from('ryuha_homework_items').insert(
+          validItems.map((item: { content: string; deadline: string }) => ({
+            schedule_id: id, content: item.content, deadline: item.deadline,
+          }))
+        )
+      }
+    }
 
     // Fetch chapters for chapter_ids
     let chapters: unknown[] = []

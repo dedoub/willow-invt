@@ -558,7 +558,7 @@ function MemoDialog({ date, content: initialContent, onSave, onClose }: {
               padding: '5px 12px', borderRadius: t.radius.sm,
               background: '#FEE2E2', border: 'none', fontSize: 12,
               color: '#DC2626', cursor: 'pointer', fontFamily: t.font.sans,
-              opacity: saving ? 0.5 : 1,
+              fontWeight: t.weight.regular, opacity: saving ? 0.5 : 1,
             }}>삭제</button>
           )}
           <div style={{ display: 'flex', gap: 6 }}>
@@ -566,12 +566,13 @@ function MemoDialog({ date, content: initialContent, onSave, onClose }: {
               padding: '5px 12px', borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none', fontSize: 12,
               color: t.neutrals.muted, cursor: 'pointer', fontFamily: t.font.sans,
+              fontWeight: t.weight.regular,
             }}>취소</button>
             <button onClick={handleSave} disabled={saving} style={{
               padding: '5px 12px', borderRadius: t.radius.sm,
-              background: t.brand[600], border: 'none', fontSize: 12,
-              color: '#fff', cursor: 'pointer', fontFamily: t.font.sans,
-              opacity: saving ? 0.5 : 1,
+              background: t.neutrals.inner, border: 'none', fontSize: 12,
+              color: t.neutrals.text, cursor: 'pointer', fontFamily: t.font.sans,
+              fontWeight: t.weight.regular, opacity: saving ? 0.5 : 1,
             }}>{saving ? '저장중...' : '저장'}</button>
           </div>
         </div>

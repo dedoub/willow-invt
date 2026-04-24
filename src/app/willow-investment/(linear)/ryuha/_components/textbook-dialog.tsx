@@ -56,18 +56,18 @@ const inputStyle: React.CSSProperties = {
 }
 const btnPrimary: React.CSSProperties = {
   padding: '6px 14px', borderRadius: t.radius.sm,
-  background: t.brand[600], border: 'none', fontSize: 12,
-  color: '#fff', cursor: 'pointer', fontWeight: t.weight.medium,
+  background: t.neutrals.inner, border: 'none', fontSize: 12,
+  color: t.neutrals.text, cursor: 'pointer', fontWeight: t.weight.regular,
 }
 const btnSecondary: React.CSSProperties = {
   padding: '6px 14px', borderRadius: t.radius.sm,
   background: t.neutrals.inner, border: 'none', fontSize: 12,
-  color: t.neutrals.muted, cursor: 'pointer',
+  color: t.neutrals.muted, cursor: 'pointer', fontWeight: t.weight.regular,
 }
 const btnDanger: React.CSSProperties = {
   padding: '6px 12px', borderRadius: t.radius.sm,
   background: '#FEE2E2', border: 'none', fontSize: 12,
-  color: t.accent.neg, cursor: 'pointer', fontWeight: t.weight.medium,
+  color: t.accent.neg, cursor: 'pointer', fontWeight: t.weight.regular,
 }
 
 const SUBJECT_COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1', '#F97316', '#14B8A6']
