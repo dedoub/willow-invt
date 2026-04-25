@@ -7,6 +7,7 @@ import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, 
 import { HoldingsBlock, StockTradeFull, StockQuoteFull, TickerTheme } from './_components/holdings-block'
 import { AnalysisBlock } from './_components/analysis-block'
 import { TradeLog } from './_components/trade-log'
+import { RealEstateBlock } from './_components/real-estate-block'
 import { InvestSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
 
 const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
@@ -259,7 +260,7 @@ export default function InvestPage() {
           margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
           fontFamily: t.font.sans,
         }}>
-          포트폴리오 · 시그널 · 매매기록
+          포트폴리오 · 시그널 · 매매기록 · 부동산
         </p>
       </div>
 
@@ -309,6 +310,8 @@ export default function InvestPage() {
             </div>
           </div>
         </div>
+
+        <RealEstateBlock />
       </div>
       )}
     </>
