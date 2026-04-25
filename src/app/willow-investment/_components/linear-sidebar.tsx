@@ -2,6 +2,7 @@
 
 import { t } from './linear-tokens'
 import { LIcon } from './linear-icons'
+import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -37,6 +38,7 @@ interface LinearSidebarProps {
 
 export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
   const pathname = usePathname()
+  const { user, logout } = useAuth()
 
   const sidebar = (
     <aside style={{
@@ -111,21 +113,32 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
       </nav>
 
       {/* User */}
-      <div style={{
-        padding: 10, borderTop: `1px solid ${t.neutrals.line}`,
-        display: 'flex', alignItems: 'center', gap: 10,
-      }}>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: 28, height: 28, borderRadius: 28,
-          background: t.brand[200], color: t.brand[800],
-          fontSize: 11, fontWeight: t.weight.semibold,
-        }}>DW</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 500, color: t.neutrals.text }}>대표</div>
-          <div style={{ fontSize: 10.5, color: t.neutrals.subtle }}>willow</div>
+      {user && (
+        <div style={{
+          padding: '10px 12px', borderTop: `1px solid ${t.neutrals.line}`,
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 28, height: 28, borderRadius: 28, flexShrink: 0,
+            background: t.brand[200], color: t.brand[800],
+            fontSize: 11, fontWeight: t.weight.semibold,
+          }}>{user.name.slice(0, 2).toUpperCase()}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, fontWeight: t.weight.medium, color: t.neutrals.text }}>{user.name}</div>
+            <div style={{
+              fontSize: 10.5, color: t.neutrals.subtle,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>{user.email}</div>
+          </div>
+          <button onClick={logout} title="로그아웃" style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: 4, color: t.neutrals.subtle, flexShrink: 0,
+          }}>
+            <LIcon name="logOut" size={14} stroke={1.8} />
+          </button>
         </div>
-      </div>
+      )}
     </aside>
   )
 

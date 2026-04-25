@@ -120,23 +120,33 @@ export default function RyuhaPage() {
   const handleToggleComplete = async (schedule: RyuhaSchedule, date?: string) => {
     const isMultiday = !!schedule.end_date
     if (isMultiday && date) {
-      const completedDates: string[] = Array.isArray(schedule.completed_dates) ? [...schedule.completed_dates] : []
-      const idx = completedDates.indexOf(date)
-      if (idx >= 0) completedDates.splice(idx, 1)
-      else completedDates.push(date)
-      await fetch('/api/ryuha/schedules', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: schedule.id, completed_dates: completedDates }),
-      })
+      const prev = Array.isArray(schedule.completed_dates) ? [...schedule.completed_dates] : []
+      const next = prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date]
+      setSchedules(s => s.map(sc => sc.id === schedule.id ? { ...sc, completed_dates: next } : sc))
+      try {
+        const res = await fetch('/api/ryuha/schedules', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: schedule.id, completed_dates: next }),
+        })
+        if (!res.ok) throw new Error()
+      } catch {
+        setSchedules(s => s.map(sc => sc.id === schedule.id ? { ...sc, completed_dates: prev } : sc))
+      }
     } else {
-      await fetch('/api/ryuha/schedules', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: schedule.id, is_completed: !schedule.is_completed }),
-      })
+      const newVal = !schedule.is_completed
+      setSchedules(s => s.map(sc => sc.id === schedule.id ? { ...sc, is_completed: newVal } : sc))
+      try {
+        const res = await fetch('/api/ryuha/schedules', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: schedule.id, is_completed: newVal }),
+        })
+        if (!res.ok) throw new Error()
+      } catch {
+        setSchedules(s => s.map(sc => sc.id === schedule.id ? { ...sc, is_completed: !newVal } : sc))
+      }
     }
-    await loadData()
   }
 
   // ── Memo handlers ─────────────────────────────────────────────

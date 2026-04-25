@@ -43,6 +43,7 @@ const paths: Record<string, string> = {
   clock: 'M12 6v6l4 2M12 3a9 9 0 100 18 9 9 0 000-18z',
   pin: 'M12 2l4 4-1 9-3 3-3-3-1-9 4-4z',
   pencil: 'M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z',
+  logOut: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
 }
 
 interface LIconProps {
