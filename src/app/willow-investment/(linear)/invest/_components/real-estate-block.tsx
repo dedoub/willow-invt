@@ -354,16 +354,16 @@ export function RealEstateBlock() {
 
   /* ── Inline styles ── */
   const chipActiveStyle: React.CSSProperties = {
-    background: t.neutrals.text, color: t.neutrals.card,
+    background: t.brand[100], color: t.brand[700],
     padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
     cursor: 'pointer', border: 'none', fontFamily: t.font.sans,
-    fontWeight: t.weight.medium,
+    fontWeight: t.weight.medium, transition: 'all .12s',
   }
   const chipInactiveStyle: React.CSSProperties = {
     background: t.neutrals.inner, color: t.neutrals.muted,
     padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
     cursor: 'pointer', border: 'none', fontFamily: t.font.sans,
-    fontWeight: t.weight.regular,
+    fontWeight: t.weight.regular, transition: 'all .12s',
   }
   const innerCard: React.CSSProperties = {
     background: t.neutrals.inner, borderRadius: t.radius.md, padding: 12,
