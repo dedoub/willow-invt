@@ -136,11 +136,11 @@ export function RealEstateBlock() {
   const [reListingTrendJeonse, setReListingTrendJeonse] = useState<ReTrend | null>(null)
 
   /* ── Table sort/page state ── */
-  const [tradeSortKey, setTradeSortKey] = useState<SortKey>('complexName')
-  const [tradeSortDir, setTradeSortDir] = useState<SortDir>('asc')
+  const [tradeSortKey, setTradeSortKey] = useState<SortKey>('listingMinPpp')
+  const [tradeSortDir, setTradeSortDir] = useState<SortDir>('desc')
   const [tradePage, setTradePage] = useState(0)
-  const [jeonseSortKey, setJeonseSortKey] = useState<SortKey>('complexName')
-  const [jeonseSortDir, setJeonseSortDir] = useState<SortDir>('asc')
+  const [jeonseSortKey, setJeonseSortKey] = useState<SortKey>('listingMinPpp')
+  const [jeonseSortDir, setJeonseSortDir] = useState<SortDir>('desc')
   const [jeonsePage, setJeonsePage] = useState(0)
 
   /* ── Build query params ── */
