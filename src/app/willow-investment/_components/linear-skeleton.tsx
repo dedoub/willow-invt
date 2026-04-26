@@ -1,6 +1,6 @@
 'use client'
 
-import { t } from './linear-tokens'
+import { t, useIsMobile } from './linear-tokens'
 
 /* ── Pulse keyframes (injected once) ── */
 
@@ -50,8 +50,10 @@ function CardSkel({ children, pad, style }: {
 
 /* ── Page-level skeletons ── */
 
-/** 사업관리 skeleton: signal row + calendar card + 2-col (cash + email) */
+/** 사업관리 skeleton: schedule card + 2-col (cash + email) */
 export function MgmtSkeleton() {
+  const mobile = useIsMobile()
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Schedule card */}
@@ -60,7 +62,6 @@ export function MgmtSkeleton() {
           <Bone w={60} h={8} />
           <Bone w={100} h={14} style={{ marginTop: 6 }} />
         </div>
-        {/* Calendar grid placeholder */}
         <div style={{ padding: '0 16px 16px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
             {Array.from({ length: 7 }).map((_, i) => (
@@ -73,8 +74,8 @@ export function MgmtSkeleton() {
         </div>
       </CardSkel>
 
-      {/* Cash + Email */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 14 }}>
+      {/* Cash + Email (1-col on mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: 14 }}>
         {/* Cash */}
         <CardSkel pad={0}>
           <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
@@ -115,24 +116,32 @@ export function MgmtSkeleton() {
   )
 }
 
-/** 투자관리 skeleton: signal bar + kanban + 2-col (holdings + analysis/tradelog) */
+/** 투자관리 skeleton: signal bar + kanban + 2-col (holdings + analysis/tradelog) + real estate */
 export function InvestSkeleton() {
+  const mobile = useIsMobile()
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Signal bar: 5 stat boxes */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+      {/* Signal bar: 5 stat boxes (2-col on mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
         {Array.from({ length: 5 }).map((_, i) => (
           <Bone key={i} h={52} r={t.radius.sm} />
         ))}
       </div>
 
-      {/* Kanban: 3 columns */}
+      {/* Kanban: 3 columns (horizontally scrollable on mobile) */}
       <CardSkel pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
           <Bone w={80} h={8} />
           <Bone w={100} h={14} style={{ marginTop: 6 }} />
         </div>
-        <div style={{ padding: '0 16px 16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <div style={{
+          padding: '0 10px 14px',
+          display: 'grid',
+          gridTemplateColumns: mobile ? 'repeat(3, minmax(220px, 1fr))' : '1fr 1fr 1fr',
+          gap: 10,
+          overflowX: mobile ? 'auto' : undefined,
+        }}>
           {Array.from({ length: 3 }).map((_, col) => (
             <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Bone h={14} w={80} style={{ marginBottom: 4 }} />
@@ -144,8 +153,8 @@ export function InvestSkeleton() {
         </div>
       </CardSkel>
 
-      {/* Holdings + Analysis/TradeLog */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      {/* Holdings + Analysis/TradeLog (1-col on mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
         <CardSkel pad={0}>
           <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
             <Bone w={80} h={8} />
@@ -180,12 +189,39 @@ export function InvestSkeleton() {
           </CardSkel>
         </div>
       </div>
+
+      {/* Real Estate Block */}
+      <CardSkel pad={0}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <Bone w={100} h={8} />
+          <Bone w={120} h={14} style={{ marginTop: 6 }} />
+        </div>
+        {/* KPI row */}
+        <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Bone key={i} h={52} r={t.radius.sm} />
+          ))}
+        </div>
+        {/* Chart + Table grid */}
+        <div style={{ padding: '12px 16px 16px', display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Bone h={160} r={t.radius.md} />
+            <Bone h={160} r={t.radius.md} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Bone h={160} r={t.radius.md} />
+            <Bone h={160} r={t.radius.md} />
+          </div>
+        </div>
+      </CardSkel>
     </div>
   )
 }
 
 /** 류하일정 skeleton */
 export function RyuhaSkeleton() {
+  const mobile = useIsMobile()
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Calendar */}
@@ -206,15 +242,49 @@ export function RyuhaSkeleton() {
         </div>
       </CardSkel>
 
-      {/* Memo */}
-      <CardSkel>
-        <Bone w={80} h={8} />
-        <Bone w={60} h={14} style={{ marginTop: 6 }} />
-        <Bone h={48} style={{ marginTop: 10 }} r={t.radius.sm} />
+      {/* Notebook (2-panel horizontal on desktop, stacked on mobile) */}
+      <CardSkel pad={0}>
+        <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: mobile ? undefined : 300 }}>
+          <div style={{
+            width: mobile ? '100%' : '42%',
+            minWidth: mobile ? undefined : 220,
+            borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
+            padding: 12,
+          }}>
+            <Bone h={30} r={t.radius.sm} />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Bone key={i} h={36} style={{ marginTop: 8 }} />
+            ))}
+          </div>
+          <div style={{ flex: 1, padding: 16 }}>
+            <Bone w="50%" h={16} />
+            <Bone h={12} style={{ marginTop: 12 }} />
+            <Bone h={12} w="80%" style={{ marginTop: 6 }} />
+          </div>
+        </div>
       </CardSkel>
 
-      {/* Textbook + Progress */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 14 }}>
+      {/* Growth (1-col on mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+        <CardSkel>
+          <Bone w={80} h={8} />
+          <Bone h={120} style={{ marginTop: 10 }} r={t.radius.sm} />
+        </CardSkel>
+        <CardSkel pad={0}>
+          <div style={{ padding: t.density.cardPad }}>
+            <Bone w={80} h={8} />
+            <Bone w={60} h={14} style={{ marginTop: 6 }} />
+          </div>
+          <div style={{ padding: '0 16px 16px' }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Bone key={i} h={18} style={{ marginTop: 6 }} />
+            ))}
+          </div>
+        </CardSkel>
+      </div>
+
+      {/* Textbook + Progress (1-col on mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
         <CardSkel pad={0}>
           <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
             <Bone w={80} h={8} />
@@ -234,92 +304,72 @@ export function RyuhaSkeleton() {
           ))}
         </CardSkel>
       </div>
-
-      {/* Notebook */}
-      <CardSkel pad={0}>
-        <div style={{ display: 'flex', minHeight: 300 }}>
-          <div style={{ width: '42%', minWidth: 220, borderRight: `1px solid ${t.neutrals.line}`, padding: 12 }}>
-            <Bone h={30} r={t.radius.sm} />
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Bone key={i} h={36} style={{ marginTop: 8 }} />
-            ))}
-          </div>
-          <div style={{ flex: 1, padding: 16 }}>
-            <Bone w="50%" h={16} />
-            <Bone h={12} style={{ marginTop: 12 }} />
-            <Bone h={12} w="80%" style={{ marginTop: 6 }} />
-          </div>
-        </div>
-      </CardSkel>
-
-      {/* Growth */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <CardSkel>
-          <Bone w={80} h={8} />
-          <Bone h={120} style={{ marginTop: 10 }} r={t.radius.sm} />
-        </CardSkel>
-        <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad }}>
-            <Bone w={80} h={8} />
-            <Bone w={60} h={14} style={{ marginTop: 6 }} />
-          </div>
-          <div style={{ padding: '0 16px 16px' }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Bone key={i} h={18} style={{ marginTop: 6 }} />
-            ))}
-          </div>
-        </CardSkel>
-      </div>
     </div>
   )
 }
 
-/** 아크로스 skeleton: AUM bar + 2-col (products + invoices) + 2-col (wiki + email) */
+/** 아크로스 skeleton: AUM + products/invoices grid + wiki/email grid */
 export function AkrosSkeleton() {
+  const mobile = useIsMobile()
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* AUM Dashboard */}
-      <CardSkel>
-        <Bone w={100} h={8} />
-        <Bone w={80} h={14} style={{ marginTop: 6 }} />
-        <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-          <Bone w={120} h={46} r={6} />
-          <Bone w={120} h={46} r={6} />
-          <Bone w={120} h={46} r={6} />
+      {/* AUM + Products (left) + Tax Invoices (right, spans 2 rows) */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
+        gridTemplateRows: mobile ? 'auto auto auto' : 'auto 1fr',
+        gap: 14,
+      }}>
+        <div style={mobile ? {} : { gridColumn: 1, gridRow: 1 }}>
+          <CardSkel>
+            <Bone w={100} h={8} />
+            <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+              <Bone w={120} h={46} r={6} />
+              <Bone w={120} h={46} r={6} />
+              <Bone w={120} h={46} r={6} />
+            </div>
+          </CardSkel>
         </div>
-      </CardSkel>
-
-      {/* Products + Tax Invoices */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <CardSkel pad={0}>
-          <div style={{ padding: '16px 16px 10px' }}>
-            <Bone w={60} h={8} />
-            <Bone w={80} h={14} style={{ marginTop: 6 }} />
-          </div>
-          <div style={{ padding: '0 16px 16px' }}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Bone key={i} h={20} style={{ marginTop: 8 }} />
-            ))}
-          </div>
-        </CardSkel>
-        <CardSkel pad={0}>
-          <div style={{ padding: '16px 16px 10px' }}>
-            <Bone w={80} h={8} />
-            <Bone w={80} h={14} style={{ marginTop: 6 }} />
-          </div>
-          <div style={{ padding: '0 16px 16px' }}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Bone key={i} h={20} style={{ marginTop: 8 }} />
-            ))}
-          </div>
-        </CardSkel>
+        <div style={mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }}>
+          <CardSkel pad={0} style={{ height: mobile ? undefined : '100%' }}>
+            <div style={{ padding: '16px 16px 10px' }}>
+              <Bone w={80} h={8} />
+              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            </div>
+            <div style={{ padding: '0 16px 16px' }}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Bone key={i} h={20} style={{ marginTop: 8 }} />
+              ))}
+            </div>
+          </CardSkel>
+        </div>
+        <div style={mobile ? {} : { gridColumn: 1, gridRow: 2 }}>
+          <CardSkel pad={0}>
+            <div style={{ padding: '16px 16px 10px' }}>
+              <Bone w={60} h={8} />
+              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            </div>
+            <div style={{ padding: '0 16px 16px' }}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Bone key={i} h={20} style={{ marginTop: 8 }} />
+              ))}
+            </div>
+          </CardSkel>
+        </div>
       </div>
 
-      {/* Wiki + Email */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      {/* Wiki + Email (1-col on mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '2fr 1fr', gap: 14 }}>
         <CardSkel pad={0}>
-          <div style={{ display: 'flex', minHeight: 300 }}>
-            <div style={{ width: '42%', minWidth: 180, borderRight: '1px solid #e2e8f0', padding: 12 }}>
+          <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: mobile ? undefined : 300 }}>
+            <div style={{
+              width: mobile ? '100%' : '42%',
+              minWidth: mobile ? undefined : 180,
+              borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
+              padding: 12,
+            }}>
               <Bone h={30} r={6} />
               {Array.from({ length: 4 }).map((_, i) => (
                 <Bone key={i} h={36} style={{ marginTop: 8 }} />
@@ -354,50 +404,67 @@ export function AkrosSkeleton() {
   )
 }
 
-/** ETC skeleton: Stats + Invoices + Products + Wiki + Email */
+/** ETC skeleton: Stats/Products + Invoices grid + Wiki/Email grid */
 export function EtcSkeleton() {
+  const mobile = useIsMobile()
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Stats + Invoices */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
-        <CardSkel>
-          <Bone w={100} h={8} />
-          <Bone w={80} h={14} style={{ marginTop: 6 }} />
-          <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-            <Bone w={120} h={46} r={6} />
-            <Bone w={120} h={46} r={6} />
-            <Bone w={120} h={46} r={6} />
-          </div>
-        </CardSkel>
-        <CardSkel pad={0}>
-          <div style={{ padding: '16px 16px 10px' }}>
-            <Bone w={80} h={8} />
+      {/* Stats (left) + Invoices (right, spans 2 rows) + Products (left bottom) */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
+        gridTemplateRows: mobile ? 'auto auto auto' : 'auto 1fr',
+        gap: 14,
+      }}>
+        <div style={mobile ? {} : { gridColumn: 1, gridRow: 1 }}>
+          <CardSkel>
+            <Bone w={100} h={8} />
             <Bone w={80} h={14} style={{ marginTop: 6 }} />
-          </div>
-          <div style={{ padding: '0 16px 16px' }}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Bone key={i} h={28} style={{ marginTop: 6 }} />
-            ))}
-          </div>
-        </CardSkel>
+            <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+              <Bone w={120} h={46} r={6} />
+              <Bone w={120} h={46} r={6} />
+              <Bone w={120} h={46} r={6} />
+            </div>
+          </CardSkel>
+        </div>
+        <div style={mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }}>
+          <CardSkel pad={0} style={{ height: mobile ? undefined : '100%' }}>
+            <div style={{ padding: '16px 16px 10px' }}>
+              <Bone w={80} h={8} />
+              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            </div>
+            <div style={{ padding: '0 16px 16px' }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Bone key={i} h={28} style={{ marginTop: 6 }} />
+              ))}
+            </div>
+          </CardSkel>
+        </div>
+        <div style={mobile ? {} : { gridColumn: 1, gridRow: 2 }}>
+          <CardSkel pad={0}>
+            <div style={{ padding: '16px 16px 10px' }}>
+              <Bone w={60} h={8} />
+              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            </div>
+            <div style={{ padding: '0 16px 16px' }}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Bone key={i} h={20} style={{ marginTop: 8 }} />
+              ))}
+            </div>
+          </CardSkel>
+        </div>
       </div>
-      {/* Products */}
-      <CardSkel pad={0}>
-        <div style={{ padding: '16px 16px 10px' }}>
-          <Bone w={60} h={8} />
-          <Bone w={80} h={14} style={{ marginTop: 6 }} />
-        </div>
-        <div style={{ padding: '0 16px 16px' }}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Bone key={i} h={20} style={{ marginTop: 8 }} />
-          ))}
-        </div>
-      </CardSkel>
-      {/* Wiki + Email */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+      {/* Wiki + Email (1-col on mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '2fr 1fr', gap: 14 }}>
         <CardSkel pad={0}>
-          <div style={{ display: 'flex', minHeight: 300 }}>
-            <div style={{ width: '42%', minWidth: 180, borderRight: '1px solid #e2e8f0', padding: 12 }}>
+          <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: mobile ? undefined : 300 }}>
+            <div style={{
+              width: mobile ? '100%' : '42%',
+              minWidth: mobile ? undefined : 180,
+              borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
+              padding: 12,
+            }}>
               <Bone h={30} r={6} />
               {Array.from({ length: 4 }).map((_, i) => (
                 <Bone key={i} h={36} style={{ marginTop: 8 }} />
@@ -439,8 +506,10 @@ export function EtcSkeleton() {
   )
 }
 
-/** 텐소프트웍스 skeleton: Projects + Schedule + Cash/Sales + Loans + Wiki + Email */
+/** 텐소프트웍스 skeleton: Projects + Schedule + Cash/Sales/Loans + Wiki/Email */
 export function TenswSkeleton() {
+  const mobile = useIsMobile()
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Projects */}
@@ -472,8 +541,8 @@ export function TenswSkeleton() {
           </div>
         </div>
       </CardSkel>
-      {/* Cash+Sales + Loans */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+      {/* Cash+Sales + Loans (1-col on mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: 14 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <CardSkel pad={0}>
             <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
@@ -515,11 +584,16 @@ export function TenswSkeleton() {
           </div>
         </CardSkel>
       </div>
-      {/* Wiki + Email */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+      {/* Wiki + Email (1-col on mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: 14 }}>
         <CardSkel pad={0}>
-          <div style={{ display: 'flex', minHeight: 300 }}>
-            <div style={{ width: '42%', minWidth: 180, borderRight: '1px solid #e2e8f0', padding: 12 }}>
+          <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: mobile ? undefined : 300 }}>
+            <div style={{
+              width: mobile ? '100%' : '42%',
+              minWidth: mobile ? undefined : 180,
+              borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
+              padding: 12,
+            }}>
               <Bone h={30} r={6} />
               {Array.from({ length: 4 }).map((_, i) => (
                 <Bone key={i} h={36} style={{ marginTop: 8 }} />
@@ -561,13 +635,19 @@ export function TenswSkeleton() {
   )
 }
 
-/** 업무위키 skeleton: two-panel layout inside card */
+/** 업무위키 skeleton: two-panel layout (stacked on mobile) */
 export function WikiSkeleton() {
+  const mobile = useIsMobile()
+
   return (
     <CardSkel pad={0}>
-      <div style={{ display: 'flex', minHeight: 480 }}>
+      <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: mobile ? undefined : 480 }}>
         {/* Left panel */}
-        <div style={{ width: '42%', minWidth: 280, borderRight: `1px solid ${t.neutrals.line}` }}>
+        <div style={{
+          width: mobile ? '100%' : '42%',
+          minWidth: mobile ? undefined : 280,
+          borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
+        }}>
           <div style={{ padding: '10px 12px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', gap: 6 }}>
               <Bone h={30} style={{ flex: 1 }} r={t.radius.sm} />
@@ -580,7 +660,7 @@ export function WikiSkeleton() {
             </div>
           </div>
           <div style={{ padding: '4px 12px' }}>
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: mobile ? 5 : 8 }).map((_, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px' }}>
                 <Bone w={14} h={14} r={3} />
                 <div style={{ flex: 1 }}>
@@ -594,22 +674,24 @@ export function WikiSkeleton() {
             ))}
           </div>
         </div>
-        {/* Right panel */}
-        <div style={{ flex: 1, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Bone w="50%" h={18} />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Bone w={56} h={16} r={3} />
-            <Bone w={50} h={12} />
+        {/* Right panel (hidden on mobile until note selected) */}
+        {!mobile && (
+          <div style={{ flex: 1, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Bone w="50%" h={18} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Bone w={56} h={16} r={3} />
+              <Bone w={50} h={12} />
+            </div>
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Bone h={12} />
+              <Bone h={12} w="90%" />
+              <Bone h={12} w="75%" />
+              <Bone h={12} />
+              <Bone h={12} w="85%" />
+              <Bone h={12} w="60%" />
+            </div>
           </div>
-          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Bone h={12} />
-            <Bone h={12} w="90%" />
-            <Bone h={12} w="75%" />
-            <Bone h={12} />
-            <Bone h={12} w="85%" />
-            <Bone h={12} w="60%" />
-          </div>
-        </div>
+        )}
       </div>
     </CardSkel>
   )
