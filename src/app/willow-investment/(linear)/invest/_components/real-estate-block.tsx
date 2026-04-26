@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { LCard } from '@/app/willow-investment/_components/linear-card'
 import { LSectionHead } from '@/app/willow-investment/_components/linear-section-head'
 import { LIcon } from '@/app/willow-investment/_components/linear-icons'
+import { Bone } from '@/app/willow-investment/_components/linear-skeleton'
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, AreaChart, Area,
@@ -124,7 +125,7 @@ export function RealEstateBlock() {
   const [complexDropdownOpen, setComplexDropdownOpen] = useState(false)
 
   /* ── Data state ── */
-  const [loading, setLoading] = useState(true)
+  const [initialLoad, setInitialLoad] = useState(true) // true only for very first load
   const [reSummary, setReSummary] = useState<ReSummary | null>(null)
   const [reComplexes, setReComplexes] = useState<ReComplex[]>([])
   const [reTrades, setReTrades] = useState<ReTradeData | null>(null)
@@ -134,6 +135,16 @@ export function RealEstateBlock() {
   const [reJeonseRatio, setReJeonseRatio] = useState<ReJeonseRatio[]>([])
   const [reListingTrend, setReListingTrend] = useState<ReTrend | null>(null)
   const [reListingTrendJeonse, setReListingTrendJeonse] = useState<ReTrend | null>(null)
+
+  /* ── Per-section loading flags ── */
+  const [loadingSummary, setLoadingSummary] = useState(true)
+  const [loadingTrades, setLoadingTrades] = useState(true)
+  const [loadingRentals, setLoadingRentals] = useState(true)
+  const [loadingListingsTrade, setLoadingListingsTrade] = useState(true)
+  const [loadingListingsJeonse, setLoadingListingsJeonse] = useState(true)
+  const [loadingTrendTrade, setLoadingTrendTrade] = useState(true)
+  const [loadingTrendJeonse, setLoadingTrendJeonse] = useState(true)
+  const [loadingJeonseRatio, setLoadingJeonseRatio] = useState(true)
 
   /* ── Table sort/page state ── */
   const [tradeSortKey, setTradeSortKey] = useState<SortKey>('listingMinPpp')
@@ -153,54 +164,80 @@ export function RealEstateBlock() {
     return p.toString()
   }, [districts, areaRange, period, selectedComplexIds])
 
-  /* ── Fetch data ── */
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    try {
-      const base = '/api/willow-mgmt/real-estate'
-      const [
-        summaryRes, complexesRes,
-        tradesRes, rentalsRes,
-        listingsTradeRes, listingsJeonseRes,
-        jeonseRatioRes, trendTradeRes, trendJeonseRes,
-      ] = await Promise.all([
-        fetch(`${base}?type=summary&${baseParams}`),
-        fetch(`${base}?type=complexes&${baseParams}`),
-        fetch(`${base}?type=trades&${baseParams}`),
-        fetch(`${base}?type=rentals&${baseParams}`),
-        fetch(`${base}?type=listings&tradeType=매매&${baseParams}`),
-        fetch(`${base}?type=listings&tradeType=전세&${baseParams}`),
-        fetch(`${base}?type=jeonse-ratio&${baseParams}`),
-        fetch(`${base}?type=listing-trend&tradeType=매매&${baseParams}`),
-        fetch(`${base}?type=listing-trend&tradeType=전세&${baseParams}`),
-      ])
+  /* ── Progressive fetch: fire all, update state as each resolves ── */
+  const loadGenRef = useRef(0)
 
-      const [
-        summaryJson, complexesJson,
-        tradesJson, rentalsJson,
-        listingsTradeJson, listingsJeonseJson,
-        jeonseRatioJson, trendTradeJson, trendJeonseJson,
-      ] = await Promise.all([
-        summaryRes.json(), complexesRes.json(),
-        tradesRes.json(), rentalsRes.json(),
-        listingsTradeRes.json(), listingsJeonseRes.json(),
-        jeonseRatioRes.json(), trendTradeRes.json(), trendJeonseRes.json(),
-      ])
+  const loadData = useCallback(() => {
+    const gen = ++loadGenRef.current
+    const base = '/api/willow-mgmt/real-estate'
 
-      setReSummary(summaryJson.summary || null)
-      setReComplexes(complexesJson.complexes || [])
-      setReTrades(tradesJson.months ? tradesJson : null)
-      setReRentals(rentalsJson.months ? rentalsJson : null)
-      setReListingsTrade(listingsTradeJson.listings || [])
-      setReListingsJeonse(listingsJeonseJson.listings || [])
-      setReJeonseRatio(jeonseRatioJson.trend || [])
-      setReListingTrend(trendTradeJson.trend ? trendTradeJson : null)
-      setReListingTrendJeonse(trendJeonseJson.trend ? trendJeonseJson : null)
-    } catch (e) {
-      console.error('Real estate data load error:', e)
-    } finally {
-      setLoading(false)
-    }
+    // Reset all section loading flags
+    setLoadingSummary(true)
+    setLoadingTrades(true)
+    setLoadingRentals(true)
+    setLoadingListingsTrade(true)
+    setLoadingListingsJeonse(true)
+    setLoadingTrendTrade(true)
+    setLoadingTrendJeonse(true)
+    setLoadingJeonseRatio(true)
+
+    const stale = () => loadGenRef.current !== gen
+
+    // Phase 1: summary + complexes (fast, needed for filters)
+    fetch(`${base}?type=summary&${baseParams}`).then(r => r.json()).then(d => {
+      if (stale()) return
+      setReSummary(d.summary || null)
+      setLoadingSummary(false)
+      setInitialLoad(false)
+    }).catch(() => { if (!stale()) setLoadingSummary(false) })
+
+    fetch(`${base}?type=complexes&${baseParams}`).then(r => r.json()).then(d => {
+      if (stale()) return
+      setReComplexes(d.complexes || [])
+    }).catch(() => {})
+
+    // Phase 2: charts + tables (heavier queries, arrive independently)
+    fetch(`${base}?type=trades&${baseParams}`).then(r => r.json()).then(d => {
+      if (stale()) return
+      setReTrades(d.months ? d : null)
+      setLoadingTrades(false)
+    }).catch(() => { if (!stale()) setLoadingTrades(false) })
+
+    fetch(`${base}?type=rentals&${baseParams}`).then(r => r.json()).then(d => {
+      if (stale()) return
+      setReRentals(d.months ? d : null)
+      setLoadingRentals(false)
+    }).catch(() => { if (!stale()) setLoadingRentals(false) })
+
+    fetch(`${base}?type=listings&tradeType=매매&${baseParams}`).then(r => r.json()).then(d => {
+      if (stale()) return
+      setReListingsTrade(d.listings || [])
+      setLoadingListingsTrade(false)
+    }).catch(() => { if (!stale()) setLoadingListingsTrade(false) })
+
+    fetch(`${base}?type=listings&tradeType=전세&${baseParams}`).then(r => r.json()).then(d => {
+      if (stale()) return
+      setReListingsJeonse(d.listings || [])
+      setLoadingListingsJeonse(false)
+    }).catch(() => { if (!stale()) setLoadingListingsJeonse(false) })
+
+    fetch(`${base}?type=listing-trend&tradeType=매매&${baseParams}`).then(r => r.json()).then(d => {
+      if (stale()) return
+      setReListingTrend(d.trend ? d : null)
+      setLoadingTrendTrade(false)
+    }).catch(() => { if (!stale()) setLoadingTrendTrade(false) })
+
+    fetch(`${base}?type=listing-trend&tradeType=전세&${baseParams}`).then(r => r.json()).then(d => {
+      if (stale()) return
+      setReListingTrendJeonse(d.trend ? d : null)
+      setLoadingTrendJeonse(false)
+    }).catch(() => { if (!stale()) setLoadingTrendJeonse(false) })
+
+    fetch(`${base}?type=jeonse-ratio&${baseParams}`).then(r => r.json()).then(d => {
+      if (stale()) return
+      setReJeonseRatio(d.trend || [])
+      setLoadingJeonseRatio(false)
+    }).catch(() => { if (!stale()) setLoadingJeonseRatio(false) })
   }, [baseParams])
 
   useEffect(() => {
@@ -386,26 +423,85 @@ export function RealEstateBlock() {
     return map
   }, [reComplexes])
 
-  /* ── Loading state ── */
-  if (loading) {
+  /* ── Skeleton helpers ── */
+  function KpiSkeleton() {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} style={innerCard}>
+            <Bone w={60} h={8} style={{ marginBottom: 6 }} />
+            <Bone w={80} h={14} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  function ChartSkeleton() {
+    return (
+      <div style={innerCard}>
+        <Bone w={140} h={10} style={{ marginBottom: 8 }} />
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 180 }}>
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Bone key={i} h={40 + Math.random() * 120} style={{ flex: 1, borderRadius: 2 }} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  function TableSkeleton() {
+    return (
+      <div style={innerCard}>
+        <Bone w={160} h={10} style={{ marginBottom: 10 }} />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <Bone w={70} h={10} />
+            <Bone w={40} h={10} />
+            <Bone w={50} h={10} />
+            <Bone w={50} h={10} />
+            <Bone w={50} h={10} />
+            <Bone w={40} h={10} />
+            <Bone w={30} h={10} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  /* ── Initial load: full skeleton ── */
+  if (initialLoad) {
     return (
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
           <LSectionHead eyebrow="REAL ESTATE" title="부동산 리서치" />
         </div>
-        <div style={{
-          padding: '40px 14px', textAlign: 'center',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-        }}>
-          <LIcon name="loader" size={20} color={t.neutrals.subtle} className="animate-spin" />
-          <span style={{ fontSize: 12, color: t.neutrals.subtle }}>데이터 로딩 중...</span>
+        <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Bone w={50} h={22} r={t.radius.pill} />
+            <Bone w={50} h={22} r={t.radius.pill} />
+            <Bone w={50} h={22} r={t.radius.pill} />
+          </div>
+          <KpiSkeleton />
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <ChartSkeleton />
+              <ChartSkeleton />
+              <TableSkeleton />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <ChartSkeleton />
+              <ChartSkeleton />
+              <TableSkeleton />
+            </div>
+          </div>
         </div>
       </LCard>
     )
   }
 
-  /* ── Empty state ── */
-  if (!reSummary || reSummary.trackedComplexes === 0) {
+  /* ── Empty state (only after summary loaded) ── */
+  if (!loadingSummary && (!reSummary || reSummary.trackedComplexes === 0)) {
     return (
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
@@ -771,14 +867,17 @@ export function RealEstateBlock() {
           ))}
 
           {/* Right-aligned date info */}
+          {reSummary && (
           <div style={{ marginLeft: 'auto', fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.mono, whiteSpace: 'nowrap' }}>
             {reSummary.lastListingDate && <>호가 {fmtDate(reSummary.lastListingDate)}</>}
             {reSummary.lastListingDate && reSummary.lastTradeDate && ' · '}
             {reSummary.lastTradeDate && <>실거래 {fmtDate(reSummary.lastTradeDate)}</>}
           </div>
+          )}
         </div>
 
         {/* KPI row */}
+        {loadingSummary ? <KpiSkeleton /> : reSummary && (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
           <div style={innerCard}>
             <div style={{ fontSize: 9.5, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
@@ -834,6 +933,7 @@ export function RealEstateBlock() {
             </div>
           </div>
         </div>
+        )}
 
         {/* 2-column grid: 매매 (left) / 전세 (right) */}
         <div style={{
@@ -844,6 +944,7 @@ export function RealEstateBlock() {
           {/* ── Left: 매매 ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
             {/* 매매 실거래가 추이 */}
+            {loadingTrades ? <ChartSkeleton /> : (
             <div style={innerCard}>
               <ChartHeader title="매매 실거래가 추이" momPct={tradeMom} />
               <PriceChart data={tradeChartData} complexes={reTrades?.complexes || []} />
@@ -858,14 +959,18 @@ export function RealEstateBlock() {
                 </div>
               )}
             </div>
+            )}
 
             {/* 매매 괴리율 추이 */}
+            {loadingTrendTrade ? <ChartSkeleton /> : (
             <div style={innerCard}>
               <ChartHeader title="매매 괴리율 추이" />
               <GapChart data={reListingTrend?.trend || []} />
             </div>
+            )}
 
             {/* 매도 호가 vs 실거래가 */}
+            {loadingListingsTrade ? <TableSkeleton /> : (
             <div style={innerCard}>
               <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
                 매도 호가 vs 실거래가
@@ -881,11 +986,13 @@ export function RealEstateBlock() {
                 tradeType="매매"
               />
             </div>
+            )}
           </div>
 
           {/* ── Right: 전세 ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
             {/* 전세 실거래가 추이 */}
+            {loadingRentals ? <ChartSkeleton /> : (
             <div style={innerCard}>
               <ChartHeader title="전세 실거래가 추이" momPct={rentalMom} />
               <PriceChart data={rentalChartData} complexes={reRentals?.complexes || []} />
@@ -900,14 +1007,18 @@ export function RealEstateBlock() {
                 </div>
               )}
             </div>
+            )}
 
             {/* 전세 괴리율 추이 */}
+            {loadingTrendJeonse ? <ChartSkeleton /> : (
             <div style={innerCard}>
               <ChartHeader title="전세 괴리율 추이" />
               <GapChart data={reListingTrendJeonse?.trend || []} />
             </div>
+            )}
 
             {/* 전세 호가 vs 실거래가 */}
+            {loadingListingsJeonse ? <TableSkeleton /> : (
             <div style={innerCard}>
               <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
                 전세 호가 vs 실거래가
@@ -923,8 +1034,10 @@ export function RealEstateBlock() {
                 tradeType="전세"
               />
             </div>
+            )}
 
             {/* 전세가율 추이 */}
+            {loadingJeonseRatio ? <ChartSkeleton /> : (
             <div style={innerCard}>
               <ChartHeader title="전세가율 추이" />
               {reJeonseRatio.length > 0 ? (
@@ -960,6 +1073,7 @@ export function RealEstateBlock() {
                 <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
               )}
             </div>
+            )}
           </div>
         </div>
       </div>
