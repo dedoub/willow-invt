@@ -10,6 +10,54 @@ const supabase = createClient(
   process.env.SUPABASE_SECRET_KEY!
 )
 
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!
+const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`
+
+async function getCeoChatId(): Promise<string | null> {
+  const { data } = await supabase
+    .from('telegram_conversations')
+    .select('chat_id')
+    .eq('bot_type', 'ceo')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .single()
+  return data?.chat_id?.toString() || null
+}
+
+async function sendTelegramMessage(chatId: string, text: string): Promise<number | null> {
+  const chunks: string[] = []
+  for (let i = 0; i < text.length; i += 4000) {
+    chunks.push(text.slice(i, i + 4000))
+  }
+  let firstMsgId: number | null = null
+  for (const chunk of chunks) {
+    const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: chunk }),
+    })
+    const json = await res.json()
+    if (!firstMsgId && json.result?.message_id) firstMsgId = json.result.message_id
+  }
+  return firstMsgId
+}
+
+async function editTelegramMessage(chatId: string, messageId: number, text: string): Promise<void> {
+  await fetch(`${TELEGRAM_API}/editMessageText`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, message_id: messageId, text: text.slice(0, 4000) }),
+  })
+}
+
+async function deleteTelegramMessage(chatId: string, messageId: number): Promise<void> {
+  await fetch(`${TELEGRAM_API}/deleteMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, message_id: messageId }),
+  })
+}
+
 function log(msg: string) {
   console.log(`${LOG_PREFIX} [${new Date().toISOString()}] ${msg}`)
 }
@@ -440,6 +488,84 @@ Skip routine greetings, system messages, and trivial exchanges.`
   return counts
 }
 
+// ============ Source: Dashboard Agent Chats ============
+
+async function distillAgentChats(): Promise<{ entities: number; relations: number; insights: number }> {
+  const counts = { entities: 0, relations: 0, insights: 0 }
+
+  const { data: sessions, error } = await supabase
+    .from('agent_chat_sessions')
+    .select('id, title, updated_at')
+    .order('updated_at', { ascending: false })
+    .limit(20)
+  if (error || !sessions) { log(`Agent chat fetch error: ${error?.message}`); return counts }
+
+  for (const session of sessions) {
+    const sourceId = `agent:${session.id}`
+    const updatedAt = session.updated_at || new Date().toISOString()
+    if (await isAlreadyDistilled('agent_chat', sourceId, updatedAt)) continue
+
+    const { data: messages } = await supabase
+      .from('agent_chat_messages')
+      .select('role, content, created_at')
+      .eq('session_id', session.id)
+      .order('created_at', { ascending: true })
+    if (!messages || messages.length < 2) continue
+
+    const transcript = messages
+      .map(m => `[${m.role}] ${m.content.slice(0, 500)}`)
+      .join('\n')
+
+    const prompt = `You are a knowledge extraction assistant. Analyze this dashboard agent conversation between a CEO and an AI assistant managing business operations.
+
+Session title: ${session.title || 'untitled'}
+
+Conversation:
+${transcript}
+
+Return ONLY a JSON object with this exact structure (no markdown, no explanation):
+{
+  "entities": [{"name": "entity name", "type": "person|company|market|project|strategy|concept", "description": "one sentence"}],
+  "relations": [{"subject": "entity name", "predicate": "manages|invested_in|uses_technology|collaborates_with|part_of", "object": "entity name"}],
+  "insights": [{"content": "one-sentence decision, observation, or pattern", "type": "decision|observation|pattern", "context": "brief context", "entity_names": ["related entity names"]}]
+}
+
+Focus on:
+- Business decisions and action items
+- Financial data discussed (cash flow, invoices, schedules)
+- Key entities (people, companies, projects)
+- Patterns in management or investment behavior
+Skip tool call details, system messages, and trivial exchanges.`
+
+    try {
+      const raw = await askClaude(prompt)
+      const extracted = parseClaudeJson(raw)
+
+      for (const e of extracted.entities) {
+        if (e.name && e.name.length >= 2) {
+          if (await upsertEntity(e.name, e.type || 'concept', e.description)) counts.entities++
+        }
+      }
+
+      for (const rel of extracted.relations) {
+        if (await createRelation(rel.subject, rel.predicate, rel.object)) counts.relations++
+      }
+
+      for (const ins of extracted.insights) {
+        const entityNames = ins.entity_names || []
+        if (await createInsight(ins.content, ins.type || 'observation', entityNames, ins.context || 'Dashboard agent chat')) counts.insights++
+      }
+
+      await markDistilled('agent_chat', sourceId, counts, updatedAt)
+      log(`Agent chat distilled: ${session.title?.slice(0, 40)} (${extracted.entities.length}E, ${extracted.relations.length}R, ${extracted.insights.length}I)`)
+    } catch (err) {
+      log(`Agent chat ${session.id} failed: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
+  }
+
+  return counts
+}
+
 // ============ Main ============
 
 async function main() {
@@ -448,42 +574,96 @@ async function main() {
 
   const results: Record<string, { entities: number; relations: number; insights: number }> = {}
 
+  // Progress message setup
+  const chatId = await getCeoChatId()
+  let progressMsgId: number | null = null
+
+  const phases = ['Email', 'Trade', 'Research', 'Telegram', 'Agent Chat']
+  const phaseStatus: string[] = phases.map(p => `⏳ ${p}`)
+
+  function progressText() {
+    const sec = ((Date.now() - startTime) / 1000).toFixed(0)
+    return `🔄 Knowledge Distillation 진행중... (${sec}s)\n\n${phaseStatus.join('\n')}`
+  }
+
+  async function updateProgress(idx: number, status: 'done' | 'running' | 'fail', r?: { entities: number; relations: number; insights: number }) {
+    if (status === 'running') phaseStatus[idx] = `⏳ ${phases[idx]}...`
+    else if (status === 'done') phaseStatus[idx] = `✅ ${phases[idx]} — ${r!.entities}E / ${r!.relations}R / ${r!.insights}I`
+    else phaseStatus[idx] = `❌ ${phases[idx]} — failed`
+    if (chatId && progressMsgId) {
+      try { await editTelegramMessage(chatId, progressMsgId, progressText()) } catch { /* ignore */ }
+    }
+  }
+
+  if (chatId) {
+    progressMsgId = await sendTelegramMessage(chatId, progressText())
+  }
+
   // Phase 1: Direct mapping (no Claude CLI)
+  await updateProgress(0, 'running')
   try {
     log('Phase 1: Email distillation...')
     results.email = await distillEmails()
     log(`Email done: ${JSON.stringify(results.email)}`)
+    await updateProgress(0, 'done', results.email)
   } catch (err) {
     log(`Email phase failed: ${err instanceof Error ? err.message : 'unknown'}`)
     results.email = { entities: 0, relations: 0, insights: 0 }
+    await updateProgress(0, 'fail')
   }
 
+  await updateProgress(1, 'running')
   try {
     log('Phase 1: Trade distillation...')
     results.trade = await distillTrades()
     log(`Trade done: ${JSON.stringify(results.trade)}`)
+    await updateProgress(1, 'done', results.trade)
   } catch (err) {
     log(`Trade phase failed: ${err instanceof Error ? err.message : 'unknown'}`)
     results.trade = { entities: 0, relations: 0, insights: 0 }
+    await updateProgress(1, 'fail')
   }
 
   // Phase 2: Claude CLI analysis
+  await updateProgress(2, 'running')
   try {
     log('Phase 2: Research distillation...')
     results.research = await distillResearch()
     log(`Research done: ${JSON.stringify(results.research)}`)
+    await updateProgress(2, 'done', results.research)
   } catch (err) {
     log(`Research phase failed: ${err instanceof Error ? err.message : 'unknown'}`)
     results.research = { entities: 0, relations: 0, insights: 0 }
+    await updateProgress(2, 'fail')
   }
 
+  await updateProgress(3, 'running')
   try {
     log('Phase 2: Telegram distillation...')
     results.telegram = await distillTelegram()
     log(`Telegram done: ${JSON.stringify(results.telegram)}`)
+    await updateProgress(3, 'done', results.telegram)
   } catch (err) {
     log(`Telegram phase failed: ${err instanceof Error ? err.message : 'unknown'}`)
     results.telegram = { entities: 0, relations: 0, insights: 0 }
+    await updateProgress(3, 'fail')
+  }
+
+  await updateProgress(4, 'running')
+  try {
+    log('Phase 2: Agent chat distillation...')
+    results.agent_chat = await distillAgentChats()
+    log(`Agent chat done: ${JSON.stringify(results.agent_chat)}`)
+    await updateProgress(4, 'done', results.agent_chat)
+  } catch (err) {
+    log(`Agent chat phase failed: ${err instanceof Error ? err.message : 'unknown'}`)
+    results.agent_chat = { entities: 0, relations: 0, insights: 0 }
+    await updateProgress(4, 'fail')
+  }
+
+  // Delete progress message
+  if (chatId && progressMsgId) {
+    try { await deleteTelegramMessage(chatId, progressMsgId) } catch { /* ignore */ }
   }
 
   // Summary
@@ -496,6 +676,64 @@ async function main() {
   log(`=== Done in ${elapsed}s ===`)
   log(`Total: ${totals.entities} entities, ${totals.relations} relations, ${totals.insights} insights`)
   log(`By source: ${JSON.stringify(results)}`)
+
+  // Send final results to CEO Telegram bot
+  try {
+    if (chatId) {
+      // Fetch today's highlights from DB
+      const today = new Date().toISOString().slice(0, 10)
+
+      const { data: recentInsights } = await supabase
+        .from('knowledge_insights')
+        .select('content, insight_type')
+        .gte('created_at', today)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      const { data: recentEntities } = await supabase
+        .from('knowledge_entities')
+        .select('name, entity_type')
+        .gte('created_at', today)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      const lines = [
+        `📊 Knowledge Distillation 완료 (${elapsed}s)`,
+        '',
+        `총 ${totals.entities}E / ${totals.relations}R / ${totals.insights}I`,
+        `• Email: ${results.email.entities}E / ${results.email.relations}R / ${results.email.insights}I`,
+        `• Trade: ${results.trade.entities}E / ${results.trade.relations}R / ${results.trade.insights}I`,
+        `• Research: ${results.research.entities}E / ${results.research.relations}R / ${results.research.insights}I`,
+        `• Telegram: ${results.telegram.entities}E / ${results.telegram.relations}R / ${results.telegram.insights}I`,
+        `• Agent Chat: ${results.agent_chat.entities}E / ${results.agent_chat.relations}R / ${results.agent_chat.insights}I`,
+      ]
+
+      if (recentInsights?.length) {
+        lines.push('', '💡 주요 인사이트:')
+        for (const ins of recentInsights.slice(0, 7)) {
+          lines.push(`  - ${ins.content}`)
+        }
+      }
+
+      if (recentEntities?.length) {
+        const byType = new Map<string, string[]>()
+        for (const e of recentEntities) {
+          const list = byType.get(e.entity_type) || []
+          list.push(e.name)
+          byType.set(e.entity_type, list)
+        }
+        lines.push('', '🏷 새 엔티티:')
+        for (const [type, names] of byType) {
+          lines.push(`  ${type}: ${names.slice(0, 8).join(', ')}`)
+        }
+      }
+
+      await sendTelegramMessage(chatId, lines.join('\n'))
+      log('Telegram notification sent')
+    }
+  } catch (err) {
+    log(`Telegram notification failed: ${err instanceof Error ? err.message : 'unknown'}`)
+  }
 }
 
 main().catch(err => {

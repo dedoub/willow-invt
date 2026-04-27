@@ -3,7 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase'
 
 export interface TenswInvoice {
   id: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
   counterparty: string
   description: string | null
   amount: number

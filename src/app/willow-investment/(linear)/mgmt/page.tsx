@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
@@ -17,7 +18,7 @@ import { WillowMgmtSchedule, WillowMgmtClient } from '@/types/willow-mgmt'
 
 interface Invoice {
   id: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
   counterparty: string
   description: string | null
   amount: number
@@ -153,6 +154,7 @@ export default function MgmtPage() {
   }
 
   useEffect(() => { loadData() }, [loadData])
+  useAgentRefresh(['willow_mgmt'], loadData)
 
   // ── Schedule handlers ──
   const handleToggleComplete = async (id: string, completed: boolean) => {

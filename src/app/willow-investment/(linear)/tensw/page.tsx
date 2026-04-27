@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { TenswSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
 
@@ -158,6 +159,7 @@ export default function TenswPage() {
   }, [loadWiki, fetchEmails])
 
   useEffect(() => { loadData() }, [loadData])
+  useAgentRefresh(['tensw_mgmt'], loadData)
 
   const reloadClients = useCallback(async () => {
     const res = await fetch('/api/tensw-mgmt/clients')

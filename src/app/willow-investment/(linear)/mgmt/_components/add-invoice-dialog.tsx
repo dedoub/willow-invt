@@ -7,7 +7,7 @@ import { LIcon } from '@/app/willow-investment/_components/linear-icons'
 
 interface Invoice {
   id: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
   counterparty: string
   description: string | null
   amount: number
@@ -25,7 +25,7 @@ interface AddInvoiceDialogProps {
 
 export interface InvoiceFormData {
   id?: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
   counterparty: string
   description: string
   amount: string
@@ -38,6 +38,7 @@ const TYPE_OPTIONS: { value: InvoiceFormData['type']; label: string }[] = [
   { value: 'expense', label: '비용' },
   { value: 'asset', label: '자산' },
   { value: 'liability', label: '부채' },
+  { value: 'transfer', label: '대체' },
 ]
 
 const inputBase: React.CSSProperties = {

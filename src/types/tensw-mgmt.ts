@@ -81,7 +81,7 @@ export interface TenswMgmtTask {
 
 export interface TenswCashItem {
   id: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
   counterparty: string
   description: string | null
   amount: number

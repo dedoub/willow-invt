@@ -259,6 +259,22 @@ async function answerCallbackQuery(callbackQueryId: string, text?: string) {
   })
 }
 
+async function editMessage(chatId: number, messageId: number, text: string) {
+  try {
+    await tg('editMessageText', {
+      chat_id: chatId,
+      message_id: messageId,
+      text: text.slice(0, 4000),
+    })
+  } catch { /* 동일 텍스트 등 무시 */ }
+}
+
+async function deleteMsg(chatId: number, messageId: number) {
+  try {
+    await tg('deleteMessage', { chat_id: chatId, message_id: messageId })
+  } catch { /* 이미 삭제됨 등 무시 */ }
+}
+
 async function setReaction(chatId: number, messageId: number, emoji: string) {
   try {
     await tg('setMessageReaction', {
@@ -2976,16 +2992,33 @@ ${action.milestone_type ? `유형: ${action.milestone_type}` : ''}
 async function handleMessage(chatId: number, text: string, abortSignal?: AbortSignal, lastMessageId?: number) {
   console.log(`[${chatId}] User: ${text}`)
 
+  // 처리현황 메시지 — 진행 단계를 실시간으로 업데이트 (try 밖에서 선언)
+  let progressMsgId: number | null = null
+
   try {
-    // 무거운 질문 감지 — 리액션으로 먼저 확인
-    const heavyKeywords = ['브리핑', '현황', '분석', '포트폴리오', '뉴스', '검색', '찾아', '정리해', '요약', '리뷰']
-    const isHeavyQuery = heavyKeywords.some(k => text.includes(k)) || text.length > 80
     // 리액션으로 "읽었다" 표시 (abort 되더라도 문제 없음)
     if (lastMessageId) {
       await setReaction(chatId, lastMessageId, '👀')
     }
 
+    const progressLines: string[] = []
+    const progressStart = Date.now()
+
+    const addProgress = async (line: string) => {
+      const sec = ((Date.now() - progressStart) / 1000).toFixed(1)
+      progressLines.push(`${line} (${sec}s)`)
+      const display = progressLines.join('\n')
+      if (progressMsgId) {
+        await editMessage(chatId, progressMsgId, display)
+      }
+    }
+
+    // 처리현황 메시지 전송
+    const progressRes = await tg('sendMessage', { chat_id: chatId, text: '⏳ 처리 시작...' })
+    progressMsgId = progressRes?.result?.message_id || null
+
     // 대시보드 + 위키 + 추적주제 + 텐소프트웍스 + 온톨로지 + 프롬프트섹션 + 속성카탈로그 + 팔로업 + 리서치 수집
+    await addProgress('📂 컨텍스트 로드 중...')
     const [dashboardContext, wikiContext, watchTopics, tenswContext, knowledgeContext, promptSections, attrCatalog, followUpsContext, researchContext] = await Promise.all([
       fetchDashboardContext(),
       fetchWikiContext(),
@@ -2997,9 +3030,11 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
       fetchFollowUpsContext(),
       fetchResearchContext(),
     ])
+    await addProgress('✅ 대시보드 · 위키 · 텐소프트 · KG · 리서치')
 
     // 대화 기록 조회
     const history = await getConversation(chatId)
+    await addProgress(`✅ 대화기록 ${history.length}건`)
 
     // 추적 주제 컨텍스트
     const topicsText = watchTopics.length
@@ -3032,6 +3067,7 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
       }
 
       if (searchQueries.length > 0) {
+        await addProgress(`🔍 검색: ${searchQueries.map(q => '"' + q.slice(0, 20) + '"').join(', ')}`)
         // 뉴스 검색과 시장 데이터 병렬 수집
         const [newsResults, marketPrices] = await Promise.all([
           Promise.all(
@@ -3075,6 +3111,9 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
         if (parts.length) {
           prefetchedNews = '\n\n# 실시간 검색 결과 (방금 검색)\n주의: [방금], [N분 전] 등 기사 신선도를 확인하세요. 시장 데이터와 뉴스 내용이 다르면 시장 데이터가 더 정확합니다.\n' + parts.join('\n')
         }
+        const totalNews = newsResults.reduce((s, r) => s + r.news.length, 0)
+        const totalVideos = newsResults.reduce((s, r) => s + r.videos.length, 0)
+        await addProgress(`✅ 뉴스 ${totalNews}건 · 유튜브 ${totalVideos}건`)
       }
     }
 
@@ -3122,18 +3161,16 @@ ${text}
 
 위 데이터를 참고하여 CEO의 메시지에 답하세요.`
 
+    await addProgress(`📝 프롬프트 ${(fullPrompt.length / 1000).toFixed(0)}K자`)
+
     // abort 체크 — 새 메시지가 와서 이 처리가 취소된 경우
     if (abortSignal?.aborted) {
+      if (progressMsgId) await deleteMsg(chatId, progressMsgId)
       console.log(`[${chatId}] ⏹️ 처리 취소됨 (새 메시지 수신)`)
       return
     }
 
-    // 데이터 수집 완료 후, 무거운 질문이면 확인 메시지 전송
-    if (isHeavyQuery) {
-      const acks = ['잠깐만요, 확인해볼게요.', '확인 중이에요.', '살펴볼게요, 잠시만요.', '확인하고 바로 알려드릴게요.']
-      const ack = acks[Math.floor(Math.random() * acks.length)]
-      await sendMessage(chatId, ack)
-    }
+    await addProgress('🤖 Claude 분석 중...')
 
     // 타이핑 유지 (Claude 처리 중)
     const typingInterval = setInterval(() => sendTyping(chatId), 4000)
@@ -3146,8 +3183,11 @@ ${text}
 
     clearInterval(typingInterval)
 
+    await addProgress(`✅ Claude 응답 ${(response.length / 1000).toFixed(1)}K자`)
+
     // abort 체크 — Claude 응답 후에도 새 메시지가 왔으면 취소
     if (abortSignal?.aborted) {
+      if (progressMsgId) await deleteMsg(chatId, progressMsgId)
       console.log(`[${chatId}] ⏹️ Claude 응답 후 취소됨 (새 메시지 수신)`)
       return
     }
@@ -3158,11 +3198,16 @@ ${text}
     // 액션 실행 결과 수집
     const actionResults: string[] = []
     for (const action of actions) {
+      await addProgress(`⚡ 액션: ${action.type}`)
       console.log(`⚡ 액션 실행: ${action.type}`)
       const result = await executeAction(action)
       actionResults.push(result)
       console.log(`  → ${result}`)
     }
+    if (actions.length) await addProgress(`✅ 액션 ${actions.length}건 완료`)
+
+    // 처리현황 메시지 삭제
+    if (progressMsgId) await deleteMsg(chatId, progressMsgId)
 
     // 사용자에게 보낼 최종 메시지 (액션 결과 포함)
     let finalMessage = ''
@@ -3207,6 +3252,7 @@ ${text}
     console.log(`[${chatId}] Bot: ${finalMessage.slice(0, 100)}...`)
 
   } catch (err) {
+    if (progressMsgId) await deleteMsg(chatId, progressMsgId)
     console.error('Error handling message:', err)
     await sendMessage(chatId, '⚠️ 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
   }

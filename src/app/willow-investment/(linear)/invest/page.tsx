@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { SignalBar } from './_components/signal-bar'
 import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, StockQuote } from './_components/portfolio-kanban'
@@ -145,6 +146,7 @@ export default function InvestPage() {
   }, [loadStockHistory])
 
   useEffect(() => { loadData() }, [loadData])
+  useAgentRefresh(['stock_'], loadData)
 
   // Compute portfolio summary stats for signal bar
   const portfolioStats = useMemo(() => {

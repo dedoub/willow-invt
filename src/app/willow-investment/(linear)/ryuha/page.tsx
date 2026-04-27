@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { RyuhaSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
 import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule, RyuhaDailyMemo, RyuhaBodyRecord } from '@/types/ryuha'
@@ -78,6 +79,7 @@ export default function RyuhaPage() {
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
+  useAgentRefresh(['ryuha_'], loadData)
 
   // ── Schedule handlers ─────────────────────────────────────────
   const handleSaveSchedule = async (data: ScheduleFormData) => {

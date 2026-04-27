@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { AkrosSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
 import { fetchAllTimeSeriesData, fetchAkrosProducts, fetchYearLaunches, AkrosProduct, TimeSeriesData } from '@/lib/supabase-etf'
@@ -105,6 +106,9 @@ export default function AkrosPage() {
     Promise.all([loadProducts(), loadInvoices(), loadWiki(), fetchEmails()])
       .finally(() => setLoading(false))
   }, [loadProducts, loadInvoices, loadWiki, fetchEmails])
+  useAgentRefresh(['akros_', 'etf_', 'work_wiki'], () => {
+    loadProducts(); loadInvoices(); loadWiki()
+  })
 
   // Email handlers
   const handleSyncEmails = async () => {

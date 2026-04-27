@@ -7,7 +7,7 @@ interface ParsedTransaction {
   counterparty: string
   description: string
   amount: number
-  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
 }
 
 export async function POST(request: Request) {
@@ -65,7 +65,7 @@ ${truncated}
       "counterparty": "거래처/적요에서 추출한 상대방 이름",
       "description": "거래 설명/적요 원문",
       "amount": 숫자 (양수),
-      "type": "revenue|expense|asset|liability"
+      "type": "revenue|expense|asset|liability|transfer"
     }
   ],
   "bankName": "감지된 은행명 또는 null",

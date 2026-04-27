@@ -9,7 +9,7 @@ import { LStat } from '@/app/willow-investment/_components/linear-stat'
 
 interface Invoice {
   id: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
   counterparty: string
   description: string | null
   amount: number
@@ -27,7 +27,7 @@ interface CashBlockProps {
 }
 
 type PeriodMode = 'month' | 'quarter' | 'year'
-type TypeFilter = 'all' | 'revenue' | 'expense' | 'asset' | 'liability'
+type TypeFilter = 'all' | 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
 
 const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
   { value: 'all', label: '전체' },
@@ -35,6 +35,7 @@ const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
   { value: 'expense', label: '비용' },
   { value: 'asset', label: '자산' },
   { value: 'liability', label: '부채' },
+  { value: 'transfer', label: '대체' },
 ]
 
 const TYPE_TONES: Record<string, { bg: string; fg: string }> = {
@@ -42,10 +43,11 @@ const TYPE_TONES: Record<string, { bg: string; fg: string }> = {
   expense:   { bg: '#F9E8D0', fg: '#8A5A1A' },
   asset:     { bg: '#DAEEDD', fg: '#1F5F3D' },
   liability: { bg: '#F3DADA', fg: '#8A2A2A' },
+  transfer:  { bg: '#E8E0F0', fg: '#5B3D8A' },
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  revenue: '매출', expense: '비용', asset: '자산', liability: '부채',
+  revenue: '매출', expense: '비용', asset: '자산', liability: '부채', transfer: '대체',
 }
 
 function getDateRange(base: Date, mode: PeriodMode): [string, string] {
@@ -103,6 +105,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredCashPageSize()))
@@ -122,13 +125,21 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
   const expense = periodFiltered.filter(i => i.type === 'expense').reduce((s, i) => s + i.amount, 0)
   const asset = periodFiltered.filter(i => i.type === 'asset').reduce((s, i) => s + i.amount, 0)
   const liability = periodFiltered.filter(i => i.type === 'liability').reduce((s, i) => s + i.amount, 0)
+  const transfer = periodFiltered.filter(i => i.type === 'transfer').reduce((s, i) => s + i.amount, 0)
   const operatingIncome = revenue - expense
-  const cashFlow = revenue - expense - asset + liability
+  const cashFlow = revenue - expense - asset + liability + transfer
 
   const displayList = useMemo(() => {
-    const list = typeFilter === 'all' ? periodFiltered : periodFiltered.filter(i => i.type === typeFilter)
+    let list = typeFilter === 'all' ? periodFiltered : periodFiltered.filter(i => i.type === typeFilter)
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase()
+      list = list.filter(i =>
+        i.counterparty.toLowerCase().includes(q) ||
+        (i.description || '').toLowerCase().includes(q)
+      )
+    }
     return [...list].sort((a, b) => (b.payment_date || b.issue_date || '').localeCompare(a.payment_date || a.issue_date || ''))
-  }, [periodFiltered, typeFilter])
+  }, [periodFiltered, typeFilter, searchQuery])
 
   const totalPages = Math.max(1, Math.ceil(displayList.length / pageSize))
   const paged = displayList.slice(page * pageSize, (page + 1) * pageSize)
@@ -141,7 +152,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
     localStorage.setItem(CASH_PAGE_SIZE_KEY, String(n))
   }, [pageSizeInput])
 
-  useEffect(() => { setPage(0) }, [typeFilter, periodMode, baseDate])
+  useEffect(() => { setPage(0) }, [typeFilter, periodMode, baseDate, searchQuery])
 
   const eyebrowLabel = periodMode === 'month' ? 'CASHFLOW · 월간'
     : periodMode === 'quarter' ? 'CASHFLOW · 분기' : 'CASHFLOW · 연간'
@@ -193,8 +204,8 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
           <LStat label="매출" value={`${revenue.toLocaleString()}원`} tone="pos" />
           <LStat label="비용" value={`${expense.toLocaleString()}원`} tone="neg" />
           <LStat label="영업이익" value={`${operatingIncome.toLocaleString()}원`} tone={operatingIncome >= 0 ? 'pos' : 'neg'} />
-          <LStat label="자산" value={`${asset.toLocaleString()}원`} tone="info" />
           <LStat label="부채" value={`${liability.toLocaleString()}원`} tone="warn" />
+          <LStat label="대체" value={`${transfer.toLocaleString()}원`} tone={transfer >= 0 ? 'pos' : 'neg'} />
           <LStat label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} />
         </div>
 
@@ -223,6 +234,33 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
           }}>
             <LIcon name="plus" size={12} stroke={2.5} />
           </button>
+        </div>
+        {/* Search */}
+        <div style={{ position: 'relative', marginTop: 10 }}>
+          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+            <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+          </div>
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="거래처 · 적요 검색"
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              padding: '7px 10px 7px 30px', fontSize: 12,
+              fontFamily: t.font.sans, color: t.neutrals.text,
+              background: t.neutrals.inner, border: 'none',
+              borderRadius: t.radius.sm, outline: 'none',
+            }}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} style={{
+              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              padding: 2, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+            }}>
+              <LIcon name="x" size={12} stroke={2} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -277,7 +315,9 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
         )}
         {paged.map((v) => {
           const typeTone = TYPE_TONES[v.type]
-          const isIncome = v.type === 'revenue' || v.type === 'asset'
+          const isPositive = v.type === 'revenue' ? true
+            : v.type === 'expense' ? false
+            : v.amount >= 0
           return (
             <div key={v.id} onClick={() => onSelectInvoice(v)} style={{
               display: 'grid', gridTemplateColumns: '52px 48px 1.2fr 1.5fr 1fr',
@@ -303,9 +343,9 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
               </span>
               <span style={{
                 textAlign: 'right', fontWeight: 500, fontVariantNumeric: 'tabular-nums',
-                color: isIncome ? t.accent.pos : t.accent.neg,
+                color: isPositive ? t.accent.pos : t.accent.neg,
               }}>
-                {isIncome ? '+' : '-'}{Math.abs(v.amount).toLocaleString()}
+                {isPositive ? '+' : '-'}{Math.abs(v.amount).toLocaleString()}
               </span>
             </div>
           )

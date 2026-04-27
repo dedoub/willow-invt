@@ -16,7 +16,7 @@ interface CashDialogProps {
 
 export interface TenswCashFormData {
   id?: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
   counterparty: string
   description: string
   amount: string
@@ -29,6 +29,7 @@ const TYPE_OPTIONS: { value: TenswCashFormData['type']; label: string }[] = [
   { value: 'expense', label: '비용' },
   { value: 'asset', label: '자산' },
   { value: 'liability', label: '부채' },
+  { value: 'transfer', label: '대체' },
 ]
 
 const inputBase: React.CSSProperties = {

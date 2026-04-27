@@ -10,7 +10,7 @@ export interface ParsedTransaction {
   counterparty: string
   description: string
   amount: number
-  type: 'revenue' | 'expense' | 'asset' | 'liability'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
   _selected: boolean
 }
 

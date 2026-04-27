@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/willow-investment/_components/linear-tokens'
 import { EtcSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
 import { ETFDisplayData, fetchETFDisplayData, fetchETFProducts, fetchHistoricalData, deleteETFProduct, HistoricalDataPoint } from '@/lib/supabase-etf'
@@ -118,6 +119,9 @@ export default function EtcPage() {
     Promise.all([loadData(), loadInvoices(), loadWiki(), fetchEmails()])
       .finally(() => setLoading(false))
   }, [loadData, loadInvoices, loadWiki, fetchEmails])
+  useAgentRefresh(['etf_', 'work_wiki'], () => {
+    loadData(); loadInvoices(); loadWiki()
+  })
 
   // Email handlers
   const handleSyncEmails = async () => {

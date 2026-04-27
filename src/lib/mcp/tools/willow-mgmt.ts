@@ -785,7 +785,7 @@ export function registerWillowMgmtTools(server: McpServer) {
   server.registerTool('willow_list_invoices', {
     description: '[윌로우인베스트먼트 > 사업관리] 인보이스/현금관리 목록을 조회합니다',
     inputSchema: z.object({
-      type: z.enum(['revenue', 'expense', 'asset', 'liability']).optional().describe('유형 필터 (수입/지출/자산/부채)'),
+      type: z.enum(['revenue', 'expense', 'asset', 'liability', 'transfer']).optional().describe('유형 필터 (수입/지출/자산/부채/대체)'),
       status: z.enum(['issued', 'completed']).optional().describe('상태 필터'),
     }),
   }, async ({ type, status }, { authInfo }) => {
@@ -820,7 +820,7 @@ export function registerWillowMgmtTools(server: McpServer) {
   server.registerTool('willow_create_invoice', {
     description: '[윌로우인베스트먼트 > 사업관리] 인보이스/현금관리 항목을 생성합니다',
     inputSchema: z.object({
-      type: z.enum(['revenue', 'expense', 'asset', 'liability']).describe('유형 (revenue=수입, expense=지출, asset=자산, liability=부채)'),
+      type: z.enum(['revenue', 'expense', 'asset', 'liability', 'transfer']).describe('유형 (revenue=수입, expense=지출, asset=자산, liability=부���, transfer=대체 - 자산종류변경/채무상환 등 순자산 불변 거래)'),
       counterparty: z.string().describe('거래처'),
       amount: z.number().describe('금액'),
       description: z.string().optional().describe('설명'),
@@ -865,7 +865,7 @@ export function registerWillowMgmtTools(server: McpServer) {
     description: '[윌로우인베스트먼트 > 사업관리] 인보이스/현금관리 항목을 수정합니다',
     inputSchema: z.object({
       id: z.string().describe('인보이스 ID'),
-      type: z.enum(['revenue', 'expense', 'asset', 'liability']).optional().describe('유형'),
+      type: z.enum(['revenue', 'expense', 'asset', 'liability', 'transfer']).optional().describe('유형'),
       counterparty: z.string().optional().describe('거래처'),
       amount: z.number().optional().describe('금액'),
       description: z.string().optional().describe('설명'),
