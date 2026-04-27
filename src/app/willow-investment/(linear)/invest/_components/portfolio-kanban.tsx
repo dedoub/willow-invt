@@ -306,6 +306,7 @@ export function PortfolioKanban({
     const cards: StockCardData[] = []
     for (const r of stockResearch) {
       if (!r.verdict?.startsWith('pass')) continue
+      if (r.track === 'ETF') continue
       if (seen.has(r.ticker)) continue
       if (watchlistTickers.has(r.ticker)) continue
       seen.add(r.ticker)
