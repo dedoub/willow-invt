@@ -102,6 +102,7 @@ const ALLOWED_TABLES: Record<string, string> = {
   // 투자리서치
   'stock_research': '투자 리서치',
   'stock_trades': '주식 매매기록',
+  'stock_watchlist': '주식 워치리스트/포트폴리오',
   'smallcap_screening': '소형주 스크리닝',
   // 부동산
   're_complexes': '부동산 단지',

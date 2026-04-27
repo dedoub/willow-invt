@@ -55,6 +55,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
   const [input, setInput] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [progressSteps, setProgressSteps] = useState<string[]>([])
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [sessions, setSessions] = useState<ChatSession[]>([])
@@ -167,7 +168,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
     }
     setMessages(prev => [...prev, userMsg])
     const curInput = fullMessage; const curFiles = files
-    setInput(''); setFiles([]); setIsLoading(true)
+    setInput(''); setFiles([]); setIsLoading(true); setProgressSteps([])
 
     try {
       const form = new FormData()
@@ -178,24 +179,57 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
       for (const f of curFiles) form.append('files', f)
 
       const res = await fetch('/api/chat', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed')
+      if (!res.ok || !res.body) throw new Error('Stream failed')
 
-      if (data.sessionId && !sessionId) {
-        setSessionId(data.sessionId)
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let doneData: { message: string; sessionId: string; toolCalls: Array<{ name: string; args: unknown; result: unknown }> } | null = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const ln of lines) {
+          if (!ln.trim()) continue
+          try {
+            const evt = JSON.parse(ln)
+            if (evt.type === 'progress') {
+              if (evt.sessionId && !sessionId) setSessionId(evt.sessionId)
+              setProgressSteps(prev => [...prev, evt.step])
+            } else if (evt.type === 'done') {
+              doneData = evt
+            } else if (evt.type === 'error') {
+              throw new Error(evt.error)
+            }
+          } catch (e) {
+            if (e instanceof SyntaxError) continue
+            throw e
+          }
+        }
+      }
+
+      if (!doneData) throw new Error('No response received')
+
+      if (doneData.sessionId && !sessionId) {
+        setSessionId(doneData.sessionId)
         fetch('/api/chat').then(r => r.json()).then(d => setSessions(d.sessions || [])).catch(() => {})
       }
 
       setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(), role: 'assistant', content: data.message,
-        tool_calls: data.toolCalls, created_at: new Date().toISOString(),
+        id: (Date.now() + 1).toString(), role: 'assistant', content: doneData.message,
+        tool_calls: doneData.toolCalls, created_at: new Date().toISOString(),
       }])
 
-      if (data.toolCalls?.length > 0) {
+      if (doneData.toolCalls?.length > 0) {
         const MUT = ['insert_data', 'update_data', 'delete_data', 'upsert_data']
-        const tables = data.toolCalls
-          .filter((tc: { name: string; args: Record<string, unknown> }) => MUT.includes(tc.name))
-          .map((tc: { name: string; args: Record<string, unknown> }) => tc.args?.table as string).filter(Boolean)
+        const tables = doneData.toolCalls
+          .filter(tc => MUT.includes(tc.name))
+          .map(tc => (tc.args as Record<string, unknown>)?.table as string).filter(Boolean)
         if (tables.length > 0) notifyAgentDataChange(tables)
       }
     } catch (err) {
@@ -204,7 +238,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
         content: `오류: ${err instanceof Error ? err.message : 'Unknown'}`,
         created_at: new Date().toISOString(),
       }])
-    } finally { setIsLoading(false) }
+    } finally { setIsLoading(false); setProgressSteps([]) }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -338,8 +372,18 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
                   <div style={{
                     padding: '8px 12px', borderRadius: t.radius.md,
                     background: t.neutrals.inner, fontSize: 12, color: t.neutrals.subtle,
+                    display: 'flex', flexDirection: 'column', gap: 3, minWidth: 120,
                   }}>
-                    생각하는 중...
+                    {progressSteps.length === 0
+                      ? <span>생각하는 중...</span>
+                      : progressSteps.map((step, i) => (
+                        <span key={i} style={{
+                          opacity: i === progressSteps.length - 1 ? 1 : 0.5,
+                          fontSize: 11.5, lineHeight: 1.5, fontFamily: t.font.sans,
+                          transition: 'opacity .2s',
+                        }}>{step}</span>
+                      ))
+                    }
                   </div>
                 </div>
               )}
@@ -504,20 +548,36 @@ function mapMsg(m: Record<string, unknown>): ChatMessage {
   }
 }
 
+function formatToolName(name: string): string {
+  if (name.startsWith('willow_')) return '윌로우 ' + name.replace('willow_', '').replace(/_/g, ' ')
+  if (name.startsWith('tensw_todo_')) return '텐SW프로젝트 ' + name.replace('tensw_todo_', '').replace(/_/g, ' ')
+  if (name.startsWith('tensw_')) return '텐SW ' + name.replace('tensw_', '').replace(/_/g, ' ')
+  if (name.startsWith('akros_')) return '아크로스 ' + name.replace('akros_', '').replace(/_/g, ' ')
+  if (name.startsWith('etc_')) return 'ETC ' + name.replace('etc_', '').replace(/_/g, ' ')
+  if (name.startsWith('gmail_')) return '이메일 ' + name.replace('gmail_', '').replace(/_/g, ' ')
+  if (name.startsWith('ryuha_')) return '류하 ' + name.replace('ryuha_', '').replace(/_/g, ' ')
+  if (name.startsWith('invest_')) return '투자 ' + name.replace('invest_', '').replace(/_/g, ' ')
+  if (name.startsWith('re_')) return '부동산 ' + name.replace('re_', '').replace(/_/g, ' ')
+  if (name.startsWith('wiki_')) return '위키 ' + name.replace('wiki_', '').replace(/_/g, ' ')
+  const map: Record<string, string> = {
+    list_tables: '테이블 목록', query_data: '조회', insert_data: '추가',
+    update_data: '수정', delete_data: '삭제', upsert_data: '저장',
+    count_data: '건수', analyze_data: '분석', save_memory: '메모리 저장',
+    delete_memory: '메모리 삭제',
+  }
+  return map[name] || name
+}
+
 function formatToolCall(tc: { name: string; args: unknown; result: unknown }): string {
   const args = tc.args as Record<string, unknown> | undefined
   const result = tc.result as Record<string, unknown> | undefined
-  const table = args?.table as string || ''
-  const count = result?.count as number | undefined
   const error = result?.error as string | undefined
-  const map: Record<string, string> = {
-    list_tables: '테이블 목록', query_data: '조회', insert_data: '추가',
-    update_data: '수정', delete_data: '삭제', upsert_data: 'upsert',
-    count_data: '건수', analyze_data: '분석',
-  }
-  const action = map[tc.name] || tc.name
-  if (error) return `${action} 실패`
-  const parts = [action]
+  const label = formatToolName(tc.name)
+  if (error) return `${label} · 실패`
+  const data = result?.data
+  const count = Array.isArray(data) ? data.length : (result?.count as number | undefined)
+  const table = args?.table as string || ''
+  const parts = [label]
   if (table) parts.push(table)
   if (count !== undefined) parts.push(`${count}건`)
   return parts.join(' · ')

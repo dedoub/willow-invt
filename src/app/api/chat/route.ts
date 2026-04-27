@@ -162,6 +162,22 @@ async function buildSystemPrompt(): Promise<string> {
 3. invest_create_trade (1건) 또는 invest_create_trades_batch (여러 건)으로 등록
 4. 등록 결과를 사용자에게 확인
 
+**⚠️ 포트폴리오 보유현황/추가매수 질문 처리법:**
+"어떤 종목을 더 사야 해?", "보유 현황", "포트폴리오 상태" 등 포트폴리오 관련 질문은 반드시 아래 순서로 처리:
+1. query_data로 **stock_watchlist** 테이블 조회 (group_name='portfolio'인 행 = 현재 보유 종목)
+2. invest_list_trades로 **전체 매매기록** 조회
+3. 두 데이터를 결합하여 종목별 순보유수량(매수합-매도합), 평균매수가 계산
+
+**피라미딩(추가매수) 시스템:**
+- 1트랜치 = 약 500만원 (KRW) 또는 $5,000 (USD)
+- 트랜치 수 = 총매수금액 ÷ 트랜치사이즈 (최대 10)
+- 트리거 기준 (평균수익률이 이 이상이면 다음 트랜치 매수 가능):
+  - 1→2: +10%, 2→3: +20%, 3→4: +30%, 4→5: +40%, 5→6: +55%, 6→7: +75%, 7→8: +100%, 8→9: +135%, 9→10: +175%
+- 상태: BUY(추가매수 가능), HOLD(대기), FULL(10트랜치 완료), FREEZE(수익률 하락), HOUSE_MONEY(+200% 이상)
+- **BUY 상태인 종목 = 추가매수 필요한 종목**
+
+**stock_watchlist 테이블 컬럼:** name, ticker, sector, group_name(portfolio|watchlist|benchmark), axis, pinned, monitor_date, monitor_price
+
 ### 업무위키 전용 도구 (wiki_*)
 업무위키 노트 CRUD. 섹션: akros(아크로스), etf-etc(ETC), willow-mgmt(윌로우), tensw-mgmt(텐소프트웍스). 마크다운 내용 지원.
 - **wiki_list_notes**: 위키 노트 목록 (section 필터 가능)
@@ -233,8 +249,9 @@ willow_mgmt_*와 동일 구조. 테이블명만 tensw_mgmt_. 메모는 tensw_mgm
 - **knowledge_insights**: id, content, insight_type(decision|observation|preference|pattern), entity_ids(uuid[]), context
 
 ### 투자리서치
-- **stock_research**: id, ticker, company_name, market(KR|US), scan_date, verdict(pass|fail), market_cap_b, current_price, high_12m, gap_from_high_pct, sector, thesis, risks, catalyst, notes
+- **stock_research**: id, ticker, company_name, market(KR|US), scan_date, verdict(pass|fail), market_cap_b, current_price, high_12m, gap_from_high_pct, sector, thesis, risks, catalyst, notes, track(AI Infra|ETF|Geopolitics|hypergrowth|Next Gen|profitable)
 - **stock_trades**: id, ticker, company_name, market(KR|US), trade_date, trade_type(buy|sell), quantity, price, total_amount, currency(KRW|USD), broker, memo
+- **stock_watchlist**: name, ticker, sector, group_name(portfolio|watchlist|benchmark), axis, pinned, monitor_date, monitor_price — portfolio그룹=보유종목, watchlist그룹=관심종목
 - **smallcap_screening**: id, scan_date, ticker, company_name, market, sector, market_cap_m, current_price, change_pct, composite_score, tier(A|B|C|F), track(profitable|hypergrowth), rs_rank, insider_buys_3m, reddit_mentions, notes
 
 ### 부동산
@@ -327,209 +344,245 @@ async function parseFileContent(file: File): Promise<{ type: string; content: st
   }
 }
 
-// POST: Send message to chat agent
-export async function POST(request: NextRequest) {
-  try {
-    const formData = await request.formData()
-    const message = formData.get('message') as string
-    const sessionId = formData.get('sessionId') as string | null
-    const currentPage = formData.get('currentPage') as string || '/'
-    const pageContext = formData.get('pageContext') as string || ''
-    const files = formData.getAll('files') as File[]
-
-    if (!message && files.length === 0) {
-      return NextResponse.json({ error: 'Message or files required' }, { status: 400 })
-    }
-
-    const supabase = getServiceSupabase()
-
-    // Create or get session
-    let currentSessionId = sessionId
-    if (!currentSessionId) {
-      const { data: session } = await supabase
-        .from('agent_chat_sessions')
-        .insert({ user_id: 'ceo', title: (message || '파일 분석').slice(0, 50) })
-        .select()
-        .single()
-      currentSessionId = session?.id
-    }
-
-    // Parse files
-    const fileContents: Array<{ type: string; content: string; summary: string }> = []
-    for (const file of files) {
-      try {
-        const parsed = await parseFileContent(file)
-        fileContents.push(parsed)
-      } catch (e) {
-        fileContents.push({
-          type: 'error',
-          content: `파일 파싱 실패: ${e instanceof Error ? e.message : 'Unknown error'}`,
-          summary: `파일 "${file.name}" 처리 실패`,
-        })
-      }
-    }
-
-    // Build user message with page context and file context
-    let userMessage = `[현재 페이지: ${pageContext || currentPage}]\n${message || ''}`
-    if (fileContents.length > 0) {
-      const fileSection = fileContents.map(f =>
-        `[첨부 파일 - ${f.summary}]\n${f.content}`
-      ).join('\n\n---\n\n')
-      userMessage = `${userMessage}\n\n${fileSection}`
-    }
-
-    // Save user message to DB
-    if (currentSessionId) {
-      await supabase.from('agent_chat_messages').insert({
-        session_id: currentSessionId,
-        role: 'user',
-        content: message || '(파일 첨부)',
-        attachments: files.map(f => ({ name: f.name, size: f.size, type: f.type })),
-      })
-    }
-
-    // Load conversation history from DB
-    let history: Array<{ role: string; parts: Array<{ text: string }> }> = []
-    if (currentSessionId) {
-      const { data: dbMessages } = await supabase
-        .from('agent_chat_messages')
-        .select('role, content')
-        .eq('session_id', currentSessionId)
-        .order('created_at', { ascending: true })
-        .limit(30)
-
-      if (dbMessages && dbMessages.length > 0) {
-        // Exclude the user message we just saved (last one) — it will be sent as the current message
-        const prior = dbMessages.slice(0, -1)
-        history = prior
-          .filter(m => m.role === 'user' || m.role === 'assistant')
-          .map(m => ({
-            role: m.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: m.content }],
-          }))
-      }
-    }
-
-    // Initialize Gemini with function calling
-    const genAI = getGemini()
-    const systemPrompt = await buildSystemPrompt()
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: systemPrompt,
-      tools: [{
-        functionDeclarations: agentTools.map(t => ({
-          name: t.name,
-          description: t.description,
-          parameters: {
-            type: SchemaType.OBJECT,
-            properties: Object.fromEntries(
-              Object.entries(t.parameters.properties).map(([k, v]) => [k, {
-                ...v,
-                type: v.type === 'string' ? SchemaType.STRING
-                  : v.type === 'number' ? SchemaType.NUMBER
-                  : SchemaType.STRING,
-              }])
-            ),
-            required: t.parameters.required || [],
-          },
-        })),
-      }],
-      toolConfig: {
-        functionCallingConfig: { mode: FunctionCallingMode.AUTO },
-      },
-    })
-
-    const chat = model.startChat({ history })
-
-    // Send message and handle tool calling loop
-    let response = await chat.sendMessage(userMessage)
-    const toolCallsLog: Array<{ name: string; args: unknown; result: unknown }> = []
-
-    // Tool calling loop (max 5 iterations)
-    for (let i = 0; i < 5; i++) {
-      const candidate = response.response.candidates?.[0]
-      const parts = candidate?.content?.parts || []
-
-      const functionCalls = parts.filter(p => 'functionCall' in p)
-      if (functionCalls.length === 0) break
-
-      // Execute all function calls
-      const functionResponses = []
-      for (const part of functionCalls) {
-        const fc = (part as { functionCall: { name: string; args: Record<string, unknown> } }).functionCall
-        console.log(`[ChatAgent] Executing tool: ${fc.name}`, fc.args)
-
-        const result = await executeTool(fc.name, fc.args)
-        toolCallsLog.push({ name: fc.name, args: fc.args, result })
-
-        functionResponses.push({
-          functionResponse: {
-            name: fc.name,
-            response: result as object,
-          },
-        })
-      }
-
-      // Send results back to Gemini
-      response = await chat.sendMessage(functionResponses)
-    }
-
-    // Extract final text response
-    let finalText = response.response.text()
-
-    // Guard against empty responses (Gemini sometimes returns empty text after tool calls)
-    if (!finalText?.trim() && toolCallsLog.length > 0) {
-      const lastResult = toolCallsLog[toolCallsLog.length - 1].result
-      if (lastResult && typeof lastResult === 'object') {
-        const r = lastResult as Record<string, unknown>
-        if (Array.isArray(r.data)) {
-          finalText = `조회 결과 ${r.data.length}건이 있습니다.`
-        } else if (r.error) {
-          finalText = `오류가 발생했습니다: ${r.error}`
-        } else {
-          finalText = '요청을 처리했습니다.'
-        }
-      }
-    }
-
-    // Save assistant message to DB and update session
-    if (currentSessionId) {
-      // Auto-generate better title from first exchange (replace the truncated user message)
-      const isFirstExchange = !sessionId // New session created in this request
-      const sessionUpdate: Record<string, unknown> = { updated_at: new Date().toISOString() }
-      if (isFirstExchange && finalText) {
-        // Use first line of assistant response (up to 40 chars) as title
-        const firstLine = finalText.split('\n')[0].replace(/[#*_`]/g, '').trim()
-        if (firstLine.length > 5) {
-          sessionUpdate.title = firstLine.slice(0, 40) + (firstLine.length > 40 ? '…' : '')
-        }
-      }
-
-      await Promise.all([
-        supabase.from('agent_chat_messages').insert({
-          session_id: currentSessionId,
-          role: 'assistant',
-          content: finalText,
-          tool_calls: toolCallsLog.length > 0 ? toolCallsLog : null,
-        }),
-        supabase.from('agent_chat_sessions')
-          .update(sessionUpdate)
-          .eq('id', currentSessionId),
-      ])
-    }
-
-    return NextResponse.json({
-      message: finalText,
-      sessionId: currentSessionId,
-      toolCalls: toolCallsLog,
-    })
-  } catch (error) {
-    console.error('[ChatAgent] Error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    )
+// Tool name → short Korean label for progress display
+function toolLabel(name: string): string {
+  if (name.startsWith('willow_')) return '윌로우 ' + name.replace('willow_', '').replace(/_/g, ' ')
+  if (name.startsWith('tensw_todo_')) return '텐SW프로젝트 ' + name.replace('tensw_todo_', '').replace(/_/g, ' ')
+  if (name.startsWith('tensw_')) return '텐SW ' + name.replace('tensw_', '').replace(/_/g, ' ')
+  if (name.startsWith('akros_')) return '아크로스 ' + name.replace('akros_', '').replace(/_/g, ' ')
+  if (name.startsWith('etc_')) return 'ETC ' + name.replace('etc_', '').replace(/_/g, ' ')
+  if (name.startsWith('gmail_')) return '이메일 ' + name.replace('gmail_', '').replace(/_/g, ' ')
+  if (name.startsWith('ryuha_')) return '류하 ' + name.replace('ryuha_', '').replace(/_/g, ' ')
+  if (name.startsWith('invest_')) return '투자 ' + name.replace('invest_', '').replace(/_/g, ' ')
+  if (name.startsWith('re_')) return '부동산 ' + name.replace('re_', '').replace(/_/g, ' ')
+  if (name.startsWith('wiki_')) return '위키 ' + name.replace('wiki_', '').replace(/_/g, ' ')
+  const map: Record<string, string> = {
+    query_data: '데이터 조회', insert_data: '데이터 추가', update_data: '데이터 수정',
+    delete_data: '데이터 삭제', upsert_data: '데이터 저장', count_data: '건수 조회',
+    analyze_data: 'SQL 분석', list_tables: '테이블 목록', save_memory: '메모리 저장',
+    delete_memory: '메모리 삭제',
   }
+  return map[name] || name
+}
+
+// POST: Send message to chat agent (streaming NDJSON)
+export async function POST(request: NextRequest) {
+  const encoder = new TextEncoder()
+
+  // Helper to write an NDJSON line
+  function line(obj: Record<string, unknown>): Uint8Array {
+    return encoder.encode(JSON.stringify(obj) + '\n')
+  }
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const formData = await request.formData()
+        const message = formData.get('message') as string
+        const sessionId = formData.get('sessionId') as string | null
+        const currentPage = formData.get('currentPage') as string || '/'
+        const pageContext = formData.get('pageContext') as string || ''
+        const files = formData.getAll('files') as File[]
+
+        if (!message && files.length === 0) {
+          controller.enqueue(line({ type: 'error', error: 'Message or files required' }))
+          controller.close(); return
+        }
+
+        const supabase = getServiceSupabase()
+
+        // Create or get session
+        let currentSessionId = sessionId
+        if (!currentSessionId) {
+          const { data: session } = await supabase
+            .from('agent_chat_sessions')
+            .insert({ user_id: 'ceo', title: (message || '파일 분석').slice(0, 50) })
+            .select().single()
+          currentSessionId = session?.id
+        }
+
+        controller.enqueue(line({ type: 'progress', step: '⏳ 처리 시작', sessionId: currentSessionId }))
+
+        // Parse files
+        const fileContents: Array<{ type: string; content: string; summary: string }> = []
+        for (const file of files) {
+          controller.enqueue(line({ type: 'progress', step: `📂 파일 파싱: ${file.name}` }))
+          try {
+            const parsed = await parseFileContent(file)
+            fileContents.push(parsed)
+            controller.enqueue(line({ type: 'progress', step: `✅ ${parsed.summary}` }))
+          } catch (e) {
+            fileContents.push({
+              type: 'error',
+              content: `파일 파싱 실패: ${e instanceof Error ? e.message : 'Unknown error'}`,
+              summary: `파일 "${file.name}" 처리 실패`,
+            })
+          }
+        }
+
+        // Build user message
+        let userMessage = `[현재 페이지: ${pageContext || currentPage}]\n${message || ''}`
+        if (fileContents.length > 0) {
+          const fileSection = fileContents.map(f =>
+            `[첨부 파일 - ${f.summary}]\n${f.content}`
+          ).join('\n\n---\n\n')
+          userMessage = `${userMessage}\n\n${fileSection}`
+        }
+
+        // Save user message to DB
+        if (currentSessionId) {
+          await supabase.from('agent_chat_messages').insert({
+            session_id: currentSessionId,
+            role: 'user',
+            content: message || '(파일 첨부)',
+            attachments: files.map(f => ({ name: f.name, size: f.size, type: f.type })),
+          })
+        }
+
+        // Load conversation history
+        let history: Array<{ role: string; parts: Array<{ text: string }> }> = []
+        if (currentSessionId) {
+          const { data: dbMessages } = await supabase
+            .from('agent_chat_messages')
+            .select('role, content')
+            .eq('session_id', currentSessionId)
+            .order('created_at', { ascending: true })
+            .limit(30)
+          if (dbMessages && dbMessages.length > 0) {
+            const prior = dbMessages.slice(0, -1)
+            history = prior
+              .filter(m => m.role === 'user' || m.role === 'assistant')
+              .map(m => ({
+                role: m.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: m.content }],
+              }))
+          }
+        }
+
+        // Initialize Gemini
+        controller.enqueue(line({ type: 'progress', step: '🤖 Gemini 분석 중...' }))
+        const genAI = getGemini()
+        const systemPrompt = await buildSystemPrompt()
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.5-flash',
+          systemInstruction: systemPrompt,
+          tools: [{
+            functionDeclarations: agentTools.map(t => ({
+              name: t.name,
+              description: t.description,
+              parameters: {
+                type: SchemaType.OBJECT,
+                properties: Object.fromEntries(
+                  Object.entries(t.parameters.properties).map(([k, v]) => [k, {
+                    ...v,
+                    type: v.type === 'string' ? SchemaType.STRING
+                      : v.type === 'number' ? SchemaType.NUMBER
+                      : SchemaType.STRING,
+                  }])
+                ),
+                required: t.parameters.required || [],
+              },
+            })),
+          }],
+          toolConfig: {
+            functionCallingConfig: { mode: FunctionCallingMode.AUTO },
+          },
+        })
+
+        const chat = model.startChat({ history })
+        let response = await chat.sendMessage(userMessage)
+        const toolCallsLog: Array<{ name: string; args: unknown; result: unknown }> = []
+
+        // Tool calling loop (max 5 iterations)
+        for (let i = 0; i < 5; i++) {
+          const candidate = response.response.candidates?.[0]
+          const parts = candidate?.content?.parts || []
+          const functionCalls = parts.filter(p => 'functionCall' in p)
+          if (functionCalls.length === 0) break
+
+          const functionResponses = []
+          for (const part of functionCalls) {
+            const fc = (part as { functionCall: { name: string; args: Record<string, unknown> } }).functionCall
+            console.log(`[ChatAgent] Executing tool: ${fc.name}`, fc.args)
+            controller.enqueue(line({ type: 'progress', step: `🔧 ${toolLabel(fc.name)}` }))
+
+            const result = await executeTool(fc.name, fc.args)
+            toolCallsLog.push({ name: fc.name, args: fc.args, result })
+
+            // Build completion message
+            const r = result as Record<string, unknown>
+            const count = Array.isArray(r?.data) ? ` (${(r.data as unknown[]).length}건)` : r?.error ? ' (실패)' : ''
+            controller.enqueue(line({ type: 'progress', step: `✅ ${toolLabel(fc.name)}${count}` }))
+
+            functionResponses.push({
+              functionResponse: { name: fc.name, response: result as object },
+            })
+          }
+
+          controller.enqueue(line({ type: 'progress', step: '🤖 Gemini 분석 중...' }))
+          response = await chat.sendMessage(functionResponses)
+        }
+
+        // Extract final text
+        let finalText = response.response.text()
+        if (!finalText?.trim() && toolCallsLog.length > 0) {
+          const lastResult = toolCallsLog[toolCallsLog.length - 1].result
+          if (lastResult && typeof lastResult === 'object') {
+            const r = lastResult as Record<string, unknown>
+            if (Array.isArray(r.data)) finalText = `조회 결과 ${r.data.length}건이 있습니다.`
+            else if (r.error) finalText = `오류가 발생했습니다: ${r.error}`
+            else finalText = '요청을 처리했습니다.'
+          }
+        }
+
+        // Save assistant message to DB
+        if (currentSessionId) {
+          const isFirstExchange = !sessionId
+          const sessionUpdate: Record<string, unknown> = { updated_at: new Date().toISOString() }
+          if (isFirstExchange && finalText) {
+            const firstLine = finalText.split('\n')[0].replace(/[#*_`]/g, '').trim()
+            if (firstLine.length > 5) {
+              sessionUpdate.title = firstLine.slice(0, 40) + (firstLine.length > 40 ? '…' : '')
+            }
+          }
+          await Promise.all([
+            supabase.from('agent_chat_messages').insert({
+              session_id: currentSessionId,
+              role: 'assistant',
+              content: finalText,
+              tool_calls: toolCallsLog.length > 0 ? toolCallsLog : null,
+            }),
+            supabase.from('agent_chat_sessions')
+              .update(sessionUpdate)
+              .eq('id', currentSessionId),
+          ])
+        }
+
+        controller.enqueue(line({
+          type: 'done',
+          message: finalText,
+          sessionId: currentSessionId,
+          toolCalls: toolCallsLog,
+        }))
+      } catch (error) {
+        console.error('[ChatAgent] Error:', error)
+        controller.enqueue(line({
+          type: 'error',
+          error: error instanceof Error ? error.message : 'Internal server error',
+        }))
+      } finally {
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson',
+      'Cache-Control': 'no-cache',
+      'Transfer-Encoding': 'chunked',
+    },
+  })
 }
 
 // GET: List sessions or messages
