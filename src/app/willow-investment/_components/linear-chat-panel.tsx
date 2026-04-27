@@ -33,16 +33,23 @@ interface LinearChatPanelProps {
 /* ── Page context ── */
 
 const PAGE_CONTEXT: Record<string, string> = {
-  '/willow-investment/mgmt': '윌로우인베스트먼트 - 사업관리 — 일정(willow_mgmt_schedules), 현금관리(willow_mgmt_cash), 이메일',
-  '/willow-investment/invest': '윌로우인베스트먼트 - 투자관리 — 포트폴리오, 매매기록(stock_trades), 종목리서치(stock_research), 소형주스크리닝(smallcap_screening), 부동산',
-  '/willow-investment/wiki': '윌로우인베스트먼트 - 업무위키 — wiki_notes, 파일첨부',
-  '/willow-investment/management': '윌로우인베스트먼트 - 사업관리 — 클라이언트, 프로젝트, 마일스톤, 일정, 메모, 현금관리(willow_mgmt_cash), 투자리서치, 부동산, 이메일, 업무위키',
+  '/willow-investment/mgmt': '윌로우인베스트먼트 - 사업관리 — 일정, 현금관리, 이메일',
+  '/willow-investment/invest': '윌로우인베스트먼트 - 투자관리 — 포트폴리오, 매매기록, 종목리서치, 부동산',
+  '/willow-investment/wiki': '윌로우인베스트먼트 - 업무위키',
+  '/willow-investment/tensw': '텐소프트웍스 - 경영관리 — 프로젝트, 일정, 현금, 매출, 대출, 이메일',
+  '/willow-investment/akros': '아크로스 - ETF 인덱스 — 상품, AUM, 세금계산서, 이메일',
+  '/willow-investment/etc': 'ETC - ETF 플랫폼 — 상품, 인보이스, 이메일',
+  '/willow-investment/ryuha': '류하 - 학습관리 — 일정, 숙제, 교재, 수첩, 성장기록',
 }
 
 const QUICK_SUGGESTIONS: Record<string, string[]> = {
   '/willow-investment/mgmt': ['이번 달 현금흐름 요약', '이번 주 일정', '최근 거래 내역', '비용 분석'],
-  '/willow-investment/invest': ['포트폴리오 현황', '최근 매매 기록', '종목 리서치 현황', '부동산 시세'],
+  '/willow-investment/invest': ['포트폴리오 현황', '추가매수 필요 종목', '종목 리서치 현황', '부동산 시세'],
   '/willow-investment/wiki': ['최근 위키 노트', '위키 검색', '새 노트 작성'],
+  '/willow-investment/tensw': ['텐소프트웍스 대시보드', '이번 주 일정', '현금 현황', '프로젝트 진행률'],
+  '/willow-investment/akros': ['아크로스 대시보드', 'AUM 현황', '세금계산서 목록'],
+  '/willow-investment/etc': ['ETC 대시보드', '상품별 수수료', '인보이스 현황'],
+  '/willow-investment/ryuha': ['이번 주 일정', '미완료 숙제', '성장기록'],
 }
 
 const FALLBACK_SUGGESTIONS = ['윌로우 경영 대시보드', '이번 달 현금흐름', '이번 주 일정']
@@ -283,7 +290,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
               <span style={{ fontSize: 12, color: t.brand[600] }}>✦</span>
             )}
             <span style={{ fontSize: 13, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              {showSessionList ? '대화 기록' : 'Gemini 2.5'}
+              {showSessionList ? '대화 기록' : 'Gemini 3.1 Pro'}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>

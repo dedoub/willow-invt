@@ -365,6 +365,28 @@ function toolLabel(name: string): string {
   return map[name] || name
 }
 
+// Tool routing: filter tools by current page to reduce noise
+const GENERIC_TOOLS = ['query_data', 'insert_data', 'update_data', 'delete_data', 'upsert_data', 'count_data', 'analyze_data', 'list_tables', 'save_memory', 'delete_memory']
+
+const PAGE_TOOL_PREFIXES: Record<string, string[]> = {
+  '/willow-investment/mgmt':   ['willow_', 'gmail_', 'wiki_'],
+  '/willow-investment/invest': ['invest_', 're_', 'wiki_'],
+  '/willow-investment/wiki':   ['wiki_'],
+  '/willow-investment/tensw':  ['tensw_', 'gmail_', 'wiki_'],
+  '/willow-investment/akros':  ['akros_', 'gmail_', 'wiki_'],
+  '/willow-investment/etc':    ['etc_', 'gmail_', 'wiki_'],
+  '/willow-investment/ryuha':  ['ryuha_'],
+}
+
+function getToolsForPage(page: string) {
+  const prefixes = PAGE_TOOL_PREFIXES[page]
+  if (!prefixes) return agentTools // unknown page → all tools
+
+  return agentTools.filter(t =>
+    GENERIC_TOOLS.includes(t.name) || prefixes.some(p => t.name.startsWith(p))
+  )
+}
+
 // POST: Send message to chat agent (streaming NDJSON)
 export async function POST(request: NextRequest) {
   const encoder = new TextEncoder()
@@ -459,15 +481,17 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Initialize Gemini
-        controller.enqueue(line({ type: 'progress', step: '🤖 Gemini 분석 중...' }))
+        // Initialize Gemini with page-scoped tools
+        const routedTools = getToolsForPage(currentPage)
+        console.log(`[ChatAgent] Page: ${currentPage} → ${routedTools.length}/${agentTools.length} tools`)
+        controller.enqueue(line({ type: 'progress', step: `🤖 Gemini 분석 중... (도구 ${routedTools.length}개)` }))
         const genAI = getGemini()
         const systemPrompt = await buildSystemPrompt()
         const model = genAI.getGenerativeModel({
           model: 'gemini-3.1-pro-preview',
           systemInstruction: systemPrompt,
           tools: [{
-            functionDeclarations: agentTools.map(t => ({
+            functionDeclarations: routedTools.map(t => ({
               name: t.name,
               description: t.description,
               parameters: {
