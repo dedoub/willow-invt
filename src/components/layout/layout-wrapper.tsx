@@ -10,7 +10,7 @@ import { ChatPanel } from '@/components/chat/chat-panel'
 
 const PUBLIC_PATHS = ['/login', '/signup']
 const STANDALONE_PATHS = ['/mcp/authorize'] // 인증 여부와 무관하게 독립 렌더링
-const LINEAR_ROUTES = ['/willow-investment/mgmt', '/willow-investment/invest', '/willow-investment/wiki', '/willow-investment/ryuha', '/willow-investment/akros', '/willow-investment/etc', '/willow-investment/tensw', '/willow-investment/monor']
+const LINEAR_ROUTES = ['/mgmt', '/invest', '/wiki', '/ryuha', '/akros', '/etc', '/tensw', '/monor']
 
 interface LayoutWrapperProps {
   children: React.ReactNode
@@ -45,7 +45,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
       '/etf/akros': t.pageTitles.akrosPage,
       '/tensoftworks/projects': t.pageTitles.tenswProjects,
       '/tensoftworks/management': t.pageTitles.tenswManagement,
-      '/willow-investment/management': t.pageTitles.willowManagement,
+      '/management': t.pageTitles.willowManagement,
       '/admin/users': t.pageTitles.usersPage,
       '/others/ryuha-study': t.pageTitles.ryuhaStudyPage,
     }

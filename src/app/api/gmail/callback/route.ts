@@ -6,7 +6,7 @@ import { getOAuth2Client, saveTokens, GmailContext } from '@/lib/gmail-server'
 const CONTEXT_REDIRECT_PATHS: Record<GmailContext, string> = {
   default: '/etf/etc',
   tensoftworks: '/tensoftworks/management',
-  willow: '/willow-investment/management',
+  willow: '/management',
 }
 
 export async function GET(request: NextRequest) {

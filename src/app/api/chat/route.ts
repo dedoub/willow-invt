@@ -475,13 +475,13 @@ function toolLabel(name: string): string {
 const GENERIC_TOOLS = ['query_data', 'insert_data', 'update_data', 'delete_data', 'upsert_data', 'count_data', 'analyze_data', 'list_tables', 'save_memory', 'delete_memory']
 
 const PAGE_TOOL_PREFIXES: Record<string, string[]> = {
-  '/willow-investment/mgmt':   ['willow_', 'gmail_', 'wiki_'],
-  '/willow-investment/invest': ['invest_', 're_', 'wiki_'],
-  '/willow-investment/wiki':   ['wiki_'],
-  '/willow-investment/tensw':  ['tensw_', 'gmail_', 'wiki_'],
-  '/willow-investment/akros':  ['akros_', 'gmail_', 'wiki_'],
-  '/willow-investment/etc':    ['etc_', 'gmail_', 'wiki_'],
-  '/willow-investment/ryuha':  ['ryuha_'],
+  '/mgmt':   ['willow_', 'gmail_', 'wiki_'],
+  '/invest': ['invest_', 're_', 'wiki_'],
+  '/wiki':   ['wiki_'],
+  '/tensw':  ['tensw_', 'gmail_', 'wiki_'],
+  '/akros':  ['akros_', 'gmail_', 'wiki_'],
+  '/etc':    ['etc_', 'gmail_', 'wiki_'],
+  '/ryuha':  ['ryuha_'],
 }
 
 function getToolsForPage(page: string) {
