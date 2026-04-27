@@ -89,6 +89,29 @@ const PAGE_SIZE = 5
 type SortKey = 'complexName' | 'areaBand' | 'actualAvgPpp' | 'listingMinPpp' | 'listingMaxPpp' | 'gap' | 'listingCount'
 type SortDir = 'asc' | 'desc'
 
+/* ── Shared styles (module scope to avoid re-creation) ── */
+
+const tooltipStyle: React.CSSProperties = {
+  background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
+  borderRadius: t.radius.md, fontSize: 11, fontFamily: t.font.sans, padding: '6px 10px',
+}
+
+const innerCard: React.CSSProperties = {
+  background: t.neutrals.inner, borderRadius: t.radius.md, padding: 12,
+}
+
+const thStyle: React.CSSProperties = {
+  fontSize: 11, color: t.neutrals.subtle, cursor: 'pointer',
+  padding: '6px 4px', textAlign: 'right' as const, fontWeight: t.weight.medium,
+  fontFamily: t.font.sans, whiteSpace: 'nowrap' as const,
+  userSelect: 'none' as const,
+}
+
+const tdStyle: React.CSSProperties = {
+  fontSize: 12, padding: '5px 4px', textAlign: 'right' as const,
+  fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' as const,
+}
+
 /* ── Helpers ── */
 
 function fmtMonth(m: string) {
@@ -110,6 +133,259 @@ function gapColor(gap: number | null): string {
   if (gap > 0) return '#EF4444'
   if (gap < 0) return '#3B82F6'
   return t.neutrals.text
+}
+
+/* ── Sub-components (module scope — stable identity across re-renders) ── */
+
+function SortIndicator({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return null
+  return <span style={{ marginLeft: 2 }}>{dir === 'asc' ? '↑' : '↓'}</span>
+}
+
+function ChartHeader({ title, momPct }: { title: string; momPct?: number | null }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+      <span style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted }}>{title}</span>
+      {momPct !== undefined && momPct !== null && (
+        <span style={{
+          fontSize: 10, fontWeight: t.weight.medium, borderRadius: t.radius.sm,
+          padding: '1px 5px',
+          background: momPct > 0 ? '#FEE2E2' : momPct < 0 ? '#DBEAFE' : t.neutrals.inner,
+          color: momPct > 0 ? '#EF4444' : momPct < 0 ? '#3B82F6' : t.neutrals.muted,
+        }}>
+          {momPct > 0 ? '+' : ''}{momPct.toFixed(1)}%
+        </span>
+      )}
+    </div>
+  )
+}
+
+function PriceChart({ data, complexes, height = 200 }: {
+  data: Record<string, string | number | null>[]
+  complexes: { name: string }[]
+  height?: number
+}) {
+  if (!data.length) return <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
+        <XAxis
+          dataKey="month" tickFormatter={fmtMonth}
+          tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+          axisLine={false} tickLine={false} interval="preserveStartEnd"
+        />
+        <YAxis
+          yAxisId="left"
+          tickFormatter={(v: number) => `${Math.round(v).toLocaleString()}`}
+          tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+          axisLine={false} tickLine={false} width={50}
+        />
+        <YAxis
+          yAxisId="right" orientation="right"
+          tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+          axisLine={false} tickLine={false} width={30}
+        />
+        <Tooltip
+          contentStyle={tooltipStyle}
+          labelFormatter={(v) => String(v)}
+          formatter={(value, name) => {
+            if (name === '건수') return [value, name]
+            return [`${Math.round(Number(value)).toLocaleString()} 만/평`, name]
+          }}
+        />
+        <Bar
+          yAxisId="right" dataKey="_count" name="건수"
+          fill={t.neutrals.line} barSize={12} radius={[2, 2, 0, 0]}
+        />
+        {complexes.map((c, i) => (
+          <Line
+            key={c.name} yAxisId="left" type="monotone" dataKey={c.name} name={c.name}
+            stroke={COMPLEX_COLORS[i % COMPLEX_COLORS.length]}
+            strokeWidth={1.5} dot={false} connectNulls
+          />
+        ))}
+      </ComposedChart>
+    </ResponsiveContainer>
+  )
+}
+
+function GapChart({ data, height = 200 }: { data: ReTrendPoint[]; height?: number }) {
+  if (!data.length) return <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
+        <XAxis
+          dataKey="date" tickFormatter={fmtDate}
+          tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+          axisLine={false} tickLine={false} interval="preserveStartEnd"
+        />
+        <YAxis
+          tickFormatter={(v: number) => `${v.toFixed(0)}%`}
+          tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+          axisLine={false} tickLine={false} width={40}
+        />
+        <Tooltip
+          contentStyle={tooltipStyle}
+          labelFormatter={(v) => String(v)}
+          formatter={(value) => [`${Number(value).toFixed(1)}%`, '괴리율']}
+        />
+        <ReferenceLine y={0} stroke={t.neutrals.subtle} strokeDasharray="3 3" />
+        <Line
+          type="monotone" dataKey="gapRate" name="괴리율"
+          stroke="#6366f1" strokeWidth={1.5} dot={false} connectNulls
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  )
+}
+
+function ListingTable({
+  rows, sortKey, sortDir, page, pageCount,
+  onSort, onPageChange, tradeType,
+}: {
+  rows: ReListingRow[]
+  sortKey: SortKey
+  sortDir: SortDir
+  page: number
+  pageCount: number
+  onSort: (key: SortKey) => void
+  onPageChange: (p: number) => void
+  tradeType: '매매' | '전세'
+}) {
+  if (rows.length === 0) return <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  const msParam = tradeType === '매매' ? 'a1' : 'b1'
+  return (
+    <div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: t.font.sans }}>
+          <thead>
+            <tr>
+              <th style={{ ...thStyle, textAlign: 'left' }} onClick={() => onSort('complexName')}>
+                단지<SortIndicator active={sortKey === 'complexName'} dir={sortDir} />
+              </th>
+              <th style={thStyle} onClick={() => onSort('areaBand')}>
+                평형<SortIndicator active={sortKey === 'areaBand'} dir={sortDir} />
+              </th>
+              <th style={thStyle} onClick={() => onSort('actualAvgPpp')}>
+                실거래<SortIndicator active={sortKey === 'actualAvgPpp'} dir={sortDir} />
+              </th>
+              <th style={thStyle} onClick={() => onSort('listingMinPpp')}>
+                호가(저)<SortIndicator active={sortKey === 'listingMinPpp'} dir={sortDir} />
+              </th>
+              <th style={thStyle} onClick={() => onSort('listingMaxPpp')}>
+                호가(고)<SortIndicator active={sortKey === 'listingMaxPpp'} dir={sortDir} />
+              </th>
+              <th style={thStyle} onClick={() => onSort('gap')}>
+                괴리율<SortIndicator active={sortKey === 'gap'} dir={sortDir} />
+              </th>
+              <th style={thStyle} onClick={() => onSort('listingCount')}>
+                매물<SortIndicator active={sortKey === 'listingCount'} dir={sortDir} />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} style={{ borderTop: `1px solid ${t.neutrals.line}` }}>
+                <td style={{ ...tdStyle, textAlign: 'left', fontFamily: t.font.sans }}>
+                  {r.complexNo ? (
+                    <a
+                      href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=${msParam}&a=APT&e=OPST`}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{ color: t.brand[600], textDecoration: 'none' }}
+                    >
+                      {r.complexName}
+                    </a>
+                  ) : r.complexName}
+                </td>
+                <td style={tdStyle}>{r.areaBand}평</td>
+                <td style={tdStyle}>{fmtPpp(r.actualAvgPpp)}</td>
+                <td style={tdStyle}>{fmtPpp(r.listingMinPpp)}</td>
+                <td style={tdStyle}>{fmtPpp(r.listingMaxPpp)}</td>
+                <td style={{ ...tdStyle, color: gapColor(r.gap), fontWeight: t.weight.medium }}>
+                  {r.gap !== null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
+                </td>
+                <td style={tdStyle}>{r.listingCount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {pageCount > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 8 }}>
+          <button
+            onClick={() => onPageChange(Math.max(0, page - 1))}
+            disabled={page === 0}
+            style={{
+              border: 'none', background: 'transparent', cursor: page === 0 ? 'default' : 'pointer',
+              opacity: page === 0 ? 0.3 : 1, padding: 2,
+            }}
+          >
+            <LIcon name="chevronLeft" size={14} color={t.neutrals.muted} />
+          </button>
+          <span style={{ fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.mono }}>
+            {page + 1} / {pageCount}
+          </span>
+          <button
+            onClick={() => onPageChange(Math.min(pageCount - 1, page + 1))}
+            disabled={page >= pageCount - 1}
+            style={{
+              border: 'none', background: 'transparent', cursor: page >= pageCount - 1 ? 'default' : 'pointer',
+              opacity: page >= pageCount - 1 ? 0.3 : 1, padding: 2,
+            }}
+          >
+            <LIcon name="chevronRight" size={14} color={t.neutrals.muted} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function KpiSkeleton({ mobile }: { mobile: boolean }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} style={innerCard}>
+          <Bone w={60} h={8} style={{ marginBottom: 6 }} />
+          <Bone w={80} h={14} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ChartSkeleton() {
+  return (
+    <div style={innerCard}>
+      <Bone w={140} h={10} style={{ marginBottom: 8 }} />
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 180 }}>
+        {Array.from({ length: 12 }).map((_, i) => (
+          <Bone key={i} h={40 + Math.random() * 120} style={{ flex: 1, borderRadius: 2 }} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TableSkeleton() {
+  return (
+    <div style={innerCard}>
+      <Bone w={160} h={10} style={{ marginBottom: 10 }} />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <Bone w={70} h={10} />
+          <Bone w={40} h={10} />
+          <Bone w={50} h={10} />
+          <Bone w={50} h={10} />
+          <Bone w={50} h={10} />
+          <Bone w={40} h={10} />
+          <Bone w={30} h={10} />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 /* ── Component ── */
@@ -383,12 +659,6 @@ export function RealEstateBlock() {
     setJeonsePage(0)
   }
 
-  /* ── Shared chart tooltip ── */
-  const tooltipStyle: React.CSSProperties = {
-    background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
-    borderRadius: t.radius.md, fontSize: 11, fontFamily: t.font.sans, padding: '6px 10px',
-  }
-
   /* ── Inline styles ── */
   const chipActiveStyle: React.CSSProperties = {
     background: t.brand[100], color: t.brand[700],
@@ -402,72 +672,12 @@ export function RealEstateBlock() {
     cursor: 'pointer', border: 'none', fontFamily: t.font.sans,
     fontWeight: t.weight.regular, transition: 'all .12s',
   }
-  const innerCard: React.CSSProperties = {
-    background: t.neutrals.inner, borderRadius: t.radius.md, padding: 12,
-  }
-  const thStyle: React.CSSProperties = {
-    fontSize: 11, color: t.neutrals.subtle, cursor: 'pointer',
-    padding: '6px 4px', textAlign: 'right' as const, fontWeight: t.weight.medium,
-    fontFamily: t.font.sans, whiteSpace: 'nowrap' as const,
-    userSelect: 'none' as const,
-  }
-  const tdStyle: React.CSSProperties = {
-    fontSize: 12, padding: '5px 4px', textAlign: 'right' as const,
-    fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' as const,
-  }
-
   /* ── Complex name lookup ── */
   const complexNameById = useMemo(() => {
     const map = new Map<string, string>()
     for (const c of reComplexes) map.set(c.id, c.name)
     return map
   }, [reComplexes])
-
-  /* ── Skeleton helpers ── */
-  function KpiSkeleton() {
-    return (
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} style={innerCard}>
-            <Bone w={60} h={8} style={{ marginBottom: 6 }} />
-            <Bone w={80} h={14} />
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  function ChartSkeleton() {
-    return (
-      <div style={innerCard}>
-        <Bone w={140} h={10} style={{ marginBottom: 8 }} />
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 180 }}>
-          {Array.from({ length: 12 }).map((_, i) => (
-            <Bone key={i} h={40 + Math.random() * 120} style={{ flex: 1, borderRadius: 2 }} />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  function TableSkeleton() {
-    return (
-      <div style={innerCard}>
-        <Bone w={160} h={10} style={{ marginBottom: 10 }} />
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <Bone w={70} h={10} />
-            <Bone w={40} h={10} />
-            <Bone w={50} h={10} />
-            <Bone w={50} h={10} />
-            <Bone w={50} h={10} />
-            <Bone w={40} h={10} />
-            <Bone w={30} h={10} />
-          </div>
-        ))}
-      </div>
-    )
-  }
 
   /* ── Initial load: full skeleton ── */
   if (initialLoad) {
@@ -482,7 +692,7 @@ export function RealEstateBlock() {
             <Bone w={50} h={22} r={t.radius.pill} />
             <Bone w={50} h={22} r={t.radius.pill} />
           </div>
-          <KpiSkeleton />
+          <KpiSkeleton mobile={mobile} />
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <ChartSkeleton />
@@ -511,214 +721,6 @@ export function RealEstateBlock() {
           추적 중인 단지가 없습니다
         </div>
       </LCard>
-    )
-  }
-
-  /* ── Sub-components ── */
-
-  function SortIndicator({ active, dir }: { active: boolean; dir: SortDir }) {
-    if (!active) return null
-    return <span style={{ marginLeft: 2 }}>{dir === 'asc' ? '↑' : '↓'}</span>
-  }
-
-  function ChartHeader({ title, momPct }: { title: string; momPct?: number | null }) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <span style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted }}>{title}</span>
-        {momPct !== undefined && momPct !== null && (
-          <span style={{
-            fontSize: 10, fontWeight: t.weight.medium, borderRadius: t.radius.sm,
-            padding: '1px 5px',
-            background: momPct > 0 ? '#FEE2E2' : momPct < 0 ? '#DBEAFE' : t.neutrals.inner,
-            color: momPct > 0 ? '#EF4444' : momPct < 0 ? '#3B82F6' : t.neutrals.muted,
-          }}>
-            {momPct > 0 ? '+' : ''}{momPct.toFixed(1)}%
-          </span>
-        )}
-      </div>
-    )
-  }
-
-  function PriceChart({ data, complexes, height = 200 }: {
-    data: Record<string, string | number | null>[]
-    complexes: { name: string }[]
-    height?: number
-  }) {
-    if (!data.length) return <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
-    return (
-      <ResponsiveContainer width="100%" height={height}>
-        <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
-          <XAxis
-            dataKey="month" tickFormatter={fmtMonth}
-            tick={{ fontSize: 9, fill: t.neutrals.subtle }}
-            axisLine={false} tickLine={false} interval="preserveStartEnd"
-          />
-          <YAxis
-            yAxisId="left"
-            tickFormatter={(v: number) => `${Math.round(v).toLocaleString()}`}
-            tick={{ fontSize: 9, fill: t.neutrals.subtle }}
-            axisLine={false} tickLine={false} width={50}
-          />
-          <YAxis
-            yAxisId="right" orientation="right"
-            tick={{ fontSize: 9, fill: t.neutrals.subtle }}
-            axisLine={false} tickLine={false} width={30}
-          />
-          <Tooltip
-            contentStyle={tooltipStyle}
-            labelFormatter={(v) => String(v)}
-            formatter={(value, name) => {
-              if (name === '건수') return [value, name]
-              return [`${Math.round(Number(value)).toLocaleString()} 만/평`, name]
-            }}
-          />
-          <Bar
-            yAxisId="right" dataKey="_count" name="건수"
-            fill={t.neutrals.line} barSize={12} radius={[2, 2, 0, 0]}
-          />
-          {complexes.map((c, i) => (
-            <Line
-              key={c.name} yAxisId="left" type="monotone" dataKey={c.name} name={c.name}
-              stroke={COMPLEX_COLORS[i % COMPLEX_COLORS.length]}
-              strokeWidth={1.5} dot={false} connectNulls
-            />
-          ))}
-        </ComposedChart>
-      </ResponsiveContainer>
-    )
-  }
-
-  function GapChart({ data, height = 200 }: { data: ReTrendPoint[]; height?: number }) {
-    if (!data.length) return <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
-    return (
-      <ResponsiveContainer width="100%" height={height}>
-        <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
-          <XAxis
-            dataKey="date" tickFormatter={fmtDate}
-            tick={{ fontSize: 9, fill: t.neutrals.subtle }}
-            axisLine={false} tickLine={false} interval="preserveStartEnd"
-          />
-          <YAxis
-            tickFormatter={(v: number) => `${v.toFixed(0)}%`}
-            tick={{ fontSize: 9, fill: t.neutrals.subtle }}
-            axisLine={false} tickLine={false} width={40}
-          />
-          <Tooltip
-            contentStyle={tooltipStyle}
-            labelFormatter={(v) => String(v)}
-            formatter={(value) => [`${Number(value).toFixed(1)}%`, '괴리율']}
-          />
-          <ReferenceLine y={0} stroke={t.neutrals.subtle} strokeDasharray="3 3" />
-          <Line
-            type="monotone" dataKey="gapRate" name="괴리율"
-            stroke="#6366f1" strokeWidth={1.5} dot={false} connectNulls
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    )
-  }
-
-  function ListingTable({
-    rows, sortKey, sortDir, page, pageCount,
-    onSort, onPageChange, tradeType,
-  }: {
-    rows: ReListingRow[]
-    sortKey: SortKey
-    sortDir: SortDir
-    page: number
-    pageCount: number
-    onSort: (key: SortKey) => void
-    onPageChange: (p: number) => void
-    tradeType: '매매' | '전세'
-  }) {
-    if (rows.length === 0) return <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
-    const msParam = tradeType === '매매' ? 'a1' : 'b1'
-    return (
-      <div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: t.font.sans }}>
-            <thead>
-              <tr>
-                <th style={{ ...thStyle, textAlign: 'left' }} onClick={() => onSort('complexName')}>
-                  단지<SortIndicator active={sortKey === 'complexName'} dir={sortDir} />
-                </th>
-                <th style={thStyle} onClick={() => onSort('areaBand')}>
-                  평형<SortIndicator active={sortKey === 'areaBand'} dir={sortDir} />
-                </th>
-                <th style={thStyle} onClick={() => onSort('actualAvgPpp')}>
-                  실거래<SortIndicator active={sortKey === 'actualAvgPpp'} dir={sortDir} />
-                </th>
-                <th style={thStyle} onClick={() => onSort('listingMinPpp')}>
-                  호가(저)<SortIndicator active={sortKey === 'listingMinPpp'} dir={sortDir} />
-                </th>
-                <th style={thStyle} onClick={() => onSort('listingMaxPpp')}>
-                  호가(고)<SortIndicator active={sortKey === 'listingMaxPpp'} dir={sortDir} />
-                </th>
-                <th style={thStyle} onClick={() => onSort('gap')}>
-                  괴리율<SortIndicator active={sortKey === 'gap'} dir={sortDir} />
-                </th>
-                <th style={thStyle} onClick={() => onSort('listingCount')}>
-                  매물<SortIndicator active={sortKey === 'listingCount'} dir={sortDir} />
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i} style={{ borderTop: `1px solid ${t.neutrals.line}` }}>
-                  <td style={{ ...tdStyle, textAlign: 'left', fontFamily: t.font.sans }}>
-                    {r.complexNo ? (
-                      <a
-                        href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=${msParam}&a=APT&e=OPST`}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{ color: t.brand[600], textDecoration: 'none' }}
-                      >
-                        {r.complexName}
-                      </a>
-                    ) : r.complexName}
-                  </td>
-                  <td style={tdStyle}>{r.areaBand}평</td>
-                  <td style={tdStyle}>{fmtPpp(r.actualAvgPpp)}</td>
-                  <td style={tdStyle}>{fmtPpp(r.listingMinPpp)}</td>
-                  <td style={tdStyle}>{fmtPpp(r.listingMaxPpp)}</td>
-                  <td style={{ ...tdStyle, color: gapColor(r.gap), fontWeight: t.weight.medium }}>
-                    {r.gap !== null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
-                  </td>
-                  <td style={tdStyle}>{r.listingCount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {pageCount > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 8 }}>
-            <button
-              onClick={() => onPageChange(Math.max(0, page - 1))}
-              disabled={page === 0}
-              style={{
-                border: 'none', background: 'transparent', cursor: page === 0 ? 'default' : 'pointer',
-                opacity: page === 0 ? 0.3 : 1, padding: 2,
-              }}
-            >
-              <LIcon name="chevronLeft" size={14} color={t.neutrals.muted} />
-            </button>
-            <span style={{ fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-              {page + 1} / {pageCount}
-            </span>
-            <button
-              onClick={() => onPageChange(Math.min(pageCount - 1, page + 1))}
-              disabled={page >= pageCount - 1}
-              style={{
-                border: 'none', background: 'transparent', cursor: page >= pageCount - 1 ? 'default' : 'pointer',
-                opacity: page >= pageCount - 1 ? 0.3 : 1, padding: 2,
-              }}
-            >
-              <LIcon name="chevronRight" size={14} color={t.neutrals.muted} />
-            </button>
-          </div>
-        )}
-      </div>
     )
   }
 
@@ -877,7 +879,7 @@ export function RealEstateBlock() {
         </div>
 
         {/* KPI row */}
-        {loadingSummary ? <KpiSkeleton /> : reSummary && (
+        {loadingSummary ? <KpiSkeleton mobile={mobile} /> : reSummary && (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
           <div style={innerCard}>
             <div style={{ fontSize: 9.5, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
