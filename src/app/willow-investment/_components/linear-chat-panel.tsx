@@ -208,7 +208,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); handleSend() }
   }
 
   const removeFile = (idx: number) => setFiles(prev => prev.filter((_, i) => i !== idx))

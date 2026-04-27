@@ -70,17 +70,17 @@ export function InvoiceSendDialog({ invoice, target, onClose, onSent }: InvoiceS
     const firstItemDesc = invoice.line_items[0]?.description || 'Invoice'
 
     const etcDefaults = {
-      to: 'gstevens@exchangetradedconcepts.com',
+      to: 'kyle@exchangetradedconcepts.com',
       cc: 'accounting@exchangetradedconcepts.com',
       subject: `Willow Investments - ${firstItemDesc}`,
-      body: `Hi Garrett,\n\nAttached is my invoice for the ${firstItemDesc}.\n\nPlease let me know if you have any questions.\n\nBest regards,\nDong-Wook Kim\nWillow Investments, Inc.`,
+      body: `Hi Kyle,\n\nAttached is my invoice for the ${firstItemDesc}.\n\nPlease let me know once the payment is made so I can inform my bank.\n\nThank you.\n\n\nBest,\n\nDongwook`,
     }
 
     const bankDefaults = {
       to: 'ysjmto@shinhan.com',
       cc: '',
       subject: `윌로우인베스트먼트 외화인보이스 - ${invoice.invoice_no}`,
-      body: `안녕하세요,\n\n첨부 외화인보이스에 대한 외화송금을 요청드립니다.\n\n감사합니다.\n\n윌로우인베스트먼트(주)\n김동욱`,
+      body: `안녕하세요.\n\n당사 추가 외화 인보이스 첨부와 같이 보내 드립니다.\n\n이에 확인 부탁 드립니다.\n\n감사합니다.\n\n김동욱 드림 (010-9629-1025)`,
     }
 
     const defaults = target === 'etc' ? etcDefaults : bankDefaults
