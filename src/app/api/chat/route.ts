@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx'
 
 // OpenRouter config
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const OPENROUTER_MODEL = 'deepseek/deepseek-v4-pro'
+const OPENROUTER_MODEL = 'google/gemini-3-flash-preview'
 // Vision model for image OCR (cheap Gemini Flash via Google AI)
 const VISION_MODEL = 'gemini-2.5-flash'
 
@@ -209,6 +209,8 @@ async function buildSystemPrompt(): Promise<string> {
 - **invest_create_trades_batch**: 매매기록 일괄 추가 (이미지에서 여러 건 파싱 시)
 - **invest_update_trade**: 매매기록 수정
 - **invest_delete_trade**: 매매기록 삭제
+- **invest_get_quotes**: 종목 현재가 조회 (Yahoo Finance)
+- **invest_portfolio_status**: ⭐ 포트폴리오 피라미딩 상태 일괄 조회 (매매기록+현재가+계산 결과 포함)
 
 **거래내역 이미지 처리 흐름:**
 1. 사용자가 증권앱 캡처/거래내역 이미지를 첨부하면 이미지에서 종목코드, 회사명, 거래일, 매수/매도, 수량, 단가를 파싱
@@ -217,18 +219,30 @@ async function buildSystemPrompt(): Promise<string> {
 4. 등록 결과를 사용자에게 확인
 
 **⚠️ 포트폴리오 보유현황/추가매수 질문 처리법:**
-"어떤 종목을 더 사야 해?", "보유 현황", "포트폴리오 상태" 등 포트폴리오 관련 질문은 반드시 아래 순서로 처리:
-1. query_data로 **stock_watchlist** 테이블 조회 (group_name='portfolio'인 행 = 현재 보유 종목)
-2. invest_list_trades로 **전체 매매기록** 조회
-3. 두 데이터를 결합하여 종목별 순보유수량(매수합-매도합), 평균매수가 계산
+"어떤 종목을 더 사야 해?", "보유 현황", "포트폴리오 상태", "추매" 등 포트폴리오 관련 질문:
+→ **invest_portfolio_status** 도구 1회 호출이면 끝. 이 도구가 매매기록 조회, 현재가 조회, 피라미딩 계산을 모두 수행하고 결과를 반환함.
+→ 절대 수익률이나 피라미딩 상태를 직접 계산하지 말 것. 도구가 반환한 status를 그대로 사용할 것.
 
-**피라미딩(추가매수) 시스템:**
-- 1트랜치 = 약 500만원 (KRW) 또는 $5,000 (USD)
-- 트랜치 수 = 총매수금액 ÷ 트랜치사이즈 (최대 10)
-- 트리거 기준 (평균수익률이 이 이상이면 다음 트랜치 매수 가능):
-  - 1→2: +10%, 2→3: +20%, 3→4: +30%, 4→5: +40%, 5→6: +55%, 6→7: +75%, 7→8: +100%, 8→9: +135%, 9→10: +175%
-- 상태: BUY(추가매수 가능), HOLD(대기), FULL(10트랜치 완료), FREEZE(수익률 하락), HOUSE_MONEY(+200% 이상)
-- **BUY 상태인 종목 = 추가매수 필요한 종목**
+**피라미딩(추가매수) 시스템 — 반드시 아래 로직대로 계산:**
+1트랜치사이즈 = KRW 500만원 / USD는 500만÷환율(약 $3,500)
+TRIGGERS 배열 = [null, 10%, 20%, 30%, 40%, 55%, 75%, 100%, 135%, 175%] (인덱스 0~9)
+
+**계산 순서 (종목별):**
+1. 매매기록에서 매수 합계금액(totalBought) 계산
+2. 트랜치 수 = round(totalBought ÷ 트랜치사이즈), 최소 1 최대 10
+3. 평균매수가 = totalBought ÷ 순보유수량
+4. 수익률(avgReturn) = (현재가 - 평균매수가) ÷ 평균매수가
+5. nextTrigger = TRIGGERS[tranche] (현재 트랜치의 다음 트리거)
+6. currTrigger = TRIGGERS[tranche - 1] (현재 트랜치 진입 트리거)
+
+**상태 판정 (위에서 아래 순서, 먼저 해당되면 확정):**
+- 수익률 >= 200% → HOUSE_MONEY (원금회수)
+- 트랜치 >= 10 → FULL (풀)
+- 수익률 >= nextTrigger → **BUY (추매)** ← "추매 라벨" = 이 상태
+- 수익률 < currTrigger → FREEZE (동결)
+- 그 외 → HOLD (대기)
+
+**"추매 라벨 종목" = BUY 상태 종목. stock_watchlist에 라벨 컬럼은 없고, 위 계산 결과로 판정한다.**
 
 **stock_watchlist 테이블 컬럼:** name, ticker, sector, group_name(portfolio|watchlist|benchmark), axis, pinned, monitor_date, monitor_price
 

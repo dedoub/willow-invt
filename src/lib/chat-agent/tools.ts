@@ -874,6 +874,26 @@ export const agentTools = [
       required: ['id'],
     },
   },
+  {
+    name: 'invest_get_quotes',
+    description: '[투자] 보유 종목 현재가 조회. tickers와 markets를 콤마 구분으로 전달. 예: tickers="005930,VRT" markets="KR,US".',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        tickers: { type: 'string', description: '종목코드 콤마 구분 (필수). 예: "005930,000660,VRT,CIEN"' },
+        markets: { type: 'string', description: '시장 콤마 구분 (필수). tickers 순서에 맞게 KR/US 지정. 예: "KR,KR,US,US"' },
+      },
+      required: ['tickers', 'markets'],
+    },
+  },
+  {
+    name: 'invest_portfolio_status',
+    description: '[투자] 포트폴리오 피라미딩 상태 조회. 매매기록+현재가를 기반으로 종목별 트랜치, 수익률, 피라미딩 상태(BUY/HOLD/FREEZE/FULL/HOUSE_MONEY)를 서버에서 계산하여 반환. "추매 종목", "보유현황", "포트폴리오 상태" 질문 시 반드시 이 도구 사용.',
+    parameters: {
+      type: 'object' as const,
+      properties: {},
+    },
+  },
   // ---- 업무위키 전용 도구 ----
   {
     name: 'wiki_list_notes',
@@ -1712,6 +1732,96 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       const { error } = await supabase.from('stock_trades').delete().eq('id', id)
       if (error) return { error: error.message }
       return { result: '매매기록 삭제 완료' }
+    }
+
+    case 'invest_get_quotes': {
+      const tickers = (args.tickers as string) || ''
+      const markets = (args.markets as string) || ''
+      if (!tickers) return { error: 'tickers 필수' }
+      const qBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+      const res = await fetch(`${qBaseUrl}/api/willow-mgmt/stock-quotes?tickers=${encodeURIComponent(tickers)}&markets=${encodeURIComponent(markets)}`)
+      if (!res.ok) return { error: `시세 조회 실패: ${res.status}` }
+      const data = await res.json()
+      return { prices: data.prices || {}, count: Object.keys(data.prices || {}).length }
+    }
+
+    case 'invest_portfolio_status': {
+      const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
+      const { data: trades, error: trErr } = await supabase
+        .from('stock_trades')
+        .select('id, trade_date, ticker, company_name, market, trade_type, quantity, price, total_amount, currency')
+        .order('trade_date', { ascending: true })
+      if (trErr) return { error: trErr.message }
+      if (!trades || trades.length === 0) return { error: '매매기록 없음' }
+
+      const psBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+      let usdKrwRate = 1430
+      try {
+        const fxRes = await fetch(`${psBaseUrl}/api/willow-mgmt/stock-quotes?tickers=KRW%3DX&markets=US`)
+        if (fxRes.ok) {
+          const fxData = await fxRes.json()
+          const r = fxData.prices?.['KRW=X']?.price
+          if (r && r > 0) usdKrwRate = r
+        }
+      } catch { /* use default */ }
+
+      const holdingsMap = new Map<string, { ticker: string; company_name: string; market: string; currency: string; netQty: number; totalCost: number; totalBought: number }>()
+      for (const trade of trades) {
+        const key = trade.ticker
+        const prev = holdingsMap.get(key) || { ticker: trade.ticker, company_name: trade.company_name, market: trade.market, currency: trade.currency, netQty: 0, totalCost: 0, totalBought: 0 }
+        if (trade.trade_type === 'buy') {
+          prev.totalCost += trade.total_amount
+          prev.netQty += trade.quantity
+          prev.totalBought += trade.total_amount
+        } else {
+          const avg = prev.netQty > 0 ? prev.totalCost / prev.netQty : 0
+          prev.totalCost -= avg * trade.quantity
+          prev.netQty -= trade.quantity
+          if (prev.netQty <= 0) { prev.netQty = 0; prev.totalCost = 0 }
+        }
+        holdingsMap.set(key, prev)
+      }
+
+      const activeHoldings = Array.from(holdingsMap.values()).filter(h => h.netQty > 0)
+      if (activeHoldings.length === 0) return { holdings: [], message: '보유 종목 없음' }
+
+      const psTickers = activeHoldings.map(h => h.ticker)
+      const psMarkets = activeHoldings.map(h => h.market)
+      const quotesRes = await fetch(`${psBaseUrl}/api/willow-mgmt/stock-quotes?tickers=${encodeURIComponent(psTickers.join(','))}&markets=${encodeURIComponent(psMarkets.join(','))}`)
+      const quotesData = quotesRes.ok ? await quotesRes.json() : { prices: {} }
+      const prices = quotesData.prices || {}
+
+      const results = activeHoldings.map(h => {
+        const avgBuyPrice = h.netQty > 0 ? h.totalCost / h.netQty : 0
+        const quote = prices[h.ticker] || prices[h.ticker.replace('.KS', '')]
+        const currentPrice = quote?.price || 0
+        const currentValue = currentPrice * h.netQty
+        const pnl = currentPrice > 0 ? currentValue - h.totalCost : 0
+        const pnlPercent = h.totalCost > 0 && currentPrice > 0 ? (pnl / h.totalCost) * 100 : 0
+        const avgReturn = pnlPercent / 100
+        const trancheSize = h.currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrwRate
+        const tranche = Math.min(10, Math.max(1, Math.round(h.totalBought / trancheSize)))
+        const curr = TRANCHE_TRIGGERS[tranche - 1]
+        const next = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
+        let status: string
+        if (avgReturn >= 2.00) status = 'HOUSE_MONEY'
+        else if (tranche >= 10) status = 'FULL'
+        else if (next !== null && avgReturn >= next) status = 'BUY'
+        else if (curr !== null && avgReturn < curr) status = 'FREEZE'
+        else status = 'HOLD'
+        return {
+          ticker: h.ticker, company_name: h.company_name, market: h.market, currency: h.currency,
+          netQty: h.netQty, avgBuyPrice: Math.round(avgBuyPrice * 100) / 100,
+          currentPrice, pnlPercent: Math.round(pnlPercent * 10) / 10,
+          tranche, status,
+          nextTrigger: next !== null ? `+${(next * 100).toFixed(0)}%` : null,
+          nextPrice: next !== null ? Math.round(avgBuyPrice * (1 + next) * 100) / 100 : null,
+        }
+      }).sort((a, b) => {
+        const rank: Record<string, number> = { BUY: 0, HOUSE_MONEY: 1, HOLD: 2, FULL: 3, FREEZE: 4 }
+        return (rank[a.status] ?? 5) - (rank[b.status] ?? 5)
+      })
+      return { holdings: results, usdKrwRate, summary: { total: results.length, BUY: results.filter(r => r.status === 'BUY').length, HOLD: results.filter(r => r.status === 'HOLD').length, FREEZE: results.filter(r => r.status === 'FREEZE').length, FULL: results.filter(r => r.status === 'FULL').length, HOUSE_MONEY: results.filter(r => r.status === 'HOUSE_MONEY').length } }
     }
 
     // ---- 업무위키 도구 ----
