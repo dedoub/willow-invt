@@ -1,14 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI, FunctionCallingMode, SchemaType } from '@google/generative-ai'
 import { getServiceSupabase } from '@/lib/supabase'
 import { agentTools, executeTool } from '@/lib/chat-agent/tools'
 import * as XLSX from 'xlsx'
 
-// Gemini client
-function getGemini() {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY not set')
-  return new GoogleGenerativeAI(apiKey)
+// OpenRouter config
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const OPENROUTER_MODEL = 'google/gemini-2.5-flash'
+
+function getOpenRouterKey(): string {
+  const key = process.env.OPENROUTER_API_KEY
+  if (!key) throw new Error('OPENROUTER_API_KEY not set')
+  return key
+}
+
+// OpenAI-compatible types
+interface OAIMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool'
+  content: string | null
+  tool_calls?: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }>
+  tool_call_id?: string
+}
+
+interface OAITool {
+  type: 'function'
+  function: { name: string; description: string; parameters: Record<string, unknown> }
+}
+
+async function chatCompletion(messages: OAIMessage[], tools: OAITool[]): Promise<OAIMessage> {
+  const res = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getOpenRouterKey()}`,
+      'HTTP-Referer': 'https://willow.vercel.app',
+      'X-Title': 'Willow Dashboard Agent',
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages,
+      tools: tools.length > 0 ? tools : undefined,
+      tool_choice: tools.length > 0 ? 'auto' : undefined,
+    }),
+  })
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`OpenRouter ${res.status}: ${errBody}`)
+  }
+  const json = await res.json()
+  return json.choices[0].message
 }
 
 async function loadMemories(): Promise<string> {
@@ -481,74 +520,71 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Initialize Gemini with page-scoped tools
+        // Initialize with page-scoped tools
         const routedTools = getToolsForPage(currentPage)
         console.log(`[ChatAgent] Page: ${currentPage} → ${routedTools.length}/${agentTools.length} tools`)
-        controller.enqueue(line({ type: 'progress', step: `🤖 Gemini 분석 중... (도구 ${routedTools.length}개)` }))
-        const genAI = getGemini()
-        const systemPrompt = await buildSystemPrompt()
-        const model = genAI.getGenerativeModel({
-          model: 'gemini-3.1-pro-preview',
-          systemInstruction: systemPrompt,
-          tools: [{
-            functionDeclarations: routedTools.map(t => ({
-              name: t.name,
-              description: t.description,
-              parameters: {
-                type: SchemaType.OBJECT,
-                properties: Object.fromEntries(
-                  Object.entries(t.parameters.properties).map(([k, v]) => [k, {
-                    ...v,
-                    type: v.type === 'string' ? SchemaType.STRING
-                      : v.type === 'number' ? SchemaType.NUMBER
-                      : SchemaType.STRING,
-                  }])
-                ),
-                required: t.parameters.required || [],
-              },
-            })),
-          }],
-          toolConfig: {
-            functionCallingConfig: { mode: FunctionCallingMode.AUTO },
-          },
-        })
+        controller.enqueue(line({ type: 'progress', step: `🤖 분석 중... (도구 ${routedTools.length}개)` }))
 
-        const chat = model.startChat({ history })
-        let response = await chat.sendMessage(userMessage)
+        const systemPrompt = await buildSystemPrompt()
+        const oaiTools: OAITool[] = routedTools.map(t => ({
+          type: 'function' as const,
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: {
+              type: 'object',
+              properties: t.parameters.properties,
+              required: t.parameters.required || [],
+            },
+          },
+        }))
+
+        // Build messages array (OpenAI format)
+        const messages: OAIMessage[] = [
+          { role: 'system', content: systemPrompt },
+          ...history.map(h => ({
+            role: (h.role === 'model' ? 'assistant' : 'user') as 'assistant' | 'user',
+            content: h.parts[0].text,
+          })),
+          { role: 'user', content: userMessage },
+        ]
+
+        let assistantMsg = await chatCompletion(messages, oaiTools)
+        messages.push(assistantMsg)
         const toolCallsLog: Array<{ name: string; args: unknown; result: unknown }> = []
 
         // Tool calling loop (max 5 iterations)
         for (let i = 0; i < 5; i++) {
-          const candidate = response.response.candidates?.[0]
-          const parts = candidate?.content?.parts || []
-          const functionCalls = parts.filter(p => 'functionCall' in p)
-          if (functionCalls.length === 0) break
+          const toolCalls = assistantMsg.tool_calls
+          if (!toolCalls || toolCalls.length === 0) break
 
-          const functionResponses = []
-          for (const part of functionCalls) {
-            const fc = (part as { functionCall: { name: string; args: Record<string, unknown> } }).functionCall
-            console.log(`[ChatAgent] Executing tool: ${fc.name}`, fc.args)
-            controller.enqueue(line({ type: 'progress', step: `🔧 ${toolLabel(fc.name)}` }))
+          for (const tc of toolCalls) {
+            const fnName = tc.function.name
+            const fnArgs = JSON.parse(tc.function.arguments || '{}')
+            console.log(`[ChatAgent] Executing tool: ${fnName}`, fnArgs)
+            controller.enqueue(line({ type: 'progress', step: `🔧 ${toolLabel(fnName)}` }))
 
-            const result = await executeTool(fc.name, fc.args)
-            toolCallsLog.push({ name: fc.name, args: fc.args, result })
+            const result = await executeTool(fnName, fnArgs)
+            toolCallsLog.push({ name: fnName, args: fnArgs, result })
 
-            // Build completion message
             const r = result as Record<string, unknown>
             const count = Array.isArray(r?.data) ? ` (${(r.data as unknown[]).length}건)` : r?.error ? ' (실패)' : ''
-            controller.enqueue(line({ type: 'progress', step: `✅ ${toolLabel(fc.name)}${count}` }))
+            controller.enqueue(line({ type: 'progress', step: `✅ ${toolLabel(fnName)}${count}` }))
 
-            functionResponses.push({
-              functionResponse: { name: fc.name, response: result as object },
+            messages.push({
+              role: 'tool',
+              content: JSON.stringify(result),
+              tool_call_id: tc.id,
             })
           }
 
-          controller.enqueue(line({ type: 'progress', step: '🤖 Gemini 분석 중...' }))
-          response = await chat.sendMessage(functionResponses)
+          controller.enqueue(line({ type: 'progress', step: '🤖 분석 중...' }))
+          assistantMsg = await chatCompletion(messages, oaiTools)
+          messages.push(assistantMsg)
         }
 
         // Extract final text
-        let finalText = response.response.text()
+        let finalText = assistantMsg.content || ''
         if (!finalText?.trim() && toolCallsLog.length > 0) {
           const lastResult = toolCallsLog[toolCallsLog.length - 1].result
           if (lastResult && typeof lastResult === 'object') {
