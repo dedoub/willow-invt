@@ -33,7 +33,7 @@ type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 export default function TenswPage() {
   const mobile = useIsMobile()
-  const [loading, setLoading] = useState(true)
+  const [loadPhase, setLoadPhase] = useState(0) // 0=nothing, 1=DB+wiki done, 2=all done
 
   // Data states
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,7 +121,7 @@ export default function TenswPage() {
   }, [])
 
   const loadData = useCallback(async () => {
-    setLoading(true)
+    setLoadPhase(0)
     try {
       const [projectsRes, schedulesRes, clientsRes, cashRes, salesRes, loansRes] =
         await Promise.all([
@@ -152,9 +152,16 @@ export default function TenswPage() {
         setLoans(Array.isArray(data) ? data : data.loans || [])
       }
 
-      await Promise.all([loadWiki(), fetchEmails()])
-    } finally {
-      setLoading(false)
+      // Phase 1: DB + wiki done → show UI (emails still loading)
+      await loadWiki()
+      setLoadPhase(1)
+
+      // Phase 2: Gmail (slow) → emails appear
+      await fetchEmails()
+      setLoadPhase(2)
+    } catch {
+      // Even on error, show whatever we have
+      setLoadPhase(prev => prev === 0 ? 1 : prev)
     }
   }, [loadWiki, fetchEmails])
 
@@ -413,7 +420,7 @@ export default function TenswPage() {
         }}>AI 서비스에 필요한 데이터 구축 및 관리 솔루션을 제공</p>
       </div>
 
-      {loading ? <TenswSkeleton /> : (
+      {loadPhase === 0 ? <TenswSkeleton /> : (
         <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Schedule (full width) */}

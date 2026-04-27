@@ -31,7 +31,7 @@ type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 export default function MgmtPage() {
   const mobile = useIsMobile()
-  const [loading, setLoading] = useState(true)
+  const [loadPhase, setLoadPhase] = useState(0) // 0=nothing, 1=DB done, 2=email done
   const [schedules, setSchedules] = useState<WillowMgmtSchedule[]>([])
   const [clients, setClients] = useState<WillowMgmtClient[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -65,7 +65,7 @@ export default function MgmtPage() {
   ] as const
 
   const loadData = useCallback(async () => {
-    setLoading(true)
+    setLoadPhase(0)
     try {
       const [clientsRes, schedulesRes, invoicesRes] = await Promise.all([
         fetch('/api/willow-mgmt/clients'),
@@ -79,7 +79,10 @@ export default function MgmtPage() {
         setInvoices(Array.isArray(data) ? data : data.invoices || [])
       }
 
-      // Gmail — check all unique contexts
+      // DB done — show UI immediately
+      setLoadPhase(1)
+
+      // Gmail — check all unique contexts (non-blocking for UI)
       try {
         const contexts = [...new Set(EMAIL_SOURCES.map(s => s.context))]
         const statusResults = await Promise.all(
@@ -95,7 +98,7 @@ export default function MgmtPage() {
         }
       } catch { /* Gmail not critical */ }
     } finally {
-      setLoading(false)
+      setLoadPhase(2)
     }
   }, [])
 
@@ -340,7 +343,7 @@ export default function MgmtPage() {
         </p>
       </div>
 
-      {loading ? <MgmtSkeleton /> : (
+      {loadPhase === 0 ? <MgmtSkeleton /> : (
       <>
 
       {/* 3 blocks */}

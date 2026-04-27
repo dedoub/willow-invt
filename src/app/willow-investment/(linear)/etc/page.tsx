@@ -23,7 +23,7 @@ type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 export default function EtcPage() {
   const mobile = useIsMobile()
-  const [loading, setLoading] = useState(true)
+  const [loadPhase, setLoadPhase] = useState(0) // 0=loading, 1=DB done, 2=all done
 
   // Products + Stats
   const [etfs, setEtfs] = useState<ETFDisplayData[]>([])
@@ -116,8 +116,10 @@ export default function EtcPage() {
   }, [])
 
   useEffect(() => {
-    Promise.all([loadData(), loadInvoices(), loadWiki(), fetchEmails()])
-      .finally(() => setLoading(false))
+    Promise.all([loadData(), loadInvoices(), loadWiki()])
+      .then(() => setLoadPhase(1))
+      .then(() => fetchEmails())
+      .finally(() => setLoadPhase(2))
   }, [loadData, loadInvoices, loadWiki, fetchEmails])
   useAgentRefresh(['etf_', 'work_wiki'], () => {
     loadData(); loadInvoices(); loadWiki()
@@ -183,7 +185,7 @@ export default function EtcPage() {
         }}>국내 금융투자업자들에게 미국 상장 ETF 플랫폼을 제공</p>
       </div>
 
-      {loading ? <EtcSkeleton /> : (
+      {loadPhase === 0 ? <EtcSkeleton /> : (
         <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Stats + Products (left 2/3) + Invoices (right 1/3, full height) */}

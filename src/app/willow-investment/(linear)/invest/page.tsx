@@ -9,13 +9,13 @@ import { HoldingsBlock, StockTradeFull, StockQuoteFull, TickerTheme } from './_c
 import { AnalysisBlock } from './_components/analysis-block'
 import { TradeLog } from './_components/trade-log'
 import { RealEstateBlock } from './_components/real-estate-block'
-import { InvestSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
+import { InvestSkeleton, InvestHoldingsSkeleton } from '@/app/willow-investment/_components/linear-skeleton'
 
 const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
 
 export default function InvestPage() {
   const mobile = useIsMobile()
-  const [loading, setLoading] = useState(true)
+  const [loadPhase, setLoadPhase] = useState(0) // 0=nothing, 1=base, 2=quotes
   const [watchlistData, setWatchlistData] = useState<{ portfolio: WatchlistItem[]; watchlist: WatchlistItem[]; benchmark: WatchlistItem[] } | null>(null)
   const [signalData, setSignalData] = useState<SignalData[]>([])
   const [stockTrades, setStockTrades] = useState<StockTrade[]>([])
@@ -62,9 +62,9 @@ export default function InvestPage() {
   }, [])
 
   const loadData = useCallback(async () => {
-    setLoading(true)
+    setLoadPhase(0)
     try {
-      // Phase 1: fetch APIs that don't depend on trades
+      // Phase 1: fetch base data in parallel
       const [watchlistRes, signalRes, tradesRes, researchRes] = await Promise.all([
         fetch('/api/willow-mgmt/watchlist', { cache: 'no-store' }),
         fetch('/api/willow-mgmt/stock-signals'),
@@ -93,6 +93,9 @@ export default function InvestPage() {
         const data = await researchRes.json()
         setStockResearch(Array.isArray(data) ? data : data.items || data.research || [])
       }
+
+      // Show kanban + trade log immediately
+      setLoadPhase(1)
 
       // Phase 2: fetch stock quotes, live FX rate, and FX history
       if (tradesFull.length > 0) {
@@ -137,11 +140,10 @@ export default function InvestPage() {
           if (histData.rates) setFxHistory(histData.rates)
         }
 
-        // Load history (non-blocking)
         loadStockHistory(tradesFull)
       }
     } finally {
-      setLoading(false)
+      setLoadPhase(2)
     }
   }, [loadStockHistory])
 
@@ -266,7 +268,7 @@ export default function InvestPage() {
         </p>
       </div>
 
-      {loading ? <InvestSkeleton /> : (
+      {loadPhase === 0 ? <InvestSkeleton /> : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <SignalBar
           totalValue={fmtTotalValue}
@@ -288,6 +290,7 @@ export default function InvestPage() {
           onDataChanged={loadData}
         />
 
+        {loadPhase < 2 ? <InvestHoldingsSkeleton /> : (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, overflow: 'hidden' }}>
           <HoldingsBlock
             stockTrades={stockTradesFull}
@@ -312,6 +315,7 @@ export default function InvestPage() {
             </div>
           </div>
         </div>
+        )}
 
         <RealEstateBlock />
       </div>

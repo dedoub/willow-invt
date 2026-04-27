@@ -117,6 +117,47 @@ export function MgmtSkeleton() {
 }
 
 /** 투자관리 skeleton: signal bar + kanban + 2-col (holdings + analysis/tradelog) + real estate */
+export function InvestHoldingsSkeleton() {
+  const mobile = useIsMobile()
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+      <CardSkel pad={0}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <Bone w={80} h={8} />
+          <Bone w={80} h={14} style={{ marginTop: 6 }} />
+        </div>
+        <div style={{ padding: '0 16px 16px' }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Bone key={i} h={18} style={{ marginTop: 8 }} />
+          ))}
+        </div>
+      </CardSkel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <CardSkel pad={0}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+            <Bone w={80} h={8} />
+            <Bone w={80} h={14} style={{ marginTop: 6 }} />
+          </div>
+          <div style={{ padding: '0 16px 16px' }}>
+            <Bone h={120} r={t.radius.md} />
+          </div>
+        </CardSkel>
+        <CardSkel pad={0}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+            <Bone w={60} h={8} />
+            <Bone w={80} h={14} style={{ marginTop: 6 }} />
+          </div>
+          <div style={{ padding: '0 16px 16px' }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Bone key={i} h={16} style={{ marginTop: 8 }} />
+            ))}
+          </div>
+        </CardSkel>
+      </div>
+    </div>
+  )
+}
+
 export function InvestSkeleton() {
   const mobile = useIsMobile()
 

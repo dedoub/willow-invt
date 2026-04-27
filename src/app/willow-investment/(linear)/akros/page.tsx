@@ -18,7 +18,7 @@ type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 export default function AkrosPage() {
   const mobile = useIsMobile()
-  const [loading, setLoading] = useState(true)
+  const [loadPhase, setLoadPhase] = useState(0) // 0=nothing, 1=DB done, 2=all done
 
   // AUM + Products
   const [timeSeries, setTimeSeries] = useState<TimeSeriesData[]>([])
@@ -103,8 +103,15 @@ export default function AkrosPage() {
   }, [])
 
   useEffect(() => {
-    Promise.all([loadProducts(), loadInvoices(), loadWiki(), fetchEmails()])
-      .finally(() => setLoading(false))
+    let cancelled = false
+    async function load() {
+      await Promise.all([loadProducts(), loadInvoices(), loadWiki()])
+      if (!cancelled) setLoadPhase(1)
+      await fetchEmails()
+      if (!cancelled) setLoadPhase(2)
+    }
+    load()
+    return () => { cancelled = true }
   }, [loadProducts, loadInvoices, loadWiki, fetchEmails])
   useAgentRefresh(['akros_', 'etf_', 'work_wiki'], () => {
     loadProducts(); loadInvoices(); loadWiki()
@@ -171,7 +178,7 @@ export default function AkrosPage() {
         }}>인덱스 AUM 100조 원을 목표로 성장 중이며 그 과정 중에 매각</p>
       </div>
 
-      {loading ? <AkrosSkeleton /> : (
+      {loadPhase === 0 ? <AkrosSkeleton /> : (
         <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* AUM + Products (left 2/3) + Tax Invoices (right 1/3, full height) */}
