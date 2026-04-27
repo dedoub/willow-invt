@@ -44,12 +44,25 @@ async function chatCompletion(messages: OAIMessage[], tools: OAITool[]): Promise
       tool_choice: tools.length > 0 ? 'auto' : undefined,
     }),
   })
+  const text = await res.text()
   if (!res.ok) {
-    const errBody = await res.text()
-    throw new Error(`OpenRouter ${res.status}: ${errBody}`)
+    throw new Error(`OpenRouter ${res.status}: ${text}`)
   }
-  const json = await res.json()
-  return json.choices[0].message
+  let json: Record<string, unknown>
+  try {
+    json = JSON.parse(text)
+  } catch {
+    throw new Error(`OpenRouter: invalid JSON response: ${text.slice(0, 500)}`)
+  }
+  const choices = json.choices as Array<{ message: OAIMessage }> | undefined
+  if (!choices || choices.length === 0) {
+    // Log full response for debugging
+    console.error('[ChatAgent] Unexpected OpenRouter response:', JSON.stringify(json).slice(0, 1000))
+    // Check if it's an error response
+    const err = (json.error as { message?: string })?.message || JSON.stringify(json).slice(0, 300)
+    throw new Error(`OpenRouter: no choices in response — ${err}`)
+  }
+  return choices[0].message
 }
 
 async function loadMemories(): Promise<string> {
