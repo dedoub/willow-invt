@@ -112,21 +112,26 @@ export function InvoiceSendDialog({ invoice, target, onClose, onSent }: InvoiceS
     if (!invoice || !pdfBlob) return
     setSending(true)
     try {
+      const isScheduled = scheduled && scheduledDate && scheduledTime
       const formData = new FormData()
       formData.append('to', to)
       if (cc.trim()) formData.append('cc', cc)
       formData.append('subject', subject)
       formData.append('body', body)
-      formData.append('context', 'default')
       formData.append('attachments', pdfBlob, `${invoice.invoice_no}.pdf`)
-      if (scheduled && scheduledDate && scheduledTime) {
+
+      let sendData: Record<string, unknown>
+      if (isScheduled) {
         const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`).toISOString()
         formData.append('scheduledAt', scheduledAt)
+        const res = await fetch('/api/gmail/scheduled?context=default', { method: 'POST', body: formData })
+        if (!res.ok) throw new Error('Schedule failed')
+        sendData = await res.json()
+      } else {
+        const res = await fetch('/api/gmail/send?context=default', { method: 'POST', body: formData })
+        if (!res.ok) throw new Error('Send failed')
+        sendData = await res.json()
       }
-
-      const sendRes = await fetch('/api/gmail/send', { method: 'POST', body: formData })
-      if (!sendRes.ok) throw new Error('Send failed')
-      const sendData = await sendRes.json()
 
       // Update invoice status
       const patchBody: Record<string, unknown> = {}
