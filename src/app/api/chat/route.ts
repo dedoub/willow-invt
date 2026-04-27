@@ -464,7 +464,7 @@ export async function POST(request: NextRequest) {
         const genAI = getGemini()
         const systemPrompt = await buildSystemPrompt()
         const model = genAI.getGenerativeModel({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.1-pro-preview',
           systemInstruction: systemPrompt,
           tools: [{
             functionDeclarations: agentTools.map(t => ({
