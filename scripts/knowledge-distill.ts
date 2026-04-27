@@ -290,5 +290,215 @@ async function distillTrades(): Promise<{ entities: number; relations: number; i
   return counts
 }
 
-// Exported for use by main orchestrator (added in later task)
-export { log, askClaude, parseClaudeJson, upsertEntity, createRelation, createInsight, isAlreadyDistilled, markDistilled, distillEmails, distillTrades, supabase }
+// ============ Source: Stock Research ============
+
+async function distillResearch(): Promise<{ entities: number; relations: number; insights: number }> {
+  const counts = { entities: 0, relations: 0, insights: 0 }
+
+  const { data: research, error } = await supabase
+    .from('stock_research')
+    .select('id, ticker, company_name, market, sector, structural_thesis, notes, verdict, track, sector_tags, scan_date')
+    .order('scan_date', { ascending: false })
+    .limit(50)
+  if (error || !research) { log(`Research fetch error: ${error?.message}`); return counts }
+
+  const toAnalyze: typeof research = []
+  for (const r of research) {
+    if (await isAlreadyDistilled('research', r.id)) continue
+    if (r.structural_thesis || r.notes) toAnalyze.push(r)
+    else {
+      if (await upsertEntity(
+        r.company_name || r.ticker, 'market',
+        `${r.ticker} — ${r.sector || 'unknown sector'}`,
+        { ticker: r.ticker, market: r.market, sector: r.sector, track: r.track, verdict: r.verdict },
+        r.sector_tags || []
+      )) counts.entities++
+      await markDistilled('research', r.id, { entities: 1, relations: 0, insights: 0 })
+    }
+  }
+
+  for (const r of toAnalyze.slice(0, 10)) {
+    const thesisText = [r.structural_thesis, r.notes].filter(Boolean).join('\n')
+    const prompt = `You are a knowledge extraction assistant. Extract structured knowledge from this stock research.
+
+Stock: ${r.company_name} (${r.ticker}), Market: ${r.market}, Sector: ${r.sector || 'unknown'}
+Track: ${r.track || 'unknown'}, Verdict: ${r.verdict || 'unknown'}
+
+Research content:
+${thesisText}
+
+Return ONLY a JSON object with this exact structure (no markdown, no explanation):
+{
+  "entities": [{"name": "entity name", "type": "company|market|technology|strategy", "description": "one sentence"}],
+  "relations": [{"subject": "entity name", "predicate": "uses_technology|serves_market|competes_with|part_of", "object": "entity name"}],
+  "insights": [{"content": "one-sentence insight about the stock", "type": "observation|pattern", "context": "source context"}]
+}`
+
+    try {
+      const raw = await askClaude(prompt)
+      const extracted = parseClaudeJson(raw)
+
+      if (await upsertEntity(
+        r.company_name || r.ticker, 'market',
+        `${r.ticker} — ${r.sector || 'unknown'}`,
+        { ticker: r.ticker, market: r.market, sector: r.sector, track: r.track, verdict: r.verdict },
+        r.sector_tags || []
+      )) counts.entities++
+
+      for (const e of extracted.entities) {
+        if (e.name && e.name !== r.company_name) {
+          if (await upsertEntity(e.name, e.type || 'concept', e.description)) counts.entities++
+        }
+      }
+
+      for (const rel of extracted.relations) {
+        if (await createRelation(rel.subject, rel.predicate, rel.object)) counts.relations++
+      }
+
+      for (const ins of extracted.insights) {
+        const entityNames = [r.company_name || r.ticker, ...(ins.entity_names || [])].filter(Boolean)
+        if (await createInsight(ins.content, ins.type || 'observation', entityNames, ins.context)) counts.insights++
+      }
+
+      await markDistilled('research', r.id, counts)
+      log(`Research distilled: ${r.ticker} (${extracted.entities.length}E, ${extracted.relations.length}R, ${extracted.insights.length}I)`)
+    } catch (err) {
+      log(`Research ${r.ticker} failed: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
+  }
+
+  return counts
+}
+
+// ============ Source: Telegram Conversations ============
+
+async function distillTelegram(): Promise<{ entities: number; relations: number; insights: number }> {
+  const counts = { entities: 0, relations: 0, insights: 0 }
+
+  const { data: conversations, error } = await supabase
+    .from('telegram_conversations')
+    .select('chat_id, bot_type, messages, updated_at')
+    .eq('bot_type', 'ceo')
+  if (error || !conversations) { log(`Telegram fetch error: ${error?.message}`); return counts }
+
+  for (const conv of conversations) {
+    const sourceId = `chat:${conv.chat_id}`
+    const updatedAt = conv.updated_at || new Date().toISOString()
+    if (await isAlreadyDistilled('telegram', sourceId, updatedAt)) continue
+
+    const messages = (conv.messages || []) as Array<{ role: string; content: string; timestamp?: string }>
+    if (messages.length < 3) continue
+
+    const recent = messages.slice(-30)
+    const transcript = recent.map(m => `[${m.role}] ${m.content.slice(0, 500)}`).join('\n')
+
+    const prompt = `You are a knowledge extraction assistant. Analyze this Telegram conversation between a CEO and their AI assistant. Extract decisions made, key observations, and entities discussed.
+
+Conversation (most recent messages):
+${transcript}
+
+Return ONLY a JSON object with this exact structure (no markdown, no explanation):
+{
+  "entities": [{"name": "entity name", "type": "person|company|market|project|strategy|concept", "description": "one sentence"}],
+  "relations": [{"subject": "entity name", "predicate": "manages|invested_in|uses_technology|collaborates_with|leads", "object": "entity name"}],
+  "insights": [{"content": "one-sentence decision, observation, or pattern", "type": "decision|observation|pattern", "context": "brief context from conversation", "entity_names": ["related entity names"]}]
+}
+
+Focus on:
+- Business decisions made by the CEO
+- Investment observations or strategy changes
+- Key people, companies, or stocks discussed
+- Patterns in CEO's thinking or preferences
+Skip routine greetings, system messages, and trivial exchanges.`
+
+    try {
+      const raw = await askClaude(prompt)
+      const extracted = parseClaudeJson(raw)
+
+      for (const e of extracted.entities) {
+        if (e.name && e.name.length >= 2) {
+          if (await upsertEntity(e.name, e.type || 'concept', e.description)) counts.entities++
+        }
+      }
+
+      for (const rel of extracted.relations) {
+        if (await createRelation(rel.subject, rel.predicate, rel.object)) counts.relations++
+      }
+
+      for (const ins of extracted.insights) {
+        const entityNames = ins.entity_names || []
+        if (await createInsight(ins.content, ins.type || 'observation', entityNames, ins.context || 'Telegram CEO conversation')) counts.insights++
+      }
+
+      await markDistilled('telegram', sourceId, counts, updatedAt)
+      log(`Telegram distilled: chat ${conv.chat_id} (${extracted.entities.length}E, ${extracted.relations.length}R, ${extracted.insights.length}I)`)
+    } catch (err) {
+      log(`Telegram chat ${conv.chat_id} failed: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
+  }
+
+  return counts
+}
+
+// ============ Main ============
+
+async function main() {
+  log('=== Knowledge Distillation Started ===')
+  const startTime = Date.now()
+
+  const results: Record<string, { entities: number; relations: number; insights: number }> = {}
+
+  // Phase 1: Direct mapping (no Claude CLI)
+  try {
+    log('Phase 1: Email distillation...')
+    results.email = await distillEmails()
+    log(`Email done: ${JSON.stringify(results.email)}`)
+  } catch (err) {
+    log(`Email phase failed: ${err instanceof Error ? err.message : 'unknown'}`)
+    results.email = { entities: 0, relations: 0, insights: 0 }
+  }
+
+  try {
+    log('Phase 1: Trade distillation...')
+    results.trade = await distillTrades()
+    log(`Trade done: ${JSON.stringify(results.trade)}`)
+  } catch (err) {
+    log(`Trade phase failed: ${err instanceof Error ? err.message : 'unknown'}`)
+    results.trade = { entities: 0, relations: 0, insights: 0 }
+  }
+
+  // Phase 2: Claude CLI analysis
+  try {
+    log('Phase 2: Research distillation...')
+    results.research = await distillResearch()
+    log(`Research done: ${JSON.stringify(results.research)}`)
+  } catch (err) {
+    log(`Research phase failed: ${err instanceof Error ? err.message : 'unknown'}`)
+    results.research = { entities: 0, relations: 0, insights: 0 }
+  }
+
+  try {
+    log('Phase 2: Telegram distillation...')
+    results.telegram = await distillTelegram()
+    log(`Telegram done: ${JSON.stringify(results.telegram)}`)
+  } catch (err) {
+    log(`Telegram phase failed: ${err instanceof Error ? err.message : 'unknown'}`)
+    results.telegram = { entities: 0, relations: 0, insights: 0 }
+  }
+
+  // Summary
+  const totals = Object.values(results).reduce(
+    (acc, r) => ({ entities: acc.entities + r.entities, relations: acc.relations + r.relations, insights: acc.insights + r.insights }),
+    { entities: 0, relations: 0, insights: 0 }
+  )
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
+
+  log(`=== Done in ${elapsed}s ===`)
+  log(`Total: ${totals.entities} entities, ${totals.relations} relations, ${totals.insights} insights`)
+  log(`By source: ${JSON.stringify(results)}`)
+}
+
+main().catch(err => {
+  log(`Fatal: ${err instanceof Error ? err.message : 'unknown'}`)
+  process.exit(1)
+})
