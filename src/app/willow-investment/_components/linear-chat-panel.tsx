@@ -67,6 +67,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [showSessionList, setShowSessionList] = useState(false)
+  const [modelName, setModelName] = useState('AI Agent')
 
   const [panelWidth, setPanelWidth] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -191,7 +192,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-      let doneData: { message: string; sessionId: string; toolCalls: Array<{ name: string; args: unknown; result: unknown }> } | null = null
+      let doneData: { message: string; sessionId: string; toolCalls: Array<{ name: string; args: unknown; result: unknown }>; model?: string } | null = null
 
       while (true) {
         const { done, value } = await reader.read()
@@ -225,6 +226,11 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
       if (doneData.sessionId && !sessionId) {
         setSessionId(doneData.sessionId)
         fetch('/api/chat').then(r => r.json()).then(d => setSessions(d.sessions || [])).catch(() => {})
+      }
+      if (doneData.model) {
+        // "deepseek/deepseek-v4-pro" → "DeepSeek V4 Pro"
+        const short = doneData.model.split('/').pop() || doneData.model
+        setModelName(short.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
       }
 
       setMessages(prev => [...prev, {
@@ -290,7 +296,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
               <span style={{ fontSize: 12, color: t.brand[600] }}>✦</span>
             )}
             <span style={{ fontSize: 13, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              {showSessionList ? '대화 기록' : 'Gemini 3.1 Pro'}
+              {showSessionList ? '대화 기록' : modelName}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>

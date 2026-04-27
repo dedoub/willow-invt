@@ -5,7 +5,9 @@ import * as XLSX from 'xlsx'
 
 // OpenRouter config
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const OPENROUTER_MODEL = 'google/gemini-2.5-flash'
+const OPENROUTER_MODEL = 'deepseek/deepseek-v4-pro'
+// Vision model for image OCR (cheap Gemini Flash via Google AI)
+const VISION_MODEL = 'gemini-2.5-flash'
 
 function getOpenRouterKey(): string {
   const key = process.env.OPENROUTER_API_KEY
@@ -332,9 +334,47 @@ willow_mgmt_*와 동일 구조. 테이블명만 tensw_mgmt_. 메모는 tensw_mgm
 ${memories}`
 }
 
+// OCR image via Gemini Flash (Google AI free tier)
+async function ocrImage(arrayBuffer: ArrayBuffer, mimeType: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) throw new Error('GEMINI_API_KEY not set for vision')
+  const base64 = Buffer.from(arrayBuffer).toString('base64')
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: '이 이미지의 모든 텍스트, 숫자, 표를 정확히 추출해주세요. 증권 거래내역이면 종목코드, 회사명, 거래일, 매수/매도, 수량, 단가, 금액을 구조화해서 출력하세요.' },
+            { inlineData: { mimeType, data: base64 } },
+          ],
+        }],
+      }),
+    }
+  )
+  if (!res.ok) throw new Error(`Vision API ${res.status}: ${await res.text()}`)
+  const json = await res.json()
+  return json.candidates?.[0]?.content?.parts?.[0]?.text || '(이미지에서 텍스트를 추출할 수 없습니다)'
+}
+
+const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp']
+
 // Parse uploaded file content
 async function parseFileContent(file: File): Promise<{ type: string; content: string; summary: string }> {
   const arrayBuffer = await file.arrayBuffer()
+
+  // Image → OCR via Gemini Vision
+  if (IMAGE_EXTS.some(ext => file.name.toLowerCase().endsWith(ext))) {
+    const mimeType = file.type || 'image/png'
+    const text = await ocrImage(arrayBuffer, mimeType)
+    return {
+      type: 'image',
+      content: text,
+      summary: `이미지 "${file.name}" (OCR 추출)`,
+    }
+  }
 
   if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv')) {
     const workbook = XLSX.read(arrayBuffer, { type: 'array' })
@@ -623,6 +663,7 @@ export async function POST(request: NextRequest) {
           message: finalText,
           sessionId: currentSessionId,
           toolCalls: toolCallsLog,
+          model: OPENROUTER_MODEL,
         }))
       } catch (error) {
         console.error('[ChatAgent] Error:', error)
