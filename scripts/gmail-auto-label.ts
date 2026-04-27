@@ -275,6 +275,7 @@ ${labelList}
   - ETC/Assetplus: 에셋플러스 관련
   - ETC/New Clients: 신규 고객사/파트너 제안
   - ETC/Core16: Core16 관련
+  - KDEF, BOBP 관련 이메일(AUM 업데이트 등)은 ETC로 분류
 - **Willow**: 윌로우인베스트먼트 내부 업무 (회사 운영, 경영, 인사)
 - **ETC - Archive**: 종료된 프로젝트 (Fount ETFs, Toss, KPOP ETF 등)
   - ETC - Archive/Fount ETFs: Fount/파운트 관련
