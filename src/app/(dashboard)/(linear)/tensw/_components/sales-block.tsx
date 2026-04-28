@@ -286,7 +286,10 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                           }}>
                             <span style={{ color: t.neutrals.text }}>{item.description}</span>
                             <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted }}>
-                              {item.quantity} x {item.unit_price.toLocaleString()} = {item.supply_amount.toLocaleString()}원
+                              {item.quantity != null && item.unit_price != null
+                                ? `${item.quantity} x ${item.unit_price.toLocaleString()} = ${item.supply_amount.toLocaleString()}원`
+                                : `${(item.supply_amount ?? (item as unknown as Record<string, number>).amount ?? 0).toLocaleString()}원`
+                              }
                             </span>
                           </div>
                         ))}
