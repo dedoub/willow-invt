@@ -98,6 +98,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing }: Cas
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredCashPageSize()))
   const [dragOver, setDragOver] = useState(false)
+  const [sortAsc, setSortAsc] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [rangeStart, rangeEnd] = useMemo(() => getDateRange(baseDate, periodMode), [baseDate, periodMode])
@@ -128,8 +129,12 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing }: Cas
         (i.description || '').toLowerCase().includes(q)
       )
     }
-    return [...list].sort((a, b) => (b.payment_date || b.issue_date || '').localeCompare(a.payment_date || a.issue_date || ''))
-  }, [periodFiltered, typeFilter, searchQuery])
+    return [...list].sort((a, b) => {
+      const da = a.payment_date || a.issue_date || ''
+      const db = b.payment_date || b.issue_date || ''
+      return sortAsc ? da.localeCompare(db) : db.localeCompare(da)
+    })
+  }, [periodFiltered, typeFilter, searchQuery, sortAsc])
 
   const totalPages = Math.max(1, Math.ceil(displayList.length / pageSize))
   const paged = displayList.slice(page * pageSize, (page + 1) * pageSize)
@@ -216,6 +221,19 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing }: Cas
               )
             })}
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              onClick={() => { setSortAsc(v => !v); setPage(0) }}
+              style={{
+                border: 'none', cursor: 'pointer', background: t.neutrals.inner,
+                borderRadius: t.radius.sm, padding: '3px 6px',
+                display: 'flex', alignItems: 'center', gap: 2,
+                color: t.neutrals.muted, fontSize: 10, fontFamily: t.font.mono,
+              }}
+            >
+              <LIcon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={10} stroke={2} />
+              날짜
+            </button>
           <button onClick={onAdd} style={{
             width: 24, height: 24, borderRadius: t.radius.sm, border: 'none',
             background: t.neutrals.inner, color: t.neutrals.muted,
@@ -224,6 +242,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing }: Cas
           }}>
             <LIcon name="plus" size={12} stroke={2.5} />
           </button>
+          </div>
         </div>
 
         {/* Search */}
