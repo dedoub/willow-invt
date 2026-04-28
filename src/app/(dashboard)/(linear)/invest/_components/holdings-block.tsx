@@ -15,6 +15,7 @@ export interface StockTradeFull {
 
 export interface StockQuoteFull {
   price: number; change: number; changePercent: number; currency: string
+  marketCap?: number
 }
 
 export interface TickerTheme {
