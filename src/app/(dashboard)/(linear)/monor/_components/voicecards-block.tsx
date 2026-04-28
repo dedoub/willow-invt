@@ -143,9 +143,11 @@ export function VoicecardsBlock({
               학습 활동
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 10 }}>
-              <LStat label="시트 수" value={formatNumber(userStats.totalSheets)} sub={`${formatNumber(userStats.totalCards)}장 카드`} />
-              <LStat label="학습 시도" value={formatNumber(userStats.totalAttempts)} sub={`크레딧 ${formatNumber(userStats.totalCredits)}`} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
+              <LStat label="시트 수" value={formatNumber(userStats.totalSheets)} />
+              <LStat label="카드 수" value={formatNumber(userStats.totalCards)} />
+              <LStat label="학습 시도" value={formatNumber(userStats.totalAttempts)} />
+              <LStat label="크레딧" value={formatNumber(userStats.totalCredits)} />
             </div>
           </div>
 
