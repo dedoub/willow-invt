@@ -60,7 +60,7 @@ export default function MonorPage() {
     else setVcLoading(true)
     try {
       const end = new Date().toISOString().split('T')[0]
-      const start = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
+      const start = `${new Date().getFullYear()}-01-01`
       const res = await fetch(`/api/voicecards/stats?startDate=${start}&endDate=${end}`)
       if (res.ok) {
         const data = await res.json()
