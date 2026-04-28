@@ -114,7 +114,7 @@ export function VoicecardsBlock({
             <LStat
               label="다운로드"
               value={stats ? formatNumber(stats.combined.totalNewDownloads) : '-'}
-              sub="올해 누적"
+              sub="iOS"
               tone="info"
             />
             <LStat
@@ -125,7 +125,7 @@ export function VoicecardsBlock({
             <LStat
               label="결제금액"
               value={stats ? formatCurrency(stats.combined.totalRevenue) : '-'}
-              sub="올해 누적"
+              sub="iOS"
             />
           </div>
         )}
