@@ -7,6 +7,8 @@ import {
   getVoicecardsUserStats,
 } from '@/lib/voicecards-server'
 
+export const maxDuration = 300
+
 // GET: 통합 통계 조회
 export async function GET(request: Request) {
   try {
@@ -15,6 +17,7 @@ export async function GET(request: Request) {
     // 날짜 범위 파라미터 (기본: 올해 1/1 ~ 오늘)
     const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0]
     const startDate = searchParams.get('startDate') || `${new Date().getFullYear()}-01-01`
+    const backfill = searchParams.get('backfill') === '1'
 
     // 연결 상태 확인 + 회원 수 조회 (병렬)
     const [connectionStatus, userStats] = await Promise.all([
@@ -42,8 +45,12 @@ export async function GET(request: Request) {
       }
 
       if (missingDates.length > 0) {
-        for (let i = 0; i < missingDates.length; i += 5) {
-          const batch = missingDates.slice(i, i + 5)
+        // backfill 모드: 전체, 일반 모드: 최근 7일만 (빠른 응답용)
+        const datesToFetch = backfill ? missingDates : missingDates.slice(-7)
+        const batchSize = backfill ? 10 : 5
+
+        for (let i = 0; i < datesToFetch.length; i += batchSize) {
+          const batch = datesToFetch.slice(i, i + batchSize)
           const results = await Promise.allSettled(
             batch.map(date => fetchAndCacheIosStats(date))
           )
