@@ -27,16 +27,20 @@ const CHAT_OPEN_KEY = 'linear-chat-open'
 
 export function LinearLayout({ title, children, headerActions }: LinearLayoutProps) {
   const narrow = useNarrow()
-  const [chatOpen, setChatOpen] = useState(() => {
-    if (typeof window === 'undefined') return false
-    const saved = localStorage.getItem(CHAT_OPEN_KEY)
-    if (saved !== null) return saved === '1'
-    return !narrow
-  })
+  const [chatOpen, setChatOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    const saved = localStorage.getItem(CHAT_OPEN_KEY)
+    if (saved !== null) setChatOpen(saved === '1')
+    else setChatOpen(!window.matchMedia('(max-width: 1180px)').matches)
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
     localStorage.setItem(CHAT_OPEN_KEY, chatOpen ? '1' : '0')
-  }, [chatOpen])
+  }, [chatOpen, mounted])
 
   return (
     <div style={{
