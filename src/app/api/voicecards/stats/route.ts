@@ -12,13 +12,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
 
-    // 날짜 범위 파라미터
+    // 날짜 범위 파라미터 (기본: 올해 1/1 ~ 오늘)
     const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0]
-    const startDate = searchParams.get('startDate') || (() => {
-      const d = new Date(endDate)
-      d.setDate(d.getDate() - 30) // 기본 30일
-      return d.toISOString().split('T')[0]
-    })()
+    const startDate = searchParams.get('startDate') || `${new Date().getFullYear()}-01-01`
 
     // 연결 상태 확인 + 회원 수 조회 (병렬)
     const [connectionStatus, userStats] = await Promise.all([
@@ -32,27 +28,33 @@ export async function GET(request: Request) {
       getCachedStatsRange('android', startDate, endDate),
     ])
 
-    // 캐시가 비어있고 iOS 연결됨 → Apple API 직접 호출하여 캐시 채우기
-    if (iosTimeSeries.length === 0 && connectionStatus.ios.connected) {
-      // 최근 7일치만 live fetch (Apple API rate limit 고려)
-      const dates: string[] = []
-      const d = new Date(endDate)
-      for (let i = 0; i < 7; i++) {
-        d.setDate(d.getDate() - (i === 0 ? 0 : 1))
-        dates.push(d.toISOString().split('T')[0])
+    // 캐시에 없는 날짜만 Apple API로 채우기
+    if (connectionStatus.ios.connected) {
+      const cachedDates = new Set(iosTimeSeries.map(s => s.date))
+      const missingDates: string[] = []
+      const cur = new Date(startDate)
+      const end = new Date(endDate)
+      end.setDate(end.getDate() - 1)
+      while (cur <= end) {
+        const d = cur.toISOString().split('T')[0]
+        if (!cachedDates.has(d)) missingDates.push(d)
+        cur.setDate(cur.getDate() + 1)
       }
 
-      const results = await Promise.allSettled(
-        dates.map(date => fetchAndCacheIosStats(date))
-      )
-
-      // 성공한 결과를 timeSeries에 추가
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value) {
-          iosTimeSeries.push(r.value)
+      if (missingDates.length > 0) {
+        for (let i = 0; i < missingDates.length; i += 5) {
+          const batch = missingDates.slice(i, i + 5)
+          const results = await Promise.allSettled(
+            batch.map(date => fetchAndCacheIosStats(date))
+          )
+          for (const r of results) {
+            if (r.status === 'fulfilled' && r.value) {
+              iosTimeSeries.push(r.value)
+            }
+          }
         }
+        iosTimeSeries.sort((a, b) => a.date.localeCompare(b.date))
       }
-      iosTimeSeries.sort((a, b) => a.date.localeCompare(b.date))
     }
 
     // 통합 통계 조회 (캐시 기반 — 위에서 채웠으므로 다시 조회)

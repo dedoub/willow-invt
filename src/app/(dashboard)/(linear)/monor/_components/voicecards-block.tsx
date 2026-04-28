@@ -112,20 +112,20 @@ export function VoicecardsBlock({
             gap: 8,
           }}>
             <LStat
+              label="다운로드"
+              value={stats ? formatNumber(stats.combined.totalNewDownloads) : '-'}
+              sub="올해 누적"
+              tone="info"
+            />
+            <LStat
               label="회원 수"
               value={userStats ? formatNumber(userStats.activeUsers) : '-'}
               sub={userStats ? `전체 ${formatNumber(userStats.totalUsers)}명` : undefined}
             />
             <LStat
-              label="다운로드"
-              value={stats ? formatNumber(stats.combined.totalNewDownloads) : '-'}
-              sub="iOS"
-              tone="info"
-            />
-            <LStat
               label="결제금액"
               value={stats ? formatCurrency(stats.combined.totalRevenue) : '-'}
-              sub="iOS"
+              sub="올해 누적"
             />
           </div>
         )}
