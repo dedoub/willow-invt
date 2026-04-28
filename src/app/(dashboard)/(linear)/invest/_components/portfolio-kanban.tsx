@@ -348,7 +348,7 @@ export function PortfolioKanban({
     }
     cards.sort((a, b) => -(a.compositeScore ?? 0) + (b.compositeScore ?? 0))
     return cards
-  }, [stockResearch, watchlistTickers, signalMap])
+  }, [stockResearch, stockQuotes, watchlistTickers, signalMap])
 
   /* ── Render ── */
   const colStyle = (group: string): React.CSSProperties => ({
