@@ -44,6 +44,8 @@ const paths: Record<string, string> = {
   pin: 'M12 2l4 4-1 9-3 3-3-3-1-9 4-4z',
   pencil: 'M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z',
   logOut: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
+  arrowUp: 'M12 19V5M5 12l7-7 7 7',
+  arrowDown: 'M12 5v14M19 12l-7 7-7-7',
 }
 
 interface LIconProps {

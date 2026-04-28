@@ -448,13 +448,14 @@ export default function TenswPage() {
             display: 'grid',
             gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr',
             gap: 14,
+            overflow: 'hidden',
           }}>
             <CashBlock
               items={cashItems}
               onAdd={() => { setEditingCash(null); setCashDialogOpen(true) }}
               onSelect={(item) => { setEditingCash(item); setCashDialogOpen(true) }}
             />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
               <SalesBlock
                 invoices={invoices}
                 onAdd={() => { setEditingSales(null); setSalesDialogOpen(true) }}

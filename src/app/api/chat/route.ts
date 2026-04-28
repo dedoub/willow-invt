@@ -286,7 +286,7 @@ TRIGGERS 배열 = [null, 10%, 20%, 30%, 40%, 55%, 75%, 100%, 135%, 175%] (인덱
 ### 텐소프트웍스 경영관리 (tensw_mgmt_*)
 willow_mgmt_*와 동일 구조. 테이블명만 tensw_mgmt_. 메모는 tensw_mgmt_daily_memos. 추가 테이블:
 - **tensw_mgmt_cash**: 텐소프트웍스 현금관리 (윌로우 현금관리와 동일 구조)
-- **tensw_mgmt_sales**: id, invoice_date, company, description, supply_amount, tax_amount, total_amount, status(scheduled|pending|paid), items(jsonb), attachments(jsonb), notes
+- **tensw_mgmt_sales**: id, issue_date, counterparty, business_number, representative, description, supply_amount, tax_amount, total_amount, expected_payment_date, payment_status(scheduled|pending|paid), items(jsonb), attachments(jsonb), notes
 - **tensw_mgmt_loans**: id, lender, loan_type, principal, interest_rate, start_date, end_date, repayment_type(bullet|amortization), interest_payment_day, status(active|pending|closed), attachments(jsonb), notes
 
 ### ETF

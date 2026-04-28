@@ -513,8 +513,8 @@ export async function tenswGetCashSummary(params?: { start_date?: string; end_da
 
 export async function tenswListSales(params?: { status?: string }) {
   const sb = getServiceSupabase()
-  let query = sb.from('tensw_mgmt_sales').select('*').order('invoice_date', { ascending: false })
-  if (params?.status) query = query.eq('status', params.status)
+  let query = sb.from('tensw_mgmt_sales').select('*').order('issue_date', { ascending: false })
+  if (params?.status) query = query.eq('payment_status', params.status)
   const { data, error } = await query
   if (error) return { error: error.message }
   const converted = (data || []).map(r => ({
@@ -527,24 +527,31 @@ export async function tenswListSales(params?: { status?: string }) {
 }
 
 export async function tenswCreateSales(params: {
-  invoice_date: string
-  company: string
-  description?: string
+  issue_date: string
+  counterparty: string
   supply_amount: number
   tax_amount?: number
   total_amount?: number
-  status?: string
+  payment_status?: string
   items?: Record<string, unknown>[]
   notes?: string
 }) {
-  // Auto-calculate tax_amount and total_amount if not provided
   const supply = params.supply_amount
   const tax = params.tax_amount ?? Math.round(supply * 0.1)
   const total = params.total_amount ?? (supply + tax)
   const sb = getServiceSupabase()
   const { data, error } = await sb
     .from('tensw_mgmt_sales')
-    .insert({ ...params, supply_amount: supply, tax_amount: tax, total_amount: total, status: params.status || 'pending' })
+    .insert({
+      issue_date: params.issue_date,
+      counterparty: params.counterparty,
+      supply_amount: supply,
+      tax_amount: tax,
+      total_amount: total,
+      payment_status: params.payment_status || 'scheduled',
+      items: params.items || null,
+      notes: params.notes || null,
+    })
     .select()
     .single()
   if (error) return { error: error.message }
@@ -561,13 +568,12 @@ export async function tenswCreateSales(params: {
 
 export async function tenswUpdateSales(params: {
   id: string
-  invoice_date?: string
-  company?: string
-  description?: string
+  issue_date?: string
+  counterparty?: string
   supply_amount?: number
   tax_amount?: number
   total_amount?: number
-  status?: string
+  payment_status?: string
   items?: Record<string, unknown>[]
   notes?: string
 }) {

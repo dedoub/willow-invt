@@ -62,6 +62,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [sortAsc, setSortAsc] = useState(false)
 
   // Filter by year
   const yearFiltered = useMemo(() => {
@@ -74,10 +75,11 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
     return yearFiltered.filter(inv => inv.payment_status === statusFilter)
   }, [yearFiltered, statusFilter])
 
-  // Sorted by date desc
   const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => b.issue_date.localeCompare(a.issue_date))
-  }, [filtered])
+    return [...filtered].sort((a, b) =>
+      sortAsc ? a.issue_date.localeCompare(b.issue_date) : b.issue_date.localeCompare(a.issue_date)
+    )
+  }, [filtered, sortAsc])
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
@@ -96,12 +98,10 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
     setPage(0)
   }
 
-  // Summary stats (from yearFiltered, not status-filtered)
-  const totalSupply = yearFiltered.reduce((s, i) => s + i.supply_amount, 0)
-  const totalTax = yearFiltered.reduce((s, i) => s + i.tax_amount, 0)
-  const totalAmount = yearFiltered.reduce((s, i) => s + i.total_amount, 0)
-  const paidAmount = yearFiltered.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.total_amount, 0)
-  const unpaidAmount = totalAmount - paidAmount
+  // Summary stats (부가세 포함 = total_amount 기준)
+  const paidTotal = yearFiltered.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.total_amount, 0)
+  const pendingTotal = yearFiltered.filter(i => i.payment_status === 'pending').reduce((s, i) => s + i.total_amount, 0)
+  const scheduledTotal = yearFiltered.filter(i => i.payment_status === 'scheduled').reduce((s, i) => s + i.total_amount, 0)
 
   return (
     <LCard pad={0} style={style}>
@@ -155,13 +155,13 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
 
         {/* Summary stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
-          <LStat label="공급가액" value={`${totalSupply.toLocaleString()}원`} tone="default" />
-          <LStat label="합계" value={`${totalAmount.toLocaleString()}원`} tone="pos" />
-          <LStat label="미수금" value={`${unpaidAmount.toLocaleString()}원`} tone={unpaidAmount > 0 ? 'warn' : 'pos'} />
+          <LStat label="수금완료" value={`${paidTotal.toLocaleString()}원`} tone="pos" />
+          <LStat label="미수금" value={`${pendingTotal.toLocaleString()}원`} tone={pendingTotal > 0 ? 'warn' : 'default'} />
+          <LStat label="예정매출" value={`${scheduledTotal.toLocaleString()}원`} tone="default" />
         </div>
 
-        {/* Status filter chips */}
-        <div style={{ display: 'flex', gap: 5 }}>
+        {/* Status filter chips + sort toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           {STATUS_FILTERS.map(f => {
             const active = statusFilter === f.value
             return (
@@ -175,6 +175,19 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
               }}>{f.label}</button>
             )
           })}
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => { setSortAsc(v => !v); setPage(0) }}
+            style={{
+              border: 'none', cursor: 'pointer', background: t.neutrals.inner,
+              borderRadius: t.radius.sm, padding: '3px 6px',
+              display: 'flex', alignItems: 'center', gap: 2,
+              color: t.neutrals.muted, fontSize: 10, fontFamily: t.font.mono,
+            }}
+          >
+            <LIcon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={10} stroke={2} />
+            날짜
+          </button>
         </div>
       </div>
 
@@ -217,12 +230,15 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                   {dateSlice}
                 </span>
 
-                {/* Counterparty */}
+                {/* Counterparty + notes */}
                 <span style={{
-                  flex: 1, fontWeight: 500, fontSize: 12.5,
+                  flex: 1, minWidth: 0, fontSize: 12,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
-                  {inv.counterparty}
+                  <span style={{ fontWeight: 500 }}>{inv.counterparty}</span>
+                  {inv.notes && (
+                    <span style={{ color: t.neutrals.muted, fontWeight: 400 }}> · {inv.notes}</span>
+                  )}
                 </span>
 
                 {/* Total amount */}
