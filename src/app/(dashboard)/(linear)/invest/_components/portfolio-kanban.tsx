@@ -43,6 +43,7 @@ export interface StockResearch {
 
 export interface StockQuote {
   price: number; change: number; changePercent: number; currency: string
+  marketCap?: number
 }
 
 /* ── Pyramiding triggers (avg return rate per tranche) ── */
@@ -311,15 +312,26 @@ export function PortfolioKanban({
       if (watchlistTickers.has(r.ticker)) continue
       seen.add(r.ticker)
       const sig = signalMap.get(r.ticker) || signalMap.get(r.ticker.replace('.KS', ''))
-      // Format market cap label — fallback to any scan entry for same ticker
-      const mcap = (r.market_cap_b || r.market_cap_m)
-        ? r
-        : stockResearch.find(sr => sr.ticker === r.ticker && (sr.market_cap_b || sr.market_cap_m))
+      const quote = stockQuotes[r.ticker] || stockQuotes[r.ticker.replace('.KS', '')]
+      // Market cap: prefer live quote, fallback to DB research data
       let marketCapLabel: string | undefined
-      if (mcap?.market_cap_b != null && mcap.market_cap_b > 0) {
-        marketCapLabel = mcap.market_cap_b >= 1 ? `$${mcap.market_cap_b.toFixed(1)}B` : `$${Math.round(mcap.market_cap_b * 1000)}M`
-      } else if (mcap?.market_cap_m != null && mcap.market_cap_m > 0) {
-        marketCapLabel = mcap.market_cap_m >= 10000 ? `${(mcap.market_cap_m / 10000).toFixed(1)}조` : `${Math.round(mcap.market_cap_m).toLocaleString()}억`
+      if (quote?.marketCap && quote.marketCap > 0) {
+        if (quote.currency === 'KRW') {
+          const capOk = quote.marketCap / 1e8
+          marketCapLabel = capOk >= 10000 ? `${(capOk / 10000).toFixed(1)}조` : `${Math.round(capOk).toLocaleString()}억`
+        } else {
+          const capB = quote.marketCap / 1e9
+          marketCapLabel = capB >= 1 ? `$${capB.toFixed(1)}B` : `$${Math.round(capB * 1000)}M`
+        }
+      } else {
+        const mcap = (r.market_cap_b || r.market_cap_m)
+          ? r
+          : stockResearch.find(sr => sr.ticker === r.ticker && (sr.market_cap_b || sr.market_cap_m))
+        if (mcap?.market_cap_b != null && mcap.market_cap_b > 0) {
+          marketCapLabel = mcap.market_cap_b >= 1 ? `$${mcap.market_cap_b.toFixed(1)}B` : `$${Math.round(mcap.market_cap_b * 1000)}M`
+        } else if (mcap?.market_cap_m != null && mcap.market_cap_m > 0) {
+          marketCapLabel = mcap.market_cap_m >= 10000 ? `${(mcap.market_cap_m / 10000).toFixed(1)}조` : `${Math.round(mcap.market_cap_m).toLocaleString()}억`
+        }
       }
 
       cards.push({

@@ -89,37 +89,48 @@ export default function InvestPage() {
         setStockTradesFull(trades)
       }
 
+      let researchFull: { ticker: string; market?: string; verdict?: string | null; track?: string | null }[] = []
       if (researchRes.ok) {
         const data = await researchRes.json()
-        setStockResearch(Array.isArray(data) ? data : data.items || data.research || [])
+        const items = Array.isArray(data) ? data : data.items || data.research || []
+        setStockResearch(items)
+        researchFull = items
       }
 
       // Show kanban + trade log immediately
       setLoadPhase(1)
 
       // Phase 2: fetch stock quotes, live FX rate, and FX history
-      if (tradesFull.length > 0) {
+      {
         const tickerMap = new Map<string, string>()
         for (const tr of tradesFull) {
           const ticker = tr.ticker.replace('.KS', '')
           if (!tickerMap.has(ticker)) tickerMap.set(ticker, tr.market)
         }
+        // Include research tickers (pass only) for market cap in kanban
+        for (const r of researchFull) {
+          if (!r.verdict?.startsWith('pass') || r.track === 'ETF') continue
+          const ticker = r.ticker.replace('.KS', '')
+          if (!tickerMap.has(ticker)) tickerMap.set(ticker, r.market || 'US')
+        }
         const tickers = Array.from(tickerMap.keys())
         const markets = tickers.map(tk => tickerMap.get(tk)!)
 
         const [quotesRes, fxRes, fxHistRes] = await Promise.all([
-          fetch(`/api/willow-mgmt/stock-quotes?tickers=${tickers.join(',')}&markets=${markets.join(',')}`),
+          tickers.length > 0
+            ? fetch(`/api/willow-mgmt/stock-quotes?tickers=${tickers.join(',')}&markets=${markets.join(',')}`)
+            : null,
           fetch('/api/willow-mgmt/stock-quotes?tickers=KRW%3DX&markets=US'),
           fetch('/api/willow-mgmt/fx-history'),
         ])
 
-        if (quotesRes.ok) {
+        if (quotesRes?.ok) {
           const data = await quotesRes.json()
           const quotes: Record<string, StockQuote> = {}
           const quotesFull: Record<string, StockQuoteFull> = {}
 
           for (const [ticker, q] of Object.entries(data.prices || {})) {
-            const quote = q as { price: number; change: number; changePercent: number; currency: string }
+            const quote = q as { price: number; change: number; changePercent: number; currency: string; marketCap?: number }
             quotes[ticker] = quote
             quotesFull[ticker] = quote
           }

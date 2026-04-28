@@ -239,10 +239,37 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
       }])
 
       if (doneData.toolCalls?.length > 0) {
-        const MUT = ['insert_data', 'update_data', 'delete_data', 'upsert_data']
-        const tables = doneData.toolCalls
-          .filter(tc => MUT.includes(tc.name))
-          .map(tc => (tc.args as Record<string, unknown>)?.table as string).filter(Boolean)
+        const tables: string[] = []
+
+        // Low-level CRUD tools carry an explicit table name
+        const CRUD = ['insert_data', 'update_data', 'delete_data', 'upsert_data']
+        for (const tc of doneData.toolCalls) {
+          if (CRUD.includes(tc.name)) {
+            const tbl = (tc.args as Record<string, unknown>)?.table as string
+            if (tbl) tables.push(tbl)
+          }
+        }
+
+        // Domain tools: derive affected table prefix from tool name
+        const MUT_VERBS = ['create', 'update', 'delete', 'toggle', 'save', 'upsert']
+        const PREFIX_MAP: Record<string, string> = {
+          willow: 'willow_mgmt',
+          tensw: 'tensw_mgmt',
+          ryuha: 'ryuha_',
+          akros: 'akros_',
+          etc: 'etf_',
+          invest: 'stock_',
+        }
+        for (const tc of doneData.toolCalls) {
+          const parts = tc.name.split('_')
+          const prefix = parts[0]
+          const verb = parts[1]
+          if (prefix && verb && MUT_VERBS.includes(verb) && PREFIX_MAP[prefix]) {
+            const entity = parts.slice(2).join('_')
+            tables.push(`${PREFIX_MAP[prefix]}_${entity}`)
+          }
+        }
+
         if (tables.length > 0) notifyAgentDataChange(tables)
       }
     } catch (err) {

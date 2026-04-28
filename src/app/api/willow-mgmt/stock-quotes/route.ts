@@ -6,6 +6,7 @@ interface QuoteResult {
   change: number
   changePercent: number
   currency: string
+  marketCap?: number
 }
 
 // Fetch current price from Yahoo Finance chart API
@@ -28,11 +29,15 @@ async function fetchYahooQuote(yahooSymbol: string): Promise<QuoteResult | null>
     const change = prevClose ? price - prevClose : 0
     const changePercent = prevClose ? (change / prevClose) * 100 : 0
 
+    const marketCap = meta.marketCap || (meta.regularMarketPrice && meta.sharesOutstanding
+      ? meta.regularMarketPrice * meta.sharesOutstanding : undefined)
+
     return {
       price,
       change,
       changePercent,
       currency: meta.currency || 'USD',
+      ...(marketCap ? { marketCap } : {}),
     }
   } catch {
     return null
