@@ -23,11 +23,20 @@ function useNarrow(threshold = 1180) {
   return narrow
 }
 
+const CHAT_OPEN_KEY = 'linear-chat-open'
+
 export function LinearLayout({ title, children, headerActions }: LinearLayoutProps) {
   const narrow = useNarrow()
-  const [chatOpen, setChatOpen] = useState(!narrow)
+  const [chatOpen, setChatOpen] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const saved = localStorage.getItem(CHAT_OPEN_KEY)
+    if (saved !== null) return saved === '1'
+    return !narrow
+  })
 
-  useEffect(() => { setChatOpen(!narrow) }, [narrow])
+  useEffect(() => {
+    localStorage.setItem(CHAT_OPEN_KEY, chatOpen ? '1' : '0')
+  }, [chatOpen])
 
   return (
     <div style={{
