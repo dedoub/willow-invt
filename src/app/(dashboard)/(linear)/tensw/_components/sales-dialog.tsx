@@ -10,8 +10,7 @@ import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
 export interface SalesItemFormData {
   description: string
-  quantity: string
-  unit_price: string
+  amount: string
 }
 
 export interface TenswSalesFormData {
@@ -55,7 +54,7 @@ const inputBase: React.CSSProperties = {
 }
 
 function emptyItem(): SalesItemFormData {
-  return { description: '', quantity: '1', unit_price: '' }
+  return { description: '', amount: '' }
 }
 
 function emptyForm(): TenswSalesFormData {
@@ -85,11 +84,10 @@ function fromInvoice(inv: TenswTaxInvoice): TenswSalesFormData {
     expected_payment_date: inv.expected_payment_date || '',
     payment_status: inv.payment_status || 'pending',
     notes: inv.notes || '',
-    items: (inv.items || []).map(item => ({
-      description: item.description || '',
-      quantity: String(item.quantity ?? 1),
-      unit_price: item.unit_price != null ? item.unit_price.toLocaleString() : (item.supply_amount != null ? item.supply_amount.toLocaleString() : ''),
-    })),
+    items: (inv.items || []).map(item => {
+      const amt = item.supply_amount ?? (item as unknown as Record<string, number>).amount ?? 0
+      return { description: item.description || '', amount: amt ? amt.toLocaleString() : '' }
+    }),
   }
 }
 
@@ -310,7 +308,7 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {form.items.map((item, idx) => (
                 <div key={idx} style={{
-                  display: 'flex', gap: 6, alignItems: 'flex-start',
+                  display: 'flex', gap: 6, alignItems: 'center',
                   background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 8,
                 }}>
                   <div style={{ flex: 1 }}>
@@ -325,30 +323,17 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
                       style={{ ...inputBase, fontSize: 12, padding: '6px 8px' }}
                     />
                   </div>
-                  <div style={{ width: 50 }}>
+                  <div style={{ width: 120 }}>
                     <input
-                      value={item.quantity}
-                      onChange={e => {
-                        const items = [...form.items]
-                        items[idx] = { ...items[idx], quantity: e.target.value.replace(/[^0-9]/g, '') }
-                        setForm(prev => ({ ...prev, items }))
-                      }}
-                      placeholder="수량"
-                      style={{ ...inputBase, fontSize: 12, padding: '6px 8px', textAlign: 'center' }}
-                      inputMode="numeric"
-                    />
-                  </div>
-                  <div style={{ width: 110 }}>
-                    <input
-                      value={item.unit_price}
+                      value={item.amount}
                       onChange={e => {
                         const raw = e.target.value.replace(/[^0-9]/g, '')
                         const formatted = raw ? Number(raw).toLocaleString() : ''
                         const items = [...form.items]
-                        items[idx] = { ...items[idx], unit_price: formatted }
+                        items[idx] = { ...items[idx], amount: formatted }
                         setForm(prev => ({ ...prev, items }))
                       }}
-                      placeholder="단가"
+                      placeholder="금액"
                       style={{ ...inputBase, fontSize: 12, padding: '6px 8px', textAlign: 'right' }}
                       inputMode="numeric"
                     />
@@ -357,7 +342,7 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
                     setForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }))
                   }} style={{
                     border: 'none', cursor: 'pointer', background: 'transparent',
-                    color: t.neutrals.subtle, padding: 4, flexShrink: 0, marginTop: 2,
+                    color: t.neutrals.subtle, padding: 4, flexShrink: 0,
                   }}>
                     <LIcon name="x" size={12} stroke={2} />
                   </button>

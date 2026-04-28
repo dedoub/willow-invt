@@ -282,14 +282,11 @@ export default function TenswPage() {
     const items = (data.items || [])
       .filter(item => item.description.trim())
       .map(item => {
-        const qty = Number(item.quantity) || 1
-        const price = parseCurrency(item.unit_price)
+        const amt = parseCurrency(item.amount)
         return {
           description: item.description,
-          quantity: qty,
-          unit_price: price,
-          supply_amount: qty * price,
-          tax_amount: Math.round(qty * price * 0.1),
+          supply_amount: amt,
+          tax_amount: Math.round(amt * 0.1),
         }
       })
     const body: Record<string, unknown> = {
