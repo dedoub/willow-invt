@@ -2,12 +2,12 @@ import { SupabaseClient } from '@supabase/supabase-js'
 
 const SECTOR_THEME_MAP: [RegExp, string][] = [
   [/반도체|semiconductor|chip|메모리|memory|패키징|장비/i, 'AI 반도체'],
-  [/에너지|energy|원전|원자력|nuclear|우라늄/i, 'AI 에너지/원전'],
+  [/에너지|원전|원자력|nuclear|우라늄|power gen/i, 'AI 에너지/원전'],
   [/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|저장|인프라/i, '데이터센터/냉각/네트워킹'],
   [/방산|defense|military/i, '방산'],
   [/우주|space|satellite/i, '우주'],
   [/양자|quantum/i, '양자컴퓨팅'],
-  [/로보틱스|robot|자동화|automation|자동차|industrial/i, '로보틱스'],
+  [/로보틱스|robot|자동화|automation|자동차|EV|mobility/i, '로보틱스'],
 ]
 
 export async function ensureTickerTheme(
@@ -54,11 +54,6 @@ export async function ensureTickerTheme(
       const found = themes.find(t => t.name === themeName)
       if (found) { themeId = found.id; break }
     }
-  }
-
-  if (!themeId) {
-    const fallback = themes.find(t => t.name === '데이터센터/냉각/네트워킹')
-    if (fallback) themeId = fallback.id
   }
 
   if (themeId) {
