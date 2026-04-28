@@ -8,6 +8,12 @@ import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface SalesItemFormData {
+  description: string
+  quantity: string
+  unit_price: string
+}
+
 export interface TenswSalesFormData {
   id?: string
   issue_date: string
@@ -19,6 +25,7 @@ export interface TenswSalesFormData {
   expected_payment_date: string
   payment_status: string
   notes: string
+  items: SalesItemFormData[]
 }
 
 interface SalesDialogProps {
@@ -47,6 +54,10 @@ const inputBase: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
+function emptyItem(): SalesItemFormData {
+  return { description: '', quantity: '1', unit_price: '' }
+}
+
 function emptyForm(): TenswSalesFormData {
   return {
     issue_date: '',
@@ -58,6 +69,7 @@ function emptyForm(): TenswSalesFormData {
     expected_payment_date: '',
     payment_status: 'pending',
     notes: '',
+    items: [],
   }
 }
 
@@ -73,6 +85,11 @@ function fromInvoice(inv: TenswTaxInvoice): TenswSalesFormData {
     expected_payment_date: inv.expected_payment_date || '',
     payment_status: inv.payment_status || 'pending',
     notes: inv.notes || '',
+    items: (inv.items || []).map(item => ({
+      description: item.description || '',
+      quantity: String(item.quantity ?? 1),
+      unit_price: item.unit_price != null ? item.unit_price.toLocaleString() : (item.supply_amount != null ? item.supply_amount.toLocaleString() : ''),
+    })),
   }
 }
 
@@ -272,6 +289,80 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
                   </ChipBtn>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* 품목 */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+              <Label>품목</Label>
+              <button onClick={() => setForm(prev => ({ ...prev, items: [...prev.items, emptyItem()] }))} style={{
+                border: 'none', cursor: 'pointer', padding: '2px 8px', fontSize: 10,
+                borderRadius: t.radius.pill, background: t.neutrals.inner, color: t.neutrals.muted,
+                fontFamily: t.font.sans, fontWeight: t.weight.medium,
+              }}>+ 추가</button>
+            </div>
+            {form.items.length === 0 && (
+              <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: '8px 0' }}>
+                품목이 없습니다
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {form.items.map((item, idx) => (
+                <div key={idx} style={{
+                  display: 'flex', gap: 6, alignItems: 'flex-start',
+                  background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 8,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      value={item.description}
+                      onChange={e => {
+                        const items = [...form.items]
+                        items[idx] = { ...items[idx], description: e.target.value }
+                        setForm(prev => ({ ...prev, items }))
+                      }}
+                      placeholder="품목명"
+                      style={{ ...inputBase, fontSize: 12, padding: '6px 8px' }}
+                    />
+                  </div>
+                  <div style={{ width: 50 }}>
+                    <input
+                      value={item.quantity}
+                      onChange={e => {
+                        const items = [...form.items]
+                        items[idx] = { ...items[idx], quantity: e.target.value.replace(/[^0-9]/g, '') }
+                        setForm(prev => ({ ...prev, items }))
+                      }}
+                      placeholder="수량"
+                      style={{ ...inputBase, fontSize: 12, padding: '6px 8px', textAlign: 'center' }}
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div style={{ width: 110 }}>
+                    <input
+                      value={item.unit_price}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '')
+                        const formatted = raw ? Number(raw).toLocaleString() : ''
+                        const items = [...form.items]
+                        items[idx] = { ...items[idx], unit_price: formatted }
+                        setForm(prev => ({ ...prev, items }))
+                      }}
+                      placeholder="단가"
+                      style={{ ...inputBase, fontSize: 12, padding: '6px 8px', textAlign: 'right' }}
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <button onClick={() => {
+                    setForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }))
+                  }} style={{
+                    border: 'none', cursor: 'pointer', background: 'transparent',
+                    color: t.neutrals.subtle, padding: 4, flexShrink: 0, marginTop: 2,
+                  }}>
+                    <LIcon name="x" size={12} stroke={2} />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 

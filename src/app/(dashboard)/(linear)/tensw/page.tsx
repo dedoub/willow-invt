@@ -279,6 +279,19 @@ export default function TenswPage() {
     const parseCurrency = (v: string) => Number(v.replace(/,/g, '')) || 0
     const supply = parseCurrency(data.supply_amount)
     const tax = parseCurrency(data.tax_amount)
+    const items = (data.items || [])
+      .filter(item => item.description.trim())
+      .map(item => {
+        const qty = Number(item.quantity) || 1
+        const price = parseCurrency(item.unit_price)
+        return {
+          description: item.description,
+          quantity: qty,
+          unit_price: price,
+          supply_amount: qty * price,
+          tax_amount: Math.round(qty * price * 0.1),
+        }
+      })
     const body: Record<string, unknown> = {
       issue_date: data.issue_date || null,
       counterparty: data.counterparty,
@@ -290,6 +303,7 @@ export default function TenswPage() {
       expected_payment_date: data.expected_payment_date || null,
       payment_status: data.payment_status || 'pending',
       notes: data.notes || null,
+      items,
     }
     if (isEdit) body.id = data.id
     const res = await fetch('/api/tensw-mgmt/tax-invoices', {
