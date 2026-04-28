@@ -54,7 +54,7 @@ export function TextbookBlock({
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
-        <LSectionHead eyebrow="TEXTBOOKS" title="교재 관리" action={
+        <LSectionHead eyebrow="TEXTBOOKS" title="교재관리" action={
           <div style={{ display: 'flex', gap: 4 }}>
             <button onClick={onManageSubjects} style={{
               padding: '4px 10px', borderRadius: t.radius.sm,

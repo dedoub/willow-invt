@@ -72,7 +72,7 @@ export function VoicecardsBlock({
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead
           eyebrow="VOICECARDS"
-          title="VoiceCards"
+          title="보이스카드"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <button

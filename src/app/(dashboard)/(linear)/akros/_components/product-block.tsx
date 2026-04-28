@@ -91,7 +91,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
-        <LSectionHead eyebrow="PRODUCTS" title="상품 관리" action={
+        <LSectionHead eyebrow="PRODUCTS" title="상품관리" action={
           <span style={{ fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.mono }}>
             {products.length}개
           </span>

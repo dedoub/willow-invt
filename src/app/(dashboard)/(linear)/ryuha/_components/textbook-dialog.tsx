@@ -105,7 +105,7 @@ export function SubjectDialog({ open, subjects, onSave, onDelete, onClose }: Sub
   }
 
   return (
-    <DialogShell open={open} title="과목 관리" onClose={onClose} footer={
+    <DialogShell open={open} title="과목관리" onClose={onClose} footer={
       <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
         <button onClick={onClose} style={btnSecondary}>닫기</button>
       </div>

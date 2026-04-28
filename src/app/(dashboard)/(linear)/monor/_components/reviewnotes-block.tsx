@@ -58,7 +58,7 @@ export function ReviewnotesBlock({
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead
           eyebrow="REVIEWNOTES"
-          title="ReviewNotes"
+          title="리뷰노트"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <a

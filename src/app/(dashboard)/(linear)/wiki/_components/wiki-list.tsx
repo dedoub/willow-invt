@@ -132,7 +132,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
-        <LSectionHead eyebrow="WIKI" title="업무 위키" action={
+        <LSectionHead eyebrow="WIKI" title="업무위키" action={
           <span style={{ fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.mono }}>
             {notes.length}건
           </span>

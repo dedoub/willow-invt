@@ -161,7 +161,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         {/* Header: eyebrow+title left, period mode toggle right */}
-        <LSectionHead eyebrow={eyebrowLabel} title="현금 관리" action={
+        <LSectionHead eyebrow={eyebrowLabel} title="현금관리" action={
           <div style={{
             display: 'inline-flex', background: t.neutrals.inner,
             borderRadius: t.radius.sm, padding: 2,

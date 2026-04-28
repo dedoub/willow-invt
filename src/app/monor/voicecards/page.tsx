@@ -400,7 +400,7 @@ export default function VoicecardsPage() {
         {/* 헤더 */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">VoiceCards 인앱결제 통계</h1>
+            <h1 className="text-2xl font-bold">보이스카드 인앱결제 통계</h1>
             <p className="text-sm text-muted-foreground mt-1">
               App Store와 Google Play의 인앱결제 현황을 확인하세요.
             </p>

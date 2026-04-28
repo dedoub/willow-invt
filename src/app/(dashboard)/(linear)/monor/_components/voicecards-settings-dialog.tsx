@@ -139,7 +139,7 @@ export function VoicecardsSettingsDialog({ open, onClose, onSave }: VoicecardsSe
               textTransform: 'uppercase' as const, marginBottom: 2,
             }}>API SETTINGS</div>
             <div style={{ fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              VoiceCards API 설정
+              보이스카드 API 설정
             </div>
           </div>
           <button onClick={onClose} style={{

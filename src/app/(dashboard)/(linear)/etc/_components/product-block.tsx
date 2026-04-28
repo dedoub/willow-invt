@@ -72,7 +72,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
-        <LSectionHead eyebrow="PRODUCTS" title="상품 관리" action={
+        <LSectionHead eyebrow="PRODUCTS" title="상품관리" action={
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.mono }}>
               {etfs.length}개

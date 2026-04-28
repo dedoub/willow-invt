@@ -20,7 +20,8 @@ import { CashDialog, TenswCashFormData } from './_components/cash-dialog'
 import { SalesDialog, TenswSalesFormData } from './_components/sales-dialog'
 import { LoanDialog, TenswLoanFormData } from './_components/loan-dialog'
 
-// Shared email components
+// Shared components
+import { ParsePreviewDialog, ParsedTransaction } from '@/app/(dashboard)/(linear)/mgmt/_components/parse-preview-dialog'
 import { EmailBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/email-block'
 import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_components/email-detail-dialog'
 import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/compose-email-dialog'
@@ -63,6 +64,12 @@ export default function TenswPage() {
   // Loan dialog state
   const [loanDialogOpen, setLoanDialogOpen] = useState(false)
   const [editingLoan, setEditingLoan] = useState<TenswLoan | null>(null)
+
+  // Parse preview state
+  const [parsing, setParsing] = useState(false)
+  const [parsePreviewOpen, setParsePreviewOpen] = useState(false)
+  const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([])
+  const [parsedBankName, setParsedBankName] = useState<string | null>(null)
 
   // Email state
   const [emails, setEmails] = useState<FullEmail[]>([])
@@ -272,6 +279,46 @@ export default function TenswPage() {
     }
   }
 
+  // ── File parse handlers ───────────────────────────────────────────────────
+
+  const handleFileUpload = async (file: File) => {
+    setParsing(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/tensw-mgmt/invoices/parse', { method: 'POST', body: form })
+      if (!res.ok) throw new Error('Parse failed')
+      const data = await res.json()
+      const txs: ParsedTransaction[] = (data.transactions || []).map((tx: Omit<ParsedTransaction, '_selected'>) => ({ ...tx, _selected: true }))
+      setParsedTransactions(txs)
+      setParsedBankName(data.bankName || null)
+      setParsePreviewOpen(true)
+    } catch (err) {
+      console.error('File parse error:', err)
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  const handleConfirmParsed = async (txs: ParsedTransaction[]) => {
+    for (const tx of txs) {
+      await fetch('/api/tensw-mgmt/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: tx.type,
+          counterparty: tx.counterparty,
+          description: tx.description || null,
+          amount: tx.amount,
+          payment_date: tx.date || null,
+        }),
+      })
+    }
+    setParsePreviewOpen(false)
+    setParsedTransactions([])
+    loadData()
+  }
+
   // ── Sales handlers ────────────────────────────────────────────────────────
 
   const handleSaveSales = async (data: TenswSalesFormData) => {
@@ -454,6 +501,8 @@ export default function TenswPage() {
               items={cashItems}
               onAdd={() => { setEditingCash(null); setCashDialogOpen(true) }}
               onSelect={(item) => { setEditingCash(item); setCashDialogOpen(true) }}
+              onFileUpload={handleFileUpload}
+              parsing={parsing}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
               <SalesBlock
@@ -516,6 +565,15 @@ export default function TenswPage() {
           onClose={() => { setScheduleDialogOpen(false); setEditingSchedule(null) }}
           onSave={handleSaveSchedule}
           onClientCreated={reloadClients}
+        />
+
+        {/* Parse preview dialog */}
+        <ParsePreviewDialog
+          open={parsePreviewOpen}
+          transactions={parsedTransactions}
+          bankName={parsedBankName}
+          onClose={() => { setParsePreviewOpen(false); setParsedTransactions([]) }}
+          onConfirm={handleConfirmParsed}
         />
 
         {/* Cash dialog */}

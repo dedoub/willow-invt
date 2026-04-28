@@ -154,7 +154,7 @@ export default function ReviewNotesPage() {
         {/* 헤더 */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">ReviewNotes 매출 현황</h1>
+            <h1 className="text-2xl font-bold">리뷰노트 매출현황</h1>
             <p className="text-sm text-muted-foreground mt-1">
               LemonSqueezy 연동을 통한 매출 및 구독 현황을 확인하세요.
             </p>
