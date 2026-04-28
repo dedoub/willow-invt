@@ -4,6 +4,7 @@ config({ path: '.env.local' })
 import { createClient } from '@supabase/supabase-js'
 import { spawn } from 'child_process'
 import { markdownToTelegramHtml } from './telegram-utils'
+import { ensureTickerTheme } from '../src/lib/ensure-ticker-theme'
 
 // ============================================================
 // Unified Research Scanner — 통합 종목 리서치 스캔
@@ -558,6 +559,9 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
         log(`  ⚠️ UPDATE 실패 (${entry.ticker}): ${error.message}`)
       } else {
         upserted++
+        if (entry.sector) {
+          await ensureTickerTheme(supabase, entry.ticker, entry.company_name, entry.sector).catch(() => {})
+        }
       }
     } else {
       const { error } = await supabase
@@ -592,6 +596,9 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
         log(`  ⚠️ INSERT 실패 (${entry.ticker}): ${error.message}`)
       } else {
         upserted++
+        if (entry.sector) {
+          await ensureTickerTheme(supabase, entry.ticker, entry.company_name, entry.sector).catch(() => {})
+        }
       }
     }
   }

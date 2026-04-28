@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
+import { ensureTickerTheme } from '@/lib/ensure-ticker-theme'
 
 // GET - List all research entries
 export async function GET(request: Request) {
@@ -126,6 +127,10 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  if (data && sector) {
+    await ensureTickerTheme(supabase, ticker, company_name, sector).catch(() => {})
   }
 
   return NextResponse.json(data)
