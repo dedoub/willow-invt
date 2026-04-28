@@ -1,0 +1,5 @@
+*.vtt
+*.csv
+scripts/logs/
+test-results/
+supabase/.temp/
