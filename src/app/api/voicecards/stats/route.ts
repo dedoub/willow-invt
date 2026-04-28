@@ -45,8 +45,12 @@ export async function GET(request: Request) {
       }
 
       if (missingDates.length > 0) {
-        // backfill 모드: 전체, 일반 모드: 최근 7일만 (빠른 응답용)
-        const datesToFetch = backfill ? missingDates : missingDates.slice(-7)
+        // backfill 모드: 전체, 일반 모드: 최근 30일만
+        const recentMissing = missingDates.filter(d => {
+          const diff = (new Date(endDate).getTime() - new Date(d).getTime()) / 86400000
+          return diff <= 30
+        })
+        const datesToFetch = backfill ? missingDates : recentMissing
         const batchSize = backfill ? 10 : 5
 
         for (let i = 0; i < datesToFetch.length; i += batchSize) {
