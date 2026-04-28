@@ -39,7 +39,7 @@ interface SalesDialogProps {
 
 const PAYMENT_STATUS_OPTIONS = [
   { key: 'scheduled', label: '예정' },
-  { key: 'pending', label: '미수금' },
+  { key: 'pending', label: '계산서발행' },
   { key: 'paid', label: '수금완료' },
 ]
 

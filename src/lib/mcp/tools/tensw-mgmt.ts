@@ -920,4 +920,171 @@ export function registerTenswMgmtTools(server: McpServer) {
     await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'tensw_delete_invoice', inputParams: { id } })
     return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, deleted_id: id }) }] }
   })
+
+  // =============================================
+  // 매출관리 / 세금계산서 (Tax Invoices)
+  // =============================================
+
+  server.registerTool('tensw_list_sales', {
+    description: '[텐소프트웍스 > 매출관리] 세금계산서 목록을 조회합니다',
+    inputSchema: z.object({
+      year: z.number().optional().describe('연도 필터 (예: 2026)'),
+      payment_status: z.enum(['scheduled', 'pending', 'paid']).optional().describe('수금상태 (scheduled=예정, pending=미수금, paid=수금완료)'),
+      counterparty: z.string().optional().describe('거래처명 (부분 일치)'),
+    }),
+  }, async ({ year, payment_status, counterparty }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('tensw_list_sales', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    let query = supabase
+      .from('tensw_mgmt_sales')
+      .select('*')
+      .order('issue_date', { ascending: false })
+
+    if (year) {
+      query = query.gte('issue_date', `${year}-01-01`).lte('issue_date', `${year}-12-31`)
+    }
+    if (payment_status) query = query.eq('payment_status', payment_status)
+    if (counterparty) query = query.ilike('counterparty', `%${counterparty}%`)
+
+    const { data, error } = await query
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    const invoices = (data || []).map(inv => ({
+      ...inv,
+      supply_amount: Number(inv.supply_amount),
+      tax_amount: Number(inv.tax_amount),
+      total_amount: Number(inv.total_amount),
+    }))
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'tensw_list_sales', inputParams: { year, payment_status, counterparty } })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(invoices, null, 2) }] }
+  })
+
+  server.registerTool('tensw_create_sales', {
+    description: '[텐소프트웍스 > 매출관리] 세금계산서를 생성합니다',
+    inputSchema: z.object({
+      issue_date: z.string().describe('발행일 (YYYY-MM-DD)'),
+      counterparty: z.string().describe('거래처'),
+      business_number: z.string().optional().describe('사업자번호'),
+      representative: z.string().optional().describe('대표자'),
+      supply_amount: z.number().describe('공급가액'),
+      tax_amount: z.number().optional().describe('세액 (미입력 시 공급가액의 10%)'),
+      items: z.array(z.object({
+        description: z.string().describe('품목명'),
+        supply_amount: z.number().describe('공급가액'),
+        tax_amount: z.number().optional().describe('세액'),
+      })).optional().describe('품목 목록'),
+      expected_payment_date: z.string().optional().describe('입금예정일 (YYYY-MM-DD)'),
+      payment_status: z.enum(['scheduled', 'pending', 'paid']).optional().describe('수금상태 (기본: scheduled)'),
+      notes: z.string().optional().describe('비고'),
+    }),
+  }, async (input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('tensw_create_sales', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const tax = input.tax_amount ?? Math.round(input.supply_amount * 0.1)
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('tensw_mgmt_sales')
+      .insert({
+        invoice_type: 'sales',
+        issue_date: input.issue_date,
+        counterparty: input.counterparty,
+        business_number: input.business_number || null,
+        representative: input.representative || null,
+        supply_amount: input.supply_amount,
+        tax_amount: tax,
+        total_amount: input.supply_amount + tax,
+        items: input.items || [],
+        expected_payment_date: input.expected_payment_date || null,
+        payment_status: input.payment_status || 'scheduled',
+        notes: input.notes || null,
+      })
+      .select()
+      .single()
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'tensw_create_sales', inputParams: input })
+    return { content: [{ type: 'text' as const, text: JSON.stringify({ ...data, supply_amount: Number(data.supply_amount), tax_amount: Number(data.tax_amount), total_amount: Number(data.total_amount) }, null, 2) }] }
+  })
+
+  server.registerTool('tensw_update_sales', {
+    description: '[텐소프트웍스 > 매출관리] 세금계산서를 수정합니다',
+    inputSchema: z.object({
+      id: z.string().describe('세금계산서 ID'),
+      issue_date: z.string().optional().describe('발행일'),
+      counterparty: z.string().optional().describe('거래처'),
+      business_number: z.string().optional().describe('사업자번호'),
+      representative: z.string().optional().describe('대표자'),
+      supply_amount: z.number().optional().describe('공급가액'),
+      tax_amount: z.number().optional().describe('세액'),
+      items: z.array(z.object({
+        description: z.string(),
+        supply_amount: z.number(),
+        tax_amount: z.number().optional(),
+      })).optional().describe('품목 목록'),
+      expected_payment_date: z.string().optional().describe('입금예정일'),
+      payment_status: z.enum(['scheduled', 'pending', 'paid']).optional().describe('수금상태'),
+      notes: z.string().optional().describe('비고'),
+    }),
+  }, async ({ id, ...updates }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('tensw_update_sales', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const body: Record<string, unknown> = { ...updates, updated_at: new Date().toISOString() }
+    if (updates.supply_amount != null) {
+      const tax = updates.tax_amount ?? Math.round(updates.supply_amount * 0.1)
+      body.tax_amount = tax
+      body.total_amount = updates.supply_amount + tax
+    }
+
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('tensw_mgmt_sales')
+      .update(body)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'tensw_update_sales', inputParams: { id, ...updates } })
+    return { content: [{ type: 'text' as const, text: JSON.stringify({ ...data, supply_amount: Number(data.supply_amount), tax_amount: Number(data.tax_amount), total_amount: Number(data.total_amount) }, null, 2) }] }
+  })
+
+  server.registerTool('tensw_delete_sales', {
+    description: '[텐소프트웍스 > 매출관리] 세금계산서를 삭제합니다',
+    inputSchema: z.object({
+      id: z.string().describe('세금계산서 ID'),
+    }),
+  }, async ({ id }, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('tensw_delete_sales', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { error } = await supabase
+      .from('tensw_mgmt_sales')
+      .delete()
+      .eq('id', id)
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'tensw_delete_sales', inputParams: { id } })
+    return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, deleted_id: id }) }] }
+  })
 }

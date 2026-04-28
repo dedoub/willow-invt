@@ -18,7 +18,7 @@ type StatusFilter = 'all' | 'scheduled' | 'pending' | 'paid'
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: '전체' },
   { value: 'scheduled', label: '예정' },
-  { value: 'pending', label: '미수금' },
+  { value: 'pending', label: '계산서발행' },
   { value: 'paid', label: '수금완료' },
 ]
 
@@ -29,7 +29,7 @@ const STATUS_TONES: Record<string, { bg: string; fg: string }> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  scheduled: '예정', pending: '미수금', paid: '수금완료',
+  scheduled: '예정', pending: '계산서발행', paid: '수금완료',
 }
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────

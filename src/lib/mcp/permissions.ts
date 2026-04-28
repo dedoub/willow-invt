@@ -172,6 +172,10 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   tensw_create_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
   tensw_update_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
   tensw_delete_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
+  tensw_list_sales:            { roles: ['admin', 'editor'], scopes: ['tensw:read'] },
+  tensw_create_sales:          { roles: ['admin'], scopes: ['tensw:write'] },
+  tensw_update_sales:          { roles: ['admin'], scopes: ['tensw:write'] },
+  tensw_delete_sales:          { roles: ['admin'], scopes: ['tensw:write'] },
 
   // Real Estate (부동산 리서치)
   re_list_complexes:     { roles: ['admin', 'editor', 'viewer'], scopes: ['willow:read'] },
