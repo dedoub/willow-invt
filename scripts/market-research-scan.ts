@@ -172,6 +172,36 @@ function askClaudePortfolioOnly(prompt: string): Promise<string> {
   })
 }
 
+interface WatchlistRow {
+  name: string; ticker: string; sector: string; group_name: string; axis: string | null
+}
+
+async function loadPortfolioFromDB(): Promise<{ portfolio: WatchlistRow[]; byAxis: Map<string, string[]> }> {
+  const { data, error } = await supabase
+    .from('stock_watchlist')
+    .select('name, ticker, sector, group_name, axis')
+    .eq('group_name', 'portfolio')
+  if (error) throw error
+  const rows = (data || []) as WatchlistRow[]
+  const byAxis = new Map<string, string[]>()
+  for (const r of rows) {
+    const ax = r.axis || '기타'
+    if (!byAxis.has(ax)) byAxis.set(ax, [])
+    byAxis.get(ax)!.push(r.name)
+  }
+  return { portfolio: rows, byAxis }
+}
+
+function formatPortfolioAxes(byAxis: Map<string, string[]>): string {
+  return Array.from(byAxis.entries())
+    .map(([axis, names]) => `- ${axis}: ${names.join(', ')}`)
+    .join('\n')
+}
+
+function formatPortfolioNames(portfolio: WatchlistRow[]): string {
+  return portfolio.map(p => p.name).join(', ')
+}
+
 async function runValuechainScan(): Promise<string> {
   const now = new Date()
   const dateStr = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -218,6 +248,7 @@ portfolio_signals 도구로 시그널 현황을 확인하세요.
 async function runMarketResearchScan(): Promise<string> {
   const now = new Date()
   const dateStr = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+  const { byAxis } = await loadPortfolioFromDB()
 
   const prompt = `당신은 윌리(Willy)입니다. 윌로우인베스트먼트의 COO.
 오늘은 ${dateStr}이고 매일 오후 통합 마켓 리서치 스캔 시간입니다.
@@ -227,11 +258,8 @@ async function runMarketResearchScan(): Promise<string> {
 - Part B: 레딧/소셜 센티먼트 기반 종목 소싱 (군중 심리)
 - 교차 검증: 양쪽에서 겹치는 종목 = 강한 신호
 
-## 윌로우 포트폴리오 4축
-- AI 인프라: SK하이닉스, 삼성전자, 시에나, 버티브, 블룸에너지, 아이렌, 오클로
-- 지정학/안보: 한화에어로스페이스, 현대로템, 팔란티어, 로켓랩
-- 넥스트: 디웨이브, 현대차
-- ETF: 미래에셋증권
+## 윌로우 포트폴리오 현재 보유
+${formatPortfolioAxes(byAxis)}
 
 ---
 
@@ -329,9 +357,11 @@ function deriveVerdict(compositeScore: number | null): string {
 }
 
 async function extractResearchEntries(report: string, sourceType: 'valuechain' | 'smallcap'): Promise<ResearchEntry[]> {
+  const { portfolio } = await loadPortfolioFromDB()
+  const portfolioNames = formatPortfolioNames(portfolio)
   const sourceLabel = sourceType === 'valuechain' ? '밸류체인 리서치' : '마켓 리서치'
   const extractPrompt = `아래 ${sourceLabel} 리포트에서 언급된 **비보유 신규 후보 종목**만 추출하세요.
-기존 보유 종목(SK하이닉스, 삼성전자, 시에나, 버티브, 블룸에너지, 아이렌, 오클로, 한화에어로스페이스, 현대로템, 팔란티어, 로켓랩, 디웨이브, 현대차, 미래에셋증권)은 제외합니다.
+기존 보유 종목(${portfolioNames})은 제외합니다.
 
 각 종목에 대해 아래 JSON 배열 형식으로만 출력하세요. 설명 텍스트 없이 순수 JSON만:
 
