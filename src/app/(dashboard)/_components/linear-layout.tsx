@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, ReactNode } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import { t } from './linear-tokens'
 import { LinearSidebar } from './linear-sidebar'
 import { LinearHeader } from './linear-header'
@@ -27,21 +27,15 @@ const CHAT_OPEN_KEY = 'linear-chat-open'
 
 export function LinearLayout({ title, children, headerActions }: LinearLayoutProps) {
   const narrow = useNarrow()
-  const [chatOpen, setChatOpen] = useState(false)
-  const chatOpenRef = useRef(false)
-  const mountedRef = useRef(false)
+  const [chatOpen, setChatOpen] = useState<boolean | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(CHAT_OPEN_KEY)
-    const initial = saved !== null ? saved === '1' : !window.matchMedia('(max-width: 1180px)').matches
-    chatOpenRef.current = initial
-    setChatOpen(initial)
-    mountedRef.current = true
+    setChatOpen(saved !== null ? saved === '1' : !window.matchMedia('(max-width: 1180px)').matches)
   }, [])
 
   useEffect(() => {
-    if (!mountedRef.current) return
-    chatOpenRef.current = chatOpen
+    if (chatOpen === null) return
     localStorage.setItem(CHAT_OPEN_KEY, chatOpen ? '1' : '0')
   }, [chatOpen])
 
@@ -58,7 +52,7 @@ export function LinearLayout({ title, children, headerActions }: LinearLayoutPro
         <LinearHeader
           title={title}
           onAgentToggle={() => setChatOpen(v => !v)}
-          agentOpen={chatOpen}
+          agentOpen={!!chatOpen}
           actions={headerActions}
         />
         <main style={{ flex: 1, overflow: 'auto', padding: '0 20px 24px' }}>
@@ -67,7 +61,7 @@ export function LinearLayout({ title, children, headerActions }: LinearLayoutPro
       </div>
 
       {/* Agent panel: full height from top to bottom */}
-      <LinearChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+      <LinearChatPanel open={!!chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   )
 }
