@@ -32,6 +32,7 @@ interface CashBlockProps {
   onFileUpload: (file: File) => void
   parsing?: boolean
   bankBalances?: BankBalance[]
+  usdRate?: number
 }
 
 type PeriodMode = 'month' | 'quarter' | 'year'
@@ -107,7 +108,7 @@ function getStoredCashPageSize(): number {
   return n >= 5 && n <= 100 ? n : DEFAULT_CASH_PAGE_SIZE
 }
 
-export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUpload, parsing, bankBalances = [] }: CashBlockProps) {
+export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUpload, parsing, bankBalances = [], usdRate = 0 }: CashBlockProps) {
   const [dragOver, setDragOver] = useState(false)
   const [sortAsc, setSortAsc] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -212,30 +213,6 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
           </button>
         </div>
 
-        {/* Bank Balances */}
-        {bankBalances.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-            {bankBalances.map((b, i) => (
-              <div key={i} style={{
-                flex: 1, minWidth: 120, padding: '8px 10px',
-                background: t.neutrals.inner, borderRadius: t.radius.sm,
-              }}>
-                <div style={{ fontSize: 9.5, fontFamily: t.font.mono, color: t.neutrals.subtle, textTransform: 'uppercase' as const, letterSpacing: 0.8, marginBottom: 3 }}>
-                  {b.bank_name}
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 600, fontFamily: t.font.sans, color: t.neutrals.text, fontVariantNumeric: 'tabular-nums' }}>
-                  {b.balance.toLocaleString()}원
-                </div>
-                {b.balance_date && (
-                  <div style={{ fontSize: 9, color: t.neutrals.muted, marginTop: 2 }}>
-                    {b.balance_date} 기준
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* KPI */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           <LStat label="매출" value={`${revenue.toLocaleString()}원`} tone="pos" />
@@ -244,6 +221,12 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
           <LStat label="부채" value={`${liability.toLocaleString()}원`} tone="warn" />
           <LStat label="대체" value={`${transfer.toLocaleString()}원`} tone={transfer >= 0 ? 'pos' : 'neg'} />
           <LStat label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} />
+          <LStat label="원화 잔고" value={`${bankBalances.filter(b => !b.bank_name.toLowerCase().includes('usd') && !b.bank_name.includes('외화')).reduce((s, b) => s + b.balance, 0).toLocaleString()}원`} />
+          <LStat label="외화 잔고" value={`$${bankBalances.filter(b => b.bank_name.toLowerCase().includes('usd') || b.bank_name.includes('외화')).reduce((s, b) => s + b.balance, 0).toLocaleString()}`} />
+          <LStat label="총 잔고" value={`${bankBalances.reduce((s, b) => {
+            const isFx = b.bank_name.toLowerCase().includes('usd') || b.bank_name.includes('외화')
+            return s + (isFx ? Math.round(b.balance * usdRate) : b.balance)
+          }, 0).toLocaleString()}원`} />
         </div>
 
         {/* Type filter chips + add button */}

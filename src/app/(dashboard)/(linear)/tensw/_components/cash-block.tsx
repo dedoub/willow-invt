@@ -202,30 +202,6 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
           </button>
         </div>
 
-        {/* Bank Balances */}
-        {bankBalances.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-            {bankBalances.map((b, i) => (
-              <div key={i} style={{
-                flex: 1, minWidth: 120, padding: '8px 10px',
-                background: t.neutrals.inner, borderRadius: t.radius.sm,
-              }}>
-                <div style={{ fontSize: 9.5, fontFamily: t.font.mono, color: t.neutrals.subtle, textTransform: 'uppercase' as const, letterSpacing: 0.8, marginBottom: 3 }}>
-                  {b.bank_name}
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 600, fontFamily: t.font.sans, color: t.neutrals.text, fontVariantNumeric: 'tabular-nums' }}>
-                  {b.balance.toLocaleString()}원
-                </div>
-                {b.balance_date && (
-                  <div style={{ fontSize: 9, color: t.neutrals.muted, marginTop: 2 }}>
-                    {b.balance_date} 기준
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* KPI */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           <LStat label="매출" value={`${revenue.toLocaleString()}원`} tone="pos" />
@@ -234,6 +210,9 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
           <LStat label="부채" value={`${liability.toLocaleString()}원`} tone="warn" />
           <LStat label="대체" value={`${transfer.toLocaleString()}원`} tone={transfer >= 0 ? 'pos' : 'neg'} />
           <LStat label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} />
+          <LStat label="우리은행" value={`${(bankBalances.find(b => b.bank_name.includes('우리'))?.balance ?? 0).toLocaleString()}원`} />
+          <LStat label="신한은행" value={`${(bankBalances.find(b => b.bank_name.includes('신한'))?.balance ?? 0).toLocaleString()}원`} />
+          <LStat label="총 잔고" value={`${bankBalances.reduce((s, b) => s + b.balance, 0).toLocaleString()}원`} />
         </div>
 
         {/* Type filter chips + add button */}

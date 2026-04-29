@@ -48,6 +48,7 @@ export default function MgmtPage() {
   const [parsedBalance, setParsedBalance] = useState<{ balance: number; date: string | null } | null>(null)
   const [parsePreviewOpen, setParsePreviewOpen] = useState(false)
   const [bankBalances, setBankBalances] = useState<Array<{ bank_name: string; account_number: string | null; balance: number; balance_date: string | null }>>([])
+  const [usdRate, setUsdRate] = useState(0)
 
 
   // Email states
@@ -83,6 +84,16 @@ export default function MgmtPage() {
         setInvoices(Array.isArray(data) ? data : data.invoices || [])
       }
       if (balancesRes.ok) setBankBalances(await balancesRes.json())
+
+      // Fetch latest USD/KRW rate
+      try {
+        const fxRes = await fetch('/api/willow-mgmt/fx-history')
+        if (fxRes.ok) {
+          const { rates } = await fxRes.json()
+          const dates = Object.keys(rates).sort()
+          if (dates.length > 0) setUsdRate(rates[dates[dates.length - 1]])
+        }
+      } catch { /* non-critical */ }
 
       // DB done — show UI immediately
       setLoadPhase(1)
@@ -384,6 +395,7 @@ export default function MgmtPage() {
             onFileUpload={handleFileUpload}
             parsing={parsing}
             bankBalances={bankBalances}
+            usdRate={usdRate}
           />
           <EmailBlock
             emails={emails}
