@@ -49,10 +49,18 @@ export default function LinearRouteLayout({
   const pathname = usePathname()
   const narrow = useNarrow()
   const mobile = useIsMobile()
-  const [chatOpen, setChatOpen] = useState(!narrow)
+  const [chatOpen, setChatOpen] = useState<boolean | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
 
-  useEffect(() => { setChatOpen(!narrow) }, [narrow])
+  useEffect(() => {
+    const saved = localStorage.getItem('linear-chat-open')
+    setChatOpen(saved !== null ? saved === '1' : !narrow)
+  }, [])
+
+  useEffect(() => {
+    if (chatOpen === null) return
+    localStorage.setItem('linear-chat-open', chatOpen ? '1' : '0')
+  }, [chatOpen])
   // Close menu on route change
   useEffect(() => { setMenuOpen(false) }, [pathname])
 
@@ -74,7 +82,7 @@ export default function LinearRouteLayout({
           <LinearHeader
             title={title}
             onAgentToggle={() => setChatOpen(v => !v)}
-            agentOpen={chatOpen}
+            agentOpen={!!chatOpen}
             mobile={mobile}
             onMenuToggle={() => setMenuOpen(v => !v)}
           />
@@ -83,7 +91,7 @@ export default function LinearRouteLayout({
           </main>
         </div>
 
-        {!mobile && <LinearChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />}
+        {!mobile && <LinearChatPanel open={!!chatOpen} onClose={() => setChatOpen(false)} />}
       </div>
     </div>
   )
