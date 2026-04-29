@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, useRef, ReactNode } from 'react'
 import { t } from './linear-tokens'
 import { LinearSidebar } from './linear-sidebar'
 import { LinearHeader } from './linear-header'
@@ -28,19 +28,22 @@ const CHAT_OPEN_KEY = 'linear-chat-open'
 export function LinearLayout({ title, children, headerActions }: LinearLayoutProps) {
   const narrow = useNarrow()
   const [chatOpen, setChatOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const chatOpenRef = useRef(false)
+  const mountedRef = useRef(false)
 
   useEffect(() => {
     const saved = localStorage.getItem(CHAT_OPEN_KEY)
-    if (saved !== null) setChatOpen(saved === '1')
-    else setChatOpen(!window.matchMedia('(max-width: 1180px)').matches)
-    setMounted(true)
+    const initial = saved !== null ? saved === '1' : !window.matchMedia('(max-width: 1180px)').matches
+    chatOpenRef.current = initial
+    setChatOpen(initial)
+    mountedRef.current = true
   }, [])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mountedRef.current) return
+    chatOpenRef.current = chatOpen
     localStorage.setItem(CHAT_OPEN_KEY, chatOpen ? '1' : '0')
-  }, [chatOpen, mounted])
+  }, [chatOpen])
 
   return (
     <div style={{
