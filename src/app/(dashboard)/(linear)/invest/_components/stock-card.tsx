@@ -304,9 +304,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             }}>
               {data.pyramiding.avgReturnPct > 0 ? '+' : ''}{data.pyramiding.avgReturnPct.toFixed(1)}%
             </span>
-            {data.pyramiding.status === 'HOUSE_MONEY' ? (
-              <span style={{ fontSize: 10, color: '#5B3A8C' }}>→ 1/3 매도</span>
-            ) : data.pyramiding.nextTriggerPct != null && (
+            {data.pyramiding.nextTriggerPct != null && (
               <span style={{ fontSize: 10, color: t.neutrals.subtle }}>
                 → +{data.pyramiding.nextTriggerPct.toFixed(0)}%
                 {data.pyramiding.nextTriggerPrice != null && (

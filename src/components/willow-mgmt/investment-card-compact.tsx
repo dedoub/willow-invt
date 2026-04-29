@@ -216,9 +216,7 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
             )}>
               {data.pyramiding.avgReturnPct > 0 ? '+' : ''}{data.pyramiding.avgReturnPct.toFixed(1)}%
             </span>
-            {data.pyramiding.status === 'HOUSE_MONEY' ? (
-              <span className="text-[10px] text-purple-500">→ 1/3 매도</span>
-            ) : data.pyramiding.nextTriggerPct != null && (
+            {data.pyramiding.nextTriggerPct != null && (
               <span className="text-[10px] text-slate-400">
                 → +{data.pyramiding.nextTriggerPct.toFixed(0)}%
                 {data.pyramiding.nextTriggerPrice != null && (

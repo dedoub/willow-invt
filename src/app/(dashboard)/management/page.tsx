@@ -4532,14 +4532,12 @@ export default function WillowManagementPage() {
                   const toKrw = (pnl: number, currency: 'KRW' | 'USD') => currency === 'USD' ? pnl * usdKrwRate : pnl
                   // Sort each theme group by pyramiding status priority
                   const pyramidingStatusRank = (h: typeof holdings[0]): number => {
-                    if (!(h.currentPrice > 0 && h.totalBought > 0)) return 6
+                    if (!(h.currentPrice > 0 && h.totalInvested > 0)) return 6
                     const trancheSize = h.currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrwRate
-                    const tranche = Math.min(10, Math.max(1, Math.round(h.totalBought / trancheSize)))
+                    const tranche = Math.min(10, Math.max(1, Math.round(h.totalInvested / trancheSize)))
                     const avgReturn = h.pnlPercent / 100
                     const currentTrigger = TRANCHE_TRIGGERS[tranche - 1]
                     const nextTrigger = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
-                    // Priority: BUY > HOUSE_MONEY > HOLD > FULL > FREEZE
-                    if (avgReturn >= 2.00) return 1 // HOUSE_MONEY
                     if (tranche >= 10) return 3 // FULL
                     if (nextTrigger !== null && avgReturn >= nextTrigger) return 0 // BUY
                     if (currentTrigger !== null && avgReturn < currentTrigger) return 4 // FREEZE
@@ -4858,16 +4856,15 @@ export default function WillowManagementPage() {
                                         )}
                                       </div>
                                       {/* Pyramiding status */}
-                                      {h.currentPrice > 0 && h.totalBought > 0 && (() => {
+                                      {h.currentPrice > 0 && h.totalInvested > 0 && (() => {
                                         const trancheSize = h.currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrwRate
-                                        const tranche = Math.min(10, Math.max(1, Math.round(h.totalBought / trancheSize)))
+                                        const tranche = Math.min(10, Math.max(1, Math.round(h.totalInvested / trancheSize)))
                                         const avgReturn = h.pnlPercent / 100
                                         const currentTrigger = TRANCHE_TRIGGERS[tranche - 1]
                                         const nextTrigger = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
 
                                         let status: 'BUY' | 'HOLD' | 'FREEZE' | 'HOUSE_MONEY' | 'FULL'
-                                        if (avgReturn >= 2.00) status = 'HOUSE_MONEY'
-                                        else if (tranche >= 10) status = 'FULL'
+                                        if (tranche >= 10) status = 'FULL'
                                         else if (nextTrigger !== null && avgReturn >= nextTrigger) status = 'BUY'
                                         else if (currentTrigger !== null && avgReturn < currentTrigger) status = 'FREEZE'
                                         else status = 'HOLD'
@@ -4898,9 +4895,7 @@ export default function WillowManagementPage() {
                                               )}>
                                                 {h.pnlPercent > 0 ? '+' : ''}{h.pnlPercent.toFixed(1)}%
                                               </span>
-                                              {status === 'HOUSE_MONEY' ? (
-                                                <span className="text-[11px] text-purple-500">→ 1/3 매도</span>
-                                              ) : nextTrigger != null && (
+                                              {nextTrigger != null && (
                                                 <span className="text-[11px] text-slate-400">
                                                   → +{(nextTrigger * 100).toFixed(0)}%
                                                   {nextTriggerPrice != null && (

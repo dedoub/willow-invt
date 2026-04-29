@@ -194,13 +194,12 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
     for (const [, items] of groups) {
       items.sort((a, b) => {
         const rank = (h: Holding) => {
-          if (!(h.currentPrice > 0 && h.totalBought > 0)) return 6
+          if (!(h.currentPrice > 0 && h.totalInvested > 0)) return 6
           const trancheSize = h.currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrwRate
-          const tranche = Math.min(10, Math.max(1, Math.round(h.totalBought / trancheSize)))
+          const tranche = Math.min(10, Math.max(1, Math.round(h.totalInvested / trancheSize)))
           const avgReturn = h.pnlPercent / 100
           const next = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
           const curr = TRANCHE_TRIGGERS[tranche - 1]
-          if (avgReturn >= 2.00) return 1
           if (tranche >= 10) return 3
           if (next !== null && avgReturn >= next) return 0
           if (curr !== null && avgReturn < curr) return 4
@@ -343,15 +342,14 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                 {items.map(h => {
                   // Pyramiding
                   let pyramiding: { tranche: number; status: string; nextPct: number | null; nextPrice: number | null } | null = null
-                  if (h.currentPrice > 0 && h.totalBought > 0) {
+                  if (h.currentPrice > 0 && h.totalInvested > 0) {
                     const trancheSize = h.currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrwRate
-                    const tranche = Math.min(10, Math.max(1, Math.round(h.totalBought / trancheSize)))
+                    const tranche = Math.min(10, Math.max(1, Math.round(h.totalInvested / trancheSize)))
                     const avgReturn = h.pnlPercent / 100
                     const curr = TRANCHE_TRIGGERS[tranche - 1]
                     const next = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
                     let status: string
-                    if (avgReturn >= 2.00) status = 'HOUSE_MONEY'
-                    else if (tranche >= 10) status = 'FULL'
+                    if (tranche >= 10) status = 'FULL'
                     else if (next !== null && avgReturn >= next) status = 'BUY'
                     else if (curr !== null && avgReturn < curr) status = 'FREEZE'
                     else status = 'HOLD'
@@ -442,9 +440,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                             <span style={{ fontSize: 10, fontWeight: t.weight.medium, fontFamily: t.font.mono, color: pnlColor(h.pnlPercent) }}>
                               {h.pnlPercent > 0 ? '+' : ''}{h.pnlPercent.toFixed(1)}%
                             </span>
-                            {pyramiding.status === 'HOUSE_MONEY' ? (
-                              <span style={{ fontSize: 10, color: '#5B3A8C' }}>→ 1/3 매도</span>
-                            ) : pyramiding.nextPct != null && (
+                            {pyramiding.nextPct != null && (
                               <span style={{ fontSize: 10, color: t.neutrals.subtle }}>
                                 → +{pyramiding.nextPct.toFixed(0)}%
                                 {pyramiding.nextPrice != null && (

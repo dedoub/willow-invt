@@ -228,16 +228,15 @@ async function buildSystemPrompt(): Promise<string> {
 TRIGGERS 배열 = [null, 10%, 20%, 30%, 40%, 55%, 75%, 100%, 135%, 175%] (인덱스 0~9)
 
 **계산 순서 (종목별):**
-1. 매매기록에서 매수 합계금액(totalBought) 계산
-2. 트랜치 수 = round(totalBought ÷ 트랜치사이즈), 최소 1 최대 10
-3. 평균매수가 = totalBought ÷ 순보유수량
+1. 순투자금(totalInvested) = 현재 잔여 투자원금 (매도분 차감)
+2. 트랜치 수 = round(totalInvested ÷ 트랜치사이즈), 최소 1 최대 10
+3. 평균매수가 = totalInvested ÷ 순보유수량
 4. 수익률(avgReturn) = (현재가 - 평균매수가) ÷ 평균매수가
 5. nextTrigger = TRIGGERS[tranche] (현재 트랜치의 다음 트리거)
 6. currTrigger = TRIGGERS[tranche - 1] (현재 트랜치 진입 트리거)
 
 **상태 판정 (위에서 아래 순서, 먼저 해당되면 확정):**
-- 수익률 >= 200% → HOUSE_MONEY (원금회수)
-- 트랜치 >= 10 → FULL (풀)
+- 트랜치 >= 10 → FULL (T10 완료, thesis 무너질 때까지 보유)
 - 수익률 >= nextTrigger → **BUY (추매)** ← "추매 라벨" = 이 상태
 - 수익률 < currTrigger → FREEZE (동결)
 - 그 외 → HOLD (대기)
