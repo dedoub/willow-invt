@@ -157,8 +157,12 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
 
   useEffect(() => { setPage(0) }, [typeFilter, periodMode, baseDate, searchQuery])
 
-  const eyebrowLabel = periodMode === 'month' ? 'CASHFLOW · 월간'
-    : periodMode === 'quarter' ? 'CASHFLOW · 분기' : 'CASHFLOW · 연간'
+  const latestBalanceDate = bankBalances.reduce((latest, b) => {
+    if (!b.balance_date) return latest
+    return !latest || b.balance_date > latest ? b.balance_date : latest
+  }, '' as string)
+  const modeLabel = periodMode === 'month' ? '월간' : periodMode === 'quarter' ? '분기' : '연간'
+  const eyebrowLabel = `CASHFLOW · ${modeLabel}${latestBalanceDate ? ` · ${latestBalanceDate} 기준` : ''}`
 
   return (
     <LCard pad={0}>

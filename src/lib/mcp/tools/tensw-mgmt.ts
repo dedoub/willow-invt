@@ -922,6 +922,31 @@ export function registerTenswMgmtTools(server: McpServer) {
   })
 
   // =============================================
+  // 은행 보유잔고 (Bank Balances)
+  // =============================================
+
+  server.registerTool('tensw_list_bank_balances', {
+    description: '[텐소프트웍스 > 사업관리] 은행 보유잔고 목록을 조회합니다 — 은행별 잔액, 기준일 포함',
+    inputSchema: z.object({}),
+  }, async (_input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('tensw_list_bank_balances', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('tensw_mgmt_bank_balances')
+      .select('*')
+      .order('bank_name')
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] }
+  })
+
+  // =============================================
   // 매출관리 / 세금계산서 (Tax Invoices)
   // =============================================
 

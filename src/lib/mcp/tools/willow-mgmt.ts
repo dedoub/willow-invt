@@ -919,4 +919,29 @@ export function registerWillowMgmtTools(server: McpServer) {
     await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'willow_delete_invoice', inputParams: { id } })
     return { content: [{ type: 'text' as const, text: JSON.stringify({ success: true, deleted_id: id }) }] }
   })
+
+  // =============================================
+  // 은행 보유잔고 (Bank Balances)
+  // =============================================
+
+  server.registerTool('willow_list_bank_balances', {
+    description: '[윌로우인베스트먼트 > 사업관리] 은행 보유잔고 목록을 조회합니다 — 은행별 잔액, 기준일 포함',
+    inputSchema: z.object({}),
+  }, async (_input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('willow_list_bank_balances', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const supabase = getServiceSupabase()
+    const { data, error } = await supabase
+      .from('willow_mgmt_bank_balances')
+      .select('*')
+      .order('bank_name')
+
+    if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
+
+    return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] }
+  })
 }

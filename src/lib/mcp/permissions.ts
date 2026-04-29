@@ -141,6 +141,7 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   willow_create_invoice:        { roles: ['admin'], scopes: ['willow:write'] },
   willow_update_invoice:        { roles: ['admin'], scopes: ['willow:write'] },
   willow_delete_invoice:        { roles: ['admin'], scopes: ['willow:write'] },
+  willow_list_bank_balances:    { roles: ['admin', 'editor'], scopes: ['willow:read'] },
 
   // Tensoftworks (텐소프트웍스 경영관리)
   tensw_list_clients:          { roles: ['admin', 'editor', 'viewer'], scopes: ['tensw:read'] },
@@ -172,6 +173,7 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   tensw_create_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
   tensw_update_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
   tensw_delete_invoice:        { roles: ['admin'], scopes: ['tensw:write'] },
+  tensw_list_bank_balances:    { roles: ['admin', 'editor'], scopes: ['tensw:read'] },
   tensw_list_sales:            { roles: ['admin', 'editor'], scopes: ['tensw:read'] },
   tensw_create_sales:          { roles: ['admin'], scopes: ['tensw:write'] },
   tensw_update_sales:          { roles: ['admin'], scopes: ['tensw:write'] },
