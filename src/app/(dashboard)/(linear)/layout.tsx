@@ -30,10 +30,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/monor': 'MonoR Apps',
 }
 
-const PAGE_SUBTITLES: Record<string, string> = {
-  '/tensw': 'AI 서비스에 필요한 데이터 구축 및 관리 솔루션 — 연 매출 100억 목표',
-}
-
 function useNarrow(threshold = 1180) {
   const [narrow, setNarrow] = useState(false)
   useEffect(() => {
@@ -69,7 +65,6 @@ export default function LinearRouteLayout({
   useEffect(() => { setMenuOpen(false) }, [pathname])
 
   const title = PAGE_TITLES[pathname] || ''
-  const subtitle = PAGE_SUBTITLES[pathname] || ''
 
   return (
     <div className={`${interTight.variable} ${jetbrainsMono.variable}`}>
@@ -86,7 +81,6 @@ export default function LinearRouteLayout({
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <LinearHeader
             title={title}
-            subtitle={subtitle}
             onAgentToggle={() => setChatOpen(v => !v)}
             agentOpen={!!chatOpen}
             mobile={mobile}
