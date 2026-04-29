@@ -182,7 +182,7 @@ export default function EtcPage() {
         <p style={{
           margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
           fontFamily: t.font.sans,
-        }}>국내 금융투자업자들에게 미국 상장 ETF 플랫폼을 제공</p>
+        }}>국내 금융투자업자들에게 미국 상장 ETF 플랫폼을 제공 — 연간 10개 상장 목표</p>
       </div>
 
       {loadPhase === 0 ? <EtcSkeleton /> : (
