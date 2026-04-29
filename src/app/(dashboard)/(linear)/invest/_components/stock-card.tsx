@@ -8,7 +8,7 @@ import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 export interface PyramidingInfo {
   tranche: number
   avgReturnPct: number
-  status: 'BUY' | 'HOLD' | 'FREEZE' | 'HOUSE_MONEY' | 'FULL'
+  status: 'BUY' | 'HOLD' | 'FREEZE' | 'FULL'
   nextTriggerPct: number | null
   nextTriggerPrice: number | null
 }

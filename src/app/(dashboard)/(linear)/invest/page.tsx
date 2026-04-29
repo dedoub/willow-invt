@@ -223,13 +223,12 @@ export default function InvestPage() {
       const avgPrice = h.totalCost / h.qty
       const avgReturnPct = ((quote.price - avgPrice) / avgPrice) * 100
       const trancheSize = isUS ? 5_000_000 / usdKrw : 5_000_000
-      const tranche = Math.min(10, Math.max(1, Math.round(h.totalBought / trancheSize)))
+      const tranche = Math.min(10, Math.max(1, Math.round(h.totalCost / trancheSize)))
       const nextTrigger = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
       const currentTrigger = TRANCHE_TRIGGERS[tranche - 1]
 
       let status: string
-      if (avgReturnPct >= 200) status = 'HOUSE_MONEY'
-      else if (tranche >= 10) status = 'FULL'
+      if (tranche >= 10) status = 'FULL'
       else if (nextTrigger !== null && avgReturnPct / 100 >= nextTrigger) status = 'BUY'
       else if (currentTrigger !== null && avgReturnPct / 100 < currentTrigger) status = 'FREEZE'
       else status = 'HOLD'

@@ -198,19 +198,19 @@ export function PortfolioKanban({
     const cards: StockCardData[] = raw.map(({ item, sig, hold, qty, price, currency, valueUsd }) => {
       const weightPct = totalUsd > 0 ? (valueUsd / totalUsd) * 100 : 0
       const tickerKey = item.ticker.replace('.KS', '')
-      const totalBought = totalBoughtMap.get(tickerKey)
+      const holdInfo = holdingsAvgMap.get(tickerKey)
+      const totalInvested = holdInfo ? holdInfo.avgPrice * holdInfo.qty : 0
 
       let pyramiding: PyramidingInfo | undefined
-      if (valueUsd > 0 && hold?.avgPrice && price && totalBought) {
+      if (valueUsd > 0 && hold?.avgPrice && price && totalInvested > 0) {
         const trancheSize = currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrw
-        const tranche = Math.min(10, Math.max(1, Math.round(totalBought / trancheSize)))
+        const tranche = Math.min(10, Math.max(1, Math.round(totalInvested / trancheSize)))
         const avgReturnPct = ((price - hold.avgPrice) / hold.avgPrice) * 100
         const nextTrigger = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
         const currentTrigger = TRANCHE_TRIGGERS[tranche - 1]
 
         let status: PyramidingInfo['status']
-        if (avgReturnPct >= 200) status = 'HOUSE_MONEY'
-        else if (tranche >= 10) status = 'FULL'
+        if (tranche >= 10) status = 'FULL'
         else if (nextTrigger !== null && avgReturnPct / 100 >= nextTrigger) status = 'BUY'
         else if (currentTrigger !== null && avgReturnPct / 100 < currentTrigger) status = 'FREEZE'
         else status = 'HOLD'
@@ -234,7 +234,7 @@ export function PortfolioKanban({
       }
     })
 
-    const statusOrder: Record<string, number> = { BUY: 0, HOUSE_MONEY: 1, HOLD: 2, FULL: 3, FREEZE: 4 }
+    const statusOrder: Record<string, number> = { BUY: 0, HOLD: 1, FULL: 2, FREEZE: 3 }
     cards.sort((a, b) => {
       const ar = a.pyramiding ? statusOrder[a.pyramiding.status] ?? 5 : 6
       const br = b.pyramiding ? statusOrder[b.pyramiding.status] ?? 5 : 6
@@ -242,7 +242,7 @@ export function PortfolioKanban({
       return (b.weightPct ?? 0) - (a.weightPct ?? 0)
     })
     return cards
-  }, [watchlistData, signalMap, holdingsAvgMap, totalBoughtMap, usdKrw])
+  }, [watchlistData, signalMap, holdingsAvgMap, usdKrw])
 
   const portfolioTotalUsd = useMemo(() => {
     if (!watchlistData) return 0
