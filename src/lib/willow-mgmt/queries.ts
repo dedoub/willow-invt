@@ -563,3 +563,38 @@ export async function willowGetCashSummary(params?: { start_date?: string; end_d
 
   return { summary, items, count: items.length }
 }
+
+// ============================================================
+// Bank Balances
+// ============================================================
+
+export async function willowListBankBalances() {
+  const sb = getServiceSupabase()
+  const { data, error } = await sb
+    .from('willow_mgmt_bank_balances')
+    .select('*')
+    .order('updated_at', { ascending: false })
+  if (error) return { error: error.message }
+  return { data: (data || []).map(r => ({ ...r, balance: Number(r.balance) })) }
+}
+
+export async function willowUpsertBankBalance(params: {
+  bank_name: string
+  account_number?: string | null
+  balance: number
+  balance_date?: string | null
+}) {
+  const sb = getServiceSupabase()
+  const { data, error } = await sb
+    .from('willow_mgmt_bank_balances')
+    .upsert({
+      bank_name: params.bank_name,
+      account_number: params.account_number || null,
+      balance: params.balance,
+      balance_date: params.balance_date || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'bank_name,account_number' })
+    .select()
+  if (error) return { error: error.message }
+  return { data }
+}

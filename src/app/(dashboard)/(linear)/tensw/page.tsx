@@ -70,6 +70,8 @@ export default function TenswPage() {
   const [parsePreviewOpen, setParsePreviewOpen] = useState(false)
   const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([])
   const [parsedBankName, setParsedBankName] = useState<string | null>(null)
+  const [parsedBalance, setParsedBalance] = useState<{ balance: number; date: string | null } | null>(null)
+  const [bankBalances, setBankBalances] = useState<Array<{ bank_name: string; account_number: string | null; balance: number; balance_date: string | null }>>([])
 
   // Email state
   const [emails, setEmails] = useState<FullEmail[]>([])
@@ -130,7 +132,7 @@ export default function TenswPage() {
   const loadData = useCallback(async () => {
     setLoadPhase(0)
     try {
-      const [projectsRes, schedulesRes, clientsRes, cashRes, salesRes, loansRes] =
+      const [projectsRes, schedulesRes, clientsRes, cashRes, salesRes, loansRes, balancesRes] =
         await Promise.all([
           fetch('/api/tensoftworks'),
           fetch('/api/tensw-mgmt/schedules'),
@@ -138,6 +140,7 @@ export default function TenswPage() {
           fetch('/api/tensw-mgmt/invoices'),
           fetch('/api/tensw-mgmt/tax-invoices'),
           fetch('/api/tensw-mgmt/loans'),
+          fetch('/api/tensw-mgmt/bank-balances'),
         ])
 
       if (projectsRes.ok) {
@@ -158,6 +161,7 @@ export default function TenswPage() {
         const data = await loansRes.json()
         setLoans(Array.isArray(data) ? data : data.loans || [])
       }
+      if (balancesRes.ok) setBankBalances(await balancesRes.json())
 
       // Phase 1: DB + wiki done → show UI (emails still loading)
       await loadWiki()
@@ -292,6 +296,11 @@ export default function TenswPage() {
       const txs: ParsedTransaction[] = (data.transactions || []).map((tx: Omit<ParsedTransaction, '_selected'>) => ({ ...tx, _selected: true }))
       setParsedTransactions(txs)
       setParsedBankName(data.bankName || null)
+      if (data.closingBalance != null) {
+        setParsedBalance({ balance: data.closingBalance, date: data.balanceDate || null })
+      } else {
+        setParsedBalance(null)
+      }
       setParsePreviewOpen(true)
     } catch (err) {
       console.error('File parse error:', err)
@@ -314,8 +323,20 @@ export default function TenswPage() {
         }),
       })
     }
+    if (parsedBalance && parsedBankName) {
+      await fetch('/api/tensw-mgmt/bank-balances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bank_name: parsedBankName,
+          balance: parsedBalance.balance,
+          balance_date: parsedBalance.date,
+        }),
+      })
+    }
     setParsePreviewOpen(false)
     setParsedTransactions([])
+    setParsedBalance(null)
     loadData()
   }
 
@@ -503,6 +524,7 @@ export default function TenswPage() {
               onSelect={(item) => { setEditingCash(item); setCashDialogOpen(true) }}
               onFileUpload={handleFileUpload}
               parsing={parsing}
+              bankBalances={bankBalances}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
               <SalesBlock

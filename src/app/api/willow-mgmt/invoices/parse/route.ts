@@ -69,7 +69,9 @@ ${truncated}
     }
   ],
   "bankName": "감지된 은행명 또는 null",
-  "accountInfo": "감지된 계좌 정보 또는 null"
+  "accountInfo": "감지된 계좌 정보 또는 null",
+  "closingBalance": 숫자 또는 null (거래내역에서 확인되는 최종 잔고/잔액),
+  "balanceDate": "잔고 기준일 YYYY-MM-DD 또는 null"
 }
 
 파싱 규칙:
@@ -83,6 +85,8 @@ ${truncated}
    - 헤더 행이나 합계 행 등 거래가 아닌 행은 제외.
 6. 빈 행, 헤더 행, 합계 행은 제외.
 7. 금액이 0이거나 없는 행은 제외.
+8. closingBalance: 거래내역의 잔액/잔고 컬럼에서 가장 마지막 값(최종 잔고). 없으면 null.
+9. balanceDate: closingBalance의 기준이 되는 날짜(마지막 거래일). 없으면 null.
 `
 
   try {
@@ -110,6 +114,8 @@ ${truncated}
       transactions,
       bankName: parsed.bankName || null,
       accountInfo: parsed.accountInfo || null,
+      closingBalance: parsed.closingBalance ?? null,
+      balanceDate: parsed.balanceDate || null,
       rowCount: transactions.length,
     })
   } catch (error) {

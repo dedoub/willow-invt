@@ -508,6 +508,41 @@ export async function tenswGetCashSummary(params?: { start_date?: string; end_da
 }
 
 // ============================================================
+// Bank Balances
+// ============================================================
+
+export async function tenswListBankBalances() {
+  const sb = getServiceSupabase()
+  const { data, error } = await sb
+    .from('tensw_mgmt_bank_balances')
+    .select('*')
+    .order('updated_at', { ascending: false })
+  if (error) return { error: error.message }
+  return { data: (data || []).map(r => ({ ...r, balance: Number(r.balance) })) }
+}
+
+export async function tenswUpsertBankBalance(params: {
+  bank_name: string
+  account_number?: string | null
+  balance: number
+  balance_date?: string | null
+}) {
+  const sb = getServiceSupabase()
+  const { data, error } = await sb
+    .from('tensw_mgmt_bank_balances')
+    .upsert({
+      bank_name: params.bank_name,
+      account_number: params.account_number || null,
+      balance: params.balance,
+      balance_date: params.balance_date || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'bank_name,account_number' })
+    .select()
+  if (error) return { error: error.message }
+  return { data }
+}
+
+// ============================================================
 // Sales (세금계산서 매출관리)
 // ============================================================
 

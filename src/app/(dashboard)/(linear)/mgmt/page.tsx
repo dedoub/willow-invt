@@ -45,7 +45,10 @@ export default function MgmtPage() {
   const [parsing, setParsing] = useState(false)
   const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([])
   const [parsedBankName, setParsedBankName] = useState<string | null>(null)
+  const [parsedBalance, setParsedBalance] = useState<{ balance: number; date: string | null } | null>(null)
   const [parsePreviewOpen, setParsePreviewOpen] = useState(false)
+  const [bankBalances, setBankBalances] = useState<Array<{ bank_name: string; account_number: string | null; balance: number; balance_date: string | null }>>([])
+
 
   // Email states
   const [emails, setEmails] = useState<FullEmail[]>([])
@@ -67,10 +70,11 @@ export default function MgmtPage() {
   const loadData = useCallback(async () => {
     setLoadPhase(0)
     try {
-      const [clientsRes, schedulesRes, invoicesRes] = await Promise.all([
+      const [clientsRes, schedulesRes, invoicesRes, balancesRes] = await Promise.all([
         fetch('/api/willow-mgmt/clients'),
         fetch('/api/willow-mgmt/schedules'),
         fetch('/api/willow-mgmt/invoices'),
+        fetch('/api/willow-mgmt/bank-balances'),
       ])
       if (clientsRes.ok) setClients(await clientsRes.json())
       if (schedulesRes.ok) setSchedules(await schedulesRes.json())
@@ -78,6 +82,7 @@ export default function MgmtPage() {
         const data = await invoicesRes.json()
         setInvoices(Array.isArray(data) ? data : data.invoices || [])
       }
+      if (balancesRes.ok) setBankBalances(await balancesRes.json())
 
       // DB done — show UI immediately
       setLoadPhase(1)
@@ -272,6 +277,11 @@ export default function MgmtPage() {
       const txs: ParsedTransaction[] = (data.transactions || []).map((tx: Omit<ParsedTransaction, '_selected'>) => ({ ...tx, _selected: true }))
       setParsedTransactions(txs)
       setParsedBankName(data.bankName || null)
+      if (data.closingBalance != null) {
+        setParsedBalance({ balance: data.closingBalance, date: data.balanceDate || null })
+      } else {
+        setParsedBalance(null)
+      }
       setParsePreviewOpen(true)
     } catch (err) {
       console.error('File parse error:', err)
@@ -294,8 +304,20 @@ export default function MgmtPage() {
         }),
       })
     }
+    if (parsedBalance && parsedBankName) {
+      await fetch('/api/willow-mgmt/bank-balances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bank_name: parsedBankName,
+          balance: parsedBalance.balance,
+          balance_date: parsedBalance.date,
+        }),
+      })
+    }
     setParsePreviewOpen(false)
     setParsedTransactions([])
+    setParsedBalance(null)
     loadData()
   }
 
@@ -361,6 +383,7 @@ export default function MgmtPage() {
             onSelectInvoice={setSelectedInvoice}
             onFileUpload={handleFileUpload}
             parsing={parsing}
+            bankBalances={bankBalances}
           />
           <EmailBlock
             emails={emails}
