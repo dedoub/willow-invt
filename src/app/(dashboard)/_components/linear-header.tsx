@@ -6,6 +6,7 @@ import { ReactNode } from 'react'
 
 interface LinearHeaderProps {
   title: string
+  subtitle?: string
   onAgentToggle?: () => void
   agentOpen?: boolean
   actions?: ReactNode
@@ -13,7 +14,7 @@ interface LinearHeaderProps {
   onMenuToggle?: () => void
 }
 
-export function LinearHeader({ title, onAgentToggle, agentOpen, actions, mobile, onMenuToggle }: LinearHeaderProps) {
+export function LinearHeader({ title, subtitle, onAgentToggle, agentOpen, actions, mobile, onMenuToggle }: LinearHeaderProps) {
   return (
     <header style={{
       height: 52, padding: '0 20px',
@@ -39,6 +40,12 @@ export function LinearHeader({ title, onAgentToggle, agentOpen, actions, mobile,
           </>
         )}
         <span style={{ color: t.neutrals.text, fontWeight: 500 }}>{title}</span>
+        {subtitle && (
+          <>
+            <span style={{ margin: '0 6px', color: t.neutrals.subtle, fontSize: 11 }}>—</span>
+            <span style={{ color: t.neutrals.muted, fontSize: 11, fontWeight: 400 }}>{subtitle}</span>
+          </>
+        )}
       </div>
 
       {/* Actions */}
