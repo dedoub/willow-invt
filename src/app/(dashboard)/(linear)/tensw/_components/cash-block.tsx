@@ -161,8 +161,8 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
     if (!b.balance_date) return latest
     return !latest || b.balance_date > latest ? b.balance_date : latest
   }, '' as string)
-  const modeLabel = periodMode === 'month' ? '월간' : periodMode === 'quarter' ? '분기' : '연간'
-  const eyebrowLabel = `CASHFLOW · ${modeLabel}${latestBalanceDate ? ` · ${latestBalanceDate} 기준` : ''}`
+  const eyebrowLabel = periodMode === 'month' ? 'CASHFLOW · 월간'
+    : periodMode === 'quarter' ? 'CASHFLOW · 분기' : 'CASHFLOW · 연간'
 
   return (
     <LCard pad={0}>
@@ -214,9 +214,9 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
           <LStat label="부채" value={`${liability.toLocaleString()}원`} tone="warn" />
           <LStat label="대체" value={`${transfer.toLocaleString()}원`} tone={transfer >= 0 ? 'pos' : 'neg'} />
           <LStat label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} />
-          <LStat label="우리은행" value={`${(bankBalances.find(b => b.bank_name.includes('우리'))?.balance ?? 0).toLocaleString()}원`} />
-          <LStat label="신한은행" value={`${(bankBalances.find(b => b.bank_name.includes('신한'))?.balance ?? 0).toLocaleString()}원`} />
-          <LStat label="총 잔고" value={`${bankBalances.reduce((s, b) => s + b.balance, 0).toLocaleString()}원`} />
+          <LStat label="우리은행" value={`${(bankBalances.find(b => b.bank_name.includes('우리'))?.balance ?? 0).toLocaleString()}원`} sub={bankBalances.find(b => b.bank_name.includes('우리'))?.balance_date ? `${bankBalances.find(b => b.bank_name.includes('우리'))!.balance_date} 기준` : undefined} />
+          <LStat label="신한은행" value={`${(bankBalances.find(b => b.bank_name.includes('신한'))?.balance ?? 0).toLocaleString()}원`} sub={bankBalances.find(b => b.bank_name.includes('신한'))?.balance_date ? `${bankBalances.find(b => b.bank_name.includes('신한'))!.balance_date} 기준` : undefined} />
+          <LStat label="총 잔고" value={`${bankBalances.reduce((s, b) => s + b.balance, 0).toLocaleString()}원`} sub={latestBalanceDate ? `${latestBalanceDate} 기준` : undefined} />
         </div>
 
         {/* Type filter chips + add button */}
