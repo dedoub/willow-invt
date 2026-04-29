@@ -147,7 +147,7 @@ export function VoicecardsBlock({
               <LStat label="시트 수" value={formatNumber(userStats.totalSheets)} />
               <LStat label="카드 수" value={formatNumber(userStats.totalCards)} />
               <LStat label="학습 시도" value={formatNumber(userStats.totalAttempts)} />
-              <LStat label="크레딧" value={formatNumber(userStats.totalCredits)} />
+              <LStat label="잔여 크레딧" value={formatNumber(userStats.totalCredits)} />
             </div>
           </div>
 
