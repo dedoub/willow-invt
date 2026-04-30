@@ -131,7 +131,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
                 <td style={{ ...tdStyle, fontFamily: t.font.mono, fontSize: 10, color: t.neutrals.muted }}>
                   {p.listing_date || '-'}
                 </td>
-                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono }}>
+                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}>
                   {fmtAum(p.market_cap, p.currency)}
                 </td>
                 <td style={{
