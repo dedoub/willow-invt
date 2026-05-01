@@ -207,7 +207,7 @@ export default function InvestPage() {
       }
     }
 
-    let totalValKrw = 0, totalCostKrw = 0
+    let totalValKrw = 0, totalCostKrw = 0, usGainKrw = 0
     const buyTickers: string[] = [], holdTickers: string[] = []
     for (const [ticker, h] of holdMap) {
       if (h.qty <= 0) continue
@@ -218,6 +218,7 @@ export default function InvestPage() {
       const val = quote.price * h.qty * fx
       const cost = isUS ? h.krwCost : h.totalCost
       totalValKrw += val; totalCostKrw += cost
+      if (isUS && val > cost) usGainKrw += val - cost
 
       // Pyramiding status
       const avgPrice = h.totalCost / h.qty
@@ -239,7 +240,7 @@ export default function InvestPage() {
     }
 
     const cumulativeReturnPct = totalCostKrw > 0 ? (totalValKrw - totalCostKrw) / totalCostKrw * 100 : 0
-    return { totalValKrw, totalCostKrw, cumulativeReturnPct, buyTickers, holdTickers }
+    return { totalValKrw, totalCostKrw, cumulativeReturnPct, buyTickers, holdTickers, usGainKrw }
   }, [stockTrades, stockQuotes, usdKrw, fxHistory, watchlistData])
 
   const totalValKrw = portfolioStats.totalValKrw > 0
@@ -247,18 +248,19 @@ export default function InvestPage() {
     : totalValueUsd > 0 ? totalValueUsd * usdKrw : 0
   const totalCostKrw = portfolioStats.totalCostKrw
   const gain = totalValKrw - totalCostKrw
-  const afterTaxVal = gain > 0 ? totalValKrw - gain * 0.222 : totalValKrw
+  const usTax = portfolioStats.usGainKrw * 0.222
+  const afterTaxVal = totalValKrw - usTax
 
   const fmtKrwShort = (v: number) => v >= 1e8 ? `₩${(v / 1e8).toFixed(1)}억` : `₩${Math.round(v / 10000).toLocaleString()}만`
   const fmtTotalValue = totalValKrw > 0
-    ? gain > 0
+    ? usTax > 0
       ? `${fmtKrwShort(totalValKrw)} (${fmtKrwShort(afterTaxVal)})`
       : fmtKrwShort(totalValKrw)
     : undefined
 
-  const afterTaxGain = gain > 0 ? gain * (1 - 0.222) : gain
+  const afterTaxGain = gain - usTax
   const gainSub = totalValKrw > 0
-    ? gain > 0
+    ? usTax > 0
       ? `${fmtKrwShort(gain)} (세후 ${fmtKrwShort(afterTaxGain)})`
       : fmtKrwShort(gain)
     : undefined
