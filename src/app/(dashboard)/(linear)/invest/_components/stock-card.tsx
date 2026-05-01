@@ -48,6 +48,8 @@ export interface StockCardData {
   sourceType?: string
   researchId?: string
   marketCapLabel?: string
+  structuralThesis?: string | null
+  valueChainPosition?: string | null
 }
 
 /* ── Configs ── */
@@ -172,6 +174,24 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             fontSize: 11, color: t.neutrals.muted,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{data.name}</span>
+          {(data.structuralThesis || data.valueChainPosition) && (
+            <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }} className="info-tip">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={t.neutrals.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ cursor: 'help', opacity: 0.6 }}>
+                <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
+              </svg>
+              <span className="info-tip-content" style={{
+                display: 'none', position: 'absolute', left: '50%', bottom: '100%',
+                transform: 'translateX(-50%)', marginBottom: 6,
+                background: '#1E293B', color: '#F8FAFC', fontSize: 10.5, lineHeight: 1.5,
+                padding: '8px 10px', borderRadius: 6, width: 240, zIndex: 100,
+                whiteSpace: 'normal', pointerEvents: 'none',
+              }}>
+                {data.valueChainPosition && <div style={{ fontWeight: 600, marginBottom: 3 }}>{data.valueChainPosition}</div>}
+                {data.structuralThesis}
+              </span>
+              <style>{`.info-tip:hover .info-tip-content{display:block!important}`}</style>
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {data.marketCapLabel && (
@@ -201,6 +221,12 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               borderRadius: t.radius.sm, background: '#FEF3C7', color: '#B45309',
             }}>미분류</span>
           ) : null}
+          {data.sourceType === 'smallcap' && (
+            <span style={{
+              fontSize: 9, fontWeight: t.weight.medium, padding: '1px 4px',
+              borderRadius: t.radius.sm, background: '#E0E7FF', color: '#4338CA',
+            }}>스몰캡</span>
+          )}
           <span style={{ fontSize: 10, color: t.neutrals.subtle }}>{data.sector}</span>
         </div>
         {data.changePercent != null && (

@@ -38,7 +38,9 @@ export interface StockResearch {
   composite_score: number | null; momentum_score: number | null
   gap_from_high_pct: number | null; change_pct: number | null
   structural_thesis: string | null; track: string | null
+  value_chain_position: string | null
   market_cap_b: number | null; market_cap_m: number | null
+  axis: string | null
 }
 
 export interface StockQuote {
@@ -184,6 +186,22 @@ export function PortfolioKanban({
     return set
   }, [watchlistData])
 
+  /* ── Research thesis lookup (ticker → best thesis) ── */
+  const thesisMap = useMemo(() => {
+    const m = new Map<string, { thesis: string | null; vcp: string | null }>()
+    for (const r of stockResearch) {
+      const key = r.ticker.replace('.KS', '')
+      const prev = m.get(key)
+      if (!prev || (!prev.thesis && r.structural_thesis) || (!prev.vcp && r.value_chain_position)) {
+        m.set(key, {
+          thesis: r.structural_thesis || prev?.thesis || null,
+          vcp: r.value_chain_position || prev?.vcp || null,
+        })
+      }
+    }
+    return m
+  }, [stockResearch])
+
   /* ── Portfolio column ── */
   const portfolioCards = useMemo((): StockCardData[] => {
     if (!watchlistData) return []
@@ -225,6 +243,7 @@ export function PortfolioKanban({
         }
       }
 
+      const thInfo = thesisMap.get(tickerKey)
       return {
         name: item.name, ticker: item.ticker, sector: item.sector, axis: item.axis,
         group: 'portfolio' as const,
@@ -235,6 +254,7 @@ export function PortfolioKanban({
         return1m: sig?.return1m ?? null,
         weightPct: weightPct > 0 ? Math.round(weightPct * 10) / 10 : undefined,
         pyramiding,
+        structuralThesis: thInfo?.thesis, valueChainPosition: thInfo?.vcp,
       }
     })
 
@@ -294,6 +314,7 @@ export function PortfolioKanban({
         }
       }
 
+      const thInfo = thesisMap.get(item.ticker.replace('.KS', ''))
       return {
         name: item.name, ticker: item.ticker, sector: item.sector, axis: item.axis,
         group: 'watchlist' as const,
@@ -302,6 +323,7 @@ export function PortfolioKanban({
         momentumScore: sig?.momentumScore ?? null,
         return1m: sig?.return1m ?? null,
         pinned: item.pinned, monitor,
+        structuralThesis: thInfo?.thesis, valueChainPosition: thInfo?.vcp,
       }
     }).sort((a, b) => {
       if (a.pinned && !b.pinned) return -1
@@ -346,7 +368,7 @@ export function PortfolioKanban({
 
       cards.push({
         name: r.company_name || r.ticker, ticker: r.ticker,
-        sector: r.sector || '', group: 'research',
+        sector: r.sector || '', axis: r.axis || undefined, group: 'research',
         price: sig?.price ?? r.current_price ?? undefined,
         changePercent: sig?.changePercent ?? r.change_pct ?? undefined, currency: sig?.currency,
         signal: sig?.signal, gapFromHighPct: sig?.gapFromHighPct ?? r.gap_from_high_pct ?? undefined,
@@ -355,6 +377,8 @@ export function PortfolioKanban({
         verdict: r.verdict, compositeScore: r.composite_score,
         sourceType: r.source_type, researchId: r.id,
         marketCapLabel,
+        structuralThesis: r.structural_thesis,
+        valueChainPosition: r.value_chain_position,
       })
     }
     if (sortBy1m) {
