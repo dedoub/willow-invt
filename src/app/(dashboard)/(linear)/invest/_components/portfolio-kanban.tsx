@@ -68,7 +68,9 @@ export function PortfolioKanban({
 }: KanbanProps) {
   const mobile = useIsMobile()
   const [dragOverCol, setDragOverCol] = useState<string | null>(null)
-  const [sortBy1m, setSortBy1m] = useState(false)
+  const [sortBy1m, setSortBy1m] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('kanban-sort-1m') === '1'
+  )
 
   const handleRemoveWatchlist = useCallback(async (name: string, group: string) => {
     await fetch('/api/willow-mgmt/watchlist', {
@@ -382,7 +384,7 @@ export function PortfolioKanban({
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead eyebrow="PORTFOLIO · KANBAN" title="종목관리" action={
           <button
-            onClick={() => setSortBy1m(v => !v)}
+            onClick={() => setSortBy1m(v => { localStorage.setItem('kanban-sort-1m', v ? '0' : '1'); return !v })}
             style={{
               fontSize: 10, fontFamily: t.font.mono, fontWeight: t.weight.medium,
               padding: '3px 8px', borderRadius: t.radius.sm, border: 'none',

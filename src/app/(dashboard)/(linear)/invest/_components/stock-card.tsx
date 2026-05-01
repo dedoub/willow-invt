@@ -190,12 +190,17 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       {/* Row 2: axis/sector + change% */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {data.axis && (
+          {data.axis ? (
             <span style={{
               fontSize: 9.5, fontWeight: t.weight.medium, padding: '1px 5px',
               borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted,
             }}>{data.axis}</span>
-          )}
+          ) : (data.group === 'watchlist' || data.group === 'research') ? (
+            <span style={{
+              fontSize: 9.5, fontWeight: t.weight.medium, padding: '1px 5px',
+              borderRadius: t.radius.sm, background: '#FEF3C7', color: '#B45309',
+            }}>미분류</span>
+          ) : null}
           <span style={{ fontSize: 10, color: t.neutrals.subtle }}>{data.sector}</span>
         </div>
         {data.changePercent != null && (
