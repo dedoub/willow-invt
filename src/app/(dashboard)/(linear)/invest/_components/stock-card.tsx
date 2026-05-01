@@ -37,6 +37,7 @@ export interface StockCardData {
   holdingQty?: number
   avgPrice?: number
   momentumScore?: number | null
+  return1m?: number | null
   weightPct?: number
   pinned?: boolean
   pyramiding?: PyramidingInfo
@@ -199,6 +200,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
         </div>
         {data.changePercent != null && (
           <span style={{ fontSize: 11, fontWeight: t.weight.medium, fontFamily: t.font.mono, color: changeColor }}>
+            <span style={{ fontSize: 9, opacity: 0.6 }}>1M </span>
             {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
           </span>
         )}

@@ -585,15 +585,34 @@ export async function willowUpsertBankBalance(params: {
   balance_date?: string | null
 }) {
   const sb = getServiceSupabase()
+  const acct = params.account_number || ''
+  const { data: existing } = await sb
+    .from('willow_mgmt_bank_balances')
+    .select('id')
+    .eq('bank_name', params.bank_name)
+    .eq('account_number', acct)
+    .maybeSingle()
+
+  const row = {
+    bank_name: params.bank_name,
+    account_number: acct,
+    balance: params.balance,
+    balance_date: params.balance_date || null,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (existing) {
+    const { data, error } = await sb
+      .from('willow_mgmt_bank_balances')
+      .update(row)
+      .eq('id', existing.id)
+      .select()
+    if (error) return { error: error.message }
+    return { data }
+  }
   const { data, error } = await sb
     .from('willow_mgmt_bank_balances')
-    .upsert({
-      bank_name: params.bank_name,
-      account_number: params.account_number || null,
-      balance: params.balance,
-      balance_date: params.balance_date || null,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'bank_name,account_number' })
+    .insert(row)
     .select()
   if (error) return { error: error.message }
   return { data }

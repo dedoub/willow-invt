@@ -98,8 +98,8 @@ async function fetchYahooQuote(yahooSymbol: string): Promise<QuoteData | null> {
     const return6m = calcReturn(findPriceAt(26))
     const return12m = calcReturn(prices.length > 0 ? prices[0].close : null)
 
-    const changePercent = return3m ?? 0
-    const change = findPriceAt(13) ? price - findPriceAt(13)! : 0
+    const changePercent = return1m ?? 0
+    const change = findPriceAt(4) ? price - findPriceAt(4)! : 0
 
     const momentumScore = calcMomentumScore(return1m, return3m, return6m, return12m, price, high52w)
 
@@ -121,8 +121,11 @@ function calcSignal(price: number, high52w: number | null): { signal: 'new_high'
   return { signal: null, gapPct }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const extraTickers = searchParams.get('extra')
+
     const db = getServiceSupabase()
     const { data: rows, error } = await db
       .from('stock_watchlist')
@@ -138,6 +141,18 @@ export async function GET() {
         ...(r.axis ? { axis: r.axis as string } : {}),
         group: r.group_name as string,
       }))
+
+    // Add extra tickers (research) that aren't already in watchlist
+    if (extraTickers) {
+      const existing = new Set(entries.map(e => e.ticker.replace('.KS', '')))
+      for (const tk of extraTickers.split(',')) {
+        const clean = tk.trim()
+        if (clean && !existing.has(clean.replace('.KS', ''))) {
+          entries.push({ name: clean, ticker: clean, sector: '', group: 'research' })
+          existing.add(clean.replace('.KS', ''))
+        }
+      }
+    }
 
     // Fetch all quotes in parallel (batch of 10 to avoid rate limiting)
     const results: SignalResult[] = []

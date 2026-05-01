@@ -68,6 +68,7 @@ export function PortfolioKanban({
 }: KanbanProps) {
   const mobile = useIsMobile()
   const [dragOverCol, setDragOverCol] = useState<string | null>(null)
+  const [sortBy1m, setSortBy1m] = useState(false)
 
   const handleRemoveWatchlist = useCallback(async (name: string, group: string) => {
     await fetch('/api/willow-mgmt/watchlist', {
@@ -229,20 +230,25 @@ export function PortfolioKanban({
         signal: sig?.signal, gapFromHighPct: sig?.gapFromHighPct,
         holdingQty: qty > 0 ? qty : undefined, avgPrice: hold?.avgPrice,
         momentumScore: sig?.momentumScore ?? null,
+        return1m: sig?.return1m ?? null,
         weightPct: weightPct > 0 ? Math.round(weightPct * 10) / 10 : undefined,
         pyramiding,
       }
     })
 
-    const statusOrder: Record<string, number> = { BUY: 0, HOLD: 1, FULL: 2, FREEZE: 3 }
-    cards.sort((a, b) => {
-      const ar = a.pyramiding ? statusOrder[a.pyramiding.status] ?? 5 : 6
-      const br = b.pyramiding ? statusOrder[b.pyramiding.status] ?? 5 : 6
-      if (ar !== br) return ar - br
-      return (b.weightPct ?? 0) - (a.weightPct ?? 0)
-    })
+    if (sortBy1m) {
+      cards.sort((a, b) => (b.return1m ?? -999) - (a.return1m ?? -999))
+    } else {
+      const statusOrder: Record<string, number> = { BUY: 0, HOLD: 1, FULL: 2, FREEZE: 3 }
+      cards.sort((a, b) => {
+        const ar = a.pyramiding ? statusOrder[a.pyramiding.status] ?? 5 : 6
+        const br = b.pyramiding ? statusOrder[b.pyramiding.status] ?? 5 : 6
+        if (ar !== br) return ar - br
+        return (b.weightPct ?? 0) - (a.weightPct ?? 0)
+      })
+    }
     return cards
-  }, [watchlistData, signalMap, holdingsAvgMap, usdKrw])
+  }, [watchlistData, signalMap, holdingsAvgMap, usdKrw, sortBy1m])
 
   const portfolioTotalUsd = useMemo(() => {
     if (!watchlistData) return 0
@@ -292,14 +298,16 @@ export function PortfolioKanban({
         price: currentPrice, changePercent: sig?.changePercent, currency: sig?.currency,
         signal: sig?.signal, gapFromHighPct: sig?.gapFromHighPct,
         momentumScore: sig?.momentumScore ?? null,
+        return1m: sig?.return1m ?? null,
         pinned: item.pinned, monitor,
       }
     }).sort((a, b) => {
       if (a.pinned && !b.pinned) return -1
       if (!a.pinned && b.pinned) return 1
+      if (sortBy1m) return (b.return1m ?? -999) - (a.return1m ?? -999)
       return (b.momentumScore ?? -1) - (a.momentumScore ?? -1)
     })
-  }, [watchlistData, signalMap])
+  }, [watchlistData, signalMap, sortBy1m])
 
   /* ── Research column ── */
   const researchCards = useMemo((): StockCardData[] => {
@@ -338,17 +346,22 @@ export function PortfolioKanban({
         name: r.company_name || r.ticker, ticker: r.ticker,
         sector: r.sector || '', group: 'research',
         price: sig?.price ?? r.current_price ?? undefined,
-        changePercent: sig?.changePercent ?? undefined, currency: sig?.currency,
+        changePercent: sig?.changePercent ?? r.change_pct ?? undefined, currency: sig?.currency,
         signal: sig?.signal, gapFromHighPct: sig?.gapFromHighPct ?? r.gap_from_high_pct ?? undefined,
         momentumScore: sig?.momentumScore ?? r.momentum_score ?? null,
+        return1m: sig?.return1m ?? r.change_pct ?? null,
         verdict: r.verdict, compositeScore: r.composite_score,
         sourceType: r.source_type, researchId: r.id,
         marketCapLabel,
       })
     }
-    cards.sort((a, b) => -(a.compositeScore ?? 0) + (b.compositeScore ?? 0))
+    if (sortBy1m) {
+      cards.sort((a, b) => (b.return1m ?? -999) - (a.return1m ?? -999))
+    } else {
+      cards.sort((a, b) => -(a.compositeScore ?? 0) + (b.compositeScore ?? 0))
+    }
     return cards
-  }, [stockResearch, stockQuotes, watchlistTickers, signalMap])
+  }, [stockResearch, stockQuotes, watchlistTickers, signalMap, sortBy1m])
 
   /* ── Render ── */
   const colStyle = (group: string): React.CSSProperties => ({
@@ -367,7 +380,18 @@ export function PortfolioKanban({
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
-        <LSectionHead eyebrow="PORTFOLIO · KANBAN" title="종목관리" />
+        <LSectionHead eyebrow="PORTFOLIO · KANBAN" title="종목관리" action={
+          <button
+            onClick={() => setSortBy1m(v => !v)}
+            style={{
+              fontSize: 10, fontFamily: t.font.mono, fontWeight: t.weight.medium,
+              padding: '3px 8px', borderRadius: t.radius.sm, border: 'none',
+              background: sortBy1m ? t.brand[600] : t.neutrals.inner,
+              color: sortBy1m ? '#fff' : t.neutrals.muted,
+              cursor: 'pointer', transition: 'all .15s',
+            }}
+          >1M ↓</button>
+        } />
       </div>
 
       <div style={{

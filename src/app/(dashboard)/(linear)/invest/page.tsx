@@ -64,21 +64,14 @@ export default function InvestPage() {
   const loadData = useCallback(async () => {
     setLoadPhase(0)
     try {
-      // Phase 1: fetch base data in parallel
-      const [watchlistRes, signalRes, tradesRes, researchRes] = await Promise.all([
+      // Phase 1a: fetch watchlist, trades, research in parallel
+      const [watchlistRes, tradesRes, researchRes] = await Promise.all([
         fetch('/api/willow-mgmt/watchlist', { cache: 'no-store' }),
-        fetch('/api/willow-mgmt/stock-signals'),
         fetch('/api/willow-mgmt/stock-trades'),
         fetch('/api/willow-mgmt/stock-research'),
       ])
 
       if (watchlistRes.ok) setWatchlistData(await watchlistRes.json())
-
-      if (signalRes.ok) {
-        const data = await signalRes.json()
-        setSignalData(data.signals || [])
-        if (data.usdKrw) setUsdKrw(data.usdKrw)
-      }
 
       let tradesFull: StockTradeFull[] = []
       if (tradesRes.ok) {
@@ -95,6 +88,21 @@ export default function InvestPage() {
         const items = Array.isArray(data) ? data : data.items || data.research || []
         setStockResearch(items)
         researchFull = items
+      }
+
+      // Phase 1b: fetch signals with research tickers included
+      const extraTickers = researchFull
+        .filter(r => r.verdict?.startsWith('pass') && r.track !== 'ETF')
+        .map(r => r.ticker)
+      const signalUrl = extraTickers.length > 0
+        ? `/api/willow-mgmt/stock-signals?extra=${extraTickers.join(',')}`
+        : '/api/willow-mgmt/stock-signals'
+      const signalRes = await fetch(signalUrl)
+
+      if (signalRes.ok) {
+        const data = await signalRes.json()
+        setSignalData(data.signals || [])
+        if (data.usdKrw) setUsdKrw(data.usdKrw)
       }
 
       // Show kanban + trade log immediately
