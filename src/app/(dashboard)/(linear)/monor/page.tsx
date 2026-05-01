@@ -34,6 +34,28 @@ interface UserStats {
   }>
 }
 
+interface AnonymousEventStats {
+  summary: {
+    totalEvents: number
+    totalDevices: number
+    learnedDevices: number
+    signinDevices: number
+    learnConversionPct: number
+    signinConversionPct: number
+  }
+  daily: Array<{
+    date: string
+    devices: number
+    appOpened: number
+    cardsLearned: number
+    promptShown: number
+    signinCompleted: number
+  }>
+  demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
+  platforms: Array<{ platform: string; devices: number; events: number }>
+  locales: Array<{ locale: string; devices: number }>
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MonorPage() {
@@ -44,6 +66,7 @@ export default function MonorPage() {
   const [vcRefreshing, setVcRefreshing] = useState(false)
   const [vcStats, setVcStats] = useState<CombinedStats | null>(null)
   const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
+  const [vcAnonStats, setVcAnonStats] = useState<AnonymousEventStats | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   // ReviewNotes state
@@ -66,6 +89,7 @@ export default function MonorPage() {
         const data = await res.json()
         setVcStats(data.stats)
         setVcUserStats(data.userStats || null)
+        setVcAnonStats(data.anonymousStats || null)
       }
     } catch (err) {
       console.error('VoiceCards load error:', err)
@@ -125,6 +149,7 @@ export default function MonorPage() {
           loading={vcLoading}
           stats={vcStats}
           userStats={vcUserStats}
+          anonymousStats={vcAnonStats}
           onOpenSettings={() => setSettingsOpen(true)}
           onRefresh={() => loadVoicecards(true)}
           refreshing={vcRefreshing}

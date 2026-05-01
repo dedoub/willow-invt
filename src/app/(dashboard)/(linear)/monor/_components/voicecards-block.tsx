@@ -5,6 +5,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,10 +33,33 @@ interface CombinedStats {
   }
 }
 
+interface AnonymousEventStats {
+  summary: {
+    totalEvents: number
+    totalDevices: number
+    learnedDevices: number
+    signinDevices: number
+    learnConversionPct: number
+    signinConversionPct: number
+  }
+  daily: Array<{
+    date: string
+    devices: number
+    appOpened: number
+    cardsLearned: number
+    promptShown: number
+    signinCompleted: number
+  }>
+  demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
+  platforms: Array<{ platform: string; devices: number; events: number }>
+  locales: Array<{ locale: string; devices: number }>
+}
+
 export interface VoicecardsBlockProps {
   loading: boolean
   stats: CombinedStats | null
   userStats: UserStats | null
+  anonymousStats: AnonymousEventStats | null
   onOpenSettings: () => void
   onRefresh: () => void
   refreshing: boolean
@@ -62,7 +86,7 @@ function formatDate(dateString: string): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function VoicecardsBlock({
-  loading, stats, userStats,
+  loading, stats, userStats, anonymousStats,
   onOpenSettings, onRefresh, refreshing,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
@@ -195,6 +219,126 @@ export function VoicecardsBlock({
             </div>
           </div>
         </>
+      )}
+
+      {/* Anonymous Events */}
+      {!loading && anonymousStats && (
+        <div style={{ padding: `12px ${t.density.cardPad}px 14px`, borderTop: `1px solid ${t.neutrals.line}` }}>
+          <div style={{
+            fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+            fontFamily: t.font.mono, letterSpacing: 0.3,
+            textTransform: 'uppercase' as const, marginBottom: 10,
+          }}>
+            익명 사용자 (비로그인)
+          </div>
+
+          {/* Funnel KPIs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
+            <LStat label="기기 수" value={formatNumber(anonymousStats.summary.totalDevices)} />
+            <LStat label="학습 전환" value={`${anonymousStats.summary.learnConversionPct}%`}
+              sub={`${anonymousStats.summary.learnedDevices}대`}
+              tone={anonymousStats.summary.learnConversionPct >= 40 ? 'pos' : 'warn'} />
+            <LStat label="가입 전환" value={`${anonymousStats.summary.signinConversionPct}%`}
+              sub={`${anonymousStats.summary.signinDevices}대`}
+              tone={anonymousStats.summary.signinConversionPct >= 10 ? 'pos' : 'warn'} />
+            <LStat label="총 이벤트" value={formatNumber(anonymousStats.summary.totalEvents)} />
+          </div>
+
+          {/* Daily trend chart */}
+          {anonymousStats.daily.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 10, color: t.neutrals.muted, marginBottom: 6 }}>일별 추이</div>
+              <div style={{ height: 120, background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 4px 0' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={anonymousStats.daily} barGap={1}>
+                    <XAxis dataKey="date" tickFormatter={(v: string) => v.slice(5)} tick={{ fontSize: 9, fill: t.neutrals.muted }} axisLine={false} tickLine={false} />
+                    <YAxis hide />
+                    <Tooltip
+                      contentStyle={{ fontSize: 11, background: '#1E293B', color: '#F8FAFC', border: 'none', borderRadius: 6, padding: '6px 10px' }}
+                      labelFormatter={(v: any) => String(v)}
+                      formatter={(value: any, name: any) => {
+                        const labels: Record<string, string> = { devices: '기기', appOpened: '앱실행', cardsLearned: '학습', signinCompleted: '가입' }
+                        return [value, labels[String(name)] || name] as any
+                      }}
+                    />
+                    <Bar dataKey="devices" fill={t.brand[500]} radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="cardsLearned" fill="#6366F1" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="signinCompleted" fill="#10B981" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginTop: 4, justifyContent: 'center' }}>
+                {[
+                  { color: t.brand[500], label: '기기' },
+                  { color: '#6366F1', label: '학습' },
+                  { color: '#10B981', label: '가입' },
+                ].map(l => (
+                  <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
+                    <span style={{ fontSize: 9, color: t.neutrals.muted }}>{l.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Demo sheets + Platform/Locale row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {/* Demo sheets */}
+            <div>
+              <div style={{ fontSize: 10, color: t.neutrals.muted, marginBottom: 4 }}>데모 시트 인기</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {anonymousStats.demoSheets.slice(0, 5).map(s => (
+                  <div key={s.sheetId} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '3px 6px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                  }}>
+                    <span style={{ fontSize: 10, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {s.sheetId.replace('demo-', '')}
+                    </span>
+                    <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted, flexShrink: 0, marginLeft: 4 }}>
+                      {s.cards}장
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Platform + Locale */}
+            <div>
+              <div style={{ fontSize: 10, color: t.neutrals.muted, marginBottom: 4 }}>플랫폼 · 언어</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {anonymousStats.platforms.map(p => (
+                  <div key={p.platform} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '3px 6px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                  }}>
+                    <span style={{ fontSize: 10, color: t.neutrals.text }}>
+                      {p.platform === 'ios' ? 'iOS' : p.platform === 'android' ? 'Android' : p.platform}
+                    </span>
+                    <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                      {p.devices}대 · {p.events}건
+                    </span>
+                  </div>
+                ))}
+                <div style={{ height: 4 }} />
+                {anonymousStats.locales.map(l => (
+                  <div key={l.locale} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '3px 6px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                  }}>
+                    <span style={{ fontSize: 10, color: t.neutrals.text }}>
+                      {l.locale === 'ko' ? '🇰🇷 한국어' : l.locale === 'en' ? '🇺🇸 영어' : l.locale === 'zh' ? '🇨🇳 중국어' : l.locale}
+                    </span>
+                    <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                      {l.devices}대
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </LCard>
   )

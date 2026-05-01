@@ -778,3 +778,130 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     users: userList,
   }
 }
+
+// ============================================================
+// Anonymous Events 통계 (VoiceCards 자체 Supabase)
+// ============================================================
+
+export interface AnonymousEventStats {
+  summary: {
+    totalEvents: number
+    totalDevices: number
+    learnedDevices: number
+    signinDevices: number
+    learnConversionPct: number
+    signinConversionPct: number
+  }
+  daily: Array<{
+    date: string
+    devices: number
+    appOpened: number
+    cardsLearned: number
+    promptShown: number
+    signinCompleted: number
+  }>
+  demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
+  platforms: Array<{ platform: string; devices: number; events: number }>
+  locales: Array<{ locale: string; devices: number }>
+}
+
+export async function getAnonymousEventStats(): Promise<AnonymousEventStats | null> {
+  if (!voicecardsSupabase) return null
+
+  const { data, error } = await voicecardsSupabase
+    .from('anonymous_events')
+    .select('*')
+    .order('created_at', { ascending: true })
+
+  if (error || !data || data.length === 0) return null
+
+  const allDevices = new Set<string>()
+  const learnedDevices = new Set<string>()
+  const signinDevices = new Set<string>()
+
+  const dailyMap = new Map<string, {
+    devices: Set<string>; appOpened: number; cardsLearned: number
+    promptShown: number; signinCompleted: number
+  }>()
+
+  const sheetMap = new Map<string, { cards: number; devices: Set<string> }>()
+  const platformMap = new Map<string, { devices: Set<string>; events: number }>()
+  const localeMap = new Map<string, Set<string>>()
+
+  for (const row of data) {
+    const deviceId = row.device_id as string
+    const eventName = row.event_name as string
+    const date = (row.created_at as string).split('T')[0]
+
+    allDevices.add(deviceId)
+
+    if (eventName === 'card_learned_anonymous') learnedDevices.add(deviceId)
+    if (eventName === 'signin_completed') signinDevices.add(deviceId)
+
+    // Daily
+    if (!dailyMap.has(date)) {
+      dailyMap.set(date, { devices: new Set(), appOpened: 0, cardsLearned: 0, promptShown: 0, signinCompleted: 0 })
+    }
+    const day = dailyMap.get(date)!
+    day.devices.add(deviceId)
+    if (eventName === 'app_opened') day.appOpened++
+    if (eventName === 'card_learned_anonymous') day.cardsLearned++
+    if (eventName === 'prompt_shown') day.promptShown++
+    if (eventName === 'signin_completed') day.signinCompleted++
+
+    // Demo sheets
+    if (eventName === 'card_learned_anonymous' && row.properties) {
+      const props = row.properties as Record<string, unknown>
+      const sheetId = props.sheet_id as string
+      if (sheetId) {
+        if (!sheetMap.has(sheetId)) sheetMap.set(sheetId, { cards: 0, devices: new Set() })
+        const s = sheetMap.get(sheetId)!
+        s.cards++
+        s.devices.add(deviceId)
+      }
+    }
+
+    // Platform
+    const platform = (row.platform as string) || 'unknown'
+    if (!platformMap.has(platform)) platformMap.set(platform, { devices: new Set(), events: 0 })
+    const p = platformMap.get(platform)!
+    p.devices.add(deviceId)
+    p.events++
+
+    // Locale
+    const locale = (row.locale as string) || 'unknown'
+    if (!localeMap.has(locale)) localeMap.set(locale, new Set())
+    localeMap.get(locale)!.add(deviceId)
+  }
+
+  const totalDevices = allDevices.size
+  return {
+    summary: {
+      totalEvents: data.length,
+      totalDevices,
+      learnedDevices: learnedDevices.size,
+      signinDevices: signinDevices.size,
+      learnConversionPct: totalDevices > 0 ? Math.round((learnedDevices.size / totalDevices) * 100) : 0,
+      signinConversionPct: totalDevices > 0 ? Math.round((signinDevices.size / totalDevices) * 100) : 0,
+    },
+    daily: Array.from(dailyMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, d]) => ({
+        date,
+        devices: d.devices.size,
+        appOpened: d.appOpened,
+        cardsLearned: d.cardsLearned,
+        promptShown: d.promptShown,
+        signinCompleted: d.signinCompleted,
+      })),
+    demoSheets: Array.from(sheetMap.entries())
+      .map(([sheetId, s]) => ({ sheetId, cards: s.cards, devices: s.devices.size }))
+      .sort((a, b) => b.cards - a.cards),
+    platforms: Array.from(platformMap.entries())
+      .map(([platform, p]) => ({ platform, devices: p.devices.size, events: p.events }))
+      .sort((a, b) => b.events - a.events),
+    locales: Array.from(localeMap.entries())
+      .map(([locale, devices]) => ({ locale, devices: devices.size }))
+      .sort((a, b) => b.devices - a.devices),
+  }
+}

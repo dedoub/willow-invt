@@ -5,6 +5,7 @@ import {
   getCachedStatsRange,
   fetchAndCacheIosStats,
   getVoicecardsUserStats,
+  getAnonymousEventStats,
 } from '@/lib/voicecards-server'
 
 export const maxDuration = 300
@@ -19,10 +20,11 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate') || `${new Date().getFullYear()}-01-01`
     const backfill = searchParams.get('backfill') === '1'
 
-    // 연결 상태 확인 + 회원 수 조회 (병렬)
-    const [connectionStatus, userStats] = await Promise.all([
+    // 연결 상태 확인 + 회원 수 + 익명 이벤트 조회 (병렬)
+    const [connectionStatus, userStats, anonymousStats] = await Promise.all([
       getConnectionStatus(),
       getVoicecardsUserStats(),
+      getAnonymousEventStats(),
     ])
 
     // 캐시 확인
@@ -101,6 +103,7 @@ export async function GET(request: Request) {
       stats,
       chartData,
       userStats,
+      anonymousStats,
     })
   } catch (error) {
     console.error('Error fetching combined stats:', error)
