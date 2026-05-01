@@ -75,16 +75,12 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
 
   // Linear routes: render with auth check but without default layout
   if (isLinearRoute) {
-    if (isLoading) {
+    if (isLoading || !user) {
       return (
         <div className="flex h-screen items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
         </div>
       )
-    }
-    if (!user) {
-      router.push('/login')
-      return null
     }
     return <>{children}</>
   }
