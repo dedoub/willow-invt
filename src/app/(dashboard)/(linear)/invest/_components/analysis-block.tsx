@@ -49,7 +49,7 @@ function DonutChart({ title, data, colors }: { title: string; data: { subject: s
           </Pie>
           <Tooltip
             contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md, fontSize: 10, padding: '4px 8px' }}
-            formatter={(value) => [`${value}%`, '']}
+            formatter={(value: any, name: any) => [`${value}%`, name]}
           />
         </PieChart>
       </ResponsiveContainer>
