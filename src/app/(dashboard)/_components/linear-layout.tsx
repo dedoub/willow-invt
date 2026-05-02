@@ -56,7 +56,7 @@ export function LinearLayout({ title, children, headerActions }: LinearLayoutPro
           actions={headerActions}
         />
         <main style={{ flex: 1, overflow: 'auto', padding: '0 20px 24px' }}>
-          {children}
+          <div className="mobile-zoom">{children}</div>
         </main>
       </div>
 

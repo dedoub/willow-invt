@@ -605,5 +605,12 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   text-underline-offset: 2px;
 }
 
+@media (max-width: 768px) {
+  .mobile-zoom {
+    zoom: 1.1;
+    width: calc(100% / 1.1);
+  }
+}
+
 @keyframes spin { to { transform: rotate(360deg) } }
 .spin { animation: spin 1s linear infinite; }

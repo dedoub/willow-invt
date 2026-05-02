@@ -123,7 +123,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
           chatOpen={chatOpen}
         />
         <main className="flex-1 overflow-auto bg-muted/30 p-4 md:p-6">
-          <div className="animate-fade-in">{children}</div>
+          <div className="animate-fade-in mobile-zoom">{children}</div>
         </main>
       </div>
       {chatOpen && (
