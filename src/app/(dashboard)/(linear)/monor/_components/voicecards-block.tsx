@@ -5,7 +5,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -250,7 +250,7 @@ export function VoicecardsBlock({
               <div style={{ fontSize: 10, color: t.neutrals.muted, marginBottom: 6 }}>일별 추이</div>
               <div style={{ height: 120, background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 4px 0' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={anonymousStats.daily} barGap={1}>
+                  <LineChart data={anonymousStats.daily}>
                     <XAxis dataKey="date" tickFormatter={(v: string) => v.slice(5)} tick={{ fontSize: 9, fill: t.neutrals.muted }} axisLine={false} tickLine={false} />
                     <YAxis hide />
                     <Tooltip
@@ -261,10 +261,10 @@ export function VoicecardsBlock({
                         return [value, labels[String(name)] || name] as any
                       }}
                     />
-                    <Bar dataKey="devices" fill={t.brand[500]} radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="cardsLearned" fill="#6366F1" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="signinCompleted" fill="#10B981" radius={[2, 2, 0, 0]} />
-                  </BarChart>
+                    <Line type="monotone" dataKey="devices" stroke={t.brand[500]} strokeWidth={1.5} dot={{ r: 2 }} />
+                    <Line type="monotone" dataKey="cardsLearned" stroke="#6366F1" strokeWidth={1.5} dot={{ r: 2 }} />
+                    <Line type="monotone" dataKey="signinCompleted" stroke="#10B981" strokeWidth={1.5} dot={{ r: 2 }} />
+                  </LineChart>
                 </ResponsiveContainer>
               </div>
               <div style={{ display: 'flex', gap: 12, marginTop: 4, justifyContent: 'center' }}>
