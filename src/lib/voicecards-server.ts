@@ -808,12 +808,23 @@ export interface AnonymousEventStats {
 export async function getAnonymousEventStats(): Promise<AnonymousEventStats | null> {
   if (!voicecardsSupabase) return null
 
-  const { data, error } = await voicecardsSupabase
-    .from('anonymous_events')
-    .select('*')
-    .order('created_at', { ascending: true })
+  const allRows: any[] = []
+  const PAGE = 1000
+  let from = 0
+  while (true) {
+    const { data, error } = await voicecardsSupabase
+      .from('anonymous_events')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .range(from, from + PAGE - 1)
+    if (error || !data) break
+    allRows.push(...data)
+    if (data.length < PAGE) break
+    from += PAGE
+  }
 
-  if (error || !data || data.length === 0) return null
+  if (allRows.length === 0) return null
+  const data = allRows
 
   const allDevices = new Set<string>()
   const learnedDevices = new Set<string>()
