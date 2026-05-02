@@ -238,7 +238,7 @@ export function VoicecardsBlock({
             <LStat label="학습 전환" value={`${anonymousStats.summary.learnConversionPct}%`}
               sub={`${anonymousStats.summary.learnedDevices}대`}
               tone={anonymousStats.summary.learnConversionPct >= 40 ? 'pos' : 'warn'} />
-            <LStat label="가입 전환" value={`${anonymousStats.summary.signinConversionPct}%`}
+            <LStat label="로그인 전환" value={`${anonymousStats.summary.signinConversionPct}%`}
               sub={`${anonymousStats.summary.signinDevices}대`}
               tone={anonymousStats.summary.signinConversionPct >= 10 ? 'pos' : 'warn'} />
             <LStat label="총 이벤트" value={formatNumber(anonymousStats.summary.totalEvents)} />
@@ -257,7 +257,7 @@ export function VoicecardsBlock({
                       contentStyle={{ fontSize: 11, background: '#1E293B', color: '#F8FAFC', border: 'none', borderRadius: 6, padding: '6px 10px' }}
                       labelFormatter={(v: any) => String(v)}
                       formatter={(value: any, name: any) => {
-                        const labels: Record<string, string> = { devices: '기기', appOpened: '앱실행', cardsLearned: '학습', signinCompleted: '가입' }
+                        const labels: Record<string, string> = { devices: '기기', appOpened: '앱실행', cardsLearned: '학습', signinCompleted: '로그인' }
                         return [value, labels[String(name)] || name] as any
                       }}
                     />
@@ -271,7 +271,7 @@ export function VoicecardsBlock({
                 {[
                   { color: t.brand[500], label: '기기' },
                   { color: '#6366F1', label: '학습' },
-                  { color: '#10B981', label: '가입' },
+                  { color: '#10B981', label: '로그인' },
                 ].map(l => (
                   <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                     <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
