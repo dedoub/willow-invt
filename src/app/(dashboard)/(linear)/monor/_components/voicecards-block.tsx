@@ -297,7 +297,7 @@ export function VoicecardsBlock({
                       {s.sheetId.replace('demo-', '')}
                     </span>
                     <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted, flexShrink: 0, marginLeft: 4 }}>
-                      {s.cards}장
+                      {s.devices}대, {s.cards}회
                     </span>
                   </div>
                 ))}
