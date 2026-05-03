@@ -575,7 +575,37 @@ export async function willowListBankBalances() {
     .select('*')
     .order('updated_at', { ascending: false })
   if (error) return { error: error.message }
-  return { data: (data || []).map(r => ({ ...r, balance: Number(r.balance) })) }
+  const balances = (data || []).map(r => ({ ...r, balance: Number(r.balance) }))
+
+  // Adjust each balance by applying cash entries after the snapshot date
+  for (const b of balances) {
+    if (!b.account_number || !b.balance_date) continue
+    const { data: entries } = await sb
+      .from('willow_mgmt_cash')
+      .select('type, amount')
+      .eq('account_number', b.account_number)
+      .gt('payment_date', b.balance_date)
+    if (!entries || entries.length === 0) continue
+    let delta = 0
+    for (const e of entries) {
+      const amt = Number(e.amount)
+      if (e.type === 'revenue') delta += amt
+      else delta -= amt
+    }
+    b.balance += delta
+    // Update balance_date to latest entry date
+    const { data: latest } = await sb
+      .from('willow_mgmt_cash')
+      .select('payment_date')
+      .eq('account_number', b.account_number)
+      .order('payment_date', { ascending: false })
+      .limit(1)
+    if (latest?.[0]?.payment_date && latest[0].payment_date > b.balance_date) {
+      b.balance_date = latest[0].payment_date
+    }
+  }
+
+  return { data: balances }
 }
 
 export async function willowUpsertBankBalance(params: {
