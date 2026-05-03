@@ -548,24 +548,30 @@ export function RealEstateBlock() {
   /* ── Computed values ── */
   const currentTradeAvg = useMemo(() => {
     if (!reTrades?.complexes?.length) return null
-    const lastMonth = reTrades.months[reTrades.months.length - 1]
-    let sum = 0, cnt = 0
-    for (const c of reTrades.complexes) {
-      const pt = c.data.find(d => d.month === lastMonth)
-      if (pt?.avgPpp) { sum += pt.avgPpp; cnt++ }
+    for (let mi = reTrades.months.length - 1; mi >= 0; mi--) {
+      const month = reTrades.months[mi]
+      let sum = 0, cnt = 0
+      for (const c of reTrades.complexes) {
+        const pt = c.data.find(d => d.month === month)
+        if (pt?.avgPpp) { sum += pt.avgPpp; cnt++ }
+      }
+      if (cnt > 0) return Math.round(sum / cnt)
     }
-    return cnt > 0 ? Math.round(sum / cnt) : null
+    return null
   }, [reTrades])
 
   const currentRentalAvg = useMemo(() => {
     if (!reRentals?.complexes?.length) return null
-    const lastMonth = reRentals.months[reRentals.months.length - 1]
-    let sum = 0, cnt = 0
-    for (const c of reRentals.complexes) {
-      const pt = c.data.find(d => d.month === lastMonth)
-      if (pt?.avgPpp) { sum += pt.avgPpp; cnt++ }
+    for (let mi = reRentals.months.length - 1; mi >= 0; mi--) {
+      const month = reRentals.months[mi]
+      let sum = 0, cnt = 0
+      for (const c of reRentals.complexes) {
+        const pt = c.data.find(d => d.month === month)
+        if (pt?.avgPpp) { sum += pt.avgPpp; cnt++ }
+      }
+      if (cnt > 0) return Math.round(sum / cnt)
     }
-    return cnt > 0 ? Math.round(sum / cnt) : null
+    return null
   }, [reRentals])
 
   const lastTradeGap = useMemo(() => {
