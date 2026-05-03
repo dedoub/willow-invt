@@ -3,7 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase'
 
 export interface TenswInvoice {
   id: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer' | 'exchange'
   counterparty: string
   description: string | null
   amount: number
@@ -13,6 +13,7 @@ export interface TenswInvoice {
   attachments: Array<{ name: string; url: string; size: number; type: string }>
   notes: string | null
   account_number: string | null
+  balance_after: number | null
   created_at: string
   updated_at: string
 }
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
 // POST - Create a new invoice
 export async function POST(request: Request) {
   const body = await request.json()
-  const { type, counterparty, description, amount, issue_date, payment_date, status, attachments, notes, account_number } = body
+  const { type, counterparty, description, amount, issue_date, payment_date, status, attachments, notes, account_number, balance_after, transaction_time } = body
 
   if (!type || !counterparty || amount === undefined) {
     return NextResponse.json(
@@ -79,6 +80,8 @@ export async function POST(request: Request) {
       attachments: attachments || [],
       notes: notes || null,
       account_number: account_number || null,
+      balance_after: balance_after ?? null,
+      transaction_time: transaction_time || null,
     })
     .select()
     .single()

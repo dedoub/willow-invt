@@ -4,6 +4,7 @@ import { getUserFromAuthInfo } from '../auth'
 import { checkToolPermission } from '../permissions'
 import { logMcpAction } from '../audit'
 import { getServiceSupabase } from '@/lib/supabase'
+import { tenswUpsertBankBalance } from '@/lib/tensw-mgmt/queries'
 
 export function registerTenswMgmtTools(server: McpServer) {
   // =============================================
@@ -830,6 +831,7 @@ export function registerTenswMgmtTools(server: McpServer) {
       status: z.enum(['issued', 'completed']).optional().describe('상태 (기본: issued)'),
       notes: z.string().optional().describe('비고'),
       account_number: z.string().optional().describe('계좌번호'),
+      balance_after: z.number().optional().describe('거래 직후 잔액 (명세서에서 추출 시)'),
     }),
   }, async (input, { authInfo }) => {
     const user = getUserFromAuthInfo(authInfo)
@@ -852,6 +854,7 @@ export function registerTenswMgmtTools(server: McpServer) {
         attachments: [],
         notes: input.notes || null,
         account_number: input.account_number || null,
+        balance_after: input.balance_after ?? null,
       })
       .select()
       .single()
@@ -875,6 +878,7 @@ export function registerTenswMgmtTools(server: McpServer) {
       status: z.enum(['issued', 'completed']).optional().describe('상태'),
       notes: z.string().optional().describe('비고'),
       account_number: z.string().optional().describe('계좌번호'),
+      balance_after: z.number().optional().describe('거래 직후 잔액'),
     }),
   }, async ({ id, ...updates }, { authInfo }) => {
     const user = getUserFromAuthInfo(authInfo)
@@ -944,6 +948,28 @@ export function registerTenswMgmtTools(server: McpServer) {
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
     return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] }
+  })
+
+  server.registerTool('tensw_upsert_bank_balance', {
+    description: '[텐소프트웍스 > 사업관리] 은행 보유잔고를 업데이트합니다. 계좌내역 입력 후 최종 잔고 반영용.',
+    inputSchema: z.object({
+      bank_name: z.string().describe('은행명 (예: 신한은행, 우리은행)'),
+      account_number: z.string().optional().describe('계좌 구분 (예: 신한 140-013-150883)'),
+      balance: z.number().describe('최종 잔고'),
+      balance_date: z.string().optional().describe('잔고 기준일 (YYYY-MM-DD)'),
+    }),
+  }, async (input, { authInfo }) => {
+    const user = getUserFromAuthInfo(authInfo)
+    if (!user) return { content: [{ type: 'text' as const, text: 'Unauthorized' }], isError: true }
+
+    const perm = checkToolPermission('tensw_upsert_bank_balance', user, authInfo?.scopes || [])
+    if (!perm.allowed) return { content: [{ type: 'text' as const, text: perm.reason! }], isError: true }
+
+    const result = await tenswUpsertBankBalance(input)
+    if (result.error) return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true }
+
+    await logMcpAction({ userId: user.userId, action: 'tool_call', toolName: 'tensw_upsert_bank_balance', inputParams: input })
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data) }] }
   })
 
   // =============================================

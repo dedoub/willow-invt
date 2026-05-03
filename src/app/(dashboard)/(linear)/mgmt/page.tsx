@@ -18,7 +18,7 @@ import { WillowMgmtSchedule, WillowMgmtClient } from '@/types/willow-mgmt'
 
 interface Invoice {
   id: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer' | 'exchange'
   counterparty: string
   description: string | null
   amount: number
@@ -45,9 +45,11 @@ export default function MgmtPage() {
   const [parsing, setParsing] = useState(false)
   const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([])
   const [parsedBankName, setParsedBankName] = useState<string | null>(null)
+  const [parsedAccountInfo, setParsedAccountInfo] = useState<string | null>(null)
   const [parsedBalance, setParsedBalance] = useState<{ balance: number; date: string | null } | null>(null)
   const [parsePreviewOpen, setParsePreviewOpen] = useState(false)
   const [bankBalances, setBankBalances] = useState<Array<{ bank_name: string; account_number: string | null; balance: number; balance_date: string | null }>>([])
+  const [balanceHistory, setBalanceHistory] = useState<Array<{ date: string; account: string; balance: number }>>([])
   const [usdRate, setUsdRate] = useState(0)
 
 
@@ -71,11 +73,12 @@ export default function MgmtPage() {
   const loadData = useCallback(async () => {
     setLoadPhase(0)
     try {
-      const [clientsRes, schedulesRes, invoicesRes, balancesRes] = await Promise.all([
+      const [clientsRes, schedulesRes, invoicesRes, balancesRes, historyRes] = await Promise.all([
         fetch('/api/willow-mgmt/clients'),
         fetch('/api/willow-mgmt/schedules'),
         fetch('/api/willow-mgmt/invoices'),
         fetch('/api/willow-mgmt/bank-balances'),
+        fetch('/api/willow-mgmt/balance-history?start_date=2026-01-01'),
       ])
       if (clientsRes.ok) setClients(await clientsRes.json())
       if (schedulesRes.ok) setSchedules(await schedulesRes.json())
@@ -84,6 +87,10 @@ export default function MgmtPage() {
         setInvoices(Array.isArray(data) ? data : data.invoices || [])
       }
       if (balancesRes.ok) setBankBalances(await balancesRes.json())
+      if (historyRes.ok) {
+        const hist = await historyRes.json()
+        if (Array.isArray(hist)) setBalanceHistory(hist)
+      }
 
       // Fetch latest USD/KRW rate
       try {
@@ -288,6 +295,7 @@ export default function MgmtPage() {
       const txs: ParsedTransaction[] = (data.transactions || []).map((tx: Omit<ParsedTransaction, '_selected'>) => ({ ...tx, _selected: true }))
       setParsedTransactions(txs)
       setParsedBankName(data.bankName || null)
+      setParsedAccountInfo(data.accountInfo || null)
       if (data.closingBalance != null) {
         setParsedBalance({ balance: data.closingBalance, date: data.balanceDate || null })
       } else {
@@ -302,6 +310,11 @@ export default function MgmtPage() {
   }
 
   const handleConfirmParsed = async (txs: ParsedTransaction[]) => {
+    const acctLabel = parsedBankName
+      ? parsedAccountInfo
+        ? `${parsedBankName} (${parsedAccountInfo})`
+        : parsedBankName
+      : null
     for (const tx of txs) {
       await fetch('/api/willow-mgmt/invoices', {
         method: 'POST',
@@ -312,6 +325,9 @@ export default function MgmtPage() {
           description: tx.description || null,
           amount: tx.amount,
           payment_date: tx.date || null,
+          account_number: acctLabel,
+          balance_after: tx.balance_after ?? null,
+          transaction_time: tx.time ?? null,
         }),
       })
     }
@@ -321,6 +337,7 @@ export default function MgmtPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bank_name: parsedBankName,
+          account_number: parsedAccountInfo || '',
           balance: parsedBalance.balance,
           balance_date: parsedBalance.date,
         }),
@@ -329,6 +346,7 @@ export default function MgmtPage() {
     setParsePreviewOpen(false)
     setParsedTransactions([])
     setParsedBalance(null)
+    setParsedAccountInfo(null)
     loadData()
   }
 
@@ -396,6 +414,7 @@ export default function MgmtPage() {
             parsing={parsing}
             bankBalances={bankBalances}
             usdRate={usdRate}
+            balanceHistory={balanceHistory}
           />
           <EmailBlock
             emails={emails}

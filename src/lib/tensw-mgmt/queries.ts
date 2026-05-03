@@ -433,6 +433,7 @@ export async function tenswCreateCash(params: {
   status?: string
   notes?: string
   account_number?: string
+  balance_after?: number | null
 }) {
   const sb = getServiceSupabase()
   const { data, error } = await sb
@@ -455,6 +456,7 @@ export async function tenswUpdateCash(params: {
   status?: string
   notes?: string
   account_number?: string
+  balance_after?: number | null
 }) {
   const { id, ...updates } = params
   const sb = getServiceSupabase()
@@ -511,6 +513,42 @@ export async function tenswGetCashSummary(params?: { start_date?: string; end_da
 // Bank Balances
 // ============================================================
 
+// Returns daily EOD balance per account for chart visualization.
+export async function tenswGetBalanceHistory(params?: { startDate?: string; endDate?: string }) {
+  const sb = getServiceSupabase()
+  let query = sb
+    .from('tensw_mgmt_cash')
+    .select('payment_date, account_number, balance_after, transaction_time, created_at')
+    .not('balance_after', 'is', null)
+    .not('account_number', 'is', null)
+  if (params?.startDate) query = query.gte('payment_date', params.startDate)
+  if (params?.endDate) query = query.lte('payment_date', params.endDate)
+  const { data, error } = await query
+  if (error) return { error: error.message }
+
+  type Row = { payment_date: string; account_number: string; balance_after: number; transaction_time: string | null; created_at: string }
+  const best = new Map<string, Row>()
+  for (const r of (data || []) as Row[]) {
+    if (!r.account_number || r.balance_after == null) continue
+    const key = `${r.payment_date}__${r.account_number}`
+    const existing = best.get(key)
+    if (!existing) { best.set(key, r); continue }
+    const a = r.transaction_time, b = existing.transaction_time
+    if (a && !b) best.set(key, r)
+    else if (a && b && a > b) best.set(key, r)
+    else if (!a && !b && r.created_at > existing.created_at) best.set(key, r)
+  }
+
+  const points = Array.from(best.values())
+    .sort((a, b) => a.payment_date.localeCompare(b.payment_date))
+    .map(r => ({
+      date: r.payment_date,
+      account: r.account_number,
+      balance: Number(r.balance_after),
+    }))
+  return { data: points }
+}
+
 export async function tenswListBankBalances() {
   const sb = getServiceSupabase()
   const { data, error } = await sb
@@ -529,12 +567,38 @@ export async function tenswUpsertBankBalance(params: {
 }) {
   const sb = getServiceSupabase()
   const acct = params.account_number || ''
-  const { data: existing } = await sb
+
+  // Try exact match first (bank_name + account_number)
+  let { data: existing } = await sb
     .from('tensw_mgmt_bank_balances')
     .select('id')
     .eq('bank_name', params.bank_name)
     .eq('account_number', acct)
     .maybeSingle()
+
+  // Fallback: if no exact match and account_number is empty, find by bank_name with only one record
+  if (!existing && !acct) {
+    const { data: candidates } = await sb
+      .from('tensw_mgmt_bank_balances')
+      .select('id')
+      .eq('bank_name', params.bank_name)
+    if (candidates?.length === 1) existing = candidates[0]
+  }
+
+  // Fallback: fuzzy bank_name match (e.g. "신한은행" matches "신한")
+  if (!existing) {
+    const { data: all } = await sb
+      .from('tensw_mgmt_bank_balances')
+      .select('id, bank_name, account_number')
+    if (all) {
+      const bn = params.bank_name.replace(/은행|뱅크|bank/gi, '').trim()
+      const match = all.find(r => {
+        const rbn = r.bank_name.replace(/은행|뱅크|bank/gi, '').trim()
+        return rbn === bn && (!acct || r.account_number === acct || !r.account_number)
+      })
+      if (match) existing = { id: match.id }
+    }
+  }
 
   const row = {
     bank_name: params.bank_name,
@@ -547,7 +611,7 @@ export async function tenswUpsertBankBalance(params: {
   if (existing) {
     const { data, error } = await sb
       .from('tensw_mgmt_bank_balances')
-      .update(row)
+      .update({ balance: row.balance, balance_date: row.balance_date, updated_at: row.updated_at })
       .eq('id', existing.id)
       .select()
     if (error) return { error: error.message }

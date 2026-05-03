@@ -4,10 +4,12 @@ import * as XLSX from 'xlsx'
 
 interface ParsedTransaction {
   date: string
+  time?: string | null
   counterparty: string
   description: string
   amount: number
-  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer' | 'exchange'
+  balance_after?: number | null
 }
 
 export async function POST(request: Request) {
@@ -61,7 +63,9 @@ ${truncated}
       "counterparty": "거래처/적요에서 추출한 상대방 이름",
       "description": "거래 설명/적요 원문",
       "amount": 숫자 (양수),
-      "type": "revenue|expense|asset|liability|transfer"
+      "type": "revenue|expense|asset|liability|transfer",
+      "balanceAfter": 숫자 또는 null (이 거래 직후 잔액 — 잔액/잔고 컬럼에서),
+      "time": "HH:MM:SS 또는 null (거래일시에 시각 있으면 24시간 포맷)"
     }
   ],
   "bankName": "감지된 은행명 또는 null",
@@ -83,6 +87,8 @@ ${truncated}
 7. 금액이 0이거나 없는 행은 제외.
 8. closingBalance: 거래내역의 잔액/잔고 컬럼에서 가장 마지막 값(최종 잔고). 없으면 null.
 9. balanceDate: closingBalance의 기준이 되는 날짜(마지막 거래일). 없으면 null.
+10. balanceAfter: 각 거래 직후의 잔액(잔액/잔고 컬럼 값). 없으면 null.
+11. time: 거래일시 컬럼에 시각이 같이 있으면 HH:MM:SS 24시간 포맷. 없으면 null.
 `
 
   try {
@@ -99,10 +105,12 @@ ${truncated}
     const parsed = JSON.parse(jsonStr.trim())
     const transactions: ParsedTransaction[] = (parsed.transactions || []).map((tx: Record<string, unknown>) => ({
       date: tx.date || '',
+      time: tx.time || null,
       counterparty: tx.counterparty || '',
       description: tx.description || '',
       amount: Number(tx.amount) || 0,
       type: tx.type || 'expense',
+      balance_after: tx.balanceAfter != null ? Number(tx.balanceAfter) : null,
     })).filter((tx: ParsedTransaction) => tx.amount > 0 && tx.date)
 
     return NextResponse.json({

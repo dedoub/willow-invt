@@ -7,7 +7,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
 interface Invoice {
   id: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer' | 'exchange'
   counterparty: string
   description: string | null
   amount: number
@@ -25,7 +25,7 @@ interface AddInvoiceDialogProps {
 
 export interface InvoiceFormData {
   id?: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer' | 'exchange'
   counterparty: string
   description: string
   amount: string

@@ -70,8 +70,10 @@ export default function TenswPage() {
   const [parsePreviewOpen, setParsePreviewOpen] = useState(false)
   const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([])
   const [parsedBankName, setParsedBankName] = useState<string | null>(null)
+  const [parsedAccountInfo, setParsedAccountInfo] = useState<string | null>(null)
   const [parsedBalance, setParsedBalance] = useState<{ balance: number; date: string | null } | null>(null)
   const [bankBalances, setBankBalances] = useState<Array<{ bank_name: string; account_number: string | null; balance: number; balance_date: string | null }>>([])
+  const [balanceHistory, setBalanceHistory] = useState<Array<{ date: string; account: string; balance: number }>>([])
 
   // Email state
   const [emails, setEmails] = useState<FullEmail[]>([])
@@ -132,7 +134,7 @@ export default function TenswPage() {
   const loadData = useCallback(async () => {
     setLoadPhase(0)
     try {
-      const [projectsRes, schedulesRes, clientsRes, cashRes, salesRes, loansRes, balancesRes] =
+      const [projectsRes, schedulesRes, clientsRes, cashRes, salesRes, loansRes, balancesRes, historyRes] =
         await Promise.all([
           fetch('/api/tensoftworks'),
           fetch('/api/tensw-mgmt/schedules'),
@@ -141,6 +143,7 @@ export default function TenswPage() {
           fetch('/api/tensw-mgmt/tax-invoices'),
           fetch('/api/tensw-mgmt/loans'),
           fetch('/api/tensw-mgmt/bank-balances'),
+          fetch('/api/tensw-mgmt/balance-history?start_date=2026-01-01'),
         ])
 
       if (projectsRes.ok) {
@@ -162,6 +165,10 @@ export default function TenswPage() {
         setLoans(Array.isArray(data) ? data : data.loans || [])
       }
       if (balancesRes.ok) setBankBalances(await balancesRes.json())
+      if (historyRes.ok) {
+        const hist = await historyRes.json()
+        if (Array.isArray(hist)) setBalanceHistory(hist)
+      }
 
       // Phase 1: DB + wiki done → show UI (emails still loading)
       await loadWiki()
@@ -296,6 +303,7 @@ export default function TenswPage() {
       const txs: ParsedTransaction[] = (data.transactions || []).map((tx: Omit<ParsedTransaction, '_selected'>) => ({ ...tx, _selected: true }))
       setParsedTransactions(txs)
       setParsedBankName(data.bankName || null)
+      setParsedAccountInfo(data.accountInfo || null)
       if (data.closingBalance != null) {
         setParsedBalance({ balance: data.closingBalance, date: data.balanceDate || null })
       } else {
@@ -310,6 +318,11 @@ export default function TenswPage() {
   }
 
   const handleConfirmParsed = async (txs: ParsedTransaction[]) => {
+    const acctLabel = parsedBankName
+      ? parsedAccountInfo
+        ? `${parsedBankName} (${parsedAccountInfo})`
+        : parsedBankName
+      : null
     for (const tx of txs) {
       await fetch('/api/tensw-mgmt/invoices', {
         method: 'POST',
@@ -320,6 +333,9 @@ export default function TenswPage() {
           description: tx.description || null,
           amount: tx.amount,
           payment_date: tx.date || null,
+          account_number: acctLabel,
+          balance_after: tx.balance_after ?? null,
+          transaction_time: tx.time ?? null,
         }),
       })
     }
@@ -329,6 +345,7 @@ export default function TenswPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bank_name: parsedBankName,
+          account_number: parsedAccountInfo || '',
           balance: parsedBalance.balance,
           balance_date: parsedBalance.date,
         }),
@@ -337,6 +354,7 @@ export default function TenswPage() {
     setParsePreviewOpen(false)
     setParsedTransactions([])
     setParsedBalance(null)
+    setParsedAccountInfo(null)
     loadData()
   }
 
@@ -525,6 +543,7 @@ export default function TenswPage() {
               onFileUpload={handleFileUpload}
               parsing={parsing}
               bankBalances={bankBalances}
+              balanceHistory={balanceHistory}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
               <SalesBlock

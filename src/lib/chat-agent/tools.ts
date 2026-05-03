@@ -14,7 +14,7 @@ import {
   willowListTasks, willowCreateTask, willowUpdateTask, willowDeleteTask,
   willowListMemos, willowUpsertMemo, willowDeleteMemo,
   willowListCash, willowCreateCash, willowUpdateCash, willowDeleteCash,
-  willowGetDashboard, willowGetCashSummary, willowListBankBalances,
+  willowGetDashboard, willowGetCashSummary, willowListBankBalances, willowUpsertBankBalance,
 } from '@/lib/willow-mgmt/queries'
 import {
   tenswListClients, tenswCreateClient, tenswUpdateClient, tenswDeleteClient,
@@ -24,7 +24,7 @@ import {
   tenswListTasks, tenswCreateTask, tenswUpdateTask, tenswDeleteTask,
   tenswListMemos, tenswUpsertMemo, tenswDeleteMemo,
   tenswListCash, tenswCreateCash, tenswUpdateCash, tenswDeleteCash,
-  tenswGetCashSummary, tenswGetDashboard, tenswListBankBalances,
+  tenswGetCashSummary, tenswGetDashboard, tenswListBankBalances, tenswUpsertBankBalance,
   tenswListSales, tenswCreateSales, tenswUpdateSales, tenswDeleteSales,
   tenswListLoans, tenswCreateLoan, tenswUpdateLoan, tenswDeleteLoan,
   tenswTodoListProjects, tenswTodoGetProject,
@@ -645,6 +645,7 @@ export const agentTools = [
         status: { type: 'string', description: 'issued|completed (기본: issued)' },
         notes: { type: 'string', description: '비고' },
         account_number: { type: 'string', description: '계좌번호' },
+        balance_after: { type: 'number', description: '거래 직후 잔액 (명세서에서 추출 시)' },
       },
       required: ['type', 'counterparty', 'amount'],
     },
@@ -664,6 +665,8 @@ export const agentTools = [
         payment_date: { type: 'string', description: '입금/지급일' },
         status: { type: 'string', description: 'issued|completed' },
         notes: { type: 'string', description: '비고' },
+        account_number: { type: 'string', description: '계좌번호' },
+        balance_after: { type: 'number', description: '거래 직후 잔액' },
       },
       required: ['id'],
     },
@@ -680,6 +683,7 @@ export const agentTools = [
     },
   },
   { name: 'willow_list_bank_balances', description: '[윌로우] 은행 보유잔고 목록 — 은행별 잔액, 기준일 포함', parameters: { type: 'object' as const, properties: {} } },
+  { name: 'willow_upsert_bank_balance', description: '[윌로우] 은행 잔고 업데이트 — 계좌내역 입력 후 최종 잔고 반영', parameters: { type: 'object' as const, properties: { bank_name: { type: 'string', description: '은행명 (필수)' }, account_number: { type: 'string', description: '계좌 구분 (예: 원화, 외화 USD)' }, balance: { type: 'number', description: '최종 잔고 (필수)' }, balance_date: { type: 'string', description: '잔고 기준일 (YYYY-MM-DD)' } }, required: ['bank_name', 'balance'] } },
   // ---- 텐소프트웍스 개발 프로젝트 현황 (tensw-todo 시스템) ----
   { name: 'tensw_todo_list_projects', description: '[텐소프트웍스] 개발 프로젝트 현황 리스트 — 상태별(active/managed/completed/poc) 그룹핑, 태스크 통계, 진행률, AI 평가 점수 포함', parameters: { type: 'object' as const, properties: { status: { type: 'string', description: 'active|managed|completed|poc 필터' } } } },
   { name: 'tensw_todo_get_project', description: '[텐소프트웍스] 특정 개발 프로젝트 상세 — 태스크 목록, 일정, 팀원 포함', parameters: { type: 'object' as const, properties: { project_id: { type: 'string', description: '프로젝트 ID (필수)' } }, required: ['project_id'] } },
@@ -719,10 +723,11 @@ export const agentTools = [
   { name: 'tensw_delete_memo', description: '[텐소프트웍스] 일일 메모 삭제', parameters: { type: 'object' as const, properties: { date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' } }, required: ['date'] } },
   // -- Cash --
   { name: 'tensw_list_cash', description: '[텐소프트웍스] 현금관리 항목 목록', parameters: { type: 'object' as const, properties: { type: { type: 'string', description: 'revenue|expense|asset|liability' }, status: { type: 'string', description: 'issued|completed' } } } },
-  { name: 'tensw_create_cash', description: '[텐소프트웍스] 현금관리 항목 생성', parameters: { type: 'object' as const, properties: { type: { type: 'string', description: 'revenue|expense|asset|liability (필수)' }, counterparty: { type: 'string', description: '거래처 (필수)' }, amount: { type: 'string', description: '금액 (필수)' }, description: { type: 'string', description: '설명' }, issue_date: { type: 'string', description: '발행일' }, payment_date: { type: 'string', description: '입금/지급일' }, status: { type: 'string', description: 'issued|completed' }, notes: { type: 'string', description: '비고' }, account_number: { type: 'string', description: '계좌번호' } }, required: ['type', 'counterparty', 'amount'] } },
-  { name: 'tensw_update_cash', description: '[텐소프트웍스] 현금관리 항목 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, type: { type: 'string', description: 'revenue|expense|asset|liability' }, counterparty: { type: 'string', description: '거래처' }, amount: { type: 'string', description: '금액' }, description: { type: 'string', description: '설명' }, issue_date: { type: 'string', description: '발행일' }, payment_date: { type: 'string', description: '입금/지급일' }, status: { type: 'string', description: 'issued|completed' }, notes: { type: 'string', description: '비고' } }, required: ['id'] } },
+  { name: 'tensw_create_cash', description: '[텐소프트웍스] 현금관리 항목 생성', parameters: { type: 'object' as const, properties: { type: { type: 'string', description: 'revenue|expense|asset|liability (필수)' }, counterparty: { type: 'string', description: '거래처 (필수)' }, amount: { type: 'string', description: '금액 (필수)' }, description: { type: 'string', description: '설명' }, issue_date: { type: 'string', description: '발행일' }, payment_date: { type: 'string', description: '입금/지급일' }, status: { type: 'string', description: 'issued|completed' }, notes: { type: 'string', description: '비고' }, account_number: { type: 'string', description: '계좌번호' }, balance_after: { type: 'number', description: '거래 직후 잔액' } }, required: ['type', 'counterparty', 'amount'] } },
+  { name: 'tensw_update_cash', description: '[텐소프트웍스] 현금관리 항목 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, type: { type: 'string', description: 'revenue|expense|asset|liability' }, counterparty: { type: 'string', description: '거래처' }, amount: { type: 'string', description: '금액' }, description: { type: 'string', description: '설명' }, issue_date: { type: 'string', description: '발행일' }, payment_date: { type: 'string', description: '입금/지급일' }, status: { type: 'string', description: 'issued|completed' }, notes: { type: 'string', description: '비고' }, account_number: { type: 'string', description: '계좌번호' }, balance_after: { type: 'number', description: '거래 직후 잔액' } }, required: ['id'] } },
   { name: 'tensw_delete_cash', description: '[텐소프트웍스] 현금관리 항목 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
   { name: 'tensw_list_bank_balances', description: '[텐소프트웍스] 은행 보유잔고 목록 — 은행별 잔액, 기준일 포함', parameters: { type: 'object' as const, properties: {} } },
+  { name: 'tensw_upsert_bank_balance', description: '[텐소프트웍스] 은행 잔고 업데이트 — 계좌내역 입력 후 최종 잔고 반영', parameters: { type: 'object' as const, properties: { bank_name: { type: 'string', description: '은행명 (필수)' }, account_number: { type: 'string', description: '계좌 구분' }, balance: { type: 'number', description: '최종 잔고 (필수)' }, balance_date: { type: 'string', description: '잔고 기준일 (YYYY-MM-DD)' } }, required: ['bank_name', 'balance'] } },
   // -- Sales --
   { name: 'tensw_list_sales', description: '[텐소프트웍스] 매출관리(세금계산서) 목록', parameters: { type: 'object' as const, properties: { status: { type: 'string', description: 'scheduled|pending|paid' } } } },
   { name: 'tensw_create_sales', description: '[텐소프트웍스] 매출 항목 생성', parameters: { type: 'object' as const, properties: { issue_date: { type: 'string', description: '계산서 발행일 (필수)' }, counterparty: { type: 'string', description: '거래처 (필수)' }, supply_amount: { type: 'string', description: '공급가액 (필수)' }, tax_amount: { type: 'string', description: '세액' }, total_amount: { type: 'string', description: '합계' }, payment_status: { type: 'string', description: 'scheduled|pending|paid' }, notes: { type: 'string', description: '비고' } }, required: ['issue_date', 'counterparty', 'supply_amount'] } },
@@ -1401,6 +1406,7 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
         status: args.status as string | undefined,
         notes: args.notes as string | undefined,
         account_number: args.account_number as string | undefined,
+        balance_after: args.balance_after != null ? Number(args.balance_after) : null,
       })
 
     case 'willow_update_cash':
@@ -1414,6 +1420,8 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
         payment_date: args.payment_date as string | undefined,
         status: args.status as string | undefined,
         notes: args.notes as string | undefined,
+        account_number: args.account_number as string | undefined,
+        balance_after: args.balance_after != null ? Number(args.balance_after) : undefined,
       })
 
     case 'willow_delete_cash':
@@ -1421,6 +1429,14 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
 
     case 'willow_list_bank_balances':
       return await willowListBankBalances()
+
+    case 'willow_upsert_bank_balance':
+      return await willowUpsertBankBalance({
+        bank_name: args.bank_name as string,
+        account_number: args.account_number as string | undefined,
+        balance: Number(args.balance),
+        balance_date: args.balance_date as string | undefined,
+      })
 
     // ---- 텐소프트웍스 경영관리 도구 ----
     case 'tensw_todo_list_projects': return await tenswTodoListProjects({ status: args.status as string | undefined })
@@ -1452,10 +1468,17 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
     case 'tensw_upsert_memo': return await tenswUpsertMemo({ memo_date: args.memo_date as string, content: args.content as string })
     case 'tensw_delete_memo': return await tenswDeleteMemo(args.date as string)
     case 'tensw_list_cash': return await tenswListCash({ type: args.type as string | undefined, status: args.status as string | undefined })
-    case 'tensw_create_cash': return await tenswCreateCash({ type: args.type as string, counterparty: args.counterparty as string, amount: Number(args.amount), description: args.description as string | undefined, issue_date: args.issue_date as string | undefined, payment_date: args.payment_date as string | undefined, status: args.status as string | undefined, notes: args.notes as string | undefined, account_number: args.account_number as string | undefined })
-    case 'tensw_update_cash': return await tenswUpdateCash({ id: args.id as string, type: args.type as string | undefined, counterparty: args.counterparty as string | undefined, amount: args.amount ? Number(args.amount) : undefined, description: args.description as string | undefined, issue_date: args.issue_date as string | undefined, payment_date: args.payment_date as string | undefined, status: args.status as string | undefined, notes: args.notes as string | undefined })
+    case 'tensw_create_cash': return await tenswCreateCash({ type: args.type as string, counterparty: args.counterparty as string, amount: Number(args.amount), description: args.description as string | undefined, issue_date: args.issue_date as string | undefined, payment_date: args.payment_date as string | undefined, status: args.status as string | undefined, notes: args.notes as string | undefined, account_number: args.account_number as string | undefined, balance_after: args.balance_after != null ? Number(args.balance_after) : null })
+    case 'tensw_update_cash': return await tenswUpdateCash({ id: args.id as string, type: args.type as string | undefined, counterparty: args.counterparty as string | undefined, amount: args.amount ? Number(args.amount) : undefined, description: args.description as string | undefined, issue_date: args.issue_date as string | undefined, payment_date: args.payment_date as string | undefined, status: args.status as string | undefined, notes: args.notes as string | undefined, account_number: args.account_number as string | undefined, balance_after: args.balance_after != null ? Number(args.balance_after) : undefined })
     case 'tensw_delete_cash': return await tenswDeleteCash(args.id as string)
     case 'tensw_list_bank_balances': return await tenswListBankBalances()
+    case 'tensw_upsert_bank_balance':
+      return await tenswUpsertBankBalance({
+        bank_name: args.bank_name as string,
+        account_number: args.account_number as string | undefined,
+        balance: Number(args.balance),
+        balance_date: args.balance_date as string | undefined,
+      })
     case 'tensw_list_sales': return await tenswListSales({ status: args.status as string | undefined })
     case 'tensw_create_sales': return await tenswCreateSales({ issue_date: args.issue_date as string, counterparty: args.counterparty as string, supply_amount: Number(args.supply_amount), tax_amount: args.tax_amount ? Number(args.tax_amount) : undefined, total_amount: args.total_amount ? Number(args.total_amount) : undefined, payment_status: args.payment_status as string | undefined, notes: args.notes as string | undefined })
     case 'tensw_update_sales': return await tenswUpdateSales({ id: args.id as string, issue_date: args.issue_date as string | undefined, counterparty: args.counterparty as string | undefined, supply_amount: args.supply_amount ? Number(args.supply_amount) : undefined, tax_amount: args.tax_amount ? Number(args.tax_amount) : undefined, total_amount: args.total_amount ? Number(args.total_amount) : undefined, payment_status: args.payment_status as string | undefined, notes: args.notes as string | undefined })

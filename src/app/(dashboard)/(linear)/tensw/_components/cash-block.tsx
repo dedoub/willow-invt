@@ -22,10 +22,11 @@ interface CashBlockProps {
   onFileUpload: (file: File) => void
   parsing?: boolean
   bankBalances?: BankBalance[]
+  balanceHistory?: Array<{ date: string; account: string; balance: number }>
 }
 
 type PeriodMode = 'month' | 'quarter' | 'year'
-type TypeFilter = 'all' | 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
+type TypeFilter = 'all' | 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer' | 'exchange'
 
 const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
   { value: 'all', label: '전체' },
@@ -97,7 +98,7 @@ function getStoredCashPageSize(): number {
   return n >= 5 && n <= 100 ? n : DEFAULT_CASH_PAGE_SIZE
 }
 
-export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankBalances = [] }: CashBlockProps) {
+export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankBalances = [], balanceHistory = [] }: CashBlockProps) {
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
@@ -114,6 +115,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
 
   const periodFiltered = useMemo(() => {
     return items.filter(item => {
+      if (item.type === 'exchange') return false
       const d = item.payment_date || item.issue_date
       if (!d) return false
       return d >= rangeStart && d <= rangeEnd
@@ -161,6 +163,75 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
     if (!b.balance_date) return latest
     return !latest || b.balance_date > latest ? b.balance_date : latest
   }, '' as string)
+
+  // Period-end balance per bank (Woori / Shinhan / total) — last balance_after on/before rangeEnd.
+  // For current period, prefer bankBalances snapshot if newer than any history point.
+  const periodEndBalance = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    const isCurrentPeriod = today >= rangeStart && today <= rangeEnd
+    const lastByAccount: Record<string, { balance: number; date: string }> = {}
+    for (const p of balanceHistory) {
+      if (p.date > rangeEnd) continue
+      const cur = lastByAccount[p.account]
+      if (!cur || p.date >= cur.date) lastByAccount[p.account] = { balance: p.balance, date: p.date }
+    }
+    if (isCurrentPeriod) {
+      for (const b of bankBalances) {
+        const acct = b.account_number || b.bank_name
+        const existing = lastByAccount[acct]
+        const bDate = b.balance_date || ''
+        if (!existing || (bDate && bDate >= existing.date)) {
+          lastByAccount[acct] = { balance: b.balance, date: bDate || existing?.date || rangeEnd }
+        }
+      }
+    }
+    let woori = 0, shinhan = 0, total = 0
+    let asOfDate = ''
+    for (const [acct, info] of Object.entries(lastByAccount)) {
+      total += info.balance
+      if (acct.includes('우리')) woori += info.balance
+      if (acct.includes('신한')) shinhan += info.balance
+      if (info.date > asOfDate) asOfDate = info.date
+    }
+    return { woori, shinhan, total, asOfDate, hasData: Object.keys(lastByAccount).length > 0 }
+  }, [balanceHistory, bankBalances, rangeStart, rangeEnd])
+
+  // Sparkline: 1 year ending at rangeEnd, total balance with forward-fill
+  const totalBalanceSpark = useMemo(() => {
+    if (!balanceHistory.length) return [] as Array<{ date: string; value: number }>
+    const accountSet = new Set<string>()
+    const byDate = new Map<string, Record<string, number>>()
+    for (const p of balanceHistory) {
+      accountSet.add(p.account)
+      if (!byDate.has(p.date)) byDate.set(p.date, {})
+      byDate.get(p.date)![p.account] = p.balance
+    }
+    const accounts = Array.from(accountSet)
+    const dates = Array.from(byDate.keys()).sort()
+    if (dates.length === 0) return []
+
+    const start = new Date(rangeEnd)
+    start.setFullYear(start.getFullYear() - 1)
+    const sparkStart = start.toISOString().slice(0, 10)
+
+    const last: Record<string, number> = {}
+    const series: Array<{ date: string; value: number }> = []
+    for (const d of dates) {
+      if (d > rangeEnd) break
+      const day = byDate.get(d)!
+      for (const acct of accounts) if (day[acct] != null) last[acct] = day[acct]
+      if (d < sparkStart) continue
+      let total = 0
+      for (const acct of accounts) {
+        const v = last[acct]
+        if (v == null) continue
+        total += v
+      }
+      series.push({ date: d, value: Math.round(total) })
+    }
+    return series
+  }, [balanceHistory, rangeEnd])
+
   const eyebrowLabel = periodMode === 'month' ? 'CASHFLOW · 월간'
     : periodMode === 'quarter' ? 'CASHFLOW · 분기' : 'CASHFLOW · 연간'
 
@@ -214,9 +285,9 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
           <LStat label="부채" value={`${liability.toLocaleString()}원`} tone="warn" />
           <LStat label="대체" value={`${transfer.toLocaleString()}원`} tone={transfer >= 0 ? 'pos' : 'neg'} />
           <LStat label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} />
-          <LStat label="우리은행" value={`${(bankBalances.find(b => b.bank_name.includes('우리'))?.balance ?? 0).toLocaleString()}원`} sub={bankBalances.find(b => b.bank_name.includes('우리'))?.balance_date ? `${bankBalances.find(b => b.bank_name.includes('우리'))!.balance_date} 기준` : undefined} />
-          <LStat label="신한은행" value={`${(bankBalances.find(b => b.bank_name.includes('신한'))?.balance ?? 0).toLocaleString()}원`} sub={bankBalances.find(b => b.bank_name.includes('신한'))?.balance_date ? `${bankBalances.find(b => b.bank_name.includes('신한'))!.balance_date} 기준` : undefined} />
-          <LStat label="총 잔고" value={`${bankBalances.reduce((s, b) => s + b.balance, 0).toLocaleString()}원`} sub={latestBalanceDate ? `${latestBalanceDate} 기준` : undefined} />
+          <LStat label="우리은행" value={`${periodEndBalance.woori.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
+          <LStat label="신한은행" value={`${periodEndBalance.shinhan.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
+          <LStat label="총 잔고" value={`${periodEndBalance.total.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} sparkline={totalBalanceSpark} sparkFormat={(v) => `${v.toLocaleString()}원`} />
         </div>
 
         {/* Type filter chips + add button */}

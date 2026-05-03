@@ -7,10 +7,12 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
 export interface ParsedTransaction {
   date: string
+  time?: string | null
   counterparty: string
   description: string
   amount: number
-  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer' | 'exchange'
+  balance_after?: number | null
   _selected: boolean
 }
 

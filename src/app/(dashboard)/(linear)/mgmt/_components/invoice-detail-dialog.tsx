@@ -6,7 +6,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
 interface Invoice {
   id: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer'
+  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer' | 'exchange'
   counterparty: string
   description: string | null
   amount: number
