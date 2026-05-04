@@ -2496,9 +2496,9 @@ export default function AkrosPage() {
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.symbol}</th>
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.fundName}</th>
                     <th className="pb-3 pr-4 font-medium">{t.etf.columns.listingDate}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.aum}</th>
-                    <th className="pb-3 pr-4 font-medium">{t.etf.columns.monthFlow}</th>
-                    <th className="pb-3 font-medium">ARR</th>
+                    <th className="pb-3 pr-4 font-medium text-right">{t.etf.columns.aum}</th>
+                    <th className="pb-3 pr-4 font-medium text-right">{t.etf.columns.monthFlow}</th>
+                    <th className="pb-3 font-medium text-right">ARR</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2507,9 +2507,9 @@ export default function AkrosPage() {
                       <td className="py-3 pr-4"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
                       <td className="py-3 pr-4"><div className="h-4 w-32 bg-slate-200 rounded" /></td>
                       <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                      <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                      <td className="py-3 pr-4"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
-                      <td className="py-3"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
+                      <td className="py-3 pr-4"><div className="h-4 w-20 bg-slate-200 rounded ml-auto" /></td>
+                      <td className="py-3 pr-4"><div className="h-4 w-16 bg-slate-200 rounded ml-auto" /></td>
+                      <td className="py-3"><div className="h-4 w-16 bg-slate-200 rounded ml-auto" /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -2527,9 +2527,9 @@ export default function AkrosPage() {
                       <th className="pb-3 pr-6 font-medium">{t.etf.columns.country}</th>
                       <th className="pb-3 pr-6 font-medium">{t.etf.columns.fundName}</th>
                       <th className="pb-3 pr-6 font-medium">{t.etf.columns.listingDate}</th>
-                      <th className="pb-3 pr-6 font-medium">{t.etf.columns.aum}</th>
-                      <th className="pb-3 pr-6 font-medium">{t.etf.columns.monthFlow}</th>
-                      <th className="pb-3 font-medium">ARR</th>
+                      <th className="pb-3 pr-6 font-medium text-right">{t.etf.columns.aum}</th>
+                      <th className="pb-3 pr-6 font-medium text-right">{t.etf.columns.monthFlow}</th>
+                      <th className="pb-3 font-medium text-right">ARR</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2543,11 +2543,11 @@ export default function AkrosPage() {
                           {product.product_name_local || product.product_name}
                         </td>
                         <td className="py-3 pr-6 text-sm text-muted-foreground">{product.listing_date || '-'}</td>
-                        <td className="py-3 pr-6">{formatAUM(product.market_cap, product.currency)}</td>
-                        <td className={`py-3 pr-6 ${product.product_flow >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        <td className="py-3 pr-6 text-right">{formatAUM(product.market_cap, product.currency)}</td>
+                        <td className={`py-3 pr-6 text-right ${product.product_flow >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                           {formatFlow(product.product_flow, product.currency)}
                         </td>
-                        <td className="py-3 font-medium">{formatARR(product.arr, product.currency)}</td>
+                        <td className="py-3 font-medium text-right">{formatARR(product.arr, product.currency)}</td>
                       </tr>
                     ))}
                   </tbody>
