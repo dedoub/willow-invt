@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useMemo } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -85,11 +86,48 @@ function formatDate(dateString: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+type UserSortKey = 'recent' | 'attempts' | 'sheets' | 'created'
+
+const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
+  { key: 'sheets',   label: '시트 수' },
+  { key: 'attempts', label: '학습 시도' },
+  { key: 'recent',   label: '최근 학습' },
+  { key: 'created',  label: '가입일' },
+]
+
 export function VoicecardsBlock({
   loading, stats, userStats, anonymousStats,
   onOpenSettings, onRefresh, refreshing,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
+  const [userSort, setUserSort] = useState<UserSortKey>('created')
+
+  const sortedUsers = useMemo(() => {
+    if (!userStats) return []
+    const arr = [...userStats.users]
+    switch (userSort) {
+      case 'attempts':
+        arr.sort((a, b) => b.attempts - a.attempts || (b.lastActiveAt || '').localeCompare(a.lastActiveAt || ''))
+        break
+      case 'sheets':
+        arr.sort((a, b) => b.sheetCount - a.sheetCount || b.attempts - a.attempts)
+        break
+      case 'created':
+        arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        break
+      case 'recent':
+      default:
+        arr.sort((a, b) => {
+          const aDate = a.lastActiveAt || ''
+          const bDate = b.lastActiveAt || ''
+          if (aDate && bDate) return bDate.localeCompare(aDate)
+          if (aDate) return -1
+          if (bDate) return 1
+          return b.createdAt.localeCompare(a.createdAt)
+        })
+    }
+    return arr
+  }, [userStats, userSort])
 
   return (
     <LCard pad={0}>
@@ -178,14 +216,39 @@ export function VoicecardsBlock({
           {/* 유저 목록 */}
           <div style={{ padding: `0 ${t.density.cardPad}px 12px` }}>
             <div style={{
-              fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
-              fontFamily: t.font.mono, letterSpacing: 0.3,
-              textTransform: 'uppercase' as const, marginBottom: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 6, marginBottom: 8, flexWrap: 'wrap',
             }}>
-              유저
+              <div style={{
+                fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+                fontFamily: t.font.mono, letterSpacing: 0.3,
+                textTransform: 'uppercase' as const,
+              }}>
+                유저
+              </div>
+              <div style={{ display: 'flex', gap: 3 }}>
+                {USER_SORT_OPTIONS.map(opt => {
+                  const active = userSort === opt.key
+                  return (
+                    <button
+                      key={opt.key}
+                      onClick={() => setUserSort(opt.key)}
+                      style={{
+                        padding: '3px 8px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
+                        fontSize: 10, fontWeight: 500, fontFamily: t.font.sans,
+                        background: active ? t.brand[500] : t.neutrals.inner,
+                        color: active ? '#fff' : t.neutrals.muted,
+                        transition: 'background 120ms ease, color 120ms ease',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {userStats.users.map((user, i) => (
+              {sortedUsers.map((user, i) => (
                 <div key={i} style={{
                   padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
                   display: 'flex', alignItems: 'center', gap: 8,
