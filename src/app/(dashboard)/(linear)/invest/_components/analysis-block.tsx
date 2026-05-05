@@ -25,6 +25,12 @@ interface AnalysisBlockProps {
 const THEME_KEYS = ['AI 인프라', '지정학/안보', '넥스트', '미분류']
 const GROUP_COLORS: Record<string, string> = { 'AI 인프라': '#6366f1', '지정학/안보': '#f97316', '넥스트': '#a855f7', '미분류': '#94a3b8' }
 const MARKET_COLORS = { '국내': '#3b82f6', '해외': '#10b981' }
+const AI_INFRA_SUB_COLORS: Record<string, string> = {
+  'AI 반도체': '#6366f1',
+  'AI 에너지/원전': '#f59e0b',
+  '데이터센터/냉각/네트워킹': '#06b6d4',
+  '미분류': '#94a3b8',
+}
 
 /* ── Formatters ── */
 function fmtDate(d: string) { return `${d.slice(5, 7)}/${d.slice(8, 10)}` }
@@ -244,11 +250,16 @@ export function AnalysisBlock({
   /* ── Radar / spider chart data ── */
   const radarData = useMemo(() => {
     // Compute current holdings value per ticker
-    const holdMap = new Map<string, { qty: number; cost: number; market: string; name: string; parentTheme: string }>()
+    const holdMap = new Map<string, { qty: number; cost: number; market: string; name: string; parentTheme: string; subTheme: string }>()
     const sorted = [...stockTrades].sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime())
     for (const tr of sorted) {
       const key = tr.ticker
-      const prev = holdMap.get(key) || { qty: 0, cost: 0, market: tr.market, name: tr.company_name || tr.ticker, parentTheme: (stockThemes[key] || [])[0]?.parentTheme || '미분류' }
+      const themeRow = (stockThemes[key] || [])[0]
+      const prev = holdMap.get(key) || {
+        qty: 0, cost: 0, market: tr.market, name: tr.company_name || tr.ticker,
+        parentTheme: themeRow?.parentTheme || '미분류',
+        subTheme: themeRow?.theme || '미분류',
+      }
       if (tr.trade_type === 'buy') { prev.qty += tr.quantity; prev.cost += tr.total_amount }
       else {
         const avg = prev.qty > 0 ? prev.cost / prev.qty : 0
@@ -258,7 +269,7 @@ export function AnalysisBlock({
       holdMap.set(key, prev)
     }
 
-    const items: { ticker: string; name: string; market: string; theme: string; valKrw: number }[] = []
+    const items: { ticker: string; name: string; market: string; theme: string; subTheme: string; valKrw: number }[] = []
     let total = 0
     for (const [ticker, h] of holdMap) {
       if (h.qty <= 0) continue
@@ -266,7 +277,7 @@ export function AnalysisBlock({
       if (!q?.price) continue
       const fx = h.market === 'US' ? usdKrwRate : 1
       const val = q.price * h.qty * fx
-      items.push({ ticker, name: h.name, market: h.market, theme: h.parentTheme, valKrw: val })
+      items.push({ ticker, name: h.name, market: h.market, theme: h.parentTheme, subTheme: h.subTheme, valKrw: val })
       total += val
     }
 
@@ -290,7 +301,19 @@ export function AnalysisBlock({
       { subject: '해외', pct: total > 0 ? Math.round(usVal / total * 1000) / 10 : 0 },
     ]
 
-    return { byStock, byTheme, byMarket }
+    // AI 인프라 sub-theme 세부 비중 (drilldown)
+    const aiInfraMap = new Map<string, number>()
+    let aiInfraTotal = 0
+    for (const i of items) {
+      if (i.theme !== 'AI 인프라') continue
+      aiInfraMap.set(i.subTheme, (aiInfraMap.get(i.subTheme) || 0) + i.valKrw)
+      aiInfraTotal += i.valKrw
+    }
+    const byAiInfraSub = Array.from(aiInfraMap.entries())
+      .map(([k, v]) => ({ subject: k, pct: aiInfraTotal > 0 ? Math.round(v / aiInfraTotal * 1000) / 10 : 0 }))
+      .sort((a, b) => b.pct - a.pct)
+
+    return { byStock, byTheme, byMarket, byAiInfraSub }
   }, [stockTrades, stockQuotes, stockThemes, usdKrwRate])
 
   const getLines = (suffix: string) => {
@@ -406,9 +429,13 @@ export function AnalysisBlock({
             <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 8 }}>
               포트폴리오 비중
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: radarData.byAiInfraSub.length > 0 ? 'repeat(3, 1fr)' : '1fr 1fr', gap: 8 }}>
               <DonutChart title="테마별" data={radarData.byTheme}
                 colors={radarData.byTheme.map(d => GROUP_COLORS[d.subject] || '#94a3b8')} />
+              {radarData.byAiInfraSub.length > 0 && (
+                <DonutChart title="AI 인프라 세부" data={radarData.byAiInfraSub}
+                  colors={radarData.byAiInfraSub.map(d => AI_INFRA_SUB_COLORS[d.subject] || '#94a3b8')} />
+              )}
               <DonutChart title="국내/해외" data={radarData.byMarket}
                 colors={[MARKET_COLORS['국내'], MARKET_COLORS['해외']]} />
             </div>

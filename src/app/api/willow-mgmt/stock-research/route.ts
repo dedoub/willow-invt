@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { ensureTickerTheme } from '@/lib/ensure-ticker-theme'
+import { inferAxisFromSector } from '@/lib/infer-axis'
 
 // GET - List all research entries
 export async function GET(request: Request) {
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
     source_type, track, market, sector, market_cap_m,
     composite_score, growth_score, value_score, quality_score,
     momentum_score, insider_score, sentiment_score, fail_reasons, change_pct,
+    axis,
   } = body
 
   if (!ticker || !company_name) {
@@ -98,6 +100,7 @@ export async function POST(request: Request) {
       track: track || null,
       market: market || 'US',
       sector: sector || null,
+      axis: axis || inferAxisFromSector(sector) || null,
       market_cap_b: market_cap_b || null,
       market_cap_m: market_cap_m || null,
       current_price: current_price || null,

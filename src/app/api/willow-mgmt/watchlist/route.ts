@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { ensureTickerTheme } from '@/lib/ensure-ticker-theme'
+import { inferAxisFromSector } from '@/lib/infer-axis'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,9 +46,10 @@ export async function POST(request: Request) {
       if (!name || !ticker || !sector || !toGroup) {
         return NextResponse.json({ error: 'name, ticker, sector, toGroup required' }, { status: 400 })
       }
+      const resolvedAxis = axis || inferAxisFromSector(sector)
       const { error } = await db.from(TABLE).upsert({
         name, ticker, sector, group_name: toGroup,
-        ...(axis ? { axis } : {}),
+        ...(resolvedAxis ? { axis: resolvedAxis } : {}),
       }, { onConflict: 'name,group_name' })
       if (error) throw error
       await ensureTickerTheme(db, ticker, name, sector).catch(() => {})

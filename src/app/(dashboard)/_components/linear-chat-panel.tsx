@@ -368,7 +368,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
         ) : (
           <>
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 24px' }}>
               {isLoadingHistory && (
                 <div style={{ textAlign: 'center', padding: '48px 0', color: t.neutrals.subtle }}>
                   <div style={{ fontSize: 12 }}>대화 불러오는 중...</div>

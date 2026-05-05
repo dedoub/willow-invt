@@ -31,7 +31,7 @@ const SECTION_BADGES: Record<string, { label: string; bg: string; fg: string }> 
 
 const PAGE_SIZE_KEY = 'wiki-page-size'
 const DEFAULT_PAGE_SIZE = 10
-const ROW_H = 47
+const ROW_H = 50
 const FILTER_H = 80
 const PAGI_H = 33
 
