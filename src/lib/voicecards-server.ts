@@ -723,12 +723,20 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     return empty
   }
 
-  const users = usersRes.data || []
-  const analytics = analyticsRes.data || []
+  // 분석에서 제외할 내부 계정 (운영자/테스트)
+  const EXCLUDED_NICKNAMES = new Set(['류하아빠', '큐트도넛'])
 
-  // 유저별 마지막 활동일 계산
+  const allUsers = usersRes.data || []
+  const excludedUserIds = new Set(
+    allUsers.filter(u => u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)).map(u => u.user_id)
+  )
+  const users = allUsers.filter(u => !excludedUserIds.has(u.user_id))
+  const analytics = (analyticsRes.data || []).filter(a => !excludedUserIds.has(a.user_id))
+
+  // 유저별 마지막 활동일 계산 (제외 유저 필터링)
   const lastActivityMap = new Map<string, string>()
   for (const row of (lastActivityRes.data || [])) {
+    if (excludedUserIds.has(row.user_id)) continue
     const existing = lastActivityMap.get(row.user_id)
     if (!existing || row.last_updated > existing) {
       lastActivityMap.set(row.user_id, row.last_updated)
