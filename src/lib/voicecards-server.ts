@@ -694,6 +694,7 @@ export interface VoicecardsUserStats {
     nickname: string | null
     credits: number
     sheetCount: number
+    cards: number
     attempts: number
     createdAt: string
     lastActiveAt: string | null
@@ -714,7 +715,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 유저 목록 + 학습 통계 + 마지막 활동일 병렬 조회
   const [usersRes, analyticsRes, lastActivityRes] = await Promise.all([
     voicecardsSupabase.from('users').select('*').order('created_at', { ascending: false }),
-    voicecardsSupabase.from('user_analytics').select('user_id, total_cards, total_attempts'),
+    voicecardsSupabase.from('user_analytics').select('user_id, cards_learned, total_attempts'),
     voicecardsSupabase.from('user_analytics').select('user_id, last_updated'),
   ])
 
@@ -731,12 +732,14 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     allUsers.filter(u => u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)).map(u => u.user_id)
   )
   const users = allUsers.filter(u => !excludedUserIds.has(u.user_id))
-  const analytics = (analyticsRes.data || []).filter(a => !excludedUserIds.has(a.user_id))
+  // analytics: 제외 유저 + orphan(users 테이블에 없는 user_id) 모두 제거 — 유저 목록 합계와 상단 통계 일치
+  const visibleUserIds = new Set(users.map(u => u.user_id))
+  const analytics = (analyticsRes.data || []).filter(a => visibleUserIds.has(a.user_id))
 
-  // 유저별 마지막 활동일 계산 (제외 유저 필터링)
+  // 유저별 마지막 활동일 계산 (제외/orphan 필터링)
   const lastActivityMap = new Map<string, string>()
   for (const row of (lastActivityRes.data || [])) {
-    if (excludedUserIds.has(row.user_id)) continue
+    if (!visibleUserIds.has(row.user_id)) continue
     const existing = lastActivityMap.get(row.user_id)
     if (!existing || row.last_updated > existing) {
       lastActivityMap.set(row.user_id, row.last_updated)
@@ -747,20 +750,24 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     u.sheet_ids && Array.isArray(u.sheet_ids) && u.sheet_ids.length > 0
   ).length
 
-  // 유저별 학습 시도 맵
+  // 유저별 학습 시도/학습 카드 수 맵 (cards_learned = 학습한 카드 누적 = 정답 수)
   const userAttemptsMap = new Map<string, number>()
+  const userCardsMap = new Map<string, number>()
   for (const a of analytics) {
     userAttemptsMap.set(a.user_id, (userAttemptsMap.get(a.user_id) || 0) + (Number(a.total_attempts) || 0))
+    userCardsMap.set(a.user_id, (userCardsMap.get(a.user_id) || 0) + (Number(a.cards_learned) || 0))
   }
 
-  const totalCards = analytics.reduce((sum, a) => sum + (Number(a.total_cards) || 0), 0)
+  const totalCards = analytics.reduce((sum, a) => sum + (Number(a.cards_learned) || 0), 0)
   const totalAttempts = analytics.reduce((sum, a) => sum + (Number(a.total_attempts) || 0), 0)
   const totalCredits = users.reduce((sum, u) => sum + (u.credits || 0), 0)
+  const totalSheets = users.reduce((sum, u) => sum + (Array.isArray(u.sheet_ids) ? u.sheet_ids.length : 0), 0)
 
   const userList = users.map(u => ({
     nickname: u.nickname,
     credits: u.credits || 0,
     sheetCount: u.sheet_ids?.length || 0,
+    cards: userCardsMap.get(u.user_id) || 0,
     attempts: userAttemptsMap.get(u.user_id) || 0,
     createdAt: u.created_at,
     lastActiveAt: lastActivityMap.get(u.user_id) || null,
@@ -779,7 +786,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   return {
     totalUsers: users.length,
     activeUsers,
-    totalSheets: analytics.length,
+    totalSheets,
     totalCards,
     totalAttempts,
     totalCredits,

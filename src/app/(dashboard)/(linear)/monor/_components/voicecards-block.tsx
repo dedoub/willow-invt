@@ -21,6 +21,7 @@ interface UserStats {
     nickname: string | null
     credits: number
     sheetCount: number
+    cards: number
     attempts: number
     createdAt: string
     lastActiveAt: string | null
@@ -89,7 +90,7 @@ function formatDate(dateString: string): string {
 type UserSortKey = 'recent' | 'attempts' | 'sheets' | 'created'
 
 const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
-  { key: 'sheets',   label: '시트 수' },
+  { key: 'sheets',   label: '보유 시트' },
   { key: 'attempts', label: '학습 시도' },
   { key: 'recent',   label: '최근 학습' },
   { key: 'created',  label: '가입일' },
@@ -206,8 +207,8 @@ export function VoicecardsBlock({
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
-              <LStat label="시트 수" value={formatNumber(userStats.totalSheets)} />
-              <LStat label="카드 수" value={formatNumber(userStats.totalCards)} />
+              <LStat label="보유 시트" value={formatNumber(userStats.totalSheets)} />
+              <LStat label="학습 카드" value={formatNumber(userStats.totalCards)} />
               <LStat label="학습 시도" value={formatNumber(userStats.totalAttempts)} />
               <LStat label="잔여 크레딧" value={formatNumber(userStats.totalCredits)} />
             </div>
@@ -267,7 +268,7 @@ export function VoicecardsBlock({
                       {user.nickname || 'Unknown'}
                     </div>
                     <div style={{ fontSize: 9.5, color: t.neutrals.muted }}>
-                      시트 {user.sheetCount}개 · 학습 {formatNumber(user.attempts)}회 · {user.lastActiveAt ? `최근 ${formatDate(user.lastActiveAt)}` : formatDate(user.createdAt)}
+                      시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 학습 {formatNumber(user.attempts)}회 · {user.lastActiveAt ? `최근 ${formatDate(user.lastActiveAt)}` : formatDate(user.createdAt)}
                     </div>
                   </div>
 

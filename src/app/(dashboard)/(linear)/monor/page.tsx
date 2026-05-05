@@ -28,6 +28,7 @@ interface UserStats {
     nickname: string | null
     credits: number
     sheetCount: number
+    cards: number
     attempts: number
     createdAt: string
     lastActiveAt: string | null
