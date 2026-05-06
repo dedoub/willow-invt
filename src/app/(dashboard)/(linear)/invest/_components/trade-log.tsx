@@ -40,6 +40,7 @@ export function TradeLog({ trades }: TradeLogProps) {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
+  const [search, setSearch] = useState('')
 
   const sorted = useMemo(() => {
     return [...trades].sort((a, b) => {
@@ -49,6 +50,23 @@ export function TradeLog({ trades }: TradeLogProps) {
     })
   }, [trades])
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return sorted
+    return sorted.filter(tr => {
+      const ticker = tr.ticker.replace('.KS', '').toLowerCase()
+      const name = (tr.company_name || '').toLowerCase()
+      const broker = (tr.broker || '').toLowerCase()
+      const memo = (tr.memo || '').toLowerCase()
+      return ticker.includes(q) || name.includes(q) || broker.includes(q) || memo.includes(q)
+    })
+  }, [sorted, search])
+
+  const handleSearchChange = (v: string) => {
+    setSearch(v)
+    setPage(0)
+  }
+
   const commitPageSize = () => {
     const n = Math.max(5, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
     setPageSizeInput(String(n))
@@ -57,16 +75,46 @@ export function TradeLog({ trades }: TradeLogProps) {
     localStorage.setItem(TRADE_PAGE_KEY, String(n))
   }
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
-  const paged = sorted.slice(page * pageSize, (page + 1) * pageSize)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead eyebrow="TRADES" title="매매기록" action={
-          <span style={{ fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-            {sorted.length}건
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              background: t.neutrals.inner, borderRadius: t.radius.sm,
+              padding: '4px 8px', minWidth: mobile ? 140 : 200,
+            }}>
+              <LIcon name="search" size={12} color={t.neutrals.subtle} />
+              <input
+                value={search}
+                onChange={e => handleSearchChange(e.target.value)}
+                placeholder="티커·종목명·증권사·메모"
+                style={{
+                  border: 'none', background: 'transparent', outline: 'none',
+                  fontSize: 11, color: t.neutrals.text, fontFamily: t.font.sans,
+                  width: '100%',
+                }}
+              />
+              {search && (
+                <button
+                  onClick={() => handleSearchChange('')}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                    color: t.neutrals.subtle, display: 'inline-flex',
+                  }}
+                >
+                  <LIcon name="x" size={11} />
+                </button>
+              )}
+            </div>
+            <span style={{ fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.mono }}>
+              {search && filtered.length !== sorted.length ? `${filtered.length}/${sorted.length}건` : `${sorted.length}건`}
+            </span>
+          </div>
         } />
       </div>
 
@@ -141,11 +189,11 @@ export function TradeLog({ trades }: TradeLogProps) {
             </div>
           )
         })}
-        {sorted.length === 0 && (
+        {filtered.length === 0 && (
           <div style={{
             padding: '20px 14px', textAlign: 'center',
             fontSize: 12, color: t.neutrals.subtle,
-          }}>매매 기록이 없습니다</div>
+          }}>{search ? '검색 결과가 없습니다' : '매매 기록이 없습니다'}</div>
         )}
       </div>
       </div>
@@ -189,7 +237,7 @@ export function TradeLog({ trades }: TradeLogProps) {
             <span style={{
               fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted,
             }}>
-              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sorted.length)} / {sorted.length}
+              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
             </span>
             <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
               style={{
