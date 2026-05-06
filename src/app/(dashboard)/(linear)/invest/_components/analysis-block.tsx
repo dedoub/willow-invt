@@ -427,9 +427,9 @@ export function AnalysisBlock({
                     scale={useLog ? 'log' : 'linear'}
                     domain={
                       useLog
-                        ? [(dataMin: number) => Math.max(1, dataMin * 0.9), (dataMax: number) => dataMax * 1.05]
+                        ? [(dataMin: number) => Math.max(1, dataMin * 0.9), (dataMax: number) => dataMax * 1.15]
                         : isValue
-                          ? [(dataMin: number) => Math.max(0, dataMin * 0.92), (dataMax: number) => dataMax * 1.05]
+                          ? [(dataMin: number) => Math.max(0, dataMin * 0.92), (dataMax: number) => dataMax * 1.15]
                           : ['auto', 'auto']
                     }
                     allowDataOverflow={useLog || isValue}
