@@ -73,10 +73,21 @@ function DonutChart({ title, data, colors }: { title: string; data: { subject: s
 
 /* ── Component ── */
 
+type ValueScale = 'linear' | 'log'
+const VALUE_SCALE_KEY = 'invest-analysis-value-scale'
+
 export function AnalysisBlock({
   stockTrades, stockQuotes, stockThemes, stockHistory, fxHistory, usdKrwRate, loading,
 }: AnalysisBlockProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('total')
+  const [valueScale, setValueScale] = useState<ValueScale>(() => {
+    if (typeof window === 'undefined') return 'linear'
+    return (localStorage.getItem(VALUE_SCALE_KEY) as ValueScale) === 'log' ? 'log' : 'linear'
+  })
+  const handleScaleChange = (s: ValueScale) => {
+    setValueScale(s)
+    if (typeof window !== 'undefined') localStorage.setItem(VALUE_SCALE_KEY, s)
+  }
 
   const trendData = useMemo(() => {
     if (Object.keys(stockHistory).length === 0) return []
@@ -385,10 +396,27 @@ export function AnalysisBlock({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 14px 14px' }}>
         {charts.map(chart => {
           const lines = getLines(chart.suffix)
+          const isValue = chart.suffix === 'value'
+          const useLog = isValue && valueScale === 'log'
           return (
             <div key={chart.suffix}>
-              <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
-                {chart.label}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted }}>
+                  {chart.label}
+                </div>
+                {isValue && (
+                  <div style={{ display: 'inline-flex', background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
+                    {(['linear', 'log'] as ValueScale[]).map(s => (
+                      <button key={s} onClick={() => handleScaleChange(s)} style={{
+                        border: 'none', background: valueScale === s ? t.neutrals.card : 'transparent',
+                        padding: '2px 8px', fontSize: 10, borderRadius: 3, cursor: 'pointer',
+                        fontFamily: t.font.sans,
+                        fontWeight: valueScale === s ? t.weight.medium : t.weight.regular,
+                        color: t.neutrals.text,
+                      }}>{s === 'linear' ? '일반' : '로그'}</button>
+                    ))}
+                  </div>
+                )}
               </div>
               <ResponsiveContainer width="100%" height={160}>
                 <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
@@ -399,6 +427,9 @@ export function AnalysisBlock({
                   <YAxis
                     tickFormatter={(v: number) => chart.fmt(v)} tick={{ fontSize: 9, fill: t.neutrals.subtle }}
                     axisLine={false} tickLine={false} width={50}
+                    scale={useLog ? 'log' : 'linear'}
+                    domain={useLog ? [(dataMin: number) => Math.max(1, dataMin * 0.95), 'dataMax'] : ['auto', 'auto']}
+                    allowDataOverflow={useLog}
                   />
                   {chart.suffix === 'pnl' || chart.suffix === 'pct' ? (
                     <ReferenceLine y={0} stroke={t.neutrals.line} strokeDasharray="3 3" />
