@@ -261,7 +261,8 @@ export function PortfolioKanban({
     if (sortBy1m) {
       cards.sort((a, b) => (b.return1m ?? -999) - (a.return1m ?? -999))
     } else {
-      const statusOrder: Record<string, number> = { BUY: 0, HOLD: 1, FULL: 2, FREEZE: 3 }
+      // 정렬: 추매(BUY) → 대기(HOLD) → 동결(FREEZE) → 풀(FULL)
+      const statusOrder: Record<string, number> = { BUY: 0, HOLD: 1, FREEZE: 2, FULL: 3 }
       cards.sort((a, b) => {
         const ar = a.pyramiding ? statusOrder[a.pyramiding.status] ?? 5 : 6
         const br = b.pyramiding ? statusOrder[b.pyramiding.status] ?? 5 : 6
