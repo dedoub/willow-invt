@@ -5,6 +5,7 @@ import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { WikiSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { WikiList } from './_components/wiki-list'
 import { WikiNote } from './_components/wiki-note-row'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 
 type WikiSection = 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt'
 
@@ -28,6 +29,7 @@ export default function WikiPage() {
   }, [])
 
   useEffect(() => { loadNotes() }, [loadNotes])
+  useAgentRefresh(['work_wiki', 'wiki_'], loadNotes)
 
   const handleCreate = async (data: { section: WikiSection; title: string; content: string; attachments?: unknown }) => {
     const res = await fetch('/api/wiki', {

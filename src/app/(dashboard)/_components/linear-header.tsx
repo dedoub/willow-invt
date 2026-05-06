@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { t } from './linear-tokens'
 import { LIcon } from './linear-icons'
 import { ReactNode } from 'react'
+import { refreshAllData } from '@/hooks/use-agent-refresh'
 
 interface LinearHeaderProps {
   title: string
@@ -15,6 +17,12 @@ interface LinearHeaderProps {
 }
 
 export function LinearHeader({ title, subtitle, onAgentToggle, agentOpen, actions, mobile, onMenuToggle }: LinearHeaderProps) {
+  const [spinning, setSpinning] = useState(false)
+  const handleRefresh = () => {
+    refreshAllData()
+    setSpinning(true)
+    setTimeout(() => setSpinning(false), 600)
+  }
   return (
     <header style={{
       height: 52, padding: '0 20px',
@@ -51,6 +59,25 @@ export function LinearHeader({ title, subtitle, onAgentToggle, agentOpen, action
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {actions}
+        <button
+          onClick={handleRefresh}
+          title="데이터 새로고침"
+          aria-label="데이터 새로고침"
+          style={{
+            height: 28, width: 28, borderRadius: 6,
+            background: t.neutrals.inner, color: t.neutrals.muted,
+            border: 'none', cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <span style={{
+            display: 'inline-flex',
+            transition: 'transform 0.6s cubic-bezier(.45,.05,.55,.95)',
+            transform: spinning ? 'rotate(360deg)' : 'rotate(0deg)',
+          }}>
+            <LIcon name="refresh" size={14} stroke={1.8} />
+          </span>
+        </button>
         {onAgentToggle && !mobile && (
           <button onClick={onAgentToggle} style={{
             height: 28, padding: '0 10px', borderRadius: 6,

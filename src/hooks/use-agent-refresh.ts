@@ -24,11 +24,19 @@ export function notifyAgentDataChange(tables: string[]) {
  * @param prefixes - table name prefixes this page cares about (e.g. ['willow_mgmt', 'work_wiki'])
  * @param onRefresh - callback to refetch data
  */
+// 와일드카드 — 모든 useAgentRefresh 핸들러를 강제 실행 (예: 헤더의 수동 새로고침 버튼)
+export const REFRESH_ALL = '__all__'
+
+/** 전체 페이지 데이터 새로고침 트리거 */
+export function refreshAllData() {
+  notifyAgentDataChange([REFRESH_ALL])
+}
+
 export function useAgentRefresh(prefixes: string[], onRefresh: () => void) {
   useEffect(() => {
     const handler = (e: Event) => {
       const { tables } = (e as CustomEvent<AgentDataChangedDetail>).detail
-      const isRelevant = tables.some(table =>
+      const isRelevant = tables.includes(REFRESH_ALL) || tables.some(table =>
         prefixes.some(prefix => table.startsWith(prefix))
       )
       if (isRelevant) {

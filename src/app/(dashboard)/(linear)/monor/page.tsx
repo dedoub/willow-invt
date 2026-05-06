@@ -7,6 +7,7 @@ import { VoicecardsSettingsDialog } from './_components/voicecards-settings-dial
 import { ReviewnotesBlock } from './_components/reviewnotes-block'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats } from '@/lib/reviewnotes-supabase'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -124,6 +125,12 @@ export default function MonorPage() {
 
   useEffect(() => { loadVoicecards() }, [loadVoicecards])
   useEffect(() => { loadReviewnotes() }, [loadReviewnotes])
+
+  const refreshAll = useCallback(() => {
+    loadVoicecards(true)
+    loadReviewnotes(true)
+  }, [loadVoicecards, loadReviewnotes])
+  useAgentRefresh(['voicecards_', 'reviewnotes_'], refreshAll)
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
