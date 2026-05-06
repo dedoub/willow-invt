@@ -86,6 +86,16 @@ const SUB_COLORS: Record<string, { bg: string; fg: string }> = {
   '기타':                   { bg: '#F1F5F9', fg: '#475569' },
 }
 
+function formatMarketCap(cap: number, currency: string | undefined): string | undefined {
+  if (!cap || cap <= 0) return undefined
+  if (currency === 'KRW') {
+    const ok = cap / 1e8
+    return ok >= 10000 ? `${(ok / 10000).toFixed(1)}조` : `${Math.round(ok).toLocaleString()}억`
+  }
+  const capB = cap / 1e9
+  return capB >= 1 ? `$${capB.toFixed(1)}B` : `$${Math.round(capB * 1000)}M`
+}
+
 function renderGroupedCards(
   cards: StockCardData[],
   themes: Record<string, Array<{ theme: string; parentTheme: string | null }>>,
@@ -111,7 +121,7 @@ function renderGroupedCards(
           return (
             <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {sub && sc && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 6px', marginTop: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 2px', marginTop: 2 }}>
                   <span style={{
                     fontSize: 9, fontWeight: t.weight.medium, padding: '0 5px',
                     borderRadius: t.radius.sm, background: sc.bg, color: sc.fg,
@@ -347,6 +357,8 @@ export function PortfolioKanban({
       }
 
       const thInfo = thesisMap.get(tickerKey)
+      const quote = stockQuotes[item.ticker] || stockQuotes[tickerKey]
+      const marketCapLabel = quote?.marketCap ? formatMarketCap(quote.marketCap, sig?.currency || quote?.currency) : undefined
       return {
         name: item.name, ticker: item.ticker, sector: item.sector, axis: item.axis,
         group: 'portfolio' as const,
@@ -356,6 +368,7 @@ export function PortfolioKanban({
         momentumScore: sig?.momentumScore ?? null,
         return1m: sig?.return1m ?? null,
         weightPct: weightPct > 0 ? Math.round(weightPct * 10) / 10 : undefined,
+        marketCapLabel,
         pyramiding,
         structuralThesis: thInfo?.thesis, valueChainPosition: thInfo?.vcp,
       }
@@ -419,6 +432,8 @@ export function PortfolioKanban({
       }
 
       const thInfo = thesisMap.get(item.ticker.replace('.KS', ''))
+      const quote = stockQuotes[item.ticker] || stockQuotes[item.ticker.replace('.KS', '')]
+      const marketCapLabel = quote?.marketCap ? formatMarketCap(quote.marketCap, sig?.currency || quote?.currency) : undefined
       return {
         name: item.name, ticker: item.ticker, sector: item.sector, axis: item.axis,
         group: 'watchlist' as const,
@@ -427,6 +442,7 @@ export function PortfolioKanban({
         momentumScore: sig?.momentumScore ?? null,
         return1m: sig?.return1m ?? null,
         pinned: item.pinned, monitor,
+        marketCapLabel,
         structuralThesis: thInfo?.thesis, valueChainPosition: thInfo?.vcp,
       }
     }).sort((a, b) => {
@@ -435,7 +451,7 @@ export function PortfolioKanban({
       if (sortBy1m) return (b.return1m ?? -999) - (a.return1m ?? -999)
       return (b.momentumScore ?? -1) - (a.momentumScore ?? -1)
     })
-  }, [watchlistData, signalMap, sortBy1m])
+  }, [watchlistData, signalMap, stockQuotes, sortBy1m])
 
   /* ── Research column ── */
   const researchCards = useMemo((): StockCardData[] => {
