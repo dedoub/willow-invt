@@ -252,10 +252,7 @@ export function AnalysisBlock({
       }
     }
 
-    // Sample to ~120 points
-    return data.length > 120
-      ? data.filter((_, i) => i % Math.ceil(data.length / 120) === 0 || i === data.length - 1)
-      : data
+    return data
   }, [stockTrades, stockQuotes, stockThemes, stockHistory, fxHistory, usdKrwRate])
 
   /* ── Radar / spider chart data ── */
@@ -428,8 +425,14 @@ export function AnalysisBlock({
                     tickFormatter={(v: number) => chart.fmt(v)} tick={{ fontSize: 9, fill: t.neutrals.subtle }}
                     axisLine={false} tickLine={false} width={50}
                     scale={useLog ? 'log' : 'linear'}
-                    domain={useLog ? [(dataMin: number) => Math.max(1, dataMin * 0.95), 'dataMax'] : ['auto', 'auto']}
-                    allowDataOverflow={useLog}
+                    domain={
+                      useLog
+                        ? [(dataMin: number) => Math.max(1, dataMin * 0.9), (dataMax: number) => dataMax * 1.05]
+                        : isValue
+                          ? [(dataMin: number) => Math.max(0, dataMin * 0.92), (dataMax: number) => dataMax * 1.05]
+                          : ['auto', 'auto']
+                    }
+                    allowDataOverflow={useLog || isValue}
                   />
                   {chart.suffix === 'pnl' || chart.suffix === 'pct' ? (
                     <ReferenceLine y={0} stroke={t.neutrals.line} strokeDasharray="3 3" />
