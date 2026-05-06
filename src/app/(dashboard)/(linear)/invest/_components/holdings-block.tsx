@@ -190,20 +190,20 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       if (!groups.has(g)) groups.set(g, [])
       groups.get(g)!.push(h)
     }
-    // Sort within groups by pyramiding status
+    // Sort within groups by pyramiding status: 추매(BUY) → 대기(HOLD) → 동결(FREEZE) → 풀(FULL)
     for (const [, items] of groups) {
       items.sort((a, b) => {
         const rank = (h: Holding) => {
-          if (!(h.currentPrice > 0 && h.totalInvested > 0)) return 6
+          if (!(h.currentPrice > 0 && h.totalInvested > 0)) return 5
           const trancheSize = h.currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrwRate
           const tranche = Math.min(10, Math.max(1, Math.round(h.totalInvested / trancheSize)))
           const avgReturn = h.pnlPercent / 100
           const next = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
           const curr = TRANCHE_TRIGGERS[tranche - 1]
-          if (tranche >= 10) return 3
-          if (next !== null && avgReturn >= next) return 0
-          if (curr !== null && avgReturn < curr) return 4
-          return 2
+          if (tranche >= 10) return 3                                  // FULL (풀)
+          if (next !== null && avgReturn >= next) return 0              // BUY (추매)
+          if (curr !== null && avgReturn < curr) return 2               // FREEZE (동결)
+          return 1                                                      // HOLD (대기)
         }
         return rank(a) - rank(b) || (b.currency === 'USD' ? b.pnl * usdKrwRate : b.pnl) - (a.currency === 'USD' ? a.pnl * usdKrwRate : a.pnl)
       })
