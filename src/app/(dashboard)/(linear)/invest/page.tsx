@@ -305,6 +305,7 @@ export default function InvestPage() {
           stockTrades={stockTrades}
           stockQuotes={stockQuotes}
           stockResearch={stockResearch}
+          stockThemes={stockThemes}
           usdKrw={usdKrw}
           onTotalValueChange={handleTotalValueChange}
           onDataChanged={loadData}

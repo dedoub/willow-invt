@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useCallback, useEffect } from 'react'
+import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -59,13 +59,116 @@ interface KanbanProps {
   stockTrades: StockTrade[]
   stockQuotes: Record<string, StockQuote>
   stockResearch: StockResearch[]
+  stockThemes?: Record<string, Array<{ theme: string; parentTheme: string | null }>>
   usdKrw: number
   onTotalValueChange?: (totalUsd: number) => void
   onDataChanged?: () => void
 }
 
+/* ── Theme grouping ── */
+const PARENT_ORDER = ['AI 인프라', '지정학/안보', '넥스트', '미분류']
+const PARENT_COLORS: Record<string, { bg: string; fg: string }> = {
+  'AI 인프라':   { bg: '#E0E7FF', fg: '#4338CA' },
+  '지정학/안보': { bg: '#FFEDD5', fg: '#C2410C' },
+  '넥스트':      { bg: '#F3E8FF', fg: '#7E22CE' },
+  '미분류':      { bg: '#F1F5F9', fg: '#475569' },
+}
+const SUB_ORDER: Record<string, string[]> = {
+  'AI 인프라':   ['AI 반도체', 'AI 에너지/원전', '데이터센터/냉각/네트워킹'],
+  '지정학/안보': ['방산', '우주'],
+}
+const SUB_COLORS: Record<string, { bg: string; fg: string }> = {
+  'AI 반도체':              { bg: '#E0E7FF', fg: '#4338CA' },
+  'AI 에너지/원전':         { bg: '#FEF3C7', fg: '#92400E' },
+  '데이터센터/냉각/네트워킹': { bg: '#CFFAFE', fg: '#155E75' },
+  '방산':                   { bg: '#FEE2E2', fg: '#B91C1C' },
+  '우주':                   { bg: '#DBEAFE', fg: '#1E40AF' },
+  '기타':                   { bg: '#F1F5F9', fg: '#475569' },
+}
+
+function renderGroupedCards(
+  cards: StockCardData[],
+  themes: Record<string, Array<{ theme: string; parentTheme: string | null }>>,
+  renderCard: (card: StockCardData) => React.ReactNode,
+): React.ReactNode {
+  const groups = groupCardsByTheme(cards, themes)
+  return groups.map(({ parent, subs }) => {
+    const pc = PARENT_COLORS[parent] || PARENT_COLORS['미분류']
+    const total = subs.reduce((s, sg) => s + sg.cards.length, 0)
+    return (
+      <div key={parent} style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px' }}>
+          <span style={{
+            fontSize: 9.5, fontWeight: t.weight.semibold, padding: '1px 6px',
+            borderRadius: t.radius.sm, background: pc.bg, color: pc.fg,
+          }}>{parent}</span>
+          <span style={{ fontSize: 9, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+            {total}
+          </span>
+        </div>
+        {subs.map(({ sub, cards: subCards }) => {
+          const sc = sub ? (SUB_COLORS[sub] || SUB_COLORS['기타']) : null
+          return (
+            <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {sub && sc && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 6px', marginTop: 2 }}>
+                  <span style={{
+                    fontSize: 9, fontWeight: t.weight.medium, padding: '0 5px',
+                    borderRadius: t.radius.sm, background: sc.bg, color: sc.fg,
+                  }}>{sub}</span>
+                  <span style={{ fontSize: 9, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                    {subCards.length}
+                  </span>
+                </div>
+              )}
+              {subCards.map(c => renderCard(c))}
+            </div>
+          )
+        })}
+      </div>
+    )
+  })
+}
+
+function groupCardsByTheme(
+  cards: StockCardData[],
+  themes: Record<string, Array<{ theme: string; parentTheme: string | null }>>,
+): { parent: string; subs: { sub: string | null; cards: StockCardData[] }[] }[] {
+  const buckets = new Map<string, StockCardData[]>()
+  for (const c of cards) {
+    const parent = c.axis || '미분류'
+    if (!buckets.has(parent)) buckets.set(parent, [])
+    buckets.get(parent)!.push(c)
+  }
+  const ordered: string[] = [
+    ...PARENT_ORDER.filter(p => buckets.has(p)),
+    ...Array.from(buckets.keys()).filter(p => !PARENT_ORDER.includes(p)),
+  ]
+  return ordered.map(parent => {
+    const items = buckets.get(parent)!
+    const subOrder = SUB_ORDER[parent]
+    if (!subOrder) {
+      return { parent, subs: [{ sub: null, cards: items }] }
+    }
+    const subBuckets = new Map<string, StockCardData[]>()
+    for (const c of items) {
+      const tickerKey = c.ticker.replace('.KS', '')
+      const raw = themes[tickerKey]?.[0]?.theme || themes[c.ticker]?.[0]?.theme || '기타'
+      const sub = subOrder.includes(raw) ? raw : '기타'
+      if (!subBuckets.has(sub)) subBuckets.set(sub, [])
+      subBuckets.get(sub)!.push(c)
+    }
+    const subs: { sub: string | null; cards: StockCardData[] }[] = []
+    for (const k of subOrder) {
+      if (subBuckets.has(k)) subs.push({ sub: k, cards: subBuckets.get(k)! })
+    }
+    if (subBuckets.has('기타')) subs.push({ sub: '기타', cards: subBuckets.get('기타')! })
+    return { parent, subs }
+  })
+}
+
 export function PortfolioKanban({
-  watchlistData, signalData, stockTrades, stockQuotes, stockResearch, usdKrw,
+  watchlistData, signalData, stockTrades, stockQuotes, stockResearch, stockThemes = {}, usdKrw,
   onTotalValueChange, onDataChanged,
 }: KanbanProps) {
   const mobile = useIsMobile()
@@ -435,7 +538,7 @@ export function PortfolioKanban({
           }}>
             {headerCount('포트폴리오', portfolioCards.length)}
           </div>
-          {portfolioCards.map(card => (
+          {renderGroupedCards(portfolioCards, stockThemes, card => (
             <StockCard key={card.ticker} data={card} draggable />
           ))}
           {portfolioCards.length === 0 && (
@@ -451,7 +554,7 @@ export function PortfolioKanban({
           }}>
             {headerCount('워치리스트', watchlistCards.length)}
           </div>
-          {watchlistCards.map(card => (
+          {renderGroupedCards(watchlistCards, stockThemes, card => (
             <StockCard key={card.ticker} data={card} draggable
               onRemove={() => handleRemoveWatchlist(card.name, 'watchlist')}
               onPin={() => handleTogglePin(card.name, 'watchlist', card.price)}
@@ -471,7 +574,7 @@ export function PortfolioKanban({
           }}>
             {headerCount('리서치', researchCards.length)}
           </div>
-          {researchCards.map(card => (
+          {renderGroupedCards(researchCards, stockThemes, card => (
             <StockCard key={card.ticker} data={card} draggable
               onRemove={card.researchId ? () => handleRemoveResearch(card.researchId!) : undefined}
             />
