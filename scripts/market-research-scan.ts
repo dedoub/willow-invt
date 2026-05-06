@@ -5,6 +5,12 @@ import { createClient } from '@supabase/supabase-js'
 import { spawn } from 'child_process'
 import { markdownToTelegramHtml } from './telegram-utils'
 import { ensureTickerTheme } from '../src/lib/ensure-ticker-theme'
+import { inferAxisFromSector } from '../src/lib/infer-axis'
+
+// 한국 종목 ticker 패턴 (6자리 숫자)
+function inferMarketFromTicker(ticker: string): 'KR' | 'US' {
+  return /^\d{6}$/.test(ticker.replace('.KS', '')) ? 'KR' : 'US'
+}
 
 // ============================================================
 // Unified Research Scanner — 통합 종목 리서치 스캔
@@ -349,6 +355,7 @@ interface ResearchEntry {
   company_name: string
   source: string
   sector_tags: string[]
+  axis: string | null
   structural_thesis: string | null
   high_12m: number | null
   gap_from_high_pct: number | null
@@ -391,7 +398,8 @@ async function extractResearchEntries(report: string, sourceType: 'valuechain' |
     "company_name": "Credo Technology",
     "source": "${sourceType === 'valuechain' ? 'valuechain' : 'market_scan'}",
     "sector_tags": ["AI 인프라", "네트워킹"],
-    "sector": "Technology",
+    "sector": "AI 네트워킹",
+    "axis": "AI 인프라",
     "track": "AI Infra",
     "structural_thesis": "AI 데이터센터 네트워킹 수요 증가 수혜. 400G/800G 이더넷 스위치 수요 급증에 따른 연결 솔루션 시장 확대.",
     "high_12m": 85.5,
@@ -414,6 +422,7 @@ async function extractResearchEntries(report: string, sourceType: 'valuechain' |
     "source": "kr_news",
     "sector_tags": ["방산 - 한국", "조선"],
     "sector": "방산 - 한국",
+    "axis": "지정학/안보",
     "track": "Geopolitics",
     "structural_thesis": "함정 수출 확대 + 미 해군 MRO 사업 진출. 폴란드/필리핀 잠수함 수주 가능성과 글로벌 군비 증가 수혜.",
     "current_price": 85000,
@@ -451,6 +460,10 @@ async function extractResearchEntries(report: string, sourceType: 'valuechain' |
 - trend_verdict: "near_breakout" (신고가 근접), "watch" (관찰 중), "too_far" (고점 대비 너무 멀음), null (판단 불가)
 - sector: 섹터명. KR 가이드: "AI 반도체"(삼성/SK하이닉스 협력사), "방산 - 한국"(한화/LIG/현대로템 등), "AI 에너지"(원전 부품), "자동차/로보틱스", "자산운용/증권", "우주" 등
 - track: 포트폴리오 축 ("AI Infra", "Geopolitics", "Next Gen", "ETF", 또는 null)
+- **axis**: 윌로우 3축 분류. 다음 중 하나만: "AI 인프라" | "지정학/안보" | "넥스트". 모르면 null
+  - AI 인프라: AI 반도체/메모리/스토리지/네트워킹/냉각/데이터센터/클라우드/광 인터커넥트/AI 에너지(SMR·연료전지)
+  - 지정학/안보: 방산·우주·발사체·위성·우라늄·미국방 AI(PLTR류)·자산운용/증권
+  - 넥스트: 자동차·로보틱스·산업 자동화·핀테크·헬스케어 AI·광고 AI·RPA·양자컴퓨팅(하드웨어)
 - structural_thesis: 2-3문장 구조적 투자 논거 (절대 null 금지, 반드시 작성)
 - **한국 종목 ticker**: "005930" 형태 6자리 숫자 (.KS 제외). market 필드는 "KR"
 - **미국 종목 ticker**: 대문자 알파벳 (예: "MU"). market 필드는 "US"
@@ -484,6 +497,8 @@ ${report}`
       verdict: deriveVerdict(e.composite_score),
       sector: e.sector || null,
       track: e.track || null,
+      // axis: LLM이 부여하지 않으면 sector 기반 자동 추론
+      axis: e.axis || inferAxisFromSector(e.sector || null) || null,
       composite_score: e.composite_score ?? null,
       growth_score: e.growth_score ?? null,
       value_score: e.value_score ?? null,
@@ -558,6 +573,9 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
   let upserted = 0
 
   for (const entry of entries) {
+    const market = inferMarketFromTicker(entry.ticker)
+    const axis = entry.axis || inferAxisFromSector(entry.sector) || null
+
     // 같은 ticker + 같은 날짜가 있으면 업데이트, 없으면 신규
     const { data: existing } = await supabase
       .from('stock_research')
@@ -575,6 +593,8 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
           source_type: sourceType,
           sector_tags: entry.sector_tags,
           sector: entry.sector,
+          axis,
+          market,
           track: entry.track,
           structural_thesis: entry.structural_thesis,
           high_12m: entry.high_12m,
@@ -614,6 +634,8 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
           source_type: sourceType,
           sector_tags: entry.sector_tags || [],
           sector: entry.sector,
+          axis,
+          market,
           track: entry.track,
           structural_thesis: entry.structural_thesis,
           high_12m: entry.high_12m,

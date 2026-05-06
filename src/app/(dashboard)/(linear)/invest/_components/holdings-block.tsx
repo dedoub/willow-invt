@@ -41,6 +41,20 @@ const THEME_COLORS: Record<string, { bg: string; fg: string }> = {
 }
 const THEME_ORDER = ['AI 인프라', '미분류', '지정학/안보', '넥스트']
 
+// 테마별 세부 분류 — 같은 parentTheme 내에서 sub-theme(theme.name)으로 한 번 더 그룹핑
+const SUB_GROUP_ORDER: Record<string, string[]> = {
+  'AI 인프라':   ['AI 반도체', 'AI 에너지/원전', '데이터센터/냉각/네트워킹'],
+  '지정학/안보': ['방산', '우주'],
+}
+const SUB_GROUP_COLORS: Record<string, { bg: string; fg: string }> = {
+  'AI 반도체':              { bg: '#E0E7FF', fg: '#4338CA' },
+  'AI 에너지/원전':         { bg: '#FEF3C7', fg: '#92400E' },
+  '데이터센터/냉각/네트워킹': { bg: '#CFFAFE', fg: '#155E75' },
+  '방산':                   { bg: '#FEE2E2', fg: '#B91C1C' },
+  '우주':                   { bg: '#DBEAFE', fg: '#1E40AF' },
+  '기타':                   { bg: '#F1F5F9', fg: '#475569' },
+}
+
 /* ── IRR (Newton-Raphson) ── */
 function calculateIRR(cashFlows: { date: string; amount: number }[]): number | null {
   if (cashFlows.length < 2) return null
@@ -329,7 +343,12 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   fontSize: 10.5, fontWeight: t.weight.semibold, padding: '2px 8px',
                   borderRadius: t.radius.sm, background: tc.bg, color: tc.fg,
                 }}>{theme}</span>
-                <span style={{ fontSize: 10, color: t.neutrals.subtle }}>{items.length}종목</span>
+                <span style={{ fontSize: 10, color: t.neutrals.subtle }}>
+                  {items.length}종목
+                  {hasQuotes && groupValKrw > 0 && (
+                    <> · {fmtAmount(groupValKrw, 'KRW')} ({summary.totalVal > 0 ? ((groupValKrw / summary.totalVal) * 100).toFixed(1) : '0.0'}%)</>
+                  )}
+                </span>
                 {hasQuotes && groupValKrw > 0 && (
                   <span style={{ fontSize: 11, fontWeight: t.weight.medium, color: pnlColor(groupPnl), marginLeft: 'auto' }}>
                     {groupPnl > 0 ? '+' : ''}{groupPct.toFixed(1)}% ({groupPnl > 0 ? '+' : ''}{fmtAmount(groupPnl, 'KRW')})
@@ -339,7 +358,33 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
 
               {/* Holdings */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {items.map(h => {
+                {(SUB_GROUP_ORDER[theme] ? buildSubGroups(items, SUB_GROUP_ORDER[theme], usdKrwRate) : [{ sub: null as string | null, items, valKrw: 0 }]).map(({ sub, items: subItems, valKrw: subValKrw }) => {
+                  const sc = sub ? (SUB_GROUP_COLORS[sub] || SUB_GROUP_COLORS['기타']) : null
+                  const subInvKrw = sub ? subItems.reduce((s, h) => s + h.krwInvested, 0) : 0
+                  const subPnl = subValKrw - subInvKrw
+                  const subPct = subInvKrw > 0 ? (subPnl / subInvKrw) * 100 : 0
+                  return (
+                    <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {sub && sc && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                          <span style={{
+                            fontSize: 9.5, fontWeight: t.weight.medium, padding: '1px 6px',
+                            borderRadius: t.radius.sm, background: sc.bg, color: sc.fg,
+                          }}>{sub}</span>
+                          <span style={{ fontSize: 9, color: t.neutrals.subtle }}>
+                            {subItems.length}종목
+                            {hasQuotes && subValKrw > 0 && (
+                              <> · {fmtAmount(subValKrw, 'KRW')} ({summary.totalVal > 0 ? ((subValKrw / summary.totalVal) * 100).toFixed(1) : '0.0'}%)</>
+                            )}
+                          </span>
+                          {hasQuotes && subValKrw > 0 && (
+                            <span style={{ fontSize: 9.5, fontWeight: t.weight.medium, color: pnlColor(subPnl), marginLeft: 'auto' }}>
+                              {subPnl > 0 ? '+' : ''}{subPct.toFixed(1)}% ({subPnl > 0 ? '+' : ''}{fmtAmount(subPnl, 'KRW')})
+                            </span>
+                          )}
+                        </div>
+                      )}
+                {subItems.map(h => {
                   // Pyramiding
                   let pyramiding: { tranche: number; status: string; nextPct: number | null; nextPrice: number | null } | null = null
                   if (h.currentPrice > 0 && h.totalInvested > 0) {
@@ -460,6 +505,9 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                     </div>
                   )
                 })}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )
@@ -467,4 +515,27 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       </div>
     </LCard>
   )
+}
+
+// parentTheme 그룹의 종목들을 sub-theme별로 쪼개고 총평가액(KRW) 기준 desc 정렬
+// 화이트리스트(allowed)에 없는 sub-theme은 '기타'로 합침
+function buildSubGroups(
+  items: Holding[],
+  allowed: string[],
+  usdKrwRate: number,
+): { sub: string; items: Holding[]; valKrw: number }[] {
+  const subMap = new Map<string, Holding[]>()
+  for (const h of items) {
+    const raw = h.themes[0] || '기타'
+    const sub = allowed.includes(raw) ? raw : '기타'
+    if (!subMap.has(sub)) subMap.set(sub, [])
+    subMap.get(sub)!.push(h)
+  }
+  return Array.from(subMap.entries())
+    .map(([sub, arr]) => ({
+      sub,
+      items: arr,
+      valKrw: arr.reduce((s, h) => s + (h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue), 0),
+    }))
+    .sort((a, b) => b.valKrw - a.valKrw)
 }
