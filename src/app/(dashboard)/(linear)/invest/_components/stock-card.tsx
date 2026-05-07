@@ -93,13 +93,14 @@ function fmtTargetPrice(price: number, currency?: string): string {
 
 /* ── Component ── */
 
-export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPin, pinned, draggable }: {
+export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPin, pinned, draggable, bordered }: {
   data: StockCardData
   onClick?: () => void
   onRemove?: () => void
   onPin?: () => void
   pinned?: boolean
   draggable?: boolean
+  bordered?: boolean
 }) {
   const [hovered, setHovered] = useState(false)
   const changePct = data.changePercent ?? 0
@@ -122,6 +123,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
         padding: '8px 10px',
         borderRadius: t.radius.md,
         background: data.pinned ? '#FFFBF0' : t.neutrals.inner,
+        border: bordered ? `1px solid ${t.neutrals.line}` : undefined,
         cursor: draggable ? 'grab' : onClick ? 'pointer' : 'default',
         transition: 'background .1s',
         position: 'relative',

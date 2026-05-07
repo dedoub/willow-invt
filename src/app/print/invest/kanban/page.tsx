@@ -26,6 +26,7 @@ export default function PrintKanbanPage() {
             stockResearch={data.stockResearch}
             stockThemes={data.stockThemes}
             usdKrw={data.usdKrw}
+            printMode
           />
         )}
       </div>

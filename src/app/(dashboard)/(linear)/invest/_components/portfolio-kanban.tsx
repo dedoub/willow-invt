@@ -63,6 +63,8 @@ interface KanbanProps {
   usdKrw: number
   onTotalValueChange?: (totalUsd: number) => void
   onDataChanged?: () => void
+  /** 인쇄용 페이지에서 카드에 테두리 추가 */
+  printMode?: boolean
 }
 
 /* ── Theme grouping ── */
@@ -179,7 +181,7 @@ function groupCardsByTheme(
 
 export function PortfolioKanban({
   watchlistData, signalData, stockTrades, stockQuotes, stockResearch, stockThemes = {}, usdKrw,
-  onTotalValueChange, onDataChanged,
+  onTotalValueChange, onDataChanged, printMode = false,
 }: KanbanProps) {
   const mobile = useIsMobile()
   const [dragOverCol, setDragOverCol] = useState<string | null>(null)
@@ -555,7 +557,7 @@ export function PortfolioKanban({
             {headerCount('포트폴리오', portfolioCards.length)}
           </div>
           {renderGroupedCards(portfolioCards, stockThemes, card => (
-            <StockCard key={card.ticker} data={card} draggable />
+            <StockCard key={card.ticker} data={card} draggable bordered={printMode} />
           ))}
           {portfolioCards.length === 0 && (
             <div style={{ padding: 16, textAlign: 'center', fontSize: 11, color: t.neutrals.subtle }}>종목 없음</div>
@@ -575,6 +577,7 @@ export function PortfolioKanban({
               onRemove={() => handleRemoveWatchlist(card.name, 'watchlist')}
               onPin={() => handleTogglePin(card.name, 'watchlist', card.price)}
               pinned={card.pinned}
+              bordered={printMode}
             />
           ))}
           {watchlistCards.length === 0 && (
@@ -593,6 +596,7 @@ export function PortfolioKanban({
           {renderGroupedCards(researchCards, stockThemes, card => (
             <StockCard key={card.ticker} data={card} draggable
               onRemove={card.researchId ? () => handleRemoveResearch(card.researchId!) : undefined}
+              bordered={printMode}
             />
           ))}
           {researchCards.length === 0 && (

@@ -46,7 +46,7 @@ function fmtKrw(v: number) {
 const STOCK_COLORS = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#d946ef', '#0ea5e9']
 
 /* ── Donut mini-component ── */
-function DonutChart({ title, data, colors }: { title: string; data: { subject: string; pct: number }[]; colors: string[] }) {
+function DonutChart({ title, data, colors, fixedWidth }: { title: string; data: { subject: string; pct: number }[]; colors: string[]; fixedWidth?: number }) {
   // 슬라이스 안쪽에 표시할 라벨 — 비중 ≥ 6% 인 슬라이스에만 흰색 % 표시
   const renderInsideLabel = (props: any) => {
     const cx = Number(props.cx); const cy = Number(props.cy)
@@ -63,24 +63,29 @@ function DonutChart({ title, data, colors }: { title: string; data: { subject: s
       </text>
     )
   }
+  const chart = (
+    <PieChart width={fixedWidth || undefined} height={140}>
+      <Pie
+        data={data} dataKey="pct" nameKey="subject" cx="50%" cy="50%"
+        innerRadius={30} outerRadius={55} paddingAngle={2} strokeWidth={0}
+        label={renderInsideLabel} labelLine={false} isAnimationActive={false}
+      >
+        {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+      </Pie>
+      <Tooltip
+        contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md, fontSize: 10, padding: '4px 8px' }}
+        formatter={(value: any, name: any) => [`${value}%`, name]}
+      />
+    </PieChart>
+  )
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>{title}</div>
-      <ResponsiveContainer width="100%" height={140}>
-        <PieChart>
-          <Pie
-            data={data} dataKey="pct" nameKey="subject" cx="50%" cy="50%"
-            innerRadius={30} outerRadius={55} paddingAngle={2} strokeWidth={0}
-            label={renderInsideLabel} labelLine={false} isAnimationActive={false}
-          >
-            {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
-          </Pie>
-          <Tooltip
-            contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md, fontSize: 10, padding: '4px 8px' }}
-            formatter={(value: any, name: any) => [`${value}%`, name]}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+      {fixedWidth ? (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>{chart}</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={140}>{chart}</ResponsiveContainer>
+      )}
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2px 8px', marginTop: 2 }}>
         {data.map((d, i) => (
           <span key={d.subject} style={{ fontSize: 9, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -460,7 +465,7 @@ export function AnalysisBlock({
                   </div>
                 )}
               </div>
-              <ResponsiveContainer width="100%" height={160}>
+              <ResponsiveContainer width={chartColumns === 2 ? 400 : '100%'} height={160}>
                 <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
                   <XAxis
                     dataKey="date" tickFormatter={fmtDate} tick={{ fontSize: 9, fill: t.neutrals.subtle }}
@@ -511,13 +516,16 @@ export function AnalysisBlock({
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: radarData.byAiInfraSub.length > 0 ? 'repeat(3, 1fr)' : '1fr 1fr', gap: 8 }}>
               <DonutChart title="테마별" data={radarData.byTheme}
-                colors={radarData.byTheme.map(d => GROUP_COLORS[d.subject] || '#94a3b8')} />
+                colors={radarData.byTheme.map(d => GROUP_COLORS[d.subject] || '#94a3b8')}
+                fixedWidth={chartColumns === 2 ? 280 : undefined} />
               {radarData.byAiInfraSub.length > 0 && (
                 <DonutChart title="AI 인프라 세부" data={radarData.byAiInfraSub}
-                  colors={radarData.byAiInfraSub.map(d => AI_INFRA_SUB_COLORS[d.subject] || '#94a3b8')} />
+                  colors={radarData.byAiInfraSub.map(d => AI_INFRA_SUB_COLORS[d.subject] || '#94a3b8')}
+                  fixedWidth={chartColumns === 2 ? 280 : undefined} />
               )}
               <DonutChart title="국내/해외" data={radarData.byMarket}
-                colors={[MARKET_COLORS['국내'], MARKET_COLORS['해외']]} />
+                colors={[MARKET_COLORS['국내'], MARKET_COLORS['해외']]}
+                fixedWidth={chartColumns === 2 ? 280 : undefined} />
             </div>
           </div>
         )}
