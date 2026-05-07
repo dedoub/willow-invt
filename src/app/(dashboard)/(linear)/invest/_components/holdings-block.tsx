@@ -273,24 +273,21 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       }
     }
 
-    const parents = THEME_ORDER.filter(p => parentMap.has(p)).map(p => ({
-      parent: p, ...parentMap.get(p)!,
-      pctOfTotal: totalValKrw > 0 ? (parentMap.get(p)!.valKrw / totalValKrw) * 100 : 0,
-    }))
+    // 비중(valKrw) 내림차순 정렬
+    const parents = Array.from(parentMap.entries())
+      .map(([p, s]) => ({
+        parent: p, ...s,
+        pctOfTotal: totalValKrw > 0 ? (s.valKrw / totalValKrw) * 100 : 0,
+      }))
+      .sort((a, b) => b.valKrw - a.valKrw)
     const subs = new Map<string, { sub: string; count: number; valKrw: number; invKrw: number; pctOfTotal: number }[]>()
     for (const [parent, inner] of subMap) {
-      const order = SUB_GROUP_ORDER[parent] || []
-      const list: { sub: string; count: number; valKrw: number; invKrw: number; pctOfTotal: number }[] = []
-      for (const k of order) {
-        if (inner.has(k)) {
-          const s = inner.get(k)!
-          list.push({ sub: k, ...s, pctOfTotal: totalValKrw > 0 ? (s.valKrw / totalValKrw) * 100 : 0 })
-        }
-      }
-      if (inner.has('기타')) {
-        const s = inner.get('기타')!
-        list.push({ sub: '기타', ...s, pctOfTotal: totalValKrw > 0 ? (s.valKrw / totalValKrw) * 100 : 0 })
-      }
+      const list = Array.from(inner.entries())
+        .map(([sub, s]) => ({
+          sub, ...s,
+          pctOfTotal: totalValKrw > 0 ? (s.valKrw / totalValKrw) * 100 : 0,
+        }))
+        .sort((a, b) => b.valKrw - a.valKrw)
       subs.set(parent, list)
     }
     return { parents, subs, totalValKrw }
