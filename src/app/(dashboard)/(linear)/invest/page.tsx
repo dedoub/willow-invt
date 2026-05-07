@@ -280,12 +280,43 @@ export default function InvestPage() {
           margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3,
           fontFamily: t.font.sans, color: t.neutrals.text,
         }}>투자관리</h1>
-        <p style={{
-          margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
-          fontFamily: t.font.sans,
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          margin: '4px 0 16px', gap: 12, flexWrap: 'wrap',
         }}>
-          포트폴리오 · 시그널 · 매매기록 · 부동산
-        </p>
+          <p style={{
+            margin: 0, fontSize: 12, color: t.neutrals.muted,
+            fontFamily: t.font.sans,
+          }}>
+            포트폴리오 · 시그널 · 매매기록 · 부동산
+          </p>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={() => window.open('/print/invest/holdings', '_blank')}
+              style={{
+                padding: '4px 10px', fontSize: 11, fontWeight: t.weight.medium,
+                background: t.neutrals.inner, color: t.neutrals.text,
+                border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
+                fontFamily: t.font.sans,
+              }}
+              title="보유현황 + 분석 인쇄/PDF용 페이지 열기"
+            >
+              📄 보유현황 인쇄
+            </button>
+            <button
+              onClick={() => window.open('/print/invest/kanban', '_blank')}
+              style={{
+                padding: '4px 10px', fontSize: 11, fontWeight: t.weight.medium,
+                background: t.neutrals.inner, color: t.neutrals.text,
+                border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
+                fontFamily: t.font.sans,
+              }}
+              title="종목관리 칸반 인쇄/PDF용 페이지 열기"
+            >
+              📄 종목관리 인쇄
+            </button>
+          </div>
+        </div>
       </div>
 
       {loadPhase === 0 ? <InvestSkeleton /> : (

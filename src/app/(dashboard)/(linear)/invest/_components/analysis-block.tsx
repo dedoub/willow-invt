@@ -19,6 +19,8 @@ interface AnalysisBlockProps {
   fxHistory: Record<string, number>
   usdKrwRate: number
   loading?: boolean
+  /** 추이 차트 컬럼 수 (인쇄용 2단 배치 등). 기본 1. */
+  chartColumns?: 1 | 2
 }
 
 /* ── Constants ── */
@@ -45,12 +47,32 @@ const STOCK_COLORS = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#1
 
 /* ── Donut mini-component ── */
 function DonutChart({ title, data, colors }: { title: string; data: { subject: string; pct: number }[]; colors: string[] }) {
+  // 슬라이스 안쪽에 표시할 라벨 — 비중 ≥ 6% 인 슬라이스에만 흰색 % 표시
+  const renderInsideLabel = (props: any) => {
+    const cx = Number(props.cx); const cy = Number(props.cy)
+    const midAngle = Number(props.midAngle)
+    const innerRadius = Number(props.innerRadius); const outerRadius = Number(props.outerRadius)
+    const percent = Number(props.percent)
+    if (!Number.isFinite(percent) || percent < 0.06) return null
+    const r = (innerRadius + outerRadius) / 2
+    const x = cx + r * Math.cos((-midAngle * Math.PI) / 180)
+    const y = cy + r * Math.sin((-midAngle * Math.PI) / 180)
+    return (
+      <text x={x} y={y} fill="#fff" textAnchor="middle" dominantBaseline="middle" fontSize={9} fontWeight={600}>
+        {Math.round(percent * 100)}%
+      </text>
+    )
+  }
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>{title}</div>
       <ResponsiveContainer width="100%" height={140}>
         <PieChart>
-          <Pie data={data} dataKey="pct" nameKey="subject" cx="50%" cy="50%" innerRadius={30} outerRadius={55} paddingAngle={2} strokeWidth={0}>
+          <Pie
+            data={data} dataKey="pct" nameKey="subject" cx="50%" cy="50%"
+            innerRadius={30} outerRadius={55} paddingAngle={2} strokeWidth={0}
+            label={renderInsideLabel} labelLine={false} isAnimationActive={false}
+          >
             {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
           </Pie>
           <Tooltip
@@ -77,7 +99,7 @@ type ValueScale = 'linear' | 'log'
 const VALUE_SCALE_KEY = 'invest-analysis-value-scale'
 
 export function AnalysisBlock({
-  stockTrades, stockQuotes, stockThemes, stockHistory, fxHistory, usdKrwRate, loading,
+  stockTrades, stockQuotes, stockThemes, stockHistory, fxHistory, usdKrwRate, loading, chartColumns = 1,
 }: AnalysisBlockProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('total')
   const [valueScale, setValueScale] = useState<ValueScale>(() => {
@@ -391,15 +413,38 @@ export function AnalysisBlock({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 14px 14px' }}>
+        <div style={{
+          display: chartColumns === 2 ? 'grid' : 'flex',
+          gridTemplateColumns: chartColumns === 2 ? 'repeat(2, minmax(0, 1fr))' : undefined,
+          flexDirection: chartColumns === 2 ? undefined : 'column',
+          gap: 12,
+        }}>
         {charts.map(chart => {
           const lines = getLines(chart.suffix)
           const isValue = chart.suffix === 'value'
           const useLog = isValue && valueScale === 'log'
+          const last = trendData.length > 0 ? trendData[trendData.length - 1] : null
           return (
             <div key={chart.suffix}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted }}>
-                  {chart.label}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 8, flexWrap: 'wrap', minHeight: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted }}>
+                    {chart.label}
+                  </div>
+                  {last && lines.map(line => {
+                    const v = Number(last[line.key])
+                    if (!Number.isFinite(v)) return null
+                    const sign = (chart.suffix === 'pnl' || chart.suffix === 'pct') && v > 0 ? '+' : ''
+                    return (
+                      <span key={line.key} style={{
+                        fontSize: 11, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums',
+                        color: line.color,
+                      }}>
+                        {lines.length > 1 && <span style={{ fontSize: 9, color: t.neutrals.muted, marginRight: 3, fontWeight: t.weight.regular }}>{line.name}</span>}
+                        {sign}{chart.fmt(v)}{chart.unit}
+                      </span>
+                    )
+                  })}
                 </div>
                 {isValue && (
                   <div style={{ display: 'inline-flex', background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
@@ -456,6 +501,7 @@ export function AnalysisBlock({
             </div>
           )
         })}
+        </div>
 
         {/* Donut charts: allocation breakdown */}
         {radarData.byTheme.length > 0 && (

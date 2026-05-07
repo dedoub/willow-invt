@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { Fragment, useState, useMemo } from 'react'
 import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -103,6 +103,8 @@ interface HoldingsBlockProps {
   stockThemes: Record<string, TickerTheme[]>
   usdKrwRate: number
   fxHistory: Record<string, number>
+  /** 종목 카드 컬럼 수 (인쇄용 2단 배치 등). 기본 1. */
+  cardColumns?: 1 | 2
 }
 
 interface Holding {
@@ -115,7 +117,7 @@ interface Holding {
 
 type MarketFilter = 'all' | 'KR' | 'US'
 
-export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory }: HoldingsBlockProps) {
+export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1 }: HoldingsBlockProps) {
   const [currencyMode, setCurrencyMode] = useState<'original' | 'KRW'>('original')
   const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
   const isKrw = currencyMode === 'KRW'
@@ -241,6 +243,59 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
     return { krH, usH, krInv, krVal, usInv, usVal, totalInv, totalVal, totalPnl, totalPct, count: filteredHoldings.length }
   }, [filteredHoldings, usdKrwRate])
 
+  // Theme(parent) + sub-theme 통계 — 모든 KRW 환산
+  const themeStats = useMemo(() => {
+    const totalValKrw = filteredHoldings.reduce((s, h) =>
+      s + (h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue), 0)
+
+    type Stat = { count: number; valKrw: number; invKrw: number }
+    const parentMap = new Map<string, Stat>()
+    const subMap = new Map<string, Map<string, Stat>>()  // parent → sub → stat
+
+    for (const h of filteredHoldings) {
+      const parent = h.parentTheme || '미분류'
+      const valKrw = h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue
+      const invKrw = h.krwInvested
+
+      const ps = parentMap.get(parent) || { count: 0, valKrw: 0, invKrw: 0 }
+      ps.count++; ps.valKrw += valKrw; ps.invKrw += invKrw
+      parentMap.set(parent, ps)
+
+      const subWhitelist = SUB_GROUP_ORDER[parent]
+      if (subWhitelist) {
+        const raw = h.themes[0] || '기타'
+        const sub = subWhitelist.includes(raw) ? raw : '기타'
+        if (!subMap.has(parent)) subMap.set(parent, new Map())
+        const inner = subMap.get(parent)!
+        const ss = inner.get(sub) || { count: 0, valKrw: 0, invKrw: 0 }
+        ss.count++; ss.valKrw += valKrw; ss.invKrw += invKrw
+        inner.set(sub, ss)
+      }
+    }
+
+    const parents = THEME_ORDER.filter(p => parentMap.has(p)).map(p => ({
+      parent: p, ...parentMap.get(p)!,
+      pctOfTotal: totalValKrw > 0 ? (parentMap.get(p)!.valKrw / totalValKrw) * 100 : 0,
+    }))
+    const subs = new Map<string, { sub: string; count: number; valKrw: number; invKrw: number; pctOfTotal: number }[]>()
+    for (const [parent, inner] of subMap) {
+      const order = SUB_GROUP_ORDER[parent] || []
+      const list: { sub: string; count: number; valKrw: number; invKrw: number; pctOfTotal: number }[] = []
+      for (const k of order) {
+        if (inner.has(k)) {
+          const s = inner.get(k)!
+          list.push({ sub: k, ...s, pctOfTotal: totalValKrw > 0 ? (s.valKrw / totalValKrw) * 100 : 0 })
+        }
+      }
+      if (inner.has('기타')) {
+        const s = inner.get('기타')!
+        list.push({ sub: '기타', ...s, pctOfTotal: totalValKrw > 0 ? (s.valKrw / totalValKrw) * 100 : 0 })
+      }
+      subs.set(parent, list)
+    }
+    return { parents, subs, totalValKrw }
+  }, [filteredHoldings, usdKrwRate])
+
   const hasQuotes = Object.keys(stockQuotes).length > 0
 
   if (holdings.length === 0) {
@@ -288,7 +343,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       {hasQuotes && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: '0 14px 12px' }}>
           {/* KR */}
-          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px' }}>
+          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
             <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>국내 {summary.krH.length}종목</div>
             <div style={{ fontSize: 13, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(summary.krVal, 'KRW')}</div>
             <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: pnlColor(summary.krVal - summary.krInv), fontVariantNumeric: 'tabular-nums' }}>
@@ -305,7 +360,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             const displayPnl = displayVal - displayInv
             const displayCur: 'KRW' | 'USD' = isKrw ? 'KRW' : 'USD'
             return (
-              <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px' }}>
+              <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
                 <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>해외 {summary.usH.length}종목</div>
                 <div style={{ fontSize: 13, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(displayVal, displayCur)}</div>
                 <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: pnlColor(displayPnl), fontVariantNumeric: 'tabular-nums' }}>
@@ -316,12 +371,83 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             )
           })()}
           {/* Total */}
-          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px' }}>
+          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
             <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>전체 {summary.count}종목 · {Math.round(usdKrwRate).toLocaleString()}원/$</div>
             <div style={{ fontSize: 13, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(summary.totalVal, 'KRW')}</div>
             <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: pnlColor(summary.totalPnl), fontVariantNumeric: 'tabular-nums' }}>
               {summary.totalPnl > 0 ? '+' : ''}{fmtAmount(summary.totalPnl, 'KRW')} ({summary.totalPnl > 0 ? '+' : ''}{summary.totalPct.toFixed(1)}%)
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Theme/sub-theme summary table */}
+      {hasQuotes && themeStats.parents.length > 0 && (
+        <div style={{ padding: '0 14px 12px' }}>
+          <div style={{
+            background: t.neutrals.inner, borderRadius: t.radius.md, overflow: 'hidden',
+            border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
+          }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
+              <thead>
+                <tr style={{ background: t.neutrals.card }}>
+                  <th style={{ textAlign: 'left',  padding: '6px 10px', fontSize: 10, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>분류</th>
+                  <th style={{ textAlign: 'right', padding: '6px 6px',  fontSize: 10, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>종목</th>
+                  <th style={{ textAlign: 'right', padding: '6px 6px',  fontSize: 10, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>평가액</th>
+                  <th style={{ textAlign: 'right', padding: '6px 6px',  fontSize: 10, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>비중</th>
+                  <th style={{ textAlign: 'right', padding: '6px 6px',  fontSize: 10, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>손익</th>
+                  <th style={{ textAlign: 'right', padding: '6px 10px', fontSize: 10, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>수익률</th>
+                </tr>
+              </thead>
+              <tbody>
+                {themeStats.parents.map((p, pi) => {
+                  const tc = THEME_COLORS[p.parent] || THEME_COLORS['미분류']
+                  const subs = themeStats.subs.get(p.parent) || []
+                  const pnl = p.valKrw - p.invKrw
+                  const pct = p.invKrw > 0 ? (pnl / p.invKrw) * 100 : 0
+                  return (
+                    <Fragment key={p.parent}>
+                      <tr style={{ borderTop: pi > 0 ? `1px solid ${t.neutrals.line}` : undefined, fontWeight: t.weight.medium }}>
+                        <td style={{ padding: '6px 10px' }}>
+                          <span style={{ fontSize: 10, fontWeight: t.weight.semibold, padding: '1px 6px', borderRadius: t.radius.sm, background: tc.bg, color: tc.fg }}>{p.parent}</span>
+                        </td>
+                        <td style={{ textAlign: 'right', padding: '6px 6px', color: t.neutrals.muted }}>{p.count}</td>
+                        <td style={{ textAlign: 'right', padding: '6px 6px' }}>{fmtAmount(p.valKrw, 'KRW')}</td>
+                        <td style={{ textAlign: 'right', padding: '6px 6px', color: t.neutrals.muted }}>{p.pctOfTotal.toFixed(1)}%</td>
+                        <td style={{ textAlign: 'right', padding: '6px 6px', color: pnlColor(pnl) }}>{pnl > 0 ? '+' : ''}{fmtAmount(pnl, 'KRW')}</td>
+                        <td style={{ textAlign: 'right', padding: '6px 10px', color: pnlColor(pnl) }}>{pnl > 0 ? '+' : ''}{pct.toFixed(1)}%</td>
+                      </tr>
+                      {subs.map(s => {
+                        const sc = SUB_GROUP_COLORS[s.sub] || SUB_GROUP_COLORS['기타']
+                        const subPnl = s.valKrw - s.invKrw
+                        const subPct = s.invKrw > 0 ? (subPnl / s.invKrw) * 100 : 0
+                        return (
+                          <tr key={s.sub} style={{ fontSize: 10 }}>
+                            <td style={{ padding: '4px 10px 4px 22px' }}>
+                              <span style={{ fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm, background: sc.bg, color: sc.fg }}>{s.sub}</span>
+                            </td>
+                            <td style={{ textAlign: 'right', padding: '4px 6px', color: t.neutrals.muted }}>{s.count}</td>
+                            <td style={{ textAlign: 'right', padding: '4px 6px', color: t.neutrals.text }}>{fmtAmount(s.valKrw, 'KRW')}</td>
+                            <td style={{ textAlign: 'right', padding: '4px 6px', color: t.neutrals.muted }}>{s.pctOfTotal.toFixed(1)}%</td>
+                            <td style={{ textAlign: 'right', padding: '4px 6px', color: pnlColor(subPnl) }}>{subPnl > 0 ? '+' : ''}{fmtAmount(subPnl, 'KRW')}</td>
+                            <td style={{ textAlign: 'right', padding: '4px 10px', color: pnlColor(subPnl) }}>{subPnl > 0 ? '+' : ''}{subPct.toFixed(1)}%</td>
+                          </tr>
+                        )
+                      })}
+                    </Fragment>
+                  )
+                })}
+                {/* Total row */}
+                <tr style={{ borderTop: `1px solid ${t.neutrals.line}`, background: t.neutrals.card, fontWeight: t.weight.semibold }}>
+                  <td style={{ padding: '6px 10px', fontSize: 10, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3 }}>합계</td>
+                  <td style={{ textAlign: 'right', padding: '6px 6px', color: t.neutrals.muted }}>{summary.count}</td>
+                  <td style={{ textAlign: 'right', padding: '6px 6px' }}>{fmtAmount(summary.totalVal, 'KRW')}</td>
+                  <td style={{ textAlign: 'right', padding: '6px 6px', color: t.neutrals.muted }}>100.0%</td>
+                  <td style={{ textAlign: 'right', padding: '6px 6px', color: pnlColor(summary.totalPnl) }}>{summary.totalPnl > 0 ? '+' : ''}{fmtAmount(summary.totalPnl, 'KRW')}</td>
+                  <td style={{ textAlign: 'right', padding: '6px 10px', color: pnlColor(summary.totalPnl) }}>{summary.totalPnl > 0 ? '+' : ''}{summary.totalPct.toFixed(1)}%</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -364,7 +490,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   const subPnl = subValKrw - subInvKrw
                   const subPct = subInvKrw > 0 ? (subPnl / subInvKrw) * 100 : 0
                   return (
-                    <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: 4 }} data-sub-group="1">
                       {sub && sc && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                           <span style={{
@@ -384,6 +510,12 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                           )}
                         </div>
                       )}
+                      <div style={{
+                        display: cardColumns === 2 ? 'grid' : 'flex',
+                        gridTemplateColumns: cardColumns === 2 ? 'repeat(2, minmax(0, 1fr))' : undefined,
+                        flexDirection: cardColumns === 2 ? undefined : 'column',
+                        gap: 4,
+                      }}>
                 {subItems.map(h => {
                   // Pyramiding
                   let pyramiding: { tranche: number; status: string; nextPct: number | null; nextPrice: number | null } | null = null
@@ -411,7 +543,10 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   const dPnlPct = dInvested > 0 ? (dPnl / dInvested) * 100 : 0
 
                   return (
-                    <div key={h.ticker} style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px' }}>
+                    <div key={h.ticker} style={{
+                      background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px',
+                      border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
+                    }}>
                       {/* Row 1: name + ticker + themes + daily % */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
@@ -505,6 +640,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                     </div>
                   )
                 })}
+                      </div>
                     </div>
                   )
                 })}

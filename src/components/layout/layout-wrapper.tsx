@@ -37,6 +37,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const isPublicPath = PUBLIC_PATHS.includes(pathname)
   const isStandalonePath = STANDALONE_PATHS.includes(pathname)
   const isLinearRoute = LINEAR_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
+  const isPrintRoute = pathname.startsWith('/print/')
 
   // 경로별 타이틀 매핑 (번역 적용)
   const getPageTitle = (path: string): string | undefined => {
@@ -75,6 +76,18 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
 
   // Linear routes: render with auth check but without default layout
   if (isLinearRoute) {
+    if (isLoading || !user) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+        </div>
+      )
+    }
+    return <>{children}</>
+  }
+
+  // Print routes: auth-required but no chrome (sidebar/header/chat)
+  if (isPrintRoute) {
     if (isLoading || !user) {
       return (
         <div className="flex h-screen items-center justify-center">
