@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { SignalBar } from './_components/signal-bar'
 import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, StockQuote } from './_components/portfolio-kanban'
 import { HoldingsBlock, StockTradeFull, StockQuoteFull, TickerTheme } from './_components/holdings-block'
@@ -294,26 +295,30 @@ export default function InvestPage() {
             <button
               onClick={() => window.open('/print/invest/holdings', '_blank')}
               style={{
-                padding: '4px 10px', fontSize: 11, fontWeight: t.weight.medium,
-                background: t.neutrals.inner, color: t.neutrals.text,
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', fontSize: 11, fontWeight: t.weight.regular,
+                background: t.neutrals.inner, color: t.neutrals.muted,
                 border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
                 fontFamily: t.font.sans,
               }}
               title="보유현황 + 분석 인쇄/PDF용 페이지 열기"
             >
-              📄 보유현황 인쇄
+              <LIcon name="download" size={11} stroke={1.6} />
+              보유현황
             </button>
             <button
               onClick={() => window.open('/print/invest/kanban', '_blank')}
               style={{
-                padding: '4px 10px', fontSize: 11, fontWeight: t.weight.medium,
-                background: t.neutrals.inner, color: t.neutrals.text,
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', fontSize: 11, fontWeight: t.weight.regular,
+                background: t.neutrals.inner, color: t.neutrals.muted,
                 border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
                 fontFamily: t.font.sans,
               }}
               title="종목관리 칸반 인쇄/PDF용 페이지 열기"
             >
-              📄 종목관리 인쇄
+              <LIcon name="download" size={11} stroke={1.6} />
+              종목관리
             </button>
           </div>
         </div>
