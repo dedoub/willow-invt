@@ -589,9 +589,11 @@ export async function fetchETFDisplayData(bank?: string): Promise<ETFDisplayData
       const endDate = new Date(listingDate)
       endDate.setMonth(endDate.getMonth() + 36) // 상장일 + 36개월
 
-      // 데이터 날짜 기준 직전 달의 첫째 날 (차트와 동일한 기준)
-      const dataDate = aum?.date ? new Date(aum.date) : new Date()
-      const startDate = new Date(dataDate.getFullYear(), dataDate.getMonth() - 1, 1)
+      // 정산 모델: M월 운용분 → (M+2)월 1일 정산
+      // 즉 오늘 기준 미정산 운용분 시작 = today의 직전 달 1일
+      // (AUM publish 시차와 무관하게 today 기준으로 settlement 윈도우 고정)
+      const today = new Date()
+      const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
 
       // 36개월 완전히 경과 - 잔여수수료 0
       if (endDate <= startDate) {
