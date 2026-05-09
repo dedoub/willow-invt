@@ -279,7 +279,7 @@ export default function InvestPage() {
         <h1 style={{
           margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3,
           fontFamily: t.font.sans, color: t.neutrals.text,
-        }}>투자관리</h1>
+        }}>주식투자</h1>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           margin: '4px 0 16px', gap: 12, flexWrap: 'wrap',
@@ -288,7 +288,7 @@ export default function InvestPage() {
             margin: 0, fontSize: 12, color: t.neutrals.muted,
             fontFamily: t.font.sans,
           }}>
-            포트폴리오 · 시그널 · 매매기록
+            포트폴리오 규모 100억 원 목표
           </p>
           <div style={{ display: 'flex', gap: 6 }}>
             <button

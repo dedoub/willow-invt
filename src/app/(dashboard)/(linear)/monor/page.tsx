@@ -144,7 +144,7 @@ export default function MonorPage() {
         <p style={{
           margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
           fontFamily: t.font.sans,
-        }}>류하 학습에 필요한 교육용 모바일/웹앱을 직접 개발</p>
+        }}>류하 교육용 앱 직접 개발 후 상용화</p>
       </div>
 
       <div style={{

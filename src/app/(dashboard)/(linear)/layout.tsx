@@ -23,7 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 const PAGE_TITLES: Record<string, string> = {
   '/mgmt': '사업관리',
-  '/invest': '투자관리',
+  '/invest': '주식투자',
   '/realestate': '부동산리서치',
   '/wiki': '업무위키',
   '/ryuha': '류하일정',

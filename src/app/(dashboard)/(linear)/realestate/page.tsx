@@ -15,7 +15,7 @@ export default function RealEstatePage() {
           margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
           fontFamily: t.font.sans,
         }}>
-          호가 · 실거래 · 단지별 시세 추이
+          강남 아파트 가격 하락 추이 모니터링 - 상승 전환 시점에 매입
         </p>
       </div>
       <RealEstateBlock />
