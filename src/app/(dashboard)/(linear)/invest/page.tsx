@@ -9,7 +9,6 @@ import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, 
 import { HoldingsBlock, StockTradeFull, StockQuoteFull, TickerTheme } from './_components/holdings-block'
 import { AnalysisBlock } from './_components/analysis-block'
 import { TradeLog } from './_components/trade-log'
-import { RealEstateBlock } from './_components/real-estate-block'
 import { InvestSkeleton, InvestHoldingsSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 
 const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
@@ -289,7 +288,7 @@ export default function InvestPage() {
             margin: 0, fontSize: 12, color: t.neutrals.muted,
             fontFamily: t.font.sans,
           }}>
-            포트폴리오 · 시그널 · 매매기록 · 부동산
+            포트폴리오 · 시그널 · 매매기록
           </p>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
@@ -373,8 +372,6 @@ export default function InvestPage() {
           </div>
         </div>
         )}
-
-        <RealEstateBlock />
       </div>
       )}
     </>

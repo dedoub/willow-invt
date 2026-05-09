@@ -10,7 +10,7 @@ import { ChatPanel } from '@/components/chat/chat-panel'
 
 const PUBLIC_PATHS = ['/login', '/signup']
 const STANDALONE_PATHS = ['/mcp/authorize'] // 인증 여부와 무관하게 독립 렌더링
-const LINEAR_ROUTES = ['/mgmt', '/invest', '/wiki', '/ryuha', '/akros', '/etc', '/tensw', '/monor']
+const LINEAR_ROUTES = ['/mgmt', '/invest', '/realestate', '/wiki', '/ryuha', '/akros', '/etc', '/tensw', '/monor']
 
 interface LayoutWrapperProps {
   children: React.ReactNode

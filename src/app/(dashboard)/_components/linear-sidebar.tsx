@@ -7,10 +7,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
-  { key: 'mgmt',   href: '/mgmt',   label: '사업관리',  icon: 'briefcase' },
-  { key: 'invest', href: '/invest',  label: '투자관리',  icon: 'trending' },
-  { key: 'wiki',   href: '/wiki',    label: '업무위키',  icon: 'book' },
-  { key: 'ryuha',  href: '/ryuha',   label: '류하일정',  icon: 'calendar' },
+  { key: 'mgmt',       href: '/mgmt',       label: '사업관리',    icon: 'briefcase' },
+  { key: 'wiki',       href: '/wiki',       label: '업무위키',    icon: 'book' },
+  { key: 'invest',     href: '/invest',     label: '투자관리',    icon: 'trending' },
+  { key: 'realestate', href: '/realestate', label: '부동산리서치', icon: 'building' },
+  { key: 'ryuha',      href: '/ryuha',      label: '류하일정',    icon: 'calendar' },
 ]
 
 const CLIENTS = [
