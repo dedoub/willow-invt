@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -35,6 +35,17 @@ function formatDate(dateString: string): string {
   })
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}GB`
+}
+
+const PLAN_ORDER: Record<string, number> = {
+  PRO: 4, STANDARD: 3, BASIC: 2, FREE: 1,
+}
+
 const PLAN_TONES: Record<string, { bg: string; fg: string }> = {
   FREE:     { bg: t.neutrals.inner, fg: t.neutrals.muted },
   BASIC:    tonePalettes.info,
@@ -48,6 +59,14 @@ function getTone(map: Record<string, { bg: string; fg: string }>, key: string) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+type UserSortKey = 'created' | 'plan' | 'storage'
+
+const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
+  { key: 'storage', label: '용량' },
+  { key: 'plan',    label: '플랜' },
+  { key: 'created', label: '가입일' },
+]
+
 export function ReviewnotesBlock({
   loading, stats, userStats,
   onRefresh, refreshing, error,
@@ -55,13 +74,40 @@ export function ReviewnotesBlock({
   const mobile = useIsMobile()
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
+  const [userSort, setUserSort] = useState<UserSortKey>('created')
 
-  const totalUsers = userStats?.users.length ?? 0
+  const sortedUsers = useMemo(() => {
+    if (!userStats) return []
+    const arr = [...userStats.users]
+    switch (userSort) {
+      case 'plan':
+        arr.sort((a, b) =>
+          (PLAN_ORDER[b.subscriptionPlan] ?? 0) - (PLAN_ORDER[a.subscriptionPlan] ?? 0)
+          || b.createdAt.localeCompare(a.createdAt)
+        )
+        break
+      case 'storage':
+        arr.sort((a, b) => (b.storageUsed || 0) - (a.storageUsed || 0))
+        break
+      case 'created':
+      default:
+        arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    }
+    return arr
+  }, [userStats, userSort])
+
+  const totalUsers = sortedUsers.length
   const totalUserPages = Math.max(1, Math.ceil(totalUsers / userPerPage))
   const safeUserPage = Math.min(userPage, totalUserPages)
-  const paginatedUsers = userStats
-    ? userStats.users.slice((safeUserPage - 1) * userPerPage, safeUserPage * userPerPage)
-    : []
+  const paginatedUsers = sortedUsers.slice(
+    (safeUserPage - 1) * userPerPage,
+    safeUserPage * userPerPage
+  )
+
+  const handleSortChange = (key: UserSortKey) => {
+    setUserSort(key)
+    setUserPage(1)
+  }
 
   return (
     <LCard pad={0}>
@@ -161,11 +207,36 @@ export function ReviewnotesBlock({
           {/* Recent users list */}
           <div style={{ padding: `0 ${t.density.cardPad}px 12px` }}>
             <div style={{
-              fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
-              fontFamily: t.font.mono, letterSpacing: 0.3,
-              textTransform: 'uppercase' as const, marginBottom: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 6, marginBottom: 8, flexWrap: 'wrap',
             }}>
-              사용자
+              <div style={{
+                fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+                fontFamily: t.font.mono, letterSpacing: 0.3,
+                textTransform: 'uppercase' as const,
+              }}>
+                사용자
+              </div>
+              <div style={{ display: 'flex', gap: 3 }}>
+                {USER_SORT_OPTIONS.map(opt => {
+                  const active = userSort === opt.key
+                  return (
+                    <button
+                      key={opt.key}
+                      onClick={() => handleSortChange(opt.key)}
+                      style={{
+                        padding: '3px 8px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
+                        fontSize: 10, fontWeight: 500, fontFamily: t.font.sans,
+                        background: active ? t.brand[500] : t.neutrals.inner,
+                        color: active ? '#fff' : t.neutrals.muted,
+                        transition: 'background 120ms ease, color 120ms ease',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {paginatedUsers.map(user => {
@@ -196,6 +267,13 @@ export function ReviewnotesBlock({
                         {user.email}
                       </div>
                     </div>
+
+                    <span style={{
+                      fontSize: 9.5, fontFamily: t.font.mono, color: t.neutrals.muted,
+                      flexShrink: 0, fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {formatBytes(user.storageUsed || 0)}
+                    </span>
 
                     <span style={{
                       fontSize: 9, padding: '2px 6px', borderRadius: t.radius.sm,
