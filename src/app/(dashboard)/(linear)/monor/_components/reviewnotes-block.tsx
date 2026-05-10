@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -52,6 +53,15 @@ export function ReviewnotesBlock({
   onRefresh, refreshing, error,
 }: ReviewnotesBlockProps) {
   const mobile = useIsMobile()
+  const [userPage, setUserPage] = useState(1)
+  const [userPerPage, setUserPerPage] = useState(10)
+
+  const totalUsers = userStats?.users.length ?? 0
+  const totalUserPages = Math.max(1, Math.ceil(totalUsers / userPerPage))
+  const safeUserPage = Math.min(userPage, totalUserPages)
+  const paginatedUsers = userStats
+    ? userStats.users.slice((safeUserPage - 1) * userPerPage, safeUserPage * userPerPage)
+    : []
 
   return (
     <LCard pad={0}>
@@ -136,7 +146,7 @@ export function ReviewnotesBlock({
               fontFamily: t.font.mono, letterSpacing: 0.3,
               textTransform: 'uppercase' as const, marginBottom: 10,
             }}>
-              앱 유저 통계
+              앱 사용자 통계
             </div>
 
             {/* User KPIs */}
@@ -144,7 +154,7 @@ export function ReviewnotesBlock({
               <LStat label="총 가입자" value={String(userStats.totalUsers)} sub={`이번 달 +${userStats.newUsersThisMonth} · 이번 주 +${userStats.newUsersThisWeek}`} />
               <PlanStat userStats={userStats} />
               <LStat label="관리자" value={String(userStats.adminUsers)} sub="Admin 권한" />
-              <LStat label="스토리지" value={`${(userStats.totalStorageUsed / (1024 * 1024)).toFixed(1)} MB`} sub="유저 업로드" />
+              <LStat label="스토리지" value={`${(userStats.totalStorageUsed / (1024 * 1024)).toFixed(1)} MB`} sub="사용자 업로드" />
             </div>
           </div>
 
@@ -155,10 +165,10 @@ export function ReviewnotesBlock({
               fontFamily: t.font.mono, letterSpacing: 0.3,
               textTransform: 'uppercase' as const, marginBottom: 8,
             }}>
-              최근 가입자
+              사용자
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 280, overflowY: 'auto' }}>
-              {userStats.users.slice(0, 10).map(user => {
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {paginatedUsers.map(user => {
                 const planTone = getTone(PLAN_TONES, user.subscriptionPlan)
                 return (
                   <div key={user.id} style={{
@@ -210,6 +220,54 @@ export function ReviewnotesBlock({
                 )
               })}
             </div>
+
+            {/* 페이지네이션 */}
+            {totalUsers > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: 6, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${t.neutrals.line}`,
+                flexWrap: 'wrap',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{
+                    fontSize: 10, color: t.neutrals.muted,
+                    fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {totalUsers}명 중 {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, totalUsers)}
+                  </span>
+                  <select
+                    value={userPerPage}
+                    onChange={(e) => {
+                      setUserPerPage(Number(e.target.value))
+                      setUserPage(1)
+                    }}
+                    style={{
+                      fontSize: 10, fontFamily: t.font.sans,
+                      background: t.neutrals.inner, color: t.neutrals.muted,
+                      border: 'none', borderRadius: t.radius.sm,
+                      padding: '3px 6px', cursor: 'pointer',
+                    }}
+                  >
+                    <option value={10}>10개</option>
+                    <option value={25}>25개</option>
+                    <option value={50}>50개</option>
+                    <option value={100}>100개</option>
+                  </select>
+                </div>
+                {totalUserPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <PageNavButton onClick={() => setUserPage(Math.max(1, safeUserPage - 1))} disabled={safeUserPage === 1} icon="chevronLeft" />
+                    <span style={{
+                      fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.text,
+                      padding: '0 6px', fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {safeUserPage}/{totalUserPages}
+                    </span>
+                    <PageNavButton onClick={() => setUserPage(Math.min(totalUserPages, safeUserPage + 1))} disabled={safeUserPage === totalUserPages} icon="chevronRight" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -260,5 +318,30 @@ function SkeletonRow({ count }: { count: number }) {
         }} />
       ))}
     </div>
+  )
+}
+
+function PageNavButton({
+  onClick, disabled, icon,
+}: {
+  onClick: () => void
+  disabled: boolean
+  icon: 'chevronLeft' | 'chevronRight'
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: 22, height: 22, borderRadius: t.radius.sm, border: 'none',
+        background: disabled ? 'transparent' : t.neutrals.inner,
+        color: disabled ? t.neutrals.line : t.neutrals.muted,
+        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'background 120ms ease',
+      }}
+    >
+      <LIcon name={icon} size={12} stroke={2} />
+    </button>
   )
 }

@@ -15,6 +15,11 @@ import {
   XCircle,
   Clock,
   ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ChevronDown,
 } from 'lucide-react'
 import { useEffect, useState, useCallback } from 'react'
 import type {
@@ -111,6 +116,8 @@ export default function ReviewNotesPage() {
   const [customers, setCustomers] = useState<LemonSqueezyCustomer[]>([])
   const [userStats, setUserStats] = useState<ReviewNotesUserStats | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [userPage, setUserPage] = useState(1)
+  const [userPerPage, setUserPerPage] = useState(10)
 
   // 데이터 로드
   const loadData = useCallback(async (refresh = false) => {
@@ -538,61 +545,117 @@ export default function ReviewNotesPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0 space-y-2">
-                <div className="space-y-2 max-h-80 overflow-y-auto">
-                  {userStats.users.slice(0, 10).map((user) => (
-                    <div
-                      key={user.id}
-                      className="p-2 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        {user.image ? (
-                          <Image
-                            src={user.image}
-                            alt=""
-                            width={32}
-                            height={32}
-                            className="rounded-full"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center">
-                            <span className="text-xs font-medium">
-                              {user.name?.charAt(0) || user.email.charAt(0)}
-                            </span>
+                {(() => {
+                  const totalUsersCount = userStats.users.length
+                  const totalUserPages = Math.max(1, Math.ceil(totalUsersCount / userPerPage))
+                  const safePage = Math.min(userPage, totalUserPages)
+                  const paginatedUsers = userStats.users.slice(
+                    (safePage - 1) * userPerPage,
+                    safePage * userPerPage
+                  )
+                  return (
+                    <>
+                      <div className="space-y-2">
+                        {paginatedUsers.map((user) => (
+                          <div
+                            key={user.id}
+                            className="p-2 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-3">
+                              {user.image ? (
+                                <Image
+                                  src={user.image}
+                                  alt=""
+                                  width={32}
+                                  height={32}
+                                  className="rounded-full"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center">
+                                  <span className="text-xs font-medium">
+                                    {user.name?.charAt(0) || user.email.charAt(0)}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">
+                                  {user.name || 'Unknown'}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {user.email}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded text-xs ${
+                                user.subscriptionPlan === 'FREE'
+                                  ? 'bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300'
+                                  : user.subscriptionPlan === 'BASIC'
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                                  : user.subscriptionPlan === 'STANDARD'
+                                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400'
+                                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
+                              }`}>
+                                {user.subscriptionPlan}
+                              </span>
+                              {user.role === 'ADMIN' && (
+                                <span className="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
+                                  Admin
+                                </span>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(user.createdAt)}
+                              </span>
+                            </div>
                           </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {user.name || 'Unknown'}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {user.email}
-                          </p>
+                        ))}
+                      </div>
+
+                      {totalUsersCount > 0 && (
+                        <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground whitespace-nowrap">
+                              {totalUsersCount}명 중 {(safePage - 1) * userPerPage + 1}-{Math.min(safePage * userPerPage, totalUsersCount)}
+                            </p>
+                            <div className="relative">
+                              <select
+                                value={userPerPage}
+                                onChange={(e) => {
+                                  setUserPerPage(Number(e.target.value))
+                                  setUserPage(1)
+                                }}
+                                className="text-xs bg-white dark:bg-slate-800 rounded pl-2 pr-6 py-1 appearance-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                              >
+                                <option value={10}>10개</option>
+                                <option value={25}>25개</option>
+                                <option value={50}>50개</option>
+                                <option value={100}>100개</option>
+                              </select>
+                              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none text-muted-foreground" />
+                            </div>
+                          </div>
+                          {totalUserPages > 1 && (
+                            <div className="flex items-center gap-0.5">
+                              <button onClick={() => setUserPage(1)} disabled={safePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <ChevronsLeft className="h-4 w-4" />
+                              </button>
+                              <button onClick={() => setUserPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <ChevronLeft className="h-4 w-4" />
+                              </button>
+                              <span className="px-2 py-1 text-xs font-medium">{safePage}/{totalUserPages}</span>
+                              <button onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))} disabled={safePage === totalUserPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <ChevronRight className="h-4 w-4" />
+                              </button>
+                              <button onClick={() => setUserPage(totalUserPages)} disabled={safePage === totalUserPages} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <ChevronsRight className="h-4 w-4" />
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-xs ${
-                          user.subscriptionPlan === 'FREE'
-                            ? 'bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300'
-                            : user.subscriptionPlan === 'BASIC'
-                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
-                            : user.subscriptionPlan === 'STANDARD'
-                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400'
-                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
-                        }`}>
-                          {user.subscriptionPlan}
-                        </span>
-                        {user.role === 'ADMIN' && (
-                          <span className="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
-                            Admin
-                          </span>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(user.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      )}
+                    </>
+                  )
+                })()}
               </CardContent>
             </Card>
           </>

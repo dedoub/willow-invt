@@ -130,6 +130,8 @@ export function VoicecardsBlock({
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
   const [userSort, setUserSort] = useState<UserSortKey>('created')
+  const [userPage, setUserPage] = useState(1)
+  const [userPerPage, setUserPerPage] = useState(10)
 
   const sortedUsers = useMemo(() => {
     if (!userStats) return []
@@ -157,6 +159,19 @@ export function VoicecardsBlock({
     }
     return arr
   }, [userStats, userSort])
+
+  const totalUserPages = Math.max(1, Math.ceil(sortedUsers.length / userPerPage))
+  const safeUserPage = Math.min(userPage, totalUserPages)
+  const paginatedUsers = sortedUsers.slice(
+    (safeUserPage - 1) * userPerPage,
+    safeUserPage * userPerPage
+  )
+
+  // 정렬 변경 시 1페이지로 리셋
+  const handleSortChange = (key: UserSortKey) => {
+    setUserSort(key)
+    setUserPage(1)
+  }
 
   return (
     <LCard pad={0}>
@@ -222,7 +237,7 @@ export function VoicecardsBlock({
         )}
       </div>
 
-      {/* 앱 유저 통계 */}
+      {/* 앱 사용자 통계 */}
       {!loading && userStats && (
         <>
           <div style={{ padding: `12px ${t.density.cardPad}px 8px`, borderTop: `1px solid ${t.neutrals.line}` }}>
@@ -235,14 +250,30 @@ export function VoicecardsBlock({
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
-              <LStat label="보유 시트" value={formatNumber(userStats.totalSheets)} />
-              <LStat label="학습 카드" value={formatNumber(userStats.totalCards)} />
-              <LStat label="학습 시도" value={formatNumber(userStats.totalAttempts)} />
-              <LStat label="잔여 크레딧" value={formatNumber(userStats.totalCredits)} />
+              <LStat
+                label="보유 시트"
+                value={formatNumber(userStats.totalSheets)}
+                sub={userStats.totalUsers > 0 ? `사용자당 ${(userStats.totalSheets / userStats.totalUsers).toFixed(1)}개` : undefined}
+              />
+              <LStat
+                label="학습 카드"
+                value={formatNumber(userStats.totalCards)}
+                sub={userStats.totalSheets > 0 ? `시트당 ${(userStats.totalCards / userStats.totalSheets).toFixed(1)}개` : undefined}
+              />
+              <LStat
+                label="학습 시도"
+                value={formatNumber(userStats.totalAttempts)}
+                sub={userStats.totalCards > 0 ? `카드당 ${(userStats.totalAttempts / userStats.totalCards).toFixed(1)}회` : undefined}
+              />
+              <LStat
+                label="잔여 크레딧"
+                value={formatNumber(userStats.totalCredits)}
+                sub={userStats.totalUsers > 0 ? `사용자당 ${formatNumber(Math.round(userStats.totalCredits / userStats.totalUsers))}` : undefined}
+              />
             </div>
           </div>
 
-          {/* 유저 목록 */}
+          {/* 사용자 목록 */}
           <div style={{ padding: `0 ${t.density.cardPad}px 12px` }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -253,7 +284,7 @@ export function VoicecardsBlock({
                 fontFamily: t.font.mono, letterSpacing: 0.3,
                 textTransform: 'uppercase' as const,
               }}>
-                유저
+                사용자
               </div>
               <div style={{ display: 'flex', gap: 3 }}>
                 {USER_SORT_OPTIONS.map(opt => {
@@ -261,7 +292,7 @@ export function VoicecardsBlock({
                   return (
                     <button
                       key={opt.key}
-                      onClick={() => setUserSort(opt.key)}
+                      onClick={() => handleSortChange(opt.key)}
                       style={{
                         padding: '3px 8px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
                         fontSize: 10, fontWeight: 500, fontFamily: t.font.sans,
@@ -277,7 +308,7 @@ export function VoicecardsBlock({
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {sortedUsers.map((user, i) => (
+              {paginatedUsers.map((user, i) => (
                 <div key={i} style={{
                   padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
                   display: 'flex', alignItems: 'center', gap: 8,
@@ -309,6 +340,54 @@ export function VoicecardsBlock({
                 </div>
               ))}
             </div>
+
+            {/* 페이지네이션 */}
+            {sortedUsers.length > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: 6, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${t.neutrals.line}`,
+                flexWrap: 'wrap',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{
+                    fontSize: 10, color: t.neutrals.muted,
+                    fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {sortedUsers.length}명 중 {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, sortedUsers.length)}
+                  </span>
+                  <select
+                    value={userPerPage}
+                    onChange={(e) => {
+                      setUserPerPage(Number(e.target.value))
+                      setUserPage(1)
+                    }}
+                    style={{
+                      fontSize: 10, fontFamily: t.font.sans,
+                      background: t.neutrals.inner, color: t.neutrals.muted,
+                      border: 'none', borderRadius: t.radius.sm,
+                      padding: '3px 6px', cursor: 'pointer',
+                    }}
+                  >
+                    <option value={10}>10개</option>
+                    <option value={25}>25개</option>
+                    <option value={50}>50개</option>
+                    <option value={100}>100개</option>
+                  </select>
+                </div>
+                {totalUserPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <PageNavButton onClick={() => setUserPage(Math.max(1, safeUserPage - 1))} disabled={safeUserPage === 1} icon="chevronLeft" />
+                    <span style={{
+                      fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.text,
+                      padding: '0 6px', fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {safeUserPage}/{totalUserPages}
+                    </span>
+                    <PageNavButton onClick={() => setUserPage(Math.min(totalUserPages, safeUserPage + 1))} disabled={safeUserPage === totalUserPages} icon="chevronRight" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -437,6 +516,31 @@ export function VoicecardsBlock({
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+function PageNavButton({
+  onClick, disabled, icon,
+}: {
+  onClick: () => void
+  disabled: boolean
+  icon: 'chevronLeft' | 'chevronRight'
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: 22, height: 22, borderRadius: t.radius.sm, border: 'none',
+        background: disabled ? 'transparent' : t.neutrals.inner,
+        color: disabled ? t.neutrals.line : t.neutrals.muted,
+        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'background 120ms ease',
+      }}
+    >
+      <LIcon name={icon} size={12} stroke={2} />
+    </button>
+  )
+}
 
 function SkeletonRow({ count }: { count: number }) {
   return (
