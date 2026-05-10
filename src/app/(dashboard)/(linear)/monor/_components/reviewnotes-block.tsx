@@ -146,7 +146,7 @@ export function ReviewnotesBlock({
               fontFamily: t.font.mono, letterSpacing: 0.3,
               textTransform: 'uppercase' as const, marginBottom: 10,
             }}>
-              앱 사용자 통계
+              가입 통계
             </div>
 
             {/* User KPIs */}

@@ -237,7 +237,7 @@ export function VoicecardsBlock({
         )}
       </div>
 
-      {/* 앱 사용자 통계 */}
+      {/* 가입 통계 */}
       {!loading && userStats && (
         <>
           <div style={{ padding: `12px ${t.density.cardPad}px 8px`, borderTop: `1px solid ${t.neutrals.line}` }}>
@@ -246,7 +246,7 @@ export function VoicecardsBlock({
               fontFamily: t.font.mono, letterSpacing: 0.3,
               textTransform: 'uppercase' as const, marginBottom: 10,
             }}>
-              학습 활동
+              학습 통계
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
