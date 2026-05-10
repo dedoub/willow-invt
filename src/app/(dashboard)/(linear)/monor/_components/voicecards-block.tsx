@@ -85,6 +85,34 @@ function formatDate(dateString: string): string {
   })
 }
 
+const LOCALE_LABELS: Record<string, { flag: string; name: string }> = {
+  ko: { flag: '🇰🇷', name: '한국어' },
+  en: { flag: '🇺🇸', name: '영어' },
+  zh: { flag: '🇨🇳', name: '중국어' },
+  ja: { flag: '🇯🇵', name: '일본어' },
+  de: { flag: '🇩🇪', name: '독일어' },
+  es: { flag: '🇪🇸', name: '스페인어' },
+  fr: { flag: '🇫🇷', name: '프랑스어' },
+  it: { flag: '🇮🇹', name: '이탈리아어' },
+  pt: { flag: '🇵🇹', name: '포르투갈어' },
+  ru: { flag: '🇷🇺', name: '러시아어' },
+  vi: { flag: '🇻🇳', name: '베트남어' },
+  th: { flag: '🇹🇭', name: '태국어' },
+  id: { flag: '🇮🇩', name: '인도네시아어' },
+  hi: { flag: '🇮🇳', name: '힌디어' },
+  ar: { flag: '🇸🇦', name: '아랍어' },
+  tr: { flag: '🇹🇷', name: '터키어' },
+  nl: { flag: '🇳🇱', name: '네덜란드어' },
+  pl: { flag: '🇵🇱', name: '폴란드어' },
+}
+
+function formatLocale(locale: string): string {
+  // 'en-US', 'zh-CN' 같은 BCP 47 코드도 지원
+  const base = locale.split(/[-_]/)[0].toLowerCase()
+  const entry = LOCALE_LABELS[base]
+  return entry ? `${entry.flag} ${entry.name}` : locale
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type UserSortKey = 'recent' | 'attempts' | 'sheets' | 'created'
@@ -392,7 +420,7 @@ export function VoicecardsBlock({
                     padding: '3px 6px', borderRadius: t.radius.sm, background: t.neutrals.inner,
                   }}>
                     <span style={{ fontSize: 10, color: t.neutrals.text }}>
-                      {l.locale === 'ko' ? '🇰🇷 한국어' : l.locale === 'en' ? '🇺🇸 영어' : l.locale === 'zh' ? '🇨🇳 중국어' : l.locale}
+                      {formatLocale(l.locale)}
                     </span>
                     <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
                       {l.devices}대
