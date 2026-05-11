@@ -334,18 +334,6 @@ export default function InvestPage() {
           usdKrw={usdKrw}
         />
 
-        <PortfolioKanban
-          watchlistData={watchlistData}
-          signalData={signalData}
-          stockTrades={stockTrades}
-          stockQuotes={stockQuotes}
-          stockResearch={stockResearch}
-          stockThemes={stockThemes}
-          usdKrw={usdKrw}
-          onTotalValueChange={handleTotalValueChange}
-          onDataChanged={loadData}
-        />
-
         {loadPhase < 2 ? <InvestHoldingsSkeleton /> : (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, overflow: 'hidden' }}>
           <HoldingsBlock
@@ -372,6 +360,18 @@ export default function InvestPage() {
           </div>
         </div>
         )}
+
+        <PortfolioKanban
+          watchlistData={watchlistData}
+          signalData={signalData}
+          stockTrades={stockTrades}
+          stockQuotes={stockQuotes}
+          stockResearch={stockResearch}
+          stockThemes={stockThemes}
+          usdKrw={usdKrw}
+          onTotalValueChange={handleTotalValueChange}
+          onDataChanged={loadData}
+        />
       </div>
       )}
     </>
