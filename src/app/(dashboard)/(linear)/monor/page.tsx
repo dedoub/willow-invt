@@ -26,6 +26,7 @@ interface UserStats {
   totalAttempts: number
   totalCredits: number
   users: Array<{
+    id: string
     nickname: string | null
     credits: number
     sheetCount: number

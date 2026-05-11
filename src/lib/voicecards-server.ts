@@ -691,6 +691,7 @@ export interface VoicecardsUserStats {
   totalAttempts: number
   totalCredits: number
   users: Array<{
+    id: string
     nickname: string | null
     credits: number
     sheetCount: number
@@ -764,6 +765,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const totalSheets = users.reduce((sum, u) => sum + (Array.isArray(u.sheet_ids) ? u.sheet_ids.length : 0), 0)
 
   const userList = users.map(u => ({
+    id: u.user_id,
     nickname: u.nickname,
     credits: u.credits || 0,
     sheetCount: u.sheet_ids?.length || 0,

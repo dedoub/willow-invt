@@ -18,6 +18,7 @@ interface UserStats {
   totalAttempts: number
   totalCredits: number
   users: Array<{
+    id: string
     nickname: string | null
     credits: number
     sheetCount: number
@@ -308,8 +309,12 @@ export function VoicecardsBlock({
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {paginatedUsers.map((user, i) => (
-                <div key={i} style={{
+              {paginatedUsers.map((user) => {
+                const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
+                const fallbackName = shortId ? `#${shortId}` : 'Unknown'
+                const initial = (user.nickname?.charAt(0) || shortId.charAt(0) || '?').toUpperCase()
+                return (
+                <div key={user.id} style={{
                   padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
                   display: 'flex', alignItems: 'center', gap: 8,
                 }}>
@@ -319,12 +324,16 @@ export function VoicecardsBlock({
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 10, fontWeight: 600,
                   }}>
-                    {(user.nickname?.charAt(0) || '?').toUpperCase()}
+                    {initial}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 500, color: t.neutrals.text }}>
-                      {user.nickname || 'Unknown'}
+                    <div style={{
+                      fontSize: 11, fontWeight: 500,
+                      color: user.nickname ? t.neutrals.text : t.neutrals.muted,
+                      fontFamily: user.nickname ? t.font.sans : t.font.mono,
+                    }}>
+                      {user.nickname || fallbackName}
                     </div>
                     <div style={{ fontSize: 9.5, color: t.neutrals.muted }}>
                       시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 학습 {formatNumber(user.attempts)}회 · {user.lastActiveAt ? `최근 ${formatDate(user.lastActiveAt)}` : formatDate(user.createdAt)}
@@ -338,7 +347,8 @@ export function VoicecardsBlock({
                     {formatNumber(user.credits)} cr
                   </span>
                 </div>
-              ))}
+                )
+              })}
             </div>
 
             {/* 페이지네이션 */}
