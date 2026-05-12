@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,9 +53,17 @@ interface AnonymousEventStats {
     promptShown: number
     signinCompleted: number
   }>
+  cumulativeDistinct: Array<{
+    date: string
+    devices: number
+    learned: number
+    signin: number
+  }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>
+  signinPlatforms: Array<{ platform: string; devices: number }>
+  signinLocales: Array<{ locale: string; devices: number }>
 }
 
 export interface VoicecardsBlockProps {
@@ -63,6 +71,7 @@ export interface VoicecardsBlockProps {
   stats: CombinedStats | null
   userStats: UserStats | null
   anonymousStats: AnonymousEventStats | null
+  chartData?: Array<{ date: string; ios: number; android: number; total: number }>
   onOpenSettings: () => void
   onRefresh: () => void
   refreshing: boolean
@@ -126,10 +135,9 @@ const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
 ]
 
 export function VoicecardsBlock({
-  loading, stats, userStats, anonymousStats,
+  loading, stats, userStats, anonymousStats, chartData,
   onOpenSettings, onRefresh, refreshing,
 }: VoicecardsBlockProps) {
-  const mobile = useIsMobile()
   const [userSort, setUserSort] = useState<UserSortKey>('created')
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
@@ -176,7 +184,7 @@ export function VoicecardsBlock({
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
         <LSectionHead
           eyebrow="VOICECARDS"
           title="보이스카드"
@@ -209,316 +217,302 @@ export function VoicecardsBlock({
           }
         />
 
-        {/* KPI row: 회원 수, 다운로드, 결제금액 */}
-        {loading ? (
-          <SkeletonRow count={3} />
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
-            gap: 8,
-          }}>
-            <LStat
-              label="다운로드"
-              value={stats ? formatNumber(stats.combined.totalNewDownloads) : '-'}
-              sub="iOS"
-              tone="info"
-            />
-            <LStat
-              label="회원 수"
-              value={userStats ? formatNumber(userStats.activeUsers) : '-'}
-              sub={userStats ? `전체 ${formatNumber(userStats.totalUsers)}명` : undefined}
-            />
-            <LStat
-              label="결제금액"
-              value={stats ? formatCurrency(stats.combined.totalRevenue) : '-'}
-              sub="iOS"
-            />
-          </div>
-        )}
-      </div>
+        {/* 인사이트 (깔때기 + 추이 통합 + 분포) */}
+        {!loading && userStats && anonymousStats && (() => {
+          const devices = anonymousStats.summary.totalDevices
+          const learned = anonymousStats.summary.learnedDevices
+          const signedUp = userStats.totalUsers
+          const revenue = stats?.combined.totalRevenue ?? 0
 
-      {/* 가입 통계 */}
-      {!loading && userStats && (
-        <>
-          <div style={{ padding: `12px ${t.density.cardPad}px 8px`, borderTop: `1px solid ${t.neutrals.line}` }}>
-            <div style={{
-              fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
-              fontFamily: t.font.mono, letterSpacing: 0.3,
-              textTransform: 'uppercase' as const, marginBottom: 10,
-            }}>
-              학습 통계
-            </div>
+          const learnConv = devices > 0 ? (learned / devices) * 100 : 0
+          const signupConv = learned > 0 ? (signedUp / learned) * 100 : 0
+          const fmtPct = (v: number) => v >= 10 ? `${v.toFixed(0)}%` : `${v.toFixed(1)}%`
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
-              <LStat
-                label="보유 시트"
-                value={formatNumber(userStats.totalSheets)}
-                sub={userStats.totalUsers > 0 ? `사용자당 ${(userStats.totalSheets / userStats.totalUsers).toFixed(1)}개` : undefined}
-              />
-              <LStat
-                label="학습 카드"
-                value={formatNumber(userStats.totalCards)}
-                sub={userStats.totalSheets > 0 ? `시트당 ${(userStats.totalCards / userStats.totalSheets).toFixed(1)}개` : undefined}
-              />
-              <LStat
-                label="학습 시도"
-                value={formatNumber(userStats.totalAttempts)}
-                sub={userStats.totalCards > 0 ? `카드당 ${(userStats.totalAttempts / userStats.totalCards).toFixed(1)}회` : undefined}
-              />
-              <LStat
-                label="잔여 크레딧"
-                value={formatNumber(userStats.totalCredits)}
-                sub={userStats.totalUsers > 0 ? `사용자당 ${formatNumber(Math.round(userStats.totalCredits / userStats.totalUsers))}` : undefined}
-              />
-            </div>
-          </div>
+          // 누적 trajectories
+          const cumulative = anonymousStats.cumulativeDistinct ?? []
+          const devicesData = cumulative.map(d => ({ date: d.date, value: d.devices }))
+          const learnedData = cumulative.map(d => ({ date: d.date, value: d.learned }))
 
-          {/* 사용자 목록 */}
-          <div style={{ padding: `0 ${t.density.cardPad}px 12px` }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 6, marginBottom: 8, flexWrap: 'wrap',
-            }}>
+          const signupDates = (userStats?.users ?? [])
+            .map(u => u.createdAt.split('T')[0])
+            .sort()
+          const allDates = cumulative.map(d => d.date)
+          const signupData = allDates.map(date => ({
+            date,
+            value: signupDates.filter(d => d <= date).length,
+          }))
+
+          // 매출 누적
+          const revenueByDate = new Map<string, number>()
+          for (const row of (chartData ?? [])) {
+            revenueByDate.set(row.date, (revenueByDate.get(row.date) ?? 0) + row.total)
+          }
+          let runningRevenue = 0
+          const cumulativeRevenueByDate = new Map<string, number>()
+          for (const d of Array.from(revenueByDate.keys()).sort()) {
+            runningRevenue += revenueByDate.get(d) ?? 0
+            cumulativeRevenueByDate.set(d, runningRevenue)
+          }
+          const revenueData = allDates.map(date => {
+            let total = 0
+            for (const [revDate, val] of cumulativeRevenueByDate) {
+              if (revDate <= date) total = val
+            }
+            return { date, value: total }
+          })
+
+          return (
+            <>
               <div style={{
                 fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
                 fontFamily: t.font.mono, letterSpacing: 0.3,
-                textTransform: 'uppercase' as const,
+                textTransform: 'uppercase' as const, marginBottom: 10,
               }}>
-                사용자
+                인사이트
               </div>
-              <div style={{ display: 'flex', gap: 3 }}>
-                {USER_SORT_OPTIONS.map(opt => {
-                  const active = userSort === opt.key
-                  return (
-                    <button
-                      key={opt.key}
-                      onClick={() => handleSortChange(opt.key)}
-                      style={{
-                        padding: '3px 8px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                        fontSize: 10, fontWeight: 500, fontFamily: t.font.sans,
-                        background: active ? t.brand[500] : t.neutrals.inner,
-                        color: active ? '#fff' : t.neutrals.muted,
-                        transition: 'background 120ms ease, color 120ms ease',
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  )
-                })}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                <LStat
+                  label="누적 기기"
+                  value={devices.toLocaleString()}
+                  sub="앱 오픈"
+                  tone="info"
+                  sparkline={devicesData}
+                />
+                <LStat
+                  label="데모 학습"
+                  value={learned.toLocaleString()}
+                  sub={devices > 0 ? `${fmtPct(learnConv)} 전환 · 비로그인` : '비로그인'}
+                  tone={devices > 0 && learnConv >= 40 ? 'pos' : 'warn'}
+                  sparkline={learnedData}
+                />
+                <LStat
+                  label="가입 완료"
+                  value={signedUp.toLocaleString()}
+                  sub={learned > 0 ? `${fmtPct(signupConv)} 전환 · 계정 생성` : '계정 생성'}
+                  tone={learned > 0 && signupConv >= 10 ? 'pos' : 'warn'}
+                  sparkline={signupData}
+                />
+                <LStat
+                  label="누적 매출"
+                  value={formatCurrency(revenue)}
+                  sub={revenue > 0 ? '누적' : '아직 없음'}
+                  tone={revenue > 0 ? 'pos' : 'default'}
+                  sparkline={revenueData}
+                  sparkFormat={formatCurrency}
+                />
               </div>
+
+            {/* 플랫폼 / 언어 파이차트 (기기/가입 탭) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+              <DistributionPie
+                title="플랫폼"
+                tabs={[
+                  {
+                    key: 'devices',
+                    label: '기기',
+                    data: anonymousStats.platforms.map(p => ({
+                      name: p.platform === 'ios' ? 'iOS' : p.platform === 'android' ? 'Android' : p.platform,
+                      value: p.devices,
+                    })),
+                  },
+                  {
+                    key: 'signin',
+                    label: '가입',
+                    data: anonymousStats.signinPlatforms.map(p => ({
+                      name: p.platform === 'ios' ? 'iOS' : p.platform === 'android' ? 'Android' : p.platform,
+                      value: p.devices,
+                    })),
+                  },
+                ]}
+                palette={['#3b82f6', '#10b981', '#94a3b8']}
+                unit="명"
+              />
+              <DistributionPie
+                title="언어"
+                tabs={[
+                  {
+                    key: 'devices',
+                    label: '기기',
+                    data: anonymousStats.locales.map(l => ({ name: formatLocale(l.locale), value: l.devices })),
+                  },
+                  {
+                    key: 'signin',
+                    label: '가입',
+                    data: anonymousStats.signinLocales.map(l => ({ name: formatLocale(l.locale), value: l.devices })),
+                  },
+                ]}
+                palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
+                unit="명"
+                topN={3}
+              />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {paginatedUsers.map((user) => {
-                const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
-                const fallbackName = shortId ? `#${shortId}` : 'Unknown'
-                const initial = (user.nickname?.charAt(0) || shortId.charAt(0) || '?').toUpperCase()
-                return (
-                <div key={user.id} style={{
-                  padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                  display: 'flex', alignItems: 'center', gap: 8,
-                }}>
-                  <div style={{
-                    width: 26, height: 26, borderRadius: 26, flexShrink: 0,
-                    background: t.brand[200], color: t.brand[800],
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, fontWeight: 600,
-                  }}>
-                    {initial}
-                  </div>
+            </>
+          )
+        })()}
+      </div>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontSize: 11, fontWeight: 500,
-                      color: user.nickname ? t.neutrals.text : t.neutrals.muted,
-                      fontFamily: user.nickname ? t.font.sans : t.font.mono,
-                    }}>
-                      {user.nickname || fallbackName}
-                    </div>
-                    <div style={{ fontSize: 9.5, color: t.neutrals.muted }}>
-                      시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 학습 {formatNumber(user.attempts)}회 · {user.lastActiveAt ? `최근 ${formatDate(user.lastActiveAt)}` : formatDate(user.createdAt)}
-                    </div>
-                  </div>
-
-                  <span style={{
-                    fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted, flexShrink: 0,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>
-                    {formatNumber(user.credits)} cr
-                  </span>
-                </div>
-                )
-              })}
-            </div>
-
-            {/* 페이지네이션 */}
-            {sortedUsers.length > 0 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                gap: 6, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${t.neutrals.line}`,
-                flexWrap: 'wrap',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{
-                    fontSize: 10, color: t.neutrals.muted,
-                    fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                  }}>
-                    {sortedUsers.length}명 중 {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, sortedUsers.length)}
-                  </span>
-                  <select
-                    value={userPerPage}
-                    onChange={(e) => {
-                      setUserPerPage(Number(e.target.value))
-                      setUserPage(1)
-                    }}
-                    style={{
-                      fontSize: 10, fontFamily: t.font.sans,
-                      background: t.neutrals.inner, color: t.neutrals.muted,
-                      border: 'none', borderRadius: t.radius.sm,
-                      padding: '3px 6px', cursor: 'pointer',
-                    }}
-                  >
-                    <option value={10}>10개</option>
-                    <option value={25}>25개</option>
-                    <option value={50}>50개</option>
-                    <option value={100}>100개</option>
-                  </select>
-                </div>
-                {totalUserPages > 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <PageNavButton onClick={() => setUserPage(Math.max(1, safeUserPage - 1))} disabled={safeUserPage === 1} icon="chevronLeft" />
-                    <span style={{
-                      fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.text,
-                      padding: '0 6px', fontVariantNumeric: 'tabular-nums',
-                    }}>
-                      {safeUserPage}/{totalUserPages}
-                    </span>
-                    <PageNavButton onClick={() => setUserPage(Math.min(totalUserPages, safeUserPage + 1))} disabled={safeUserPage === totalUserPages} icon="chevronRight" />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Anonymous Events */}
-      {!loading && anonymousStats && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 14px`, borderTop: `1px solid ${t.neutrals.line}` }}>
+      {/* 가입 후 활동 · 매출 동인 */}
+      {!loading && userStats && (
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={{
             fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
             fontFamily: t.font.mono, letterSpacing: 0.3,
             textTransform: 'uppercase' as const, marginBottom: 10,
           }}>
-            익명 사용자 (비로그인)
+            가입 후 활동 · 매출 동인
           </div>
 
-          {/* Funnel KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-            <LStat label="기기 수" value={formatNumber(anonymousStats.summary.totalDevices)} />
-            <LStat label="학습 전환" value={`${anonymousStats.summary.learnConversionPct}%`}
-              sub={`${anonymousStats.summary.learnedDevices}대`}
-              tone={anonymousStats.summary.learnConversionPct >= 40 ? 'pos' : 'warn'} />
-            <LStat label="로그인 전환" value={`${anonymousStats.summary.signinConversionPct}%`}
-              sub={`${anonymousStats.summary.signinDevices}대`}
-              tone={anonymousStats.summary.signinConversionPct >= 10 ? 'pos' : 'warn'} />
-            <LStat label="총 이벤트" value={formatNumber(anonymousStats.summary.totalEvents)} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            <LStat
+              label="보유 시트"
+              value={formatNumber(userStats.totalSheets)}
+              sub={userStats.totalUsers > 0 ? `사용자당 ${(userStats.totalSheets / userStats.totalUsers).toFixed(1)}개` : undefined}
+            />
+            <LStat
+              label="학습 카드"
+              value={formatNumber(userStats.totalCards)}
+              sub={userStats.totalSheets > 0 ? `시트당 ${(userStats.totalCards / userStats.totalSheets).toFixed(1)}개` : undefined}
+            />
+            <LStat
+              label="학습 시도"
+              value={formatNumber(userStats.totalAttempts)}
+              sub={userStats.totalCards > 0 ? `카드당 ${(userStats.totalAttempts / userStats.totalCards).toFixed(1)}회` : undefined}
+            />
+            <LStat
+              label="잔여 크레딧"
+              value={formatNumber(userStats.totalCredits)}
+              sub={userStats.totalUsers > 0 ? `사용자당 ${formatNumber(Math.round(userStats.totalCredits / userStats.totalUsers))}` : undefined}
+            />
           </div>
+        </div>
+      )}
 
-          {/* Daily trend chart */}
-          {anonymousStats.daily.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, color: t.neutrals.muted, marginBottom: 6 }}>일별 추이</div>
-              <div style={{ height: 120, background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 4px 0' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={anonymousStats.daily}>
-                    <XAxis dataKey="date" tickFormatter={(v: string) => v.slice(5)} tick={{ fontSize: 9, fill: t.neutrals.muted }} axisLine={false} tickLine={false} />
-                    <YAxis hide />
-                    <Tooltip
-                      contentStyle={{ fontSize: 11, background: '#1E293B', color: '#F8FAFC', border: 'none', borderRadius: 6, padding: '6px 10px' }}
-                      labelFormatter={(v: any) => String(v)}
-                      formatter={(value: any, name: any) => {
-                        const labels: Record<string, string> = { devices: '기기', appOpened: '앱실행', cardsLearned: '학습', signinCompleted: '로그인' }
-                        return [value, labels[String(name)] || name] as any
-                      }}
-                    />
-                    <Line type="monotone" dataKey="devices" stroke={t.brand[500]} strokeWidth={1.5} dot={{ r: 2 }} />
-                    <Line type="monotone" dataKey="cardsLearned" stroke="#6366F1" strokeWidth={1.5} dot={{ r: 2 }} />
-                    <Line type="monotone" dataKey="signinCompleted" stroke="#10B981" strokeWidth={1.5} dot={{ r: 2 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <div style={{ display: 'flex', gap: 12, marginTop: 4, justifyContent: 'center' }}>
-                {[
-                  { color: t.brand[500], label: '기기' },
-                  { color: '#6366F1', label: '학습' },
-                  { color: '#10B981', label: '로그인' },
-                ].map(l => (
-                  <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
-                    <span style={{ fontSize: 9, color: t.neutrals.muted }}>{l.label}</span>
+      {/* 사용자 목록 (맨 아래) */}
+      {!loading && userStats && (
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: 6, marginBottom: 8, flexWrap: 'wrap',
+          }}>
+            <div style={{
+              fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+              fontFamily: t.font.mono, letterSpacing: 0.3,
+              textTransform: 'uppercase' as const,
+            }}>
+              사용자
+            </div>
+            <div style={{ display: 'flex', gap: 3 }}>
+              {USER_SORT_OPTIONS.map(opt => {
+                const active = userSort === opt.key
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => handleSortChange(opt.key)}
+                    style={{
+                      padding: '3px 8px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
+                      fontSize: 10, fontWeight: 500, fontFamily: t.font.sans,
+                      background: active ? t.brand[500] : t.neutrals.inner,
+                      color: active ? '#fff' : t.neutrals.muted,
+                      transition: 'background 120ms ease, color 120ms ease',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {paginatedUsers.map((user) => {
+              const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
+              const fallbackName = shortId ? `#${shortId}` : 'Unknown'
+              const initial = (user.nickname?.charAt(0) || shortId.charAt(0) || '?').toUpperCase()
+              return (
+              <div key={user.id} style={{
+                padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: 26, flexShrink: 0,
+                  background: t.brand[200], color: t.brand[800],
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 600,
+                }}>
+                  {initial}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: 500,
+                    color: user.nickname ? t.neutrals.text : t.neutrals.muted,
+                    fontFamily: user.nickname ? t.font.sans : t.font.mono,
+                  }}>
+                    {user.nickname || fallbackName}
                   </div>
-                ))}
+                  <div style={{ fontSize: 9.5, color: t.neutrals.muted }}>
+                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 학습 {formatNumber(user.attempts)}회 · {user.lastActiveAt ? `최근 ${formatDate(user.lastActiveAt)}` : formatDate(user.createdAt)}
+                  </div>
+                </div>
+
+                <span style={{
+                  fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted, flexShrink: 0,
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
+                  {formatNumber(user.credits)} cr
+                </span>
               </div>
+              )
+            })}
+          </div>
+
+          {/* 페이지네이션 */}
+          {sortedUsers.length > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 6, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${t.neutrals.line}`,
+              flexWrap: 'wrap',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{
+                  fontSize: 10, color: t.neutrals.muted,
+                  fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
+                }}>
+                  {sortedUsers.length}명 중 {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, sortedUsers.length)}
+                </span>
+                <select
+                  value={userPerPage}
+                  onChange={(e) => {
+                    setUserPerPage(Number(e.target.value))
+                    setUserPage(1)
+                  }}
+                  style={{
+                    fontSize: 10, fontFamily: t.font.sans,
+                    background: t.neutrals.inner, color: t.neutrals.muted,
+                    border: 'none', borderRadius: t.radius.sm,
+                    padding: '3px 6px', cursor: 'pointer',
+                  }}
+                >
+                  <option value={10}>10개</option>
+                  <option value={25}>25개</option>
+                  <option value={50}>50개</option>
+                  <option value={100}>100개</option>
+                </select>
+              </div>
+              {totalUserPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <PageNavButton onClick={() => setUserPage(Math.max(1, safeUserPage - 1))} disabled={safeUserPage === 1} icon="chevronLeft" />
+                  <span style={{
+                    fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.text,
+                    padding: '0 6px', fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {safeUserPage}/{totalUserPages}
+                  </span>
+                  <PageNavButton onClick={() => setUserPage(Math.min(totalUserPages, safeUserPage + 1))} disabled={safeUserPage === totalUserPages} icon="chevronRight" />
+                </div>
+              )}
             </div>
           )}
-
-          {/* Demo sheets + Platform/Locale row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {/* Demo sheets */}
-            <div>
-              <div style={{ fontSize: 10, color: t.neutrals.muted, marginBottom: 4 }}>데모 시트 인기</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {anonymousStats.demoSheets.slice(0, 5).map(s => (
-                  <div key={s.sheetId} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '3px 6px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                  }}>
-                    <span style={{ fontSize: 10, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {s.sheetId.replace('demo-', '')}
-                    </span>
-                    <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted, flexShrink: 0, marginLeft: 4 }}>
-                      {s.devices}대 · {s.cards}회
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Platform + Locale */}
-            <div>
-              <div style={{ fontSize: 10, color: t.neutrals.muted, marginBottom: 4 }}>플랫폼 · 언어</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {anonymousStats.platforms.map(p => (
-                  <div key={p.platform} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '3px 6px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                  }}>
-                    <span style={{ fontSize: 10, color: t.neutrals.text }}>
-                      {p.platform === 'ios' ? 'iOS' : p.platform === 'android' ? 'Android' : p.platform}
-                    </span>
-                    <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
-                      {p.devices}대 · {p.events}건
-                    </span>
-                  </div>
-                ))}
-                <div style={{ height: 4 }} />
-                {anonymousStats.locales.map(l => (
-                  <div key={l.locale} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '3px 6px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                  }}>
-                    <span style={{ fontSize: 10, color: t.neutrals.text }}>
-                      {formatLocale(l.locale)}
-                    </span>
-                    <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
-                      {l.devices}대
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </LCard>
@@ -526,6 +520,140 @@ export function VoicecardsBlock({
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+function DistributionPie({
+  title, tabs, palette, unit, topN,
+}: {
+  title: string
+  tabs: Array<{ key: string; label: string; data: Array<{ name: string; value: number }> }>
+  palette: string[]
+  unit?: string
+  topN?: number  // 상위 N개만 표시하고 나머지는 "기타"로 합침
+}) {
+  const [activeTab, setActiveTab] = useState(tabs[0].key)
+  const current = tabs.find(t => t.key === activeTab) ?? tabs[0]
+  const OTHER_LABEL = '기타'
+  const OTHER_COLOR = '#94a3b8'
+
+  // 상위 N개 + 나머지 "기타"로 집계
+  const aggregateTopN = (rows: Array<{ name: string; value: number }>) => {
+    if (!topN || rows.length <= topN) return rows
+    const sorted = [...rows].sort((a, b) => b.value - a.value)
+    const top = sorted.slice(0, topN)
+    const rest = sorted.slice(topN)
+    const otherValue = rest.reduce((sum, r) => sum + r.value, 0)
+    return otherValue > 0 ? [...top, { name: OTHER_LABEL, value: otherValue }] : top
+  }
+  const data = aggregateTopN(current.data)
+  const total = data.reduce((sum, d) => sum + d.value, 0)
+
+  // Color mapping: 모든 탭의 상위 N개 카테고리에 일관된 색 할당, "기타"는 항상 회색
+  const allTopNames = Array.from(new Set(
+    tabs.flatMap(tb => aggregateTopN(tb.data).map(d => d.name)).filter(n => n !== OTHER_LABEL)
+  ))
+  const colorByName = new Map<string, string>(allTopNames.map((name, i) => [name, palette[i % palette.length]]))
+  colorByName.set(OTHER_LABEL, OTHER_COLOR)
+
+  return (
+    <div style={{
+      background: t.neutrals.inner, borderRadius: t.radius.sm,
+      padding: '8px 10px',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 4, marginBottom: 6,
+      }}>
+        <div style={{
+          fontSize: 9.5, fontFamily: t.font.mono, letterSpacing: 0.8,
+          textTransform: 'uppercase' as const, color: t.neutrals.subtle,
+        }}>
+          {title}
+        </div>
+        <div style={{ display: 'flex', gap: 2 }}>
+          {tabs.map(tb => {
+            const active = activeTab === tb.key
+            return (
+              <button
+                key={tb.key}
+                onClick={() => setActiveTab(tb.key)}
+                style={{
+                  padding: '2px 7px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
+                  fontSize: 9, fontWeight: 500, fontFamily: t.font.sans,
+                  background: active ? t.brand[500] : 'transparent',
+                  color: active ? '#fff' : t.neutrals.muted,
+                  transition: 'background 120ms ease, color 120ms ease',
+                }}
+              >
+                {tb.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      {data.length === 0 || total === 0 ? (
+        <div style={{
+          height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 10, color: t.neutrals.subtle,
+        }}>
+          데이터 없음
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 80, height: 80, flexShrink: 0 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%" cy="50%"
+                  innerRadius={20} outerRadius={36}
+                  paddingAngle={2}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {data.map((d, i) => (
+                    <Cell key={i} fill={colorByName.get(d.name) ?? palette[i % palette.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ fontSize: 11, background: '#1E293B', border: 'none', borderRadius: 6, padding: '6px 10px' }}
+                  itemStyle={{ color: '#F8FAFC' }}
+                  labelStyle={{ color: '#F8FAFC' }}
+                  formatter={(value: any, name: any) => [`${value}${unit ?? ''}`, String(name)]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
+            {data.map(d => {
+              const pct = total > 0 ? Math.round((d.value / total) * 100) : 0
+              return (
+                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: 2,
+                    background: colorByName.get(d.name) ?? t.neutrals.subtle, flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontSize: 10, color: t.neutrals.text,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    flex: 1, minWidth: 0,
+                  }}>
+                    {d.name}
+                  </span>
+                  <span style={{
+                    fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted,
+                    fontVariantNumeric: 'tabular-nums', flexShrink: 0,
+                  }}>
+                    {pct}%
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function PageNavButton({
   onClick, disabled, icon,
@@ -552,15 +680,3 @@ function PageNavButton({
   )
 }
 
-function SkeletonRow({ count }: { count: number }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count}, 1fr)`, gap: 8 }}>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} style={{
-          height: 52, borderRadius: t.radius.sm, background: t.neutrals.inner,
-          animation: 'pulse 1.5s ease-in-out infinite',
-        }} />
-      ))}
-    </div>
-  )
-}

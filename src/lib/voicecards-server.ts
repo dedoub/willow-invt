@@ -817,9 +817,18 @@ export interface AnonymousEventStats {
     promptShown: number
     signinCompleted: number
   }>
+  cumulativeDistinct: Array<{
+    date: string
+    devices: number   // 그 날까지 본 distinct device 수
+    learned: number   // 학습 시도한 distinct device 수
+    signin: number    // 가입 완료한 distinct device 수
+  }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>
+  // 가입(signin_completed) 발화한 디바이스만 필터링한 분포
+  signinPlatforms: Array<{ platform: string; devices: number }>
+  signinLocales: Array<{ locale: string; devices: number }>
 }
 
 export async function getAnonymousEventStats(): Promise<AnonymousEventStats | null> {
@@ -856,6 +865,11 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   const platformMap = new Map<string, { devices: Set<string>; events: number }>()
   const localeMap = new Map<string, Set<string>>()
 
+  // 누적 distinct를 위해 날짜 순서 + 날짜별 스냅샷 (마지막 이벤트 후 size)
+  const dateOrder: string[] = []
+  const cumulativeSnapshot = new Map<string, { devices: number; learned: number; signin: number }>()
+  let lastDate = ''
+
   for (const row of data) {
     const deviceId = row.device_id as string
     const eventName = row.event_name as string
@@ -865,6 +879,17 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
 
     if (eventName === 'card_learned_anonymous') learnedDevices.add(deviceId)
     if (eventName === 'signin_completed') signinDevices.add(deviceId)
+
+    // 누적 distinct snapshot (events는 created_at asc로 정렬돼 들어옴)
+    if (date !== lastDate) {
+      dateOrder.push(date)
+      lastDate = date
+    }
+    cumulativeSnapshot.set(date, {
+      devices: allDevices.size,
+      learned: learnedDevices.size,
+      signin: signinDevices.size,
+    })
 
     // Daily
     if (!dailyMap.has(date)) {
@@ -902,6 +927,25 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
     localeMap.get(locale)!.add(deviceId)
   }
 
+  // 가입한 device의 platform / locale 매핑 — 마지막 관측값 사용
+  const deviceToPlatform = new Map<string, string>()
+  const deviceToLocale = new Map<string, string>()
+  for (const row of data) {
+    const deviceId = row.device_id as string
+    const platform = (row.platform as string) || 'unknown'
+    const locale = (row.locale as string) || 'unknown'
+    deviceToPlatform.set(deviceId, platform)
+    deviceToLocale.set(deviceId, locale)
+  }
+  const signinPlatformMap = new Map<string, number>()
+  const signinLocaleMap = new Map<string, number>()
+  for (const deviceId of signinDevices) {
+    const platform = deviceToPlatform.get(deviceId) || 'unknown'
+    const locale = deviceToLocale.get(deviceId) || 'unknown'
+    signinPlatformMap.set(platform, (signinPlatformMap.get(platform) || 0) + 1)
+    signinLocaleMap.set(locale, (signinLocaleMap.get(locale) || 0) + 1)
+  }
+
   const totalDevices = allDevices.size
   return {
     summary: {
@@ -922,6 +966,10 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
         promptShown: d.promptShown,
         signinCompleted: d.signinCompleted,
       })),
+    cumulativeDistinct: dateOrder.map(date => ({
+      date,
+      ...cumulativeSnapshot.get(date)!,
+    })),
     demoSheets: Array.from(sheetMap.entries())
       .map(([sheetId, s]) => ({ sheetId, cards: s.cards, devices: s.devices.size }))
       .sort((a, b) => b.cards - a.cards),
@@ -930,6 +978,12 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       .sort((a, b) => b.events - a.events),
     locales: Array.from(localeMap.entries())
       .map(([locale, devices]) => ({ locale, devices: devices.size }))
+      .sort((a, b) => b.devices - a.devices),
+    signinPlatforms: Array.from(signinPlatformMap.entries())
+      .map(([platform, devices]) => ({ platform, devices }))
+      .sort((a, b) => b.devices - a.devices),
+    signinLocales: Array.from(signinLocaleMap.entries())
+      .map(([locale, devices]) => ({ locale, devices }))
       .sort((a, b) => b.devices - a.devices),
   }
 }

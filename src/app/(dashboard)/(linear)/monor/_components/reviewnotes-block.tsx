@@ -111,7 +111,7 @@ export function ReviewnotesBlock({
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
         <LSectionHead
           eyebrow="REVIEWNOTES"
           title="리뷰노트"
@@ -157,36 +157,44 @@ export function ReviewnotesBlock({
           </div>
         )}
 
-        {/* KPI row: 총 매출, MRR, 활성 구독자 */}
-        {loading ? (
-          <SkeletonRow count={3} />
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
-            <LStat
-              label="총 매출"
-              value={stats ? formatCurrency(stats.totalRevenueUSD) : '-'}
-              sub={stats ? `이번 달 ${formatCurrency(stats.monthlyRevenueUSD)}` : undefined}
-            />
-            <LStat
-              label="MRR"
-              value={stats ? formatCurrency(stats.mrr) : '-'}
-              sub="월간 반복 매출"
-              tone="info"
-            />
-            <LStat
-              label="활성 구독자"
-              value={stats ? String(stats.activeSubscriptions) : '-'}
-              sub={stats ? `체험 ${stats.trialSubscriptions} · 취소 ${stats.cancelledSubscriptions}` : undefined}
-              tone="pos"
-            />
-          </div>
+        {/* 매출 현황 */}
+        {!loading && (
+          <>
+            <div style={{
+              fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+              fontFamily: t.font.mono, letterSpacing: 0.3,
+              textTransform: 'uppercase' as const, marginBottom: 10,
+            }}>
+              매출 현황
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+              <LStat
+                label="총 매출"
+                value={stats ? formatCurrency(stats.totalRevenueUSD) : '-'}
+                sub={stats ? `이번 달 ${formatCurrency(stats.monthlyRevenueUSD)}` : undefined}
+              />
+              <LStat
+                label="MRR"
+                value={stats ? formatCurrency(stats.mrr) : '-'}
+                sub="월간 반복 매출"
+                tone="info"
+              />
+              <LStat
+                label="활성 구독자"
+                value={stats ? String(stats.activeSubscriptions) : '-'}
+                sub={stats ? `체험 ${stats.trialSubscriptions} · 취소 ${stats.cancelledSubscriptions}` : undefined}
+                tone="pos"
+              />
+            </div>
+          </>
         )}
+        {loading && <SkeletonRow count={3} />}
       </div>
 
       {/* User stats section */}
       {!loading && userStats && (
         <>
-          <div style={{ padding: `12px ${t.density.cardPad}px 8px`, borderTop: `1px solid ${t.neutrals.line}` }}>
+          <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
             <div style={{
               fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
               fontFamily: t.font.mono, letterSpacing: 0.3,
@@ -196,7 +204,7 @@ export function ReviewnotesBlock({
             </div>
 
             {/* User KPIs */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
               <LStat label="총 가입자" value={String(userStats.totalUsers)} sub={`이번 달 +${userStats.newUsersThisMonth} · 이번 주 +${userStats.newUsersThisWeek}`} />
               <PlanStat userStats={userStats} />
               <LStat label="관리자" value={String(userStats.adminUsers)} sub="Admin 권한" />
@@ -205,7 +213,7 @@ export function ReviewnotesBlock({
           </div>
 
           {/* Recent users list */}
-          <div style={{ padding: `0 ${t.density.cardPad}px 12px` }}>
+          <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               gap: 6, marginBottom: 8, flexWrap: 'wrap',
