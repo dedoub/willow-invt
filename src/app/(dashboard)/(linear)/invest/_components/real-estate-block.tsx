@@ -196,7 +196,7 @@ function PriceChart({ data, complexes, height = 200 }: {
         />
         <Bar
           yAxisId="right" dataKey="_count" name="건수"
-          fill={t.neutrals.line} barSize={12} radius={[2, 2, 0, 0]}
+          fill={t.neutrals.muted} fillOpacity={0.25} barSize={12} radius={[2, 2, 0, 0]}
         />
         {complexes.map((c, i) => (
           <Line
