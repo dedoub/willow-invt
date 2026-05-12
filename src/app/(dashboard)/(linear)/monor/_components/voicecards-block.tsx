@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
@@ -138,6 +138,7 @@ export function VoicecardsBlock({
   loading, stats, userStats, anonymousStats, chartData,
   onOpenSettings, onRefresh, refreshing,
 }: VoicecardsBlockProps) {
+  const mobile = useIsMobile()
   const [userSort, setUserSort] = useState<UserSortKey>('created')
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
@@ -271,7 +272,7 @@ export function VoicecardsBlock({
                 인사이트
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
                 <LStat
                   label="누적 기기"
                   value={devices.toLocaleString()}
@@ -363,7 +364,7 @@ export function VoicecardsBlock({
             가입 후 활동 · 매출 동인
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
             <LStat
               label="보유 시트"
               value={formatNumber(userStats.totalSheets)}
