@@ -1,7 +1,7 @@
 'use client'
 
 import { Fragment, useState, useMemo } from 'react'
-import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 
@@ -118,6 +118,7 @@ interface Holding {
 type MarketFilter = 'all' | 'KR' | 'US'
 
 export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1 }: HoldingsBlockProps) {
+  const mobile = useIsMobile()
   const [currencyMode, setCurrencyMode] = useState<'original' | 'KRW'>('original')
   const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
   const isKrw = currencyMode === 'KRW'
@@ -338,7 +339,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
 
       {/* Summary cards */}
       {hasQuotes && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: '0 14px 12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8, padding: '0 14px 12px' }}>
           {/* KR */}
           <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
             <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>국내 {summary.krH.length}종목</div>
@@ -385,7 +386,8 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             background: t.neutrals.inner, borderRadius: t.radius.md, overflow: 'hidden',
             border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
           }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 360, borderCollapse: 'collapse', fontSize: 11, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ background: t.neutrals.card }}>
                   <th style={{ textAlign: 'left',  padding: '6px 10px', fontSize: 10, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>분류</th>
@@ -445,6 +447,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                 </tr>
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}

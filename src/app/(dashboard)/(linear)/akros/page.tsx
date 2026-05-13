@@ -188,13 +188,13 @@ export default function AkrosPage() {
             gridTemplateRows: mobile ? 'auto auto auto' : 'auto 1fr',
             gap: 14,
           }}>
-            <div style={mobile ? {} : { gridColumn: 1, gridRow: 1 }}>
+            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 1, gridRow: 1 }) }}>
               <AumBlock timeSeries={timeSeries} productCount={products.length} yearLaunches={yearLaunches} />
             </div>
-            <div style={mobile ? {} : { gridColumn: 2, gridRow: '1 / -1', minWidth: 0 }}>
-              <TaxInvoiceBlock invoices={invoices} onRefresh={loadInvoices} style={{ height: '100%' }} />
+            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }) }}>
+              <TaxInvoiceBlock invoices={invoices} onRefresh={loadInvoices} style={mobile ? undefined : { height: '100%' }} />
             </div>
-            <div style={mobile ? {} : { gridColumn: 1, gridRow: 2 }}>
+            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 1, gridRow: 2 }) }}>
               <ProductBlock products={products} />
             </div>
           </div>
@@ -205,21 +205,25 @@ export default function AkrosPage() {
             gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
             gap: 14,
           }}>
-            <AkrosWikiBlock
-              notes={wikiNotes}
-              loading={wikiLoading}
-              onCreate={handleCreateWiki}
-              onUpdate={handleUpdateWiki}
-              onDelete={handleDeleteWiki}
-            />
-            <EmailBlock
-              emails={emails}
-              connected={emailConnected}
-              onSelectEmail={setSelectedEmail}
-              onSync={handleSyncEmails}
-              onCompose={handleCompose}
-              isSyncing={isSyncing}
-            />
+            <div style={{ minWidth: 0 }}>
+              <AkrosWikiBlock
+                notes={wikiNotes}
+                loading={wikiLoading}
+                onCreate={handleCreateWiki}
+                onUpdate={handleUpdateWiki}
+                onDelete={handleDeleteWiki}
+              />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <EmailBlock
+                emails={emails}
+                connected={emailConnected}
+                onSelectEmail={setSelectedEmail}
+                onSync={handleSyncEmails}
+                onCompose={handleCompose}
+                isSyncing={isSyncing}
+              />
+            </div>
           </div>
         </div>
 

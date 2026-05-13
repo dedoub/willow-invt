@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -99,6 +99,7 @@ function getStoredCashPageSize(): number {
 }
 
 export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankBalances = [], balanceHistory = [] }: CashBlockProps) {
+  const mobile = useIsMobile()
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
@@ -278,7 +279,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
         </div>
 
         {/* KPI */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
           <LStat label="매출" value={`${revenue.toLocaleString()}원`} tone="pos" />
           <LStat label="비용" value={`${expense.toLocaleString()}원`} tone="neg" />
           <LStat label="영업이익" value={`${operatingIncome.toLocaleString()}원`} tone={operatingIncome >= 0 ? 'pos' : 'neg'} />
@@ -287,7 +288,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
           <LStat label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} />
           <LStat label="우리은행" value={`${periodEndBalance.woori.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
           <LStat label="신한은행" value={`${periodEndBalance.shinhan.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
-          <LStat label="총 잔고" value={`${periodEndBalance.total.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} sparkline={totalBalanceSpark} sparkFormat={(v) => `${v.toLocaleString()}원`} />
+          <LStat label="총 잔고" value={`${periodEndBalance.total.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} sparkline={mobile ? undefined : totalBalanceSpark} sparkFormat={(v) => `${v.toLocaleString()}원`} />
         </div>
 
         {/* Type filter chips + add button */}

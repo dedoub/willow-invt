@@ -823,6 +823,10 @@ export interface AnonymousEventStats {
     learned: number   // 학습 시도한 distinct device 수
     signin: number    // 가입 완료한 distinct device 수
   }>
+  dailyCreditUsage: Array<{
+    date: string
+    credits: number   // ai_generation_success 이벤트의 card_count_returned 합 (카드 1장 = 1크레딧 가정)
+  }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>
@@ -864,6 +868,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   const sheetMap = new Map<string, { cards: number; devices: Set<string> }>()
   const platformMap = new Map<string, { devices: Set<string>; events: number }>()
   const localeMap = new Map<string, Set<string>>()
+  const creditUsageByDate = new Map<string, number>()
 
   // 누적 distinct를 위해 날짜 순서 + 날짜별 스냅샷 (마지막 이벤트 후 size)
   const dateOrder: string[] = []
@@ -911,6 +916,15 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
         const s = sheetMap.get(sheetId)!
         s.cards++
         s.devices.add(deviceId)
+      }
+    }
+
+    // 일별 크레딧 사용 (ai_generation_success의 card_count_returned 합)
+    if (eventName === 'ai_generation_success' && row.properties) {
+      const props = row.properties as Record<string, unknown>
+      const cardCount = Number(props.card_count_returned) || 0
+      if (cardCount > 0) {
+        creditUsageByDate.set(date, (creditUsageByDate.get(date) ?? 0) + cardCount)
       }
     }
 
@@ -969,6 +983,10 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
     cumulativeDistinct: dateOrder.map(date => ({
       date,
       ...cumulativeSnapshot.get(date)!,
+    })),
+    dailyCreditUsage: dateOrder.map(date => ({
+      date,
+      credits: creditUsageByDate.get(date) ?? 0,
     })),
     demoSheets: Array.from(sheetMap.entries())
       .map(([sheetId, s]) => ({ sheetId, cards: s.cards, devices: s.devices.size }))

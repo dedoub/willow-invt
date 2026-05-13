@@ -1,6 +1,6 @@
 'use client'
 
-import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { ETFDisplayData, HistoricalDataPoint } from '@/lib/supabase-etf'
@@ -76,6 +76,7 @@ function StatCard({ label, value, sub, sparkData }: StatCardProps) {
 const FIXED_OVERHEAD = 2083.33
 
 export function StatsBlock({ etfs, historicalData }: StatsBlockProps) {
+  const mobile = useIsMobile()
   const totalAum = etfs.reduce((sum, e) => sum + (e.aum || 0), 0)
   const totalMonthlyFee = etfs.reduce((sum, e) => sum + e.totalMonthlyFee, 0) + FIXED_OVERHEAD
   const totalRemainingFee = etfs.reduce((sum, e) => sum + (e.remainingFee || 0), 0)
@@ -83,7 +84,7 @@ export function StatsBlock({ etfs, historicalData }: StatsBlockProps) {
   return (
     <LCard>
       <LSectionHead eyebrow="DASHBOARD" title="운용 현황" />
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 10 }}>
         <StatCard
           label="총 AUM"
           value={fmtUsd(totalAum)}

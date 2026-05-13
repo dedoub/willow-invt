@@ -59,6 +59,10 @@ interface AnonymousEventStats {
     learned: number
     signin: number
   }>
+  dailyCreditUsage: Array<{
+    date: string
+    credits: number
+  }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>
@@ -268,6 +272,7 @@ export function VoicecardsBlock({
                 fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
                 fontFamily: t.font.mono, letterSpacing: 0.3,
                 textTransform: 'uppercase' as const, marginBottom: 10,
+                whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
                 인사이트
               </div>
@@ -360,6 +365,7 @@ export function VoicecardsBlock({
             fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
             fontFamily: t.font.mono, letterSpacing: 0.3,
             textTransform: 'uppercase' as const, marginBottom: 10,
+            whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
             가입 후 활동 · 매출 동인
           </div>
@@ -380,11 +386,28 @@ export function VoicecardsBlock({
               value={formatNumber(userStats.totalAttempts)}
               sub={userStats.totalCards > 0 ? `카드당 ${(userStats.totalAttempts / userStats.totalCards).toFixed(1)}회` : undefined}
             />
-            <LStat
-              label="잔여 크레딧"
-              value={formatNumber(userStats.totalCredits)}
-              sub={userStats.totalUsers > 0 ? `사용자당 ${formatNumber(Math.round(userStats.totalCredits / userStats.totalUsers))}` : undefined}
-            />
+            {(() => {
+              const usage = anonymousStats?.dailyCreditUsage ?? []
+              const todayUsage = usage.length > 0 ? usage[usage.length - 1].credits : 0
+              const last7Sum = usage.slice(-7).reduce((sum, d) => sum + d.credits, 0)
+              const totalUsed = usage.reduce((sum, d) => sum + d.credits, 0)
+              // 누적 sparkline
+              let running = 0
+              const sparkData = usage.map(d => {
+                running += d.credits
+                return { date: d.date, value: running }
+              })
+              return (
+                <LStat
+                  label="사용 크레딧"
+                  value={formatNumber(totalUsed)}
+                  sub={usage.length > 0
+                    ? `오늘 ${formatNumber(todayUsage)} · 7일 ${formatNumber(last7Sum)}`
+                    : '아직 없음'}
+                  sparkline={sparkData.length > 1 ? sparkData : undefined}
+                />
+              )
+            })()}
           </div>
         </div>
       )}
@@ -400,6 +423,7 @@ export function VoicecardsBlock({
               fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
               fontFamily: t.font.mono, letterSpacing: 0.3,
               textTransform: 'uppercase' as const,
+              whiteSpace: 'nowrap' as const,
             }}>
               사용자
             </div>
@@ -448,10 +472,14 @@ export function VoicecardsBlock({
                     fontSize: 11, fontWeight: 500,
                     color: user.nickname ? t.neutrals.text : t.neutrals.muted,
                     fontFamily: user.nickname ? t.font.sans : t.font.mono,
+                    whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
                     {user.nickname || fallbackName}
                   </div>
-                  <div style={{ fontSize: 9.5, color: t.neutrals.muted }}>
+                  <div style={{
+                    fontSize: 9.5, color: t.neutrals.muted,
+                    whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
                     시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 학습 {formatNumber(user.attempts)}회 · {user.lastActiveAt ? `최근 ${formatDate(user.lastActiveAt)}` : formatDate(user.createdAt)}
                   </div>
                 </div>
@@ -567,6 +595,7 @@ function DistributionPie({
         <div style={{
           fontSize: 9.5, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle,
+          whiteSpace: 'nowrap' as const,
         }}>
           {title}
         </div>

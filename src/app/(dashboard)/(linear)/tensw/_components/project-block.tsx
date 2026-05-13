@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -223,6 +223,7 @@ const PRIORITY_LABELS: Record<string, string> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ProjectBlock({ projects }: ProjectBlockProps) {
+  const mobile = useIsMobile()
   const [filter, setFilter] = useState<FilterKey>('전체')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
@@ -274,7 +275,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
         />
 
         {/* Summary KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
           <LStat label="배정 대기" value={String(totalPending)} tone="warn" />
           <LStat label="진행 중" value={String(totalInProgress)} tone="info" />
           <LStat label="완료" value={String(totalCompleted)} tone="pos" />
@@ -493,6 +494,7 @@ function ExpandedDetail({
   project: TenswProjectFull
   waiting: number; inProgress: number; completed: number; progress: string
 }) {
+  const mobile = useIsMobile()
   const hasSchedules = project.schedules.length > 0
   const hasDocs = project.docs.length > 0
   const hasTodos = project.todos.length > 0
@@ -504,7 +506,7 @@ function ExpandedDetail({
     <div style={{ padding: '0 16px 12px' }}>
       {/* Stats KPIs */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10,
+        display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 10,
       }}>
         <LStat label="배정 대기" value={String(waiting)} tone="warn" />
         <LStat label="진행 중" value={String(inProgress)} tone="info" />

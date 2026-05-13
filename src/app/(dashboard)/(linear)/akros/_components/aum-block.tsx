@@ -1,6 +1,6 @@
 'use client'
 
-import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { TimeSeriesData } from '@/lib/supabase-etf'
@@ -79,13 +79,14 @@ function StatCard({ label, value, sub, sparkData }: StatCardProps) {
 }
 
 export function AumBlock({ timeSeries, productCount, yearLaunches }: AumBlockProps) {
+  const mobile = useIsMobile()
   const latest = timeSeries.length > 0 ? timeSeries[timeSeries.length - 1] : null
   const currentYear = new Date().getFullYear()
 
   return (
     <LCard>
       <LSectionHead eyebrow="AUM DASHBOARD" title="운용 현황" />
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 10 }}>
         <StatCard
           label="총 AUM"
           value={fmtKrw(latest?.total_aum_krw)}

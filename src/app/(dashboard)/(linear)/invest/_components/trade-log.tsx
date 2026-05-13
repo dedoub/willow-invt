@@ -119,13 +119,14 @@ export function TradeLog({ trades }: TradeLogProps) {
       </div>
 
       {/* Header row */}
-      <div style={{ overflowX: mobile ? 'auto' : undefined }}>
+      <div style={{ overflowX: 'auto' }}>
       <div style={{
-        display: 'grid', gridTemplateColumns: '70px 50px 1.2fr 60px 90px 100px',
+        display: 'grid', gridTemplateColumns: `70px 50px minmax(${mobile ? 80 : 160}px, 1fr) 70px 100px 110px`,
         gap: 8, padding: '6px 14px', fontSize: 10, fontWeight: t.weight.semibold,
         color: t.neutrals.subtle, fontFamily: t.font.mono,
         textTransform: 'uppercase' as const, letterSpacing: 0.5,
-        minWidth: mobile ? 500 : undefined,
+        minWidth: mobile ? 480 : 560,
+        whiteSpace: 'nowrap' as const,
       }}>
         <span>날짜</span>
         <span>구분</span>
@@ -143,11 +144,12 @@ export function TradeLog({ trades }: TradeLogProps) {
           const isKRW = tr.currency === 'KRW'
           return (
             <div key={tr.id || i} style={{
-              display: 'grid', gridTemplateColumns: '70px 50px 1.2fr 60px 90px 100px',
+              display: 'grid', gridTemplateColumns: `70px 50px minmax(${mobile ? 80 : 160}px, 1fr) 70px 100px 110px`,
               gap: 8, padding: '8px 14px', alignItems: 'center',
               borderTop: `1px solid ${t.neutrals.line}`,
               fontSize: 12,
-              minWidth: mobile ? 500 : undefined,
+              minWidth: mobile ? 480 : 560,
+              whiteSpace: 'nowrap' as const,
             }}>
               <span style={{ fontFamily: t.font.mono, fontSize: 11, color: t.neutrals.muted }}>
                 {(tr.trade_date || '').slice(5)}
@@ -160,7 +162,7 @@ export function TradeLog({ trades }: TradeLogProps) {
               }}>
                 {isBuy ? '매수' : '매도'}
               </span>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 <span style={{ fontWeight: t.weight.medium }}>
                   {tr.ticker.replace('.KS', '')}
                 </span>

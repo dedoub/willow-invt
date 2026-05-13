@@ -111,6 +111,7 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
             fontSize: 9.5, fontFamily: t.font.mono, letterSpacing: 0.8,
             textTransform: 'uppercase' as const, color: t.neutrals.subtle,
             marginBottom: 2,
+            whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{label}</div>
           <div style={{
             fontSize: 13, fontWeight: 600, letterSpacing: -0.3,

@@ -60,6 +60,10 @@ interface AnonymousEventStats {
     learned: number
     signin: number
   }>
+  dailyCreditUsage: Array<{
+    date: string
+    credits: number
+  }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>

@@ -259,7 +259,7 @@ function ListingTable({
   return (
     <div>
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: t.font.sans }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: t.font.sans, whiteSpace: 'nowrap' }}>
           <thead>
             <tr>
               <th style={{ ...thStyle, textAlign: 'left' }} onClick={() => onSort('complexName')}>

@@ -336,13 +336,15 @@ export default function InvestPage() {
 
         {loadPhase < 2 ? <InvestHoldingsSkeleton /> : (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, overflow: 'hidden' }}>
-          <HoldingsBlock
-            stockTrades={stockTradesFull}
-            stockQuotes={stockQuotesFull}
-            stockThemes={stockThemes}
-            usdKrwRate={usdKrw}
-            fxHistory={fxHistory}
-          />
+          <div style={{ minWidth: 0 }}>
+            <HoldingsBlock
+              stockTrades={stockTradesFull}
+              stockQuotes={stockQuotesFull}
+              stockThemes={stockThemes}
+              usdKrwRate={usdKrw}
+              fxHistory={fxHistory}
+            />
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, minHeight: 0 }}>
             <AnalysisBlock

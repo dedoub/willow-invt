@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from 'recharts'
@@ -106,6 +106,7 @@ const VALUE_SCALE_KEY = 'invest-analysis-value-scale'
 export function AnalysisBlock({
   stockTrades, stockQuotes, stockThemes, stockHistory, fxHistory, usdKrwRate, loading, chartColumns = 1,
 }: AnalysisBlockProps) {
+  const mobile = useIsMobile()
   const [viewMode, setViewMode] = useState<ViewMode>('total')
   const [valueScale, setValueScale] = useState<ValueScale>(() => {
     if (typeof window === 'undefined') return 'linear'
@@ -514,7 +515,7 @@ export function AnalysisBlock({
             <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 8 }}>
               포트폴리오 비중
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: radarData.byAiInfraSub.length > 0 ? 'repeat(3, 1fr)' : '1fr 1fr', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (radarData.byAiInfraSub.length > 0 ? 'repeat(3, 1fr)' : '1fr 1fr'), gap: 8 }}>
               <DonutChart title="테마별" data={radarData.byTheme}
                 colors={radarData.byTheme.map(d => GROUP_COLORS[d.subject] || '#94a3b8')}
                 fixedWidth={chartColumns === 2 ? 280 : undefined} />

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -56,6 +56,7 @@ interface SalesBlockProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesBlockProps) {
+  const mobile = useIsMobile()
   const [year, setYear] = useState(new Date().getFullYear())
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [page, setPage] = useState(0)
@@ -154,7 +155,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
         </div>
 
         {/* Summary stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
           <LStat label="수금완료" value={`${paidTotal.toLocaleString()}원`} tone="pos" />
           <LStat label="미수금" value={`${pendingTotal.toLocaleString()}원`} tone={pendingTotal > 0 ? 'warn' : 'default'} />
           <LStat label="예정매출" value={`${scheduledTotal.toLocaleString()}원`} tone="default" />

@@ -195,10 +195,10 @@ export default function EtcPage() {
             gridTemplateRows: mobile ? 'auto auto auto' : 'auto 1fr',
             gap: 14,
           }}>
-            <div style={mobile ? {} : { gridColumn: 1, gridRow: 1 }}>
+            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 1, gridRow: 1 }) }}>
               <StatsBlock etfs={etfs} historicalData={historicalData} />
             </div>
-            <div style={mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }}>
+            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }) }}>
               <InvoiceBlock
                 invoices={invoices}
                 onRefresh={loadInvoices}
@@ -206,10 +206,10 @@ export default function EtcPage() {
                 onEdit={handleEditInvoice}
                 onSendEtc={handleSendEtc}
                 onSendBank={handleSendBank}
-                style={{ height: '100%' }}
+                style={mobile ? undefined : { height: '100%' }}
               />
             </div>
-            <div style={mobile ? {} : { gridColumn: 1, gridRow: 2 }}>
+            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 1, gridRow: 2 }) }}>
               <ProductBlock
                 etfs={etfs}
                 onAdd={handleAddProduct}
@@ -227,21 +227,25 @@ export default function EtcPage() {
             gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
             gap: 14,
           }}>
-            <EtcWikiBlock
-              notes={wikiNotes}
-              loading={wikiLoading}
-              onCreate={handleCreateWiki}
-              onUpdate={handleUpdateWiki}
-              onDelete={handleDeleteWiki}
-            />
-            <EmailBlock
-              emails={emails}
-              connected={emailConnected}
-              onSelectEmail={setSelectedEmail}
-              onSync={handleSyncEmails}
-              onCompose={handleCompose}
-              isSyncing={isSyncing}
-            />
+            <div style={{ minWidth: 0 }}>
+              <EtcWikiBlock
+                notes={wikiNotes}
+                loading={wikiLoading}
+                onCreate={handleCreateWiki}
+                onUpdate={handleUpdateWiki}
+                onDelete={handleDeleteWiki}
+              />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <EmailBlock
+                emails={emails}
+                connected={emailConnected}
+                onSelectEmail={setSelectedEmail}
+                onSync={handleSyncEmails}
+                onCompose={handleCompose}
+                isSyncing={isSyncing}
+              />
+            </div>
           </div>
         </div>
 

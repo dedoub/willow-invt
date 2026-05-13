@@ -98,7 +98,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
         } />
       </div>
 
-      <div>
+      <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <colgroup>
             <col style={{ width: 72 }} />
