@@ -3,7 +3,7 @@ config({ path: '.env.local' })
 
 import { google } from 'googleapis'
 import { createClient } from '@supabase/supabase-js'
-import { spawn } from 'child_process'
+import { runAgent } from './lib/agent-cli'
 import os from 'os'
 
 // ============================================================
@@ -180,72 +180,11 @@ interface ClassificationResult {
 }
 
 function askClaude(prompt: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const env = { ...process.env }
-    delete (env as Record<string, string | undefined>).CLAUDECODE
-    delete (env as Record<string, string | undefined>).CLAUDE_CODE_SSE_PORT
-    delete (env as Record<string, string | undefined>).CLAUDE_CODE_ENTRYPOINT
-    delete (env as Record<string, string | undefined>).CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
-
-    // --verbose + json: result 필드 버그 우회 — assistant 메시지에서 텍스트 추출
-    const args = ['-p', '--output-format', 'json', '--verbose', '--model', 'sonnet']
-
-    const proc = spawn('claude', args, {
-      cwd: os.tmpdir(),
-      env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-
-    let stdout = ''
-    let stderr = ''
-
-    proc.stdout.on('data', (data) => { stdout += data.toString() })
-    proc.stderr.on('data', (data) => { stderr += data.toString() })
-
-    proc.on('close', (code) => {
-      if (code === 0) {
-        try {
-          const parsed = JSON.parse(stdout)
-          const events = Array.isArray(parsed) ? parsed : [parsed]
-          // assistant 이벤트에서 텍스트 추출
-          for (const event of events) {
-            if (event.type === 'assistant' && event.message?.content) {
-              const texts = event.message.content
-                .filter((c: { type: string }) => c.type === 'text')
-                .map((c: { text: string }) => c.text)
-              if (texts.length > 0) {
-                resolve(texts.join('\n').trim())
-                return
-              }
-            }
-          }
-          // fallback: result 필드
-          const resultEvent = events.find((e: { type: string }) => e.type === 'result')
-          resolve(resultEvent?.result?.trim() || '')
-        } catch {
-          // JSON 파싱 실패 시 raw stdout 반환
-          resolve(stdout.trim())
-        }
-      } else {
-        log(`Claude CLI error: ${stderr}`)
-        reject(new Error(`Claude exited with code ${code}: ${stderr}`))
-      }
-    })
-
-    proc.on('error', (err) => {
-      reject(new Error(`Failed to spawn claude: ${err.message}`))
-    })
-
-    // 5분 타임아웃
-    const timeout = setTimeout(() => {
-      proc.kill('SIGTERM')
-      reject(new Error('Claude CLI timeout (5min)'))
-    }, 5 * 60 * 1000)
-
-    proc.on('close', () => clearTimeout(timeout))
-
-    proc.stdin.write(prompt)
-    proc.stdin.end()
+  return runAgent(prompt, {
+    cwd: os.tmpdir(),
+    // Codex로 옮기면서 model 옵션은 일단 wrapper 기본값에 위임 (codex config.toml에 정의됨)
+    timeoutMs: 5 * 60 * 1000,
+    backend: 'codex',
   })
 }
 

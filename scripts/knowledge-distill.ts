@@ -2,7 +2,7 @@ import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
-import { spawn } from 'child_process'
+import { runAgent } from './lib/agent-cli'
 
 const LOG_PREFIX = '[knowledge-distill]'
 const supabase = createClient(
@@ -65,47 +65,27 @@ function log(msg: string) {
 // ============ Claude CLI ============
 
 function askClaude(prompt: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const env = { ...process.env }
-    delete (env as Record<string, string | undefined>).CLAUDECODE
-
-    const args = ['-p', '--output-format', 'json']
-    const proc = spawn('claude', args, {
-      cwd: process.cwd(),
-      env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-
-    let stdout = ''
-    let stderr = ''
-    proc.stdout.on('data', (d) => { stdout += d.toString() })
-    proc.stderr.on('data', (d) => { stderr += d.toString() })
-
-    proc.on('close', (code) => {
-      if (code === 0) resolve(stdout.trim())
-      else { log(`Claude CLI error (code ${code}): ${stderr.slice(0, 500)}`); reject(new Error(`Claude exited ${code}`)) }
-    })
-    proc.on('error', (err) => reject(new Error(`Failed to spawn claude: ${err.message}`)))
-
-    const timeout = setTimeout(() => { proc.kill('SIGTERM'); reject(new Error('Claude CLI timeout (60s)')) }, 60_000)
-    proc.on('close', () => clearTimeout(timeout))
-
-    proc.stdin.write(prompt)
-    proc.stdin.end()
-  })
+  return runAgent(prompt, { timeoutMs: 60_000, backend: 'codex' })
 }
 
 function parseClaudeJson(raw: string): { entities: Array<{ name: string; type: string; description?: string }>; relations: Array<{ subject: string; predicate: string; object: string }>; insights: Array<{ content: string; type: string; context?: string; entity_names?: string[] }> } {
   try {
-    const parsed = JSON.parse(raw)
-    const inner = typeof parsed.result === 'string' ? JSON.parse(parsed.result) : parsed
+    // runAgent는 최종 응답 텍스트를 그대로 반환 (Claude의 `{result: "..."}` 래핑 없음)
+    // 응답에 JSON 외에 부가 텍스트가 섞여 있을 수 있어 첫 `{` ~ 마지막 `}` 만 추출
+    let text = raw.trim()
+    const firstBrace = text.indexOf('{')
+    const lastBrace = text.lastIndexOf('}')
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      text = text.slice(firstBrace, lastBrace + 1)
+    }
+    const inner = JSON.parse(text)
     return {
       entities: Array.isArray(inner.entities) ? inner.entities : [],
       relations: Array.isArray(inner.relations) ? inner.relations : [],
       insights: Array.isArray(inner.insights) ? inner.insights : [],
     }
   } catch {
-    log(`Failed to parse Claude JSON output: ${raw.slice(0, 300)}`)
+    log(`Failed to parse agent JSON output: ${raw.slice(0, 300)}`)
     return { entities: [], relations: [], insights: [] }
   }
 }

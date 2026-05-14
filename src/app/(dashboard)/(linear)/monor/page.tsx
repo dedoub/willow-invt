@@ -25,6 +25,11 @@ interface UserStats {
   totalCards: number
   totalAttempts: number
   totalCredits: number
+  dailyLearnActivity: Array<{
+    date: string
+    cardsLearned: number
+    attempts: number
+  }>
   users: Array<{
     id: string
     nickname: string | null

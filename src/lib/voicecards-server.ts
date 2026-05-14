@@ -690,6 +690,12 @@ export interface VoicecardsUserStats {
   totalCards: number
   totalAttempts: number
   totalCredits: number
+  // 일별 학습 활동 (time_series_analytics 기반, 내부 계정 제외)
+  dailyLearnActivity: Array<{
+    date: string
+    cardsLearned: number
+    attempts: number
+  }>
   users: Array<{
     id: string
     nickname: string | null
@@ -705,7 +711,8 @@ export interface VoicecardsUserStats {
 export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const empty: VoicecardsUserStats = {
     totalUsers: 0, activeUsers: 0, totalSheets: 0,
-    totalCards: 0, totalAttempts: 0, totalCredits: 0, users: [],
+    totalCards: 0, totalAttempts: 0, totalCredits: 0,
+    dailyLearnActivity: [], users: [],
   }
 
   if (!voicecardsSupabase) {
@@ -713,11 +720,12 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     return empty
   }
 
-  // 유저 목록 + 학습 통계 + 마지막 활동일 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes] = await Promise.all([
+  // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 병렬 조회
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes] = await Promise.all([
     voicecardsSupabase.from('users').select('*').order('created_at', { ascending: false }),
     voicecardsSupabase.from('user_analytics').select('user_id, cards_learned, total_attempts'),
     voicecardsSupabase.from('user_analytics').select('user_id, last_updated'),
+    voicecardsSupabase.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true }),
   ])
 
   if (usersRes.error) {
@@ -764,6 +772,20 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const totalCredits = users.reduce((sum, u) => sum + (u.credits || 0), 0)
   const totalSheets = users.reduce((sum, u) => sum + (Array.isArray(u.sheet_ids) ? u.sheet_ids.length : 0), 0)
 
+  // 일별 학습 활동 (내부 계정 제외, 날짜별 합산)
+  const timeSeriesRows = (timeSeriesRes.data || []).filter(r => visibleUserIds.has(r.user_id))
+  const learnByDate = new Map<string, { cardsLearned: number; attempts: number }>()
+  for (const row of timeSeriesRows) {
+    const date = row.date as string
+    const cur = learnByDate.get(date) ?? { cardsLearned: 0, attempts: 0 }
+    cur.cardsLearned += Number(row.problems_learned) || 0
+    cur.attempts += Number(row.attempts) || 0
+    learnByDate.set(date, cur)
+  }
+  const dailyLearnActivity = Array.from(learnByDate.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, v]) => ({ date, cardsLearned: v.cardsLearned, attempts: v.attempts }))
+
   const userList = users.map(u => ({
     id: u.user_id,
     nickname: u.nickname,
@@ -792,6 +814,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     totalCards,
     totalAttempts,
     totalCredits,
+    dailyLearnActivity,
     users: userList,
   }
 }

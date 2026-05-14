@@ -2,7 +2,7 @@ import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
-import { spawn } from 'child_process'
+import { runAgent } from './lib/agent-cli'
 
 // ============================================================
 // Portfolio Briefing — 장 개장/마감 포트폴리오 브리핑
@@ -124,46 +124,10 @@ async function loadTradesSummary(): Promise<string> {
 }
 
 function askClaude(prompt: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const env = { ...process.env }
-    delete (env as Record<string, string | undefined>).CLAUDECODE
-
-    const args = ['-p', '--output-format', 'text', '--allowedTools', 'mcp__portfolio-monitor__*']
-
-    const proc = spawn('claude', args, {
-      cwd: process.cwd(),
-      env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-
-    let stdout = ''
-    let stderr = ''
-
-    proc.stdout.on('data', (data: Buffer) => { stdout += data.toString() })
-    proc.stderr.on('data', (data: Buffer) => { stderr += data.toString() })
-
-    proc.on('close', (code) => {
-      if (code === 0) {
-        resolve(stdout.trim())
-      } else {
-        log(`Claude CLI error: ${stderr}`)
-        reject(new Error(`Claude exited with code ${code}: ${stderr}`))
-      }
-    })
-
-    proc.on('error', (err) => {
-      reject(new Error(`Failed to spawn claude: ${err.message}`))
-    })
-
-    const timeout = setTimeout(() => {
-      proc.kill('SIGTERM')
-      reject(new Error('Claude CLI timeout (10min)'))
-    }, 10 * 60 * 1000)
-
-    proc.on('close', () => clearTimeout(timeout))
-
-    proc.stdin.write(prompt)
-    proc.stdin.end()
+  return runAgent(prompt, {
+    allowedTools: ['mcp__portfolio-monitor__*'],
+    timeoutMs: 10 * 60 * 1000,
+    backend: 'codex',
   })
 }
 

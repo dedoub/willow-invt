@@ -2,7 +2,7 @@ import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
-import { spawn } from 'child_process'
+import { runAgent } from './lib/agent-cli'
 import { existsSync, writeFileSync, readFileSync, unlinkSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
@@ -534,67 +534,9 @@ async function buildContext(): Promise<string> {
 const RYUHA_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__ryuha_*'
 const SUPABASE_MCP_TOOLS = 'mcp__supabase__*'
 
-function extractTextFromVerboseJson(stdout: string): string {
-  try {
-    const parsed = JSON.parse(stdout)
-    const events = Array.isArray(parsed) ? parsed : [parsed]
-    let lastText = ''
-    for (const event of events) {
-      if (event.type === 'assistant' && event.message?.content) {
-        const texts = event.message.content
-          .filter((c: { type: string }) => c.type === 'text')
-          .map((c: { text: string }) => c.text)
-        if (texts.length > 0) lastText = texts.join('\n').trim()
-      }
-    }
-    if (lastText) return lastText
-    const resultEvent = events.find((e: { type: string }) => e.type === 'result')
-    return resultEvent?.result?.trim() || ''
-  } catch {
-    return stdout.trim()
-  }
-}
-
 function askClaude(prompt: string, options?: { noTools?: boolean }): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const env = { ...process.env }
-    delete env.CLAUDECODE
-    delete env.CLAUDE_CODE_SSE_PORT
-    delete env.CLAUDE_CODE_ENTRYPOINT
-    delete env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
-
-    const args = ['-p', '--output-format', 'json', '--verbose', '--dangerously-skip-permissions']
-    if (!options?.noTools) {
-      args.push('--allowedTools', [RYUHA_MCP_TOOLS, SUPABASE_MCP_TOOLS, 'Edit', 'Write', 'Bash', 'Read', 'Glob', 'Grep'].join(','))
-    }
-
-    const proc = spawn('claude', args, {
-      cwd: process.cwd(),
-      env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-
-    let stdout = ''
-    let stderr = ''
-
-    proc.stdout.on('data', (data) => { stdout += data.toString() })
-    proc.stderr.on('data', (data) => { stderr += data.toString() })
-
-    proc.on('close', (code) => {
-      if (code === 0) {
-        resolve(extractTextFromVerboseJson(stdout))
-      } else {
-        console.error('[claude] error:', stderr.slice(0, 500))
-        reject(new Error(`Claude exited with code ${code}`))
-      }
-    })
-
-    proc.on('error', (err) => {
-      reject(new Error(`Claude spawn error: ${err.message}`))
-    })
-
-    proc.stdin.write(prompt)
-    proc.stdin.end()
+  return runAgent(prompt, {
+    allowedTools: options?.noTools ? undefined : [RYUHA_MCP_TOOLS, SUPABASE_MCP_TOOLS],
   })
 }
 

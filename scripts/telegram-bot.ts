@@ -2,10 +2,11 @@ import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
-import { spawn, execSync } from 'child_process'
+import { execSync } from 'child_process'
 import { existsSync, writeFileSync, readFileSync, unlinkSync, mkdirSync, readdirSync } from 'fs'
 import { join, basename } from 'path'
 import { markdownToTelegramHtml } from './telegram-utils'
+import { runAgent } from './lib/agent-cli'
 
 // ============================================================
 // Config
@@ -354,35 +355,16 @@ async function transcribeVoice(filePath: string): Promise<string> {
 }
 
 async function describePhoto(filePath: string, caption?: string): Promise<string> {
-  // Claude Code에 이미지 분석 요청 (파일은 삭제하지 않음 — 메인 핸들러에서 직접 Read 가능하도록)
-  return new Promise((resolve, reject) => {
-    const env = { ...process.env }
-    delete env.CLAUDECODE
-    const prompt = caption
-      ? `이 이미지를 분석해주세요. 사용자가 함께 보낸 메시지: "${caption}". 이미지에 보이는 내용을 간결하게 설명하세요.`
-      : '이 이미지를 분석하고 내용을 간결하게 설명해주세요.'
-
-    delete env.CLAUDE_CODE_SSE_PORT
-    delete env.CLAUDE_CODE_ENTRYPOINT
-    delete env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
-
-    const proc = spawn('claude', ['-p', '--output-format', 'json', '--verbose', '--dangerously-skip-permissions'], {
-      cwd: process.cwd(),
-      env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-    let stdout = ''
-    proc.stdout.on('data', (d: Buffer) => (stdout += d.toString()))
-    proc.on('close', () => {
-      resolve(extractTextFromVerboseJson(stdout) || '이미지를 분석할 수 없었어요.')
-    })
-    proc.on('error', (err: Error) => {
-      reject(err)
-    })
-    // Read tool로 이미지 경로 전달
-    proc.stdin.write(`${filePath} 파일을 Read tool로 읽어서 분석해주세요. ${prompt}`)
-    proc.stdin.end()
-  })
+  // 이미지 분석 요청 — agent CLI(Codex/Claude) 사용
+  const prompt = caption
+    ? `이 이미지를 분석해주세요. 사용자가 함께 보낸 메시지: "${caption}". 이미지에 보이는 내용을 간결하게 설명하세요.`
+    : '이 이미지를 분석하고 내용을 간결하게 설명해주세요.'
+  try {
+    const result = await runAgent(`${filePath} 파일을 Read tool로 읽어서 분석해주세요. ${prompt}`)
+    return result || '이미지를 분석할 수 없었어요.'
+  } catch {
+    return '이미지를 분석할 수 없었어요.'
+  }
 }
 
 // ============================================================
@@ -2376,74 +2358,8 @@ const TENSW_MCP_TOOLS = 'mcp__claude_ai_tensw-todo__*'
 const PORTFOLIO_MCP_TOOLS = 'mcp__portfolio-monitor__*'
 const WILLOW_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__*'
 
-// verbose JSON에서 assistant 텍스트 추출 (result 필드 버그 우회)
-function extractTextFromVerboseJson(stdout: string): string {
-  try {
-    const parsed = JSON.parse(stdout)
-    const events = Array.isArray(parsed) ? parsed : [parsed]
-    // assistant 이벤트에서 텍스트 추출 (마지막 assistant 메시지 사용)
-    let lastText = ''
-    for (const event of events) {
-      if (event.type === 'assistant' && event.message?.content) {
-        const texts = event.message.content
-          .filter((c: { type: string }) => c.type === 'text')
-          .map((c: { text: string }) => c.text)
-        if (texts.length > 0) lastText = texts.join('\n').trim()
-      }
-    }
-    if (lastText) return lastText
-    // fallback: result 필드
-    const resultEvent = events.find((e: { type: string }) => e.type === 'result')
-    return resultEvent?.result?.trim() || ''
-  } catch {
-    return stdout.trim()
-  }
-}
-
 function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession?: boolean }): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // CLAUDECODE 환경변수를 제거해야 중첩 세션 에러 방지
-    const env = { ...process.env }
-    delete env.CLAUDECODE
-    delete env.CLAUDE_CODE_SSE_PORT
-    delete env.CLAUDE_CODE_ENTRYPOINT
-    delete env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
-
-    // --verbose + json: result 필드 버그 우회 — assistant 메시지에서 텍스트 추출
-    const args = ['-p', '--output-format', 'json', '--verbose', '--dangerously-skip-permissions']
-    // allowedTools: MCP 도구 + 파일 편집 도구 항상 포함
-    const tools = [...(opts?.allowedTools || [])]
-    tools.push('Edit', 'Write', 'Bash', 'Read', 'Glob', 'Grep')
-    args.push('--allowedTools', tools.join(','))
-
-    const proc = spawn('claude', args, {
-      cwd: process.cwd(),
-      env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-
-    let stdout = ''
-    let stderr = ''
-
-    proc.stdout.on('data', (data) => { stdout += data.toString() })
-    proc.stderr.on('data', (data) => { stderr += data.toString() })
-
-    proc.on('close', (code) => {
-      if (code === 0) {
-        resolve(extractTextFromVerboseJson(stdout))
-      } else {
-        console.error('Claude CLI error:', stderr)
-        reject(new Error(`Claude exited with code ${code}: ${stderr}`))
-      }
-    })
-
-    proc.on('error', (err) => {
-      reject(new Error(`Failed to spawn claude: ${err.message}`))
-    })
-
-    proc.stdin.write(prompt)
-    proc.stdin.end()
-  })
+  return runAgent(prompt, { allowedTools: opts?.allowedTools })
 }
 
 // ============================================================

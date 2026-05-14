@@ -17,6 +17,11 @@ interface UserStats {
   totalCards: number
   totalAttempts: number
   totalCredits: number
+  dailyLearnActivity: Array<{
+    date: string
+    cardsLearned: number
+    attempts: number
+  }>
   users: Array<{
     id: string
     nickname: string | null
@@ -370,21 +375,63 @@ export function VoicecardsBlock({
             가입 후 활동 · 매출 동인
           </div>
 
+          {(() => {
+            // 날짜 기준 — 오늘 / 최근 7일 컷오프 계산
+            const todayStr = new Date().toISOString().split('T')[0]
+            const sevenDaysAgo = new Date()
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6) // 오늘 포함 7일
+            const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
+
+            // 보유 시트: 사용자 createdAt 기준 sheetCount 누적
+            const sortedUsersByDate = [...userStats.users].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+            let runningSheets = 0
+            const sheetTrajectory = sortedUsersByDate.map(u => {
+              runningSheets += u.sheetCount
+              return { date: u.createdAt.split('T')[0], value: runningSheets }
+            })
+            const todaySheets = sortedUsersByDate
+              .filter(u => u.createdAt.split('T')[0] === todayStr)
+              .reduce((sum, u) => sum + u.sheetCount, 0)
+            const last7Sheets = sortedUsersByDate
+              .filter(u => u.createdAt.split('T')[0] >= sevenDaysAgoStr)
+              .reduce((sum, u) => sum + u.sheetCount, 0)
+
+            // 학습 카드 / 학습 시도: time_series_analytics 일별 → running sum
+            const activity = userStats.dailyLearnActivity ?? []
+            let runningCards = 0
+            const cardTrajectory = activity.map(d => {
+              runningCards += d.cardsLearned
+              return { date: d.date, value: runningCards }
+            })
+            let runningAttempts = 0
+            const attemptTrajectory = activity.map(d => {
+              runningAttempts += d.attempts
+              return { date: d.date, value: runningAttempts }
+            })
+            const todayCards = activity.find(d => d.date === todayStr)?.cardsLearned ?? 0
+            const last7Cards = activity.filter(d => d.date >= sevenDaysAgoStr).reduce((s, d) => s + d.cardsLearned, 0)
+            const todayAttempts = activity.find(d => d.date === todayStr)?.attempts ?? 0
+            const last7Attempts = activity.filter(d => d.date >= sevenDaysAgoStr).reduce((s, d) => s + d.attempts, 0)
+
+            return (
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
             <LStat
               label="보유 시트"
               value={formatNumber(userStats.totalSheets)}
-              sub={userStats.totalUsers > 0 ? `사용자당 ${(userStats.totalSheets / userStats.totalUsers).toFixed(1)}개` : undefined}
+              sub={`오늘 ${formatNumber(todaySheets)}개 · 7일 ${formatNumber(last7Sheets)}개`}
+              sparkline={sheetTrajectory.length > 1 ? sheetTrajectory : undefined}
             />
             <LStat
               label="학습 카드"
               value={formatNumber(userStats.totalCards)}
-              sub={userStats.totalSheets > 0 ? `시트당 ${(userStats.totalCards / userStats.totalSheets).toFixed(1)}개` : undefined}
+              sub={`오늘 ${formatNumber(todayCards)}개 · 7일 ${formatNumber(last7Cards)}개`}
+              sparkline={cardTrajectory.length > 1 ? cardTrajectory : undefined}
             />
             <LStat
               label="학습 시도"
               value={formatNumber(userStats.totalAttempts)}
-              sub={userStats.totalCards > 0 ? `카드당 ${(userStats.totalAttempts / userStats.totalCards).toFixed(1)}회` : undefined}
+              sub={`오늘 ${formatNumber(todayAttempts)}회 · 7일 ${formatNumber(last7Attempts)}회`}
+              sparkline={attemptTrajectory.length > 1 ? attemptTrajectory : undefined}
             />
             {(() => {
               const usage = anonymousStats?.dailyCreditUsage ?? []
@@ -401,14 +448,14 @@ export function VoicecardsBlock({
                 <LStat
                   label="사용 크레딧"
                   value={formatNumber(totalUsed)}
-                  sub={usage.length > 0
-                    ? `오늘 ${formatNumber(todayUsage)} · 7일 ${formatNumber(last7Sum)}`
-                    : '아직 없음'}
+                  sub={`오늘 ${formatNumber(todayUsage)}개 · 7일 ${formatNumber(last7Sum)}개`}
                   sparkline={sparkData.length > 1 ? sparkData : undefined}
                 />
               )
             })()}
           </div>
+            )
+          })()}
         </div>
       )}
 
