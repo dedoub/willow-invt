@@ -409,7 +409,7 @@ async function processContext(context: string, excludeLabels: string[]): Promise
   log(`  📨 미분류 이메일: ${emailsToClassify.length}건`)
 
   // 3. Claude로 분류
-  log(`  🤖 Claude로 이메일 분류 중...`)
+  log(`  🤖 이메일 분류 중...`)
   const classifications = await classifyEmails(emailsToClassify, labels)
   const toLabel = classifications.filter(c => c.label)
   log(`  📊 분류 결과: ${toLabel.length}/${emailsToClassify.length}건 라벨 할당`)

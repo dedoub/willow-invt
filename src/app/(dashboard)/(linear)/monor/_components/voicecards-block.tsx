@@ -148,6 +148,9 @@ export function VoicecardsBlock({
   onOpenSettings, onRefresh, refreshing,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
+  // 매우 좁은 화면(모바일)에서만 sparkline 숨김. LStat이 sub를 자체 줄로 분리해서
+  // 일반 PC 해상도에선 sparkline 들어갈 공간 있음.
+  const compact = mobile
   const [userSort, setUserSort] = useState<UserSortKey>('created')
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
@@ -288,28 +291,28 @@ export function VoicecardsBlock({
                   value={devices.toLocaleString()}
                   sub="앱 오픈"
                   tone="info"
-                  sparkline={devicesData}
+                  sparkline={compact ? undefined : devicesData}
                 />
                 <LStat
                   label="데모 학습"
                   value={learned.toLocaleString()}
                   sub={devices > 0 ? `${fmtPct(learnConv)} 전환 · 비로그인` : '비로그인'}
                   tone={devices > 0 && learnConv >= 40 ? 'pos' : 'warn'}
-                  sparkline={learnedData}
+                  sparkline={compact ? undefined : learnedData}
                 />
                 <LStat
                   label="가입 완료"
                   value={signedUp.toLocaleString()}
                   sub={learned > 0 ? `${fmtPct(signupConv)} 전환 · 계정 생성` : '계정 생성'}
                   tone={learned > 0 && signupConv >= 10 ? 'pos' : 'warn'}
-                  sparkline={signupData}
+                  sparkline={compact ? undefined : signupData}
                 />
                 <LStat
                   label="누적 매출"
                   value={formatCurrency(revenue)}
                   sub={revenue > 0 ? '누적' : '아직 없음'}
                   tone={revenue > 0 ? 'pos' : 'default'}
-                  sparkline={revenueData}
+                  sparkline={compact ? undefined : revenueData}
                   sparkFormat={formatCurrency}
                 />
               </div>
@@ -419,19 +422,19 @@ export function VoicecardsBlock({
               label="보유 시트"
               value={formatNumber(userStats.totalSheets)}
               sub={`오늘 ${formatNumber(todaySheets)}개 · 7일 ${formatNumber(last7Sheets)}개`}
-              sparkline={sheetTrajectory.length > 1 ? sheetTrajectory : undefined}
+              sparkline={compact ? undefined : (sheetTrajectory.length > 1 ? sheetTrajectory : undefined)}
             />
             <LStat
               label="학습 카드"
               value={formatNumber(userStats.totalCards)}
               sub={`오늘 ${formatNumber(todayCards)}개 · 7일 ${formatNumber(last7Cards)}개`}
-              sparkline={cardTrajectory.length > 1 ? cardTrajectory : undefined}
+              sparkline={compact ? undefined : (cardTrajectory.length > 1 ? cardTrajectory : undefined)}
             />
             <LStat
               label="학습 시도"
               value={formatNumber(userStats.totalAttempts)}
               sub={`오늘 ${formatNumber(todayAttempts)}회 · 7일 ${formatNumber(last7Attempts)}회`}
-              sparkline={attemptTrajectory.length > 1 ? attemptTrajectory : undefined}
+              sparkline={compact ? undefined : (attemptTrajectory.length > 1 ? attemptTrajectory : undefined)}
             />
             {(() => {
               const usage = anonymousStats?.dailyCreditUsage ?? []
@@ -449,7 +452,7 @@ export function VoicecardsBlock({
                   label="사용 크레딧"
                   value={formatNumber(totalUsed)}
                   sub={`오늘 ${formatNumber(todayUsage)}개 · 7일 ${formatNumber(last7Sum)}개`}
-                  sparkline={sparkData.length > 1 ? sparkData : undefined}
+                  sparkline={compact ? undefined : (sparkData.length > 1 ? sparkData : undefined)}
                 />
               )
             })()}

@@ -360,7 +360,7 @@ async function describePhoto(filePath: string, caption?: string): Promise<string
     ? `이 이미지를 분석해주세요. 사용자가 함께 보낸 메시지: "${caption}". 이미지에 보이는 내용을 간결하게 설명하세요.`
     : '이 이미지를 분석하고 내용을 간결하게 설명해주세요.'
   try {
-    const result = await runAgent(`${filePath} 파일을 Read tool로 읽어서 분석해주세요. ${prompt}`)
+    const result = await runAgent(`${filePath} 파일을 Read tool로 읽어서 분석해주세요. ${prompt}`, { backend: 'codex' })
     return result || '이미지를 분석할 수 없었어요.'
   } catch {
     return '이미지를 분석할 수 없었어요.'
@@ -1307,7 +1307,7 @@ async function checkFollowUps() {
 }
 
 async function sendWeeklyBriefing(chatId: number) {
-  console.log('📋 텐소프트웍스 주간 브리핑 생성 중 (Claude CLI 분석)...')
+  console.log('📋 텐소프트웍스 주간 브리핑 생성 중...')
   await sendTyping(chatId)
 
   const rawData = await fetchWeeklyBriefingData()
@@ -2359,7 +2359,7 @@ const PORTFOLIO_MCP_TOOLS = 'mcp__portfolio-monitor__*'
 const WILLOW_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__*'
 
 function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession?: boolean }): Promise<string> {
-  return runAgent(prompt, { allowedTools: opts?.allowedTools })
+  return runAgent(prompt, { allowedTools: opts?.allowedTools, backend: 'codex' })
 }
 
 // ============================================================
@@ -3086,7 +3086,7 @@ ${text}
       return
     }
 
-    await addProgress('🤖 Claude 분석 중...')
+    await addProgress('🤖 분석 중...')
 
     // 타이핑 유지 (Claude 처리 중)
     const typingInterval = setInterval(() => sendTyping(chatId), 4000)
@@ -3099,7 +3099,7 @@ ${text}
 
     clearInterval(typingInterval)
 
-    await addProgress(`✅ Claude 응답 ${(response.length / 1000).toFixed(1)}K자`)
+    await addProgress(`✅ 응답 ${(response.length / 1000).toFixed(1)}K자`)
 
     // abort 체크 — Claude 응답 후에도 새 메시지가 왔으면 취소
     if (abortSignal?.aborted) {

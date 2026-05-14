@@ -105,6 +105,7 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
       background: t.neutrals.inner, borderRadius: t.radius.sm,
       padding: '8px 10px', position: 'relative',
     }}>
+      {/* Row 1: label/value (왼쪽) + sparkline (오른쪽) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{
@@ -122,12 +123,6 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
             {value}
             {unit && <span style={{ fontSize: 11, marginLeft: 3, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
           </div>
-          {sub && (
-            <div style={{
-              fontSize: 9.5, color: t.neutrals.muted, marginTop: 1,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>{sub}</div>
-          )}
         </div>
         {sparkData.length > 1 && (
           <div style={{ flexShrink: 0 }}>
@@ -135,6 +130,13 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
           </div>
         )}
       </div>
+      {/* Row 2: sub (전체 폭) */}
+      {sub && (
+        <div style={{
+          fontSize: 9.5, color: t.neutrals.muted, marginTop: 4,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{sub}</div>
+      )}
     </div>
   )
 }

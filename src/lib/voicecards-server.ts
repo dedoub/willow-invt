@@ -767,8 +767,6 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     userCardsMap.set(a.user_id, (userCardsMap.get(a.user_id) || 0) + (Number(a.cards_learned) || 0))
   }
 
-  const totalCards = analytics.reduce((sum, a) => sum + (Number(a.cards_learned) || 0), 0)
-  const totalAttempts = analytics.reduce((sum, a) => sum + (Number(a.total_attempts) || 0), 0)
   const totalCredits = users.reduce((sum, u) => sum + (u.credits || 0), 0)
   const totalSheets = users.reduce((sum, u) => sum + (Array.isArray(u.sheet_ids) ? u.sheet_ids.length : 0), 0)
 
@@ -785,6 +783,10 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const dailyLearnActivity = Array.from(learnByDate.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, v]) => ({ date, cardsLearned: v.cardsLearned, attempts: v.attempts }))
+
+  // 누적 학습 카드/시도 — time_series_analytics 합과 일치하도록 통일 (sparkline endpoint도 맞춰짐)
+  const totalCards = dailyLearnActivity.reduce((sum, d) => sum + d.cardsLearned, 0)
+  const totalAttempts = dailyLearnActivity.reduce((sum, d) => sum + d.attempts, 0)
 
   const userList = users.map(u => ({
     id: u.user_id,
@@ -848,7 +850,8 @@ export interface AnonymousEventStats {
   }>
   dailyCreditUsage: Array<{
     date: string
-    credits: number   // ai_generation_success 이벤트의 card_count_returned 합 (카드 1장 = 1크레딧 가정)
+    // 크레딧 사용 = AI 생성 카드 수 + tts_played 재생 횟수 (둘 다 1크레딧/건 가정)
+    credits: number
   }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
@@ -942,13 +945,18 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       }
     }
 
-    // 일별 크레딧 사용 (ai_generation_success의 card_count_returned 합)
+    // 일별 크레딧 사용
+    //  - AI 생성: card_count_returned 합 (생성된 카드 1장 = 1크레딧)
+    //  - 음성 듣기 (tts_played): 재생 1회 = 1크레딧
     if (eventName === 'ai_generation_success' && row.properties) {
       const props = row.properties as Record<string, unknown>
       const cardCount = Number(props.card_count_returned) || 0
       if (cardCount > 0) {
         creditUsageByDate.set(date, (creditUsageByDate.get(date) ?? 0) + cardCount)
       }
+    }
+    if (eventName === 'tts_played') {
+      creditUsageByDate.set(date, (creditUsageByDate.get(date) ?? 0) + 1)
     }
 
     // Platform

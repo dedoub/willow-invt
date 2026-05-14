@@ -537,6 +537,7 @@ const SUPABASE_MCP_TOOLS = 'mcp__supabase__*'
 function askClaude(prompt: string, options?: { noTools?: boolean }): Promise<string> {
   return runAgent(prompt, {
     allowedTools: options?.noTools ? undefined : [RYUHA_MCP_TOOLS, SUPABASE_MCP_TOOLS],
+    backend: 'codex',
   })
 }
 
