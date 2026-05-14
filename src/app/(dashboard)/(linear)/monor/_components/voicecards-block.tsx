@@ -141,7 +141,7 @@ const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
   { key: 'sheets',   label: '시트' },
   { key: 'cards',    label: '카드' },
   { key: 'attempts', label: '말하기' },
-  { key: 'credits',  label: '크레딧' },
+  { key: 'credits',  label: '프리미엄' },
   { key: 'recent',   label: '활동일' },
   { key: 'created',  label: '가입일' },
 ]
@@ -459,9 +459,9 @@ export function VoicecardsBlock({
               })
               return (
                 <LStat
-                  label="사용 크레딧"
+                  label="프리미엄 기능"
                   value={formatNumber(totalUsed)}
-                  sub={`오늘 ${formatNumber(todayUsage)}개 · 7일 ${formatNumber(last7Sum)}개`}
+                  sub={`오늘 ${formatNumber(todayUsage)}회 · 7일 ${formatNumber(last7Sum)}회`}
                   sparkline={compact ? undefined : (sparkData.length > 1 ? sparkData : undefined)}
                 />
               )
@@ -540,7 +540,7 @@ export function VoicecardsBlock({
                     fontSize: 9.5, color: t.neutrals.muted,
                     whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
-                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 사용 크레딧 {formatNumber(user.creditsUsed)} · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'}
+                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 프리미엄 {formatNumber(user.creditsUsed)}회 · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'}
                   </div>
                 </div>
 
