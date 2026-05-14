@@ -699,7 +699,8 @@ export interface VoicecardsUserStats {
   users: Array<{
     id: string
     nickname: string | null
-    credits: number
+    credits: number          // 현재 잔액
+    creditsUsed: number      // 이벤트 기반 사용량 (tts_played + ai_generation_success.card_count)
     sheetCount: number
     cards: number
     attempts: number
@@ -720,12 +721,13 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     return empty
   }
 
-  // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes] = await Promise.all([
+  // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 병렬 조회
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, creditEventsRes] = await Promise.all([
     voicecardsSupabase.from('users').select('*').order('created_at', { ascending: false }),
     voicecardsSupabase.from('user_analytics').select('user_id, cards_learned, total_attempts'),
     voicecardsSupabase.from('user_analytics').select('user_id, last_updated'),
     voicecardsSupabase.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true }),
+    voicecardsSupabase.from('anonymous_events').select('user_id, event_name, properties').in('event_name', ['tts_played', 'ai_generation_success']),
   ])
 
   if (usersRes.error) {
@@ -788,10 +790,39 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const totalCards = dailyLearnActivity.reduce((sum, d) => sum + d.cardsLearned, 0)
   const totalAttempts = dailyLearnActivity.reduce((sum, d) => sum + d.attempts, 0)
 
+  // 사용자별 크레딧 사용량 (이벤트 기반)
+  //  - AI 생성: card_count_returned 합 (각 성공 = N 크레딧)
+  //  - TTS 재생: 동일 카드 반복 재생은 캐시 사용해서 크레딧 안 듦
+  //            → (user, card_index, language_code) 조합으로 dedup해서 최초 1회만 카운트
+  const ttsUniqueKeys = new Set<string>()
+  const userCreditsUsedMap = new Map<string, number>()
+  for (const row of (creditEventsRes.data || [])) {
+    const uid = row.user_id as string | null
+    if (!uid || !visibleUserIds.has(uid)) continue
+    const props = row.properties as Record<string, unknown> | undefined
+
+    let credits = 0
+    if (row.event_name === 'tts_played' && props) {
+      const cardIdx = String(props.card_index ?? '')
+      const lang = String(props.language_code ?? '')
+      const key = `${uid}|${cardIdx}|${lang}`
+      if (!ttsUniqueKeys.has(key)) {
+        ttsUniqueKeys.add(key)
+        credits = 1
+      }
+    } else if (row.event_name === 'ai_generation_success' && props) {
+      credits = Number(props.card_count_returned) || 0
+    }
+    if (credits > 0) {
+      userCreditsUsedMap.set(uid, (userCreditsUsedMap.get(uid) || 0) + credits)
+    }
+  }
+
   const userList = users.map(u => ({
     id: u.user_id,
     nickname: u.nickname,
     credits: u.credits || 0,
+    creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
     sheetCount: u.sheet_ids?.length || 0,
     cards: userCardsMap.get(u.user_id) || 0,
     attempts: userAttemptsMap.get(u.user_id) || 0,
@@ -895,6 +926,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   const platformMap = new Map<string, { devices: Set<string>; events: number }>()
   const localeMap = new Map<string, Set<string>>()
   const creditUsageByDate = new Map<string, number>()
+  const ttsDailyDedupKeys = new Set<string>()
 
   // 누적 distinct를 위해 날짜 순서 + 날짜별 스냅샷 (마지막 이벤트 후 size)
   const dateOrder: string[] = []
@@ -947,7 +979,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
 
     // 일별 크레딧 사용
     //  - AI 생성: card_count_returned 합 (생성된 카드 1장 = 1크레딧)
-    //  - 음성 듣기 (tts_played): 재생 1회 = 1크레딧
+    //  - TTS 재생: (device_id, card_index, language_code) 조합으로 dedup (반복 재생은 캐시 → 크레딧 안 듦)
     if (eventName === 'ai_generation_success' && row.properties) {
       const props = row.properties as Record<string, unknown>
       const cardCount = Number(props.card_count_returned) || 0
@@ -955,8 +987,15 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
         creditUsageByDate.set(date, (creditUsageByDate.get(date) ?? 0) + cardCount)
       }
     }
-    if (eventName === 'tts_played') {
-      creditUsageByDate.set(date, (creditUsageByDate.get(date) ?? 0) + 1)
+    if (eventName === 'tts_played' && row.properties) {
+      const props = row.properties as Record<string, unknown>
+      const cardIdx = String(props.card_index ?? '')
+      const lang = String(props.language_code ?? '')
+      const key = `${deviceId}|${cardIdx}|${lang}`
+      if (!ttsDailyDedupKeys.has(key)) {
+        ttsDailyDedupKeys.add(key)
+        creditUsageByDate.set(date, (creditUsageByDate.get(date) ?? 0) + 1)
+      }
     }
 
     // Platform

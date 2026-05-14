@@ -26,6 +26,7 @@ interface UserStats {
     id: string
     nickname: string | null
     credits: number
+    creditsUsed: number
     sheetCount: number
     cards: number
     attempts: number
@@ -134,12 +135,14 @@ function formatLocale(locale: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type UserSortKey = 'recent' | 'attempts' | 'sheets' | 'created'
+type UserSortKey = 'sheets' | 'cards' | 'attempts' | 'credits' | 'recent' | 'created'
 
 const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
-  { key: 'sheets',   label: '보유 시트' },
-  { key: 'attempts', label: '학습 시도' },
-  { key: 'recent',   label: '최근 학습' },
+  { key: 'sheets',   label: '시트' },
+  { key: 'cards',    label: '카드' },
+  { key: 'attempts', label: '말하기' },
+  { key: 'credits',  label: '크레딧' },
+  { key: 'recent',   label: '활동일' },
   { key: 'created',  label: '가입일' },
 ]
 
@@ -158,26 +161,33 @@ export function VoicecardsBlock({
   const sortedUsers = useMemo(() => {
     if (!userStats) return []
     const arr = [...userStats.users]
+    // 공통 tiebreaker: 최근 활동일 → 가입일
+    const recencyTiebreak = (a: typeof arr[number], b: typeof arr[number]) => {
+      const cmp = (b.lastActiveAt || '').localeCompare(a.lastActiveAt || '')
+      return cmp !== 0 ? cmp : b.createdAt.localeCompare(a.createdAt)
+    }
+    // 크레딧 사용량 — 이벤트 기반 (추가 결제 영향 없음)
+    const creditsUsed = (u: typeof arr[number]) => u.creditsUsed ?? 0
+
     switch (userSort) {
-      case 'attempts':
-        arr.sort((a, b) => b.attempts - a.attempts || (b.lastActiveAt || '').localeCompare(a.lastActiveAt || ''))
-        break
       case 'sheets':
-        arr.sort((a, b) => b.sheetCount - a.sheetCount || b.attempts - a.attempts)
+        arr.sort((a, b) => (b.sheetCount - a.sheetCount) || recencyTiebreak(a, b))
         break
-      case 'created':
-        arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      case 'cards':
+        arr.sort((a, b) => (b.cards - a.cards) || recencyTiebreak(a, b))
+        break
+      case 'attempts':
+        arr.sort((a, b) => (b.attempts - a.attempts) || recencyTiebreak(a, b))
+        break
+      case 'credits':
+        arr.sort((a, b) => (creditsUsed(b) - creditsUsed(a)) || recencyTiebreak(a, b))
         break
       case 'recent':
+        arr.sort((a, b) => recencyTiebreak(a, b))
+        break
+      case 'created':
       default:
-        arr.sort((a, b) => {
-          const aDate = a.lastActiveAt || ''
-          const bDate = b.lastActiveAt || ''
-          if (aDate && bDate) return bDate.localeCompare(aDate)
-          if (aDate) return -1
-          if (bDate) return 1
-          return b.createdAt.localeCompare(a.createdAt)
-        })
+        arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     }
     return arr
   }, [userStats, userSort])
@@ -431,7 +441,7 @@ export function VoicecardsBlock({
               sparkline={compact ? undefined : (cardTrajectory.length > 1 ? cardTrajectory : undefined)}
             />
             <LStat
-              label="학습 시도"
+              label="말하기 학습"
               value={formatNumber(userStats.totalAttempts)}
               sub={`오늘 ${formatNumber(todayAttempts)}회 · 7일 ${formatNumber(last7Attempts)}회`}
               sparkline={compact ? undefined : (attemptTrajectory.length > 1 ? attemptTrajectory : undefined)}
@@ -530,7 +540,7 @@ export function VoicecardsBlock({
                     fontSize: 9.5, color: t.neutrals.muted,
                     whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
-                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 학습 {formatNumber(user.attempts)}회 · {user.lastActiveAt ? `최근 ${formatDate(user.lastActiveAt)}` : formatDate(user.createdAt)}
+                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 사용 크레딧 {formatNumber(user.creditsUsed)} · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'}
                   </div>
                 </div>
 

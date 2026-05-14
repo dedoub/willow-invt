@@ -34,6 +34,7 @@ interface UserStats {
     id: string
     nickname: string | null
     credits: number
+    creditsUsed: number
     sheetCount: number
     cards: number
     attempts: number
