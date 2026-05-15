@@ -721,14 +721,36 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     return empty
   }
 
+  const vc = voicecardsSupabase
+  // 페이지네이션 헬퍼 — Supabase 기본 1000 row 한도 우회
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function fetchAllPaged<T = any>(makeQuery: () => any): Promise<T[]> {
+    const PAGE = 1000
+    const all: T[] = []
+    let from = 0
+    while (true) {
+      const { data, error } = await makeQuery().range(from, from + PAGE - 1)
+      if (error || !data) break
+      all.push(...(data as T[]))
+      if (data.length < PAGE) break
+      from += PAGE
+    }
+    return all
+  }
+
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, creditEventsRes] = await Promise.all([
-    voicecardsSupabase.from('users').select('*').order('created_at', { ascending: false }),
-    voicecardsSupabase.from('user_analytics').select('user_id, cards_learned, total_attempts'),
-    voicecardsSupabase.from('user_analytics').select('user_id, last_updated'),
-    voicecardsSupabase.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true }),
-    voicecardsSupabase.from('anonymous_events').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played', 'ai_generation_success']),
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, creditEventsRows] = await Promise.all([
+    vc.from('users').select('*').order('created_at', { ascending: false }),
+    vc.from('user_analytics').select('user_id, cards_learned, total_attempts'),
+    vc.from('user_analytics').select('user_id, last_updated'),
+    fetchAllPaged<{ user_id: string; date: string; problems_learned: number; attempts: number }>(
+      () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true })
+    ),
+    fetchAllPaged<{ user_id: string; event_name: string; properties: Record<string, unknown> | null }>(
+      () => vc.from('anonymous_events').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played', 'ai_generation_success'])
+    ),
   ])
+  const creditEventsRes = { data: creditEventsRows }
 
   if (usersRes.error) {
     console.error('[VoiceCards] Error fetching users:', usersRes.error)
@@ -773,7 +795,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const totalSheets = users.reduce((sum, u) => sum + (Array.isArray(u.sheet_ids) ? u.sheet_ids.length : 0), 0)
 
   // 일별 학습 활동 (내부 계정 제외, 날짜별 합산)
-  const timeSeriesRows = (timeSeriesRes.data || []).filter(r => visibleUserIds.has(r.user_id))
+  const timeSeriesRows = timeSeriesRes.filter(r => visibleUserIds.has(r.user_id))
   const learnByDate = new Map<string, { cardsLearned: number; attempts: number }>()
   for (const row of timeSeriesRows) {
     const date = row.date as string
