@@ -935,10 +935,13 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   const cumulativeSnapshot = new Map<string, { devices: number; learned: number; signin: number }>()
   let lastDate = ''
 
+  // ISO 타임스탬프를 KST 날짜(YYYY-MM-DD)로 변환
+  const toKstDate = (iso: string): string => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+
   for (const row of data) {
     const deviceId = row.device_id as string
     const eventName = row.event_name as string
-    const date = (row.created_at as string).split('T')[0]
+    const date = toKstDate(row.created_at as string)
 
     allDevices.add(deviceId)
 

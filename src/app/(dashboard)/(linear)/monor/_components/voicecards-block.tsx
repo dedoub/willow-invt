@@ -389,24 +389,28 @@ export function VoicecardsBlock({
           </div>
 
           {(() => {
-            // 날짜 기준 — 오늘 / 최근 7일 컷오프 계산
-            const todayStr = new Date().toISOString().split('T')[0]
+            // 날짜 기준 — KST 기준 오늘 / 최근 7일 컷오프 계산
+            const toKst = (d: Date | string): string => {
+              const date = typeof d === 'string' ? new Date(d) : d
+              return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+            }
+            const todayStr = toKst(new Date())
             const sevenDaysAgo = new Date()
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6) // 오늘 포함 7일
-            const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
+            const sevenDaysAgoStr = toKst(sevenDaysAgo)
 
-            // 보유 시트: 사용자 createdAt 기준 sheetCount 누적
+            // 보유 시트: 사용자 createdAt 기준 sheetCount 누적 (createdAt → KST 날짜로 변환)
             const sortedUsersByDate = [...userStats.users].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
             let runningSheets = 0
             const sheetTrajectory = sortedUsersByDate.map(u => {
               runningSheets += u.sheetCount
-              return { date: u.createdAt.split('T')[0], value: runningSheets }
+              return { date: toKst(u.createdAt), value: runningSheets }
             })
             const todaySheets = sortedUsersByDate
-              .filter(u => u.createdAt.split('T')[0] === todayStr)
+              .filter(u => toKst(u.createdAt) === todayStr)
               .reduce((sum, u) => sum + u.sheetCount, 0)
             const last7Sheets = sortedUsersByDate
-              .filter(u => u.createdAt.split('T')[0] >= sevenDaysAgoStr)
+              .filter(u => toKst(u.createdAt) >= sevenDaysAgoStr)
               .reduce((sum, u) => sum + u.sheetCount, 0)
 
             // 학습 카드 / 학습 시도: time_series_analytics 일별 → running sum
