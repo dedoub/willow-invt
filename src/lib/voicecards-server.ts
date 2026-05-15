@@ -747,7 +747,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true })
     ),
     fetchAllPaged<{ user_id: string; event_name: string; properties: Record<string, unknown> | null }>(
-      () => vc.from('anonymous_events').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played', 'ai_generation_success'])
+      () => vc.from('anonymous_events').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played', 'ai_generation_success']).eq('is_likely_bot', false)
     ),
   ])
   const creditEventsRes = { data: creditEventsRows }
@@ -905,6 +905,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
     const { data, error } = await voicecardsSupabase
       .from('anonymous_events')
       .select('*')
+      .eq('is_likely_bot', false)  // 봇 트래픽 제외
       .order('created_at', { ascending: true })
       .range(from, from + PAGE - 1)
     if (error || !data) break
