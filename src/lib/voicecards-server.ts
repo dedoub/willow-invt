@@ -747,7 +747,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true })
     ),
     fetchAllPaged<{ user_id: string; event_name: string; properties: Record<string, unknown> | null }>(
-      () => vc.from('anonymous_events_real_users').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played', 'ai_generation_success'])
+      () => vc.from('anonymous_events_real_users').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played', 'ai_generation_success']).eq('is_likely_bot', false)
     ),
   ])
   const creditEventsRes = { data: creditEventsRows }
@@ -903,8 +903,9 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   let from = 0
   while (true) {
     const { data, error } = await voicecardsSupabase
-      .from('anonymous_events_real_users')  // store-bot (Apple/Google automation) 제외된 view
+      .from('anonymous_events_real_users')  // store-bot (Apple/Google IP) 제외된 view
       .select('*')
+      .eq('is_likely_bot', false)  // 휴리스틱 봇 플래그도 추가 필터
       .order('created_at', { ascending: true })
       .range(from, from + PAGE - 1)
     if (error || !data) break
