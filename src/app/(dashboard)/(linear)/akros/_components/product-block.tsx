@@ -136,6 +136,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
                 </td>
                 <td style={{
                   ...tdStyle, textAlign: 'right', fontFamily: t.font.mono,
+                  fontVariantNumeric: 'tabular-nums',
                   color: (p.product_flow ?? 0) >= 0 ? '#16A34A' : '#DC2626',
                 }}>
                   {fmtFlow(p.product_flow, p.currency)}
