@@ -55,7 +55,7 @@ export default function RyuhaPage() {
 
   // ── Data loading ──────────────────────────────────────────────
   const loadData = useCallback(async () => {
-    setLoading(true)
+    // 재로드 시 loading 유지 — 달력 등 자식 상태 보존 (초기 스켈레톤은 useState(true) 기본값으로 표시됨)
     try {
       const [subjectsRes, textbooksRes, chaptersRes, schedulesRes, memosRes, notesRes, bodyRes] = await Promise.all([
         fetch('/api/ryuha/subjects'),

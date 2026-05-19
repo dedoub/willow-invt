@@ -132,7 +132,7 @@ export default function TenswPage() {
   }, [])
 
   const loadData = useCallback(async () => {
-    setLoadPhase(0)
+    // 재로드 시 phase 유지 — 달력/사용자 상태 보존 (useState 기본값으로 초기 스켈레톤은 표시됨)
     try {
       const [projectsRes, schedulesRes, clientsRes, cashRes, salesRes, loansRes, balancesRes, historyRes] =
         await Promise.all([

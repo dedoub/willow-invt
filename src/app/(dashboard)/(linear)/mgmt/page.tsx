@@ -71,7 +71,8 @@ export default function MgmtPage() {
   ] as const
 
   const loadData = useCallback(async () => {
-    setLoadPhase(0)
+    // 초기 마운트는 useState(0) 기본값으로 스켈레톤 표시.
+    // 저장/수정 후 재로드 시에는 phase를 유지해서 자식 컴포넌트(달력 등) 언마운트 방지.
     try {
       const [clientsRes, schedulesRes, invoicesRes, balancesRes, historyRes] = await Promise.all([
         fetch('/api/willow-mgmt/clients'),
