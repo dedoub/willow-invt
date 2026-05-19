@@ -699,6 +699,7 @@ export interface VoicecardsUserStats {
   users: Array<{
     id: string
     nickname: string | null
+    appVersion: string | null  // 가장 최근 활동 시 앱 버전
     credits: number          // 현재 잔액
     creditsUsed: number      // 프리미엄 기능 사용 횟수 (tts_played + voice_preview_played + ai_generation_success)
     sheetCount: number
@@ -738,8 +739,8 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     return all
   }
 
-  // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, creditEventsRows] = await Promise.all([
+  // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, creditEventsRows, versionRows] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
     vc.from('user_analytics').select('user_id, cards_learned, total_attempts'),
     vc.from('user_analytics').select('user_id, last_updated'),
@@ -748,6 +749,10 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     ),
     fetchAllPaged<{ user_id: string; event_name: string; properties: Record<string, unknown> | null }>(
       () => vc.from('anonymous_events_real_users').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played', 'ai_generation_success']).eq('is_likely_bot', false)
+    ),
+    // 사용자별 최근 앱 버전 — created_at desc 정렬 후 user_id별 첫 row가 최신
+    fetchAllPaged<{ user_id: string; app_version: string | null; created_at: string }>(
+      () => vc.from('anonymous_events_real_users').select('user_id, app_version, created_at').not('user_id', 'is', null).not('app_version', 'is', null).order('created_at', { ascending: false })
     ),
   ])
   const creditEventsRes = { data: creditEventsRows }
@@ -821,9 +826,18 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     userCreditsUsedMap.set(uid, (userCreditsUsedMap.get(uid) || 0) + 1)
   }
 
+  // 사용자별 최근 앱 버전 (versionRows는 created_at desc로 정렬됨 → user_id 첫 등장이 최신)
+  const userAppVersionMap = new Map<string, string>()
+  for (const row of versionRows) {
+    if (row.user_id && row.app_version && !userAppVersionMap.has(row.user_id)) {
+      userAppVersionMap.set(row.user_id, row.app_version)
+    }
+  }
+
   const userList = users.map(u => ({
     id: u.user_id,
     nickname: u.nickname,
+    appVersion: userAppVersionMap.get(u.user_id) || null,
     credits: u.credits || 0,
     creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
     sheetCount: u.sheet_ids?.length || 0,

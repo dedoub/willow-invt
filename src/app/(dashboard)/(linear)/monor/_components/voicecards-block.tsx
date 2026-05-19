@@ -25,6 +25,7 @@ interface UserStats {
   users: Array<{
     id: string
     nickname: string | null
+    appVersion: string | null
     credits: number
     creditsUsed: number
     sheetCount: number
@@ -533,12 +534,26 @@ export function VoicecardsBlock({
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontSize: 11, fontWeight: 500,
-                    color: user.nickname ? t.neutrals.text : t.neutrals.muted,
-                    fontFamily: user.nickname ? t.font.sans : t.font.mono,
-                    whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
+                    display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
                   }}>
-                    {user.nickname || fallbackName}
+                    <span style={{
+                      fontSize: 11, fontWeight: 500,
+                      color: user.nickname ? t.neutrals.text : t.neutrals.muted,
+                      fontFamily: user.nickname ? t.font.sans : t.font.mono,
+                      whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
+                      minWidth: 0,
+                    }}>
+                      {user.nickname || fallbackName}
+                    </span>
+                    {user.appVersion && (
+                      <span style={{
+                        fontSize: 9, fontFamily: t.font.mono, color: t.neutrals.muted,
+                        background: t.neutrals.card, padding: '1px 4px', borderRadius: 3,
+                        flexShrink: 0, lineHeight: 1.4,
+                      }}>
+                        v{user.appVersion}
+                      </span>
+                    )}
                   </div>
                   <div style={{
                     fontSize: 9.5, color: t.neutrals.muted,

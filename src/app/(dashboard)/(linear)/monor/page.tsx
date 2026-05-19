@@ -33,6 +33,7 @@ interface UserStats {
   users: Array<{
     id: string
     nickname: string | null
+    appVersion: string | null
     credits: number
     creditsUsed: number
     sheetCount: number
