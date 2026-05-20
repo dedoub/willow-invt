@@ -152,21 +152,22 @@ const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 
 function SkelBar({ width, height = 12, style }: { width: number | string; height?: number; style?: React.CSSProperties }) {
-  return <div className="l-skeleton" style={{ width, height, ...style }} />
+  return <div className="l-skeleton" style={{ width, height, maxWidth: '100%', ...style }} />
 }
 
 function SkelStat({ compact }: { compact: boolean }) {
   return (
     <div style={{
-      padding: '10px 12px', borderRadius: t.radius.md, background: t.neutrals.inner,
+      padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
       display: 'flex', flexDirection: 'column', gap: 6, minHeight: 78,
+      minWidth: 0, overflow: 'hidden',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <SkelBar width={60} height={9} style={{ marginBottom: 6 }} />
           <SkelBar width={80} height={18} />
         </div>
-        {!compact && <SkelBar width={56} height={20} />}
+        {!compact && <SkelBar width={56} height={20} style={{ flexShrink: 0 }} />}
       </div>
       <SkelBar width="70%" height={9} />
     </div>
@@ -180,12 +181,13 @@ function SkelSectionHeader({ width = 100 }: { width?: number }) {
 function SkelPie() {
   return (
     <div style={{
-      padding: 12, borderRadius: t.radius.md, background: t.neutrals.inner,
-      display: 'flex', flexDirection: 'column', gap: 10, minHeight: 160,
+      padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 96,
+      minWidth: 0, overflow: 'hidden',
     }}>
       <SkelBar width={70} height={10} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-        <div className="l-skeleton" style={{ width: 90, height: 90, borderRadius: '50%' }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '6px 0' }}>
+        <div className="l-skeleton" style={{ width: 80, height: 80, borderRadius: '50%', flexShrink: 0, maxWidth: '100%' }} />
       </div>
     </div>
   )
