@@ -614,3 +614,14 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 
 @keyframes spin { to { transform: rotate(360deg) } }
 .spin { animation: spin 1s linear infinite; }
+
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.l-skeleton {
+  background: linear-gradient(90deg, #EFEFF1 0%, #F6F6F7 40%, #EFEFF1 80%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: 4px;
+}

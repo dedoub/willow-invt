@@ -83,8 +83,10 @@ interface AnonymousEventStats {
 export default function MonorPage() {
   const mobile = useIsMobile()
 
-  // VoiceCards state
-  const [vcLoading, setVcLoading] = useState(true)
+  // VoiceCards state — 3개 파트 독립 로딩 (사용자/이벤트/매출)
+  const [vcUsersLoading, setVcUsersLoading] = useState(true)
+  const [vcEventsLoading, setVcEventsLoading] = useState(true)
+  const [vcRevenueLoading, setVcRevenueLoading] = useState(true)
   const [vcRefreshing, setVcRefreshing] = useState(false)
   const [vcStats, setVcStats] = useState<CombinedStats | null>(null)
   const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
@@ -103,24 +105,45 @@ export default function MonorPage() {
 
   const loadVoicecards = useCallback(async (refresh = false) => {
     if (refresh) setVcRefreshing(true)
-    else setVcLoading(true)
-    try {
-      const end = new Date().toISOString().split('T')[0]
-      const start = `${new Date().getFullYear()}-01-01`
-      const res = await fetch(`/api/voicecards/stats?startDate=${start}&endDate=${end}`)
-      if (res.ok) {
-        const data = await res.json()
-        setVcStats(data.stats)
-        setVcUserStats(data.userStats || null)
-        setVcAnonStats(data.anonymousStats || null)
-        setVcChartData(data.chartData || [])
-      }
-    } catch (err) {
-      console.error('VoiceCards load error:', err)
-    } finally {
-      setVcLoading(false)
-      setVcRefreshing(false)
+    if (!refresh) {
+      setVcUsersLoading(true)
+      setVcEventsLoading(true)
+      setVcRevenueLoading(true)
     }
+
+    const end = new Date().toISOString().split('T')[0]
+    const start = `${new Date().getFullYear()}-01-01`
+
+    // 3개 API 병렬 호출 — 각 응답이 도착하는 대로 즉시 화면 반영
+    const usersP = fetch('/api/voicecards/stats/users')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setVcUserStats(data.userStats || null)
+      })
+      .catch(err => console.error('VoiceCards users load error:', err))
+      .finally(() => setVcUsersLoading(false))
+
+    const eventsP = fetch('/api/voicecards/stats/events')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setVcAnonStats(data.anonymousStats || null)
+      })
+      .catch(err => console.error('VoiceCards events load error:', err))
+      .finally(() => setVcEventsLoading(false))
+
+    const revenueP = fetch(`/api/voicecards/stats?startDate=${start}&endDate=${end}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setVcStats(data.stats)
+          setVcChartData(data.chartData || [])
+        }
+      })
+      .catch(err => console.error('VoiceCards revenue load error:', err))
+      .finally(() => setVcRevenueLoading(false))
+
+    await Promise.all([usersP, eventsP, revenueP])
+    setVcRefreshing(false)
   }, [])
 
   const loadReviewnotes = useCallback(async (refresh = false) => {
@@ -176,7 +199,9 @@ export default function MonorPage() {
         alignItems: 'start',
       }}>
         <VoicecardsBlock
-          loading={vcLoading}
+          usersLoading={vcUsersLoading}
+          eventsLoading={vcEventsLoading}
+          revenueLoading={vcRevenueLoading}
           stats={vcStats}
           userStats={vcUserStats}
           anonymousStats={vcAnonStats}

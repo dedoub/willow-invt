@@ -78,7 +78,9 @@ interface AnonymousEventStats {
 }
 
 export interface VoicecardsBlockProps {
-  loading: boolean
+  usersLoading: boolean
+  eventsLoading: boolean
+  revenueLoading: boolean
   stats: CombinedStats | null
   userStats: UserStats | null
   anonymousStats: AnonymousEventStats | null
@@ -147,8 +149,69 @@ const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
   { key: 'created',  label: '가입일' },
 ]
 
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+
+function SkelBar({ width, height = 12, style }: { width: number | string; height?: number; style?: React.CSSProperties }) {
+  return <div className="l-skeleton" style={{ width, height, ...style }} />
+}
+
+function SkelStat({ compact }: { compact: boolean }) {
+  return (
+    <div style={{
+      padding: '10px 12px', borderRadius: t.radius.md, background: t.neutrals.inner,
+      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 78,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <SkelBar width={60} height={9} style={{ marginBottom: 6 }} />
+          <SkelBar width={80} height={18} />
+        </div>
+        {!compact && <SkelBar width={56} height={20} />}
+      </div>
+      <SkelBar width="70%" height={9} />
+    </div>
+  )
+}
+
+function SkelSectionHeader({ width = 100 }: { width?: number }) {
+  return <SkelBar width={width} height={11} style={{ marginBottom: 10 }} />
+}
+
+function SkelPie() {
+  return (
+    <div style={{
+      padding: 12, borderRadius: t.radius.md, background: t.neutrals.inner,
+      display: 'flex', flexDirection: 'column', gap: 10, minHeight: 160,
+    }}>
+      <SkelBar width={70} height={10} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+        <div className="l-skeleton" style={{ width: 90, height: 90, borderRadius: '50%' }} />
+      </div>
+    </div>
+  )
+}
+
+function SkelUserRow() {
+  return (
+    <div style={{
+      padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+      display: 'flex', alignItems: 'center', gap: 8,
+    }}>
+      <div className="l-skeleton" style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <SkelBar width={120} height={10} style={{ marginBottom: 4 }} />
+        <SkelBar width="80%" height={9} />
+      </div>
+      <SkelBar width={36} height={9} />
+    </div>
+  )
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function VoicecardsBlock({
-  loading, stats, userStats, anonymousStats, chartData,
+  usersLoading, eventsLoading, revenueLoading,
+  stats, userStats, anonymousStats, chartData,
   onOpenSettings, onRefresh, refreshing,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
@@ -241,8 +304,20 @@ export function VoicecardsBlock({
           }
         />
 
-        {/* 인사이트 (깔때기 + 추이 통합 + 분포) */}
-        {!loading && userStats && anonymousStats && (() => {
+        {/* 인사이트 — 사용자/이벤트/매출 모두 필요 */}
+        {(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats) && (
+          <>
+            <SkelSectionHeader width={80} />
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+              {[0, 1, 2, 3].map(i => <SkelStat key={i} compact={!!mobile} />)}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+              <SkelPie />
+              <SkelPie />
+            </div>
+          </>
+        )}
+        {userStats && anonymousStats && (() => {
           const devices = anonymousStats.summary.totalDevices
           const learned = anonymousStats.summary.learnedDevices
           const signedUp = userStats.totalUsers
@@ -318,14 +393,18 @@ export function VoicecardsBlock({
                   tone={learned > 0 && signupConv >= 10 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}
                 />
-                <LStat
-                  label="누적 매출"
-                  value={formatCurrency(revenue)}
-                  sub={revenue > 0 ? '누적' : '아직 없음'}
-                  tone={revenue > 0 ? 'pos' : 'default'}
-                  sparkline={compact ? undefined : revenueData}
-                  sparkFormat={formatCurrency}
-                />
+                {revenueLoading && !stats ? (
+                  <SkelStat compact={!!mobile} />
+                ) : (
+                  <LStat
+                    label="누적 매출"
+                    value={formatCurrency(revenue)}
+                    sub={revenue > 0 ? '누적' : '아직 없음'}
+                    tone={revenue > 0 ? 'pos' : 'default'}
+                    sparkline={compact ? undefined : revenueData}
+                    sparkFormat={formatCurrency}
+                  />
+                )}
               </div>
 
             {/* 플랫폼 / 언어 파이차트 (기기/가입 탭) */}
@@ -377,8 +456,16 @@ export function VoicecardsBlock({
         })()}
       </div>
 
-      {/* 가입 후 활동 · 매출 동인 */}
-      {!loading && userStats && (
+      {/* 가입 후 활동 · 매출 동인 — userStats 필요 (4번째 카드는 anonymousStats) */}
+      {usersLoading && !userStats && (
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <SkelSectionHeader width={140} />
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+            {[0, 1, 2, 3].map(i => <SkelStat key={i} compact={!!mobile} />)}
+          </div>
+        </div>
+      )}
+      {userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={{
             fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
@@ -451,7 +538,9 @@ export function VoicecardsBlock({
               sub={`오늘 ${formatNumber(todayAttempts)}회 · 7일 ${formatNumber(last7Attempts)}회`}
               sparkline={compact ? undefined : (attemptTrajectory.length > 1 ? attemptTrajectory : undefined)}
             />
-            {(() => {
+            {eventsLoading && !anonymousStats ? (
+              <SkelStat compact={!!mobile} />
+            ) : (() => {
               const usage = anonymousStats?.dailyCreditUsage ?? []
               const todayUsage = usage.length > 0 ? usage[usage.length - 1].credits : 0
               const last7Sum = usage.slice(-7).reduce((sum, d) => sum + d.credits, 0)
@@ -477,8 +566,16 @@ export function VoicecardsBlock({
         </div>
       )}
 
-      {/* 사용자 목록 (맨 아래) */}
-      {!loading && userStats && (
+      {/* 사용자 목록 (맨 아래) — userStats만 필요 */}
+      {usersLoading && !userStats && (
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <SkelSectionHeader width={50} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {[0, 1, 2, 3, 4, 5, 6, 7].map(i => <SkelUserRow key={i} />)}
+          </div>
+        </div>
+      )}
+      {userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
