@@ -2,7 +2,7 @@
 
 import { t } from './linear-tokens'
 import { LIcon } from './linear-icons'
-import { useAuth } from '@/lib/auth-context'
+import { useAuth, useIsAdmin } from '@/lib/auth-context'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -19,6 +19,10 @@ const CLIENTS = [
   { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#1F4E79' },
   { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#B88A2A' },
   { id: 'monor', name: 'MonoR Apps',    tag: 'Education', dot: '#2F8F5B' },
+]
+
+const ADMIN_ITEMS = [
+  { key: 'users', href: '/admin/users', label: '사용자 관리', icon: 'user' },
 ]
 
 function GroupLabel({ label }: { label: string }) {
@@ -40,6 +44,7 @@ interface LinearSidebarProps {
 export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const isAdmin = useIsAdmin()
 
   const sidebar = (
     <aside style={{
@@ -111,6 +116,29 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
             </Wrapper>
           )
         })}
+
+        {isAdmin && (
+          <>
+            <GroupLabel label="관리자" />
+            {ADMIN_ITEMS.map(n => {
+              const isActive = pathname === n.href || pathname.startsWith(n.href + '/')
+              return (
+                <Link key={n.key} href={n.href} onClick={onClose} style={{
+                  width: '100%', display: 'flex', alignItems: 'center',
+                  gap: 10, padding: '7px 10px',
+                  background: isActive ? t.brand[600] + '14' : 'transparent',
+                  color: isActive ? t.brand[700] : t.neutrals.muted,
+                  fontWeight: isActive ? t.weight.medium : t.weight.regular,
+                  fontSize: 13, borderRadius: 6, textDecoration: 'none',
+                  marginBottom: 1, letterSpacing: -0.1,
+                }}>
+                  <LIcon name={n.icon} size={14} stroke={1.8} />
+                  <span>{n.label}</span>
+                </Link>
+              )
+            })}
+          </>
+        )}
       </nav>
 
       {/* User */}

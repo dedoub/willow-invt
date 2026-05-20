@@ -1,15 +1,4 @@
 export const ko = {
-  // 페이지 타이틀
-  pageTitles: {
-    etcPage: 'ETF/Index - ETC',
-    akrosPage: 'ETF/Index - 아크로스',
-    tenswProjects: '텐소프트웍스 - 프로젝트',
-    tenswManagement: '텐소프트웍스 - 경영관리',
-    willowManagement: '윌로우인베스트먼트 - 사업관리',
-    usersPage: '사용자 관리',
-    ryuhaStudyPage: '류하 학습관리',
-  },
-
   // 공통
   common: {
     loading: '로딩 중...',
@@ -75,37 +64,6 @@ export const ko = {
   brand: {
     name: 'Willow Investments',
     tagline: 'Consistency beats intensity.',
-  },
-
-  // 사이드바
-  sidebar: {
-    dashboard: '대시보드',
-    projects: '프로젝트',
-    users: '사용자',
-    settings: '설정',
-    version: 'Willow Dashboard v1.0',
-    // 윌로우인베스트먼트
-    willowInvest: '윌로우인베스트먼트',
-    willowManagement: '사업관리',
-    willowManagementV2: '사업관리 v2',
-    // 메뉴 섹션
-    etfIndexing: 'ETF/Index',
-    etc: 'ETC',
-    akros: '아크로스',
-    monoRApps: '모노알 앱스',
-    voiceCards: '보이스카드',
-    reviewNotes: '리뷰노트',
-    tenSoftworks: '텐소프트웍스',
-    pocProjects: 'POC 프로젝트',
-    activeProjects: '진행 프로젝트',
-    managedProjects: '관리 프로젝트',
-    closedProjects: '종료 프로젝트',
-    tenswProjects: '프로젝트',
-    tenswManagement: '경영관리',
-    others: '기타',
-    jangbigo: '장비고',
-    ryuhaStudy: '류하 학습관리',
-    uiGuide: 'UI 가이드',
   },
 
   // 헤더

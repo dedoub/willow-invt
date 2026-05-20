@@ -1,15 +1,4 @@
 export const en = {
-  // Page Titles
-  pageTitles: {
-    etcPage: 'ETF/Index - ETC',
-    akrosPage: 'ETF/Index - Akros',
-    tenswProjects: 'Tensoftworks - Projects',
-    tenswManagement: 'Tensoftworks - Management',
-    willowManagement: 'Willow Investment - Management',
-    usersPage: 'User Management',
-    ryuhaStudyPage: 'Ryuha Study',
-  },
-
   // Common
   common: {
     loading: 'Loading...',
@@ -75,37 +64,6 @@ export const en = {
   brand: {
     name: 'Willow Investments',
     tagline: 'Consistency beats intensity.',
-  },
-
-  // Sidebar
-  sidebar: {
-    dashboard: 'Dashboard',
-    projects: 'Projects',
-    users: 'Users',
-    settings: 'Settings',
-    version: 'Willow Dashboard v1.0',
-    // Willow Investment
-    willowInvest: 'Willow Investment',
-    willowManagement: 'Management',
-    willowManagementV2: 'Management v2',
-    // Menu sections
-    etfIndexing: 'ETF/Index',
-    etc: 'ETC',
-    akros: 'Akros',
-    monoRApps: 'MonoR Apps',
-    voiceCards: 'VoiceCards',
-    reviewNotes: 'ReviewNotes',
-    tenSoftworks: 'Ten Softworks',
-    pocProjects: 'POC Projects',
-    activeProjects: 'Active Projects',
-    managedProjects: 'Managed Projects',
-    closedProjects: 'Closed Projects',
-    tenswProjects: 'Projects',
-    tenswManagement: 'Management',
-    others: 'Others',
-    jangbigo: 'Jangbigo',
-    ryuhaStudy: 'Ryuha Study',
-    uiGuide: 'UI Guide',
   },
 
   // Header

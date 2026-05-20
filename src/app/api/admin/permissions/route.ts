@@ -4,13 +4,15 @@ import { getServiceSupabase } from '@/lib/supabase'
 
 // Available pages for permission settings
 export const AVAILABLE_PAGES = [
-  { path: '/etf/etc', section: 'etfIndexing', name: 'ETC' },
-  { path: '/etf/akros', section: 'etfIndexing', name: 'Akros' },
-  { path: '/monor/voicecards', section: 'monoRApps', name: 'Voice Cards' },
-  { path: '/monor/reviewnotes', section: 'monoRApps', name: 'Review Notes' },
-  { path: '/tensoftworks/projects', section: 'tenSoftworks', name: 'Projects' },
-  { path: '/tensoftworks/management', section: 'tenSoftworks', name: 'Management' },
-  { path: '/others/ryuha-study', section: 'others', name: 'Ryuha Study' },
+  { path: '/mgmt',       section: 'willowInvest', name: '사업관리' },
+  { path: '/wiki',       section: 'willowInvest', name: '업무위키' },
+  { path: '/invest',     section: 'willowInvest', name: '주식투자' },
+  { path: '/realestate', section: 'willowInvest', name: '부동산리서치' },
+  { path: '/etc',        section: 'etfIndexing',  name: 'ETC' },
+  { path: '/akros',      section: 'etfIndexing',  name: 'Akros' },
+  { path: '/tensw',      section: 'tenSoftworks', name: '텐소프트웍스' },
+  { path: '/monor',      section: 'monoRApps',    name: 'MonoR Apps' },
+  { path: '/ryuha',      section: 'others',       name: '류하일정' },
 ]
 
 // GET - Get permissions for a user or list of available pages

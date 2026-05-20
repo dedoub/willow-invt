@@ -1,16 +1,11 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-context'
-import { useI18n } from '@/lib/i18n/context'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { Sidebar } from './sidebar'
-import { Header } from './header'
-import { ChatPanel } from '@/components/chat/chat-panel'
+import { useEffect } from 'react'
 
 const PUBLIC_PATHS = ['/login', '/signup']
-const STANDALONE_PATHS = ['/mcp/authorize'] // 인증 여부와 무관하게 독립 렌더링
-const LINEAR_ROUTES = ['/mgmt', '/invest', '/realestate', '/wiki', '/ryuha', '/akros', '/etc', '/tensw', '/monor']
+const STANDALONE_PATHS = ['/mcp/authorize']
 
 interface LayoutWrapperProps {
   children: React.ReactNode
@@ -18,87 +13,24 @@ interface LayoutWrapperProps {
 
 export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const { user, isLoading } = useAuth()
-  const { t } = useI18n()
   const pathname = usePathname()
   const router = useRouter()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [chatOpen, setChatOpen] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('chat-panel-open') === 'true'
-    }
-    return false
-  })
-
-  const toggleChat = (open: boolean) => {
-    setChatOpen(open)
-    localStorage.setItem('chat-panel-open', String(open))
-  }
 
   const isPublicPath = PUBLIC_PATHS.includes(pathname)
   const isStandalonePath = STANDALONE_PATHS.includes(pathname)
-  const isLinearRoute = LINEAR_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
-  const isPrintRoute = pathname.startsWith('/print/')
-
-  // 경로별 타이틀 매핑 (번역 적용)
-  const getPageTitle = (path: string): string | undefined => {
-    const titleMap: Record<string, string> = {
-      '/etf/etc': t.pageTitles.etcPage,
-      '/etf/akros': t.pageTitles.akrosPage,
-      '/tensoftworks/projects': t.pageTitles.tenswProjects,
-      '/tensoftworks/management': t.pageTitles.tenswManagement,
-      '/management': t.pageTitles.willowManagement,
-      '/admin/users': t.pageTitles.usersPage,
-      '/others/ryuha-study': t.pageTitles.ryuhaStudyPage,
-    }
-    return titleMap[path]
-  }
-  const pageTitle = getPageTitle(pathname)
-
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [pathname])
 
   useEffect(() => {
     if (!isLoading) {
-      if (!user && !isPublicPath) {
+      if (!user && !isPublicPath && !isStandalonePath) {
         router.push('/login')
       } else if (user && isPublicPath) {
         router.push('/')
       }
     }
-  }, [user, isLoading, isPublicPath, router])
+  }, [user, isLoading, isPublicPath, isStandalonePath, router])
 
-  // Standalone paths: render without layout or redirects
-  if (isStandalonePath) {
-    return <>{children}</>
-  }
+  if (isStandalonePath) return <>{children}</>
 
-  // Linear routes: render with auth check but without default layout
-  if (isLinearRoute) {
-    if (isLoading || !user) {
-      return (
-        <div className="flex h-screen items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
-        </div>
-      )
-    }
-    return <>{children}</>
-  }
-
-  // Print routes: auth-required but no chrome (sidebar/header/chat)
-  if (isPrintRoute) {
-    if (isLoading || !user) {
-      return (
-        <div className="flex h-screen items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
-        </div>
-      )
-    }
-    return <>{children}</>
-  }
-
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -107,43 +39,9 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     )
   }
 
-  // Public pages (login, signup)
-  if (isPublicPath) {
-    return <>{children}</>
-  }
+  if (isPublicPath) return <>{children}</>
 
-  // Not authenticated
-  if (!user) {
-    return null
-  }
+  if (!user) return null
 
-  // Authenticated - show full layout
-  return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Mobile overlay */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-      <Sidebar mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header
-          title={pageTitle}
-          onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
-          onChatToggle={() => toggleChat(!chatOpen)}
-          chatOpen={chatOpen}
-        />
-        <main className="flex-1 overflow-auto bg-muted/30 p-4 md:p-6">
-          <div className="animate-fade-in mobile-zoom">{children}</div>
-        </main>
-      </div>
-      {chatOpen && (
-        <div className="border-l flex-shrink-0 hidden md:block">
-          <ChatPanel open={chatOpen} onClose={() => toggleChat(false)} />
-        </div>
-      )}
-    </div>
-  )
+  return <>{children}</>
 }

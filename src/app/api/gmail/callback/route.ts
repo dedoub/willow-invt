@@ -4,9 +4,9 @@ import { getOAuth2Client, saveTokens, GmailContext } from '@/lib/gmail-server'
 
 // Context별 리다이렉트 경로 매핑
 const CONTEXT_REDIRECT_PATHS: Record<GmailContext, string> = {
-  default: '/etf/etc',
-  tensoftworks: '/tensoftworks/management',
-  willow: '/management',
+  default: '/etc',
+  tensoftworks: '/tensw',
+  willow: '/mgmt',
 }
 
 export async function GET(request: NextRequest) {
