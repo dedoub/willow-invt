@@ -496,102 +496,54 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
   if (entries.length === 0) return 0
 
   const today = new Date().toISOString().split('T')[0]
-  let upserted = 0
+  const now = new Date().toISOString()
+
+  // ticker 단위로 단일 row 유지. 같은 ticker는 최근 스캔 결과로 덮어씀(scan_date 갱신).
+  const rows = entries.map(entry => ({
+    ticker: entry.ticker,
+    company_name: entry.company_name,
+    scan_date: today,
+    source: entry.source || 'market_scan',
+    source_type: sourceType,
+    sector_tags: entry.sector_tags || [],
+    sector: entry.sector,
+    axis: entry.axis || inferAxisFromSector(entry.sector) || null,
+    market: inferMarketFromTicker(entry.ticker),
+    track: entry.track,
+    structural_thesis: entry.structural_thesis,
+    high_12m: entry.high_12m,
+    gap_from_high_pct: entry.gap_from_high_pct,
+    current_price: entry.current_price,
+    market_cap_b: entry.market_cap_b,
+    trend_verdict: entry.trend_verdict,
+    verdict: entry.verdict,
+    notes: entry.notes,
+    composite_score: entry.composite_score,
+    growth_score: entry.growth_score,
+    value_score: entry.value_score,
+    quality_score: entry.quality_score,
+    momentum_score: entry.momentum_score,
+    insider_score: entry.insider_score,
+    sentiment_score: entry.sentiment_score,
+    updated_at: now,
+  }))
+
+  const { error } = await supabase
+    .from('stock_research')
+    .upsert(rows, { onConflict: 'ticker' })
+
+  if (error) {
+    log(`  ⚠️ UPSERT 실패: ${error.message}`)
+    return 0
+  }
 
   for (const entry of entries) {
-    const market = inferMarketFromTicker(entry.ticker)
-    const axis = entry.axis || inferAxisFromSector(entry.sector) || null
-
-    // 같은 ticker + 같은 날짜가 있으면 업데이트, 없으면 신규
-    const { data: existing } = await supabase
-      .from('stock_research')
-      .select('id')
-      .eq('ticker', entry.ticker)
-      .eq('scan_date', today)
-      .limit(1)
-
-    if (existing && existing.length > 0) {
-      const { error } = await supabase
-        .from('stock_research')
-        .update({
-          company_name: entry.company_name,
-          source: entry.source,
-          source_type: sourceType,
-          sector_tags: entry.sector_tags,
-          sector: entry.sector,
-          axis,
-          market,
-          track: entry.track,
-          structural_thesis: entry.structural_thesis,
-          high_12m: entry.high_12m,
-          gap_from_high_pct: entry.gap_from_high_pct,
-          current_price: entry.current_price,
-          market_cap_b: entry.market_cap_b,
-          trend_verdict: entry.trend_verdict,
-          verdict: entry.verdict,
-          notes: entry.notes,
-          composite_score: entry.composite_score,
-          growth_score: entry.growth_score,
-          value_score: entry.value_score,
-          quality_score: entry.quality_score,
-          momentum_score: entry.momentum_score,
-          insider_score: entry.insider_score,
-          sentiment_score: entry.sentiment_score,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing[0].id)
-
-      if (error) {
-        log(`  ⚠️ UPDATE 실패 (${entry.ticker}): ${error.message}`)
-      } else {
-        upserted++
-        if (entry.sector) {
-          await ensureTickerTheme(supabase, entry.ticker, entry.company_name, entry.sector).catch(() => {})
-        }
-      }
-    } else {
-      const { error } = await supabase
-        .from('stock_research')
-        .insert({
-          ticker: entry.ticker,
-          company_name: entry.company_name,
-          scan_date: today,
-          source: entry.source || 'market_scan',
-          source_type: sourceType,
-          sector_tags: entry.sector_tags || [],
-          sector: entry.sector,
-          axis,
-          market,
-          track: entry.track,
-          structural_thesis: entry.structural_thesis,
-          high_12m: entry.high_12m,
-          gap_from_high_pct: entry.gap_from_high_pct,
-          current_price: entry.current_price,
-          market_cap_b: entry.market_cap_b,
-          trend_verdict: entry.trend_verdict,
-          verdict: entry.verdict,
-          notes: entry.notes,
-          composite_score: entry.composite_score,
-          growth_score: entry.growth_score,
-          value_score: entry.value_score,
-          quality_score: entry.quality_score,
-          momentum_score: entry.momentum_score,
-          insider_score: entry.insider_score,
-          sentiment_score: entry.sentiment_score,
-        })
-
-      if (error) {
-        log(`  ⚠️ INSERT 실패 (${entry.ticker}): ${error.message}`)
-      } else {
-        upserted++
-        if (entry.sector) {
-          await ensureTickerTheme(supabase, entry.ticker, entry.company_name, entry.sector).catch(() => {})
-        }
-      }
+    if (entry.sector) {
+      await ensureTickerTheme(supabase, entry.ticker, entry.company_name, entry.sector).catch(() => {})
     }
   }
 
-  return upserted
+  return entries.length
 }
 
 async function main() {
