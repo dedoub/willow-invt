@@ -1,15 +1,13 @@
 /**
- * Agent CLI wrapper — Claude Code (`claude -p`) ↔ OpenAI Codex CLI (`codex exec`) 토글
+ * Agent CLI wrapper — OpenAI Codex CLI (`codex exec`) 전용
  *
- * 2026-06-15부터 Claude Agent SDK는 별도 크레딧을 소비해서,
- * 백그라운드 자동화 스크립트를 Codex CLI로 옮긴다.
+ * 2026-05-21: CEO 지시로 모든 백그라운드 자동화는 Codex로 일원화.
+ * `claude -p` / Claude Agent SDK 호출은 사용하지 않는다.
+ * (runClaude는 더 이상 호출되지 않지만 정리 PR 전까지 남겨둠 — backend 옵션은 무시)
  *
  * 사용:
  *   import { runAgent } from './lib/agent-cli'
- *   const result = await runAgent('your prompt', { allowedTools: ['Read', 'Bash'] })
- *
- * 환경변수:
- *   AGENT_CLI=codex (default) | claude
+ *   const result = await runAgent('your prompt', { allowedTools: ['mcp__foo__*'] })
  */
 
 import { spawn } from 'child_process'
@@ -26,18 +24,15 @@ export interface AgentOptions {
   // sandbox 모드 (Codex 전용): read-only | workspace-write | danger-full-access
   // 기본: danger-full-access (Claude의 --dangerously-skip-permissions 대응)
   sandbox?: 'read-only' | 'workspace-write' | 'danger-full-access'
-  // 스크립트별 강제 백엔드 지정. env(AGENT_CLI) 보다 우선.
-  // 점진적 마이그레이션 — 검증된 스크립트는 'codex'로 강제 가능.
+  // @deprecated codex 전용 정책 (2026-05-21). 옵션은 받지만 항상 codex로 동작.
   backend?: 'claude' | 'codex'
 }
 
-type Backend = 'claude' | 'codex'
+type Backend = 'codex'
 
-function getBackend(opts?: AgentOptions): Backend {
-  if (opts?.backend === 'claude') return 'claude'
-  if (opts?.backend === 'codex') return 'codex'
-  const env = (process.env.AGENT_CLI || 'codex').toLowerCase()
-  return env === 'claude' ? 'claude' : 'codex'
+function getBackend(_opts?: AgentOptions): Backend {
+  // codex 전용 — backend 옵션 / AGENT_CLI env 모두 무시.
+  return 'codex'
 }
 
 function cleanEnv(): NodeJS.ProcessEnv {
@@ -177,11 +172,10 @@ function runCodex(prompt: string, opts?: AgentOptions): Promise<string> {
  * @returns 에이전트의 최종 응답 텍스트
  */
 export async function runAgent(prompt: string, opts?: AgentOptions): Promise<string> {
-  const backend = getBackend(opts)
-  if (backend === 'claude') return runClaude(prompt, opts)
+  // codex 전용. runClaude는 dead code로 남겨두되 호출하지 않음.
   return runCodex(prompt, opts)
 }
 
-export function getAgentBackend(opts?: AgentOptions): Backend {
-  return getBackend(opts)
+export function getAgentBackend(_opts?: AgentOptions): Backend {
+  return 'codex'
 }

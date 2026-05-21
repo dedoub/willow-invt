@@ -89,20 +89,40 @@ async function sendTelegramMessage(chatId: number, text: string) {
   }
 }
 
+// 일시적인 모델 capacity / rate-limit / 429 에러는 지수 백오프로 재시도.
+// 영구 장애면 마지막 attempt까지 가서 그대로 throw → main의 try/catch로 텔레그램 알림.
+async function withCapacityRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastError = e
+      const msg = e instanceof Error ? e.message : String(e)
+      const transient = /at capacity|overloaded|rate.?limit|\b429\b|try a different model/i.test(msg)
+      if (!transient || attempt === maxAttempts) throw e
+      const backoffMs = attempt * 60_000 // 60s, 120s
+      log(`  ⏳ 일시적 모델 장애 감지 (${attempt}/${maxAttempts}), ${backoffMs / 1000}s 후 재시도: ${msg.slice(0, 120)}`)
+      await new Promise(r => setTimeout(r, backoffMs))
+    }
+  }
+  throw lastError
+}
+
 function askClaude(prompt: string): Promise<string> {
-  return runAgent(prompt, {
+  return withCapacityRetry(() => runAgent(prompt, {
     allowedTools: ['mcp__portfolio-monitor__*', 'WebSearch', 'WebFetch'],
     timeoutMs: 15 * 60 * 1000,
     backend: 'codex',
-  })
+  }))
 }
 
 function askClaudePortfolioOnly(prompt: string): Promise<string> {
-  return runAgent(prompt, {
+  return withCapacityRetry(() => runAgent(prompt, {
     allowedTools: ['mcp__portfolio-monitor__*'],
     timeoutMs: 10 * 60 * 1000,
     backend: 'codex',
-  })
+  }))
 }
 
 interface WatchlistRow {
