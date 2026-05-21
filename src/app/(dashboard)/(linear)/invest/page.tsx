@@ -61,8 +61,9 @@ export default function InvestPage() {
     }
   }, [])
 
-  const loadData = useCallback(async () => {
-    setLoadPhase(0)
+  const loadData = useCallback(async (opts?: { background?: boolean }) => {
+    const bg = opts?.background ?? false
+    if (!bg) setLoadPhase(0)
     try {
       // Phase 1a: fetch watchlist, trades, research in parallel
       const [watchlistRes, tradesRes, researchRes] = await Promise.all([
@@ -106,7 +107,7 @@ export default function InvestPage() {
       }
 
       // Show kanban + trade log immediately
-      setLoadPhase(1)
+      if (!bg) setLoadPhase(1)
 
       // Phase 2: fetch stock quotes, live FX rate, and FX history
       {
@@ -162,44 +163,18 @@ export default function InvestPage() {
         loadStockHistory(tradesFull)
       }
     } finally {
-      setLoadPhase(2)
+      if (!bg) setLoadPhase(2)
     }
   }, [loadStockHistory])
 
   useEffect(() => { loadData() }, [loadData])
   useAgentRefresh(['stock_'], loadData)
 
-  // Kanban 액션(watchlist/research add·remove·move) 후 부분 갱신.
-  // setLoadPhase를 건드리지 않으므로 페이지 스켈레톤이 다시 뜨지 않고,
-  // 영향받지 않는 quotes/fxHistory/stockHistory/trades는 refetch 생략.
-  const refetchAfterKanbanChange = useCallback(async () => {
-    const [watchlistRes, researchRes] = await Promise.all([
-      fetch('/api/willow-mgmt/watchlist', { cache: 'no-store' }),
-      fetch('/api/willow-mgmt/stock-research'),
-    ])
-
-    if (watchlistRes.ok) setWatchlistData(await watchlistRes.json())
-
-    let researchFull: { ticker: string; market?: string; verdict?: string | null; track?: string | null }[] = []
-    if (researchRes.ok) {
-      const data = await researchRes.json()
-      const items = Array.isArray(data) ? data : data.items || data.research || []
-      setStockResearch(items)
-      researchFull = items
-    }
-
-    const extraTickers = researchFull
-      .filter(r => r.verdict?.startsWith('pass') && r.track !== 'ETF')
-      .map(r => r.ticker)
-    const signalUrl = extraTickers.length > 0
-      ? `/api/willow-mgmt/stock-signals?extra=${extraTickers.join(',')}`
-      : '/api/willow-mgmt/stock-signals'
-    const signalRes = await fetch(signalUrl)
-    if (signalRes.ok) {
-      const data = await signalRes.json()
-      setSignalData(data.signals || [])
-    }
-  }, [])
+  // 칸반 액션 후에는 전체 데이터를 refetch하되 setLoadPhase는 건드리지 않음 →
+  // PortfolioKanban이 unmount되지 않고 다른 블록 스켈레톤도 다시 뜨지 않음.
+  const handleKanbanDataChanged = useCallback(() => {
+    loadData({ background: true })
+  }, [loadData])
 
   // Compute portfolio summary stats for signal bar
   const portfolioStats = useMemo(() => {
@@ -404,7 +379,7 @@ export default function InvestPage() {
           stockThemes={stockThemes}
           usdKrw={usdKrw}
           onTotalValueChange={handleTotalValueChange}
-          onDataChanged={refetchAfterKanbanChange}
+          onDataChanged={handleKanbanDataChanged}
         />
       </div>
       )}
