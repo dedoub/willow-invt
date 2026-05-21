@@ -30,6 +30,10 @@ interface UserStats {
     cardsLearned: number
     attempts: number
   }>
+  dailyCardInventory: Array<{
+    date: string
+    totalCards: number
+  }>
   users: Array<{
     id: string
     nickname: string | null

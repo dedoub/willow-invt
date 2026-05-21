@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -21,6 +21,10 @@ interface UserStats {
     date: string
     cardsLearned: number
     attempts: number
+  }>
+  dailyCardInventory: Array<{
+    date: string
+    totalCards: number
   }>
   users: Array<{
     id: string
@@ -144,10 +148,13 @@ const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
   { key: 'sheets',   label: '시트' },
   { key: 'cards',    label: '카드' },
   { key: 'attempts', label: '말하기' },
-  { key: 'credits',  label: '프리미엄' },
+  { key: 'credits',  label: '듣기' },
   { key: 'recent',   label: '활동일' },
   { key: 'created',  label: '가입일' },
 ]
+
+const USER_SORT_STORAGE_KEY = 'voicecards.userSort'
+const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_SORT_OPTIONS.map(o => o.key))
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 
@@ -224,6 +231,14 @@ export function VoicecardsBlock({
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
 
+  // 마운트 시 localStorage에서 정렬 상태 복원 (SSR/CSR hydration 안전)
+  useEffect(() => {
+    const stored = window.localStorage.getItem(USER_SORT_STORAGE_KEY)
+    if (stored && USER_SORT_KEY_SET.has(stored as UserSortKey)) {
+      setUserSort(stored as UserSortKey)
+    }
+  }, [])
+
   const sortedUsers = useMemo(() => {
     if (!userStats) return []
     const arr = [...userStats.users]
@@ -265,10 +280,11 @@ export function VoicecardsBlock({
     safeUserPage * userPerPage
   )
 
-  // 정렬 변경 시 1페이지로 리셋
+  // 정렬 변경 시 1페이지로 리셋 + localStorage 저장
   const handleSortChange = (key: UserSortKey) => {
     setUserSort(key)
     setUserPage(1)
+    window.localStorage.setItem(USER_SORT_STORAGE_KEY, key)
   }
 
   return (
@@ -503,22 +519,26 @@ export function VoicecardsBlock({
               .filter(u => toKst(u.createdAt) >= sevenDaysAgoStr)
               .reduce((sum, u) => sum + u.sheetCount, 0)
 
-            // 학습 카드 / 학습 시도: time_series_analytics 일별 → running sum
+            // 말하기 학습: time_series_analytics 일별 → running sum
             const activity = userStats.dailyLearnActivity ?? []
-            let runningCards = 0
-            const cardTrajectory = activity.map(d => {
-              runningCards += d.cardsLearned
-              return { date: d.date, value: runningCards }
-            })
             let runningAttempts = 0
             const attemptTrajectory = activity.map(d => {
               runningAttempts += d.attempts
               return { date: d.date, value: runningAttempts }
             })
-            const todayCards = activity.find(d => d.date === todayStr)?.cardsLearned ?? 0
-            const last7Cards = activity.filter(d => d.date >= sevenDaysAgoStr).reduce((s, d) => s + d.cardsLearned, 0)
             const todayAttempts = activity.find(d => d.date === todayStr)?.attempts ?? 0
             const last7Attempts = activity.filter(d => d.date >= sevenDaysAgoStr).reduce((s, d) => s + d.attempts, 0)
+
+            // 보유 카드: daily_inventory_snapshots 일별 스냅샷 → 일별 증감(diff)으로 추세 표시
+            const inventory = userStats.dailyCardInventory ?? []
+            const cardTrajectory = inventory.map(d => ({ date: d.date, value: d.totalCards }))
+            // 일별 증감 = 오늘 스냅샷 - 어제 스냅샷
+            const dateToCards = new Map(inventory.map(d => [d.date, d.totalCards]))
+            const yesterdayStr = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return toKst(d) })()
+            const todayCardsDelta = (dateToCards.get(todayStr) ?? 0) - (dateToCards.get(yesterdayStr) ?? 0)
+            const sevenAgoCards = inventory.find(d => d.date <= sevenDaysAgoStr)?.totalCards
+              ?? (inventory.length > 0 ? inventory[0].totalCards : 0)
+            const last7CardsDelta = (dateToCards.get(todayStr) ?? userStats.totalCards) - sevenAgoCards
 
             return (
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
@@ -529,9 +549,9 @@ export function VoicecardsBlock({
               sparkline={compact ? undefined : (sheetTrajectory.length > 1 ? sheetTrajectory : undefined)}
             />
             <LStat
-              label="학습 카드"
+              label="보유 카드"
               value={formatNumber(userStats.totalCards)}
-              sub={`오늘 ${formatNumber(todayCards)}개 · 7일 ${formatNumber(last7Cards)}개`}
+              sub={inventory.length > 0 ? `오늘 ${todayCardsDelta >= 0 ? '+' : ''}${formatNumber(todayCardsDelta)} · 7일 ${last7CardsDelta >= 0 ? '+' : ''}${formatNumber(last7CardsDelta)}` : undefined}
               sparkline={compact ? undefined : (cardTrajectory.length > 1 ? cardTrajectory : undefined)}
             />
             <LStat
@@ -555,7 +575,7 @@ export function VoicecardsBlock({
               })
               return (
                 <LStat
-                  label="프리미엄 기능"
+                  label="듣기 학습"
                   value={formatNumber(totalUsed)}
                   sub={`오늘 ${formatNumber(todayUsage)}회 · 7일 ${formatNumber(last7Sum)}회`}
                   sparkline={compact ? undefined : (sparkData.length > 1 ? sparkData : undefined)}
@@ -658,7 +678,7 @@ export function VoicecardsBlock({
                     fontSize: 9.5, color: t.neutrals.muted,
                     whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
-                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 프리미엄 {formatNumber(user.creditsUsed)}회 · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'}
+                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 듣기 {formatNumber(user.creditsUsed)}회 · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'}
                   </div>
                 </div>
 

@@ -696,12 +696,17 @@ export interface VoicecardsUserStats {
     cardsLearned: number
     attempts: number
   }>
+  // 일별 보유 카드 스냅샷 (daily_inventory_snapshots 테이블 기반, 아직 없으면 빈 배열)
+  dailyCardInventory: Array<{
+    date: string
+    totalCards: number
+  }>
   users: Array<{
     id: string
     nickname: string | null
     appVersion: string | null  // 가장 최근 활동 시 앱 버전
     credits: number          // 현재 잔액
-    creditsUsed: number      // 프리미엄 기능 사용 횟수 (tts_played + voice_preview_played + ai_generation_success)
+    creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played). AI 카드 생성은 사용량 적어 제외
     sheetCount: number
     cards: number
     attempts: number
@@ -714,7 +719,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const empty: VoicecardsUserStats = {
     totalUsers: 0, activeUsers: 0, totalSheets: 0,
     totalCards: 0, totalAttempts: 0, totalCredits: 0,
-    dailyLearnActivity: [], users: [],
+    dailyLearnActivity: [], dailyCardInventory: [], users: [],
   }
 
   if (!voicecardsSupabase) {
@@ -742,13 +747,13 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
   const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, creditEventsRows, versionRows] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
-    vc.from('user_analytics').select('user_id, cards_learned, total_attempts'),
+    vc.from('user_analytics').select('user_id, total_cards, total_attempts'),
     vc.from('user_analytics').select('user_id, last_updated'),
     fetchAllPaged<{ user_id: string; date: string; problems_learned: number; attempts: number }>(
       () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true })
     ),
     fetchAllPaged<{ user_id: string; event_name: string; properties: Record<string, unknown> | null }>(
-      () => vc.from('anonymous_events_real_users').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played', 'ai_generation_success']).eq('is_likely_bot', false)
+      () => vc.from('anonymous_events_real_users').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played']).eq('is_likely_bot', false)
     ),
     // 사용자별 최근 앱 버전 — created_at desc 정렬 후 user_id별 첫 row가 최신
     fetchAllPaged<{ user_id: string; app_version: string | null; created_at: string }>(
@@ -788,16 +793,23 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     u.sheet_ids && Array.isArray(u.sheet_ids) && u.sheet_ids.length > 0
   ).length
 
-  // 유저별 학습 시도/학습 카드 수 맵 (cards_learned = 학습한 카드 누적 = 정답 수)
+  // 유저별 보유 카드 수/말하기 시도 맵 (total_cards = 시트별 보유 카드, 합산 = 전체 보유 카드)
   const userAttemptsMap = new Map<string, number>()
   const userCardsMap = new Map<string, number>()
   for (const a of analytics) {
     userAttemptsMap.set(a.user_id, (userAttemptsMap.get(a.user_id) || 0) + (Number(a.total_attempts) || 0))
-    userCardsMap.set(a.user_id, (userCardsMap.get(a.user_id) || 0) + (Number(a.cards_learned) || 0))
+    userCardsMap.set(a.user_id, (userCardsMap.get(a.user_id) || 0) + (Number(a.total_cards) || 0))
   }
 
   const totalCredits = users.reduce((sum, u) => sum + (u.credits || 0), 0)
   const totalSheets = users.reduce((sum, u) => sum + (Array.isArray(u.sheet_ids) ? u.sheet_ids.length : 0), 0)
+
+  // 일별 보유 카드 스냅샷 — 테이블 존재 시에만 채움 (미존재 시 조용히 빈 배열)
+  const inventorySnapRes = await vc.from('daily_inventory_snapshots').select('date, total_cards').order('date', { ascending: true })
+  const dailyCardInventory = (inventorySnapRes.data || []).map(r => ({
+    date: r.date as string,
+    totalCards: Number(r.total_cards) || 0,
+  }))
 
   // 일별 학습 활동 (내부 계정 제외, 날짜별 합산)
   const timeSeriesRows = timeSeriesRes.filter(r => visibleUserIds.has(r.user_id))
@@ -813,12 +825,13 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, v]) => ({ date, cardsLearned: v.cardsLearned, attempts: v.attempts }))
 
-  // 누적 학습 카드/시도 — time_series_analytics 합과 일치하도록 통일 (sparkline endpoint도 맞춰짐)
-  const totalCards = dailyLearnActivity.reduce((sum, d) => sum + d.cardsLearned, 0)
-  const totalAttempts = dailyLearnActivity.reduce((sum, d) => sum + d.attempts, 0)
+  // 보유 카드 합계 (user_analytics.total_cards 사용자별 합산)
+  const totalCards = Array.from(userCardsMap.values()).reduce((sum, n) => sum + n, 0)
+  // 누적 말하기 시도 (user_analytics.total_attempts 합) — 사용자 리스트 "말하기" 합과 일치
+  const totalAttempts = Array.from(userAttemptsMap.values()).reduce((sum, n) => sum + n, 0)
 
-  // 사용자별 프리미엄 기능 사용 횟수 (이벤트 1건 = 1회)
-  // 포함: tts_played, voice_preview_played, ai_generation_success
+  // 사용자별 듣기 학습 횟수 (이벤트 1건 = 1회)
+  // 포함: tts_played, voice_preview_played (AI 카드 생성은 사용량 적어 제외)
   const userCreditsUsedMap = new Map<string, number>()
   for (const row of (creditEventsRes.data || [])) {
     const uid = row.user_id as string | null
@@ -865,6 +878,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     totalAttempts,
     totalCredits,
     dailyLearnActivity,
+    dailyCardInventory,
     users: userList,
   }
 }
@@ -997,8 +1011,8 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       }
     }
 
-    // 일별 프리미엄 기능 사용 횟수 (이벤트 1건 = 1회)
-    if (eventName === 'tts_played' || eventName === 'voice_preview_played' || eventName === 'ai_generation_success') {
+    // 일별 듣기 학습 횟수 (이벤트 1건 = 1회). AI 카드 생성은 사용량 적어 제외
+    if (eventName === 'tts_played' || eventName === 'voice_preview_played') {
       creditUsageByDate.set(date, (creditUsageByDate.get(date) ?? 0) + 1)
     }
 
