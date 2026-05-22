@@ -98,6 +98,7 @@ const tooltipStyle: React.CSSProperties = {
 
 const innerCard: React.CSSProperties = {
   background: t.neutrals.inner, borderRadius: t.radius.md, padding: 12,
+  minWidth: 0, overflow: 'hidden',
 }
 
 const thStyle: React.CSSProperties = {

@@ -2,32 +2,21 @@
 
 import { t, useIsMobile } from './linear-tokens'
 
-/* ── Pulse keyframes (injected once) ── */
-
-const PULSE_ID = '__linear-pulse-style'
-
-function ensurePulseStyle() {
-  if (typeof document === 'undefined') return
-  if (document.getElementById(PULSE_ID)) return
-  const style = document.createElement('style')
-  style.id = PULSE_ID
-  style.textContent = `@keyframes lPulse { 0%,100% { opacity:1 } 50% { opacity:.4 } }`
-  document.head.appendChild(style)
-}
-
 /* ── Primitives ── */
 
-/** A single pulsing bar */
+/**
+ * A single shimmering skeleton bar.
+ * Uses the global `.l-skeleton` class (gradient shimmer 1.4s) defined in globals.css.
+ * Inline maxWidth: 100% prevents fixed px width from overflowing narrow grid cells.
+ */
 export function Bone({ w, h = 10, r, style }: {
   w?: number | string; h?: number; r?: number; style?: React.CSSProperties
 }) {
-  ensurePulseStyle()
   return (
-    <div style={{
+    <div className="l-skeleton" style={{
       width: w ?? '100%', height: h,
       borderRadius: r ?? t.radius.sm,
-      background: t.neutrals.inner,
-      animation: 'lPulse 1.6s ease-in-out infinite',
+      maxWidth: '100%',
       ...style,
     }} />
   )
