@@ -28,7 +28,7 @@ const THEME_KEYS = ['AI 인프라', '지정학/안보', '넥스트', '미분류'
 const GROUP_COLORS: Record<string, string> = { 'AI 인프라': '#6366f1', '지정학/안보': '#f97316', '넥스트': '#a855f7', '미분류': '#94a3b8' }
 const MARKET_COLORS = { '국내': '#3b82f6', '해외': '#10b981' }
 const AI_INFRA_SUB_COLORS: Record<string, string> = {
-  'AI 반도체': '#6366f1',
+  'AI 반도체': '#db2777',
   'AI 에너지/원전': '#f59e0b',
   '데이터센터/냉각/네트워킹': '#06b6d4',
   '미분류': '#94a3b8',

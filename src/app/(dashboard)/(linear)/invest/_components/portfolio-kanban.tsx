@@ -80,7 +80,7 @@ const SUB_ORDER: Record<string, string[]> = {
   '지정학/안보': ['방산', '우주'],
 }
 const SUB_COLORS: Record<string, { bg: string; fg: string }> = {
-  'AI 반도체':              { bg: '#E0E7FF', fg: '#4338CA' },
+  'AI 반도체':              { bg: '#FCE7F3', fg: '#9D174D' },
   'AI 에너지/원전':         { bg: '#FEF3C7', fg: '#92400E' },
   '데이터센터/냉각/네트워킹': { bg: '#CFFAFE', fg: '#155E75' },
   '방산':                   { bg: '#FEE2E2', fg: '#B91C1C' },
