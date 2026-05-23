@@ -926,6 +926,16 @@ export interface AnonymousEventStats {
 export async function getAnonymousEventStats(): Promise<AnonymousEventStats | null> {
   if (!voicecardsSupabase) return null
 
+  // 분석에서 제외할 내부 계정 (운영자/테스트) — getVoicecardsUserStats와 동일
+  // 정책. 'tts_played' 등 이벤트가 매일 카운트되는데 운영 계정 사용이 함께
+  // 집계되면 외부 사용자 활동량을 과대 추정함.
+  const EXCLUDED_NICKNAMES = new Set(['류하아빠', '큐트도넛'])
+  const { data: excludedUsersRows } = await voicecardsSupabase
+    .from('users')
+    .select('user_id, nickname')
+    .in('nickname', Array.from(EXCLUDED_NICKNAMES))
+  const excludedUserIds = new Set((excludedUsersRows || []).map(u => u.user_id))
+
   const allRows: any[] = []
   const PAGE = 1000
   let from = 0
@@ -937,7 +947,12 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       .order('created_at', { ascending: true })
       .range(from, from + PAGE - 1)
     if (error || !data) break
-    allRows.push(...data)
+    // 내부 계정(로그인 후 user_id 매핑된 이벤트)은 제외. user_id 없는
+    // 로그인 전 익명 이벤트는 그대로 살림.
+    for (const row of data) {
+      if (row.user_id && excludedUserIds.has(row.user_id)) continue
+      allRows.push(row)
+    }
     if (data.length < PAGE) break
     from += PAGE
   }
