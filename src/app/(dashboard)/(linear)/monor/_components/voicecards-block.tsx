@@ -29,6 +29,7 @@ interface UserStats {
   users: Array<{
     id: string
     nickname: string | null
+    email: string | null
     appVersion: string | null
     credits: number
     creditsUsed: number
@@ -635,8 +636,8 @@ export function VoicecardsBlock({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {paginatedUsers.map((user) => {
               const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
-              const fallbackName = shortId ? `#${shortId}` : 'Unknown'
-              const initial = (user.nickname?.charAt(0) || shortId.charAt(0) || '?').toUpperCase()
+              const fallbackName = user.email || (shortId ? `#${shortId}` : 'Unknown')
+              const initial = (user.nickname?.charAt(0) || user.email?.charAt(0) || shortId.charAt(0) || '?').toUpperCase()
               return (
               <div key={user.id} style={{
                 padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
@@ -678,7 +679,7 @@ export function VoicecardsBlock({
                     fontSize: 9.5, color: t.neutrals.muted,
                     whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
-                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 듣기 {formatNumber(user.creditsUsed)}회 · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'}
+                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 듣기 {formatNumber(user.creditsUsed)}회 · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'} · 가입일 {formatDate(user.createdAt)}
                   </div>
                 </div>
 

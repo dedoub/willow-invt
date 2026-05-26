@@ -37,6 +37,7 @@ interface UserStats {
   users: Array<{
     id: string
     nickname: string | null
+    email: string | null
     appVersion: string | null
     credits: number
     creditsUsed: number

@@ -704,6 +704,7 @@ export interface VoicecardsUserStats {
   users: Array<{
     id: string
     nickname: string | null
+    email: string | null
     appVersion: string | null  // 가장 최근 활동 시 앱 버전
     credits: number          // 현재 잔액
     creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played). AI 카드 생성은 사용량 적어 제외
@@ -850,6 +851,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const userList = users.map(u => ({
     id: u.user_id,
     nickname: u.nickname,
+    email: u.email || null,
     appVersion: userAppVersionMap.get(u.user_id) || null,
     credits: u.credits || 0,
     creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
