@@ -88,7 +88,7 @@ function fmtAmount(v: number, currency: 'KRW' | 'USD'): string {
 
 function fmtPrice(v: number, currency: 'KRW' | 'USD'): string {
   if (currency === 'USD') return `$${v.toFixed(2)}`
-  return `${v.toLocaleString()}원`
+  return `${Math.round(v).toLocaleString()}원`
 }
 
 function pnlColor(v: number): string {
