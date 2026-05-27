@@ -55,9 +55,13 @@ export function ScheduleDialog({
     email_reminder: false, homework_items: [],
   })
   const [saving, setSaving] = useState(false)
+  const [copyMode, setCopyMode] = useState(false)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setCopyMode(false)
+      return
+    }
     if (schedule) {
       setForm({
         id: schedule.id,
@@ -109,6 +113,11 @@ export function ScheduleDialog({
     }
   }
 
+  const handleCopy = () => {
+    setForm(f => ({ ...f, id: undefined, title: f.title ? `${f.title} (복사)` : '' }))
+    setCopyMode(true)
+  }
+
   const filteredTextbooks = form.subject_id
     ? textbooks.filter(tb => tb.subject_id === form.subject_id)
     : textbooks
@@ -128,7 +137,8 @@ export function ScheduleDialog({
 
   if (!open) return null
 
-  const isEdit = !!schedule
+  const isEdit = !!schedule && !copyMode
+  const headerLabel = isEdit ? '일정 수정' : copyMode ? '일정 복사' : '일정 추가'
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -151,7 +161,7 @@ export function ScheduleDialog({
               SCHEDULE
             </div>
             <div style={{ fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              {isEdit ? '일정 수정' : '일정 추가'}
+              {headerLabel}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -374,6 +384,9 @@ export function ScheduleDialog({
             <LBtn variant="danger" size="sm" onClick={handleDelete} disabled={saving}>삭제</LBtn>
           )}
           <div style={{ display: 'flex', gap: 8 }}>
+            {isEdit && (
+              <LBtn variant="ghost" size="sm" onClick={handleCopy} disabled={saving}>복사</LBtn>
+            )}
             <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
             <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.title.trim()}>
               {saving ? '저장 중...' : '저장'}
