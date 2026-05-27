@@ -707,6 +707,7 @@ export interface VoicecardsUserStats {
     email: string | null
     appVersion: string | null  // 가장 최근 활동 시 앱 버전
     platform: string | null    // 'ios' | 'android' 등
+    locale: string | null      // 'ko' | 'en' | 'de' | 'fr' | 'es' | 'zh' | 'ja' 등
     credits: number          // 현재 잔액
     creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played). AI 카드 생성은 사용량 적어 제외
     sheetCount: number
@@ -757,9 +758,9 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     fetchAllPaged<{ user_id: string; event_name: string; properties: Record<string, unknown> | null }>(
       () => vc.from('anonymous_events_real_users').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played']).eq('is_likely_bot', false)
     ),
-    // 사용자별 최근 앱 버전 + 플랫폼 — created_at desc 정렬 후 user_id별 첫 row가 최신
-    fetchAllPaged<{ user_id: string; app_version: string | null; platform: string | null; created_at: string }>(
-      () => vc.from('anonymous_events_real_users').select('user_id, app_version, platform, created_at').not('user_id', 'is', null).not('app_version', 'is', null).order('created_at', { ascending: false })
+    // 사용자별 최근 앱 버전 + 플랫폼 + 언어 — created_at desc 정렬 후 user_id별 첫 row가 최신
+    fetchAllPaged<{ user_id: string; app_version: string | null; platform: string | null; locale: string | null; created_at: string }>(
+      () => vc.from('anonymous_events_real_users').select('user_id, app_version, platform, locale, created_at').not('user_id', 'is', null).not('app_version', 'is', null).order('created_at', { ascending: false })
     ),
   ])
   const creditEventsRes = { data: creditEventsRows }
@@ -841,13 +842,15 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     userCreditsUsedMap.set(uid, (userCreditsUsedMap.get(uid) || 0) + 1)
   }
 
-  // 사용자별 최근 앱 버전 + 플랫폼 (versionRows는 created_at desc로 정렬됨 → user_id 첫 등장이 최신)
+  // 사용자별 최근 앱 버전 + 플랫폼 + 언어 (versionRows는 created_at desc로 정렬됨 → user_id 첫 등장이 최신)
   const userAppVersionMap = new Map<string, string>()
   const userPlatformMap = new Map<string, string>()
+  const userLocaleMap = new Map<string, string>()
   for (const row of versionRows) {
     if (row.user_id && row.app_version && !userAppVersionMap.has(row.user_id)) {
       userAppVersionMap.set(row.user_id, row.app_version)
       if (row.platform) userPlatformMap.set(row.user_id, row.platform)
+      if (row.locale) userLocaleMap.set(row.user_id, row.locale)
     }
   }
 
@@ -857,6 +860,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     email: u.email || null,
     appVersion: userAppVersionMap.get(u.user_id) || null,
     platform: userPlatformMap.get(u.user_id) || null,
+    locale: userLocaleMap.get(u.user_id) || null,
     credits: u.credits || 0,
     creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
     sheetCount: u.sheet_ids?.length || 0,

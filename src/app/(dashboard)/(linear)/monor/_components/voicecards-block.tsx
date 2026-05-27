@@ -32,6 +32,7 @@ interface UserStats {
     email: string | null
     appVersion: string | null
     platform: string | null
+    locale: string | null
     credits: number
     creditsUsed: number
     sheetCount: number
@@ -684,6 +685,16 @@ export function VoicecardsBlock({
                         flexShrink: 0, lineHeight: 1.4, textTransform: 'uppercase' as const,
                       }}>
                         {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform}
+                      </span>
+                    )}
+                    {user.locale && (
+                      <span style={{
+                        fontSize: 9, fontFamily: t.font.mono, fontWeight: 600,
+                        color: '#6B21A8', background: '#F3E8FF',
+                        padding: '1px 5px', borderRadius: 3,
+                        flexShrink: 0, lineHeight: 1.4, textTransform: 'uppercase' as const,
+                      }}>
+                        {user.locale}
                       </span>
                     )}
                   </div>

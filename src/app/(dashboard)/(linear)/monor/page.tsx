@@ -40,6 +40,7 @@ interface UserStats {
     email: string | null
     appVersion: string | null
     platform: string | null
+    locale: string | null
     credits: number
     creditsUsed: number
     sheetCount: number
