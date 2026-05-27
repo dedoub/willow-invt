@@ -148,10 +148,6 @@ function formatLocale(locale: string): string {
 type UserSortKey = 'sheets' | 'cards' | 'attempts' | 'credits' | 'recent' | 'created'
 
 const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
-  { key: 'sheets',   label: '시트' },
-  { key: 'cards',    label: '카드' },
-  { key: 'attempts', label: '말하기' },
-  { key: 'credits',  label: '듣기' },
   { key: 'recent',   label: '활동일' },
   { key: 'created',  label: '가입일' },
 ]
