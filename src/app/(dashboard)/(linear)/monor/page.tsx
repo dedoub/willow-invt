@@ -39,6 +39,7 @@ interface UserStats {
     nickname: string | null
     email: string | null
     appVersion: string | null
+    platform: string | null
     credits: number
     creditsUsed: number
     sheetCount: number

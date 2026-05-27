@@ -31,6 +31,7 @@ interface UserStats {
     nickname: string | null
     email: string | null
     appVersion: string | null
+    platform: string | null
     credits: number
     creditsUsed: number
     sheetCount: number
@@ -674,10 +675,25 @@ export function VoicecardsBlock({
                         v{user.appVersion}
                       </span>
                     )}
+                    {user.platform && (
+                      <span style={{
+                        fontSize: 9, fontFamily: t.font.mono, fontWeight: 600,
+                        color: user.platform === 'ios' ? '#0369A1' : user.platform === 'android' ? '#15803D' : t.neutrals.muted,
+                        background: user.platform === 'ios' ? '#E0F2FE' : user.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
+                        padding: '1px 5px', borderRadius: 3,
+                        flexShrink: 0, lineHeight: 1.4, textTransform: 'uppercase' as const,
+                      }}>
+                        {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform}
+                      </span>
+                    )}
                   </div>
                   <div style={{
                     fontSize: 9.5, color: t.neutrals.muted,
-                    whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
+                    whiteSpace: mobile ? ('normal' as const) : ('nowrap' as const),
+                    overflow: mobile ? 'visible' : 'hidden',
+                    textOverflow: mobile ? 'clip' : 'ellipsis',
+                    wordBreak: mobile ? ('keep-all' as const) : ('normal' as const),
+                    lineHeight: 1.4,
                   }}>
                     시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 듣기 {formatNumber(user.creditsUsed)}회 · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'} · 가입일 {formatDate(user.createdAt)}
                   </div>
