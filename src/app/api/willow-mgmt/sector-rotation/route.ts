@@ -21,15 +21,36 @@ export interface SectorRotationEtf {
 
 export async function GET() {
   const supabase = getServiceSupabase()
-  const [etfsRes, quotesRes] = await Promise.all([
-    supabase.from('sector_index_etfs').select('ticker, name, group_label, display_order').eq('active', true).order('display_order'),
-    supabase.from('sector_index_quotes').select('ticker, date, close').order('date', { ascending: false }),
-  ])
+  // PostgREST의 기본 1000-row cap을 우회하려면 페이지네이션 필요.
+  // 1y 비교에 필요한 만큼만 cutoff date로 좁히고, 페이지로 모두 가져옴.
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - 380)
+  const cutoffStr = cutoff.toISOString().slice(0, 10)
+
+  const etfsRes = await supabase
+    .from('sector_index_etfs')
+    .select('ticker, name, group_label, display_order')
+    .eq('active', true)
+    .order('display_order')
   if (etfsRes.error) return NextResponse.json({ error: etfsRes.error.message }, { status: 500 })
-  if (quotesRes.error) return NextResponse.json({ error: quotesRes.error.message }, { status: 500 })
+
+  const PAGE = 1000
+  const allQuotes: Array<{ ticker: string; date: string; close: number }> = []
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await supabase
+      .from('sector_index_quotes')
+      .select('ticker, date, close')
+      .gte('date', cutoffStr)
+      .order('date', { ascending: false })
+      .range(offset, offset + PAGE - 1)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!data || data.length === 0) break
+    allQuotes.push(...data)
+    if (data.length < PAGE) break
+  }
 
   const byTicker = new Map<string, Array<{ date: string; close: number }>>()
-  for (const q of quotesRes.data || []) {
+  for (const q of allQuotes) {
     const arr = byTicker.get(q.ticker) || []
     arr.push({ date: q.date, close: Number(q.close) })
     byTicker.set(q.ticker, arr)

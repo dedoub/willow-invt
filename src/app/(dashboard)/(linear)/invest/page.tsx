@@ -178,6 +178,16 @@ export default function InvestPage() {
   }, [loadData])
 
   // Compute portfolio summary stats for signal bar
+  // 내 portfolio + watchlist axis 집합 — SectorRotation 하이라이트에 사용
+  const myAxes = useMemo(() => {
+    const set = new Set<string>()
+    if (!watchlistData) return set
+    for (const item of [...watchlistData.portfolio, ...watchlistData.watchlist]) {
+      if (item.axis) set.add(item.axis)
+    }
+    return set
+  }, [watchlistData])
+
   const portfolioStats = useMemo(() => {
     // Build holdings map from trades (using historical FX for cost, matching holdings-block)
     const getFxRate = (date: string): number => {
@@ -364,14 +374,11 @@ export default function InvestPage() {
               usdKrwRate={usdKrw}
               loading={isLoadingHistory}
             />
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <TradeLog trades={stockTrades} />
-            </div>
+            <TradeLog trades={stockTrades} />
+            <SectorRotationBlock myAxes={myAxes} />
           </div>
         </div>
         )}
-
-        <SectorRotationBlock />
 
         <PortfolioKanban
           watchlistData={watchlistData}

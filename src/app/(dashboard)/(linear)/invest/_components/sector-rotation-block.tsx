@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { SectorRotationChartModal } from './sector-rotation-chart'
 
 interface SectorEtf {
   ticker: string
@@ -13,6 +14,16 @@ interface SectorEtf {
 }
 
 const PERIODS: Array<'1m' | '3m' | '6m' | '1y'> = ['1m', '3m', '6m', '1y']
+
+// 내 포트와 가장 직결된 핵심 ETF만 하이라이트 (전체 ETF 중 일부만).
+// 사용자 보유/감시 종목의 axis와 교집합이 있으면 하이라이트 행으로 강조.
+const ETF_AXES: Record<string, string[]> = {
+  SMH:  ['AI 인프라'],   // 반도체 (NVDA, AMD, SK하이닉스, 삼성전자 등)
+  AIQ:  ['AI 인프라'],   // AI 종합
+  URA:  ['AI 인프라'],   // 우라늄/원전 (CCJ)
+  ITA:  ['지정학/안보'], // 방산 (한화에어로, 한국로템 등)
+  QTUM: ['넥스트'],      // 양자컴퓨팅 (QBTS)
+}
 
 // 수익률을 [-30%, +30%] 범위로 클램프해서 0~1 normalize 후 빨강↔초록 그라데이션
 function returnColor(r: number | null): { bg: string; fg: string } {
@@ -49,11 +60,17 @@ function fmtPct(r: number | null): string {
 
 type SortKey = '1m' | '3m' | '6m' | '1y' | 'group'
 
-export function SectorRotationBlock() {
+interface SectorRotationBlockProps {
+  /** 사용자 보유/감시 중인 axis 집합 (예: {'AI 인프라','지정학/안보','넥스트'}). 매칭되는 ETF 행은 하이라이트. */
+  myAxes?: Set<string>
+}
+
+export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
   const mobile = useIsMobile()
   const [etfs, setEtfs] = useState<SectorEtf[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortKey>('1y')
+  const [openChart, setOpenChart] = useState<{ ticker: string; name: string; period: '1m' | '3m' | '6m' | '1y' } | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -74,9 +91,12 @@ export function SectorRotationBlock() {
   const sorted = useMemo(() => {
     if (!etfs) return []
     if (sortBy === 'group') {
-      // 그룹 순서 + 그룹 내 1y 수익률 desc
+      // Benchmark → GICS → Theme, 그룹 내 1y 수익률 desc
+      const order: Record<string, number> = { Benchmark: 0, GICS: 1, Theme: 2 }
       return [...etfs].sort((a, b) => {
-        if (a.group !== b.group) return a.group === 'GICS' ? -1 : 1
+        const ao = order[a.group] ?? 99
+        const bo = order[b.group] ?? 99
+        if (ao !== bo) return ao - bo
         const av = a.returns['1y'] ?? -Infinity
         const bv = b.returns['1y'] ?? -Infinity
         return bv - av
@@ -154,21 +174,35 @@ export function SectorRotationBlock() {
             ))}
           </div>
           {/* Data rows */}
-          {sorted.map(etf => (
+          {sorted.map(etf => {
+            const axesForEtf = ETF_AXES[etf.ticker] || []
+            const isMine = !!myAxes && axesForEtf.some(a => myAxes.has(a))
+            const isBenchmark = etf.group === 'Benchmark'
+            // 벤치마크는 앰버, 내 포트는 인디고. (벤치마크는 항상 비교 기준이라 별도 강조)
+            const rowBg = isBenchmark ? 'rgba(245, 158, 11, 0.10)' : isMine ? 'rgba(99, 102, 241, 0.10)' : 'transparent'
+            const rowBorder = isBenchmark ? '2px solid #F59E0B' : isMine ? '2px solid #6366F1' : '2px solid transparent'
+            const tickerColor = isBenchmark ? '#B45309' : isMine ? '#4338CA' : t.neutrals.text
+            return (
             <div key={etf.ticker} style={{
               display: 'grid',
               gridTemplateColumns: mobile ? '64px 1fr repeat(4, 56px)' : '70px 1fr repeat(4, 78px)',
               gap: 4, alignItems: 'center', padding: '0 6px',
               fontSize: 11, color: t.neutrals.text,
+              background: rowBg,
+              borderLeft: rowBorder,
+              borderRadius: t.radius.sm,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
                 <span style={{
                   fontSize: 8, fontWeight: 600, padding: '0 4px', borderRadius: 3,
-                  background: etf.group === 'GICS' ? '#DBEAFE' : '#F3E8FF',
-                  color: etf.group === 'GICS' ? '#1E40AF' : '#7E22CE',
+                  background: isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : '#F3E8FF',
+                  color: isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : '#7E22CE',
                   flexShrink: 0,
-                }}>{etf.group === 'GICS' ? 'G' : 'T'}</span>
-                <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.medium, fontSize: 11 }}>{etf.ticker}</span>
+                }}>{isBenchmark ? 'B' : etf.group === 'GICS' ? 'G' : 'T'}</span>
+                <span style={{
+                  fontFamily: t.font.mono, fontWeight: (isMine || isBenchmark) ? t.weight.semibold : t.weight.medium,
+                  fontSize: 11, color: tickerColor,
+                }}>{etf.ticker}</span>
               </div>
               <div style={{
                 fontSize: 11, color: t.neutrals.muted,
@@ -179,20 +213,32 @@ export function SectorRotationBlock() {
               {PERIODS.map(p => {
                 const r = etf.returns[p]
                 const c = returnColor(r)
+                const clickable = r != null
                 return (
-                  <div key={p} style={{
-                    padding: '3px 6px', borderRadius: t.radius.sm,
-                    background: c.bg, color: c.fg,
-                    fontSize: mobile ? 10 : 10.5, fontWeight: t.weight.medium,
-                    fontFamily: t.font.mono, textAlign: 'right' as const,
-                    lineHeight: 1.4,
-                  }}>
+                  <button
+                    key={p}
+                    onClick={clickable ? () => setOpenChart({ ticker: etf.ticker, name: etf.name, period: p }) : undefined}
+                    disabled={!clickable}
+                    style={{
+                      padding: '3px 6px', borderRadius: t.radius.sm,
+                      background: c.bg, color: c.fg,
+                      fontSize: mobile ? 10 : 10.5, fontWeight: t.weight.medium,
+                      fontFamily: t.font.mono, textAlign: 'right' as const,
+                      lineHeight: 1.4, border: 'none',
+                      cursor: clickable ? 'pointer' : 'default',
+                      transition: 'transform .08s',
+                    }}
+                    onMouseEnter={(e) => { if (clickable) e.currentTarget.style.transform = 'scale(1.05)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+                    title={clickable ? `${etf.ticker} ${p.toUpperCase()} 추이 차트 보기` : undefined}
+                  >
                     {fmtPct(r)}
-                  </div>
+                  </button>
                 )
               })}
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -200,6 +246,15 @@ export function SectorRotationBlock() {
         <div style={{ fontSize: 12, color: t.neutrals.subtle, padding: '20px 0', textAlign: 'center' as const }}>
           데이터가 없습니다. 수집 스크립트를 실행해 주세요.
         </div>
+      )}
+
+      {openChart && (
+        <SectorRotationChartModal
+          ticker={openChart.ticker}
+          etfName={openChart.name}
+          period={openChart.period}
+          onClose={() => setOpenChart(null)}
+        />
       )}
     </div>
   )

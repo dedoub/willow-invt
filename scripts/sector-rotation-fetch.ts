@@ -27,6 +27,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 const args = process.argv.slice(2)
 const range = (args.find(a => a.startsWith('--range='))?.split('=')[1]) || '2y'
+// --full 옵션: ETF 상장 이후 전체 데이터 (period1=0)
+const fullHistory = args.includes('--full')
 
 interface YahooChartResult {
   chart: {
@@ -39,7 +41,9 @@ interface YahooChartResult {
 }
 
 async function fetchHistorical(ticker: string): Promise<Array<{ date: string; close: number }>> {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=${range}`
+  const url = fullHistory
+    ? `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&period1=0&period2=${Math.floor(Date.now() / 1000)}`
+    : `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=${range}`
   const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } })
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${ticker}`)
   const data = (await res.json()) as YahooChartResult
@@ -69,7 +73,7 @@ async function main() {
     process.exit(1)
   }
 
-  console.log(`[sector-rotation] Fetching ${etfs.length} ETFs (range=${range})...`)
+  console.log(`[sector-rotation] Fetching ${etfs.length} ETFs (${fullHistory ? 'FULL history' : `range=${range}`})...`)
 
   let totalRows = 0
   let totalErrors = 0
