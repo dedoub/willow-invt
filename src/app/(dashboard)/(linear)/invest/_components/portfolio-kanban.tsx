@@ -75,7 +75,7 @@ const PARENT_COLORS: Record<string, { bg: string; fg: string }> = {
   '넥스트':      { bg: '#F3E8FF', fg: '#7E22CE' },
   '미분류':      { bg: '#F1F5F9', fg: '#475569' },
 }
-// holdings-block의 SUB_GROUP_ORDER와 동일한 묶음으로 유지 — 두 섹션의 분류 체계 일치
+// holdings-block의 SUB_GROUP_ORDER와 동일한 묶음 — 두 섹션의 분류 표시가 같아지도록
 const SUB_ORDER: Record<string, string[]> = {
   'AI 인프라':   ['AI 반도체', 'AI 에너지/원전', '데이터센터/냉각/네트워킹'],
   '지정학/안보': ['방산', '우주'],
@@ -89,8 +89,8 @@ const SUB_COLORS: Record<string, { bg: string; fg: string }> = {
   '기타':                   { bg: '#F1F5F9', fg: '#475569' },
 }
 
-// stock_watchlist/stock_research.sector → holdings 기준의 sub-theme
-// holdings는 investment_themes 테이블의 parent/sub를 사용하고, 그 매핑은 ensure-ticker-theme.ts와 동일
+// stock_watchlist/stock_research.sector → holdings의 sub-theme 묶음 매핑
+// (ensure-ticker-theme.ts의 SECTOR_THEME_MAP과 동일한 규칙)
 function mapSectorToSubTheme(sector: string | undefined | null): string {
   if (!sector) return '기타'
   if (/반도체|semiconductor|chip|메모리|memory|패키징|장비/i.test(sector)) return 'AI 반도체'
@@ -179,7 +179,7 @@ function groupCardsByTheme(
     for (const c of items) {
       const tickerKey = c.ticker.replace('.KS', '')
       const themeFallback = themes[tickerKey]?.[0]?.theme || themes[c.ticker]?.[0]?.theme
-      // holdings와 같은 sub-theme 묶음 사용. sector를 먼저 매핑, 없으면 themes 결과 사용
+      // sector를 holdings 기준 sub-theme으로 매핑. sector 없으면 themes 결과 활용
       const raw = c.sector ? mapSectorToSubTheme(c.sector) : (themeFallback || '기타')
       const sub = subOrder.includes(raw) ? raw : '기타'
       if (!subBuckets.has(sub)) subBuckets.set(sub, [])
