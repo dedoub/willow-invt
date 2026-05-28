@@ -9,6 +9,7 @@ import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, 
 import { HoldingsBlock, StockTradeFull, StockQuoteFull, TickerTheme } from './_components/holdings-block'
 import { AnalysisBlock } from './_components/analysis-block'
 import { TradeLog } from './_components/trade-log'
+import { SectorRotationBlock } from './_components/sector-rotation-block'
 import { InvestSkeleton, InvestHoldingsSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 
 const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
@@ -369,6 +370,8 @@ export default function InvestPage() {
           </div>
         </div>
         )}
+
+        <SectorRotationBlock />
 
         <PortfolioKanban
           watchlistData={watchlistData}
