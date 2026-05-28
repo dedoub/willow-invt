@@ -23,6 +23,7 @@ const ETF_AXES: Record<string, string[]> = {
   URA:  ['AI 인프라'],   // 우라늄/원전 (CCJ)
   ITA:  ['지정학/안보'], // 방산 (한화에어로, 한국로템 등)
   QTUM: ['넥스트'],      // 양자컴퓨팅 (QBTS)
+  EWY:  ['AI 인프라', '지정학/안보', '넥스트'], // 한국 ETF — 한국 보유 종목 다수
 }
 
 // 수익률을 [-30%, +30%] 범위로 클램프해서 0~1 normalize 후 빨강↔초록 그라데이션
@@ -91,8 +92,8 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
   const sorted = useMemo(() => {
     if (!etfs) return []
     if (sortBy === 'group') {
-      // Benchmark → GICS → Theme, 그룹 내 1y 수익률 desc
-      const order: Record<string, number> = { Benchmark: 0, GICS: 1, Theme: 2 }
+      // Benchmark → GICS → Theme → Macro, 그룹 내 1y 수익률 desc
+      const order: Record<string, number> = { Benchmark: 0, GICS: 1, Theme: 2, Macro: 3 }
       return [...etfs].sort((a, b) => {
         const ao = order[a.group] ?? 99
         const bo = order[b.group] ?? 99
@@ -195,10 +196,10 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
                 <span style={{
                   fontSize: 8, fontWeight: 600, padding: '0 4px', borderRadius: 3,
-                  background: isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : '#F3E8FF',
-                  color: isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : '#7E22CE',
+                  background: isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : etf.group === 'Macro' ? '#E5E7EB' : '#F3E8FF',
+                  color: isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : etf.group === 'Macro' ? '#374151' : '#7E22CE',
                   flexShrink: 0,
-                }}>{isBenchmark ? 'B' : etf.group === 'GICS' ? 'G' : 'T'}</span>
+                }}>{isBenchmark ? 'B' : etf.group === 'GICS' ? 'G' : etf.group === 'Macro' ? 'M' : 'T'}</span>
                 <span style={{
                   fontFamily: t.font.mono, fontWeight: (isMine || isBenchmark) ? t.weight.semibold : t.weight.medium,
                   fontSize: 11, color: tickerColor,
