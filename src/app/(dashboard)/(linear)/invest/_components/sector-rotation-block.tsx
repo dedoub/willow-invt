@@ -92,8 +92,8 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
   const sorted = useMemo(() => {
     if (!etfs) return []
     if (sortBy === 'group') {
-      // Benchmark → GICS → Theme → Macro, 그룹 내 1y 수익률 desc
-      const order: Record<string, number> = { Benchmark: 0, GICS: 1, Theme: 2, Macro: 3 }
+      // Holding → Benchmark → GICS → Theme → Macro, 그룹 내 1y 수익률 desc
+      const order: Record<string, number> = { Holding: 0, Benchmark: 1, GICS: 2, Theme: 3, Macro: 4 }
       return [...etfs].sort((a, b) => {
         const ao = order[a.group] ?? 99
         const bo = order[b.group] ?? 99
@@ -179,10 +179,11 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             const axesForEtf = ETF_AXES[etf.ticker] || []
             const isMine = !!myAxes && axesForEtf.some(a => myAxes.has(a))
             const isBenchmark = etf.group === 'Benchmark'
-            // 벤치마크는 앰버, 내 포트는 인디고. (벤치마크는 항상 비교 기준이라 별도 강조)
-            const rowBg = isBenchmark ? 'rgba(245, 158, 11, 0.10)' : isMine ? 'rgba(99, 102, 241, 0.10)' : 'transparent'
-            const rowBorder = isBenchmark ? '2px solid #F59E0B' : isMine ? '2px solid #6366F1' : '2px solid transparent'
-            const tickerColor = isBenchmark ? '#B45309' : isMine ? '#4338CA' : t.neutrals.text
+            const isHolding = etf.group === 'Holding'
+            // Holding 핑크 / Benchmark 앰버 / isMine 인디고 / 나머지 회색 — 셋 다 시각 구분
+            const rowBg = isHolding ? 'rgba(236, 72, 153, 0.10)' : isBenchmark ? 'rgba(245, 158, 11, 0.10)' : isMine ? 'rgba(99, 102, 241, 0.10)' : 'transparent'
+            const rowBorder = isHolding ? '2px solid #EC4899' : isBenchmark ? '2px solid #F59E0B' : isMine ? '2px solid #6366F1' : '2px solid transparent'
+            const tickerColor = isHolding ? '#9D174D' : isBenchmark ? '#B45309' : isMine ? '#4338CA' : t.neutrals.text
             return (
             <div key={etf.ticker} style={{
               display: 'grid',
@@ -196,14 +197,14 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
                 <span style={{
                   fontSize: 8, fontWeight: 600, padding: '0 4px', borderRadius: 3,
-                  background: isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : etf.group === 'Macro' ? '#E5E7EB' : '#F3E8FF',
-                  color: isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : etf.group === 'Macro' ? '#374151' : '#7E22CE',
+                  background: isHolding ? '#FCE7F3' : isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : etf.group === 'Macro' ? '#E5E7EB' : '#F3E8FF',
+                  color: isHolding ? '#9D174D' : isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : etf.group === 'Macro' ? '#374151' : '#7E22CE',
                   flexShrink: 0,
-                }}>{isBenchmark ? 'B' : etf.group === 'GICS' ? 'G' : etf.group === 'Macro' ? 'M' : 'T'}</span>
+                }}>{isHolding ? 'H' : isBenchmark ? 'B' : etf.group === 'GICS' ? 'G' : etf.group === 'Macro' ? 'M' : 'T'}</span>
                 <span style={{
-                  fontFamily: t.font.mono, fontWeight: (isMine || isBenchmark) ? t.weight.semibold : t.weight.medium,
+                  fontFamily: t.font.mono, fontWeight: (isHolding || isMine || isBenchmark) ? t.weight.semibold : t.weight.medium,
                   fontSize: 11, color: tickerColor,
-                }}>{etf.ticker}</span>
+                }}>{etf.ticker.replace('.KS', '')}</span>
               </div>
               <div style={{
                 fontSize: 11, color: t.neutrals.muted,

@@ -366,7 +366,7 @@ export default function InvestPage() {
 
         {loadPhase < 2 ? <InvestHoldingsSkeleton /> : (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, overflow: 'hidden' }}>
-          <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
             <HoldingsBlock
               stockTrades={stockTradesFull}
               stockQuotes={stockQuotesFull}
@@ -376,6 +376,7 @@ export default function InvestPage() {
               tickerSectors={tickerSectors}
               cardColumns={mobile ? 1 : 2}
             />
+            <TradeLog trades={stockTrades} />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, minHeight: 0 }}>
@@ -388,7 +389,6 @@ export default function InvestPage() {
               usdKrwRate={usdKrw}
               loading={isLoadingHistory}
             />
-            <TradeLog trades={stockTrades} />
             <SectorRotationBlock myAxes={myAxes} />
           </div>
         </div>

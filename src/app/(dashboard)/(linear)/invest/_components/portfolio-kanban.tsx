@@ -95,7 +95,7 @@ function mapSectorToSubTheme(sector: string | undefined | null): string {
   if (!sector) return '기타'
   if (/반도체|semiconductor|chip|메모리|memory|패키징|장비|HBM|ASIC|GPU|테스터/i.test(sector)) return 'AI 반도체'
   if (/에너지|원전|원자력|nuclear|우라늄|연료전지|fuel cell|가스터빈|발전|터빈/i.test(sector)) return 'AI 에너지/원전'
-  if (/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|스토리지|저장|인프라|광|cloud|클라우드|NAND|HDD|서버/i.test(sector)) return '데이터센터/냉각/네트워킹'
+  if (/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|스토리지|저장|인프라|광|cloud|클라우드|NAND|SSD|HDD|서버/i.test(sector)) return '데이터센터/냉각/네트워킹'
   if (/방산|defense|military/i.test(sector)) return '방산'
   if (/우주|space|satellite|SpaceX|위성|달|lunar/i.test(sector)) return '우주'
   return '기타'
@@ -115,6 +115,7 @@ function renderGroupedCards(
   cards: StockCardData[],
   themes: Record<string, Array<{ theme: string; parentTheme: string | null }>>,
   renderCard: (card: StockCardData) => React.ReactNode,
+  cardColumns: 1 | 2 = 1,
 ): React.ReactNode {
   const groups = groupCardsByTheme(cards, themes)
   return groups.map(({ parent, subs }) => {
@@ -146,7 +147,14 @@ function renderGroupedCards(
                   </span>
                 </div>
               )}
-              {subCards.map(c => renderCard(c))}
+              <div style={{
+                display: cardColumns === 2 ? 'grid' : 'flex',
+                gridTemplateColumns: cardColumns === 2 ? 'repeat(2, minmax(0, 1fr))' : undefined,
+                flexDirection: cardColumns === 2 ? undefined : 'column',
+                gap: 4,
+              }}>
+                {subCards.map(c => renderCard(c))}
+              </div>
             </div>
           )
         })}
@@ -199,6 +207,8 @@ export function PortfolioKanban({
   onTotalValueChange, onDataChanged, printMode = false,
 }: KanbanProps) {
   const mobile = useIsMobile()
+  // 칸반은 3-col 레이아웃이라 각 컬럼 폭이 좁아 1280px 미만에서는 카드 2-col 안 적용
+  const narrow = useIsMobile(1280)
   const [dragOverCol, setDragOverCol] = useState<string | null>(null)
   const [sortBy1m, setSortBy1m] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('kanban-sort-1m') === '1'
@@ -573,7 +583,7 @@ export function PortfolioKanban({
           </div>
           {renderGroupedCards(portfolioCards, stockThemes, card => (
             <StockCard key={card.ticker} data={card} draggable bordered={printMode} />
-          ))}
+          ), narrow ? 1 : 2)}
           {portfolioCards.length === 0 && (
             <div style={{ padding: 16, textAlign: 'center', fontSize: 11, color: t.neutrals.subtle }}>종목 없음</div>
           )}
@@ -594,7 +604,7 @@ export function PortfolioKanban({
               pinned={card.pinned}
               bordered={printMode}
             />
-          ))}
+          ), narrow ? 1 : 2)}
           {watchlistCards.length === 0 && (
             <div style={{ padding: 16, textAlign: 'center', fontSize: 11, color: t.neutrals.subtle }}>종목 없음</div>
           )}
@@ -613,7 +623,7 @@ export function PortfolioKanban({
               onRemove={card.researchId ? () => handleRemoveResearch(card.researchId!) : undefined}
               bordered={printMode}
             />
-          ))}
+          ), narrow ? 1 : 2)}
           {researchCards.length === 0 && (
             <div style={{ padding: 16, textAlign: 'center', fontSize: 11, color: t.neutrals.subtle }}>종목 없음</div>
           )}
