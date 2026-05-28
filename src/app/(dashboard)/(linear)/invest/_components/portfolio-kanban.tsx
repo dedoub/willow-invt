@@ -68,11 +68,12 @@ interface KanbanProps {
 }
 
 /* ── Theme grouping ── */
-const PARENT_ORDER = ['AI 인프라', '지정학/안보', '넥스트', '미분류']
+const PARENT_ORDER = ['AI 인프라', '지정학/안보', '넥스트', '스캔 후보', '미분류']
 const PARENT_COLORS: Record<string, { bg: string; fg: string }> = {
   'AI 인프라':   { bg: '#E0E7FF', fg: '#4338CA' },
   '지정학/안보': { bg: '#FFEDD5', fg: '#C2410C' },
   '넥스트':      { bg: '#F3E8FF', fg: '#7E22CE' },
+  '스캔 후보':   { bg: '#E5E7EB', fg: '#4B5563' },
   '미분류':      { bg: '#F1F5F9', fg: '#475569' },
 }
 // holdings-block의 SUB_GROUP_ORDER와 동일한 묶음 — 두 섹션의 분류 표시가 같아지도록
@@ -90,14 +91,13 @@ const SUB_COLORS: Record<string, { bg: string; fg: string }> = {
 }
 
 // stock_watchlist/stock_research.sector → holdings의 sub-theme 묶음 매핑
-// (ensure-ticker-theme.ts의 SECTOR_THEME_MAP과 동일한 규칙)
 function mapSectorToSubTheme(sector: string | undefined | null): string {
   if (!sector) return '기타'
-  if (/반도체|semiconductor|chip|메모리|memory|패키징|장비/i.test(sector)) return 'AI 반도체'
-  if (/에너지|원전|원자력|nuclear|우라늄/i.test(sector)) return 'AI 에너지/원전'
-  if (/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|스토리지|저장|인프라|광|cloud|클라우드/i.test(sector)) return '데이터센터/냉각/네트워킹'
+  if (/반도체|semiconductor|chip|메모리|memory|패키징|장비|HBM|ASIC|GPU|테스터/i.test(sector)) return 'AI 반도체'
+  if (/에너지|원전|원자력|nuclear|우라늄|연료전지|fuel cell|가스터빈|발전|터빈/i.test(sector)) return 'AI 에너지/원전'
+  if (/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|스토리지|저장|인프라|광|cloud|클라우드|NAND|HDD|서버/i.test(sector)) return '데이터센터/냉각/네트워킹'
   if (/방산|defense|military/i.test(sector)) return '방산'
-  if (/우주|space|satellite/i.test(sector)) return '우주'
+  if (/우주|space|satellite|SpaceX|위성|달|lunar/i.test(sector)) return '우주'
   return '기타'
 }
 

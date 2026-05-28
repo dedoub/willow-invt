@@ -107,6 +107,8 @@ interface HoldingsBlockProps {
   cardColumns?: 1 | 2
   /** ticker → DB의 세부 sector. sub-group 헤더는 묶음명을 보여주고, 카드에는 그 안의 세부 sector를 표기 (중복 방지). */
   tickerSectors?: Record<string, string>
+  /** 인쇄 페이지 전용 — 카드에 종이용 테두리 적용. */
+  printMode?: boolean
 }
 
 interface Holding {
@@ -119,7 +121,7 @@ interface Holding {
 
 type MarketFilter = 'all' | 'KR' | 'US'
 
-export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1, tickerSectors = {} }: HoldingsBlockProps) {
+export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1, tickerSectors = {}, printMode = false }: HoldingsBlockProps) {
   const mobile = useIsMobile()
   const [currencyMode, setCurrencyMode] = useState<'original' | 'KRW'>('original')
   const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
@@ -343,7 +345,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       {hasQuotes && (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8, padding: '0 14px 12px' }}>
           {/* KR */}
-          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
+          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
             <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>국내 {summary.krH.length}종목</div>
             <div style={{ fontSize: 13, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(summary.krVal, 'KRW')}</div>
             <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: pnlColor(summary.krVal - summary.krInv), fontVariantNumeric: 'tabular-nums' }}>
@@ -360,7 +362,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             const displayPnl = displayVal - displayInv
             const displayCur: 'KRW' | 'USD' = isKrw ? 'KRW' : 'USD'
             return (
-              <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
+              <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
                 <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>해외 {summary.usH.length}종목</div>
                 <div style={{ fontSize: 13, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(displayVal, displayCur)}</div>
                 <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: pnlColor(displayPnl), fontVariantNumeric: 'tabular-nums' }}>
@@ -371,7 +373,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             )
           })()}
           {/* Total */}
-          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
+          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
             <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>전체 {summary.count}종목 · {Math.round(usdKrwRate).toLocaleString()}원/$</div>
             <div style={{ fontSize: 13, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(summary.totalVal, 'KRW')}</div>
             <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: pnlColor(summary.totalPnl), fontVariantNumeric: 'tabular-nums' }}>
@@ -386,7 +388,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
         <div style={{ padding: '0 14px 12px' }}>
           <div style={{
             background: t.neutrals.inner, borderRadius: t.radius.md, overflow: 'hidden',
-            border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
+            border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
           }}>
             <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', minWidth: 360, borderCollapse: 'collapse', fontSize: 11, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
@@ -547,7 +549,6 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   return (
                     <div key={h.ticker} style={{
                       background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px',
-                      border: cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
                     }}>
                       {/* Row 1: name + ticker + themes + daily % */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>

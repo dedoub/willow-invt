@@ -27,6 +27,7 @@ export default function PrintHoldingsPage() {
               usdKrwRate={data.usdKrw}
               fxHistory={data.fxHistory}
               cardColumns={2}
+              printMode
             />
             <AnalysisBlock
               stockTrades={data.stockTradesFull}

@@ -374,6 +374,7 @@ export default function InvestPage() {
               usdKrwRate={usdKrw}
               fxHistory={fxHistory}
               tickerSectors={tickerSectors}
+              cardColumns={mobile ? 1 : 2}
             />
           </div>
 

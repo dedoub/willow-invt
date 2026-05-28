@@ -209,14 +209,14 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
         </div>
       </div>
 
-      {/* Row 2: axis/sector + change% */}
+      {/* Row 2: 세부 sector(라벨) + 스몰캡 + change% — 부모 axis는 sub-group 헤더와 중복되어 제거 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {data.axis ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          {data.sector ? (
             <span style={{
               fontSize: 9.5, fontWeight: t.weight.medium, padding: '1px 5px',
               borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted,
-            }}>{data.axis}</span>
+            }}>{data.sector}</span>
           ) : (data.group === 'watchlist' || data.group === 'research') ? (
             <span style={{
               fontSize: 9.5, fontWeight: t.weight.medium, padding: '1px 5px',
@@ -229,7 +229,6 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               borderRadius: t.radius.sm, background: '#E0E7FF', color: '#4338CA',
             }}>스몰캡</span>
           )}
-          <span style={{ fontSize: 10, color: t.neutrals.subtle }}>{data.sector}</span>
         </div>
         {data.changePercent != null && (
           <span style={{ fontSize: 11, fontWeight: t.weight.medium, fontFamily: t.font.mono, color: changeColor }}>
