@@ -188,6 +188,18 @@ export default function InvestPage() {
     return set
   }, [watchlistData])
 
+  // ticker → DB의 세부 sector. holdings 카드에서 sub-group과 중복되지 않는 세부 라벨로 사용.
+  const tickerSectors = useMemo(() => {
+    const map: Record<string, string> = {}
+    if (!watchlistData) return map
+    for (const item of [...watchlistData.portfolio, ...watchlistData.watchlist]) {
+      if (!item.sector) continue
+      const key = item.ticker.replace('.KS', '')
+      map[key] = item.sector
+    }
+    return map
+  }, [watchlistData])
+
   const portfolioStats = useMemo(() => {
     // Build holdings map from trades (using historical FX for cost, matching holdings-block)
     const getFxRate = (date: string): number => {
@@ -361,6 +373,7 @@ export default function InvestPage() {
               stockThemes={stockThemes}
               usdKrwRate={usdKrw}
               fxHistory={fxHistory}
+              tickerSectors={tickerSectors}
             />
           </div>
 

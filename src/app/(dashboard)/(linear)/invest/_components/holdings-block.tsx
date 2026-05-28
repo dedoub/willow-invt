@@ -105,6 +105,8 @@ interface HoldingsBlockProps {
   fxHistory: Record<string, number>
   /** 종목 카드 컬럼 수 (인쇄용 2단 배치 등). 기본 1. */
   cardColumns?: 1 | 2
+  /** ticker → DB의 세부 sector. sub-group 헤더는 묶음명을 보여주고, 카드에는 그 안의 세부 sector를 표기 (중복 방지). */
+  tickerSectors?: Record<string, string>
 }
 
 interface Holding {
@@ -117,7 +119,7 @@ interface Holding {
 
 type MarketFilter = 'all' | 'KR' | 'US'
 
-export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1 }: HoldingsBlockProps) {
+export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1, tickerSectors = {} }: HoldingsBlockProps) {
   const mobile = useIsMobile()
   const [currencyMode, setCurrencyMode] = useState<'original' | 'KRW'>('original')
   const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
@@ -552,9 +554,14 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
                           <span style={{ fontSize: 12, fontWeight: t.weight.medium }}>{h.company_name}</span>
                           <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.mono }}>{h.ticker}</span>
-                          {h.themes.map(th => (
-                            <span key={th} style={{ fontSize: 9, padding: '1px 4px', borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted }}>{th}</span>
-                          ))}
+                          {/* sub-group 헤더와의 중복을 피하기 위해 카드에는 DB의 세부 sector만 표시 (예: 'AI 메모리', '광 인터커넥트'). */}
+                          {(() => {
+                            const detail = tickerSectors[h.ticker] || tickerSectors[h.ticker.replace('.KS', '')]
+                            if (!detail) return null
+                            return (
+                              <span style={{ fontSize: 9, padding: '1px 4px', borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted }}>{detail}</span>
+                            )
+                          })()}
                         </div>
                         {h.dailyChangePercent !== 0 && (
                           <span style={{
