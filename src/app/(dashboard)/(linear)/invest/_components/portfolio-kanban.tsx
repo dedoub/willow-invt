@@ -75,49 +75,30 @@ const PARENT_COLORS: Record<string, { bg: string; fg: string }> = {
   '넥스트':      { bg: '#F3E8FF', fg: '#7E22CE' },
   '미분류':      { bg: '#F1F5F9', fg: '#475569' },
 }
+// holdings-block의 SUB_GROUP_ORDER와 동일한 묶음으로 유지 — 두 섹션의 분류 체계 일치
 const SUB_ORDER: Record<string, string[]> = {
-  'AI 인프라': [
-    'AI 반도체', 'AI 메모리', 'AI 스토리지', 'AI 네트워킹',
-    'AI 데이터센터', 'AI 인프라', 'AI 냉각', 'AI 에너지',
-    '반도체 장비', '반도체 패키징',
-  ],
-  '지정학/안보': [
-    '방산', '방산 - 한국', '방산 - 미국 AI', '방산/원자력',
-    '우주', '우주/발사체', '우라늄', '자산운용/증권', '건축/엔지니어링',
-  ],
-  '넥스트': [
-    '자동차/로보틱스', '산업용 로보틱스', '산업자동화/ATE', '양자컴퓨팅',
-  ],
+  'AI 인프라':   ['AI 반도체', 'AI 에너지/원전', '데이터센터/냉각/네트워킹'],
+  '지정학/안보': ['방산', '우주'],
 }
 const SUB_COLORS: Record<string, { bg: string; fg: string }> = {
-  // AI 인프라 — 핑크/마젠타 계열
-  'AI 반도체':       { bg: '#FCE7F3', fg: '#9D174D' },
-  'AI 메모리':       { bg: '#FBCFE8', fg: '#9D174D' },
-  'AI 스토리지':     { bg: '#FDE68A', fg: '#92400E' },
-  'AI 네트워킹':     { bg: '#CFFAFE', fg: '#155E75' },
-  '광 인터커넥트':   { bg: '#BAE6FD', fg: '#075985' },
-  'AI 데이터센터':   { bg: '#E0F2FE', fg: '#0369A1' },
-  'AI 인프라':       { bg: '#E0E7FF', fg: '#4338CA' },
-  'AI 냉각':         { bg: '#D1FAE5', fg: '#065F46' },
-  'AI 에너지':       { bg: '#FEF3C7', fg: '#92400E' },
-  '반도체 장비':     { bg: '#F5D0FE', fg: '#86198F' },
-  '반도체 패키징':   { bg: '#FAE8FF', fg: '#86198F' },
-  // 지정학/안보 — 레드/오렌지 계열
-  '방산':            { bg: '#FEE2E2', fg: '#B91C1C' },
-  '방산 - 한국':     { bg: '#FECACA', fg: '#991B1B' },
-  '방산 - 미국 AI':  { bg: '#FECDD3', fg: '#9F1239' },
-  '방산/원자력':     { bg: '#FED7AA', fg: '#9A3412' },
-  '우주':            { bg: '#DBEAFE', fg: '#1E40AF' },
-  '우주/발사체':     { bg: '#BFDBFE', fg: '#1E3A8A' },
-  '우라늄':          { bg: '#FEF3C7', fg: '#854D0E' },
-  '자산운용/증권':   { bg: '#F1F5F9', fg: '#475569' },
-  '건축/엔지니어링': { bg: '#E7E5E4', fg: '#57534E' },
-  // 넥스트 — 퍼플 계열
-  '자동차/로보틱스': { bg: '#EDE9FE', fg: '#5B21B6' },
-  '산업용 로보틱스': { bg: '#F3E8FF', fg: '#6B21A8' },
-  '산업자동화/ATE':  { bg: '#FAE8FF', fg: '#86198F' },
-  '양자컴퓨팅':      { bg: '#F5D0FE', fg: '#86198F' },
-  '기타':            { bg: '#F1F5F9', fg: '#475569' },
+  'AI 반도체':              { bg: '#FCE7F3', fg: '#9D174D' },
+  'AI 에너지/원전':         { bg: '#FEF3C7', fg: '#92400E' },
+  '데이터센터/냉각/네트워킹': { bg: '#CFFAFE', fg: '#155E75' },
+  '방산':                   { bg: '#FEE2E2', fg: '#B91C1C' },
+  '우주':                   { bg: '#DBEAFE', fg: '#1E40AF' },
+  '기타':                   { bg: '#F1F5F9', fg: '#475569' },
+}
+
+// stock_watchlist/stock_research.sector → holdings 기준의 sub-theme
+// holdings는 investment_themes 테이블의 parent/sub를 사용하고, 그 매핑은 ensure-ticker-theme.ts와 동일
+function mapSectorToSubTheme(sector: string | undefined | null): string {
+  if (!sector) return '기타'
+  if (/반도체|semiconductor|chip|메모리|memory|패키징|장비/i.test(sector)) return 'AI 반도체'
+  if (/에너지|원전|원자력|nuclear|우라늄/i.test(sector)) return 'AI 에너지/원전'
+  if (/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|스토리지|저장|인프라|광|cloud|클라우드/i.test(sector)) return '데이터센터/냉각/네트워킹'
+  if (/방산|defense|military/i.test(sector)) return '방산'
+  if (/우주|space|satellite/i.test(sector)) return '우주'
+  return '기타'
 }
 
 function formatMarketCap(cap: number, currency: string | undefined): string | undefined {
@@ -197,11 +178,10 @@ function groupCardsByTheme(
     const subBuckets = new Map<string, StockCardData[]>()
     for (const c of items) {
       const tickerKey = c.ticker.replace('.KS', '')
-      const rawSector = c.sector?.trim()
       const themeFallback = themes[tickerKey]?.[0]?.theme || themes[c.ticker]?.[0]?.theme
-      const raw = rawSector || themeFallback || '기타'
-      // subOrder에 정의된 sub-label은 정해진 순서대로, 그 외 sector는 그대로 사용(섹션 끝쪽에 표시)
-      const sub = raw
+      // holdings와 같은 sub-theme 묶음 사용. sector를 먼저 매핑, 없으면 themes 결과 사용
+      const raw = c.sector ? mapSectorToSubTheme(c.sector) : (themeFallback || '기타')
+      const sub = subOrder.includes(raw) ? raw : '기타'
       if (!subBuckets.has(sub)) subBuckets.set(sub, [])
       subBuckets.get(sub)!.push(c)
     }
@@ -209,11 +189,6 @@ function groupCardsByTheme(
     for (const k of subOrder) {
       if (subBuckets.has(k)) subs.push({ sub: k, cards: subBuckets.get(k)! })
     }
-    // subOrder에 없는 sector — 알파벳/가나다순으로 뒤에 붙임 (단 '기타'는 가장 마지막)
-    const extras = Array.from(subBuckets.keys())
-      .filter(k => !subOrder.includes(k) && k !== '기타')
-      .sort((a, b) => a.localeCompare(b, 'ko'))
-    for (const k of extras) subs.push({ sub: k, cards: subBuckets.get(k)! })
     if (subBuckets.has('기타')) subs.push({ sub: '기타', cards: subBuckets.get('기타')! })
     return { parent, subs }
   })
