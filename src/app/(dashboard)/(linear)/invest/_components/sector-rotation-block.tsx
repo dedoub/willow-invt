@@ -59,7 +59,37 @@ function fmtPct(r: number | null): string {
   return `${v > 0 ? '+' : ''}${v.toFixed(1)}%`
 }
 
-type SortKey = '1m' | '3m' | '6m' | '1y' | 'group'
+type SortKey = '1m' | '3m' | '6m' | '1y' | 'group' | 'name'
+type SortDir = 'asc' | 'desc'
+
+function HeaderCell({
+  label, sortKey, current, dir, onClick, align = 'left',
+}: {
+  label: string
+  sortKey: SortKey
+  current: SortKey
+  dir: SortDir
+  onClick: (k: SortKey) => void
+  align?: 'left' | 'center' | 'right'
+}) {
+  const active = current === sortKey
+  const justify = align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start'
+  return (
+    <button
+      onClick={() => onClick(sortKey)}
+      style={{
+        background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+        fontSize: 10, color: active ? t.neutrals.text : t.neutrals.subtle,
+        fontFamily: t.font.mono, fontWeight: 600, textTransform: 'uppercase' as const,
+        display: 'flex', alignItems: 'center', justifyContent: justify,
+        gap: 2,
+      }}
+    >
+      <span>{label}</span>
+      <span style={{ width: 8, opacity: active ? 1 : 0.25 }}>{active ? (dir === 'asc' ? '↑' : '↓') : '·'}</span>
+    </button>
+  )
+}
 
 interface SectorRotationBlockProps {
   /** 사용자 보유/감시 중인 axis 집합 (예: {'AI 인프라','지정학/안보','넥스트'}). 매칭되는 ETF 행은 하이라이트. */
@@ -71,6 +101,17 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
   const [etfs, setEtfs] = useState<SectorEtf[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortKey>('1y')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+
+  const handleSort = (key: SortKey) => {
+    if (sortBy === key) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSortBy(key)
+      // 새 키로 바꿀 때 기본: 그룹/이름은 asc, 수익률은 desc
+      setSortDir(key === 'group' || key === 'name' ? 'asc' : 'desc')
+    }
+  }
   const [openChart, setOpenChart] = useState<{ ticker: string; name: string; period: '1m' | '3m' | '6m' | '1y' } | null>(null)
 
   useEffect(() => {
@@ -91,24 +132,28 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
 
   const sorted = useMemo(() => {
     if (!etfs) return []
+    const dirSign = sortDir === 'asc' ? 1 : -1
     if (sortBy === 'group') {
       // Holding → Benchmark → GICS → Theme → Macro, 그룹 내 1y 수익률 desc
       const order: Record<string, number> = { Holding: 0, Benchmark: 1, GICS: 2, Theme: 3, Macro: 4 }
       return [...etfs].sort((a, b) => {
         const ao = order[a.group] ?? 99
         const bo = order[b.group] ?? 99
-        if (ao !== bo) return ao - bo
+        if (ao !== bo) return (ao - bo) * dirSign
         const av = a.returns['1y'] ?? -Infinity
         const bv = b.returns['1y'] ?? -Infinity
-        return bv - av
+        return bv - av // 그룹 내부는 항상 1y desc
       })
+    }
+    if (sortBy === 'name') {
+      return [...etfs].sort((a, b) => a.name.localeCompare(b.name, 'ko') * dirSign)
     }
     return [...etfs].sort((a, b) => {
       const av = a.returns[sortBy] ?? -Infinity
       const bv = b.returns[sortBy] ?? -Infinity
-      return bv - av
+      return (av - bv) * dirSign
     })
-  }, [etfs, sortBy])
+  }, [etfs, sortBy, sortDir])
 
   const latestDate = etfs?.[0]?.latestDate
 
@@ -128,27 +173,6 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {(['group', '1m', '3m', '6m', '1y'] as const).map(key => {
-            const active = sortBy === key
-            return (
-              <button
-                key={key}
-                onClick={() => setSortBy(key)}
-                style={{
-                  padding: '3px 10px', fontSize: 11, fontFamily: t.font.sans, cursor: 'pointer',
-                  border: 'none', borderRadius: t.radius.pill,
-                  background: active ? t.brand[600] : t.neutrals.inner,
-                  color: active ? '#fff' : t.neutrals.muted,
-                  fontWeight: active ? t.weight.medium : t.weight.regular,
-                  transition: 'all .12s',
-                }}
-              >
-                {key === 'group' ? '그룹' : key.toUpperCase()}
-              </button>
-            )
-          })}
-        </div>
       </div>
 
       {loading && (
@@ -161,17 +185,17 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
 
       {!loading && sorted.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {/* Header row */}
+          {/* Header row — 각 헤더 클릭 시 정렬 (같은 헤더 재클릭 시 방향 토글) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: mobile ? '64px 1fr repeat(4, 56px)' : '70px 1fr repeat(4, 78px)',
             gap: 4, padding: '4px 6px', fontSize: 10, color: t.neutrals.subtle,
             fontFamily: t.font.mono, fontWeight: 600, textTransform: 'uppercase' as const,
           }}>
-            <div>티커</div>
-            <div>이름</div>
+            <HeaderCell label="티커" sortKey="group" current={sortBy} dir={sortDir} onClick={handleSort} />
+            <HeaderCell label="이름" sortKey="name" current={sortBy} dir={sortDir} onClick={handleSort} />
             {PERIODS.map(p => (
-              <div key={p} style={{ textAlign: 'right' }}>{p.toUpperCase()}</div>
+              <HeaderCell key={p} label={p.toUpperCase()} sortKey={p} current={sortBy} dir={sortDir} onClick={handleSort} align="center" />
             ))}
           </div>
           {/* Data rows */}
