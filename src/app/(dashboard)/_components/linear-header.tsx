@@ -8,6 +8,7 @@ import { refreshAllData } from '@/hooks/use-agent-refresh'
 
 interface LinearHeaderProps {
   title: string
+  group?: string
   subtitle?: string
   onAgentToggle?: () => void
   agentOpen?: boolean
@@ -16,7 +17,7 @@ interface LinearHeaderProps {
   onMenuToggle?: () => void
 }
 
-export function LinearHeader({ title, subtitle, onAgentToggle, agentOpen, actions, mobile, onMenuToggle }: LinearHeaderProps) {
+export function LinearHeader({ title, group = '윌로우인베스트먼트', subtitle, onAgentToggle, agentOpen, actions, mobile, onMenuToggle }: LinearHeaderProps) {
   const [spinning, setSpinning] = useState(false)
   const handleRefresh = () => {
     refreshAllData()
@@ -43,7 +44,7 @@ export function LinearHeader({ title, subtitle, onAgentToggle, agentOpen, action
         )}
         {!mobile && (
           <>
-            <span style={{ color: t.neutrals.muted }}>윌로우인베스트먼트</span>
+            <span style={{ color: t.neutrals.muted }}>{group}</span>
             <LIcon name="chevronRight" size={11} color={t.neutrals.subtle} stroke={2} />
           </>
         )}

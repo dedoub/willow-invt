@@ -62,19 +62,6 @@ export default function WikiPage() {
 
   return (
     <>
-      <div style={{ padding: '20px 0 0' }}>
-        <h1 style={{
-          margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3,
-          fontFamily: t.font.sans, color: t.neutrals.text,
-        }}>업무위키</h1>
-        <p style={{
-          margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
-          fontFamily: t.font.sans,
-        }}>
-          전사 업무 지식 베이스
-        </p>
-      </div>
-
       {loading ? <WikiSkeleton /> : (
         <WikiList
           notes={notes}

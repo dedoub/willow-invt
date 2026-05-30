@@ -21,14 +21,17 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ['400', '500', '600'],
 })
 
-const PAGE_TITLES: Record<string, string> = {
-  '/mgmt': '사업관리',
-  '/invest': '주식투자',
-  '/realestate': '부동산리서치',
-  '/wiki': '업무위키',
-  '/ryuha': '류하일정',
-  '/tensw': '텐소프트웍스',
-  '/monor': 'MonoR Apps',
+// path → { 그룹, 페이지 } — 상단바 breadcrumb 표시용
+const PAGE_INFO: Record<string, { group: string; title: string }> = {
+  '/mgmt':       { group: '윌로우인베스트먼트', title: '사업관리' },
+  '/invest':     { group: '윌로우인베스트먼트', title: '주식투자' },
+  '/realestate': { group: '윌로우인베스트먼트', title: '부동산리서치' },
+  '/wiki':       { group: '윌로우인베스트먼트', title: '업무위키' },
+  '/ryuha':      { group: '윌로우인베스트먼트', title: '류하일정' },
+  '/akros':      { group: '프로젝트', title: '아크로스' },
+  '/etc':        { group: '프로젝트', title: 'ETC' },
+  '/tensw':      { group: '프로젝트', title: '텐소프트웍스' },
+  '/monor':      { group: '프로젝트', title: 'MonoR Apps' },
 }
 
 function useNarrow(threshold = 1180) {
@@ -65,7 +68,7 @@ export default function LinearRouteLayout({
   // Close menu on route change
   useEffect(() => { setMenuOpen(false) }, [pathname])
 
-  const title = PAGE_TITLES[pathname] || ''
+  const info = PAGE_INFO[pathname] || { group: '윌로우인베스트먼트', title: '' }
 
   return (
     <div className={`${interTight.variable} ${jetbrainsMono.variable}`}>
@@ -81,13 +84,14 @@ export default function LinearRouteLayout({
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <LinearHeader
-            title={title}
+            title={info.title}
+            group={info.group}
             onAgentToggle={() => setChatOpen(v => !v)}
             agentOpen={!!chatOpen}
             mobile={mobile}
             onMenuToggle={() => setMenuOpen(v => !v)}
           />
-          <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '0 12px 24px' : '0 20px 24px' }}>
+          <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '16px 12px 24px' : '16px 20px 24px' }}>
             {children}
           </main>
         </div>

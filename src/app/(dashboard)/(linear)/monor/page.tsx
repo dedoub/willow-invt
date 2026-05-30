@@ -188,17 +188,6 @@ export default function MonorPage() {
 
   return (
     <>
-      <div style={{ padding: '20px 0 0' }}>
-        <h1 style={{
-          margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3,
-          fontFamily: t.font.sans, color: t.neutrals.text,
-        }}>MonoR Apps</h1>
-        <p style={{
-          margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
-          fontFamily: t.font.sans,
-        }}>류하 교육용 앱 직접 개발 후 상용화</p>
-      </div>
-
       <div style={{
         display: 'grid',
         gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',

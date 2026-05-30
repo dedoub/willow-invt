@@ -505,18 +505,6 @@ export default function TenswPage() {
 
   return (
     <>
-      {/* Page title */}
-      <div style={{ padding: '20px 0 0' }}>
-        <h1 style={{
-          margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3,
-          fontFamily: t.font.sans, color: t.neutrals.text,
-        }}>텐소프트웍스</h1>
-        <p style={{
-          margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
-          fontFamily: t.font.sans,
-        }}>AI 서비스용 데이터 구축 및 관리 솔루션 개발 - 연 매출 100억 원 목표</p>
-      </div>
-
       {loadPhase === 0 ? <TenswSkeleton /> : (
         <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

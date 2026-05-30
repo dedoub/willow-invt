@@ -174,17 +174,6 @@ export default function EtcPage() {
 
   return (
     <>
-      <div style={{ padding: '20px 0 0' }}>
-        <h1 style={{
-          margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3,
-          fontFamily: t.font.sans, color: t.neutrals.text,
-        }}>ETC</h1>
-        <p style={{
-          margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
-          fontFamily: t.font.sans,
-        }}>국내 금융투자업자들에게 미국 상장 ETF 플랫폼 제공 - 연간 10개 상장 목표</p>
-      </div>
-
       {loadPhase === 0 ? <EtcSkeleton /> : (
         <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

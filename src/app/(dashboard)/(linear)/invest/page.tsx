@@ -303,56 +303,41 @@ export default function InvestPage() {
       : fmtKrwShort(gain)
     : undefined
 
+  const printActions = (
+    <div style={{ display: 'flex', gap: 6 }}>
+      <button
+        onClick={() => window.open('/print/invest/holdings', '_blank')}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '4px 10px', fontSize: 11, fontWeight: t.weight.regular,
+          background: t.neutrals.inner, color: t.neutrals.muted,
+          border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
+          fontFamily: t.font.sans,
+        }}
+        title="보유현황 + 분석 인쇄/PDF용 페이지 열기"
+      >
+        <LIcon name="download" size={11} stroke={1.6} />
+        보유현황
+      </button>
+      <button
+        onClick={() => window.open('/print/invest/kanban', '_blank')}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '4px 10px', fontSize: 11, fontWeight: t.weight.regular,
+          background: t.neutrals.inner, color: t.neutrals.muted,
+          border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
+          fontFamily: t.font.sans,
+        }}
+        title="종목관리 칸반 인쇄/PDF용 페이지 열기"
+      >
+        <LIcon name="download" size={11} stroke={1.6} />
+        종목관리
+      </button>
+    </div>
+  )
+
   return (
     <>
-      <div style={{ padding: '20px 0 0' }}>
-        <h1 style={{
-          margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3,
-          fontFamily: t.font.sans, color: t.neutrals.text,
-        }}>주식투자</h1>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          margin: '4px 0 16px', gap: 12, flexWrap: 'wrap',
-        }}>
-          <p style={{
-            margin: 0, fontSize: 12, color: t.neutrals.muted,
-            fontFamily: t.font.sans,
-          }}>
-            포트폴리오 규모 100억 원 목표
-          </p>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button
-              onClick={() => window.open('/print/invest/holdings', '_blank')}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '4px 10px', fontSize: 11, fontWeight: t.weight.regular,
-                background: t.neutrals.inner, color: t.neutrals.muted,
-                border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
-                fontFamily: t.font.sans,
-              }}
-              title="보유현황 + 분석 인쇄/PDF용 페이지 열기"
-            >
-              <LIcon name="download" size={11} stroke={1.6} />
-              보유현황
-            </button>
-            <button
-              onClick={() => window.open('/print/invest/kanban', '_blank')}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '4px 10px', fontSize: 11, fontWeight: t.weight.regular,
-                background: t.neutrals.inner, color: t.neutrals.muted,
-                border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
-                fontFamily: t.font.sans,
-              }}
-              title="종목관리 칸반 인쇄/PDF용 페이지 열기"
-            >
-              <LIcon name="download" size={11} stroke={1.6} />
-              종목관리
-            </button>
-          </div>
-        </div>
-      </div>
-
       {loadPhase === 0 ? <InvestSkeleton /> : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <SignalBar
@@ -362,6 +347,7 @@ export default function InvestPage() {
           buyTickers={portfolioStats.buyTickers}
           holdTickers={portfolioStats.holdTickers}
           usdKrw={usdKrw}
+          actions={printActions}
         />
 
         {loadPhase < 2 ? <InvestHoldingsSkeleton /> : (

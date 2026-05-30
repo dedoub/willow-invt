@@ -87,7 +87,7 @@ function Sparkline({
   )
 }
 
-export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sparkFormat }: LStatProps) {
+export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sparkFormat, wrap }: LStatProps & { wrap?: boolean }) {
   const color = tone === 'pos' ? t.accent.pos
     : tone === 'neg' ? t.accent.neg
     : tone === 'warn' ? t.accent.warn
@@ -132,9 +132,12 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
       </div>
       {/* Row 2: sub (전체 폭) */}
       {sub && (
-        <div style={{
+        <div style={wrap ? {
           fontSize: 9.5, color: t.neutrals.muted, marginTop: 4,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          wordBreak: 'break-word' as const, lineHeight: 1.4,
+        } : {
+          fontSize: 9.5, color: t.neutrals.muted, marginTop: 4,
+          whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{sub}</div>
       )}
     </div>

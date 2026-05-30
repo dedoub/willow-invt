@@ -381,20 +381,6 @@ export default function MgmtPage() {
 
   return (
     <>
-      {/* Page title */}
-      <div style={{ padding: '20px 0 0' }}>
-        <h1 style={{
-          margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.3,
-          fontFamily: t.font.sans, color: t.neutrals.text,
-        }}>사업관리</h1>
-        <p style={{
-          margin: '4px 0 16px', fontSize: 12, color: t.neutrals.muted,
-          fontFamily: t.font.sans,
-        }}>
-          일정 · 현금관리 · 이메일 — 오늘의 허브
-        </p>
-      </div>
-
       {loadPhase === 0 ? <MgmtSkeleton /> : (
       <>
 
