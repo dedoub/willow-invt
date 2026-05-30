@@ -14,6 +14,7 @@ interface SeriesPoint {
   etf: number
   spy: number | null
   qqq: number | null
+  qld: number | null
 }
 
 interface ChartData {
@@ -48,7 +49,7 @@ export function SectorRotationChartModal({
     return () => { alive = false }
   }, [ticker, period])
 
-  const isBenchEtf = ticker === 'SPY' || ticker === 'QQQ'
+  const isBenchEtf = ticker === 'SPY' || ticker === 'QQQ' || ticker === 'QLD'
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -113,10 +114,9 @@ export function SectorRotationChartModal({
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 6 }} />
                 <ReferenceLine y={0} stroke={t.neutrals.muted} strokeDasharray="3 3" />
                 <Line type="monotone" dataKey="etf" name={ticker} stroke="#6366F1" strokeWidth={2.2} dot={false} isAnimationActive={false} />
-                {!isBenchEtf && <Line type="monotone" dataKey="spy" name="SPY" stroke="#F59E0B" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
-                {!isBenchEtf && <Line type="monotone" dataKey="qqq" name="QQQ" stroke="#10B981" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
-                {ticker === 'SPY' && <Line type="monotone" dataKey="qqq" name="QQQ" stroke="#10B981" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
-                {ticker === 'QQQ' && <Line type="monotone" dataKey="spy" name="SPY" stroke="#F59E0B" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
+                {ticker !== 'SPY' && <Line type="monotone" dataKey="spy" name="SPY" stroke="#F59E0B" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
+                {ticker !== 'QQQ' && <Line type="monotone" dataKey="qqq" name="QQQ" stroke="#10B981" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
+                {ticker !== 'QLD' && <Line type="monotone" dataKey="qld" name="QLD" stroke="#EC4899" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
               </LineChart>
             </ResponsiveContainer>
           )}

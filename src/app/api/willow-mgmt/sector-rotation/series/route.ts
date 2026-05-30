@@ -58,34 +58,31 @@ export async function GET(request: Request) {
   const cutoffStr = cutoff.toISOString().slice(0, 10)
 
   const supabase = getServiceSupabase()
-  const fetches = [fetchHistory(supabase, ticker, cutoffStr)]
-  if (ticker !== 'SPY') fetches.push(fetchHistory(supabase, 'SPY', cutoffStr))
-  if (ticker !== 'QQQ') fetches.push(fetchHistory(supabase, 'QQQ', cutoffStr))
+  const benchmarks = ['SPY', 'QQQ', 'QLD']
+  const targets = [ticker, ...benchmarks.filter(b => b !== ticker)]
 
-  let etfSeries: Array<{ date: string; close: number }>
-  let spySeries: Array<{ date: string; close: number }>
-  let qqqSeries: Array<{ date: string; close: number }>
+  let seriesByTicker: Record<string, Array<{ date: string; close: number }>>
   try {
-    const results = await Promise.all(fetches)
-    etfSeries = results[0]
-    spySeries = ticker === 'SPY' ? results[0] : results[1]
-    qqqSeries = ticker === 'QQQ' ? results[0] : (ticker === 'SPY' ? results[1] : results[2])
+    const results = await Promise.all(targets.map(tk => fetchHistory(supabase, tk, cutoffStr)))
+    seriesByTicker = Object.fromEntries(targets.map((tk, i) => [tk, results[i]]))
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'fetch failed' }, { status: 500 })
   }
 
-  const etfRet = computeTrailing(etfSeries, windowDays)
-  const spyRet = computeTrailing(spySeries, windowDays)
-  const qqqRet = computeTrailing(qqqSeries, windowDays)
+  const etfRet = computeTrailing(seriesByTicker[ticker] || [], windowDays)
+  const spyRet = computeTrailing(seriesByTicker['SPY'] || [], windowDays)
+  const qqqRet = computeTrailing(seriesByTicker['QQQ'] || [], windowDays)
+  const qldRet = computeTrailing(seriesByTicker['QLD'] || [], windowDays)
 
   // ETF 시리즈 기준으로 통합. 최근 252 영업일만.
-  const merged: Array<{ date: string; etf: number; spy: number | null; qqq: number | null }> = []
+  const merged: Array<{ date: string; etf: number; spy: number | null; qqq: number | null; qld: number | null }> = []
   for (const [date, etf] of etfRet) {
     merged.push({
       date,
       etf,
       spy: spyRet.get(date) ?? null,
       qqq: qqqRet.get(date) ?? null,
+      qld: qldRet.get(date) ?? null,
     })
   }
   merged.sort((a, b) => a.date.localeCompare(b.date))
