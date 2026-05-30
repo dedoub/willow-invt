@@ -17,7 +17,7 @@ export interface WikiNote {
   updated_at: string
 }
 
-type WikiSection = 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt'
+type WikiSection = 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 
 const SECTION_BADGES: Record<string, { label: string; bg: string; fg: string }> = {
   'willow-mgmt':{ label: '윌로우',       ...tonePalettes.done },

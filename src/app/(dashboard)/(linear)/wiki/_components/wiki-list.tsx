@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
@@ -11,12 +11,13 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { WikiNote } from './wiki-note-row'
 import { WikiNoteForm } from './wiki-note-form'
 
-type SectionFilter = 'all' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt'
-type WikiSection = 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt'
+type SectionFilter = 'all' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
+type WikiSection = 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 
 const SECTION_FILTERS: { value: SectionFilter; label: string }[] = [
   { value: 'all', label: '전체' },
   { value: 'willow-mgmt', label: '윌로우' },
+  { value: 'invest-mgmt', label: '투자관리' },
   { value: 'tensw-mgmt', label: '텐소프트웍스' },
   { value: 'etf-etc', label: 'ETC' },
   { value: 'akros', label: '아크로스' },
@@ -25,6 +26,7 @@ const SECTION_FILTERS: { value: SectionFilter; label: string }[] = [
 const SECTION_BADGES: Record<string, { label: string; bg: string; fg: string }> = {
   'willow-mgmt': { label: '윌로우',       ...tonePalettes.done },
   'tensw-mgmt':  { label: '텐소프트웍스', ...tonePalettes.warn },
+  'invest-mgmt': { label: '투자관리',     bg: '#E0E7FF', fg: '#4338CA' },
   'etf-etc':     { label: 'ETC',          ...tonePalettes.info },
   'akros':       { label: '아크로스',     ...tonePalettes.brand },
 }
@@ -86,6 +88,17 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
   const containerH = FILTER_H + pageSize * ROW_H + 4 + PAGI_H
   const selectedNote = selectedId ? notes.find(n => n.id === selectedId) : null
+
+  // 데스크탑 진입 시 우측 패널이 비지 않도록 가장 최근 업데이트된 노트를 자동 선택.
+  // 모바일에선 list만 표시(사용자 클릭으로 진입)하므로 자동 선택 X.
+  useEffect(() => {
+    if (mobile || selectedId || notes.length === 0) return
+    const latest = notes.reduce((acc, n) => {
+      if (!acc) return n
+      return new Date(n.updated_at).getTime() > new Date(acc.updated_at).getTime() ? n : acc
+    }, notes[0])
+    if (latest) setSelectedId(latest.id)
+  }, [mobile, selectedId, notes])
 
   const handleFilterChange = (f: SectionFilter) => {
     setSectionFilter(f)
