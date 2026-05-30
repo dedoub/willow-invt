@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -168,7 +168,7 @@ function MemoChip({ content, compact, onClick }: {
 
 /** Day cell with hover + button */
 function DayCell({
-  day, dateStr, isToday, schedules, memo, onAdd, onToggle, onSelect, onMemoClick, onClickDate, compact, dimmed, borderRight, minHeight,
+  day, dateStr, isToday, schedules, memo, onAdd, onToggle, onSelect, onMemoClick, onClickDate, compact, dotsOnly, dimmed, borderRight, minHeight, isSelected,
 }: {
   day: Date; dateStr: string; isToday: boolean
   schedules: RyuhaSchedule[]
@@ -178,7 +178,8 @@ function DayCell({
   onSelect: (schedule: RyuhaSchedule) => void
   onMemoClick: (date: string) => void
   onClickDate?: (date: string) => void
-  compact?: boolean; dimmed?: boolean
+  compact?: boolean; dotsOnly?: boolean; dimmed?: boolean
+  isSelected?: boolean
   borderRight: boolean; minHeight: number
 }) {
   const [hovered, setHovered] = useState(false)
@@ -190,7 +191,7 @@ function DayCell({
       style={{
         minHeight, padding: compact ? 6 : 8, position: 'relative',
         borderRight: borderRight ? `1px solid ${t.neutrals.line}` : 'none',
-        background: isToday ? t.brand[50] : 'transparent',
+        background: isSelected ? t.brand[100] : isToday ? t.brand[50] : 'transparent',
         opacity: dimmed ? 0.35 : 1,
         minWidth: 0, overflow: 'hidden',
         cursor: onClickDate ? 'pointer' : undefined,
@@ -242,7 +243,20 @@ function DayCell({
       </div>
       {/* Events + Memo */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 2 : 3 }}>
-        {compact ? (
+        {dotsOnly ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 3, marginTop: 2 }}>
+            {schedules.slice(0, 6).map(s => (
+              <span key={s.id} style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: s.color || '#94A3B8',
+              }} />
+            ))}
+            {schedules.length > 6 && (
+              <span style={{ fontSize: 8, color: t.neutrals.muted, fontFamily: t.font.mono, lineHeight: '6px' }}>+{schedules.length - 6}</span>
+            )}
+            {memo && <span style={{ width: 6, height: 6, borderRadius: 2, background: tonePalettes.done.fg }} />}
+          </div>
+        ) : compact ? (
           <>
             {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} dateStr={dateStr} compact onToggle={onToggle} onSelect={onSelect} />)}
             {memo && schedules.length < 2 && <MemoChip content={memo} compact onClick={() => onMemoClick(dateStr)} />}
@@ -268,6 +282,7 @@ export function CalendarBlock({
   onAddSchedule, onEditSchedule, onToggleComplete,
   memos, onSaveMemo,
 }: CalendarBlockProps) {
+  const mobile = useIsMobile()
   const [viewMode, setViewMode] = useState<'week' | 'month'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('ryuha-calendar-view')
@@ -383,10 +398,10 @@ export function CalendarBlock({
         background: t.neutrals.inner, borderRadius: `${t.radius.md}px ${t.radius.md}px 0 0`,
         borderBottom: `1px solid ${t.neutrals.line}`,
       }}>
-        {DAY_NAMES.map((name, i) => (
+        {DAY_NAMES.map(name => (
           <div key={name} style={{
             padding: '6px 8px', fontSize: 10, fontFamily: t.font.mono, fontWeight: 600,
-            color: i >= 5 ? t.neutrals.subtle : t.neutrals.muted,
+            color: name === '토' || name === '일' ? t.neutrals.subtle : t.neutrals.muted,
             letterSpacing: 0.5, textAlign: 'center',
           }}>{name}</div>
         ))}
@@ -410,7 +425,9 @@ export function CalendarBlock({
                 onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onEditSchedule}
                 onMemoClick={setMemoDialogDate}
                 onClickDate={onSelectDate}
-                borderRight={i < 6} minHeight={128}
+                compact={mobile} dotsOnly={mobile}
+                isSelected={mobile && dateStr === selectedDate}
+                borderRight={i < 6} minHeight={mobile ? 48 : 128}
               />
             )
           })}
@@ -428,6 +445,7 @@ export function CalendarBlock({
             }}>
               {week.map((day, di) => {
                 const dateStr = formatDateLocal(day)
+                const isSelected = dateStr === selectedDate
                 return (
                   <DayCell
                     key={dateStr} day={day} dateStr={dateStr}
@@ -438,7 +456,9 @@ export function CalendarBlock({
                     onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onEditSchedule}
                     onMemoClick={setMemoDialogDate}
                     onClickDate={onSelectDate}
-                    compact borderRight={di < 6} minHeight={72}
+                    compact dotsOnly={mobile} borderRight={di < 6}
+                    minHeight={mobile ? 38 : 72}
+                    isSelected={mobile && isSelected}
                   />
                 )
               })}
@@ -446,6 +466,52 @@ export function CalendarBlock({
           ))}
         </div>
       )}
+
+      {/* 모바일 (주간·월간): 선택일의 일정/메모 상세 시트 */}
+      {mobile && (() => {
+        const dayItems = filteredSchedules.filter(s => matchesDate(s, selectedDate))
+        const dayMemo = memoMap[selectedDate]
+        return (
+          <div style={{
+            marginTop: 8, padding: 12,
+            background: t.neutrals.inner, borderRadius: t.radius.md,
+            display: 'flex', flexDirection: 'column', gap: 8,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 12, fontWeight: t.weight.semibold, color: t.neutrals.text }}>
+                {selectedDate.slice(5).replace('-', '월 ')}일
+                <span style={{ marginLeft: 6, fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                  {dayItems.length}개 일정
+                </span>
+              </div>
+              <button
+                onClick={() => onAddSchedule(selectedDate)}
+                style={{
+                  border: 'none', background: t.brand[100], color: t.brand[700],
+                  padding: '3px 8px', borderRadius: t.radius.sm, fontSize: 10,
+                  cursor: 'pointer', fontFamily: t.font.sans, fontWeight: t.weight.medium,
+                }}
+              >+ 일정 추가</button>
+            </div>
+            {dayItems.length === 0 && !dayMemo && (
+              <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: '6px 0' }}>일정이 없습니다.</div>
+            )}
+            {dayItems.map(s => (
+              <EventChip key={s.id} s={s} dateStr={selectedDate} onToggle={onToggleComplete} onSelect={onEditSchedule} />
+            ))}
+            {dayMemo && <MemoChip content={dayMemo} onClick={() => setMemoDialogDate(selectedDate)} />}
+            {!dayMemo && (
+              <button
+                onClick={() => setMemoDialogDate(selectedDate)}
+                style={{
+                  border: 'none', background: 'transparent', color: t.neutrals.subtle,
+                  padding: '4px 0', fontSize: 11, cursor: 'pointer', textAlign: 'left' as const,
+                }}
+              >+ 메모 작성</button>
+            )}
+          </div>
+        )
+      })()}
 
       {/* ── Memo Dialog ── */}
       <MemoDialog

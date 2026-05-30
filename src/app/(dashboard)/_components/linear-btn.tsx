@@ -4,7 +4,7 @@ import { t } from './linear-tokens'
 import { ReactNode } from 'react'
 
 type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'brand' | 'danger'
-type BtnSize = 'sm' | 'md' | 'lg'
+type BtnSize = 'xs' | 'sm' | 'md' | 'lg'
 
 interface LBtnProps {
   variant?: BtnVariant
@@ -17,6 +17,7 @@ interface LBtnProps {
 }
 
 const sizes = {
+  xs: { h: 28, px: 10, fs: 12 }, // 검색창(padding 4px + input 자연 높이 ≈ 28px)과 동일
   sm: { h: 28, px: 10, fs: 12 },
   md: { h: 34, px: 14, fs: 13 },
   lg: { h: 40, px: 18, fs: 14 },

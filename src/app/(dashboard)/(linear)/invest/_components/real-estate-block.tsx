@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, AreaChart, Area,
@@ -762,17 +763,12 @@ export function RealEstateBlock() {
           eyebrow="REAL ESTATE"
           title="부동산 리서치"
           action={
-            <div style={{ display: 'flex', gap: 4 }}>
-              {ALL_DISTRICTS.map(d => (
-                <button
-                  key={d}
-                  onClick={() => toggleDistrict(d)}
-                  style={districts.includes(d) ? chipActiveStyle : chipInactiveStyle}
-                >
-                  {d.replace('구', '')}
-                </button>
-              ))}
-            </div>
+            <LFilterChip
+              multi
+              options={ALL_DISTRICTS.map(d => ({ value: d, label: d.replace('구', '') }))}
+              value={districts}
+              onChange={toggleDistrict}
+            />
           }
         />
       </div>
@@ -865,15 +861,8 @@ export function RealEstateBlock() {
           <div style={{ width: 1, height: 16, background: t.neutrals.line }} />
 
           {/* Area chips */}
-          {AREA_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setAreaRange(opt.value)}
-              style={areaRange === opt.value ? chipActiveStyle : chipInactiveStyle}
-            >
-              {opt.label}
-            </button>
-          ))}
+          <LFilterChip options={AREA_OPTIONS} value={areaRange} onChange={setAreaRange} />
+
 
           {/* Right-aligned date info */}
           {reSummary && (

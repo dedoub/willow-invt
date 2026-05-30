@@ -305,9 +305,16 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
           <LStat label="총 잔고" value={`${periodEndBalance.totalKrw.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} sparkline={mobile ? undefined : totalBalanceSpark} sparkFormat={(v) => `${v.toLocaleString()}원`} />
         </div>
 
-        {/* Type filter chips + add button */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
-          <div style={{ display: 'flex', gap: 5 }}>
+        {/* Type filter chips + add button (모바일에선 줄을 분리) */}
+        <div style={{
+          display: 'flex',
+          alignItems: mobile ? 'stretch' : 'center',
+          justifyContent: 'space-between',
+          flexDirection: mobile ? 'column' : 'row',
+          gap: mobile ? 8 : 0,
+          marginTop: 12,
+        }}>
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' as const }}>
             {TYPE_FILTERS.map(f => {
               const active = typeFilter === f.value
               return (
@@ -322,26 +329,26 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
               )
             })}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: mobile ? 'flex-end' : undefined }}>
             <button
               onClick={() => { setSortAsc(v => !v); setPage(0) }}
               style={{
                 border: 'none', cursor: 'pointer', background: t.neutrals.inner,
-                borderRadius: t.radius.sm, padding: '3px 6px',
-                display: 'flex', alignItems: 'center', gap: 2,
-                color: t.neutrals.muted, fontSize: 10, fontFamily: t.font.mono,
+                borderRadius: t.radius.sm, padding: '0 8px', height: 28,
+                display: 'flex', alignItems: 'center', gap: 3,
+                color: t.neutrals.muted, fontSize: 11, fontFamily: t.font.mono,
               }}
             >
-              <LIcon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={10} stroke={2} />
+              <LIcon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={11} stroke={2} />
               날짜
             </button>
             <button onClick={onAddInvoice} style={{
-              width: 24, height: 24, borderRadius: t.radius.sm, border: 'none',
+              width: 28, height: 28, borderRadius: t.radius.sm, border: 'none',
               background: t.neutrals.inner, color: t.neutrals.muted,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 0, flexShrink: 0,
             }}>
-              <LIcon name="plus" size={12} stroke={2.5} />
+              <LIcon name="plus" size={13} stroke={2.5} />
             </button>
           </div>
         </div>
@@ -425,8 +432,10 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
         )}
         {paged.map((v) => {
           const typeTone = TYPE_TONES[v.type]
+          // expense: 양수=지출(−로 표시), 음수=환급(+로 표시 — 비용 감소)
+          // liability/asset/transfer/exchange: amount 부호 그대로
           const isPositive = v.type === 'revenue' ? true
-            : v.type === 'expense' ? false
+            : v.type === 'expense' ? v.amount < 0
             : v.amount >= 0
           return (
             <div key={v.id} onClick={() => onSelectInvoice(v)} style={{
@@ -445,10 +454,16 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
               }}>
                 {TYPE_LABELS[v.type]}
               </span>
-              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={mobile ? {
+                fontWeight: 500, display: '-webkit-box', WebkitBoxOrient: 'vertical' as const,
+                WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'break-word' as const, lineHeight: 1.35,
+              } : { fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {v.counterparty}
               </span>
-              <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={mobile ? {
+                color: t.neutrals.muted, display: '-webkit-box', WebkitBoxOrient: 'vertical' as const,
+                WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'break-word' as const, lineHeight: 1.35,
+              } : { color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {v.description}
               </span>
               <span style={{

@@ -6,8 +6,10 @@ import remarkGfm from 'remark-gfm'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
-import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { WikiNote } from './wiki-note-row'
 import { WikiNoteForm } from './wiki-note-form'
 
@@ -63,6 +65,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   const mobile = useIsMobile()
   const [sectionFilter, setSectionFilter] = useState<SectionFilter>('all')
   const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'updated' | 'created'>('updated')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
@@ -81,8 +84,15 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
         n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q)
       )
     }
+    // 핀고정 우선 → 선택한 기준일자 desc
+    result = [...result].sort((a, b) => {
+      if (!!a.is_pinned !== !!b.is_pinned) return a.is_pinned ? -1 : 1
+      const af = sortBy === 'created' ? a.created_at : a.updated_at
+      const bf = sortBy === 'created' ? b.created_at : b.updated_at
+      return new Date(bf).getTime() - new Date(af).getTime()
+    })
     return result
-  }, [notes, sectionFilter, search])
+  }, [notes, sectionFilter, search, sortBy])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
@@ -91,14 +101,16 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
 
   // 데스크탑 진입 시 우측 패널이 비지 않도록 가장 최근 업데이트된 노트를 자동 선택.
   // 모바일에선 list만 표시(사용자 클릭으로 진입)하므로 자동 선택 X.
+  // useIsMobile 훅은 첫 렌더 시 항상 false를 반환하므로 window 너비를 직접 체크해야 한다.
   useEffect(() => {
-    if (mobile || selectedId || notes.length === 0) return
+    if (selectedId || notes.length === 0) return
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return
     const latest = notes.reduce((acc, n) => {
       if (!acc) return n
       return new Date(n.updated_at).getTime() > new Date(acc.updated_at).getTime() ? n : acc
     }, notes[0])
     if (latest) setSelectedId(latest.id)
-  }, [mobile, selectedId, notes])
+  }, [selectedId, notes])
 
   const handleFilterChange = (f: SectionFilter) => {
     setSectionFilter(f)
@@ -171,7 +183,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 4, flex: 1,
                 background: t.neutrals.inner, borderRadius: t.radius.sm,
-                padding: '4px 8px',
+                padding: '0 8px', height: 28,
               }}>
                 <LIcon name="search" size={13} color={t.neutrals.subtle} />
                 <input
@@ -192,26 +204,19 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                   </button>
                 )}
               </div>
-              <LBtn size="sm" icon={<LIcon name="plus" size={14} color={t.neutrals.text} />} onClick={() => { setAdding(true); setSelectedId(null); setEditing(false) }}>
+              <LBtn size="xs" icon={<LIcon name="plus" size={12} stroke={2.5} color={t.neutrals.text} />} onClick={() => { setAdding(true); setSelectedId(null); setEditing(false) }}>
                 새 노트
               </LBtn>
             </div>
             {!hideFilter && (
-            <div style={{ display: 'flex', gap: 5 }}>
-              {SECTION_FILTERS.map(f => {
-                const active = sectionFilter === f.value
-                return (
-                  <button key={f.value} onClick={() => handleFilterChange(f.value)} style={{
-                    border: 'none', cursor: 'pointer',
-                    padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
-                    fontFamily: t.font.sans,
-                    fontWeight: active ? t.weight.medium : t.weight.regular,
-                    background: active ? t.brand[100] : t.neutrals.inner,
-                    color: active ? t.brand[700] : t.neutrals.muted,
-                    transition: 'all .12s',
-                  }}>{f.label}</button>
-                )
-              })}
+            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              <LFilterChip options={SECTION_FILTERS} value={sectionFilter} onChange={handleFilterChange} />
+              <div style={{ flex: 1 }} />
+              <LSegmented
+                options={[{ value: 'updated', label: '수정일' }, { value: 'created', label: '작성일' }]}
+                value={sortBy}
+                onChange={setSortBy}
+              />
             </div>
             )}
           </div>

@@ -606,9 +606,12 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 }
 
 @media (max-width: 768px) {
+  body {
+    zoom: 1.15;
+  }
   .mobile-zoom {
-    zoom: 1.1;
-    width: calc(100% / 1.1);
+    zoom: 1.15;
+    width: calc(100% / 1.15);
   }
 }
 

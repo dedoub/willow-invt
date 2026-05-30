@@ -4,6 +4,7 @@ import { Fragment, useState, useMemo } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 
 /* ── Types ── */
 
@@ -317,26 +318,24 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead eyebrow="HOLDINGS" title="보유 현황" action={
-          <div style={{ display: 'inline-flex', background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
-            {([['all', '전체'], ['KR', '국내'], ['US', '해외']] as const).map(([val, label]) => (
-              <button key={val} onClick={() => setMarketFilter(val)}
-                style={{
-                  border: 'none', cursor: 'pointer', padding: '4px 10px', fontSize: 11,
-                  borderRadius: 4, fontFamily: t.font.sans, fontWeight: marketFilter === val ? t.weight.medium : t.weight.regular,
-                  background: marketFilter === val ? t.neutrals.card : 'transparent',
-                  color: t.neutrals.text,
-                }}>{label}</button>
-            ))}
-            <span style={{ width: 1, margin: '3px 1px', background: t.neutrals.line }} />
-            {([['original', '원화/달러'], ['KRW', '₩ 통합']] as const).map(([val, label]) => (
-              <button key={val} onClick={() => setCurrencyMode(val)}
-                style={{
-                  border: 'none', cursor: 'pointer', padding: '4px 10px', fontSize: 11,
-                  borderRadius: 4, fontFamily: t.font.sans, fontWeight: currencyMode === val ? t.weight.medium : t.weight.regular,
-                  background: currencyMode === val ? t.neutrals.card : 'transparent',
-                  color: t.neutrals.text,
-                }}>{label}</button>
-            ))}
+          <div style={{ display: 'inline-flex', gap: 6 }}>
+            <LSegmented
+              options={[
+                { value: 'all', label: '전체' },
+                { value: 'KR', label: '국내' },
+                { value: 'US', label: '해외' },
+              ]}
+              value={marketFilter}
+              onChange={setMarketFilter}
+            />
+            <LSegmented
+              options={[
+                { value: 'original', label: '원화/달러' },
+                { value: 'KRW', label: '₩ 통합' },
+              ]}
+              value={currencyMode}
+              onChange={setCurrencyMode}
+            />
           </div>
         } />
       </div>
