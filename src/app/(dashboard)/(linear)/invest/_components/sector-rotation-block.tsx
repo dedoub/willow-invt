@@ -188,12 +188,12 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
           {/* Header row — 각 헤더 클릭 시 정렬 (같은 헤더 재클릭 시 방향 토글) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '64px 1fr repeat(4, 56px)' : '70px 1fr repeat(4, 78px)',
+            gridTemplateColumns: mobile ? '72px repeat(4, 1fr)' : '70px 1fr repeat(4, 78px)',
             gap: 4, padding: '4px 6px', fontSize: 10, color: t.neutrals.subtle,
             fontFamily: t.font.mono, fontWeight: 600, textTransform: 'uppercase' as const,
           }}>
             <HeaderCell label="티커" sortKey="group" current={sortBy} dir={sortDir} onClick={handleSort} />
-            <HeaderCell label="이름" sortKey="name" current={sortBy} dir={sortDir} onClick={handleSort} />
+            {!mobile && <HeaderCell label="이름" sortKey="name" current={sortBy} dir={sortDir} onClick={handleSort} />}
             {PERIODS.map(p => (
               <HeaderCell key={p} label={p.toUpperCase()} sortKey={p} current={sortBy} dir={sortDir} onClick={handleSort} align="center" />
             ))}
@@ -212,7 +212,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             return (
             <div key={etf.ticker} style={{
               display: 'grid',
-              gridTemplateColumns: mobile ? '64px 1fr repeat(4, 56px)' : '70px 1fr repeat(4, 78px)',
+              gridTemplateColumns: mobile ? '72px repeat(4, 1fr)' : '70px 1fr repeat(4, 78px)',
               gap: 4, alignItems: 'center', padding: '0 6px',
               fontSize: 11, color: t.neutrals.text,
               background: rowBg,
@@ -231,12 +231,14 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
                   fontSize: 11, color: tickerColor,
                 }}>{etf.ticker.replace('.KS', '')}</span>
               </div>
-              <div style={{
-                fontSize: 11, color: t.neutrals.muted,
-                whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
-                {etf.name}
-              </div>
+              {!mobile && (
+                <div style={{
+                  fontSize: 11, color: t.neutrals.muted,
+                  whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
+                }} title={etf.name}>
+                  {etf.name}
+                </div>
+              )}
               {PERIODS.map(p => {
                 const r = etf.returns[p]
                 const c = returnColor(r)

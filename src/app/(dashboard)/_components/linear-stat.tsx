@@ -104,6 +104,7 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
     <div style={{
       background: t.neutrals.inner, borderRadius: t.radius.sm,
       padding: '8px 10px', position: 'relative',
+      minWidth: 0,
     }}>
       {/* Row 1: label/value (왼쪽) + sparkline (오른쪽) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>

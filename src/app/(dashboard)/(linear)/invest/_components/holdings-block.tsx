@@ -390,7 +390,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
           }}>
             <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: 360, borderCollapse: 'collapse', fontSize: 11, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+            <table style={{ width: '100%', minWidth: mobile ? 0 : 360, borderCollapse: 'collapse', fontSize: 11, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ background: t.neutrals.card }}>
                   <th style={{ textAlign: 'left',  padding: '6px 10px', fontSize: 10, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>분류</th>
@@ -410,8 +410,8 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   return (
                     <Fragment key={p.parent}>
                       <tr style={{ borderTop: pi > 0 ? `1px solid ${t.neutrals.line}` : undefined, fontWeight: t.weight.medium }}>
-                        <td style={{ padding: '6px 10px' }}>
-                          <span style={{ fontSize: 10, fontWeight: t.weight.semibold, padding: '1px 6px', borderRadius: t.radius.sm, background: tc.bg, color: tc.fg }}>{p.parent}</span>
+                        <td style={{ padding: '6px 10px', maxWidth: mobile ? 80 : undefined }}>
+                          <span style={{ display: 'inline-block', maxWidth: mobile ? 70 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'middle', fontSize: 10, fontWeight: t.weight.semibold, padding: '1px 6px', borderRadius: t.radius.sm, background: tc.bg, color: tc.fg }} title={p.parent}>{p.parent}</span>
                         </td>
                         <td style={{ textAlign: 'right', padding: '6px 6px', color: t.neutrals.muted }}>{p.count}</td>
                         <td style={{ textAlign: 'right', padding: '6px 6px' }}>{fmtAmount(p.valKrw, 'KRW')}</td>
@@ -425,8 +425,8 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                         const subPct = s.invKrw > 0 ? (subPnl / s.invKrw) * 100 : 0
                         return (
                           <tr key={s.sub} style={{ fontSize: 10 }}>
-                            <td style={{ padding: '4px 10px 4px 22px' }}>
-                              <span style={{ fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm, background: sc.bg, color: sc.fg }}>{s.sub}</span>
+                            <td style={{ padding: '4px 10px 4px 22px', maxWidth: mobile ? 80 : undefined }}>
+                              <span style={{ display: 'inline-block', maxWidth: mobile ? 58 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'middle', fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm, background: sc.bg, color: sc.fg }} title={s.sub}>{s.sub}</span>
                             </td>
                             <td style={{ textAlign: 'right', padding: '4px 6px', color: t.neutrals.muted }}>{s.count}</td>
                             <td style={{ textAlign: 'right', padding: '4px 6px', color: t.neutrals.text }}>{fmtAmount(s.valKrw, 'KRW')}</td>

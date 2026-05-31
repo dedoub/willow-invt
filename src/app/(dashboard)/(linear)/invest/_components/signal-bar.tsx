@@ -53,8 +53,8 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyTickers
       <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 14px 14px' }}>
         <LStat label="평가액 (세후)" value={totalValue || '-'} tone="default" />
         <LStat label="누적수익률" value={`${retPct > 0 ? '+' : ''}${retPct.toFixed(1)}%`} tone={retTone} sub={gainSub} />
-        <LStat label="추매" value={String(buyTickers.length)} tone={buyTickers.length > 0 ? 'pos' : 'default'} sub={buyLabel} />
-        <LStat label="대기" value={String(holdTickers.length)} tone="default" sub={holdLabel} />
+        <LStat label="추매" value={String(buyTickers.length)} tone={buyTickers.length > 0 ? 'pos' : 'default'} sub={buyLabel} wrap />
+        <LStat label="대기" value={String(holdTickers.length)} tone="default" sub={holdLabel} wrap />
         <LStat label="USD/KRW" value={usdKrw.toLocaleString()} tone="default" />
       </div>
     </LCard>
