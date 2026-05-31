@@ -397,16 +397,17 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                   }}>
                     {selectedNote.title || '(제목 없음)'}
                   </h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                     <button onClick={handlePin} style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-                      borderRadius: t.radius.sm, fontSize: 13,
+                      borderRadius: t.radius.sm, fontSize: 13, flexShrink: 0,
                       color: selectedNote.is_pinned ? '#D97706' : t.neutrals.subtle,
                     }}>📌</button>
                     <button onClick={() => setEditing(true)} style={{
                       background: 'none', border: 'none', cursor: 'pointer',
                       fontSize: 12, fontWeight: t.weight.regular, color: t.neutrals.muted,
                       fontFamily: t.font.sans, padding: '4px 8px', borderRadius: t.radius.sm,
+                      whiteSpace: 'nowrap' as const, flexShrink: 0,
                     }}>
                       편집
                     </button>
