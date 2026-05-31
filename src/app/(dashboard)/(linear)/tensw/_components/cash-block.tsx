@@ -419,11 +419,12 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
         )}
         {paged.map((item) => {
           const typeTone = TYPE_TONES[item.type]
-          // expense: 양수=지출(−), 음수=환급(+) — 비용 감소
-          const isIncome = item.type === 'revenue'
-            || item.type === 'asset'
-            || (item.type === 'transfer' && item.amount >= 0)
-            || (item.type === 'expense' && item.amount < 0)
+          // 윌로우 현금관리와 동일한 규칙:
+          // expense: 양수=지출(−로 표시), 음수=환급(+로 표시 — 비용 감소)
+          // liability/asset/transfer/exchange: amount 부호 그대로
+          const isIncome = item.type === 'revenue' ? true
+            : item.type === 'expense' ? item.amount < 0
+            : item.amount >= 0
           return (
             <div key={item.id} onClick={() => onSelect(item)} style={{
               display: 'grid', gridTemplateColumns: '52px 48px 1.2fr 1.5fr 1fr',

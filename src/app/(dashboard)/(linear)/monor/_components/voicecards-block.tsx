@@ -783,6 +783,7 @@ function DistributionPie({
 }) {
   const [activeTab, setActiveTab] = useState(tabs[0].key)
   const current = tabs.find(t => t.key === activeTab) ?? tabs[0]
+  const mobile = useIsMobile()
   const OTHER_LABEL = '기타'
   const OTHER_COLOR = '#94a3b8'
 
@@ -851,30 +852,32 @@ function DistributionPie({
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 80, height: 80, flexShrink: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%" cy="50%"
-                  innerRadius={20} outerRadius={36}
-                  paddingAngle={2}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {data.map((d, i) => (
-                    <Cell key={i} fill={colorByName.get(d.name) ?? palette[i % palette.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ fontSize: 11, background: '#1E293B', border: 'none', borderRadius: 6, padding: '6px 10px' }}
-                  itemStyle={{ color: '#F8FAFC' }}
-                  labelStyle={{ color: '#F8FAFC' }}
-                  formatter={(value: any, name: any) => [`${value}${unit ?? ''}`, String(name)]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          {!mobile && (
+            <div style={{ width: 80, height: 80, flexShrink: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%" cy="50%"
+                    innerRadius={20} outerRadius={36}
+                    paddingAngle={2}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {data.map((d, i) => (
+                      <Cell key={i} fill={colorByName.get(d.name) ?? palette[i % palette.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ fontSize: 11, background: '#1E293B', border: 'none', borderRadius: 6, padding: '6px 10px' }}
+                    itemStyle={{ color: '#F8FAFC' }}
+                    labelStyle={{ color: '#F8FAFC' }}
+                    formatter={(value: any, name: any) => [`${value}${unit ?? ''}`, String(name)]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
             {data.map(d => {
               const pct = total > 0 ? Math.round((d.value / total) * 100) : 0

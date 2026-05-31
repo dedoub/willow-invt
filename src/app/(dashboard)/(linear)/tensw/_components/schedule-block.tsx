@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -120,14 +120,16 @@ function EventChip({ s, compact, onToggle, onSelect }: {
 
 /** Day cell with hover + button */
 function DayCell({
-  day, dateStr, isToday, schedules, onAdd, onToggle, onSelect, compact, dimmed, borderRight, minHeight,
+  day, dateStr, isToday, schedules, onAdd, onToggle, onSelect, onClickDate, compact, dotsOnly, dimmed, borderRight, minHeight, isSelected,
 }: {
   day: Date; dateStr: string; isToday: boolean
   schedules: TenswMgmtSchedule[]
   onAdd: (date: string) => void
   onToggle: (id: string, completed: boolean) => void
   onSelect: (schedule: TenswMgmtSchedule) => void
-  compact?: boolean; dimmed?: boolean
+  onClickDate?: (date: string) => void
+  compact?: boolean; dotsOnly?: boolean; dimmed?: boolean
+  isSelected?: boolean
   borderRight: boolean; minHeight: number
 }) {
   const [hovered, setHovered] = useState(false)
@@ -135,12 +137,14 @@ function DayCell({
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={() => onClickDate?.(dateStr)}
       style={{
         minHeight, padding: compact ? 6 : 8, position: 'relative',
         borderRight: borderRight ? `1px solid ${t.neutrals.line}` : 'none',
-        background: isToday ? t.brand[50] : 'transparent',
+        background: isSelected ? t.brand[100] : isToday ? t.brand[50] : 'transparent',
         opacity: dimmed ? 0.35 : 1,
         minWidth: 0, overflow: 'hidden',
+        cursor: onClickDate ? 'pointer' : undefined,
       }}
     >
       {/* Date label */}
@@ -172,7 +176,22 @@ function DayCell({
       </div>
       {/* Events */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 2 : 3 }}>
-        {compact ? (
+        {dotsOnly ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 3, marginTop: 2 }}>
+            {schedules.slice(0, 6).map(s => {
+              const tone = getClientTone(s)
+              return (
+                <span key={s.id} style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: tone.fg,
+                }} />
+              )
+            })}
+            {schedules.length > 6 && (
+              <span style={{ fontSize: 8, color: t.neutrals.muted, fontFamily: t.font.mono, lineHeight: '6px' }}>+{schedules.length - 6}</span>
+            )}
+          </div>
+        ) : compact ? (
           <>
             {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} compact onToggle={onToggle} onSelect={onSelect} />)}
             {schedules.length > 2 && (
@@ -190,6 +209,8 @@ function DayCell({
 }
 
 export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleComplete, onSelectSchedule }: ScheduleBlockProps) {
+  const mobile = useIsMobile()
+  const [selectedDate, setSelectedDate] = useState<string>(() => formatDateLocal(new Date()))
   const [viewMode, setViewMode] = useState<'week' | 'month'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('tensw-schedule-view-mode')
@@ -343,7 +364,10 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
                 isToday={dateStr === todayStr}
                 schedules={filteredSchedules.filter(s => matchesDate(s, dateStr))}
                 onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onSelectSchedule}
-                borderRight={i < 6} minHeight={128}
+                onClickDate={mobile ? setSelectedDate : undefined}
+                compact={mobile} dotsOnly={mobile}
+                isSelected={mobile && dateStr === selectedDate}
+                borderRight={i < 6} minHeight={mobile ? 48 : 128}
               />
             )
           })}
@@ -368,7 +392,10 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
                     dimmed={day.getMonth() !== baseDate.getMonth()}
                     schedules={filteredSchedules.filter(s => matchesDate(s, dateStr))}
                     onAdd={onAddSchedule} onToggle={onToggleComplete} onSelect={onSelectSchedule}
-                    compact borderRight={di < 6} minHeight={72}
+                    onClickDate={mobile ? setSelectedDate : undefined}
+                    compact dotsOnly={mobile}
+                    isSelected={mobile && dateStr === selectedDate}
+                    borderRight={di < 6} minHeight={mobile ? 38 : 72}
                   />
                 )
               })}
@@ -376,6 +403,41 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
           ))}
         </div>
       )}
+
+      {/* 모바일 (주간·월간): 선택일의 일정 상세 시트 */}
+      {mobile && (() => {
+        const dayItems = filteredSchedules.filter(s => matchesDate(s, selectedDate))
+        return (
+          <div style={{
+            marginTop: 8, padding: 12,
+            background: t.neutrals.inner, borderRadius: t.radius.md,
+            display: 'flex', flexDirection: 'column', gap: 8,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 12, fontWeight: t.weight.semibold, color: t.neutrals.text }}>
+                {selectedDate.slice(5).replace('-', '월 ')}일
+                <span style={{ marginLeft: 6, fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                  {dayItems.length}개 일정
+                </span>
+              </div>
+              <button
+                onClick={() => onAddSchedule(selectedDate)}
+                style={{
+                  border: 'none', background: t.brand[100], color: t.brand[700],
+                  padding: '3px 8px', borderRadius: t.radius.sm, fontSize: 10,
+                  cursor: 'pointer', fontFamily: t.font.sans, fontWeight: t.weight.medium,
+                }}
+              >+ 일정 추가</button>
+            </div>
+            {dayItems.length === 0 && (
+              <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: '6px 0' }}>일정이 없습니다.</div>
+            )}
+            {dayItems.map(s => (
+              <EventChip key={s.id} s={s} onToggle={onToggleComplete} onSelect={onSelectSchedule} />
+            ))}
+          </div>
+        )
+      })()}
     </LCard>
   )
 }

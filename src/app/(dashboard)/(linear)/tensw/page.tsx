@@ -574,8 +574,8 @@ export default function TenswPage() {
             />
           </div>
 
-          {/* Projects (full width) */}
-          <ProjectBlock projects={projects} />
+          {/* Projects (full width) — 일단 숨김 */}
+          {false && <ProjectBlock projects={projects} />}
         </div>
 
         {/* Schedule dialogs */}

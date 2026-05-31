@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
 
 export function useIsMobile(breakpoint = 768) {
-  const [mobile, setMobile] = useState(false)
+  // CSR 첫 렌더에서도 즉시 정확한 값을 반영해야 wiki/calendar 등 mobile 분기 패널이 깜빡이지 않는다.
+  const [mobile, setMobile] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return window.innerWidth < breakpoint
+  })
   useEffect(() => {
     const check = () => setMobile(window.innerWidth < breakpoint)
     check()
