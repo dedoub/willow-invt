@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -60,7 +60,16 @@ export interface InvoiceBlockProps {
   style?: React.CSSProperties
 }
 
-const PAGE_SIZE = 8
+const INVOICE_PAGE_SIZE_KEY = 'etc-invoice-page-size'
+const DEFAULT_INVOICE_PAGE_SIZE = 10
+
+function getStoredInvoicePageSize(): number {
+  if (typeof window === 'undefined') return DEFAULT_INVOICE_PAGE_SIZE
+  const v = localStorage.getItem(INVOICE_PAGE_SIZE_KEY)
+  if (!v) return DEFAULT_INVOICE_PAGE_SIZE
+  const n = Number(v)
+  return n >= 5 && n <= 100 ? n : DEFAULT_INVOICE_PAGE_SIZE
+}
 
 export function InvoiceBlock({
   invoices,
@@ -72,10 +81,20 @@ export function InvoiceBlock({
   style,
 }: InvoiceBlockProps) {
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(getStoredInvoicePageSize)
+  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredInvoicePageSize()))
   const [toggling, setToggling] = useState<string | null>(null)
 
-  const totalPages = Math.max(1, Math.ceil(invoices.length / PAGE_SIZE))
-  const paged = invoices.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(invoices.length / pageSize))
+  const paged = invoices.slice(page * pageSize, (page + 1) * pageSize)
+
+  const commitPageSize = useCallback(() => {
+    const n = Math.max(5, Math.min(100, Number(pageSizeInput) || DEFAULT_INVOICE_PAGE_SIZE))
+    setPageSizeInput(String(n))
+    setPageSize(n)
+    setPage(0)
+    if (typeof window !== 'undefined') localStorage.setItem(INVOICE_PAGE_SIZE_KEY, String(n))
+  }, [pageSizeInput])
 
   const handleTogglePaid = async (inv: Invoice) => {
     if (toggling) return
@@ -307,48 +326,61 @@ export function InvoiceBlock({
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          padding: '8px 14px',
-          gap: 6,
-          borderTop: `1px solid ${t.neutrals.line}`,
-        }}>
-          <button
-            disabled={page === 0}
-            onClick={() => setPage(p => p - 1)}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            value={pageSizeInput}
+            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
+            onBlur={commitPageSize}
+            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
             style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 4,
-              borderRadius: 4,
-              cursor: page === 0 ? 'default' : 'pointer',
-              color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+              width: 32, textAlign: 'center',
+              border: 'none', background: t.neutrals.inner,
+              borderRadius: t.radius.sm, fontSize: 11,
+              fontFamily: t.font.mono, color: t.neutrals.muted,
+              padding: '2px 0', outline: 'none',
             }}
-          >
-            <LIcon name="chevronLeft" size={13} stroke={2} />
-          </button>
-          <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
-            {page + 1} / {totalPages}
-          </span>
-          <button
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage(p => p + 1)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 4,
-              borderRadius: 4,
-              cursor: page >= totalPages - 1 ? 'default' : 'pointer',
-              color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
-            }}
-          >
-            <LIcon name="chevronRight" size={13} stroke={2} />
-          </button>
+          />
+          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
-      )}
+
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              disabled={page === 0}
+              onClick={() => setPage(p => p - 1)}
+              style={{
+                background: 'transparent', border: 'none',
+                padding: 4, borderRadius: 4,
+                cursor: page === 0 ? 'default' : 'pointer',
+                color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page === 0 ? 0.4 : 1,
+              }}
+            >
+              <LIcon name="chevronLeft" size={13} stroke={2} />
+            </button>
+            <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, invoices.length)} / {invoices.length}
+            </span>
+            <button
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage(p => p + 1)}
+              style={{
+                background: 'transparent', border: 'none',
+                padding: 4, borderRadius: 4,
+                cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+                color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page >= totalPages - 1 ? 0.4 : 1,
+              }}
+            >
+              <LIcon name="chevronRight" size={13} stroke={2} />
+            </button>
+          </div>
+        )}
+      </div>
     </LCard>
   )
 }
