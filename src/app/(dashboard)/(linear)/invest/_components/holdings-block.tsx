@@ -93,7 +93,8 @@ function fmtPrice(v: number, currency: 'KRW' | 'USD'): string {
 }
 
 function pnlColor(v: number): string {
-  return v > 0 ? t.accent.neg : v < 0 ? t.brand[600] : t.neutrals.subtle
+  // 미국식: 상승/수익=녹색(pos), 하락/손실=빨강(neg)
+  return v > 0 ? t.accent.pos : v < 0 ? t.accent.neg : t.neutrals.subtle
 }
 
 /* ── Component ── */
@@ -567,8 +568,8 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                           <span style={{
                             fontSize: 10, fontWeight: t.weight.medium, padding: '1px 5px',
                             borderRadius: t.radius.sm, flexShrink: 0,
-                            background: h.dailyChangePercent > 0 ? tonePalettes.neg.bg : tonePalettes.info.bg,
-                            color: h.dailyChangePercent > 0 ? tonePalettes.neg.fg : tonePalettes.info.fg,
+                            background: h.dailyChangePercent > 0 ? tonePalettes.pos.bg : tonePalettes.neg.bg,
+                            color: h.dailyChangePercent > 0 ? tonePalettes.pos.fg : tonePalettes.neg.fg,
                           }}>
                             {h.dailyChangePercent > 0 ? '+' : ''}{h.dailyChangePercent.toFixed(1)}%
                           </span>

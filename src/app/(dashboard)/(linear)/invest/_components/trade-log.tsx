@@ -157,8 +157,8 @@ export function TradeLog({ trades }: TradeLogProps) {
               <span style={{
                 display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
                 fontSize: 10, fontWeight: t.weight.medium, textAlign: 'center',
-                background: isBuy ? '#F3DADA' : '#DCE8F5',
-                color: isBuy ? '#8A2A2A' : '#1F4E79',
+                background: t.neutrals.inner,
+                color: t.neutrals.muted,
               }}>
                 {isBuy ? '매수' : '매도'}
               </span>
@@ -184,7 +184,7 @@ export function TradeLog({ trades }: TradeLogProps) {
               <span style={{
                 textAlign: 'right', fontWeight: t.weight.medium,
                 fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                color: isBuy ? t.accent.neg : t.accent.pos,
+                color: t.neutrals.text,
               }}>
                 {isBuy ? '-' : '+'}{isKRW ? `${amount.toLocaleString()}` : `$${amount.toLocaleString()}`}
               </span>

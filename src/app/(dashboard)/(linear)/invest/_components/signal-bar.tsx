@@ -40,7 +40,8 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyTickers
   }
 
   const retPct = cumulativeReturnPct ?? 0
-  const retTone = retPct > 0 ? 'neg' as const : retPct < 0 ? 'pos' as const : 'default' as const
+  // 미국식: 수익=pos(녹색), 손실=neg(빨강)
+  const retTone = retPct > 0 ? 'pos' as const : retPct < 0 ? 'neg' as const : 'default' as const
 
   const buyLabel = buyTickers.length > 0 ? buyTickers.join(', ') : '-'
   const holdLabel = holdTickers.length > 0 ? holdTickers.join(', ') : '-'

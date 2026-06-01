@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from 'recharts'
 import type { StockTradeFull, StockQuoteFull, TickerTheme } from './holdings-block'
 
@@ -45,8 +46,30 @@ function fmtKrw(v: number) {
 /* ── Donut palette ── */
 const STOCK_COLORS = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#d946ef', '#0ea5e9']
 
-/* ── Donut mini-component ── */
-function DonutChart({ title, data, colors, fixedWidth }: { title: string; data: { subject: string; pct: number }[]; colors: string[]; fixedWidth?: number }) {
+/* ── 수익률 발산형 그라데이션 (미국식: 음수=빨강, 양수=녹색, 0%=연회색) ──
+   clamp ±50%: 절댓값이 클수록 진하게. 0 근처는 채도 낮은 회색으로 보간. */
+function returnGradientColor(retPct: number): string {
+  const CLAMP = 50
+  const x = Math.max(-1, Math.min(1, retPct / CLAMP))  // -1..1
+  const mag = Math.abs(x)                               // 0..1
+  const hue = retPct >= 0 ? 145 : 0                     // 녹색 / 빨강
+  const sat = Math.round(10 + mag * 65)                 // 10%(회색) → 75%
+  const light = Math.round(72 - mag * 30)               // 72%(연함) → 42%(진함)
+  return `hsl(${hue}, ${sat}%, ${light}%)`
+}
+
+/* ── Donut mini-component ──
+   colorMode='category': colors[i] 사용. 'return': returns[i] 수익률을 그라데이션으로 인코딩(슬라이스 크기는 비중 유지). */
+function DonutChart({ title, data, colors, fixedWidth, colorMode = 'category', returns }: {
+  title: string
+  data: { subject: string; pct: number }[]
+  colors: string[]
+  fixedWidth?: number
+  colorMode?: 'category' | 'return'
+  returns?: number[]
+}) {
+  const sliceColor = (i: number) =>
+    colorMode === 'return' && returns ? returnGradientColor(returns[i] ?? 0) : colors[i % colors.length]
   // 슬라이스 안쪽에 표시할 라벨 — 비중 ≥ 6% 인 슬라이스에만 흰색 % 표시
   const renderInsideLabel = (props: any) => {
     const cx = Number(props.cx); const cy = Number(props.cy)
@@ -70,7 +93,7 @@ function DonutChart({ title, data, colors, fixedWidth }: { title: string; data: 
         innerRadius={30} outerRadius={55} paddingAngle={2} strokeWidth={0}
         label={renderInsideLabel} labelLine={false} isAnimationActive={false}
       >
-        {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+        {data.map((_, i) => <Cell key={i} fill={sliceColor(i)} />)}
       </Pie>
       <Tooltip
         contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md, fontSize: 10, padding: '4px 8px' }}
@@ -89,7 +112,7 @@ function DonutChart({ title, data, colors, fixedWidth }: { title: string; data: 
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2px 8px', marginTop: 2 }}>
         {data.map((d, i) => (
           <span key={d.subject} style={{ fontSize: 9, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: colors[i % colors.length], display: 'inline-block' }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: sliceColor(i), display: 'inline-block' }} />
             {d.subject} {d.pct}%
           </span>
         ))}
@@ -103,6 +126,9 @@ function DonutChart({ title, data, colors, fixedWidth }: { title: string; data: 
 type ValueScale = 'linear' | 'log'
 const VALUE_SCALE_KEY = 'invest-analysis-value-scale'
 
+type DonutColorMode = 'category' | 'return'
+const DONUT_COLOR_KEY = 'invest-analysis-donut-color'
+
 export function AnalysisBlock({
   stockTrades, stockQuotes, stockThemes, stockHistory, fxHistory, usdKrwRate, loading, chartColumns = 1,
 }: AnalysisBlockProps) {
@@ -115,6 +141,14 @@ export function AnalysisBlock({
   const handleScaleChange = (s: ValueScale) => {
     setValueScale(s)
     if (typeof window !== 'undefined') localStorage.setItem(VALUE_SCALE_KEY, s)
+  }
+  const [donutColorMode, setDonutColorMode] = useState<DonutColorMode>(() => {
+    if (typeof window === 'undefined') return 'category'
+    return (localStorage.getItem(DONUT_COLOR_KEY) as DonutColorMode) === 'return' ? 'return' : 'category'
+  })
+  const handleDonutColorChange = (m: DonutColorMode) => {
+    setDonutColorMode(m)
+    if (typeof window !== 'undefined') localStorage.setItem(DONUT_COLOR_KEY, m)
   }
 
   const trendData = useMemo(() => {
@@ -305,7 +339,8 @@ export function AnalysisBlock({
       holdMap.set(key, prev)
     }
 
-    const items: { ticker: string; name: string; market: string; theme: string; subTheme: string; valKrw: number }[] = []
+    // valKrw=평가액(현재 환율 KRW), costKrw=원금(현재 환율 KRW). 수익률 = (val-cost)/cost.
+    const items: { ticker: string; name: string; market: string; theme: string; subTheme: string; valKrw: number; costKrw: number }[] = []
     let total = 0
     for (const [ticker, h] of holdMap) {
       if (h.qty <= 0) continue
@@ -313,40 +348,60 @@ export function AnalysisBlock({
       if (!q?.price) continue
       const fx = h.market === 'US' ? usdKrwRate : 1
       const val = q.price * h.qty * fx
-      items.push({ ticker, name: h.name, market: h.market, theme: h.parentTheme, subTheme: h.subTheme, valKrw: val })
+      items.push({ ticker, name: h.name, market: h.market, theme: h.parentTheme, subTheme: h.subTheme, valKrw: val, costKrw: h.cost * fx })
       total += val
     }
 
+    const retOf = (val: number, cost: number) => cost > 0 ? Math.round((val - cost) / cost * 1000) / 10 : 0
+
     // By stock
-    const byStock = items.map(i => ({ subject: i.name.length > 6 ? i.name.slice(0, 6) + '..' : i.name, pct: total > 0 ? Math.round(i.valKrw / total * 1000) / 10 : 0 }))
-      .sort((a, b) => b.pct - a.pct)
+    const byStock = items.map(i => ({
+      subject: i.name.length > 6 ? i.name.slice(0, 6) + '..' : i.name,
+      pct: total > 0 ? Math.round(i.valKrw / total * 1000) / 10 : 0,
+      retPct: retOf(i.valKrw, i.costKrw),
+    })).sort((a, b) => b.pct - a.pct)
 
     // By theme
-    const themeMap = new Map<string, number>()
+    const themeMap = new Map<string, { val: number; cost: number }>()
     for (const i of items) {
       if (i.theme === '미분류') continue
-      themeMap.set(i.theme, (themeMap.get(i.theme) || 0) + i.valKrw)
+      const prev = themeMap.get(i.theme) || { val: 0, cost: 0 }
+      prev.val += i.valKrw; prev.cost += i.costKrw
+      themeMap.set(i.theme, prev)
     }
-    const byTheme = Array.from(themeMap.entries()).map(([k, v]) => ({ subject: k, pct: total > 0 ? Math.round(v / total * 1000) / 10 : 0 }))
+    const byTheme = Array.from(themeMap.entries()).map(([k, v]) => ({
+      subject: k,
+      pct: total > 0 ? Math.round(v.val / total * 1000) / 10 : 0,
+      retPct: retOf(v.val, v.cost),
+    }))
 
     // By market
-    let krVal = 0, usVal = 0
-    for (const i of items) { if (i.market === 'US') usVal += i.valKrw; else krVal += i.valKrw }
+    let krVal = 0, usVal = 0, krCost = 0, usCost = 0
+    for (const i of items) {
+      if (i.market === 'US') { usVal += i.valKrw; usCost += i.costKrw }
+      else { krVal += i.valKrw; krCost += i.costKrw }
+    }
     const byMarket = [
-      { subject: '국내', pct: total > 0 ? Math.round(krVal / total * 1000) / 10 : 0 },
-      { subject: '해외', pct: total > 0 ? Math.round(usVal / total * 1000) / 10 : 0 },
+      { subject: '국내', pct: total > 0 ? Math.round(krVal / total * 1000) / 10 : 0, retPct: retOf(krVal, krCost) },
+      { subject: '해외', pct: total > 0 ? Math.round(usVal / total * 1000) / 10 : 0, retPct: retOf(usVal, usCost) },
     ]
 
     // AI 인프라 sub-theme 세부 비중 (drilldown)
-    const aiInfraMap = new Map<string, number>()
+    const aiInfraMap = new Map<string, { val: number; cost: number }>()
     let aiInfraTotal = 0
     for (const i of items) {
       if (i.theme !== 'AI 인프라') continue
-      aiInfraMap.set(i.subTheme, (aiInfraMap.get(i.subTheme) || 0) + i.valKrw)
+      const prev = aiInfraMap.get(i.subTheme) || { val: 0, cost: 0 }
+      prev.val += i.valKrw; prev.cost += i.costKrw
+      aiInfraMap.set(i.subTheme, prev)
       aiInfraTotal += i.valKrw
     }
     const byAiInfraSub = Array.from(aiInfraMap.entries())
-      .map(([k, v]) => ({ subject: k, pct: aiInfraTotal > 0 ? Math.round(v / aiInfraTotal * 1000) / 10 : 0 }))
+      .map(([k, v]) => ({
+        subject: k,
+        pct: aiInfraTotal > 0 ? Math.round(v.val / aiInfraTotal * 1000) / 10 : 0,
+        retPct: retOf(v.val, v.cost),
+      }))
       .sort((a, b) => b.pct - a.pct)
 
     return { byStock, byTheme, byMarket, byAiInfraSub }
@@ -512,20 +567,42 @@ export function AnalysisBlock({
         {/* Donut charts: allocation breakdown */}
         {radarData.byTheme.length > 0 && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 8 }}>
-              포트폴리오 비중
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted }}>
+                포트폴리오 비중
+              </div>
+              <LSegmented
+                options={[
+                  { value: 'category', label: '기본' },
+                  { value: 'return', label: '수익률' },
+                ]}
+                value={donutColorMode}
+                onChange={handleDonutColorChange}
+              />
             </div>
+            {/* 수익률 모드 범례: 색=수익률(파랑 손실 ↔ 빨강 수익). 슬라이스 크기는 비중 유지. */}
+            {donutColorMode === 'return' && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6, fontSize: 9, color: t.neutrals.subtle }}>
+                <span>손실</span>
+                <span style={{ width: 96, height: 7, borderRadius: 4, background: `linear-gradient(90deg, ${returnGradientColor(-50)}, ${returnGradientColor(0)}, ${returnGradientColor(50)})`, display: 'inline-block' }} />
+                <span>수익</span>
+                <span style={{ opacity: 0.7 }}>(색=수익률, 크기=비중)</span>
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (radarData.byAiInfraSub.length > 0 ? 'repeat(3, 1fr)' : '1fr 1fr'), gap: 8 }}>
               <DonutChart title="테마별" data={radarData.byTheme}
                 colors={radarData.byTheme.map(d => GROUP_COLORS[d.subject] || '#94a3b8')}
+                colorMode={donutColorMode} returns={radarData.byTheme.map(d => d.retPct)}
                 fixedWidth={chartColumns === 2 ? 280 : undefined} />
               {radarData.byAiInfraSub.length > 0 && (
                 <DonutChart title="AI 인프라 세부" data={radarData.byAiInfraSub}
                   colors={radarData.byAiInfraSub.map(d => AI_INFRA_SUB_COLORS[d.subject] || '#94a3b8')}
+                  colorMode={donutColorMode} returns={radarData.byAiInfraSub.map(d => d.retPct)}
                   fixedWidth={chartColumns === 2 ? 280 : undefined} />
               )}
               <DonutChart title="국내/해외" data={radarData.byMarket}
                 colors={[MARKET_COLORS['국내'], MARKET_COLORS['해외']]}
+                colorMode={donutColorMode} returns={radarData.byMarket.map(d => d.retPct)}
                 fixedWidth={chartColumns === 2 ? 280 : undefined} />
             </div>
           </div>

@@ -26,29 +26,29 @@ const ETF_AXES: Record<string, string[]> = {
   EWY:  ['AI 인프라', '지정학/안보', '넥스트'], // 한국 ETF — 한국 보유 종목 다수
 }
 
-// 수익률을 [-30%, +30%] 범위로 클램프해서 0~1 normalize 후 빨강↔초록 그라데이션
+// 수익률을 [-30%, +30%] 범위로 클램프해서 0~1 normalize 후 그라데이션 (미국식: +는 녹색, -는 빨강)
 function returnColor(r: number | null): { bg: string; fg: string } {
   if (r == null) return { bg: t.neutrals.inner, fg: t.neutrals.subtle }
   const clamped = Math.max(-0.3, Math.min(0.3, r))
   if (clamped >= 0) {
-    // 0 → 회색, +30% → 진한 빨강 (한국 주식 +는 빨강)
+    // 0 → 회색, +30% → 진한 녹색 (미국 주식 +는 녹색)
     const intensity = clamped / 0.3
+    const r255 = Math.round(245 - intensity * 200) // 245 → 45
+    const g255 = Math.round(245 - intensity * 100) // 245 → 145
+    const b255 = Math.round(245 - intensity * 160) // 245 → 85
+    return {
+      bg: `rgb(${r255}, ${g255}, ${b255})`,
+      fg: intensity > 0.5 ? '#fff' : '#14532D',
+    }
+  } else {
+    // 0 → 회색, -30% → 진한 빨강 (미국 주식 -는 빨강)
+    const intensity = -clamped / 0.3
     const r255 = Math.round(255 - intensity * 100) // 255 → 155
     const g255 = Math.round(245 - intensity * 200) // 245 → 45
     const b255 = Math.round(245 - intensity * 200) // 245 → 45
     return {
       bg: `rgb(${r255}, ${g255}, ${b255})`,
       fg: intensity > 0.5 ? '#fff' : '#9F1239',
-    }
-  } else {
-    // 0 → 회색, -30% → 진한 파랑 (한국 주식 -는 파랑)
-    const intensity = -clamped / 0.3
-    const r255 = Math.round(245 - intensity * 200) // 245 → 45
-    const g255 = Math.round(245 - intensity * 130) // 245 → 115
-    const b255 = Math.round(255 - intensity * 50)  // 255 → 205
-    return {
-      bg: `rgb(${r255}, ${g255}, ${b255})`,
-      fg: intensity > 0.5 ? '#fff' : '#1E3A8A',
     }
   }
 }

@@ -104,7 +104,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
 }) {
   const [hovered, setHovered] = useState(false)
   const changePct = data.changePercent ?? 0
-  const changeColor = changePct > 0 ? t.accent.neg : changePct < 0 ? t.brand[600] : t.neutrals.subtle
+  const changeColor = changePct > 0 ? t.accent.pos : changePct < 0 ? t.accent.neg : t.neutrals.subtle
 
   return (
     <div
@@ -300,7 +300,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
           })()}
           <span style={{
             fontSize: 10, fontWeight: t.weight.medium, fontFamily: t.font.mono,
-            color: data.monitor.changePct > 0 ? t.accent.neg : data.monitor.changePct < 0 ? t.brand[600] : t.neutrals.subtle,
+            color: data.monitor.changePct > 0 ? t.accent.pos : data.monitor.changePct < 0 ? t.accent.neg : t.neutrals.subtle,
           }}>
             {data.monitor.changePct > 0 ? '+' : ''}{data.monitor.changePct.toFixed(1)}%
           </span>
@@ -333,8 +333,8 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             })()}
             <span style={{
               fontSize: 10, fontWeight: t.weight.medium, fontFamily: t.font.mono,
-              color: data.pyramiding.avgReturnPct > 0 ? t.accent.neg
-                : data.pyramiding.avgReturnPct < 0 ? t.brand[600] : t.neutrals.subtle,
+              color: data.pyramiding.avgReturnPct > 0 ? t.accent.pos
+                : data.pyramiding.avgReturnPct < 0 ? t.accent.neg : t.neutrals.subtle,
             }}>
               {data.pyramiding.avgReturnPct > 0 ? '+' : ''}{data.pyramiding.avgReturnPct.toFixed(1)}%
             </span>
