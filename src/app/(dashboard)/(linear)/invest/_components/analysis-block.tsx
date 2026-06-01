@@ -70,6 +70,9 @@ function DonutChart({ title, data, colors, fixedWidth, colorMode = 'category', r
 }) {
   const sliceColor = (i: number) =>
     colorMode === 'return' && returns ? returnGradientColor(returns[i] ?? 0) : colors[i % colors.length]
+  // 수익률 모드: 채우기=수익률 그라데이션, 테두리=카테고리 색 → 분류 식별 유지
+  const isReturn = colorMode === 'return' && !!returns
+  const categoryColor = (i: number) => colors[i % colors.length]
   // 슬라이스 안쪽에 표시할 라벨 — 비중 ≥ 6% 인 슬라이스에만 흰색 % 표시
   const renderInsideLabel = (props: any) => {
     const cx = Number(props.cx); const cy = Number(props.cy)
@@ -90,10 +93,14 @@ function DonutChart({ title, data, colors, fixedWidth, colorMode = 'category', r
     <PieChart width={fixedWidth || undefined} height={140}>
       <Pie
         data={data} dataKey="pct" nameKey="subject" cx="50%" cy="50%"
-        innerRadius={30} outerRadius={55} paddingAngle={2} strokeWidth={0}
+        innerRadius={30} outerRadius={55} paddingAngle={2}
         label={renderInsideLabel} labelLine={false} isAnimationActive={false}
       >
-        {data.map((_, i) => <Cell key={i} fill={sliceColor(i)} />)}
+        {data.map((_, i) => (
+          <Cell key={i} fill={sliceColor(i)}
+            stroke={isReturn ? categoryColor(i) : undefined}
+            strokeWidth={isReturn ? 2 : 0} />
+        ))}
       </Pie>
       <Tooltip
         contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md, fontSize: 10, padding: '4px 8px' }}
@@ -112,7 +119,12 @@ function DonutChart({ title, data, colors, fixedWidth, colorMode = 'category', r
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2px 8px', marginTop: 2 }}>
         {data.map((d, i) => (
           <span key={d.subject} style={{ fontSize: 9, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: sliceColor(i), display: 'inline-block' }} />
+            {/* 수익률 모드: 점 안쪽=수익률색, 테두리=카테고리색 (파이와 동일 인코딩) */}
+            <span style={{
+              width: isReturn ? 8 : 6, height: isReturn ? 8 : 6, borderRadius: '50%',
+              background: sliceColor(i), display: 'inline-block', boxSizing: 'border-box',
+              border: isReturn ? `2px solid ${categoryColor(i)}` : undefined,
+            }} />
             {d.subject} {d.pct}%
           </span>
         ))}
@@ -580,15 +592,6 @@ export function AnalysisBlock({
                 onChange={handleDonutColorChange}
               />
             </div>
-            {/* 수익률 모드 범례: 색=수익률(파랑 손실 ↔ 빨강 수익). 슬라이스 크기는 비중 유지. */}
-            {donutColorMode === 'return' && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6, fontSize: 9, color: t.neutrals.subtle }}>
-                <span>손실</span>
-                <span style={{ width: 96, height: 7, borderRadius: 4, background: `linear-gradient(90deg, ${returnGradientColor(-50)}, ${returnGradientColor(0)}, ${returnGradientColor(50)})`, display: 'inline-block' }} />
-                <span>수익</span>
-                <span style={{ opacity: 0.7 }}>(색=수익률, 크기=비중)</span>
-              </div>
-            )}
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (radarData.byAiInfraSub.length > 0 ? 'repeat(3, 1fr)' : '1fr 1fr'), gap: 8 }}>
               <DonutChart title="테마별" data={radarData.byTheme}
                 colors={radarData.byTheme.map(d => GROUP_COLORS[d.subject] || '#94a3b8')}
@@ -605,6 +608,15 @@ export function AnalysisBlock({
                 colorMode={donutColorMode} returns={radarData.byMarket.map(d => d.retPct)}
                 fixedWidth={chartColumns === 2 ? 280 : undefined} />
             </div>
+            {/* 수익률 모드 범례 (차트 아래): 색=수익률(파랑 손실 ↔ 빨강 수익), 테두리=분류, 크기=비중 */}
+            {donutColorMode === 'return' && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, fontSize: 9, color: t.neutrals.subtle }}>
+                <span>손실</span>
+                <span style={{ width: 96, height: 7, borderRadius: 4, background: `linear-gradient(90deg, ${returnGradientColor(-50)}, ${returnGradientColor(0)}, ${returnGradientColor(50)})`, display: 'inline-block' }} />
+                <span>수익</span>
+                <span style={{ opacity: 0.7 }}>(색=수익률, 테두리=분류, 크기=비중)</span>
+              </div>
+            )}
           </div>
         )}
       </div>
