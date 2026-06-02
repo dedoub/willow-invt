@@ -2,7 +2,7 @@ import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
-import { execSync } from 'child_process'
+import { execSync, spawn } from 'child_process'
 import { existsSync, writeFileSync, readFileSync, unlinkSync, mkdirSync, readdirSync } from 'fs'
 import { join, basename } from 'path'
 import { markdownToTelegramHtml } from './telegram-utils'
@@ -1380,16 +1380,7 @@ async function proactiveCheck() {
       return
     }
 
-    // 1.5) 텐소프트웍스 주간 브리핑 (월요일 10:30, 주 1회)
-    const dayOfWeek = now.getDay() // 0=일, 1=월
-    const minute = now.getMinutes()
-    const weekId = `${now.getFullYear()}-W${Math.ceil((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000))}`
-    if (dayOfWeek === 1 && hour === 10 && minute >= 30 && proactiveState.weeklyBriefSent !== weekId) {
-      await sendWeeklyBriefing(ceoChatId)
-      proactiveState.weeklyBriefSent = weekId
-      saveProactiveState()
-      return
-    }
+    // 텐소프트웍스 주간 브리핑은 CEO 명시 요청 시에만 수동 실행한다.
 
     // 2) 맥락기반 팔로업 체크 (업무 시간대, 트리거 시각 도래한 것)
     const isWorkHours = hour >= 9 && hour <= 21
@@ -3112,13 +3103,27 @@ ${text}
     const { cleanText, actions, buttons } = extractActions(response)
 
     // 액션 실행 결과 수집
+    // 액션 단계에 들어가면 이전 입력을 재배칭 대상으로 남기지 않는다.
+    // (새 메시지 도착 시 동일 액션이 중복 실행되는 문제 방지)
+    if (actions.length > 0) {
+      inFlightText.delete(chatId)
+    }
+
     const actionResults: string[] = []
     for (const action of actions) {
+      if (abortSignal?.aborted) {
+        console.log(`[${chatId}] ⏹️ 액션 실행 중 취소됨 (중복 실행 방지)`)
+        break
+      }
       await addProgress(`⚡ 액션: ${action.type}`)
       console.log(`⚡ 액션 실행: ${action.type}`)
       const result = await executeAction(action)
       actionResults.push(result)
       console.log(`  → ${result}`)
+    }
+    if (abortSignal?.aborted) {
+      if (progressMsgId) await deleteMsg(chatId, progressMsgId)
+      return
     }
     if (actions.length) await addProgress(`✅ 액션 ${actions.length}건 완료`)
 
