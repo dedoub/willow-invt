@@ -546,9 +546,12 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   const dPnl = dValue - dInvested
                   const dPnlPct = dInvested > 0 ? (dPnl / dInvested) * 100 : 0
 
+                  const isBuySignal = pyramiding?.status === 'BUY'
                   return (
                     <div key={h.ticker} style={{
                       background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px',
+                      // 추매(BUY) 신호 종목은 녹색 테두리로 구분
+                      border: isBuySignal ? `1px solid ${t.accent.pos}` : undefined,
                     }}>
                       {/* Row 1: name + ticker + themes + daily % */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>

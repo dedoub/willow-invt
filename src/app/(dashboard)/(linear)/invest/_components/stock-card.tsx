@@ -123,7 +123,9 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
         padding: '8px 10px',
         borderRadius: t.radius.md,
         background: data.pinned ? '#FFFBF0' : t.neutrals.inner,
-        border: bordered ? `1px solid ${t.neutrals.line}` : undefined,
+        // 추매(BUY) 신호 종목은 녹색 테두리로 구분 (bordered 기본 테두리보다 우선)
+        border: data.pyramiding?.status === 'BUY' ? `1px solid ${t.accent.pos}`
+          : bordered ? `1px solid ${t.neutrals.line}` : undefined,
         cursor: draggable ? 'grab' : onClick ? 'pointer' : 'default',
         transition: 'background .1s',
         position: 'relative',
