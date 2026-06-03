@@ -58,7 +58,7 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
         <LStat label="평가액 (세후)" value={totalValue || '-'} tone="default" />
         <LStat label="누적수익률" value={`${retPct > 0 ? '+' : ''}${retPct.toFixed(1)}%`} tone={retTone} sub={gainSub} />
         <LStat label="추매+돌파" value={String(buyBreakoutTickers.length)} tone={buyBreakoutTickers.length > 0 ? 'pos' : 'default'} sub={join(buyBreakoutTickers)} wrap />
-        <LStat label="추매" value={String(buyOnlyTickers.length)} tone="default" sub={join(buyOnlyTickers)} wrap />
+        <LStat label="추매구간" value={String(buyOnlyTickers.length)} tone="default" sub={join(buyOnlyTickers)} wrap />
         <LStat label="돌파" value={String(breakoutOnlyTickers.length)} tone={breakoutOnlyTickers.length > 0 ? 'pos' : 'default'} sub={join(breakoutOnlyTickers)} wrap />
         <LStat label="USD/KRW" value={usdKrw.toLocaleString()} tone="default" />
       </div>

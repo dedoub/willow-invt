@@ -341,27 +341,29 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
-        <LSectionHead eyebrow="HOLDINGS" title="보유 현황" action={
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6 }}>
-            <LSegmented
-              options={[
-                { value: 'all', label: '전체' },
-                { value: 'KR', label: '국내' },
-                { value: 'US', label: '해외' },
-              ]}
-              value={marketFilter}
-              onChange={setMarketFilter}
-            />
-            <LSegmented
-              options={[
-                { value: 'original', label: '원화/달러' },
-                { value: 'KRW', label: '₩ 통합' },
-              ]}
-              value={currencyMode}
-              onChange={setCurrencyMode}
-            />
-            {/* 모바일: 정렬 배지를 다음 줄로 */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', flexBasis: mobile ? '100%' : 'auto' }}>
+        {(() => {
+          const controls = (
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: 6,
+              justifyContent: mobile ? 'flex-start' : 'flex-end',
+            }}>
+              <LSegmented
+                options={[
+                  { value: 'all', label: '전체' },
+                  { value: 'KR', label: '국내' },
+                  { value: 'US', label: '해외' },
+                ]}
+                value={marketFilter}
+                onChange={setMarketFilter}
+              />
+              <LSegmented
+                options={[
+                  { value: 'original', label: '원화/달러' },
+                  { value: 'KRW', label: '₩ 통합' },
+                ]}
+                value={currencyMode}
+                onChange={setCurrencyMode}
+              />
               <LSegmented
                 options={[
                   { value: 'current', label: '기본' },
@@ -372,8 +374,18 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                 onChange={handleSortChange}
               />
             </div>
-          </div>
-        } />
+          )
+          // 모바일: 제목과 컨트롤을 세로로 분리 (한 줄에 욱여넣어 깨지는 것 방지)
+          if (mobile) {
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <LSectionHead eyebrow="HOLDINGS" title="보유 현황" />
+                {controls}
+              </div>
+            )
+          }
+          return <LSectionHead eyebrow="HOLDINGS" title="보유 현황" action={controls} />
+        })()}
       </div>
 
       {/* Summary cards */}
