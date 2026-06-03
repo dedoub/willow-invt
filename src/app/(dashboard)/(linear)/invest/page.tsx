@@ -208,6 +208,30 @@ export default function InvestPage() {
     return map
   }, [watchlistData])
 
+  // QLD 강등 시그널: 종목의 3개월(≈63 거래일) 수익률이 QLD보다 낮으면 'QLD전환' 후보.
+  // 모멘텀이 벤치마크(2x 나스닥) 밑으로 꺾인 자본은 베타로 회수한다는 청산룰. 시그널만, 매매는 수동.
+  const qldTransition = useMemo(() => {
+    const map: Record<string, boolean> = {}
+    const WINDOW = 63
+    const ret3m = (series?: { dates: string[]; prices: number[] }): number | null => {
+      if (!series || series.prices.length < 2) return null
+      const p = series.prices
+      const last = p[p.length - 1]
+      const past = p[Math.max(0, p.length - 1 - WINDOW)]
+      if (!last || !past || past <= 0) return null
+      return (last - past) / past
+    }
+    const qldRet = ret3m(stockHistory['QLD'])
+    if (qldRet === null) return map
+    for (const [ticker, series] of Object.entries(stockHistory)) {
+      if (ticker === 'QLD') continue
+      const r = ret3m(series)
+      if (r === null) continue
+      map[ticker.replace('.KS', '')] = r < qldRet
+    }
+    return map
+  }, [stockHistory])
+
   const portfolioStats = useMemo(() => {
     // Build holdings map from trades (using historical FX for cost, matching holdings-block)
     const getFxRate = (date: string): number => {
@@ -368,6 +392,7 @@ export default function InvestPage() {
               usdKrwRate={usdKrw}
               fxHistory={fxHistory}
               tickerSectors={tickerSectors}
+              qldTransition={qldTransition}
               cardColumns={mobile ? 1 : 2}
             />
             <TradeLog trades={stockTrades} />
@@ -396,6 +421,7 @@ export default function InvestPage() {
           stockResearch={stockResearch}
           stockThemes={stockThemes}
           usdKrw={usdKrw}
+          qldTransition={qldTransition}
           onTotalValueChange={handleTotalValueChange}
           onDataChanged={handleKanbanDataChanged}
         />

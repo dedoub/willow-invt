@@ -61,6 +61,8 @@ interface KanbanProps {
   stockResearch: StockResearch[]
   stockThemes?: Record<string, Array<{ theme: string; parentTheme: string | null }>>
   usdKrw: number
+  /** ticker → 3개월 모멘텀이 QLD보다 낮아 'QLD전환' 후보인지. */
+  qldTransition?: Record<string, boolean>
   onTotalValueChange?: (totalUsd: number) => void
   onDataChanged?: () => void
   /** 인쇄용 페이지에서 카드에 테두리 추가 */
@@ -204,7 +206,7 @@ function groupCardsByTheme(
 
 export function PortfolioKanban({
   watchlistData, signalData, stockTrades, stockQuotes, stockResearch, stockThemes = {}, usdKrw,
-  onTotalValueChange, onDataChanged, printMode = false,
+  qldTransition = {}, onTotalValueChange, onDataChanged, printMode = false,
 }: KanbanProps) {
   const mobile = useIsMobile()
   // 칸반은 3-col 레이아웃이라 각 컬럼 폭이 좁아 1280px 미만에서는 카드 2-col 안 적용
@@ -397,6 +399,7 @@ export function PortfolioKanban({
         weightPct: weightPct > 0 ? Math.round(weightPct * 10) / 10 : undefined,
         marketCapLabel,
         pyramiding,
+        qldTransition: qldTransition[item.ticker] ?? qldTransition[tickerKey] ?? false,
         structuralThesis: thInfo?.thesis, valueChainPosition: thInfo?.vcp,
       }
     })
@@ -414,7 +417,7 @@ export function PortfolioKanban({
       })
     }
     return cards
-  }, [watchlistData, signalMap, holdingsAvgMap, usdKrw, sortBy1m])
+  }, [watchlistData, signalMap, holdingsAvgMap, usdKrw, sortBy1m, qldTransition])
 
   const portfolioTotalUsd = useMemo(() => {
     if (!watchlistData) return 0
