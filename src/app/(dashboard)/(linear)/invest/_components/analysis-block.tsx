@@ -45,6 +45,7 @@ function fmtKrw(v: number) {
 
 /* ── Donut palette ── */
 const STOCK_COLORS = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#d946ef', '#0ea5e9']
+const QLD_BENCH_COLOR = '#94a3b8'  // 벤치마크(QLD) 라인 — 중립 회색 점선
 
 /* ── 수익률 발산형 그라데이션 (미국식: 음수=빨강, 양수=녹색, 0%=연회색) ──
    clamp ±50%: 절댓값이 클수록 진하게. 0 근처는 채도 낮은 회색으로 보간. */
@@ -632,6 +633,13 @@ export function AnalysisBlock({
                       stroke={line.color} strokeWidth={1.5} dot={false} connectNulls
                     />
                   ))}
+                  {chart.suffix === 'pct' && (
+                    <Line
+                      type="monotone" dataKey="qldPct" name="QLD"
+                      stroke={QLD_BENCH_COLOR} strokeWidth={1.5} strokeDasharray="4 3"
+                      dot={false} connectNulls isAnimationActive={false}
+                    />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             </div>
