@@ -131,8 +131,9 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
         // 추매+돌파(강한 매수)면 배경 하이라이트(진한 녹색 틴트, 추매구간과 구분), 핀이면 노랑, 기본은 inner
         background: (data.pyramiding?.status === 'BUY' && data.breakout) ? '#BCE6C9'
           : data.pinned ? '#FFFBF0' : t.neutrals.inner,
-        // 추매(BUY) 신호 종목은 녹색 테두리로 구분 (bordered 기본 테두리보다 우선)
-        border: data.pyramiding?.status === 'BUY' ? `1px solid ${t.accent.pos}`
+        // 매수 후보(추매구간/돌파)는 녹색 테두리. FULL(원금 한도, 추매 안 함) 제외. bordered 기본보다 우선.
+        border: ((data.pyramiding?.status === 'BUY' || data.breakout) && data.pyramiding?.status !== 'FULL')
+          ? `1px solid ${t.accent.pos}`
           : bordered ? `1px solid ${t.neutrals.line}` : undefined,
         cursor: draggable ? 'grab' : onClick ? 'pointer' : 'default',
         transition: 'background .1s',

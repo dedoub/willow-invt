@@ -598,12 +598,14 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   // 추매+돌파: 수익률 트리거 + 매물대 돌파 둘 다 충족 = 강한 매수 → 배경 하이라이트
                   // 추매구간(테두리만 녹색)과 구분되게 더 진한 녹색 틴트 사용
                   const isStrongBuy = isBuySignal && isBreakout
+                  // 매수 후보(추매구간 OR 돌파)는 녹색 테두리. 단 FULL(원금 한도 도달, 추매 안 함)은 제외.
+                  const isBuyCandidate = (isBuySignal || isBreakout) && pyramiding?.status !== 'FULL'
                   return (
                     <div key={h.ticker} style={{
                       background: isStrongBuy ? '#BCE6C9' : t.neutrals.inner,
                       borderRadius: t.radius.md, padding: '8px 10px',
-                      // 추매(BUY) 신호 종목은 녹색 테두리로 구분
-                      border: isBuySignal ? `1px solid ${t.accent.pos}` : undefined,
+                      // 매수 후보(추매구간/돌파) 종목은 녹색 테두리로 구분 (FULL 제외)
+                      border: isBuyCandidate ? `1px solid ${t.accent.pos}` : undefined,
                     }}>
                       {/* Row 1: name + ticker + themes + daily % */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
