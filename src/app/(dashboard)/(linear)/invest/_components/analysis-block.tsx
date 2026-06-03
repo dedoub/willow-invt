@@ -212,6 +212,53 @@ export function AnalysisBlock({
       if (ratio > 1.5) splitRatios.set(tr.ticker, Math.round(ratio))
     }
 
+    // ── QLD benchmark: dollar-matched ("동액 적립") replica of the portfolio cashflow ──
+    // Mirror every trade into a QLD position using QLD's close on the trade date (USD→KRW).
+    const qldPrices = priceLookup.get('QLD')  // Map<date, qldCloseUsd> (forward-filled)
+    const qldState = { shares: 0, krwCost: 0 }
+    let qldTradeIdx = 0
+    const qldPriceOnOrAfter = (tradeDate: string): number | undefined => {
+      if (!qldPrices) return undefined
+      for (const d of sortedDates) {
+        if (d >= tradeDate) { const p = qldPrices.get(d); if (p && p > 0) return p }
+      }
+      return undefined
+    }
+    // Advance qldState to include all trades with trade_date <= date.
+    const advanceQld = (date: string) => {
+      while (qldTradeIdx < tradesSorted.length && tradesSorted[qldTradeIdx].trade_date <= date) {
+        const tr = tradesSorted[qldTradeIdx]
+        const isUS = tr.market === 'US'
+        const tradeFx = isUS ? (fxForDate.get(tr.trade_date) || usdKrwRate) : 1
+        const krwAmount = tr.total_amount * tradeFx
+        const qPrice = qldPriceOnOrAfter(tr.trade_date)
+        if (qPrice && qPrice > 0) {
+          const qFx = fxForDate.get(tr.trade_date) || usdKrwRate  // QLD is USD
+          const qSharesPerKrw = 1 / (qPrice * qFx)
+          if (tr.trade_type === 'buy') {
+            qldState.shares += krwAmount * qSharesPerKrw
+            qldState.krwCost += krwAmount
+          } else {
+            const avgCost = qldState.shares > 0 ? qldState.krwCost / qldState.shares : 0
+            const soldShares = krwAmount * qSharesPerKrw
+            qldState.shares -= soldShares
+            qldState.krwCost -= avgCost * soldShares
+            if (qldState.shares <= 0) { qldState.shares = 0; qldState.krwCost = 0 }
+          }
+        }
+        qldTradeIdx++
+      }
+    }
+    // qldPct at a given date using that date's QLD close.
+    const qldPctForDate = (date: string): number | null => {
+      if (!qldPrices || qldState.krwCost <= 0) return null
+      const px = qldPrices.get(date)
+      if (!px || px <= 0) return null
+      const fx = fxForDate.get(date) || usdKrwRate
+      const val = qldState.shares * px * fx
+      return Math.round((val - qldState.krwCost) / qldState.krwCost * 1000) / 10
+    }
+
     // 5. Build holdings timeline
     type HState = { qty: number; cost: number; krwCost: number; market: string; parentTheme: string | null }
     const holdingStates = new Map<string, HState>()
@@ -281,6 +328,9 @@ export function AnalysisBlock({
         entry[`${k}pnl`] = Math.round((themeVal[k] || 0) - (themeCost[k] || 0))
         entry[`${k}pct`] = (themeCost[k] || 0) > 0 ? Math.round(((themeVal[k] || 0) - (themeCost[k] || 0)) / (themeCost[k] || 0) * 1000) / 10 : 0
       }
+      advanceQld(date)
+      const qPct = qldPctForDate(date)
+      if (qPct !== null) entry['qldPct'] = qPct
       data.push(entry)
     }
 
@@ -320,6 +370,19 @@ export function AnalysisBlock({
           e[`${k}value`] = Math.round(todayThV[k] || 0)
           e[`${k}pnl`] = Math.round((todayThV[k] || 0) - (todayThC[k] || 0))
           e[`${k}pct`] = (todayThC[k] || 0) > 0 ? Math.round(((todayThV[k] || 0) - (todayThC[k] || 0)) / (todayThC[k] || 0) * 1000) / 10 : 0
+        }
+        advanceQld(today)
+        // Prefer live QLD quote for the today point; fall back to last series close.
+        const qldQuote = stockQuotes['QLD']?.price
+        if (qldState.krwCost > 0) {
+          let qVal: number | null = null
+          if (qldQuote && qldQuote > 0) {
+            qVal = qldState.shares * qldQuote * usdKrwRate
+          } else {
+            const lastPx = qldPrices?.get(today) ?? (sortedDates.length ? qldPrices?.get(sortedDates[sortedDates.length - 1]) : undefined)
+            if (lastPx && lastPx > 0) qVal = qldState.shares * lastPx * usdKrwRate
+          }
+          if (qVal !== null) e['qldPct'] = Math.round((qVal - qldState.krwCost) / qldState.krwCost * 1000) / 10
         }
         if (data.length > 0 && data[data.length - 1].date === today) data[data.length - 1] = e
         else data.push(e)
