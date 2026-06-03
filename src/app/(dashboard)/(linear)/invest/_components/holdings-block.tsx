@@ -568,12 +568,12 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                               <span style={{ fontSize: 9, padding: '1px 4px', borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted }}>{detail}</span>
                             )
                           })()}
-                          {/* QLD전환: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
+                          {/* QLD 전환 후보: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
                           {(qldTransition[h.ticker] ?? qldTransition[h.ticker.replace('.KS', '')]) && (
                             <span style={{
                               fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
-                              flexShrink: 0, background: tonePalettes.neutral.bg, color: tonePalettes.neutral.fg,
-                            }}>QLD전환</span>
+                              flexShrink: 0, background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
+                            }}>QLD 전환 후보</span>
                           )}
                         </div>
                         {h.dailyChangePercent !== 0 && (
