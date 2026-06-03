@@ -44,6 +44,8 @@ export default function InvestPage() {
     for (const tr of trades) {
       if (!tickerMap.has(tr.ticker)) tickerMap.set(tr.ticker, tr.market)
     }
+    // Benchmark: QLD (2x Nasdaq) — always fetch its series for the return-trend overlay
+    if (!tickerMap.has('QLD')) tickerMap.set('QLD', 'US')
     if (tickerMap.size === 0) return
     const tickers = Array.from(tickerMap.keys())
     const markets = tickers.map(tk => tickerMap.get(tk)!)
@@ -117,6 +119,8 @@ export default function InvestPage() {
           const ticker = tr.ticker.replace('.KS', '')
           if (!tickerMap.has(ticker)) tickerMap.set(ticker, tr.market)
         }
+        // Benchmark quote: QLD current price for the return-trend "today" point
+        if (!tickerMap.has('QLD')) tickerMap.set('QLD', 'US')
         // Include research tickers (pass only) for market cap in kanban
         for (const r of researchFull) {
           if (!r.verdict?.startsWith('pass') || r.track === 'ETF') continue
