@@ -233,6 +233,28 @@ export default function InvestPage() {
     return map
   }, [stockHistory])
 
+  // 돌파 시그널: 현재가(실시간 stockQuotes)가 직전 20거래일 고가(stockHistory)를 넘으면 'breakout'.
+  // CEO 핵심 매매 트리거 — 가격이 이전 매물대(저항선)를 상향 돌파했는가. 시그널만, 매매는 수동.
+  const breakoutMap = useMemo(() => {
+    const map: Record<string, { breakout: boolean; gapPct: number }> = {}
+    const WINDOW = 20
+    for (const [rawTicker, series] of Object.entries(stockHistory)) {
+      if (rawTicker === 'QLD') continue
+      const key = rawTicker.replace('.KS', '')
+      const cur = stockQuotes[key]?.price
+      if (!cur || cur <= 0) continue
+      const prices = series?.prices
+      if (!prices || prices.length < 2) continue
+      // 오늘 종가가 시계열에 이미 있으면 제외하고 직전 N일 고가를 본다.
+      const prior = prices.slice(Math.max(0, prices.length - 1 - WINDOW), prices.length - 1)
+      if (prior.length === 0) continue
+      const resistance = Math.max(...prior)
+      if (!(resistance > 0)) continue
+      map[key] = { breakout: cur >= resistance, gapPct: Math.round((cur / resistance - 1) * 1000) / 10 }
+    }
+    return map
+  }, [stockHistory, stockQuotes])
+
   const portfolioStats = useMemo(() => {
     // Build holdings map from trades (using historical FX for cost, matching holdings-block)
     const getFxRate = (date: string): number => {
@@ -394,6 +416,7 @@ export default function InvestPage() {
               fxHistory={fxHistory}
               tickerSectors={tickerSectors}
               qldTransition={qldTransition}
+              breakoutMap={breakoutMap}
               cardColumns={mobile ? 1 : 2}
             />
             <TradeLog trades={stockTrades} />
@@ -423,6 +446,7 @@ export default function InvestPage() {
           stockThemes={stockThemes}
           usdKrw={usdKrw}
           qldTransition={qldTransition}
+          breakoutMap={breakoutMap}
           onTotalValueChange={handleTotalValueChange}
           onDataChanged={handleKanbanDataChanged}
         />

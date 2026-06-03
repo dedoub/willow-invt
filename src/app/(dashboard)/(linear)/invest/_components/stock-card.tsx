@@ -44,6 +44,8 @@ export interface StockCardData {
   monitor?: MonitorInfo
   /** 6개월 모멘텀이 QLD보다 낮아 'QLD전환' 후보. */
   qldTransition?: boolean
+  /** 현재가가 직전 20일 고가(매물대)를 돌파. */
+  breakout?: boolean
   // Research-specific
   verdict?: string | null
   compositeScore?: number | null
@@ -197,6 +199,13 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               </span>
               <style>{`.info-tip:hover .info-tip-content{display:block!important}`}</style>
             </span>
+          )}
+          {/* 돌파: 현재가가 직전 20일 고가(매물대)를 상향 돌파 — CEO 핵심 매수 트리거 */}
+          {data.breakout && (
+            <span style={{
+              fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
+              flexShrink: 0, background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
+            }}>돌파</span>
           )}
           {/* QLD 전환 후보: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
           {data.qldTransition && (

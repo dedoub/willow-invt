@@ -111,6 +111,8 @@ interface HoldingsBlockProps {
   tickerSectors?: Record<string, string>
   /** ticker → 6개월 모멘텀이 QLD보다 낮아 'QLD전환' 후보인지. */
   qldTransition?: Record<string, boolean>
+  /** ticker → 현재가가 직전 20일 고가(매물대)를 돌파했는지 + 저항선 대비 gap%. */
+  breakoutMap?: Record<string, { breakout: boolean; gapPct: number }>
   /** 인쇄 페이지 전용 — 카드에 종이용 테두리 적용. */
   printMode?: boolean
 }
@@ -127,7 +129,7 @@ type MarketFilter = 'all' | 'KR' | 'US'
 type SortMode = 'current' | 'value' | 'return'
 const SORT_MODE_KEY = 'invest-holdings-sort-mode'
 
-export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1, tickerSectors = {}, qldTransition = {}, printMode = false }: HoldingsBlockProps) {
+export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1, tickerSectors = {}, qldTransition = {}, breakoutMap = {}, printMode = false }: HoldingsBlockProps) {
   const mobile = useIsMobile()
   const [currencyMode, setCurrencyMode] = useState<'original' | 'KRW'>('original')
   const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
@@ -599,6 +601,13 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                               <span style={{ fontSize: 9, padding: '1px 4px', borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted }}>{detail}</span>
                             )
                           })()}
+                          {/* 돌파: 현재가가 직전 20일 고가(매물대)를 상향 돌파 — CEO 핵심 매수 트리거 */}
+                          {(breakoutMap[h.ticker] ?? breakoutMap[h.ticker.replace('.KS', '')])?.breakout && (
+                            <span style={{
+                              fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
+                              flexShrink: 0, background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
+                            }}>돌파</span>
+                          )}
                           {/* QLD 전환 후보: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
                           {(qldTransition[h.ticker] ?? qldTransition[h.ticker.replace('.KS', '')]) && (
                             <span style={{
