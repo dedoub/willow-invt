@@ -274,7 +274,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
           })()}
           {data.group === 'portfolio' && data.holdingQty != null && (
             <span style={{ fontSize: 10, color: t.neutrals.subtle }}>
-              {data.holdingQty}주{data.weightPct != null && ` · ${data.weightPct}%`}
+              {data.holdingQty}주{data.weightPct != null && ` · (${data.weightPct.toFixed(1)}%)`}
             </span>
           )}
           {/* Research: verdict + composite */}

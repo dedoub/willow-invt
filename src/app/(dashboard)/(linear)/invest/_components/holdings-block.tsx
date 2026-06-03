@@ -609,6 +609,11 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                           <span style={{ fontWeight: t.weight.medium }}>
                             <span style={{ fontSize: 10, color: t.neutrals.subtle, fontWeight: t.weight.regular }}>평가 </span>
                             {fmtAmount(dValue, dCur)}
+                            {/* 포트 전체 대비 비중 */}
+                            {summary.totalVal > 0 && (() => {
+                              const valKrw = h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue
+                              return <span style={{ fontSize: 10, color: t.neutrals.subtle, fontWeight: t.weight.regular, marginLeft: 3 }}>({(valKrw / summary.totalVal * 100).toFixed(1)}%)</span>
+                            })()}
                           </span>
                         ) : <span style={{ color: t.neutrals.subtle }}>-</span>}
 
