@@ -67,7 +67,7 @@ const SIGNAL_STYLE: Record<string, { label: string; bg: string; fg: string }> = 
 }
 
 const PYRAMID_STATUS: Record<string, { label: string; bg: string; fg: string }> = {
-  BUY:         { label: '추매',   ...tonePalettes.done },
+  BUY:         { label: '추매구간', ...tonePalettes.done },
   HOLD:        { label: '대기',   ...tonePalettes.neutral },
   FREEZE:      { label: '동결',   ...tonePalettes.warn },
   HOUSE_MONEY: { label: '원금회수', bg: '#EDE5F5', fg: '#5B3A8C' },
@@ -128,8 +128,8 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       style={{
         padding: '8px 10px',
         borderRadius: t.radius.md,
-        // 추매+돌파(강한 매수)면 배경 하이라이트, 핀이면 노랑, 기본은 inner
-        background: (data.pyramiding?.status === 'BUY' && data.breakout) ? tonePalettes.pos.bg
+        // 추매+돌파(강한 매수)면 배경 하이라이트(진한 녹색 틴트, 추매구간과 구분), 핀이면 노랑, 기본은 inner
+        background: (data.pyramiding?.status === 'BUY' && data.breakout) ? '#BCE6C9'
           : data.pinned ? '#FFFBF0' : t.neutrals.inner,
         // 추매(BUY) 신호 종목은 녹색 테두리로 구분 (bordered 기본 테두리보다 우선)
         border: data.pyramiding?.status === 'BUY' ? `1px solid ${t.accent.pos}`

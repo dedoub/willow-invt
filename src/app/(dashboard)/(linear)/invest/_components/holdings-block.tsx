@@ -27,7 +27,7 @@ export interface TickerTheme {
 const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
 
 const PYRAMID_STATUS: Record<string, { label: string; bg: string; fg: string }> = {
-  BUY:         { label: '추매',   ...tonePalettes.done },
+  BUY:         { label: '추매구간', ...tonePalettes.done },
   HOLD:        { label: '대기',   ...tonePalettes.neutral },
   FREEZE:      { label: '동결',   ...tonePalettes.warn },
   HOUSE_MONEY: { label: '원금회수', bg: '#EDE5F5', fg: '#5B3A8C' },
@@ -596,10 +596,11 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   const isBuySignal = pyramiding?.status === 'BUY'
                   const isBreakout = (breakoutMap[h.ticker] ?? breakoutMap[h.ticker.replace('.KS', '')])?.breakout ?? false
                   // 추매+돌파: 수익률 트리거 + 매물대 돌파 둘 다 충족 = 강한 매수 → 배경 하이라이트
+                  // 추매구간(테두리만 녹색)과 구분되게 더 진한 녹색 틴트 사용
                   const isStrongBuy = isBuySignal && isBreakout
                   return (
                     <div key={h.ticker} style={{
-                      background: isStrongBuy ? tonePalettes.pos.bg : t.neutrals.inner,
+                      background: isStrongBuy ? '#BCE6C9' : t.neutrals.inner,
                       borderRadius: t.radius.md, padding: '8px 10px',
                       // 추매(BUY) 신호 종목은 녹색 테두리로 구분
                       border: isBuySignal ? `1px solid ${t.accent.pos}` : undefined,
