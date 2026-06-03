@@ -340,7 +340,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead eyebrow="HOLDINGS" title="보유 현황" action={
-          <div style={{ display: 'inline-flex', gap: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6 }}>
             <LSegmented
               options={[
                 { value: 'all', label: '전체' },
@@ -358,15 +358,18 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
               value={currencyMode}
               onChange={setCurrencyMode}
             />
-            <LSegmented
-              options={[
-                { value: 'current', label: '기본' },
-                { value: 'value', label: '평가액' },
-                { value: 'return', label: '수익률' },
-              ]}
-              value={sortMode}
-              onChange={handleSortChange}
-            />
+            {/* 모바일: 정렬 배지를 다음 줄로 */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', flexBasis: mobile ? '100%' : 'auto' }}>
+              <LSegmented
+                options={[
+                  { value: 'current', label: '기본' },
+                  { value: 'value', label: '평가액' },
+                  { value: 'return', label: '수익률' },
+                ]}
+                value={sortMode}
+                onChange={handleSortChange}
+              />
+            </div>
           </div>
         } />
       </div>
