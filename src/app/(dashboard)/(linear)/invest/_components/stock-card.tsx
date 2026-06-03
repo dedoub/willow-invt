@@ -42,7 +42,7 @@ export interface StockCardData {
   pinned?: boolean
   pyramiding?: PyramidingInfo
   monitor?: MonitorInfo
-  /** 3개월 모멘텀이 QLD보다 낮아 'QLD전환' 후보. */
+  /** 6개월 모멘텀이 QLD보다 낮아 'QLD전환' 후보. */
   qldTransition?: boolean
   // Research-specific
   verdict?: string | null
@@ -198,7 +198,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               <style>{`.info-tip:hover .info-tip-content{display:block!important}`}</style>
             </span>
           )}
-          {/* QLD전환: 3개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
+          {/* QLD전환: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
           {data.qldTransition && (
             <span style={{
               fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,

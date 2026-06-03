@@ -61,7 +61,7 @@ interface KanbanProps {
   stockResearch: StockResearch[]
   stockThemes?: Record<string, Array<{ theme: string; parentTheme: string | null }>>
   usdKrw: number
-  /** ticker → 3개월 모멘텀이 QLD보다 낮아 'QLD전환' 후보인지. */
+  /** ticker → 6개월 모멘텀이 QLD보다 낮아 'QLD전환' 후보인지. */
   qldTransition?: Record<string, boolean>
   onTotalValueChange?: (totalUsd: number) => void
   onDataChanged?: () => void

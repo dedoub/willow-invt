@@ -109,7 +109,7 @@ interface HoldingsBlockProps {
   cardColumns?: 1 | 2
   /** ticker → DB의 세부 sector. sub-group 헤더는 묶음명을 보여주고, 카드에는 그 안의 세부 sector를 표기 (중복 방지). */
   tickerSectors?: Record<string, string>
-  /** ticker → 3개월 모멘텀이 QLD보다 낮아 'QLD전환' 후보인지. */
+  /** ticker → 6개월 모멘텀이 QLD보다 낮아 'QLD전환' 후보인지. */
   qldTransition?: Record<string, boolean>
   /** 인쇄 페이지 전용 — 카드에 종이용 테두리 적용. */
   printMode?: boolean
@@ -568,7 +568,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                               <span style={{ fontSize: 9, padding: '1px 4px', borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted }}>{detail}</span>
                             )
                           })()}
-                          {/* QLD전환: 3개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
+                          {/* QLD전환: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
                           {(qldTransition[h.ticker] ?? qldTransition[h.ticker.replace('.KS', '')]) && (
                             <span style={{
                               fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,

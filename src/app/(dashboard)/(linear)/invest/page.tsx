@@ -208,11 +208,12 @@ export default function InvestPage() {
     return map
   }, [watchlistData])
 
-  // QLD 강등 시그널: 종목의 3개월(≈63 거래일) 수익률이 QLD보다 낮으면 'QLD전환' 후보.
+  // QLD 강등 시그널: 종목의 6개월(≈126 거래일) 수익률이 QLD보다 낮으면 'QLD전환' 후보.
   // 모멘텀이 벤치마크(2x 나스닥) 밑으로 꺾인 자본은 베타로 회수한다는 청산룰. 시그널만, 매매는 수동.
+  // 6개월 기준(보수적): 단기 조정에 큰 추세 종목을 강등하지 않고, 진짜 추세 훼손만 잡는다.
   const qldTransition = useMemo(() => {
     const map: Record<string, boolean> = {}
-    const WINDOW = 63
+    const WINDOW = 126
     const ret3m = (series?: { dates: string[]; prices: number[] }): number | null => {
       if (!series || series.prices.length < 2) return null
       const p = series.prices
