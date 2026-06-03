@@ -10,16 +10,20 @@ interface SignalBarProps {
   totalValue?: string
   cumulativeReturnPct?: number
   gainSub?: string
-  buyTickers: string[]
-  holdTickers: string[]
+  /** 추매+돌파: 수익률 트리거 충족 + 매물대 돌파 (강한 매수) */
+  buyBreakoutTickers: string[]
+  /** 추매: 트리거는 충족했으나 박스권 (관망) */
+  buyOnlyTickers: string[]
+  /** 돌파: 트리거 미달이나 매물대 돌파 (추매 후보) */
+  breakoutOnlyTickers: string[]
   usdKrw: number
   loading?: boolean
   actions?: ReactNode
 }
 
-export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyTickers, holdTickers, usdKrw, loading, actions }: SignalBarProps) {
+export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakoutTickers, buyOnlyTickers, breakoutOnlyTickers, usdKrw, loading, actions }: SignalBarProps) {
   const mobile = useIsMobile()
-  const cols = mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)'
+  const cols = mobile ? 'repeat(2, 1fr)' : 'repeat(6, 1fr)'
 
   if (loading) {
     return (
@@ -28,7 +32,7 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyTickers
           <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" action={actions} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 14px 14px' }}>
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} style={{
               background: t.neutrals.inner, borderRadius: t.radius.sm,
               padding: '8px 10px', height: 52,
@@ -43,8 +47,7 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyTickers
   // 미국식: 수익=pos(녹색), 손실=neg(빨강)
   const retTone = retPct > 0 ? 'pos' as const : retPct < 0 ? 'neg' as const : 'default' as const
 
-  const buyLabel = buyTickers.length > 0 ? buyTickers.join(', ') : '-'
-  const holdLabel = holdTickers.length > 0 ? holdTickers.join(', ') : '-'
+  const join = (arr: string[]) => arr.length > 0 ? arr.join(', ') : '-'
 
   return (
     <LCard pad={0}>
@@ -54,8 +57,9 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyTickers
       <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 14px 14px' }}>
         <LStat label="평가액 (세후)" value={totalValue || '-'} tone="default" />
         <LStat label="누적수익률" value={`${retPct > 0 ? '+' : ''}${retPct.toFixed(1)}%`} tone={retTone} sub={gainSub} />
-        <LStat label="추매" value={String(buyTickers.length)} tone={buyTickers.length > 0 ? 'pos' : 'default'} sub={buyLabel} wrap />
-        <LStat label="대기" value={String(holdTickers.length)} tone="default" sub={holdLabel} wrap />
+        <LStat label="추매+돌파" value={String(buyBreakoutTickers.length)} tone={buyBreakoutTickers.length > 0 ? 'pos' : 'default'} sub={join(buyBreakoutTickers)} wrap />
+        <LStat label="추매" value={String(buyOnlyTickers.length)} tone="default" sub={join(buyOnlyTickers)} wrap />
+        <LStat label="돌파" value={String(breakoutOnlyTickers.length)} tone={breakoutOnlyTickers.length > 0 ? 'pos' : 'default'} sub={join(breakoutOnlyTickers)} wrap />
         <LStat label="USD/KRW" value={usdKrw.toLocaleString()} tone="default" />
       </div>
     </LCard>

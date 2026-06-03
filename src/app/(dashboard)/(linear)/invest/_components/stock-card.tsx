@@ -46,6 +46,8 @@ export interface StockCardData {
   qldTransition?: boolean
   /** 현재가가 직전 20일 고가(매물대)를 돌파. */
   breakout?: boolean
+  /** 저항선(직전 20일 고가) 대비 돌파 폭 %. */
+  breakoutGap?: number
   // Research-specific
   verdict?: string | null
   compositeScore?: number | null
@@ -126,7 +128,9 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       style={{
         padding: '8px 10px',
         borderRadius: t.radius.md,
-        background: data.pinned ? '#FFFBF0' : t.neutrals.inner,
+        // 추매+돌파(강한 매수)면 배경 하이라이트, 핀이면 노랑, 기본은 inner
+        background: (data.pyramiding?.status === 'BUY' && data.breakout) ? tonePalettes.pos.bg
+          : data.pinned ? '#FFFBF0' : t.neutrals.inner,
         // 추매(BUY) 신호 종목은 녹색 테두리로 구분 (bordered 기본 테두리보다 우선)
         border: data.pyramiding?.status === 'BUY' ? `1px solid ${t.accent.pos}`
           : bordered ? `1px solid ${t.neutrals.line}` : undefined,
@@ -205,7 +209,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             <span style={{
               fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
               flexShrink: 0, background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
-            }}>돌파</span>
+            }}>돌파{data.breakoutGap != null && ` +${data.breakoutGap.toFixed(1)}%`}</span>
           )}
           {/* QLD 전환 후보: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
           {data.qldTransition && (

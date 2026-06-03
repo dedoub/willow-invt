@@ -582,9 +582,13 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   const dPnlPct = dInvested > 0 ? (dPnl / dInvested) * 100 : 0
 
                   const isBuySignal = pyramiding?.status === 'BUY'
+                  const isBreakout = (breakoutMap[h.ticker] ?? breakoutMap[h.ticker.replace('.KS', '')])?.breakout ?? false
+                  // 추매+돌파: 수익률 트리거 + 매물대 돌파 둘 다 충족 = 강한 매수 → 배경 하이라이트
+                  const isStrongBuy = isBuySignal && isBreakout
                   return (
                     <div key={h.ticker} style={{
-                      background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px',
+                      background: isStrongBuy ? tonePalettes.pos.bg : t.neutrals.inner,
+                      borderRadius: t.radius.md, padding: '8px 10px',
                       // 추매(BUY) 신호 종목은 녹색 테두리로 구분
                       border: isBuySignal ? `1px solid ${t.accent.pos}` : undefined,
                     }}>
@@ -602,12 +606,16 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                             )
                           })()}
                           {/* 돌파: 현재가가 직전 20일 고가(매물대)를 상향 돌파 — CEO 핵심 매수 트리거 */}
-                          {(breakoutMap[h.ticker] ?? breakoutMap[h.ticker.replace('.KS', '')])?.breakout && (
-                            <span style={{
-                              fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
-                              flexShrink: 0, background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
-                            }}>돌파</span>
-                          )}
+                          {(() => {
+                            const bo = breakoutMap[h.ticker] ?? breakoutMap[h.ticker.replace('.KS', '')]
+                            if (!bo?.breakout) return null
+                            return (
+                              <span style={{
+                                fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
+                                flexShrink: 0, background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
+                              }}>돌파 +{bo.gapPct.toFixed(1)}%</span>
+                            )
+                          })()}
                           {/* QLD 전환 후보: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
                           {(qldTransition[h.ticker] ?? qldTransition[h.ticker.replace('.KS', '')]) && (
                             <span style={{

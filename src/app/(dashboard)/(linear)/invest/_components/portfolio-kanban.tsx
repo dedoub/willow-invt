@@ -403,6 +403,7 @@ export function PortfolioKanban({
         pyramiding,
         qldTransition: qldTransition[item.ticker] ?? qldTransition[tickerKey] ?? false,
         breakout: (breakoutMap[item.ticker] ?? breakoutMap[tickerKey])?.breakout ?? false,
+        breakoutGap: (breakoutMap[item.ticker] ?? breakoutMap[tickerKey])?.gapPct,
         structuralThesis: thInfo?.thesis, valueChainPosition: thInfo?.vcp,
       }
     })

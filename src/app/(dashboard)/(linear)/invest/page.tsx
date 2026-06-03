@@ -301,7 +301,9 @@ export default function InvestPage() {
     }
 
     let totalValKrw = 0, totalCostKrw = 0, usGainKrw = 0
-    const buyTickers: string[] = [], holdTickers: string[] = []
+    // 3분류: 추매+돌파(buyBreakout) / 추매(buyOnly, 박스권) / 돌파(breakoutOnly, 트리거 미달이나 돌파)
+    const buyBreakoutTickers: string[] = [], buyOnlyTickers: string[] = [], breakoutOnlyTickers: string[] = []
+    const holdTickers: string[] = []
     for (const [ticker, h] of holdMap) {
       if (h.qty <= 0) continue
       const quote = stockQuotes[ticker]
@@ -328,13 +330,16 @@ export default function InvestPage() {
       else status = 'HOLD'
 
       const name = nameMap.get(ticker) || ticker
-      if (status === 'BUY') buyTickers.push(name)
+      const isBreakout = (breakoutMap[ticker] ?? breakoutMap[ticker.replace('.KS', '')])?.breakout ?? false
+      if (status === 'BUY' && isBreakout) buyBreakoutTickers.push(name)
+      else if (status === 'BUY') buyOnlyTickers.push(name)
+      else if (isBreakout) breakoutOnlyTickers.push(name)
       if (status === 'HOLD') holdTickers.push(name)
     }
 
     const cumulativeReturnPct = totalCostKrw > 0 ? (totalValKrw - totalCostKrw) / totalCostKrw * 100 : 0
-    return { totalValKrw, totalCostKrw, cumulativeReturnPct, buyTickers, holdTickers, usGainKrw }
-  }, [stockTrades, stockQuotes, usdKrw, fxHistory, watchlistData])
+    return { totalValKrw, totalCostKrw, cumulativeReturnPct, buyBreakoutTickers, buyOnlyTickers, breakoutOnlyTickers, holdTickers, usGainKrw }
+  }, [stockTrades, stockQuotes, usdKrw, fxHistory, watchlistData, breakoutMap])
 
   const totalValKrw = portfolioStats.totalValKrw > 0
     ? portfolioStats.totalValKrw
@@ -399,8 +404,9 @@ export default function InvestPage() {
           totalValue={fmtTotalValue}
           cumulativeReturnPct={portfolioStats.cumulativeReturnPct}
           gainSub={gainSub}
-          buyTickers={portfolioStats.buyTickers}
-          holdTickers={portfolioStats.holdTickers}
+          buyBreakoutTickers={portfolioStats.buyBreakoutTickers}
+          buyOnlyTickers={portfolioStats.buyOnlyTickers}
+          breakoutOnlyTickers={portfolioStats.breakoutOnlyTickers}
           usdKrw={usdKrw}
           actions={printActions}
         />
