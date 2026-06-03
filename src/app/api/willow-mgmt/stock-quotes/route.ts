@@ -19,10 +19,10 @@ const EXCHANGE_MAP: Record<string, string> = {
 async function fetchYahooQuote(yahooSymbol: string): Promise<QuoteResult | null> {
   try {
     const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`,
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d&includePrePost=true`,
       {
         headers: { 'User-Agent': 'Mozilla/5.0' },
-        next: { revalidate: 300 },
+        next: { revalidate: 60 },
       }
     )
     if (!res.ok) return null
@@ -30,7 +30,19 @@ async function fetchYahooQuote(yahooSymbol: string): Promise<QuoteResult | null>
     const meta = data?.chart?.result?.[0]?.meta
     if (!meta) return null
 
-    const price = meta.regularMarketPrice
+    // 확장 거래시간(프리/애프터마켓) 가격 우선 반영. 정규장/휴장이면 regularMarketPrice.
+    // marketState: PRE/PREPRE(장전), REGULAR(정규장), POST/POSTPOST(장후), CLOSED(휴장)
+    const state = meta.marketState as string | undefined
+    let price = meta.regularMarketPrice
+    let session: 'pre' | 'regular' | 'post' = 'regular'
+    if ((state === 'PRE' || state === 'PREPRE') && meta.preMarketPrice != null) {
+      price = meta.preMarketPrice
+      session = 'pre'
+    } else if ((state === 'POST' || state === 'POSTPOST') && meta.postMarketPrice != null) {
+      price = meta.postMarketPrice
+      session = 'post'
+    }
+    // 변동률은 전일 정규장 종가 대비 누적(확장시간 포함)으로 계산
     const prevClose = meta.chartPreviousClose || meta.previousClose
     const change = prevClose ? price - prevClose : 0
     const changePercent = prevClose ? (change / prevClose) * 100 : 0
@@ -40,8 +52,9 @@ async function fetchYahooQuote(yahooSymbol: string): Promise<QuoteResult | null>
       change,
       changePercent,
       currency: meta.currency || 'USD',
+      session,
       _exchange: meta.exchangeName,
-    } as QuoteResult & { _exchange?: string }
+    } as QuoteResult & { _exchange?: string; session?: string }
   } catch {
     return null
   }

@@ -200,6 +200,21 @@ export default function InvestPage() {
   useEffect(() => { loadData() }, [loadData])
   useAgentRefresh(['stock_'], loadData)
 
+  // 현재가 자동 갱신 폴링 — 활성 탭일 때만 60초마다 조용히 refetch(스켈레톤 없음).
+  // 서버단 stock-quotes는 5분 캐시이므로 실제 Yahoo 호출 부하는 낮음.
+  // 비활성 탭은 건너뛰고, 탭으로 돌아오면 즉시 1회 갱신.
+  useEffect(() => {
+    const POLL_MS = 60_000
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      loadData({ background: true })
+    }
+    const id = setInterval(tick, POLL_MS)
+    const onVisible = () => { if (!document.hidden) loadData({ background: true }) }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVisible) }
+  }, [loadData])
+
   // 칸반 액션 후에는 전체 데이터를 refetch하되 setLoadPhase는 건드리지 않음 →
   // PortfolioKanban이 unmount되지 않고 다른 블록 스켈레톤도 다시 뜨지 않음.
   const handleKanbanDataChanged = useCallback(() => {
