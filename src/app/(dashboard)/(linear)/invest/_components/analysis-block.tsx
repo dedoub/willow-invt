@@ -582,6 +582,19 @@ export function AnalysisBlock({
                       </span>
                     )
                   })}
+                  {chart.suffix === 'pct' && last && Number.isFinite(Number(last['qldPct'])) && (() => {
+                    const mine = Number(last['전체pct'])
+                    const qld = Number(last['qldPct'])
+                    if (!Number.isFinite(mine)) return null
+                    const alpha = Math.round((mine - qld) * 10) / 10
+                    const alphaColor = alpha > 0 ? t.accent.pos : alpha < 0 ? t.accent.neg : t.neutrals.subtle
+                    return (
+                      <span style={{ fontSize: 11, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums', color: alphaColor }}>
+                        <span style={{ fontSize: 9, color: t.neutrals.muted, marginRight: 3, fontWeight: t.weight.regular }}>vs QLD</span>
+                        {alpha > 0 ? '+' : ''}{alpha.toFixed(1)}%p
+                      </span>
+                    )
+                  })()}
                 </div>
                 {isValue && (
                   <div style={{ display: 'inline-flex', background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
