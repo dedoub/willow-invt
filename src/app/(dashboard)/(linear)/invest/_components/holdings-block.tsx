@@ -124,11 +124,22 @@ interface Holding {
 }
 
 type MarketFilter = 'all' | 'KR' | 'US'
+type SortMode = 'current' | 'value' | 'return'
+const SORT_MODE_KEY = 'invest-holdings-sort-mode'
 
 export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1, tickerSectors = {}, qldTransition = {}, printMode = false }: HoldingsBlockProps) {
   const mobile = useIsMobile()
   const [currencyMode, setCurrencyMode] = useState<'original' | 'KRW'>('original')
   const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
+  const [sortMode, setSortMode] = useState<SortMode>(() => {
+    if (typeof window === 'undefined') return 'current'
+    const v = localStorage.getItem(SORT_MODE_KEY)
+    return v === 'value' || v === 'return' ? v : 'current'
+  })
+  const handleSortChange = (m: SortMode) => {
+    setSortMode(m)
+    if (typeof window !== 'undefined') localStorage.setItem(SORT_MODE_KEY, m)
+  }
   const isKrw = currencyMode === 'KRW'
 
   const holdings = useMemo((): Holding[] => {
@@ -215,26 +226,34 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       if (!groups.has(g)) groups.set(g, [])
       groups.get(g)!.push(h)
     }
-    // Sort within groups by pyramiding status: 추매(BUY) → 대기(HOLD) → 동결(FREEZE) → 풀(FULL)
+    // 그룹 내 정렬 — 모드별: current(피라미딩 상태순) / value(평가액순) / return(수익률순)
+    const valKrw = (h: Holding) => h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue
     for (const [, items] of groups) {
-      items.sort((a, b) => {
-        const rank = (h: Holding) => {
-          if (!(h.currentPrice > 0 && h.totalInvested > 0)) return 5
-          const trancheSize = h.currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrwRate
-          const tranche = Math.min(10, Math.max(1, Math.round(h.totalInvested / trancheSize)))
-          const avgReturn = h.pnlPercent / 100
-          const next = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
-          const curr = TRANCHE_TRIGGERS[tranche - 1]
-          if (tranche >= 10) return 3                                  // FULL (풀)
-          if (next !== null && avgReturn >= next) return 0              // BUY (추매)
-          if (curr !== null && avgReturn < curr) return 2               // FREEZE (동결)
-          return 1                                                      // HOLD (대기)
-        }
-        return rank(a) - rank(b) || (b.currency === 'USD' ? b.pnl * usdKrwRate : b.pnl) - (a.currency === 'USD' ? a.pnl * usdKrwRate : a.pnl)
-      })
+      if (sortMode === 'value') {
+        items.sort((a, b) => valKrw(b) - valKrw(a))
+      } else if (sortMode === 'return') {
+        items.sort((a, b) => b.pnlPercent - a.pnlPercent)
+      } else {
+        // current: 추매(BUY) → 대기(HOLD) → 동결(FREEZE) → 풀(FULL), 동순위는 손익순
+        items.sort((a, b) => {
+          const rank = (h: Holding) => {
+            if (!(h.currentPrice > 0 && h.totalInvested > 0)) return 5
+            const trancheSize = h.currency === 'KRW' ? 5_000_000 : 5_000_000 / usdKrwRate
+            const tranche = Math.min(10, Math.max(1, Math.round(h.totalInvested / trancheSize)))
+            const avgReturn = h.pnlPercent / 100
+            const next = tranche < 10 ? TRANCHE_TRIGGERS[tranche] : null
+            const curr = TRANCHE_TRIGGERS[tranche - 1]
+            if (tranche >= 10) return 3                                  // FULL (풀)
+            if (next !== null && avgReturn >= next) return 0              // BUY (추매)
+            if (curr !== null && avgReturn < curr) return 2               // FREEZE (동결)
+            return 1                                                      // HOLD (대기)
+          }
+          return rank(a) - rank(b) || (b.currency === 'USD' ? b.pnl * usdKrwRate : b.pnl) - (a.currency === 'USD' ? a.pnl * usdKrwRate : a.pnl)
+        })
+      }
     }
     return THEME_ORDER.filter(th => groups.has(th)).map(th => ({ theme: th, items: groups.get(th)! }))
-  }, [filteredHoldings, usdKrwRate])
+  }, [filteredHoldings, usdKrwRate, sortMode])
 
   // Portfolio summary
   const summary = useMemo(() => {
@@ -338,6 +357,15 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
               ]}
               value={currencyMode}
               onChange={setCurrencyMode}
+            />
+            <LSegmented
+              options={[
+                { value: 'current', label: '현재' },
+                { value: 'value', label: '평가액' },
+                { value: 'return', label: '수익률' },
+              ]}
+              value={sortMode}
+              onChange={handleSortChange}
             />
           </div>
         } />
