@@ -360,7 +360,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             />
             <LSegmented
               options={[
-                { value: 'current', label: '현재' },
+                { value: 'current', label: '기본' },
                 { value: 'value', label: '평가액' },
                 { value: 'return', label: '수익률' },
               ]}
