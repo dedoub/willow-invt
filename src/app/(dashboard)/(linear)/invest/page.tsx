@@ -14,6 +14,10 @@ import { InvestSkeleton, InvestHoldingsSkeleton } from '@/app/(dashboard)/_compo
 
 const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
 
+// 포트폴리오 벤치마크 (2x 나스닥) — 수익률 추이 차트 오버레이용
+const BENCHMARK_TICKER = 'QLD'
+const BENCHMARK_MARKET = 'US'
+
 export default function InvestPage() {
   const mobile = useIsMobile()
   const [loadPhase, setLoadPhase] = useState(0) // 0=nothing, 1=base, 2=quotes
@@ -45,7 +49,7 @@ export default function InvestPage() {
       if (!tickerMap.has(tr.ticker)) tickerMap.set(tr.ticker, tr.market)
     }
     // Benchmark: QLD (2x Nasdaq) — always fetch its series for the return-trend overlay
-    if (!tickerMap.has('QLD')) tickerMap.set('QLD', 'US')
+    if (!tickerMap.has(BENCHMARK_TICKER)) tickerMap.set(BENCHMARK_TICKER, BENCHMARK_MARKET)
     if (tickerMap.size === 0) return
     const tickers = Array.from(tickerMap.keys())
     const markets = tickers.map(tk => tickerMap.get(tk)!)
@@ -120,7 +124,7 @@ export default function InvestPage() {
           if (!tickerMap.has(ticker)) tickerMap.set(ticker, tr.market)
         }
         // Benchmark quote: QLD current price for the return-trend "today" point
-        if (!tickerMap.has('QLD')) tickerMap.set('QLD', 'US')
+        if (!tickerMap.has(BENCHMARK_TICKER)) tickerMap.set(BENCHMARK_TICKER, BENCHMARK_MARKET)
         // Include research tickers (pass only) for market cap in kanban
         for (const r of researchFull) {
           if (!r.verdict?.startsWith('pass') || r.track === 'ETF') continue
