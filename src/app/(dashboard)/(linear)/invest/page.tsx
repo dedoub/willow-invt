@@ -43,10 +43,15 @@ export default function InvestPage() {
   const handleTotalValueChange = useCallback((v: number) => totalValueRef.current(v), [])
 
   // Load stock history (prices + FX) after trades are fetched
-  const loadStockHistory = useCallback(async (trades: StockTradeFull[]) => {
+  const loadStockHistory = useCallback(async (trades: StockTradeFull[], extra?: { ticker: string; market?: string }[]) => {
     const tickerMap = new Map<string, string>()
     for (const tr of trades) {
       if (!tickerMap.has(tr.ticker)) tickerMap.set(tr.ticker, tr.market)
+    }
+    // 워치리스트/리서치 종목도 포함 — 미보유 종목의 20일 고가 돌파 표시용 (DB-우선이라 부하 낮음)
+    for (const e of extra || []) {
+      const key = e.ticker.replace('.KS', '')
+      if (!tickerMap.has(key)) tickerMap.set(key, e.market || 'US')
     }
     // Benchmark: QLD (2x Nasdaq) — always fetch its series for the return-trend overlay
     if (!tickerMap.has(BENCHMARK_TICKER)) tickerMap.set(BENCHMARK_TICKER, BENCHMARK_MARKET)
@@ -79,7 +84,11 @@ export default function InvestPage() {
         fetch('/api/willow-mgmt/stock-research'),
       ])
 
-      if (watchlistRes.ok) setWatchlistData(await watchlistRes.json())
+      let watchlistFull: { portfolio: WatchlistItem[]; watchlist: WatchlistItem[]; benchmark: WatchlistItem[] } | null = null
+      if (watchlistRes.ok) {
+        watchlistFull = await watchlistRes.json()
+        setWatchlistData(watchlistFull)
+      }
 
       let tradesFull: StockTradeFull[] = []
       if (tradesRes.ok) {
@@ -131,6 +140,12 @@ export default function InvestPage() {
           const ticker = r.ticker.replace('.KS', '')
           if (!tickerMap.has(ticker)) tickerMap.set(ticker, r.market || 'US')
         }
+        // 워치리스트 종목도 현재가 포함 — 돌파 판정에 필요. market은 ticker로 추론(.KS/6자리=KR).
+        for (const w of [...(watchlistFull?.portfolio || []), ...(watchlistFull?.watchlist || [])]) {
+          const isKR = w.ticker.endsWith('.KS') || /^\d{6}$/.test(w.ticker)
+          const ticker = w.ticker.replace('.KS', '')
+          if (!tickerMap.has(ticker)) tickerMap.set(ticker, isKR ? 'KR' : 'US')
+        }
         const tickers = Array.from(tickerMap.keys())
         const markets = tickers.map(tk => tickerMap.get(tk)!)
 
@@ -169,7 +184,13 @@ export default function InvestPage() {
           if (histData.rates) setFxHistory(histData.rates)
         }
 
-        loadStockHistory(tradesFull)
+        // 워치리스트 전체 + 리서치(pass만) 종목도 시계열 로드 → 미보유 종목 돌파 표시
+        const inferMarket = (tk: string) => (tk.endsWith('.KS') || /^\d{6}$/.test(tk)) ? 'KR' : 'US'
+        const extraForHistory: { ticker: string; market?: string }[] = [
+          ...[...(watchlistFull?.portfolio || []), ...(watchlistFull?.watchlist || [])].map(w => ({ ticker: w.ticker, market: inferMarket(w.ticker) })),
+          ...researchFull.filter(r => r.verdict?.startsWith('pass') && r.track !== 'ETF').map(r => ({ ticker: r.ticker, market: r.market })),
+        ]
+        loadStockHistory(tradesFull, extraForHistory)
       }
     } finally {
       if (!bg) setLoadPhase(2)

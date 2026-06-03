@@ -477,6 +477,8 @@ export function PortfolioKanban({
         return1m: sig?.return1m ?? null,
         pinned: item.pinned, monitor,
         marketCapLabel,
+        breakout: (breakoutMap[item.ticker] ?? breakoutMap[item.ticker.replace('.KS', '')])?.breakout ?? false,
+        breakoutGap: (breakoutMap[item.ticker] ?? breakoutMap[item.ticker.replace('.KS', '')])?.gapPct,
         structuralThesis: thInfo?.thesis, valueChainPosition: thInfo?.vcp,
       }
     }).sort((a, b) => {
@@ -485,7 +487,7 @@ export function PortfolioKanban({
       if (sortBy1m) return (b.return1m ?? -999) - (a.return1m ?? -999)
       return (b.momentumScore ?? -1) - (a.momentumScore ?? -1)
     })
-  }, [watchlistData, signalMap, stockQuotes, sortBy1m])
+  }, [watchlistData, signalMap, stockQuotes, sortBy1m, breakoutMap])
 
   /* ── Research column ── */
   const researchCards = useMemo((): StockCardData[] => {
@@ -531,6 +533,8 @@ export function PortfolioKanban({
         verdict: r.verdict, compositeScore: r.composite_score,
         sourceType: r.source_type, researchId: r.id,
         marketCapLabel,
+        breakout: (breakoutMap[r.ticker] ?? breakoutMap[r.ticker.replace('.KS', '')])?.breakout ?? false,
+        breakoutGap: (breakoutMap[r.ticker] ?? breakoutMap[r.ticker.replace('.KS', '')])?.gapPct,
         structuralThesis: r.structural_thesis,
         valueChainPosition: r.value_chain_position,
       })
@@ -541,7 +545,7 @@ export function PortfolioKanban({
       cards.sort((a, b) => -(a.compositeScore ?? 0) + (b.compositeScore ?? 0))
     }
     return cards
-  }, [stockResearch, stockQuotes, watchlistTickers, signalMap, sortBy1m])
+  }, [stockResearch, stockQuotes, watchlistTickers, signalMap, sortBy1m, breakoutMap])
 
   /* ── Render ── */
   const colStyle = (group: string): React.CSSProperties => ({
