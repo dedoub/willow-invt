@@ -1,0 +1,1496 @@
+[2026-03-19 17:58:14] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (0) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[reddit-buzz-collect] [2026-03-19T08:58:15.392Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-03-19T08:58:15.558Z] 📊 보유 종목: 15개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS)
+[reddit-buzz-collect] [2026-03-19T08:58:20.656Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-03-19T08:58:25.448Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-03-19T08:58:30.250Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-03-19T08:58:35.379Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-03-19T08:58:35.379Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-03-19T08:58:35.379Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-03-19T08:58:35.425Z] 🎯 361개 티커 추출
+[reddit-buzz-collect] [2026-03-19T08:58:35.425Z] 📊 유의미한 티커: 172개
+[reddit-buzz-collect] [2026-03-19T08:58:52.835Z] ✅ 172/172건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-03-19T08:58:52.836Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z]   🟢 SPY: 16멘션 | ↑11,767 | 💬2,166
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z]   🔴 SPX: 14멘션 | ↑1,575 | 💬592
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z]   🟢 NVDA: 13멘션 | ↑2,537 | 💬1,207
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z]   🟡 MU: 8멘션 | ↑1,161 | 💬946
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z]   🟢 NBIS: 7멘션 | ↑1,738 | 💬383
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z]   🟢 MSFT: 7멘션 | ↑573 | 💬294
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z]   🔴 USO: 6멘션 | ↑569 | 💬304
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z]   🟢 BTC: 4멘션 | ↑1,808 | 💬318
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z]   🟢 VOO: 5멘션 | ↑220 | 💬324
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z]   🟡 SNDK: 4멘션 | ↑638 | 💬739
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, CIEN, 012450.KS, BWXT, IREN, 005380.KS, 006800.KS
+[reddit-buzz-collect] [2026-03-19T08:58:52.870Z] 
+🏁 레딧 버즈 수집 완료
+[2026-03-19 17:58:52] 완료 (exit: 0)
+
+[2026-04-17 20:11:27] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (0) from .env.local -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[reddit-buzz-collect] [2026-04-17T11:11:28.703Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-17T11:11:28.880Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-17T11:11:34.401Z]   r/wallstreetbets: hot 100 + rising 26
+[reddit-buzz-collect] [2026-04-17T11:11:39.544Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-17T11:11:44.475Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-17T11:11:49.293Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-17T11:11:49.293Z] 📝 총 501개 포스트 수집
+[reddit-buzz-collect] [2026-04-17T11:11:49.294Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-17T11:11:49.352Z] 🎯 383개 티커 추출
+[reddit-buzz-collect] [2026-04-17T11:11:49.353Z] 📊 유의미한 티커: 151개
+[reddit-buzz-collect] [2026-04-17T11:12:05.500Z] ✅ 151/151건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-17T11:12:05.501Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-17T11:12:05.546Z]   🟢 SPY: 26멘션 | ↑10,572 | 💬2,409
+[reddit-buzz-collect] [2026-04-17T11:12:05.546Z]   🟢 MSFT: 11멘션 | ↑801 | 💬399
+[reddit-buzz-collect] [2026-04-17T11:12:05.546Z]   🟡 QQQ: 9멘션 | ↑2,813 | 💬1,020
+[reddit-buzz-collect] [2026-04-17T11:12:05.546Z]   🟢 AMD: 7멘션 | ↑6,883 | 💬1,028
+[reddit-buzz-collect] [2026-04-17T11:12:05.546Z]   🟢 NVDA: 8멘션 | ↑1,249 | 💬724
+[reddit-buzz-collect] [2026-04-17T11:12:05.546Z]   🔴 VOO: 7멘션 | ↑793 | 💬784
+[reddit-buzz-collect] [2026-04-17T11:12:05.547Z]   🟢 SPX: 12멘션 | ↑33 | 💬151
+[reddit-buzz-collect] [2026-04-17T11:12:05.547Z]   🟢 TSLA: 5멘션 | ↑1,051 | 💬513
+[reddit-buzz-collect] [2026-04-17T11:12:05.547Z]   🟢 HOOD: 5멘션 | ↑689 | 💬267
+[reddit-buzz-collect] [2026-04-17T11:12:05.547Z]   🟢 IEA: 4멘션 | ↑3,260 | 💬1,301
+[reddit-buzz-collect] [2026-04-17T11:12:05.547Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, BWXT, IREN, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-17T11:12:05.547Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-17 20:12:05] 완료 (exit: 0)
+
+[2026-04-18 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[reddit-buzz-collect] [2026-04-18T07:00:04.597Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-18T07:00:04.783Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-18T07:00:09.807Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-18T07:00:14.723Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-18T07:00:19.995Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-18T07:00:25.722Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-18T07:00:25.722Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-18T07:00:25.723Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-18T07:00:25.777Z] 🎯 376개 티커 추출
+[reddit-buzz-collect] [2026-04-18T07:00:25.777Z] 📊 유의미한 티커: 119개
+[reddit-buzz-collect] [2026-04-18T07:00:38.646Z] ✅ 119/119건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-18T07:00:38.647Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-18T07:00:38.696Z]   🟢 SPY: 26멘션 | ↑10,148 | 💬2,217
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z]   🟢 QQQ: 12멘션 | ↑3,181 | 💬1,190
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z]   🟢 NVDA: 11멘션 | ↑1,429 | 💬824
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z]   🟡 MSFT: 9멘션 | ↑438 | 💬254
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z]   🔴 AMD: 6멘션 | ↑8,684 | 💬1,081
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z]   🟢 SPX: 11멘션 | ↑49 | 💬85
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z]   🟢 AMZN: 5멘션 | ↑723 | 💬381
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z]   🟢 IEA: 4멘션 | ↑3,339 | 💬1,364
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z]   🟢 TSM: 5멘션 | ↑628 | 💬591
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z]   🟢 NFLX: 5멘션 | ↑594 | 💬271
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-18T07:00:38.697Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-18 16:00:38] 완료 (exit: 0)
+
+[2026-04-19 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[reddit-buzz-collect] [2026-04-19T07:00:04.588Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-19T07:00:05.041Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-19T07:00:11.884Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-19T07:00:19.945Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-19T07:00:28.729Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-19T07:00:35.102Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-19T07:00:35.102Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-19T07:00:35.104Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-19T07:00:35.160Z] 🎯 440개 티커 추출
+[reddit-buzz-collect] [2026-04-19T07:00:35.160Z] 📊 유의미한 티커: 114개
+[reddit-buzz-collect] [2026-04-19T07:00:48.048Z] ✅ 114/114건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-19T07:00:48.049Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-19T07:00:48.113Z]   🟢 SPY: 25멘션 | ↑5,866 | 💬1,770
+[reddit-buzz-collect] [2026-04-19T07:00:48.113Z]   🔴 QQQ: 9멘션 | ↑3,210 | 💬1,046
+[reddit-buzz-collect] [2026-04-19T07:00:48.113Z]   🟢 MSFT: 11멘션 | ↑528 | 💬398
+[reddit-buzz-collect] [2026-04-19T07:00:48.113Z]   🟢 NVDA: 8멘션 | ↑622 | 💬688
+[reddit-buzz-collect] [2026-04-19T07:00:48.113Z]   🟢 SPX: 10멘션 | ↑61 | 💬87
+[reddit-buzz-collect] [2026-04-19T07:00:48.114Z]   🟢 NFLX: 6멘션 | ↑645 | 💬302
+[reddit-buzz-collect] [2026-04-19T07:00:48.114Z]   🟢 AMD: 4멘션 | ↑8,996 | 💬1,010
+[reddit-buzz-collect] [2026-04-19T07:00:48.114Z]   🟢 TSM: 5멘션 | ↑623 | 💬595
+[reddit-buzz-collect] [2026-04-19T07:00:48.114Z]   🟢 IWM: 5멘션 | ↑376 | 💬495
+[reddit-buzz-collect] [2026-04-19T07:00:48.114Z]   🟡 NBIS: 5멘션 | ↑232 | 💬169
+[reddit-buzz-collect] [2026-04-19T07:00:48.114Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-19T07:00:48.114Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-19 16:00:48] 완료 (exit: 0)
+
+[2026-04-20 16:00:04] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[reddit-buzz-collect] [2026-04-20T07:00:06.241Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-20T07:00:06.632Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-20T07:00:13.623Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-20T07:00:20.472Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-20T07:00:27.853Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-20T07:00:34.667Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-20T07:00:34.667Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-20T07:00:34.669Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-20T07:00:34.717Z] 🎯 441개 티커 추출
+[reddit-buzz-collect] [2026-04-20T07:00:34.718Z] 📊 유의미한 티커: 117개
+[reddit-buzz-collect] [2026-04-20T07:00:48.269Z] ✅ 117/117건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-20T07:00:48.270Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z]   🟢 SPY: 25멘션 | ↑6,299 | 💬2,115
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z]   🟡 QQQ: 12멘션 | ↑3,624 | 💬1,147
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z]   🟢 NVDA: 9멘션 | ↑648 | 💬699
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z]   🟢 ASTS: 6멘션 | ↑3,560 | 💬612
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z]   🟢 MSFT: 8멘션 | ↑318 | 💬293
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z]   🟢 AMD: 5멘션 | ↑9,257 | 💬1,022
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z]   🟢 SPX: 10멘션 | ↑68 | 💬100
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z]   🔴 NFLX: 6멘션 | ↑453 | 💬244
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z]   🟡 NBIS: 6멘션 | ↑382 | 💬204
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z]   🟢 RKLB [보유]: 4멘션 | ↑2,821 | 💬256
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-20T07:00:48.314Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-20 16:00:48] 완료 (exit: 0)
+
+[2026-04-21 16:00:01] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[reddit-buzz-collect] [2026-04-21T07:00:03.153Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-21T07:00:03.922Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-21T07:00:10.890Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-21T07:00:16.654Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-21T07:00:22.463Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-21T07:00:29.211Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-21T07:00:29.211Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-21T07:00:29.213Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-21T07:00:29.270Z] 🎯 481개 티커 추출
+[reddit-buzz-collect] [2026-04-21T07:00:29.271Z] 📊 유의미한 티커: 133개
+[reddit-buzz-collect] [2026-04-21T07:00:44.471Z] ✅ 133/133건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-21T07:00:44.472Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z]   🟢 SPY: 21멘션 | ↑4,795 | 💬1,772
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z]   🔴 QQQ: 12멘션 | ↑1,911 | 💬793
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z]   🟢 ASTS: 7멘션 | ↑8,352 | 💬904
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z]   🟢 AMZN: 8멘션 | ↑1,241 | 💬569
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z]   🟢 NVDA: 8멘션 | ↑698 | 💬663
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z]   🟢 MSFT: 9멘션 | ↑292 | 💬355
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z]   🟢 AMD: 6멘션 | ↑1,944 | 💬581
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z]   🟢 RKLB [보유]: 5멘션 | ↑7,557 | 💬429
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z]   🔴 NFLX: 6멘션 | ↑631 | 💬280
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z]   🟢 PDT: 6멘션 | ↑422 | 💬239
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-21T07:00:44.534Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-21 16:00:44] 완료 (exit: 0)
+
+[2026-04-22 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (26) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[reddit-buzz-collect] [2026-04-22T07:00:04.358Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-22T07:00:04.910Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-22T07:00:11.510Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-22T07:00:19.397Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-22T07:00:26.086Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-22T07:00:32.430Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-22T07:00:32.430Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-22T07:00:32.431Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-22T07:00:32.496Z] 🎯 469개 티커 추출
+[reddit-buzz-collect] [2026-04-22T07:00:32.502Z] 📊 유의미한 티커: 131개
+[reddit-buzz-collect] [2026-04-22T07:00:46.786Z] ✅ 131/131건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-22T07:00:46.787Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-22T07:00:46.841Z]   🟢 SPY: 19멘션 | ↑5,569 | 💬1,415
+[reddit-buzz-collect] [2026-04-22T07:00:46.841Z]   🔴 QQQ: 13멘션 | ↑1,231 | 💬324
+[reddit-buzz-collect] [2026-04-22T07:00:46.841Z]   🟢 NVDA: 10멘션 | ↑952 | 💬584
+[reddit-buzz-collect] [2026-04-22T07:00:46.841Z]   🔴 AMD: 9멘션 | ↑680 | 💬549
+[reddit-buzz-collect] [2026-04-22T07:00:46.842Z]   🔴 AMZN: 8멘션 | ↑1,253 | 💬420
+[reddit-buzz-collect] [2026-04-22T07:00:46.842Z]   🟢 SPX: 11멘션 | ↑105 | 💬182
+[reddit-buzz-collect] [2026-04-22T07:00:46.842Z]   🟡 MSFT: 8멘션 | ↑287 | 💬344
+[reddit-buzz-collect] [2026-04-22T07:00:46.842Z]   🟢 VOO: 6멘션 | ↑1,859 | 💬428
+[reddit-buzz-collect] [2026-04-22T07:00:46.842Z]   🔴 NFLX: 6멘션 | ↑650 | 💬290
+[reddit-buzz-collect] [2026-04-22T07:00:46.842Z]   🟡 EU: 6멘션 | ↑585 | 💬338
+[reddit-buzz-collect] [2026-04-22T07:00:46.842Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-22T07:00:46.842Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-22 16:00:46] 완료 (exit: 0)
+
+[2026-04-23 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (26) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[reddit-buzz-collect] [2026-04-23T07:00:04.863Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-23T07:00:05.726Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-23T07:00:12.248Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-23T07:00:17.544Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-23T07:00:23.216Z]   r/investing: hot 100 + rising 26
+[reddit-buzz-collect] [2026-04-23T07:00:28.624Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-23T07:00:28.624Z] 📝 총 501개 포스트 수집
+[reddit-buzz-collect] [2026-04-23T07:00:28.626Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-23T07:00:28.692Z] 🎯 484개 티커 추출
+[reddit-buzz-collect] [2026-04-23T07:00:28.693Z] 📊 유의미한 티커: 156개
+[reddit-buzz-collect] [2026-04-23T07:00:48.957Z] ✅ 156/156건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-23T07:00:48.958Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z]   🟢 SPY: 17멘션 | ↑2,991 | 💬544
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z]   🟢 NVDA: 13멘션 | ↑3,092 | 💬906
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z]   🟢 CAR: 15멘션 | ↑510 | 💬669
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z]   🟢 MSFT: 13멘션 | ↑1,274 | 💬906
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z]   🔴 VOO: 10멘션 | ↑2,830 | 💬675
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z]   🟢 QQQ: 11멘션 | ↑752 | 💬352
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z]   🟡 AMZN: 9멘션 | ↑1,365 | 💬467
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z]   🔴 AMD: 9멘션 | ↑736 | 💬577
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z]   🟢 SPX: 11멘션 | ↑172 | 💬206
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z]   🟢 TSLA: 6멘션 | ↑467 | 💬322
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, QBTS, 000660.KS, 005930.KS, BE, VRT, OKLO, 012450.KS, BWXT, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-23T07:00:49.019Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-23 16:00:49] 완료 (exit: 0)
+
+[2026-04-24 16:00:05] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (26) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[reddit-buzz-collect] [2026-04-24T07:00:07.472Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-24T07:00:08.433Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-24T07:00:13.982Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-24T07:00:22.006Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-24T07:00:27.088Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-24T07:00:32.651Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-24T07:00:32.651Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-24T07:00:32.652Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-24T07:00:32.710Z] 🎯 423개 티커 추출
+[reddit-buzz-collect] [2026-04-24T07:00:32.711Z] 📊 유의미한 티커: 132개
+[reddit-buzz-collect] [2026-04-24T07:00:47.176Z] ✅ 132/132건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-24T07:00:47.177Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-24T07:00:47.245Z]   🟢 CAR: 25멘션 | ↑2,374 | 💬849
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z]   🟢 SPY: 19멘션 | ↑5,170 | 💬761
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z]   🟢 NVDA: 12멘션 | ↑3,346 | 💬1,004
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z]   🟢 QQQ: 12멘션 | ↑1,010 | 💬397
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z]   🟢 MSFT: 10멘션 | ↑1,580 | 💬632
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z]   🟢 INTC: 8멘션 | ↑1,600 | 💬191
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z]   🔴 VOO: 7멘션 | ↑3,153 | 💬672
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z]   🟢 AMD: 8멘션 | ↑1,096 | 💬661
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z]   🟢 SPX: 11멘션 | ↑142 | 💬207
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z]   🟢 MU: 7멘션 | ↑1,398 | 💬361
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, QBTS, 000660.KS, 005930.KS, BE, VRT, 012450.KS, BWXT, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-24T07:00:47.246Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-24 16:00:47] 완료 (exit: 0)
+
+[2026-04-25 16:00:05] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (28) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[reddit-buzz-collect] [2026-04-25T07:00:08.063Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-25T07:00:08.919Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-25T07:00:14.457Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-25T07:00:20.182Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-25T07:00:25.478Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-25T07:00:30.771Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-25T07:00:30.775Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-25T07:00:30.956Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-25T07:00:31.084Z] 🎯 408개 티커 추출
+[reddit-buzz-collect] [2026-04-25T07:00:31.084Z] 📊 유의미한 티커: 134개
+[reddit-buzz-collect] [2026-04-25T07:00:44.751Z] ✅ 134/134건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-25T07:00:44.751Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z]   🔴 SPY: 22멘션 | ↑5,708 | 💬1,074
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z]   🟢 NVDA: 18멘션 | ↑3,779 | 💬1,664
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z]   🟢 AMD: 14멘션 | ↑15,519 | 💬1,943
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z]   🟢 CAR: 15멘션 | ↑2,126 | 💬655
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z]   🟢 MSFT: 12멘션 | ↑1,742 | 💬776
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z]   🟢 INTC: 10멘션 | ↑2,867 | 💬339
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z]   🔴 QQQ: 11멘션 | ↑560 | 💬408
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z]   🔴 VOO: 7멘션 | ↑3,311 | 💬710
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z]   🔴 AMZN: 8멘션 | ↑898 | 💬327
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z]   🔴 SPX: 10멘션 | ↑198 | 💬216
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, 012450.KS, BWXT, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-25T07:00:44.808Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-25 16:00:44] 완료 (exit: 0)
+
+[2026-04-26 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (28) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[reddit-buzz-collect] [2026-04-26T07:00:05.089Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-26T07:00:05.984Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-26T07:00:12.809Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-26T07:00:19.516Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-26T07:00:25.475Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-26T07:00:32.185Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-26T07:00:32.185Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-26T07:00:32.187Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-26T07:00:32.250Z] 🎯 431개 티커 추출
+[reddit-buzz-collect] [2026-04-26T07:00:32.251Z] 📊 유의미한 티커: 159개
+[reddit-buzz-collect] [2026-04-26T07:00:49.343Z] ✅ 159/159건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-26T07:00:49.345Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-26T07:00:49.410Z]   🔴 SPY: 21멘션 | ↑7,515 | 💬1,178
+[reddit-buzz-collect] [2026-04-26T07:00:49.410Z]   🟢 AMD: 15멘션 | ↑23,408 | 💬2,527
+[reddit-buzz-collect] [2026-04-26T07:00:49.410Z]   🟢 NVDA: 17멘션 | ↑6,094 | 💬1,964
+[reddit-buzz-collect] [2026-04-26T07:00:49.410Z]   🟢 INTC: 12멘션 | ↑3,192 | 💬456
+[reddit-buzz-collect] [2026-04-26T07:00:49.410Z]   🟢 MSFT: 12멘션 | ↑2,889 | 💬908
+[reddit-buzz-collect] [2026-04-26T07:00:49.410Z]   🟡 QQQ: 13멘션 | ↑756 | 💬450
+[reddit-buzz-collect] [2026-04-26T07:00:49.411Z]   🔴 CAR: 12멘션 | ↑1,204 | 💬499
+[reddit-buzz-collect] [2026-04-26T07:00:49.411Z]   🔴 VOO: 8멘션 | ↑3,408 | 💬740
+[reddit-buzz-collect] [2026-04-26T07:00:49.411Z]   🟢 AMZN: 7멘션 | ↑1,915 | 💬393
+[reddit-buzz-collect] [2026-04-26T07:00:49.411Z]   🟢 MU: 7멘션 | ↑1,597 | 💬767
+[reddit-buzz-collect] [2026-04-26T07:00:49.411Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, 012450.KS, BWXT, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-26T07:00:49.411Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-26 16:00:49] 완료 (exit: 0)
+
+[2026-04-27 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (28) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[reddit-buzz-collect] [2026-04-27T07:00:04.087Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-27T07:00:04.931Z] 📊 보유 종목: 16개 (064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, BWXT, IREN, 005380.KS, 006800.KS, MRVL)
+[reddit-buzz-collect] [2026-04-27T07:00:10.361Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-27T07:00:15.961Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-27T07:00:23.333Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-27T07:00:28.567Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-27T07:00:28.567Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-27T07:00:28.569Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-27T07:00:28.633Z] 🎯 425개 티커 추출
+[reddit-buzz-collect] [2026-04-27T07:00:28.633Z] 📊 유의미한 티커: 170개
+[reddit-buzz-collect] [2026-04-27T07:00:47.026Z] ✅ 170/170건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-27T07:00:47.027Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-27T07:00:47.099Z]   🟢 AMD: 19멘션 | ↑25,640 | 💬2,619
+[reddit-buzz-collect] [2026-04-27T07:00:47.099Z]   🔴 SPY: 21멘션 | ↑8,067 | 💬1,258
+[reddit-buzz-collect] [2026-04-27T07:00:47.099Z]   🟢 NVDA: 17멘션 | ↑6,541 | 💬1,825
+[reddit-buzz-collect] [2026-04-27T07:00:47.099Z]   🟢 INTC: 13멘션 | ↑3,585 | 💬623
+[reddit-buzz-collect] [2026-04-27T07:00:47.099Z]   🟢 MSFT: 12멘션 | ↑2,896 | 💬745
+[reddit-buzz-collect] [2026-04-27T07:00:47.099Z]   🔴 CAR: 12멘션 | ↑1,246 | 💬514
+[reddit-buzz-collect] [2026-04-27T07:00:47.099Z]   🟡 QQQ: 12멘션 | ↑559 | 💬342
+[reddit-buzz-collect] [2026-04-27T07:00:47.100Z]   🟢 AMZN: 7멘션 | ↑2,169 | 💬429
+[reddit-buzz-collect] [2026-04-27T07:00:47.100Z]   🟢 MU: 7멘션 | ↑1,717 | 💬808
+[reddit-buzz-collect] [2026-04-27T07:00:47.100Z]   🔴 SPX: 9멘션 | ↑210 | 💬171
+[reddit-buzz-collect] [2026-04-27T07:00:47.100Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, QBTS, 000660.KS, 005930.KS, BE, VRT, CIEN, 012450.KS, BWXT, 005380.KS, 006800.KS, MRVL
+[reddit-buzz-collect] [2026-04-27T07:00:47.100Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-27 16:00:47] 완료 (exit: 0)
+
+[2026-04-28 16:00:03] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[reddit-buzz-collect] [2026-04-28T07:00:06.130Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-28T07:00:06.308Z] 📊 보유 종목: 191개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT)
+[reddit-buzz-collect] [2026-04-28T07:00:11.530Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-28T07:00:16.801Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-28T07:00:22.104Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-28T07:00:27.145Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-28T07:00:27.145Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-28T07:00:27.146Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-28T07:00:27.209Z] 🎯 416개 티커 추출
+[reddit-buzz-collect] [2026-04-28T07:00:27.209Z] 📊 유의미한 티커: 165개
+[reddit-buzz-collect] [2026-04-28T07:00:43.671Z] ✅ 165/165건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-28T07:00:43.672Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-28T07:00:43.730Z]   🔴 SPY: 22멘션 | ↑8,348 | 💬1,323
+[reddit-buzz-collect] [2026-04-28T07:00:43.730Z]   🟢 NVDA [보유]: 22멘션 | ↑7,504 | 💬2,239
+[reddit-buzz-collect] [2026-04-28T07:00:43.731Z]   🟢 AMD [보유]: 16멘션 | ↑26,347 | 💬2,699
+[reddit-buzz-collect] [2026-04-28T07:00:43.731Z]   🟢 MSFT: 14멘션 | ↑3,090 | 💬886
+[reddit-buzz-collect] [2026-04-28T07:00:43.731Z]   🟡 QQQ: 13멘션 | ↑669 | 💬372
+[reddit-buzz-collect] [2026-04-28T07:00:43.731Z]   🟢 POET [보유]: 9멘션 | ↑7,158 | 💬1,905
+[reddit-buzz-collect] [2026-04-28T07:00:43.731Z]   🟡 MU [보유]: 8멘션 | ↑1,948 | 💬877
+[reddit-buzz-collect] [2026-04-28T07:00:43.731Z]   🔴 CAR: 10멘션 | ↑304 | 💬364
+[reddit-buzz-collect] [2026-04-28T07:00:43.731Z]   🟢 INTC: 8멘션 | ↑1,230 | 💬457
+[reddit-buzz-collect] [2026-04-28T07:00:43.731Z]   🟢 AMZN [보유]: 6멘션 | ↑2,226 | 💬461
+[reddit-buzz-collect] [2026-04-28T07:00:43.731Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, 012450.KS, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, TSM, EQIX, DLR, NEE, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT
+[reddit-buzz-collect] [2026-04-28T07:00:43.731Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-28 16:00:43] 완료 (exit: 0)
+
+[2026-04-29 16:00:05] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[reddit-buzz-collect] [2026-04-29T07:00:06.966Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-29T07:00:07.464Z] 📊 보유 종목: 192개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG)
+[reddit-buzz-collect] [2026-04-29T07:00:12.729Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-29T07:00:17.993Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-29T07:00:23.186Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-29T07:00:28.857Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-29T07:00:28.857Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-04-29T07:00:28.859Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-29T07:00:28.926Z] 🎯 394개 티커 추출
+[reddit-buzz-collect] [2026-04-29T07:00:28.926Z] 📊 유의미한 티커: 161개
+[reddit-buzz-collect] [2026-04-29T07:00:46.634Z] ✅ 161/161건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-29T07:00:46.635Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-29T07:00:46.693Z]   🟢 NVDA [보유]: 25멘션 | ↑7,763 | 💬2,394
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z]   🔴 AMD [보유]: 17멘션 | ↑26,608 | 💬2,709
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z]   🔴 SPY: 20멘션 | ↑3,565 | 💬838
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z]   🔴 QQQ: 15멘션 | ↑1,114 | 💬477
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z]   🟢 MSFT: 12멘션 | ↑3,501 | 💬880
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z]   🟢 POET [보유]: 9멘션 | ↑8,200 | 💬2,000
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z]   🔴 MU [보유]: 9멘션 | ↑2,041 | 💬921
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z]   🟢 INTC: 7멘션 | ↑1,146 | 💬444
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z]   🔴 CAR: 8멘션 | ↑297 | 💬364
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z]   🟢 SNDK: 6멘션 | ↑1,546 | 💬644
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, IREN, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, TSM, EQIX, DLR, NEE, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG
+[reddit-buzz-collect] [2026-04-29T07:00:46.694Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-29 16:00:46] 완료 (exit: 0)
+
+[2026-04-30 16:00:05] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[reddit-buzz-collect] [2026-04-30T07:00:08.022Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-04-30T07:00:08.527Z] 📊 보유 종목: 193개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX)
+[reddit-buzz-collect] [2026-04-30T07:00:15.916Z]   r/wallstreetbets: hot 100 + rising 27
+[reddit-buzz-collect] [2026-04-30T07:00:23.457Z]   r/stocks: hot 100 + rising 26
+[reddit-buzz-collect] [2026-04-30T07:00:31.841Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-30T07:00:40.009Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-04-30T07:00:40.010Z] 📝 총 503개 포스트 수집
+[reddit-buzz-collect] [2026-04-30T07:00:40.011Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-04-30T07:00:40.070Z] 🎯 577개 티커 추출
+[reddit-buzz-collect] [2026-04-30T07:00:40.070Z] 📊 유의미한 티커: 140개
+[reddit-buzz-collect] [2026-04-30T07:00:55.323Z] ✅ 140/140건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-04-30T07:00:55.324Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-04-30T07:00:55.383Z]   🟢 NVDA [보유]: 21멘션 | ↑1,440 | 💬905
+[reddit-buzz-collect] [2026-04-30T07:00:55.383Z]   🟢 MSFT: 13멘션 | ↑4,283 | 💬850
+[reddit-buzz-collect] [2026-04-30T07:00:55.383Z]   🔴 QQQ: 16멘션 | ↑876 | 💬429
+[reddit-buzz-collect] [2026-04-30T07:00:55.383Z]   🔴 SPY: 18멘션 | ↑347 | 💬379
+[reddit-buzz-collect] [2026-04-30T07:00:55.384Z]   🔴 AMD [보유]: 11멘션 | ↑1,502 | 💬587
+[reddit-buzz-collect] [2026-04-30T07:00:55.384Z]   🟢 MU [보유]: 10멘션 | ↑781 | 💬375
+[reddit-buzz-collect] [2026-04-30T07:00:55.384Z]   🟢 GOOGL [보유]: 8멘션 | ↑1,985 | 💬484
+[reddit-buzz-collect] [2026-04-30T07:00:55.384Z]   🟢 AMZN [보유]: 8멘션 | ↑766 | 💬180
+[reddit-buzz-collect] [2026-04-30T07:00:55.384Z]   🟢 FOMC: 5멘션 | ↑18,555 | 💬961
+[reddit-buzz-collect] [2026-04-30T07:00:55.384Z]   🟢 META: 7멘션 | ↑419 | 💬374
+[reddit-buzz-collect] [2026-04-30T07:00:55.384Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, IREN, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX
+[reddit-buzz-collect] [2026-04-30T07:00:55.384Z] 
+🏁 레딧 버즈 수집 완료
+[2026-04-30 16:00:55] 완료 (exit: 0)
+
+[2026-05-01 16:00:03] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[reddit-buzz-collect] [2026-05-01T07:00:05.488Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-01T07:00:06.149Z] 📊 보유 종목: 193개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX)
+[reddit-buzz-collect] [2026-05-01T07:00:12.652Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-01T07:00:22.583Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-01T07:00:28.353Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-01T07:00:35.382Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-01T07:00:35.382Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-01T07:00:35.383Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-01T07:00:35.446Z] 🎯 602개 티커 추출
+[reddit-buzz-collect] [2026-05-01T07:00:35.446Z] 📊 유의미한 티커: 318개
+[reddit-buzz-collect] [2026-05-01T07:01:07.384Z] ✅ 318/318건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-01T07:01:07.385Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-01T07:01:07.443Z]   🟢 NVDA [보유]: 21멘션 | ↑2,684 | 💬1,193
+[reddit-buzz-collect] [2026-05-01T07:01:07.443Z]   🟢 MSFT: 13멘션 | ↑7,235 | 💬1,098
+[reddit-buzz-collect] [2026-05-01T07:01:07.443Z]   🔴 SPY: 16멘션 | ↑488 | 💬371
+[reddit-buzz-collect] [2026-05-01T07:01:07.443Z]   🟢 GOOGL [보유]: 13멘션 | ↑1,315 | 💬380
+[reddit-buzz-collect] [2026-05-01T07:01:07.443Z]   🟢 META: 11멘션 | ↑1,990 | 💬884
+[reddit-buzz-collect] [2026-05-01T07:01:07.443Z]   🟢 MU [보유]: 11멘션 | ↑942 | 💬432
+[reddit-buzz-collect] [2026-05-01T07:01:07.443Z]   🟢 GOOG: 9멘션 | ↑693 | 💬381
+[reddit-buzz-collect] [2026-05-01T07:01:07.443Z]   🔴 QQQ: 10멘션 | ↑147 | 💬208
+[reddit-buzz-collect] [2026-05-01T07:01:07.443Z]   🔴 AMD [보유]: 8멘션 | ↑387 | 💬250
+[reddit-buzz-collect] [2026-05-01T07:01:07.443Z]   🟢 AMZN [보유]: 7멘션 | ↑542 | 💬168
+[reddit-buzz-collect] [2026-05-01T07:01:07.444Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX
+[reddit-buzz-collect] [2026-05-01T07:01:07.444Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-01 16:01:07] 완료 (exit: 0)
+
+[2026-05-02 16:00:04] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🛡️ auth for agents: https://vestauth.com
+[reddit-buzz-collect] [2026-05-02T07:00:06.216Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-02T07:00:06.420Z] 📊 보유 종목: 194개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO)
+[reddit-buzz-collect] [2026-05-02T07:00:11.937Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-02T07:00:17.330Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-02T07:00:23.168Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-02T07:00:28.390Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-02T07:00:28.391Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-02T07:00:28.392Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-02T07:00:28.450Z] 🎯 576개 티커 추출
+[reddit-buzz-collect] [2026-05-02T07:00:28.450Z] 📊 유의미한 티커: 314개
+[reddit-buzz-collect] [2026-05-02T07:00:59.940Z] ✅ 314/314건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-02T07:00:59.941Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z]   🟢 NVDA [보유]: 21멘션 | ↑2,823 | 💬1,150
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z]   🟢 MSFT: 13멘션 | ↑5,058 | 💬956
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z]   🔴 SPY: 17멘션 | ↑567 | 💬413
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z]   🟢 META: 12멘션 | ↑2,227 | 💬792
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z]   🟢 GOOGL [보유]: 12멘션 | ↑1,808 | 💬474
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z]   🟢 INTC: 11멘션 | ↑3,113 | 💬793
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z]   🔴 QQQ: 12멘션 | ↑332 | 💬278
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z]   🟢 AMD [보유]: 8멘션 | ↑4,980 | 💬938
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z]   🟢 MU [보유]: 10멘션 | ↑388 | 💬273
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z]   🟢 SNDK: 9멘션 | ↑557 | 💬453
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, ASTS, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO
+[reddit-buzz-collect] [2026-05-02T07:00:59.999Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-02 16:01:00] 완료 (exit: 0)
+
+[2026-05-03 16:00:04] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[reddit-buzz-collect] [2026-05-03T07:00:06.839Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-03T07:00:07.226Z] 📊 보유 종목: 197개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM)
+[reddit-buzz-collect] [2026-05-03T07:00:15.381Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-03T07:00:26.137Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-03T07:00:32.725Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-03T07:00:50.400Z] ⚠️ options/rising HTTP 503
+[reddit-buzz-collect] [2026-05-03T07:00:51.900Z]   r/options: hot 100 + rising 0
+[reddit-buzz-collect] [2026-05-03T07:00:51.901Z] 📝 총 475개 포스트 수집
+[reddit-buzz-collect] [2026-05-03T07:00:51.901Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-03T07:00:51.963Z] 🎯 586개 티커 추출
+[reddit-buzz-collect] [2026-05-03T07:00:51.963Z] 📊 유의미한 티커: 318개
+[reddit-buzz-collect] [2026-05-03T07:01:24.658Z] ✅ 318/318건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-03T07:01:24.659Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-03T07:01:24.720Z]   🟢 NVDA [보유]: 20멘션 | ↑3,474 | 💬1,293
+[reddit-buzz-collect] [2026-05-03T07:01:24.720Z]   🟢 MSFT: 16멘션 | ↑5,366 | 💬1,148
+[reddit-buzz-collect] [2026-05-03T07:01:24.720Z]   🟢 META: 13멘션 | ↑2,153 | 💬757
+[reddit-buzz-collect] [2026-05-03T07:01:24.720Z]   🟢 INTC: 11멘션 | ↑3,829 | 💬895
+[reddit-buzz-collect] [2026-05-03T07:01:24.720Z]   🟢 GOOGL [보유]: 12멘션 | ↑1,885 | 💬471
+[reddit-buzz-collect] [2026-05-03T07:01:24.720Z]   🔴 SPY: 14멘션 | ↑528 | 💬349
+[reddit-buzz-collect] [2026-05-03T07:01:24.720Z]   🟢 AMD [보유]: 9멘션 | ↑5,798 | 💬1,094
+[reddit-buzz-collect] [2026-05-03T07:01:24.720Z]   🔴 MU [보유]: 10멘션 | ↑479 | 💬257
+[reddit-buzz-collect] [2026-05-03T07:01:24.720Z]   🟢 SNDK: 7멘션 | ↑2,482 | 💬923
+[reddit-buzz-collect] [2026-05-03T07:01:24.720Z]   🔴 SPX: 7멘션 | ↑2,156 | 💬677
+[reddit-buzz-collect] [2026-05-03T07:01:24.721Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, IREN, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, ASTS, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM
+[reddit-buzz-collect] [2026-05-03T07:01:24.721Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-03 16:01:24] 완료 (exit: 0)
+
+[2026-05-04 16:00:03] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[reddit-buzz-collect] [2026-05-04T07:00:05.250Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-04T07:00:05.436Z] 📊 보유 종목: 199개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD)
+[reddit-buzz-collect] [2026-05-04T07:00:11.557Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-04T07:00:18.148Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-04T07:00:24.418Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-04T07:00:29.255Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-04T07:00:29.255Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-04T07:00:29.256Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-04T07:00:29.310Z] 🎯 564개 티커 추출
+[reddit-buzz-collect] [2026-05-04T07:00:29.311Z] 📊 유의미한 티커: 320개
+[reddit-buzz-collect] [2026-05-04T07:01:01.570Z] ✅ 320/320건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-04T07:01:01.573Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-04T07:01:01.631Z]   🟢 NVDA [보유]: 21멘션 | ↑5,329 | 💬1,664
+[reddit-buzz-collect] [2026-05-04T07:01:01.631Z]   🟢 MSFT: 15멘션 | ↑5,531 | 💬1,185
+[reddit-buzz-collect] [2026-05-04T07:01:01.631Z]   🟡 AMD [보유]: 12멘션 | ↑6,281 | 💬1,346
+[reddit-buzz-collect] [2026-05-04T07:01:01.631Z]   🟢 GOOGL [보유]: 13멘션 | ↑1,955 | 💬490
+[reddit-buzz-collect] [2026-05-04T07:01:01.631Z]   🟡 MU [보유]: 12멘션 | ↑2,217 | 💬768
+[reddit-buzz-collect] [2026-05-04T07:01:01.631Z]   🟢 META: 12멘션 | ↑2,031 | 💬783
+[reddit-buzz-collect] [2026-05-04T07:01:01.631Z]   🟢 INTC: 12멘션 | ↑1,833 | 💬589
+[reddit-buzz-collect] [2026-05-04T07:01:01.631Z]   🔴 SPY: 12멘션 | ↑425 | 💬329
+[reddit-buzz-collect] [2026-05-04T07:01:01.631Z]   🟢 SNDK: 8멘션 | ↑3,250 | 💬1,044
+[reddit-buzz-collect] [2026-05-04T07:01:01.631Z]   🔴 SPX: 7멘션 | ↑2,856 | 💬768
+[reddit-buzz-collect] [2026-05-04T07:01:01.632Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, IREN, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, ASTS, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD
+[reddit-buzz-collect] [2026-05-04T07:01:01.632Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-04 16:01:01] 완료 (exit: 0)
+
+[2026-05-05 16:00:01] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[reddit-buzz-collect] [2026-05-05T07:00:03.687Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-05T07:00:03.949Z] 📊 보유 종목: 200개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK)
+[reddit-buzz-collect] [2026-05-05T07:00:09.978Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-05T07:00:16.737Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-05T07:00:26.426Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-05T07:00:31.814Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-05T07:00:31.814Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-05T07:00:31.815Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-05T07:00:31.872Z] 🎯 581개 티커 추출
+[reddit-buzz-collect] [2026-05-05T07:00:31.872Z] 📊 유의미한 티커: 323개
+[reddit-buzz-collect] [2026-05-05T07:01:07.729Z] ✅ 323/323건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-05T07:01:07.731Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-05T07:01:07.797Z]   🟢 NVDA [보유]: 18멘션 | ↑4,425 | 💬1,320
+[reddit-buzz-collect] [2026-05-05T07:01:07.797Z]   🔴 AMD [보유]: 14멘션 | ↑6,585 | 💬1,505
+[reddit-buzz-collect] [2026-05-05T07:01:07.797Z]   🟢 MU [보유]: 14멘션 | ↑2,735 | 💬906
+[reddit-buzz-collect] [2026-05-05T07:01:07.797Z]   🟢 MSFT: 12멘션 | ↑1,338 | 💬656
+[reddit-buzz-collect] [2026-05-05T07:01:07.797Z]   🔴 SPY: 12멘션 | ↑671 | 💬499
+[reddit-buzz-collect] [2026-05-05T07:01:07.797Z]   🟢 GOOGL [보유]: 9멘션 | ↑1,256 | 💬390
+[reddit-buzz-collect] [2026-05-05T07:01:07.797Z]   🟢 INTC: 8멘션 | ↑2,669 | 💬463
+[reddit-buzz-collect] [2026-05-05T07:01:07.797Z]   🟢 QQQ: 9멘션 | ↑496 | 💬305
+[reddit-buzz-collect] [2026-05-05T07:01:07.797Z]   🟢 META: 9멘션 | ↑424 | 💬321
+[reddit-buzz-collect] [2026-05-05T07:01:07.797Z]   🟢 AMZN [보유]: 7멘션 | ↑921 | 💬246
+[reddit-buzz-collect] [2026-05-05T07:01:07.798Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, IREN, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, ASTS, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD
+[reddit-buzz-collect] [2026-05-05T07:01:07.798Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-05 16:01:07] 완료 (exit: 0)
+
+[2026-05-06 16:00:03] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[reddit-buzz-collect] [2026-05-06T07:00:04.759Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-06T07:00:05.091Z] 📊 보유 종목: 200개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK)
+[reddit-buzz-collect] [2026-05-06T07:00:12.099Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-06T07:00:20.328Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-06T07:00:26.948Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-06T07:00:34.262Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-06T07:00:34.262Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-06T07:00:34.263Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-06T07:00:34.318Z] 🎯 343개 티커 추출
+[reddit-buzz-collect] [2026-05-06T07:00:34.318Z] 📊 유의미한 티커: 130개
+[reddit-buzz-collect] [2026-05-06T07:00:48.739Z] ✅ 130/130건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-06T07:00:48.740Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z]   🟢 MU [보유]: 24멘션 | ↑7,005 | 💬1,376
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z]   🔴 AMD [보유]: 23멘션 | ↑3,083 | 💬1,865
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z]   🟢 NVDA [보유]: 15멘션 | ↑3,922 | 💬1,238
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z]   🔴 SPY: 14멘션 | ↑919 | 💬557
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z]   🟢 INTC: 8멘션 | ↑2,146 | 💬470
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z]   🟢 QQQ: 8멘션 | ↑626 | 💬272
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z]   🟢 GOOGL [보유]: 8멘션 | ↑476 | 💬415
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z]   🟢 META: 9멘션 | ↑207 | 💬291
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z]   🟢 CNBC: 5멘션 | ↑10,772 | 💬2,461
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z]   🟢 MSFT: 8멘션 | ↑184 | 💬315
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, VRT, CIEN, OKLO, 012450.KS, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, TSM, EQIX, DLR, NEE, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD
+[reddit-buzz-collect] [2026-05-06T07:00:48.803Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-06 16:00:48] 완료 (exit: 0)
+
+[2026-05-07 16:00:03] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[reddit-buzz-collect] [2026-05-07T07:00:05.892Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-07T07:00:06.105Z] 📊 보유 종목: 206개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS)
+[reddit-buzz-collect] [2026-05-07T07:00:12.638Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-07T07:00:17.826Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-07T07:00:23.384Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-07T07:00:28.411Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-07T07:00:28.411Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-07T07:00:28.413Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-07T07:00:28.471Z] 🎯 422개 티커 추출
+[reddit-buzz-collect] [2026-05-07T07:00:28.471Z] 📊 유의미한 티커: 185개
+[reddit-buzz-collect] [2026-05-07T07:00:48.575Z] ✅ 185/185건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-07T07:00:48.583Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z]   🔴 AMD [보유]: 31멘션 | ↑19,139 | 💬3,064
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z]   🟢 MU [보유]: 20멘션 | ↑6,989 | 💬1,151
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z]   🔴 SPY: 12멘션 | ↑614 | 💬420
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z]   🟢 INTC: 10멘션 | ↑1,518 | 💬766
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z]   🟢 META: 12멘션 | ↑377 | 💬608
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z]   🟢 NVDA [보유]: 9멘션 | ↑894 | 💬638
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z]   🟢 GOOGL [보유]: 8멘션 | ↑815 | 💬558
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z]   🟢 HOOD: 7멘션 | ↑1,117 | 💬380
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z]   🟢 MSFT: 8멘션 | ↑233 | 💬463
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z]   🟢 NBIS [보유]: 5멘션 | ↑1,680 | 💬397
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, VRT, CIEN, OKLO, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, ALAB, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS
+[reddit-buzz-collect] [2026-05-07T07:00:48.640Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-07 16:00:48] 완료 (exit: 0)
+
+[2026-05-08 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[reddit-buzz-collect] [2026-05-08T07:00:04.476Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-08T07:00:04.719Z] 📊 보유 종목: 207개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI)
+[reddit-buzz-collect] [2026-05-08T07:00:12.277Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-08T07:00:18.918Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-08T07:00:24.130Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-08T07:00:31.962Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-08T07:00:31.962Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-08T07:00:31.964Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-08T07:00:32.021Z] 🎯 419개 티커 추출
+[reddit-buzz-collect] [2026-05-08T07:00:32.021Z] 📊 유의미한 티커: 176개
+[reddit-buzz-collect] [2026-05-08T07:00:50.063Z] ✅ 176/176건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-08T07:00:50.065Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z]   🔴 AMD [보유]: 28멘션 | ↑23,232 | 💬2,701
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z]   🟢 MU [보유]: 19멘션 | ↑8,098 | 💬1,117
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z]   🟢 SPY: 14멘션 | ↑988 | 💬381
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z]   🟢 INTC: 12멘션 | ↑2,420 | 💬978
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z]   🟢 NVDA [보유]: 10멘션 | ↑1,202 | 💬727
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z]   🟢 RKLB [보유]: 8멘션 | ↑1,388 | 💬787
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z]   🟢 META: 9멘션 | ↑401 | 💬531
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z]   🟢 QQQ: 9멘션 | ↑214 | 💬179
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z]   🟢 HOOD: 6멘션 | ↑2,741 | 💬548
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z]   🟢 GOOGL [보유]: 7멘션 | ↑873 | 💬571
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, VRT, CIEN, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, ROK, AMKR, TER, ANET, CAMT, FN, AEIS, ALAB, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, AVGO, EQIX, DLR, NEE, VST, LHX, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI
+[reddit-buzz-collect] [2026-05-08T07:00:50.129Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-08 16:00:50] 완료 (exit: 0)
+
+[2026-05-09 16:00:04] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[reddit-buzz-collect] [2026-05-09T07:00:06.270Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-09T07:00:06.619Z] 📊 보유 종목: 211개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC)
+[reddit-buzz-collect] [2026-05-09T07:00:13.155Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-09T07:00:19.092Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-09T07:00:24.149Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-09T07:00:29.056Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-09T07:00:29.056Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-09T07:00:29.057Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-09T07:00:29.117Z] 🎯 420개 티커 추출
+[reddit-buzz-collect] [2026-05-09T07:00:29.117Z] 📊 유의미한 티커: 145개
+[reddit-buzz-collect] [2026-05-09T07:00:43.721Z] ✅ 145/145건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-09T07:00:43.722Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-09T07:00:43.787Z]   🟢 MU [보유]: 24멘션 | ↑3,688 | 💬782
+[reddit-buzz-collect] [2026-05-09T07:00:43.787Z]   🔴 AMD [보유]: 23멘션 | ↑3,396 | 💬1,315
+[reddit-buzz-collect] [2026-05-09T07:00:43.787Z]   🟢 INTC [보유]: 19멘션 | ↑3,962 | 💬1,203
+[reddit-buzz-collect] [2026-05-09T07:00:43.787Z]   🟢 RKLB [보유]: 16멘션 | ↑6,051 | 💬1,195
+[reddit-buzz-collect] [2026-05-09T07:00:43.787Z]   🟢 SPY: 13멘션 | ↑690 | 💬354
+[reddit-buzz-collect] [2026-05-09T07:00:43.787Z]   🟢 NVDA [보유]: 11멘션 | ↑1,158 | 💬695
+[reddit-buzz-collect] [2026-05-09T07:00:43.787Z]   🟢 QQQ: 8멘션 | ↑164 | 💬178
+[reddit-buzz-collect] [2026-05-09T07:00:43.787Z]   🟢 META: 7멘션 | ↑274 | 💬343
+[reddit-buzz-collect] [2026-05-09T07:00:43.787Z]   🟢 VOO: 6멘션 | ↑320 | 💬258
+[reddit-buzz-collect] [2026-05-09T07:00:43.787Z]   🔴 SPX: 6멘션 | ↑278 | 💬120
+[reddit-buzz-collect] [2026-05-09T07:00:43.788Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, VRT, CIEN, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, ROK, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, TSM, EQIX, DLR, NEE, VST, LHX, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS
+[reddit-buzz-collect] [2026-05-09T07:00:43.788Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-09 16:00:43] 완료 (exit: 0)
+
+[2026-05-10 16:00:01] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[reddit-buzz-collect] [2026-05-10T07:00:02.277Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-10T07:00:03.170Z] 📊 보유 종목: 212개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS)
+[reddit-buzz-collect] [2026-05-10T07:00:13.048Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-10T07:00:21.283Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-10T07:00:31.905Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-10T07:00:38.647Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-10T07:00:38.647Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-10T07:00:38.648Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-10T07:00:38.709Z] 🎯 446개 티커 추출
+[reddit-buzz-collect] [2026-05-10T07:00:38.710Z] 📊 유의미한 티커: 133개
+[reddit-buzz-collect] [2026-05-10T07:00:52.896Z] ✅ 133/133건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-10T07:00:52.897Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z]   🟢 MU [보유]: 28멘션 | ↑6,902 | 💬1,443
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z]   🔴 AMD [보유]: 28멘션 | ↑4,158 | 💬1,814
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z]   🟢 INTC [보유]: 20멘션 | ↑5,499 | 💬1,440
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z]   🟢 RKLB [보유]: 16멘션 | ↑7,101 | 💬1,020
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z]   🟢 SPY: 15멘션 | ↑1,230 | 💬613
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z]   🟢 NVDA [보유]: 12멘션 | ↑1,446 | 💬712
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z]   🟢 QQQ: 11멘션 | ↑231 | 💬328
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z]   🟢 DRAM: 7멘션 | ↑679 | 💬604
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z]   🟢 HBM: 7멘션 | ↑251 | 💬292
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z]   🟢 VOO: 5멘션 | ↑379 | 💬302
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, VRT, CIEN, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, ROK, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, TSM, EQIX, DLR, NEE, VST, LHX, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS, 277810.KS
+[reddit-buzz-collect] [2026-05-10T07:00:52.936Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-10 16:00:52] 완료 (exit: 0)
+
+[2026-05-11 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[reddit-buzz-collect] [2026-05-11T07:00:04.835Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-11T07:00:05.581Z] 📊 보유 종목: 214개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS)
+[reddit-buzz-collect] [2026-05-11T07:00:16.123Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-11T07:00:23.475Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-11T07:00:33.366Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-11T07:00:42.736Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-11T07:00:42.736Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-11T07:00:42.737Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-11T07:00:42.780Z] 🎯 434개 티커 추출
+[reddit-buzz-collect] [2026-05-11T07:00:42.780Z] 📊 유의미한 티커: 140개
+[reddit-buzz-collect] [2026-05-11T07:00:56.672Z] ✅ 140/140건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-11T07:00:56.673Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-11T07:00:56.723Z]   🟢 AMD [보유]: 29멘션 | ↑4,264 | 💬1,879
+[reddit-buzz-collect] [2026-05-11T07:00:56.723Z]   🟢 MU [보유]: 25멘션 | ↑8,323 | 💬2,073
+[reddit-buzz-collect] [2026-05-11T07:00:56.723Z]   🟢 INTC [보유]: 20멘션 | ↑5,533 | 💬1,435
+[reddit-buzz-collect] [2026-05-11T07:00:56.723Z]   🟢 RKLB [보유]: 15멘션 | ↑8,098 | 💬1,207
+[reddit-buzz-collect] [2026-05-11T07:00:56.723Z]   🟢 NVDA [보유]: 13멘션 | ↑2,419 | 💬852
+[reddit-buzz-collect] [2026-05-11T07:00:56.724Z]   🟢 SPY: 11멘션 | ↑2,363 | 💬1,329
+[reddit-buzz-collect] [2026-05-11T07:00:56.724Z]   🟢 IREN [보유]: 7멘션 | ↑287 | 💬173
+[reddit-buzz-collect] [2026-05-11T07:00:56.724Z]   🟢 VOO: 6멘션 | ↑653 | 💬800
+[reddit-buzz-collect] [2026-05-11T07:00:56.724Z]   🔴 SOXL: 5멘션 | ↑1,946 | 💬265
+[reddit-buzz-collect] [2026-05-11T07:00:56.724Z]   🔴 TSMC: 6멘션 | ↑344 | 💬259
+[reddit-buzz-collect] [2026-05-11T07:00:56.724Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, OKLO, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, ROK, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, EVC, CLMB, DSP, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS, 277810.KS, RTX, 011790.KS
+[reddit-buzz-collect] [2026-05-11T07:00:56.724Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-11 16:00:56] 완료 (exit: 0)
+
+[2026-05-12 16:00:05] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[reddit-buzz-collect] [2026-05-12T07:00:07.838Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-12T07:00:08.689Z] 📊 보유 종목: 216개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS)
+[reddit-buzz-collect] [2026-05-12T07:00:15.861Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-12T07:00:24.528Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-12T07:00:30.459Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-12T07:00:36.763Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-12T07:00:36.763Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-12T07:00:36.764Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-12T07:00:36.819Z] 🎯 369개 티커 추출
+[reddit-buzz-collect] [2026-05-12T07:00:36.819Z] 📊 유의미한 티커: 124개
+[reddit-buzz-collect] [2026-05-12T07:00:48.986Z] ✅ 124/124건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-12T07:00:48.987Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z]   🟢 AMD [보유]: 35멘션 | ↑5,223 | 💬2,186
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z]   🟢 MU [보유]: 18멘션 | ↑2,476 | 💬1,343
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z]   🟢 NVDA [보유]: 13멘션 | ↑1,761 | 💬818
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z]   🟢 SPY: 12멘션 | ↑2,537 | 💬1,513
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z]   🟢 RKLB [보유]: 8멘션 | ↑2,123 | 💬541
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z]   🟢 INTC [보유]: 8멘션 | ↑1,196 | 💬463
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z]   🟢 TSMC: 7멘션 | ↑516 | 💬302
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z]   🟢 ASML: 7멘션 | ↑405 | 💬273
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z]   🟢 SK: 6멘션 | ↑1,003 | 💬311
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z]   🟢 VOO: 6멘션 | ↑721 | 💬849
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, OKLO, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS
+[reddit-buzz-collect] [2026-05-12T07:00:49.049Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-12 16:00:49] 완료 (exit: 0)
+
+[2026-05-13 16:00:05] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[reddit-buzz-collect] [2026-05-13T07:00:07.201Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-13T07:00:08.112Z] 📊 보유 종목: 218개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS)
+[reddit-buzz-collect] [2026-05-13T07:00:17.636Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-13T07:00:25.565Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-13T07:00:32.771Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-13T07:00:41.642Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-13T07:00:41.643Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-13T07:00:41.644Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-13T07:00:41.709Z] 🎯 380개 티커 추출
+[reddit-buzz-collect] [2026-05-13T07:00:41.709Z] 📊 유의미한 티커: 163개
+[reddit-buzz-collect] [2026-05-13T07:00:57.691Z] ✅ 163/163건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-13T07:00:57.692Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z]   🟢 AMD [보유]: 34멘션 | ↑6,538 | 💬2,287
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z]   🟢 MU [보유]: 20멘션 | ↑5,743 | 💬1,928
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z]   🟢 NVDA [보유]: 15멘션 | ↑2,270 | 💬978
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z]   🟢 SPY: 14멘션 | ↑2,758 | 💬1,599
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z]   🔴 RKLB [보유]: 7멘션 | ↑1,725 | 💬455
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z]   🔴 QQQ: 8멘션 | ↑248 | 💬379
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z]   🟢 DRAM: 6멘션 | ↑1,066 | 💬752
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z]   🟡 INTC [보유]: 6멘션 | ↑618 | 💬321
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z]   🟡 NBIS [보유]: 6멘션 | ↑486 | 💬339
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z]   🔴 TSMC: 6멘션 | ↑363 | 💬275
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, OKLO, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, AMZN, EVC, CLMB, DSP, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, AVGO, EQIX, DLR, NEE, VST, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, STX, SIMO, NOC, BAH, QTUM, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS
+[reddit-buzz-collect] [2026-05-13T07:00:57.749Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-13 16:00:57] 완료 (exit: 0)
+
+[2026-05-14 16:00:05] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[reddit-buzz-collect] [2026-05-14T07:00:06.918Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-14T07:00:07.407Z] 📊 보유 종목: 221개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS)
+[reddit-buzz-collect] [2026-05-14T07:00:15.902Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-14T07:00:22.980Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-14T07:00:30.250Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-14T07:00:38.414Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-14T07:00:38.414Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-14T07:00:38.415Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-14T07:00:38.478Z] 🎯 410개 티커 추출
+[reddit-buzz-collect] [2026-05-14T07:00:38.478Z] 📊 유의미한 티커: 160개
+[reddit-buzz-collect] [2026-05-14T07:00:53.972Z] ✅ 160/160건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-14T07:00:53.973Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z]   🟢 NVDA [보유]: 23멘션 | ↑16,554 | 💬2,883
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z]   🟢 AMD [보유]: 23멘션 | ↑10,274 | 💬1,495
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z]   🔴 MU [보유]: 20멘션 | ↑14,379 | 💬2,131
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z]   🟢 SPY: 20멘션 | ↑2,764 | 💬1,959
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z]   🟡 NBIS [보유]: 12멘션 | ↑11,474 | 💬1,155
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z]   🔴 QQQ: 9멘션 | ↑9,440 | 💬781
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z]   🔴 RKLB [보유]: 12멘션 | ↑777 | 💬646
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z]   🟢 SK: 8멘션 | ↑1,924 | 💬496
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z]   🟢 DRAM: 8멘션 | ↑1,337 | 💬446
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z]   🔴 PPI: 8멘션 | ↑939 | 💬593
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, VRT, CIEN, OKLO, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, OPEN, FIGM, EQIX, DLR, NEE, VST, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS
+[reddit-buzz-collect] [2026-05-14T07:00:54.025Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-14 16:00:54] 완료 (exit: 0)
+
+[2026-05-15 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[reddit-buzz-collect] [2026-05-15T07:00:05.960Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-15T07:00:06.626Z] 📊 보유 종목: 223개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS)
+[reddit-buzz-collect] [2026-05-15T07:00:13.845Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-15T07:00:21.440Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-15T07:00:31.180Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-15T07:00:41.299Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-15T07:00:41.299Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-15T07:00:41.300Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-15T07:00:41.362Z] 🎯 399개 티커 추출
+[reddit-buzz-collect] [2026-05-15T07:00:41.362Z] 📊 유의미한 티커: 162개
+[reddit-buzz-collect] [2026-05-15T07:00:57.148Z] ✅ 162/162건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-15T07:00:57.149Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z]   🟢 NVDA [보유]: 24멘션 | ↑27,795 | 💬3,228
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z]   🟢 AMD [보유]: 22멘션 | ↑14,147 | 💬1,788
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z]   🔴 MU [보유]: 14멘션 | ↑13,769 | 💬1,294
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z]   🔴 NBIS [보유]: 13멘션 | ↑16,119 | 💬1,405
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z]   🟢 SPY: 16멘션 | ↑789 | 💬832
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z]   🔴 QQQ: 10멘션 | ↑13,694 | 💬1,085
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z]   🔴 RKLB [보유]: 12멘션 | ↑1,640 | 💬926
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z]   🟢 CME: 7멘션 | ↑1,611 | 💬709
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z]   🟢 PPI: 7멘션 | ↑1,471 | 💬742
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z]   🟢 AMZN [보유]: 5멘션 | ↑12,724 | 💬727
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, VRT, CIEN, OKLO, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS, ARM, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS
+[reddit-buzz-collect] [2026-05-15T07:00:57.211Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-15 16:00:57] 완료 (exit: 0)
+
+[2026-05-16 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[reddit-buzz-collect] [2026-05-16T07:00:04.753Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-16T07:00:05.260Z] 📊 보유 종목: 228개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF)
+[reddit-buzz-collect] [2026-05-16T07:00:12.784Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-16T07:00:24.414Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-16T07:00:31.039Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-16T07:00:42.286Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-16T07:00:42.287Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-16T07:00:42.288Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-16T07:00:42.352Z] 🎯 421개 티커 추출
+[reddit-buzz-collect] [2026-05-16T07:00:42.352Z] 📊 유의미한 티커: 158개
+[reddit-buzz-collect] [2026-05-16T07:00:57.255Z] ✅ 158/158건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-16T07:00:57.256Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-16T07:00:57.319Z]   🔴 NVDA [보유]: 28멘션 | ↑32,376 | 💬3,830
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z]   🔴 MU [보유]: 18멘션 | ↑15,807 | 💬1,590
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z]   🟢 AMD [보유]: 17멘션 | ↑14,942 | 💬1,409
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z]   🔴 RKLB [보유]: 12멘션 | ↑4,018 | 💬1,117
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z]   🔴 NBIS [보유]: 10멘션 | ↑17,289 | 💬1,251
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z]   🟢 SPY: 14멘션 | ↑573 | 💬504
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z]   🟡 QQQ: 9멘션 | ↑13,784 | 💬987
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z]   🔴 SPX: 10멘션 | ↑232 | 💬235
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z]   🟢 AMZN [보유]: 5멘션 | ↑13,286 | 💬689
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z]   🟢 CME: 6멘션 | ↑1,619 | 💬731
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, OKLO, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, OPEN, FIGM, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS, ARM, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF
+[reddit-buzz-collect] [2026-05-16T07:00:57.320Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-16 16:00:57] 완료 (exit: 0)
+
+[2026-05-17 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[reddit-buzz-collect] [2026-05-17T07:00:05.326Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-17T07:00:05.799Z] 📊 보유 종목: 228개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF)
+[reddit-buzz-collect] [2026-05-17T07:00:14.510Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-17T07:00:20.510Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-17T07:00:26.093Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-17T07:00:32.694Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-17T07:00:32.694Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-17T07:00:32.696Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-17T07:00:32.754Z] 🎯 424개 티커 추출
+[reddit-buzz-collect] [2026-05-17T07:00:32.755Z] 📊 유의미한 티커: 162개
+[reddit-buzz-collect] [2026-05-17T07:00:48.068Z] ✅ 162/162건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-17T07:00:48.069Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-17T07:00:48.184Z]   🔴 NVDA [보유]: 25멘션 | ↑31,481 | 💬3,186
+[reddit-buzz-collect] [2026-05-17T07:00:48.184Z]   🔴 MU [보유]: 19멘션 | ↑17,953 | 💬1,892
+[reddit-buzz-collect] [2026-05-17T07:00:48.184Z]   🟡 AMD [보유]: 18멘션 | ↑17,105 | 💬1,615
+[reddit-buzz-collect] [2026-05-17T07:00:48.184Z]   🟢 RKLB [보유]: 13멘션 | ↑6,161 | 💬1,641
+[reddit-buzz-collect] [2026-05-17T07:00:48.184Z]   🔴 NBIS [보유]: 9멘션 | ↑18,917 | 💬1,345
+[reddit-buzz-collect] [2026-05-17T07:00:48.184Z]   🟢 SPY: 13멘션 | ↑602 | 💬497
+[reddit-buzz-collect] [2026-05-17T07:00:48.185Z]   🔴 QQQ: 8멘션 | ↑13,914 | 💬960
+[reddit-buzz-collect] [2026-05-17T07:00:48.185Z]   🔴 SPX: 13멘션 | ↑349 | 💬351
+[reddit-buzz-collect] [2026-05-17T07:00:48.185Z]   🟢 AMZN [보유]: 6멘션 | ↑13,510 | 💬734
+[reddit-buzz-collect] [2026-05-17T07:00:48.185Z]   🟢 ASTS [보유]: 6멘션 | ↑5,529 | 💬1,166
+[reddit-buzz-collect] [2026-05-17T07:00:48.185Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, RGTI, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF
+[reddit-buzz-collect] [2026-05-17T07:00:48.185Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-17 16:00:48] 완료 (exit: 0)
+
+[2026-05-18 16:00:04] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[reddit-buzz-collect] [2026-05-18T07:00:07.534Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-18T07:00:08.292Z] 📊 보유 종목: 230개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS)
+[reddit-buzz-collect] [2026-05-18T07:00:15.611Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-18T07:00:24.019Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-18T07:00:31.728Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-18T07:00:40.155Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-18T07:00:40.156Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-18T07:00:40.157Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-18T07:00:40.214Z] 🎯 358개 티커 추출
+[reddit-buzz-collect] [2026-05-18T07:00:40.214Z] 📊 유의미한 티커: 144개
+[reddit-buzz-collect] [2026-05-18T07:00:53.915Z] ✅ 144/144건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-18T07:00:53.917Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-18T07:00:53.983Z]   🔴 NVDA [보유]: 20멘션 | ↑5,738 | 💬1,814
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z]   🟢 AMD [보유]: 17멘션 | ↑5,919 | 💬1,534
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z]   🟢 SPY: 18멘션 | ↑2,335 | 💬712
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z]   🔴 MU [보유]: 15멘션 | ↑8,542 | 💬1,762
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z]   🟢 RKLB [보유]: 9멘션 | ↑6,399 | 💬1,685
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z]   🔴 SPX: 12멘션 | ↑374 | 💬387
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z]   🟢 QQQ: 10멘션 | ↑669 | 💬568
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z]   🔴 NBIS [보유]: 7멘션 | ↑5,799 | 💬896
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z]   🟢 VTI: 8멘션 | ↑686 | 💬319
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z]   🟢 ASTS [보유]: 6멘션 | ↑5,905 | 💬1,231
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, RGTI, TT, SBGSF, BWXT, CEG, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, 064400.KS
+[reddit-buzz-collect] [2026-05-18T07:00:53.984Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-18 16:00:54] 완료 (exit: 0)
+
+[2026-05-19 16:00:05] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[reddit-buzz-collect] [2026-05-19T07:00:07.574Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-19T07:00:08.441Z] 📊 보유 종목: 235개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS)
+[reddit-buzz-collect] [2026-05-19T07:00:14.834Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-19T07:00:25.311Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-19T07:00:32.422Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-19T07:00:38.183Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-19T07:00:38.183Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-19T07:00:38.184Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-19T07:00:38.248Z] 🎯 459개 티커 추출
+[reddit-buzz-collect] [2026-05-19T07:00:38.248Z] 📊 유의미한 티커: 164개
+[reddit-buzz-collect] [2026-05-19T07:00:54.129Z] ✅ 164/164건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-19T07:00:54.136Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z]   🔴 NVDA [보유]: 22멘션 | ↑6,149 | 💬2,135
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z]   🟢 AMD [보유]: 16멘션 | ↑8,153 | 💬1,831
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z]   🔴 MU [보유]: 14멘션 | ↑8,993 | 💬1,716
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z]   🟢 SPY: 16멘션 | ↑1,788 | 💬290
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z]   🔴 SPX: 14멘션 | ↑1,058 | 💬495
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z]   🟢 RKLB [보유]: 9멘션 | ↑6,566 | 💬1,710
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z]   🟢 VOO: 10멘션 | ↑474 | 💬431
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z]   🟡 VTI: 8멘션 | ↑740 | 💬358
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z]   🟢 ASTS [보유]: 6멘션 | ↑6,047 | 💬1,256
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z]   🟢 QQQ: 8멘션 | ↑645 | 💬510
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, 012450.KS, IREN, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, RGTI, TT, SBGSF, BWXT, CEG, SIMO, NOC, BAH, QTUM, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, SMR, WULF, 064400.KS, HIVE, 036930.KS, 006260.KS, 012330.KS
+[reddit-buzz-collect] [2026-05-19T07:00:54.197Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-19 16:00:54] 완료 (exit: 0)
+
+[2026-05-20 16:00:04] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[reddit-buzz-collect] [2026-05-20T07:00:06.989Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-20T07:00:07.897Z] 📊 보유 종목: 236개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS)
+[reddit-buzz-collect] [2026-05-20T07:00:14.409Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-20T07:00:22.977Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-20T07:00:29.755Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-20T07:00:34.754Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-20T07:00:34.754Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-20T07:00:34.756Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-20T07:00:34.813Z] 🎯 477개 티커 추출
+[reddit-buzz-collect] [2026-05-20T07:00:34.813Z] 📊 유의미한 티커: 156개
+[reddit-buzz-collect] [2026-05-20T07:00:50.595Z] ✅ 156/156건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-20T07:00:50.597Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-20T07:00:50.665Z]   🟢 NVDA [보유]: 20멘션 | ↑7,696 | 💬1,654
+[reddit-buzz-collect] [2026-05-20T07:00:50.665Z]   🟢 AMD [보유]: 13멘션 | ↑8,283 | 💬1,642
+[reddit-buzz-collect] [2026-05-20T07:00:50.665Z]   🟢 SPY: 14멘션 | ↑2,017 | 💬315
+[reddit-buzz-collect] [2026-05-20T07:00:50.665Z]   🔴 SPX: 13멘션 | ↑1,244 | 💬508
+[reddit-buzz-collect] [2026-05-20T07:00:50.665Z]   🔴 VOO: 14멘션 | ↑629 | 💬633
+[reddit-buzz-collect] [2026-05-20T07:00:50.665Z]   🔴 MU [보유]: 9멘션 | ↑7,845 | 💬883
+[reddit-buzz-collect] [2026-05-20T07:00:50.665Z]   🟢 AMZN [보유]: 10멘션 | ↑960 | 💬744
+[reddit-buzz-collect] [2026-05-20T07:00:50.665Z]   🟢 GOOGL [보유]: 8멘션 | ↑520 | 💬390
+[reddit-buzz-collect] [2026-05-20T07:00:50.665Z]   🔴 VTI: 7멘션 | ↑766 | 💬362
+[reddit-buzz-collect] [2026-05-20T07:00:50.665Z]   🟢 MSFT: 7멘션 | ↑711 | 💬269
+[reddit-buzz-collect] [2026-05-20T07:00:50.666Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, 012450.KS, IREN, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, RGTI, TT, SBGSF, BWXT, SIMO, NOC, BAH, QTUM, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, SMR, WULF, 064400.KS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS
+[reddit-buzz-collect] [2026-05-20T07:00:50.666Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-20 16:00:50] 완료 (exit: 0)
+
+[2026-05-21 16:00:03] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[reddit-buzz-collect] [2026-05-21T07:00:05.426Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-21T07:00:06.318Z] 📊 보유 종목: 237개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS)
+[reddit-buzz-collect] [2026-05-21T07:00:14.987Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-21T07:00:20.945Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-21T07:00:26.912Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-21T07:00:32.239Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-21T07:00:32.239Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-21T07:00:32.240Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-21T07:00:32.301Z] 🎯 504개 티커 추출
+[reddit-buzz-collect] [2026-05-21T07:00:32.301Z] 📊 유의미한 티커: 164개
+[reddit-buzz-collect] [2026-05-21T07:00:48.847Z] ✅ 164/164건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-21T07:00:48.848Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z]   🟢 NVDA [보유]: 30멘션 | ↑18,028 | 💬4,575
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z]   🟢 SPY: 14멘션 | ↑2,026 | 💬694
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z]   🟡 AMD [보유]: 10멘션 | ↑4,439 | 💬670
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z]   🔴 MU [보유]: 10멘션 | ↑4,063 | 💬778
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z]   🔴 SPX: 11멘션 | ↑1,258 | 💬457
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z]   🟡 QQQ: 10멘션 | ↑1,532 | 💬575
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z]   🔴 VOO: 11멘션 | ↑782 | 💬658
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z]   🟢 INTC [보유]: 6멘션 | ↑4,784 | 💬1,107
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z]   🟢 CNBC: 5멘션 | ↑24,913 | 💬1,610
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z]   🟢 MSFT: 7멘션 | ↑998 | 💬347
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, 012450.KS, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, RGTI, TT, SBGSF, BWXT, SIMO, NOC, BAH, QTUM, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, SMR, WULF, 064400.KS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS
+[reddit-buzz-collect] [2026-05-21T07:00:48.913Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-21 16:00:48] 완료 (exit: 0)
+
+[2026-05-22 16:00:03] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[reddit-buzz-collect] [2026-05-22T07:00:04.712Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-22T07:00:05.602Z] 📊 보유 종목: 238개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML)
+[reddit-buzz-collect] [2026-05-22T07:00:13.485Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-22T07:00:27.001Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-22T07:00:36.109Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-22T07:00:44.708Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-22T07:00:44.708Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-22T07:00:44.708Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-22T07:00:44.770Z] 🎯 582개 티커 추출
+[reddit-buzz-collect] [2026-05-22T07:00:44.770Z] 📊 유의미한 티커: 165개
+[reddit-buzz-collect] [2026-05-22T07:01:01.267Z] ✅ 165/165건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-22T07:01:01.268Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z]   🟢 NVDA [보유]: 28멘션 | ↑13,794 | 💬3,993
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z]   🟢 SPY: 17멘션 | ↑3,466 | 💬978
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z]   🟢 AMD [보유]: 14멘션 | ↑1,328 | 💬572
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z]   🔴 MU [보유]: 12멘션 | ↑1,698 | 💬1,101
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z]   🟡 QQQ: 10멘션 | ↑1,715 | 💬632
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z]   🔴 VOO: 10멘션 | ↑412 | 💬566
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z]   🟢 META: 7멘션 | ↑2,087 | 💬675
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z]   🔴 TSLA [보유]: 8멘션 | ↑546 | 💬245
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z]   🟢 AMZN [보유]: 7멘션 | ↑732 | 💬448
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z]   🔴 SPX: 8멘션 | ↑310 | 💬340
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, OKLO, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, RGTI, TT, SBGSF, BWXT, SIMO, NOC, BAH, QTUM, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS
+[reddit-buzz-collect] [2026-05-22T07:01:01.333Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-22 16:01:01] 완료 (exit: 0)
+
+[2026-05-23 16:00:03] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[reddit-buzz-collect] [2026-05-23T07:00:05.941Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-23T07:00:06.866Z] 📊 보유 종목: 241개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS)
+[reddit-buzz-collect] [2026-05-23T07:00:15.821Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-23T07:00:20.939Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-23T07:00:29.153Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-23T07:00:37.112Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-23T07:00:37.112Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-23T07:00:37.113Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-23T07:00:37.168Z] 🎯 436개 티커 추출
+[reddit-buzz-collect] [2026-05-23T07:00:37.169Z] 📊 유의미한 티커: 141개
+[reddit-buzz-collect] [2026-05-23T07:00:51.325Z] ✅ 141/141건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-23T07:00:51.326Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z]   🟢 NVDA [보유]: 28멘션 | ↑10,385 | 💬4,046
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z]   🟢 SPY: 18멘션 | ↑3,516 | 💬744
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z]   🟢 RKLB [보유]: 13멘션 | ↑5,147 | 💬1,225
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z]   🔴 AMD [보유]: 13멘션 | ↑1,777 | 💬837
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z]   🔴 MU [보유]: 10멘션 | ↑2,607 | 💬1,464
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z]   🔴 ASTS [보유]: 8멘션 | ↑1,671 | 💬805
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z]   🔴 TSLA [보유]: 9멘션 | ↑679 | 💬263
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z]   🔴 AMZN [보유]: 8멘션 | ↑1,455 | 💬881
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z]   🔴 SPX: 9멘션 | ↑389 | 💬389
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z]   🟡 META: 6멘션 | ↑2,898 | 💬1,146
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, 012450.KS, GEV, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, TSM, EQIX, DLR, NEE, LHX, LMT, 047810.KS, BA, TT, SBGSF, BWXT, CEG, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, 009150.KS, 090460.KS, 336260.KS
+[reddit-buzz-collect] [2026-05-23T07:00:51.388Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-23 16:00:51] 완료 (exit: 0)
+
+[2026-05-24 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[reddit-buzz-collect] [2026-05-24T07:00:04.133Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-24T07:00:04.966Z] 📊 보유 종목: 241개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS)
+[reddit-buzz-collect] [2026-05-24T07:00:15.169Z]   r/wallstreetbets: hot 100 + rising 26
+[reddit-buzz-collect] [2026-05-24T07:00:24.153Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-24T07:00:34.621Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-24T07:00:44.459Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-24T07:00:44.459Z] 📝 총 501개 포스트 수집
+[reddit-buzz-collect] [2026-05-24T07:00:44.460Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-24T07:00:44.519Z] 🎯 392개 티커 추출
+[reddit-buzz-collect] [2026-05-24T07:00:44.520Z] 📊 유의미한 티커: 147개
+[reddit-buzz-collect] [2026-05-24T07:00:59.222Z] ✅ 147/147건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-24T07:00:59.222Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z]   🟢 NVDA [보유]: 29멘션 | ↑3,977 | 💬2,204
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z]   🟢 SPY: 17멘션 | ↑3,801 | 💬885
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z]   🔴 AMD [보유]: 18멘션 | ↑2,228 | 💬1,322
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z]   🟢 RKLB [보유]: 13멘션 | ↑5,794 | 💬1,415
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z]   🔴 MU [보유]: 11멘션 | ↑2,742 | 💬1,585
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z]   🟡 ASTS [보유]: 11멘션 | ↑2,506 | 💬1,137
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z]   🔴 TSLA [보유]: 10멘션 | ↑798 | 💬509
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z]   🔴 SPX: 9멘션 | ↑398 | 💬397
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z]   🟢 CNBC: 5멘션 | ↑26,329 | 💬1,930
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z]   🟢 SNDK [보유]: 5멘션 | ↑1,569 | 💬784
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, CIEN, 012450.KS, PLTR, GEV, 000660.KS, 005930.KS, 005380.KS, 006800.KS, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, LHX, LMT, 047810.KS, BA, TT, SBGSF, BWXT, CEG, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, 009150.KS, 090460.KS, 336260.KS
+[reddit-buzz-collect] [2026-05-24T07:00:59.279Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-24 16:00:59] 완료 (exit: 0)
+
+[2026-05-25 16:00:01] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[reddit-buzz-collect] [2026-05-25T07:00:03.174Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-25T07:00:03.911Z] 📊 보유 종목: 242개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS)
+[reddit-buzz-collect] [2026-05-25T07:00:10.844Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-25T07:00:18.643Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-25T07:00:27.176Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-25T07:00:32.522Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-25T07:00:32.522Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-25T07:00:32.524Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-25T07:00:32.590Z] 🎯 404개 티커 추출
+[reddit-buzz-collect] [2026-05-25T07:00:32.590Z] 📊 유의미한 티커: 163개
+[reddit-buzz-collect] [2026-05-25T07:00:48.894Z] ✅ 163/163건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-25T07:00:48.895Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-25T07:00:48.957Z]   🟢 NVDA [보유]: 31멘션 | ↑4,502 | 💬2,641
+[reddit-buzz-collect] [2026-05-25T07:00:48.957Z]   🔴 AMD [보유]: 18멘션 | ↑3,295 | 💬1,812
+[reddit-buzz-collect] [2026-05-25T07:00:48.957Z]   🟢 RKLB [보유]: 15멘션 | ↑6,190 | 💬1,564
+[reddit-buzz-collect] [2026-05-25T07:00:48.957Z]   🔴 MU [보유]: 15멘션 | ↑3,654 | 💬2,339
+[reddit-buzz-collect] [2026-05-25T07:00:48.957Z]   🔴 SPY: 14멘션 | ↑3,678 | 💬832
+[reddit-buzz-collect] [2026-05-25T07:00:48.957Z]   🔴 ASTS [보유]: 11멘션 | ↑3,020 | 💬1,241
+[reddit-buzz-collect] [2026-05-25T07:00:48.957Z]   🟡 TSLA [보유]: 11멘션 | ↑1,600 | 💬955
+[reddit-buzz-collect] [2026-05-25T07:00:48.957Z]   🔴 AMZN [보유]: 7멘션 | ↑1,936 | 💬1,193
+[reddit-buzz-collect] [2026-05-25T07:00:48.957Z]   🟢 NBIS [보유]: 7멘션 | ↑1,627 | 💬860
+[reddit-buzz-collect] [2026-05-25T07:00:48.957Z]   🟢 SNDK [보유]: 6멘션 | ↑1,931 | 💬1,065
+[reddit-buzz-collect] [2026-05-25T07:00:48.958Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, VRT, CIEN, 012450.KS, PLTR, GEV, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, LHX, LMT, 047810.KS, BA, TT, SBGSF, BWXT, CEG, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, 009150.KS, 090460.KS, 336260.KS, 042660.KS
+[reddit-buzz-collect] [2026-05-25T07:00:48.958Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-25 16:00:48] 완료 (exit: 0)
+
+[2026-05-26 16:00:05] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[reddit-buzz-collect] [2026-05-26T07:00:06.925Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-26T07:00:07.860Z] 📊 보유 종목: 242개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS)
+[reddit-buzz-collect] [2026-05-26T07:00:14.511Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-26T07:00:19.626Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-26T07:00:24.420Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-26T07:00:29.053Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-26T07:00:29.053Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-26T07:00:29.054Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-26T07:00:29.096Z] 🎯 389개 티커 추출
+[reddit-buzz-collect] [2026-05-26T07:00:29.097Z] 📊 유의미한 티커: 180개
+[reddit-buzz-collect] [2026-05-26T07:00:47.351Z] ✅ 180/180건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-26T07:00:47.351Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z]   🟢 NVDA [보유]: 31멘션 | ↑20,758 | 💬3,571
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z]   🔴 AMD [보유]: 17멘션 | ↑3,317 | 💬2,009
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z]   🟡 SPY: 15멘션 | ↑7,078 | 💬996
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z]   🟢 RKLB [보유]: 13멘션 | ↑3,372 | 💬1,370
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z]   🔴 ASTS [보유]: 11멘션 | ↑5,126 | 💬1,843
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z]   🟢 MU [보유]: 12멘션 | ↑2,351 | 💬1,704
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z]   🔴 TSLA [보유]: 11멘션 | ↑1,843 | 💬1,306
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z]   🟢 MSFT: 9멘션 | ↑1,755 | 💬1,370
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z]   🟢 NBIS [보유]: 7멘션 | ↑2,075 | 💬952
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z]   🟡 SPX: 9멘션 | ↑350 | 💬368
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, VRT, CIEN, OKLO, 012450.KS, GEV, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, TT, SBGSF, BWXT, CEG, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, 009150.KS, 090460.KS, 336260.KS, 042660.KS
+[reddit-buzz-collect] [2026-05-26T07:00:47.396Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-26 16:00:47] 완료 (exit: 0)
+
+[2026-05-27 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[reddit-buzz-collect] [2026-05-27T07:00:03.573Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-27T07:00:04.467Z] 📊 보유 종목: 243개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS)
+[reddit-buzz-collect] [2026-05-27T07:00:16.269Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-27T07:00:24.172Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-27T07:00:30.488Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-27T07:00:37.031Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-27T07:00:37.031Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-27T07:00:37.032Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-27T07:00:37.094Z] 🎯 397개 티커 추출
+[reddit-buzz-collect] [2026-05-27T07:00:37.094Z] 📊 유의미한 티커: 167개
+[reddit-buzz-collect] [2026-05-27T07:00:53.605Z] ✅ 167/167건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-27T07:00:53.606Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z]   🟢 NVDA [보유]: 29멘션 | ↑24,375 | 💬3,055
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z]   🟢 MU [보유]: 30멘션 | ↑10,715 | 💬2,262
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z]   🔴 AMD [보유]: 16멘션 | ↑14,177 | 💬1,833
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z]   🟡 RKLB [보유]: 12멘션 | ↑2,102 | 💬1,135
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z]   🟢 SPY: 10멘션 | ↑7,579 | 💬612
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z]   🟡 TSLA [보유]: 10멘션 | ↑1,840 | 💬1,249
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z]   🔴 ASTS [보유]: 8멘션 | ↑3,348 | 💬1,070
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z]   🟢 SPX: 10멘션 | ↑376 | 💬376
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z]   🟢 SNDK [보유]: 9멘션 | ↑691 | 💬471
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z]   🟢 MSFT: 8멘션 | ↑1,439 | 💬1,027
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, VRT, CIEN, OKLO, 012450.KS, GEV, 000660.KS, 005930.KS, 005380.KS, 006800.KS, ROK, CCJ, AMKR, TER, WDC, ANET, CAMT, FN, AEIS, ALAB, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS
+[reddit-buzz-collect] [2026-05-27T07:00:53.662Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-27 16:00:53] 완료 (exit: 0)
+
+[2026-05-28 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🛡️ auth for agents: https://vestauth.com
+[reddit-buzz-collect] [2026-05-28T07:00:03.935Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-28T07:00:04.705Z] 📊 보유 종목: 248개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA)
+[reddit-buzz-collect] [2026-05-28T07:00:12.263Z]   r/wallstreetbets: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-28T07:00:19.220Z]   r/stocks: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-28T07:00:26.084Z]   r/investing: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-28T07:00:32.383Z]   r/options: hot 100 + rising 25
+[reddit-buzz-collect] [2026-05-28T07:00:32.388Z] 📝 총 500개 포스트 수집
+[reddit-buzz-collect] [2026-05-28T07:00:32.390Z] 📝 중복 제거 후: 400개
+[reddit-buzz-collect] [2026-05-28T07:00:32.452Z] 🎯 396개 티커 추출
+[reddit-buzz-collect] [2026-05-28T07:00:32.452Z] 📊 유의미한 티커: 165개
+[reddit-buzz-collect] [2026-05-28T07:00:48.336Z] ✅ 165/165건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-28T07:00:48.337Z] 
+📈 오늘의 Top 10 버즈:
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z]   🟢 MU [보유]: 22멘션 | ↑15,963 | 💬3,224
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z]   🟢 NVDA [보유]: 19멘션 | ↑11,677 | 💬1,842
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z]   🟢 AMD [보유]: 15멘션 | ↑16,175 | 💬1,812
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z]   🟢 RKLB [보유]: 14멘션 | ↑2,294 | 💬1,275
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z]   🟢 SPY: 9멘션 | ↑7,882 | 💬640
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z]   🔴 TSLA [보유]: 10멘션 | ↑1,908 | 💬1,024
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z]   🟢 MSFT: 8멘션 | ↑2,977 | 💬1,240
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z]   🟢 ASTS [보유]: 9멘션 | ↑1,158 | 💬425
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z]   🟢 SNDK [보유]: 8멘션 | ↑2,577 | 💬622
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z]   🟡 NBIS [보유]: 8멘션 | ↑1,518 | 💬1,384
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, BE, OKLO, 012450.KS, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, ROK, CCJ, AMKR, TER, ANET, CAMT, FN, AEIS, UBER, ZETA, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, DAKT, EVC, CLMB, DSP, MXL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, RGTI, TT, SBGSF, BWXT, CEG, SIMO, NOC, BAH, QTUM, APLD, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, MTSI, 000270.KS, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, 010120.KS, CVNA
+[reddit-buzz-collect] [2026-05-28T07:00:48.394Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-28 16:00:48] 완료 (exit: 0)
+
+[2026-05-29 16:00:04] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[reddit-buzz-collect] [2026-05-29T07:00:05.393Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-29T07:00:06.130Z] 📊 보유 종목: 248개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA)
+[reddit-buzz-collect] [2026-05-29T07:00:06.350Z] ⚠️ wallstreetbets/hot HTTP 403
+[reddit-buzz-collect] [2026-05-29T07:00:08.068Z] ⚠️ wallstreetbets/rising HTTP 403
+[reddit-buzz-collect] [2026-05-29T07:00:09.570Z]   r/wallstreetbets: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-29T07:00:09.786Z] ⚠️ stocks/hot HTTP 403
+[reddit-buzz-collect] [2026-05-29T07:00:11.498Z] ⚠️ stocks/rising HTTP 403
+[reddit-buzz-collect] [2026-05-29T07:00:13.000Z]   r/stocks: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-29T07:00:13.217Z] ⚠️ investing/hot HTTP 403
+[reddit-buzz-collect] [2026-05-29T07:00:15.304Z] ⚠️ investing/rising HTTP 403
+[reddit-buzz-collect] [2026-05-29T07:00:16.806Z]   r/investing: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-29T07:00:17.031Z] ⚠️ options/hot HTTP 403
+[reddit-buzz-collect] [2026-05-29T07:00:18.749Z] ⚠️ options/rising HTTP 403
+[reddit-buzz-collect] [2026-05-29T07:00:20.252Z]   r/options: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-29T07:00:20.253Z] 📝 총 0개 포스트 수집
+[reddit-buzz-collect] [2026-05-29T07:00:20.253Z] 📝 중복 제거 후: 0개
+[reddit-buzz-collect] [2026-05-29T07:00:20.253Z] 🎯 0개 티커 추출
+[reddit-buzz-collect] [2026-05-29T07:00:20.253Z] 📊 유의미한 티커: 0개
+[reddit-buzz-collect] [2026-05-29T07:00:20.253Z] ✅ 0/0건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-29T07:00:20.253Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA
+[reddit-buzz-collect] [2026-05-29T07:00:20.253Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-29 16:00:20] 완료 (exit: 0)
+
+[2026-05-30 16:00:05] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[reddit-buzz-collect] [2026-05-30T07:00:06.104Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-30T07:00:06.994Z] 📊 보유 종목: 248개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA)
+[reddit-buzz-collect] [2026-05-30T07:00:07.217Z] ⚠️ wallstreetbets/hot HTTP 403
+[reddit-buzz-collect] [2026-05-30T07:00:08.930Z] ⚠️ wallstreetbets/rising HTTP 403
+[reddit-buzz-collect] [2026-05-30T07:00:10.434Z]   r/wallstreetbets: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-30T07:00:10.648Z] ⚠️ stocks/hot HTTP 403
+[reddit-buzz-collect] [2026-05-30T07:00:12.363Z] ⚠️ stocks/rising HTTP 403
+[reddit-buzz-collect] [2026-05-30T07:00:13.864Z]   r/stocks: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-30T07:00:14.077Z] ⚠️ investing/hot HTTP 403
+[reddit-buzz-collect] [2026-05-30T07:00:15.788Z] ⚠️ investing/rising HTTP 403
+[reddit-buzz-collect] [2026-05-30T07:00:17.289Z]   r/investing: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-30T07:00:17.509Z] ⚠️ options/hot HTTP 403
+[reddit-buzz-collect] [2026-05-30T07:00:19.233Z] ⚠️ options/rising HTTP 403
+[reddit-buzz-collect] [2026-05-30T07:00:20.734Z]   r/options: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-30T07:00:20.734Z] 📝 총 0개 포스트 수집
+[reddit-buzz-collect] [2026-05-30T07:00:20.734Z] 📝 중복 제거 후: 0개
+[reddit-buzz-collect] [2026-05-30T07:00:20.735Z] 🎯 0개 티커 추출
+[reddit-buzz-collect] [2026-05-30T07:00:20.735Z] 📊 유의미한 티커: 0개
+[reddit-buzz-collect] [2026-05-30T07:00:20.735Z] ✅ 0/0건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-30T07:00:20.735Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA
+[reddit-buzz-collect] [2026-05-30T07:00:20.735Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-30 16:00:20] 완료 (exit: 0)
+
+[2026-05-31 16:00:01] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[reddit-buzz-collect] [2026-05-31T07:00:03.758Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-05-31T07:00:04.630Z] 📊 보유 종목: 249개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA, DELL)
+[reddit-buzz-collect] [2026-05-31T07:00:05.197Z] ⚠️ wallstreetbets/hot HTTP 403
+[reddit-buzz-collect] [2026-05-31T07:00:06.909Z] ⚠️ wallstreetbets/rising HTTP 403
+[reddit-buzz-collect] [2026-05-31T07:00:08.410Z]   r/wallstreetbets: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-31T07:00:08.621Z] ⚠️ stocks/hot HTTP 403
+[reddit-buzz-collect] [2026-05-31T07:00:10.686Z] ⚠️ stocks/rising HTTP 403
+[reddit-buzz-collect] [2026-05-31T07:00:12.187Z]   r/stocks: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-31T07:00:12.411Z] ⚠️ investing/hot HTTP 403
+[reddit-buzz-collect] [2026-05-31T07:00:14.122Z] ⚠️ investing/rising HTTP 403
+[reddit-buzz-collect] [2026-05-31T07:00:15.623Z]   r/investing: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-31T07:00:15.832Z] ⚠️ options/hot HTTP 403
+[reddit-buzz-collect] [2026-05-31T07:00:17.553Z] ⚠️ options/rising HTTP 403
+[reddit-buzz-collect] [2026-05-31T07:00:19.054Z]   r/options: hot 0 + rising 0
+[reddit-buzz-collect] [2026-05-31T07:00:19.054Z] 📝 총 0개 포스트 수집
+[reddit-buzz-collect] [2026-05-31T07:00:19.054Z] 📝 중복 제거 후: 0개
+[reddit-buzz-collect] [2026-05-31T07:00:19.054Z] 🎯 0개 티커 추출
+[reddit-buzz-collect] [2026-05-31T07:00:19.054Z] 📊 유의미한 티커: 0개
+[reddit-buzz-collect] [2026-05-31T07:00:19.054Z] ✅ 0/0건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-05-31T07:00:19.054Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA, DELL
+[reddit-buzz-collect] [2026-05-31T07:00:19.054Z] 
+🏁 레딧 버즈 수집 완료
+[2026-05-31 16:00:19] 완료 (exit: 0)
+
+[2026-06-01 16:00:03] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[reddit-buzz-collect] [2026-06-01T07:00:05.112Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-06-01T07:00:06.129Z] 📊 보유 종목: 249개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA, DELL)
+[reddit-buzz-collect] [2026-06-01T07:00:06.350Z] ⚠️ wallstreetbets/hot HTTP 403
+[reddit-buzz-collect] [2026-06-01T07:00:08.074Z] ⚠️ wallstreetbets/rising HTTP 403
+[reddit-buzz-collect] [2026-06-01T07:00:09.577Z]   r/wallstreetbets: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-01T07:00:09.791Z] ⚠️ stocks/hot HTTP 403
+[reddit-buzz-collect] [2026-06-01T07:00:11.524Z] ⚠️ stocks/rising HTTP 403
+[reddit-buzz-collect] [2026-06-01T07:00:13.025Z]   r/stocks: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-01T07:00:13.237Z] ⚠️ investing/hot HTTP 403
+[reddit-buzz-collect] [2026-06-01T07:00:14.957Z] ⚠️ investing/rising HTTP 403
+[reddit-buzz-collect] [2026-06-01T07:00:16.459Z]   r/investing: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-01T07:00:16.672Z] ⚠️ options/hot HTTP 403
+[reddit-buzz-collect] [2026-06-01T07:00:18.388Z] ⚠️ options/rising HTTP 403
+[reddit-buzz-collect] [2026-06-01T07:00:19.891Z]   r/options: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-01T07:00:19.892Z] 📝 총 0개 포스트 수집
+[reddit-buzz-collect] [2026-06-01T07:00:19.892Z] 📝 중복 제거 후: 0개
+[reddit-buzz-collect] [2026-06-01T07:00:19.892Z] 🎯 0개 티커 추출
+[reddit-buzz-collect] [2026-06-01T07:00:19.892Z] 📊 유의미한 티커: 0개
+[reddit-buzz-collect] [2026-06-01T07:00:19.892Z] ✅ 0/0건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-06-01T07:00:19.892Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 066570.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA, DELL
+[reddit-buzz-collect] [2026-06-01T07:00:19.892Z] 
+🏁 레딧 버즈 수집 완료
+[2026-06-01 16:00:19] 완료 (exit: 0)
+
+[2026-06-02 16:00:02] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[reddit-buzz-collect] [2026-06-02T07:00:04.122Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-06-02T07:00:04.995Z] 📊 보유 종목: 249개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA, DELL, 066570.KS)
+[reddit-buzz-collect] [2026-06-02T07:00:05.219Z] ⚠️ wallstreetbets/hot HTTP 403
+[reddit-buzz-collect] [2026-06-02T07:00:06.934Z] ⚠️ wallstreetbets/rising HTTP 403
+[reddit-buzz-collect] [2026-06-02T07:00:08.437Z]   r/wallstreetbets: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-02T07:00:08.649Z] ⚠️ stocks/hot HTTP 403
+[reddit-buzz-collect] [2026-06-02T07:00:10.364Z] ⚠️ stocks/rising HTTP 403
+[reddit-buzz-collect] [2026-06-02T07:00:11.866Z]   r/stocks: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-02T07:00:12.081Z] ⚠️ investing/hot HTTP 403
+[reddit-buzz-collect] [2026-06-02T07:00:13.804Z] ⚠️ investing/rising HTTP 403
+[reddit-buzz-collect] [2026-06-02T07:00:15.305Z]   r/investing: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-02T07:00:15.520Z] ⚠️ options/hot HTTP 403
+[reddit-buzz-collect] [2026-06-02T07:00:17.237Z] ⚠️ options/rising HTTP 403
+[reddit-buzz-collect] [2026-06-02T07:00:18.739Z]   r/options: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-02T07:00:18.739Z] 📝 총 0개 포스트 수집
+[reddit-buzz-collect] [2026-06-02T07:00:18.739Z] 📝 중복 제거 후: 0개
+[reddit-buzz-collect] [2026-06-02T07:00:18.739Z] 🎯 0개 티커 추출
+[reddit-buzz-collect] [2026-06-02T07:00:18.739Z] 📊 유의미한 티커: 0개
+[reddit-buzz-collect] [2026-06-02T07:00:18.740Z] ✅ 0/0건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-06-02T07:00:18.740Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA, DELL, 066570.KS
+[reddit-buzz-collect] [2026-06-02T07:00:18.740Z] 
+🏁 레딧 버즈 수집 완료
+[2026-06-02 16:00:18] 완료 (exit: 0)
+
+[2026-06-03 16:00:01] 레딧 버즈 수집 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[reddit-buzz-collect] [2026-06-03T07:00:03.348Z] 🔍 레딧 버즈 수집 시작
+[reddit-buzz-collect] [2026-06-03T07:00:04.242Z] 📊 보유 종목: 249개 (064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA, DELL, 066570.KS)
+[reddit-buzz-collect] [2026-06-03T07:00:04.465Z] ⚠️ wallstreetbets/hot HTTP 403
+[reddit-buzz-collect] [2026-06-03T07:00:06.179Z] ⚠️ wallstreetbets/rising HTTP 403
+[reddit-buzz-collect] [2026-06-03T07:00:07.681Z]   r/wallstreetbets: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-03T07:00:07.895Z] ⚠️ stocks/hot HTTP 403
+[reddit-buzz-collect] [2026-06-03T07:00:09.613Z] ⚠️ stocks/rising HTTP 403
+[reddit-buzz-collect] [2026-06-03T07:00:11.114Z]   r/stocks: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-03T07:00:11.326Z] ⚠️ investing/hot HTTP 403
+[reddit-buzz-collect] [2026-06-03T07:00:13.403Z] ⚠️ investing/rising HTTP 403
+[reddit-buzz-collect] [2026-06-03T07:00:14.905Z]   r/investing: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-03T07:00:15.119Z] ⚠️ options/hot HTTP 403
+[reddit-buzz-collect] [2026-06-03T07:00:16.836Z] ⚠️ options/rising HTTP 403
+[reddit-buzz-collect] [2026-06-03T07:00:18.338Z]   r/options: hot 0 + rising 0
+[reddit-buzz-collect] [2026-06-03T07:00:18.339Z] 📝 총 0개 포스트 수집
+[reddit-buzz-collect] [2026-06-03T07:00:18.339Z] 📝 중복 제거 후: 0개
+[reddit-buzz-collect] [2026-06-03T07:00:18.339Z] 🎯 0개 티커 추출
+[reddit-buzz-collect] [2026-06-03T07:00:18.339Z] 📊 유의미한 티커: 0개
+[reddit-buzz-collect] [2026-06-03T07:00:18.339Z] ✅ 0/0건 저장 완료 (에러: 0건)
+[reddit-buzz-collect] [2026-06-03T07:00:18.339Z] 
+🔇 오늘 레딧 미언급 보유종목: 064350.KS, RKLB, BE, VRT, CIEN, OKLO, 012450.KS, PLTR, IREN, GEV, QBTS, 000660.KS, 005930.KS, 005380.KS, 006800.KS, MRVL, ROK, CCJ, AMKR, TER, WDC, MU, ANET, CAMT, FN, AEIS, NBIS, ALAB, UBER, ZETA, LUNR, MGNI, PDYN, ANIP, OPRA, PAYS, MNKD, LPTH, GCT, CRNC, CXW, OUST, CODI, FCEL, GENI, ADUR, AKBA, NAGE, DVLT, ETON, COHU, ASTH, NNDM, AUNA, CDNA, GLDD, ESTA, AIP, BBNX, AVAH, IOVA, ATAI, HROW, ANAB, ESPR, ALT, BKSY, ALKT, DGII, APPN, PNTG, LZ, ELVA, MNTN, BWAY, INVA, DEC, AORT, FA, AEBI, IVVD, FUBO, BTDR, AUPH, BW, BFLY, PDFS, PRE, POET, FDMT, NPCE, OVID, NVAX, EH, NTLA, ENVX, BLDP, GILT, CBZ, EVER, PBYI, INTA, INOD, MQ, PKE, PHAT, AMSC, NUVB, AMLX, EOSE, ABCL, LAES, MGTX, AZ, CV, LCTX, PGEN, AMPL, CLOV, CBLL, ADCT, ABAT, MDXG, OMDA, IMCR, EVLV, CRMD, ADUS, KMTS, ATEC, NMAX, CECO, GOGO, AEVA, ADTN, ARLO, AXGN, ORGO, FIP, AGIO, ISSC, AGYS, CRON, DCTH, AUTL, NUAI, PROK, QLD, CLPT, SSO, CAN, RDDT, DAKT, AMZN, EVC, CLMB, DSP, ASTS, MXL, GOOGL, IMAX, HRMY, MITK, PICS, PSIX, SATL, PATH, FLY, NNE, AIQ, SOFI, OPEN, FIGM, NVDA, AVGO, AMD, TSM, EQIX, DLR, NEE, VST, LHX, LMT, 047810.KS, BA, IONQ, RGTI, TSLA, TT, SBGSF, BWXT, CEG, STX, SIMO, NOC, BAH, QTUM, CRWV, APLD, SNDK, 007660.KS, 007810.KS, 356860.KS, 036710.KS, 195870.KS, 353200.KS, SMCI, MTSI, 000270.KS, ARM, INTC, 277810.KS, RTX, 011790.KS, 402340.KS, 079550.KS, GLW, 010170.KS, 092600.KS, 264850.KS, 037440.KS, 042700.KS, 454910.KS, 034020.KS, ORCL, SMR, WULF, SNOW, 064400.KS, CBRS, HIVE, 036930.KS, 006260.KS, 012330.KS, 272210.KS, 001820.KS, ASML, 009150.KS, 090460.KS, 336260.KS, 042660.KS, 000990.KS, 011070.KS, 018260.KS, PL, 010120.KS, CVNA, DELL, 066570.KS
+[reddit-buzz-collect] [2026-06-03T07:00:18.339Z] 
+🏁 레딧 버즈 수집 완료
+[2026-06-03 16:00:18] 완료 (exit: 0)
+

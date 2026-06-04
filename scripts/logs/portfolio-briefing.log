@@ -1,0 +1,24 @@
+[2026-03-16 16:57:05] 포트폴리오 브리핑 시작 (session: kr-close)
+[dotenv@17.3.1] injecting env (0) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[portfolio-briefing] [2026-03-16T07:57:07.005Z] 한국장 마감 브리핑 시작
+[portfolio-briefing] [2026-03-16T07:58:34.574Z] Briefing sent (1 messages)
+[2026-03-16 16:58:34] 완료 (exit: 0)
+
+[2026-03-18 09:05:01] 포트폴리오 브리핑 시작 (session: kr-open)
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[portfolio-briefing] [2026-03-18T00:05:02.082Z] 한국장 개장 브리핑 시작
+[portfolio-briefing] [2026-03-18T00:06:26.126Z] Briefing sent (1 messages)
+[2026-03-18 09:06:26] 완료 (exit: 0)
+
+[2026-03-18 15:35:01] 포트폴리오 브리핑 시작 (session: kr-close)
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[portfolio-briefing] [2026-03-18T06:35:03.328Z] 한국장 마감 브리핑 시작
+[portfolio-briefing] [2026-03-18T06:36:43.736Z] Briefing sent (1 messages)
+[2026-03-18 15:36:43] 완료 (exit: 0)
+
+[2026-03-18 23:50:04] 포트폴리오 브리핑 시작 (session: us-open)
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[portfolio-briefing] [2026-03-18T14:50:05.815Z] 미국장 개장 브리핑 시작
+[portfolio-briefing] [2026-03-18T14:51:26.368Z] Briefing sent (1 messages)
+[2026-03-18 23:51:26] 완료 (exit: 0)
+

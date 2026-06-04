@@ -1,0 +1,1946 @@
+[2026-03-18 16:15:06] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: 🛡️ auth for agents: https://vestauth.com
+[market-research] [2026-03-18T07:15:08.083Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-18T07:18:42.609Z] ✅ 리포트 전송 완료 (1개 메시지)
+[market-research] [2026-03-18T07:18:42.610Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-18T07:19:36.904Z]   📋 1개 종목 추출: NBIS
+[market-research] [2026-03-18T07:19:37.807Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-03-18 16:19:38] 완료 (exit: 0)
+
+[2026-03-19 16:15:02] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-03-19T07:15:04.504Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-19T07:20:14.088Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-03-19T07:20:14.088Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-19T07:21:17.072Z]   📋 6개 종목 추출: MU, NBIS, NOW, ASTS, SOFI, RDDT
+[market-research] [2026-03-19T07:21:18.553Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-03-19 16:21:19] 완료 (exit: 0)
+
+[2026-03-20 16:15:00] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-03-20T07:15:01.522Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-20T07:18:12.867Z] ✅ 리포트 전송 완료 (4개 메시지)
+[market-research] [2026-03-20T07:18:12.867Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-20T07:18:57.529Z]   📋 5개 종목 추출: WDC, FN, CRDO, ASTS, LNG
+[market-research] [2026-03-20T07:18:59.077Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-03-20 16:19:00] 완료 (exit: 0)
+
+[2026-03-21 16:15:03] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[market-research] [2026-03-21T07:15:05.639Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-21T07:18:29.077Z] ✅ 리포트 전송 완료 (1개 메시지)
+[market-research] [2026-03-21T07:18:29.077Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-21T07:19:28.115Z]   📋 7개 종목 추출: LNG, NBIS, ASTS, KTOS, ALAB, WDC, FN
+[market-research] [2026-03-21T07:19:29.648Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-03-21 16:19:30] 완료 (exit: 0)
+
+[2026-03-22 16:15:00] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-03-22T07:15:02.084Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-22T07:18:14.419Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-03-22T07:18:14.420Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-22T07:19:28.609Z]   📋 4개 종목 추출: NBIS, MU, POET, ASTS
+[market-research] [2026-03-22T07:19:30.271Z]   ✅ stock_research 테이블 1건 적재 완료
+[2026-03-22 16:19:31] 완료 (exit: 0)
+
+[2026-03-23 16:15:01] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[market-research] [2026-03-23T07:15:03.325Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-23T07:17:56.718Z] ✅ 리포트 전송 완료 (5개 메시지)
+[market-research] [2026-03-23T07:17:56.718Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-23T07:18:59.223Z]   📋 8개 종목 추출: NBIS, MU, RDDT, ASTS, KTOS, ALAB, WDC, FN
+[market-research] [2026-03-23T07:19:01.183Z]   ✅ stock_research 테이블 2건 적재 완료
+[2026-03-23 16:19:02] 완료 (exit: 0)
+
+[2026-03-24 16:15:03] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[market-research] [2026-03-24T07:15:05.135Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-24T07:18:34.691Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-03-24T07:18:34.692Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-24T07:19:11.038Z]   📋 3개 종목 추출: NBIS, MU, ASTS
+[market-research] [2026-03-24T07:19:12.477Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-03-24 16:19:13] 완료 (exit: 0)
+
+[2026-03-25 16:15:00] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[market-research] [2026-03-25T07:15:02.112Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-25T07:17:48.763Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-03-25T07:17:48.764Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-25T07:19:25.016Z]   📋 6개 종목 추출: NBIS, ASTS, MRVL, FN, TER, CRDO
+[market-research] [2026-03-25T07:19:26.375Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-03-25 16:19:27] 완료 (exit: 0)
+
+[2026-03-26 16:15:01] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[market-research] [2026-03-26T07:15:03.089Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-26T07:17:47.226Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-03-26T07:17:47.226Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-26T07:18:46.653Z]   📋 2개 종목 추출: NBIS, FLY
+[market-research] [2026-03-26T07:18:47.632Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-03-26 16:18:48] 완료 (exit: 0)
+
+[2026-03-27 16:15:04] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-03-27T07:15:06.247Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-27T07:17:54.757Z] ✅ 리포트 전송 완료 (2개 메시지)
+[market-research] [2026-03-27T07:17:54.757Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-27T07:19:19.035Z]   📋 5개 종목 추출: NBIS, MU, POET, SOFI, ASTS
+[market-research] [2026-03-27T07:19:20.195Z]   ✅ stock_research 테이블 2건 적재 완료
+[2026-03-27 16:19:21] 완료 (exit: 0)
+
+[2026-03-28 16:15:04] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[market-research] [2026-03-28T07:15:06.956Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-28T07:18:01.465Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-03-28T07:18:01.466Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-28T07:19:09.582Z]   📋 4개 종목 추출: ASTS, NBIS, MU, POET
+[market-research] [2026-03-28T07:19:10.896Z]   ✅ stock_research 테이블 2건 적재 완료
+[2026-03-28 16:19:11] 완료 (exit: 0)
+
+[2026-03-29 16:15:02] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (23) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[market-research] [2026-03-29T07:15:04.490Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-29T07:18:24.369Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-03-29T07:18:24.370Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-29T07:20:27.774Z]   📋 14개 종목 추출: NBIS, UBER, ASTS, CRWV, MRVL, BWXT, KTOS, CRDO, ALAB, CRM, TEM, INOD, SMR, SOUN
+[market-research] [2026-03-29T07:20:30.991Z]   ✅ stock_research 테이블 1건 적재 완료
+[2026-03-29 16:20:32] 완료 (exit: 0)
+
+[2026-03-30 16:15:00] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-03-30T07:15:02.450Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-30T07:18:09.804Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-03-30T07:18:09.805Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-30T07:19:26.427Z]   📋 7개 종목 추출: NBIS, FLY, ASTS, INOD, CRWV, KTOS, SMR
+[market-research] [2026-03-30T07:19:28.444Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-03-30 16:19:29] 완료 (exit: 0)
+
+[2026-03-31 16:15:05] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-03-31T07:15:07.070Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-03-31T07:18:23.692Z] ✅ 리포트 전송 완료 (2개 메시지)
+[market-research] [2026-03-31T07:18:23.692Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-03-31T07:19:04.605Z]   📋 2개 종목 추출: NBIS, ASTS
+[market-research] [2026-03-31T07:19:05.601Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-03-31 16:19:06] 완료 (exit: 0)
+
+[2026-04-01 16:15:03] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-04-01T07:15:05.717Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-01T07:18:12.181Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-04-01T07:18:12.182Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-01T07:19:03.396Z]   📋 4개 종목 추출: MRVL, MU, NBIS, ASTS
+[market-research] [2026-04-01T07:19:04.453Z]   ✅ stock_research 테이블 2건 적재 완료
+[2026-04-01 16:19:05] 완료 (exit: 0)
+
+[2026-04-02 16:15:04] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-04-02T07:15:07.205Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-02T07:18:26.080Z] ✅ 리포트 전송 완료 (1개 메시지)
+[market-research] [2026-04-02T07:18:26.080Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-02T07:19:43.107Z]   📋 16개 종목 추출: MRVL, WDC, MU, ASTS, NBIS, RDDT, CRDO, ALAB, CRWV, SMR, SOUN, GOOGL, AMZN, TSLA, KTOS, AVAV
+[market-research] [2026-04-02T07:19:46.845Z]   ✅ stock_research 테이블 1건 적재 완료
+[2026-04-02 16:19:47] 완료 (exit: 0)
+
+[2026-04-03 16:15:00] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[market-research] [2026-04-03T07:15:02.324Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-03T07:18:11.661Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-04-03T07:18:11.661Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-03T07:19:17.276Z]   📋 9개 종목 추출: MRVL, ALAB, ASTS, CRDO, NBIS, POET, AMD, NOK, KTOS
+[market-research] [2026-04-03T07:19:19.962Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-03 16:19:21] 완료 (exit: 0)
+
+[2026-04-04 16:15:03] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[market-research] [2026-04-04T07:15:05.164Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-04T07:17:29.289Z] ✅ 리포트 전송 완료 (2개 메시지)
+[market-research] [2026-04-04T07:17:29.290Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-04T07:18:49.837Z]   📋 13개 종목 추출: MRVL, ASTS, ALAB, CRDO, FN, CRWV, AMD, SOFI, NBIS, POET, RDDT, PATH, MU
+[market-research] [2026-04-04T07:18:53.332Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-04 16:18:54] 완료 (exit: 0)
+
+[2026-04-05 16:15:05] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-04-05T07:15:07.265Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-05T07:18:59.917Z] ✅ 리포트 전송 완료 (4개 메시지)
+[market-research] [2026-04-05T07:18:59.918Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-05T07:20:13.443Z]   📋 11개 종목 추출: MRVL, ASTS, MU, CRDO, ALAB, NVDA, XOM, AMD, JD, NBIS, RDDT
+[market-research] [2026-04-05T07:20:16.858Z]   ✅ stock_research 테이블 1건 적재 완료
+[2026-04-05 16:20:18] 완료 (exit: 0)
+
+[2026-04-06 16:15:05] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-04-06T07:15:06.718Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-06T07:18:01.365Z] ✅ 리포트 전송 완료 (1개 메시지)
+[market-research] [2026-04-06T07:18:01.366Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-06T07:19:04.141Z]   📋 6개 종목 추출: ASTS, MRVL, ALAB, CRDO, CRWV, NBIS
+[market-research] [2026-04-06T07:19:05.978Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-06 16:19:07] 완료 (exit: 0)
+
+[2026-04-07 16:15:04] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[market-research] [2026-04-07T07:15:06.612Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-07T07:17:39.578Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-04-07T07:17:39.578Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-07T07:18:21.110Z]   📋 7개 종목 추출: MRVL, BWXT, KTOS, FLY, MU, ASTS, WDC
+[market-research] [2026-04-07T07:18:22.935Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-07 16:18:23] 완료 (exit: 0)
+
+[2026-04-08 16:15:00] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-04-08T07:15:02.394Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-08T07:18:01.825Z] ✅ 리포트 전송 완료 (2개 메시지)
+[market-research] [2026-04-08T07:18:01.825Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-08T07:21:28.902Z]   📋 19개 종목 추출: MRVL, WDC, TER, CRDO, CRWV, ALAB, KTOS, SMR, SOUN, INOD, ASTS, NVDA, MU, NBIS, GOOGL, AMZN, RDDT, UNH, TSLA
+[market-research] [2026-04-08T07:21:34.895Z]   ✅ stock_research 테이블 6건 적재 완료
+[2026-04-08 16:21:35] 완료 (exit: 0)
+
+[2026-04-09 16:15:01] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[market-research] [2026-04-09T07:15:03.306Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-09T07:18:30.454Z] ✅ 리포트 전송 완료 (1개 메시지)
+[market-research] [2026-04-09T07:18:30.454Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-09T07:19:42.702Z]   📋 8개 종목 추출: BWXT, WDC, TER, MRVL, ROK, CRWV, NBIS, CIFR
+[market-research] [2026-04-09T07:19:46.095Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-09 16:19:47] 완료 (exit: 0)
+
+[2026-04-10 16:15:00] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-04-10T07:15:01.610Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-10T07:18:27.950Z] ✅ 리포트 전송 완료 (4개 메시지)
+[market-research] [2026-04-10T07:18:27.950Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-10T07:22:26.357Z]   📋 20개 종목 추출: NBIS, ANET, MRVL, MU, ROK, TER, FN, WDC, TTD, ASTS, INOD, NET, KTOS, TEM, SMR, SOUN, ALAB, CRWV, CRDO, ADBE
+[market-research] [2026-04-10T07:22:31.354Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-10 16:22:32] 완료 (exit: 0)
+
+[2026-04-11 16:15:01] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-04-11T07:15:02.490Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-11T07:18:20.138Z] ✅ 리포트 전송 완료 (4개 메시지)
+[market-research] [2026-04-11T07:18:20.139Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-11T07:19:51.831Z]   📋 9개 종목 추출: MRVL, FN, ANET, WDC, TER, AEIS, ROK, ASTS, AVAV
+[market-research] [2026-04-11T07:19:54.238Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-11 16:19:55] 완료 (exit: 0)
+
+[2026-04-12 16:15:02] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-04-12T07:15:04.342Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-12T07:17:40.694Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-04-12T07:17:40.695Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-12T07:18:55.531Z]   📋 10개 종목 추출: MRVL, FN, NBIS, TER, AEIS, WDC, ROK, MU, ASTS, TTD
+[market-research] [2026-04-12T07:18:57.949Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-12 16:18:58] 완료 (exit: 0)
+
+[2026-04-13 16:15:00] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-04-13T07:15:01.913Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-13T07:18:00.374Z] ✅ 리포트 전송 완료 (4개 메시지)
+[market-research] [2026-04-13T07:18:00.375Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-13T07:19:28.144Z]   📋 9개 종목 추출: MRVL, FN, WDC, TER, AEIS, ROK, NBIS, ASTS, MU
+[market-research] [2026-04-13T07:19:30.636Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-13 16:19:31] 완료 (exit: 0)
+
+[2026-04-14 16:15:01] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-04-14T07:15:02.559Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-14T07:18:02.043Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-04-14T07:18:02.043Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-14T07:19:00.680Z]   📋 3개 종목 추출: SNDK, ASTS, SMR
+[market-research] [2026-04-14T07:19:01.429Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-14 16:19:02] 완료 (exit: 0)
+
+[2026-04-15 16:15:00] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[market-research] [2026-04-15T07:15:02.469Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-15T07:17:59.531Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-04-15T07:17:59.531Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-15T07:19:19.325Z]   📋 7개 종목 추출: MU, NBIS, ASTS, WDC, AEIS, BWXT, MRVL
+[market-research] [2026-04-15T07:19:21.291Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-15 16:19:22] 완료 (exit: 0)
+
+[2026-04-16 16:15:04] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[market-research] [2026-04-16T07:15:06.373Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-16T07:17:36.678Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-04-16T07:17:36.679Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-16T07:18:46.049Z]   📋 3개 종목 추출: NBIS, ASTS, MU
+[market-research] [2026-04-16T07:18:47.299Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-16 16:18:48] 완료 (exit: 0)
+
+[2026-04-17 16:15:01] 통합 마켓 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[market-research] [2026-04-17T07:15:03.185Z] 🔍 통합 마켓 리서치 스캔 시작
+[market-research] [2026-04-17T07:18:06.192Z] ✅ 리포트 전송 완료 (3개 메시지)
+[market-research] [2026-04-17T07:18:06.193Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-17T07:19:46.155Z]   📋 15개 종목 추출: NBIS, GEV, CEG, ANET, MU, CCJ, BWXT, WDC, TER, ROK, SSO, AIQ, QLD, ASTS, RDDT
+[market-research] [2026-04-17T07:19:50.499Z]   ✅ stock_research 테이블 0건 적재 완료
+[2026-04-17 16:19:51] 완료 (exit: 0)
+
+[2026-04-18 16:15:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[market-research] [2026-04-18T07:15:06.662Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-18T07:15:06.838Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-18T07:18:20.825Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-18T07:18:20.826Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-18T07:20:13.424Z]   📋 3개 종목 추출: NBIS, MU, ASTS
+[market-research] [2026-04-18T07:20:14.209Z]   ✅ stock_research 테이블 3건 적재 완료
+[market-research] [2026-04-18T07:20:15.175Z] 🏁 통합 리서치 스캔 완료
+[2026-04-18 16:20:15] 완료 (exit: 0)
+
+[2026-04-19 09:00:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[market-research] [2026-04-19T00:00:08.255Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-19T00:00:08.615Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-19T00:01:34.388Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-19T00:01:34.389Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-19T00:04:17.046Z]   📋 11개 종목 추출: TER, ANET, ROK, WDC, BWXT, FN, AEIS, CCJ, QLD, SSO, AIQ
+[market-research] [2026-04-19T00:04:19.602Z]   ✅ stock_research 테이블 11건 적재 완료
+[market-research] [2026-04-19T00:04:19.603Z] 🏁 통합 리서치 스캔 완료
+[2026-04-19 09:04:19] 완료 (exit: 0)
+
+[2026-04-19 16:15:00] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-04-19T07:15:01.825Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-19T07:15:02.280Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-19T07:18:30.224Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-19T07:18:30.225Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-19T07:22:09.862Z]   📋 11개 종목 추출: NBIS, GEV, TER, ANET, WDC, BWXT, FN, QLD, SSO, AIQ, ASTS
+[market-research] [2026-04-19T07:22:14.496Z]   ✅ stock_research 테이블 11건 적재 완료
+[market-research] [2026-04-19T07:22:15.546Z] 🏁 통합 리서치 스캔 완료
+[2026-04-19 16:22:15] 완료 (exit: 0)
+
+[2026-04-20 09:00:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[market-research] [2026-04-20T00:00:03.044Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-20T00:00:03.211Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-20T00:01:44.541Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-20T00:01:44.542Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-20T00:04:15.720Z]   📋 11개 종목 추출: TER, ANET, FN, WDC, CCJ, AIQ, BWXT, AEIS, ROK, QLD, SSO
+[market-research] [2026-04-20T00:04:18.229Z]   ✅ stock_research 테이블 11건 적재 완료
+[market-research] [2026-04-20T00:04:18.229Z] 🏁 통합 리서치 스캔 완료
+[2026-04-20 09:04:18] 완료 (exit: 0)
+
+[2026-04-20 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[market-research] [2026-04-20T07:15:04.893Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-20T07:15:05.459Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-20T07:18:04.584Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-20T07:18:04.585Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-20T07:21:50.413Z]   📋 15개 종목 추출: MRVL, ANET, TER, FN, BWXT, WDC, AEIS, AIQ, QLD, MU, SSO, CCJ, NBIS, ROK, ASTS
+[market-research] [2026-04-20T07:21:54.629Z]   ✅ stock_research 테이블 15건 적재 완료
+[market-research] [2026-04-20T07:21:55.612Z] 🏁 통합 리서치 스캔 완료
+[2026-04-20 16:21:55] 완료 (exit: 0)
+
+[2026-04-21 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-04-21T00:00:13.307Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-21T00:00:13.578Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-21T00:02:11.091Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-21T00:02:11.102Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-21T00:03:39.597Z]   📋 5개 종목 추출: CCJ, ANET, MRVL, QLD, BWXT
+[market-research] [2026-04-21T00:03:40.845Z]   ✅ stock_research 테이블 5건 적재 완료
+[market-research] [2026-04-21T00:03:40.845Z] 🏁 통합 리서치 스캔 완료
+[2026-04-21 09:03:40] 완료 (exit: 0)
+
+[2026-04-21 16:15:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[market-research] [2026-04-21T07:15:02.726Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-21T07:15:03.427Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-21T07:18:05.418Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-21T07:18:05.419Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-21T07:19:57.091Z]   📋 4개 종목 추출: NBIS, ASTS, AAPL, AMZN
+[market-research] [2026-04-21T07:19:58.392Z]   ✅ stock_research 테이블 4건 적재 완료
+[market-research] [2026-04-21T07:19:59.432Z] 🏁 통합 리서치 스캔 완료
+[2026-04-21 16:19:59] 완료 (exit: 0)
+
+[2026-04-22 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-04-22T00:00:06.679Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-22T00:00:07.013Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-22T00:01:49.394Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-22T00:01:49.395Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-22T00:03:58.728Z]   📋 10개 종목 추출: ANET, MRVL, WDC, TER, AIQ, QLD, SSO, ROK, BWXT, CCJ
+[market-research] [2026-04-22T00:04:01.747Z]   ✅ stock_research 테이블 10건 적재 완료
+[market-research] [2026-04-22T00:04:01.747Z] 🏁 통합 리서치 스캔 완료
+[2026-04-22 09:04:01] 완료 (exit: 0)
+
+[2026-04-22 16:15:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (26) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-04-22T07:15:06.736Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-22T07:15:07.213Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-22T07:18:02.929Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-22T07:18:02.930Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-22T07:21:42.512Z]   📋 11개 종목 추출: MU, AMZN, GOOGL, AAPL, NBIS, UNH, SOFI, RDDT, PATH, POET, ASTS
+[market-research] [2026-04-22T07:21:45.440Z]   ✅ stock_research 테이블 11건 적재 완료
+[market-research] [2026-04-22T07:21:46.433Z] 🏁 통합 리서치 스캔 완료
+[2026-04-22 16:21:46] 완료 (exit: 0)
+
+[2026-04-23 09:00:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (26) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[market-research] [2026-04-23T00:00:03.485Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-23T00:00:03.664Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-23T00:01:22.339Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-23T00:01:22.340Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-23T00:03:17.783Z]   📋 8개 종목 추출: ANET, MU, MRVL, CCJ, TER, AIQ, QLD, SSO
+[market-research] [2026-04-23T00:03:17.784Z] 📊 시가총액 조회: 8개 종목 (Yahoo Finance)
+[market-research] [2026-04-23T00:03:18.897Z] 📊 시가총액 조회 완료: 0/8개 성공
+[market-research] [2026-04-23T00:03:20.918Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-04-23T00:03:20.919Z] 🏁 통합 리서치 스캔 완료
+[2026-04-23 09:03:20] 완료 (exit: 0)
+
+[2026-04-23 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (26) from .env.local -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[market-research] [2026-04-23T07:15:04.457Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-23T07:15:05.152Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-23T07:17:49.081Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-23T07:17:49.082Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-23T07:19:11.464Z]   📋 3개 종목 추출: NBIS, ASTS, NNE
+[market-research] [2026-04-23T07:19:11.465Z] 📊 시가총액 조회: 3개 종목 (Yahoo Finance)
+[market-research] [2026-04-23T07:19:11.753Z] 📊 시가총액 조회 완료: 0/3개 성공
+[market-research] [2026-04-23T07:19:12.826Z]   ✅ stock_research 테이블 3건 적재 완료
+[market-research] [2026-04-23T07:19:13.780Z] 🏁 통합 리서치 스캔 완료
+[2026-04-23 16:19:13] 완료 (exit: 0)
+
+[2026-04-24 09:00:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (26) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[market-research] [2026-04-24T00:00:03.333Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-24T00:00:03.691Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-24T00:01:31.616Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-24T00:01:31.617Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-24T00:04:48.918Z]   📋 8개 종목 추출: MRVL, TER, MU, AIQ, ANET, QLD, SSO, ROK
+[market-research] [2026-04-24T00:04:48.919Z] 📊 시가총액 조회: 8개 종목 (Yahoo Finance)
+[market-research] [2026-04-24T00:04:50.049Z] 📊 시가총액 조회 완료: 0/8개 성공
+[market-research] [2026-04-24T00:04:52.583Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-04-24T00:04:52.583Z] 🏁 통합 리서치 스캔 완료
+[2026-04-24 09:04:52] 완료 (exit: 0)
+
+[2026-04-24 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (26) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[market-research] [2026-04-24T07:15:05.146Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-24T07:15:05.884Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-24T07:18:03.653Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-24T07:18:03.653Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-24T07:19:18.746Z]   📋 2개 종목 추출: TSM, TSLA
+[market-research] [2026-04-24T07:19:18.747Z] 📊 시가총액 조회: 2개 종목 (Yahoo Finance)
+[market-research] [2026-04-24T07:19:19.103Z] 📊 시가총액 조회 완료: 0/2개 성공
+[market-research] [2026-04-24T07:19:20.152Z]   ✅ stock_research 테이블 2건 적재 완료
+[market-research] [2026-04-24T07:19:21.239Z] 🏁 통합 리서치 스캔 완료
+[2026-04-24 16:19:21] 완료 (exit: 0)
+
+[2026-04-25 09:00:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (28) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[market-research] [2026-04-25T00:00:06.970Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-25T00:00:07.698Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-25T00:01:32.374Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-25T00:01:32.375Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-25T00:03:01.838Z]   📋 9개 종목 추출: AIQ, QLD, SSO, TER, ANET, FN, MU, AEIS, WDC
+[market-research] [2026-04-25T00:03:01.840Z] 📊 시가총액 조회: 9개 종목 (Yahoo Finance)
+[market-research] [2026-04-25T00:03:02.809Z] 📊 시가총액 조회 완료: 0/9개 성공
+[market-research] [2026-04-25T00:03:05.250Z]   ✅ stock_research 테이블 9건 적재 완료
+[market-research] [2026-04-25T00:03:05.250Z] 🏁 통합 리서치 스캔 완료
+[2026-04-25 09:03:05] 완료 (exit: 0)
+
+[2026-04-25 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (28) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-04-25T07:15:04.931Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-25T07:15:05.603Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-25T07:18:47.330Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-25T07:18:47.330Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-25T07:21:17.845Z]   📋 11개 종목 추출: ANET, MU, FN, TER, AIQ, AEIS, WDC, QLD, SSO, NBIS, ASTS
+[market-research] [2026-04-25T07:21:17.848Z] 📊 시가총액 조회: 11개 종목 (Yahoo Finance)
+[market-research] [2026-04-25T07:21:19.451Z] 📊 시가총액 조회 완료: 0/11개 성공
+[market-research] [2026-04-25T07:21:22.464Z]   ✅ stock_research 테이블 11건 적재 완료
+[market-research] [2026-04-25T07:21:23.472Z] 🏁 통합 리서치 스캔 완료
+[2026-04-25 16:21:23] 완료 (exit: 0)
+
+[2026-04-26 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (28) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-04-26T00:00:06.486Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-26T00:00:07.045Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-26T00:01:31.487Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-26T00:01:31.487Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-26T00:03:35.314Z]   📋 9개 종목 추출: ANET, TER, MU, FN, AEIS, WDC, AIQ, QLD, SSO
+[market-research] [2026-04-26T00:03:35.315Z] 📊 시가총액 조회: 9개 종목 (Yahoo Finance)
+[market-research] [2026-04-26T00:03:36.384Z] 📊 시가총액 조회 완료: 0/9개 성공
+[market-research] [2026-04-26T00:03:39.152Z]   ✅ stock_research 테이블 9건 적재 완료
+[market-research] [2026-04-26T00:03:39.153Z] 🏁 통합 리서치 스캔 완료
+[2026-04-26 09:03:39] 완료 (exit: 0)
+
+[2026-04-26 16:15:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (28) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[market-research] [2026-04-26T07:15:05.744Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-26T07:15:06.584Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-26T07:18:13.020Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-26T07:18:13.020Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-26T07:22:17.695Z]   📋 18개 종목 추출: MU, ANET, AIQ, FN, AMZN, TER, GOOGL, QLD, AEIS, SSO, WDC, NBIS, RDDT, POET, SOFI, PATH, OPEN, ASTS
+[market-research] [2026-04-26T07:22:17.696Z] 📊 시가총액 조회: 18개 종목 (Yahoo Finance)
+[market-research] [2026-04-26T07:22:20.001Z] 📊 시가총액 조회 완료: 0/18개 성공
+[market-research] [2026-04-26T07:22:24.675Z]   ✅ stock_research 테이블 18건 적재 완료
+[market-research] [2026-04-26T07:22:26.476Z] 🏁 통합 리서치 스캔 완료
+[2026-04-26 16:22:26] 완료 (exit: 0)
+
+[2026-04-27 09:00:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (28) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[market-research] [2026-04-27T00:00:07.538Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-27T00:00:07.853Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-27T00:01:28.788Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-27T00:01:28.789Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-27T00:03:25.381Z]   📋 9개 종목 추출: ANET, TER, MU, FN, AIQ, AEIS, WDC, QLD, SSO
+[market-research] [2026-04-27T00:03:25.382Z] 📊 시가총액 조회: 9개 종목 (Yahoo Finance)
+[market-research] [2026-04-27T00:03:26.442Z] 📊 시가총액 조회 완료: 0/9개 성공
+[market-research] [2026-04-27T00:03:28.747Z]   ✅ stock_research 테이블 9건 적재 완료
+[market-research] [2026-04-27T00:03:28.747Z] 🏁 통합 리서치 스캔 완료
+[2026-04-27 09:03:28] 완료 (exit: 0)
+
+[2026-04-27 16:15:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (28) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[market-research] [2026-04-27T07:15:07.276Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-27T07:15:07.443Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-27T07:17:56.440Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-27T07:17:56.441Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-27T07:21:34.531Z]   📋 4개 종목 추출: NBIS, FIGM, SOFI, ASTS
+[market-research] [2026-04-27T07:21:34.532Z] 📊 시가총액 조회: 4개 종목 (Yahoo Finance)
+[market-research] [2026-04-27T07:21:34.812Z] 📊 시가총액 조회 완료: 0/4개 성공
+[market-research] [2026-04-27T07:21:36.480Z]   ✅ stock_research 테이블 4건 적재 완료
+[market-research] [2026-04-27T07:21:37.451Z] 🏁 통합 리서치 스캔 완료
+[2026-04-27 16:21:37] 완료 (exit: 0)
+
+[2026-04-28 09:00:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-04-28T00:00:03.713Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-28T00:00:03.879Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-28T00:01:24.959Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-28T00:01:24.961Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-28T00:02:55.997Z]   📋 7개 종목 추출: MU, AEIS, FN, TER, AIQ, QLD, SSO
+[market-research] [2026-04-28T00:02:55.999Z] 📊 시가총액 조회: 7개 종목 (Yahoo Finance)
+[market-research] [2026-04-28T00:02:56.938Z] 📊 시가총액 조회 완료: 0/7개 성공
+[market-research] [2026-04-28T00:02:58.849Z]   ✅ stock_research 테이블 7건 적재 완료
+[market-research] [2026-04-28T00:02:58.850Z] 🏁 통합 리서치 스캔 완료
+[2026-04-28 09:02:58] 완료 (exit: 0)
+
+[2026-04-28 16:15:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[market-research] [2026-04-28T07:15:06.640Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-28T07:15:07.121Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-28T07:18:17.563Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-28T07:18:17.563Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-28T07:21:27.847Z]   📋 6개 종목 추출: MU, CCJ, GEV, CEG, BWXT, ASTS
+[market-research] [2026-04-28T07:21:27.854Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-04-28T07:21:28.820Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-04-28T07:21:32.440Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-04-28T07:21:33.490Z] 🏁 통합 리서치 스캔 완료
+[2026-04-28 16:21:33] 완료 (exit: 0)
+
+[2026-04-29 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-04-29T00:00:06.722Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-29T00:00:06.896Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-29T00:01:31.984Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-29T00:01:31.984Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-29T00:02:11.335Z]   📋 2개 종목 추출: CCJ, FN
+[market-research] [2026-04-29T00:02:11.335Z] 📊 시가총액 조회: 2개 종목 (Yahoo Finance)
+[market-research] [2026-04-29T00:02:11.648Z] 📊 시가총액 조회 완료: 0/2개 성공
+[market-research] [2026-04-29T00:02:12.945Z]   ✅ stock_research 테이블 2건 적재 완료
+[market-research] [2026-04-29T00:02:12.945Z] 🏁 통합 리서치 스캔 완료
+[2026-04-29 09:02:12] 완료 (exit: 0)
+
+[2026-04-29 16:15:00] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🤖 agentic secret storage: https://dotenvx.com/as2
+[market-research] [2026-04-29T07:15:02.003Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-29T07:15:02.738Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-29T07:19:32.439Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-29T07:19:32.439Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-29T07:20:24.387Z]   📋 3개 종목 추출: STX, NBIS, ASTS
+[market-research] [2026-04-29T07:20:24.393Z] 📊 시가총액 조회: 2개 종목 (Yahoo Finance)
+[market-research] [2026-04-29T07:20:24.778Z] 📊 시가총액 조회 완료: 0/2개 성공
+[market-research] [2026-04-29T07:20:26.770Z]   ✅ stock_research 테이블 3건 적재 완료
+[market-research] [2026-04-29T07:20:27.770Z] 🏁 통합 리서치 스캔 완료
+[2026-04-29 16:20:27] 완료 (exit: 0)
+
+[2026-04-30 09:00:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-04-30T00:00:05.689Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-04-30T00:00:05.980Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-04-30T00:01:29.359Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-04-30T00:01:29.359Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-30T00:02:41.021Z]   📋 6개 종목 추출: MU, STX, WDC, CAMT, TER, BWXT
+[market-research] [2026-04-30T00:02:41.022Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-04-30T00:02:42.074Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-04-30T00:02:45.447Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-04-30T00:02:45.447Z] 🏁 통합 리서치 스캔 완료
+[2026-04-30 09:02:45] 완료 (exit: 0)
+
+[2026-04-30 16:15:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-04-30T07:15:04.380Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-04-30T07:15:04.825Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-04-30T07:19:12.409Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-04-30T07:19:12.410Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-04-30T07:21:04.361Z]   📋 6개 종목 추출: MU, STX, NBIS, WDC, TER, ASTS
+[market-research] [2026-04-30T07:21:04.364Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-04-30T07:21:05.497Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-04-30T07:21:09.388Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-04-30T07:21:10.406Z] 🏁 통합 리서치 스캔 완료
+[2026-04-30 16:21:10] 완료 (exit: 0)
+
+[2026-05-01 09:00:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-05-01T00:00:03.524Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-01T00:00:03.852Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-01T00:01:36.714Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-01T00:01:36.714Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-01T00:03:13.133Z]   📋 3개 종목 추출: WDC, TER, ROK
+[market-research] [2026-05-01T00:03:13.134Z] 📊 시가총액 조회: 3개 종목 (Yahoo Finance)
+[market-research] [2026-05-01T00:03:13.464Z] 📊 시가총액 조회 완료: 0/3개 성공
+[market-research] [2026-05-01T00:03:15.189Z]   ✅ stock_research 테이블 3건 적재 완료
+[market-research] [2026-05-01T00:03:15.189Z] 🏁 통합 리서치 스캔 완료
+[2026-05-01 09:03:15] 완료 (exit: 0)
+
+[2026-05-01 16:15:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[market-research] [2026-05-01T07:15:03.922Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-01T07:15:04.370Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-01T07:18:52.862Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-01T07:18:52.863Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-01T07:21:02.446Z]   📋 5개 종목 추출: STX, MU, NBIS, SIMO, ASTS
+[market-research] [2026-05-01T07:21:02.447Z] 📊 시가총액 조회: 5개 종목 (Yahoo Finance)
+[market-research] [2026-05-01T07:21:02.810Z] 📊 시가총액 조회 완료: 0/5개 성공
+[market-research] [2026-05-01T07:21:06.008Z]   ✅ stock_research 테이블 5건 적재 완료
+[market-research] [2026-05-01T07:21:07.023Z] 🏁 통합 리서치 스캔 완료
+[2026-05-01 16:21:07] 완료 (exit: 0)
+
+[2026-05-02 09:00:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-05-02T00:00:05.368Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-02T00:00:05.822Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-02T00:01:10.548Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-02T00:01:10.548Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-02T00:01:53.962Z]   📋 4개 종목 추출: STX, SIMO, MU, AEIS
+[market-research] [2026-05-02T00:01:53.963Z] 📊 시가총액 조회: 4개 종목 (Yahoo Finance)
+[market-research] [2026-05-02T00:01:54.255Z] 📊 시가총액 조회 완료: 0/4개 성공
+[market-research] [2026-05-02T00:01:56.643Z]   ✅ stock_research 테이블 4건 적재 완료
+[market-research] [2026-05-02T00:01:56.643Z] 🏁 통합 리서치 스캔 완료
+[2026-05-02 09:01:56] 완료 (exit: 0)
+
+[2026-05-02 16:15:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[market-research] [2026-05-02T07:15:05.505Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-02T07:15:05.942Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-02T07:16:55.794Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-02T07:16:55.795Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-02T07:17:45.329Z]   📋 8개 종목 추출: STX, SIMO, MU, AEIS, FN, NOC, BAH, QTUM
+[market-research] [2026-05-02T07:17:45.329Z] 📊 시가총액 조회: 8개 종목 (Yahoo Finance)
+[market-research] [2026-05-02T07:17:46.420Z] 📊 시가총액 조회 완료: 0/8개 성공
+[market-research] [2026-05-02T07:17:50.736Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-05-02T07:17:51.744Z] 🏁 통합 리서치 스캔 완료
+[2026-05-02 16:17:51] 완료 (exit: 0)
+
+[2026-05-03 09:00:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-05-03T00:00:03.849Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-03T00:00:04.179Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-03T00:01:14.369Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-03T00:01:14.369Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-03T00:01:43.710Z]   📋 4개 종목 추출: STX, SIMO, MU, AEIS
+[market-research] [2026-05-03T00:01:43.710Z] 📊 시가총액 조회: 4개 종목 (Yahoo Finance)
+[market-research] [2026-05-03T00:01:44.027Z] 📊 시가총액 조회 완료: 0/4개 성공
+[market-research] [2026-05-03T00:01:46.345Z]   ✅ stock_research 테이블 4건 적재 완료
+[market-research] [2026-05-03T00:01:46.346Z] 🏁 통합 리서치 스캔 완료
+[2026-05-03 09:01:46] 완료 (exit: 0)
+
+[2026-05-03 16:15:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[market-research] [2026-05-03T07:15:03.183Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-03T07:15:03.629Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-03T07:17:23.899Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-03T07:17:23.899Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-03T07:18:08.556Z]   📋 9개 종목 추출: STX, MU, SIMO, AEIS, CRWV, NBIS, APLD, ASTS, CEG
+[market-research] [2026-05-03T07:18:08.558Z] 📊 시가총액 조회: 9개 종목 (Yahoo Finance)
+[market-research] [2026-05-03T07:18:09.618Z] 📊 시가총액 조회 완료: 0/9개 성공
+[market-research] [2026-05-03T07:18:14.379Z]   ✅ stock_research 테이블 9건 적재 완료
+[market-research] [2026-05-03T07:18:15.377Z] 🏁 통합 리서치 스캔 완료
+[2026-05-03 16:18:15] 완료 (exit: 0)
+
+[2026-05-04 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[market-research] [2026-05-04T00:00:06.973Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-04T00:00:07.138Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-04T00:01:12.124Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-04T00:01:12.124Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-04T00:01:40.513Z]   📋 4개 종목 추출: STX, SIMO, MU, AEIS
+[market-research] [2026-05-04T00:01:40.514Z] 📊 시가총액 조회: 4개 종목 (Yahoo Finance)
+[market-research] [2026-05-04T00:01:40.846Z] 📊 시가총액 조회 완료: 0/4개 성공
+[market-research] [2026-05-04T00:01:42.903Z]   ✅ stock_research 테이블 4건 적재 완료
+[market-research] [2026-05-04T00:01:42.903Z] 🏁 통합 리서치 스캔 완료
+[2026-05-04 09:01:42] 완료 (exit: 0)
+
+[2026-05-04 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[market-research] [2026-05-04T07:15:04.344Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-04T07:15:05.010Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-04T07:17:04.360Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-04T07:17:04.361Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-04T07:17:42.424Z]   📋 6개 종목 추출: MU, SNDK, STX, SIMO, AEIS, CRWV
+[market-research] [2026-05-04T07:17:42.425Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-05-04T07:17:43.389Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-05-04T07:17:46.831Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-04T07:17:47.869Z] 🏁 통합 리서치 스캔 완료
+[2026-05-04 16:17:47] 완료 (exit: 0)
+
+[2026-05-05 09:00:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[market-research] [2026-05-05T00:00:04.508Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-05T00:00:04.671Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-05T00:01:20.211Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-05T00:01:20.211Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-05T00:02:16.111Z]   📋 6개 종목 추출: SNDK, WDC, STX, FN, AEIS, CEG
+[market-research] [2026-05-05T00:02:16.112Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-05-05T00:02:17.131Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-05-05T00:02:20.297Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-05T00:02:20.298Z] 🏁 통합 리서치 스캔 완료
+[2026-05-05 09:02:20] 완료 (exit: 0)
+
+[2026-05-05 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-05-05T07:15:04.893Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-05T07:15:05.567Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-05T07:17:10.925Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-05T07:17:10.925Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-05T07:18:00.610Z]   📋 9개 종목 추출: NBIS, ASTS, RDDT, SNDK, STX, WDC, AEIS, CEG, FN
+[market-research] [2026-05-05T07:18:00.611Z] 📊 시가총액 조회: 9개 종목 (Yahoo Finance)
+[market-research] [2026-05-05T07:18:01.707Z] 📊 시가총액 조회 완료: 0/9개 성공
+[market-research] [2026-05-05T07:18:07.547Z]   ✅ stock_research 테이블 9건 적재 완료
+[market-research] [2026-05-05T07:18:08.572Z] 🏁 통합 리서치 스캔 완료
+[2026-05-05 16:18:08] 완료 (exit: 0)
+
+[2026-05-06 09:00:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-05-06T00:00:07.708Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-06T00:00:07.860Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-06T00:01:36.665Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-06T00:01:36.665Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-06T00:02:40.521Z]   📋 11개 종목 추출: STX, CRWV, CEG, NNE, BWXT, CCJ, AMKR, CAMT, WDC, SIMO, ROK
+[market-research] [2026-05-06T00:02:40.521Z] 📊 시가총액 조회: 11개 종목 (Yahoo Finance)
+[market-research] [2026-05-06T00:02:42.170Z] 📊 시가총액 조회 완료: 0/11개 성공
+[market-research] [2026-05-06T00:02:47.311Z]   ✅ stock_research 테이블 11건 적재 완료
+[market-research] [2026-05-06T00:02:47.311Z] 🏁 통합 리서치 스캔 완료
+[2026-05-06 09:02:47] 완료 (exit: 0)
+
+[2026-05-06 16:15:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-05-06T07:15:02.876Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-06T07:15:03.548Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-06T07:18:24.856Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-06T07:18:24.857Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-06T07:19:24.515Z]   📋 15개 종목 추출: AMD, POET, ROK, AMKR, CAMT, TER, WDC, SIMO, STX, 007660, 007810, 356860, 036710, 195870, 353200
+[market-research] [2026-05-06T07:19:24.516Z] 📊 시가총액 조회: 15개 종목 (Yahoo Finance)
+[market-research] [2026-05-06T07:19:29.222Z] 📊 시가총액 조회 완료: 0/15개 성공
+[market-research] [2026-05-06T07:19:37.890Z]   ✅ stock_research 테이블 15건 적재 완료
+[market-research] [2026-05-06T07:19:38.883Z] 🏁 통합 리서치 스캔 완료
+[2026-05-06 16:19:38] 완료 (exit: 0)
+
+[2026-05-07 09:00:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[market-research] [2026-05-07T00:00:11.882Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-07T00:00:12.053Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-07T00:01:55.447Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-07T00:01:55.447Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-07T00:02:50.768Z]   📋 9개 종목 추출: AMD, NNE, APLD, AMKR, STX, SIMO, ROK, ANET, CCJ
+[market-research] [2026-05-07T00:02:50.769Z] 📊 시가총액 조회: 9개 종목 (Yahoo Finance)
+[market-research] [2026-05-07T00:02:51.766Z] 📊 시가총액 조회 완료: 0/9개 성공
+[market-research] [2026-05-07T00:02:55.897Z]   ✅ stock_research 테이블 9건 적재 완료
+[market-research] [2026-05-07T00:02:55.897Z] 🏁 통합 리서치 스캔 완료
+[2026-05-07 09:02:55] 완료 (exit: 0)
+
+[2026-05-07 16:15:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[market-research] [2026-05-07T07:15:04.129Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-07T07:15:04.798Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-07T07:17:46.371Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-07T07:17:46.372Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-07T07:18:43.259Z]   📋 8개 종목 추출: AMD, NNE, APLD, CRWV, ROK, SMCI, 007810, 007660
+[market-research] [2026-05-07T07:18:43.272Z] 📊 시가총액 조회: 8개 종목 (Yahoo Finance)
+[market-research] [2026-05-07T07:18:44.389Z] 📊 시가총액 조회 완료: 0/8개 성공
+[market-research] [2026-05-07T07:18:48.672Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-05-07T07:18:49.646Z] 🏁 통합 리서치 스캔 완료
+[2026-05-07 16:18:49] 완료 (exit: 0)
+
+[2026-05-08 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[market-research] [2026-05-08T00:00:06.772Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-08T00:00:06.918Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-08T00:01:41.308Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-08T00:01:41.313Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-08T00:01:46.886Z]   ℹ️ 밸류체인 신규 후보 종목 없음 — DB 적재 스킵
+[market-research] [2026-05-08T00:01:46.886Z] 🏁 통합 리서치 스캔 완료
+[2026-05-08 09:01:46] 완료 (exit: 0)
+
+[2026-05-08 16:15:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-05-08T07:15:02.759Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-08T07:15:03.457Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-08T07:18:19.841Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-08T07:18:19.845Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-08T07:18:50.568Z]   📋 4개 종목 추출: MTSI, 000270, ARM, INTC
+[market-research] [2026-05-08T07:18:50.569Z] 📊 시가총액 조회: 4개 종목 (Yahoo Finance)
+[market-research] [2026-05-08T07:18:50.907Z] 📊 시가총액 조회 완료: 0/4개 성공
+[market-research] [2026-05-08T07:18:54.202Z]   ✅ stock_research 테이블 4건 적재 완료
+[market-research] [2026-05-08T07:18:55.241Z] 🏁 통합 리서치 스캔 완료
+[2026-05-08 16:18:55] 완료 (exit: 0)
+
+[2026-05-09 09:00:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[market-research] [2026-05-09T00:00:04.785Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-09T00:00:05.114Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-09T00:01:34.383Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-09T00:01:34.384Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-09T00:02:22.494Z]   📋 6개 종목 추출: AMD, SIMO, WDC, ROK, STX, CAMT
+[market-research] [2026-05-09T00:02:22.495Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-05-09T00:02:23.464Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-05-09T00:02:26.271Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-09T00:02:26.272Z] 🏁 통합 리서치 스캔 완료
+[2026-05-09 09:02:26] 완료 (exit: 0)
+
+[2026-05-09 16:15:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-05-09T07:15:06.564Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-09T07:15:07.416Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-09T07:18:20.891Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-09T07:18:20.894Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-09T07:19:11.744Z]   📋 8개 종목 추출: WDC, STX, SIMO, AMD, CAMT, INTC, NBIS, 277810
+[market-research] [2026-05-09T07:19:11.750Z] 📊 시가총액 조회: 8개 종목 (Yahoo Finance)
+[market-research] [2026-05-09T07:19:12.780Z] 📊 시가총액 조회 완료: 0/8개 성공
+[market-research] [2026-05-09T07:19:16.809Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-05-09T07:19:17.813Z] 🏁 통합 리서치 스캔 완료
+[2026-05-09 16:19:17] 완료 (exit: 0)
+
+[2026-05-10 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[market-research] [2026-05-10T00:00:06.574Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-10T00:00:06.897Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-10T00:01:42.436Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-10T00:01:42.437Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-10T00:02:41.589Z]   📋 6개 종목 추출: AMD, CAMT, STX, SIMO, WDC, ROK
+[market-research] [2026-05-10T00:02:41.615Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-05-10T00:02:42.594Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-05-10T00:02:45.552Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-10T00:02:45.553Z] 🏁 통합 리서치 스캔 완료
+[2026-05-10 09:02:45] 완료 (exit: 0)
+
+[2026-05-10 16:15:00] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-05-10T07:15:01.242Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-10T07:15:01.915Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-10T07:17:43.416Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-10T07:17:43.416Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-10T07:18:21.605Z]   📋 8개 종목 추출: AMD, CAMT, SIMO, STX, WDC, ROK, RTX, 011790
+[market-research] [2026-05-10T07:18:21.606Z] 📊 시가총액 조회: 8개 종목 (Yahoo Finance)
+[market-research] [2026-05-10T07:18:22.623Z] 📊 시가총액 조회 완료: 0/8개 성공
+[market-research] [2026-05-10T07:18:26.893Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-05-10T07:18:28.033Z] 🏁 통합 리서치 스캔 완료
+[2026-05-10 16:18:28] 완료 (exit: 0)
+
+[2026-05-11 09:00:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[market-research] [2026-05-11T00:00:04.054Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-11T00:00:04.368Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-11T00:01:21.304Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-11T00:01:21.304Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-11T00:02:04.883Z]   📋 9개 종목 추출: AMD, POET, CRWV, CAMT, STX, SIMO, WDC, ROK, 047810
+[market-research] [2026-05-11T00:02:04.884Z] 📊 시가총액 조회: 9개 종목 (Yahoo Finance)
+[market-research] [2026-05-11T00:02:05.911Z] 📊 시가총액 조회 완료: 0/9개 성공
+[market-research] [2026-05-11T00:02:10.343Z]   ✅ stock_research 테이블 9건 적재 완료
+[market-research] [2026-05-11T00:02:10.343Z] 🏁 통합 리서치 스캔 완료
+[2026-05-11 09:02:10] 완료 (exit: 0)
+
+[2026-05-11 16:15:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[market-research] [2026-05-11T07:15:06.437Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-11T07:15:07.117Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-11T07:18:00.394Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-11T07:18:00.395Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-11T07:18:43.103Z]   📋 11개 종목 추출: AMD, STX, WDC, SIMO, CAMT, ROK, ASTS, NBIS, AVGO, 402340, 079550
+[market-research] [2026-05-11T07:18:43.104Z] 📊 시가총액 조회: 11개 종목 (Yahoo Finance)
+[market-research] [2026-05-11T07:18:44.777Z] 📊 시가총액 조회 완료: 0/11개 성공
+[market-research] [2026-05-11T07:18:50.682Z]   ✅ stock_research 테이블 11건 적재 완료
+[market-research] [2026-05-11T07:18:51.687Z] 🏁 통합 리서치 스캔 완료
+[2026-05-11 16:18:51] 완료 (exit: 0)
+
+[2026-05-12 09:00:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[market-research] [2026-05-12T00:00:03.304Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-12T00:00:03.903Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-12T00:01:53.831Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-12T00:01:53.831Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-12T00:02:40.423Z]   📋 10개 종목 추출: STX, ROK, WDC, AMD, POET, APLD, NNE, CRWV, CEG, ANET
+[market-research] [2026-05-12T00:02:40.429Z] 📊 시가총액 조회: 10개 종목 (Yahoo Finance)
+[market-research] [2026-05-12T00:02:41.454Z] 📊 시가총액 조회 완료: 0/10개 성공
+[market-research] [2026-05-12T00:02:45.651Z]   ✅ stock_research 테이블 10건 적재 완료
+[market-research] [2026-05-12T00:02:45.651Z] 🏁 통합 리서치 스캔 완료
+[2026-05-12 09:02:45] 완료 (exit: 0)
+
+[2026-05-12 16:15:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[market-research] [2026-05-12T07:15:06.470Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-12T07:15:06.931Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-12T07:18:02.110Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-12T07:18:02.111Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-12T07:18:37.904Z]   📋 8개 종목 추출: POET, GLW, AMD, NVDA, WDC, STX, CRWV, 010170
+[market-research] [2026-05-12T07:18:37.904Z] 📊 시가총액 조회: 8개 종목 (Yahoo Finance)
+[market-research] [2026-05-12T07:18:38.878Z] 📊 시가총액 조회 완료: 0/8개 성공
+[market-research] [2026-05-12T07:18:42.779Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-05-12T07:18:43.753Z] 🏁 통합 리서치 스캔 완료
+[2026-05-12 16:18:43] 완료 (exit: 0)
+
+[2026-05-13 09:00:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[market-research] [2026-05-13T00:00:05.285Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-13T00:00:05.618Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-13T00:02:14.409Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-13T00:02:14.409Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-13T00:02:20.626Z]   ℹ️ 밸류체인 신규 후보 종목 없음 — DB 적재 스킵
+[market-research] [2026-05-13T00:02:20.626Z] 🏁 통합 리서치 스캔 완료
+[2026-05-13 09:02:20] 완료 (exit: 0)
+
+[2026-05-13 16:15:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[market-research] [2026-05-13T07:15:07.621Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-13T07:15:08.368Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-13T07:18:13.699Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-13T07:18:13.700Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-13T07:18:58.711Z]   📋 6개 종목 추출: NBIS, ROK, CAMT, 092600, 264850, 037440
+[market-research] [2026-05-13T07:18:58.712Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-05-13T07:18:59.669Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-05-13T07:19:03.606Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-13T07:19:04.569Z] 🏁 통합 리서치 스캔 완료
+[2026-05-13 16:19:04] 완료 (exit: 0)
+
+[2026-05-14 09:00:00] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (30) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-05-14T00:00:02.040Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-14T00:00:02.208Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-14T00:01:25.390Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-14T00:01:25.390Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-14T00:02:14.833Z]   📋 6개 종목 추출: SIMO, APLD, STX, ROK, FN, CEG
+[market-research] [2026-05-14T00:02:14.834Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-05-14T00:02:15.821Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-05-14T00:02:18.423Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-14T00:02:18.423Z] 🏁 통합 리서치 스캔 완료
+[2026-05-14 09:02:18] 완료 (exit: 0)
+
+[2026-05-14 16:15:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[market-research] [2026-05-14T07:15:04.133Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-14T07:15:04.836Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-14T07:24:39.225Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-14T07:24:39.227Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-14T07:28:33.620Z]   📋 7개 종목 추출: APLD, STX, SIMO, ROK, AMD, 066570, 042700
+[market-research] [2026-05-14T07:28:33.622Z] 📊 시가총액 조회: 7개 종목 (Yahoo Finance)
+[market-research] [2026-05-14T07:28:34.595Z] 📊 시가총액 조회 완료: 0/7개 성공
+[market-research] [2026-05-14T07:28:38.821Z]   ✅ stock_research 테이블 7건 적재 완료
+[market-research] [2026-05-14T07:28:39.796Z] 🏁 통합 리서치 스캔 완료
+[2026-05-14 16:28:39] 완료 (exit: 0)
+
+[2026-05-15 09:00:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[market-research] [2026-05-15T00:00:06.740Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-15T00:00:07.059Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-15T00:02:22.870Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-15T00:02:22.870Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-15T00:04:44.162Z]   📋 4개 종목 추출: APLD, POET, FN, ROK
+[market-research] [2026-05-15T00:04:46.764Z]   ✅ stock_research 테이블 4건 적재 완료
+[market-research] [2026-05-15T00:04:46.764Z] 🏁 통합 리서치 스캔 완료
+[2026-05-15 09:04:46] 완료 (exit: 0)
+
+[2026-05-15 16:15:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[market-research] [2026-05-15T07:15:03.983Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-15T07:15:04.712Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-15T07:26:20.925Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-15T07:26:20.926Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-15T07:32:22.461Z]   📋 11개 종목 추출: 454910, 042700, 034020, FN, APLD, POET, NBIS, ORCL, CEG, SMR, WULF
+[market-research] [2026-05-15T07:32:22.465Z] 📊 시가총액 조회: 3개 종목 (Yahoo Finance)
+[market-research] [2026-05-15T07:32:23.111Z] 📊 시가총액 조회 완료: 0/3개 성공
+[market-research] [2026-05-15T07:32:30.560Z]   ✅ stock_research 테이블 11건 적재 완료
+[market-research] [2026-05-15T07:32:31.531Z] 🏁 통합 리서치 스캔 완료
+[2026-05-15 16:32:31] 완료 (exit: 0)
+
+[2026-05-16 09:00:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-05-16T00:00:03.502Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-16T00:00:04.071Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-16T00:03:03.964Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-16T00:03:03.965Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-16T00:03:53.991Z]   📋 1개 종목 추출: 047810
+[market-research] [2026-05-16T00:03:53.992Z] 📊 시가총액 조회: 1개 종목 (Yahoo Finance)
+[market-research] [2026-05-16T00:03:54.248Z] 📊 시가총액 조회 완료: 0/1개 성공
+[market-research] [2026-05-16T00:03:55.046Z]   ✅ stock_research 테이블 1건 적재 완료
+[market-research] [2026-05-16T00:03:55.046Z] 🏁 통합 리서치 스캔 완료
+[2026-05-16 09:03:55] 완료 (exit: 0)
+
+[2026-05-16 16:15:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[market-research] [2026-05-16T07:15:06.482Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-16T07:15:07.283Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-16T07:24:21.921Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-16T07:24:21.923Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-16T07:28:09.356Z]   📋 8개 종목 추출: ROK, FN, AVGO, NVDA, ANET, 042700, 034020, 454910
+[market-research] [2026-05-16T07:28:09.360Z] 📊 시가총액 조회: 3개 종목 (Yahoo Finance)
+[market-research] [2026-05-16T07:28:09.667Z] 📊 시가총액 조회 완료: 0/3개 성공
+[market-research] [2026-05-16T07:28:13.350Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-05-16T07:28:14.315Z] 🏁 통합 리서치 스캔 완료
+[2026-05-16 16:28:14] 완료 (exit: 0)
+
+[2026-05-17 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🛡️ auth for agents: https://vestauth.com
+[market-research] [2026-05-17T00:00:06.500Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-17T00:00:06.828Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-17T00:02:13.150Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-17T00:02:13.150Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-17T00:02:40.115Z]   ℹ️ 밸류체인 신규 후보 종목 없음 — DB 적재 스킵
+[market-research] [2026-05-17T00:02:40.115Z] 🏁 통합 리서치 스캔 완료
+[2026-05-17 09:02:40] 완료 (exit: 0)
+
+[2026-05-17 16:15:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-05-17T07:15:07.193Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-17T07:15:08.063Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-17T07:26:08.140Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-17T07:26:08.187Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-17T07:29:40.159Z]   📋 8개 종목 추출: ROK, FN, STX, NVDA, SNOW, 042700, 066570, 064400
+[market-research] [2026-05-17T07:29:40.169Z] 📊 시가총액 조회: 8개 종목 (Yahoo Finance)
+[market-research] [2026-05-17T07:29:41.138Z] 📊 시가총액 조회 완료: 0/8개 성공
+[market-research] [2026-05-17T07:29:45.400Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-05-17T07:29:46.394Z] 🏁 통합 리서치 스캔 완료
+[2026-05-17 16:29:46] 완료 (exit: 0)
+
+[2026-05-18 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🛡️ auth for agents: https://vestauth.com
+[market-research] [2026-05-18T00:00:05.962Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-18T00:00:06.282Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-18T00:02:31.250Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-18T00:02:31.257Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-18T00:03:27.443Z]   ℹ️ 밸류체인 신규 후보 종목 없음 — DB 적재 스킵
+[market-research] [2026-05-18T00:03:27.471Z] 🏁 통합 리서치 스캔 완료
+[2026-05-18 09:03:27] 완료 (exit: 0)
+
+[2026-05-18 16:15:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[market-research] [2026-05-18T07:15:07.076Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-18T07:15:07.511Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-18T07:25:27.262Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-18T07:25:27.262Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-18T07:28:42.983Z]   📋 6개 종목 추출: CBRS, FCEL, HIVE, 036930, 006260, 012330
+[market-research] [2026-05-18T07:28:42.984Z] 📊 시가총액 조회: 4개 종목 (Yahoo Finance)
+[market-research] [2026-05-18T07:28:43.313Z] 📊 시가총액 조회 완료: 0/4개 성공
+[market-research] [2026-05-18T07:28:48.293Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-18T07:28:49.419Z] 🏁 통합 리서치 스캔 완료
+[2026-05-18 16:28:49] 완료 (exit: 0)
+
+[2026-05-19 09:00:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[market-research] [2026-05-19T00:00:07.123Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-19T00:00:07.472Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-19T00:02:35.071Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-19T00:02:35.071Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-19T00:08:13.765Z]   📋 20개 종목 추출: 047810, AEIS, AMD, AMKR, APLD, BWXT, CAMT, CEG, CRWV, GEV, NNE, POET, STX, SIMO, TER, WDC, ROK, ANET, CCJ, FN
+[market-research] [2026-05-19T00:08:13.766Z] 📊 시가총액 조회: 1개 종목 (Yahoo Finance)
+[market-research] [2026-05-19T00:08:14.026Z] 📊 시가총액 조회 완료: 0/1개 성공
+[market-research] [2026-05-19T00:08:22.781Z]   ✅ stock_research 테이블 20건 적재 완료
+[market-research] [2026-05-19T00:08:22.782Z] 🏁 통합 리서치 스캔 완료
+[2026-05-19 09:08:22] 완료 (exit: 0)
+
+[2026-05-19 16:15:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[market-research] [2026-05-19T07:15:07.658Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-19T07:15:08.097Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-19T07:27:52.767Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-19T07:27:52.768Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-19T07:30:41.293Z]   📋 6개 종목 추출: 272210, 042700, 454910, NVDA, AMD, INTC
+[market-research] [2026-05-19T07:30:45.518Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-19T07:30:46.579Z] 🏁 통합 리서치 스캔 완료
+[2026-05-19 16:30:46] 완료 (exit: 0)
+
+[2026-05-20 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-05-20T00:00:06.582Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-20T00:00:06.908Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-20T00:02:46.849Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-20T00:02:46.850Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-20T00:03:41.854Z]   📋 1개 종목 추출: 047810
+[market-research] [2026-05-20T00:03:41.855Z] 📊 시가총액 조회: 1개 종목 (Yahoo Finance)
+[market-research] [2026-05-20T00:03:42.213Z] 📊 시가총액 조회 완료: 0/1개 성공
+[market-research] [2026-05-20T00:03:42.800Z]   ✅ stock_research 테이블 1건 적재 완료
+[market-research] [2026-05-20T00:03:42.800Z] 🏁 통합 리서치 스캔 완료
+[2026-05-20 09:03:42] 완료 (exit: 0)
+
+[2026-05-20 16:15:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[market-research] [2026-05-20T07:15:05.823Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-20T07:15:06.005Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-20T07:26:04.960Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-20T07:26:04.961Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-20T07:30:57.546Z]   📋 5개 종목 추출: 001820, 047810, SIMO, ROK, FN
+[market-research] [2026-05-20T07:30:57.563Z] 📊 시가총액 조회: 2개 종목 (Yahoo Finance)
+[market-research] [2026-05-20T07:30:58.118Z] 📊 시가총액 조회 완료: 0/2개 성공
+[market-research] [2026-05-20T07:31:02.344Z]   ✅ stock_research 테이블 5건 적재 완료
+[market-research] [2026-05-20T07:31:03.334Z] 🏁 통합 리서치 스캔 완료
+[2026-05-20 16:31:04] 완료 (exit: 0)
+
+[2026-05-21 09:00:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-05-21T00:00:07.181Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-21T00:00:07.347Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-21T00:02:34.888Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-21T00:02:34.888Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-21T00:06:58.867Z]   📋 20개 종목 추출: 047810, AMD, AMKR, APLD, BWXT, CAMT, CEG, CRWV, GEV, NNE, POET, STX, SIMO, TER, WDC, ROK, ANET, CCJ, FN, AEIS
+[market-research] [2026-05-21T00:06:58.867Z] 📊 시가총액 조회: 20개 종목 (Yahoo Finance)
+[market-research] [2026-05-21T00:07:01.180Z] 📊 시가총액 조회 완료: 0/20개 성공
+[market-research] [2026-05-21T00:07:09.360Z]   ✅ stock_research 테이블 20건 적재 완료
+[market-research] [2026-05-21T00:07:09.360Z] 🏁 통합 리서치 스캔 완료
+[2026-05-21 09:07:09] 완료 (exit: 0)
+
+[2026-05-21 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[market-research] [2026-05-21T07:15:04.650Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-21T07:15:05.338Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-21T07:15:25.473Z] ❌ 스캔 실패: Error: codex exited 1: OpenAI Codex v0.130.0
+--------
+workdir: /Volumes/PRO-G40/app-dev/willow-invt
+model: gpt-5.3-codex
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019e4963-5339-7543-be1b-ff0a26b1837f
+--------
+user
+당신은 윌리(Willy)입니다. 윌로우인베스트먼트의 COO.
+오늘은 2026. 05. 21.이고 매일 오후 통합 마켓 리서치 스캔 시간입니다.
+
+이 리포트는 두 가지를 한 번에 수행합니다:
+- Part A: 시장 데이터 기반 종목 스크리닝 (숫자)
+- Part B: 소셜/뉴스 센티먼트 기반 종목 소싱 (군중 심리)
+- 교차 검증: 양쪽에서 겹치는 종목 = 강한 신호
+
+## 커버리지
+**미국 + 한국 주식 모두 다룹니다.** US 소스(Reddit, 미국 뉴스)와 KR 소스(네이버 증권, 디시 주식갤러리, 종토방, 한경/매경/이데일리) 모두 활용.
+
+## 윌로우 포트폴리오 현재 보유
+- AI 인프라: SK하이닉스, 삼성전자, 오클로, 블룸 에너지, 아이렌, 시에나, 버티브, 마벨 테크놀로지, Micron Technology, SanDisk
+- 지정학/안보: 한화에어로스페이스, 현대로템, 팔란티어, 로켓랩, 미래에셋증권
+- 넥스트: 디웨이브 퀀텀, 현대차
+
+---
+
+## Part A: 시장 데이터 스크리닝
+
+### A-1: 포트폴리오 전체 스캔
+portfolio_scan 도구를 사용해서 보유 종목 전체 스캔:
+- 신고가 돌파/근접 종목
+- 부진 종목 (12M 고점 대비 -20% 이상)
+- 주요 시그널
+
+### A-2: 워치리스트 & 시그널
+portfolio_watchlist로 현재 워치리스트 확인
+portfolio_signals로 시그널 현황 확인
+
+---
+
+## Part B: 소셜/뉴스 버즈 스크리닝
+
+### B-1: 미국 — 레딧 버즈
+아래 서브레딧에서 최근 24시간 핫 포스트 웹 검색:
+- r/wallstreetbets (밈/모멘텀)
+- r/stocks (가치/분석)
+- r/investing (장기투자)
+- r/options (옵션 플로우)
+검색 예: "site:reddit.com/r/wallstreetbets most mentioned stocks today"
+
+### B-2: 한국 — 증권 뉴스 + 커뮤니티 버즈
+아래 채널에서 최근 24시간 화제 종목/테마 검색:
+- **네이버 증권**: 시가총액 급등 종목, 거래량 상위, 인기 검색
+- **한국경제 / 매일경제 / 이데일리**: 산업·기업 뉴스 헤드라인
+- **38커뮤니케이션 / 디시 주식갤러리**: 개인 투자자 화제 종목 (밈/펌프 주의)
+- **네이버 종토방**: 보유 종목 관련 동향 체크
+검색 예: "site:hankyung.com 오늘 급등 종목", "site:naver.com 거래량 상위", "디시 주식갤러리 핫"
+
+### B-3: 버즈 종목 필터링 (US/KR 공통)
+- 보유 종목과 겹치는 것 → 센티먼트 변화 체크
+- 비보유 종목 중 3축 테마(AI 인프라/지정학·안보/넥스트)에 해당하는 것 → 신규 후보
+- 밈/펌프 성격 종목 제외
+
+### B-4: 구조적 검증
+신규 후보 (US 최대 3, KR 최대 3)에 대해 portfolio_check_stock으로 확인:
+- 12M 고점 대비 위치, 추세 방향
+- 어떤 축에 해당하는지 태깅
+- KR 종목 ticker는 6자리 (예: 005930), market='KR'
+
+---
+
+## Part C: 교차 검증 & 종합
+
+양쪽(시장 데이터 + 소셜/뉴스)에서 동시에 포착된 종목이 있으면 **🔥 강한 신호**로 표시.
+워치리스트 추가 후보가 있으면 제안.
+
+---
+
+## 리포트 형식
+텔레그램 메시지용으로 간결하게:
+- 상단: "🔍 마켓 리서치 스캔 (2026. 05. 21.)"
+- [포트폴리오 현황] 섹션: 보유 종목 주요 시그널 ([국내] / [해외] 분리)
+- [시장 발굴] 섹션: 데이터 기반 신규 후보 ([국내] / [해외])
+- [소셜·뉴스 버즈] 섹션: US Reddit + KR 증권/커뮤니티 기반 후보
+- [교차 신호] 섹션: 양쪽에서 겹치는 종목 (없으면 생략)
+- [시장 센티먼트] 섹션: 미국/한국 분위기 각 한 줄
+- "---SPLIT---"으로 분할 가능 (필요시만)
+
+중요: 사실 기반 보고만. 추측/예측 금지. 출처 명시(Reddit URL, 네이버 증권 URL, 신문사명 등).
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+
+[2026-05-21 16:15:26] 완료 (exit: 1)
+
+[2026-05-21 18:37:34] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[market-research] [2026-05-21T09:37:35.334Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-21T09:37:35.655Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-21T09:45:36.827Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-21T09:45:36.827Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-21T09:47:53.134Z]   📋 6개 종목 추출: 012330, 042700, 047810, ASML, AMD, NVDA
+[market-research] [2026-05-21T09:47:55.754Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-21T09:47:56.751Z] 🏁 통합 리서치 스캔 완료
+[2026-05-21 18:47:56] 완료 (exit: 0)
+
+[2026-05-22 09:00:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-05-22T00:00:04.068Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-22T00:00:04.916Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-22T00:02:23.559Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-22T00:02:23.559Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-22T00:03:23.913Z]   📋 1개 종목 추출: APLD
+[market-research] [2026-05-22T00:03:24.487Z]   ✅ stock_research 테이블 1건 적재 완료
+[market-research] [2026-05-22T00:03:24.487Z] 🏁 통합 리서치 스캔 완료
+[2026-05-22 09:03:24] 완료 (exit: 0)
+
+[2026-05-22 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[market-research] [2026-05-22T07:15:04.559Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-22T07:15:05.338Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-22T07:27:02.574Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-22T07:27:02.574Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-22T07:30:28.027Z]   📋 6개 종목 추출: APLD, NBIS, AMD, 009150, 090460, 336260
+[market-research] [2026-05-22T07:30:28.027Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-05-22T07:30:29.039Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-05-22T07:30:32.334Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-22T07:30:33.308Z] 🏁 통합 리서치 스캔 완료
+[2026-05-22 16:30:33] 완료 (exit: 0)
+
+[2026-05-23 09:00:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[market-research] [2026-05-23T00:00:06.464Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-23T00:00:07.297Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-23T00:02:13.870Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-23T00:02:13.870Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-23T00:04:21.872Z]   📋 3개 종목 추출: AMD, SIMO, ROK
+[market-research] [2026-05-23T00:04:23.068Z]   ✅ stock_research 테이블 3건 적재 완료
+[market-research] [2026-05-23T00:04:23.068Z] 🏁 통합 리서치 스캔 완료
+[2026-05-23 09:04:23] 완료 (exit: 0)
+
+[2026-05-23 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🛡️ auth for agents: https://vestauth.com
+[market-research] [2026-05-23T07:15:05.199Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-23T07:15:05.921Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-23T07:30:06.119Z] ❌ 스캔 실패: Error: codex timeout
+[2026-05-23 16:30:07] 완료 (exit: 1)
+
+[2026-05-24 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-05-24T00:00:06.117Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-24T00:00:06.951Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-24T00:01:50.672Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-24T00:01:50.672Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-24T00:04:11.251Z]   📋 3개 종목 추출: AMD, SIMO, ROK
+[market-research] [2026-05-24T00:04:12.809Z]   ✅ stock_research 테이블 3건 적재 완료
+[market-research] [2026-05-24T00:04:12.809Z] 🏁 통합 리서치 스캔 완료
+[2026-05-24 09:04:12] 완료 (exit: 0)
+
+[2026-05-24 16:15:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-05-24T07:15:06.180Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-24T07:15:06.923Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-24T07:25:18.719Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-24T07:25:18.719Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-24T07:30:04.394Z]   📋 10개 종목 추출: AMD, NVDA, SIMO, ROK, ASTS, 034020, 042660, 454910, 036930, 042700
+[market-research] [2026-05-24T07:30:04.395Z] 📊 시가총액 조회: 5개 종목 (Yahoo Finance)
+[market-research] [2026-05-24T07:30:04.682Z] 📊 시가총액 조회 완료: 0/5개 성공
+[market-research] [2026-05-24T07:30:08.340Z]   ✅ stock_research 테이블 10건 적재 완료
+[market-research] [2026-05-24T07:30:09.305Z] 🏁 통합 리서치 스캔 완료
+[2026-05-24 16:30:09] 완료 (exit: 0)
+
+[2026-05-25 09:00:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-05-25T00:00:04.511Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-25T00:00:05.366Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-25T00:02:07.746Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-25T00:02:07.746Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-25T00:03:27.844Z]   📋 3개 종목 추출: AMD, SIMO, ROK
+[market-research] [2026-05-25T00:03:27.844Z] 📊 시가총액 조회: 3개 종목 (Yahoo Finance)
+[market-research] [2026-05-25T00:03:28.139Z] 📊 시가총액 조회 완료: 0/3개 성공
+[market-research] [2026-05-25T00:03:29.324Z]   ✅ stock_research 테이블 3건 적재 완료
+[market-research] [2026-05-25T00:03:29.325Z] 🏁 통합 리서치 스캔 완료
+[2026-05-25 09:03:29] 완료 (exit: 0)
+
+[2026-05-25 16:15:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-05-25T07:15:06.134Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-25T07:15:06.899Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-25T07:27:59.933Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-25T07:27:59.934Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-25T07:32:17.258Z]   📋 8개 종목 추출: 034020, 042660, 454910, AMD, SIMO, ROK, NVDA, NBIS
+[market-research] [2026-05-25T07:32:17.259Z] 📊 시가총액 조회: 8개 종목 (Yahoo Finance)
+[market-research] [2026-05-25T07:32:18.318Z] 📊 시가총액 조회 완료: 0/8개 성공
+[market-research] [2026-05-25T07:32:21.048Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-05-25T07:32:22.021Z] 🏁 통합 리서치 스캔 완료
+[2026-05-25 16:32:22] 완료 (exit: 0)
+
+[2026-05-26 09:00:06] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[market-research] [2026-05-26T00:00:07.444Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-26T00:00:08.298Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-26T00:01:57.303Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-26T00:01:57.303Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-26T00:03:50.390Z]   📋 3개 종목 추출: AMD, SIMO, ROK
+[market-research] [2026-05-26T00:03:50.391Z] 📊 시가총액 조회: 3개 종목 (Yahoo Finance)
+[market-research] [2026-05-26T00:03:50.668Z] 📊 시가총액 조회 완료: 0/3개 성공
+[market-research] [2026-05-26T00:03:51.779Z]   ✅ stock_research 테이블 3건 적재 완료
+[market-research] [2026-05-26T00:03:51.779Z] 🏁 통합 리서치 스캔 완료
+[2026-05-26 09:03:51] 완료 (exit: 0)
+
+[2026-05-26 16:15:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[market-research] [2026-05-26T07:15:03.813Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-26T07:15:04.493Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-26T07:24:16.957Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-26T07:24:16.957Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-26T07:28:08.731Z]   📋 7개 종목 추출: AMD, SIMO, ROK, 009150, 000990, NBIS, NVDA
+[market-research] [2026-05-26T07:28:08.732Z] 📊 시가총액 조회: 7개 종목 (Yahoo Finance)
+[market-research] [2026-05-26T07:28:10.145Z] 📊 시가총액 조회 완료: 0/7개 성공
+[market-research] [2026-05-26T07:28:13.233Z]   ✅ stock_research 테이블 7건 적재 완료
+[market-research] [2026-05-26T07:28:14.189Z] 🏁 통합 리서치 스캔 완료
+[2026-05-26 16:28:14] 완료 (exit: 0)
+
+[2026-05-27 09:00:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[market-research] [2026-05-27T00:00:03.743Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-27T00:00:04.568Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-27T00:03:40.998Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-27T00:03:40.999Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-27T00:07:25.920Z]   📋 6개 종목 추출: 047810, AMD, STX, SIMO, WDC, ROK
+[market-research] [2026-05-27T00:07:25.921Z] 📊 시가총액 조회: 1개 종목 (Yahoo Finance)
+[market-research] [2026-05-27T00:07:26.215Z] 📊 시가총액 조회 완료: 0/1개 성공
+[market-research] [2026-05-27T00:07:28.537Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-27T00:07:28.537Z] 🏁 통합 리서치 스캔 완료
+[2026-05-27 09:07:28] 완료 (exit: 0)
+
+[2026-05-27 16:15:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-05-27T07:15:02.829Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-27T07:15:03.637Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-27T07:23:10.761Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-27T07:23:10.762Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-27T07:27:09.200Z]   📋 12개 종목 추출: AMD, WDC, SIMO, 009150, 011070, 018260, 064400, ASTS, LUNR, PL, 010120, CVNA
+[market-research] [2026-05-27T07:27:09.200Z] 📊 시가총액 조회: 12개 종목 (Yahoo Finance)
+[market-research] [2026-05-27T07:27:10.820Z] 📊 시가총액 조회 완료: 0/12개 성공
+[market-research] [2026-05-27T07:27:16.387Z]   ✅ stock_research 테이블 12건 적재 완료
+[market-research] [2026-05-27T07:27:17.462Z] 🏁 통합 리서치 스캔 완료
+[2026-05-27 16:27:17] 완료 (exit: 0)
+
+[2026-05-28 09:00:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[market-research] [2026-05-28T00:00:05.170Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-28T00:00:06.065Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-28T00:02:23.661Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-28T00:02:23.662Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-28T00:05:11.436Z]   📋 8개 종목 추출: AMD, APLD, ASTS, PL, STX, SMCI, WDC, ROK
+[market-research] [2026-05-28T00:05:11.437Z] 📊 시가총액 조회: 8개 종목 (Yahoo Finance)
+[market-research] [2026-05-28T00:05:12.430Z] 📊 시가총액 조회 완료: 0/8개 성공
+[market-research] [2026-05-28T00:05:15.719Z]   ✅ stock_research 테이블 8건 적재 완료
+[market-research] [2026-05-28T00:05:15.720Z] 🏁 통합 리서치 스캔 완료
+[2026-05-28 09:05:15] 완료 (exit: 0)
+
+[2026-05-28 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[market-research] [2026-05-28T07:15:04.775Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-28T07:15:05.480Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-28T07:24:19.780Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-28T07:24:19.781Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-28T07:27:29.522Z]   📋 6개 종목 추출: 009150, 012330, 000270, ASTS, AMD, LUNR
+[market-research] [2026-05-28T07:27:29.523Z] 📊 시가총액 조회: 3개 종목 (Yahoo Finance)
+[market-research] [2026-05-28T07:27:29.841Z] 📊 시가총액 조회 완료: 0/3개 성공
+[market-research] [2026-05-28T07:27:31.834Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-28T07:27:32.812Z] 🏁 통합 리서치 스캔 완료
+[2026-05-28 16:27:32] 완료 (exit: 0)
+
+[2026-05-29 09:00:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🛡️ auth for agents: https://vestauth.com
+[market-research] [2026-05-29T00:00:03.633Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-29T00:00:04.464Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-29T00:02:37.070Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-29T00:02:37.070Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-29T00:04:51.907Z]   📋 7개 종목 추출: AMD, APLD, ASTS, LUNR, PL, STX, ROK
+[market-research] [2026-05-29T00:04:51.908Z] 📊 시가총액 조회: 7개 종목 (Yahoo Finance)
+[market-research] [2026-05-29T00:04:52.921Z] 📊 시가총액 조회 완료: 0/7개 성공
+[market-research] [2026-05-29T00:04:55.192Z]   ✅ stock_research 테이블 7건 적재 완료
+[market-research] [2026-05-29T00:04:55.192Z] 🏁 통합 리서치 스캔 완료
+[2026-05-29 09:04:55] 완료 (exit: 0)
+
+[2026-05-29 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[market-research] [2026-05-29T07:15:04.590Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-29T07:15:04.930Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-29T07:30:05.122Z] ❌ 스캔 실패: Error: codex timeout
+[2026-05-29 16:30:06] 완료 (exit: 1)
+
+[2026-05-30 09:00:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[market-research] [2026-05-30T00:00:06.386Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-30T00:00:07.323Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-30T00:02:44.404Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-30T00:02:44.404Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-30T00:05:22.186Z]   📋 5개 종목 추출: AMD, NBIS, PL, STX, ROK
+[market-research] [2026-05-30T00:05:22.187Z] 📊 시가총액 조회: 5개 종목 (Yahoo Finance)
+[market-research] [2026-05-30T00:05:22.568Z] 📊 시가총액 조회 완료: 0/5개 성공
+[market-research] [2026-05-30T00:05:24.889Z]   ✅ stock_research 테이블 5건 적재 완료
+[market-research] [2026-05-30T00:05:24.889Z] 🏁 통합 리서치 스캔 완료
+[2026-05-30 09:05:24] 완료 (exit: 0)
+
+[2026-05-30 16:15:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-05-30T07:15:06.507Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-30T07:15:06.873Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-30T07:26:47.032Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-05-30T07:26:47.032Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-30T07:31:03.116Z]   📋 6개 종목 추출: 066570, 064400, 009150, AMD, DELL, NBIS
+[market-research] [2026-05-30T07:31:03.116Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-05-30T07:31:04.067Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-05-30T07:31:07.747Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-30T07:31:08.921Z] 🏁 통합 리서치 스캔 완료
+[2026-05-30 16:31:08] 완료 (exit: 0)
+
+[2026-05-31 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[market-research] [2026-05-31T00:00:05.485Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-05-31T00:00:06.185Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-05-31T00:02:21.466Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-05-31T00:02:21.466Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-05-31T00:05:19.816Z]   📋 6개 종목 추출: AMD, NBIS, PL, STX, DELL, ROK
+[market-research] [2026-05-31T00:05:19.817Z] 📊 시가총액 조회: 6개 종목 (Yahoo Finance)
+[market-research] [2026-05-31T00:05:20.806Z] 📊 시가총액 조회 완료: 0/6개 성공
+[market-research] [2026-05-31T00:05:24.145Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-05-31T00:05:24.145Z] 🏁 통합 리서치 스캔 완료
+[2026-05-31 09:05:24] 완료 (exit: 0)
+
+[2026-05-31 16:15:03] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[market-research] [2026-05-31T07:15:17.084Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-05-31T07:15:17.879Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-05-31T07:30:18.266Z] ❌ 스캔 실패: Error: codex timeout
+[2026-05-31 16:30:19] 완료 (exit: 1)
+
+[2026-06-01 09:00:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-06-01T00:00:02.391Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-06-01T00:00:02.770Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-06-01T00:02:11.551Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-06-01T00:02:11.552Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-06-01T00:05:06.109Z]   📋 7개 종목 추출: 047810, AMD, NBIS, PL, STX, DELL, ROK
+[market-research] [2026-06-01T00:05:06.109Z] 📊 시가총액 조회: 7개 종목 (Yahoo Finance)
+[market-research] [2026-06-01T00:05:07.112Z] 📊 시가총액 조회 완료: 0/7개 성공
+[market-research] [2026-06-01T00:05:10.093Z]   ✅ stock_research 테이블 7건 적재 완료
+[market-research] [2026-06-01T00:05:10.093Z] 🏁 통합 리서치 스캔 완료
+[2026-06-01 09:05:10] 완료 (exit: 0)
+
+[2026-06-01 16:15:01] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[market-research] [2026-06-01T07:15:03.412Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-06-01T07:15:04.280Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-06-01T07:24:45.203Z] ✅ 마켓 리포트 전송 완료
+[market-research] [2026-06-01T07:24:45.204Z] 📊 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-06-01T07:27:14.152Z]   📋 3개 종목 추출: DELL, NBIS, AMD
+[market-research] [2026-06-01T07:27:14.153Z] 📊 시가총액 조회: 3개 종목 (Yahoo Finance)
+[market-research] [2026-06-01T07:27:14.451Z] 📊 시가총액 조회 완료: 0/3개 성공
+[market-research] [2026-06-01T07:27:15.940Z]   ✅ stock_research 테이블 3건 적재 완료
+[market-research] [2026-06-01T07:27:16.918Z] 🏁 통합 리서치 스캔 완료
+[2026-06-01 16:27:16] 완료 (exit: 0)
+
+[2026-06-02 09:00:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[market-research] [2026-06-02T00:00:03.586Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-06-02T00:00:03.754Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-06-02T00:00:11.416Z] ❌ 스캔 실패: Error: codex exited 1: 2026-06-02T00:00:04.213167Z ERROR codex_models_manager::manager: failed to refresh available models: unexpected status 401 Unauthorized: Your authentication token has been invalidated. Please try signing in again., url: https://chatgpt.com/backend-api/codex/models?client_version=0.130.0, cf-ray: a0522cf9ceb4ea9e-ICN, request id: 8ee828cb-e88a-48de-b61f-b1bfd3855b6b, auth error: 401, auth error code: token_invalidated
+OpenAI Codex v0.130.0
+--------
+workdir: /Volumes/PRO-G40/app-dev/willow-invt
+model: gpt-5.3-codex
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019e85a1-5878-7d83-9236-c3e06123b9c5
+--------
+user
+당신은 윌리(Willy)입니다. 윌로우인베스트먼트의 COO.
+오늘은 2026. 06. 02.이고 매일 아침 종목 발굴 스캔 시간입니다.
+
+아래 작업을 순서대로 수행하고, CEO에게 텔레그램으로 보낼 간결한 리포트를 작성하세요.
+
+## 커버리지
+**미국 + 한국 주식 모두 다룹니다.** KOSPI/KOSDAQ 종목도 적극 발굴 대상.
+- 한국 보유: 삼성전자, SK하이닉스, 한화에어로, 현대로템, 현대차, 미래에셋증권 (이들과 밸류체인 연결성이 강한 KR 종목 우선)
+- 한국 후보 ticker는 6자리(예: 005930) 형식으로
+
+## 1단계: 포트폴리오 전체 스캔
+portfolio_scan 도구를 사용해서 보유 종목 전체 스캔을 돌려주세요.
+- 신고가 돌파/근접 종목
+- 부진 종목 (12M 고점 대비 -20% 이상)
+- 주요 시그널
+
+## 2단계: 종목 발굴
+portfolio_watchlist 도구로 현재 워치리스트를 확인하고,
+portfolio_signals 도구로 시그널 현황을 확인하세요.
+- **신규 후보**는 미국·한국 둘 다 가능. 보유 종목과 같은 밸류체인 안의 KR 종목(예: HBM 협력사, 방산 부품주, 우주 발사체 부품)도 후보에 포함.
+
+## 리포트 형식
+텔레그램 메시지로 보낼 거라 간결하게 작성해주세요.
+- 이모지 적절히 사용
+- 핵심 수치 위주
+- 신호 없으면 "특이사항 없음"으로 짧게
+- "---SPLIT---"으로 메시지 분할 가능 (너무 길 때만)
+- 리포트 상단에 "🔍 종목 리서치 데일리 스캔 (2026. 06. 02.)" 제목 포함
+- KR 종목과 US 종목을 [국내] / [해외] 섹션으로 나눠 표기
+
+중요: 도구 호출 결과만 기반으로 사실만 보고. 추측이나 예측 금지.
+2026-06-02T00:00:04.439245Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedContentType(Some("text/plain; body: {\n  \"error\": {\n    \"message\": \"Your authentication token has been invalidated. Please try signing in again.\",\n    \"type\": \"invalid_request_error\",\n    \"code\": \"token_invalidated\",\n    \"param\": null\n  },\n  \"status\": 401\n}"))
+2026-06-02T00:00:09.889497Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-02T00:00:10.282741Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-02T00:00:10.563170Z ERROR codex_login::auth::manager: Failed to refresh token: 401 Unauthorized: {
+  "error": {
+    "message": "Your refresh token has already been used to generate a new access token. Please try signing in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "refresh_token_reused"
+  }
+}
+2026-06-02T00:00:11.089782Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-02T00:00:11.387743Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+ERROR: Your access token could not be refreshed because your refresh token was already used. Please log out and sign in again.
+ERROR: Your access token could not be refreshed because your refresh token was already used. Please log out and sign in again.
+
+[2026-06-02 09:00:12] 완료 (exit: 1)
+
+[2026-06-02 16:15:05] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[market-research] [2026-06-02T07:15:06.478Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-06-02T07:15:07.058Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-06-02T07:15:15.000Z] ❌ 스캔 실패: Error: codex exited 1: OpenAI Codex v0.130.0
+--------
+workdir: /Volumes/PRO-G40/app-dev/willow-invt
+model: gpt-5.3-codex
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019e872f-a6d3-7511-b4cc-58d32ac9abdc
+--------
+user
+당신은 윌리(Willy)입니다. 윌로우인베스트먼트의 COO.
+오늘은 2026. 06. 02.이고 매일 오후 통합 마켓 리서치 스캔 시간입니다.
+
+이 리포트는 두 가지를 한 번에 수행합니다:
+- Part A: 시장 데이터 기반 종목 스크리닝 (숫자)
+- Part B: 소셜/뉴스 센티먼트 기반 종목 소싱 (군중 심리)
+- 교차 검증: 양쪽에서 겹치는 종목 = 강한 신호
+
+## 커버리지
+**미국 + 한국 주식 모두 다룹니다.** US 소스(Reddit, 미국 뉴스)와 KR 소스(네이버 증권, 디시 주식갤러리, 종토방, 한경/매경/이데일리) 모두 활용.
+
+## 윌로우 포트폴리오 현재 보유
+- AI 인프라: 아이렌, 시에나, 버티브, SanDisk, 마벨 테크놀로지, SK하이닉스, 삼성전자, Micron Technology, 블룸 에너지, 오클로, LG전자, 델 테크놀로지스
+- 지정학/안보: 한화에어로스페이스, 현대로템, 팔란티어, 로켓랩, 미래에셋증권
+- 넥스트: 디웨이브 퀀텀, 현대차
+
+---
+
+## Part A: 시장 데이터 스크리닝
+
+### A-1: 포트폴리오 전체 스캔
+portfolio_scan 도구를 사용해서 보유 종목 전체 스캔:
+- 신고가 돌파/근접 종목
+- 부진 종목 (12M 고점 대비 -20% 이상)
+- 주요 시그널
+
+### A-2: 워치리스트 & 시그널
+portfolio_watchlist로 현재 워치리스트 확인
+portfolio_signals로 시그널 현황 확인
+
+---
+
+## Part B: 소셜/뉴스 버즈 스크리닝
+
+### B-1: 미국 — 레딧 버즈
+아래 서브레딧에서 최근 24시간 핫 포스트 웹 검색:
+- r/wallstreetbets (밈/모멘텀)
+- r/stocks (가치/분석)
+- r/investing (장기투자)
+- r/options (옵션 플로우)
+검색 예: "site:reddit.com/r/wallstreetbets most mentioned stocks today"
+
+### B-2: 한국 — 증권 뉴스 + 커뮤니티 버즈
+아래 채널에서 최근 24시간 화제 종목/테마 검색:
+- **네이버 증권**: 시가총액 급등 종목, 거래량 상위, 인기 검색
+- **한국경제 / 매일경제 / 이데일리**: 산업·기업 뉴스 헤드라인
+- **38커뮤니케이션 / 디시 주식갤러리**: 개인 투자자 화제 종목 (밈/펌프 주의)
+- **네이버 종토방**: 보유 종목 관련 동향 체크
+검색 예: "site:hankyung.com 오늘 급등 종목", "site:naver.com 거래량 상위", "디시 주식갤러리 핫"
+
+### B-3: 버즈 종목 필터링 (US/KR 공통)
+- 보유 종목과 겹치는 것 → 센티먼트 변화 체크
+- 비보유 종목 중 3축 테마(AI 인프라/지정학·안보/넥스트)에 해당하는 것 → 신규 후보
+- 밈/펌프 성격 종목 제외
+
+### B-4: 구조적 검증
+신규 후보 (US 최대 3, KR 최대 3)에 대해 portfolio_check_stock으로 확인:
+- 12M 고점 대비 위치, 추세 방향
+- 어떤 축에 해당하는지 태깅
+- KR 종목 ticker는 6자리 (예: 005930), market='KR'
+
+---
+
+## Part C: 교차 검증 & 종합
+
+양쪽(시장 데이터 + 소셜/뉴스)에서 동시에 포착된 종목이 있으면 **🔥 강한 신호**로 표시.
+워치리스트 추가 후보가 있으면 제안.
+
+---
+
+## 리포트 형식
+텔레그램 메시지용으로 간결하게:
+- 상단: "🔍 마켓 리서치 스캔 (2026. 06. 02.)"
+- [포트폴리오 현황] 섹션: 보유 종목 주요 시그널 ([국내] / [해외] 분리)
+- [시장 발굴] 섹션: 데이터 기반 신규 후보 ([국내] / [해외])
+- [소셜·뉴스 버즈] 섹션: US Reddit + KR 증권/커뮤니티 기반 후보
+- [교차 신호] 섹션: 양쪽에서 겹치는 종목 (없으면 생략)
+- [시장 센티먼트] 섹션: 미국/한국 분위기 각 한 줄
+- "---SPLIT---"으로 분할 가능 (필요시만)
+
+중요: 사실 기반 보고만. 추측/예측 금지. 출처 명시(Reddit URL, 네이버 증권 URL, 신문사명 등).
+ERROR: {"type":"error","status":400,"error":{"type":"invalid_request_error","message":"The 'gpt-5.3-codex' model is not supported when using Codex with a ChatGPT account."}}
+ERROR: {"type":"error","status":400,"error":{"type":"invalid_request_error","message":"The 'gpt-5.3-codex' model is not supported when using Codex with a ChatGPT account."}}
+
+[2026-06-02 16:15:16] 완료 (exit: 1)
+
+[2026-06-03 09:00:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[market-research] [2026-06-03T00:00:04.210Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-06-03T00:00:04.395Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-06-03T00:00:21.224Z] ❌ 스캔 실패: Error: codex exited 1: OpenAI Codex v0.130.0
+--------
+workdir: /Volumes/PRO-G40/app-dev/willow-invt
+model: gpt-5.3-codex
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019e8ac7-b887-7f62-9b33-99cdff906d87
+--------
+user
+당신은 윌리(Willy)입니다. 윌로우인베스트먼트의 COO.
+오늘은 2026. 06. 03.이고 매일 아침 종목 발굴 스캔 시간입니다.
+
+아래 작업을 순서대로 수행하고, CEO에게 텔레그램으로 보낼 간결한 리포트를 작성하세요.
+
+## 커버리지
+**미국 + 한국 주식 모두 다룹니다.** KOSPI/KOSDAQ 종목도 적극 발굴 대상.
+- 한국 보유: 삼성전자, SK하이닉스, 한화에어로, 현대로템, 현대차, 미래에셋증권 (이들과 밸류체인 연결성이 강한 KR 종목 우선)
+- 한국 후보 ticker는 6자리(예: 005930) 형식으로
+
+## 1단계: 포트폴리오 전체 스캔
+portfolio_scan 도구를 사용해서 보유 종목 전체 스캔을 돌려주세요.
+- 신고가 돌파/근접 종목
+- 부진 종목 (12M 고점 대비 -20% 이상)
+- 주요 시그널
+
+## 2단계: 종목 발굴
+portfolio_watchlist 도구로 현재 워치리스트를 확인하고,
+portfolio_signals 도구로 시그널 현황을 확인하세요.
+- **신규 후보**는 미국·한국 둘 다 가능. 보유 종목과 같은 밸류체인 안의 KR 종목(예: HBM 협력사, 방산 부품주, 우주 발사체 부품)도 후보에 포함.
+
+## 리포트 형식
+텔레그램 메시지로 보낼 거라 간결하게 작성해주세요.
+- 이모지 적절히 사용
+- 핵심 수치 위주
+- 신호 없으면 "특이사항 없음"으로 짧게
+- "---SPLIT---"으로 메시지 분할 가능 (너무 길 때만)
+- 리포트 상단에 "🔍 종목 리서치 데일리 스캔 (2026. 06. 03.)" 제목 포함
+- KR 종목과 US 종목을 [국내] / [해외] 섹션으로 나눠 표기
+
+중요: 도구 호출 결과만 기반으로 사실만 보고. 추측이나 예측 금지.
+
+## 3단계: 주간 테마 스캔 (수요일 추가)
+이번 주 주목할 테마나 섹터 변화가 있는지 포트폴리오 데이터를 기반으로 분석해주세요.
+- 섹터별 모멘텀 변화
+- 워치리스트 중 진입 시그널 근접 종목
+- 리포트에 "[주간 테마]" 섹션으로 추가
+ERROR: {"type":"error","status":400,"error":{"type":"invalid_request_error","message":"The 'gpt-5.3-codex' model is not supported when using Codex with a ChatGPT account."}}
+ERROR: {"type":"error","status":400,"error":{"type":"invalid_request_error","message":"The 'gpt-5.3-codex' model is not supported when using Codex with a ChatGPT account."}}
+
+[2026-06-03 09:00:22] 완료 (exit: 1)
+
+[2026-06-03 16:15:02] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[market-research] [2026-06-03T07:15:03.980Z] 🔍 통합 리서치 스캔 시작 (phase: smallcap)
+[market-research] [2026-06-03T07:15:04.461Z] 📡 Phase: 마켓 리서치 (소형주) 스캔
+[market-research] [2026-06-03T07:15:36.073Z] ❌ 스캔 실패: Error: codex exited 1: 2026-06-03T07:15:05.503033Z ERROR codex_models_manager::manager: failed to refresh available models: unexpected status 401 Unauthorized: Your authentication token has been invalidated. Please try signing in again., url: https://chatgpt.com/backend-api/codex/models?client_version=0.136.0, cf-ray: a05ce7953e74e879-ICN, request id: 72cc0547-19ef-429a-9f50-fc4dcc850f45, auth error: 401, auth error code: token_invalidated
+OpenAI Codex v0.136.0
+--------
+workdir: /Volumes/PRO-G40/app-dev/willow-invt
+model: gpt-5.3-codex
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019e8c55-faa3-7002-9997-707bba53d7fe
+--------
+user
+당신은 윌리(Willy)입니다. 윌로우인베스트먼트의 COO.
+오늘은 2026. 06. 03.이고 매일 오후 통합 마켓 리서치 스캔 시간입니다.
+
+이 리포트는 두 가지를 한 번에 수행합니다:
+- Part A: 시장 데이터 기반 종목 스크리닝 (숫자)
+- Part B: 소셜/뉴스 센티먼트 기반 종목 소싱 (군중 심리)
+- 교차 검증: 양쪽에서 겹치는 종목 = 강한 신호
+
+## 커버리지
+**미국 + 한국 주식 모두 다룹니다.** US 소스(Reddit, 미국 뉴스)와 KR 소스(네이버 증권, 디시 주식갤러리, 종토방, 한경/매경/이데일리) 모두 활용.
+
+## 윌로우 포트폴리오 현재 보유
+- AI 인프라: 아이렌, 시에나, 버티브, SanDisk, 마벨 테크놀로지, SK하이닉스, 삼성전자, Micron Technology, 블룸 에너지, 오클로, LG전자, 델 테크놀로지스
+- 지정학/안보: 한화에어로스페이스, 현대로템, 팔란티어, 로켓랩, 미래에셋증권
+- 넥스트: 디웨이브 퀀텀, 현대차
+
+---
+
+## Part A: 시장 데이터 스크리닝
+
+### A-1: 포트폴리오 전체 스캔
+portfolio_scan 도구를 사용해서 보유 종목 전체 스캔:
+- 신고가 돌파/근접 종목
+- 부진 종목 (12M 고점 대비 -20% 이상)
+- 주요 시그널
+
+### A-2: 워치리스트 & 시그널
+portfolio_watchlist로 현재 워치리스트 확인
+portfolio_signals로 시그널 현황 확인
+
+---
+
+## Part B: 소셜/뉴스 버즈 스크리닝
+
+### B-1: 미국 — 레딧 버즈
+아래 서브레딧에서 최근 24시간 핫 포스트 웹 검색:
+- r/wallstreetbets (밈/모멘텀)
+- r/stocks (가치/분석)
+- r/investing (장기투자)
+- r/options (옵션 플로우)
+검색 예: "site:reddit.com/r/wallstreetbets most mentioned stocks today"
+
+### B-2: 한국 — 증권 뉴스 + 커뮤니티 버즈
+아래 채널에서 최근 24시간 화제 종목/테마 검색:
+- **네이버 증권**: 시가총액 급등 종목, 거래량 상위, 인기 검색
+- **한국경제 / 매일경제 / 이데일리**: 산업·기업 뉴스 헤드라인
+- **38커뮤니케이션 / 디시 주식갤러리**: 개인 투자자 화제 종목 (밈/펌프 주의)
+- **네이버 종토방**: 보유 종목 관련 동향 체크
+검색 예: "site:hankyung.com 오늘 급등 종목", "site:naver.com 거래량 상위", "디시 주식갤러리 핫"
+
+### B-3: 버즈 종목 필터링 (US/KR 공통)
+- 보유 종목과 겹치는 것 → 센티먼트 변화 체크
+- 비보유 종목 중 3축 테마(AI 인프라/지정학·안보/넥스트)에 해당하는 것 → 신규 후보
+- 밈/펌프 성격 종목 제외
+
+### B-4: 구조적 검증
+신규 후보 (US 최대 3, KR 최대 3)에 대해 portfolio_check_stock으로 확인:
+- 12M 고점 대비 위치, 추세 방향
+- 어떤 축에 해당하는지 태깅
+- KR 종목 ticker는 6자리 (예: 005930), market='KR'
+
+---
+
+## Part C: 교차 검증 & 종합
+
+양쪽(시장 데이터 + 소셜/뉴스)에서 동시에 포착된 종목이 있으면 **🔥 강한 신호**로 표시.
+워치리스트 추가 후보가 있으면 제안.
+
+---
+
+## 리포트 형식
+텔레그램 메시지용으로 간결하게:
+- 상단: "🔍 마켓 리서치 스캔 (2026. 06. 03.)"
+- [포트폴리오 현황] 섹션: 보유 종목 주요 시그널 ([국내] / [해외] 분리)
+- [시장 발굴] 섹션: 데이터 기반 신규 후보 ([국내] / [해외])
+- [소셜·뉴스 버즈] 섹션: US Reddit + KR 증권/커뮤니티 기반 후보
+- [교차 신호] 섹션: 양쪽에서 겹치는 종목 (없으면 생략)
+- [시장 센티먼트] 섹션: 미국/한국 분위기 각 한 줄
+- "---SPLIT---"으로 분할 가능 (필요시만)
+
+중요: 사실 기반 보고만. 추측/예측 금지. 출처 명시(Reddit URL, 네이버 증권 URL, 신문사명 등).
+2026-06-03T07:15:05.879392Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedContentType(Some("text/plain; body: {\n  \"error\": {\n    \"message\": \"Your authentication token has been invalidated. Please try signing in again.\",\n    \"type\": \"invalid_request_error\",\n    \"code\": \"token_invalidated\",\n    \"param\": null\n  },\n  \"status\": 401\n}"))
+2026-06-03T07:15:10.527066Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:10.892744Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:11.168812Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+2026-06-03T07:15:12.324823Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:12.652192Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:12.958910Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+2026-06-03T07:15:13.478917Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:14.152592Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:14.416819Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+ERROR: Reconnecting... 2/5
+2026-06-03T07:15:15.231505Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:15.926959Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:16.192886Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+ERROR: Reconnecting... 3/5
+2026-06-03T07:15:17.354836Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:17.731289Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:18.004874Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+ERROR: Reconnecting... 4/5
+2026-06-03T07:15:19.846588Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:20.152031Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:20.425076Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+ERROR: Reconnecting... 5/5
+2026-06-03T07:15:24.324722Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:25.146872Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://chatgpt.com/backend-api/codex/responses
+2026-06-03T07:15:25.418785Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+2026-06-03T07:15:26.026855Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+ERROR: Reconnecting... 1/5
+2026-06-03T07:15:26.845145Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+ERROR: Reconnecting... 2/5
+2026-06-03T07:15:28.014089Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+ERROR: Reconnecting... 3/5
+2026-06-03T07:15:29.326099Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+ERROR: Reconnecting... 4/5
+2026-06-03T07:15:31.461217Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+ERROR: Reconnecting... 5/5
+2026-06-03T07:15:35.035737Z ERROR codex_login::auth::manager: Failed to refresh token: 400 Bad Request: {
+  "error": {
+    "message": "Your session has ended. Please log in again.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "app_session_terminated"
+  }
+}
+ERROR: Failed to refresh token: 400 Bad Request: Your session has ended. Please log in again.
+ERROR: Failed to refresh token: 400 Bad Request: Your session has ended. Please log in again.
+
+[2026-06-03 16:15:37] 완료 (exit: 1)
+
+[2026-06-04 09:00:04] 통합 리서치 스캔 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[market-research] [2026-06-04T00:00:06.151Z] 🔍 통합 리서치 스캔 시작 (phase: valuechain)
+[market-research] [2026-06-04T00:00:06.467Z] 📡 Phase: 밸류체인 스캔
+[market-research] [2026-06-04T00:03:15.596Z] ✅ 밸류체인 리포트 전송 완료
+[market-research] [2026-06-04T00:03:15.596Z] 📊 밸류체인 리포트에서 종목 데이터 추출 중...
+[market-research] [2026-06-04T00:06:28.046Z]   📋 6개 종목 추출: AMD, WDC, ROK, SIMO, STX, TER
+[market-research] [2026-06-04T00:06:29.938Z]   ✅ stock_research 테이블 6건 적재 완료
+[market-research] [2026-06-04T00:06:29.938Z] 🏁 통합 리서치 스캔 완료
+[2026-06-04 09:06:29] 완료 (exit: 0)
+

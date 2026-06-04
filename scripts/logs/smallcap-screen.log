@@ -1,0 +1,361 @@
+[2026-03-25 16:11:37] 소형주 스크리닝 시작
+[dotenv@17.3.1] injecting env (0) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[smallcap-screen] [2026-03-25T07:11:39.869Z] ========================================
+[smallcap-screen] [2026-03-25T07:11:39.870Z] Smallcap screening pipeline starting
+[smallcap-screen] [2026-03-25T07:11:39.870Z] Filters: cap_small,fa_salesqoq_o15,sh_avgvol_o200
+[smallcap-screen] [2026-03-25T07:11:39.870Z] Mode: LIVE | HEADLESS
+[smallcap-screen] [2026-03-25T07:11:39.870Z] ========================================
+[smallcap-screen] [2026-03-25T07:11:40.179Z] Phase 1: Finviz Screener
+[smallcap-screen] [2026-03-25T07:11:40.453Z]   v=111 r=1
+[smallcap-screen] [2026-03-25T07:11:45.378Z]   v=111 r=21
+[smallcap-screen] [2026-03-25T07:11:49.070Z]   v=111 r=41
+[smallcap-screen] [2026-03-25T07:11:52.480Z]   v=111 r=61
+[smallcap-screen] [2026-03-25T07:11:56.374Z]   v=111 r=81
+[smallcap-screen] [2026-03-25T07:11:59.909Z]   v=111 r=101
+[smallcap-screen] [2026-03-25T07:12:04.613Z]   v=111 r=121
+[smallcap-screen] [2026-03-25T07:12:07.880Z]   v=111 r=141
+[smallcap-screen] [2026-03-25T07:12:11.007Z]   v=111 r=161
+[smallcap-screen] [2026-03-25T07:12:14.965Z]   v=111 r=181
+[smallcap-screen] [2026-03-25T07:12:18.681Z]   v=111: 210 tickers, 10 pages
+[smallcap-screen] [2026-03-25T07:12:18.681Z]   v=121 r=1
+[smallcap-screen] [2026-03-25T07:12:22.019Z]   v=121 r=21
+[smallcap-screen] [2026-03-25T07:12:26.093Z]   v=121 r=41
+[smallcap-screen] [2026-03-25T07:12:30.032Z]   v=121 r=61
+[smallcap-screen] [2026-03-25T07:12:33.481Z]   v=121 r=81
+[smallcap-screen] [2026-03-25T07:12:36.862Z]   v=121 r=101
+[smallcap-screen] [2026-03-25T07:12:40.631Z]   v=121 r=121
+[smallcap-screen] [2026-03-25T07:12:44.238Z]   v=121 r=141
+[smallcap-screen] [2026-03-25T07:12:47.758Z]   v=121 r=161
+[smallcap-screen] [2026-03-25T07:12:51.366Z]   v=121 r=181
+[smallcap-screen] [2026-03-25T07:12:54.591Z]   v=121: 210 tickers, 10 pages
+[smallcap-screen] [2026-03-25T07:12:54.591Z]   v=131 r=1
+[smallcap-screen] [2026-03-25T07:12:58.405Z]   v=131 r=21
+[smallcap-screen] [2026-03-25T07:13:01.989Z]   v=131 r=41
+[smallcap-screen] [2026-03-25T07:13:05.818Z]   v=131 r=61
+[smallcap-screen] [2026-03-25T07:13:09.690Z]   v=131 r=81
+[smallcap-screen] [2026-03-25T07:13:13.551Z]   v=131 r=101
+[smallcap-screen] [2026-03-25T07:13:17.022Z]   v=131 r=121
+[smallcap-screen] [2026-03-25T07:13:20.617Z]   v=131 r=141
+[smallcap-screen] [2026-03-25T07:13:24.398Z]   v=131 r=161
+[smallcap-screen] [2026-03-25T07:13:28.334Z]   v=131 r=181
+[smallcap-screen] [2026-03-25T07:13:32.151Z]   v=131: 210 tickers, 10 pages
+[smallcap-screen] [2026-03-25T07:13:32.152Z]   v=141 r=1
+[smallcap-screen] [2026-03-25T07:13:35.266Z]   v=141 r=21
+[smallcap-screen] [2026-03-25T07:13:38.355Z]   v=141 r=41
+[smallcap-screen] [2026-03-25T07:13:41.645Z]   v=141 r=61
+[smallcap-screen] [2026-03-25T07:13:45.547Z]   v=141 r=81
+[smallcap-screen] [2026-03-25T07:13:48.676Z]   v=141 r=101
+[smallcap-screen] [2026-03-25T07:13:51.674Z]   v=141 r=121
+[smallcap-screen] [2026-03-25T07:13:55.455Z]   v=141 r=141
+[smallcap-screen] [2026-03-25T07:13:58.684Z]   v=141 r=161
+[smallcap-screen] [2026-03-25T07:14:02.111Z]   v=141 r=181
+[smallcap-screen] [2026-03-25T07:14:05.672Z]   v=141: 210 tickers, 10 pages
+[smallcap-screen] [2026-03-25T07:14:05.673Z]   v=151 r=1
+[smallcap-screen] [2026-03-25T07:14:09.085Z]   v=151 r=21
+[smallcap-screen] [2026-03-25T07:14:12.373Z]   v=151 r=41
+[smallcap-screen] [2026-03-25T07:14:16.190Z]   v=151 r=61
+[smallcap-screen] [2026-03-25T07:14:20.092Z]   v=151 r=81
+[smallcap-screen] [2026-03-25T07:14:23.759Z]   v=151 r=101
+[smallcap-screen] [2026-03-25T07:14:26.988Z]   v=151 r=121
+[smallcap-screen] [2026-03-25T07:14:30.925Z]   v=151 r=141
+[smallcap-screen] [2026-03-25T07:14:34.642Z]   v=151 r=161
+[smallcap-screen] [2026-03-25T07:14:38.251Z]   v=151 r=181
+[smallcap-screen] [2026-03-25T07:14:41.505Z]   v=151: 210 tickers, 10 pages
+[smallcap-screen] [2026-03-25T07:14:41.538Z] Phase 1 complete: 210 candidates
+[smallcap-screen] [2026-03-25T07:14:41.539Z]   Excluded 34 stocks (Materials/Consumer/Commodity/China)
+[smallcap-screen] [2026-03-25T07:14:41.539Z] Phase 2: OpenInsider insider buying
+[smallcap-screen] [2026-03-25T07:14:45.183Z]   500 total purchases, 10 match our candidates
+[smallcap-screen] [2026-03-25T07:14:45.188Z] Phase 3: Reddit buzz cross-reference
+[smallcap-screen] [2026-03-25T07:14:45.763Z]   Reddit data for 1 tickers
+[smallcap-screen] [2026-03-25T07:14:45.763Z] Phase 4: Scoring
+[smallcap-screen] [2026-03-25T07:14:45.765Z]   A=0 B=2 C=39 F=135
+[smallcap-screen] [2026-03-25T07:14:45.765Z]   #1 PGY (B) score=55.8 q=40 v=100 m=25
+[smallcap-screen] [2026-03-25T07:14:45.765Z]   #2 NRDS (B) score=54 q=45 v=90 m=25
+[smallcap-screen] [2026-03-25T07:14:45.765Z]   #3 PANL (C) score=49 q=55 v=60 m=25
+[smallcap-screen] [2026-03-25T07:14:45.765Z] Phase 5: Saving to DB
+[smallcap-screen] [2026-03-25T07:15:04.841Z]   Saved: 176, Errors: 0
+[smallcap-screen] [2026-03-25T07:15:04.842Z] Phase 6: Telegram report
+[smallcap-screen] [2026-03-25T07:15:05.923Z]   Report sent
+[smallcap-screen] [2026-03-25T07:15:05.923Z] ========================================
+[smallcap-screen] [2026-03-25T07:15:05.923Z] Pipeline complete — 176 stocks scored
+[smallcap-screen] [2026-03-25T07:15:05.923Z] ========================================
+[2026-03-25 16:15:06] 완료 (exit: 0)
+
+[2026-04-18 10:00:02] 소형주 스크리닝 시작
+[dotenv@17.3.1] injecting env (24) from .env.local -- tip: 🛡️ auth for agents: https://vestauth.com
+[smallcap-screen] [2026-04-18T01:00:05.934Z] ========================================
+[smallcap-screen] [2026-04-18T01:00:05.934Z] Smallcap screening pipeline starting
+[smallcap-screen] [2026-04-18T01:00:05.934Z] Filters: cap_small,fa_salesqoq_o15,sh_avgvol_o200
+[smallcap-screen] [2026-04-18T01:00:05.934Z] Mode: LIVE | HEADLESS
+[smallcap-screen] [2026-04-18T01:00:05.935Z] ========================================
+[smallcap-screen] [2026-04-18T01:00:07.731Z] Phase 1: Finviz Screener
+[smallcap-screen] [2026-04-18T01:00:08.002Z]   v=111 r=1
+[smallcap-screen] [2026-04-18T01:00:12.930Z]   v=111 r=21
+[smallcap-screen] [2026-04-18T01:00:16.790Z]   v=111 r=41
+[smallcap-screen] [2026-04-18T01:00:20.146Z]   v=111 r=61
+[smallcap-screen] [2026-04-18T01:00:23.234Z]   v=111 r=81
+[smallcap-screen] [2026-04-18T01:00:26.667Z]   v=111 r=101
+[smallcap-screen] [2026-04-18T01:00:30.579Z]   v=111 r=121
+[smallcap-screen] [2026-04-18T01:00:33.932Z]   v=111 r=141
+[smallcap-screen] [2026-04-18T01:00:37.436Z]   v=111 r=161
+[smallcap-screen] [2026-04-18T01:00:40.445Z]   v=111 r=181
+[smallcap-screen] [2026-04-18T01:00:43.913Z]   v=111: 210 tickers, 10 pages
+[smallcap-screen] [2026-04-18T01:00:43.914Z]   v=121 r=1
+[smallcap-screen] [2026-04-18T01:00:47.584Z]   v=121 r=21
+[smallcap-screen] [2026-04-18T01:00:51.505Z]   v=121 r=41
+[smallcap-screen] [2026-04-18T01:00:54.503Z]   v=121 r=61
+[smallcap-screen] [2026-04-18T01:00:58.238Z]   v=121 r=81
+[smallcap-screen] [2026-04-18T01:01:02.296Z]   v=121 r=101
+[smallcap-screen] [2026-04-18T01:01:06.004Z]   v=121 r=121
+[smallcap-screen] [2026-04-18T01:01:09.447Z]   v=121 r=141
+[smallcap-screen] [2026-04-18T01:01:12.772Z]   v=121 r=161
+[smallcap-screen] [2026-04-18T01:01:15.892Z]   v=121 r=181
+[smallcap-screen] [2026-04-18T01:01:19.213Z]   v=121: 210 tickers, 10 pages
+[smallcap-screen] [2026-04-18T01:01:19.214Z]   v=131 r=1
+[smallcap-screen] [2026-04-18T01:01:22.627Z]   v=131 r=21
+[smallcap-screen] [2026-04-18T01:01:26.248Z]   v=131 r=41
+[smallcap-screen] [2026-04-18T01:01:29.845Z]   v=131 r=61
+[smallcap-screen] [2026-04-18T01:01:33.318Z]   v=131 r=81
+[smallcap-screen] [2026-04-18T01:01:36.369Z]   v=131 r=101
+[smallcap-screen] [2026-04-18T01:01:39.657Z]   v=131 r=121
+[smallcap-screen] [2026-04-18T01:01:43.426Z]   v=131 r=141
+[smallcap-screen] [2026-04-18T01:01:47.099Z]   v=131 r=161
+[smallcap-screen] [2026-04-18T01:01:50.191Z]   v=131 r=181
+[smallcap-screen] [2026-04-18T01:01:53.780Z]   v=131: 210 tickers, 10 pages
+[smallcap-screen] [2026-04-18T01:01:53.781Z]   v=141 r=1
+[smallcap-screen] [2026-04-18T01:01:57.616Z]   v=141 r=21
+[smallcap-screen] [2026-04-18T01:02:01.184Z]   v=141 r=41
+[smallcap-screen] [2026-04-18T01:02:04.958Z]   v=141 r=61
+[smallcap-screen] [2026-04-18T01:02:08.089Z]   v=141 r=81
+[smallcap-screen] [2026-04-18T01:02:11.853Z]   v=141 r=101
+[smallcap-screen] [2026-04-18T01:02:15.790Z]   v=141 r=121
+[smallcap-screen] [2026-04-18T01:02:19.369Z]   v=141 r=141
+[smallcap-screen] [2026-04-18T01:02:23.205Z]   v=141 r=161
+[smallcap-screen] [2026-04-18T01:02:26.605Z]   v=141 r=181
+[smallcap-screen] [2026-04-18T01:02:30.099Z]   v=141: 210 tickers, 10 pages
+[smallcap-screen] [2026-04-18T01:02:30.099Z]   v=151 r=1
+[smallcap-screen] [2026-04-18T01:02:33.432Z]   v=151 r=21
+[smallcap-screen] [2026-04-18T01:02:36.654Z]   v=151 r=41
+[smallcap-screen] [2026-04-18T01:02:40.233Z]   v=151 r=61
+[smallcap-screen] [2026-04-18T01:02:43.662Z]   v=151 r=81
+[smallcap-screen] [2026-04-18T01:02:47.037Z]   v=151 r=101
+[smallcap-screen] [2026-04-18T01:02:50.198Z]   v=151 r=121
+[smallcap-screen] [2026-04-18T01:02:53.767Z]   v=151 r=141
+[smallcap-screen] [2026-04-18T01:02:57.087Z]   v=151 r=161
+[smallcap-screen] [2026-04-18T01:03:00.830Z]   v=151 r=181
+[smallcap-screen] [2026-04-18T01:03:03.942Z]   v=151: 210 tickers, 10 pages
+[smallcap-screen] [2026-04-18T01:03:03.975Z] Phase 1 complete: 210 candidates
+[smallcap-screen] [2026-04-18T01:03:03.975Z]   Excluded 87 stocks (Materials/Consumer/Fintech/Shipping/China)
+[smallcap-screen] [2026-04-18T01:03:03.976Z] Phase 2: OpenInsider insider buying
+[smallcap-screen] [2026-04-18T01:03:07.981Z]   500 total purchases, 11 match our candidates
+[smallcap-screen] [2026-04-18T01:03:07.985Z] Phase 3: Reddit buzz cross-reference
+[smallcap-screen] [2026-04-18T01:03:08.468Z]   Reddit data for 0 tickers
+[smallcap-screen] [2026-04-18T01:03:08.468Z] Phase 4: Scoring
+[smallcap-screen] [2026-04-18T01:03:08.471Z]   A=0 B=7 C=33 F=83
+[smallcap-screen] [2026-04-18T01:03:08.471Z]   #1 PICS (B) score=59 q=45 v=70 m=5
+[smallcap-screen] [2026-04-18T01:03:08.471Z]   #2 MITK (B) score=58.5 q=45 v=55 m=25
+[smallcap-screen] [2026-04-18T01:03:08.471Z]   #3 GCT (B) score=58 q=70 v=60 m=5
+[smallcap-screen] [2026-04-18T01:03:08.472Z] Phase 5: Saving to DB
+[smallcap-screen] [2026-04-18T01:03:08.591Z]   Cleared today's old data
+[smallcap-screen] [2026-04-18T01:03:21.748Z]   Saved: 123, Errors: 0
+[smallcap-screen] [2026-04-18T01:03:21.749Z] Phase 6: Telegram report
+[smallcap-screen] [2026-04-18T01:03:23.041Z]   Report sent
+[smallcap-screen] [2026-04-18T01:03:23.041Z] ========================================
+[smallcap-screen] [2026-04-18T01:03:23.041Z] Pipeline complete — 123 stocks scored
+[smallcap-screen] [2026-04-18T01:03:23.041Z] ========================================
+[2026-04-18 10:03:23] 완료 (exit: 0)
+
+[2026-04-25 10:00:05] 소형주 스크리닝 시작
+[dotenv@17.3.1] injecting env (28) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[smallcap-screen] [2026-04-25T01:00:08.849Z] ========================================
+[smallcap-screen] [2026-04-25T01:00:08.849Z] Smallcap screening pipeline starting
+[smallcap-screen] [2026-04-25T01:00:08.849Z] Filters: cap_small,fa_salesqoq_o15,sh_avgvol_o200
+[smallcap-screen] [2026-04-25T01:00:08.849Z] Mode: LIVE | HEADLESS
+[smallcap-screen] [2026-04-25T01:00:08.849Z] ========================================
+[smallcap-screen] [2026-04-25T01:00:10.890Z] Phase 1: Finviz Screener
+[smallcap-screen] [2026-04-25T01:00:11.159Z]   v=111 r=1
+[smallcap-screen] [2026-04-25T01:00:16.857Z]   v=111 r=21
+[smallcap-screen] [2026-04-25T01:00:20.575Z]   v=111 r=41
+[smallcap-screen] [2026-04-25T01:00:23.683Z]   v=111 r=61
+[smallcap-screen] [2026-04-25T01:00:27.472Z]   v=111 r=81
+[smallcap-screen] [2026-04-25T01:00:31.451Z]   v=111 r=101
+[smallcap-screen] [2026-04-25T01:00:34.596Z]   v=111 r=121
+[smallcap-screen] [2026-04-25T01:00:38.031Z]   v=111 r=141
+[smallcap-screen] [2026-04-25T01:00:41.052Z]   v=111 r=161
+[smallcap-screen] [2026-04-25T01:00:45.054Z]   v=111 r=181
+[smallcap-screen] [2026-04-25T01:00:48.750Z]   v=111: 210 tickers, 10 pages
+[smallcap-screen] [2026-04-25T01:00:48.750Z]   v=121 r=1
+[smallcap-screen] [2026-04-25T01:00:52.007Z]   v=121 r=21
+[smallcap-screen] [2026-04-25T01:00:56.203Z]   v=121 r=41
+[smallcap-screen] [2026-04-25T01:00:59.997Z]   v=121 r=61
+[smallcap-screen] [2026-04-25T01:01:03.531Z]   v=121 r=81
+[smallcap-screen] [2026-04-25T01:01:07.869Z]   v=121 r=101
+[smallcap-screen] [2026-04-25T01:01:11.714Z]   v=121 r=121
+[smallcap-screen] [2026-04-25T01:01:15.399Z]   v=121 r=141
+[smallcap-screen] [2026-04-25T01:01:19.541Z]   v=121 r=161
+[smallcap-screen] [2026-04-25T01:01:22.783Z]   v=121 r=181
+[smallcap-screen] [2026-04-25T01:01:26.274Z]   v=121: 210 tickers, 10 pages
+[smallcap-screen] [2026-04-25T01:01:26.274Z]   v=131 r=1
+[smallcap-screen] [2026-04-25T01:01:30.087Z]   v=131 r=21
+[smallcap-screen] [2026-04-25T01:01:33.259Z]   v=131 r=41
+[smallcap-screen] [2026-04-25T01:01:37.127Z]   v=131 r=61
+[smallcap-screen] [2026-04-25T01:01:40.125Z]   v=131 r=81
+[smallcap-screen] [2026-04-25T01:01:43.083Z]   v=131 r=101
+[smallcap-screen] [2026-04-25T01:01:46.565Z]   v=131 r=121
+[smallcap-screen] [2026-04-25T01:01:49.806Z]   v=131 r=141
+[smallcap-screen] [2026-04-25T01:01:53.573Z]   v=131 r=161
+[smallcap-screen] [2026-04-25T01:01:57.414Z]   v=131 r=181
+[smallcap-screen] [2026-04-25T01:02:00.548Z]   v=131: 210 tickers, 10 pages
+[smallcap-screen] [2026-04-25T01:02:00.548Z]   v=141 r=1
+[smallcap-screen] [2026-04-25T01:02:03.731Z]   v=141 r=21
+[smallcap-screen] [2026-04-25T01:02:07.049Z]   v=141 r=41
+[smallcap-screen] [2026-04-25T01:02:10.387Z]   v=141 r=61
+[smallcap-screen] [2026-04-25T01:02:14.012Z]   v=141 r=81
+[smallcap-screen] [2026-04-25T01:02:18.588Z]   v=141 r=101
+[smallcap-screen] [2026-04-25T01:02:22.449Z]   v=141 r=121
+[smallcap-screen] [2026-04-25T01:02:25.484Z]   v=141 r=141
+[smallcap-screen] [2026-04-25T01:02:29.235Z]   v=141 r=161
+[smallcap-screen] [2026-04-25T01:02:34.052Z]   v=141 r=181
+[smallcap-screen] [2026-04-25T01:02:37.763Z]   v=141: 210 tickers, 10 pages
+[smallcap-screen] [2026-04-25T01:02:37.763Z]   v=151 r=1
+[smallcap-screen] [2026-04-25T01:02:41.697Z]   v=151 r=21
+[smallcap-screen] [2026-04-25T01:02:45.168Z]   v=151 r=41
+[smallcap-screen] [2026-04-25T01:02:49.058Z]   v=151 r=61
+[smallcap-screen] [2026-04-25T01:02:52.897Z]   v=151 r=81
+[smallcap-screen] [2026-04-25T01:02:56.643Z]   v=151 r=101
+[smallcap-screen] [2026-04-25T01:03:00.125Z]   v=151 r=121
+[smallcap-screen] [2026-04-25T01:03:03.878Z]   v=151 r=141
+[smallcap-screen] [2026-04-25T01:03:07.448Z]   v=151 r=161
+[smallcap-screen] [2026-04-25T01:03:10.769Z]   v=151 r=181
+[smallcap-screen] [2026-04-25T01:03:13.975Z]   v=151: 210 tickers, 10 pages
+[smallcap-screen] [2026-04-25T01:03:14.016Z] Phase 1 complete: 210 candidates
+[smallcap-screen] [2026-04-25T01:03:14.017Z]   Excluded 87 stocks (Materials/Consumer/Fintech/Shipping/China)
+[smallcap-screen] [2026-04-25T01:03:14.017Z] Phase 2: OpenInsider insider buying
+[smallcap-screen] [2026-04-25T01:03:23.924Z]   500 total purchases, 14 match our candidates
+[smallcap-screen] [2026-04-25T01:03:23.944Z] Phase 3: Reddit buzz cross-reference
+[smallcap-screen] [2026-04-25T01:03:24.571Z]   Reddit data for 0 tickers
+[smallcap-screen] [2026-04-25T01:03:24.571Z] Phase 4: Scoring
+[smallcap-screen] [2026-04-25T01:03:24.575Z]   A=0 B=8 C=32 F=83
+[smallcap-screen] [2026-04-25T01:03:24.575Z]   #1 PHR (B) score=62.3 q=55 v=80 m=25
+[smallcap-screen] [2026-04-25T01:03:24.575Z]   #2 DSP (B) score=56.5 q=55 v=40 m=25
+[smallcap-screen] [2026-04-25T01:03:24.575Z]   #3 PICS (B) score=56.5 q=35 v=70 m=5
+[smallcap-screen] [2026-04-25T01:03:24.575Z] Phase 5: Saving to DB
+[smallcap-screen] [2026-04-25T01:03:24.704Z]   Cleared today's old data
+[smallcap-screen] [2026-04-25T01:03:37.590Z]   Saved: 123, Errors: 0
+[smallcap-screen] [2026-04-25T01:03:37.590Z] Phase 6: Telegram report
+[smallcap-screen] [2026-04-25T01:03:38.710Z]   Report sent
+[smallcap-screen] [2026-04-25T01:03:38.710Z] ========================================
+[smallcap-screen] [2026-04-25T01:03:38.710Z] Pipeline complete — 123 stocks scored
+[smallcap-screen] [2026-04-25T01:03:38.710Z] ========================================
+[2026-04-25 10:03:38] 완료 (exit: 0)
+
+[2026-05-02 10:00:01] 소형주 스크리닝 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🛡️ auth for agents: https://vestauth.com
+[smallcap-screen] [2026-05-02T01:00:04.953Z] ========================================
+[smallcap-screen] [2026-05-02T01:00:04.953Z] Smallcap screening pipeline starting
+[smallcap-screen] [2026-05-02T01:00:04.953Z] Filters: cap_small,fa_salesqoq_o15,sh_avgvol_o200
+[smallcap-screen] [2026-05-02T01:00:04.953Z] Mode: LIVE | HEADLESS
+[smallcap-screen] [2026-05-02T01:00:04.953Z] ========================================
+[smallcap-screen] [2026-05-02T01:00:06.943Z] Phase 1: Finviz Screener
+[smallcap-screen] [2026-05-02T01:00:07.193Z]   v=111 r=1
+[smallcap-screen] [2026-05-02T01:00:22.186Z]   v=111: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-02T01:00:22.187Z]   v=121 r=1
+[smallcap-screen] [2026-05-02T01:00:36.929Z]   v=121: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-02T01:00:36.930Z]   v=131 r=1
+[smallcap-screen] [2026-05-02T01:00:50.761Z]   v=131: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-02T01:00:50.761Z]   v=141 r=1
+[smallcap-screen] [2026-05-02T01:01:04.161Z]   v=141: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-02T01:01:04.162Z]   v=151 r=1
+[smallcap-screen] [2026-05-02T01:01:18.210Z]   v=151: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-02T01:01:18.250Z] Phase 1 complete: 0 candidates
+[smallcap-screen] [2026-05-02T01:01:18.250Z] ❌ No candidates from Finviz. Aborting.
+[2026-05-02 10:01:18] 완료 (exit: 0)
+
+[2026-05-09 10:00:05] 소형주 스크리닝 시작
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[smallcap-screen] [2026-05-09T01:00:09.697Z] ========================================
+[smallcap-screen] [2026-05-09T01:00:09.698Z] Smallcap screening pipeline starting
+[smallcap-screen] [2026-05-09T01:00:09.698Z] Filters: cap_small,fa_salesqoq_o15,sh_avgvol_o200
+[smallcap-screen] [2026-05-09T01:00:09.698Z] Mode: LIVE | HEADLESS
+[smallcap-screen] [2026-05-09T01:00:09.698Z] ========================================
+[smallcap-screen] [2026-05-09T01:00:12.020Z] Phase 1: Finviz Screener
+[smallcap-screen] [2026-05-09T01:00:12.247Z]   v=111 r=1
+[smallcap-screen] [2026-05-09T01:00:26.862Z]   v=111: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-09T01:00:26.868Z]   v=121 r=1
+[smallcap-screen] [2026-05-09T01:00:41.301Z]   v=121: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-09T01:00:41.301Z]   v=131 r=1
+[smallcap-screen] [2026-05-09T01:00:54.732Z]   v=131: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-09T01:00:54.743Z]   v=141 r=1
+[smallcap-screen] [2026-05-09T01:01:08.513Z]   v=141: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-09T01:01:08.538Z]   v=151 r=1
+[smallcap-screen] [2026-05-09T01:01:22.214Z]   v=151: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-09T01:01:22.289Z] Phase 1 complete: 0 candidates
+[smallcap-screen] [2026-05-09T01:01:22.289Z] ❌ No candidates from Finviz. Aborting.
+[2026-05-09 10:01:22] 완료 (exit: 0)
+
+[2026-05-16 10:00:00] 소형주 스크리닝 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[smallcap-screen] [2026-05-16T01:00:06.064Z] ========================================
+[smallcap-screen] [2026-05-16T01:00:06.064Z] Smallcap screening pipeline starting
+[smallcap-screen] [2026-05-16T01:00:06.064Z] Filters: cap_small,fa_salesqoq_o15,sh_avgvol_o200
+[smallcap-screen] [2026-05-16T01:00:06.064Z] Mode: LIVE | HEADLESS
+[smallcap-screen] [2026-05-16T01:00:06.064Z] ========================================
+[smallcap-screen] [2026-05-16T01:00:08.375Z] Phase 1: Finviz Screener
+[smallcap-screen] [2026-05-16T01:00:08.679Z]   v=111 r=1
+[smallcap-screen] [2026-05-16T01:00:23.188Z]   v=111: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-16T01:00:23.189Z]   v=121 r=1
+[smallcap-screen] [2026-05-16T01:00:38.094Z]   v=121: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-16T01:00:38.115Z]   v=131 r=1
+[smallcap-screen] [2026-05-16T01:00:52.272Z]   v=131: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-16T01:00:52.278Z]   v=141 r=1
+[smallcap-screen] [2026-05-16T01:01:05.834Z]   v=141: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-16T01:01:05.835Z]   v=151 r=1
+[smallcap-screen] [2026-05-16T01:01:20.213Z]   v=151: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-16T01:01:20.299Z] Phase 1 complete: 0 candidates
+[smallcap-screen] [2026-05-16T01:01:20.299Z] ❌ No candidates from Finviz. Aborting.
+[2026-05-16 10:01:20] 완료 (exit: 0)
+
+[2026-05-23 10:00:03] 소형주 스크리닝 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[smallcap-screen] [2026-05-23T01:00:06.688Z] ========================================
+[smallcap-screen] [2026-05-23T01:00:06.688Z] Smallcap screening pipeline starting
+[smallcap-screen] [2026-05-23T01:00:06.688Z] Filters: cap_small,fa_salesqoq_o15,sh_avgvol_o200
+[smallcap-screen] [2026-05-23T01:00:06.688Z] Mode: LIVE | HEADLESS
+[smallcap-screen] [2026-05-23T01:00:06.688Z] ========================================
+[smallcap-screen] [2026-05-23T01:00:08.724Z] Phase 1: Finviz Screener
+[smallcap-screen] [2026-05-23T01:00:09.039Z]   v=111 r=1
+[smallcap-screen] [2026-05-23T01:00:23.813Z]   v=111: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-23T01:00:23.813Z]   v=121 r=1
+[smallcap-screen] [2026-05-23T01:00:38.042Z]   v=121: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-23T01:00:38.042Z]   v=131 r=1
+[smallcap-screen] [2026-05-23T01:00:52.272Z]   v=131: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-23T01:00:52.273Z]   v=141 r=1
+[smallcap-screen] [2026-05-23T01:01:06.062Z]   v=141: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-23T01:01:06.063Z]   v=151 r=1
+[smallcap-screen] [2026-05-23T01:01:20.015Z]   v=151: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-23T01:01:20.052Z] Phase 1 complete: 0 candidates
+[smallcap-screen] [2026-05-23T01:01:20.052Z] ❌ No candidates from Finviz. Aborting.
+[2026-05-23 10:01:20] 완료 (exit: 0)
+
+[2026-05-30 10:00:05] 소형주 스크리닝 시작
+[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[smallcap-screen] [2026-05-30T01:00:09.117Z] ========================================
+[smallcap-screen] [2026-05-30T01:00:09.117Z] Smallcap screening pipeline starting
+[smallcap-screen] [2026-05-30T01:00:09.117Z] Filters: cap_small,fa_salesqoq_o15,sh_avgvol_o200
+[smallcap-screen] [2026-05-30T01:00:09.117Z] Mode: LIVE | HEADLESS
+[smallcap-screen] [2026-05-30T01:00:09.117Z] ========================================
+[smallcap-screen] [2026-05-30T01:00:11.193Z] Phase 1: Finviz Screener
+[smallcap-screen] [2026-05-30T01:00:11.466Z]   v=111 r=1
+[smallcap-screen] [2026-05-30T01:00:26.047Z]   v=111: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-30T01:00:26.047Z]   v=121 r=1
+[smallcap-screen] [2026-05-30T01:00:40.238Z]   v=121: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-30T01:00:40.238Z]   v=131 r=1
+[smallcap-screen] [2026-05-30T01:00:53.942Z]   v=131: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-30T01:00:53.942Z]   v=141 r=1
+[smallcap-screen] [2026-05-30T01:01:07.773Z]   v=141: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-30T01:01:07.773Z]   v=151 r=1
+[smallcap-screen] [2026-05-30T01:01:21.711Z]   v=151: 0 tickers, 0 pages
+[smallcap-screen] [2026-05-30T01:01:21.756Z] Phase 1 complete: 0 candidates
+[smallcap-screen] [2026-05-30T01:01:21.756Z] ❌ No candidates from Finviz. Aborting.
+[2026-05-30 10:01:21] 완료 (exit: 0)
+

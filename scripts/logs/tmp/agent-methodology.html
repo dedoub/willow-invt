@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    color: #1a1a2e;
+    background: #fff;
+    line-height: 1.7;
+    font-size: 10.5pt;
+  }
+
+  .page {
+    padding: 45px 55px;
+    max-width: 210mm;
+    margin: 0 auto;
+  }
+
+  /* Cover-style header */
+  .header {
+    text-align: center;
+    padding: 35px 0 25px;
+    margin-bottom: 25px;
+    border-bottom: 3px solid #1a1a2e;
+  }
+
+  .header h1 {
+    font-size: 24pt;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    line-height: 1.3;
+    margin-bottom: 10px;
+  }
+
+  .header .subtitle {
+    font-size: 12pt;
+    font-weight: 400;
+    color: #555;
+    margin-bottom: 18px;
+  }
+
+  .header .meta {
+    font-size: 9pt;
+    color: #888;
+  }
+
+  /* Formula box */
+  .formula-box {
+    background: #f0f4ff;
+    border-left: 4px solid #3b5998;
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .formula-box .label {
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #3b5998;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .formula-box .formula {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #1a1a2e;
+    line-height: 1.5;
+  }
+
+  /* Principle zero box */
+  .principle-zero {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 24px 28px;
+    margin: 20px 0 28px;
+    border-radius: 10px;
+  }
+
+  .principle-zero .tag {
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #ffd54f;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .principle-zero h2 {
+    font-size: 16pt;
+    font-weight: 900;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+
+  .principle-zero p {
+    font-size: 10pt;
+    line-height: 1.8;
+    color: #d0d0d0;
+    margin-bottom: 8px;
+  }
+
+  .principle-zero strong { color: #fff; }
+
+  .principle-zero .punchline {
+    color: #ffd54f;
+    font-weight: 700;
+    font-size: 10.5pt;
+  }
+
+  /* Step sections */
+  .step {
+    margin-bottom: 24px;
+    page-break-inside: avoid;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .step-number {
+    background: #1a1a2e;
+    color: #fff;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13pt;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .step-title {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+
+  .step p {
+    margin-bottom: 8px;
+    text-align: justify;
+  }
+
+  .step ul {
+    margin: 8px 0 8px 20px;
+    list-style: none;
+  }
+
+  .step ul li {
+    position: relative;
+    padding-left: 16px;
+    margin-bottom: 5px;
+  }
+
+  .step ul li::before {
+    content: "\2014";
+    position: absolute;
+    left: 0;
+    color: #3b5998;
+    font-weight: 700;
+  }
+
+  /* Highlight box */
+  .highlight {
+    background: #fff8e1;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: 10pt;
+  }
+
+  .highlight strong { color: #e65100; }
+
+  /* Define grid */
+  .define-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .define-item {
+    background: #f5f5f5;
+    padding: 10px 12px;
+    border-radius: 6px;
+  }
+
+  .define-item .label {
+    font-size: 8.5pt;
+    color: #777;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .define-item .value {
+    font-size: 9.5pt;
+    font-weight: 500;
+  }
+
+  /* Failure mode table */
+  .failure-table {
+    width: 100%;
+    margin: 18px 0;
+    border-collapse: collapse;
+  }
+
+  .failure-table th {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 9pt;
+    font-weight: 500;
+  }
+
+  .failure-table td {
+    padding: 8px 12px;
+    font-size: 9.5pt;
+    border-bottom: 1px solid #eee;
+  }
+
+  .failure-table tr:nth-child(even) td { background: #fafafa; }
+
+  /* Footer */
+  .footer {
+    margin-top: 30px;
+    padding-top: 14px;
+    border-top: 2px solid #1a1a2e;
+    text-align: center;
+    font-size: 8pt;
+    color: #999;
+  }
+
+  /* Warning box */
+  .warning-box {
+    background: #fff3e0;
+    border-left: 4px solid #e65100;
+    padding: 12px 16px;
+    margin: 10px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 10pt;
+  }
+
+  .warning-box strong { color: #e65100; }
+
+  /* Impl note */
+  .impl-note {
+    background: #e8f5e9;
+    border-left: 4px solid #2e7d32;
+    padding: 14px 18px;
+    margin: 18px 0;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .impl-note .label {
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #2e7d32;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+
+  /* Loop items */
+  .loop-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .loop-icon {
+    background: #e3f2fd;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13pt;
+  }
+
+  .loop-text { flex: 1; }
+  .loop-text .name { font-weight: 700; font-size: 10pt; margin-bottom: 2px; }
+  .loop-text .desc { font-size: 9.5pt; color: #555; }
+
+  /* =========== NEW: Code & Example Styles =========== */
+
+  /* Example box */
+  .example-box {
+    background: #f8f9fb;
+    border: 1px solid #e0e4ea;
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin: 14px 0;
+    page-break-inside: avoid;
+  }
+
+  .example-box .ex-label {
+    font-size: 8pt;
+    font-weight: 700;
+    color: #5c6bc0;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .example-box .ex-label::before {
+    content: "▸";
+    color: #5c6bc0;
+  }
+
+  /* Code block */
+  pre.code {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 8.5pt;
+    line-height: 1.65;
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  pre.code .comment { color: #6c7086; }
+  pre.code .keyword { color: #cba6f7; }
+  pre.code .string { color: #a6e3a1; }
+  pre.code .key { color: #89b4fa; }
+  pre.code .type { color: #fab387; }
+  pre.code .punct { color: #9399b2; }
+  pre.code .num { color: #fab387; }
+
+  /* Inline code */
+  code.inline {
+    background: #eef1f6;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5pt;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #5c6bc0;
+  }
+
+  /* Mapping table (for step 1) */
+  .mapping-table {
+    width: 100%;
+    margin: 10px 0;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+
+  .mapping-table th {
+    background: #eef1f6;
+    color: #1a1a2e;
+    padding: 7px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 8.5pt;
+    border-bottom: 2px solid #d0d5e0;
+  }
+
+  .mapping-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+  }
+
+  .mapping-table .write-badge {
+    display: inline-block;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-size: 7.5pt;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+
+  .mapping-table .read-badge {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1565c0;
+    font-size: 7.5pt;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+
+  /* Conversation example */
+  .convo {
+    margin: 10px 0;
+    font-size: 9.5pt;
+  }
+
+  .convo .msg {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: flex-start;
+  }
+
+  .convo .avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12pt;
+    flex-shrink: 0;
+  }
+
+  .convo .avatar.user { background: #e3f2fd; }
+  .convo .avatar.agent { background: #f3e5f5; }
+
+  .convo .bubble {
+    background: #f5f5f5;
+    padding: 8px 12px;
+    border-radius: 10px;
+    max-width: 80%;
+    line-height: 1.6;
+  }
+
+  .convo .bubble.agent-bubble {
+    background: #ede7f6;
+  }
+
+  .convo .bubble .action-tag {
+    display: inline-block;
+    background: #c8e6c9;
+    color: #2e7d32;
+    font-size: 7.5pt;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-top: 4px;
+  }
+
+  /* Diagram: context injection */
+  .context-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 12px 0;
+    font-size: 9pt;
+    flex-wrap: wrap;
+  }
+
+  .ctx-box {
+    background: #e8eaf6;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 8.5pt;
+    color: #283593;
+  }
+
+  .ctx-arrow {
+    font-size: 14pt;
+    color: #9e9e9e;
+  }
+
+  .ctx-box.main {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 10px 16px;
+  }
+
+  /* Section divider */
+  .section-divider {
+    border: none;
+    border-top: 1px dashed #d0d5e0;
+    margin: 20px 0;
+  }
+
+  /* Running example label */
+  .running-example {
+    background: #ede7f6;
+    border-left: 4px solid #7e57c2;
+    padding: 10px 14px;
+    margin: 14px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 9.5pt;
+  }
+
+  .running-example .re-label {
+    font-size: 8pt;
+    font-weight: 700;
+    color: #7e57c2;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  /* Page break */
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ========== COVER ========== -->
+  <div class="header">
+    <h1>채팅 에이전트 구축 방법론</h1>
+    <div class="subtitle">5단계 프레임워크 &mdash; 구현 가이드</div>
+    <div class="meta">텐소프트웍스 &middot; 2026 &middot; v3.0</div>
+  </div>
+
+  <div class="formula-box">
+    <div class="label">핵심 공식</div>
+    <div class="formula">에이전트 = MCP(서비스 완전 커버) &times; 역할(명확한 목표) &times; 컨텍스트(실시간 상황) &times; 피드백(자기 진화)</div>
+  </div>
+
+  <div class="running-example">
+    <div class="re-label">실습 시나리오</div>
+    이 문서 전체에서 <strong>"프로젝트 관리 서비스의 PM 에이전트"</strong>를 구축하는 과정을 예시로 사용합니다.<br>
+    사용자가 Slack/채팅으로 "이번 주 마감 태스크 정리해줘", "클라이언트 미팅 잡아줘"와 같은 요청을 하면 에이전트가 프로젝트 관리 서비스에서 직접 실행하는 시나리오입니다.
+  </div>
+
+  <!-- ========== PRINCIPLE ZERO ========== -->
+  <div class="principle-zero">
+    <div class="tag">제0원칙</div>
+    <h2>에이전트의 본질은 Write다</h2>
+    <p>Read만 하는 AI는 검색엔진이다. 챗봇이다. 백과사전이다. "일정이 뭐 있어?"에 답하고, "이 문서 요약해줘"를 처리하는 것 &mdash; 이건 에이전트가 아니다.</p>
+    <p><span class="punchline">Write가 되는 순간 에이전트가 된다.</span> 일정을 등록하고, 문서를 작성하고, 주문을 넣고, 상태를 변경하는 것. 사용자가 "해줘"라고 했을 때 <strong>실제로 해지는 것</strong>. 그게 에이전트다.</p>
+    <p>따라서 아래 5단계 전체가 <strong>"Write를 얼마나 완전하게 구현하느냐"</strong>를 향해 수렴한다.</p>
+  </div>
+
+  <!-- EXAMPLE: Read vs Write -->
+  <div class="example-box">
+    <div class="ex-label">Read-only 챗봇 vs Write 에이전트</div>
+    <div class="convo">
+      <div class="msg">
+        <div class="avatar user">&#128100;</div>
+        <div class="bubble">"내일 클라이언트 미팅 잡아줘, 오후 2시"</div>
+      </div>
+      <div class="msg">
+        <div class="avatar agent">&#129302;</div>
+        <div class="bubble">Read-only: "네, 내일 오후 2시에 미팅을 잡으시려면 캘린더 앱에서 새 이벤트를 생성하시고..."</div>
+      </div>
+      <div class="msg">
+        <div class="avatar agent">&#129302;</div>
+        <div class="bubble agent-bubble">Write 에이전트: "내일 14:00 클라이언트 미팅 등록했어요. 회의실 B 예약하고, 참석자에게 초대 메일도 보냈습니다."
+          <div class="action-tag">&#9989; calendar.create &bull; room.reserve &bull; email.send</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== STEP 1 ========== -->
+  <div class="page-break"></div>
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">1</div>
+      <div class="step-title">Write 오퍼레이션 전수 조사</div>
+    </div>
+    <p>타겟 서비스에서 사용자가 수행하는 <strong>모든 Write 행위를 먼저 매핑</strong>한다. 생성, 수정, 삭제, 상태 변경, 전송 &mdash; 서비스의 상태를 바꾸는 모든 행위.</p>
+    <p>Read는 Write를 보조하기 위해 따라온다. "일정을 등록하려면 기존 일정을 조회해야 한다"는 식으로, <strong>Write에 필요한 Read를 역산해서 붙이는 구조</strong>.</p>
+    <div class="highlight">
+      핵심 질문: <strong>"이 서비스에서 사용자가 '직접 손으로 해야 하는 일'이 뭔가?"</strong> &mdash; 그게 전부 Write이고, 그걸 에이전트가 대신 하는 게 목표다.
+    </div>
+  </div>
+
+  <!-- EXAMPLE: Operation Mapping -->
+  <div class="example-box">
+    <div class="ex-label">구현 예시 &mdash; 프로젝트 관리 서비스 오퍼레이션 매핑</div>
+    <table class="mapping-table">
+      <tr>
+        <th>도메인</th>
+        <th>Write 오퍼레이션</th>
+        <th>보조 Read</th>
+        <th>타입</th>
+      </tr>
+      <tr>
+        <td rowspan="4"><strong>태스크</strong></td>
+        <td>태스크 생성</td>
+        <td>프로젝트 목록 조회</td>
+        <td><span class="write-badge">Write</span></td>
+      </tr>
+      <tr>
+        <td>상태 변경 (todo &rarr; in_progress &rarr; done)</td>
+        <td>태스크 상세 조회</td>
+        <td><span class="write-badge">Write</span></td>
+      </tr>
+      <tr>
+        <td>담당자 배정</td>
+        <td>팀원 목록 조회</td>
+        <td><span class="write-badge">Write</span></td>
+      </tr>
+      <tr>
+        <td>태스크 삭제</td>
+        <td>&mdash;</td>
+        <td><span class="write-badge">Write</span></td>
+      </tr>
+      <tr>
+        <td rowspan="3"><strong>일정</strong></td>
+        <td>미팅 생성</td>
+        <td>빈 시간 조회</td>
+        <td><span class="write-badge">Write</span></td>
+      </tr>
+      <tr>
+        <td>일정 수정/취소</td>
+        <td>일정 상세 조회</td>
+        <td><span class="write-badge">Write</span></td>
+      </tr>
+      <tr>
+        <td>참석자 추가/제거</td>
+        <td>팀원 목록 조회</td>
+        <td><span class="write-badge">Write</span></td>
+      </tr>
+      <tr>
+        <td rowspan="2"><strong>문서</strong></td>
+        <td>회의록 작성</td>
+        <td>미팅 정보 조회</td>
+        <td><span class="write-badge">Write</span></td>
+      </tr>
+      <tr>
+        <td>주간보고서 생성</td>
+        <td>완료 태스크/커밋 조회</td>
+        <td><span class="write-badge">Write</span></td>
+      </tr>
+      <tr>
+        <td><strong>알림</strong></td>
+        <td>팀원에게 메시지 전송</td>
+        <td>&mdash;</td>
+        <td><span class="write-badge">Write</span></td>
+      </tr>
+    </table>
+    <p style="font-size:9pt; color:#777; margin-top:6px;">
+      <strong>Check:</strong> 서비스 UI를 열어서 클릭할 수 있는 버튼을 전부 세라. 버튼 하나 = Write 하나. 빠짐없이 매핑되었는지 대조한다.
+    </p>
+  </div>
+
+  <!-- ========== STEP 2 ========== -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">2</div>
+      <div class="step-title">MCP 도구 래핑</div>
+    </div>
+    <p>1단계에서 나온 Write 오퍼레이션 전부를 <strong>MCP(Model Context Protocol) 도구로 구현</strong>한다.</p>
+    <ul>
+      <li>원칙: <strong>도구 하나 = Write 하나</strong></li>
+      <li>우선순위: Write 도구 먼저, Read 도구는 그 다음</li>
+      <li>처음부터 전부 만들 필요 없이 핵심 Write 도구 10~20개로 시작</li>
+      <li>"이것도 해줘"가 나올 때마다 추가하는 점진적 확장</li>
+    </ul>
+    <div class="highlight">
+      도구 설계의 기준: <strong>"에이전트가 이 도구로 서비스 페이지를 거치지 않고 직접 결과를 만들어낼 수 있는가?"</strong>
+    </div>
+  </div>
+
+  <!-- EXAMPLE: MCP Tool Definition -->
+  <div class="example-box">
+    <div class="ex-label">구현 예시 &mdash; MCP 도구 정의 (TypeScript)</div>
+<pre class="code"><span class="comment">// Write 도구: 태스크 생성</span>
+<span class="keyword">server</span>.tool(<span class="string">"create_task"</span>, <span class="string">"새로운 태스크를 생성합니다"</span>, {
+  <span class="key">project_id</span>: z.string().describe(<span class="string">"프로젝트 ID"</span>),
+  <span class="key">title</span>:      z.string().describe(<span class="string">"태스크 제목"</span>),
+  <span class="key">assignee</span>:   z.string().optional().describe(<span class="string">"담당자 이름"</span>),
+  <span class="key">priority</span>:   z.enum([<span class="string">"low"</span>,<span class="string">"medium"</span>,<span class="string">"high"</span>,<span class="string">"critical"</span>]).optional(),
+  <span class="key">due_date</span>:   z.string().optional().describe(<span class="string">"마감일 (YYYY-MM-DD)"</span>),
+}, <span class="keyword">async</span> ({ project_id, title, assignee, priority, due_date }) => {
+  <span class="keyword">const</span> task = <span class="keyword">await</span> db.tasks.insert({
+    project_id, title, assignee, priority, due_date,
+    <span class="key">status</span>: <span class="string">"todo"</span>,
+    <span class="key">created_at</span>: <span class="keyword">new</span> Date()
+  });
+  <span class="keyword">return</span> { content: [{ type: <span class="string">"text"</span>, text: <span class="string">`태스크 생성 완료: ${task.id}`</span> }] };
+});
+
+<span class="comment">// Write 도구: 태스크 상태 변경</span>
+<span class="keyword">server</span>.tool(<span class="string">"change_task_status"</span>, <span class="string">"태스크 상태를 변경합니다"</span>, {
+  <span class="key">task_id</span>: z.string(),
+  <span class="key">status</span>:  z.enum([<span class="string">"todo"</span>, <span class="string">"in_progress"</span>, <span class="string">"done"</span>, <span class="string">"blocked"</span>]),
+}, <span class="keyword">async</span> ({ task_id, status }) => {
+  <span class="keyword">await</span> db.tasks.update(task_id, { status });
+  <span class="keyword">return</span> { content: [{ type: <span class="string">"text"</span>, text: <span class="string">`상태 변경: ${status}`</span> }] };
+});
+
+<span class="comment">// Read 도구: 태스크 목록 (Write를 보조)</span>
+<span class="keyword">server</span>.tool(<span class="string">"list_tasks"</span>, <span class="string">"태스크 목록을 조회합니다"</span>, {
+  <span class="key">project_id</span>: z.string().optional(),
+  <span class="key">status</span>:     z.string().optional(),
+  <span class="key">assignee</span>:   z.string().optional(),
+}, <span class="keyword">async</span> (filters) => {
+  <span class="keyword">const</span> tasks = <span class="keyword">await</span> db.tasks.find(filters);
+  <span class="keyword">return</span> { content: [{ type: <span class="string">"text"</span>, text: JSON.stringify(tasks) }] };
+});</pre>
+    <p style="font-size:9pt; color:#777; margin-top:8px;">
+      <strong>패턴:</strong> 도구 이름은 동사_명사 형태 (<code class="inline">create_task</code>, <code class="inline">update_schedule</code>).
+      Write 도구는 변경 결과를, Read 도구는 데이터를 반환한다.
+      도구 설명(description)은 LLM이 도구를 선택하는 기준이 되므로 명확하게 작성한다.
+    </p>
+  </div>
+
+  <!-- ========== STEP 3 ========== -->
+  <div class="page-break"></div>
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">3</div>
+      <div class="step-title">역할(Goal) 정의</div>
+    </div>
+    <p>가장 중요하지만 가장 간과되는 단계. 같은 Write 능력이라도 <strong>역할 정의에 따라 에이전트의 행동이 완전히 달라진다.</strong></p>
+
+    <div class="define-grid">
+      <div class="define-item">
+        <div class="label">정체성</div>
+        <div class="value">에이전트가 누구인가</div>
+      </div>
+      <div class="define-item">
+        <div class="label">사용자 프로필</div>
+        <div class="value">누구를 위해 Write하는가</div>
+      </div>
+      <div class="define-item">
+        <div class="label">자율 판단 범위</div>
+        <div class="value">어떤 Write를 승인 없이 해도 되는가</div>
+      </div>
+      <div class="define-item">
+        <div class="label">커뮤니케이션 스타일</div>
+        <div class="value">Write 전후로 어떻게 소통하는가</div>
+      </div>
+    </div>
+
+    <p>역할이 없으면 Write 능력이 있어도 판단 없는 도구 모음에 불과하다.</p>
+  </div>
+
+  <!-- EXAMPLE: Role Definition (System Prompt) -->
+  <div class="example-box">
+    <div class="ex-label">구현 예시 &mdash; 시스템 프롬프트 (역할 정의)</div>
+<pre class="code"><span class="comment">## 정체성</span>
+당신은 "파이(Pi)"입니다. [A사]의 프로젝트 매니저 에이전트로,
+팀 리더에게 프로젝트 현황을 보고하고 실행을 지원합니다.
+
+<span class="comment">## 사용자 프로필</span>
+팀 리더(박민수)는 3개 프로젝트를 동시 관리하며,
+디테일보다 "지금 뭐가 막혀있는지"를 빠르게 파악하길 원합니다.
+
+<span class="comment">## 자율 판단 범위</span>
+- 승인 없이 가능: 태스크 상태 변경, 일정 조회, 주간보고 생성
+- 확인 후 실행: 태스크 삭제, 마감일 변경, 팀원에게 메시지 발송
+- 선제적 행동: 마감 3일 전 알림, 2주 이상 정체 태스크 경고
+
+<span class="comment">## 커뮤니케이션 스타일</span>
+- 간결한 존댓말, 핵심 먼저
+- 숫자 기반 보고 (완료율, 잔여 태스크 수, 지연일)
+- 문제 보고 시 원인 + 제안을 함께 제시
+
+<span class="comment">## 위험 판단 기준</span>
+다음 상황을 위험으로 판단하고 선제적으로 보고:
+- 마감일 3일 이내 미완료 태스크
+- 2주 이상 상태 변화 없는 태스크
+- 한 사람에게 태스크 5개 이상 집중</pre>
+    <p style="font-size:9pt; color:#777; margin-top:8px;">
+      <strong>핵심:</strong> 같은 도구 세트를 "비서"로 정의하면 시킨 Write만 한다. "PM"으로 정의하면 병목을 감지해서 선제적으로 보고한다. "코치"로 정의하면 업무 패턴을 분석해서 개선을 제안한다. <strong>역할이 행동을 결정한다.</strong>
+    </p>
+  </div>
+
+  <!-- ========== STEP 4 ========== -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">4</div>
+      <div class="step-title">컨텍스트 주입 설계</div>
+    </div>
+    <p>Write의 품질은 컨텍스트가 결정한다. 같은 "일정 등록"이라도 현재 일정, 마감 현황, 대화 맥락을 알면 <strong>충돌을 피하고 적절한 판단을 내린다.</strong></p>
+    <p>설계 기준: <strong>"이 역할이 올바른 Write를 하려면 뭘 알고 있어야 하는가?"</strong></p>
+    <div class="warning-box">
+      <strong>컨텍스트 없는 Write는 위험하다</strong> &mdash; 잘못된 데이터를 쓰고, 충돌하는 일정을 만든다. Read만 하는 시스템은 틀려도 불편한 정도지만, Write하는 에이전트가 틀리면 <strong>실제 피해가 생긴다.</strong>
+    </div>
+  </div>
+
+  <!-- EXAMPLE: Context Injection -->
+  <div class="example-box">
+    <div class="ex-label">구현 예시 &mdash; 컨텍스트 주입 구조</div>
+    <div class="context-diagram">
+      <div class="ctx-box">오늘 일정 (3건)</div>
+      <div class="ctx-arrow">+</div>
+      <div class="ctx-box">이번 주 마감 태스크 (7건)</div>
+      <div class="ctx-arrow">+</div>
+      <div class="ctx-box">프로젝트 진행률</div>
+      <div class="ctx-arrow">+</div>
+      <div class="ctx-box">이전 대화 요약</div>
+      <div class="ctx-arrow">&rarr;</div>
+      <div class="ctx-box main">LLM 프롬프트</div>
+    </div>
+<pre class="code"><span class="comment">// 매 대화마다 실시간 상황을 주입</span>
+<span class="keyword">const</span> context = {
+  <span class="key">today</span>:     <span class="string">"2026-04-08 (수)"</span>,
+  <span class="key">schedules</span>: <span class="keyword">await</span> mcp.call(<span class="string">"list_schedules"</span>, { week: <span class="string">"current"</span> }),
+  <span class="key">urgent</span>:    <span class="keyword">await</span> mcp.call(<span class="string">"list_tasks"</span>,
+               { due_before: <span class="string">"3_days"</span>, status: <span class="string">"!done"</span> }),
+  <span class="key">projects</span>:  <span class="keyword">await</span> mcp.call(<span class="string">"list_projects"</span>, { status: <span class="string">"active"</span> }),
+  <span class="key">history</span>:   getRecentConversation(<span class="num">10</span>),  <span class="comment">// 최근 10턴</span>
+};
+
+<span class="comment">// 시스템 프롬프트에 삽입</span>
+<span class="keyword">const</span> systemPrompt = <span class="string">`
+${roleDefinition}
+
+# 현재 상황
+오늘: ${context.today}
+이번 주 일정: ${JSON.stringify(context.schedules)}
+긴급 태스크: ${JSON.stringify(context.urgent)}
+프로젝트 현황: ${JSON.stringify(context.projects)}
+
+# 이전 대화
+${context.history}
+`</span>;</pre>
+    <p style="font-size:9pt; color:#777; margin-top:8px;">
+      <strong>원칙:</strong> 컨텍스트는 역할에 맞춰서 설계한다. PM 에이전트에게 재무 데이터는 불필요하다.
+      주입 데이터가 너무 많으면 LLM이 혼란스러워지고 비용이 올라간다. <strong>"이 역할의 판단에 필수적인 최소 데이터"</strong>를 기준으로 잡는다.
+    </p>
+  </div>
+
+  <!-- ========== STEP 5 ========== -->
+  <div class="page-break"></div>
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">5</div>
+      <div class="step-title">피드백 루프 (자기 진화)</div>
+    </div>
+    <p>일반 챗봇과 에이전트를 가르는 <strong>결정적 차이</strong>. 에이전트는 시간이 갈수록 더 정확하게 Write한다.</p>
+
+    <div class="loop-item">
+      <div class="loop-icon">&#128260;</div>
+      <div class="loop-text">
+        <div class="name">프롬프트 자기 수정</div>
+        <div class="desc">사용자 피드백을 즉시 영구 반영. "일정 등록할 때 알림도 넣어줘" &rarr; 이후 모든 일정에 자동 적용.</div>
+      </div>
+    </div>
+
+    <div class="loop-item">
+      <div class="loop-icon">&#129504;</div>
+      <div class="loop-text">
+        <div class="name">지식 축적</div>
+        <div class="desc">도메인 지식을 구조화 저장. "A클라이언트는 수요일 미팅 선호" 같은 학습이 쌓임.</div>
+      </div>
+    </div>
+
+    <div class="loop-item">
+      <div class="loop-icon">&#128736;</div>
+      <div class="loop-text">
+        <div class="name">도구 확장</div>
+        <div class="desc">새로운 Write 니즈 발견 시 MCP 도구 추가. 에이전트 실행 범위가 계속 넓어짐.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXAMPLE: Feedback Loop Implementation -->
+  <div class="example-box">
+    <div class="ex-label">구현 예시 &mdash; 프롬프트 자기 수정</div>
+
+    <div class="convo">
+      <div class="msg">
+        <div class="avatar user">&#128100;</div>
+        <div class="bubble">"일정 잡을 때 회의실도 같이 잡아줘. 매번 내가 따로 하는 거 귀찮아"</div>
+      </div>
+      <div class="msg">
+        <div class="avatar agent">&#129302;</div>
+        <div class="bubble agent-bubble">알겠어요. 앞으로 일정 등록 시 회의실 자동 예약 추가할게요.
+          <div class="action-tag">&#9989; 행동 규칙 업데이트</div>
+        </div>
+      </div>
+    </div>
+
+<pre class="code"><span class="comment">// 피드백 감지 시 행동 규칙을 영구 저장</span>
+<span class="keyword">await</span> db.agent_rules.upsert({
+  <span class="key">rule_id</span>:  <span class="string">"schedule_creation"</span>,
+  <span class="key">version</span>:  <span class="num">2</span>,
+  <span class="key">content</span>:  <span class="string">"일정 생성 시 회의실 자동 예약 포함. 회의실 미지정 시 참석 인원 기준 적절한 회의실 자동 배정."</span>,
+  <span class="key">reason</span>:   <span class="string">"사용자가 매번 수동 예약하는 불편함 지적 (2026-04-08)"</span>,
+});
+
+<span class="comment">// 다음 대화부터 이 규칙이 컨텍스트에 주입됨</span>
+<span class="keyword">const</span> rules = <span class="keyword">await</span> db.agent_rules.getAll();
+systemPrompt += <span class="string">`\n# 행동 규칙\n${rules.map(r => r.content).join('\n')}`</span>;</pre>
+  </div>
+
+  <div class="example-box">
+    <div class="ex-label">구현 예시 &mdash; 지식 축적 (온톨로지)</div>
+<pre class="code"><span class="comment">// 대화에서 사업 지식을 자동 추출</span>
+<span class="comment">// 사용자: "A사 담당자 김부장은 수요일 오후만 미팅 가능해"</span>
+
+<span class="keyword">await</span> knowledge.upsertEntity({
+  <span class="key">name</span>: <span class="string">"김부장"</span>,
+  <span class="key">type</span>: <span class="string">"person"</span>,
+  <span class="key">properties</span>: {
+    <span class="key">organization</span>: <span class="string">"A사"</span>,
+    <span class="key">title</span>: <span class="string">"부장"</span>,
+    <span class="key">meeting_preference</span>: <span class="string">"수요일 오후"</span>
+  }
+});
+
+<span class="comment">// 이후 "A사 미팅 잡아줘" 요청 시</span>
+<span class="comment">// → 자동으로 수요일 오후로 제안</span></pre>
+  </div>
+
+  <div class="example-box">
+    <div class="ex-label">구현 예시 &mdash; 도구 확장</div>
+<pre class="code"><span class="comment">// 사용자가 반복적으로 "주간보고 써줘"를 요청</span>
+<span class="comment">// → 새 Write 도구 추가</span>
+
+<span class="keyword">server</span>.tool(<span class="string">"generate_weekly_report"</span>,
+  <span class="string">"이번 주 완료/진행/지연 태스크를 종합해 주간보고서를 생성합니다"</span>,
+  {
+    <span class="key">project_id</span>: z.string(),
+    <span class="key">week_start</span>: z.string().optional(),
+  },
+  <span class="keyword">async</span> ({ project_id, week_start }) => {
+    <span class="keyword">const</span> completed = <span class="keyword">await</span> getTasksByStatus(project_id, <span class="string">"done"</span>, week_start);
+    <span class="keyword">const</span> inProgress = <span class="keyword">await</span> getTasksByStatus(project_id, <span class="string">"in_progress"</span>);
+    <span class="keyword">const</span> blocked = <span class="keyword">await</span> getTasksByStatus(project_id, <span class="string">"blocked"</span>);
+    <span class="keyword">const</span> commits = <span class="keyword">await</span> getCommits(project_id, week_start);
+
+    <span class="keyword">const</span> report = <span class="keyword">await</span> llm.generate({
+      prompt: <span class="string">`주간보고서 작성: 완료 ${completed.length}건, 진행중 ${inProgress.length}건, 차단 ${blocked.length}건, 커밋 ${commits.length}건`</span>,
+      data: { completed, inProgress, blocked, commits }
+    });
+
+    <span class="keyword">await</span> db.documents.create({
+      <span class="key">type</span>: <span class="string">"weekly_report"</span>,
+      <span class="key">content</span>: report,
+      <span class="key">project_id</span>
+    });
+
+    <span class="keyword">return</span> { content: [{ type: <span class="string">"text"</span>, text: report }] };
+  }
+);</pre>
+    <p style="font-size:9pt; color:#777; margin-top:8px;">
+      <strong>진화 루프:</strong> 사용자가 에이전트를 쓸수록 (1) 행동 규칙이 정교해지고 (2) 도메인 지식이 쌓이고 (3) 할 수 있는 일이 늘어난다. 이 세 가지가 동시에 돌아갈 때 에이전트는 시간이 갈수록 사람에 가까워진다.
+    </p>
+  </div>
+
+  <!-- ========== SUMMARY ========== -->
+  <hr class="section-divider">
+
+  <table class="failure-table">
+    <tr>
+      <th>빠진 요소</th>
+      <th>결과</th>
+    </tr>
+    <tr>
+      <td><strong>Write 부족</strong></td>
+      <td>"못 합니다" 챗봇 &mdash; 대화는 되지만 실행이 안 됨</td>
+    </tr>
+    <tr>
+      <td><strong>역할 부재</strong></td>
+      <td>판단 없는 도구 모음 &mdash; 시키는 것만 하고 맥락을 모름</td>
+    </tr>
+    <tr>
+      <td><strong>컨텍스트 부재</strong></td>
+      <td>위험한 Write를 하는 사고 머신 &mdash; 틀린 데이터가 실제 피해로</td>
+    </tr>
+    <tr>
+      <td><strong>피드백 부재</strong></td>
+      <td>같은 실수 반복하는 정적 시스템 &mdash; 성장하지 않음</td>
+    </tr>
+  </table>
+
+  <div class="impl-note">
+    <div class="label">실전 적용 로드맵</div>
+    <p><strong>Week 1~2:</strong> 1단계(Write 전수 조사) + 2단계(핵심 MCP 도구 10~20개 구현)<br>
+    <strong>Week 3:</strong> 3단계(역할 정의) + 4단계(컨텍스트 주입 설계) &mdash; 고객과 함께 정의<br>
+    <strong>Week 4~:</strong> 5단계(피드백 루프) &mdash; 운영하면서 자동 축적. 도구는 점진적으로 확장</p>
+    <p style="margin-top:8px;">1~2단계는 <strong>개발팀</strong>이, 3~4단계는 <strong>고객과 함께</strong> 정의하고, 5단계는 <strong>운영하면서 자동으로 축적</strong>되는 구조로 가는 것이 현실적이다.</p>
+  </div>
+
+  <div class="footer">
+    &copy; 2026 텐소프트웍스 (Tensoftworks Inc.) &middot; 채팅 에이전트 구축 방법론 v3.0
+  </div>
+
+</div>
+</body>
+</html>
