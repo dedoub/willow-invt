@@ -33,7 +33,7 @@ const TYPE_OPTIONS: { value: TenswCashFormData['type']; label: string }[] = [
 ]
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: 13,
+  width: '100%', padding: '8px 10px', fontSize: 'calc(13px * var(--fz, 1))',
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -112,10 +112,10 @@ export function CashDialog({ open, editItem, onClose, onSave, onDelete }: CashDi
           padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
               CASHFLOW
             </div>
-            <div style={{ fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               {isEdit ? '거래 수정' : '거래 추가'}
             </div>
           </div>
@@ -219,7 +219,7 @@ export function CashDialog({ open, editItem, onClose, onSave, onDelete }: CashDi
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
     <div style={{
-      fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.subtle,
+      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle,
       fontFamily: t.font.sans, marginBottom: 5,
     }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
@@ -231,7 +231,7 @@ function ChipBtn({ children, active, onClick }: { children: React.ReactNode; act
   return (
     <button onClick={onClick} style={{
       border: 'none', cursor: 'pointer',
-      padding: '5px 12px', fontSize: 12, borderRadius: t.radius.pill,
+      padding: '5px 12px', fontSize: 'calc(12px * var(--fz, 1))', borderRadius: t.radius.pill,
       fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
       background: active ? t.brand[100] : t.neutrals.inner,
       color: active ? t.brand[700] : t.neutrals.muted,

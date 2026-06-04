@@ -268,7 +268,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
           eyebrow="PROJECTS"
           title="프로젝트"
           action={
-            <span style={{ fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.mono }}>
+            <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
               {filtered.length}개
             </span>
           }
@@ -292,7 +292,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 onClick={() => handleFilterChange(f.key)}
                 style={{
                   padding: '4px 10px', borderRadius: t.radius.pill,
-                  fontSize: 11, fontFamily: t.font.sans,
+                  fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans,
                   fontWeight: active ? t.weight.medium : t.weight.regular,
                   background: active ? t.brand[100] : t.neutrals.inner,
                   color: active ? t.brand[700] : t.neutrals.muted,
@@ -300,7 +300,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 }}
               >
                 {f.label}{f.count > 0 && (
-                  <span style={{ fontFamily: t.font.mono, fontSize: 10, marginLeft: 2 }}>{f.count}</span>
+                  <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', marginLeft: 2 }}>{f.count}</span>
                 )}
               </button>
             )
@@ -313,7 +313,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
         {paged.length === 0 && (
           <div style={{
             padding: '20px 16px', textAlign: 'center',
-            fontSize: 12, color: t.neutrals.subtle,
+            fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
           }}>
             프로젝트 데이터가 없습니다
           </div>
@@ -344,14 +344,14 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 {/* Name + description */}
                 <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <div style={{
-                    fontSize: 12.5, fontWeight: 500, color: t.neutrals.text,
+                    fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.text,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {project.name}
                   </div>
                   {project.description && (
                     <div style={{
-                      fontSize: 10.5, color: t.neutrals.muted,
+                      fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.muted,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       marginTop: 1,
                     }}>
@@ -363,7 +363,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 {/* Status badge */}
                 <span style={{
                   display: 'inline-block', padding: '2px 7px', borderRadius: t.radius.pill,
-                  fontSize: 10, fontFamily: t.font.mono, fontWeight: 600,
+                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
                   background: statusStyle.bg, color: statusStyle.fg,
                   whiteSpace: 'nowrap', flexShrink: 0,
                 }}>
@@ -373,22 +373,22 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 {/* Stats mini: 대기/진행/완료 */}
                 <div style={{
                   display: 'flex', gap: 8, flexShrink: 0,
-                  fontSize: 10, fontFamily: t.font.mono,
+                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
                 }}>
                   <span style={{ color: tonePalettes.pending.fg }}>
-                    <span style={{ fontSize: 9, opacity: 0.8 }}>대기</span> {waiting}
+                    <span style={{ fontSize: 'calc(9px * var(--fz, 1))', opacity: 0.8 }}>대기</span> {waiting}
                   </span>
                   <span style={{ color: tonePalettes.info.fg }}>
-                    <span style={{ fontSize: 9, opacity: 0.8 }}>진행</span> {inProgress}
+                    <span style={{ fontSize: 'calc(9px * var(--fz, 1))', opacity: 0.8 }}>진행</span> {inProgress}
                   </span>
                   <span style={{ color: tonePalettes.pos.fg }}>
-                    <span style={{ fontSize: 9, opacity: 0.8 }}>완료</span> {completed}
+                    <span style={{ fontSize: 'calc(9px * var(--fz, 1))', opacity: 0.8 }}>완료</span> {completed}
                   </span>
                 </div>
 
                 {/* Progress */}
                 <span style={{
-                  fontSize: 11, fontFamily: t.font.mono, fontWeight: 500,
+                  fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500,
                   color: t.neutrals.text, whiteSpace: 'nowrap', flexShrink: 0,
                   minWidth: 32, textAlign: 'right',
                 }}>
@@ -398,7 +398,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 {/* AI Score */}
                 {project.aiProgressScore != null && (
                   <span style={{
-                    fontSize: 10, fontFamily: t.font.mono,
+                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
                     color: t.neutrals.muted, whiteSpace: 'nowrap', flexShrink: 0,
                   }}>
                     AI {Math.round(project.aiProgressScore)}%
@@ -440,12 +440,12 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
             style={{
               width: 32, textAlign: 'center',
               border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 11,
+              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
               fontFamily: t.font.mono, color: t.neutrals.muted,
               padding: '2px 0', outline: 'none',
             }}
           />
-          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
 
         {totalPages > 1 && (
@@ -463,7 +463,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
             </span>
             <button
@@ -523,18 +523,18 @@ function ExpandedDetail({
             <div style={{
               background: t.neutrals.inner, borderRadius: t.radius.md, padding: 10,
             }}>
-              <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 4 }}>진행 중 (담당자별)</div>
+              <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4 }}>진행 중 (담당자별)</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {project.inProgressByMember.slice(0, 4).map((m, i) => (
                   <span key={i} style={{
-                    fontSize: 10, padding: '2px 6px', borderRadius: t.radius.sm,
+                    fontSize: 'calc(10px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
                     background: tonePalettes.info.bg, color: tonePalettes.info.fg,
                   }}>
                     {m.name} {m.count}
                   </span>
                 ))}
                 {project.inProgressByMember.length > 4 && (
-                  <span style={{ fontSize: 10, color: t.neutrals.muted }}>+{project.inProgressByMember.length - 4}</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted }}>+{project.inProgressByMember.length - 4}</span>
                 )}
               </div>
             </div>
@@ -543,18 +543,18 @@ function ExpandedDetail({
             <div style={{
               background: t.neutrals.inner, borderRadius: t.radius.md, padding: 10,
             }}>
-              <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 4 }}>완료 (담당자별)</div>
+              <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4 }}>완료 (담당자별)</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {project.completedByMember.slice(0, 4).map((m, i) => (
                   <span key={i} style={{
-                    fontSize: 10, padding: '2px 6px', borderRadius: t.radius.sm,
+                    fontSize: 'calc(10px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
                     background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
                   }}>
                     {m.name} {m.count}
                   </span>
                 ))}
                 {project.completedByMember.length > 4 && (
-                  <span style={{ fontSize: 10, color: t.neutrals.muted }}>+{project.completedByMember.length - 4}</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted }}>+{project.completedByMember.length - 4}</span>
                 )}
               </div>
             </div>
@@ -565,7 +565,7 @@ function ExpandedDetail({
       {/* Avg completion time + AI Score */}
       {(project.avgCompletionTime || project.aiProgressScore != null) && (
         <div style={{
-          display: 'flex', gap: 12, marginBottom: 10, fontSize: 11,
+          display: 'flex', gap: 12, marginBottom: 10, fontSize: 'calc(11px * var(--fz, 1))',
         }}>
           {project.avgCompletionTime && (
             <span style={{ color: t.neutrals.muted }}>
@@ -596,7 +596,7 @@ function ExpandedDetail({
                   onClick={e => e.stopPropagation()}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
-                    fontSize: 11, color: t.brand[700], textDecoration: 'none',
+                    fontSize: 'calc(11px * var(--fz, 1))', color: t.brand[700], textDecoration: 'none',
                   }}
                 >
                   <LIcon name="trending" size={10} stroke={1.8} />
@@ -610,7 +610,7 @@ function ExpandedDetail({
           {hasSchedules && (
             <DetailSection label="일정">
               {project.schedules.slice(0, 5).map(s => (
-                <div key={s.id} style={{ display: 'flex', gap: 8, fontSize: 11 }}>
+                <div key={s.id} style={{ display: 'flex', gap: 8, fontSize: 'calc(11px * var(--fz, 1))' }}>
                   <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, flexShrink: 0, width: 36 }}>
                     {formatDate(s.start_date)}
                   </span>
@@ -631,14 +631,14 @@ function ExpandedDetail({
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {project.docs.slice(0, 6).map(doc => (
                   <span key={doc.id} style={{
-                    fontSize: 10, padding: '2px 6px', borderRadius: t.radius.sm,
+                    fontSize: 'calc(10px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
                     background: t.neutrals.inner, color: t.neutrals.text,
                   }}>
                     {doc.title}
                   </span>
                 ))}
                 {project.docs.length > 6 && (
-                  <span style={{ fontSize: 10, color: t.neutrals.muted }}>+{project.docs.length - 6}</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted }}>+{project.docs.length - 6}</span>
                 )}
               </div>
             </DetailSection>
@@ -647,12 +647,12 @@ function ExpandedDetail({
           {/* Members */}
           {hasMembers && (
             <DetailSection label="멤버">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, fontSize: 11 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, fontSize: 'calc(11px * var(--fz, 1))' }}>
                 {project.members.filter(m => m.is_manager).map(m => (
                   <span key={m.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                     <span style={{ color: t.neutrals.text }}>{m.name}</span>
                     <span style={{
-                      fontSize: 9, padding: '1px 4px', borderRadius: t.radius.sm,
+                      fontSize: 'calc(9px * var(--fz, 1))', padding: '1px 4px', borderRadius: t.radius.sm,
                       background: '#EDE9FE', color: '#7C3AED',
                     }}>매니저</span>
                   </span>
@@ -681,23 +681,23 @@ function ExpandedDetail({
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
                         <span style={{
-                          fontSize: 9, fontWeight: 600, color: actTone.fg,
+                          fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 600, color: actTone.fg,
                         }}>
                           {actTone.label}
                         </span>
                         {act.changed_by && (
-                          <span style={{ fontSize: 9, color: actTone.fg, opacity: 0.7 }}>
+                          <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: actTone.fg, opacity: 0.7 }}>
                             · {act.changed_by}
                           </span>
                         )}
                       </div>
                       <div style={{
-                        fontSize: 11, color: actTone.fg, fontWeight: 500,
+                        fontSize: 'calc(11px * var(--fz, 1))', color: actTone.fg, fontWeight: 500,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
                         {act.title}
                       </div>
-                      <div style={{ fontSize: 9, color: actTone.fg, opacity: 0.7, marginTop: 2 }}>
+                      <div style={{ fontSize: 'calc(9px * var(--fz, 1))', color: actTone.fg, opacity: 0.7, marginTop: 2 }}>
                         {formatRelativeTime(act.created_at)}
                         {act.due_date && ` · 마감 ${formatDate(act.due_date)}`}
                       </div>
@@ -718,11 +718,11 @@ function ExpandedDetail({
               const pTone = PRIORITY_TONES[todo.priority] ?? PRIORITY_TONES.low
               return (
                 <div key={todo.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 6, fontSize: 11,
+                  display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(11px * var(--fz, 1))',
                 }}>
                   {todo.readable_id && (
                     <span style={{
-                      fontFamily: t.font.mono, fontSize: 10, color: t.brand[700], flexShrink: 0,
+                      fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.brand[700], flexShrink: 0,
                     }}>
                       [{todo.readable_id}]
                     </span>
@@ -734,19 +734,19 @@ function ExpandedDetail({
                     {todo.title}
                   </span>
                   <span style={{
-                    fontSize: 9, padding: '1px 5px', borderRadius: t.radius.sm,
+                    fontSize: 'calc(9px * var(--fz, 1))', padding: '1px 5px', borderRadius: t.radius.sm,
                     background: pTone.bg, color: pTone.fg, fontWeight: 500, flexShrink: 0,
                   }}>
                     {PRIORITY_LABELS[todo.priority] ?? todo.priority}
                   </span>
                   {todo.due_date && (
-                    <span style={{ fontFamily: t.font.mono, fontSize: 10, color: t.neutrals.muted, flexShrink: 0 }}>
+                    <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted, flexShrink: 0 }}>
                       {formatDate(todo.due_date)}
                     </span>
                   )}
                   {todo.assignees.length > 0 && (
                     <span style={{
-                      fontSize: 10, color: t.neutrals.muted, flexShrink: 0,
+                      fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted, flexShrink: 0,
                       maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {todo.assignees.join(', ')}
@@ -763,7 +763,7 @@ function ExpandedDetail({
       {project.memo && (
         <div style={{
           padding: '8px 12px', borderRadius: t.radius.md,
-          background: t.neutrals.inner, fontSize: 11, color: t.neutrals.muted,
+          background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
           lineHeight: 1.5, whiteSpace: 'pre-wrap', marginBottom: 8,
         }}>
           {project.memo}
@@ -781,7 +781,7 @@ function ExpandedDetail({
             style={{
               padding: '4px 12px', borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none',
-              fontSize: 11, fontFamily: t.font.sans, fontWeight: 500,
+              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
               color: t.brand[700], cursor: 'pointer', textDecoration: 'none',
               display: 'flex', alignItems: 'center', gap: 4,
             }}
@@ -798,7 +798,7 @@ function ExpandedDetail({
           style={{
             padding: '4px 12px', borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none',
-            fontSize: 11, fontFamily: t.font.sans, fontWeight: 500,
+            fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
             color: t.neutrals.text, cursor: 'pointer', textDecoration: 'none',
             display: 'flex', alignItems: 'center', gap: 4,
           }}
@@ -821,7 +821,7 @@ function DetailSection({
   return (
     <div style={extraStyle}>
       <div style={{
-        fontSize: 10, fontWeight: 600, color: t.neutrals.subtle,
+        fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
         fontFamily: t.font.mono, letterSpacing: 0.3,
         textTransform: 'uppercase' as const, marginBottom: 6,
       }}>

@@ -105,7 +105,7 @@ export function DocumentPanel({ etf, onClose }: DocumentPanelProps) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{
-            fontSize: 13,
+            fontSize: 'calc(13px * var(--fz, 1))',
             fontWeight: t.weight.semibold,
             fontFamily: t.font.sans,
             color: t.neutrals.text,
@@ -132,14 +132,14 @@ export function DocumentPanel({ etf, onClose }: DocumentPanelProps) {
           {loading ? (
             <div style={{
               padding: 24, textAlign: 'center',
-              fontSize: 12, color: t.neutrals.subtle, fontFamily: t.font.sans,
+              fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans,
             }}>
               문서 로딩중...
             </div>
           ) : docs.length === 0 ? (
             <div style={{
               padding: 24, textAlign: 'center',
-              fontSize: 12, color: t.neutrals.subtle, fontFamily: t.font.sans,
+              fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans,
             }}>
               등록된 문서가 없습니다
             </div>
@@ -149,7 +149,7 @@ export function DocumentPanel({ etf, onClose }: DocumentPanelProps) {
                 <LIcon name="file" size={14} color={t.neutrals.muted} />
                 <span style={{
                   flex: 1,
-                  fontSize: 12,
+                  fontSize: 'calc(12px * var(--fz, 1))',
                   fontFamily: t.font.sans,
                   color: t.neutrals.text,
                   overflow: 'hidden',
@@ -159,7 +159,7 @@ export function DocumentPanel({ etf, onClose }: DocumentPanelProps) {
                   {doc.name}
                 </span>
                 <span style={{
-                  fontSize: 10,
+                  fontSize: 'calc(10px * var(--fz, 1))',
                   fontFamily: t.font.mono,
                   color: t.neutrals.subtle,
                   whiteSpace: 'nowrap',

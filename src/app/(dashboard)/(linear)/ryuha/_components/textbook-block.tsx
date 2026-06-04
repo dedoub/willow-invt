@@ -59,7 +59,7 @@ export function TextbookBlock({
             <button onClick={onManageSubjects} style={{
               padding: '4px 10px', borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none',
-              fontSize: 11, fontFamily: t.font.sans, fontWeight: t.weight.medium,
+              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: t.weight.medium,
               color: t.neutrals.muted, cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 3,
             }}>
@@ -68,7 +68,7 @@ export function TextbookBlock({
             <button onClick={onAddTextbook} style={{
               padding: '4px 10px', borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none',
-              fontSize: 11, fontFamily: t.font.sans, fontWeight: t.weight.medium,
+              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: t.weight.medium,
               color: t.neutrals.muted, cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 3,
             }}>
@@ -83,7 +83,7 @@ export function TextbookBlock({
         <div style={{ padding: '0 14px 10px', display: 'flex', gap: 5, flexWrap: 'wrap' }}>
           <button onClick={() => setSubjectFilter('all')} style={{
             padding: '4px 10px', borderRadius: t.radius.pill,
-            border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: t.font.sans,
+            border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans,
             fontWeight: subjectFilter === 'all' ? t.weight.medium : t.weight.regular,
             background: subjectFilter === 'all' ? t.brand[100] : t.neutrals.inner,
             color: subjectFilter === 'all' ? t.brand[700] : t.neutrals.muted,
@@ -91,7 +91,7 @@ export function TextbookBlock({
           {subjects.map(s => (
             <button key={s.id} onClick={() => setSubjectFilter(s.id)} style={{
               padding: '4px 10px', borderRadius: t.radius.pill,
-              border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: t.font.sans,
+              border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans,
               fontWeight: subjectFilter === s.id ? t.weight.medium : t.weight.regular,
               background: subjectFilter === s.id ? `${s.color}25` : t.neutrals.inner,
               color: subjectFilter === s.id ? s.color : t.neutrals.muted,
@@ -122,13 +122,13 @@ export function TextbookBlock({
                 <LIcon name={isExpanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2}
                   color={t.neutrals.subtle} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: t.weight.medium }}>{tb.name}</div>
+                  <div style={{ fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.medium }}>{tb.name}</div>
                   {tb.publisher && (
-                    <div style={{ fontSize: 10, color: t.neutrals.subtle }}>{tb.publisher}</div>
+                    <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>{tb.publisher}</div>
                   )}
                 </div>
                 <span style={{
-                  fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.subtle,
+                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
                 }}>{completedCount}/{tbChapters.length}</span>
                 <button onClick={(e) => { e.stopPropagation(); onEditTextbook(tb) }} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
@@ -146,10 +146,10 @@ export function TextbookBlock({
                     return (
                       <div key={ch.id} style={{
                         display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '5px 6px', fontSize: 12,
+                        padding: '5px 6px', fontSize: 'calc(12px * var(--fz, 1))',
                       }}>
                         <span style={{
-                          fontSize: 10, fontWeight: t.weight.medium,
+                          fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium,
                           padding: '1px 6px', borderRadius: t.radius.sm,
                           background: status.bg, color: status.fg,
                           cursor: 'pointer', whiteSpace: 'nowrap',
@@ -165,7 +165,7 @@ export function TextbookBlock({
                         </span>
                         {ch.target_date && (
                           <span style={{
-                            fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.subtle,
+                            fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
                           }}>{ch.target_date.slice(5)}</span>
                         )}
                       </div>
@@ -173,7 +173,7 @@ export function TextbookBlock({
                   })}
                   <button onClick={() => onAddChapter(tb.id)} style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    fontSize: 11, color: t.neutrals.subtle, padding: '4px 6px',
+                    fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, padding: '4px 6px',
                     display: 'flex', alignItems: 'center', gap: 4,
                   }}>
                     <LIcon name="plus" size={10} stroke={2} /> 단원 추가
@@ -186,7 +186,7 @@ export function TextbookBlock({
         {filteredTextbooks.length === 0 && (
           <div style={{
             padding: '20px 14px', textAlign: 'center',
-            fontSize: 12, color: t.neutrals.subtle,
+            fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
           }}>교재가 없습니다</div>
         )}
       </div>

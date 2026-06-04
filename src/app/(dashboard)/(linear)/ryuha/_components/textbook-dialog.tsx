@@ -26,7 +26,7 @@ function DialogShell({ open, title, onClose, children, footer }: {
           padding: '14px 16px', display: 'flex', justifyContent: 'space-between',
           alignItems: 'center', borderBottom: `1px solid ${t.neutrals.line}`,
         }}>
-          <span style={{ fontSize: 15, fontWeight: t.weight.semibold }}>{title}</span>
+          <span style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold }}>{title}</span>
           <button onClick={onClose} style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: t.neutrals.subtle, padding: 4,
@@ -47,26 +47,26 @@ function DialogShell({ open, title, onClose, children, footer }: {
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 11, color: t.neutrals.subtle, marginBottom: 4, display: 'block',
+  fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4, display: 'block',
 }
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '6px 8px', borderRadius: t.radius.sm,
   border: 'none', background: t.neutrals.inner,
-  fontSize: 12, fontFamily: t.font.sans, color: t.neutrals.text, outline: 'none',
+  fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.sans, color: t.neutrals.text, outline: 'none',
 }
 const btnPrimary: React.CSSProperties = {
   padding: '6px 14px', borderRadius: t.radius.sm,
-  background: t.neutrals.inner, border: 'none', fontSize: 12,
+  background: t.neutrals.inner, border: 'none', fontSize: 'calc(12px * var(--fz, 1))',
   color: t.neutrals.text, cursor: 'pointer', fontWeight: t.weight.regular,
 }
 const btnSecondary: React.CSSProperties = {
   padding: '6px 14px', borderRadius: t.radius.sm,
-  background: t.neutrals.inner, border: 'none', fontSize: 12,
+  background: t.neutrals.inner, border: 'none', fontSize: 'calc(12px * var(--fz, 1))',
   color: t.neutrals.muted, cursor: 'pointer', fontWeight: t.weight.regular,
 }
 const btnDanger: React.CSSProperties = {
   padding: '6px 12px', borderRadius: t.radius.sm,
-  background: '#FEE2E2', border: 'none', fontSize: 12,
+  background: '#FEE2E2', border: 'none', fontSize: 'calc(12px * var(--fz, 1))',
   color: t.accent.neg, cursor: 'pointer', fontWeight: t.weight.regular,
 }
 
@@ -118,7 +118,7 @@ export function SubjectDialog({ open, subjects, onSave, onDelete, onClose }: Sub
           background: editingId === s.id ? t.neutrals.inner : 'transparent',
         }}>
           <span style={{ width: 14, height: 14, borderRadius: 7, background: s.color, flexShrink: 0 }} />
-          <span style={{ flex: 1, fontSize: 12 }}>{s.name}</span>
+          <span style={{ flex: 1, fontSize: 'calc(12px * var(--fz, 1))' }}>{s.name}</span>
           <button onClick={() => startEdit(s)} style={{
             background: 'none', border: 'none', cursor: 'pointer', color: t.neutrals.subtle, padding: 2,
           }}><LIcon name="pencil" size={11} stroke={2} /></button>
@@ -208,7 +208,7 @@ export function TextbookDialog({ open, textbook, subjects, onSave, onDelete, onC
           {subjects.map(s => (
             <button key={s.id} onClick={() => setSubjectId(s.id)} style={{
               padding: '3px 8px', borderRadius: t.radius.pill,
-              border: 'none', fontSize: 11, cursor: 'pointer',
+              border: 'none', fontSize: 'calc(11px * var(--fz, 1))', cursor: 'pointer',
               background: subjectId === s.id ? `${s.color}25` : t.neutrals.inner,
               color: subjectId === s.id ? s.color : t.neutrals.muted,
             }}>{s.name}</button>

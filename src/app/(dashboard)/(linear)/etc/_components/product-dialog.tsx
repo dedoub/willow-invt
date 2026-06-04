@@ -47,7 +47,7 @@ function FeeTierEditor({
     borderRadius: t.radius.sm,
     border: 'none',
     background: t.neutrals.inner,
-    fontSize: 11,
+    fontSize: 'calc(11px * var(--fz, 1))',
     fontFamily: t.font.mono,
     color: t.neutrals.text,
     outline: 'none',
@@ -85,13 +85,13 @@ function FeeTierEditor({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 11, fontWeight: t.weight.semibold, color: t.neutrals.muted, fontFamily: t.font.sans }}>
+      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.muted, fontFamily: t.font.sans }}>
         {label}
       </span>
 
       {/* Min Fee */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans, minWidth: 56 }}>
+        <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans, minWidth: 56 }}>
           Min Fee ($)
         </span>
         <input
@@ -107,7 +107,7 @@ function FeeTierEditor({
       {/* Tiers */}
       {value.tiers.map((tier, idx) => (
         <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans, minWidth: 56 }}>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans, minWidth: 56 }}>
             Up to
           </span>
           <input
@@ -117,7 +117,7 @@ function FeeTierEditor({
             style={{ ...inputStyle, width: 64 }}
             placeholder="500M"
           />
-          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>@</span>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>@</span>
           <input
             type="number"
             value={tier.bps}
@@ -126,7 +126,7 @@ function FeeTierEditor({
             min={0}
             step={0.1}
           />
-          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>bps</span>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>bps</span>
           <button
             onClick={() => removeTier(idx)}
             style={{
@@ -143,7 +143,7 @@ function FeeTierEditor({
         onClick={addTier}
         style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          fontSize: 11, fontFamily: t.font.sans, color: t.brand[500],
+          fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, color: t.brand[500],
           padding: '2px 0', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 4,
         }}
       >
@@ -213,7 +213,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
     borderRadius: t.radius.sm,
     border: 'none',
     background: t.neutrals.inner,
-    fontSize: 12,
+    fontSize: 'calc(12px * var(--fz, 1))',
     fontFamily: t.font.sans,
     color: t.neutrals.text,
     outline: 'none',
@@ -222,7 +222,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontSize: 11,
+    fontSize: 'calc(11px * var(--fz, 1))',
     color: t.neutrals.subtle,
     fontFamily: t.font.sans,
     marginBottom: 4,
@@ -295,7 +295,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
           borderBottom: `1px solid ${t.neutrals.line}`,
         }}>
           <span style={{
-            fontSize: 14, fontWeight: t.weight.semibold,
+            fontSize: 'calc(14px * var(--fz, 1))', fontWeight: t.weight.semibold,
             fontFamily: t.font.sans, color: t.neutrals.text,
           }}>
             {editEtf ? '상품 수정' : '상품 추가'}

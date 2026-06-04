@@ -151,7 +151,7 @@ export function ReviewnotesBlock({
           <div style={{
             padding: '8px 12px', borderRadius: t.radius.md,
             background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            fontSize: 11, marginBottom: 10,
+            fontSize: 'calc(11px * var(--fz, 1))', marginBottom: 10,
           }}>
             {error}
           </div>
@@ -161,7 +161,7 @@ export function ReviewnotesBlock({
         {!loading && (
           <>
             <div style={{
-              fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
               fontFamily: t.font.mono, letterSpacing: 0.3,
               textTransform: 'uppercase' as const, marginBottom: 10,
             }}>
@@ -196,7 +196,7 @@ export function ReviewnotesBlock({
         <>
           <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
             <div style={{
-              fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
               fontFamily: t.font.mono, letterSpacing: 0.3,
               textTransform: 'uppercase' as const, marginBottom: 10,
             }}>
@@ -219,7 +219,7 @@ export function ReviewnotesBlock({
               gap: 6, marginBottom: 8, flexWrap: 'wrap',
             }}>
               <div style={{
-                fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+                fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
                 fontFamily: t.font.mono, letterSpacing: 0.3,
                 textTransform: 'uppercase' as const,
               }}>
@@ -234,7 +234,7 @@ export function ReviewnotesBlock({
                       onClick={() => handleSortChange(opt.key)}
                       style={{
                         padding: '3px 8px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                        fontSize: 10, fontWeight: 500, fontFamily: t.font.sans,
+                        fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans,
                         background: active ? t.brand[500] : t.neutrals.inner,
                         color: active ? '#fff' : t.neutrals.muted,
                         transition: 'background 120ms ease, color 120ms ease',
@@ -259,7 +259,7 @@ export function ReviewnotesBlock({
                       width: 26, height: 26, borderRadius: 26, flexShrink: 0,
                       background: t.brand[200], color: t.brand[800],
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, fontWeight: 600, overflow: 'hidden',
+                      fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, overflow: 'hidden',
                     }}>
                       {user.image
                         ? <img src={user.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -268,23 +268,23 @@ export function ReviewnotesBlock({
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11, fontWeight: 500, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {user.name || 'Unknown'}
                       </div>
-                      <div style={{ fontSize: 9.5, color: t.neutrals.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {user.email}
                       </div>
                     </div>
 
                     <span style={{
-                      fontSize: 9.5, fontFamily: t.font.mono, color: t.neutrals.muted,
+                      fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
                       flexShrink: 0, fontVariantNumeric: 'tabular-nums',
                     }}>
                       {formatBytes(user.storageUsed || 0)}
                     </span>
 
                     <span style={{
-                      fontSize: 9, padding: '2px 6px', borderRadius: t.radius.sm,
+                      fontSize: 'calc(9px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
                       background: planTone.bg, color: planTone.fg, fontWeight: 600, flexShrink: 0,
                     }}>
                       {user.subscriptionPlan}
@@ -292,14 +292,14 @@ export function ReviewnotesBlock({
 
                     {user.role === 'ADMIN' && (
                       <span style={{
-                        fontSize: 9, padding: '2px 6px', borderRadius: t.radius.sm,
+                        fontSize: 'calc(9px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
                         background: tonePalettes.warn.bg, color: tonePalettes.warn.fg, fontWeight: 600, flexShrink: 0,
                       }}>
                         Admin
                       </span>
                     )}
 
-                    <span style={{ fontSize: 9.5, color: t.neutrals.muted, flexShrink: 0 }}>
+                    <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, flexShrink: 0 }}>
                       {formatDate(user.createdAt)}
                     </span>
                   </div>
@@ -316,7 +316,7 @@ export function ReviewnotesBlock({
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{
-                    fontSize: 10, color: t.neutrals.muted,
+                    fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted,
                     fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
                   }}>
                     {totalUsers}명 중 {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, totalUsers)}
@@ -328,7 +328,7 @@ export function ReviewnotesBlock({
                       setUserPage(1)
                     }}
                     style={{
-                      fontSize: 10, fontFamily: t.font.sans,
+                      fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
                       background: t.neutrals.inner, color: t.neutrals.muted,
                       border: 'none', borderRadius: t.radius.sm,
                       padding: '3px 6px', cursor: 'pointer',
@@ -344,7 +344,7 @@ export function ReviewnotesBlock({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <PageNavButton onClick={() => setUserPage(Math.max(1, safeUserPage - 1))} disabled={safeUserPage === 1} icon="chevronLeft" />
                     <span style={{
-                      fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.text,
+                      fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text,
                       padding: '0 6px', fontVariantNumeric: 'tabular-nums',
                     }}>
                       {safeUserPage}/{totalUserPages}
@@ -369,7 +369,7 @@ function PlanStat({ userStats }: { userStats: ReviewNotesUserStats }) {
       background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px',
     }}>
       <div style={{
-        fontSize: 9.5, fontFamily: t.font.mono, letterSpacing: 0.8,
+        fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
         textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: 4,
       }}>플랜별</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
@@ -382,7 +382,7 @@ function PlanStat({ userStats }: { userStats: ReviewNotesUserStats }) {
           const tone = getTone(PLAN_TONES, p.plan)
           return (
             <span key={p.plan} style={{
-              fontSize: 9, padding: '2px 5px', borderRadius: t.radius.sm,
+              fontSize: 'calc(9px * var(--fz, 1))', padding: '2px 5px', borderRadius: t.radius.sm,
               background: tone.bg, color: tone.fg, fontWeight: 500,
             }}>
               {p.plan} {p.count}

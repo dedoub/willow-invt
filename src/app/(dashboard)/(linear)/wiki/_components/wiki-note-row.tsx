@@ -72,14 +72,14 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         }}
       >
         <span style={{
-          fontSize: 11, width: 16, textAlign: 'center', flexShrink: 0,
+          fontSize: 'calc(11px * var(--fz, 1))', width: 16, textAlign: 'center', flexShrink: 0,
           color: note.is_pinned ? '#D97706' : 'transparent',
         }}>
           {note.is_pinned ? '📌' : ''}
         </span>
 
         <span style={{
-          flex: 1, fontSize: 13, fontWeight: t.weight.medium,
+          flex: 1, fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.medium,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           color: t.neutrals.text,
         }}>
@@ -89,7 +89,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         {note.attachments && note.attachments.length > 0 && (
           <span style={{
             display: 'flex', alignItems: 'center', gap: 2,
-            fontSize: 10, color: t.neutrals.subtle, flexShrink: 0,
+            fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, flexShrink: 0,
           }}>
             <LIcon name="paperclip" size={10} />
             {note.attachments.length}
@@ -97,7 +97,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         )}
 
         <span style={{
-          fontSize: t.badge.size, fontWeight: t.badge.weight,
+          fontSize: `calc(${t.badge.size}px * var(--fz, 1))`, fontWeight: t.badge.weight,
           padding: `${t.badge.padY}px ${t.badge.padX}px`,
           borderRadius: t.badge.radius,
           background: badge.bg, color: badge.fg,
@@ -107,7 +107,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         </span>
 
         <span style={{
-          fontSize: 11, color: t.neutrals.subtle, fontFamily: t.font.mono,
+          fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono,
           flexShrink: 0, minWidth: 52,
         }}>
           {fmtDate(note.updated_at)}
@@ -146,11 +146,11 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         marginBottom: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 15, fontWeight: t.weight.semibold, color: t.neutrals.text }}>
+          <span style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text }}>
             {note.title || '(제목 없음)'}
           </span>
           <span style={{
-            fontSize: t.badge.size, fontWeight: t.badge.weight,
+            fontSize: `calc(${t.badge.size}px * var(--fz, 1))`, fontWeight: t.badge.weight,
             padding: `${t.badge.padY}px ${t.badge.padX}px`,
             borderRadius: t.badge.radius,
             background: badge.bg, color: badge.fg,
@@ -159,12 +159,12 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 11, color: t.neutrals.subtle, fontFamily: t.font.mono, marginRight: 8 }}>
+          <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, marginRight: 8 }}>
             {fmtDate(note.updated_at)}
           </span>
           <button onClick={handlePin} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-            borderRadius: t.radius.sm, fontSize: 12,
+            borderRadius: t.radius.sm, fontSize: 'calc(12px * var(--fz, 1))',
             color: note.is_pinned ? '#D97706' : t.neutrals.subtle,
           }}>📌</button>
           <LBtn variant="ghost" size="sm" icon={<LIcon name="file" size={13} />} onClick={() => setEditing(true)}>
@@ -181,7 +181,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
 
       {note.content && (
         <div style={{
-          fontSize: 13, lineHeight: 1.7, color: t.neutrals.text,
+          fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.7, color: t.neutrals.text,
           whiteSpace: 'pre-wrap', marginBottom: note.attachments?.length ? 12 : 0,
         }}>
           {note.content}
@@ -194,7 +194,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
             <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
               background: t.neutrals.card, borderRadius: t.radius.sm,
-              padding: '4px 8px', fontSize: 11, color: t.brand[600],
+              padding: '4px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: t.brand[600],
               textDecoration: 'none',
             }}>
               <LIcon name="paperclip" size={11} />

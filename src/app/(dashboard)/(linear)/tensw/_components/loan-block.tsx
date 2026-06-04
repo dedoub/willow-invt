@@ -146,7 +146,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
                 onClick={() => handleFilterChange(f.value)}
                 style={{
                   border: 'none', cursor: 'pointer',
-                  padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+                  padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
                   fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                   background: active && tone ? tone.bg : active ? t.brand[100] : t.neutrals.inner,
                   color: active && tone ? tone.fg : active ? t.brand[700] : t.neutrals.muted,
@@ -165,7 +165,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
         {paged.length === 0 && (
           <div style={{
             padding: '20px 16px', textAlign: 'center',
-            fontSize: 12, color: t.neutrals.subtle,
+            fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
           }}>
             차입금 데이터가 없습니다
           </div>
@@ -189,7 +189,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
                 {/* Status badge */}
                 <span style={{
                   display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-                  fontSize: 10, fontWeight: t.weight.medium, textAlign: 'center',
+                  fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
                   background: statusTone.bg, color: statusTone.fg,
                   flexShrink: 0,
                 }}>
@@ -197,18 +197,18 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
                 </span>
 
                 {/* Bank name */}
-                <span style={{ fontSize: 12.5, fontWeight: 500, color: t.neutrals.text, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.text, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {loan.bank}
                 </span>
 
                 {/* Principal */}
-                <span style={{ fontSize: 11, fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap' }}>
                   {loan.principal.toLocaleString()}원
                 </span>
 
                 {/* Rate */}
                 {loan.interest_rate != null && (
-                  <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>
                     {loan.interest_rate}%
                   </span>
                 )}
@@ -216,7 +216,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
                 {/* Maturity warning */}
                 {maturityWarning && (
                   <span style={{
-                    fontSize: 9, fontFamily: t.font.mono, fontWeight: 600,
+                    fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
                     padding: '1px 5px', borderRadius: t.radius.sm,
                     background: tonePalettes.danger.bg, color: tonePalettes.danger.fg,
                     whiteSpace: 'nowrap',
@@ -237,7 +237,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
                   <div style={{
                     background: t.neutrals.inner, borderRadius: t.radius.md,
                     padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
-                    fontSize: 11, fontFamily: t.font.sans,
+                    fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans,
                   }}>
                     <DetailRow label="대출유형" value={loan.loan_type} />
                     <DetailRow label="계좌번호" value={loan.account_number} mono />
@@ -259,7 +259,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
                   {loan.memo && (
                     <div style={{
                       marginTop: 8, padding: '8px 12px', borderRadius: t.radius.md,
-                      background: t.neutrals.inner, fontSize: 11, color: t.neutrals.muted,
+                      background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
                       lineHeight: 1.5, whiteSpace: 'pre-wrap',
                     }}>
                       {loan.memo}
@@ -278,7 +278,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
                           style={{
                             display: 'flex', alignItems: 'center', gap: 6,
                             padding: '4px 8px', borderRadius: t.radius.sm,
-                            background: t.neutrals.inner, fontSize: 11,
+                            background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))',
                             color: t.brand[700], textDecoration: 'none',
                           }}
                         >
@@ -296,7 +296,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
                       style={{
                         padding: '4px 12px', borderRadius: t.radius.sm,
                         background: t.neutrals.inner, border: 'none',
-                        fontSize: 11, fontFamily: t.font.sans, fontWeight: 500,
+                        fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
                         color: t.neutrals.text, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: 4,
                       }}
@@ -326,12 +326,12 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
             style={{
               width: 32, textAlign: 'center',
               border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 11,
+              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
               fontFamily: t.font.mono, color: t.neutrals.muted,
               padding: '2px 0', outline: 'none',
             }}
           />
-          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
 
         {totalPages > 1 && (
@@ -349,7 +349,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
             </span>
             <button
@@ -375,7 +375,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
       <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>
         {value}
       </div>

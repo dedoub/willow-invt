@@ -143,7 +143,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: 12, fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
+          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
             {year}년
           </span>
           <button onClick={() => { setYear(y => y + 1); setPage(0) }} style={{
@@ -168,7 +168,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
             return (
               <button key={f.value} onClick={() => handleFilterChange(f.value)} style={{
                 border: 'none', cursor: 'pointer',
-                padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+                padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
                 fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                 background: active ? t.brand[100] : t.neutrals.inner,
                 color: active ? t.brand[700] : t.neutrals.muted,
@@ -183,7 +183,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
               border: 'none', cursor: 'pointer', background: t.neutrals.inner,
               borderRadius: t.radius.sm, padding: '3px 6px',
               display: 'flex', alignItems: 'center', gap: 2,
-              color: t.neutrals.muted, fontSize: 10, fontFamily: t.font.mono,
+              color: t.neutrals.muted, fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
             }}
           >
             <LIcon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={10} stroke={2} />
@@ -197,7 +197,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
         {paged.length === 0 && (
           <div style={{
             padding: '20px 16px', textAlign: 'center',
-            fontSize: 12, color: t.neutrals.subtle,
+            fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
           }}>
             해당 연도 세금계산서가 없습니다
           </div>
@@ -220,20 +220,20 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                 {/* Status badge */}
                 <span style={{
                   display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-                  fontSize: 10, fontWeight: t.weight.medium, textAlign: 'center',
+                  fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
                   background: tone.bg, color: tone.fg, flexShrink: 0,
                 }}>
                   {STATUS_LABELS[inv.payment_status] ?? inv.payment_status}
                 </span>
 
                 {/* Date */}
-                <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 11, flexShrink: 0 }}>
+                <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))', flexShrink: 0 }}>
                   {dateSlice}
                 </span>
 
                 {/* Counterparty + notes */}
                 <span style={{
-                  flex: 1, minWidth: 0, fontSize: 12,
+                  flex: 1, minWidth: 0, fontSize: 'calc(12px * var(--fz, 1))',
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
                   <span style={{ fontWeight: 500 }}>{inv.counterparty}</span>
@@ -245,7 +245,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                 {/* Total amount */}
                 <span style={{
                   fontWeight: 500, fontVariantNumeric: 'tabular-nums',
-                  color: t.neutrals.text, whiteSpace: 'nowrap', fontSize: 11,
+                  color: t.neutrals.text, whiteSpace: 'nowrap', fontSize: 'calc(11px * var(--fz, 1))',
                   fontFamily: t.font.mono, flexShrink: 0,
                 }}>
                   {inv.total_amount.toLocaleString()}원
@@ -263,7 +263,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                   <div style={{
                     background: t.neutrals.inner, borderRadius: t.radius.md,
                     padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
-                    fontSize: 11, fontFamily: t.font.sans,
+                    fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans,
                   }}>
                     <DetailRow label="거래처" value={inv.counterparty} />
                     <DetailRow label="발행일" value={inv.issue_date} mono />
@@ -286,7 +286,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                   {inv.items && inv.items.length > 0 && (
                     <div style={{ marginTop: 8 }}>
                       <div style={{
-                        fontSize: 10, fontWeight: 600, color: t.neutrals.subtle,
+                        fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
                         fontFamily: t.font.mono, marginBottom: 4, letterSpacing: 0.3,
                       }}>
                         품목
@@ -298,7 +298,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                         {inv.items.map((item, i) => (
                           <div key={i} style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            fontSize: 11, padding: '3px 0',
+                            fontSize: 'calc(11px * var(--fz, 1))', padding: '3px 0',
                             borderTop: i > 0 ? `1px solid ${t.neutrals.line}` : 'none',
                           }}>
                             <span style={{ color: t.neutrals.text }}>{item.description}</span>
@@ -318,7 +318,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                   {inv.notes && (
                     <div style={{
                       marginTop: 8, padding: '8px 12px', borderRadius: t.radius.md,
-                      background: t.neutrals.inner, fontSize: 11, color: t.neutrals.muted,
+                      background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
                       lineHeight: 1.5, whiteSpace: 'pre-wrap',
                     }}>
                       {inv.notes}
@@ -332,7 +332,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                       style={{
                         padding: '4px 12px', borderRadius: t.radius.sm,
                         background: t.neutrals.inner, border: 'none',
-                        fontSize: 11, fontFamily: t.font.sans, fontWeight: 500,
+                        fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
                         color: t.neutrals.text, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: 4,
                       }}
@@ -362,11 +362,11 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
             style={{
               width: 32, textAlign: 'center', border: 'none',
               background: t.neutrals.inner, borderRadius: t.radius.sm,
-              fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted,
+              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
               padding: '2px 0', outline: 'none',
             }}
           />
-          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
 
         {totalPages > 1 && (
@@ -383,7 +383,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sorted.length)} / {sorted.length}
             </span>
             <button
@@ -410,7 +410,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
       <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>
         {value}
       </div>

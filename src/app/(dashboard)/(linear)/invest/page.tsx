@@ -405,7 +405,7 @@ export default function InvestPage() {
         onClick={() => window.open('/print/invest/holdings', '_blank')}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '4px 10px', fontSize: 11, fontWeight: t.weight.regular,
+          padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.regular,
           background: t.neutrals.inner, color: t.neutrals.muted,
           border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
           fontFamily: t.font.sans,
@@ -419,7 +419,7 @@ export default function InvestPage() {
         onClick={() => window.open('/print/invest/kanban', '_blank')}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '4px 10px', fontSize: 11, fontWeight: t.weight.regular,
+          padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.regular,
           background: t.neutrals.inner, color: t.neutrals.muted,
           border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
           fontFamily: t.font.sans,

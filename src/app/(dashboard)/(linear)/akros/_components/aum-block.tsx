@@ -54,19 +54,19 @@ function StatCard({ label, value, sub, sparkData }: StatCardProps) {
       padding: '8px 10px', minWidth: 0, flex: 1,
     }}>
       <div style={{
-        fontSize: 9.5, fontFamily: t.font.mono, letterSpacing: 0.8,
+        fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
         textTransform: 'uppercase' as const, color: t.neutrals.subtle,
         marginBottom: 6,
       }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{
-            fontSize: 15, fontWeight: 600, letterSpacing: -0.3,
+            fontSize: 'calc(15px * var(--fz, 1))', fontWeight: 600, letterSpacing: -0.3,
             fontVariantNumeric: 'tabular-nums', color: t.neutrals.text,
             whiteSpace: 'nowrap',
           }}>{value}</div>
           <div style={{
-            fontSize: 10, color: t.neutrals.muted, marginTop: 1,
+            fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 1,
             whiteSpace: 'nowrap',
           }}>{sub}</div>
         </div>

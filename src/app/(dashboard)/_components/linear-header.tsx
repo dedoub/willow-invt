@@ -33,7 +33,7 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
       flexShrink: 0, fontFamily: t.font.sans,
     }}>
       {/* Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(12px * var(--fz, 1))', minWidth: 0 }}>
         {mobile && onMenuToggle && (
           <button onClick={onMenuToggle} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 4,
@@ -51,8 +51,8 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
         <span style={{ color: t.neutrals.text, fontWeight: 500 }}>{title}</span>
         {subtitle && (
           <>
-            <span style={{ margin: '0 6px', color: t.neutrals.subtle, fontSize: 11 }}>—</span>
-            <span style={{ color: t.neutrals.muted, fontSize: 11, fontWeight: 400 }}>{subtitle}</span>
+            <span style={{ margin: '0 6px', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</span>
+            <span style={{ color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 400 }}>{subtitle}</span>
           </>
         )}
       </div>
@@ -84,11 +84,11 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
             height: 28, padding: '0 10px', borderRadius: 6,
             background: agentOpen ? t.brand[800] : t.neutrals.inner,
             color: agentOpen ? '#fff' : t.neutrals.text,
-            border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: t.weight.regular,
+            border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.regular,
             display: 'inline-flex', alignItems: 'center', gap: 5,
             fontFamily: t.font.sans,
           }}>
-            <span style={{ fontSize: 12 }}>✦</span>
+            <span style={{ fontSize: 'calc(12px * var(--fz, 1))' }}>✦</span>
             <span>Agent</span>
           </button>
         )}

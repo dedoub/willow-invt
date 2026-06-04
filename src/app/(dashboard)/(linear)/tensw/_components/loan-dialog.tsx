@@ -46,7 +46,7 @@ const STATUS_OPTIONS = [
 ]
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: 13,
+  width: '100%', padding: '8px 10px', fontSize: 'calc(13px * var(--fz, 1))',
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -145,13 +145,13 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
         }}>
           <div>
             <div style={{
-              fontSize: 10, fontFamily: t.font.mono, fontWeight: 600,
+              fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
               color: t.neutrals.subtle, letterSpacing: 0.6,
               textTransform: 'uppercase' as const, marginBottom: 2,
             }}>
               LOAN
             </div>
-            <div style={{ fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               {isEdit ? '차입금 수정' : '차입금 추가'}
             </div>
           </div>
@@ -366,7 +366,7 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
     <div style={{
-      fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.subtle,
+      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle,
       fontFamily: t.font.sans, marginBottom: 5,
     }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
@@ -380,7 +380,7 @@ function ChipBtn({ children, active, onClick }: { children: React.ReactNode; act
       onClick={onClick}
       style={{
         border: 'none', cursor: 'pointer',
-        padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+        padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
         fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
         background: active ? t.brand[100] : t.neutrals.inner,
         color: active ? t.brand[700] : t.neutrals.muted,

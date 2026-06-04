@@ -37,7 +37,7 @@ export function LBtn({ variant = 'primary', size = 'md', children, icon, onClick
   return (
     <button onClick={onClick} disabled={disabled} style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
-      height: s.h, padding: `0 ${s.px}px`, fontSize: s.fs,
+      height: s.h, padding: `0 ${s.px}px`, fontSize: `calc(${s.fs}px * var(--fz, 1))`,
       background: v.bg, color: v.fg,
       fontWeight: t.weight.regular, fontFamily: t.font.sans,
       borderRadius: t.radius.sm, border: 'none', cursor: disabled ? 'default' : 'pointer',

@@ -92,7 +92,7 @@ export default function LinearRouteLayout({
             onMenuToggle={() => setMenuOpen(v => !v)}
           />
           <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '16px 12px 24px' : '16px 20px 24px' }}>
-            <div className="mobile-zoom">{children}</div>
+            {children}
           </main>
         </div>
 

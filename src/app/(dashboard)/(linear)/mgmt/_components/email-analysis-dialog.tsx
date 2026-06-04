@@ -77,13 +77,13 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
         {/* Header */}
         <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 }}>
+            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 }}>
               AI ANALYSIS
             </div>
-            <div style={{ fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               이메일 분석 결과
             </div>
-            <div style={{ fontSize: 10.5, fontFamily: t.font.mono, color: t.neutrals.subtle, marginTop: 2 }}>
+            <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, marginTop: 2 }}>
               {new Date(analysis.generatedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
@@ -99,7 +99,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
         {/* Overall summary */}
         <div style={{
           margin: '0 20px 10px', padding: '10px 12px', borderRadius: t.radius.md,
-          background: t.brand[50], fontSize: 12.5, lineHeight: 1.6,
+          background: t.brand[50], fontSize: 'calc(12.5px * var(--fz, 1))', lineHeight: 1.6,
           fontFamily: t.font.sans, color: t.neutrals.text,
         }}>
           {analysis.overallSummary}
@@ -110,13 +110,13 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
           {analysis.categories.map((c, i) => (
             <button key={i} onClick={() => setActiveCategory(i)} style={{
               border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-              padding: '5px 10px', borderRadius: t.radius.pill, fontSize: 11,
+              padding: '5px 10px', borderRadius: t.radius.pill, fontSize: 'calc(11px * var(--fz, 1))',
               fontFamily: t.font.sans, fontWeight: activeCategory === i ? t.weight.medium : t.weight.regular,
               background: activeCategory === i ? t.brand[100] : t.neutrals.inner,
               color: activeCategory === i ? t.brand[700] : t.neutrals.muted,
               transition: 'all .12s',
             }}>
-              {c.category} <span style={{ fontFamily: t.font.mono, fontSize: 10, opacity: 0.7 }}>{c.emailCount}</span>
+              {c.category} <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', opacity: 0.7 }}>{c.emailCount}</span>
             </button>
           ))}
         </div>
@@ -125,7 +125,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
         {cat && (
           <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 16px' }}>
             {/* Summary */}
-            <div style={{ fontSize: 12.5, lineHeight: 1.6, color: t.neutrals.text, marginBottom: 10, fontFamily: t.font.sans }}>
+            <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', lineHeight: 1.6, color: t.neutrals.text, marginBottom: 10, fontFamily: t.font.sans }}>
               {cat.summary}
             </div>
 
@@ -134,7 +134,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
                 {cat.recentTopics.map((topic, i) => (
                   <span key={i} style={{
-                    padding: '2px 8px', borderRadius: t.radius.pill, fontSize: 10.5,
+                    padding: '2px 8px', borderRadius: t.radius.pill, fontSize: 'calc(10.5px * var(--fz, 1))',
                     background: t.neutrals.inner, color: t.neutrals.muted, fontFamily: t.font.sans,
                   }}>
                     {topic}
@@ -155,14 +155,14 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                         <span style={{
-                          padding: '1px 5px', borderRadius: 3, fontSize: 9.5, fontWeight: t.weight.medium,
+                          padding: '1px 5px', borderRadius: 3, fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium,
                           background: pt.bg, color: pt.fg,
                         }}>
                           {issue.priority}
                         </span>
-                        <span style={{ fontSize: 12, fontWeight: t.weight.medium, color: t.neutrals.text }}>{issue.title}</span>
+                        <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.text }}>{issue.title}</span>
                       </div>
-                      <div style={{ fontSize: 11.5, color: t.neutrals.muted, lineHeight: 1.5 }}>{issue.description}</div>
+                      <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.muted, lineHeight: 1.5 }}>{issue.description}</div>
                     </div>
                   )
                 })}
@@ -200,20 +200,20 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
                       </button>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
-                          fontSize: 12, fontFamily: t.font.sans, color: t.neutrals.text,
+                          fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.sans, color: t.neutrals.text,
                           textDecoration: done ? 'line-through' : 'none',
                         }}>
                           {todo.task}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                           <span style={{
-                            padding: '0px 4px', borderRadius: 2, fontSize: 9, fontWeight: t.weight.medium,
+                            padding: '0px 4px', borderRadius: 2, fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.medium,
                             background: pt.bg, color: pt.fg,
                           }}>
                             {todo.priority}
                           </span>
                           {todo.dueDate && (
-                            <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.subtle }}>
+                            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle }}>
                               마감 {todo.dueDate}
                             </span>
                           )}
@@ -239,7 +239,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: 6 }}>
+      <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: 6 }}>
         {title}
       </div>
       {children}

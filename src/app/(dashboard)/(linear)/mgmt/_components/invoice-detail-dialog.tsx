@@ -35,7 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 function InfoRow({ icon, children }: { icon: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: t.neutrals.muted, fontFamily: t.font.sans }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(13px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.sans }}>
       <LIcon name={icon} size={14} stroke={1.8} color={t.neutrals.subtle} />
       <span>{children}</span>
     </div>
@@ -62,11 +62,11 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
         {/* Header */}
         <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
+            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
               CASHFLOW
             </div>
             <div style={{
-              fontSize: 16, fontWeight: t.weight.semibold, fontFamily: t.font.sans,
+              fontSize: 'calc(16px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans,
               color: t.neutrals.text, lineHeight: 1.35,
             }}>
               {invoice.counterparty}
@@ -85,14 +85,14 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
         <div style={{ padding: '0 20px 12px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <span style={{
             display: 'inline-block', padding: '3px 10px', borderRadius: t.radius.pill,
-            fontSize: 11, fontWeight: t.weight.medium, fontFamily: t.font.sans,
+            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.sans,
             background: typeTone.bg, color: typeTone.fg,
           }}>
             {TYPE_LABELS[invoice.type]}
           </span>
           <span style={{
             display: 'inline-block', padding: '3px 10px', borderRadius: t.radius.pill,
-            fontSize: 11, fontWeight: t.weight.medium, fontFamily: t.font.sans,
+            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.sans,
             background: invoice.status === 'completed' ? '#DAEEDD' : t.neutrals.inner,
             color: invoice.status === 'completed' ? '#1F5F3D' : t.neutrals.muted,
           }}>
@@ -108,13 +108,13 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
             display: 'flex', alignItems: 'baseline', gap: 6,
           }}>
             <span style={{
-              fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+              fontSize: 'calc(22px * var(--fz, 1))', fontWeight: 700, fontVariantNumeric: 'tabular-nums',
               fontFamily: t.font.sans, letterSpacing: -0.5,
               color: isIncome ? t.accent.pos : t.accent.neg,
             }}>
               {isIncome ? '+' : '-'}{Math.abs(invoice.amount).toLocaleString()}
             </span>
-            <span style={{ fontSize: 13, color: t.neutrals.muted }}>원</span>
+            <span style={{ fontSize: 'calc(13px * var(--fz, 1))', color: t.neutrals.muted }}>원</span>
           </div>
 
           {/* Dates */}
@@ -129,7 +129,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
           {invoice.description && (
             <div style={{
               marginTop: 6, padding: '10px 12px', borderRadius: t.radius.md,
-              background: t.neutrals.inner, fontSize: 13, lineHeight: 1.6,
+              background: t.neutrals.inner, fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.6,
               fontFamily: t.font.sans, color: t.neutrals.text,
               whiteSpace: 'pre-wrap',
             }}>

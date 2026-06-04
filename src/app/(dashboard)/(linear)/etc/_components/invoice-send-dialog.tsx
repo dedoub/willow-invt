@@ -23,7 +23,7 @@ const inputStyle: React.CSSProperties = {
   borderRadius: t.radius.sm,
   border: 'none',
   background: t.neutrals.inner,
-  fontSize: 12,
+  fontSize: 'calc(12px * var(--fz, 1))',
   fontFamily: t.font.sans,
   color: t.neutrals.text,
   outline: 'none',
@@ -32,7 +32,7 @@ const inputStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontSize: 11,
+  fontSize: 'calc(11px * var(--fz, 1))',
   color: t.neutrals.subtle,
   fontFamily: t.font.sans,
   marginBottom: 4,
@@ -194,7 +194,7 @@ export function InvoiceSendDialog({ invoice, target, onClose, onSent }: InvoiceS
           borderBottom: `1px solid ${t.neutrals.line}`,
         }}>
           <span style={{
-            fontSize: 14, fontWeight: t.weight.semibold,
+            fontSize: 'calc(14px * var(--fz, 1))', fontWeight: t.weight.semibold,
             fontFamily: t.font.sans, color: t.neutrals.text,
           }}>
             인보이스 발송 — {target === 'etc' ? 'ETC' : '은행'}
@@ -218,7 +218,7 @@ export function InvoiceSendDialog({ invoice, target, onClose, onSent }: InvoiceS
         }}>
           {/* PDF status */}
           <div style={{
-            fontSize: 11,
+            fontSize: 'calc(11px * var(--fz, 1))',
             fontFamily: t.font.sans,
             color: pdfLoading ? t.neutrals.subtle : pdfBlob ? t.accent.pos : t.accent.neg,
             paddingBottom: 4,
@@ -278,7 +278,7 @@ export function InvoiceSendDialog({ invoice, target, onClose, onSent }: InvoiceS
             {/* Checkbox row */}
             <label style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              fontSize: 12, fontFamily: t.font.sans, color: t.neutrals.text,
+              fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.sans, color: t.neutrals.text,
               cursor: 'pointer',
             }}>
               <input
@@ -317,7 +317,7 @@ export function InvoiceSendDialog({ invoice, target, onClose, onSent }: InvoiceS
             {/* Validation error for scheduled time */}
             {scheduled && scheduledDate && scheduledTime && !isScheduledValid() && (
               <div style={{
-                fontSize: 11, fontFamily: t.font.sans, color: t.accent.neg,
+                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, color: t.accent.neg,
               }}>
                 예약 시간은 현재 시간 이후여야 합니다.
               </div>

@@ -94,7 +94,7 @@ type SortDir = 'asc' | 'desc'
 
 const tooltipStyle: React.CSSProperties = {
   background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
-  borderRadius: t.radius.md, fontSize: 11, fontFamily: t.font.sans, padding: '6px 10px',
+  borderRadius: t.radius.md, fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, padding: '6px 10px',
 }
 
 const innerCard: React.CSSProperties = {
@@ -103,14 +103,14 @@ const innerCard: React.CSSProperties = {
 }
 
 const thStyle: React.CSSProperties = {
-  fontSize: 11, color: t.neutrals.subtle, cursor: 'pointer',
+  fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, cursor: 'pointer',
   padding: '6px 4px', textAlign: 'right' as const, fontWeight: t.weight.medium,
   fontFamily: t.font.sans, whiteSpace: 'nowrap' as const,
   userSelect: 'none' as const,
 }
 
 const tdStyle: React.CSSProperties = {
-  fontSize: 12, padding: '5px 4px', textAlign: 'right' as const,
+  fontSize: 'calc(12px * var(--fz, 1))', padding: '5px 4px', textAlign: 'right' as const,
   fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' as const,
 }
 
@@ -147,10 +147,10 @@ function SortIndicator({ active, dir }: { active: boolean; dir: SortDir }) {
 function ChartHeader({ title, momPct }: { title: string; momPct?: number | null }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-      <span style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted }}>{title}</span>
+      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.muted }}>{title}</span>
       {momPct !== undefined && momPct !== null && (
         <span style={{
-          fontSize: 10, fontWeight: t.weight.medium, borderRadius: t.radius.sm,
+          fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, borderRadius: t.radius.sm,
           padding: '1px 5px',
           background: momPct > 0 ? '#FEE2E2' : momPct < 0 ? '#DBEAFE' : t.neutrals.inner,
           color: momPct > 0 ? '#EF4444' : momPct < 0 ? '#3B82F6' : t.neutrals.muted,
@@ -167,25 +167,25 @@ function PriceChart({ data, complexes, height = 200 }: {
   complexes: { name: string }[]
   height?: number
 }) {
-  if (!data.length) return <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  if (!data.length) return <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
         <XAxis
           dataKey="month" tickFormatter={fmtMonth}
-          tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+          tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
           axisLine={false} tickLine={false} interval="preserveStartEnd"
         />
         <YAxis
           yAxisId="left"
           tickFormatter={(v: number) => `${Math.round(v).toLocaleString()}`}
-          tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+          tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
           axisLine={false} tickLine={false} width={50}
         />
         <YAxis
           yAxisId="right" orientation="right"
-          tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+          tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
           axisLine={false} tickLine={false} width={30}
         />
         <Tooltip
@@ -213,19 +213,19 @@ function PriceChart({ data, complexes, height = 200 }: {
 }
 
 function GapChart({ data, height = 200 }: { data: ReTrendPoint[]; height?: number }) {
-  if (!data.length) return <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  if (!data.length) return <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
         <XAxis
           dataKey="date" tickFormatter={fmtDate}
-          tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+          tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
           axisLine={false} tickLine={false} interval="preserveStartEnd"
         />
         <YAxis
           tickFormatter={(v: number) => `${v.toFixed(0)}%`}
-          tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+          tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
           axisLine={false} tickLine={false} width={40}
         />
         <Tooltip
@@ -256,7 +256,7 @@ function ListingTable({
   onPageChange: (p: number) => void
   tradeType: '매매' | '전세'
 }) {
-  if (rows.length === 0) return <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  if (rows.length === 0) return <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
   const msParam = tradeType === '매매' ? 'a1' : 'b1'
   return (
     <div>
@@ -326,7 +326,7 @@ function ListingTable({
           >
             <LIcon name="chevronLeft" size={14} color={t.neutrals.muted} />
           </button>
-          <span style={{ fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.mono }}>
+          <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
             {page + 1} / {pageCount}
           </span>
           <button
@@ -670,13 +670,13 @@ export function RealEstateBlock() {
   /* ── Inline styles ── */
   const chipActiveStyle: React.CSSProperties = {
     background: t.brand[100], color: t.brand[700],
-    padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+    padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
     cursor: 'pointer', border: 'none', fontFamily: t.font.sans,
     fontWeight: t.weight.medium, transition: 'all .12s',
   }
   const chipInactiveStyle: React.CSSProperties = {
     background: t.neutrals.inner, color: t.neutrals.muted,
-    padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+    padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
     cursor: 'pointer', border: 'none', fontFamily: t.font.sans,
     fontWeight: t.weight.regular, transition: 'all .12s',
   }
@@ -725,7 +725,7 @@ export function RealEstateBlock() {
         <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
           <LSectionHead eyebrow="REAL ESTATE" title="부동산 리서치" />
         </div>
-        <div style={{ padding: '40px 14px', textAlign: 'center', fontSize: 12, color: t.neutrals.subtle }}>
+        <div style={{ padding: '40px 14px', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
           추적 중인 단지가 없습니다
         </div>
       </LCard>
@@ -799,7 +799,7 @@ export function RealEstateBlock() {
                 minWidth: 180, maxHeight: 240, overflowY: 'auto', padding: 4,
               }}>
                 {reComplexes.length === 0 ? (
-                  <div style={{ padding: 8, fontSize: 11, color: t.neutrals.subtle }}>단지 없음</div>
+                  <div style={{ padding: 8, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>단지 없음</div>
                 ) : (
                   <>
                     {selectedComplexIds.length > 0 && (
@@ -807,7 +807,7 @@ export function RealEstateBlock() {
                         onClick={() => { setSelectedComplexIds([]); setComplexDropdownOpen(false) }}
                         style={{
                           border: 'none', background: 'transparent', width: '100%',
-                          textAlign: 'left', padding: '6px 8px', fontSize: 11,
+                          textAlign: 'left', padding: '6px 8px', fontSize: 'calc(11px * var(--fz, 1))',
                           color: t.brand[600], cursor: 'pointer', fontFamily: t.font.sans,
                         }}
                       >
@@ -820,14 +820,14 @@ export function RealEstateBlock() {
                         onClick={() => toggleComplex(c.id)}
                         style={{
                           border: 'none', width: '100%', textAlign: 'left',
-                          padding: '6px 8px', fontSize: 11, cursor: 'pointer',
+                          padding: '6px 8px', fontSize: 'calc(11px * var(--fz, 1))', cursor: 'pointer',
                           fontFamily: t.font.sans, borderRadius: t.radius.sm,
                           background: selectedComplexIds.includes(c.id) ? t.neutrals.inner : 'transparent',
                           color: selectedComplexIds.includes(c.id) ? t.neutrals.text : t.neutrals.muted,
                         }}
                       >
                         {c.name}
-                        <span style={{ fontSize: 9, color: t.neutrals.subtle, marginLeft: 4 }}>{c.district_name}</span>
+                        <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle, marginLeft: 4 }}>{c.district_name}</span>
                       </button>
                     ))}
                   </>
@@ -841,7 +841,7 @@ export function RealEstateBlock() {
             <span key={id} style={{
               display: 'inline-flex', alignItems: 'center', gap: 3,
               background: t.brand[100], color: t.brand[700],
-              padding: '3px 8px', borderRadius: t.radius.pill, fontSize: 10,
+              padding: '3px 8px', borderRadius: t.radius.pill, fontSize: 'calc(10px * var(--fz, 1))',
               fontFamily: t.font.sans, fontWeight: t.weight.medium,
             }}>
               {complexNameById.get(id) || id}
@@ -866,7 +866,7 @@ export function RealEstateBlock() {
 
           {/* Right-aligned date info */}
           {reSummary && (
-          <div style={{ marginLeft: 'auto', fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.mono, whiteSpace: 'nowrap' }}>
+          <div style={{ marginLeft: 'auto', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, whiteSpace: 'nowrap' }}>
             {reSummary.lastListingDate && <>호가 {fmtDate(reSummary.lastListingDate)}</>}
             {reSummary.lastListingDate && reSummary.lastTradeDate && ' · '}
             {reSummary.lastTradeDate && <>실거래 {fmtDate(reSummary.lastTradeDate)}</>}
@@ -878,32 +878,32 @@ export function RealEstateBlock() {
         {loadingSummary ? <KpiSkeleton mobile={mobile} /> : reSummary && (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
           <div style={innerCard}>
-            <div style={{ fontSize: 9.5, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
               추적 단지
             </div>
-            <div style={{ fontSize: 13, fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
+            <div style={{ fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
               {reSummary.trackedComplexes}개
-              <span style={{ fontSize: 10, color: t.neutrals.muted, fontWeight: t.weight.regular, marginLeft: 4 }}>
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted, fontWeight: t.weight.regular, marginLeft: 4 }}>
                 ({reSummary.districtCount}개구)
               </span>
             </div>
           </div>
 
           <div style={innerCard}>
-            <div style={{ fontSize: 9.5, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
               매매가 (만/평)
             </div>
-            <div style={{ fontSize: 13, fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
+            <div style={{ fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
               {currentTradeAvg ? currentTradeAvg.toLocaleString() : '-'}
             </div>
           </div>
 
           <div style={innerCard}>
-            <div style={{ fontSize: 9.5, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
               매도 괴리율
             </div>
             <div style={{
-              fontSize: 13, fontWeight: t.weight.semibold, fontFamily: t.font.mono,
+              fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.mono,
               color: gapColor(lastTradeGap),
             }}>
               {lastTradeGap !== null ? `${lastTradeGap > 0 ? '+' : ''}${lastTradeGap.toFixed(1)}%` : '-'}
@@ -911,20 +911,20 @@ export function RealEstateBlock() {
           </div>
 
           <div style={innerCard}>
-            <div style={{ fontSize: 9.5, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
               전세가 (만/평)
             </div>
-            <div style={{ fontSize: 13, fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
+            <div style={{ fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
               {currentRentalAvg ? currentRentalAvg.toLocaleString() : '-'}
             </div>
           </div>
 
           <div style={innerCard}>
-            <div style={{ fontSize: 9.5, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
               전세 괴리율
             </div>
             <div style={{
-              fontSize: 13, fontWeight: t.weight.semibold, fontFamily: t.font.mono,
+              fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.mono,
               color: gapColor(lastJeonseGap),
             }}>
               {lastJeonseGap !== null ? `${lastJeonseGap > 0 ? '+' : ''}${lastJeonseGap.toFixed(1)}%` : '-'}
@@ -949,7 +949,7 @@ export function RealEstateBlock() {
               {reTrades && reTrades.complexes.length > 1 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 4 }}>
                   {reTrades.complexes.map((c, i) => (
-                    <span key={c.name} style={{ fontSize: 9, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span key={c.name} style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
                       {c.name}
                     </span>
@@ -970,7 +970,7 @@ export function RealEstateBlock() {
             {/* 매도 호가 vs 실거래가 */}
             {loadingListingsTrade ? <TableSkeleton /> : (
             <div style={innerCard}>
-              <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
+              <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
                 매도 호가 vs 실거래가
               </div>
               <ListingTable
@@ -997,7 +997,7 @@ export function RealEstateBlock() {
               {reRentals && reRentals.complexes.length > 1 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 4 }}>
                   {reRentals.complexes.map((c, i) => (
-                    <span key={c.name} style={{ fontSize: 9, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span key={c.name} style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
                       {c.name}
                     </span>
@@ -1018,7 +1018,7 @@ export function RealEstateBlock() {
             {/* 전세 호가 vs 실거래가 */}
             {loadingListingsJeonse ? <TableSkeleton /> : (
             <div style={innerCard}>
-              <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
+              <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
                 전세 호가 vs 실거래가
               </div>
               <ListingTable
@@ -1044,12 +1044,12 @@ export function RealEstateBlock() {
                     <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
                     <XAxis
                       dataKey="month" tickFormatter={fmtMonth}
-                      tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+                      tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
                       axisLine={false} tickLine={false} interval="preserveStartEnd"
                     />
                     <YAxis
                       tickFormatter={(v: number) => `${v}%`}
-                      tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+                      tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
                       axisLine={false} tickLine={false} width={40}
                       domain={['auto', 'auto']}
                     />
@@ -1058,8 +1058,8 @@ export function RealEstateBlock() {
                       labelFormatter={(v) => String(v)}
                       formatter={(value) => [`${Number(value).toFixed(1)}%`, '전세가율']}
                     />
-                    <ReferenceLine y={40} stroke={t.neutrals.subtle} strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 9, fill: t.neutrals.subtle }} />
-                    <ReferenceLine y={60} stroke={t.neutrals.subtle} strokeDasharray="3 3" label={{ value: '60%', position: 'right', fontSize: 9, fill: t.neutrals.subtle }} />
+                    <ReferenceLine y={40} stroke={t.neutrals.subtle} strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }} />
+                    <ReferenceLine y={60} stroke={t.neutrals.subtle} strokeDasharray="3 3" label={{ value: '60%', position: 'right', fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }} />
                     <Area
                       type="monotone" dataKey="ratio" name="전세가율"
                       stroke="#6366f1" fill="#6366f1" fillOpacity={0.1}
@@ -1068,7 +1068,7 @@ export function RealEstateBlock() {
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+                <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
               )}
             </div>
             )}

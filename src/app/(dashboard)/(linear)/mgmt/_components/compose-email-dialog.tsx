@@ -18,7 +18,7 @@ interface ComposeEmailDialogProps {
 }
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: 13,
+  width: '100%', padding: '8px 10px', fontSize: 'calc(13px * var(--fz, 1))',
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -101,10 +101,10 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
         {/* Header */}
         <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 }}>
+            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 }}>
               COMPOSE
             </div>
-            <div style={{ fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               {title}
             </div>
           </div>
@@ -136,7 +136,7 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
             <textarea
               value={body} onChange={e => setBody(e.target.value)}
               rows={8}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontFamily: t.font.mono, fontSize: 12 }}
+              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontFamily: t.font.mono, fontSize: 'calc(12px * var(--fz, 1))' }}
             />
           </div>
 
@@ -147,7 +147,7 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
               {files.map((f, i) => (
                 <span key={i} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px',
-                  borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: 11, color: t.neutrals.muted,
+                  borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
                 }}>
                   <LIcon name="file" size={10} stroke={1.8} color={t.neutrals.subtle} />
                   <span style={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
@@ -161,7 +161,7 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
               ))}
               <label style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px',
-                borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: 11,
+                borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))',
                 color: t.neutrals.subtle, cursor: 'pointer',
               }}>
                 <LIcon name="plus" size={10} stroke={2} />
@@ -188,7 +188,7 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
 
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: 5 }}>
+    <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: 5 }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
     </div>
   )

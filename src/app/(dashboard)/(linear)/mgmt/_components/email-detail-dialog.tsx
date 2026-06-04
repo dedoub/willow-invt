@@ -56,11 +56,11 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
         <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <span style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6 }}>
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6 }}>
                 EMAIL
               </span>
               <span style={{
-                padding: '1px 6px', borderRadius: t.radius.sm, fontSize: 9.5, fontWeight: t.weight.medium,
+                padding: '1px 6px', borderRadius: t.radius.sm, fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium,
                 background: isInbound ? '#DCE8F5' : '#DAEEDD',
                 color: isInbound ? '#1F4E79' : '#1F5F3D',
               }}>
@@ -68,7 +68,7 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
               </span>
               {email.category && (
                 <span style={{
-                  padding: '1px 6px', borderRadius: t.radius.sm, fontSize: 9.5, fontWeight: t.weight.medium,
+                  padding: '1px 6px', borderRadius: t.radius.sm, fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium,
                   background: t.neutrals.inner, color: t.neutrals.muted,
                 }}>
                   {email.category}
@@ -76,7 +76,7 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
               )}
             </div>
             <div style={{
-              fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans,
+              fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans,
               color: t.neutrals.text, lineHeight: 1.35,
             }}>
               {email.subject || '(제목 없음)'}
@@ -109,14 +109,14 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px',
                   borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none',
-                  fontSize: 11, color: t.neutrals.muted, fontFamily: t.font.sans,
+                  fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.sans,
                 }}
               >
                 <LIcon name="paperclip" size={11} stroke={1.8} color={t.neutrals.subtle} />
                 <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {att.filename}
                 </span>
-                <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.subtle }}>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle }}>
                   {formatSize(att.size)}
                 </span>
               </a>
@@ -130,7 +130,7 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
         }}>
           <div style={{
             padding: '12px 14px', borderRadius: t.radius.md, background: t.neutrals.inner,
-            fontSize: 12.5, lineHeight: 1.7, fontFamily: t.font.sans, color: t.neutrals.text,
+            fontSize: 'calc(12.5px * var(--fz, 1))', lineHeight: 1.7, fontFamily: t.font.sans, color: t.neutrals.text,
             whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 320, overflowY: 'auto',
           }}>
             {email.body || email.snippet || '(내용 없음)'}
@@ -156,8 +156,8 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
 
 function MetaRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 12 }}>
-      <span style={{ fontFamily: t.font.mono, fontSize: 10, color: t.neutrals.subtle, minWidth: 32, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 'calc(12px * var(--fz, 1))' }}>
+      <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, minWidth: 32, textTransform: 'uppercase', letterSpacing: 0.5 }}>
         {label}
       </span>
       <span style={{ color: t.neutrals.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

@@ -249,7 +249,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
               <button key={m} onClick={() => setPeriodMode(m)} style={{
                 border: 'none',
                 background: periodMode === m ? t.neutrals.card : 'transparent',
-                padding: '4px 10px', fontSize: 11.5, borderRadius: 4, cursor: 'pointer',
+                padding: '4px 10px', fontSize: 'calc(11.5px * var(--fz, 1))', borderRadius: 4, cursor: 'pointer',
                 fontWeight: periodMode === m ? 500 : 400, color: t.neutrals.text,
                 fontFamily: t.font.sans,
               }}>{MODE_LABELS[m]}</button>
@@ -267,7 +267,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: 12, fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
             {periodLabel}
           </span>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={{
@@ -306,7 +306,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
               return (
                 <button key={f.value} onClick={() => setTypeFilter(f.value)} style={{
                   border: 'none', cursor: 'pointer',
-                  padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+                  padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
                   fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                   background: active ? t.brand[100] : t.neutrals.inner,
                   color: active ? t.brand[700] : t.neutrals.muted,
@@ -322,7 +322,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
                 border: 'none', cursor: 'pointer', background: t.neutrals.inner,
                 borderRadius: t.radius.sm, padding: '0 8px', height: 28,
                 display: 'flex', alignItems: 'center', gap: 3,
-                color: t.neutrals.muted, fontSize: 11, fontFamily: t.font.mono,
+                color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono,
               }}
             >
               <LIcon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={11} stroke={2} />
@@ -350,7 +350,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
             placeholder="거래처 · 적요 검색"
             style={{
               width: '100%', boxSizing: 'border-box',
-              padding: '7px 10px 7px 30px', fontSize: 12,
+              padding: '7px 10px 7px 30px', fontSize: 'calc(12px * var(--fz, 1))',
               fontFamily: t.font.sans, color: t.neutrals.text,
               background: t.neutrals.inner, border: 'none',
               borderRadius: t.radius.sm, outline: 'none',
@@ -401,10 +401,10 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
           <LIcon name="file" size={16} stroke={1.8} />
         </div>
         <div>
-          <div style={{ fontSize: 12.5, fontWeight: 500 }}>
+          <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: 500 }}>
             {parsing ? 'Gemini가 파싱 중...' : '은행 엑셀 파일을 드래그하거나 클릭'}
           </div>
-          <div style={{ fontSize: 11, color: t.neutrals.muted, marginTop: 2 }}>
+          <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 2 }}>
             {parsing ? '잠시만 기다려주세요' : 'AI가 파싱해서 테이블에 반영합니다 · .xlsx .csv'}
           </div>
         </div>
@@ -413,7 +413,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
       {/* Transactions */}
       <div style={{ padding: '0 16px 16px' }}>
         {paged.length === 0 && (
-          <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 12, color: t.neutrals.subtle }}>
+          <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
             해당 기간 거래 내역이 없습니다
           </div>
         )}
@@ -430,14 +430,14 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
               display: 'grid', gridTemplateColumns: '52px 48px 1.2fr 1.5fr 1fr',
               gap: 8, padding: '10px 0', alignItems: 'center',
               borderTop: `1px solid ${t.neutrals.line}`,
-              fontSize: 12, cursor: 'pointer',
+              fontSize: 'calc(12px * var(--fz, 1))', cursor: 'pointer',
             }}>
-              <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 11 }}>
+              <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
                 {(item.payment_date || item.issue_date || '').slice(5)}
               </span>
               <span style={{
                 display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-                fontSize: 10, fontWeight: t.weight.medium, textAlign: 'center',
+                fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
                 background: typeTone.bg, color: typeTone.fg,
               }}>
                 {TYPE_LABELS[item.type]}
@@ -479,12 +479,12 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
             style={{
               width: 32, textAlign: 'center',
               border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 11,
+              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
               fontFamily: t.font.mono, color: t.neutrals.muted,
               padding: '2px 0', outline: 'none',
             }}
           />
-          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
 
         {totalPages > 1 && (
@@ -502,7 +502,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, displayList.length)} / {displayList.length}
             </span>
             <button

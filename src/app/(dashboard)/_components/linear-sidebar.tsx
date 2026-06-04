@@ -28,7 +28,7 @@ const ADMIN_ITEMS = [
 function GroupLabel({ label }: { label: string }) {
   return (
     <div style={{
-      fontSize: 10, fontWeight: 600, letterSpacing: 0.8,
+      fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, letterSpacing: 0.8,
       textTransform: 'uppercase' as const, color: t.neutrals.subtle,
       padding: '12px 8px 4px',
     }}>{label}</div>
@@ -83,7 +83,7 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
               background: isActive ? t.brand[600] + '14' : 'transparent',
               color: isActive ? t.brand[700] : t.neutrals.muted,
               fontWeight: isActive ? t.weight.medium : t.weight.regular,
-              fontSize: 13, borderRadius: 6, textDecoration: 'none',
+              fontSize: 'calc(13px * var(--fz, 1))', borderRadius: 6, textDecoration: 'none',
               marginBottom: 1, letterSpacing: -0.1,
             }}>
               <LIcon name={n.icon} size={14} stroke={1.8} />
@@ -104,7 +104,7 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
           return (
             <Wrapper key={c.id} {...(href ? { href, onClick: onClose } : {})} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px',
-              fontSize: 12.5, color: isActive ? t.brand[700] : t.neutrals.muted, borderRadius: 6,
+              fontSize: 'calc(12.5px * var(--fz, 1))', color: isActive ? t.brand[700] : t.neutrals.muted, borderRadius: 6,
               cursor: href ? 'pointer' : 'default',
               textDecoration: 'none',
               background: isActive ? t.brand[600] + '14' : 'transparent',
@@ -112,7 +112,7 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
             }}>
               <span style={{ width: 7, height: 7, borderRadius: 2, background: c.dot, flexShrink: 0 }} />
               <span style={{ flex: 1 }}>{c.name}</span>
-              <span style={{ fontFamily: t.font.mono, fontSize: 10, color: t.neutrals.subtle }}>{c.tag}</span>
+              <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>{c.tag}</span>
             </Wrapper>
           )
         })}
@@ -129,7 +129,7 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
                   background: isActive ? t.brand[600] + '14' : 'transparent',
                   color: isActive ? t.brand[700] : t.neutrals.muted,
                   fontWeight: isActive ? t.weight.medium : t.weight.regular,
-                  fontSize: 13, borderRadius: 6, textDecoration: 'none',
+                  fontSize: 'calc(13px * var(--fz, 1))', borderRadius: 6, textDecoration: 'none',
                   marginBottom: 1, letterSpacing: -0.1,
                 }}>
                   <LIcon name={n.icon} size={14} stroke={1.8} />
@@ -151,12 +151,12 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             width: 28, height: 28, borderRadius: 28, flexShrink: 0,
             background: t.brand[200], color: t.brand[800],
-            fontSize: 11, fontWeight: t.weight.semibold,
+            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold,
           }}>{user.name.slice(0, 2).toUpperCase()}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: t.weight.medium, color: t.neutrals.text }}>{user.name}</div>
+            <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.text }}>{user.name}</div>
             <div style={{
-              fontSize: 10.5, color: t.neutrals.subtle,
+              fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{user.email}</div>
           </div>

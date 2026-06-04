@@ -86,11 +86,11 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
         {/* Header */}
         <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
               IMPORT PREVIEW
             </div>
-            <div style={{ fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              파싱 결과 확인 {bankName && <span style={{ fontWeight: 400, color: t.neutrals.muted, fontSize: 12, marginLeft: 6 }}>· {bankName}</span>}
+            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+              파싱 결과 확인 {bankName && <span style={{ fontWeight: 400, color: t.neutrals.muted, fontSize: 'calc(12px * var(--fz, 1))', marginLeft: 6 }}>· {bankName}</span>}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -105,7 +105,7 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
         {/* Info bar */}
         <div style={{
           margin: '0 20px 8px', padding: '8px 12px', borderRadius: t.radius.sm,
-          background: t.neutrals.inner, fontSize: 11.5, color: t.neutrals.muted, fontFamily: t.font.sans,
+          background: t.neutrals.inner, fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.sans,
         }}>
           {rows.length}건 파싱됨 · {selectedCount}건 선택 · 유형 배지를 클릭하면 변경 가능
         </div>
@@ -115,7 +115,7 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
           {/* Table header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '28px 72px 44px 1fr 1.2fr auto',
-            gap: 6, padding: '8px 0', fontSize: 10, fontFamily: t.font.mono,
+            gap: 6, padding: '8px 0', fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
             color: t.neutrals.subtle, letterSpacing: 0.5, textTransform: 'uppercase' as const,
           }}>
             <span style={{ cursor: 'pointer' }} onClick={toggleAll}>
@@ -136,17 +136,17 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
                 display: 'grid', gridTemplateColumns: '28px 72px 44px 1fr 1.2fr auto',
                 gap: 6, padding: '8px 0', alignItems: 'center',
                 borderTop: `1px solid ${t.neutrals.line}`,
-                fontSize: 12, opacity: row._selected ? 1 : 0.4,
+                fontSize: 'calc(12px * var(--fz, 1))', opacity: row._selected ? 1 : 0.4,
               }}>
                 <span style={{ cursor: 'pointer' }} onClick={() => toggleRow(idx)}>
                   <CheckBox checked={row._selected} />
                 </span>
-                <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 11 }}>
+                <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
                   {row.date.slice(5)}
                 </span>
                 <span onClick={() => cycleType(idx)} style={{
                   display: 'inline-block', padding: '2px 5px', borderRadius: t.radius.sm,
-                  fontSize: 9.5, fontWeight: t.weight.medium, textAlign: 'center', cursor: 'pointer',
+                  fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center', cursor: 'pointer',
                   background: tone.bg, color: tone.fg,
                 }}>
                   {TYPE_LABELS[row.type]}
@@ -173,7 +173,7 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
           padding: '12px 20px', background: t.neutrals.inner,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <span style={{ fontSize: 11.5, color: t.neutrals.muted, fontFamily: t.font.sans }}>
+          <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.sans }}>
             {selectedCount}건 반영 예정
           </span>
           <div style={{ display: 'flex', gap: 8 }}>

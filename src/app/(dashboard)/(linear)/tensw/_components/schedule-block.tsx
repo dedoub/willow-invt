@@ -74,7 +74,7 @@ function EventChip({ s, compact, onToggle, onSelect }: {
     <div style={{
       padding: compact ? '2px 4px' : '3px 5px', borderRadius: 3,
       background: colors.bg, color: colors.fg,
-      fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1.3,
+      fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: 500, lineHeight: 1.3,
       minWidth: 0, overflow: 'hidden',
       display: 'flex', alignItems: 'flex-start', gap: 4,
     }}>
@@ -102,7 +102,7 @@ function EventChip({ s, compact, onToggle, onSelect }: {
         style={{ minWidth: 0, flex: 1, cursor: 'pointer' }}
       >
         {!compact && s.start_time && (
-          <div style={{ fontFamily: t.font.mono, fontSize: 8.5, opacity: 0.7 }}>
+          <div style={{ fontFamily: t.font.mono, fontSize: 'calc(8.5px * var(--fz, 1))', opacity: 0.7 }}>
             {s.start_time.slice(0, 5)}
           </div>
         )}
@@ -153,7 +153,7 @@ function DayCell({
         marginBottom: compact ? 3 : 6,
       }}>
         <span style={{
-          fontSize: compact ? 10 : 10.5, fontFamily: t.font.mono, fontWeight: 500,
+          fontSize: `calc(${compact ? 10 : 10.5}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500,
           color: isToday ? t.brand[700] : t.neutrals.subtle,
           letterSpacing: 0.3,
         }}>
@@ -188,14 +188,14 @@ function DayCell({
               )
             })}
             {schedules.length > 6 && (
-              <span style={{ fontSize: 8, color: t.neutrals.muted, fontFamily: t.font.mono, lineHeight: '6px' }}>+{schedules.length - 6}</span>
+              <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono, lineHeight: '6px' }}>+{schedules.length - 6}</span>
             )}
           </div>
         ) : compact ? (
           <>
             {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} compact onToggle={onToggle} onSelect={onSelect} />)}
             {schedules.length > 2 && (
-              <div style={{ fontSize: 8.5, color: t.neutrals.muted, fontFamily: t.font.mono }}>
+              <div style={{ fontSize: 'calc(8.5px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
                 +{schedules.length - 2}
               </div>
             )}
@@ -264,7 +264,7 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
             <button key={v} onClick={() => updateViewMode(v)} style={{
               border: 'none',
               background: viewMode === v ? t.neutrals.card : 'transparent',
-              padding: '4px 10px', fontSize: 11.5, borderRadius: 4, cursor: 'pointer',
+              padding: '4px 10px', fontSize: 'calc(11.5px * var(--fz, 1))', borderRadius: 4, cursor: 'pointer',
               fontWeight: viewMode === v ? t.weight.medium : t.weight.regular, color: t.neutrals.text,
               fontFamily: t.font.sans,
             }}>{v === 'week' ? '주' : '월'}</button>
@@ -282,7 +282,7 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
         }}>
           <LIcon name="chevronLeft" size={14} stroke={2} />
         </button>
-        <span style={{ fontSize: 12, fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+        <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
           {navLabel}
         </span>
         <button onClick={() => navigate(1)} style={{
@@ -302,7 +302,7 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
           onClick={() => setClientFilter('all')}
           style={{
             border: 'none', cursor: 'pointer',
-            padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+            padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
             fontFamily: t.font.sans,
             fontWeight: clientFilter === 'all' ? t.weight.medium : t.weight.regular,
             background: clientFilter === 'all' ? t.brand[100] : t.neutrals.inner,
@@ -320,7 +320,7 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
               onClick={() => setClientFilter(client.id)}
               style={{
                 border: 'none', cursor: 'pointer',
-                padding: '4px 10px', fontSize: 11, borderRadius: t.radius.pill,
+                padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
                 fontFamily: t.font.sans,
                 fontWeight: active ? t.weight.medium : t.weight.regular,
                 background: active ? client.color + '20' : t.neutrals.inner,
@@ -342,7 +342,7 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
       }}>
         {DAY_NAMES.map((name, i) => (
           <div key={name} style={{
-            padding: '6px 8px', fontSize: 10, fontFamily: t.font.mono, fontWeight: 600,
+            padding: '6px 8px', fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
             color: i >= 5 ? t.neutrals.subtle : t.neutrals.muted,
             letterSpacing: 0.5, textAlign: 'center',
           }}>{name}</div>
@@ -414,9 +414,9 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
             display: 'flex', flexDirection: 'column', gap: 8,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 12, fontWeight: t.weight.semibold, color: t.neutrals.text }}>
+              <div style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text }}>
                 {selectedDate.slice(5).replace('-', '월 ')}일
-                <span style={{ marginLeft: 6, fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                <span style={{ marginLeft: 6, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                   {dayItems.length}개 일정
                 </span>
               </div>
@@ -424,13 +424,13 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
                 onClick={() => onAddSchedule(selectedDate)}
                 style={{
                   border: 'none', background: t.brand[100], color: t.brand[700],
-                  padding: '3px 8px', borderRadius: t.radius.sm, fontSize: 10,
+                  padding: '3px 8px', borderRadius: t.radius.sm, fontSize: 'calc(10px * var(--fz, 1))',
                   cursor: 'pointer', fontFamily: t.font.sans, fontWeight: t.weight.medium,
                 }}
               >+ 일정 추가</button>
             </div>
             {dayItems.length === 0 && (
-              <div style={{ fontSize: 11, color: t.neutrals.subtle, padding: '6px 0' }}>일정이 없습니다.</div>
+              <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, padding: '6px 0' }}>일정이 없습니다.</div>
             )}
             {dayItems.map(s => (
               <EventChip key={s.id} s={s} onToggle={onToggleComplete} onSelect={onSelectSchedule} />

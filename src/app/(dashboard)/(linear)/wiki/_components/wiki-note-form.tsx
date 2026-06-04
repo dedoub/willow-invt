@@ -73,7 +73,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', fontSize: 13, fontFamily: t.font.sans,
+    width: '100%', padding: '6px 8px', fontSize: 'calc(13px * var(--fz, 1))', fontFamily: t.font.sans,
     background: t.neutrals.inner, borderRadius: t.radius.sm, border: 'none',
     color: t.neutrals.text, outline: 'none',
   }
@@ -86,13 +86,13 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
     }}>
       {/* Section selector */}
       <div style={{ marginBottom: 10, flexShrink: 0 }}>
-        <div style={{ fontSize: 10.5, color: t.neutrals.subtle, marginBottom: 4, fontFamily: t.font.mono, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4, fontFamily: t.font.mono, textTransform: 'uppercase', letterSpacing: 0.8 }}>
           섹션
         </div>
         <div style={{ display: 'inline-flex', background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
           {SECTIONS.map(s => (
             <button key={s.value} onClick={() => setSection(s.value)} style={{
-              border: 'none', cursor: 'pointer', padding: '4px 10px', fontSize: 11,
+              border: 'none', cursor: 'pointer', padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))',
               borderRadius: 4, fontFamily: t.font.sans,
               fontWeight: section === s.value ? t.weight.medium : t.weight.regular,
               background: section === s.value ? t.neutrals.card : 'transparent',
@@ -126,7 +126,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
           <button onClick={() => fileRef.current?.click()} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm,
-            padding: '4px 8px', fontSize: 11, color: t.neutrals.muted,
+            padding: '4px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
             cursor: 'pointer', fontFamily: t.font.sans,
           }}>
             <LIcon name="paperclip" size={12} />
@@ -140,14 +140,14 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
           <div key={`ex-${i}`} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             background: t.neutrals.inner, borderRadius: t.radius.sm,
-            padding: '3px 8px', fontSize: 11, color: t.neutrals.muted,
+            padding: '3px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
             marginRight: 4, marginBottom: 4,
           }}>
             <LIcon name="file" size={11} />
             <span>{f.name}</span>
             <button onClick={() => removeExistingFile(i)} style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              color: t.neutrals.subtle, fontSize: 10,
+              color: t.neutrals.subtle, fontSize: 'calc(10px * var(--fz, 1))',
             }}>
               <LIcon name="x" size={10} />
             </button>
@@ -157,14 +157,14 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
           <div key={`new-${i}`} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             background: tonePalettes.brand.bg, borderRadius: t.radius.sm,
-            padding: '3px 8px', fontSize: 11, color: tonePalettes.brand.fg,
+            padding: '3px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: tonePalettes.brand.fg,
             marginRight: 4, marginBottom: 4,
           }}>
             <LIcon name="file" size={11} />
             <span>{f.name}</span>
             <button onClick={() => removeNewFile(i)} style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              color: tonePalettes.brand.fg, fontSize: 10,
+              color: tonePalettes.brand.fg, fontSize: 'calc(10px * var(--fz, 1))',
             }}>
               <LIcon name="x" size={10} />
             </button>

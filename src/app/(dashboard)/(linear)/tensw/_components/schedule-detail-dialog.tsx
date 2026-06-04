@@ -21,7 +21,7 @@ interface ScheduleDetailDialogProps {
 
 function InfoRow({ icon, children }: { icon: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: t.neutrals.muted, fontFamily: t.font.sans }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(13px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.sans }}>
       <LIcon name={icon} size={14} stroke={1.8} color={t.neutrals.subtle} />
       <span>{children}</span>
     </div>
@@ -71,11 +71,11 @@ export function ScheduleDetailDialog({
         {/* Header */}
         <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
+            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
               SCHEDULE
             </div>
             <div style={{
-              fontSize: 16, fontWeight: t.weight.semibold, fontFamily: t.font.sans,
+              fontSize: 'calc(16px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans,
               color: t.neutrals.text, lineHeight: 1.35,
               textDecoration: done ? 'line-through' : 'none',
               opacity: done ? 0.6 : 1,
@@ -97,7 +97,7 @@ export function ScheduleDetailDialog({
           {/* Status pill */}
           <span style={{
             display: 'inline-block', padding: '3px 10px', borderRadius: t.radius.pill,
-            fontSize: 11, fontWeight: t.weight.medium, fontFamily: t.font.sans,
+            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.sans,
             background: tone.bg, color: tone.fg,
           }}>
             {done ? '완료' : schedule.type === 'deadline' ? '마감' : '예정'}
@@ -106,7 +106,7 @@ export function ScheduleDetailDialog({
           {/* Type pill */}
           <span style={{
             display: 'inline-block', padding: '3px 10px', borderRadius: t.radius.pill,
-            fontSize: 11, fontWeight: t.weight.medium, fontFamily: t.font.sans,
+            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.sans,
             background: typeTone.bg, color: typeTone.fg,
           }}>
             {TYPE_LABELS[schedule.type] ?? schedule.type}
@@ -116,7 +116,7 @@ export function ScheduleDetailDialog({
           {client && (
             <span style={{
               display: 'inline-block', padding: '3px 10px', borderRadius: t.radius.pill,
-              fontSize: 11, fontWeight: t.weight.medium, fontFamily: t.font.sans,
+              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.sans,
               background: client.color + '20', color: client.color,
             }}>
               {client.name}
@@ -138,7 +138,7 @@ export function ScheduleDetailDialog({
           {schedule.description && (
             <div style={{
               marginTop: 6, padding: '10px 12px', borderRadius: t.radius.md,
-              background: t.neutrals.inner, fontSize: 13, lineHeight: 1.6,
+              background: t.neutrals.inner, fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.6,
               fontFamily: t.font.sans, color: t.neutrals.text,
               whiteSpace: 'pre-wrap',
             }}>
@@ -149,7 +149,7 @@ export function ScheduleDetailDialog({
           {/* Tasks */}
           {schedule.tasks && schedule.tasks.length > 0 && (
             <div style={{ marginTop: 4 }}>
-              <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: 6 }}>
+              <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: 6 }}>
                 태스크
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -157,7 +157,7 @@ export function ScheduleDetailDialog({
                   <div key={task.id} style={{
                     display: 'flex', alignItems: 'flex-start', gap: 8,
                     padding: '6px 10px', borderRadius: t.radius.sm,
-                    background: t.neutrals.inner, fontSize: 12,
+                    background: t.neutrals.inner, fontSize: 'calc(12px * var(--fz, 1))',
                     fontFamily: t.font.sans, color: t.neutrals.text,
                   }}>
                     <div style={{
@@ -181,7 +181,7 @@ export function ScheduleDetailDialog({
                         {task.content}
                       </div>
                       {task.deadline && (
-                        <div style={{ fontSize: 10.5, fontFamily: t.font.mono, color: t.neutrals.subtle, marginTop: 2 }}>
+                        <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, marginTop: 2 }}>
                           마감 {task.deadline}
                         </div>
                       )}

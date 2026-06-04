@@ -16,7 +16,7 @@ export function LBadge({ tone = 'neutral', children, pill = false }: LBadgeProps
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: `${t.badge.padY}px ${t.badge.padX}px`,
       background: p.bg, color: p.fg,
-      fontSize: t.badge.size, fontWeight: t.badge.weight,
+      fontSize: `calc(${t.badge.size}px * var(--fz, 1))`, fontWeight: t.badge.weight,
       borderRadius: pill ? 999 : t.badge.radius,
       lineHeight: 1.2, fontFamily: t.font.sans,
     }}>

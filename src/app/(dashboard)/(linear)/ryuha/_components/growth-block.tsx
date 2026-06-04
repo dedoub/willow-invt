@@ -19,7 +19,7 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
     return (
       <div style={{
         height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: t.neutrals.subtle, fontSize: 12,
+        color: t.neutrals.subtle, fontSize: 'calc(12px * var(--fz, 1))',
       }}>데이터가 부족합니다 (2개 이상 필요)</div>
     )
   }
@@ -143,12 +143,12 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 11, color: t.neutrals.subtle, marginBottom: 4, display: 'block',
+    fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4, display: 'block',
   }
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '6px 8px', borderRadius: t.radius.sm,
     border: 'none', background: t.neutrals.inner,
-    fontSize: 12, fontFamily: t.font.sans, color: t.neutrals.text, outline: 'none',
+    fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.sans, color: t.neutrals.text, outline: 'none',
   }
 
   return (
@@ -160,7 +160,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
             <button onClick={() => openDialog()} style={{
               padding: '4px 10px', borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none',
-              fontSize: 11, cursor: 'pointer', color: t.neutrals.muted,
+              fontSize: 'calc(11px * var(--fz, 1))', cursor: 'pointer', color: t.neutrals.muted,
               display: 'flex', alignItems: 'center', gap: 3,
             }}>
               <LIcon name="plus" size={11} stroke={2} /> 기록
@@ -173,7 +173,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
         <LCard pad={0}>
           <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
             <LSectionHead eyebrow="RECORDS" title="측정 기록" action={
-              <span style={{ fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+              <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
                 {records.length}건
               </span>
             } />
@@ -181,7 +181,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
           {/* Header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '80px 60px 60px 1fr',
-            gap: 8, padding: '6px 14px', fontSize: 10, fontWeight: t.weight.semibold,
+            gap: 8, padding: '6px 14px', fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.semibold,
             color: t.neutrals.subtle, fontFamily: t.font.mono, textTransform: 'uppercase' as const,
           }}>
             <span>날짜</span><span>키</span><span>몸무게</span><span>메모</span>
@@ -192,9 +192,9 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                 display: 'grid', gridTemplateColumns: '80px 60px 60px 1fr',
                 gap: 8, padding: '7px 14px', alignItems: 'center',
                 borderTop: `1px solid ${t.neutrals.line}`,
-                fontSize: 12, cursor: 'pointer',
+                fontSize: 'calc(12px * var(--fz, 1))', cursor: 'pointer',
               }}>
-                <span style={{ fontFamily: t.font.mono, fontSize: 11, color: t.neutrals.muted }}>
+                <span style={{ fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>
                   {r.record_date.slice(5)}
                 </span>
                 <span style={{ fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}>
@@ -227,7 +227,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               padding: '14px 16px', display: 'flex', justifyContent: 'space-between',
               alignItems: 'center', borderBottom: `1px solid ${t.neutrals.line}`,
             }}>
-              <span style={{ fontSize: 15, fontWeight: t.weight.semibold }}>
+              <span style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold }}>
                 {editRecord ? '기록 수정' : '새 기록'}
               </span>
               <button onClick={() => setDialogOpen(false)} style={{
@@ -268,19 +268,19 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               {editRecord ? (
                 <button onClick={handleDelete} disabled={saving} style={{
                   padding: '6px 12px', borderRadius: t.radius.sm,
-                  background: '#FEE2E2', border: 'none', fontSize: 12,
+                  background: '#FEE2E2', border: 'none', fontSize: 'calc(12px * var(--fz, 1))',
                   color: t.accent.neg, cursor: 'pointer', fontWeight: t.weight.medium,
                 }}>삭제</button>
               ) : <div />}
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => setDialogOpen(false)} style={{
                   padding: '6px 14px', borderRadius: t.radius.sm,
-                  background: t.neutrals.inner, border: 'none', fontSize: 12,
+                  background: t.neutrals.inner, border: 'none', fontSize: 'calc(12px * var(--fz, 1))',
                   color: t.neutrals.muted, cursor: 'pointer',
                 }}>취소</button>
                 <button onClick={handleSave} disabled={saving} style={{
                   padding: '6px 14px', borderRadius: t.radius.sm,
-                  background: t.brand[600], border: 'none', fontSize: 12,
+                  background: t.brand[600], border: 'none', fontSize: 'calc(12px * var(--fz, 1))',
                   color: '#fff', cursor: 'pointer', fontWeight: t.weight.medium,
                   opacity: saving ? 0.5 : 1,
                 }}>{saving ? '저장중...' : '저장'}</button>

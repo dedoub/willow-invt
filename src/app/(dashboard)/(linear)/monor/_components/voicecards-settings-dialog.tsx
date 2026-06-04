@@ -22,7 +22,7 @@ interface MaskedCredentials {
 }
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: 13,
+  width: '100%', padding: '8px 10px', fontSize: 'calc(13px * var(--fz, 1))',
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -31,13 +31,13 @@ const inputBase: React.CSSProperties = {
 
 const textareaBase: React.CSSProperties = {
   ...inputBase, resize: 'vertical' as const, lineHeight: 1.5,
-  fontFamily: t.font.mono, fontSize: 11,
+  fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))',
 }
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.subtle,
+      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle,
       fontFamily: t.font.sans, marginBottom: 5,
     }}>
       {children}
@@ -134,11 +134,11 @@ export function VoicecardsSettingsDialog({ open, onClose, onSave }: VoicecardsSe
         <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{
-              fontSize: 10, fontFamily: t.font.mono, fontWeight: 600,
+              fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
               color: t.neutrals.subtle, letterSpacing: 0.6,
               textTransform: 'uppercase' as const, marginBottom: 2,
             }}>API SETTINGS</div>
-            <div style={{ fontSize: 15, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               보이스카드 API 설정
             </div>
           </div>
@@ -154,14 +154,14 @@ export function VoicecardsSettingsDialog({ open, onClose, onSave }: VoicecardsSe
         {/* Body */}
         <div style={{ padding: '0 20px 16px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {loadingCreds ? (
-            <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 12, color: t.neutrals.muted }}>
+            <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.muted }}>
               설정 불러오는 중...
             </div>
           ) : (
             <>
               {/* iOS Section */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: t.weight.medium, color: t.neutrals.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                   App Store Connect API
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 12 }}>
@@ -216,7 +216,7 @@ export function VoicecardsSettingsDialog({ open, onClose, onSave }: VoicecardsSe
 
               {/* Android Section */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: t.weight.medium, color: t.neutrals.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                   Google Play Developer API
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 12 }}>

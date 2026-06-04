@@ -320,9 +320,9 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
                 <LIcon name="chevronLeft" size={14} stroke={2} />
               </button>
             ) : (
-              <span style={{ fontSize: 12, color: t.brand[600] }}>✦</span>
+              <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.brand[600] }}>✦</span>
             )}
-            <span style={{ fontSize: 13, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+            <span style={{ fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               {showSessionList ? '대화 기록' : modelName}
             </span>
           </div>
@@ -345,7 +345,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
         {showSessionList ? (
           <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
             {sessions.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '40px 0', fontSize: 12, color: t.neutrals.subtle }}>
+              <div style={{ textAlign: 'center', padding: '40px 0', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
                 대화 기록이 없습니다
               </div>
             )}
@@ -356,10 +356,10 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
                 background: s.id === sessionId ? t.neutrals.inner : 'transparent',
                 fontFamily: t.font.sans,
               }}>
-                <div style={{ fontSize: 12.5, fontWeight: t.weight.medium, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {s.title}
                 </div>
-                <div style={{ fontSize: 10.5, fontFamily: t.font.mono, color: t.neutrals.subtle, marginTop: 2 }}>
+                <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, marginTop: 2 }}>
                   {new Date(s.updated_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </div>
               </button>
@@ -371,18 +371,18 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 24px' }}>
               {isLoadingHistory && (
                 <div style={{ textAlign: 'center', padding: '48px 0', color: t.neutrals.subtle }}>
-                  <div style={{ fontSize: 12 }}>대화 불러오는 중...</div>
+                  <div style={{ fontSize: 'calc(12px * var(--fz, 1))' }}>대화 불러오는 중...</div>
                 </div>
               )}
 
               {!isLoadingHistory && messages.length === 0 && (
                 <div style={{ padding: '32px 0' }}>
                   <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>✦</div>
-                    <div style={{ fontSize: 13, fontWeight: t.weight.medium, color: t.neutrals.text, marginBottom: 4 }}>
+                    <div style={{ fontSize: 'calc(24px * var(--fz, 1))', marginBottom: 8 }}>✦</div>
+                    <div style={{ fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.text, marginBottom: 4 }}>
                       무엇을 도와드릴까요?
                     </div>
-                    <div style={{ fontSize: 11, color: t.neutrals.muted, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, lineHeight: 1.5 }}>
                       데이터 조회, 분석, 등록, 파일 처리 등
                     </div>
                   </div>
@@ -390,13 +390,13 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
                     <button key={i} onClick={() => { setInput(s); textareaRef.current?.focus() }} style={{
                       width: '100%', textAlign: 'left', padding: '8px 12px', marginBottom: 4,
                       borderRadius: t.radius.md, border: 'none', cursor: 'pointer',
-                      background: t.neutrals.inner, fontSize: 12, fontFamily: t.font.sans,
+                      background: t.neutrals.inner, fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.sans,
                       color: t.neutrals.muted, transition: 'background .12s',
                     }}
                       onMouseEnter={e => (e.currentTarget.style.background = t.brand[50])}
                       onMouseLeave={e => (e.currentTarget.style.background = t.neutrals.inner)}
                     >
-                      <span style={{ color: t.brand[600], marginRight: 6, fontSize: 10 }}>→</span>{s}
+                      <span style={{ color: t.brand[600], marginRight: 6, fontSize: 'calc(10px * var(--fz, 1))' }}>→</span>{s}
                     </button>
                   ))}
                 </div>
@@ -411,7 +411,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
                   <AgentAvatar />
                   <div style={{
                     padding: '8px 12px', borderRadius: t.radius.md,
-                    background: t.neutrals.inner, fontSize: 12, color: t.neutrals.subtle,
+                    background: t.neutrals.inner, fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
                     display: 'flex', flexDirection: 'column', gap: 3, minWidth: 120,
                   }}>
                     {progressSteps.length === 0
@@ -419,7 +419,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
                       : progressSteps.map((step, i) => (
                         <span key={i} style={{
                           opacity: i === progressSteps.length - 1 ? 1 : 0.5,
-                          fontSize: 11.5, lineHeight: 1.5, fontFamily: t.font.sans,
+                          fontSize: 'calc(11.5px * var(--fz, 1))', lineHeight: 1.5, fontFamily: t.font.sans,
                           transition: 'opacity .2s',
                         }}>{step}</span>
                       ))
@@ -436,7 +436,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
                 {files.map((file, i) => (
                   <div key={i} style={{
                     display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px',
-                    borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: 11,
+                    borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))',
                   }}>
                     <LIcon name="file" size={12} stroke={1.8} color={t.neutrals.subtle} />
                     <span style={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.neutrals.text }}>
@@ -471,7 +471,7 @@ export function LinearChatPanel({ open, onClose }: LinearChatPanelProps) {
                     flex: 1, resize: 'none', padding: '8px 10px',
                     borderRadius: t.radius.md, border: 'none', outline: 'none',
                     background: t.neutrals.inner, color: t.neutrals.text,
-                    fontSize: 12.5, fontFamily: t.font.sans, lineHeight: 1.5,
+                    fontSize: 'calc(12.5px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.5,
                     boxSizing: 'border-box',
                   }}
                 />
@@ -506,7 +506,7 @@ function AgentAvatar() {
       width: 24, height: 24, borderRadius: t.radius.pill, flexShrink: 0,
       background: t.brand[50], color: t.brand[700],
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 11,
+      fontSize: 'calc(11px * var(--fz, 1))',
     }}>✦</div>
   )
 }
@@ -536,14 +536,14 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         <div style={{
           padding: '8px 12px', borderRadius: t.radius.md,
           background: isUser ? t.neutrals.inner : t.neutrals.page,
-          fontSize: 12.5, lineHeight: 1.6, fontFamily: t.font.sans,
+          fontSize: 'calc(12.5px * var(--fz, 1))', lineHeight: 1.6, fontFamily: t.font.sans,
           color: t.neutrals.text,
         }}>
           {/* Attachments */}
           {message.attachments && message.attachments.length > 0 && (
             <div style={{ marginBottom: 6 }}>
               {message.attachments.map((att, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: t.neutrals.subtle }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>
                   <LIcon name="file" size={11} stroke={1.8} color={t.neutrals.subtle} />
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
                 </div>
@@ -564,7 +564,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           {message.tool_calls && message.tool_calls.length > 0 && (
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${t.neutrals.line}` }}>
               {message.tool_calls.map((tc, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: t.neutrals.subtle, marginBottom: 2 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 2 }}>
                   <div style={{ width: 5, height: 5, borderRadius: 999, background: t.brand[400], flexShrink: 0 }} />
                   <span style={{ fontFamily: t.font.mono }}>{formatToolCall(tc)}</span>
                 </div>

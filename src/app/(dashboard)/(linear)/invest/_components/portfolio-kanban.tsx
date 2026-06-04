@@ -129,10 +129,10 @@ function renderGroupedCards(
       <div key={parent} style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px' }}>
           <span style={{
-            fontSize: 9.5, fontWeight: t.weight.semibold, padding: '1px 6px',
+            fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.semibold, padding: '1px 6px',
             borderRadius: t.radius.sm, background: pc.bg, color: pc.fg,
           }}>{parent}</span>
-          <span style={{ fontSize: 9, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+          <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
             {total}
           </span>
         </div>
@@ -143,10 +143,10 @@ function renderGroupedCards(
               {sub && sc && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 2px', marginTop: 2 }}>
                   <span style={{
-                    fontSize: 9, fontWeight: t.weight.medium, padding: '0 5px',
+                    fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.medium, padding: '0 5px',
                     borderRadius: t.radius.sm, background: sc.bg, color: sc.fg,
                   }}>{sub}</span>
-                  <span style={{ fontSize: 9, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                  <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                     {subCards.length}
                   </span>
                 </div>
@@ -568,7 +568,7 @@ export function PortfolioKanban({
           <button
             onClick={() => setSortBy1m(v => { localStorage.setItem('kanban-sort-1m', v ? '0' : '1'); return !v })}
             style={{
-              fontSize: 10, fontFamily: t.font.mono, fontWeight: t.weight.medium,
+              fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
               padding: '3px 8px', borderRadius: t.radius.sm, border: 'none',
               background: sortBy1m ? t.brand[600] : t.neutrals.inner,
               color: sortBy1m ? '#fff' : t.neutrals.muted,
@@ -587,7 +587,7 @@ export function PortfolioKanban({
         {/* Portfolio */}
         <div style={colStyle('portfolio')} {...dropHandlers('portfolio')}>
           <div style={{
-            fontSize: 11, fontWeight: t.weight.semibold, color: t.neutrals.text,
+            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text,
             padding: '6px 8px', background: t.neutrals.inner, borderRadius: t.radius.sm,
           }}>
             {headerCount('포트폴리오', portfolioCards.length)}
@@ -596,14 +596,14 @@ export function PortfolioKanban({
             <StockCard key={card.ticker} data={card} draggable bordered={printMode} />
           ), narrow ? 1 : 2)}
           {portfolioCards.length === 0 && (
-            <div style={{ padding: 16, textAlign: 'center', fontSize: 11, color: t.neutrals.subtle }}>종목 없음</div>
+            <div style={{ padding: 16, textAlign: 'center', fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>종목 없음</div>
           )}
         </div>
 
         {/* Watchlist */}
         <div style={colStyle('watchlist')} {...dropHandlers('watchlist')}>
           <div style={{
-            fontSize: 11, fontWeight: t.weight.semibold, color: t.neutrals.text,
+            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text,
             padding: '6px 8px', background: t.neutrals.inner, borderRadius: t.radius.sm,
           }}>
             {headerCount('워치리스트', watchlistCards.length)}
@@ -617,14 +617,14 @@ export function PortfolioKanban({
             />
           ), narrow ? 1 : 2)}
           {watchlistCards.length === 0 && (
-            <div style={{ padding: 16, textAlign: 'center', fontSize: 11, color: t.neutrals.subtle }}>종목 없음</div>
+            <div style={{ padding: 16, textAlign: 'center', fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>종목 없음</div>
           )}
         </div>
 
         {/* Research */}
         <div style={colStyle('research')} {...dropHandlers('research')}>
           <div style={{
-            fontSize: 11, fontWeight: t.weight.semibold, color: t.neutrals.text,
+            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text,
             padding: '6px 8px', background: t.neutrals.inner, borderRadius: t.radius.sm,
           }}>
             {headerCount('리서치', researchCards.length)}
@@ -636,7 +636,7 @@ export function PortfolioKanban({
             />
           ), narrow ? 1 : 2)}
           {researchCards.length === 0 && (
-            <div style={{ padding: 16, textAlign: 'center', fontSize: 11, color: t.neutrals.subtle }}>종목 없음</div>
+            <div style={{ padding: 16, textAlign: 'center', fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>종목 없음</div>
           )}
         </div>
       </div>

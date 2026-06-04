@@ -103,7 +103,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
     borderRadius: t.radius.sm,
     border: 'none',
     background: t.neutrals.inner,
-    fontSize: 12,
+    fontSize: 'calc(12px * var(--fz, 1))',
     fontFamily: t.font.sans,
     color: t.neutrals.text,
     outline: 'none',
@@ -112,7 +112,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontSize: 11,
+    fontSize: 'calc(11px * var(--fz, 1))',
     color: t.neutrals.subtle,
     fontFamily: t.font.sans,
     marginBottom: 4,
@@ -245,7 +245,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
           borderBottom: `1px solid ${t.neutrals.line}`,
         }}>
           <span style={{
-            fontSize: 14, fontWeight: t.weight.semibold,
+            fontSize: 'calc(14px * var(--fz, 1))', fontWeight: t.weight.semibold,
             fontFamily: t.font.sans, color: t.neutrals.text,
           }}>
             {editInvoice ? '인보이스 수정' : '인보이스 추가'}
@@ -395,14 +395,14 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
                   <div>
                     {item.type === 'custom' ? (
                       <input
-                        style={{ ...inputStyle, background: t.neutrals.card, fontSize: 11 }}
+                        style={{ ...inputStyle, background: t.neutrals.card, fontSize: 'calc(11px * var(--fz, 1))' }}
                         value={item.description}
                         onChange={e => updateItem(idx, { description: e.target.value })}
                         placeholder="항목 설명을 입력하세요"
                       />
                     ) : (
                       <span style={{
-                        fontSize: 11,
+                        fontSize: 'calc(11px * var(--fz, 1))',
                         color: t.neutrals.muted,
                         fontFamily: t.font.sans,
                         paddingLeft: 2,
@@ -419,7 +419,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
                 onClick={addItem}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 11, fontFamily: t.font.sans, color: t.brand[500],
+                  fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, color: t.brand[500],
                   padding: '4px 0', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 4,
                 }}
               >
@@ -434,7 +434,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
         <div style={{
           display: 'flex', justifyContent: 'flex-end',
           paddingTop: 12,
-          fontSize: 13,
+          fontSize: 'calc(13px * var(--fz, 1))',
           fontFamily: t.font.mono,
           fontWeight: t.weight.semibold,
           color: t.neutrals.text,

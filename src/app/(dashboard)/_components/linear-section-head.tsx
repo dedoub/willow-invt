@@ -20,13 +20,13 @@ export function LSectionHead({ eyebrow, title, action, mb }: LSectionHeadProps) 
       <div>
         {eyebrow && (
           <div style={{
-            fontSize: 10.5, fontWeight: t.weight.semibold, letterSpacing: 1.2,
+            fontSize: 'calc(10.5px * var(--fz, 1))', fontWeight: t.weight.semibold, letterSpacing: 1.2,
             textTransform: 'uppercase' as const, color: t.neutrals.subtle,
             marginBottom: 4, fontFamily: t.font.mono,
           }}>{eyebrow}</div>
         )}
         <div style={{
-          fontSize: 15, fontWeight: t.weight.semibold,
+          fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold,
           fontFamily: t.font.sans, color: t.neutrals.text,
           letterSpacing: -0.2, lineHeight: 1.2,
         }}>{title}</div>

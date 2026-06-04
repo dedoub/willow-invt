@@ -79,7 +79,7 @@ function HeaderCell({
       onClick={() => onClick(sortKey)}
       style={{
         background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-        fontSize: 10, color: active ? t.neutrals.text : t.neutrals.subtle,
+        fontSize: 'calc(10px * var(--fz, 1))', color: active ? t.neutrals.text : t.neutrals.subtle,
         fontFamily: t.font.mono, fontWeight: 600, textTransform: 'uppercase' as const,
         display: 'flex', alignItems: 'center', justifyContent: justify,
         gap: 2,
@@ -161,13 +161,13 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
     <div style={{ background: t.neutrals.card, borderRadius: t.radius.lg, padding: mobile ? 12 : 16 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
         <div>
-          <div style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+          <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
             SECTOR ROTATION
           </div>
-          <div style={{ fontSize: 14, fontWeight: t.weight.semibold, color: t.neutrals.text, fontFamily: t.font.sans }}>
+          <div style={{ fontSize: 'calc(14px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text, fontFamily: t.font.sans }}>
             섹터/테마 ETF 상대 수익률
             {latestDate && (
-              <span style={{ fontSize: 10, fontWeight: t.weight.regular, color: t.neutrals.subtle, marginLeft: 6, fontFamily: t.font.mono }}>
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.regular, color: t.neutrals.subtle, marginLeft: 6, fontFamily: t.font.mono }}>
                 as of {latestDate}
               </span>
             )}
@@ -189,7 +189,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
           <div style={{
             display: 'grid',
             gridTemplateColumns: mobile ? '72px repeat(4, 1fr)' : '70px 1fr repeat(4, 78px)',
-            gap: 4, padding: '4px 6px', fontSize: 10, color: t.neutrals.subtle,
+            gap: 4, padding: '4px 6px', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle,
             fontFamily: t.font.mono, fontWeight: 600, textTransform: 'uppercase' as const,
           }}>
             <HeaderCell label="티커" sortKey="group" current={sortBy} dir={sortDir} onClick={handleSort} />
@@ -214,26 +214,26 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
               display: 'grid',
               gridTemplateColumns: mobile ? '72px repeat(4, 1fr)' : '70px 1fr repeat(4, 78px)',
               gap: 4, alignItems: 'center', padding: '0 6px',
-              fontSize: 11, color: t.neutrals.text,
+              fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text,
               background: rowBg,
               borderLeft: rowBorder,
               borderRadius: t.radius.sm,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
                 <span style={{
-                  fontSize: 8, fontWeight: 600, padding: '0 4px', borderRadius: 3,
+                  fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 600, padding: '0 4px', borderRadius: 3,
                   background: isSectorGroup ? '#D1FAE5' : isHolding ? '#FCE7F3' : isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : etf.group === 'Macro' ? '#E5E7EB' : '#F3E8FF',
                   color: isSectorGroup ? '#065F46' : isHolding ? '#9D174D' : isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : etf.group === 'Macro' ? '#374151' : '#7E22CE',
                   flexShrink: 0,
                 }}>{isSectorGroup ? 'S' : isHolding ? 'H' : isBenchmark ? 'B' : etf.group === 'GICS' ? 'G' : etf.group === 'Macro' ? 'M' : 'T'}</span>
                 <span style={{
                   fontFamily: t.font.mono, fontWeight: (isSectorGroup || isHolding || isMine || isBenchmark) ? t.weight.semibold : t.weight.medium,
-                  fontSize: 11, color: tickerColor,
+                  fontSize: 'calc(11px * var(--fz, 1))', color: tickerColor,
                 }}>{etf.ticker.replace('.KS', '')}</span>
               </div>
               {!mobile && (
                 <div style={{
-                  fontSize: 11, color: t.neutrals.muted,
+                  fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
                   whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                 }} title={etf.name}>
                   {etf.name}
@@ -251,7 +251,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
                     style={{
                       padding: '3px 6px', borderRadius: t.radius.sm,
                       background: c.bg, color: c.fg,
-                      fontSize: mobile ? 10 : 10.5, fontWeight: t.weight.medium,
+                      fontSize: `calc(${mobile ? 10 : 10.5}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                       fontFamily: t.font.mono, textAlign: 'right' as const,
                       lineHeight: 1.4, border: 'none',
                       cursor: clickable ? 'pointer' : 'default',
@@ -272,7 +272,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
       )}
 
       {!loading && sorted.length === 0 && (
-        <div style={{ fontSize: 12, color: t.neutrals.subtle, padding: '20px 0', textAlign: 'center' as const }}>
+        <div style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, padding: '20px 0', textAlign: 'center' as const }}>
           데이터가 없습니다. 수집 스크립트를 실행해 주세요.
         </div>
       )}

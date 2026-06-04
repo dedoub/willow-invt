@@ -74,12 +74,12 @@ function Sparkline({
           left: Math.max(0, Math.min(w - 70, xy[hover].x - 35)),
           bottom: h + 6,
           background: t.neutrals.text, color: t.neutrals.card,
-          fontSize: 9.5, fontFamily: t.font.sans,
+          fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans,
           padding: '3px 6px', borderRadius: t.radius.sm,
           whiteSpace: 'nowrap', pointerEvents: 'none',
           zIndex: 10, lineHeight: 1.3,
         }}>
-          <div style={{ fontFamily: t.font.mono, opacity: 0.7, fontSize: 8.5 }}>{data[hover].date}</div>
+          <div style={{ fontFamily: t.font.mono, opacity: 0.7, fontSize: 'calc(8.5px * var(--fz, 1))' }}>{data[hover].date}</div>
           <div style={{ fontWeight: 600 }}>{fmt(data[hover].value)}</div>
         </div>
       )}
@@ -110,19 +110,19 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{
-            fontSize: 9.5, fontFamily: t.font.mono, letterSpacing: 0.8,
+            fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
             textTransform: 'uppercase' as const, color: t.neutrals.subtle,
             marginBottom: 2,
             whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{label}</div>
           <div style={{
-            fontSize: 13, fontWeight: 600, letterSpacing: -0.3,
+            fontSize: 'calc(13px * var(--fz, 1))', fontWeight: 600, letterSpacing: -0.3,
             fontVariantNumeric: 'tabular-nums' as const,
             whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
             color,
           }}>
             {value}
-            {unit && <span style={{ fontSize: 11, marginLeft: 3, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
+            {unit && <span style={{ fontSize: 'calc(11px * var(--fz, 1))', marginLeft: 3, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
           </div>
         </div>
         {sparkData.length > 1 && (
@@ -134,10 +134,10 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
       {/* Row 2: sub (전체 폭) */}
       {sub && (
         <div style={wrap ? {
-          fontSize: 9.5, color: t.neutrals.muted, marginTop: 4,
+          fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 4,
           wordBreak: 'break-word' as const, lineHeight: 1.4,
         } : {
-          fontSize: 9.5, color: t.neutrals.muted, marginTop: 4,
+          fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 4,
           whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{sub}</div>
       )}

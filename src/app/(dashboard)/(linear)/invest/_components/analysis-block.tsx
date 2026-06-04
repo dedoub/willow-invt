@@ -104,14 +104,14 @@ function DonutChart({ title, data, colors, fixedWidth, colorMode = 'category', r
         ))}
       </Pie>
       <Tooltip
-        contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md, fontSize: 10, padding: '4px 8px' }}
+        contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md, fontSize: 'calc(10px * var(--fz, 1))', padding: '4px 8px' }}
         formatter={(value: any, name: any) => [`${value}%`, name]}
       />
     </PieChart>
   )
   return (
     <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 10, color: t.neutrals.subtle, marginBottom: 2 }}>{title}</div>
+      <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 2 }}>{title}</div>
       {fixedWidth ? (
         <div style={{ display: 'flex', justifyContent: 'center' }}>{chart}</div>
       ) : (
@@ -119,7 +119,7 @@ function DonutChart({ title, data, colors, fixedWidth, colorMode = 'category', r
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2px 8px', marginTop: 2 }}>
         {data.map((d, i) => (
-          <span key={d.subject} style={{ fontSize: 9, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+          <span key={d.subject} style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
             {/* 수익률 모드: 점 안쪽=수익률색, 테두리=카테고리색 (파이와 동일 인코딩) */}
             <span style={{
               width: isReturn ? 8 : 6, height: isReturn ? 8 : 6, borderRadius: '50%',
@@ -512,7 +512,7 @@ export function AnalysisBlock({
         <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
           <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" />
         </div>
-        <div style={{ padding: '24px 14px', textAlign: 'center', fontSize: 12, color: t.neutrals.subtle }}>
+        <div style={{ padding: '24px 14px', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
           추이 데이터 로딩 중...
         </div>
       </LCard>
@@ -525,7 +525,7 @@ export function AnalysisBlock({
         <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
           <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" />
         </div>
-        <div style={{ padding: '24px 14px', textAlign: 'center', fontSize: 12, color: t.neutrals.subtle }}>
+        <div style={{ padding: '24px 14px', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
           분석에 필요한 데이터가 부족합니다
         </div>
       </LCard>
@@ -540,7 +540,7 @@ export function AnalysisBlock({
             {viewModes.map(m => (
               <button key={m.value} onClick={() => setViewMode(m.value)} style={{
                 border: 'none', background: viewMode === m.value ? t.neutrals.card : 'transparent',
-                padding: '4px 10px', fontSize: 11, borderRadius: 4, cursor: 'pointer',
+                padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: 4, cursor: 'pointer',
                 fontWeight: viewMode === m.value ? t.weight.medium : t.weight.regular,
                 color: t.neutrals.text, fontFamily: t.font.sans,
               }}>{m.label}</button>
@@ -565,7 +565,7 @@ export function AnalysisBlock({
             <div key={chart.suffix}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 8, flexWrap: 'wrap', minHeight: 22 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted }}>
+                  <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.muted }}>
                     {chart.label}
                   </div>
                   {last && lines.map(line => {
@@ -574,10 +574,10 @@ export function AnalysisBlock({
                     const sign = (chart.suffix === 'pnl' || chart.suffix === 'pct') && v > 0 ? '+' : ''
                     return (
                       <span key={line.key} style={{
-                        fontSize: 11, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums',
+                        fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums',
                         color: line.color,
                       }}>
-                        {lines.length > 1 && <span style={{ fontSize: 9, color: t.neutrals.muted, marginRight: 3, fontWeight: t.weight.regular }}>{line.name}</span>}
+                        {lines.length > 1 && <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, marginRight: 3, fontWeight: t.weight.regular }}>{line.name}</span>}
                         {sign}{chart.fmt(v)}{chart.unit}
                       </span>
                     )
@@ -589,8 +589,8 @@ export function AnalysisBlock({
                     const alpha = Math.round((mine - qld) * 10) / 10
                     const alphaColor = alpha > 0 ? t.accent.pos : alpha < 0 ? t.accent.neg : t.neutrals.subtle
                     return (
-                      <span style={{ fontSize: 11, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums', color: alphaColor }}>
-                        <span style={{ fontSize: 9, color: t.neutrals.muted, marginRight: 3, fontWeight: t.weight.regular }}>vs QLD</span>
+                      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums', color: alphaColor }}>
+                        <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, marginRight: 3, fontWeight: t.weight.regular }}>vs QLD</span>
                         {alpha > 0 ? '+' : ''}{alpha.toFixed(1)}%p
                       </span>
                     )
@@ -601,7 +601,7 @@ export function AnalysisBlock({
                     {(['linear', 'log'] as ValueScale[]).map(s => (
                       <button key={s} onClick={() => handleScaleChange(s)} style={{
                         border: 'none', background: valueScale === s ? t.neutrals.card : 'transparent',
-                        padding: '2px 8px', fontSize: 10, borderRadius: 3, cursor: 'pointer',
+                        padding: '2px 8px', fontSize: 'calc(10px * var(--fz, 1))', borderRadius: 3, cursor: 'pointer',
                         fontFamily: t.font.sans,
                         fontWeight: valueScale === s ? t.weight.medium : t.weight.regular,
                         color: t.neutrals.text,
@@ -613,11 +613,11 @@ export function AnalysisBlock({
               <ResponsiveContainer width={chartColumns === 2 ? 400 : '100%'} height={160}>
                 <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
                   <XAxis
-                    dataKey="date" tickFormatter={fmtDate} tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+                    dataKey="date" tickFormatter={fmtDate} tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
                     axisLine={false} tickLine={false} interval="preserveStartEnd"
                   />
                   <YAxis
-                    tickFormatter={(v: number) => chart.fmt(v)} tick={{ fontSize: 9, fill: t.neutrals.subtle }}
+                    tickFormatter={(v: number) => chart.fmt(v)} tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
                     axisLine={false} tickLine={false} width={50}
                     scale={useLog ? 'log' : 'linear'}
                     domain={
@@ -635,7 +635,7 @@ export function AnalysisBlock({
                   <Tooltip
                     contentStyle={{
                       background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
-                      borderRadius: t.radius.md, fontSize: 11, fontFamily: t.font.sans, padding: '6px 10px',
+                      borderRadius: t.radius.md, fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, padding: '6px 10px',
                     }}
                     labelFormatter={(v) => String(v)}
                     formatter={(value, name) => [`${chart.fmt(Number(value))}${chart.unit}`, name]}
@@ -664,7 +664,7 @@ export function AnalysisBlock({
         {radarData.byTheme.length > 0 && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: t.weight.medium, color: t.neutrals.muted }}>
+              <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.muted }}>
                 포트폴리오 비중
               </div>
               <LSegmented
@@ -694,7 +694,7 @@ export function AnalysisBlock({
             </div>
             {/* 수익률 모드 범례 (차트 아래): 색=수익률(파랑 손실 ↔ 빨강 수익), 테두리=분류, 크기=비중 */}
             {donutColorMode === 'return' && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, fontSize: 9, color: t.neutrals.subtle }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle }}>
                 <span>손실</span>
                 <span style={{ width: 96, height: 7, borderRadius: 4, background: `linear-gradient(90deg, ${returnGradientColor(-50)}, ${returnGradientColor(0)}, ${returnGradientColor(50)})`, display: 'inline-block' }} />
                 <span>수익</span>

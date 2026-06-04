@@ -153,7 +153,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
                 borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
                 background: pinned ? '#FEF3C7' : t.neutrals.card,
                 color: pinned ? '#D97706' : t.neutrals.subtle,
-                fontSize: 11, lineHeight: 1, padding: 0,
+                fontSize: 'calc(11px * var(--fz, 1))', lineHeight: 1, padding: 0,
               }}
               title={pinned ? '핀 해제' : '핀 지정'}
             >
@@ -166,7 +166,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               style={{
                 width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                background: t.neutrals.card, color: t.neutrals.subtle, fontSize: 12,
+                background: t.neutrals.card, color: t.neutrals.subtle, fontSize: 'calc(12px * var(--fz, 1))',
                 lineHeight: 1, padding: 0,
               }}
               onMouseEnter={(e) => { (e.currentTarget.style.background = '#FEE2E2'); (e.currentTarget.style.color = t.accent.neg) }}
@@ -180,11 +180,11 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       {/* Row 1: ticker + name + price/mcap */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-          <span style={{ fontSize: 12, fontWeight: t.weight.bold, fontFamily: t.font.mono, color: t.neutrals.text }}>
+          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.bold, fontFamily: t.font.mono, color: t.neutrals.text }}>
             {data.ticker.replace('.KS', '')}
           </span>
           <span style={{
-            fontSize: 11, color: t.neutrals.muted,
+            fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{data.name}</span>
           {(data.structuralThesis || data.valueChainPosition) && (
@@ -195,7 +195,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               <span className="info-tip-content" style={{
                 display: 'none', position: 'absolute', left: '50%', bottom: '100%',
                 transform: 'translateX(-50%)', marginBottom: 6,
-                background: '#1E293B', color: '#F8FAFC', fontSize: 10.5, lineHeight: 1.5,
+                background: '#1E293B', color: '#F8FAFC', fontSize: 'calc(10.5px * var(--fz, 1))', lineHeight: 1.5,
                 padding: '8px 10px', borderRadius: 6, width: 240, zIndex: 100,
                 whiteSpace: 'normal', pointerEvents: 'none',
               }}>
@@ -208,26 +208,26 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
           {/* 돌파: 현재가가 직전 20일 고가(매물대)를 상향 돌파 — CEO 핵심 매수 트리거 */}
           {data.breakout && (
             <span style={{
-              fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
+              fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
               flexShrink: 0, background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
             }}>돌파{data.breakoutGap != null && ` +${data.breakoutGap.toFixed(1)}%`}</span>
           )}
           {/* QLD 전환 후보: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
           {data.qldTransition && (
             <span style={{
-              fontSize: 9, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
+              fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
               flexShrink: 0, background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
             }}>QLD 전환 후보</span>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {data.marketCapLabel && (
-            <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
               {data.marketCapLabel}
             </span>
           )}
           {data.group !== 'research' && data.price != null && (
-            <span style={{ fontSize: 11.5, fontWeight: t.weight.medium, fontFamily: t.font.mono }}>
+            <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.mono }}>
               {fmtPrice(data.price, data.currency)}
             </span>
           )}
@@ -239,25 +239,25 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
           {data.sector ? (
             <span style={{
-              fontSize: 9.5, fontWeight: t.weight.medium, padding: '1px 5px',
+              fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium, padding: '1px 5px',
               borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted,
             }}>{data.sector}</span>
           ) : (data.group === 'watchlist' || data.group === 'research') ? (
             <span style={{
-              fontSize: 9.5, fontWeight: t.weight.medium, padding: '1px 5px',
+              fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium, padding: '1px 5px',
               borderRadius: t.radius.sm, background: '#FEF3C7', color: '#B45309',
             }}>미분류</span>
           ) : null}
           {data.sourceType === 'smallcap' && (
             <span style={{
-              fontSize: 9, fontWeight: t.weight.medium, padding: '1px 4px',
+              fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.medium, padding: '1px 4px',
               borderRadius: t.radius.sm, background: '#E0E7FF', color: '#4338CA',
             }}>스몰캡</span>
           )}
         </div>
         {data.changePercent != null && (
-          <span style={{ fontSize: 11, fontWeight: t.weight.medium, fontFamily: t.font.mono, color: changeColor }}>
-            <span style={{ fontSize: 9, opacity: 0.6 }}>1M </span>
+          <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.mono, color: changeColor }}>
+            <span style={{ fontSize: 'calc(9px * var(--fz, 1))', opacity: 0.6 }}>1M </span>
             {changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%
           </span>
         )}
@@ -268,7 +268,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {data.signal && SIGNAL_STYLE[data.signal] && (
             <span style={{
-              fontSize: 9.5, fontWeight: t.weight.medium, padding: '1px 5px',
+              fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium, padding: '1px 5px',
               borderRadius: t.radius.pill, background: SIGNAL_STYLE[data.signal].bg, color: SIGNAL_STYLE[data.signal].fg,
             }}>
               {SIGNAL_STYLE[data.signal].label}
@@ -279,7 +279,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             const mt = momentumTone(data.momentumScore)
             return (
               <span style={{
-                fontSize: 9.5, fontWeight: t.weight.medium, padding: '1px 5px',
+                fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium, padding: '1px 5px',
                 borderRadius: t.radius.pill, background: mt.bg, color: mt.fg,
               }}>
                 M {data.momentumScore}
@@ -287,14 +287,14 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             )
           })()}
           {data.group === 'portfolio' && data.holdingQty != null && (
-            <span style={{ fontSize: 10, color: t.neutrals.subtle }}>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
               {data.holdingQty}주{data.weightPct != null && ` · (${data.weightPct.toFixed(1)}%)`}
             </span>
           )}
           {/* Research: verdict + composite */}
           {data.group === 'research' && data.verdict && (
             <span style={{
-              fontSize: 9.5, fontWeight: t.weight.medium, padding: '1px 5px',
+              fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium, padding: '1px 5px',
               borderRadius: t.radius.pill,
               background: data.verdict === 'pass_tier1' ? tonePalettes.done.bg : tonePalettes.info.bg,
               color: data.verdict === 'pass_tier1' ? tonePalettes.done.fg : tonePalettes.info.fg,
@@ -303,7 +303,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             </span>
           )}
           {data.group === 'research' && data.compositeScore != null && (
-            <span style={{ fontSize: 10, color: t.neutrals.subtle }}>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
               점수 {data.compositeScore}
             </span>
           )}
@@ -318,19 +318,19 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               : data.monitor.stage >= 4 ? tonePalettes.info : tonePalettes.neutral
             return (
               <span style={{
-                fontSize: 9, fontWeight: t.weight.bold, padding: '1px 4px',
+                fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.bold, padding: '1px 4px',
                 borderRadius: t.radius.sm, background: mt.bg, color: mt.fg,
               }}>M{data.monitor.stage}</span>
             )
           })()}
           <span style={{
-            fontSize: 10, fontWeight: t.weight.medium, fontFamily: t.font.mono,
+            fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.mono,
             color: data.monitor.changePct > 0 ? t.accent.pos : data.monitor.changePct < 0 ? t.accent.neg : t.neutrals.subtle,
           }}>
             {data.monitor.changePct > 0 ? '+' : ''}{data.monitor.changePct.toFixed(1)}%
           </span>
           {data.monitor.nextThresholdPct != null && (
-            <span style={{ fontSize: 10, color: t.neutrals.subtle }}>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
               {' '}→ +{data.monitor.nextThresholdPct.toFixed(0)}%
               {data.monitor.nextThresholdPrice != null && (
                 <span style={{ color: t.neutrals.subtle, marginLeft: 2, opacity: 0.6 }}>
@@ -339,7 +339,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               )}
             </span>
           )}
-          <span style={{ fontSize: 10, color: t.neutrals.subtle, opacity: 0.5 }}>{data.monitor.days}일</span>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, opacity: 0.5 }}>{data.monitor.days}일</span>
         </div>
       )}
 
@@ -351,20 +351,20 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               const tt = trancheTone(data.pyramiding.tranche)
               return (
                 <span style={{
-                  fontSize: 9, fontWeight: t.weight.bold, padding: '1px 4px',
+                  fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.bold, padding: '1px 4px',
                   borderRadius: t.radius.sm, background: tt.bg, color: tt.fg,
                 }}>T{data.pyramiding.tranche}</span>
               )
             })()}
             <span style={{
-              fontSize: 10, fontWeight: t.weight.medium, fontFamily: t.font.mono,
+              fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.mono,
               color: data.pyramiding.avgReturnPct > 0 ? t.accent.pos
                 : data.pyramiding.avgReturnPct < 0 ? t.accent.neg : t.neutrals.subtle,
             }}>
               {data.pyramiding.avgReturnPct > 0 ? '+' : ''}{data.pyramiding.avgReturnPct.toFixed(1)}%
             </span>
             {data.pyramiding.nextTriggerPct != null && (
-              <span style={{ fontSize: 10, color: t.neutrals.subtle }}>
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
                 → +{data.pyramiding.nextTriggerPct.toFixed(0)}%
                 {data.pyramiding.nextTriggerPrice != null && (
                   <span style={{ marginLeft: 2, opacity: 0.6 }}>
@@ -378,7 +378,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             const ps = PYRAMID_STATUS[data.pyramiding.status]
             return ps ? (
               <span style={{
-                fontSize: 9, fontWeight: t.weight.bold, padding: '1px 6px',
+                fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.bold, padding: '1px 6px',
                 borderRadius: t.radius.pill, background: ps.bg, color: ps.fg,
               }}>{ps.label}</span>
             ) : null

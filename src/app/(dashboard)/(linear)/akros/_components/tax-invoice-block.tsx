@@ -146,7 +146,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '6px 8px', borderRadius: t.radius.sm,
     border: 'none', background: t.neutrals.inner,
-    fontSize: 12, fontFamily: t.font.sans, color: t.neutrals.text, outline: 'none',
+    fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.sans, color: t.neutrals.text, outline: 'none',
   }
 
   return (
@@ -189,11 +189,11 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                       <span style={{
-                        fontSize: 9, fontFamily: t.font.mono, padding: '2px 6px',
+                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, padding: '2px 6px',
                         borderRadius: t.radius.sm, background: sty.bg, color: sty.fg, fontWeight: 500,
                         flexShrink: 0,
                       }}>{sty.label}</span>
-                      <span style={{ fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.subtle, flexShrink: 0 }}>
+                      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, flexShrink: 0 }}>
                         {inv.invoice_date}
                       </span>
                     </div>
@@ -206,14 +206,14 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
                       <button onClick={() => toggleStatus(inv, 'issued_at')} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         padding: '2px 5px', borderRadius: t.radius.sm,
-                        fontSize: 9, fontFamily: t.font.mono, fontWeight: 500,
+                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500,
                         color: inv.issued_at ? tonePalettes.info.fg : t.neutrals.line,
                         backgroundColor: inv.issued_at ? tonePalettes.info.bg : 'transparent',
                       }}>발행</button>
                       <button onClick={() => toggleStatus(inv, 'paid_at')} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         padding: '2px 5px', borderRadius: t.radius.sm,
-                        fontSize: 9, fontFamily: t.font.mono, fontWeight: 500,
+                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500,
                         color: inv.paid_at ? tonePalettes.done.fg : t.neutrals.line,
                         backgroundColor: inv.paid_at ? tonePalettes.done.bg : 'transparent',
                       }}>입금</button>
@@ -226,11 +226,11 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, paddingLeft: 2, minWidth: 0 }}>
-                    <span style={{ fontSize: 12, fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {inv.amount.toLocaleString()}원
                     </span>
                     {inv.notes && (
-                      <span style={{ flex: 1, fontSize: 10, color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                      <span style={{ flex: 1, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                         {inv.notes}
                       </span>
                     )}
@@ -241,7 +241,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
           )
         })}
         {paged.length === 0 && (
-          <div style={{ padding: 30, textAlign: 'center', fontSize: 12, color: t.neutrals.subtle }}>
+          <div style={{ padding: 30, textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
             세금계산서가 없습니다
           </div>
         )}
@@ -261,12 +261,12 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
             style={{
               width: 32, textAlign: 'center',
               border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 11,
+              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
               fontFamily: t.font.mono, color: t.neutrals.muted,
               padding: '2px 0', outline: 'none',
             }}
           />
-          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
 
         {totalPages > 1 && (
@@ -279,7 +279,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
             }}>
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, invoices.length)} / {invoices.length}
             </span>
             <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} style={{
@@ -304,26 +304,26 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
             background: t.neutrals.card, borderRadius: t.radius.lg,
             width: '100%', maxWidth: 400, padding: 20,
           }}>
-            <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600, color: t.neutrals.text, fontFamily: t.font.sans }}>
+            <h3 style={{ margin: '0 0 14px', fontSize: 'calc(14px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.text, fontFamily: t.font.sans }}>
               세금계산서 추가
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div>
-                <label style={{ fontSize: 11, color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>발행일 *</label>
+                <label style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>발행일 *</label>
                 <input type="date" value={addDate} onChange={e => setAddDate(e.target.value)} style={inputStyle} />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>금액 (원) *</label>
+                <label style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>금액 (원) *</label>
                 <input type="number" value={addAmount} onChange={e => setAddAmount(e.target.value)} style={inputStyle} />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>비고</label>
+                <label style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>비고</label>
                 <input value={addNotes} onChange={e => setAddNotes(e.target.value)} style={inputStyle} />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>PDF 파일</label>
+                <label style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>PDF 파일</label>
                 <input type="file" accept=".pdf" onChange={e => setAddFile(e.target.files?.[0] || null)}
-                  style={{ fontSize: 11, color: t.neutrals.muted }} />
+                  style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }} />
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 14 }}>

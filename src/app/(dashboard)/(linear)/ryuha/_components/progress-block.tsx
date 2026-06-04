@@ -40,7 +40,7 @@ export function ProgressBlock({ subjects, chapters }: ProgressBlockProps) {
   return (
     <LCard>
       <LSectionHead eyebrow="PROGRESS" title="진도 현황" action={
-        <span style={{ fontSize: 11, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+        <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
           {stats.reduce((n, s) => n + s.completed, 0)}/{stats.reduce((n, s) => n + s.total, 0)}
         </span>
       } />
@@ -53,8 +53,8 @@ export function ProgressBlock({ subjects, chapters }: ProgressBlockProps) {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               marginBottom: 4,
             }}>
-              <span style={{ fontSize: 12, fontWeight: t.weight.medium }}>{subject.name}</span>
-              <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.subtle }}>
+              <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.medium }}>{subject.name}</span>
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle }}>
                 {completed}/{total} ({Math.round(pct)}%)
               </span>
             </div>
@@ -77,7 +77,7 @@ export function ProgressBlock({ subjects, chapters }: ProgressBlockProps) {
           {totalOverdue > 0 && (
             <div style={{
               padding: '6px 10px', borderRadius: t.radius.sm,
-              background: '#FEE2E2', fontSize: 11, color: t.accent.neg,
+              background: '#FEE2E2', fontSize: 'calc(11px * var(--fz, 1))', color: t.accent.neg,
               display: 'flex', alignItems: 'center', gap: 6,
             }}>
               <LIcon name="clock" size={12} stroke={2} />
@@ -90,7 +90,7 @@ export function ProgressBlock({ subjects, chapters }: ProgressBlockProps) {
           {totalUpcoming > 0 && (
             <div style={{
               padding: '6px 10px', borderRadius: t.radius.sm,
-              background: '#FBEFD5', fontSize: 11, color: '#8B5A12',
+              background: '#FBEFD5', fontSize: 'calc(11px * var(--fz, 1))', color: '#8B5A12',
               display: 'flex', alignItems: 'center', gap: 6,
             }}>
               <LIcon name="calendar" size={12} stroke={2} />
@@ -104,7 +104,7 @@ export function ProgressBlock({ subjects, chapters }: ProgressBlockProps) {
       )}
 
       {stats.length === 0 && (
-        <div style={{ textAlign: 'center', fontSize: 12, color: t.neutrals.subtle, padding: 16 }}>
+        <div style={{ textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, padding: 16 }}>
           교재/단원을 추가하세요
         </div>
       )}

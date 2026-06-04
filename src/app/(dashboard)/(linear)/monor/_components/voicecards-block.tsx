@@ -380,7 +380,7 @@ export function VoicecardsBlock({
           return (
             <>
               <div style={{
-                fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+                fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
                 fontFamily: t.font.mono, letterSpacing: 0.3,
                 textTransform: 'uppercase' as const, marginBottom: 10,
                 whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
@@ -485,7 +485,7 @@ export function VoicecardsBlock({
       {userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={{
-            fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
             fontFamily: t.font.mono, letterSpacing: 0.3,
             textTransform: 'uppercase' as const, marginBottom: 10,
             whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
@@ -603,7 +603,7 @@ export function VoicecardsBlock({
             gap: 6, marginBottom: 8, flexWrap: 'wrap',
           }}>
             <div style={{
-              fontSize: 11, fontWeight: 600, color: t.neutrals.subtle,
+              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
               fontFamily: t.font.mono, letterSpacing: 0.3,
               textTransform: 'uppercase' as const,
               whiteSpace: 'nowrap' as const,
@@ -619,7 +619,7 @@ export function VoicecardsBlock({
                     onClick={() => handleSortChange(opt.key)}
                     style={{
                       padding: '3px 8px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                      fontSize: 10, fontWeight: 500, fontFamily: t.font.sans,
+                      fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans,
                       background: active ? t.brand[500] : t.neutrals.inner,
                       color: active ? '#fff' : t.neutrals.muted,
                       transition: 'background 120ms ease, color 120ms ease',
@@ -645,7 +645,7 @@ export function VoicecardsBlock({
                   width: 26, height: 26, borderRadius: 26, flexShrink: 0,
                   background: t.brand[200], color: t.brand[800],
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 600,
+                  fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600,
                 }}>
                   {initial}
                 </div>
@@ -655,7 +655,7 @@ export function VoicecardsBlock({
                     display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
                   }}>
                     <span style={{
-                      fontSize: 11, fontWeight: 500,
+                      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500,
                       color: user.nickname ? t.neutrals.text : t.neutrals.muted,
                       fontFamily: user.nickname ? t.font.sans : t.font.mono,
                       whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
@@ -665,7 +665,7 @@ export function VoicecardsBlock({
                     </span>
                     {user.appVersion && (
                       <span style={{
-                        fontSize: 9, fontFamily: t.font.mono, color: t.neutrals.muted,
+                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
                         background: t.neutrals.card, padding: '1px 4px', borderRadius: 3,
                         flexShrink: 0, lineHeight: 1.4,
                       }}>
@@ -674,7 +674,7 @@ export function VoicecardsBlock({
                     )}
                     {user.platform && (
                       <span style={{
-                        fontSize: 9, fontFamily: t.font.mono, fontWeight: 600,
+                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
                         color: user.platform === 'ios' ? '#0369A1' : user.platform === 'android' ? '#15803D' : t.neutrals.muted,
                         background: user.platform === 'ios' ? '#E0F2FE' : user.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
                         padding: '1px 5px', borderRadius: 3,
@@ -685,7 +685,7 @@ export function VoicecardsBlock({
                     )}
                     {user.locale && (
                       <span style={{
-                        fontSize: 9, fontFamily: t.font.mono, fontWeight: 600,
+                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
                         color: '#6B21A8', background: '#F3E8FF',
                         padding: '1px 5px', borderRadius: 3,
                         flexShrink: 0, lineHeight: 1.4, textTransform: 'uppercase' as const,
@@ -695,7 +695,7 @@ export function VoicecardsBlock({
                     )}
                   </div>
                   <div style={{
-                    fontSize: 9.5, color: t.neutrals.muted,
+                    fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted,
                     whiteSpace: mobile ? ('normal' as const) : ('nowrap' as const),
                     overflow: mobile ? 'visible' : 'hidden',
                     textOverflow: mobile ? 'clip' : 'ellipsis',
@@ -707,7 +707,7 @@ export function VoicecardsBlock({
                 </div>
 
                 <span style={{
-                  fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted, flexShrink: 0,
+                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, flexShrink: 0,
                   fontVariantNumeric: 'tabular-nums',
                 }}>
                   {formatNumber(user.credits)} cr
@@ -726,7 +726,7 @@ export function VoicecardsBlock({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{
-                  fontSize: 10, color: t.neutrals.muted,
+                  fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted,
                   fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
                 }}>
                   {sortedUsers.length}명 중 {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, sortedUsers.length)}
@@ -738,7 +738,7 @@ export function VoicecardsBlock({
                     setUserPage(1)
                   }}
                   style={{
-                    fontSize: 10, fontFamily: t.font.sans,
+                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
                     background: t.neutrals.inner, color: t.neutrals.muted,
                     border: 'none', borderRadius: t.radius.sm,
                     padding: '3px 6px', cursor: 'pointer',
@@ -754,7 +754,7 @@ export function VoicecardsBlock({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <PageNavButton onClick={() => setUserPage(Math.max(1, safeUserPage - 1))} disabled={safeUserPage === 1} icon="chevronLeft" />
                   <span style={{
-                    fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.text,
+                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text,
                     padding: '0 6px', fontVariantNumeric: 'tabular-nums',
                   }}>
                     {safeUserPage}/{totalUserPages}
@@ -816,7 +816,7 @@ function DistributionPie({
         gap: 4, marginBottom: 6,
       }}>
         <div style={{
-          fontSize: 9.5, fontFamily: t.font.mono, letterSpacing: 0.8,
+          fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle,
           whiteSpace: 'nowrap' as const,
         }}>
@@ -831,7 +831,7 @@ function DistributionPie({
                 onClick={() => setActiveTab(tb.key)}
                 style={{
                   padding: '2px 7px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                  fontSize: 9, fontWeight: 500, fontFamily: t.font.sans,
+                  fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans,
                   background: active ? t.brand[500] : 'transparent',
                   color: active ? '#fff' : t.neutrals.muted,
                   transition: 'background 120ms ease, color 120ms ease',
@@ -846,7 +846,7 @@ function DistributionPie({
       {data.length === 0 || total === 0 ? (
         <div style={{
           height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 10, color: t.neutrals.subtle,
+          fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle,
         }}>
           데이터 없음
         </div>
@@ -869,7 +869,7 @@ function DistributionPie({
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ fontSize: 11, background: '#1E293B', border: 'none', borderRadius: 6, padding: '6px 10px' }}
+                    contentStyle={{ fontSize: 'calc(11px * var(--fz, 1))', background: '#1E293B', border: 'none', borderRadius: 6, padding: '6px 10px' }}
                     itemStyle={{ color: '#F8FAFC' }}
                     labelStyle={{ color: '#F8FAFC' }}
                     formatter={(value: any, name: any) => [`${value}${unit ?? ''}`, String(name)]}
@@ -888,14 +888,14 @@ function DistributionPie({
                     background: colorByName.get(d.name) ?? t.neutrals.subtle, flexShrink: 0,
                   }} />
                   <span style={{
-                    fontSize: 10, color: t.neutrals.text,
+                    fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     flex: 1, minWidth: 0,
                   }}>
                     {d.name}
                   </span>
                   <span style={{
-                    fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted,
+                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
                     fontVariantNumeric: 'tabular-nums', flexShrink: 0,
                   }}>
                     {pct}%

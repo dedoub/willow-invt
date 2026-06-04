@@ -122,7 +122,7 @@ export function InvoiceBlock({
     cursor: 'pointer',
     padding: '2px 5px',
     borderRadius: t.radius.sm,
-    fontSize: 9,
+    fontSize: 'calc(9px * var(--fz, 1))',
     fontFamily: t.font.mono,
     fontWeight: 500,
     color: active ? activeFg : t.neutrals.line,
@@ -172,7 +172,7 @@ export function InvoiceBlock({
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                   <span style={{
-                    fontSize: 9,
+                    fontSize: 'calc(9px * var(--fz, 1))',
                     fontFamily: t.font.mono,
                     padding: '2px 6px',
                     borderRadius: t.radius.sm,
@@ -184,7 +184,7 @@ export function InvoiceBlock({
                     {sty.label}
                   </span>
                   <span style={{
-                    fontSize: 11,
+                    fontSize: 'calc(11px * var(--fz, 1))',
                     fontFamily: t.font.mono,
                     color: t.neutrals.text,
                     fontWeight: 500,
@@ -196,7 +196,7 @@ export function InvoiceBlock({
                     {inv.invoice_no}
                   </span>
                   <span style={{
-                    fontSize: 10,
+                    fontSize: 'calc(10px * var(--fz, 1))',
                     fontFamily: t.font.mono,
                     color: t.neutrals.subtle,
                     flexShrink: 0,
@@ -218,7 +218,7 @@ export function InvoiceBlock({
                       cursor: 'pointer',
                       padding: '2px 5px',
                       borderRadius: t.radius.sm,
-                      fontSize: 9,
+                      fontSize: 'calc(9px * var(--fz, 1))',
                       fontFamily: t.font.mono,
                       fontWeight: 500,
                       color: t.neutrals.muted,
@@ -291,7 +291,7 @@ export function InvoiceBlock({
                 minWidth: 0,
               }}>
                 <span style={{
-                  fontSize: 12,
+                  fontSize: 'calc(12px * var(--fz, 1))',
                   fontFamily: t.font.mono,
                   fontWeight: 500,
                   color: t.neutrals.text,
@@ -303,7 +303,7 @@ export function InvoiceBlock({
                 {firstDesc && (
                   <span style={{
                     flex: 1,
-                    fontSize: 10,
+                    fontSize: 'calc(10px * var(--fz, 1))',
                     color: t.neutrals.subtle,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -319,7 +319,7 @@ export function InvoiceBlock({
         })}
 
         {paged.length === 0 && (
-          <div style={{ padding: 30, textAlign: 'center', fontSize: 12, color: t.neutrals.subtle }}>
+          <div style={{ padding: 30, textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
             인보이스가 없습니다
           </div>
         )}
@@ -339,12 +339,12 @@ export function InvoiceBlock({
             style={{
               width: 32, textAlign: 'center',
               border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 11,
+              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
               fontFamily: t.font.mono, color: t.neutrals.muted,
               padding: '2px 0', outline: 'none',
             }}
           />
-          <span style={{ fontSize: 10, color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
 
         {totalPages > 1 && (
@@ -362,7 +362,7 @@ export function InvoiceBlock({
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 10, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, invoices.length)} / {invoices.length}
             </span>
             <button

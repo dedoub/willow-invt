@@ -63,13 +63,13 @@ export function SectorRotationChartModal({
         {/* Header */}
         <div style={{ padding: '16px 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 10, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
               TRAILING {period.toUpperCase()} RETURN · LAST 1Y
             </div>
-            <div style={{ fontSize: 15, fontWeight: t.weight.semibold, color: t.neutrals.text }}>
+            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text }}>
               {ticker} <span style={{ color: t.neutrals.muted, fontWeight: t.weight.regular }}>· {etfName}</span>
             </div>
-            <div style={{ fontSize: 11, color: t.neutrals.subtle, marginTop: 2 }}>
+            <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 2 }}>
               매일 시점의 {PERIOD_LABEL[period]} 수익률 추이 — 벤치마크와 비교
             </div>
           </div>
@@ -85,7 +85,7 @@ export function SectorRotationChartModal({
         {/* Chart */}
         <div style={{ padding: '0 20px 20px', height: mobile ? 280 : 360 }}>
           {loading && (
-            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.subtle, fontSize: 12 }}>
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.subtle, fontSize: 'calc(12px * var(--fz, 1))' }}>
               데이터 로딩 중…
             </div>
           )}
@@ -95,23 +95,23 @@ export function SectorRotationChartModal({
                 <CartesianGrid stroke={t.neutrals.line} strokeDasharray="2 4" vertical={false} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 10, fill: t.neutrals.subtle }}
+                  tick={{ fontSize: 'calc(10px * var(--fz, 1))', fill: t.neutrals.subtle }}
                   tickFormatter={(d) => d.slice(2).replace(/-/g, '/').slice(0, 5)}
                   interval={Math.max(0, Math.floor(data.series.length / 8))}
                   axisLine={false} tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: t.neutrals.subtle }}
+                  tick={{ fontSize: 'calc(10px * var(--fz, 1))', fill: t.neutrals.subtle }}
                   tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
                   axisLine={false} tickLine={false}
                   width={48}
                 />
                 <Tooltip
-                  contentStyle={{ background: t.neutrals.card, border: 'none', borderRadius: 8, fontSize: 11, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
+                  contentStyle={{ background: t.neutrals.card, border: 'none', borderRadius: 8, fontSize: 'calc(11px * var(--fz, 1))', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
                   labelFormatter={(d) => d}
                   formatter={(v) => typeof v === 'number' ? `${(v * 100).toFixed(2)}%` : String(v ?? '')}
                 />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 6 }} />
+                <Legend wrapperStyle={{ fontSize: 'calc(11px * var(--fz, 1))', paddingTop: 6 }} />
                 <ReferenceLine y={0} stroke={t.neutrals.muted} strokeDasharray="3 3" />
                 <Line type="monotone" dataKey="etf" name={ticker} stroke="#6366F1" strokeWidth={2.2} dot={false} isAnimationActive={false} />
                 {ticker !== 'SPY' && <Line type="monotone" dataKey="spy" name="SPY" stroke="#F59E0B" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
@@ -121,7 +121,7 @@ export function SectorRotationChartModal({
             </ResponsiveContainer>
           )}
           {!loading && (!data || data.series.length === 0) && (
-            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.subtle, fontSize: 12 }}>
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.subtle, fontSize: 'calc(12px * var(--fz, 1))' }}>
               데이터가 부족합니다.
             </div>
           )}
