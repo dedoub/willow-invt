@@ -22,7 +22,7 @@ async function fetchYahooQuote(yahooSymbol: string): Promise<QuoteResult | null>
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d&includePrePost=true`,
       {
         headers: { 'User-Agent': 'Mozilla/5.0' },
-        next: { revalidate: 60 },
+        next: { revalidate: 300 },
       }
     )
     if (!res.ok) return null

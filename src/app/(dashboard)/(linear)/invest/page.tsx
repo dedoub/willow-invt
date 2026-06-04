@@ -204,7 +204,7 @@ export default function InvestPage() {
   // 서버단 stock-quotes는 5분 캐시이므로 실제 Yahoo 호출 부하는 낮음.
   // 비활성 탭은 건너뛰고, 탭으로 돌아오면 즉시 1회 갱신.
   useEffect(() => {
-    const POLL_MS = 60_000
+    const POLL_MS = 300_000
     const tick = () => {
       if (typeof document !== 'undefined' && document.hidden) return
       loadData({ background: true })

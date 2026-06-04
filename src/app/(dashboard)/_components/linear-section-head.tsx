@@ -7,13 +7,15 @@ interface LSectionHeadProps {
   eyebrow?: ReactNode
   title: string
   action?: ReactNode
+  /** 하단 여백 override. 미지정 시 기본값(t.density.gapMd). */
+  mb?: number
 }
 
-export function LSectionHead({ eyebrow, title, action }: LSectionHeadProps) {
+export function LSectionHead({ eyebrow, title, action, mb }: LSectionHeadProps) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-      marginBottom: t.density.gapMd,
+      marginBottom: mb ?? t.density.gapMd,
     }}>
       <div>
         {eyebrow && (

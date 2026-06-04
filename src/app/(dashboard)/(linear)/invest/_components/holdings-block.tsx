@@ -342,49 +342,69 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         {(() => {
-          const controls = (
-            <div style={{
-              display: 'flex', flexWrap: 'wrap', gap: 6,
-              justifyContent: mobile ? 'flex-start' : 'flex-end',
-            }}>
-              <LSegmented
-                options={[
-                  { value: 'all', label: '전체' },
-                  { value: 'KR', label: '국내' },
-                  { value: 'US', label: '해외' },
-                ]}
-                value={marketFilter}
-                onChange={setMarketFilter}
-              />
-              <LSegmented
-                options={[
-                  { value: 'original', label: '원화/달러' },
-                  { value: 'KRW', label: '₩ 통합' },
-                ]}
-                value={currencyMode}
-                onChange={setCurrencyMode}
-              />
-              <LSegmented
-                options={[
-                  { value: 'current', label: '기본' },
-                  { value: 'value', label: '평가액' },
-                  { value: 'return', label: '수익률' },
-                ]}
-                value={sortMode}
-                onChange={handleSortChange}
-              />
-            </div>
+          const marketSeg = (
+            <LSegmented
+              options={[
+                { value: 'all', label: '전체' },
+                { value: 'KR', label: '국내' },
+                { value: 'US', label: '해외' },
+              ]}
+              value={marketFilter}
+              onChange={setMarketFilter}
+            />
           )
-          // 모바일: 제목과 컨트롤을 세로로 분리 (한 줄에 욱여넣어 깨지는 것 방지)
+          const currencySeg = (
+            <LSegmented
+              options={[
+                { value: 'original', label: '원화/달러' },
+                { value: 'KRW', label: '₩ 통합' },
+              ]}
+              value={currencyMode}
+              onChange={setCurrencyMode}
+            />
+          )
+          const sortSeg = (
+            <LSegmented
+              options={[
+                { value: 'current', label: '기본' },
+                { value: 'value', label: '평가액' },
+                { value: 'return', label: '수익률' },
+              ]}
+              value={sortMode}
+              onChange={handleSortChange}
+            />
+          )
+          // 모바일: 시장/통화 필터는 제목 우측(다른 섹션과 동일), 정렬 필터는 아래 줄 오른쪽 끝.
           if (mobile) {
             return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <LSectionHead eyebrow="HOLDINGS" title="보유 현황" />
-                {controls}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <LSectionHead
+                  eyebrow="HOLDINGS"
+                  title="보유 현황"
+                  mb={0}
+                  action={marketSeg}
+                />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                  {currencySeg}
+                  {sortSeg}
+                </div>
               </div>
             )
           }
-          return <LSectionHead eyebrow="HOLDINGS" title="보유 현황" action={controls} />
+          // 데스크탑: 세 필터 모두 제목 우측
+          return (
+            <LSectionHead
+              eyebrow="HOLDINGS"
+              title="보유 현황"
+              action={
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                  {marketSeg}
+                  {currencySeg}
+                  {sortSeg}
+                </div>
+              }
+            />
+          )
         })()}
       </div>
 
