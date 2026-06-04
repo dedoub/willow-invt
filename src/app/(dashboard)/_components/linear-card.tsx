@@ -7,11 +7,12 @@ interface LCardProps {
   children: ReactNode
   pad?: number | string
   style?: React.CSSProperties
+  className?: string
 }
 
-export function LCard({ children, pad, style }: LCardProps) {
+export function LCard({ children, pad, style, className }: LCardProps) {
   return (
-    <div style={{
+    <div className={className} style={{
       background: t.neutrals.card,
       borderRadius: t.radius.lg,
       padding: pad ?? t.density.cardPad,
