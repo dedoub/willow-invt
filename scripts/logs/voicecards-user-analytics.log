@@ -1,9 +1,0 @@
-[2026-05-15 00:12:47] VoiceCards user analytics 시작
-npm warn exec The following package was not found and will be installed: tsx@4.22.0
-[dotenv@17.3.1] injecting env (31) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
-[voicecards-analytics] [2026-05-14T15:12:50.330Z] Running analytics for 2026-05-15 (yesterday=2026-05-14, weekAgo=2026-05-08)
-[voicecards-analytics] [2026-05-14T15:12:50.691Z] Loaded 16 users, 46 analytics rows
-[voicecards-analytics] [2026-05-14T15:12:50.709Z] Message length: 615
-[voicecards-analytics] [2026-05-14T15:12:52.374Z] Sent to chat_id 7586966475
-[2026-05-15 00:12:52] 완료 (exit: 0)
-
