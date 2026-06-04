@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, useRef, ReactNode } from 'react'
 import { t } from './linear-tokens'
 import { LinearSidebar } from './linear-sidebar'
 import { LinearHeader } from './linear-header'
@@ -28,6 +28,7 @@ const CHAT_OPEN_KEY = 'linear-chat-open'
 export function LinearLayout({ title, children, headerActions }: LinearLayoutProps) {
   const narrow = useNarrow()
   const [chatOpen, setChatOpen] = useState<boolean | null>(null)
+  const zoomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(CHAT_OPEN_KEY)
@@ -38,6 +39,25 @@ export function LinearLayout({ title, children, headerActions }: LinearLayoutPro
     if (chatOpen === null) return
     localStorage.setItem(CHAT_OPEN_KEY, chatOpen ? '1' : '0')
   }, [chatOpen])
+
+  // 모바일 확대는 transform: scale(globals.css)로 처리. transform은 레이아웃 높이를
+  // 바꾸지 않아 하단이 잘리므로, 늘어난 시각 높이만큼 marginBottom으로 스크롤 영역 보정.
+  useEffect(() => {
+    const el = zoomRef.current
+    if (!el) return
+    const fix = () => {
+      const mobile = window.matchMedia('(max-width: 768px)').matches
+      if (!mobile) { el.style.marginBottom = ''; return }
+      const visual = el.getBoundingClientRect().height
+      const layout = el.offsetHeight
+      el.style.marginBottom = `${Math.max(0, Math.round(visual - layout))}px`
+    }
+    fix()
+    const ro = new ResizeObserver(fix)
+    ro.observe(el)
+    window.addEventListener('resize', fix)
+    return () => { ro.disconnect(); window.removeEventListener('resize', fix) }
+  }, [])
 
   return (
     <div style={{
@@ -56,7 +76,7 @@ export function LinearLayout({ title, children, headerActions }: LinearLayoutPro
           actions={headerActions}
         />
         <main style={{ flex: 1, overflow: 'auto', padding: '0 20px 24px' }}>
-          <div className="mobile-zoom">{children}</div>
+          <div ref={zoomRef} className="mobile-zoom">{children}</div>
         </main>
       </div>
 
