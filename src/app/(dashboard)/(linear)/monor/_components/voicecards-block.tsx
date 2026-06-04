@@ -229,6 +229,14 @@ export function VoicecardsBlock({
   const [userSort, setUserSort] = useState<UserSortKey>('created')
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
+  const [userPerPageInput, setUserPerPageInput] = useState('10')
+
+  const commitUserPerPage = () => {
+    const n = Math.max(5, Math.min(100, Number(userPerPageInput) || 10))
+    setUserPerPageInput(String(n))
+    setUserPerPage(n)
+    setUserPage(1)
+  }
 
   // 마운트 시 localStorage에서 정렬 상태 복원 (SSR/CSR hydration 안전)
   useEffect(() => {
@@ -717,49 +725,58 @@ export function VoicecardsBlock({
             })}
           </div>
 
-          {/* 페이지네이션 */}
+          {/* 페이지네이션 (주식투자 페이지 섹션과 동일 스타일) */}
           {sortedUsers.length > 0 && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 6, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${t.neutrals.line}`,
-              flexWrap: 'wrap',
+              padding: '6px 14px',
+              borderTop: `1px solid ${t.neutrals.line}`,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{
-                  fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted,
-                  fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                }}>
-                  {sortedUsers.length}명 중 {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, sortedUsers.length)}
-                </span>
-                <select
-                  value={userPerPage}
-                  onChange={(e) => {
-                    setUserPerPage(Number(e.target.value))
-                    setUserPage(1)
-                  }}
+              {/* Page size input */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <input
+                  value={userPerPageInput}
+                  onChange={e => setUserPerPageInput(e.target.value.replace(/\D/g, ''))}
+                  onBlur={commitUserPerPage}
+                  onKeyDown={e => { if (e.key === 'Enter') commitUserPerPage() }}
                   style={{
-                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
-                    background: t.neutrals.inner, color: t.neutrals.muted,
-                    border: 'none', borderRadius: t.radius.sm,
-                    padding: '3px 6px', cursor: 'pointer',
+                    width: 32, textAlign: 'center', border: 'none',
+                    background: t.neutrals.inner, borderRadius: t.radius.sm,
+                    fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                    padding: '2px 0', outline: 'none',
                   }}
-                >
-                  <option value={10}>10개</option>
-                  <option value={25}>25개</option>
-                  <option value={50}>50개</option>
-                  <option value={100}>100개</option>
-                </select>
+                />
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
               </div>
+
+              {/* Page navigation */}
               {totalUserPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <PageNavButton onClick={() => setUserPage(Math.max(1, safeUserPage - 1))} disabled={safeUserPage === 1} icon="chevronLeft" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button disabled={safeUserPage === 1} onClick={() => setUserPage(p => Math.max(1, p - 1))}
+                    style={{
+                      background: 'transparent', border: 'none',
+                      cursor: safeUserPage === 1 ? 'default' : 'pointer',
+                      padding: 4, borderRadius: 4,
+                      color: safeUserPage === 1 ? t.neutrals.line : t.neutrals.muted,
+                      opacity: safeUserPage === 1 ? 0.4 : 1,
+                    }}>
+                    <LIcon name="chevronLeft" size={13} stroke={2} />
+                  </button>
                   <span style={{
-                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text,
-                    padding: '0 6px', fontVariantNumeric: 'tabular-nums',
+                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
                   }}>
-                    {safeUserPage}/{totalUserPages}
+                    {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, sortedUsers.length)} / {sortedUsers.length}
                   </span>
-                  <PageNavButton onClick={() => setUserPage(Math.min(totalUserPages, safeUserPage + 1))} disabled={safeUserPage === totalUserPages} icon="chevronRight" />
+                  <button disabled={safeUserPage >= totalUserPages} onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
+                    style={{
+                      background: 'transparent', border: 'none',
+                      cursor: safeUserPage >= totalUserPages ? 'default' : 'pointer',
+                      padding: 4, borderRadius: 4,
+                      color: safeUserPage >= totalUserPages ? t.neutrals.line : t.neutrals.muted,
+                      opacity: safeUserPage >= totalUserPages ? 0.4 : 1,
+                    }}>
+                    <LIcon name="chevronRight" size={13} stroke={2} />
+                  </button>
                 </div>
               )}
             </div>
@@ -907,31 +924,6 @@ function DistributionPie({
         </div>
       )}
     </div>
-  )
-}
-
-function PageNavButton({
-  onClick, disabled, icon,
-}: {
-  onClick: () => void
-  disabled: boolean
-  icon: 'chevronLeft' | 'chevronRight'
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        width: 22, height: 22, borderRadius: t.radius.sm, border: 'none',
-        background: disabled ? 'transparent' : t.neutrals.inner,
-        color: disabled ? t.neutrals.line : t.neutrals.muted,
-        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'background 120ms ease',
-      }}
-    >
-      <LIcon name={icon} size={12} stroke={2} />
-    </button>
   )
 }
 
