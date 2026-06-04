@@ -605,10 +605,10 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   text-underline-offset: 2px;
 }
 
+/* 모바일 1.3배 확대: iOS WebKit(아이폰 Safari/Chrome 공통)은 body에 건 zoom을 무시하므로
+   중첩 div(.mobile-zoom)에 zoom을 건다. zoom은 transform과 달리 position:fixed containing
+   block을 만들지 않아 레이아웃이 깨지지 않는다. width 보정으로 가로 오버플로우 방지. */
 @media (max-width: 768px) {
-  body {
-    zoom: 1.3;
-  }
   .mobile-zoom {
     zoom: 1.3;
     width: calc(100% / 1.3);
