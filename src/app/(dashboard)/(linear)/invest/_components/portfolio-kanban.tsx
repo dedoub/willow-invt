@@ -562,7 +562,7 @@ export function PortfolioKanban({
   })
 
   return (
-    <LCard pad={0} className="kanban-fz">
+    <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead eyebrow="PORTFOLIO · KANBAN" title="종목관리" action={
           <button

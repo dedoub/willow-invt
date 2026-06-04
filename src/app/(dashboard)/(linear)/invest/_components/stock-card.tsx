@@ -114,6 +114,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
 
   return (
     <div
+      className="kanban-card"
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
