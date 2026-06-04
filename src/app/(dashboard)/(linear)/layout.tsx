@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, useRef, ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { Inter as InterTight } from 'next/font/google'
 import { JetBrains_Mono } from 'next/font/google'
@@ -55,6 +55,7 @@ export default function LinearRouteLayout({
   const mobile = useIsMobile()
   const [chatOpen, setChatOpen] = useState<boolean | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const zoomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('linear-chat-open')
@@ -67,6 +68,25 @@ export default function LinearRouteLayout({
   }, [chatOpen])
   // Close menu on route change
   useEffect(() => { setMenuOpen(false) }, [pathname])
+
+  // 모바일 확대는 transform: scale(globals.css .mobile-zoom)로 처리. transform은 레이아웃
+  // 높이를 바꾸지 않아 하단이 잘리므로, 늘어난 시각 높이만큼 marginBottom으로 보정.
+  useEffect(() => {
+    const el = zoomRef.current
+    if (!el) return
+    const fix = () => {
+      const isMobile = window.matchMedia('(max-width: 768px)').matches
+      if (!isMobile) { el.style.marginBottom = ''; return }
+      const visual = el.getBoundingClientRect().height
+      const layout = el.offsetHeight
+      el.style.marginBottom = `${Math.max(0, Math.round(visual - layout))}px`
+    }
+    fix()
+    const ro = new ResizeObserver(fix)
+    ro.observe(el)
+    window.addEventListener('resize', fix)
+    return () => { ro.disconnect(); window.removeEventListener('resize', fix) }
+  }, [pathname])
 
   const info = PAGE_INFO[pathname] || { group: '윌로우인베스트먼트', title: '' }
 
@@ -92,7 +112,7 @@ export default function LinearRouteLayout({
             onMenuToggle={() => setMenuOpen(v => !v)}
           />
           <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '16px 12px 24px' : '16px 20px 24px' }}>
-            {children}
+            <div ref={zoomRef} className="mobile-zoom">{children}</div>
           </main>
         </div>
 
