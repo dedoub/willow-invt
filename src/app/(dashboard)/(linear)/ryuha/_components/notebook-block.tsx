@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
@@ -203,6 +203,18 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
   const containerH = FILTER_H + pageSize * ROW_H + 4 + PAGI_H
   const selectedNote = selectedId ? notes.find(n => n.id === selectedId) : null
+
+  // 데스크탑 진입 시 우측 패널이 비지 않도록 가장 최근 업데이트된 노트를 자동 선택. (위키와 동일 동작)
+  // 모바일에선 list만 표시하므로 자동 선택 X. useIsMobile은 첫 렌더 시 false라 window.innerWidth 직접 체크.
+  useEffect(() => {
+    if (selectedId || notes.length === 0) return
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return
+    const latest = notes.reduce<RyuhaNote | null>((acc, n) => {
+      if (!acc) return n
+      return new Date(n.updated_at).getTime() > new Date(acc.updated_at).getTime() ? n : acc
+    }, null)
+    if (latest) setSelectedId(latest.id)
+  }, [selectedId, notes])
 
   const handleSearchChange = (v: string) => {
     setSearch(v)
@@ -454,16 +466,17 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                   }}>
                     {selectedNote.title || '(제목 없음)'}
                   </h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                     <button onClick={handlePin} style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-                      borderRadius: t.radius.sm, fontSize: 13,
+                      borderRadius: t.radius.sm, fontSize: 13, flexShrink: 0,
                       color: selectedNote.is_pinned ? '#D97706' : t.neutrals.subtle,
                     }}>📌</button>
                     <button onClick={() => setEditing(true)} style={{
                       background: 'none', border: 'none', cursor: 'pointer',
                       fontSize: 12, fontWeight: t.weight.regular, color: t.neutrals.muted,
                       fontFamily: t.font.sans, padding: '4px 8px', borderRadius: t.radius.sm,
+                      whiteSpace: 'nowrap' as const, flexShrink: 0,
                     }}>
                       편집
                     </button>
