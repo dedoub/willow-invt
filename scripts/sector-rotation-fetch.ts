@@ -34,13 +34,13 @@ interface YahooChartResult {
   chart: {
     result?: Array<{
       timestamp?: number[]
-      indicators?: { quote?: Array<{ close?: (number | null)[] }> }
+      indicators?: { quote?: Array<{ close?: (number | null)[]; high?: (number | null)[] }> }
     }>
     error?: unknown
   }
 }
 
-async function fetchHistorical(ticker: string): Promise<Array<{ date: string; close: number }>> {
+async function fetchHistorical(ticker: string): Promise<Array<{ date: string; close: number; high: number | null }>> {
   const url = fullHistory
     ? `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&period1=0&period2=${Math.floor(Date.now() / 1000)}`
     : `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=${range}`
@@ -50,13 +50,19 @@ async function fetchHistorical(ticker: string): Promise<Array<{ date: string; cl
   const result = data.chart?.result?.[0]
   const timestamps = result?.timestamp || []
   const closes = result?.indicators?.quote?.[0]?.close || []
-  const rows: Array<{ date: string; close: number }> = []
+  const highs = result?.indicators?.quote?.[0]?.high || []
+  const rows: Array<{ date: string; close: number; high: number | null }> = []
   for (let i = 0; i < timestamps.length; i++) {
     const c = closes[i]
     if (c == null || isNaN(c)) continue
+    const h = highs[i]
     const d = new Date(timestamps[i] * 1000)
     const dateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
-    rows.push({ date: dateStr, close: Math.round(c * 10000) / 10000 })
+    rows.push({
+      date: dateStr,
+      close: Math.round(c * 10000) / 10000,
+      high: (h == null || isNaN(h)) ? null : Math.round(h * 10000) / 10000,
+    })
   }
   return rows
 }
@@ -85,7 +91,7 @@ async function main() {
         console.warn(`  ${etf.ticker} (${etf.name}): no data`)
         continue
       }
-      const payload = rows.map(r => ({ ticker: etf.ticker, date: r.date, close: r.close }))
+      const payload = rows.map(r => ({ ticker: etf.ticker, date: r.date, close: r.close, high: r.high }))
       // 1000-row batch upsert
       for (let i = 0; i < payload.length; i += 1000) {
         const slice = payload.slice(i, i + 1000)

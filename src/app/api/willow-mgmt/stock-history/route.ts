@@ -24,7 +24,7 @@ function cutoffDate(range: string): string {
   return d.toISOString().slice(0, 10)
 }
 
-async function fetchFromYahoo(yahooSymbol: string, range: string): Promise<{ dates: string[]; prices: number[] } | null> {
+async function fetchFromYahoo(yahooSymbol: string, range: string): Promise<{ dates: string[]; prices: number[]; highs: number[] } | null> {
   try {
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=${range}`,
@@ -36,17 +36,22 @@ async function fetchFromYahoo(yahooSymbol: string, range: string): Promise<{ dat
     if (!result) return null
     const timestamps: number[] = result.timestamp || []
     const closes: (number | null)[] = result.indicators?.quote?.[0]?.close || []
+    const highsRaw: (number | null)[] = result.indicators?.quote?.[0]?.high || []
     const dates: string[] = []
     const prices: number[] = []
+    const highs: number[] = []
     for (let j = 0; j < timestamps.length; j++) {
       const date = new Date(timestamps[j] * 1000).toISOString().slice(0, 10)
       const price = closes[j]
       if (price && price > 0) {
+        const h = highsRaw[j]
         dates.push(date)
         prices.push(Math.round(price * 100) / 100)
+        // 고가 누락 시 종가로 폴백 (저항선 계산이 깨지지 않도록)
+        highs.push(h && h > 0 ? Math.round(h * 100) / 100 : Math.round(price * 100) / 100)
       }
     }
-    return { dates, prices }
+    return { dates, prices, highs }
   } catch {
     return null
   }
@@ -71,12 +76,12 @@ export async function GET(request: Request) {
 
   // ── 1) Bulk-read DB for all symbols at once (paginated) ──
   const supabase = getServiceSupabase()
-  const dbSeries = new Map<string, { dates: string[]; prices: number[] }>()
+  const dbSeries = new Map<string, { dates: string[]; prices: number[]; highs: number[] }>()
   const PAGE = 1000
   for (let offset = 0; ; offset += PAGE) {
     const { data, error } = await supabase
       .from('sector_index_quotes')
-      .select('ticker, date, close')
+      .select('ticker, date, close, high')
       .in('ticker', symbolOf)
       .gte('date', cutoff)
       .order('date', { ascending: true })
@@ -85,15 +90,18 @@ export async function GET(request: Request) {
     if (!data || data.length === 0) break
     for (const row of data) {
       let s = dbSeries.get(row.ticker)
-      if (!s) { s = { dates: [], prices: [] }; dbSeries.set(row.ticker, s) }
+      if (!s) { s = { dates: [], prices: [], highs: [] }; dbSeries.set(row.ticker, s) }
+      const close = Math.round(Number(row.close) * 100) / 100
       s.dates.push(row.date)
-      s.prices.push(Math.round(Number(row.close) * 100) / 100)
+      s.prices.push(close)
+      // 고가 누락(과거 미백필 행)은 종가로 폴백 → 저항선 계산 안전
+      s.highs.push(row.high != null && Number(row.high) > 0 ? Math.round(Number(row.high) * 100) / 100 : close)
     }
     if (data.length < PAGE) break
   }
 
   // ── 2) Assemble result: DB first, Yahoo fallback for missing/thin ──
-  const results: Record<string, { dates: string[]; prices: number[] }> = {}
+  const results: Record<string, { dates: string[]; prices: number[]; highs: number[] }> = {}
   await Promise.all(tickers.map(async (ticker, i) => {
     const sym = symbolOf[i]
     const fromDb = dbSeries.get(sym)

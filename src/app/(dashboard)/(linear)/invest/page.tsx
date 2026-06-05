@@ -33,7 +33,7 @@ export default function InvestPage() {
 
   // Holdings / Analysis specific states
   const [stockThemes, setStockThemes] = useState<Record<string, TickerTheme[]>>({})
-  const [stockHistory, setStockHistory] = useState<Record<string, { dates: string[]; prices: number[] }>>({})
+  const [stockHistory, setStockHistory] = useState<Record<string, { dates: string[]; prices: number[]; highs?: number[] }>>({})
   const [fxHistory, setFxHistory] = useState<Record<string, number>>({})
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
 
@@ -281,8 +281,10 @@ export default function InvestPage() {
       if (!cur || cur <= 0) continue
       const prices = series?.prices
       if (!prices || prices.length < 2) continue
-      // 오늘 종가가 시계열에 이미 있으면 제외하고 직전 N일 고가를 본다.
-      const prior = prices.slice(Math.max(0, prices.length - 1 - WINDOW), prices.length - 1)
+      // 저항선은 직전 N거래일 '고가'의 최댓값(Donchian). 고가 누락 시 종가로 폴백.
+      const levelSeries = (series?.highs && series.highs.length === prices.length) ? series.highs : prices
+      // 오늘 바는 제외하고 직전 N일만 본다.
+      const prior = levelSeries.slice(Math.max(0, levelSeries.length - 1 - WINDOW), levelSeries.length - 1)
       if (prior.length === 0) continue
       const resistance = Math.max(...prior)
       if (!(resistance > 0)) continue
