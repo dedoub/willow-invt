@@ -846,11 +846,18 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const userAppVersionMap = new Map<string, string>()
   const userPlatformMap = new Map<string, string>()
   const userLocaleMap = new Map<string, string>()
+  // 앱 이벤트 최근 시각 (versionRows는 created_at desc → user_id 첫 등장이 최신 이벤트)
+  // 듣기/미리듣기만 한 유저는 user_analytics 기록이 없어 last_updated가 비는데,
+  // 이벤트 시각을 활동일에 합쳐 "마지막 활동일"이 빈칸으로 뜨지 않게 한다.
+  const userLastEventMap = new Map<string, string>()
   for (const row of versionRows) {
     if (row.user_id && row.app_version && !userAppVersionMap.has(row.user_id)) {
       userAppVersionMap.set(row.user_id, row.app_version)
       if (row.platform) userPlatformMap.set(row.user_id, row.platform)
       if (row.locale) userLocaleMap.set(row.user_id, row.locale)
+    }
+    if (row.user_id && row.created_at && !userLastEventMap.has(row.user_id)) {
+      userLastEventMap.set(row.user_id, row.created_at)
     }
   }
 
@@ -867,7 +874,11 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     cards: userCardsMap.get(u.user_id) || 0,
     attempts: userAttemptsMap.get(u.user_id) || 0,
     createdAt: u.created_at,
-    lastActiveAt: lastActivityMap.get(u.user_id) || null,
+    // 학습 활동(user_analytics.last_updated)과 앱 이벤트 최근 시각 중 더 최근값
+    lastActiveAt: (() => {
+      const cands = [lastActivityMap.get(u.user_id), userLastEventMap.get(u.user_id)].filter(Boolean) as string[]
+      return cands.length ? cands.reduce((a, b) => (new Date(a) >= new Date(b) ? a : b)) : null
+    })(),
   }))
 
   // 최근 활동일 기준 정렬 (활동 있는 유저 먼저, 없으면 가입일 기준)
