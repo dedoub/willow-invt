@@ -105,9 +105,9 @@ export function ProductBlock({ products }: ProductBlockProps) {
             <col style={{ width: 52 }} />
             <col />
             <col style={{ width: 78 }} />
+            <col style={{ width: 96 }} />
+            <col style={{ width: 104 }} />
             <col style={{ width: 80 }} />
-            <col style={{ width: 80 }} />
-            <col style={{ width: 72 }} />
           </colgroup>
           <thead>
             <tr style={{ background: t.neutrals.inner, borderBottom: `1px solid ${t.neutrals.line}` }}>
