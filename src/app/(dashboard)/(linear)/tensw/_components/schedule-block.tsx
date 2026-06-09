@@ -133,6 +133,7 @@ function DayCell({
   borderRight: boolean; minHeight: number
 }) {
   const [hovered, setHovered] = useState(false)
+  const [pop, setPop] = useState<{ left: number; top: number } | null>(null)
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -195,15 +196,45 @@ function DayCell({
           <>
             {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} compact onToggle={onToggle} onSelect={onSelect} />)}
             {schedules.length > 2 && (
-              <div style={{ fontSize: 'calc(8.5px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                  setPop({ left: Math.min(r.left, window.innerWidth - 252), top: r.bottom + 4 })
+                }}
+                style={{
+                  alignSelf: 'flex-start', border: 'none', background: 'transparent', padding: 0,
+                  fontSize: 'calc(8.5px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono, cursor: 'pointer',
+                }}
+              >
                 +{schedules.length - 2}
-              </div>
+              </button>
             )}
           </>
         ) : (
           schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={onSelect} />)
         )}
       </div>
+      {pop && (
+        <>
+          <div onClick={(e) => { e.stopPropagation(); setPop(null) }}
+            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.04)' }} />
+          <div onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'fixed', left: pop.left, top: pop.top, zIndex: 1001,
+              width: 240, maxHeight: 340, overflowY: 'auto',
+              background: t.neutrals.card, borderRadius: t.radius.md,
+              boxShadow: '0 4px 16px rgba(15,15,20,0.16)', padding: 8,
+              display: 'flex', flexDirection: 'column', gap: 4,
+            }}>
+            <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.text, marginBottom: 2 }}>
+              {dateStr.slice(5).replace('-', '월 ')}일
+              <span style={{ marginLeft: 4, fontFamily: t.font.mono, fontWeight: 400, color: t.neutrals.subtle }}>({schedules.length})</span>
+            </div>
+            {schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={onSelect} />)}
+          </div>
+        </>
+      )}
     </div>
   )
 }
