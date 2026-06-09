@@ -386,6 +386,10 @@ function getCurrentKSTString(): string {
   return `${date} ${time}`
 }
 
+function isSundayKST(d: Date = new Date()): boolean {
+  return d.toLocaleDateString('en-US', { timeZone: 'Asia/Seoul', weekday: 'short' }) === 'Sun'
+}
+
 function formatTimeAgo(ts: Date, now: Date): string {
   const diffMs = now.getTime() - ts.getTime()
   const diffMin = Math.floor(diffMs / 60000)
@@ -1350,6 +1354,10 @@ ${rawData}`
 
 async function proactiveCheck() {
   if (!ceoChatId) return
+  if (isSundayKST()) {
+    console.log('⏭️ proactiveCheck skip (Sunday KST)')
+    return
+  }
 
   const now = new Date()
   const todayStr = formatDate(now)
@@ -1487,10 +1495,12 @@ ${getCurrentKSTString()}
 - portfolio_scan 도구로 {market_group} 종목을 조회하세요
 - 축별(AI 인프라/지정학·안보/넥스트)로 정리하되 보유 종목은 빠짐없이 모두 넣으세요
 - 첫 메시지는 "{greeting}" 다음 줄부터 바로 표가 나오게 하세요. 요약문부터 길게 쓰지 마세요
-- 각 축마다 반드시 마크다운 표 1개씩 작성하세요
-- 표 컬럼은 반드시: 종목 | 현재가 | 전일대비 | 12M고점거리 | 수익률 | T | 상태 | 추가매수
-- 전일대비는 %로, 12M고점거리는 고점 대비 괴리율로, 수익률은 평균매수단가 대비 총수익률로 적으세요
-- BUY면 추가매수 칸에 "🔔 추가매수 T{다음트랜치}" 형식으로, 아니면 "추가매수 없음" 또는 "대기(+N%)"로 명시하세요
+- 각 축마다 반드시 마크다운 표 2개로 나누세요: 가격표, 추매표
+- 가격표 컬럼은 반드시: 종목 | 현재가 | 등락 | 고점
+- 추매표 컬럼은 반드시: 종목 | 수익 | T/상태 | 액션
+- 종목명은 티커 또는 짧은 한글명만 쓰세요. 회사 전체 이름 금지
+- 전일대비는 "등락", 12M고점거리는 "고점", 수익률은 "수익"으로 짧게 적으세요
+- BUY면 액션 칸에 "🔔 T{다음트랜치}" 형식으로, 아니면 "없음" 또는 "대기(+N%)"로 명시하세요
 - 신고가 돌파/근접, 급등/급락 종목은 표 안에서 이모지나 짧은 표시로 강조하세요
 - 표 아래에 "피라미딩 현황" 한 줄 요약을 반드시 넣으세요
 - 마지막에는 "주요 포인트"를 2~3줄만 짧게 쓰세요
@@ -1500,11 +1510,17 @@ ${getCurrentKSTString()}
 ## 스타일
 - "{greeting}" 으로 시작
 - 장 개시/마감 브리핑은 숫자와 상태를 표 중심으로 한눈에 읽히게 보여주세요
-- 2~3 파트면 ---SPLIT--- 로 구분`
+- 표는 4컬럼 초과 금지. 넓은 1개 표 대신 좁은 2개 표를 쓰세요
+- 한 메시지에 표는 최대 2개까지만 넣고, 축이 많으면 ---SPLIT--- 로 나누세요
+- 축 헤더는 짧게 쓰고, 표 사이 설명문은 1줄 이내로 제한하세요`
 }
 
 async function marketMonitorCheck() {
   if (!ceoChatId) return
+  if (isSundayKST()) {
+    console.log('⏭️ marketMonitorCheck skip (Sunday KST)')
+    return
+  }
 
   try {
     const current = await fetchMarketStatus()
@@ -1908,6 +1924,10 @@ function isDuplicateBreaking(title: string, topic: string): boolean {
 
 async function breakingNewsCheck() {
   if (!ceoChatId) return
+  if (isSundayKST()) {
+    console.log('⏭️ breakingNewsCheck skip (Sunday KST)')
+    return
+  }
   const now = Date.now()
   if (now - lastBreakingCheckAt < BREAKING_CHECK_INTERVAL) return
   lastBreakingCheckAt = now
@@ -2040,6 +2060,10 @@ let lastNewsDigestAt = 0
 
 async function newsDigestCheck() {
   if (!ceoChatId) return
+  if (isSundayKST()) {
+    console.log('⏭️ newsDigestCheck skip (Sunday KST)')
+    return
+  }
   const now = Date.now()
   if (now - lastNewsDigestAt < NEWS_DIGEST_INTERVAL) return
 
@@ -3234,8 +3258,12 @@ async function main() {
 
   // 재시작 알림
   if (ceoChatId) {
-    const now = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
-    await sendMessage(ceoChatId, `🔄 봇이 재시작되었어요. (${now})`)
+    if (isSundayKST()) {
+      console.log('⏭️ restart alert skip (Sunday KST)')
+    } else {
+      const now = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
+      await sendMessage(ceoChatId, `🔄 봇이 재시작되었어요. (${now})`)
+    }
   }
 
   // 자율 점검 루프 시작

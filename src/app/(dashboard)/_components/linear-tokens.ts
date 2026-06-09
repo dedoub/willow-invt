@@ -43,6 +43,22 @@ export const t = {
 
 export type LinearTokens = typeof t
 
+// 주어진 배경색(hex) 위에서 잘 보이는 글자/아이콘 색(흑 또는 백) 반환.
+// 휘도 기반. #RGB / #RRGGBB / #RRGGBBAA(알파 무시) 모두 처리.
+export function readableOn(hex: string): string {
+  if (!hex || hex[0] !== '#') return '#FFFFFF'
+  let h = hex.slice(1)
+  if (h.length === 3) h = h.split('').map(c => c + c).join('')
+  if (h.length === 8) h = h.slice(0, 6)
+  if (h.length !== 6) return '#FFFFFF'
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  if ([r, g, b].some(Number.isNaN)) return '#FFFFFF'
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return lum > 0.6 ? '#1A1A1A' : '#FFFFFF'
+}
+
 export const tonePalettes = {
   neutral:  { bg: '#EDEDEE', fg: '#2A2A2E' },
   pending:  { bg: '#FBEFD5', fg: '#8B5A12' },

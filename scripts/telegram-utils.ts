@@ -15,6 +15,16 @@ function stripMarkdownForTableCell(text: string): string {
     .trim()
 }
 
+function compactTableCell(text: string): string {
+  return stripMarkdownForTableCell(text)
+    .replace(/\s+/g, ' ')
+    .replace(/^전일대비$/i, '등락')
+    .replace(/^12M고점거리$/i, '고점')
+    .replace(/^수익률$/i, '수익')
+    .replace(/^추가매수$/i, '액션')
+    .replace(/^트랜치$/i, 'T')
+}
+
 function displayWidth(text: string): number {
   let width = 0
   for (const ch of text) {
@@ -42,11 +52,6 @@ function displayWidth(text: string): number {
   return width
 }
 
-function padDisplay(text: string, targetWidth: number): string {
-  const padding = Math.max(0, targetWidth - displayWidth(text))
-  return text + ' '.repeat(padding)
-}
-
 function formatMarkdownTableBlock(lines: string[]): string | null {
   if (lines.length < 2 || !isMarkdownTableSeparator(lines[1])) return null
 
@@ -57,7 +62,7 @@ function formatMarkdownTableBlock(lines: string[]): string | null {
         .trim()
         .slice(1, -1)
         .split('|')
-        .map(cell => stripMarkdownForTableCell(cell))
+        .map(cell => compactTableCell(cell))
     )
 
   if (rows.length === 0) return null
@@ -69,17 +74,12 @@ function formatMarkdownTableBlock(lines: string[]): string | null {
     return next
   })
 
-  const widths = Array.from({ length: columnCount }, (_, col) =>
-    Math.max(...normalizedRows.map(row => displayWidth(row[col])))
-  )
-
   const formattedRows = normalizedRows.map((row, idx) => {
-    const line = row
-      .map((cell, col) => padDisplay(cell, widths[col]))
-      .join(' | ')
-      .trimEnd()
+    const line = row.map(cell => cell.trim()).join(' | ')
     if (idx === 0) {
-      const divider = widths.map(w => '-'.repeat(Math.max(3, w))).join('-|-')
+      const divider = row
+        .map(cell => '-'.repeat(Math.max(3, Math.min(8, displayWidth(cell.trim())))))
+        .join(' | ')
       return `${line}\n${divider}`
     }
     return line
