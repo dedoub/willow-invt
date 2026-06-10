@@ -229,24 +229,50 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
     start.setFullYear(start.getFullYear() - 1)
     const sparkStart = start.toISOString().slice(0, 10)
 
-    const last: Record<string, number> = {}
-    const series: Array<{ date: string; value: number }> = []
-    for (const d of dates) {
-      if (d > rangeEnd) break
-      const day = byDate.get(d)!
-      for (const acct of accounts) if (day[acct] != null) last[acct] = day[acct]
-      if (d < sparkStart) continue
+    const fxTotal = (vals: Record<string, number>) => {
       let total = 0
-      for (const acct of accounts) {
-        const v = last[acct]
+      for (const acct of new Set([...accounts, ...Object.keys(vals)])) {
+        const v = vals[acct]
         if (v == null) continue
         if (acct.toLowerCase().includes('usd') || acct.includes('외화')) total += v * usdRate
         else total += v
       }
-      series.push({ date: d, value: Math.round(total) })
+      return total
+    }
+
+    const last: Record<string, number> = {}
+    const lastDateByAccount: Record<string, string> = {}
+    const series: Array<{ date: string; value: number }> = []
+    for (const d of dates) {
+      if (d > rangeEnd) break
+      const day = byDate.get(d)!
+      for (const acct of accounts) if (day[acct] != null) { last[acct] = day[acct]; lastDateByAccount[acct] = d }
+      if (d < sparkStart) continue
+      series.push({ date: d, value: Math.round(fxTotal(last)) })
+    }
+
+    // Extend with the authoritative current-balance snapshot (bankBalances) as a
+    // terminal point. Manually-entered transactions often lack balance_after, so the
+    // history line stalls at the last parsed statement; the snapshot carries the true
+    // current balance. Mirrors the periodEndBalance fallback above.
+    let snapDate = ''
+    for (const b of bankBalances) {
+      const acct = b.account_number || b.bank_name
+      const bDate = b.balance_date || ''
+      if (!bDate || bDate > rangeEnd || bDate < sparkStart) continue
+      if (bDate >= (lastDateByAccount[acct] || '')) {
+        last[acct] = b.balance
+        lastDateByAccount[acct] = bDate
+        if (bDate > snapDate) snapDate = bDate
+      }
+    }
+    if (snapDate && (!series.length || snapDate >= series[series.length - 1].date)) {
+      const point = { date: snapDate, value: Math.round(fxTotal(last)) }
+      if (series.length && series[series.length - 1].date === snapDate) series[series.length - 1] = point
+      else series.push(point)
     }
     return series
-  }, [balanceHistory, usdRate, rangeEnd])
+  }, [balanceHistory, bankBalances, usdRate, rangeEnd])
   const eyebrowLabel = periodMode === 'month' ? 'CASHFLOW · 월간'
     : periodMode === 'quarter' ? 'CASHFLOW · 분기' : 'CASHFLOW · 연간'
 

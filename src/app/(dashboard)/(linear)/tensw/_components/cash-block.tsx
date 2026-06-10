@@ -216,11 +216,12 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
     const sparkStart = start.toISOString().slice(0, 10)
 
     const last: Record<string, number> = {}
+    const lastDateByAccount: Record<string, string> = {}
     const series: Array<{ date: string; value: number }> = []
     for (const d of dates) {
       if (d > rangeEnd) break
       const day = byDate.get(d)!
-      for (const acct of accounts) if (day[acct] != null) last[acct] = day[acct]
+      for (const acct of accounts) if (day[acct] != null) { last[acct] = day[acct]; lastDateByAccount[acct] = d }
       if (d < sparkStart) continue
       let total = 0
       for (const acct of accounts) {
@@ -230,8 +231,35 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
       }
       series.push({ date: d, value: Math.round(total) })
     }
+
+    // Extend with the authoritative current-balance snapshot (bankBalances) as a
+    // terminal point. Manually-entered transactions often lack balance_after, so the
+    // history line stalls at the last parsed statement; the snapshot carries the true
+    // current balance. Mirrors the periodEndBalance fallback above.
+    let snapDate = ''
+    for (const b of bankBalances) {
+      const acct = b.account_number || b.bank_name
+      const bDate = b.balance_date || ''
+      if (!bDate || bDate > rangeEnd || bDate < sparkStart) continue
+      if (bDate >= (lastDateByAccount[acct] || '')) {
+        last[acct] = b.balance
+        lastDateByAccount[acct] = bDate
+        if (bDate > snapDate) snapDate = bDate
+      }
+    }
+    if (snapDate && (!series.length || snapDate >= series[series.length - 1].date)) {
+      let total = 0
+      for (const acct of new Set([...accounts, ...Object.keys(last)])) {
+        const v = last[acct]
+        if (v == null) continue
+        total += v
+      }
+      const point = { date: snapDate, value: Math.round(total) }
+      if (series.length && series[series.length - 1].date === snapDate) series[series.length - 1] = point
+      else series.push(point)
+    }
     return series
-  }, [balanceHistory, rangeEnd])
+  }, [balanceHistory, bankBalances, rangeEnd])
 
   const eyebrowLabel = periodMode === 'month' ? 'CASHFLOW · 월간'
     : periodMode === 'quarter' ? 'CASHFLOW · 분기' : 'CASHFLOW · 연간'
