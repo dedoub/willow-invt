@@ -772,10 +772,16 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
 
   // 분석에서 제외할 내부 계정 (운영자/테스트)
   const EXCLUDED_NICKNAMES = new Set(['류하아빠', '큐트도넛'])
+  // 봇/자동화 계정 이메일 도메인 (Firebase Test Lab 등) — 닉네임이 없어 도메인으로 식별
+  const EXCLUDED_EMAIL_DOMAINS = ['cloudtestlabaccounts.com']
+  const isExcludedEmail = (email: string | null) =>
+    !!email && EXCLUDED_EMAIL_DOMAINS.some(d => email.toLowerCase().endsWith(`@${d}`))
 
   const allUsers = usersRes.data || []
   const excludedUserIds = new Set(
-    allUsers.filter(u => u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)).map(u => u.user_id)
+    allUsers
+      .filter(u => (u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)) || isExcludedEmail(u.email))
+      .map(u => u.user_id)
   )
   const users = allUsers.filter(u => !excludedUserIds.has(u.user_id))
   // analytics: 제외 유저 + orphan(users 테이블에 없는 user_id) 모두 제거 — 유저 목록 합계와 상단 통계 일치
@@ -951,11 +957,18 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   // 정책. 'tts_played' 등 이벤트가 매일 카운트되는데 운영 계정 사용이 함께
   // 집계되면 외부 사용자 활동량을 과대 추정함.
   const EXCLUDED_NICKNAMES = new Set(['류하아빠', '큐트도넛'])
+  // 봇/자동화 계정 이메일 도메인 (Firebase Test Lab 등) — getVoicecardsUserStats와 동일 정책
+  const EXCLUDED_EMAIL_DOMAINS = ['cloudtestlabaccounts.com']
+  const isExcludedEmail = (email: string | null) =>
+    !!email && EXCLUDED_EMAIL_DOMAINS.some(d => email.toLowerCase().endsWith(`@${d}`))
   const { data: excludedUsersRows } = await voicecardsSupabase
     .from('users')
-    .select('user_id, nickname')
-    .in('nickname', Array.from(EXCLUDED_NICKNAMES))
-  const excludedUserIds = new Set((excludedUsersRows || []).map(u => u.user_id))
+    .select('user_id, nickname, email')
+  const excludedUserIds = new Set(
+    (excludedUsersRows || [])
+      .filter(u => (u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)) || isExcludedEmail(u.email))
+      .map(u => u.user_id)
+  )
 
   const allRows: any[] = []
   const PAGE = 1000

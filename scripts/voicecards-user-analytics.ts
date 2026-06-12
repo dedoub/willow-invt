@@ -1,11 +1,13 @@
 // VoiceCards 일일 유저 분석 → 텔레그램 발송
-// 매일 09:30 KST 실행 (일요일 제외)
+// 매일 07:00 KST 실행 (일요일 제외)
 // Usage: npx tsx scripts/voicecards-user-analytics.ts
 
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
+import { execFileSync } from 'node:child_process'
+import { markdownToTelegramHtml } from './telegram-utils'
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`
@@ -20,11 +22,16 @@ const vcKey = process.env.VOICECARDS_SUPABASE_KEY
 const voicecards = vcUrl && vcKey ? createClient(vcUrl, vcKey) : null
 
 const EXCLUDED_NICKNAMES = new Set(['류하아빠', '큐트도넛'])
+// 봇/자동화 계정 이메일 도메인 (Firebase Test Lab 등) — 닉네임이 없어 도메인으로 식별
+const EXCLUDED_EMAIL_DOMAINS = ['cloudtestlabaccounts.com']
+const isExcludedEmail = (email: string | null) =>
+  !!email && EXCLUDED_EMAIL_DOMAINS.some(d => email.toLowerCase().endsWith(`@${d}`))
 const TRACKED_USER_IDS = ['100157754402469375887']
 
 type UserRow = {
   user_id: string
   nickname: string | null
+  email: string | null
   sheet_ids: string[] | null
   credits: number | null
   created_at: string
@@ -32,6 +39,7 @@ type UserRow = {
 
 type AnalyticsRow = {
   user_id: string
+  sheet_name: string | null
   cards_learned: number | null
   total_attempts: number | null
   last_updated: string | null
@@ -69,7 +77,7 @@ async function getCeoChatId(): Promise<number | null> {
   return data?.chat_id ?? null
 }
 
-async function sendTelegram(chatId: number, text: string) {
+async function sendTelegram(chatId: number, text: string, parseMode: string = 'Markdown') {
   const MAX_LEN = 4000
   const chunks: string[] = []
   let remaining = text
@@ -87,7 +95,7 @@ async function sendTelegram(chatId: number, text: string) {
     const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: chunk, parse_mode: 'Markdown' }),
+      body: JSON.stringify({ chat_id: chatId, text: chunk, parse_mode: parseMode }),
     })
     if (!res.ok) {
       log(`Telegram send failed: ${res.status} ${await res.text()}`)
@@ -127,6 +135,36 @@ function formatKST(iso: string): string {
   return `${m}/${day} ${hh}:${mm}`
 }
 
+// 데이터 다이제스트를 claude -p(헤드리스 Claude CLI)에 먹여 CEO용 한국어 내러티브를 생성.
+// 실패하면 null 반환 → 호출부가 기존 템플릿으로 폴백한다. (별도 API 키 불필요)
+function generateNarrative(digest: string): string | null {
+  const prompt = `당신은 VoiceCards(음성 플래시카드 앱)의 데이터 분석가입니다. 아래 데이터로 CEO에게 보낼 한국어 일일 리포트를 작성하세요.
+
+작성 규칙:
+- 핵심부터: 어제 누가 활동했고 **무엇을 공부했는지(주제=sheet_name)**, 얼마나(카드/시도) 했는지.
+- 신규 유저의 활성화(첫 학습 전환)와 리텐션 신호를 짚는다. 추론과 사실을 구분한다.
+- 마지막에 "오늘의 인사이트" 한 줄 — 가입 수보다 활성화·리텐션 관점에서.
+- 제품 철학 반영: 정확도보다 연습 "볼륨"이 신호, 학습 모드(듣기/말하기)는 유저 자율(강요 금지).
+- 길이는 텔레그램 1메시지(약 2500자 이내). 이모지 적당히, 과장·미사여구 금지.
+- 마크다운 사용 가능(**굵게**, 목록, 표). 표는 짧게.
+
+데이터:
+${digest}`
+  try {
+    const out = execFileSync('claude', ['-p', '--model', 'claude-sonnet-4-6'], {
+      input: prompt,
+      encoding: 'utf8',
+      timeout: 150000,
+      maxBuffer: 10 * 1024 * 1024,
+    })
+    const text = (out || '').trim()
+    return text.length > 0 ? text : null
+  } catch (e) {
+    log(`claude -p narrative failed: ${(e as Error).message}`)
+    return null
+  }
+}
+
 async function main() {
   if (isSundayKST()) {
     log('Sunday in KST → skip (sunday_no_message rule)')
@@ -149,15 +187,17 @@ async function main() {
       voicecards.from('users').select('*').order('created_at', { ascending: false }).range(from, to),
     ),
     fetchAll<AnalyticsRow>((from, to) =>
-      voicecards.from('user_analytics').select('user_id, cards_learned, total_attempts, last_updated').range(from, to),
+      voicecards.from('user_analytics').select('user_id, sheet_name, cards_learned, total_attempts, last_updated').range(from, to),
     ),
   ])
 
   log(`Loaded ${users.length} users, ${analytics.length} analytics rows`)
 
-  // Filter: 가족 + 운영자 제외
+  // Filter: 가족 + 운영자 + 봇(테스트랩) 제외
   const excludedIds = new Set(
-    users.filter(u => u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)).map(u => u.user_id),
+    users
+      .filter(u => (u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)) || isExcludedEmail(u.email))
+      .map(u => u.user_id),
   )
   const externalUsers = users.filter(u => !excludedIds.has(u.user_id))
   const visibleIds = new Set(externalUsers.map(u => u.user_id))
@@ -175,6 +215,19 @@ async function main() {
       const existing = userLastActive.get(a.user_id)
       if (!existing || a.last_updated > existing) userLastActive.set(a.user_id, a.last_updated)
     }
+  }
+
+  // 유저별 학습 주제(덱 이름) — 시도 많은 순 상위 3개
+  const deckAgg = new Map<string, { name: string; att: number }[]>()
+  for (const a of analytics) {
+    if (!visibleIds.has(a.user_id) || !a.sheet_name) continue
+    const arr = deckAgg.get(a.user_id) || []
+    arr.push({ name: a.sheet_name, att: Number(a.total_attempts) || 0 })
+    deckAgg.set(a.user_id, arr)
+  }
+  const deckNames = new Map<string, string[]>()
+  for (const [uid, arr] of deckAgg) {
+    deckNames.set(uid, arr.sort((x, y) => y.att - x.att).slice(0, 3).map(d => d.name))
   }
 
   // 활동 유저 리스트
@@ -287,18 +340,52 @@ async function main() {
   }
 
   const message = lines.join('\n')
-  log(`Message length: ${message.length}`)
+  log(`Template message length: ${message.length}`)
+
+  // 풍부한 내러티브: 데이터 다이제스트 → claude -p. 실패 시 위 템플릿으로 폴백.
+  const isNewUser = (createdAt: string) => kstDateStr(new Date(createdAt)) === yesterday
+  const fmtUser = (u: (typeof activeUserList)[number]) =>
+    `- ${u.nickname} | ${isNewUser(u.createdAt) ? '신규' : '기존'} | 가입 ${kstDateStr(new Date(u.createdAt))} | 카드 ${u.cards}/시도 ${u.attempts} | 주제: ${(deckNames.get(u.user_id) || []).join(', ') || '-'} | 마지막 ${u.lastActive ? formatKST(u.lastActive) : '-'}`
+  const digestLines: string[] = [
+    `날짜: 오늘 ${today} / 어제 ${yesterday}`,
+    `집계: 외부유저 ${externalUsers.length} · 학습경험자 ${learners.length} · 어제신규 ${newSignups.length} · 어제활동 ${activeYesterday.length} · 오늘활동(현재) ${activeToday.length}`,
+    '',
+    '[어제 활동 유저]',
+    ...(activeYesterday.length ? activeYesterday.slice(0, 12).map(fmtUser) : ['- 없음']),
+    '',
+    '[오늘(현재까지) 활동 유저]',
+    ...(activeToday.length ? activeToday.slice(0, 12).map(fmtUser) : ['- 없음']),
+    '',
+    '[전체 학습경험자 TOP8]',
+    ...learners.slice(0, 8).map((u, i) =>
+      `${i + 1}. ${u.nickname} | 카드 ${u.cards}/시도 ${u.attempts} | 주제: ${(deckNames.get(u.user_id) || []).join(', ') || '-'} | 마지막 ${u.lastActive ? formatKST(u.lastActive) : '-'}`,
+    ),
+  ]
+  if (trackedReports.length > 0) {
+    digestLines.push('', '[트래킹 유저 리텐션]', ...trackedReports.map(r => r.replace(/\\/g, '')))
+  }
+  const narrative = generateNarrative(digestLines.join('\n'))
+
+  let outText = message
+  let parseMode = 'Markdown'
+  if (narrative) {
+    outText = markdownToTelegramHtml(`📊 **VoiceCards 일일 분석** (${today})\n\n${narrative}`)
+    parseMode = 'HTML'
+    log(`Using claude narrative (len ${narrative.length})`)
+  } else {
+    log('Fallback to template message')
+  }
 
   const chatId = await getCeoChatId()
   if (!chatId) {
     log('No CEO chat_id found — skip telegram send')
     console.log('---PREVIEW---')
-    console.log(message)
+    console.log(narrative || message)
     return
   }
 
-  await sendTelegram(chatId, message)
-  log(`Sent to chat_id ${chatId}`)
+  await sendTelegram(chatId, outText, parseMode)
+  log(`Sent to chat_id ${chatId} (${parseMode})`)
 }
 
 main().catch(e => {
