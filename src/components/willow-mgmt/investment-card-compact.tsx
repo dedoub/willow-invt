@@ -100,7 +100,7 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
         </div>
         {data.price != null && (
           <div className="flex items-center gap-1 flex-shrink-0">
-            <span className="text-xs font-medium">{data.currency === 'KRW' ? `₩${data.price.toLocaleString()}` : `$${data.price.toFixed(2)}`}</span>
+            <span className="text-xs font-medium">{data.currency === 'KRW' ? `₩${data.price.toLocaleString()}` : `$${data.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>
           </div>
         )}
       </div>
@@ -191,7 +191,7 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
                   <span className="text-slate-300 dark:text-slate-500 ml-0.5">
                     {data.currency === 'KRW'
                       ? `₩${Math.round(data.monitor.nextThresholdPrice / 10000).toLocaleString()}만`
-                      : `$${data.monitor.nextThresholdPrice.toFixed(0)}`}
+                      : `$${data.monitor.nextThresholdPrice.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
                   </span>
                 )}
               </span>
@@ -223,7 +223,7 @@ export const InvestmentCardCompact = memo(function InvestmentCardCompact({ data,
                   <span className="text-slate-300 dark:text-slate-500 ml-0.5">
                     {data.currency === 'KRW'
                       ? `₩${Math.round(data.pyramiding.nextTriggerPrice / 10000).toLocaleString()}만`
-                      : `$${data.pyramiding.nextTriggerPrice.toFixed(0)}`}
+                      : `$${data.pyramiding.nextTriggerPrice.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
                   </span>
                 )}
               </span>

@@ -88,7 +88,7 @@ function fmtAmount(v: number, currency: 'KRW' | 'USD'): string {
 }
 
 function fmtPrice(v: number, currency: 'KRW' | 'USD'): string {
-  if (currency === 'USD') return `$${v.toFixed(2)}`
+  if (currency === 'USD') return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   return `${Math.round(v).toLocaleString()}원`
 }
 
@@ -733,7 +733,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                                 → +{pyramiding.nextPct.toFixed(0)}%
                                 {pyramiding.nextPrice != null && (
                                   <span style={{ marginLeft: 2, opacity: 0.6 }}>
-                                    {h.currency === 'KRW' ? `${Math.round(pyramiding.nextPrice / 10000).toLocaleString()}만` : `$${pyramiding.nextPrice.toFixed(0)}`}
+                                    {h.currency === 'KRW' ? `${Math.round(pyramiding.nextPrice / 10000).toLocaleString()}만` : `$${pyramiding.nextPrice.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
                                   </span>
                                 )}
                               </span>

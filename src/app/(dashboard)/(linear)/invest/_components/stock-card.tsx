@@ -88,12 +88,12 @@ function trancheTone(tranche: number): { bg: string; fg: string } {
 }
 
 function fmtPrice(price: number, currency?: string): string {
-  if (currency === 'USD' || currency === 'US') return `$${price.toFixed(2)}`
+  if (currency === 'USD' || currency === 'US') return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   return `${price.toLocaleString()}`
 }
 
 function fmtTargetPrice(price: number, currency?: string): string {
-  if (currency === 'USD' || currency === 'US') return `$${price.toFixed(0)}`
+  if (currency === 'USD' || currency === 'US') return `$${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
   return `${Math.round(price / 10000).toLocaleString()}만`
 }
 

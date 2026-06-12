@@ -179,14 +179,14 @@ export function TradeLog({ trades }: TradeLogProps) {
                 textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
                 color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))',
               }}>
-                {isKRW ? `${tr.price.toLocaleString()}` : `$${tr.price.toFixed(2)}`}
+                {isKRW ? `${tr.price.toLocaleString()}` : `$${tr.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </span>
               <span style={{
                 textAlign: 'right', fontWeight: t.weight.medium,
                 fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
                 color: t.neutrals.text,
               }}>
-                {isBuy ? '-' : '+'}{isKRW ? `${amount.toLocaleString()}` : `$${amount.toLocaleString()}`}
+                {isBuy ? '-' : '+'}{isKRW ? `${amount.toLocaleString()}` : `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </span>
             </div>
           )
