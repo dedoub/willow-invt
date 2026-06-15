@@ -368,6 +368,15 @@ export function VoicecardsBlock({
             date,
             value: signupDates.filter(d => d <= date).length,
           }))
+          // 가입 미완료(시트 0 & 카드 0) 누적 추이 — 가입완료 스파크라인의 보조선
+          const incompleteDates = (userStats?.users ?? [])
+            .filter(u => u.sheetCount === 0 && u.cards === 0)
+            .map(u => u.createdAt.split('T')[0])
+            .sort()
+          const incompleteData = allDates.map(date => ({
+            date,
+            value: incompleteDates.filter(d => d <= date).length,
+          }))
 
           // 매출 누적
           const revenueByDate = new Map<string, number>()
@@ -420,6 +429,7 @@ export function VoicecardsBlock({
                   sub={`미완료 ${incompleteSignups.toLocaleString()}${learned > 0 ? ` · ${fmtPct(signupConv)} 전환` : ''}`}
                   tone={learned > 0 && signupConv >= 10 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}
+                  sparkline2={compact ? undefined : incompleteData}
                 />
                 {revenueLoading && !stats ? (
                   <SkelStat compact={!!mobile} />

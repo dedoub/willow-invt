@@ -12,27 +12,32 @@ interface LStatProps {
   sub?: string
   tone?: 'pos' | 'neg' | 'warn' | 'info' | 'default'
   sparkline?: number[] | SparkPoint[]
+  sparkline2?: number[] | SparkPoint[]
+  spark2Color?: string
   sparkFormat?: (v: number) => string
 }
 
 function Sparkline({
-  data, color, format,
-}: { data: SparkPoint[]; color: string; format?: (v: number) => string }) {
+  data, color, format, data2, color2,
+}: { data: SparkPoint[]; color: string; format?: (v: number) => string; data2?: SparkPoint[]; color2?: string }) {
   const [hover, setHover] = useState<number | null>(null)
   const svgRef = useRef<SVGSVGElement | null>(null)
   if (!data.length) return null
   const w = 60, h = 18
-  const values = data.map(d => d.value)
+  // 두 시리즈를 같은 축에 맞추기 위해 min/max는 합쳐서 계산
+  const values = [...data.map(d => d.value), ...((data2 ?? []).map(d => d.value))]
   const min = Math.min(...values)
   const max = Math.max(...values)
   const range = max - min || 1
-  const step = data.length > 1 ? w / (data.length - 1) : 0
-  const xy = data.map((d, i) => ({
-    x: i * step,
-    y: h - ((d.value - min) / range) * h,
-  }))
+  const project = (arr: SparkPoint[]) => {
+    const step = arr.length > 1 ? w / (arr.length - 1) : 0
+    return arr.map((d, i) => ({ x: i * step, y: h - ((d.value - min) / range) * h }))
+  }
+  const xy = project(data)
   const points = xy.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
   const lastX = xy[xy.length - 1].x, lastY = xy[xy.length - 1].y
+  const xy2 = data2 && data2.length > 1 ? project(data2) : null
+  const points2 = xy2 ? xy2.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') : null
 
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const svg = svgRef.current
@@ -59,6 +64,9 @@ function Sparkline({
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
       >
+        {points2 && (
+          <polyline points={points2} fill="none" stroke={color2 ?? t.accent.warn} strokeWidth={1} strokeDasharray="2 2" strokeLinejoin="round" strokeLinecap="round" opacity={0.85} />
+        )}
         <polyline points={points} fill="none" stroke={color} strokeWidth={1.2} strokeLinejoin="round" strokeLinecap="round" />
         <circle cx={lastX} cy={lastY} r={1.6} fill={color} />
         {hover != null && (
@@ -87,7 +95,7 @@ function Sparkline({
   )
 }
 
-export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sparkFormat, wrap }: LStatProps & { wrap?: boolean }) {
+export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, wrap }: LStatProps & { wrap?: boolean }) {
   const color = tone === 'pos' ? t.accent.pos
     : tone === 'neg' ? t.accent.neg
     : tone === 'warn' ? t.accent.warn
@@ -95,6 +103,9 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
     : t.neutrals.text
   // Normalize: number[] → SparkPoint[] (date defaults to index)
   const sparkData: SparkPoint[] = (sparkline ?? []).map((p, i) =>
+    typeof p === 'number' ? { date: String(i), value: p } : p
+  )
+  const sparkData2: SparkPoint[] = (sparkline2 ?? []).map((p, i) =>
     typeof p === 'number' ? { date: String(i), value: p } : p
   )
   const sparkColor = sparkData.length > 1
@@ -127,7 +138,13 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
         </div>
         {sparkData.length > 1 && (
           <div style={{ flexShrink: 0 }}>
-            <Sparkline data={sparkData} color={sparkColor} format={sparkFormat} />
+            <Sparkline
+              data={sparkData}
+              color={sparkColor}
+              format={sparkFormat}
+              data2={sparkData2.length > 1 ? sparkData2 : undefined}
+              color2={spark2Color}
+            />
           </div>
         )}
       </div>
