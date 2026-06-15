@@ -616,7 +616,10 @@ export function VoicecardsBlock({
               textTransform: 'uppercase' as const,
               whiteSpace: 'nowrap' as const,
             }}>
-              사용자
+              사용자{(() => {
+                const n = userStats.users.filter(u => u.sheetCount === 0 && u.cards === 0).length
+                return n > 0 ? ` · 미완료 ${n}` : ''
+              })()}
             </div>
             <div style={{ display: 'flex', gap: 3 }}>
               {USER_SORT_OPTIONS.map(opt => {
@@ -699,6 +702,16 @@ export function VoicecardsBlock({
                         flexShrink: 0, lineHeight: 1.4, textTransform: 'uppercase' as const,
                       }}>
                         {user.locale}
+                      </span>
+                    )}
+                    {user.sheetCount === 0 && user.cards === 0 && (
+                      <span style={{
+                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                        color: '#92400E', background: '#FEF3C7',
+                        padding: '1px 5px', borderRadius: 3,
+                        flexShrink: 0, lineHeight: 1.4, whiteSpace: 'nowrap' as const,
+                      }}>
+                        가입 미완료
                       </span>
                     )}
                   </div>
