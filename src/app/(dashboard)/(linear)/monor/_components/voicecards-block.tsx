@@ -345,7 +345,9 @@ export function VoicecardsBlock({
         {userStats && anonymousStats && (() => {
           const devices = anonymousStats.summary.totalDevices
           const learned = anonymousStats.summary.learnedDevices
-          const signedUp = userStats.totalUsers
+          // 가입 미완료: 로그인했지만 시트 0 & 카드 0 (드라이브 공유 거부 등). 완료 = 전체 − 미완료
+          const incompleteSignups = (userStats?.users ?? []).filter(u => u.sheetCount === 0 && u.cards === 0).length
+          const signedUp = userStats.totalUsers - incompleteSignups
           const revenue = stats?.combined.totalRevenue ?? 0
 
           const learnConv = devices > 0 ? (learned / devices) * 100 : 0
@@ -358,6 +360,7 @@ export function VoicecardsBlock({
           const learnedData = cumulative.map(d => ({ date: d.date, value: d.learned }))
 
           const signupDates = (userStats?.users ?? [])
+            .filter(u => !(u.sheetCount === 0 && u.cards === 0))
             .map(u => u.createdAt.split('T')[0])
             .sort()
           const allDates = cumulative.map(d => d.date)
@@ -414,7 +417,7 @@ export function VoicecardsBlock({
                 <LStat
                   label="가입 완료"
                   value={signedUp.toLocaleString()}
-                  sub={learned > 0 ? `${fmtPct(signupConv)} 전환 · 계정 생성` : '계정 생성'}
+                  sub={`미완료 ${incompleteSignups.toLocaleString()}${learned > 0 ? ` · ${fmtPct(signupConv)} 전환` : ''}`}
                   tone={learned > 0 && signupConv >= 10 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}
                 />
