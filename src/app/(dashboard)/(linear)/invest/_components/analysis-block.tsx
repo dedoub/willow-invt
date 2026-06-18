@@ -604,6 +604,16 @@ export function AnalysisBlock({
                       }}>
                         {lines.length > 1 && <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, marginRight: 3, fontWeight: t.weight.regular }}>{line.name}</span>}
                         {sign}{chart.fmt(v)}{chart.unit}
+                        {(chart.suffix === 'value' || chart.suffix === 'pnl') && (() => {
+                          const at = Number(last[`${line.key}AfterTax`])
+                          if (!Number.isFinite(at)) return null
+                          const atSign = chart.suffix === 'pnl' && at > 0 ? '+' : ''
+                          return (
+                            <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, marginLeft: 4, fontWeight: t.weight.regular }}>
+                              세후 {atSign}{chart.fmt(at)}{chart.unit}
+                            </span>
+                          )
+                        })()}
                       </span>
                     )
                   })}
