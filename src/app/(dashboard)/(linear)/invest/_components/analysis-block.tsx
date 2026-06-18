@@ -46,6 +46,9 @@ function fmtKrw(v: number) {
 /* ── Donut palette ── */
 const STOCK_COLORS = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#d946ef', '#0ea5e9']
 const QLD_BENCH_COLOR = '#94a3b8'  // 벤치마크(QLD) 라인 — 중립 회색 점선
+const OVERSEAS_CGT = 0.22  // 해외주식 양도소득세 22% (국내 상장주식은 비과세 가정)
+// 세후 추정: 해외 미실현 차익에 22% 적용, 국내는 0. (val/cost 모두 KRW)
+const cgtTax = (valKrw: number, costKrw: number) => OVERSEAS_CGT * Math.max(0, valKrw - costKrw)
 
 /* ── 수익률 발산형 그라데이션 (미국식: 음수=빨강, 양수=녹색, 0%=연회색) ──
    clamp ±50%: 절댓값이 클수록 진하게. 0 근처는 채도 낮은 회색으로 보간. */
@@ -295,7 +298,8 @@ export function AnalysisBlock({
 
       let totalVal = 0, totalCost = 0, krVal = 0, krCost = 0, usVal = 0, usCost = 0
       const themeVal: Record<string, number> = {}; const themeCost: Record<string, number> = {}
-      for (const k of THEME_KEYS) { themeVal[k] = 0; themeCost[k] = 0 }
+      const themeUsVal: Record<string, number> = {}; const themeUsCost: Record<string, number> = {}
+      for (const k of THEME_KEYS) { themeVal[k] = 0; themeCost[k] = 0; themeUsVal[k] = 0; themeUsCost[k] = 0 }
       let hasAll = true
 
       for (const [ticker, state] of holdingStates) {
@@ -311,6 +315,7 @@ export function AnalysisBlock({
         const group = state.parentTheme || '미분류'
         themeVal[group] = (themeVal[group] || 0) + val
         themeCost[group] = (themeCost[group] || 0) + cost
+        if (isUS) { themeUsVal[group] = (themeUsVal[group] || 0) + val; themeUsCost[group] = (themeUsCost[group] || 0) + cost }
       }
 
       if (totalCost === 0 || !hasAll) continue
@@ -319,15 +324,22 @@ export function AnalysisBlock({
         date,
         '전체value': Math.round(totalVal), '전체pnl': Math.round(totalVal - totalCost),
         '전체pct': totalCost > 0 ? Math.round((totalVal - totalCost) / totalCost * 1000) / 10 : 0,
+        '전체valueAfterTax': Math.round(totalVal - cgtTax(usVal, usCost)),
+        '전체pnlAfterTax': Math.round((totalVal - totalCost) - cgtTax(usVal, usCost)),
         '국내value': Math.round(krVal), '국내pnl': Math.round(krVal - krCost),
         '국내pct': krCost > 0 ? Math.round((krVal - krCost) / krCost * 1000) / 10 : 0,
+        '국내valueAfterTax': Math.round(krVal), '국내pnlAfterTax': Math.round(krVal - krCost),
         '해외value': Math.round(usVal), '해외pnl': Math.round(usVal - usCost),
         '해외pct': usCost > 0 ? Math.round((usVal - usCost) / usCost * 1000) / 10 : 0,
+        '해외valueAfterTax': Math.round(usVal - cgtTax(usVal, usCost)),
+        '해외pnlAfterTax': Math.round((usVal - usCost) - cgtTax(usVal, usCost)),
       }
       for (const k of THEME_KEYS) {
         entry[`${k}value`] = Math.round(themeVal[k] || 0)
         entry[`${k}pnl`] = Math.round((themeVal[k] || 0) - (themeCost[k] || 0))
         entry[`${k}pct`] = (themeCost[k] || 0) > 0 ? Math.round(((themeVal[k] || 0) - (themeCost[k] || 0)) / (themeCost[k] || 0) * 1000) / 10 : 0
+        entry[`${k}valueAfterTax`] = Math.round((themeVal[k] || 0) - cgtTax(themeUsVal[k] || 0, themeUsCost[k] || 0))
+        entry[`${k}pnlAfterTax`] = Math.round(((themeVal[k] || 0) - (themeCost[k] || 0)) - cgtTax(themeUsVal[k] || 0, themeUsCost[k] || 0))
       }
       advanceQld(date)
       const qPct = qldPctForDate(date)
@@ -340,7 +352,8 @@ export function AnalysisBlock({
       const today = new Date().toISOString().slice(0, 10)
       let todayTotal = 0, todayCost = 0, todayKr = 0, todayKrC = 0, todayUs = 0, todayUsC = 0
       const todayThV: Record<string, number> = {}; const todayThC: Record<string, number> = {}
-      for (const k of THEME_KEYS) { todayThV[k] = 0; todayThC[k] = 0 }
+      const todayThUsV: Record<string, number> = {}; const todayThUsC: Record<string, number> = {}
+      for (const k of THEME_KEYS) { todayThV[k] = 0; todayThC[k] = 0; todayThUsV[k] = 0; todayThUsC[k] = 0 }
       let has = false
       for (const [ticker, state] of holdingStates) {
         if (state.qty <= 0) continue
@@ -356,6 +369,7 @@ export function AnalysisBlock({
         const group = state.parentTheme || '미분류'
         todayThV[group] = (todayThV[group] || 0) + val
         todayThC[group] = (todayThC[group] || 0) + cost
+        if (isUS) { todayThUsV[group] = (todayThUsV[group] || 0) + val; todayThUsC[group] = (todayThUsC[group] || 0) + cost }
       }
       if (has && todayCost > 0) {
         const e: Record<string, number | string> = {
@@ -366,11 +380,18 @@ export function AnalysisBlock({
           '국내pct': todayKrC > 0 ? Math.round((todayKr - todayKrC) / todayKrC * 1000) / 10 : 0,
           '해외value': Math.round(todayUs), '해외pnl': Math.round(todayUs - todayUsC),
           '해외pct': todayUsC > 0 ? Math.round((todayUs - todayUsC) / todayUsC * 1000) / 10 : 0,
+          '전체valueAfterTax': Math.round(todayTotal - cgtTax(todayUs, todayUsC)),
+          '전체pnlAfterTax': Math.round((todayTotal - todayCost) - cgtTax(todayUs, todayUsC)),
+          '국내valueAfterTax': Math.round(todayKr), '국내pnlAfterTax': Math.round(todayKr - todayKrC),
+          '해외valueAfterTax': Math.round(todayUs - cgtTax(todayUs, todayUsC)),
+          '해외pnlAfterTax': Math.round((todayUs - todayUsC) - cgtTax(todayUs, todayUsC)),
         }
         for (const k of THEME_KEYS) {
           e[`${k}value`] = Math.round(todayThV[k] || 0)
           e[`${k}pnl`] = Math.round((todayThV[k] || 0) - (todayThC[k] || 0))
           e[`${k}pct`] = (todayThC[k] || 0) > 0 ? Math.round(((todayThV[k] || 0) - (todayThC[k] || 0)) / (todayThC[k] || 0) * 1000) / 10 : 0
+          e[`${k}valueAfterTax`] = Math.round((todayThV[k] || 0) - cgtTax(todayThUsV[k] || 0, todayThUsC[k] || 0))
+          e[`${k}pnlAfterTax`] = Math.round(((todayThV[k] || 0) - (todayThC[k] || 0)) - cgtTax(todayThUsV[k] || 0, todayThUsC[k] || 0))
         }
         advanceQld(today)
         // Prefer live QLD quote for the today point; fall back to last series close.
@@ -493,6 +514,10 @@ export function AnalysisBlock({
       .filter(k => k !== '미분류' && trendData.some(d => (d[`${k}value`] as number) > 0))
       .map(k => ({ key: `${k}${suffix}`, color: GROUP_COLORS[k], name: k }))
   }
+
+  // 세후 라인(얇은 점선): 메인 라인과 같은 scope·색상, key에 AfterTax 접미사
+  const getAfterTaxLines = (suffix: string) =>
+    getLines(suffix).map(l => ({ key: `${l.key}AfterTax`, color: l.color, name: `${l.name} 세후` }))
 
   const charts = [
     { label: '평가액 추이', suffix: 'value', fmt: fmtKrw, unit: '원' },
@@ -646,6 +671,13 @@ export function AnalysisBlock({
                       stroke={line.color} strokeWidth={1.5} dot={false} connectNulls
                     />
                   ))}
+                  {(chart.suffix === 'value' || chart.suffix === 'pnl') && getAfterTaxLines(chart.suffix).map(line => (
+                    <Line
+                      key={line.key} type="monotone" dataKey={line.key} name={line.name}
+                      stroke={line.color} strokeWidth={1} strokeDasharray="2 2" strokeOpacity={0.55}
+                      dot={false} connectNulls isAnimationActive={false}
+                    />
+                  ))}
                   {chart.suffix === 'pct' && (
                     <Line
                       type="monotone" dataKey="qldPct" name="QLD"
@@ -658,6 +690,10 @@ export function AnalysisBlock({
             </div>
           )
         })}
+        </div>
+
+        <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: -4 }}>
+          점선 = 세후 (해외 양도소득세 22% 가정 · 국내 비과세)
         </div>
 
         {/* Donut charts: allocation breakdown */}
