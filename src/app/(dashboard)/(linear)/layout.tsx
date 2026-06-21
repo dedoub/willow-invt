@@ -55,11 +55,22 @@ export default function LinearRouteLayout({
   const mobile = useIsMobile()
   const [chatOpen, setChatOpen] = useState<boolean | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState<boolean | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('linear-chat-open')
     setChatOpen(saved !== null ? saved === '1' : !narrow)
   }, [])
+
+  useEffect(() => {
+    const saved = localStorage.getItem('linear-sidebar-open')
+    setSidebarOpen(saved !== null ? saved === '1' : true)
+  }, [])
+
+  useEffect(() => {
+    if (sidebarOpen === null) return
+    localStorage.setItem('linear-sidebar-open', sidebarOpen ? '1' : '0')
+  }, [sidebarOpen])
 
   useEffect(() => {
     if (chatOpen === null) return
@@ -78,7 +89,7 @@ export default function LinearRouteLayout({
         display: 'flex', overflow: 'hidden',
       }}>
         {/* Desktop sidebar */}
-        {!mobile && <LinearSidebar />}
+        {!mobile && <LinearSidebar collapsed={sidebarOpen === false} />}
         {/* Mobile sidebar overlay */}
         {mobile && <LinearSidebar mobile open={menuOpen} onClose={() => setMenuOpen(false)} />}
 
@@ -90,6 +101,8 @@ export default function LinearRouteLayout({
             agentOpen={!!chatOpen}
             mobile={mobile}
             onMenuToggle={() => setMenuOpen(v => !v)}
+            onSidebarToggle={() => setSidebarOpen(v => v === false ? true : false)}
+            sidebarOpen={sidebarOpen !== false}
           />
           <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '16px 12px 24px' : '16px 20px 24px' }}>
             {children}

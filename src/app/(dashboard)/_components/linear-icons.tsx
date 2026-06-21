@@ -47,6 +47,7 @@ const paths: Record<string, string> = {
   arrowUp: 'M12 19V5M5 12l7-7 7 7',
   arrowDown: 'M12 5v14M19 12l-7 7-7-7',
   download: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3',
+  panelLeft: 'M3 4h18v16H3zM9 4v16',
 }
 
 interface LIconProps {

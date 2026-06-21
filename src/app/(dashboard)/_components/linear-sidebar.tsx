@@ -21,6 +21,10 @@ const CLIENTS = [
   { id: 'monor', name: 'MonoR Apps',    tag: 'Education', dot: '#2F8F5B' },
 ]
 
+const CLIENT_HREF: Record<string, string | undefined> = {
+  akros: '/akros', etc: '/etc', tensw: '/tensw', monor: '/monor',
+}
+
 const ADMIN_ITEMS = [
   { key: 'users', href: '/admin/users', label: '사용자 관리', icon: 'user' },
 ]
@@ -39,29 +43,57 @@ interface LinearSidebarProps {
   mobile?: boolean
   open?: boolean
   onClose?: () => void
+  collapsed?: boolean
 }
 
-export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
+export function LinearSidebar({ mobile, open, onClose, collapsed = false }: LinearSidebarProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const isAdmin = useIsAdmin()
 
+  // 접힌 상태(아이콘 전용 rail)는 데스크톱에서만 사용
+  const rail = collapsed && !mobile
+
+  const navLink = (n: { key: string; href: string; label: string; icon: string }) => {
+    const isActive = pathname === n.href || pathname.startsWith(n.href + '/')
+    return (
+      <Link key={n.key} href={n.href} onClick={onClose} title={rail ? n.label : undefined} style={{
+        width: '100%', display: 'flex', alignItems: 'center',
+        justifyContent: rail ? 'center' : undefined,
+        gap: 10, padding: rail ? '8px 0' : '7px 10px',
+        background: isActive ? t.brand[600] + '14' : 'transparent',
+        color: isActive ? t.brand[700] : t.neutrals.muted,
+        fontWeight: isActive ? t.weight.medium : t.weight.regular,
+        fontSize: 'calc(13px * var(--fz, 1))', borderRadius: 6, textDecoration: 'none',
+        marginBottom: 1, letterSpacing: -0.1,
+      }}>
+        <LIcon name={n.icon} size={rail ? 18 : 14} stroke={1.8} />
+        {!rail && <span>{n.label}</span>}
+      </Link>
+    )
+  }
+
   const sidebar = (
     <aside style={{
-      width: 232, background: t.neutrals.page,
+      width: rail ? 56 : 232, background: t.neutrals.page,
       borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
       display: 'flex', flexDirection: 'column', flexShrink: 0,
       fontFamily: t.font.sans,
       height: mobile ? '100vh' : undefined,
+      transition: 'width 0.15s ease',
     }}>
       {/* Logo */}
       <div style={{
-        height: 52, padding: '0 14px', display: 'flex', alignItems: 'center',
-        justifyContent: mobile ? 'space-between' : undefined,
+        height: 52, padding: rail ? '0' : '0 14px', display: 'flex', alignItems: 'center',
+        justifyContent: rail ? 'center' : (mobile ? 'space-between' : undefined),
         background: t.brand[800],
       }}>
-        <img src="/willow-text.png" alt="willowinvt" style={{ height: 15 }} />
-        {mobile && (
+        {rail ? (
+          <LIcon name="leaf" size={20} color={t.brand[200]} stroke={1.8} />
+        ) : (
+          <img src="/willow-text.png" alt="willowinvt" style={{ height: 15 }} />
+        )}
+        {mobile && !rail && (
           <button onClick={onClose} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 4,
             color: t.brand[200],
@@ -72,71 +104,39 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: '4px 8px', overflowY: 'auto' }}>
-        <GroupLabel label="윌로우인베스트먼트" />
-        {NAV_ITEMS.map(n => {
-          const isActive = pathname === n.href || pathname.startsWith(n.href + '/')
-          return (
-            <Link key={n.key} href={n.href} onClick={onClose} style={{
-              width: '100%', display: 'flex', alignItems: 'center',
-              gap: 10, padding: '7px 10px',
-              background: isActive ? t.brand[600] + '14' : 'transparent',
-              color: isActive ? t.brand[700] : t.neutrals.muted,
-              fontWeight: isActive ? t.weight.medium : t.weight.regular,
-              fontSize: 'calc(13px * var(--fz, 1))', borderRadius: 6, textDecoration: 'none',
-              marginBottom: 1, letterSpacing: -0.1,
-            }}>
-              <LIcon name={n.icon} size={14} stroke={1.8} />
-              <span>{n.label}</span>
-            </Link>
-          )
-        })}
+      <nav style={{ flex: 1, padding: '4px 8px', overflowY: 'auto', overflowX: 'hidden' }}>
+        {!rail && <GroupLabel label="윌로우인베스트먼트" />}
+        {NAV_ITEMS.map(navLink)}
 
-        <GroupLabel label="프로젝트" />
+        {!rail && <GroupLabel label="프로젝트" />}
+        {rail && <div style={{ height: 1, background: t.neutrals.line, margin: '8px 6px' }} />}
         {CLIENTS.map(c => {
-          const href = c.id === 'akros' ? '/akros'
-            : c.id === 'etc' ? '/etc'
-            : c.id === 'tensw' ? '/tensw'
-            : c.id === 'monor' ? '/monor'
-            : undefined
+          const href = CLIENT_HREF[c.id]
           const isActive = href ? (pathname === href || pathname.startsWith(href + '/')) : false
           const Wrapper = href ? Link : 'div' as any
           return (
-            <Wrapper key={c.id} {...(href ? { href, onClick: onClose } : {})} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px',
+            <Wrapper key={c.id} {...(href ? { href, onClick: onClose } : {})} title={rail ? c.name : undefined} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              justifyContent: rail ? 'center' : undefined,
+              padding: rail ? '8px 0' : '6px 10px',
               fontSize: 'calc(12.5px * var(--fz, 1))', color: isActive ? t.brand[700] : t.neutrals.muted, borderRadius: 6,
               cursor: href ? 'pointer' : 'default',
               textDecoration: 'none',
               background: isActive ? t.brand[600] + '14' : 'transparent',
               fontWeight: isActive ? 500 : 400,
             }}>
-              <span style={{ width: 7, height: 7, borderRadius: 2, background: c.dot, flexShrink: 0 }} />
-              <span style={{ flex: 1 }}>{c.name}</span>
-              <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>{c.tag}</span>
+              <span style={{ width: rail ? 9 : 7, height: rail ? 9 : 7, borderRadius: 2, background: c.dot, flexShrink: 0 }} />
+              {!rail && <span style={{ flex: 1 }}>{c.name}</span>}
+              {!rail && <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>{c.tag}</span>}
             </Wrapper>
           )
         })}
 
         {isAdmin && (
           <>
-            <GroupLabel label="관리자" />
-            {ADMIN_ITEMS.map(n => {
-              const isActive = pathname === n.href || pathname.startsWith(n.href + '/')
-              return (
-                <Link key={n.key} href={n.href} onClick={onClose} style={{
-                  width: '100%', display: 'flex', alignItems: 'center',
-                  gap: 10, padding: '7px 10px',
-                  background: isActive ? t.brand[600] + '14' : 'transparent',
-                  color: isActive ? t.brand[700] : t.neutrals.muted,
-                  fontWeight: isActive ? t.weight.medium : t.weight.regular,
-                  fontSize: 'calc(13px * var(--fz, 1))', borderRadius: 6, textDecoration: 'none',
-                  marginBottom: 1, letterSpacing: -0.1,
-                }}>
-                  <LIcon name={n.icon} size={14} stroke={1.8} />
-                  <span>{n.label}</span>
-                </Link>
-              )
-            })}
+            {!rail && <GroupLabel label="관리자" />}
+            {rail && <div style={{ height: 1, background: t.neutrals.line, margin: '8px 6px' }} />}
+            {ADMIN_ITEMS.map(navLink)}
           </>
         )}
       </nav>
@@ -144,28 +144,33 @@ export function LinearSidebar({ mobile, open, onClose }: LinearSidebarProps) {
       {/* User */}
       {user && (
         <div style={{
-          padding: '10px 12px', borderTop: `1px solid ${t.neutrals.line}`,
-          display: 'flex', alignItems: 'center', gap: 10,
+          padding: rail ? '10px 0' : '10px 12px', borderTop: `1px solid ${t.neutrals.line}`,
+          display: 'flex', alignItems: 'center',
+          justifyContent: rail ? 'center' : undefined, gap: 10,
         }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             width: 28, height: 28, borderRadius: 28, flexShrink: 0,
             background: t.brand[200], color: t.brand[800],
             fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold,
-          }}>{user.name.slice(0, 2).toUpperCase()}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.text }}>{user.name}</div>
-            <div style={{
-              fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>{user.email}</div>
-          </div>
-          <button onClick={logout} title="로그아웃" style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: 4, color: t.neutrals.subtle, flexShrink: 0,
-          }}>
-            <LIcon name="logOut" size={14} stroke={1.8} />
-          </button>
+          }} title={rail ? user.name : undefined}>{user.name.slice(0, 2).toUpperCase()}</span>
+          {!rail && (
+            <>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.text }}>{user.name}</div>
+                <div style={{
+                  fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>{user.email}</div>
+              </div>
+              <button onClick={logout} title="로그아웃" style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: 4, color: t.neutrals.subtle, flexShrink: 0,
+              }}>
+                <LIcon name="logOut" size={14} stroke={1.8} />
+              </button>
+            </>
+          )}
         </div>
       )}
     </aside>

@@ -15,9 +15,11 @@ interface LinearHeaderProps {
   actions?: ReactNode
   mobile?: boolean
   onMenuToggle?: () => void
+  onSidebarToggle?: () => void
+  sidebarOpen?: boolean
 }
 
-export function LinearHeader({ title, group = '윌로우인베스트먼트', subtitle, onAgentToggle, agentOpen, actions, mobile, onMenuToggle }: LinearHeaderProps) {
+export function LinearHeader({ title, group = '윌로우인베스트먼트', subtitle, onAgentToggle, agentOpen, actions, mobile, onMenuToggle, onSidebarToggle, sidebarOpen }: LinearHeaderProps) {
   const [spinning, setSpinning] = useState(false)
   const handleRefresh = () => {
     refreshAllData()
@@ -40,6 +42,20 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
             color: t.neutrals.muted, marginRight: 4,
           }}>
             <LIcon name="menu" size={18} stroke={1.8} />
+          </button>
+        )}
+        {!mobile && onSidebarToggle && (
+          <button
+            onClick={onSidebarToggle}
+            title={sidebarOpen ? '메뉴 접기' : '메뉴 펼치기'}
+            aria-label={sidebarOpen ? '메뉴 접기' : '메뉴 펼치기'}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+              color: t.neutrals.muted, marginRight: 4,
+              display: 'inline-flex', alignItems: 'center',
+            }}
+          >
+            <LIcon name="panelLeft" size={16} stroke={1.8} />
           </button>
         )}
         {!mobile && (
