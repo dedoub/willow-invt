@@ -26,7 +26,9 @@ export async function fetchAllTimeSeriesData(): Promise<TimeSeriesData[]> {
   return getJson('/api/etf/timeseries', [])
 }
 export async function fetchAkrosProducts(): Promise<AkrosProduct[]> {
-  return getJson('/api/akros-products', [])
+  // /api/akros-products wraps the list as { products: [...] } (legacy route).
+  const r = await getJson<{ products?: AkrosProduct[] }>('/api/akros-products', { products: [] })
+  return r.products ?? []
 }
 export async function fetchYearLaunches(year: number): Promise<number> {
   const r = await getJson<{ count: number }>(`/api/etf/year-launches?year=${year}`, { count: 0 })
