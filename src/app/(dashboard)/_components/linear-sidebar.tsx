@@ -89,7 +89,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false }: Line
         background: t.brand[800],
       }}>
         {rail ? (
-          <LIcon name="leaf" size={20} color={t.brand[200]} stroke={1.8} />
+          <img src="/leaf-icon.png" alt="willowinvt" style={{ height: 22, width: 22, objectFit: 'contain' }} />
         ) : (
           <img src="/willow-text.png" alt="willowinvt" style={{ height: 15 }} />
         )}
