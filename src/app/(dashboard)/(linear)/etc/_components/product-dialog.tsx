@@ -4,14 +4,12 @@ import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import type { ETFDisplayData, FeeStructure, FeeTier } from '@/lib/etf-types'
 import {
-  ETFDisplayData,
-  FeeStructure,
-  FeeTier,
   createETFProduct,
   updateETFProduct,
   deleteETFProduct,
-} from '@/lib/supabase-etf'
+} from '@/lib/etf-client'
 
 // ============ Threshold helpers ============
 

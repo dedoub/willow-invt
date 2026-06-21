@@ -5,7 +5,7 @@ import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { AkrosProduct } from '@/lib/supabase-etf'
+import type { AkrosProduct } from '@/lib/etf-types'
 
 interface ProductBlockProps {
   products: AkrosProduct[]

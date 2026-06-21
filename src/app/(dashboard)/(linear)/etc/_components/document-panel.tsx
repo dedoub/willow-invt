@@ -4,14 +4,13 @@ import { useState, useEffect, useRef } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import type { ETFDisplayData, ETFDocument } from '@/lib/etf-types'
 import {
-  ETFDisplayData,
-  ETFDocument,
   fetchETFDocuments,
   uploadETFDocument,
   getDocumentDownloadUrl,
   deleteETFDocument,
-} from '@/lib/supabase-etf'
+} from '@/lib/etf-client'
 
 interface DocumentPanelProps {
   etf: ETFDisplayData | null

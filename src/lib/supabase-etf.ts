@@ -1,14 +1,20 @@
+import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 
-// Akros DB - AUM 데이터용 (읽기 전용, 클라이언트 컴포넌트에서도 사용)
-const akrosUrl = process.env.NEXT_PUBLIC_AKROS_SUPABASE_URL!
-const akrosKey = process.env.NEXT_PUBLIC_AKROS_SUPABASE_KEY!
-export const akrosDb = createClient(akrosUrl, akrosKey)
+// 서버 전용. service role 키 사용 — anon 키로 ETF/AUM DB를 직접 못 읽게 RLS를 잠그고,
+// 클라이언트 대시보드는 /api/etf/* 라우트(@/lib/etf-client)를 통해서만 접근한다.
+// 타입은 @/lib/etf-types(type-only re-export)에서 가져온다.
+const noPersist = { auth: { persistSession: false, autoRefreshToken: false } } as const
+
+// Akros DB - AUM 데이터용
+const akrosUrl = process.env.AKROS_SUPABASE_URL || process.env.NEXT_PUBLIC_AKROS_SUPABASE_URL!
+const akrosKey = process.env.AKROS_SUPABASE_SERVICE_KEY!
+export const akrosDb = createClient(akrosUrl, akrosKey, noPersist)
 
 // Willow Dashboard DB - ETF 메타 데이터용
 const willowUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const willowAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-export const willowDb = createClient(willowUrl, willowAnonKey)
+const willowServiceKey = process.env.SUPABASE_SECRET_KEY!
+export const willowDb = createClient(willowUrl, willowServiceKey, noPersist)
 
 // ============ 타입 정의 ============
 
