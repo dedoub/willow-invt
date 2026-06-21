@@ -1,18 +1,30 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
+// Service-role client. Created LAZILY so this module never calls createClient at
+// import/eval time. Some client components transitively import server query libs
+// that pull this module into their bundle; with eager createClient that crashed
+// the browser with "supabaseKey is required" (SUPABASE_SECRET_KEY is undefined in
+// the client by design). Lazy creation means the client is only instantiated when
+// actually used — which only happens server-side. Client code must use /api/* routes.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-// Server-only client using the service role key. The app must NOT depend on the
-// public anon key (that would require wide-open RLS). This module is imported
-// only by server code; SUPABASE_SECRET_KEY is undefined in the browser by design,
-// so it never ships to the client. For client-side public reads use a dedicated
-// API route instead of importing this.
-const supabaseServiceKey = process.env.SUPABASE_SECRET_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
+let _client: SupabaseClient | null = null
+function serviceClient(): SupabaseClient {
+  if (_client) return _client
+  _client = createClient(supabaseUrl, process.env.SUPABASE_SECRET_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+  return _client
+}
+
+// Proxy keeps the existing `supabase.from(...)` / `.storage` / `.rpc` call sites
+// working, but defers client creation to first property access (server-side only).
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop, receiver) {
+    const c = serviceClient() as unknown as Record<string | symbol, unknown>
+    const value = Reflect.get(c, prop, receiver)
+    return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(c) : value
+  },
 })
 
-// Explicit alias for server-side service-role access (same client).
-export const getServiceSupabase = () => createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-})
+export const getServiceSupabase = () => serviceClient()
