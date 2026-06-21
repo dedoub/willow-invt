@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, ReactNode } from 'react'
 import { t } from './linear-tokens'
 import { LIcon } from './linear-icons'
 import { useAuth, useIsAdmin } from '@/lib/auth-context'
@@ -39,6 +40,52 @@ function GroupLabel({ label }: { label: string }) {
   )
 }
 
+// 접힌 rail에서 아이콘 호버 시 오른쪽에 뜨는 커스텀 툴팁
+function RailTip({ label, sub, enabled, children }: {
+  label: string; sub?: string; enabled: boolean; children: ReactNode
+}) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  if (!enabled) return <>{children}</>
+  return (
+    <div
+      style={{ position: 'relative' }}
+      onMouseEnter={e => {
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+        setPos({ top: r.top + r.height / 2, left: r.right + 10 })
+      }}
+      onMouseLeave={() => setPos(null)}
+    >
+      {children}
+      {pos && (
+        <div style={{
+          position: 'fixed', top: pos.top, left: pos.left,
+          transform: 'translateY(-50%)',
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: t.brand[800], color: '#fff',
+          padding: '5px 9px', borderRadius: 7,
+          fontSize: 'calc(11.5px * var(--fz, 1))', fontWeight: t.weight.medium,
+          whiteSpace: 'nowrap', zIndex: 200, pointerEvents: 'none',
+          fontFamily: t.font.sans, letterSpacing: -0.1,
+          boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+        }}>
+          {/* 좌측 화살표 */}
+          <span style={{
+            position: 'absolute', left: -4, top: '50%', transform: 'translateY(-50%) rotate(45deg)',
+            width: 8, height: 8, background: t.brand[800], borderRadius: 1,
+          }} />
+          <span>{label}</span>
+          {sub && (
+            <span style={{
+              fontFamily: t.font.mono, fontSize: 'calc(9.5px * var(--fz, 1))',
+              color: t.brand[200], fontWeight: t.weight.regular,
+            }}>{sub}</span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface LinearSidebarProps {
   mobile?: boolean
   open?: boolean
@@ -57,19 +104,21 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false }: Line
   const navLink = (n: { key: string; href: string; label: string; icon: string }) => {
     const isActive = pathname === n.href || pathname.startsWith(n.href + '/')
     return (
-      <Link key={n.key} href={n.href} onClick={onClose} title={rail ? n.label : undefined} style={{
-        width: '100%', display: 'flex', alignItems: 'center',
-        justifyContent: rail ? 'center' : undefined,
-        gap: 10, padding: rail ? '8px 0' : '7px 10px',
-        background: isActive ? t.brand[600] + '14' : 'transparent',
-        color: isActive ? t.brand[700] : t.neutrals.muted,
-        fontWeight: isActive ? t.weight.medium : t.weight.regular,
-        fontSize: 'calc(13px * var(--fz, 1))', borderRadius: 6, textDecoration: 'none',
-        marginBottom: 1, letterSpacing: -0.1,
-      }}>
-        <LIcon name={n.icon} size={rail ? 18 : 14} stroke={1.8} />
-        {!rail && <span>{n.label}</span>}
-      </Link>
+      <RailTip key={n.key} label={n.label} enabled={rail}>
+        <Link href={n.href} onClick={onClose} style={{
+          width: '100%', display: 'flex', alignItems: 'center',
+          justifyContent: rail ? 'center' : undefined,
+          gap: 10, padding: rail ? '8px 0' : '7px 10px',
+          background: isActive ? t.brand[600] + '14' : 'transparent',
+          color: isActive ? t.brand[700] : t.neutrals.muted,
+          fontWeight: isActive ? t.weight.medium : t.weight.regular,
+          fontSize: 'calc(13px * var(--fz, 1))', borderRadius: 6, textDecoration: 'none',
+          marginBottom: 1, letterSpacing: -0.1,
+        }}>
+          <LIcon name={n.icon} size={rail ? 18 : 14} stroke={1.8} />
+          {!rail && <span>{n.label}</span>}
+        </Link>
+      </RailTip>
     )
   }
 
@@ -115,20 +164,22 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false }: Line
           const isActive = href ? (pathname === href || pathname.startsWith(href + '/')) : false
           const Wrapper = href ? Link : 'div' as any
           return (
-            <Wrapper key={c.id} {...(href ? { href, onClick: onClose } : {})} title={rail ? c.name : undefined} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              justifyContent: rail ? 'center' : undefined,
-              padding: rail ? '8px 0' : '6px 10px',
-              fontSize: 'calc(12.5px * var(--fz, 1))', color: isActive ? t.brand[700] : t.neutrals.muted, borderRadius: 6,
-              cursor: href ? 'pointer' : 'default',
-              textDecoration: 'none',
-              background: isActive ? t.brand[600] + '14' : 'transparent',
-              fontWeight: isActive ? 500 : 400,
-            }}>
-              <span style={{ width: rail ? 9 : 7, height: rail ? 9 : 7, borderRadius: 2, background: c.dot, flexShrink: 0 }} />
-              {!rail && <span style={{ flex: 1 }}>{c.name}</span>}
-              {!rail && <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>{c.tag}</span>}
-            </Wrapper>
+            <RailTip key={c.id} label={c.name} sub={c.tag} enabled={rail}>
+              <Wrapper {...(href ? { href, onClick: onClose } : {})} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                justifyContent: rail ? 'center' : undefined,
+                padding: rail ? '8px 0' : '6px 10px',
+                fontSize: 'calc(12.5px * var(--fz, 1))', color: isActive ? t.brand[700] : t.neutrals.muted, borderRadius: 6,
+                cursor: href ? 'pointer' : 'default',
+                textDecoration: 'none',
+                background: isActive ? t.brand[600] + '14' : 'transparent',
+                fontWeight: isActive ? 500 : 400,
+              }}>
+                <span style={{ width: rail ? 9 : 7, height: rail ? 9 : 7, borderRadius: 2, background: c.dot, flexShrink: 0 }} />
+                {!rail && <span style={{ flex: 1 }}>{c.name}</span>}
+                {!rail && <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>{c.tag}</span>}
+              </Wrapper>
+            </RailTip>
           )
         })}
 
@@ -148,12 +199,14 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false }: Line
           display: 'flex', alignItems: 'center',
           justifyContent: rail ? 'center' : undefined, gap: 10,
         }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 28, height: 28, borderRadius: 28, flexShrink: 0,
-            background: t.brand[200], color: t.brand[800],
-            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold,
-          }} title={rail ? user.name : undefined}>{user.name.slice(0, 2).toUpperCase()}</span>
+          <RailTip label={user.name} sub={user.email} enabled={rail}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 28, height: 28, borderRadius: 28, flexShrink: 0,
+              background: t.brand[200], color: t.brand[800],
+              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold,
+            }}>{user.name.slice(0, 2).toUpperCase()}</span>
+          </RailTip>
           {!rail && (
             <>
               <div style={{ flex: 1, minWidth: 0 }}>
