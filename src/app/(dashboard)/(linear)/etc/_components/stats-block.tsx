@@ -3,7 +3,7 @@
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
-import { ETFDisplayData, HistoricalDataPoint } from '@/lib/supabase-etf'
+import type { ETFDisplayData, HistoricalDataPoint } from '@/lib/etf-types'
 
 interface StatsBlockProps {
   etfs: ETFDisplayData[]
