@@ -91,9 +91,10 @@ interface LinearSidebarProps {
   open?: boolean
   onClose?: () => void
   collapsed?: boolean
+  animate?: boolean
 }
 
-export function LinearSidebar({ mobile, open, onClose, collapsed = false }: LinearSidebarProps) {
+export function LinearSidebar({ mobile, open, onClose, collapsed = false, animate = false }: LinearSidebarProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const isAdmin = useIsAdmin()
@@ -129,7 +130,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false }: Line
       display: 'flex', flexDirection: 'column', flexShrink: 0,
       fontFamily: t.font.sans,
       height: mobile ? '100vh' : undefined,
-      transition: 'width 0.15s ease',
+      transition: animate ? 'width 0.15s ease' : 'none',
     }}>
       {/* Logo */}
       <div style={{
@@ -138,7 +139,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false }: Line
         background: t.brand[800],
       }}>
         {rail ? (
-          <img src="/leaf-icon.png" alt="willowinvt" style={{ height: 22, width: 22, objectFit: 'contain' }} />
+          <img src="/leaf-icon.png" alt="willowinvt" style={{ height: 16, width: 16, objectFit: 'contain' }} />
         ) : (
           <img src="/willow-text.png" alt="willowinvt" style={{ height: 15 }} />
         )}

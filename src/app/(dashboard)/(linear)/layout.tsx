@@ -55,20 +55,22 @@ export default function LinearRouteLayout({
   const mobile = useIsMobile()
   const [chatOpen, setChatOpen] = useState<boolean | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState<boolean | null>(null)
+  // localStorage에서 동기적으로 초기화 → 첫 렌더부터 올바른 상태(깜빡임 방지)
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    return localStorage.getItem('linear-sidebar-open') !== '0'
+  })
+  // 첫 렌더에는 width 트랜지션을 끄고, 마운트 후 사용자 토글부터 애니메이션
+  const [sidebarReady, setSidebarReady] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('linear-chat-open')
     setChatOpen(saved !== null ? saved === '1' : !narrow)
   }, [])
 
-  useEffect(() => {
-    const saved = localStorage.getItem('linear-sidebar-open')
-    setSidebarOpen(saved !== null ? saved === '1' : true)
-  }, [])
+  useEffect(() => { setSidebarReady(true) }, [])
 
   useEffect(() => {
-    if (sidebarOpen === null) return
     localStorage.setItem('linear-sidebar-open', sidebarOpen ? '1' : '0')
   }, [sidebarOpen])
 
@@ -89,7 +91,7 @@ export default function LinearRouteLayout({
         display: 'flex', overflow: 'hidden',
       }}>
         {/* Desktop sidebar */}
-        {!mobile && <LinearSidebar collapsed={sidebarOpen === false} />}
+        {!mobile && <LinearSidebar collapsed={!sidebarOpen} animate={sidebarReady} />}
         {/* Mobile sidebar overlay */}
         {mobile && <LinearSidebar mobile open={menuOpen} onClose={() => setMenuOpen(false)} />}
 
@@ -101,8 +103,8 @@ export default function LinearRouteLayout({
             agentOpen={!!chatOpen}
             mobile={mobile}
             onMenuToggle={() => setMenuOpen(v => !v)}
-            onSidebarToggle={() => setSidebarOpen(v => v === false ? true : false)}
-            sidebarOpen={sidebarOpen !== false}
+            onSidebarToggle={() => setSidebarOpen(v => !v)}
+            sidebarOpen={sidebarOpen}
           />
           <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '16px 12px 24px' : '16px 20px 24px' }}>
             {children}
