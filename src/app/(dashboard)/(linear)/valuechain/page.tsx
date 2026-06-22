@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
-import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import type { ValueChainStats } from '@/lib/valuechain-supabase'
 
@@ -50,11 +49,10 @@ export default function ValueChainPage() {
   const mobile = useIsMobile()
   const [stats, setStats] = useState<ValueChainStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async (refresh = false) => {
-    if (refresh) setRefreshing(true); else setLoading(true)
+    if (!refresh) setLoading(true)
     setError(null)
     try {
       const res = await fetch('/api/valuechain/stats')
@@ -64,7 +62,7 @@ export default function ValueChainPage() {
     } catch (err) {
       setError(String(err))
     } finally {
-      setLoading(false); setRefreshing(false)
+      setLoading(false)
     }
   }, [])
 
@@ -90,24 +88,6 @@ export default function ValueChainPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-        <div>
-          <div style={{ fontSize: 'calc(17px * var(--fz, 1))', fontWeight: t.weight.bold, color: t.neutrals.text, letterSpacing: -0.3 }}>ValueChain.wiki</div>
-          <div style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.muted }}>
-            가치사슬 정제소 업데이트 통계 · 마지막 크롤 {fmtTs(crawl.lastTs)}
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <a href={SITE_URL} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'calc(12px * var(--fz, 1))', color: t.brand[600], textDecoration: 'none', fontWeight: t.weight.medium }}>
-            <LIcon name="arrow" size={13} /> 사이트 열기
-          </a>
-          <button onClick={() => load(true)} disabled={refreshing} style={refreshBtnStyle(refreshing)}>
-            <LIcon name="refresh" size={13} /> {refreshing ? '갱신 중' : '새로고침'}
-          </button>
-        </div>
-      </div>
-
       {/* KPI */}
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 14 }}>
         <KpiCard label="노드" value={summary.nodes.toLocaleString()} sub="기업·기관" />
@@ -204,14 +184,4 @@ function refreshBtnStyle(active = false): React.CSSProperties {
     cursor: active ? 'default' : 'pointer', fontFamily: t.font.sans,
     opacity: active ? 0.6 : 1, marginTop: 8,
   }
-}
-
-function fmtTs(ts: string | null): string {
-  if (!ts) return '—'
-  const d = new Date(ts)
-  const mo = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${mo}.${day} ${hh}:${mm}`
 }
