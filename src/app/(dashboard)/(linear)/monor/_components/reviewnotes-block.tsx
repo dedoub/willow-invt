@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
-import type { ReviewNotesUserStats } from '@/lib/reviewnotes-supabase'
+import type { ReviewNotesUserStats, ReviewNotesTrafficStats } from '@/lib/reviewnotes-supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,6 +15,7 @@ export interface ReviewnotesBlockProps {
   loading: boolean
   stats: ReviewNotesStats | null
   userStats: ReviewNotesUserStats | null
+  trafficStats: ReviewNotesTrafficStats | null
   onRefresh: () => void
   refreshing: boolean
   error: string | null
@@ -33,6 +34,11 @@ function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('ko-KR', {
     year: 'numeric', month: 'short', day: 'numeric',
   })
+}
+
+function formatPct(value: number): string {
+  if (value === 0) return '±0%'
+  return value > 0 ? `+${value}%` : `${value}%`
 }
 
 function formatBytes(bytes: number): string {
@@ -68,7 +74,7 @@ const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
 ]
 
 export function ReviewnotesBlock({
-  loading, stats, userStats,
+  loading, stats, userStats, trafficStats,
   onRefresh, refreshing, error,
 }: ReviewnotesBlockProps) {
   const mobile = useIsMobile()
@@ -198,6 +204,59 @@ export function ReviewnotesBlock({
         )}
         {loading && <SkeletonRow count={3} />}
       </div>
+
+      {/* 방문 통계 (랜딩페이지 트래픽) */}
+      {!loading && trafficStats && (
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
+          }}>
+            <span style={{
+              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
+              fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase' as const,
+            }}>
+              방문 통계
+            </span>
+            <span style={{
+              fontSize: 'calc(9px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
+              background: t.neutrals.inner, color: t.neutrals.muted, fontWeight: 500,
+            }}>
+              최근 {trafficStats.range}일 · 봇 제외
+            </span>
+          </div>
+
+          {/* 방문 KPI + 일별 추이 스파크라인 */}
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+            <LStat
+              label="페이지뷰"
+              value={trafficStats.totals.views.toLocaleString()}
+              sub={`이전 대비 ${formatPct(trafficStats.change.views)}`}
+              sparkline={trafficStats.daily.map(d => ({ date: d.date, value: d.views }))}
+            />
+            <LStat
+              label="순 방문자"
+              value={trafficStats.totals.visitors.toLocaleString()}
+              sub={`이전 대비 ${formatPct(trafficStats.change.visitors)}`}
+              tone="info"
+              sparkline={trafficStats.daily.map(d => ({ date: d.date, value: d.visitors }))}
+            />
+            <BreakdownStat
+              label="유입 경로"
+              items={trafficStats.topReferrers.map(r => ({
+                label: r.referrer === 'direct' ? '직접 유입' : r.referrer,
+                count: r.count,
+              }))}
+            />
+            <BreakdownStat
+              label="국가"
+              items={trafficStats.topCountries.map(c => ({
+                label: c.country === 'Unknown' ? '알 수 없음' : c.country,
+                count: c.count,
+              }))}
+            />
+          </div>
+        </div>
+      )}
 
       {/* User stats section */}
       {!loading && userStats && (
@@ -407,6 +466,40 @@ function PlanStat({ userStats }: { userStats: ReviewNotesUserStats }) {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function BreakdownStat({ label, items }: { label: string; items: Array<{ label: string; count: number }> }) {
+  return (
+    <div style={{
+      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px',
+      minWidth: 0,
+    }}>
+      <div style={{
+        fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+        textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: 4,
+      }}>{label}</div>
+      {items.length === 0 ? (
+        <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted }}>-</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {items.slice(0, 3).map(item => (
+            <div key={item.label} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
+            }}>
+              <span style={{
+                fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{item.label}</span>
+              <span style={{
+                fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                fontVariantNumeric: 'tabular-nums', flexShrink: 0,
+              }}>{item.count.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
