@@ -35,12 +35,13 @@ const PYRAMID_STATUS: Record<string, { label: string; bg: string; fg: string }> 
 }
 
 const THEME_COLORS: Record<string, { bg: string; fg: string }> = {
+  '벤치마크':    { bg: '#CCFBF1', fg: '#0F766E' },
   'AI 인프라':   { bg: '#E0E7FF', fg: '#4338CA' },
   '지정학/안보':  { bg: '#FFEDD5', fg: '#C2410C' },
   '넥스트':      { bg: '#F3E8FF', fg: '#7E22CE' },
   '미분류':      { bg: '#F1F5F9', fg: '#475569' },
 }
-const THEME_ORDER = ['AI 인프라', '미분류', '지정학/안보', '넥스트']
+const THEME_ORDER = ['벤치마크', 'AI 인프라', '지정학/안보', '넥스트', '미분류']
 
 // 테마별 세부 분류 — 같은 parentTheme 내에서 sub-theme(theme.name)으로 한 번 더 그룹핑
 const SUB_GROUP_ORDER: Record<string, string[]> = {
@@ -303,13 +304,19 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       }
     }
 
-    // 비중(valKrw) 내림차순 정렬
+    // 정렬: 벤치마크 최상단, 미분류 최하단, 나머지는 비중(valKrw) 내림차순
     const parents = Array.from(parentMap.entries())
       .map(([p, s]) => ({
         parent: p, ...s,
         pctOfTotal: totalValKrw > 0 ? (s.valKrw / totalValKrw) * 100 : 0,
       }))
-      .sort((a, b) => b.valKrw - a.valKrw)
+      .sort((a, b) => {
+        if (a.parent === '미분류') return 1
+        if (b.parent === '미분류') return -1
+        if (a.parent === '벤치마크') return -1
+        if (b.parent === '벤치마크') return 1
+        return b.valKrw - a.valKrw
+      })
     const subs = new Map<string, { sub: string; count: number; valKrw: number; invKrw: number; pctOfTotal: number }[]>()
     for (const [parent, inner] of subMap) {
       const list = Array.from(inner.entries())
