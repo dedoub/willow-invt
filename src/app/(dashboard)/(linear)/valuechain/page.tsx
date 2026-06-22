@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { ValueChainSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import type { ValueChainStats } from '@/lib/valuechain-supabase'
 
@@ -70,7 +71,7 @@ export default function ValueChainPage() {
   useAgentRefresh(['valuechain_', 'vc_'], () => load(true))
 
   if (loading) {
-    return <div style={{ padding: 40, textAlign: 'center', color: t.neutrals.subtle, fontSize: 'calc(13px * var(--fz, 1))' }}>불러오는 중…</div>
+    return <ValueChainSkeleton />
   }
   if (error || !stats) {
     return (

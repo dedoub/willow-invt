@@ -665,6 +665,69 @@ export function TenswSkeleton() {
   )
 }
 
+/** 밸류체인 skeleton: 5 KPI cards + 3-col card grid */
+export function ValueChainSkeleton() {
+  const mobile = useIsMobile()
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* KPI row */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 14 }}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <CardSkel key={i}>
+            <Bone w={50} h={9} />
+            <Bone w={70} h={22} style={{ marginTop: 8 }} />
+            <Bone w={60} h={10} style={{ marginTop: 6 }} />
+          </CardSkel>
+        ))}
+      </div>
+
+      {/* 3-col card grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 14, alignItems: 'start' }}>
+        {/* 업데이트 추이 */}
+        <CardSkel>
+          <Bone w={60} h={8} />
+          <Bone w={90} h={14} style={{ marginTop: 6 }} />
+          <Bone h={56} style={{ marginTop: 12 }} r={t.radius.sm} />
+          <div style={{ marginTop: 12 }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Bone key={i} h={14} style={{ marginTop: 8 }} />
+            ))}
+          </div>
+        </CardSkel>
+
+        {/* AI 크롤 의존도 */}
+        <CardSkel>
+          <Bone w={80} h={8} />
+          <Bone w={100} h={14} style={{ marginTop: 6 }} />
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Bone key={`b-${i}`} h={10} />
+            ))}
+          </div>
+          <Bone w={120} h={10} style={{ marginTop: 14 }} />
+          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Bone key={`r-${i}`} h={10} />
+            ))}
+          </div>
+        </CardSkel>
+
+        {/* 로드맵 */}
+        <CardSkel>
+          <Bone w={60} h={8} />
+          <Bone w={80} h={14} style={{ marginTop: 6 }} />
+          <div style={{ marginTop: 12 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Bone key={i} h={18} style={{ marginTop: 10 }} />
+            ))}
+          </div>
+        </CardSkel>
+      </div>
+    </div>
+  )
+}
+
 /** 업무위키 skeleton: two-panel layout (stacked on mobile) */
 export function WikiSkeleton() {
   const mobile = useIsMobile()
