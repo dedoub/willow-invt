@@ -9,7 +9,6 @@ import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, 
 import { HoldingsBlock, StockTradeFull, StockQuoteFull, TickerTheme } from './_components/holdings-block'
 import { AnalysisBlock } from './_components/analysis-block'
 import { TradeLog } from './_components/trade-log'
-import { ClosedPositions } from './_components/closed-positions'
 import { SectorRotationBlock } from './_components/sector-rotation-block'
 import { InvestSkeleton, InvestHoldingsSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 
@@ -475,8 +474,7 @@ export default function InvestPage() {
               breakoutMap={breakoutMap}
               cardColumns={mobile ? 1 : 2}
             />
-            <ClosedPositions stockTrades={stockTradesFull} fxHistory={fxHistory} usdKrwRate={usdKrw} />
-            <TradeLog trades={stockTrades} />
+            <TradeLog trades={stockTrades} fxHistory={fxHistory} usdKrwRate={usdKrw} />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, minHeight: 0 }}>
