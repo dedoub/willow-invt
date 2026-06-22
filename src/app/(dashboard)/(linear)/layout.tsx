@@ -32,6 +32,7 @@ const PAGE_INFO: Record<string, { group: string; title: string }> = {
   '/etc':        { group: '프로젝트', title: 'ETC' },
   '/tensw':      { group: '프로젝트', title: '텐소프트웍스' },
   '/monor':      { group: '프로젝트', title: 'MonoR Apps' },
+  '/valuechain': { group: '프로젝트', title: 'ValueChain' },
 }
 
 function useNarrow(threshold = 1180) {
