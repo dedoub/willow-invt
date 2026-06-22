@@ -46,6 +46,7 @@ function fmtKrw(v: number) {
 /* ── Donut palette ── */
 const STOCK_COLORS = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#d946ef', '#0ea5e9']
 const QLD_BENCH_COLOR = '#94a3b8'  // 벤치마크(QLD) 라인 — 중립 회색 점선
+const REALIZED_COLOR = '#f59e0b'  // 실현 누적 보조 라인 — 앰버 점선
 const OVERSEAS_CGT = 0.22  // 해외주식 양도소득세 22% (국내 상장주식은 비과세 가정)
 // 세후 추정: 해외 미실현 차익에 22% 적용, 국내는 0. (val/cost 모두 KRW)
 const cgtTax = (valKrw: number, costKrw: number) => OVERSEAS_CGT * Math.max(0, valKrw - costKrw)
@@ -220,6 +221,8 @@ export function AnalysisBlock({
     // Mirror every trade into a QLD position using QLD's close on the trade date (USD→KRW).
     const qldPrices = priceLookup.get('QLD')  // Map<date, qldCloseUsd> (forward-filled)
     const qldState = { shares: 0, krwCost: 0 }
+    // QLD 벤치마크도 실현손익을 동일하게 누적 (내 포트와 대칭이어야 alpha 비교가 공정)
+    let qldRealizedCum = 0, qldSoldCostCum = 0
     let qldTradeIdx = 0
     const qldPriceOnOrAfter = (tradeDate: string): number | undefined => {
       if (!qldPrices) return undefined
@@ -245,8 +248,12 @@ export function AnalysisBlock({
           } else {
             const avgCost = qldState.shares > 0 ? qldState.krwCost / qldState.shares : 0
             const soldShares = krwAmount * qSharesPerKrw
+            const soldBasis = avgCost * soldShares
+            // QLD 매도대금 = krwAmount (미러링된 현금흐름), 차감원가 = soldBasis
+            qldRealizedCum += krwAmount - soldBasis
+            qldSoldCostCum += soldBasis
             qldState.shares -= soldShares
-            qldState.krwCost -= avgCost * soldShares
+            qldState.krwCost -= soldBasis
             if (qldState.shares <= 0) { qldState.shares = 0; qldState.krwCost = 0 }
           }
         }
@@ -255,17 +262,27 @@ export function AnalysisBlock({
     }
     // qldPct at a given date using that date's QLD close.
     const qldPctForDate = (date: string): number | null => {
-      if (!qldPrices || qldState.krwCost <= 0) return null
+      if (!qldPrices) return null
+      const base = qldState.krwCost + qldSoldCostCum  // 누적 투입원가
+      if (base <= 0) return null
       const px = qldPrices.get(date)
       if (!px || px <= 0) return null
       const fx = fxForDate.get(date) || usdKrwRate
       const val = qldState.shares * px * fx
-      return Math.round((val - qldState.krwCost) / qldState.krwCost * 1000) / 10
+      // 총수익률 = (미실현 + 실현누적) / 누적투입원가
+      return Math.round((val - qldState.krwCost + qldRealizedCum) / base * 1000) / 10
     }
 
     // 5. Build holdings timeline
     type HState = { qty: number; cost: number; krwCost: number; market: string; parentTheme: string | null }
     const holdingStates = new Map<string, HState>()
+    // 실현손익 누적 (KRW). 스코프별(전체/마켓/테마)로 분해해 추이 차트의 매도 절벽을 제거.
+    // soldCost* = 청산된 원가기준(수익률 분모용), realizedUs* = 해외 실현손익 순액(세후 계산용, 순이익 양수일 때만 과세).
+    let realizedCum = 0, soldCostCum = 0, realizedUsCum = 0
+    let realizedKr = 0, soldCostKr = 0
+    let realizedHae = 0, soldCostHae = 0
+    const realizedTheme: Record<string, number> = {}, soldCostTheme: Record<string, number> = {}, realizedUsTheme: Record<string, number> = {}
+    for (const k of THEME_KEYS) { realizedTheme[k] = 0; soldCostTheme[k] = 0; realizedUsTheme[k] = 0 }
     let tradeIdx = 0
     const firstDate = tradesSorted.length > 0 ? tradesSorted[0].trade_date : ''
 
@@ -289,7 +306,16 @@ export function AnalysisBlock({
           const adjQty = tr.quantity * splitR
           const avg = state.qty > 0 ? state.cost / state.qty : 0
           const krwAvg = state.qty > 0 ? state.krwCost / state.qty : 0
-          state.cost -= avg * adjQty; state.krwCost -= krwAvg * adjQty; state.qty -= adjQty
+          // 실현손익 = 매도대금(KRW) − 차감원가(KRW). 스코프별로 누적.
+          const soldBasisKrw = krwAvg * adjQty
+          const realized = tr.total_amount * tradeFx - soldBasisKrw
+          const usNet = isUS ? realized : 0
+          const grp = state.parentTheme || '미분류'
+          realizedCum += realized; soldCostCum += soldBasisKrw; realizedUsCum += usNet
+          if (isUS) { realizedHae += realized; soldCostHae += soldBasisKrw }
+          else { realizedKr += realized; soldCostKr += soldBasisKrw }
+          if (grp in realizedTheme) { realizedTheme[grp] += realized; soldCostTheme[grp] += soldBasisKrw; realizedUsTheme[grp] += usNet }
+          state.cost -= avg * adjQty; state.krwCost -= soldBasisKrw; state.qty -= adjQty
           if (state.qty <= 0) { state.qty = 0; state.cost = 0; state.krwCost = 0 }
         }
         holdingStates.set(tr.ticker, state)
@@ -318,28 +344,39 @@ export function AnalysisBlock({
         if (isUS) { themeUsVal[group] = (themeUsVal[group] || 0) + val; themeUsCost[group] = (themeUsCost[group] || 0) + cost }
       }
 
-      if (totalCost === 0 || !hasAll) continue
+      // 전량청산 후에도 실현손익은 표시되어야 하므로, 보유원가·청산원가 둘 다 0일 때만 스킵.
+      if (!hasAll || (totalCost === 0 && soldCostCum === 0)) continue
 
+      // pnl/pct = 미실현 + 실현누적 (분모 = 보유원가 + 청산원가). value는 보유분 시가 그대로.
+      const unrealTotal = totalVal - totalCost, unrealKr = krVal - krCost, unrealUs = usVal - usCost
       const entry: Record<string, number | string> = {
         date,
-        '전체value': Math.round(totalVal), '전체pnl': Math.round(totalVal - totalCost),
-        '전체pct': totalCost > 0 ? Math.round((totalVal - totalCost) / totalCost * 1000) / 10 : 0,
+        '전체value': Math.round(totalVal),
+        '전체pnl': Math.round(unrealTotal + realizedCum),
+        '전체pct': (totalCost + soldCostCum) > 0 ? Math.round((unrealTotal + realizedCum) / (totalCost + soldCostCum) * 1000) / 10 : 0,
+        '전체realized': Math.round(realizedCum),
         '전체valueAfterTax': Math.round(totalVal - cgtTax(usVal, usCost)),
-        '전체pnlAfterTax': Math.round((totalVal - totalCost) - cgtTax(usVal, usCost)),
-        '국내value': Math.round(krVal), '국내pnl': Math.round(krVal - krCost),
-        '국내pct': krCost > 0 ? Math.round((krVal - krCost) / krCost * 1000) / 10 : 0,
-        '국내valueAfterTax': Math.round(krVal), '국내pnlAfterTax': Math.round(krVal - krCost),
-        '해외value': Math.round(usVal), '해외pnl': Math.round(usVal - usCost),
-        '해외pct': usCost > 0 ? Math.round((usVal - usCost) / usCost * 1000) / 10 : 0,
+        '전체pnlAfterTax': Math.round((unrealTotal - cgtTax(usVal, usCost)) + (realizedCum - OVERSEAS_CGT * Math.max(0, realizedUsCum))),
+        '국내value': Math.round(krVal),
+        '국내pnl': Math.round(unrealKr + realizedKr),
+        '국내pct': (krCost + soldCostKr) > 0 ? Math.round((unrealKr + realizedKr) / (krCost + soldCostKr) * 1000) / 10 : 0,
+        '국내valueAfterTax': Math.round(krVal),
+        '국내pnlAfterTax': Math.round(unrealKr + realizedKr),
+        '해외value': Math.round(usVal),
+        '해외pnl': Math.round(unrealUs + realizedHae),
+        '해외pct': (usCost + soldCostHae) > 0 ? Math.round((unrealUs + realizedHae) / (usCost + soldCostHae) * 1000) / 10 : 0,
         '해외valueAfterTax': Math.round(usVal - cgtTax(usVal, usCost)),
-        '해외pnlAfterTax': Math.round((usVal - usCost) - cgtTax(usVal, usCost)),
+        '해외pnlAfterTax': Math.round((unrealUs - cgtTax(usVal, usCost)) + (realizedHae - OVERSEAS_CGT * Math.max(0, realizedHae))),
       }
       for (const k of THEME_KEYS) {
-        entry[`${k}value`] = Math.round(themeVal[k] || 0)
-        entry[`${k}pnl`] = Math.round((themeVal[k] || 0) - (themeCost[k] || 0))
-        entry[`${k}pct`] = (themeCost[k] || 0) > 0 ? Math.round(((themeVal[k] || 0) - (themeCost[k] || 0)) / (themeCost[k] || 0) * 1000) / 10 : 0
-        entry[`${k}valueAfterTax`] = Math.round((themeVal[k] || 0) - cgtTax(themeUsVal[k] || 0, themeUsCost[k] || 0))
-        entry[`${k}pnlAfterTax`] = Math.round(((themeVal[k] || 0) - (themeCost[k] || 0)) - cgtTax(themeUsVal[k] || 0, themeUsCost[k] || 0))
+        const uv = themeVal[k] || 0, uc = themeCost[k] || 0
+        const rt = realizedTheme[k] || 0, sct = soldCostTheme[k] || 0, rut = realizedUsTheme[k] || 0
+        const unrealK = uv - uc
+        entry[`${k}value`] = Math.round(uv)
+        entry[`${k}pnl`] = Math.round(unrealK + rt)
+        entry[`${k}pct`] = (uc + sct) > 0 ? Math.round((unrealK + rt) / (uc + sct) * 1000) / 10 : 0
+        entry[`${k}valueAfterTax`] = Math.round(uv - cgtTax(themeUsVal[k] || 0, themeUsCost[k] || 0))
+        entry[`${k}pnlAfterTax`] = Math.round((unrealK - cgtTax(themeUsVal[k] || 0, themeUsCost[k] || 0)) + (rt - OVERSEAS_CGT * Math.max(0, rut)))
       }
       advanceQld(date)
       const qPct = qldPctForDate(date)
@@ -372,31 +409,41 @@ export function AnalysisBlock({
         if (isUS) { todayThUsV[group] = (todayThUsV[group] || 0) + val; todayThUsC[group] = (todayThUsC[group] || 0) + cost }
       }
       if (has && todayCost > 0) {
+        const tUnreal = todayTotal - todayCost, tUnrealKr = todayKr - todayKrC, tUnrealUs = todayUs - todayUsC
         const e: Record<string, number | string> = {
           date: today,
-          '전체value': Math.round(todayTotal), '전체pnl': Math.round(todayTotal - todayCost),
-          '전체pct': todayCost > 0 ? Math.round((todayTotal - todayCost) / todayCost * 1000) / 10 : 0,
-          '국내value': Math.round(todayKr), '국내pnl': Math.round(todayKr - todayKrC),
-          '국내pct': todayKrC > 0 ? Math.round((todayKr - todayKrC) / todayKrC * 1000) / 10 : 0,
-          '해외value': Math.round(todayUs), '해외pnl': Math.round(todayUs - todayUsC),
-          '해외pct': todayUsC > 0 ? Math.round((todayUs - todayUsC) / todayUsC * 1000) / 10 : 0,
+          '전체value': Math.round(todayTotal),
+          '전체pnl': Math.round(tUnreal + realizedCum),
+          '전체pct': (todayCost + soldCostCum) > 0 ? Math.round((tUnreal + realizedCum) / (todayCost + soldCostCum) * 1000) / 10 : 0,
+          '전체realized': Math.round(realizedCum),
+          '국내value': Math.round(todayKr),
+          '국내pnl': Math.round(tUnrealKr + realizedKr),
+          '국내pct': (todayKrC + soldCostKr) > 0 ? Math.round((tUnrealKr + realizedKr) / (todayKrC + soldCostKr) * 1000) / 10 : 0,
+          '해외value': Math.round(todayUs),
+          '해외pnl': Math.round(tUnrealUs + realizedHae),
+          '해외pct': (todayUsC + soldCostHae) > 0 ? Math.round((tUnrealUs + realizedHae) / (todayUsC + soldCostHae) * 1000) / 10 : 0,
           '전체valueAfterTax': Math.round(todayTotal - cgtTax(todayUs, todayUsC)),
-          '전체pnlAfterTax': Math.round((todayTotal - todayCost) - cgtTax(todayUs, todayUsC)),
-          '국내valueAfterTax': Math.round(todayKr), '국내pnlAfterTax': Math.round(todayKr - todayKrC),
+          '전체pnlAfterTax': Math.round((tUnreal - cgtTax(todayUs, todayUsC)) + (realizedCum - OVERSEAS_CGT * Math.max(0, realizedUsCum))),
+          '국내valueAfterTax': Math.round(todayKr),
+          '국내pnlAfterTax': Math.round(tUnrealKr + realizedKr),
           '해외valueAfterTax': Math.round(todayUs - cgtTax(todayUs, todayUsC)),
-          '해외pnlAfterTax': Math.round((todayUs - todayUsC) - cgtTax(todayUs, todayUsC)),
+          '해외pnlAfterTax': Math.round((tUnrealUs - cgtTax(todayUs, todayUsC)) + (realizedHae - OVERSEAS_CGT * Math.max(0, realizedHae))),
         }
         for (const k of THEME_KEYS) {
-          e[`${k}value`] = Math.round(todayThV[k] || 0)
-          e[`${k}pnl`] = Math.round((todayThV[k] || 0) - (todayThC[k] || 0))
-          e[`${k}pct`] = (todayThC[k] || 0) > 0 ? Math.round(((todayThV[k] || 0) - (todayThC[k] || 0)) / (todayThC[k] || 0) * 1000) / 10 : 0
-          e[`${k}valueAfterTax`] = Math.round((todayThV[k] || 0) - cgtTax(todayThUsV[k] || 0, todayThUsC[k] || 0))
-          e[`${k}pnlAfterTax`] = Math.round(((todayThV[k] || 0) - (todayThC[k] || 0)) - cgtTax(todayThUsV[k] || 0, todayThUsC[k] || 0))
+          const uv = todayThV[k] || 0, uc = todayThC[k] || 0
+          const rt = realizedTheme[k] || 0, sct = soldCostTheme[k] || 0, rut = realizedUsTheme[k] || 0
+          const unrealK = uv - uc
+          e[`${k}value`] = Math.round(uv)
+          e[`${k}pnl`] = Math.round(unrealK + rt)
+          e[`${k}pct`] = (uc + sct) > 0 ? Math.round((unrealK + rt) / (uc + sct) * 1000) / 10 : 0
+          e[`${k}valueAfterTax`] = Math.round(uv - cgtTax(todayThUsV[k] || 0, todayThUsC[k] || 0))
+          e[`${k}pnlAfterTax`] = Math.round((unrealK - cgtTax(todayThUsV[k] || 0, todayThUsC[k] || 0)) + (rt - OVERSEAS_CGT * Math.max(0, rut)))
         }
         advanceQld(today)
         // Prefer live QLD quote for the today point; fall back to last series close.
         const qldQuote = stockQuotes['QLD']?.price
-        if (qldState.krwCost > 0) {
+        const qldBase = qldState.krwCost + qldSoldCostCum
+        if (qldBase > 0) {
           let qVal: number | null = null
           if (qldQuote && qldQuote > 0) {
             qVal = qldState.shares * qldQuote * usdKrwRate
@@ -404,7 +451,7 @@ export function AnalysisBlock({
             const lastPx = qldPrices?.get(today) ?? (sortedDates.length ? qldPrices?.get(sortedDates[sortedDates.length - 1]) : undefined)
             if (lastPx && lastPx > 0) qVal = qldState.shares * lastPx * usdKrwRate
           }
-          if (qVal !== null) e['qldPct'] = Math.round((qVal - qldState.krwCost) / qldState.krwCost * 1000) / 10
+          if (qVal !== null) e['qldPct'] = Math.round((qVal - qldState.krwCost + qldRealizedCum) / qldBase * 1000) / 10
         }
         if (data.length > 0 && data[data.length - 1].date === today) data[data.length - 1] = e
         else data.push(e)
@@ -692,6 +739,14 @@ export function AnalysisBlock({
                     <Line
                       type="monotone" dataKey="qldPct" name="QLD"
                       stroke={QLD_BENCH_COLOR} strokeWidth={1.5} strokeDasharray="4 3"
+                      dot={false} connectNulls isAnimationActive={false}
+                    />
+                  )}
+                  {/* 실현 누적 보조 라인 (수익금·전체 모드): 전체 수익금 중 실현분 기여 */}
+                  {chart.suffix === 'pnl' && viewMode === 'total' && (
+                    <Line
+                      type="monotone" dataKey="전체realized" name="실현 누적"
+                      stroke={REALIZED_COLOR} strokeWidth={1} strokeDasharray="1 2"
                       dot={false} connectNulls isAnimationActive={false}
                     />
                   )}

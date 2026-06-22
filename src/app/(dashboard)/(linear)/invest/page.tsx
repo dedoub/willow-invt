@@ -9,6 +9,7 @@ import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, 
 import { HoldingsBlock, StockTradeFull, StockQuoteFull, TickerTheme } from './_components/holdings-block'
 import { AnalysisBlock } from './_components/analysis-block'
 import { TradeLog } from './_components/trade-log'
+import { ClosedPositions } from './_components/closed-positions'
 import { SectorRotationBlock } from './_components/sector-rotation-block'
 import { InvestSkeleton, InvestHoldingsSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 
@@ -306,6 +307,9 @@ export default function InvestPage() {
     }
 
     const holdMap = new Map<string, { qty: number; totalCost: number; krwCost: number; currency: string; totalBought: number }>()
+    // 실현손익 누적 (KRW, 매도 시점 과거환율 기준). soldCostKrw = 청산된 원가기준.
+    // realizedUsKrw = 해외 실현손익 순액(손실 상계). 세금은 순이익이 양수일 때만 과세.
+    let realizedKrw = 0, realizedUsKrw = 0, soldCostKrw = 0
     const sorted = [...stockTrades].sort((a, b) => {
       const ta = a.trade_date ? new Date(a.trade_date).getTime() : 0
       const tb = b.trade_date ? new Date(b.trade_date).getTime() : 0
@@ -323,8 +327,14 @@ export default function InvestPage() {
       } else {
         const avg = prev.qty > 0 ? prev.totalCost / prev.qty : 0
         const krwAvg = prev.qty > 0 ? prev.krwCost / prev.qty : 0
+        // 실현손익 = 매도대금(KRW) − 차감원가(KRW). 해외는 매도시점 환율로 환산.
+        const soldBasisKrw = krwAvg * tr.quantity
+        const proceedsKrw = amt * histRate
+        const realized = proceedsKrw - soldBasisKrw
+        realizedKrw += realized; soldCostKrw += soldBasisKrw
+        if (isUS) realizedUsKrw += realized
         prev.totalCost -= avg * tr.quantity; prev.qty -= tr.quantity
-        prev.krwCost -= krwAvg * tr.quantity
+        prev.krwCost -= soldBasisKrw
         if (prev.qty <= 0) { prev.qty = 0; prev.totalCost = 0; prev.krwCost = 0 }
       }
       holdMap.set(key, prev)
@@ -375,15 +385,18 @@ export default function InvestPage() {
       if (status === 'HOLD') holdTickers.push(name)
     }
 
-    const cumulativeReturnPct = totalCostKrw > 0 ? (totalValKrw - totalCostKrw) / totalCostKrw * 100 : 0
-    return { totalValKrw, totalCostKrw, cumulativeReturnPct, buyBreakoutTickers, buyOnlyTickers, breakoutOnlyTickers, holdTickers, usGainKrw }
+    // 분모 = 누적 투입원가 (현재 보유원가 + 청산원가). 평가/실현 수익률이 합산되도록 동일 분모 사용.
+    const investedBaseKrw = totalCostKrw + soldCostKrw
+    const unrealizedGainKrw = totalValKrw - totalCostKrw
+    const unrealizedReturnPct = investedBaseKrw > 0 ? unrealizedGainKrw / investedBaseKrw * 100 : 0
+    const realizedReturnPct = investedBaseKrw > 0 ? realizedKrw / investedBaseKrw * 100 : 0
+    const cumulativeReturnPct = unrealizedReturnPct + realizedReturnPct
+    return { totalValKrw, totalCostKrw, cumulativeReturnPct, unrealizedReturnPct, realizedReturnPct, realizedKrw, realizedUsKrw, buyBreakoutTickers, buyOnlyTickers, breakoutOnlyTickers, holdTickers, usGainKrw }
   }, [stockTrades, stockQuotes, usdKrw, fxHistory, watchlistData, breakoutMap])
 
   const totalValKrw = portfolioStats.totalValKrw > 0
     ? portfolioStats.totalValKrw
     : totalValueUsd > 0 ? totalValueUsd * usdKrw : 0
-  const totalCostKrw = portfolioStats.totalCostKrw
-  const gain = totalValKrw - totalCostKrw
   const usTax = portfolioStats.usGainKrw * 0.222
   const afterTaxVal = totalValKrw - usTax
 
@@ -394,11 +407,10 @@ export default function InvestPage() {
       : fmtKrwShort(totalValKrw)
     : undefined
 
-  const afterTaxGain = gain - usTax
+  // 누적수익률 하위: 평가/실현 분해 (동일 분모라 합산됨)
+  const fmtPctSigned = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
   const gainSub = totalValKrw > 0
-    ? usTax > 0
-      ? `${fmtKrwShort(gain)} (세후 ${fmtKrwShort(afterTaxGain)})`
-      : fmtKrwShort(gain)
+    ? `평가 ${fmtPctSigned(portfolioStats.unrealizedReturnPct)} · 실현 ${fmtPctSigned(portfolioStats.realizedReturnPct)}`
     : undefined
 
   const printActions = (
@@ -463,6 +475,7 @@ export default function InvestPage() {
               breakoutMap={breakoutMap}
               cardColumns={mobile ? 1 : 2}
             />
+            <ClosedPositions stockTrades={stockTradesFull} fxHistory={fxHistory} usdKrwRate={usdKrw} />
             <TradeLog trades={stockTrades} />
           </div>
 
