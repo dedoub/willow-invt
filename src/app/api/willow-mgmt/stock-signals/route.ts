@@ -154,44 +154,58 @@ export async function GET(request: Request) {
       }
     }
 
-    // Fetch all quotes in parallel (batch of 10 to avoid rate limiting)
-    const results: SignalResult[] = []
+    // Start the independent USD/KRW FX fetch first so it overlaps the quote loop
+    const fxPromise = (async (): Promise<number> => {
+      try {
+        const fxRes = await fetch(
+          'https://query1.finance.yahoo.com/v8/finance/chart/KRW=X?interval=1d&range=1d',
+          { headers: { 'User-Agent': 'Mozilla/5.0' }, next: { revalidate: 300 } }
+        )
+        if (fxRes.ok) {
+          const fxData = await fxRes.json()
+          const fxPrice = fxData?.chart?.result?.[0]?.meta?.regularMarketPrice
+          if (fxPrice) return fxPrice
+        }
+      } catch { /* fallback to 1400 */ }
+      return 1400
+    })()
+
+    // Fetch all quotes concurrently (batches of 10 run in parallel)
     const batchSize = 10
+    const batches: { name: string; ticker: string; sector: string; axis?: string; group: string }[][] = []
     for (let i = 0; i < entries.length; i += batchSize) {
-      const batch = entries.slice(i, i + batchSize)
-      const quotes = await Promise.all(
-        batch.map(async (entry) => {
-          const quote = await fetchYahooQuote(entry.ticker)
-          if (!quote) return null
-          const { signal, gapPct } = calcSignal(quote.price, quote.high52w)
-          return {
-            ...quote,
-            name: entry.name,
-            ticker: entry.ticker,
-            sector: entry.sector,
-            axis: entry.axis,
-            group: entry.group as 'portfolio' | 'watchlist' | 'benchmark',
-            signal,
-            gapFromHighPct: gapPct,
-          }
-        })
+      batches.push(entries.slice(i, i + batchSize))
+    }
+
+    const batchResults = await Promise.all(
+      batches.map((batch) =>
+        Promise.all(
+          batch.map(async (entry) => {
+            const quote = await fetchYahooQuote(entry.ticker)
+            if (!quote) return null
+            const { signal, gapPct } = calcSignal(quote.price, quote.high52w)
+            return {
+              ...quote,
+              name: entry.name,
+              ticker: entry.ticker,
+              sector: entry.sector,
+              axis: entry.axis,
+              group: entry.group as 'portfolio' | 'watchlist' | 'benchmark',
+              signal,
+              gapFromHighPct: gapPct,
+            }
+          })
+        )
       )
+    )
+
+    const results: SignalResult[] = []
+    for (const quotes of batchResults) {
       results.push(...(quotes.filter(Boolean) as SignalResult[]))
     }
 
-    // Fetch live USD/KRW rate
-    let usdKrw = 1400
-    try {
-      const fxRes = await fetch(
-        'https://query1.finance.yahoo.com/v8/finance/chart/KRW=X?interval=1d&range=1d',
-        { headers: { 'User-Agent': 'Mozilla/5.0' }, next: { revalidate: 300 } }
-      )
-      if (fxRes.ok) {
-        const fxData = await fxRes.json()
-        const fxPrice = fxData?.chart?.result?.[0]?.meta?.regularMarketPrice
-        if (fxPrice) usdKrw = fxPrice
-      }
-    } catch { /* fallback to 1400 */ }
+    // Await the FX fetch that started before the quote loop
+    const usdKrw = await fxPromise
 
     const summary = {
       newHighs: results.filter(r => r.signal === 'new_high').length,

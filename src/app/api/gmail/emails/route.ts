@@ -273,7 +273,6 @@ export async function GET(request: NextRequest) {
     console.log('[Gmail] Searching for label:', label)
     console.log('[Gmail] Found parent label ID:', parentLabelId)
     console.log('[Gmail] Found sub-label IDs:', subLabelIds)
-    console.log('[Gmail] All labels:', allLabels.map(l => ({ id: l.id, name: l.name })))
 
     // 부모 라벨 + 하위 라벨 모두에서 이메일 조회
     const labelIdsToSearch = parentLabelId ? [parentLabelId, ...subLabelIds] : subLabelIds
@@ -288,46 +287,59 @@ export async function GET(request: NextRequest) {
 
     console.log('[Gmail] Searching in labels:', labelIdsToSearch.map(id => labelMap.get(id)?.name))
 
-    for (const labelId of labelIdsToSearch) {
-      const labelName = labelMap.get(labelId)?.name || labelId
-      let pageToken: string | null = null
-      let totalForLabel = 0
+    // 각 라벨의 페이지네이션을 병렬 태스크로 실행 (Fix B)
+    // 수집된 고유 메시지 수가 maxResults에 도달하면 페이지네이션 중단 (Fix A)
+    // 병렬 태스크 간 공유되는 고유 ID 집합으로 cap 추적
+    const uniqueSoFar = new Set<string>()
+    const perLabelResults = await Promise.all(
+      labelIdsToSearch.map(async (labelId): Promise<string[]> => {
+        const collected: string[] = []
+        let pageToken: string | null = null
+        let hasMore = true
 
-      console.log(`[Gmail] Fetching from label "${labelName}"`)
+        // 페이지네이션으로 이메일 수집 (cap에 도달하면 중단)
+        while (hasMore) {
+          // 이미 충분히 수집되었으면 추가 페이지 요청 생략
+          if (maxResults > 0 && uniqueSoFar.size >= maxResults) break
 
-      // 페이지네이션으로 모든 이메일 수집
-      let hasMore = true
-      while (hasMore) {
-        const listParams: { userId: string; labelIds: string[]; maxResults: number; q: string; pageToken?: string } = {
-          userId: 'me',
-          labelIds: [labelId],
-          maxResults: 100,
-          q: `after:${afterDateStr}`,
-        }
-        if (pageToken) {
-          listParams.pageToken = pageToken
-        }
+          const listParams: { userId: string; labelIds: string[]; maxResults: number; q: string; pageToken?: string } = {
+            userId: 'me',
+            labelIds: [labelId],
+            maxResults: 100,
+            q: `after:${afterDateStr}`,
+          }
+          if (pageToken) {
+            listParams.pageToken = pageToken
+          }
 
-        const listRes = await gmail.users.messages.list(listParams)
+          const listRes = await gmail.users.messages.list(listParams)
 
-        for (const msg of listRes.data.messages || []) {
-          if (msg.id) {
-            const existing = messageMap.get(msg.id) || []
-            existing.push(labelId)
-            messageMap.set(msg.id, existing)
-            totalForLabel++
+          for (const msg of listRes.data.messages || []) {
+            if (msg.id) {
+              collected.push(msg.id)
+              uniqueSoFar.add(msg.id)
+            }
+          }
+
+          if (listRes.data.nextPageToken) {
+            pageToken = listRes.data.nextPageToken
+          } else {
+            hasMore = false
           }
         }
 
-        if (listRes.data.nextPageToken) {
-          pageToken = listRes.data.nextPageToken
-        } else {
-          hasMore = false
-        }
-      }
+        return collected
+      })
+    )
 
-      console.log(`[Gmail] Found ${totalForLabel} messages in "${labelName}"`)
-    }
+    // 병렬 수집 결과를 dedup 맵에 병합 (messageId -> labelIds)
+    labelIdsToSearch.forEach((labelId, idx) => {
+      for (const msgId of perLabelResults[idx]) {
+        const existing = messageMap.get(msgId) || []
+        existing.push(labelId)
+        messageMap.set(msgId, existing)
+      }
+    })
 
     console.log(`[Gmail] Total unique messages found: ${messageMap.size}`)
 
@@ -351,10 +363,6 @@ export async function GET(request: NextRequest) {
         const msgLabels = msgRes.data.labelIds || []
         const categories: string[] = []
 
-        // 디버깅: 이메일별 라벨 확인
-        const msgLabelNames = msgLabels.map(id => labelMap.get(id)?.name).filter(Boolean)
-        console.log(`[Gmail] Email "${parsed.subject?.substring(0, 30)}..." has labels:`, msgLabelNames)
-
         // 하위 라벨에서 카테고리 추출 (예: "ETC/키움" -> "키움") - 모든 매칭되는 하위 라벨 수집
         for (const lblId of msgLabels) {
           const lblInfo = labelMap.get(lblId)
@@ -362,15 +370,11 @@ export async function GET(request: NextRequest) {
             // 부모 라벨 이름 제거하여 카테고리 추출
             const cat = lblInfo.name.substring(label.length + 1)
             categories.push(cat)
-            console.log(`[Gmail] -> Category: ${cat} (from label: ${lblInfo.name})`)
           }
         }
 
         // 첫 번째 카테고리를 기본 category로 사용 (하위 호환성)
         const category = categories.length > 0 ? categories[0] : null
-        if (!category) {
-          console.log(`[Gmail] -> No sub-label category found`)
-        }
 
         // 발신/수신 결정 (SENT 라벨 또는 from 주소로 판단)
         const isSent = msgLabels.includes('SENT')
@@ -400,8 +404,6 @@ export async function GET(request: NextRequest) {
         return null
       })
       .filter((c): c is string => c !== null)
-
-    console.log('[Gmail] Available categories:', availableCategories)
 
     // 자동 분석 트리거 (백그라운드에서 실행)
     const autoAnalyze = searchParams.get('autoAnalyze') !== 'false'

@@ -29,35 +29,9 @@ export async function GET(request: Request) {
 
     if (error) throw error
 
-    // Fetch chapters for chapter_ids arrays
-    const allChapterIds = new Set<string>()
-    for (const schedule of data || []) {
-      if (schedule.chapter_ids?.length > 0) {
-        schedule.chapter_ids.forEach((id: string) => allChapterIds.add(id))
-      }
-    }
-
-    let chaptersMap: Record<string, unknown> = {}
-    if (allChapterIds.size > 0) {
-      const { data: chapters } = await supabase
-        .from('ryuha_chapters')
-        .select('*, textbook:ryuha_textbooks(*, subject:ryuha_subjects(*))')
-        .in('id', Array.from(allChapterIds))
-
-      if (chapters) {
-        chaptersMap = Object.fromEntries(chapters.map(ch => [ch.id, ch]))
-      }
-    }
-
-    // Merge chapters into schedules
-    const schedulesWithChapters = (data || []).map(schedule => ({
-      ...schedule,
-      chapters: schedule.chapter_ids?.length > 0
-        ? schedule.chapter_ids.map((id: string) => chaptersMap[id]).filter(Boolean)
-        : [],
-    }))
-
-    return NextResponse.json(schedulesWithChapters)
+    // chapter_ids are resolved client-side against already-loaded chapters
+    // (see ryuha/page.tsx), so no extra chapter hydration query is needed here.
+    return NextResponse.json(data || [])
   } catch (error) {
     console.error('Error fetching schedules:', error)
     return NextResponse.json({ error: 'Failed to fetch schedules' }, { status: 500 })

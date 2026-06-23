@@ -74,12 +74,13 @@ export default function MgmtPage() {
     // 초기 마운트는 useState(0) 기본값으로 스켈레톤 표시.
     // 저장/수정 후 재로드 시에는 phase를 유지해서 자식 컴포넌트(달력 등) 언마운트 방지.
     try {
-      const [clientsRes, schedulesRes, invoicesRes, balancesRes, historyRes] = await Promise.all([
+      const [clientsRes, schedulesRes, invoicesRes, balancesRes, historyRes, fxRes] = await Promise.all([
         fetch('/api/willow-mgmt/clients'),
         fetch('/api/willow-mgmt/schedules'),
         fetch('/api/willow-mgmt/invoices'),
         fetch('/api/willow-mgmt/bank-balances'),
         fetch('/api/willow-mgmt/balance-history?start_date=2026-01-01'),
+        fetch('/api/willow-mgmt/fx-history').catch(() => null),
       ])
       if (clientsRes.ok) setClients(await clientsRes.json())
       if (schedulesRes.ok) setSchedules(await schedulesRes.json())
@@ -93,10 +94,9 @@ export default function MgmtPage() {
         if (Array.isArray(hist)) setBalanceHistory(hist)
       }
 
-      // Fetch latest USD/KRW rate
+      // Latest USD/KRW rate (fetched in parallel above)
       try {
-        const fxRes = await fetch('/api/willow-mgmt/fx-history')
-        if (fxRes.ok) {
+        if (fxRes?.ok) {
           const { rates } = await fxRes.json()
           const dates = Object.keys(rates).sort()
           if (dates.length > 0) setUsdRate(rates[dates[dates.length - 1]])

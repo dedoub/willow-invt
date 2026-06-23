@@ -139,7 +139,15 @@ export async function GET(request: Request) {
   }
 
   // Build exclusive→supply area mapping from Naver listings (for supply-based PPP)
-  const areaMapping = await buildAreaMapping(supabase, complexNames)
+  // Lazy + memoized: only branches that need it trigger the (expensive) scan,
+  // and it runs at most once per request even if referenced multiple times.
+  let areaMappingCache: Record<string, AreaMapping> | null = null
+  const getAreaMapping = async (): Promise<Record<string, AreaMapping>> => {
+    if (areaMappingCache === null) {
+      areaMappingCache = await buildAreaMapping(supabase, complexNames)
+    }
+    return areaMappingCache
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyFilters = (query: any, table: 'trades' | 'rentals') => {
@@ -180,15 +188,22 @@ export async function GET(request: Request) {
       const oma = new Date(now.getFullYear(), now.getMonth() - 1, 1)
       const oneMonthAgo = `${oma.getFullYear()}-${String(oma.getMonth() + 1).padStart(2, '0')}-01`
 
-      // Fetch trades & rentals (no DB area filter — filter by supply pyeong in code)
-      const recentTrades = await fetchAll(
-        supabase.from('re_trades').select('complex_name, deal_amount, area_sqm')
-          .gte('deal_date', oneMonthAgo).eq('cancel_yn', 'N').in('complex_name', complexNames)
-      )
-      const recentRentals = await fetchAll(
-        supabase.from('re_rentals').select('complex_name, deposit, area_sqm')
-          .gte('deal_date', oneMonthAgo).eq('rent_type', '전세').in('complex_name', complexNames)
-      )
+      // Fetch trades & rentals (no DB area filter — filter by supply pyeong in code).
+      // These are independent of each other and of the area mapping → run in parallel.
+      const [areaMapping, recentTrades, recentRentals, { data: latestTrade }] = await Promise.all([
+        getAreaMapping(),
+        fetchAll(
+          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm')
+            .gte('deal_date', oneMonthAgo).eq('cancel_yn', 'N').in('complex_name', complexNames)
+        ),
+        fetchAll(
+          supabase.from('re_rentals').select('complex_name, deposit, area_sqm')
+            .gte('deal_date', oneMonthAgo).eq('rent_type', '전세').in('complex_name', complexNames)
+        ),
+        supabase
+          .from('re_trades').select('deal_date').in('complex_name', complexNames).eq('cancel_yn', 'N')
+          .order('deal_date', { ascending: false }).limit(1),
+      ])
 
       // Use shared matchesSupplyArea for consistent filtering
       function getBandS(supplyPy: number): number {
@@ -298,11 +313,8 @@ export async function GET(request: Request) {
         }
       }
 
-      // Latest data dates (listing date already fetched from daily summary above)
-      const { data: latestTrade } = await supabase
-        .from('re_trades').select('deal_date').in('complex_name', complexNames).eq('cancel_yn', 'N')
-        .order('deal_date', { ascending: false }).limit(1)
-
+      // Latest data dates (listing date already fetched from daily summary above;
+      // latestTrade fetched in parallel with trades/rentals above)
       return NextResponse.json({
         summary: {
           trackedComplexes: complexCount,
@@ -318,6 +330,7 @@ export async function GET(request: Request) {
     }
 
     if (type === 'trades') {
+      const areaMapping = await getAreaMapping()
       const data = await fetchAll(applyFilters(
         supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_sqm').gte('deal_date', cutoffDate).order('deal_date'),
         'trades'
@@ -369,6 +382,7 @@ export async function GET(request: Request) {
     }
 
     if (type === 'rentals') {
+      const areaMapping = await getAreaMapping()
       const data = await fetchAll(applyFilters(
         supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_sqm').gte('deal_date', cutoffDate).eq('rent_type', '전세').order('deal_date'),
         'rentals'
@@ -408,6 +422,7 @@ export async function GET(request: Request) {
 
     if (type === 'listings') {
       const tradeType = searchParams.get('tradeType') || '매매'
+      const areaMapping = await getAreaMapping()
 
       // Find the latest snapshot date, then fetch latest 2 days to cover complexes scraped on different dates
       const { data: latestSnap } = await supabase
@@ -557,7 +572,7 @@ export async function GET(request: Request) {
       const data = await fetchAll(query)
 
       // 2. Actual trade/rental data — fetch wide range so each date can use its own 1-month window
-      const areaMapping = await buildAreaMapping(supabase, complexNames)
+      const areaMapping = await getAreaMapping()
 
       function getBandT(py: number): number { return py < 30 ? 20 : py < 40 ? 30 : py < 50 ? 40 : py < 60 ? 50 : 60 }
       // Use shared matchesSupplyArea
@@ -650,6 +665,7 @@ export async function GET(request: Request) {
     }
 
     if (type === 'jeonse-ratio') {
+      const areaMapping = await getAreaMapping()
       const trades = await fetchAll(applyFilters(
         supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_sqm').gte('deal_date', cutoffDate),
         'trades'

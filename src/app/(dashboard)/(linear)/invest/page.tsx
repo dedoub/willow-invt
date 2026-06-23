@@ -107,7 +107,11 @@ export default function InvestPage() {
         researchFull = items
       }
 
-      // Phase 1b: fetch signals with research tickers included
+      // Show kanban + trade log immediately — don't gate first paint on signals.
+      if (!bg) setLoadPhase(1)
+
+      // Phase 1b: fetch signals with research tickers included.
+      // Signals only feed the signal bar, so resolve them into state after first paint.
       const extraTickers = researchFull
         .filter(r => r.verdict?.startsWith('pass') && r.track !== 'ETF')
         .map(r => r.ticker)
@@ -121,9 +125,6 @@ export default function InvestPage() {
         setSignalData(data.signals || [])
         if (data.usdKrw) setUsdKrw(data.usdKrw)
       }
-
-      // Show kanban + trade log immediately
-      if (!bg) setLoadPhase(1)
 
       // Phase 2: fetch stock quotes, live FX rate, and FX history
       {
@@ -146,14 +147,13 @@ export default function InvestPage() {
           const ticker = w.ticker.replace('.KS', '')
           if (!tickerMap.has(ticker)) tickerMap.set(ticker, isKR ? 'KR' : 'US')
         }
+        // Include live FX (KRW=X) in the main quotes request so we only make one call.
+        if (!tickerMap.has('KRW=X')) tickerMap.set('KRW=X', 'US')
         const tickers = Array.from(tickerMap.keys())
         const markets = tickers.map(tk => tickerMap.get(tk)!)
 
-        const [quotesRes, fxRes, fxHistRes] = await Promise.all([
-          tickers.length > 0
-            ? fetch(`/api/willow-mgmt/stock-quotes?tickers=${tickers.join(',')}&markets=${markets.join(',')}`)
-            : null,
-          fetch('/api/willow-mgmt/stock-quotes?tickers=KRW%3DX&markets=US'),
+        const [quotesRes, fxHistRes] = await Promise.all([
+          fetch(`/api/willow-mgmt/stock-quotes?tickers=${tickers.join(',')}&markets=${markets.join(',')}`),
           fetch('/api/willow-mgmt/fx-history'),
         ])
 
@@ -171,11 +171,9 @@ export default function InvestPage() {
           setStockQuotesFull(quotesFull)
 
           if (data.themes) setStockThemes(data.themes)
-        }
 
-        if (fxRes.ok) {
-          const fxData = await fxRes.json()
-          const krwRate = fxData.prices?.['KRW=X']?.price
+          // Live USD/KRW rate from the same response.
+          const krwRate = (data.prices?.['KRW=X'] as { price?: number } | undefined)?.price
           if (krwRate && krwRate > 0) setUsdKrw(krwRate)
         }
 

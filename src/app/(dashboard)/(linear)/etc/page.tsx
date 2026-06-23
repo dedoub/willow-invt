@@ -55,13 +55,18 @@ export default function EtcPage() {
   const [sendInvoice, setSendInvoice] = useState<Invoice | null>(null)
   const [sendTarget, setSendTarget] = useState<'etc' | 'bank'>('etc')
 
+  // Returns the raw products so the caller can defer the 180-day historical fetch.
   const loadData = useCallback(async () => {
     const [displayData, products] = await Promise.all([
       fetchETFDisplayData('ETC'),
       fetchETFProducts('ETC'),
     ])
     setEtfs(displayData)
-    // Fetch historical data using raw products
+    return products
+  }, [])
+
+  // 180-day historical data — heavy, loaded after first paint (does not gate phase 1).
+  const loadHistorical = useCallback(async (products: Awaited<ReturnType<typeof fetchETFProducts>>) => {
     const hist = await fetchHistoricalData(products, 180)
     setHistoricalData(hist)
   }, [])
@@ -117,13 +122,16 @@ export default function EtcPage() {
   }, [])
 
   useEffect(() => {
+    // First paint after the light fetches; defer 180-day historical + emails to phase 2.
     Promise.all([loadData(), loadInvoices(), loadWiki()])
-      .then(() => setLoadPhase(1))
-      .then(() => fetchEmails())
+      .then(([products]) => {
+        setLoadPhase(1)
+        return Promise.all([loadHistorical(products), fetchEmails()])
+      })
       .finally(() => setLoadPhase(2))
-  }, [loadData, loadInvoices, loadWiki, fetchEmails])
+  }, [loadData, loadInvoices, loadWiki, loadHistorical, fetchEmails])
   useAgentRefresh(['etf_', 'work_wiki'], () => {
-    loadData(); loadInvoices(); loadWiki()
+    loadData().then(loadHistorical); loadInvoices(); loadWiki()
   })
 
   // Email handlers
@@ -140,9 +148,9 @@ export default function EtcPage() {
   const handleEditProduct = (etf: ETFDisplayData) => { setEditEtf(etf); setProductDialogOpen(true) }
   const handleDeleteProduct = async (etf: ETFDisplayData) => {
     await deleteETFProduct(etf.id)
-    loadData()
+    loadData().then(loadHistorical)
   }
-  const handleProductSaved = () => { setProductDialogOpen(false); setEditEtf(null); loadData() }
+  const handleProductSaved = () => { setProductDialogOpen(false); setEditEtf(null); loadData().then(loadHistorical) }
 
   // Invoice handlers
   const handleAddInvoice = () => { setEditInvoice(null); setInvoiceDialogOpen(true) }
@@ -206,7 +214,7 @@ export default function EtcPage() {
                 onEdit={handleEditProduct}
                 onDocuments={(etf) => setDocEtf(etf)}
                 onDelete={handleDeleteProduct}
-                onRefresh={loadData}
+                onRefresh={() => loadData().then(loadHistorical)}
               />
             </div>
           </div>

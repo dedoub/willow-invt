@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import {
   getCombinedStats,
   getConnectionStatus,
-  getAppDbRevenue,
 } from '@/lib/voicecards-server'
 
 export const maxDuration = 300
@@ -15,13 +14,16 @@ export async function GET(request: Request) {
     // 날짜 범위 파라미터 (기본: 올해 1/1 ~ 오늘)
     const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0]
     const startDate = searchParams.get('startDate') || `${new Date().getFullYear()}-01-01`
-    const connectionStatus = await getConnectionStatus()
-
-    // 통합 통계 조회 (매출은 getCombinedStats 내부에서 앱 DB 결제 이벤트로 산출)
-    const stats = await getCombinedStats(startDate, endDate)
+    // 연결 상태 + 통합 통계를 병렬 조회 (서로 독립적)
+    // 매출은 getCombinedStats 내부에서 앱 DB 결제 이벤트로 산출되며, 차트용 appRevenue도 함께 반환됨
+    const [connectionStatus, stats] = await Promise.all([
+      getConnectionStatus(),
+      getCombinedStats(startDate, endDate),
+    ])
 
     // 날짜별 매출 차트 데이터 — 앱 DB(anonymous_events) 결제 이벤트 기반 (그로스, USD)
-    const appRevenue = await getAppDbRevenue(startDate, endDate)
+    // getCombinedStats가 이미 계산한 결과 재사용 (중복 스캔 제거)
+    const appRevenue = stats.appRevenue
     const dateMap = new Map<string, { ios: number; android: number; total: number }>()
 
     for (const [date, rev] of appRevenue.iosByDate) {

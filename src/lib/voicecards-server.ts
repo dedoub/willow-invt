@@ -62,6 +62,8 @@ export interface CombinedStats {
     start: string
     end: string
   }
+  // 앱 DB(anonymous_events) 기반 매출 — 차트 데이터 산출용 (getCombinedStats 내부에서 이미 계산됨)
+  appRevenue: AppDbRevenue
 }
 
 // 현재 사용자 ID 가져오기
@@ -664,6 +666,7 @@ export async function getCombinedStats(
       start: startDate,
       end: endDate,
     },
+    appRevenue,
   }
 }
 
