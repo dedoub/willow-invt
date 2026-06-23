@@ -116,56 +116,74 @@ export async function GET() {
 
     const projectIds = projects.map(p => p.id)
 
-    // Get all todos for all projects with assignees
-    const { data: allTodos } = await supabase
-      .from('tensw_todos')
-      .select(`
-        id, project_id, title, status, priority, due_date, readable_id, assigned_at, completed_at,
-        assignees:tensw_todo_assignees(
-          id,
-          member_id,
-          member:tensw_project_members!tensw_todo_assignees_member_id_fkey(id, name)
-        )
-      `)
-      .in('project_id', projectIds)
-
-    // Get schedules (진행 중인 것만, start_date 오름차순)
     const today = new Date()
-    const { data: allSchedules } = await supabase
-      .from('tensw_project_schedules')
-      .select('id, project_id, title, start_date, end_date, milestone_type, status')
-      .in('project_id', projectIds)
-      .eq('status', 'in_progress')
-      .order('start_date', { ascending: true })
+    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-    // Get all documents
-    const { data: allDocs } = await supabase
-      .from('tensw_project_docs')
-      .select('id, project_id, title, doc_type, created_at, created_by')
-      .in('project_id', projectIds)
-      .order('created_at', { ascending: false })
+    // 독립 쿼리는 한 번에 병렬 실행 (projectIds 의존) — 직렬 왕복 제거
+    const [
+      todosRes, schedulesRes, docsRes, membersRes, serviceUrlsRes,
+      latestAnalysesRes, allAnalysesRes, scheduleChangesRes,
+    ] = await Promise.all([
+      supabase
+        .from('tensw_todos')
+        .select(`
+          id, project_id, title, status, priority, due_date, readable_id, assigned_at, completed_at,
+          assignees:tensw_todo_assignees(
+            id,
+            member_id,
+            member:tensw_project_members!tensw_todo_assignees_member_id_fkey(id, name)
+          )
+        `)
+        .in('project_id', projectIds),
+      supabase
+        .from('tensw_project_schedules')
+        .select('id, project_id, title, start_date, end_date, milestone_type, status')
+        .in('project_id', projectIds)
+        .eq('status', 'in_progress')
+        .order('start_date', { ascending: true }),
+      supabase
+        .from('tensw_project_docs')
+        .select('id, project_id, title, doc_type, created_at, created_by')
+        .in('project_id', projectIds)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('tensw_project_members')
+        .select('id, project_id, name, role, is_manager')
+        .in('project_id', projectIds)
+        .order('is_manager', { ascending: false })
+        .order('name', { ascending: true }),
+      supabase
+        .from('tensw_project_service_urls')
+        .select('id, project_id, name, url, description')
+        .in('project_id', projectIds)
+        .order('sort_order', { ascending: true }),
+      supabase
+        .from('tensw_project_analyses')
+        .select('project_id, progress_score, created_at')
+        .in('project_id', projectIds)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('tensw_project_analyses')
+        .select('id, project_id, analysis_type, summary, created_at, created_by')
+        .in('project_id', projectIds)
+        .gte('created_at', sevenDaysAgo.toISOString())
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('tensw_project_schedules')
+        .select('id, project_id, title, status, created_at, updated_at, created_by')
+        .in('project_id', projectIds)
+        .gte('updated_at', sevenDaysAgo.toISOString())
+        .order('updated_at', { ascending: false }),
+    ])
 
-    // Get all project members
-    const { data: allMembers } = await supabase
-      .from('tensw_project_members')
-      .select('id, project_id, name, role, is_manager')
-      .in('project_id', projectIds)
-      .order('is_manager', { ascending: false })
-      .order('name', { ascending: true })
-
-    // Get service URLs for all projects
-    const { data: allServiceUrls } = await supabase
-      .from('tensw_project_service_urls')
-      .select('id, project_id, name, url, description')
-      .in('project_id', projectIds)
-      .order('sort_order', { ascending: true })
-
-    // Get latest AI analysis progress_score per project
-    const { data: latestAnalyses } = await supabase
-      .from('tensw_project_analyses')
-      .select('project_id, progress_score, created_at')
-      .in('project_id', projectIds)
-      .order('created_at', { ascending: false })
+    const allTodos = todosRes.data
+    const allSchedules = schedulesRes.data
+    const allDocs = docsRes.data
+    const allMembers = membersRes.data
+    const allServiceUrls = serviceUrlsRes.data
+    const latestAnalyses = latestAnalysesRes.data
+    const allAnalyses = allAnalysesRes.data
+    const recentScheduleChanges = scheduleChangesRes.data
 
     const aiProgressMap = new Map<string, number>()
     if (latestAnalyses) {
@@ -176,10 +194,8 @@ export async function GET() {
       }
     }
 
-    // Get recent todo logs (last 7 days)
-    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+    // Recent todo logs (last 7 days) — todoIds 의존이라 배치 후 실행
     const todoIds = allTodos?.map(t => t.id) || []
-
     let recentLogs: Array<{ id: string; todo_id: string; action: string; created_at: string; changed_by: string | null }> = []
     if (todoIds.length > 0) {
       const { data: logs } = await supabase
@@ -190,92 +206,6 @@ export async function GET() {
         .order('created_at', { ascending: false })
         .limit(200)
       recentLogs = logs || []
-    }
-
-    // Get recent AI analyses (last 7 days)
-    const { data: allAnalyses } = await supabase
-      .from('tensw_project_analyses')
-      .select('id, project_id, analysis_type, summary, created_at, created_by')
-      .in('project_id', projectIds)
-      .gte('created_at', sevenDaysAgo.toISOString())
-      .order('created_at', { ascending: false })
-
-    // Get recent schedule changes (last 7 days)
-    const { data: recentScheduleChanges } = await supabase
-      .from('tensw_project_schedules')
-      .select('id, project_id, title, status, created_at, updated_at, created_by')
-      .in('project_id', projectIds)
-      .gte('updated_at', sevenDaysAgo.toISOString())
-      .order('updated_at', { ascending: false })
-
-    // Get project repos for GitHub commits
-    const { data: allRepos } = await supabase
-      .from('tensw_project_repos')
-      .select('id, project_id, name, url')
-      .in('project_id', projectIds)
-
-    // Fetch GitHub commits for each repo
-    interface CommitData {
-      project_id: string
-      sha: string
-      message: string
-      author: string
-      date: string
-      repo: string
-      url: string
-    }
-    const allCommits: CommitData[] = []
-    const githubToken = process.env.GITHUB_TOKEN
-
-    if (allRepos && allRepos.length > 0) {
-      const reposByProject = new Map<string, typeof allRepos>()
-      allRepos.forEach(repo => {
-        const list = reposByProject.get(repo.project_id) || []
-        list.push(repo)
-        reposByProject.set(repo.project_id, list)
-      })
-
-      for (const [projectId, repos] of reposByProject) {
-        for (const repo of repos.slice(0, 2)) { // Max 2 repos per project
-          try {
-            const urlMatch = repo.url.match(/github\.com\/([^/]+)\/([^/]+)/)
-            if (!urlMatch) continue
-
-            const [, owner, repoName] = urlMatch
-            const cleanRepoName = repoName.replace(/\.git$/, '')
-
-            const headers: Record<string, string> = {
-              'Accept': 'application/vnd.github.v3+json',
-              'User-Agent': 'Willow-Dashboard',
-            }
-            if (githubToken) {
-              headers['Authorization'] = `Bearer ${githubToken}`
-            }
-
-            const response = await fetch(
-              `https://api.github.com/repos/${owner}/${cleanRepoName}/commits?per_page=3&since=${sevenDaysAgo.toISOString()}`,
-              { headers, next: { revalidate: 300 } }
-            )
-
-            if (response.ok) {
-              const commits = await response.json()
-              for (const commit of commits) {
-                allCommits.push({
-                  project_id: projectId,
-                  sha: commit.sha,
-                  message: commit.commit.message.split('\n')[0].substring(0, 80),
-                  author: commit.commit.author.name,
-                  date: commit.commit.author.date,
-                  repo: cleanRepoName,
-                  url: commit.html_url,
-                })
-              }
-            }
-          } catch (err) {
-            console.error(`Error fetching commits for repo ${repo.name}:`, err)
-          }
-        }
-      }
     }
 
     // Collect all user IDs for name lookup
