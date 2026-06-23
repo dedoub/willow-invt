@@ -509,6 +509,14 @@ export function VoicecardsBlock({
                 <LStat
                   label="가입 완료"
                   value={signedUp.toLocaleString()}
+                  valueExtra={incompleteSignups > 0 ? (
+                    <span style={{
+                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+                    }}>
+                      미완료 {incompleteSignups.toLocaleString()}
+                    </span>
+                  ) : undefined}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
                   tone={learned > 0 && signupConv >= 10 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}

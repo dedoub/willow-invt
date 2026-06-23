@@ -8,6 +8,7 @@ export interface SparkPoint { date: string; value: number }
 interface LStatProps {
   label: string
   value: string
+  valueExtra?: React.ReactNode
   unit?: string
   sub?: string
   tone?: 'pos' | 'neg' | 'warn' | 'info' | 'default'
@@ -95,7 +96,7 @@ function Sparkline({
   )
 }
 
-export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, wrap }: LStatProps & { wrap?: boolean }) {
+export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, wrap }: LStatProps & { wrap?: boolean }) {
   const color = tone === 'pos' ? t.accent.pos
     : tone === 'neg' ? t.accent.neg
     : tone === 'warn' ? t.accent.warn
@@ -134,6 +135,7 @@ export function LStat({ label, value, unit, sub, tone = 'default', sparkline, sp
           }}>
             {value}
             {unit && <span style={{ fontSize: 'calc(11px * var(--fz, 1))', marginLeft: 3, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
+            {valueExtra}
           </div>
         </div>
         {sparkData.length > 1 && (
