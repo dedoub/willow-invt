@@ -665,54 +665,61 @@ export function TenswSkeleton() {
   )
 }
 
-/** 밸류체인 skeleton: 5 KPI cards + 3-col card grid */
+/** LLM Wiki(밸류체인) skeleton: 절반 너비 단일 카드 — 헤더 + 인사이트(6 KPI) + 업데이트/AI크롤 테이블 */
 export function ValueChainSkeleton() {
   const mobile = useIsMobile()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* KPI row (LStat 크기) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 14 }}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} style={{ background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px' }}>
-            <Bone w={40} h={8} />
-            <Bone w={56} h={13} style={{ marginTop: 4 }} />
-            <Bone w={50} h={8} style={{ marginTop: 5 }} />
+    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, alignItems: 'start' }}>
+      <CardSkel pad={0}>
+        {/* 헤더 + 인사이트 */}
+        <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div>
+              <Bone w={60} h={8} />
+              <Bone w={90} h={16} style={{ marginTop: 6 }} />
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <Bone w={28} h={28} r={t.radius.sm} />
+              <Bone w={28} h={28} r={t.radius.sm} />
+            </div>
           </div>
-        ))}
-      </div>
-
-      {/* 2-col card grid: 업데이트(추이+내역) + AI 크롤 의존도 */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(2, 1fr)', gap: 14, alignItems: 'start' }}>
-        {/* 업데이트: 추이 + 내역 */}
-        <CardSkel>
-          <Bone w={60} h={8} />
-          <Bone w={90} h={14} style={{ marginTop: 6 }} />
-          <Bone h={72} style={{ marginTop: 12 }} r={t.radius.sm} />
-          <div style={{ marginTop: 12 }}>
-            {Array.from({ length: 10 }).map((_, i) => (
-              <Bone key={i} h={14} style={{ marginTop: 8 }} />
-            ))}
-          </div>
-        </CardSkel>
-
-        {/* AI 크롤 의존도 */}
-        <CardSkel>
-          <Bone w={80} h={8} />
-          <Bone w={100} h={14} style={{ marginTop: 6 }} />
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Bone key={`b-${i}`} h={10} />
-            ))}
-          </div>
-          <Bone w={120} h={10} style={{ marginTop: 14 }} />
-          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* 인사이트 라벨 */}
+          <Bone w={50} h={9} style={{ marginBottom: 10 }} />
+          {/* 6 KPI (3-col) */}
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <Bone key={`r-${i}`} h={10} />
+              <div key={i} style={{ background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px' }}>
+                <Bone w={36} h={8} />
+                <Bone w={50} h={13} style={{ marginTop: 4 }} />
+                <Bone w={60} h={8} style={{ marginTop: 5 }} />
+              </div>
             ))}
           </div>
-        </CardSkel>
-      </div>
+        </div>
+
+        {/* 업데이트 테이블 */}
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <Bone w={50} h={9} style={{ marginBottom: 10 }} />
+          <Bone w="55%" h={8} style={{ marginBottom: 6 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Bone key={i} h={26} r={t.radius.sm} />
+            ))}
+          </div>
+        </div>
+
+        {/* AI 크롤 의존도 테이블 */}
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <Bone w={80} h={9} style={{ marginBottom: 10 }} />
+          <Bone w="45%" h={8} style={{ marginBottom: 6 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Bone key={i} h={26} r={t.radius.sm} />
+            ))}
+          </div>
+        </div>
+      </CardSkel>
     </div>
   )
 }
