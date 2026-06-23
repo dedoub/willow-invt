@@ -292,7 +292,7 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-size: 0.6875rem;
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, "Apple SD Gothic Neo", "Malgun Gothic", monospace;
 }
 
 .dark .wiki-content code {
@@ -404,7 +404,7 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   padding: 0.1rem 0.3rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, "Apple SD Gothic Neo", "Malgun Gothic", monospace;
 }
 
 .dark .chat-markdown code {
@@ -496,7 +496,7 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 /* Matches t.font, t.weight, t.neutrals, t.brand tokens */
 
 .linear-chat-md {
-  font-family: "Inter Tight", "Inter", system-ui, sans-serif;
+  font-family: "Inter Tight", "Inter", system-ui, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   font-size: 12.5px;
   line-height: 1.65;
   font-weight: 420;
@@ -539,7 +539,7 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 .linear-chat-md li p { margin: 0; }
 
 .linear-chat-md code {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Apple SD Gothic Neo", "Malgun Gothic", monospace;
   font-size: 11px;
   background: #F6F6F7;
   color: #166A97;
@@ -590,7 +590,7 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   font-weight: 620;
   background: #F6F6F7;
   font-size: 10.5px;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Apple SD Gothic Neo", "Malgun Gothic", monospace;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   color: #9398A0;

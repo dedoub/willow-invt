@@ -9,7 +9,7 @@ export default function PrintKanbanPage() {
   const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F3F4F6', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#F3F4F6', fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif' }}>
       <PrintToolbar title="종목관리 칸반" subtitle={`출력 기준일: ${today} · 가로 방향(Landscape)으로 인쇄 권장`} />
 
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '20px 16px' }}>

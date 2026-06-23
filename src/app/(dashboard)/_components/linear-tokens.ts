@@ -17,8 +17,9 @@ export function useIsMobile(breakpoint = 768) {
 
 export const t = {
   font: {
-    sans: '"Inter Tight", "Inter", system-ui, sans-serif',
-    mono: '"JetBrains Mono", ui-monospace, monospace',
+    // 한글/Windows 폴백 포함 — mono엔 한글 글리프가 없어 Windows에서 깨지므로 Apple SD Gothic Neo(맥)/Malgun Gothic(윈)을 명시
+    sans: '"Inter Tight", "Inter", system-ui, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
+    mono: '"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Apple SD Gothic Neo", "Malgun Gothic", monospace',
   },
   weight: { regular: 420, medium: 520, semibold: 620, bold: 720 },
   neutrals: {

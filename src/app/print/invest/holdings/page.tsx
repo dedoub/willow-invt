@@ -10,7 +10,7 @@ export default function PrintHoldingsPage() {
   const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F3F4F6', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#F3F4F6', fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif' }}>
       <PrintToolbar title="보유현황 + 포트폴리오 분석" subtitle={`출력 기준일: ${today}`} />
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px' }}>

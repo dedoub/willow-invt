@@ -29,7 +29,7 @@ export default function LoginPage() {
 
   if (authLoading || isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900" style={{ fontFamily: '"Inter Tight", "Inter", system-ui, sans-serif' }}>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900" style={{ fontFamily: '"Inter Tight", "Inter", system-ui, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif' }}>
         <Loader2 className="h-8 w-8 animate-spin text-brand-300" />
       </div>
     )
@@ -52,7 +52,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900" style={{ fontFamily: '"Inter Tight", "Inter", system-ui, sans-serif' }}>
+    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900" style={{ fontFamily: '"Inter Tight", "Inter", system-ui, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif' }}>
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12">
         <div className="max-w-md text-center">
