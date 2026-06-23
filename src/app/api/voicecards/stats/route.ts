@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server'
 import {
   getCombinedStats,
   getConnectionStatus,
-  getCachedStatsRange,
-  fetchAndCacheIosStats,
+  getAppDbRevenue,
 } from '@/lib/voicecards-server'
 
 export const maxDuration = 300
@@ -16,71 +15,27 @@ export async function GET(request: Request) {
     // 날짜 범위 파라미터 (기본: 올해 1/1 ~ 오늘)
     const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0]
     const startDate = searchParams.get('startDate') || `${new Date().getFullYear()}-01-01`
-    const backfill = searchParams.get('backfill') === '1'
-
     const connectionStatus = await getConnectionStatus()
 
-    // 캐시 확인
-    const [iosTimeSeries, androidTimeSeries] = await Promise.all([
-      getCachedStatsRange('ios', startDate, endDate),
-      getCachedStatsRange('android', startDate, endDate),
-    ])
-
-    // 캐시에 없는 날짜만 Apple API로 채우기
-    if (connectionStatus.ios.connected) {
-      const cachedDates = new Set(iosTimeSeries.map(s => s.date))
-      const missingDates: string[] = []
-      const cur = new Date(startDate)
-      const end = new Date(endDate)
-      end.setDate(end.getDate() - 1)
-      while (cur <= end) {
-        const d = cur.toISOString().split('T')[0]
-        if (!cachedDates.has(d)) missingDates.push(d)
-        cur.setDate(cur.getDate() + 1)
-      }
-
-      if (missingDates.length > 0) {
-        // backfill 모드: 전체, 일반 모드: 최근 30일만
-        const recentMissing = missingDates.filter(d => {
-          const diff = (new Date(endDate).getTime() - new Date(d).getTime()) / 86400000
-          return diff <= 30
-        })
-        const datesToFetch = backfill ? missingDates : recentMissing
-        const batchSize = backfill ? 10 : 5
-
-        for (let i = 0; i < datesToFetch.length; i += batchSize) {
-          const batch = datesToFetch.slice(i, i + batchSize)
-          const results = await Promise.allSettled(
-            batch.map(date => fetchAndCacheIosStats(date))
-          )
-          for (const r of results) {
-            if (r.status === 'fulfilled' && r.value) {
-              iosTimeSeries.push(r.value)
-            }
-          }
-        }
-        iosTimeSeries.sort((a, b) => a.date.localeCompare(b.date))
-      }
-    }
-
-    // 통합 통계 조회 (캐시 기반 — 위에서 채웠으므로 다시 조회)
+    // 통합 통계 조회 (매출은 getCombinedStats 내부에서 앱 DB 결제 이벤트로 산출)
     const stats = await getCombinedStats(startDate, endDate)
 
-    // 날짜별 통합 차트 데이터
+    // 날짜별 매출 차트 데이터 — 앱 DB(anonymous_events) 결제 이벤트 기반 (그로스, USD)
+    const appRevenue = await getAppDbRevenue(startDate, endDate)
     const dateMap = new Map<string, { ios: number; android: number; total: number }>()
 
-    for (const stat of iosTimeSeries) {
-      const existing = dateMap.get(stat.date) || { ios: 0, android: 0, total: 0 }
-      existing.ios = stat.revenue
-      existing.total += stat.revenue
-      dateMap.set(stat.date, existing)
+    for (const [date, rev] of appRevenue.iosByDate) {
+      const existing = dateMap.get(date) || { ios: 0, android: 0, total: 0 }
+      existing.ios += rev
+      existing.total += rev
+      dateMap.set(date, existing)
     }
 
-    for (const stat of androidTimeSeries) {
-      const existing = dateMap.get(stat.date) || { ios: 0, android: 0, total: 0 }
-      existing.android = stat.revenue
-      existing.total += stat.revenue
-      dateMap.set(stat.date, existing)
+    for (const [date, rev] of appRevenue.androidByDate) {
+      const existing = dateMap.get(date) || { ios: 0, android: 0, total: 0 }
+      existing.android += rev
+      existing.total += rev
+      dateMap.set(date, existing)
     }
 
     const chartData = Array.from(dateMap.entries())

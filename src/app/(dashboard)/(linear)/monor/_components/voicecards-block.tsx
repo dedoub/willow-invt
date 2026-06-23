@@ -99,10 +99,10 @@ export interface VoicecardsBlockProps {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// 매출은 앱 DB 결제 이벤트의 정가(USD, 그로스) 합계 — 달러로 표시.
 function formatCurrency(value: number): string {
-  if (value >= 100000000) return `${(value / 100000000).toFixed(1)}억원`
-  if (value >= 10000) return `${(value / 10000).toFixed(0)}만원`
-  return `${value.toLocaleString()}원`
+  if (value >= 1000) return `$${Math.round(value).toLocaleString()}`
+  return `$${value.toFixed(2)}`
 }
 
 function formatNumber(value: number): string {

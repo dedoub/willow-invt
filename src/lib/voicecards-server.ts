@@ -555,17 +555,78 @@ export async function getCachedStatsRange(
 }
 
 // ============================================================
+// 앱 DB 기반 매출 (anonymous_events 결제 이벤트)
+// ============================================================
+
+// 크레딧 팩 정가 (USD, 그로스). voice-cards CREDIT_PACKAGES와 동일하게 유지.
+const CREDIT_PRODUCT_PRICES_USD: Record<string, number> = {
+  'com.monor.voicecards.credits.1000': 9.99,
+  'com.monor.voicecards.credits.5500': 49.99,
+  'com.monor.voicecards.credits.12000': 99.99,
+}
+
+export interface AppDbRevenue {
+  iosByDate: Map<string, number>
+  androidByDate: Map<string, number>
+  iosTotal: number
+  androidTotal: number
+}
+
+// 앱 DB(anonymous_events)의 credits_changed/reason=purchase 이벤트로 매출 산출.
+// product_id → 정가(USD) 매핑, 그로스 기준. Apple/Google 판매 리포트와 달리 거의
+// 실시간이지만 추정치다(정가 기준 → 지역가·환불·스토어 수수료 미반영).
+export async function getAppDbRevenue(
+  startDate: string,
+  endDate: string
+): Promise<AppDbRevenue> {
+  const result: AppDbRevenue = {
+    iosByDate: new Map(),
+    androidByDate: new Map(),
+    iosTotal: 0,
+    androidTotal: 0,
+  }
+  if (!voicecardsSupabase) return result
+
+  const { data, error } = await voicecardsSupabase
+    .from('anonymous_events')
+    .select('created_at, platform, properties')
+    .eq('event_name', 'credits_changed')
+    .gte('created_at', `${startDate}T00:00:00Z`)
+    .lte('created_at', `${endDate}T23:59:59.999Z`)
+
+  if (error || !data) return result
+
+  for (const row of data as Array<{ created_at: string; platform: string | null; properties: Record<string, unknown> | null }>) {
+    const props = row.properties || {}
+    if (props.reason !== 'purchase') continue
+    const price = CREDIT_PRODUCT_PRICES_USD[String(props.product_id)]
+    if (!price) continue
+    const date = String(row.created_at).slice(0, 10) // UTC 날짜
+    if (row.platform === 'android') {
+      result.androidByDate.set(date, (result.androidByDate.get(date) || 0) + price)
+      result.androidTotal += price
+    } else {
+      // platform 미상은 iOS로 귀속(매출 누락 방지). 실데이터상 platform은 항상 채워짐.
+      result.iosByDate.set(date, (result.iosByDate.get(date) || 0) + price)
+      result.iosTotal += price
+    }
+  }
+  return result
+}
+
+// ============================================================
 // 통합 통계
 // ============================================================
 
-// 통합 통계 조회 (캐시 우선)
+// 통합 통계 조회 (매출=앱DB 결제 이벤트, 그 외=판매 리포트 캐시)
 export async function getCombinedStats(
   startDate: string,
   endDate: string
 ): Promise<CombinedStats> {
-  const [iosStats, androidStats] = await Promise.all([
+  const [iosStats, androidStats, appRevenue] = await Promise.all([
     getCachedStatsRange('ios', startDate, endDate),
     getCachedStatsRange('android', startDate, endDate),
+    getAppDbRevenue(startDate, endDate),
   ])
 
   // 가장 최근 날짜의 통계
@@ -584,11 +645,15 @@ export async function getCombinedStats(
   const iosSum = sumStats(iosStats)
   const androidSum = sumStats(androidStats)
 
+  // 매출은 판매 리포트 캐시 대신 앱 DB 결제 이벤트(그로스, USD)로 산출.
+  const iosRevenue = appRevenue.iosTotal
+  const androidRevenue = appRevenue.androidTotal
+
   return {
-    ios: latestIos,
-    android: latestAndroid,
+    ios: latestIos ? { ...latestIos, revenue: iosRevenue } : null,
+    android: latestAndroid ? { ...latestAndroid, revenue: androidRevenue } : null,
     combined: {
-      totalRevenue: iosSum.revenue + androidSum.revenue,
+      totalRevenue: iosRevenue + androidRevenue,
       totalActiveSubscriptions: (latestIos?.activeSubscriptions || 0) + (latestAndroid?.activeSubscriptions || 0),
       totalNewSubscriptions: iosSum.newSubscriptions + androidSum.newSubscriptions,
       totalChurnedSubscriptions: iosSum.churnedSubscriptions + androidSum.churnedSubscriptions,
