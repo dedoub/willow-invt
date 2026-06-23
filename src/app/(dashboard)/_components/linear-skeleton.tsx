@@ -671,26 +671,26 @@ export function ValueChainSkeleton() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* KPI row */}
+      {/* KPI row (LStat 크기) */}
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 14 }}>
         {Array.from({ length: 5 }).map((_, i) => (
-          <CardSkel key={i}>
-            <Bone w={50} h={9} />
-            <Bone w={70} h={22} style={{ marginTop: 8 }} />
-            <Bone w={60} h={10} style={{ marginTop: 6 }} />
-          </CardSkel>
+          <div key={i} style={{ background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px' }}>
+            <Bone w={40} h={8} />
+            <Bone w={56} h={13} style={{ marginTop: 4 }} />
+            <Bone w={50} h={8} style={{ marginTop: 5 }} />
+          </div>
         ))}
       </div>
 
-      {/* 3-col card grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 14, alignItems: 'start' }}>
-        {/* 업데이트 추이 */}
+      {/* 2-col card grid: 업데이트(추이+내역) + AI 크롤 의존도 */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(2, 1fr)', gap: 14, alignItems: 'start' }}>
+        {/* 업데이트: 추이 + 내역 */}
         <CardSkel>
           <Bone w={60} h={8} />
           <Bone w={90} h={14} style={{ marginTop: 6 }} />
-          <Bone h={56} style={{ marginTop: 12 }} r={t.radius.sm} />
+          <Bone h={72} style={{ marginTop: 12 }} r={t.radius.sm} />
           <div style={{ marginTop: 12 }}>
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 10 }).map((_, i) => (
               <Bone key={i} h={14} style={{ marginTop: 8 }} />
             ))}
           </div>
@@ -709,17 +709,6 @@ export function ValueChainSkeleton() {
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {Array.from({ length: 6 }).map((_, i) => (
               <Bone key={`r-${i}`} h={10} />
-            ))}
-          </div>
-        </CardSkel>
-
-        {/* 로드맵 */}
-        <CardSkel>
-          <Bone w={60} h={8} />
-          <Bone w={80} h={14} style={{ marginTop: 6 }} />
-          <div style={{ marginTop: 12 }}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Bone key={i} h={18} style={{ marginTop: 10 }} />
             ))}
           </div>
         </CardSkel>

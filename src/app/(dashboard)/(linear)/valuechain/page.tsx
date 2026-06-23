@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { ValueChainSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import type { ValueChainStats } from '@/lib/valuechain-supabase'
@@ -19,16 +20,6 @@ const TIER_TONE: Record<string, { bg: string; fg: string }> = {
 }
 
 // ─── 작은 프리미티브 ─────────────────────────────────────────────────────────────
-
-function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
-  return (
-    <LCard style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <span style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontWeight: t.weight.semibold, letterSpacing: 0.6, textTransform: 'uppercase' as const, color: t.neutrals.subtle, fontFamily: t.font.mono }}>{label}</span>
-      <span style={{ fontSize: 'calc(24px * var(--fz, 1))', fontWeight: t.weight.bold, fontFamily: t.font.mono, color: t.neutrals.text, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-      {sub && <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>{sub}</span>}
-    </LCard>
-  )
-}
 
 // 라벨 + 값 + 비례 바 (가로 막대 한 줄)
 function BarRow({ label, value, max, tone, right }: { label: string; value: number; max: number; tone: { bg: string; fg: string }; right?: string }) {
@@ -91,17 +82,17 @@ export default function ValueChainPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* KPI */}
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 14 }}>
-        <KpiCard label="노드" value={summary.nodes.toLocaleString()} sub="기업·기관" />
-        <KpiCard label="관계" value={summary.edges.toLocaleString()} sub="매출·비용 엣지" />
-        <KpiCard label="출처" value={summary.sources.toLocaleString()} sub="검증 소스" />
-        <KpiCard label="아티클" value={summary.articles.toLocaleString()} sub="해설 글" />
-        <KpiCard label="완성도" value={`${maturity.completeness}%`} sub={`평균 ${maturity.avgPass}/${maturity.checks} 체크`} />
+        <LStat label="노드" value={summary.nodes.toLocaleString()} sub="기업·기관" />
+        <LStat label="관계" value={summary.edges.toLocaleString()} sub="매출·비용 엣지" />
+        <LStat label="출처" value={summary.sources.toLocaleString()} sub="검증 소스" />
+        <LStat label="아티클" value={summary.articles.toLocaleString()} sub="해설 글" />
+        <LStat label="완성도" value={`${maturity.completeness}%`} sub={`평균 ${maturity.avgPass}/${maturity.checks} 체크`} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 14, alignItems: 'start' }}>
-        {/* 업데이트 추이 */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(2, 1fr)', gap: 14, alignItems: 'start' }}>
+        {/* 업데이트: 추이 + 내역 통합 */}
         <LCard>
-          <LSectionHead eyebrow="ACTIVITY" title="업데이트 추이" action={
+          <LSectionHead eyebrow="UPDATES" title="업데이트" action={
             <div style={{ display: 'flex', gap: 12 }}>
               <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>7일 <b style={{ fontFamily: t.font.mono, color: t.neutrals.text }}>{updates.last7d}</b></span>
               <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>30일 <b style={{ fontFamily: t.font.mono, color: t.neutrals.text }}>{updates.last30d}</b></span>
@@ -115,7 +106,19 @@ export default function ValueChainPage() {
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6 }}>최근 14일 노드 업데이트</div>
+          <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6, marginBottom: 6 }}>최근 14일 노드 업데이트</div>
+          {/* 최근 업데이트 내역 */}
+          <div style={{ display: 'flex', flexDirection: 'column', borderTop: `1px solid ${t.neutrals.line}`, marginTop: 4 }}>
+            {updates.recent.map(n => (
+              <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', textDecoration: 'none', borderTop: `1px solid ${t.neutrals.line}` }}>
+                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, width: 56, flexShrink: 0 }}>{(n.updated_at ?? '').slice(5, 10)}</span>
+                <span style={{ flex: 1, fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.name}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold, flexShrink: 0 }}>{n.tier} {n.pass}/{maturity.checks}</span>
+              </a>
+            ))}
+            {updates.recent.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>업데이트 내역 없음</span>}
+          </div>
         </LCard>
 
         {/* AI 의존도 */}
@@ -140,22 +143,6 @@ export default function ValueChainPage() {
               <BarRow key={r.resource} label={r.resource} value={r.count} max={maxRes} tone={tonePalettes.info} right={`${r.count} · ${r.bots}봇`} />
             ))}
           </div>
-        </LCard>
-
-        {/* 업데이트 내역 */}
-        <LCard>
-        <LSectionHead eyebrow="UPDATES" title="업데이트 내역" />
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {updates.recent.map((n, i) => (
-            <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', textDecoration: 'none', borderTop: i === 0 ? 'none' : `1px solid ${t.neutrals.line}` }}>
-              <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, width: 56, flexShrink: 0 }}>{(n.updated_at ?? '').slice(5, 10)}</span>
-              <span style={{ flex: 1, fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.name}</span>
-              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold, flexShrink: 0 }}>{n.tier} {n.pass}/{maturity.checks}</span>
-            </a>
-          ))}
-          {updates.recent.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>업데이트 내역 없음</span>}
-        </div>
         </LCard>
       </div>
     </div>
