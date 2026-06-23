@@ -317,13 +317,13 @@ export function ReviewnotesBlock({
             <LStat
               label="페이지뷰"
               value={trafficStats.totals.views.toLocaleString()}
-              sub={`오늘 ${todayViews.toLocaleString()} · 7일 ${last7Views.toLocaleString()}`}
+              sub={`오늘 ${todayViews.toLocaleString()}회 · 7일 ${last7Views.toLocaleString()}회`}
               sparkline={trafficStats.daily.map(d => ({ date: d.date, value: d.views }))}
             />
             <LStat
               label="순 방문자"
               value={trafficStats.totals.visitors.toLocaleString()}
-              sub={`오늘 ${todayVisitors.toLocaleString()} · 7일 ${last7Visitors.toLocaleString()}`}
+              sub={`오늘 ${todayVisitors.toLocaleString()}명 · 7일 ${last7Visitors.toLocaleString()}명`}
               tone="info"
               sparkline={trafficStats.daily.map(d => ({ date: d.date, value: d.visitors }))}
             />

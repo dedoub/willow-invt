@@ -123,10 +123,10 @@ function formatDateShort(dateString?: string | null): string {
   return `${String(d.getFullYear()).slice(2)}.${p(d.getMonth() + 1)}.${p(d.getDate())}`
 }
 
-// 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·상태·시트·카드·말하기·듣기·크레딧·가입·활동
-// 닉네임 | 플랫폼 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 가입 | 활동
-const USER_TABLE_COLS = 'minmax(64px,1fr) 44px 56px 36px 48px 52px 44px 52px 60px 60px'
-const USER_TABLE_MIN_WIDTH = 572 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용
+// 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·언어·상태·시트·카드·말하기·듣기·크레딧·가입·활동
+// 닉네임 | 플랫폼 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 가입 | 활동
+const USER_TABLE_COLS = 'minmax(64px,1fr) 44px 44px 56px 36px 48px 52px 44px 52px 60px 60px'
+const USER_TABLE_MIN_WIDTH = 616 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -171,7 +171,7 @@ function formatLocale(locale: string): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type UserSortKey =
-  | 'name' | 'platform' | 'status'
+  | 'name' | 'platform' | 'language' | 'status'
   | 'sheets' | 'cards' | 'attempts' | 'listen' | 'credits'
   | 'created' | 'recent'
 type SortDir = 'asc' | 'desc'
@@ -180,6 +180,7 @@ type SortDir = 'asc' | 'desc'
 const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string; align: 'left' | 'center' | 'right' }> = [
   { key: 'name',     label: '닉네임', mobileLabel: '닉네임',   align: 'left' },
   { key: 'platform', label: '플랫폼', mobileLabel: '플랫폼',   align: 'center' },
+  { key: 'language', label: '언어',   mobileLabel: '언어',     align: 'center' },
   { key: 'status',   label: '구글연동', mobileLabel: '구글연동', align: 'center' },
   { key: 'sheets',   label: '시트',   mobileLabel: '시트',     align: 'center' },
   { key: 'cards',    label: '카드',   mobileLabel: '카드',     align: 'center' },
@@ -191,7 +192,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
 ]
 
 // 텍스트/문자열 정렬 컬럼은 오름차순이 기본, 숫자·날짜는 내림차순이 기본
-const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['name', 'platform', 'status'])
+const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['name', 'platform', 'language', 'status'])
 const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key) ? 'asc' : 'desc')
 
 const USER_SORT_STORAGE_KEY = 'voicecards.userSort'
@@ -309,6 +310,7 @@ export function VoicecardsBlock({
       switch (userSort) {
         case 'name':     return nameOf(a).localeCompare(nameOf(b), 'ko')
         case 'platform': return (a.platform || '').localeCompare(b.platform || '')
+        case 'language': return (a.locale || '').localeCompare(b.locale || '')
         case 'status':   return isIncomplete(a) - isIncomplete(b)
         case 'sheets':   return a.sheetCount - b.sheetCount
         case 'cards':    return a.cards - b.cards
@@ -906,6 +908,20 @@ export function VoicecardsBlock({
                         padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
                       }}>
                         {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                    )}
+                  </div>
+                  {/* 언어 (locale) */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                    {user.locale ? (
+                      <span style={{
+                        fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                        color: '#6B21A8', background: '#F3E8FF',
+                        padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
+                      }}>
+                        {user.locale}
                       </span>
                     ) : (
                       <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
