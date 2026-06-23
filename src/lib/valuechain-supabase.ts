@@ -66,6 +66,12 @@ function auditNode(n: MNode): Maturity {
 
 // ─── 타입 ───────────────────────────────────────────────────────────────────────
 
+export interface TrendBlock {
+  series: { date: string; value: number }[] // 최근 14일 누적
+  today: number // 오늘 신규
+  last7: number // 최근 7일 신규
+}
+
 export interface ValueChainStats {
   summary: {
     nodes: number
@@ -84,7 +90,7 @@ export interface ValueChainStats {
     last7d: number
     last30d: number
     daily: { date: string; count: number }[] // 최근 14일
-    recent: { slug: string; name: string; pass: number; tier: string; updated_at: string | null }[]
+    recent: { slug: string; name: string; ticker: string | null; rev: number; cost: number; pass: number; tier: string; updated_at: string | null }[]
   }
   crawl: {
     total: number
@@ -92,8 +98,15 @@ export interface ValueChainStats {
     last24h: number
     last7d: number
     lastTs: string | null
-    topBots: { bot: string; count: number }[]
+    topBots: { bot: string; count: number; days: number }[]
     topResources: { resource: string; count: number; bots: number }[]
+  }
+  trends: {
+    nodes: TrendBlock
+    edges: TrendBlock
+    sources: TrendBlock
+    articles: TrendBlock
+    crawl: TrendBlock
   }
 }
 
@@ -104,9 +117,13 @@ const TIER_LABEL: Record<string, string> = {
 export async function getValueChainStats(): Promise<ValueChainStats> {
   const supabase = getServiceSupabase()
 
+  // 추이용 윈도우 시작일(최근 14일). 윈도우 내 신규 행만 가져와 누적 추이를 계산(전수 스캔 회피).
+  const windowStartKey = new Date(Date.now() - 13 * 86400000).toISOString().slice(0, 10)
+
   const [
     nodesHead, edgesHead, sourcesHead, articlesHead,
     maturityRes, crawlRes,
+    nodesRecent, edgesRecent, sourcesRecent, articlesRecent,
   ] = await Promise.all([
     supabase.from('vc_companies').select('*', { count: 'exact', head: true }),
     supabase.from('vc_edges').select('*', { count: 'exact', head: true }),
@@ -114,15 +131,25 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     supabase.from('vc_articles').select('*', { count: 'exact', head: true }),
     supabase
       .from('vc_companies')
-      .select('slug,name,kicker,lead,segments,updated_at, vc_edges!company_id(direction,counterparty_id,confidence,metric, vc_edge_sources(stance,metric, vc_sources(kind,published_at,lang)))'),
+      .select('slug,name,ticker,kicker,lead,segments,updated_at, vc_edges!company_id(direction,counterparty_id,confidence,metric, vc_edge_sources(stance,metric, vc_sources(kind,published_at,lang)))'),
     supabase.from('vc_crawl_log').select('ts,path,bot,category').neq('category', 'attack').order('ts', { ascending: false }).limit(3000),
+    supabase.from('vc_companies').select('created_at').gte('created_at', windowStartKey).limit(100000),
+    supabase.from('vc_edges').select('created_at').gte('created_at', windowStartKey).limit(100000),
+    supabase.from('vc_sources').select('created_at').gte('created_at', windowStartKey).limit(100000),
+    supabase.from('vc_articles').select('updated_at').gte('updated_at', windowStartKey).limit(100000),
   ])
 
   // ── 성숙도 집계 ──
-  type MRow = MNode & { slug: string; name: string; updated_at: string | null }
-  const mrows = ((maturityRes.data ?? []) as unknown as MRow[]).map((n) => ({
-    slug: n.slug, name: n.name, updated_at: n.updated_at, m: auditNode(n),
-  }))
+  type MRow = MNode & { slug: string; name: string; ticker: string | null; updated_at: string | null }
+  const mrows = ((maturityRes.data ?? []) as unknown as MRow[]).map((n) => {
+    const edges = n.vc_edges || []
+    return {
+      slug: n.slug, name: n.name, ticker: n.ticker, updated_at: n.updated_at,
+      rev: edges.filter((e) => e.direction === 'revenue').length,  // 매출처
+      cost: edges.filter((e) => e.direction === 'cost').length,    // 지급처
+      m: auditNode(n),
+    }
+  })
   const tierCounts: Record<string, number> = { T0: 0, T1: 0, T2: 0, T3: 0, T4: 0 }
   const failTally = new Map<string, number>()
   let passSum = 0
@@ -155,8 +182,8 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
   const recent = [...mrows]
     .filter((r) => r.updated_at)
     .sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
-    .slice(0, 15)
-    .map((r) => ({ slug: r.slug, name: r.name, pass: r.m.pass, tier: r.m.tierShort, updated_at: r.updated_at }))
+    .slice(0, 50)
+    .map((r) => ({ slug: r.slug, name: r.name, ticker: r.ticker, rev: r.rev, cost: r.cost, pass: r.m.pass, tier: r.m.tierShort, updated_at: r.updated_at }))
 
   // ── 크롤 / AI 의존도 ──
   type CrawlRow = { ts: string; path: string; bot: string | null; category: string | null }
@@ -164,8 +191,17 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
   const aiRows = crawl.filter((x) => x.category === 'ai')
   const since = (days: number) => crawl.filter((x) => now - new Date(x.ts).getTime() <= days * dayMs).length
   const botTally = new Map<string, number>()
-  for (const x of aiRows) botTally.set(x.bot ?? '?', (botTally.get(x.bot ?? '?') ?? 0) + 1)
-  const topBots = [...botTally.entries()].map(([bot, count]) => ({ bot, count })).sort((a, b) => b.count - a.count).slice(0, 8)
+  const botDays = new Map<string, Set<string>>() // 봇별 방문한 distinct 날짜 = 재방문(일수)
+  for (const x of aiRows) {
+    const b = x.bot ?? '?'
+    botTally.set(b, (botTally.get(b) ?? 0) + 1)
+    if (!botDays.has(b)) botDays.set(b, new Set())
+    botDays.get(b)!.add(x.ts.slice(0, 10))
+  }
+  const topBots = [...botTally.entries()]
+    .map(([bot, count]) => ({ bot, count, days: botDays.get(bot)?.size ?? 0 }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8)
   const resOf = (p: string) => p.replace(/\.(md|json)$/, '') || '/'
   const resMap = new Map<string, { count: number; bots: Set<string> }>()
   for (const x of aiRows) {
@@ -178,7 +214,40 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     .sort((a, b) => b.count - a.count)
     .slice(0, 12)
 
+  // ── 메트릭별 추이 (14일 누적 스파크라인 + 오늘/7일 신규) ──
+  const buildTrend = (
+    rows: Array<{ created_at?: string | null; updated_at?: string | null }> | null,
+    total: number,
+    key: 'created_at' | 'updated_at',
+  ): TrendBlock => {
+    const days = (rows ?? []).map(r => r[key] ?? '').filter(Boolean).map(s => (s as string).slice(0, 10)).sort()
+    const baseline = Math.max(0, total - days.length)
+    const series: { date: string; value: number }[] = []
+    for (let i = 13; i >= 0; i--) {
+      const d = dayKey(new Date(now - i * dayMs))
+      series.push({ date: d, value: baseline + days.filter(x => x <= d).length })
+    }
+    const todayK = dayKey(new Date(now))
+    const sevenK = dayKey(new Date(now - 6 * dayMs))
+    return { series, today: days.filter(x => x === todayK).length, last7: days.filter(x => x >= sevenK).length }
+  }
+  const crawlDayMap = new Map<string, number>()
+  for (let i = 13; i >= 0; i--) crawlDayMap.set(dayKey(new Date(now - i * dayMs)), 0)
+  for (const x of aiRows) { const k = x.ts.slice(0, 10); if (crawlDayMap.has(k)) crawlDayMap.set(k, (crawlDayMap.get(k) ?? 0) + 1) }
+  const trends = {
+    nodes: buildTrend(nodesRecent.data ?? null, nodesHead.count ?? mrows.length, 'created_at'),
+    edges: buildTrend(edgesRecent.data ?? null, edgesHead.count ?? 0, 'created_at'),
+    sources: buildTrend(sourcesRecent.data ?? null, sourcesHead.count ?? 0, 'created_at'),
+    articles: buildTrend(articlesRecent.data ?? null, articlesHead.count ?? 0, 'updated_at'),
+    crawl: {
+      series: [...crawlDayMap.entries()].map(([date, value]) => ({ date, value })),
+      today: aiRows.filter(x => x.ts.slice(0, 10) === dayKey(new Date(now))).length,
+      last7: aiRows.filter(x => now - new Date(x.ts).getTime() <= 7 * dayMs).length,
+    },
+  }
+
   return {
+    trends,
     summary: {
       nodes: nodesHead.count ?? mrows.length,
       edges: edgesHead.count ?? 0,

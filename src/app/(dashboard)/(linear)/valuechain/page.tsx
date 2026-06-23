@@ -5,6 +5,7 @@ import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/line
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { ValueChainSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import type { ValueChainStats } from '@/lib/valuechain-supabase'
@@ -21,20 +22,6 @@ const TIER_TONE: Record<string, { bg: string; fg: string }> = {
 
 // ─── 작은 프리미티브 ─────────────────────────────────────────────────────────────
 
-// 라벨 + 값 + 비례 바 (가로 막대 한 줄)
-function BarRow({ label, value, max, tone, right }: { label: string; value: number; max: number; tone: { bg: string; fg: string }; right?: string }) {
-  const pct = max > 0 ? (value / max) * 100 : 0
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, width: 130, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-      <div style={{ flex: 1, height: 8, background: t.neutrals.inner, borderRadius: t.radius.pill, overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: tone.fg, borderRadius: t.radius.pill }} />
-      </div>
-      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, width: 56, textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{right ?? value.toLocaleString()}</span>
-    </div>
-  )
-}
-
 // ─── 페이지 ─────────────────────────────────────────────────────────────────────
 
 export default function ValueChainPage() {
@@ -42,6 +29,10 @@ export default function ValueChainPage() {
   const [stats, setStats] = useState<ValueChainStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [updateSort, setUpdateSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'date', dir: 'desc' })
+  const [crawlSort, setCrawlSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'count', dir: 'desc' })
+  const [updatePage, setUpdatePage] = useState(1)
+  const [crawlPage, setCrawlPage] = useState(1)
 
   const load = useCallback(async (refresh = false) => {
     if (!refresh) setLoading(true)
@@ -73,78 +64,190 @@ export default function ValueChainPage() {
     )
   }
 
-  const { summary, maturity, updates, crawl } = stats
-  const maxDaily = Math.max(1, ...updates.daily.map(d => d.count))
-  const maxBot = Math.max(1, ...crawl.topBots.map(b => b.count))
-  const maxRes = Math.max(1, ...crawl.topResources.map(r => r.count))
+  const { summary, maturity, updates, crawl, trends } = stats
+
+  const sectionLabel: React.CSSProperties = {
+    fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
+    fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 10,
+    whiteSpace: 'nowrap',
+  }
+  const iconBtn: React.CSSProperties = {
+    width: 28, height: 28, borderRadius: t.radius.sm, background: t.neutrals.inner,
+    border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: t.neutrals.muted, textDecoration: 'none',
+  }
+  // 업데이트 테이블: 날짜 | 노드 | 티커 | 매출처 | 지급처 | 티어 | 완성도
+  const UPDATE_COLS = '40px minmax(80px,1fr) 54px 44px 44px 32px 46px'
+  const UPDATE_MIN_WIDTH = 420
+  // AI 크롤 테이블: 봇 | 횟수 | 재방문 | 비중
+  const CRAWL_COLS = 'minmax(0,1fr) 56px 56px 44px'
+  const headCell: React.CSSProperties = {
+    fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+    letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
+  }
+  const PER = 8 // 테이블 페이지당 행 수
+
+  // ── 클릭 정렬 헤더 ──
+  const numDescKeys = new Set(['date', 'rev', 'cost', 'pass', 'count', 'pct', 'days'])
+  const defaultDir = (key: string): 'asc' | 'desc' => (numDescKeys.has(key) ? 'desc' : 'asc')
+  const onUpdateSort = (key: string) => { setUpdatePage(1); setUpdateSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: defaultDir(key) }) }
+  const onCrawlSort = (key: string) => { setCrawlPage(1); setCrawlSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: defaultDir(key) }) }
+  const sortHead = (colKey: string, label: string, align: 'left' | 'center' | 'right', sortState: { key: string; dir: 'asc' | 'desc' }, onSort: (k: string) => void) => {
+    const active = sortState.key === colKey
+    return (
+      <button onClick={() => onSort(colKey)} style={{
+        ...headCell, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+        display: 'flex', alignItems: 'center', gap: 2, width: '100%',
+        justifyContent: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start',
+        color: active ? t.neutrals.text : t.neutrals.subtle,
+      }}>
+        {label}
+        <span style={{ fontSize: '0.85em', lineHeight: 1, opacity: active ? 1 : 0 }}>{sortState.dir === 'asc' ? '▲' : '▼'}</span>
+      </button>
+    )
+  }
+
+  // ── 정렬된 행 ──
+  const updateDir = updateSort.dir === 'asc' ? 1 : -1
+  const updateSorted = [...updates.recent].sort((a, b) => {
+    let r = 0
+    switch (updateSort.key) {
+      case 'name': r = a.name.localeCompare(b.name, 'ko'); break
+      case 'ticker': r = (a.ticker || '').localeCompare(b.ticker || ''); break
+      case 'rev': r = a.rev - b.rev; break
+      case 'cost': r = a.cost - b.cost; break
+      case 'tier': r = a.tier.localeCompare(b.tier); break
+      case 'pass': r = a.pass - b.pass; break
+      case 'date':
+      default: r = (a.updated_at || '').localeCompare(b.updated_at || '')
+    }
+    return r !== 0 ? r * updateDir : (b.updated_at || '').localeCompare(a.updated_at || '')
+  })
+  const crawlDir = crawlSort.dir === 'asc' ? 1 : -1
+  const crawlSorted = [...crawl.topBots].sort((a, b) => {
+    let r = 0
+    switch (crawlSort.key) {
+      case 'bot': r = a.bot.localeCompare(b.bot); break
+      case 'days': r = a.days - b.days; break
+      default: r = a.count - b.count // count, pct
+    }
+    return r !== 0 ? r * crawlDir : b.count - a.count
+  })
+
+  // ── 페이지네이션 ──
+  const updatePages = Math.max(1, Math.ceil(updateSorted.length / PER))
+  const updSafe = Math.min(updatePage, updatePages)
+  const updateRows = updateSorted.slice((updSafe - 1) * PER, updSafe * PER)
+  const crawlPages = Math.max(1, Math.ceil(crawlSorted.length / PER))
+  const crwSafe = Math.min(crawlPage, crawlPages)
+  const crawlRows = crawlSorted.slice((crwSafe - 1) * PER, crwSafe * PER)
+  const chevBtn = (disabled: boolean): React.CSSProperties => ({
+    background: 'transparent', border: 'none', cursor: disabled ? 'default' : 'pointer',
+    padding: 4, borderRadius: 4, color: disabled ? t.neutrals.line : t.neutrals.muted, opacity: disabled ? 0.4 : 1,
+  })
+  const pager = (page: number, setPage: (f: (p: number) => number) => void, total: number, totalPages: number, safe: number) => (
+    totalPages > 1 ? (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, padding: '8px 8px 0' }}>
+        <button disabled={safe === 1} onClick={() => setPage(p => Math.max(1, p - 1))} style={chevBtn(safe === 1)}><LIcon name="chevronLeft" size={13} stroke={2} /></button>
+        <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>{(safe - 1) * PER + 1}-{Math.min(safe * PER, total)} / {total}</span>
+        <button disabled={safe >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} style={chevBtn(safe >= totalPages)}><LIcon name="chevronRight" size={13} stroke={2} /></button>
+      </div>
+    ) : null
+  )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* KPI */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 14 }}>
-        <LStat label="노드" value={summary.nodes.toLocaleString()} sub="기업·기관" />
-        <LStat label="관계" value={summary.edges.toLocaleString()} sub="매출·비용 엣지" />
-        <LStat label="출처" value={summary.sources.toLocaleString()} sub="검증 소스" />
-        <LStat label="아티클" value={summary.articles.toLocaleString()} sub="해설 글" />
-        <LStat label="완성도" value={`${maturity.completeness}%`} sub={`평균 ${maturity.avgPass}/${maturity.checks} 체크`} />
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(2, 1fr)', gap: 14, alignItems: 'start' }}>
-        {/* 업데이트: 추이 + 내역 통합 */}
-        <LCard>
-          <LSectionHead eyebrow="UPDATES" title="업데이트" action={
-            <div style={{ display: 'flex', gap: 12 }}>
-              <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>7일 <b style={{ fontFamily: t.font.mono, color: t.neutrals.text }}>{updates.last7d}</b></span>
-              <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>30일 <b style={{ fontFamily: t.font.mono, color: t.neutrals.text }}>{updates.last30d}</b></span>
-            </div>
-          } />
-          {/* 14일 미니 바차트 */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 72 }}>
-            {updates.daily.map(d => (
-              <div key={d.date} title={`${d.date}: ${d.count}건`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
-                <div style={{ width: '100%', height: `${(d.count / maxDaily) * 100}%`, minHeight: d.count > 0 ? 3 : 0, background: t.brand[400], borderRadius: 2 }} />
+    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, alignItems: 'start' }}>
+      <LCard pad={0}>
+        {/* 헤더 + 현황 */}
+        <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+          <LSectionHead
+            eyebrow="VALUECHAIN"
+            title="밸류체인"
+            action={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <a href={SITE_URL} target="_blank" rel="noreferrer" style={iconBtn}>
+                  <LIcon name="trending" size={13} stroke={1.8} />
+                </a>
+                <button onClick={() => load(true)} style={iconBtn}>
+                  <LIcon name="refresh" size={13} stroke={1.8} />
+                </button>
               </div>
-            ))}
+            }
+          />
+
+          {/* 인사이트 KPI */}
+          <div style={sectionLabel}>인사이트</div>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+            <LStat label="노드" value={summary.nodes.toLocaleString()} sub={`오늘 ${trends.nodes.today.toLocaleString()}개 · 7일 ${trends.nodes.last7.toLocaleString()}개`} sparkline={mobile ? undefined : trends.nodes.series} />
+            <LStat label="관계" value={summary.edges.toLocaleString()} sub={`오늘 ${trends.edges.today.toLocaleString()}개 · 7일 ${trends.edges.last7.toLocaleString()}개`} sparkline={mobile ? undefined : trends.edges.series} />
+            <LStat label="출처" value={summary.sources.toLocaleString()} sub={`오늘 ${trends.sources.today.toLocaleString()}개 · 7일 ${trends.sources.last7.toLocaleString()}개`} sparkline={mobile ? undefined : trends.sources.series} />
+            <LStat label="아티클" value={summary.articles.toLocaleString()} sub={`오늘 ${trends.articles.today.toLocaleString()}개 · 7일 ${trends.articles.last7.toLocaleString()}개`} sparkline={mobile ? undefined : trends.articles.series} />
+            <LStat label="완성도" value={`${maturity.completeness}%`} sub={`평균 ${maturity.avgPass}/${maturity.checks} 체크`} />
+            <LStat label="AI 크롤" value={crawl.ai.toLocaleString()} sub={`오늘 ${trends.crawl.today.toLocaleString()}회 · 7일 ${trends.crawl.last7.toLocaleString()}회`} sparkline={mobile ? undefined : trends.crawl.series} />
           </div>
-          <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6, marginBottom: 6 }}>최근 14일 노드 업데이트</div>
-          {/* 최근 업데이트 내역 */}
-          <div style={{ display: 'flex', flexDirection: 'column', borderTop: `1px solid ${t.neutrals.line}`, marginTop: 4 }}>
-            {updates.recent.map(n => (
+        </div>
+
+        {/* 업데이트 */}
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <div style={sectionLabel}>업데이트</div>
+          {/* 최근 업데이트 내역 — 테이블 (날짜·노드·티커·매출처·지급처·티어·완성도) */}
+          <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: UPDATE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* 테이블 헤더 — 클릭 정렬 */}
+            <div style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+              {sortHead('date', '날짜', 'left', updateSort, onUpdateSort)}
+              {sortHead('name', '노드', 'left', updateSort, onUpdateSort)}
+              {sortHead('ticker', '티커', 'left', updateSort, onUpdateSort)}
+              {sortHead('rev', '매출처', 'center', updateSort, onUpdateSort)}
+              {sortHead('cost', '지급처', 'center', updateSort, onUpdateSort)}
+              {sortHead('tier', '티어', 'center', updateSort, onUpdateSort)}
+              {sortHead('pass', '완성도', 'center', updateSort, onUpdateSort)}
+            </div>
+            {updateRows.map(n => (
               <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', textDecoration: 'none', borderTop: `1px solid ${t.neutrals.line}` }}>
-                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, width: 56, flexShrink: 0 }}>{(n.updated_at ?? '').slice(5, 10)}</span>
-                <span style={{ flex: 1, fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.name}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold, flexShrink: 0 }}>{n.tier} {n.pass}/{maturity.checks}</span>
+                style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
+                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle }}>{(n.updated_at ?? '').slice(5, 10)}</span>
+                <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{n.name}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: n.ticker ? t.neutrals.muted : t.neutrals.line, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.ticker || '—'}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n.rev}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n.cost}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold, textAlign: 'center' }}>{n.tier}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n.pass}/{maturity.checks}</span>
               </a>
             ))}
             {updates.recent.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>업데이트 내역 없음</span>}
           </div>
-        </LCard>
+          </div>
+          {pager(updatePage, setUpdatePage, updateSorted.length, updatePages, updSafe)}
+        </div>
 
-        {/* AI 의존도 */}
-        <LCard>
-          <LSectionHead eyebrow="AGENT-NATIVE" title="AI 크롤 의존도" action={
-            <div style={{ display: 'flex', gap: 10 }}>
-              <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>AI <b style={{ fontFamily: t.font.mono, color: t.neutrals.text }}>{crawl.ai.toLocaleString()}</b></span>
-              <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>24h <b style={{ fontFamily: t.font.mono, color: t.neutrals.text }}>{crawl.last24h}</b></span>
-              <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>7d <b style={{ fontFamily: t.font.mono, color: t.neutrals.text }}>{crawl.last7d}</b></span>
+        {/* AI 크롤 의존도 — 봇별 테이블 (봇·횟수·재방문·비중) */}
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <div style={sectionLabel}>AI 크롤 의존도</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* 테이블 헤더 — 클릭 정렬 */}
+            <div style={{ display: 'grid', gridTemplateColumns: CRAWL_COLS, gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+              {sortHead('bot', '봇', 'left', crawlSort, onCrawlSort)}
+              {sortHead('count', '횟수', 'right', crawlSort, onCrawlSort)}
+              {sortHead('days', '재방문', 'right', crawlSort, onCrawlSort)}
+              {sortHead('pct', '비중', 'right', crawlSort, onCrawlSort)}
             </div>
-          } />
-          <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 8 }}>봇별 가져간 횟수 (Top {crawl.topBots.length})</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-            {crawl.topBots.map(b => (
-              <BarRow key={b.bot} label={b.bot} value={b.count} max={maxBot} tone={tonePalettes.brand} />
-            ))}
+            {crawlRows.map(b => {
+              const pct = crawl.ai > 0 ? Math.round((b.count / crawl.ai) * 100) : 0
+              return (
+                <div key={b.bot} style={{ display: 'grid', gridTemplateColumns: CRAWL_COLS, gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
+                  <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{b.bot}</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{b.count.toLocaleString()}</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{b.days.toLocaleString()}</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+                </div>
+              )
+            })}
             {crawl.topBots.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>AI 크롤 기록 없음</span>}
           </div>
-          <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 8 }}>가장 많이 의존되는 리소스</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {crawl.topResources.slice(0, 8).map(r => (
-              <BarRow key={r.resource} label={r.resource} value={r.count} max={maxRes} tone={tonePalettes.info} right={`${r.count} · ${r.bots}봇`} />
-            ))}
-          </div>
-        </LCard>
-      </div>
+          {pager(crawlPage, setCrawlPage, crawlSorted.length, crawlPages, crwSafe)}
+        </div>
+      </LCard>
     </div>
   )
 }

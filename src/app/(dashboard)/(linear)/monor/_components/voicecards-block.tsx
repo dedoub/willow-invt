@@ -101,8 +101,8 @@ export interface VoicecardsBlockProps {
 
 // 매출은 앱 DB 결제 이벤트의 정가(USD, 그로스) 합계 — 달러로 표시.
 function formatCurrency(value: number): string {
-  if (value >= 1000) return `$${Math.round(value).toLocaleString()}`
-  return `$${value.toFixed(2)}`
+  // 누적 매출은 소수점 이하 반올림(정수 달러)으로 표시
+  return `$${Math.round(value).toLocaleString()}`
 }
 
 function formatNumber(value: number): string {
@@ -113,6 +113,31 @@ function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('ko-KR', {
     year: 'numeric', month: 'short', day: 'numeric',
   })
+}
+
+// 테이블 셀용 짧은 날짜 — 연월일 모두 표시 (YY.MM.DD)
+function formatDateShort(dateString?: string | null): string {
+  if (!dateString) return '—'
+  const d = new Date(dateString)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${String(d.getFullYear()).slice(2)}.${p(d.getMonth() + 1)}.${p(d.getDate())}`
+}
+
+// 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·상태·시트·카드·말하기·듣기·크레딧·가입·활동
+// 닉네임 | 플랫폼 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 가입 | 활동
+const USER_TABLE_COLS = 'minmax(64px,1fr) 44px 56px 36px 48px 52px 44px 52px 60px 60px'
+const USER_TABLE_MIN_WIDTH = 572 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용
+const userHeadCell: React.CSSProperties = {
+  fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+  letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
+}
+const userNumCell: React.CSSProperties = {
+  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text,
+  fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
+}
+const userDateCell: React.CSSProperties = {
+  fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+  fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
 }
 
 const LOCALE_LABELS: Record<string, { flag: string; name: string }> = {
@@ -145,15 +170,32 @@ function formatLocale(locale: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type UserSortKey = 'sheets' | 'cards' | 'attempts' | 'credits' | 'recent' | 'created'
+type UserSortKey =
+  | 'name' | 'platform' | 'status'
+  | 'sheets' | 'cards' | 'attempts' | 'listen' | 'credits'
+  | 'created' | 'recent'
+type SortDir = 'asc' | 'desc'
 
-const USER_SORT_OPTIONS: Array<{ key: UserSortKey; label: string }> = [
-  { key: 'recent',   label: '활동일' },
-  { key: 'created',  label: '가입일' },
+// 테이블 컬럼 정의 (헤더 라벨 + 정렬키 + 정렬, 모바일 드롭다운 라벨). 순서 = 그리드 순서.
+const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string; align: 'left' | 'center' | 'right' }> = [
+  { key: 'name',     label: '닉네임', mobileLabel: '닉네임',   align: 'left' },
+  { key: 'platform', label: '플랫폼', mobileLabel: '플랫폼',   align: 'center' },
+  { key: 'status',   label: '구글연동', mobileLabel: '구글연동', align: 'center' },
+  { key: 'sheets',   label: '시트',   mobileLabel: '시트',     align: 'center' },
+  { key: 'cards',    label: '카드',   mobileLabel: '카드',     align: 'center' },
+  { key: 'attempts', label: '말하기', mobileLabel: '말하기',   align: 'center' },
+  { key: 'listen',   label: '듣기',   mobileLabel: '듣기',     align: 'center' },
+  { key: 'credits',  label: '크레딧', mobileLabel: '크레딧',   align: 'center' },
+  { key: 'created',  label: '가입',   mobileLabel: '가입일',   align: 'center' },
+  { key: 'recent',   label: '활동',   mobileLabel: '활동일',   align: 'center' },
 ]
 
+// 텍스트/문자열 정렬 컬럼은 오름차순이 기본, 숫자·날짜는 내림차순이 기본
+const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['name', 'platform', 'status'])
+const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key) ? 'asc' : 'desc')
+
 const USER_SORT_STORAGE_KEY = 'voicecards.userSort'
-const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_SORT_OPTIONS.map(o => o.key))
+const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 
@@ -227,6 +269,7 @@ export function VoicecardsBlock({
   // 일반 PC 해상도에선 sparkline 들어갈 공간 있음.
   const compact = mobile
   const [userSort, setUserSort] = useState<UserSortKey>('created')
+  const [userSortDir, setUserSortDir] = useState<SortDir>('desc')
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
   const [userPerPageInput, setUserPerPageInput] = useState('10')
@@ -238,47 +281,53 @@ export function VoicecardsBlock({
     setUserPage(1)
   }
 
-  // 마운트 시 localStorage에서 정렬 상태 복원 (SSR/CSR hydration 안전)
+  // 마운트 시 localStorage에서 정렬 상태 복원 (SSR/CSR hydration 안전). 형식: "key:dir"
   useEffect(() => {
     const stored = window.localStorage.getItem(USER_SORT_STORAGE_KEY)
-    if (stored && USER_SORT_KEY_SET.has(stored as UserSortKey)) {
-      setUserSort(stored as UserSortKey)
+    if (!stored) return
+    const [key, dir] = stored.split(':')
+    if (USER_SORT_KEY_SET.has(key as UserSortKey)) {
+      setUserSort(key as UserSortKey)
+      setUserSortDir(dir === 'asc' ? 'asc' : dir === 'desc' ? 'desc' : defaultSortDir(key as UserSortKey))
     }
   }, [])
 
   const sortedUsers = useMemo(() => {
     if (!userStats) return []
     const arr = [...userStats.users]
-    // 공통 tiebreaker: 최근 활동일 → 가입일
-    const recencyTiebreak = (a: typeof arr[number], b: typeof arr[number]) => {
+    type U = typeof arr[number]
+    // 동점 시 보조정렬(방향 무관): 최근 활동일 → 가입일 내림차순
+    const recencyTiebreak = (a: U, b: U) => {
       const cmp = (b.lastActiveAt || '').localeCompare(a.lastActiveAt || '')
       return cmp !== 0 ? cmp : b.createdAt.localeCompare(a.createdAt)
     }
-    // 크레딧 사용량 — 이벤트 기반 (추가 결제 영향 없음)
-    const creditsUsed = (u: typeof arr[number]) => u.creditsUsed ?? 0
+    const nameOf = (u: U) => (u.nickname || u.email || u.id || '').toLowerCase()
+    const isIncomplete = (u: U) => (u.sheetCount === 0 && u.cards === 0 ? 1 : 0)
 
-    switch (userSort) {
-      case 'sheets':
-        arr.sort((a, b) => (b.sheetCount - a.sheetCount) || recencyTiebreak(a, b))
-        break
-      case 'cards':
-        arr.sort((a, b) => (b.cards - a.cards) || recencyTiebreak(a, b))
-        break
-      case 'attempts':
-        arr.sort((a, b) => (b.attempts - a.attempts) || recencyTiebreak(a, b))
-        break
-      case 'credits':
-        arr.sort((a, b) => (creditsUsed(b) - creditsUsed(a)) || recencyTiebreak(a, b))
-        break
-      case 'recent':
-        arr.sort((a, b) => recencyTiebreak(a, b))
-        break
-      case 'created':
-      default:
-        arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    // 컬럼별 1차 비교(항상 오름차순 기준). 방향은 아래에서 dirMul로 적용.
+    const primary = (a: U, b: U): number => {
+      switch (userSort) {
+        case 'name':     return nameOf(a).localeCompare(nameOf(b), 'ko')
+        case 'platform': return (a.platform || '').localeCompare(b.platform || '')
+        case 'status':   return isIncomplete(a) - isIncomplete(b)
+        case 'sheets':   return a.sheetCount - b.sheetCount
+        case 'cards':    return a.cards - b.cards
+        case 'attempts': return a.attempts - b.attempts
+        case 'listen':   return (a.creditsUsed ?? 0) - (b.creditsUsed ?? 0)
+        case 'credits':  return a.credits - b.credits
+        case 'recent':   return (a.lastActiveAt || '').localeCompare(b.lastActiveAt || '')
+        case 'created':  return a.createdAt.localeCompare(b.createdAt)
+        default:         return 0
+      }
     }
+    const dirMul = userSortDir === 'asc' ? 1 : -1
+    arr.sort((a, b) => {
+      const p = primary(a, b)
+      if (p !== 0) return p * dirMul
+      return recencyTiebreak(a, b)
+    })
     return arr
-  }, [userStats, userSort])
+  }, [userStats, userSort, userSortDir])
 
   const totalUserPages = Math.max(1, Math.ceil(sortedUsers.length / userPerPage))
   const safeUserPage = Math.min(userPage, totalUserPages)
@@ -287,11 +336,14 @@ export function VoicecardsBlock({
     safeUserPage * userPerPage
   )
 
-  // 정렬 변경 시 1페이지로 리셋 + localStorage 저장
+  // 정렬 변경 + 1페이지로 리셋 + localStorage 저장.
+  // 같은 컬럼 재클릭 시 방향 토글, 다른 컬럼 클릭 시 그 컬럼의 기본 방향.
   const handleSortChange = (key: UserSortKey) => {
+    const nextDir: SortDir = key === userSort ? (userSortDir === 'asc' ? 'desc' : 'asc') : defaultSortDir(key)
     setUserSort(key)
+    setUserSortDir(nextDir)
     setUserPage(1)
-    window.localStorage.setItem(USER_SORT_STORAGE_KEY, key)
+    window.localStorage.setItem(USER_SORT_STORAGE_KEY, `${key}:${nextDir}`)
   }
 
   return (
@@ -352,7 +404,6 @@ export function VoicecardsBlock({
 
           const learnConv = devices > 0 ? (learned / devices) * 100 : 0
           const signupConv = learned > 0 ? (signedUp / learned) * 100 : 0
-          const fmtPct = (v: number) => v >= 10 ? `${v.toFixed(0)}%` : `${v.toFixed(1)}%`
 
           // 누적 trajectories
           const cumulative = anonymousStats.cumulativeDistinct ?? []
@@ -397,6 +448,34 @@ export function VoicecardsBlock({
             return { date, value: total }
           })
 
+          // 누적 매출 보조지표 — 오늘 / 최근 7일 (chartData 날짜는 UTC 기준)
+          const revTodayKey = new Date().toISOString().slice(0, 10)
+          const rev7AgoKey = (() => { const d = new Date(); d.setUTCDate(d.getUTCDate() - 6); return d.toISOString().slice(0, 10) })()
+          const revenueToday = revenueByDate.get(revTodayKey) ?? 0
+          const revenue7d = Array.from(revenueByDate.entries())
+            .filter(([date]) => date >= rev7AgoKey)
+            .reduce((sum, [, v]) => sum + v, 0)
+          const fmtRev = (v: number) => v <= 0 ? '$0' : `$${Math.round(v).toLocaleString()}`
+
+          // 누적 기기/데모 학습/가입 완료 — 오늘 / 최근 7일 신규 (날짜 UTC 기준, cumulativeDistinct 델타)
+          const yesterdayKey = (() => { const d = new Date(); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10) })()
+          const dayBefore7Key = (() => { const d = new Date(); d.setUTCDate(d.getUTCDate() - 7); return d.toISOString().slice(0, 10) })()
+          const lastCum = cumulative.length ? cumulative[cumulative.length - 1] : null
+          const cumValBefore = (
+            date: string,
+            pick: (r: { date: string; devices: number; learned: number; signin: number }) => number,
+          ) => {
+            let v = 0
+            for (const d of cumulative) { if (d.date <= date) v = pick(d); else break }
+            return v
+          }
+          const devToday = (lastCum?.devices ?? 0) - cumValBefore(yesterdayKey, r => r.devices)
+          const dev7 = (lastCum?.devices ?? 0) - cumValBefore(dayBefore7Key, r => r.devices)
+          const learnToday = (lastCum?.learned ?? 0) - cumValBefore(yesterdayKey, r => r.learned)
+          const learn7 = (lastCum?.learned ?? 0) - cumValBefore(dayBefore7Key, r => r.learned)
+          const signupToday = signupDates.filter(d => d === revTodayKey).length
+          const signup7 = signupDates.filter(d => d >= rev7AgoKey).length
+
           return (
             <>
               <div style={{
@@ -412,21 +491,21 @@ export function VoicecardsBlock({
                 <LStat
                   label="누적 기기"
                   value={devices.toLocaleString()}
-                  sub="앱 오픈"
+                  sub={`오늘 ${devToday.toLocaleString()}명 · 7일 ${dev7.toLocaleString()}명`}
                   tone="info"
                   sparkline={compact ? undefined : devicesData}
                 />
                 <LStat
                   label="데모 학습"
                   value={learned.toLocaleString()}
-                  sub={devices > 0 ? `${fmtPct(learnConv)} 전환 · 비로그인` : '비로그인'}
+                  sub={`오늘 ${learnToday.toLocaleString()}명 · 7일 ${learn7.toLocaleString()}명`}
                   tone={devices > 0 && learnConv >= 40 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : learnedData}
                 />
                 <LStat
                   label="가입 완료"
                   value={signedUp.toLocaleString()}
-                  sub={`미완료 ${incompleteSignups.toLocaleString()}${learned > 0 ? ` · ${fmtPct(signupConv)} 전환` : ''}`}
+                  sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
                   tone={learned > 0 && signupConv >= 10 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}
                   sparkline2={compact ? undefined : incompleteData}
@@ -437,7 +516,7 @@ export function VoicecardsBlock({
                   <LStat
                     label="누적 매출"
                     value={formatCurrency(revenue)}
-                    sub={revenue > 0 ? '누적' : '아직 없음'}
+                    sub={revenue > 0 ? `오늘 ${fmtRev(revenueToday)} · 7일 ${fmtRev(revenue7d)}` : '아직 없음'}
                     tone={revenue > 0 ? 'pos' : 'default'}
                     sparkline={compact ? undefined : revenueData}
                     sparkFormat={formatCurrency}
@@ -571,7 +650,7 @@ export function VoicecardsBlock({
             <LStat
               label="보유 카드"
               value={formatNumber(userStats.totalCards)}
-              sub={inventory.length > 0 ? `오늘 ${todayCardsDelta >= 0 ? '+' : ''}${formatNumber(todayCardsDelta)} · 7일 ${last7CardsDelta >= 0 ? '+' : ''}${formatNumber(last7CardsDelta)}` : undefined}
+              sub={inventory.length > 0 ? `오늘 ${formatNumber(todayCardsDelta)}개 · 7일 ${formatNumber(last7CardsDelta)}개` : undefined}
               sparkline={compact ? undefined : (cardTrajectory.length > 1 ? cardTrajectory : undefined)}
             />
             <LStat
@@ -634,27 +713,37 @@ export function VoicecardsBlock({
                 return n > 0 ? ` · 미완료 ${n}` : ''
               })()}
             </div>
-            <div style={{ display: 'flex', gap: 3 }}>
-              {USER_SORT_OPTIONS.map(opt => {
-                const active = userSort === opt.key
-                return (
-                  <button
-                    key={opt.key}
-                    onClick={() => handleSortChange(opt.key)}
-                    style={{
-                      padding: '3px 8px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                      fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans,
-                      background: active ? t.brand[500] : t.neutrals.inner,
-                      color: active ? '#fff' : t.neutrals.muted,
-                      transition: 'background 120ms ease, color 120ms ease',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                )
-              })}
-            </div>
+            {/* 데스크톱은 테이블 헤더 클릭으로 정렬. 모바일은 헤더가 없어 드롭다운으로 정렬. */}
+            {mobile && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <select
+                  value={userSort}
+                  onChange={e => handleSortChange(e.target.value as UserSortKey)}
+                  style={{
+                    padding: '3px 6px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
+                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
+                    background: t.neutrals.inner, color: t.neutrals.text,
+                  }}
+                >
+                  {USER_COLUMNS.map(col => (
+                    <option key={col.key} value={col.key}>{col.mobileLabel}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => handleSortChange(userSort)}
+                  title="정렬 방향 전환"
+                  style={{
+                    padding: '3px 7px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
+                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
+                    background: t.neutrals.inner, color: t.neutrals.muted,
+                  }}
+                >
+                  {userSortDir === 'asc' ? '▲' : '▼'}
+                </button>
+              </div>
+            )}
           </div>
+          {mobile ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {paginatedUsers.map((user) => {
               const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
@@ -750,6 +839,99 @@ export function VoicecardsBlock({
               )
             })}
           </div>
+          ) : (
+          <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* 테이블 헤더 — 클릭하여 정렬, 같은 컬럼 재클릭 시 방향 토글 */}
+            <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
+              {USER_COLUMNS.map(col => {
+                const active = userSort === col.key
+                return (
+                  <button
+                    key={col.key}
+                    onClick={() => handleSortChange(col.key)}
+                    title={`${col.label} 기준 정렬`}
+                    style={{
+                      ...userHeadCell, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+                      display: 'flex', alignItems: 'center', gap: 2, width: '100%',
+                      justifyContent: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start',
+                      color: active ? t.neutrals.text : t.neutrals.subtle,
+                    }}
+                  >
+                    {col.label}
+                    <span style={{ fontSize: '0.85em', lineHeight: 1, opacity: active ? 1 : 0 }}>
+                      {userSortDir === 'asc' ? '▲' : '▼'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            {paginatedUsers.map((user) => {
+              const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
+              const fallbackName = user.email || (shortId ? `#${shortId}` : 'Unknown')
+              const initial = (user.nickname?.charAt(0) || user.email?.charAt(0) || shortId.charAt(0) || '?').toUpperCase()
+              const incomplete = user.sheetCount === 0 && user.cards === 0
+              const titleParts = [user.appVersion ? `v${user.appVersion}` : null, user.locale].filter(Boolean).join(' · ')
+              return (
+                <div key={user.id} style={{
+                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center',
+                  padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                }}>
+                  {/* 닉네임 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 22, flexShrink: 0,
+                      background: t.brand[200], color: t.brand[800],
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 600,
+                    }}>
+                      {initial}
+                    </div>
+                    <span title={titleParts || undefined} style={{
+                      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500,
+                      color: user.nickname ? t.neutrals.text : t.neutrals.muted,
+                      fontFamily: user.nickname ? t.font.sans : t.font.mono,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+                    }}>
+                      {user.nickname || fallbackName}
+                    </span>
+                  </div>
+                  {/* 플랫폼 */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                    {user.platform ? (
+                      <span style={{
+                        fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                        color: user.platform === 'ios' ? '#0369A1' : user.platform === 'android' ? '#15803D' : t.neutrals.muted,
+                        background: user.platform === 'ios' ? '#E0F2FE' : user.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
+                        padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
+                      }}>
+                        {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                    )}
+                  </div>
+                  {/* 구글연동 (가입 완료 여부) */}
+                  <div style={{
+                    fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
+                    whiteSpace: 'nowrap', textAlign: 'center',
+                    color: incomplete ? '#B45309' : t.neutrals.muted,
+                  }}>
+                    {incomplete ? '미완료' : '완료'}
+                  </div>
+                  <div style={userNumCell}>{user.sheetCount}</div>
+                  <div style={userNumCell}>{formatNumber(user.cards)}</div>
+                  <div style={userNumCell}>{formatNumber(user.attempts)}</div>
+                  <div style={userNumCell}>{formatNumber(user.creditsUsed)}</div>
+                  <div style={{ ...userNumCell, color: t.neutrals.muted }}>{formatNumber(user.credits)}</div>
+                  <div style={userDateCell}>{formatDateShort(user.createdAt)}</div>
+                  <div style={userDateCell}>{formatDateShort(user.lastActiveAt)}</div>
+                </div>
+              )
+            })}
+          </div>
+          </div>
+          )}
 
           {/* 페이지네이션 (주식투자 페이지 섹션과 동일 스타일) */}
           {sortedUsers.length > 0 && (

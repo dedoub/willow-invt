@@ -20,7 +20,7 @@ const CLIENTS = [
   { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#1F4E79' },
   { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#B88A2A' },
   { id: 'monor', name: 'MonoR Apps',    tag: 'Education', dot: '#2F8F5B' },
-  { id: 'valuechain', name: 'ValueChain', tag: 'LLM Wiki', dot: '#7C5CD6' },
+  { id: 'valuechain', name: 'LLM Wiki', tag: 'Experiment', dot: '#7C5CD6' },
 ]
 
 const CLIENT_HREF: Record<string, string | undefined> = {
@@ -142,7 +142,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {rail ? (
           <img src="/leaf-icon.png" alt="willowinvt" style={{ height: 16, width: 16, objectFit: 'contain' }} />
         ) : (
-          <img src="/willow-text.png" alt="willowinvt" style={{ height: 15 }} />
+          <img src="/willow-text.png" alt="willowinvt" style={{ height: mobile ? 15 : 16.5 }} />
         )}
         {mobile && !rail && (
           <button onClick={onClose} style={{
