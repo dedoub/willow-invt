@@ -82,7 +82,7 @@ export default function ValueChainPage() {
     )
   }
 
-  const { summary, maturity, updates, crawl, roadmap } = stats
+  const { summary, maturity, updates, crawl } = stats
   const maxDaily = Math.max(1, ...updates.daily.map(d => d.count))
   const maxBot = Math.max(1, ...crawl.topBots.map(b => b.count))
   const maxRes = Math.max(1, ...crawl.topResources.map(r => r.count))
@@ -95,7 +95,7 @@ export default function ValueChainPage() {
         <KpiCard label="관계" value={summary.edges.toLocaleString()} sub="매출·비용 엣지" />
         <KpiCard label="출처" value={summary.sources.toLocaleString()} sub="검증 소스" />
         <KpiCard label="아티클" value={summary.articles.toLocaleString()} sub="해설 글" />
-        <KpiCard label="로드맵" value={summary.roadmap.toLocaleString()} sub="업데이트·예정" />
+        <KpiCard label="완성도" value={`${maturity.completeness}%`} sub={`평균 ${maturity.avgPass}/${maturity.checks} 체크`} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 14, alignItems: 'start' }}>
@@ -108,23 +108,14 @@ export default function ValueChainPage() {
             </div>
           } />
           {/* 14일 미니 바차트 */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 56, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 72 }}>
             {updates.daily.map(d => (
               <div key={d.date} title={`${d.date}: ${d.count}건`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
                 <div style={{ width: '100%', height: `${(d.count / maxDaily) * 100}%`, minHeight: d.count > 0 ? 3 : 0, background: t.brand[400], borderRadius: 2 }} />
               </div>
             ))}
           </div>
-          {/* 최근 업데이트 노드 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {updates.recent.slice(0, 8).map(n => (
-              <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', textDecoration: 'none' }}>
-                <span style={{ flex: 1, fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.name}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold }}>{n.tier} {n.pass}/{maturity.checks}</span>
-                <span style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, width: 64, textAlign: 'right' }}>{(n.updated_at ?? '').slice(5, 10)}</span>
-              </a>
-            ))}
-          </div>
+          <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6 }}>최근 14일 노드 업데이트</div>
         </LCard>
 
         {/* AI 의존도 */}
@@ -151,22 +142,19 @@ export default function ValueChainPage() {
           </div>
         </LCard>
 
-        {/* 로드맵 */}
+        {/* 업데이트 내역 */}
         <LCard>
-        <LSectionHead eyebrow="ROADMAP" title="최근 로드맵" />
+        <LSectionHead eyebrow="UPDATES" title="업데이트 내역" />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {roadmap.map((r, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderTop: i === 0 ? 'none' : `1px solid ${t.neutrals.line}` }}>
-              <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, width: 80, flexShrink: 0 }}>{r.entry_date}</span>
-              {(() => { const tone = r.kind === 'update' ? tonePalettes.done : tonePalettes.pending; return (
-                <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: t.radius.sm, fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, flexShrink: 0, background: tone.bg, color: tone.fg }}>
-                  {r.kind === 'update' ? '완료' : '예정'}
-                </span>
-              ) })()}
-              <span style={{ flex: 1, fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text }}>{r.title}</span>
-            </div>
+          {updates.recent.map((n, i) => (
+            <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', textDecoration: 'none', borderTop: i === 0 ? 'none' : `1px solid ${t.neutrals.line}` }}>
+              <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, width: 56, flexShrink: 0 }}>{(n.updated_at ?? '').slice(5, 10)}</span>
+              <span style={{ flex: 1, fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.name}</span>
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold, flexShrink: 0 }}>{n.tier} {n.pass}/{maturity.checks}</span>
+            </a>
           ))}
-          {roadmap.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>로드맵 항목 없음</span>}
+          {updates.recent.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>업데이트 내역 없음</span>}
         </div>
         </LCard>
       </div>

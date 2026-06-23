@@ -72,7 +72,6 @@ export interface ValueChainStats {
     edges: number
     sources: number
     articles: number
-    roadmap: number
   }
   maturity: {
     checks: number // 노드당 총 체크 수 (13)
@@ -96,7 +95,6 @@ export interface ValueChainStats {
     topBots: { bot: string; count: number }[]
     topResources: { resource: string; count: number; bots: number }[]
   }
-  roadmap: { entry_date: string; kind: string; status: string | null; title: string }[]
 }
 
 const TIER_LABEL: Record<string, string> = {
@@ -107,19 +105,17 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
   const supabase = getServiceSupabase()
 
   const [
-    nodesHead, edgesHead, sourcesHead, articlesHead, roadmapHead,
-    maturityRes, crawlRes, roadmapRes,
+    nodesHead, edgesHead, sourcesHead, articlesHead,
+    maturityRes, crawlRes,
   ] = await Promise.all([
     supabase.from('vc_companies').select('*', { count: 'exact', head: true }),
     supabase.from('vc_edges').select('*', { count: 'exact', head: true }),
     supabase.from('vc_sources').select('*', { count: 'exact', head: true }),
     supabase.from('vc_articles').select('*', { count: 'exact', head: true }),
-    supabase.from('vc_roadmap').select('*', { count: 'exact', head: true }),
     supabase
       .from('vc_companies')
       .select('slug,name,kicker,lead,segments,updated_at, vc_edges!company_id(direction,counterparty_id,confidence,metric, vc_edge_sources(stance,metric, vc_sources(kind,published_at,lang)))'),
     supabase.from('vc_crawl_log').select('ts,path,bot,category').neq('category', 'attack').order('ts', { ascending: false }).limit(3000),
-    supabase.from('vc_roadmap').select('entry_date,kind,status,title').order('entry_date', { ascending: false }).limit(10),
   ])
 
   // ── 성숙도 집계 ──
@@ -159,7 +155,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
   const recent = [...mrows]
     .filter((r) => r.updated_at)
     .sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
-    .slice(0, 12)
+    .slice(0, 15)
     .map((r) => ({ slug: r.slug, name: r.name, pass: r.m.pass, tier: r.m.tierShort, updated_at: r.updated_at }))
 
   // ── 크롤 / AI 의존도 ──
@@ -188,7 +184,6 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
       edges: edgesHead.count ?? 0,
       sources: sourcesHead.count ?? 0,
       articles: articlesHead.count ?? 0,
-      roadmap: roadmapHead.count ?? 0,
     },
     maturity: {
       checks,
@@ -212,6 +207,5 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
       topBots,
       topResources,
     },
-    roadmap: (roadmapRes.data ?? []) as ValueChainStats['roadmap'],
   }
 }
