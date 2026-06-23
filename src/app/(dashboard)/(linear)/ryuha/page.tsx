@@ -57,22 +57,20 @@ export default function RyuhaPage() {
   const loadData = useCallback(async () => {
     // 재로드 시 loading 유지 — 달력 등 자식 상태 보존 (초기 스켈레톤은 useState(true) 기본값으로 표시됨)
     try {
-      const [subjectsRes, textbooksRes, chaptersRes, schedulesRes, memosRes, notesRes, bodyRes] = await Promise.all([
-        fetch('/api/ryuha/subjects'),
-        fetch('/api/ryuha/textbooks'),
-        fetch('/api/ryuha/chapters'),
-        fetch('/api/ryuha/schedules'),
-        fetch('/api/ryuha/memos'),
-        fetch('/api/ryuha/notes'),
-        fetch('/api/ryuha/body-records?limit=50'),
-      ])
-      if (subjectsRes.ok) setSubjects(await subjectsRes.json())
-      if (textbooksRes.ok) setTextbooks(await textbooksRes.json())
-      if (chaptersRes.ok) setChapters(await chaptersRes.json())
-      if (schedulesRes.ok) setSchedules(await schedulesRes.json())
-      if (memosRes.ok) setMemos(await memosRes.json())
-      if (notesRes.ok) setNotes(await notesRes.json())
-      if (bodyRes.ok) setBodyRecords(await bodyRes.json())
+      // Single consolidated fetch (replaces the previous 7 parallel GETs).
+      // The bootstrap endpoint runs the same queries server-side and returns
+      // identical shapes. Mutations/refresh still use the individual routes.
+      const res = await fetch('/api/ryuha/bootstrap')
+      if (res.ok) {
+        const data = await res.json()
+        setSubjects(data.subjects)
+        setTextbooks(data.textbooks)
+        setChapters(data.chapters)
+        setSchedules(data.schedules)
+        setMemos(data.memos)
+        setNotes(data.notes)
+        setBodyRecords(data.bodyRecords)
+      }
     } finally {
       setLoading(false)
     }

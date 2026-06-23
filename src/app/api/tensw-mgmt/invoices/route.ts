@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from('tensw_mgmt_cash')
-    .select('*')
+    .select('id, type, counterparty, description, amount, issue_date, payment_date')
     .order('created_at', { ascending: false })
 
   if (type) {

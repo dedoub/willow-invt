@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from('tensw_mgmt_schedules')
-      .select('*, client:tensw_mgmt_clients(*), milestone:tensw_mgmt_milestones(*, project:tensw_mgmt_projects(*)), tasks:tensw_mgmt_tasks(*)')
+      .select('id, title, schedule_date, end_date, start_time, end_time, type, is_completed, description, client_id, milestone_ids, client:tensw_mgmt_clients(name, color), tasks:tensw_mgmt_tasks(id, content, is_completed, deadline)')
       .order('schedule_date')
       .order('start_time')
 
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     if (allMilestoneIds.size > 0) {
       const { data: milestones } = await supabase
         .from('tensw_mgmt_milestones')
-        .select('*, project:tensw_mgmt_projects(*, client:tensw_mgmt_clients(*))')
+        .select('id, name')
         .in('id', Array.from(allMilestoneIds))
 
       if (milestones) {
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from('tensw_mgmt_schedules')
       .insert(body)
-      .select('*, client:tensw_mgmt_clients(*), milestone:tensw_mgmt_milestones(*, project:tensw_mgmt_projects(*)), tasks:tensw_mgmt_tasks(*)')
+      .select('id, title, schedule_date, end_date, start_time, end_time, type, is_completed, description, client_id, milestone_ids, client:tensw_mgmt_clients(name, color), tasks:tensw_mgmt_tasks(id, content, is_completed, deadline)')
       .single()
 
     if (error) throw error
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     if (data.milestone_ids?.length > 0) {
       const { data: milestoneData } = await supabase
         .from('tensw_mgmt_milestones')
-        .select('*, project:tensw_mgmt_projects(*, client:tensw_mgmt_clients(*))')
+        .select('id, name')
         .in('id', data.milestone_ids)
       milestones = milestoneData || []
     }
@@ -104,7 +104,7 @@ export async function PUT(request: Request) {
       .from('tensw_mgmt_schedules')
       .update(updates)
       .eq('id', id)
-      .select('*, client:tensw_mgmt_clients(*), milestone:tensw_mgmt_milestones(*, project:tensw_mgmt_projects(*)), tasks:tensw_mgmt_tasks(*)')
+      .select('id, title, schedule_date, end_date, start_time, end_time, type, is_completed, description, client_id, milestone_ids, client:tensw_mgmt_clients(name, color), tasks:tensw_mgmt_tasks(id, content, is_completed, deadline)')
       .single()
 
     if (error) throw error
@@ -114,7 +114,7 @@ export async function PUT(request: Request) {
     if (data.milestone_ids?.length > 0) {
       const { data: milestoneData } = await supabase
         .from('tensw_mgmt_milestones')
-        .select('*, project:tensw_mgmt_projects(*, client:tensw_mgmt_clients(*))')
+        .select('id, name')
         .in('id', data.milestone_ids)
       milestones = milestoneData || []
     }

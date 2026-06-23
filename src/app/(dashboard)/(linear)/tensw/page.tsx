@@ -121,7 +121,7 @@ export default function TenswPage() {
   const loadWiki = useCallback(async () => {
     setWikiLoading(true)
     try {
-      const res = await fetch('/api/wiki', { cache: 'no-store' })
+      const res = await fetch('/api/wiki?section=tensw-mgmt', { cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
         setWikiNotes(Array.isArray(data) ? data : [])

@@ -20,14 +20,15 @@ export interface ReviewNotesUser {
   id: string
   name: string | null
   email: string
-  emailVerified: string | null
   image: string | null
   subscriptionPlan: SubscriptionPlan
   role: UserRole
   storageUsed: number
-  lemonSqueezyCustomerId: string | null
   createdAt: string
-  updatedAt: string
+  // Not fetched by getReviewNotesUsers (column-scoped) and unused by any consumer.
+  emailVerified?: string | null
+  lemonSqueezyCustomerId?: string | null
+  updatedAt?: string
 }
 
 export interface ReviewNotesUserStats {
@@ -158,7 +159,9 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
 
   const { data, error } = await reviewnotesSupabase
     .from('User')
-    .select('*')
+    // Only the columns consumed by getReviewNotesUserStats passes + the monor reviewnotes block.
+    // (emailVerified / updatedAt / lemonSqueezyCustomerId are unused.)
+    .select('id, name, email, image, subscriptionPlan, role, storageUsed, createdAt')
     .order('createdAt', { ascending: false })
 
   if (error) {

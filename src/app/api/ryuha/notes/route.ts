@@ -12,6 +12,7 @@ export async function GET(request: Request) {
       .select('*')
       .order('is_pinned', { ascending: false })
       .order('updated_at', { ascending: false })
+      .limit(200) // runaway cap; NotebookBlock paginates/searches client-side
 
     if (search) {
       query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`)

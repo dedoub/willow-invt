@@ -44,6 +44,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query
       .order('is_pinned', { ascending: false })
       .order('updated_at', { ascending: false })
+      // Runaway guard only; per-user (and optionally per-section) so well under this cap.
+      .limit(500)
 
     if (error) {
       console.error('Error fetching wiki notes:', error)

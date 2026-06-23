@@ -7,7 +7,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('tensw_mgmt_sales')
-    .select('*')
+    .select('id, issue_date, counterparty, business_number, representative, supply_amount, tax_amount, total_amount, items, expected_payment_date, payment_status, paid_amount, bank_ref, notes')
     .order('issue_date', { ascending: false })
 
   if (error) {

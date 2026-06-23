@@ -27,6 +27,9 @@ export async function GET() {
       .from('akros_tax_invoices')
       .select('*')
       .order('invoice_date', { ascending: false })
+      // Runaway guard only. Consumer paginates client-side over the full list, but
+      // single-company tax invoices accumulate well under this cap.
+      .limit(500)
 
     if (error) {
       console.error('[Akros Tax Invoices] List error:', error)
