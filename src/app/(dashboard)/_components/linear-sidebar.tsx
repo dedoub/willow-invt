@@ -126,7 +126,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
 
   const sidebar = (
     <aside style={{
-      width: rail ? 56 : 232, background: t.neutrals.page,
+      width: rail ? 56 : mobile ? 'min(85vw, 320px)' : 232, background: t.neutrals.page,
       borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
       display: 'flex', flexDirection: 'column', flexShrink: 0,
       fontFamily: t.font.sans,
@@ -244,7 +244,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         background: 'rgba(0,0,0,0.35)',
       }}
     >
-      <div onClick={e => e.stopPropagation()}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 'fit-content', height: '100%' }}>
         {sidebar}
       </div>
     </div>
