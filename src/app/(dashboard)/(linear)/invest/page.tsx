@@ -30,6 +30,7 @@ export default function InvestPage() {
   const [stockResearch, setStockResearch] = useState<StockResearch[]>([])
   const [usdKrw, setUsdKrw] = useState(1400)
   const [totalValueUsd, setTotalValueUsd] = useState(0)
+  const [syncing, setSyncing] = useState(false)
 
   // Holdings / Analysis specific states
   const [stockThemes, setStockThemes] = useState<Record<string, TickerTheme[]>>({})
@@ -410,8 +411,52 @@ export default function InvestPage() {
     ? `평가 ${fmtPctSigned(portfolioStats.unrealizedReturnPct)} · 실현 ${fmtPctSigned(portfolioStats.realizedReturnPct)}`
     : undefined
 
+  const syncToss = useCallback(async () => {
+    if (syncing) return
+    if (!window.confirm('토스 계좌 체결내역으로 거래기록을 교체합니다.\n(기존 기록은 자동 백업됩니다) 진행할까요?')) return
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/willow-mgmt/toss-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: true }),
+      })
+      const j = await res.json()
+      if (!res.ok) {
+        window.alert(`동기화 실패: ${j.error || res.status}`)
+        return
+      }
+      const mm = (j.mismatches || []).length
+      window.alert(
+        `토스 동기화 완료\n거래 ${j.tradeRows}건 · 종목 ${j.symbols}개\n` +
+        `백업 ${j.backedUp}건 · watchlist 추가 ${j.watchlistAdded}개` +
+        (mm ? `\n⚠ 보유수량 불일치 ${mm}종목` : ''),
+      )
+      await loadData()
+    } catch (e) {
+      window.alert(`동기화 오류: ${(e as Error).message}`)
+    } finally {
+      setSyncing(false)
+    }
+  }, [syncing, loadData])
+
   const printActions = (
     <div style={{ display: 'flex', gap: 6 }}>
+      <button
+        onClick={syncToss}
+        disabled={syncing}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.regular,
+          background: t.neutrals.inner, color: syncing ? t.neutrals.subtle : t.neutrals.muted,
+          border: 'none', borderRadius: t.radius.sm, cursor: syncing ? 'default' : 'pointer',
+          fontFamily: t.font.sans,
+        }}
+        title="토스증권 계좌 체결내역·보유종목을 페이지에 동기화"
+      >
+        <LIcon name="refresh" size={11} stroke={1.6} />
+        {syncing ? '동기화 중…' : '토스 동기화'}
+      </button>
       <button
         onClick={() => window.open('/print/invest/holdings', '_blank')}
         style={{

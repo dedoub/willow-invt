@@ -50,3 +50,6 @@ next-env.d.ts
 ._*
 doc/
 .env*.local
+
+# Local data backups (never commit)
+.backups/

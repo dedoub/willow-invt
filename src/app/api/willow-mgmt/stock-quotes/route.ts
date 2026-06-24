@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
+import { getPrices, getStocks, getPrevClose, getExchangeRate } from '@/lib/toss'
 
 interface QuoteResult {
   price: number
@@ -9,119 +10,46 @@ interface QuoteResult {
   marketCap?: number
 }
 
-const EXCHANGE_MAP: Record<string, string> = {
-  NASDAQ: 'NASDAQ', NMS: 'NASDAQ', NGM: 'NASDAQ',
-  NYSE: 'NYSE', NYQ: 'NYSE',
-  KSE: 'KRX', KSC: 'KRX', KOE: 'KRX',
+// 동시 실행 상한을 둔 map (토스 캔들은 종목당 1콜이라 변동률 계산 시 부하 분산).
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length)
+  let idx = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (idx < items.length) {
+      const i = idx++
+      out[i] = await fn(items[i])
+    }
+  })
+  await Promise.all(workers)
+  return out
 }
 
-// Fetch current price from Yahoo Finance chart API
+// 토스 미커버 종목(예: 미국 OTC)만 야후로 폴백 — 카드가 비지 않도록.
 async function fetchYahooQuote(yahooSymbol: string): Promise<QuoteResult | null> {
   try {
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d&includePrePost=true`,
-      {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-        next: { revalidate: 300 },
-      }
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, next: { revalidate: 300 } },
     )
     if (!res.ok) return null
     const data = await res.json()
     const meta = data?.chart?.result?.[0]?.meta
     if (!meta) return null
-
-    // 확장 거래시간(프리/애프터마켓) 가격 우선 반영. 정규장/휴장이면 regularMarketPrice.
-    // marketState: PRE/PREPRE(장전), REGULAR(정규장), POST/POSTPOST(장후), CLOSED(휴장)
-    const state = meta.marketState as string | undefined
-    let price = meta.regularMarketPrice
-    let session: 'pre' | 'regular' | 'post' = 'regular'
-    if ((state === 'PRE' || state === 'PREPRE') && meta.preMarketPrice != null) {
-      price = meta.preMarketPrice
-      session = 'pre'
-    } else if ((state === 'POST' || state === 'POSTPOST') && meta.postMarketPrice != null) {
-      price = meta.postMarketPrice
-      session = 'post'
-    }
-    // 변동률은 전일 정규장 종가 대비 누적(확장시간 포함)으로 계산
+    const price = meta.regularMarketPrice
     const prevClose = meta.chartPreviousClose || meta.previousClose
     const change = prevClose ? price - prevClose : 0
     const changePercent = prevClose ? (change / prevClose) * 100 : 0
-
-    return {
-      price,
-      change,
-      changePercent,
-      currency: meta.currency || 'USD',
-      session,
-      _exchange: meta.exchangeName,
-    } as QuoteResult & { _exchange?: string; session?: string }
+    return { price, change, changePercent, currency: meta.currency || 'USD' }
   } catch {
     return null
   }
 }
 
-// Fetch market cap from Google Finance
-async function fetchGoogleMarketCap(ticker: string, exchange: string): Promise<number | null> {
-  try {
-    const gfExchange = EXCHANGE_MAP[exchange] || exchange
-    const gfSymbol = `${ticker.replace('.KS', '')}:${gfExchange}`
-    const res = await fetch(`https://www.google.com/finance/quote/${gfSymbol}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
-      redirect: 'follow',
-      cache: 'no-store',
-    })
-    if (!res.ok) return null
-    const html = await res.text()
-    const idx = html.indexOf('Market cap')
-    if (idx < 0) return null
-    const chunk = html.slice(idx, idx + 500).replace(/<[^>]+>/g, ' ')
-    const match = chunk.match(/([\d,.]+)\s*([TBMK조억])\s*(USD|KRW)/)
-    if (!match) return null
-    const num = parseFloat(match[1].replace(/,/g, ''))
-    const unit = match[2]
-    const currency = match[3]
-    if (currency === 'KRW') {
-      if (unit === 'T' || unit === '조') return num * 1e12
-      if (unit === 'B' || unit === '억') return num * 1e8
-      if (unit === 'M') return num * 1e6
-      return num
-    }
-    if (unit === 'T') return num * 1e12
-    if (unit === 'B') return num * 1e9
-    if (unit === 'M') return num * 1e6
-    return null
-  } catch {
-    return null
-  }
-}
-
-// Fallback: fetch market cap from stockanalysis.com (US stocks only)
-async function fetchStockAnalysisMarketCap(ticker: string): Promise<number | null> {
-  try {
-    const res = await fetch(`https://stockanalysis.com/stocks/${ticker.toLowerCase()}/`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
-      cache: 'no-store',
-    })
-    if (!res.ok) return null
-    const html = await res.text()
-    const match = html.match(/Market Cap[\s\S]*?([\d,.]+)\s*([TBMK])/)
-    if (!match) return null
-    const num = parseFloat(match[1].replace(/,/g, ''))
-    const unit = match[2]
-    if (unit === 'T') return num * 1e12
-    if (unit === 'B') return num * 1e9
-    if (unit === 'M') return num * 1e6
-    return null
-  } catch {
-    return null
-  }
-}
-
-// GET - Fetch current prices and theme mappings for given tickers
+// GET - 토스증권 기준 현재가/시총/변동률 + DB 테마 매핑 조회
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const tickersParam = searchParams.get('tickers') // comma-separated: "005930,000660,VRT,CIEN"
-  const marketsParam = searchParams.get('markets') // comma-separated: "KR,KR,US,US"
+  const tickersParam = searchParams.get('tickers') // "005930,000660,VRT,CIEN,KRW=X"
+  const marketsParam = searchParams.get('markets')
 
   if (!tickersParam) {
     return NextResponse.json({ error: 'tickers parameter is required' }, { status: 400 })
@@ -129,41 +57,61 @@ export async function GET(request: Request) {
 
   const tickers = tickersParam.split(',')
   const markets = marketsParam?.split(',') || []
+  // 토스 심볼: KR=6자리 숫자, US=티커 (페이지에서 이미 .KS 제거). 환율(KRW=X)은 별도 처리.
+  const symbols = tickers.filter((t) => t !== 'KRW=X')
 
-  // 1. Fetch current prices from Yahoo Finance
-  const pricePromises = tickers.map((ticker, i) => {
-    const market = markets[i] || 'US'
-    const yahooSymbol = market === 'KR' ? `${ticker}.KS` : ticker
-    return fetchYahooQuote(yahooSymbol).then((result) => ({ ticker, result }))
+  const prices: Record<string, QuoteResult> = {}
+
+  // 1. 토스 배치: 현재가 + 발행주식수(시총용)
+  const [tossPrices, tossStocks] = await Promise.all([
+    getPrices(symbols).catch(() => new Map()),
+    getStocks(symbols).catch(() => new Map()),
+  ])
+
+  // 2. 변동률: 토스 일봉 전일 종가 대비 (종목당 1콜, 동시 8개 제한, 5분 캐시)
+  const covered = symbols.filter((s) => tossPrices.has(s))
+  const prevCloses = new Map<string, number | null>()
+  await mapLimit(covered, 8, async (s) => {
+    prevCloses.set(s, await getPrevClose(s))
   })
 
-  const priceResults = await Promise.all(pricePromises)
-  const prices: Record<string, QuoteResult> = {}
-  const exchangeMap = new Map<string, string>()
-  for (const { ticker, result } of priceResults) {
-    if (result) {
-      const ex = (result as QuoteResult & { _exchange?: string })._exchange
-      if (ex) exchangeMap.set(ticker, ex)
-      const { _exchange: _, ...clean } = result as QuoteResult & { _exchange?: string }
-      prices[ticker] = clean
+  for (const s of covered) {
+    const p = tossPrices.get(s)!
+    const price = Number(p.lastPrice)
+    const prev = prevCloses.get(s)
+    const change = prev ? price - prev : 0
+    const changePercent = prev ? (change / prev) * 100 : 0
+    const shares = tossStocks.get(s)?.sharesOutstanding
+    prices[s] = {
+      price,
+      change,
+      changePercent,
+      currency: p.currency,
+      ...(shares ? { marketCap: price * Number(shares) } : {}),
     }
   }
 
-  // Fetch market caps for tickers missing marketCap (Google Finance → stockanalysis.com fallback)
-  const mcPromises = Object.keys(prices)
-    .filter(ticker => !prices[ticker].marketCap)
-    .map(async (ticker) => {
-      const idx = tickers.indexOf(ticker)
-      const market = markets[idx] || 'US'
-      const exchange = exchangeMap.get(ticker) || (market === 'KR' ? 'KRX' : 'NASDAQ')
-      const symbol = market === 'KR' ? `${ticker}.KS` : ticker
-      const mc = await fetchGoogleMarketCap(symbol, exchange)
-        || (market !== 'KR' ? await fetchStockAnalysisMarketCap(ticker) : null)
-      if (mc) prices[ticker].marketCap = mc
-    })
-  await Promise.all(mcPromises)
+  // 3. 토스 미커버 종목만 야후 폴백
+  const uncovered = symbols.filter((s) => !prices[s])
+  await Promise.all(
+    uncovered.map(async (s) => {
+      const idx = tickers.indexOf(s)
+      const market = markets[idx] || (/^\d{6}$/.test(s) ? 'KR' : 'US')
+      const yahooSymbol = market === 'KR' ? `${s}.KS` : s
+      const q = await fetchYahooQuote(yahooSymbol)
+      if (q) prices[s] = q
+    }),
+  )
 
-  // 2. Fetch theme mappings from DB
+  // 4. 환율(USD/KRW) — 페이지가 KRW=X price로 읽음
+  if (tickers.includes('KRW=X')) {
+    const rate = await getExchangeRate('USD', 'KRW')
+    if (rate && rate > 0) {
+      prices['KRW=X'] = { price: rate, change: 0, changePercent: 0, currency: 'KRW' }
+    }
+  }
+
+  // 5. DB 테마 매핑 (기존과 동일)
   const supabase = getServiceSupabase()
 
   const { data: tickerThemes } = await supabase
@@ -173,35 +121,23 @@ export async function GET(request: Request) {
       investment_themes!inner(id, name, parent_id)
     `)
 
-  // Also fetch parent themes
   const { data: allThemes } = await supabase
     .from('investment_themes')
     .select('id, name, parent_id')
 
   const parentThemeMap = new Map<string, string>()
   for (const theme of allThemes || []) {
-    if (!theme.parent_id) {
-      parentThemeMap.set(theme.id, theme.name)
-    }
+    if (!theme.parent_id) parentThemeMap.set(theme.id, theme.name)
   }
 
-  // Build ticker → themes mapping (normalize KR tickers by stripping .KS)
   const themes: Record<string, { theme: string; parentTheme: string | null }[]> = {}
   for (const row of tickerThemes || []) {
     const inv = row.investment_tickers as unknown as { ticker: string; name: string; market: string }
     const theme = row.investment_themes as unknown as { id: string; name: string; parent_id: string | null }
-
-    // Normalize ticker: strip .KS suffix for matching with stock_trades
     const normalizedTicker = inv.ticker.replace(/\.KS$/, '')
-    const parentThemeName = theme.parent_id ? (parentThemeMap.get(theme.parent_id) || null) : null
-
-    if (!themes[normalizedTicker]) {
-      themes[normalizedTicker] = []
-    }
-    themes[normalizedTicker].push({
-      theme: theme.name,
-      parentTheme: parentThemeName,
-    })
+    const parentThemeName = theme.parent_id ? parentThemeMap.get(theme.parent_id) || null : null
+    if (!themes[normalizedTicker]) themes[normalizedTicker] = []
+    themes[normalizedTicker].push({ theme: theme.name, parentTheme: parentThemeName })
   }
 
   return NextResponse.json({ prices, themes })
