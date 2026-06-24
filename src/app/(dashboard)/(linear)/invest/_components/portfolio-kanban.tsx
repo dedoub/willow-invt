@@ -6,6 +6,10 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { StockCard, StockCardData, PyramidingInfo, MonitorInfo } from './stock-card'
 
+// 종목관리 칸반에서 맨 왼쪽 "포트폴리오" 컬럼 노출 여부.
+// 임시로 숨김 처리 — 다시 보려면 true 로 바꾸면 복원된다.
+const SHOW_PORTFOLIO_COLUMN = false
+
 /* ── Shared types ── */
 
 export interface WatchlistItem {
@@ -580,11 +584,14 @@ export function PortfolioKanban({
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: mobile ? 'repeat(3, minmax(220px, 1fr))' : '1fr 1fr 1fr',
+        gridTemplateColumns: mobile
+          ? `repeat(${SHOW_PORTFOLIO_COLUMN ? 3 : 2}, minmax(220px, 1fr))`
+          : SHOW_PORTFOLIO_COLUMN ? '1fr 1fr 1fr' : '1fr 1fr',
         gap: 10, padding: '0 10px 14px',
         overflowX: mobile ? 'auto' : undefined,
       }}>
-        {/* Portfolio */}
+        {/* Portfolio (임시 숨김 — SHOW_PORTFOLIO_COLUMN 로 토글) */}
+        {SHOW_PORTFOLIO_COLUMN && (
         <div style={colStyle('portfolio')} {...dropHandlers('portfolio')}>
           <div style={{
             fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text,
@@ -599,6 +606,7 @@ export function PortfolioKanban({
             <div style={{ padding: 16, textAlign: 'center', fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>종목 없음</div>
           )}
         </div>
+        )}
 
         {/* Watchlist */}
         <div style={colStyle('watchlist')} {...dropHandlers('watchlist')}>
