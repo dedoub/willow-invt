@@ -5,7 +5,10 @@ import * as XLSX from 'xlsx'
 
 // OpenRouter config
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const OPENROUTER_MODEL = 'google/gemini-3-flash-preview'
+// gemini-3-flash-preview(프리뷰)는 업스트림 레이트리밋이 잦고, 멀티턴 툴콜 시
+// 프로바이더 폴백이 일어나면 thought signature가 깨져 400(Corrupted thought signature)이 남.
+// 안정 버전 2.5-flash는 서명 강제가 없어 폴백돼도 안전.
+const OPENROUTER_MODEL = 'google/gemini-2.5-flash'
 // Vision model for image OCR (cheap Gemini Flash via Google AI)
 const VISION_MODEL = 'gemini-2.5-flash'
 
