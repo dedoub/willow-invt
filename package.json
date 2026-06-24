@@ -14,7 +14,9 @@
     "re:sync": "npx tsx scripts/real-estate-pipeline.ts",
     "re:sync:full": "npx tsx scripts/real-estate-pipeline.ts --full",
     "re:naver": "npx tsx scripts/naver-listings-pipeline.ts",
-    "re:naver:lookup": "npx tsx scripts/naver-listings-pipeline.ts --lookup"
+    "re:naver:lookup": "npx tsx scripts/naver-listings-pipeline.ts --lookup",
+    "toss:sync": "npx tsx scripts/toss-sync.ts",
+    "toss:sync:dry": "npx tsx scripts/toss-sync.ts --dry"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

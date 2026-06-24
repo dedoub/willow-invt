@@ -13,11 +13,15 @@ export class TossError extends Error {
 }
 
 let tokenCache: { token: string; exp: number } | null = null
+let tokenInflight: Promise<string> | null = null
 let accountSeqCache: number | null = null
 
+// 토스는 클라이언트당 유효 토큰이 1개라, 재발급 시 직전 토큰이 즉시 무효화된다.
+// 동시 호출이 각자 토큰을 발급하면 서로를 무효화시키므로 single-flight로 합친다.
 async function getToken(): Promise<string> {
   const now = Date.now()
   if (tokenCache && tokenCache.exp > now) return tokenCache.token
+  if (tokenInflight) return tokenInflight
 
   const clientId = process.env.TOSS_CLIENT_ID
   const clientSecret = process.env.TOSS_CLIENT_SECRET
@@ -25,28 +29,35 @@ async function getToken(): Promise<string> {
     throw new TossError(500, 'config-missing', 'TOSS_CLIENT_ID / TOSS_CLIENT_SECRET 환경변수가 설정되지 않았습니다.')
   }
 
-  const res = await fetch(`${BASE}/oauth2/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
-    cache: 'no-store',
-  })
-  if (!res.ok) {
-    let msg = `토큰 발급 실패 (${res.status})`
+  tokenInflight = (async () => {
     try {
-      const e = await res.json()
-      msg = e?.error_description || e?.error || msg
-    } catch { /* ignore */ }
-    throw new TossError(res.status, 'auth-failed', msg)
-  }
-  const j = await res.json()
-  // 만료 2분 전에 갱신하도록 버퍼.
-  tokenCache = { token: j.access_token, exp: now + (Number(j.expires_in) - 120) * 1000 }
-  return tokenCache.token
+      const res = await fetch(`${BASE}/oauth2/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: clientId,
+          client_secret: clientSecret,
+        }),
+        cache: 'no-store',
+      })
+      if (!res.ok) {
+        let msg = `토큰 발급 실패 (${res.status})`
+        try {
+          const e = await res.json()
+          msg = e?.error_description || e?.error || msg
+        } catch { /* ignore */ }
+        throw new TossError(res.status, 'auth-failed', msg)
+      }
+      const j = await res.json()
+      // 만료 2분 전에 갱신하도록 버퍼.
+      tokenCache = { token: j.access_token, exp: now + (Number(j.expires_in) - 120) * 1000 }
+      return tokenCache.token
+    } finally {
+      tokenInflight = null
+    }
+  })()
+  return tokenInflight
 }
 
 interface GetOpts {
@@ -77,14 +88,24 @@ async function tossGet<T>(path: string, opts: GetOpts = {}): Promise<T> {
   return j.result as T
 }
 
+let accountSeqInflight: Promise<number> | null = null
+
 export async function getAccountSeq(): Promise<number> {
   if (accountSeqCache != null) return accountSeqCache
-  const accounts = await tossGet<{ accountNo: string; accountSeq: number; accountType: string }[]>(
-    '/api/v1/accounts',
-  )
-  if (!accounts?.length) throw new TossError(404, 'no-account', '종합매매 계좌를 찾을 수 없습니다.')
-  accountSeqCache = accounts[0].accountSeq
-  return accountSeqCache
+  if (accountSeqInflight) return accountSeqInflight
+  accountSeqInflight = (async () => {
+    try {
+      const accounts = await tossGet<{ accountNo: string; accountSeq: number; accountType: string }[]>(
+        '/api/v1/accounts',
+      )
+      if (!accounts?.length) throw new TossError(404, 'no-account', '종합매매 계좌를 찾을 수 없습니다.')
+      accountSeqCache = accounts[0].accountSeq
+      return accountSeqCache
+    } finally {
+      accountSeqInflight = null
+    }
+  })()
+  return accountSeqInflight
 }
 
 // ---- Market data ----
@@ -230,6 +251,8 @@ export async function getClosedOrders(): Promise<TossOrder[]> {
     orders.push(...(result.orders || []))
     if (!result.hasNext || !result.nextCursor) break
     cursor = result.nextCursor
+    // ORDER_HISTORY rate limit 그룹 보호 — 페이지 간 짧은 간격.
+    await new Promise((r) => setTimeout(r, 250))
   }
   return orders
 }

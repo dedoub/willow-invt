@@ -31,6 +31,13 @@ export default function InvestPage() {
   const [usdKrw, setUsdKrw] = useState(1400)
   const [totalValueUsd, setTotalValueUsd] = useState(0)
   const [syncing, setSyncing] = useState(false)
+  // 토스 동기화 버튼은 로컬에서만 노출 — 배포본(Vercel)은 IP 차단으로 토스 직접호출 불가,
+  // 동기화는 허용 IP의 launchd 스크립트가 담당한다. 마운트 후 설정해 하이드레이션 불일치 방지.
+  const [isLocal, setIsLocal] = useState(false)
+  useEffect(() => {
+    const h = window.location.hostname
+    setIsLocal(h === 'localhost' || h === '127.0.0.1')
+  }, [])
 
   // Holdings / Analysis specific states
   const [stockThemes, setStockThemes] = useState<Record<string, TickerTheme[]>>({})
@@ -442,6 +449,7 @@ export default function InvestPage() {
 
   const printActions = (
     <div style={{ display: 'flex', gap: 6 }}>
+      {isLocal && (
       <button
         onClick={syncToss}
         disabled={syncing}
@@ -452,11 +460,12 @@ export default function InvestPage() {
           border: 'none', borderRadius: t.radius.sm, cursor: syncing ? 'default' : 'pointer',
           fontFamily: t.font.sans,
         }}
-        title="토스증권 계좌 체결내역·보유종목을 페이지에 동기화"
+        title="토스증권 계좌 체결내역·보유종목을 페이지에 동기화 (로컬 전용)"
       >
         <LIcon name="refresh" size={11} stroke={1.6} />
         {syncing ? '동기화 중…' : '토스 동기화'}
       </button>
+      )}
       <button
         onClick={() => window.open('/print/invest/holdings', '_blank')}
         style={{

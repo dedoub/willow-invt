@@ -60,38 +60,45 @@ export async function GET(request: Request) {
   // 토스 심볼: KR=6자리 숫자, US=티커 (페이지에서 이미 .KS 제거). 환율(KRW=X)은 별도 처리.
   const symbols = tickers.filter((t) => t !== 'KRW=X')
 
+  // 토스 Open API는 IP 허용목록이 걸려 있어 Vercel(고정 IP 없음)에서는 실패한다.
+  // 게다가 클라이언트당 토큰 1개 제약 탓에 Vercel이 토큰을 발급하면 launchd 동기화
+  // 스크립트의 토큰까지 무효화한다. 따라서 Vercel에서는 토스를 호출하지 않고 야후만 쓴다.
+  const useToss = !process.env.VERCEL
+
   const prices: Record<string, QuoteResult> = {}
 
-  // 1. 토스 배치: 현재가 + 발행주식수(시총용)
-  const [tossPrices, tossStocks] = await Promise.all([
-    getPrices(symbols).catch(() => new Map()),
-    getStocks(symbols).catch(() => new Map()),
-  ])
+  if (useToss) {
+    // 1. 토스 배치: 현재가 + 발행주식수(시총용)
+    const [tossPrices, tossStocks] = await Promise.all([
+      getPrices(symbols).catch(() => new Map()),
+      getStocks(symbols).catch(() => new Map()),
+    ])
 
-  // 2. 변동률: 토스 일봉 전일 종가 대비 (종목당 1콜, 동시 8개 제한, 5분 캐시)
-  const covered = symbols.filter((s) => tossPrices.has(s))
-  const prevCloses = new Map<string, number | null>()
-  await mapLimit(covered, 8, async (s) => {
-    prevCloses.set(s, await getPrevClose(s))
-  })
+    // 2. 변동률: 토스 일봉 전일 종가 대비 (종목당 1콜, 동시 8개 제한, 5분 캐시)
+    const covered = symbols.filter((s) => tossPrices.has(s))
+    const prevCloses = new Map<string, number | null>()
+    await mapLimit(covered, 8, async (s) => {
+      prevCloses.set(s, await getPrevClose(s))
+    })
 
-  for (const s of covered) {
-    const p = tossPrices.get(s)!
-    const price = Number(p.lastPrice)
-    const prev = prevCloses.get(s)
-    const change = prev ? price - prev : 0
-    const changePercent = prev ? (change / prev) * 100 : 0
-    const shares = tossStocks.get(s)?.sharesOutstanding
-    prices[s] = {
-      price,
-      change,
-      changePercent,
-      currency: p.currency,
-      ...(shares ? { marketCap: price * Number(shares) } : {}),
+    for (const s of covered) {
+      const p = tossPrices.get(s)!
+      const price = Number(p.lastPrice)
+      const prev = prevCloses.get(s)
+      const change = prev ? price - prev : 0
+      const changePercent = prev ? (change / prev) * 100 : 0
+      const shares = tossStocks.get(s)?.sharesOutstanding
+      prices[s] = {
+        price,
+        change,
+        changePercent,
+        currency: p.currency,
+        ...(shares ? { marketCap: price * Number(shares) } : {}),
+      }
     }
   }
 
-  // 3. 토스 미커버 종목만 야후 폴백
+  // 3. 토스 미커버(또는 Vercel=전체) 종목 야후 폴백
   const uncovered = symbols.filter((s) => !prices[s])
   await Promise.all(
     uncovered.map(async (s) => {
@@ -103,9 +110,14 @@ export async function GET(request: Request) {
     }),
   )
 
-  // 4. 환율(USD/KRW) — 페이지가 KRW=X price로 읽음
+  // 4. 환율(USD/KRW) — 페이지가 KRW=X price로 읽음. 토스 우선, 야후 폴백.
   if (tickers.includes('KRW=X')) {
-    const rate = await getExchangeRate('USD', 'KRW')
+    let rate: number | null = null
+    if (useToss) rate = await getExchangeRate('USD', 'KRW')
+    if (rate == null) {
+      const q = await fetchYahooQuote('KRW=X')
+      if (q) rate = q.price
+    }
     if (rate && rate > 0) {
       prices['KRW=X'] = { price: rate, change: 0, changePercent: 0, currency: 'KRW' }
     }
