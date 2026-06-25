@@ -16,6 +16,17 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
 
+// 코덱스 실행 중 실시간 진행상황 이벤트 (`codex exec --json` JSONL 파싱).
+export interface CodexProgress {
+  phase: 'turn_started' | 'item_started' | 'item_completed' | 'turn_completed'
+  itemType?: string   // agent_message | command_execution | file_change | reasoning | mcp_tool_call | web_search | ...
+  text?: string       // agent_message 텍스트
+  command?: string    // command_execution 명령
+  status?: string     // in_progress | completed | failed
+  files?: string[]    // file_change 대상 경로
+  usage?: { input_tokens?: number; output_tokens?: number; reasoning_output_tokens?: number }
+}
+
 export interface AgentOptions {
   cwd?: string
   allowedTools?: string[]
@@ -26,6 +37,35 @@ export interface AgentOptions {
   sandbox?: 'read-only' | 'workspace-write' | 'danger-full-access'
   // @deprecated codex 전용 정책 (2026-05-21). 옵션은 받지만 항상 codex로 동작.
   backend?: 'claude' | 'codex'
+  // 실시간 진행상황 콜백 (지정 시 codex를 --json으로 실행해 이벤트 스트리밍)
+  onProgress?: (p: CodexProgress) => void
+}
+
+// codex --json 이벤트 1건 → CodexProgress 정규화. 파싱 실패/무관 이벤트는 null.
+function parseCodexEvent(line: string): CodexProgress | null {
+  let e: Record<string, unknown>
+  try { e = JSON.parse(line) } catch { return null }
+  const type = e.type as string | undefined
+  if (type === 'turn.started') return { phase: 'turn_started' }
+  if (type === 'turn.completed') {
+    return { phase: 'turn_completed', usage: e.usage as CodexProgress['usage'] }
+  }
+  if (type === 'item.started' || type === 'item.completed') {
+    const item = (e.item || {}) as Record<string, unknown>
+    const itemType = (item.type || item.item_type) as string | undefined
+    const files = Array.isArray(item.changes)
+      ? (item.changes as Array<{ path?: string }>).map((c) => c.path || '').filter(Boolean)
+      : (item.path ? [String(item.path)] : undefined)
+    return {
+      phase: type === 'item.started' ? 'item_started' : 'item_completed',
+      itemType,
+      text: typeof item.text === 'string' ? item.text : undefined,
+      command: typeof item.command === 'string' ? item.command : undefined,
+      status: typeof item.status === 'string' ? item.status : undefined,
+      files,
+    }
+  }
+  return null
 }
 
 type Backend = 'codex'
@@ -113,12 +153,16 @@ function runCodex(prompt: string, opts?: AgentOptions): Promise<string> {
     // prompt도 큰 경우가 있으니 stdin으로 전달
     const sandbox = opts?.sandbox ?? 'danger-full-access'
 
+    const wantProgress = typeof opts?.onProgress === 'function'
+
     const args = ['exec']
     if (sandbox === 'danger-full-access') {
       args.push('--dangerously-bypass-approvals-and-sandbox')
     } else {
       args.push('-s', sandbox)
     }
+    // 진행상황 콜백이 있으면 JSONL 이벤트 스트리밍
+    if (wantProgress) args.push('--json')
     args.push('-o', outFile)
     if (opts?.model) args.push('-m', opts.model)
     if (opts?.cwd) args.push('-C', opts.cwd)
@@ -132,7 +176,23 @@ function runCodex(prompt: string, opts?: AgentOptions): Promise<string> {
 
     let stderr = ''
     proc.stderr.on('data', (d: Buffer) => { stderr += d.toString() })
-    proc.stdout.on('data', () => { /* 진행 로그 무시 */ })
+    if (wantProgress) {
+      // stdout JSONL 스트림 — 청크가 라인 중간에서 끊길 수 있어 버퍼링.
+      let buf = ''
+      proc.stdout.on('data', (d: Buffer) => {
+        buf += d.toString()
+        let nl
+        while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl).trim()
+          buf = buf.slice(nl + 1)
+          if (!line) continue
+          const ev = parseCodexEvent(line)
+          if (ev) { try { opts!.onProgress!(ev) } catch { /* 콜백 에러 무시 */ } }
+        }
+      })
+    } else {
+      proc.stdout.on('data', () => { /* 진행 로그 무시 */ })
+    }
 
     const timer = opts?.timeoutMs
       ? setTimeout(() => { proc.kill('SIGTERM'); reject(new Error('codex timeout')) }, opts.timeoutMs)

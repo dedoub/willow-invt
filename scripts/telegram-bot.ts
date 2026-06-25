@@ -6,7 +6,7 @@ import { execSync, spawn } from 'child_process'
 import { existsSync, writeFileSync, readFileSync, unlinkSync, mkdirSync, readdirSync } from 'fs'
 import { join, basename } from 'path'
 import { markdownToTelegramHtml } from './telegram-utils'
-import { runAgent } from './lib/agent-cli'
+import { runAgent, type CodexProgress } from './lib/agent-cli'
 
 // ============================================================
 // Config
@@ -1542,40 +1542,44 @@ async function marketMonitorCheck() {
     let greeting = ''
     let briefingKey: 'usOpen' | 'usClose' | 'krOpen' | 'krClose' | '' = ''
 
-    // US 장 개시 감지: 이전 상태가 장중이 아닌데 → REGULAR로 전환
-    if (prev.us !== 'REGULAR' && current.us === 'REGULAR' && proactiveState.lastMarketBriefing.usOpen !== todayStr) {
-      briefingType = '미국장 개장 브리핑'
-      marketGroup = 'portfolio'
-      greeting = '미국장이 열렸어요 🇺🇸'
-      briefingKey = 'usOpen'
-    }
-    // US 장 마감 감지: REGULAR/POST → CLOSED 또는 REGULAR → POST (장 종료)
-    else if (prev.us === 'REGULAR' && current.us !== 'REGULAR' && proactiveState.lastMarketBriefing.usClose !== todayStr) {
-      briefingType = '미국장 마감 브리핑'
-      marketGroup = 'portfolio'
-      greeting = '미국장이 마감됐어요 🇺🇸'
-      briefingKey = 'usClose'
-    }
-    // KR 장 개시 감지 (아침 브리핑이 이미 나갔으면 스킵 — 내용 겹침)
-    else if (prev.kr !== 'REGULAR' && current.kr === 'REGULAR' && proactiveState.lastMarketBriefing.krOpen !== todayStr) {
-      if (proactiveState.morningBriefSent === todayStr) {
-        proactiveState.lastMarketBriefing.krOpen = todayStr
-        proactiveState.marketState = current
-        saveProactiveState()
-        console.log('📊 한국장 개장 감지 → 아침 브리핑에서 커버됨, 스킵')
-        return
+    const MARKET_OPEN_CLOSE_BRIEFING_ENABLED = false
+
+    if (MARKET_OPEN_CLOSE_BRIEFING_ENABLED) {
+      // US 장 개시 감지: 이전 상태가 장중이 아닌데 → REGULAR로 전환
+      if (prev.us !== 'REGULAR' && current.us === 'REGULAR' && proactiveState.lastMarketBriefing.usOpen !== todayStr) {
+        briefingType = '미국장 개장 브리핑'
+        marketGroup = 'portfolio'
+        greeting = '미국장이 열렸어요 🇺🇸'
+        briefingKey = 'usOpen'
       }
-      briefingType = '한국장 개장 브리핑'
-      marketGroup = 'portfolio'
-      greeting = '한국장이 열렸어요 🇰🇷'
-      briefingKey = 'krOpen'
-    }
-    // KR 장 마감 감지
-    else if (prev.kr === 'REGULAR' && current.kr !== 'REGULAR' && proactiveState.lastMarketBriefing.krClose !== todayStr) {
-      briefingType = '한국장 마감 브리핑'
-      marketGroup = 'portfolio'
-      greeting = '한국장이 마감됐어요 🇰🇷'
-      briefingKey = 'krClose'
+      // US 장 마감 감지: REGULAR/POST → CLOSED 또는 REGULAR → POST (장 종료)
+      else if (prev.us === 'REGULAR' && current.us !== 'REGULAR' && proactiveState.lastMarketBriefing.usClose !== todayStr) {
+        briefingType = '미국장 마감 브리핑'
+        marketGroup = 'portfolio'
+        greeting = '미국장이 마감됐어요 🇺🇸'
+        briefingKey = 'usClose'
+      }
+      // KR 장 개시 감지 (아침 브리핑이 이미 나갔으면 스킵 — 내용 겹침)
+      else if (prev.kr !== 'REGULAR' && current.kr === 'REGULAR' && proactiveState.lastMarketBriefing.krOpen !== todayStr) {
+        if (proactiveState.morningBriefSent === todayStr) {
+          proactiveState.lastMarketBriefing.krOpen = todayStr
+          proactiveState.marketState = current
+          saveProactiveState()
+          console.log('📊 한국장 개장 감지 → 아침 브리핑에서 커버됨, 스킵')
+          return
+        }
+        briefingType = '한국장 개장 브리핑'
+        marketGroup = 'portfolio'
+        greeting = '한국장이 열렸어요 🇰🇷'
+        briefingKey = 'krOpen'
+      }
+      // KR 장 마감 감지
+      else if (prev.kr === 'REGULAR' && current.kr !== 'REGULAR' && proactiveState.lastMarketBriefing.krClose !== todayStr) {
+        briefingType = '한국장 마감 브리핑'
+        marketGroup = 'portfolio'
+        greeting = '한국장이 마감됐어요 🇰🇷'
+        briefingKey = 'krClose'
+      }
     }
 
     // 휴장 감지: 장 오픈 시간대인데 CLOSED 상태가 지속되면 휴장 알림
@@ -2379,8 +2383,8 @@ const TENSW_MCP_TOOLS = 'mcp__claude_ai_tensw-todo__*'
 const PORTFOLIO_MCP_TOOLS = 'mcp__portfolio-monitor__*'
 const WILLOW_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__*'
 
-function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession?: boolean }): Promise<string> {
-  return runAgent(prompt, { allowedTools: opts?.allowedTools, backend: 'codex' })
+function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession?: boolean; onProgress?: (p: CodexProgress) => void }): Promise<string> {
+  return runAgent(prompt, { allowedTools: opts?.allowedTools, backend: 'codex', onProgress: opts?.onProgress })
 }
 
 // ============================================================
@@ -3109,18 +3113,76 @@ ${text}
 
     await addProgress('🤖 분석 중...')
 
-    // 타이핑 유지 (Claude 처리 중)
+    // ── 코덱스 실시간 진행상황 ───────────────────────────────────────────
+    // 진행 메시지 끝에 "지금 뭐 하는지"를 살아있는 한 줄로 계속 갱신해, 멈춘 것처럼
+    // 보이지 않게 한다. (codex --json 이벤트를 onProgress로 받음)
+    const codexStart = Date.now()
+    const codexFiles = new Set<string>()
+    let codexCmds = 0
+    let liveActivity = '🤖 작업 시작…'
+    let lastLiveEdit = 0
+    const fmtElapsed = () => {
+      const s = Math.floor((Date.now() - codexStart) / 1000)
+      return s >= 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s}초`
+    }
+    const oneLine = (s: string, n = 56) => {
+      const t = (s || '').replace(/\s+/g, ' ').trim()
+      return t.length > n ? t.slice(0, n) + '…' : t
+    }
+    const stripShell = (cmd: string) => cmd.replace(/^\/?(?:usr\/)?bin\/(?:ba|z)?sh\s+-l?c\s+['"]?/, '').replace(/['"]?$/, '')
+    const renderLive = () => {
+      const meta = [`경과 ${fmtElapsed()}`]
+      if (codexCmds) meta.push(`명령 ${codexCmds}`)
+      if (codexFiles.size) meta.push(`파일 ${codexFiles.size}`)
+      return `${liveActivity}\n${meta.join(' · ')}`
+    }
+    const pushLive = (force = false) => {
+      const now = Date.now()
+      if (!force && now - lastLiveEdit < 1800) return  // 텔레그램 edit 레이트리밋 보호
+      lastLiveEdit = now
+      if (progressMsgId) editMessage(chatId, progressMsgId, [...progressLines, renderLive()].join('\n')).catch(() => {})
+    }
+    const onCodexProgress = (p: CodexProgress) => {
+      if (p.phase !== 'item_started' && p.phase !== 'item_completed') return
+      switch (p.itemType) {
+        case 'command_execution':
+          if (p.phase === 'item_started') codexCmds++
+          liveActivity = `⚙️ ${oneLine(stripShell(p.command || ''))}`
+          break
+        case 'file_change':
+          for (const f of p.files || []) codexFiles.add(f)
+          liveActivity = `✏️ ${oneLine((p.files || []).map(f => f.split('/').pop() || f).join(', '))}`
+          break
+        case 'agent_message':
+          if (p.text) liveActivity = `💬 ${oneLine(p.text)}`
+          break
+        case 'reasoning': liveActivity = '🤔 생각 중…'; break
+        case 'web_search': liveActivity = `🔍 ${oneLine(p.text || '검색 중')}`; break
+        case 'mcp_tool_call': liveActivity = `🔧 ${oneLine(p.text || p.command || '도구 호출')}`; break
+        default: if (p.itemType) liveActivity = `⏳ ${p.itemType}`
+      }
+      pushLive()
+    }
+
+    // 경과시간이 계속 흐르도록 이벤트 없어도 3초마다 갱신
+    const liveTimer = setInterval(() => pushLive(true), 3000)
+    // 타이핑 유지 (처리 중)
     const typingInterval = setInterval(() => sendTyping(chatId), 4000)
 
     // 항상 풀 세션: Claude Code + 모든 도구 + MCP
     const response = await askClaude(fullPrompt, {
       fullSession: true,
       allowedTools: [TENSW_MCP_TOOLS, PORTFOLIO_MCP_TOOLS, WILLOW_MCP_TOOLS],
+      onProgress: onCodexProgress,
     })
 
     clearInterval(typingInterval)
+    clearInterval(liveTimer)
 
-    await addProgress(`✅ 응답 ${(response.length / 1000).toFixed(1)}K자`)
+    const liveSummary = [`✅ 응답 ${(response.length / 1000).toFixed(1)}K자`,
+      codexCmds ? `명령 ${codexCmds}` : '', codexFiles.size ? `파일 ${codexFiles.size}` : '']
+      .filter(Boolean).join(' · ')
+    await addProgress(liveSummary)
 
     // abort 체크 — Claude 응답 후에도 새 메시지가 왔으면 취소
     if (abortSignal?.aborted) {
