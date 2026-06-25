@@ -1016,6 +1016,9 @@ export interface AnonymousEventStats {
   // 가입(signin_completed) 발화한 디바이스만 필터링한 분포
   signinPlatforms: Array<{ platform: string; devices: number }>
   signinLocales: Array<{ locale: string; devices: number }>
+  // 결제(credits_changed/reason=purchase) 발생한 디바이스만 필터링한 분포
+  payingPlatforms: Array<{ platform: string; devices: number }>
+  payingLocales: Array<{ locale: string; devices: number }>
 }
 
 export async function getAnonymousEventStats(): Promise<AnonymousEventStats | null> {
@@ -1065,6 +1068,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   const allDevices = new Set<string>()
   const learnedDevices = new Set<string>()
   const signinDevices = new Set<string>()
+  const payingDevices = new Set<string>()
 
   const dailyMap = new Map<string, {
     devices: Set<string>; appOpened: number; cardsLearned: number
@@ -1092,6 +1096,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
     allDevices.add(deviceId)
 
     if (eventName === 'card_learned_anonymous') learnedDevices.add(deviceId)
+    if (eventName === 'credits_changed' && (row.properties as Record<string, unknown> | null)?.reason === 'purchase') payingDevices.add(deviceId)
     if (eventName === 'signin_completed') signinDevices.add(deviceId)
 
     // 누적 distinct snapshot (events는 created_at asc로 정렬돼 들어옴)
@@ -1164,6 +1169,14 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
     signinPlatformMap.set(platform, (signinPlatformMap.get(platform) || 0) + 1)
     signinLocaleMap.set(locale, (signinLocaleMap.get(locale) || 0) + 1)
   }
+  const payingPlatformMap = new Map<string, number>()
+  const payingLocaleMap = new Map<string, number>()
+  for (const deviceId of payingDevices) {
+    const platform = deviceToPlatform.get(deviceId) || 'unknown'
+    const locale = deviceToLocale.get(deviceId) || 'unknown'
+    payingPlatformMap.set(platform, (payingPlatformMap.get(platform) || 0) + 1)
+    payingLocaleMap.set(locale, (payingLocaleMap.get(locale) || 0) + 1)
+  }
 
   const totalDevices = allDevices.size
   return {
@@ -1206,6 +1219,12 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       .map(([platform, devices]) => ({ platform, devices }))
       .sort((a, b) => b.devices - a.devices),
     signinLocales: Array.from(signinLocaleMap.entries())
+      .map(([locale, devices]) => ({ locale, devices }))
+      .sort((a, b) => b.devices - a.devices),
+    payingPlatforms: Array.from(payingPlatformMap.entries())
+      .map(([platform, devices]) => ({ platform, devices }))
+      .sort((a, b) => b.devices - a.devices),
+    payingLocales: Array.from(payingLocaleMap.entries())
       .map(([locale, devices]) => ({ locale, devices }))
       .sort((a, b) => b.devices - a.devices),
   }

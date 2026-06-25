@@ -83,6 +83,8 @@ interface AnonymousEventStats {
   locales: Array<{ locale: string; devices: number }>
   signinPlatforms: Array<{ platform: string; devices: number }>
   signinLocales: Array<{ locale: string; devices: number }>
+  payingPlatforms: Array<{ platform: string; devices: number }>
+  payingLocales: Array<{ locale: string; devices: number }>
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────

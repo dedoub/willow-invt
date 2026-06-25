@@ -82,6 +82,8 @@ interface AnonymousEventStats {
   locales: Array<{ locale: string; devices: number }>
   signinPlatforms: Array<{ platform: string; devices: number }>
   signinLocales: Array<{ locale: string; devices: number }>
+  payingPlatforms: Array<{ platform: string; devices: number }>
+  payingLocales: Array<{ locale: string; devices: number }>
 }
 
 export interface VoicecardsBlockProps {
@@ -557,6 +559,14 @@ export function VoicecardsBlock({
                       value: p.devices,
                     })),
                   },
+                  {
+                    key: 'paying',
+                    label: '결제',
+                    data: anonymousStats.payingPlatforms.map(p => ({
+                      name: p.platform === 'ios' ? 'iOS' : p.platform === 'android' ? 'Android' : p.platform,
+                      value: p.devices,
+                    })),
+                  },
                 ]}
                 palette={['#3b82f6', '#10b981', '#94a3b8']}
                 unit="명"
@@ -573,6 +583,11 @@ export function VoicecardsBlock({
                     key: 'signin',
                     label: '가입',
                     data: anonymousStats.signinLocales.map(l => ({ name: formatLocale(l.locale), value: l.devices })),
+                  },
+                  {
+                    key: 'paying',
+                    label: '결제',
+                    data: anonymousStats.payingLocales.map(l => ({ name: formatLocale(l.locale), value: l.devices })),
                   },
                 ]}
                 palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
