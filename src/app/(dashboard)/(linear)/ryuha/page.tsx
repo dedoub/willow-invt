@@ -254,7 +254,7 @@ export default function RyuhaPage() {
     await loadData()
   }
 
-  const handleUpdateNote = async (id: string, data: Partial<{ title: string; content: string; is_pinned: boolean; attachments: { name: string; url: string }[] | null }>) => {
+  const handleUpdateNote = async (id: string, data: Partial<{ title: string; content: string; is_pinned: boolean; attachments: { name: string; url: string }[] | null; memos: unknown }>) => {
     await fetch('/api/ryuha/notes', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

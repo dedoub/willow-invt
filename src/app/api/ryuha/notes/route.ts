@@ -61,7 +61,7 @@ export async function PUT(request: Request) {
   try {
     const supabase = getServiceSupabase()
     const body = await request.json()
-    const { id, title, content, category, is_pinned, attachments } = body
+    const { id, title, content, category, is_pinned, attachments, memos } = body
 
     if (!id) {
       return NextResponse.json({ error: 'ID required' }, { status: 400 })
@@ -73,6 +73,7 @@ export async function PUT(request: Request) {
     if (category !== undefined) updates.category = category
     if (is_pinned !== undefined) updates.is_pinned = is_pinned
     if (attachments !== undefined) updates.attachments = attachments
+    if (memos !== undefined) updates.memos = memos
 
     const { data, error } = await supabase
       .from('ryuha_notes')

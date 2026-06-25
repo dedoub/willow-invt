@@ -9,6 +9,13 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
+export interface RyuhaMemo {
+  id: string
+  text: string
+  created_at: string
+  reviewed_at?: string | null
+}
+
 interface RyuhaNote {
   id: string
   title: string
@@ -16,6 +23,7 @@ interface RyuhaNote {
   category: string
   is_pinned: boolean
   attachments: { name: string; url: string }[] | null
+  memos?: RyuhaMemo[]
   created_at: string
   updated_at: string
 }
@@ -23,7 +31,7 @@ interface RyuhaNote {
 interface NotebookBlockProps {
   notes: RyuhaNote[]
   onCreate: (data: { title: string; content: string; attachments?: { name: string; url: string }[] }) => Promise<void>
-  onUpdate: (id: string, data: Partial<{ title: string; content: string; is_pinned: boolean; attachments: { name: string; url: string }[] | null }>) => Promise<void>
+  onUpdate: (id: string, data: Partial<{ title: string; content: string; is_pinned: boolean; attachments: { name: string; url: string }[] | null; memos: unknown }>) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
 
@@ -251,6 +259,26 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
   const handlePin = async () => {
     if (!selectedNote) return
     await onUpdate(selectedNote.id, { is_pinned: !selectedNote.is_pinned })
+  }
+
+  const [newMemo, setNewMemo] = useState('')
+  const [savingMemo, setSavingMemo] = useState(false)
+  const handleAddMemo = async () => {
+    if (!selectedNote) return
+    const text = newMemo.trim()
+    if (!text || savingMemo) return
+    setSavingMemo(true)
+    const memo: RyuhaMemo = { id: crypto.randomUUID(), text, created_at: new Date().toISOString(), reviewed_at: null }
+    try {
+      await onUpdate(selectedNote.id, { memos: [...(selectedNote.memos || []), memo] })
+      setNewMemo('')
+    } finally {
+      setSavingMemo(false)
+    }
+  }
+  const handleDeleteMemo = async (memoId: string) => {
+    if (!selectedNote) return
+    await onUpdate(selectedNote.id, { memos: (selectedNote.memos || []).filter(m => m.id !== memoId) })
   }
 
   return (
@@ -556,6 +584,63 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                     ))}
                   </div>
                 )}
+
+                {/* 노트 메모 */}
+                <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.neutrals.line}` }}>
+                  <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: 8 }}>
+                    메모{(selectedNote.memos?.length || 0) > 0 ? ` (${selectedNote.memos!.length})` : ''}
+                  </div>
+
+                  {(selectedNote.memos || []).map(m => (
+                    <div key={m.id} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 6,
+                      background: t.neutrals.inner, borderRadius: t.radius.sm,
+                      padding: '6px 8px', marginBottom: 4,
+                    }}>
+                      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', flexShrink: 0, marginTop: 1 }} title={m.reviewed_at ? '확인됨' : '미확인'}>
+                        {m.reviewed_at ? '✅' : '📝'}
+                      </span>
+                      <span style={{ flex: 1, fontSize: 'calc(12px * var(--fz, 1))', lineHeight: 1.5, color: t.neutrals.text, whiteSpace: 'pre-wrap' }}>
+                        {m.text}
+                      </span>
+                      <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0, marginTop: 2 }}>
+                        {fmtDate(m.created_at)}
+                      </span>
+                      <button onClick={() => handleDeleteMemo(m.id)} style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                        color: t.neutrals.subtle, flexShrink: 0, lineHeight: 1, marginTop: 2,
+                      }} title="삭제">
+                        <LIcon name="x" size={11} />
+                      </button>
+                    </div>
+                  ))}
+
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                    <input
+                      value={newMemo}
+                      onChange={e => setNewMemo(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAddMemo() }}
+                      placeholder="이 노트에 메모 추가… (엔터)"
+                      style={{
+                        flex: 1, fontSize: 'calc(12px * var(--fz, 1))',
+                        background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm,
+                        padding: '7px 9px', color: t.neutrals.text, outline: 'none', fontFamily: t.font.sans,
+                      }}
+                    />
+                    <button
+                      onClick={handleAddMemo}
+                      disabled={savingMemo || !newMemo.trim()}
+                      style={{
+                        background: t.neutrals.inner, border: 'none',
+                        borderRadius: t.radius.sm, padding: '7px 12px',
+                        fontSize: 'calc(12px * var(--fz, 1))', color: newMemo.trim() ? t.brand[600] : t.neutrals.subtle,
+                        cursor: newMemo.trim() ? 'pointer' : 'default', fontFamily: t.font.sans, flexShrink: 0,
+                      }}
+                    >
+                      추가
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
