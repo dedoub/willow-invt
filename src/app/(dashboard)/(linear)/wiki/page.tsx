@@ -42,7 +42,7 @@ export default function WikiPage() {
     }
   }
 
-  const handleUpdate = async (id: string, data: Partial<{ title: string; content: string; section: string; is_pinned: boolean; attachments: unknown }>) => {
+  const handleUpdate = async (id: string, data: Partial<{ title: string; content: string; section: string; is_pinned: boolean; attachments: unknown; memos: unknown }>) => {
     const res = await fetch(`/api/wiki/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

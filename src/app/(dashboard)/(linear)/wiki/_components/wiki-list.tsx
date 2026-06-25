@@ -10,7 +10,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { WikiNote } from './wiki-note-row'
+import { WikiNote, WikiMemo } from './wiki-note-row'
 import { WikiNoteForm } from './wiki-note-form'
 
 type SectionFilter = 'all' | 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
@@ -51,7 +51,7 @@ interface WikiListProps {
   notes: WikiNote[]
   loading: boolean
   onCreate: (data: { section: WikiSection; title: string; content: string; attachments?: unknown }) => Promise<void>
-  onUpdate: (id: string, data: Partial<{ title: string; content: string; section: string; is_pinned: boolean; attachments: unknown }>) => Promise<void>
+  onUpdate: (id: string, data: Partial<{ title: string; content: string; section: string; is_pinned: boolean; attachments: unknown; memos: unknown }>) => Promise<void>
   onDelete: (id: string) => Promise<void>
   hideFilter?: boolean
 }
@@ -152,6 +152,26 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   const handlePin = async () => {
     if (!selectedNote) return
     await onUpdate(selectedNote.id, { is_pinned: !selectedNote.is_pinned })
+  }
+
+  const [newMemo, setNewMemo] = useState('')
+  const [savingMemo, setSavingMemo] = useState(false)
+  const handleAddMemo = async () => {
+    if (!selectedNote) return
+    const text = newMemo.trim()
+    if (!text || savingMemo) return
+    setSavingMemo(true)
+    const memo: WikiMemo = { id: crypto.randomUUID(), text, created_at: new Date().toISOString(), reviewed_at: null }
+    try {
+      await onUpdate(selectedNote.id, { memos: [...(selectedNote.memos || []), memo] })
+      setNewMemo('')
+    } finally {
+      setSavingMemo(false)
+    }
+  }
+  const handleDeleteMemo = async (memoId: string) => {
+    if (!selectedNote) return
+    await onUpdate(selectedNote.id, { memos: (selectedNote.memos || []).filter(m => m.id !== memoId) })
   }
 
   return (
@@ -502,6 +522,63 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                     ))}
                   </div>
                 )}
+
+                {/* 노트 메모 — 윌리가 점검해 후속조치 (📝 미확인 / ✅ 확인됨) */}
+                <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.neutrals.line}` }}>
+                  <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: 8 }}>
+                    메모{(selectedNote.memos?.length || 0) > 0 ? ` (${selectedNote.memos!.length})` : ''}
+                  </div>
+
+                  {(selectedNote.memos || []).map(m => (
+                    <div key={m.id} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 6,
+                      background: t.neutrals.inner, borderRadius: t.radius.sm,
+                      padding: '6px 8px', marginBottom: 4,
+                    }}>
+                      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', flexShrink: 0, marginTop: 1 }} title={m.reviewed_at ? '윌리 확인됨' : '미확인'}>
+                        {m.reviewed_at ? '✅' : '📝'}
+                      </span>
+                      <span style={{ flex: 1, fontSize: 'calc(12px * var(--fz, 1))', lineHeight: 1.5, color: t.neutrals.text, whiteSpace: 'pre-wrap' }}>
+                        {m.text}
+                      </span>
+                      <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0, marginTop: 2 }}>
+                        {fmtDate(m.created_at)}
+                      </span>
+                      <button onClick={() => handleDeleteMemo(m.id)} style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                        color: t.neutrals.subtle, flexShrink: 0, lineHeight: 1, marginTop: 2,
+                      }} title="삭제">
+                        <LIcon name="x" size={11} />
+                      </button>
+                    </div>
+                  ))}
+
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                    <input
+                      value={newMemo}
+                      onChange={e => setNewMemo(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAddMemo() }}
+                      placeholder="이 노트에 메모 추가… (엔터)"
+                      style={{
+                        flex: 1, fontSize: 'calc(12px * var(--fz, 1))',
+                        background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm,
+                        padding: '7px 9px', color: t.neutrals.text, outline: 'none', fontFamily: t.font.sans,
+                      }}
+                    />
+                    <button
+                      onClick={handleAddMemo}
+                      disabled={savingMemo || !newMemo.trim()}
+                      style={{
+                        background: t.neutrals.inner, border: 'none',
+                        borderRadius: t.radius.sm, padding: '7px 12px',
+                        fontSize: 'calc(12px * var(--fz, 1))', color: newMemo.trim() ? t.brand[600] : t.neutrals.subtle,
+                        cursor: newMemo.trim() ? 'pointer' : 'default', fontFamily: t.font.sans, flexShrink: 0,
+                      }}
+                    >
+                      추가
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
