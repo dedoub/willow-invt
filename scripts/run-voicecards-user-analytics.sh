@@ -1,6 +1,6 @@
 #!/bin/bash
 # VoiceCards 일일 유저 분석 (launchd용 래퍼)
-# 매일 09:30 KST (일요일은 스크립트 내에서 스킵)
+# 매일 07:00 KST (일요일은 스크립트 내에서 스킵)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"

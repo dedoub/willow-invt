@@ -6,6 +6,7 @@ import { runAgent } from './lib/agent-cli'
 
 // ============================================================
 // Portfolio Briefing — 장 개장/마감 포트폴리오 브리핑
+// Retired on 2026-06-14 per CEO request.
 // ============================================================
 // --session kr-open   : 한국장 개장 후 브리핑
 // --session kr-close  : 한국장 마감 후 브리핑
@@ -326,7 +327,8 @@ ${instructions}
 
 async function main() {
   const session = getSession()
-  log(`${SESSION_LABELS[session]} 시작`)
+  log(`${SESSION_LABELS[session]} 기능은 폐기됨. 전송하지 않고 종료합니다.`)
+  return
 
   const chatId = await getCeoChatId()
   if (!chatId) {
