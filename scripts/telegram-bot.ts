@@ -1368,9 +1368,13 @@ ${rawData}`
   console.log('✅ 텐소프트웍스 주간 브리핑 전송 완료')
 }
 
-// 위키 노트 메모 후속조치 — CEO가 각 위키 노트에 단 미검토 메모(reviewed_at NULL)를
+// 노트 메모 후속조치 — CEO가 업무위키/류하 수첩 각 노트에 단 미검토 메모(reviewed_at NULL)를
 // 윌리가 점검해 안전한 건 바로 처리(액션), 중요한 건 제안만. 처리 후 reviewed_at 표시.
 interface NoteMemo { id: string; text: string; created_at: string; reviewed_at?: string | null }
+const MEMO_SOURCES: { table: string; label: string }[] = [
+  { table: 'work_wiki', label: '업무위키' },
+  { table: 'ryuha_notes', label: '류하 수첩' },
+]
 let lastMemoReviewAt = 0
 async function reviewMemos() {
   if (!ceoChatId) return
@@ -1378,24 +1382,24 @@ async function reviewMemos() {
   if (hour < 8 || hour >= 22) return            // 업무시간만
   if (Date.now() - lastMemoReviewAt < 5 * 60 * 1000) return  // 5분 쿨다운(에러 루프 방지)
 
-  const { data: notes } = await supabase
-    .from('work_wiki')
-    .select('id, title, content, section, memos')
-  const pending: { noteId: string; noteTitle: string; text: string }[] = []
-  const notesWithPending = new Map<string, { memos: NoteMemo[] }>()
-  for (const n of notes || []) {
-    const memos = (n.memos as NoteMemo[]) || []
-    if (!memos.some(m => !m.reviewed_at)) continue
-    notesWithPending.set(n.id as string, { memos })
-    for (const m of memos) {
-      if (!m.reviewed_at) pending.push({ noteId: n.id as string, noteTitle: (n.title as string) || '(제목없음)', text: m.text })
+  const pending: { label: string; noteTitle: string; text: string }[] = []
+  const dirty: { table: string; id: string; memos: NoteMemo[] }[] = []
+  for (const src of MEMO_SOURCES) {
+    const { data: notes } = await supabase.from(src.table).select('id, title, memos')
+    for (const n of notes || []) {
+      const memos = (n.memos as NoteMemo[]) || []
+      if (!memos.some(m => !m.reviewed_at)) continue
+      dirty.push({ table: src.table, id: n.id as string, memos })
+      for (const m of memos) {
+        if (!m.reviewed_at) pending.push({ label: src.label, noteTitle: (n.title as string) || '(제목없음)', text: m.text })
+      }
     }
   }
   if (!pending.length) return
   lastMemoReviewAt = Date.now()
-  console.log(`📝 위키 노트 메모 후속조치: 미검토 ${pending.length}건`)
+  console.log(`📝 노트 메모 후속조치: 미검토 ${pending.length}건`)
 
-  const memoText = pending.map((p, i) => `${i + 1}. [노트: ${p.noteTitle}] ${(p.text || '').slice(0, 600)}`).join('\n\n')
+  const memoText = pending.map((p, i) => `${i + 1}. [${p.label} · ${p.noteTitle}] ${(p.text || '').slice(0, 600)}`).join('\n\n')
 
   const [promptSections, attrCatalog, dashboardContext] = await Promise.all([
     fetchPromptSections(), fetchAttributeCatalog(), fetchDashboardContext(),
@@ -1405,12 +1409,12 @@ async function reviewMemos() {
 # 현재 사업 데이터
 ${dashboardContext}
 
-# 작업: 위키 노트 메모 후속조치
-아래는 CEO가 각 위키 노트에 단, 아직 처리되지 않은 메모입니다. 각 메모를 검토해서:
-- 안전하고 되돌릴 수 있는 일(일정 등록, 팔로업 등록, 위키 정리, 종목 워치, 리서치 등)은 액션 블록으로 **바로 처리**
+# 작업: 노트 메모 후속조치
+아래는 CEO가 각 노트에 단, 아직 처리되지 않은 메모입니다. 출처가 [업무위키]면 사업 맥락, [류하 수첩]이면 딸 류하의 학습/일정 맥락입니다(류하 일정·수첩은 ryuha 도구 사용). 각 메모를 검토해서:
+- 안전하고 되돌릴 수 있는 일(일정 등록, 팔로업 등록, 위키/수첩 정리, 종목 워치, 리서치, 류하 일정 등)은 액션 블록으로 **바로 처리**
 - 돈 송금·외부 발송·계약·중요 의사결정 등 되돌리기 어렵거나 판단이 중요한 일은 **처리하지 말고 제안만**
 - 이미 처리됐거나 후속조치가 불필요하면 확인만
-결과를 CEO에게 보낼 **간결한** 메시지로 작성하세요(메모별 1~2줄, 어느 노트 메모인지 같이).
+결과를 CEO에게 보낼 **간결한** 메시지로 작성하세요(메모별 1~2줄, 어느 출처·노트 메모인지 같이).
 
 ## 미처리 메모 (${pending.length}건)
 ${memoText}`
@@ -1429,16 +1433,16 @@ ${memoText}`
 
   const body = [cleanText, actionResults.length ? actionResults.join('\n') : '']
     .filter(Boolean).join('\n\n')
-  await sendMessage(ceoChatId, `📝 [위키 메모 후속]\n${body}`)
-  await appendToConversation(ceoChatId, { role: 'assistant', content: `[위키 메모 후속]\n${body}`, timestamp: new Date().toISOString() })
+  await sendMessage(ceoChatId, `📝 [노트 메모 후속]\n${body}`)
+  await appendToConversation(ceoChatId, { role: 'assistant', content: `[노트 메모 후속]\n${body}`, timestamp: new Date().toISOString() })
 
-  // 검토한 노트들의 미검토 메모에 reviewed_at 세팅
+  // 검토한 노트들의 미검토 메모에 reviewed_at 세팅 (출처 테이블별)
   const now = new Date().toISOString()
-  for (const [noteId, { memos }] of notesWithPending) {
-    const updated = memos.map(m => m.reviewed_at ? m : { ...m, reviewed_at: now })
-    await supabase.from('work_wiki').update({ memos: updated }).eq('id', noteId)
+  for (const d of dirty) {
+    const updated = d.memos.map(m => m.reviewed_at ? m : { ...m, reviewed_at: now })
+    await supabase.from(d.table).update({ memos: updated }).eq('id', d.id)
   }
-  console.log(`✅ 위키 메모 ${pending.length}건 검토완료 표시 (노트 ${notesWithPending.size}개)`)
+  console.log(`✅ 노트 메모 ${pending.length}건 검토완료 (노트 ${dirty.length}개)`)
 }
 
 async function proactiveCheck() {
