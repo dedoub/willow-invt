@@ -13,11 +13,12 @@ import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { WikiNote } from './wiki-note-row'
 import { WikiNoteForm } from './wiki-note-form'
 
-type SectionFilter = 'all' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
-type WikiSection = 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
+type SectionFilter = 'all' | 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
+type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 
 const SECTION_FILTERS: { value: SectionFilter; label: string }[] = [
   { value: 'all', label: '전체' },
+  { value: 'memo', label: '메모' },
   { value: 'willow-mgmt', label: '윌로우' },
   { value: 'invest-mgmt', label: '투자관리' },
   { value: 'tensw-mgmt', label: '텐소프트웍스' },

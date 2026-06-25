@@ -3,7 +3,7 @@
 import { WikiList } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-list'
 import { WikiNote } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-note-row'
 
-type WikiSection = 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
+type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 
 interface EtcWikiBlockProps {
   notes: WikiNote[]

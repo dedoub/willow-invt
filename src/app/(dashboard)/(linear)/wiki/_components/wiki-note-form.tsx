@@ -5,7 +5,7 @@ import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
-type WikiSection = 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
+type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 
 interface WikiNoteFormProps {
   onSave: (data: { section: WikiSection; title: string; content: string; attachments?: { name: string; url: string; size: number; type: string }[] }) => Promise<void>
@@ -20,6 +20,7 @@ interface WikiNoteFormProps {
 }
 
 const SECTIONS: { value: WikiSection; label: string }[] = [
+  { value: 'memo', label: '메모' },
   { value: 'willow-mgmt', label: '윌로우' },
   { value: 'invest-mgmt', label: '투자관리' },
   { value: 'tensw-mgmt', label: '텐소프트웍스' },
