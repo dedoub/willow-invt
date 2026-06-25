@@ -7,6 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,16 +114,15 @@ function formatNumber(value: number): string {
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('ko-KR', {
-    year: 'numeric', month: 'short', day: 'numeric',
+    timeZone: 'Asia/Seoul', year: 'numeric', month: 'short', day: 'numeric',
   })
 }
 
-// 테이블 셀용 짧은 날짜 — 연월일 모두 표시 (YY.MM.DD)
+// 테이블 셀용 짧은 날짜 — 연월일 모두 표시 (YY.MM.DD), KST 기준
 function formatDateShort(dateString?: string | null): string {
   if (!dateString) return '—'
-  const d = new Date(dateString)
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${String(d.getFullYear()).slice(2)}.${p(d.getMonth() + 1)}.${p(d.getDate())}`
+  const key = new Date(dateString).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }) // YYYY-MM-DD
+  return `${key.slice(2, 4)}.${key.slice(5, 7)}.${key.slice(8, 10)}`
 }
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·가입·활동
@@ -332,8 +332,8 @@ export function VoicecardsBlock({
         case 'credits':  return a.credits - b.credits
         // 날짜로 표시되는 컬럼은 날짜(YYYY-MM-DD) 단위로 비교 → 같은 날끼리는 동점이 되어
         // 다음 우선순위(예: 듣기 내림차순)가 그 안에서 적용됨.
-        case 'recent':   return (a.lastActiveAt || '').slice(0, 10).localeCompare((b.lastActiveAt || '').slice(0, 10))
-        case 'created':  return a.createdAt.slice(0, 10).localeCompare(b.createdAt.slice(0, 10))
+        case 'recent':   return (a.lastActiveAt ? kstDateKey(a.lastActiveAt) : '').localeCompare(b.lastActiveAt ? kstDateKey(b.lastActiveAt) : '')
+        case 'created':  return kstDateKey(a.createdAt).localeCompare(kstDateKey(b.createdAt))
         default:         return 0
       }
     }
@@ -450,7 +450,7 @@ export function VoicecardsBlock({
 
           const signupDates = (userStats?.users ?? [])
             .filter(u => !(u.sheetCount === 0 && u.cards === 0))
-            .map(u => u.createdAt.split('T')[0])
+            .map(u => kstDateKey(u.createdAt))
             .sort()
           const allDates = cumulative.map(d => d.date)
           const signupData = allDates.map(date => ({
@@ -460,7 +460,7 @@ export function VoicecardsBlock({
           // 가입 미완료(시트 0 & 카드 0) 누적 추이 — 가입완료 스파크라인의 보조선
           const incompleteDates = (userStats?.users ?? [])
             .filter(u => u.sheetCount === 0 && u.cards === 0)
-            .map(u => u.createdAt.split('T')[0])
+            .map(u => kstDateKey(u.createdAt))
             .sort()
           const incompleteData = allDates.map(date => ({
             date,
@@ -486,18 +486,18 @@ export function VoicecardsBlock({
             return { date, value: total }
           })
 
-          // 누적 매출 보조지표 — 오늘 / 최근 7일 (chartData 날짜는 UTC 기준)
-          const revTodayKey = new Date().toISOString().slice(0, 10)
-          const rev7AgoKey = (() => { const d = new Date(); d.setUTCDate(d.getUTCDate() - 6); return d.toISOString().slice(0, 10) })()
+          // 누적 매출 보조지표 — 오늘 / 최근 7일 (모두 KST 기준)
+          const revTodayKey = kstToday()
+          const rev7AgoKey = kstDaysAgo(6)
           const revenueToday = revenueByDate.get(revTodayKey) ?? 0
           const revenue7d = Array.from(revenueByDate.entries())
             .filter(([date]) => date >= rev7AgoKey)
             .reduce((sum, [, v]) => sum + v, 0)
           const fmtRev = (v: number) => v <= 0 ? '$0' : `$${Math.round(v).toLocaleString()}`
 
-          // 누적 기기/데모 학습/가입 완료 — 오늘 / 최근 7일 신규 (날짜 UTC 기준, cumulativeDistinct 델타)
-          const yesterdayKey = (() => { const d = new Date(); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10) })()
-          const dayBefore7Key = (() => { const d = new Date(); d.setUTCDate(d.getUTCDate() - 7); return d.toISOString().slice(0, 10) })()
+          // 누적 기기/데모 학습/가입 완료 — 오늘 / 최근 7일 신규 (모두 KST 기준, cumulativeDistinct 델타)
+          const yesterdayKey = kstDaysAgo(1)
+          const dayBefore7Key = kstDaysAgo(7)
           const lastCum = cumulative.length ? cumulative[cumulative.length - 1] : null
           const cumValBefore = (
             date: string,

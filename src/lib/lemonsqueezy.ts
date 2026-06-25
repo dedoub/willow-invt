@@ -1,5 +1,6 @@
 // LemonSqueezy API 유틸리티
 // https://docs.lemonsqueezy.com/api
+import { kstDateKey, kstMonthStart } from '@/lib/kst'
 
 const LEMONSQUEEZY_API_URL = 'https://api.lemonsqueezy.com/v1'
 
@@ -272,16 +273,15 @@ export async function getReviewNotesStats(): Promise<ReviewNotesStats> {
   const subscriptions = subscriptionsRes.data || []
   const customers = customersRes.data || []
 
-  // 이번 달 시작일
-  const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  // 이번 달 시작일 (KST 기준)
+  const monthStartKst = kstMonthStart()
 
   // 매출 계산
   const paidOrders = orders.filter(o => o.attributes.status === 'paid')
   const totalRevenue = paidOrders.reduce((sum, o) => sum + o.attributes.total, 0)
   const totalRevenueUSD = paidOrders.reduce((sum, o) => sum + o.attributes.total_usd, 0)
 
-  const monthlyOrders = paidOrders.filter(o => new Date(o.attributes.created_at) >= monthStart)
+  const monthlyOrders = paidOrders.filter(o => kstDateKey(o.attributes.created_at) >= monthStartKst)
   const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + o.attributes.total, 0)
   const monthlyRevenueUSD = monthlyOrders.reduce((sum, o) => sum + o.attributes.total_usd, 0)
 
@@ -292,14 +292,14 @@ export async function getReviewNotesStats(): Promise<ReviewNotesStats> {
 
   // 고객 통계
   const totalCustomers = customers.length
-  const newCustomersThisMonth = customers.filter(c => new Date(c.attributes.created_at) >= monthStart).length
+  const newCustomersThisMonth = customers.filter(c => kstDateKey(c.attributes.created_at) >= monthStartKst).length
 
   // MRR 계산 (활성 고객의 MRR 합계)
   const mrr = customers.reduce((sum, c) => sum + (c.attributes.mrr || 0), 0)
 
   // 주문 통계
   const totalOrders = orders.length
-  const ordersThisMonth = orders.filter(o => new Date(o.attributes.created_at) >= monthStart).length
+  const ordersThisMonth = orders.filter(o => kstDateKey(o.attributes.created_at) >= monthStartKst).length
   const refundedOrders = orders.filter(o => o.attributes.refunded).length
 
   return {

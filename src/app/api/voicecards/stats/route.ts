@@ -3,6 +3,7 @@ import {
   getCombinedStats,
   getConnectionStatus,
 } from '@/lib/voicecards-server'
+import { kstToday } from '@/lib/kst'
 
 export const maxDuration = 300
 
@@ -11,9 +12,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
 
-    // 날짜 범위 파라미터 (기본: 올해 1/1 ~ 오늘)
-    const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0]
-    const startDate = searchParams.get('startDate') || `${new Date().getFullYear()}-01-01`
+    // 날짜 범위 파라미터 (기본: 올해 1/1 ~ 오늘, KST 기준)
+    const endDate = searchParams.get('endDate') || kstToday()
+    const startDate = searchParams.get('startDate') || `${kstToday().slice(0, 4)}-01-01`
     // 연결 상태 + 통합 통계를 병렬 조회 (서로 독립적)
     // 매출은 getCombinedStats 내부에서 앱 DB 결제 이벤트로 산출되며, 차트용 appRevenue도 함께 반환됨
     const [connectionStatus, stats] = await Promise.all([

@@ -32,7 +32,7 @@ function formatCurrency(value: number): string {
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('ko-KR', {
-    year: 'numeric', month: 'short', day: 'numeric',
+    timeZone: 'Asia/Seoul', year: 'numeric', month: 'short', day: 'numeric',
   })
 }
 
@@ -65,12 +65,11 @@ function getTone(map: Record<string, { bg: string; fg: string }>, key: string) {
 
 // ─── User table (VoiceCards 사용자 테이블과 동일 스타일) ─────────────────────────
 
-// 테이블 셀용 짧은 날짜 — 연월일 모두 표시 (YY.MM.DD)
+// 테이블 셀용 짧은 날짜 — 연월일 모두 표시 (YY.MM.DD), KST 기준
 function formatDateShort(dateString?: string | null): string {
   if (!dateString) return '—'
-  const d = new Date(dateString)
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${String(d.getFullYear()).slice(2)}.${p(d.getMonth() + 1)}.${p(d.getDate())}`
+  const key = new Date(dateString).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }) // YYYY-MM-DD
+  return `${key.slice(2, 4)}.${key.slice(5, 7)}.${key.slice(8, 10)}`
 }
 
 type UserSortKey = 'name' | 'email' | 'plan' | 'role' | 'storage' | 'created'

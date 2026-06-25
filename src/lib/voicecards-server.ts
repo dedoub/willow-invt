@@ -4,6 +4,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import * as jose from 'jose'
+import { kstDateKey } from '@/lib/kst'
 
 // Supabase 클라이언트 (service_role) — willow-dash credentials/cache 저장
 const supabase = createClient(
@@ -603,7 +604,7 @@ export async function getAppDbRevenue(
     if (props.reason !== 'purchase') continue
     const price = CREDIT_PRODUCT_PRICES_USD[String(props.product_id)]
     if (!price) continue
-    const date = String(row.created_at).slice(0, 10) // UTC 날짜
+    const date = kstDateKey(row.created_at) // KST 날짜
     if (row.platform === 'android') {
       result.androidByDate.set(date, (result.androidByDate.get(date) || 0) + price)
       result.androidTotal += price

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { kstDateKey, kstMonthStart, kstDaysAgo } from '@/lib/kst'
 
 // ReviewNotes Supabase 클라이언트
 const supabaseUrl = process.env.REVIEWNOTES_SUPABASE_URL
@@ -67,7 +68,7 @@ function pctChange(current: number, previous: number): number {
 }
 
 function toDateKey(d: Date): string {
-  return d.toISOString().slice(0, 10)
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }) // KST 날짜
 }
 
 export async function getReviewNotesTrafficStats(range = 30): Promise<ReviewNotesTrafficStats> {
@@ -175,10 +176,9 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
 export async function getReviewNotesUserStats(): Promise<ReviewNotesUserStats> {
   const users = await getReviewNotesUsers()
 
-  const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-  const weekStart = new Date(now)
-  weekStart.setDate(weekStart.getDate() - 7)
+  // KST 기준 이번 달 1일 / 최근 7일(오늘 포함)
+  const monthStartKst = kstMonthStart()
+  const weekStartKst = kstDaysAgo(6)
 
   const stats: ReviewNotesUserStats = {
     totalUsers: users.length,
@@ -187,8 +187,8 @@ export async function getReviewNotesUserStats(): Promise<ReviewNotesUserStats> {
     basicUsers: users.filter(u => u.subscriptionPlan === 'BASIC').length,
     standardUsers: users.filter(u => u.subscriptionPlan === 'STANDARD').length,
     proUsers: users.filter(u => u.subscriptionPlan === 'PRO').length,
-    newUsersThisMonth: users.filter(u => new Date(u.createdAt) >= monthStart).length,
-    newUsersThisWeek: users.filter(u => new Date(u.createdAt) >= weekStart).length,
+    newUsersThisMonth: users.filter(u => kstDateKey(u.createdAt) >= monthStartKst).length,
+    newUsersThisWeek: users.filter(u => kstDateKey(u.createdAt) >= weekStartKst).length,
     totalStorageUsed: users.reduce((sum, u) => sum + (u.storageUsed || 0), 0),
     users,
   }
