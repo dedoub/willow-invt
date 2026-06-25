@@ -34,7 +34,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { title, content, section, category, is_pinned, attachments } = body
+    const { title, content, section, category, is_pinned, attachments, memos } = body
 
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (title !== undefined) updateData.title = title
@@ -43,6 +43,7 @@ export async function PATCH(
     if (category !== undefined) updateData.category = category
     if (is_pinned !== undefined) updateData.is_pinned = is_pinned
     if (attachments !== undefined) updateData.attachments = attachments
+    if (memos !== undefined) updateData.memos = memos
 
     const { data, error } = await supabase
       .from('work_wiki')

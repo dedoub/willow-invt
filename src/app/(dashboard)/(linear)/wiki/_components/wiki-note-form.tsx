@@ -20,7 +20,6 @@ interface WikiNoteFormProps {
 }
 
 const SECTIONS: { value: WikiSection; label: string }[] = [
-  { value: 'memo', label: '메모' },
   { value: 'willow-mgmt', label: '윌로우' },
   { value: 'invest-mgmt', label: '투자관리' },
   { value: 'tensw-mgmt', label: '텐소프트웍스' },

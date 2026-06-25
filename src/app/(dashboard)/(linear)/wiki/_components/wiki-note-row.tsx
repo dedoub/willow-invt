@@ -6,6 +6,13 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { WikiNoteForm } from './wiki-note-form'
 
+export interface WikiMemo {
+  id: string
+  text: string
+  created_at: string
+  reviewed_at?: string | null
+}
+
 export interface WikiNote {
   id: string
   section: string
@@ -13,6 +20,7 @@ export interface WikiNote {
   content: string
   is_pinned: boolean
   attachments?: { name: string; url: string; size: number; type: string }[]
+  memos?: WikiMemo[]
   created_at: string
   updated_at: string
 }
@@ -30,7 +38,7 @@ interface WikiNoteRowProps {
   note: WikiNote
   expanded: boolean
   onToggle: () => void
-  onUpdate: (id: string, data: Partial<{ title: string; content: string; section: string; is_pinned: boolean; attachments: unknown }>) => Promise<void>
+  onUpdate: (id: string, data: Partial<{ title: string; content: string; section: string; is_pinned: boolean; attachments: unknown; memos: unknown }>) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
 
@@ -55,6 +63,27 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
 
   const handlePin = async () => {
     await onUpdate(note.id, { is_pinned: !note.is_pinned })
+  }
+
+  const [newMemo, setNewMemo] = useState('')
+  const [savingMemo, setSavingMemo] = useState(false)
+  const memos = note.memos || []
+
+  const handleAddMemo = async () => {
+    const text = newMemo.trim()
+    if (!text || savingMemo) return
+    setSavingMemo(true)
+    const memo: WikiMemo = { id: crypto.randomUUID(), text, created_at: new Date().toISOString(), reviewed_at: null }
+    try {
+      await onUpdate(note.id, { memos: [...memos, memo] })
+      setNewMemo('')
+    } finally {
+      setSavingMemo(false)
+    }
+  }
+
+  const handleDeleteMemo = async (memoId: string) => {
+    await onUpdate(note.id, { memos: memos.filter(m => m.id !== memoId) })
   }
 
   // Collapsed row
@@ -203,6 +232,54 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
           ))}
         </div>
       )}
+
+      {/* 노트별 메모 — 윌리가 점검해 후속조치 (reviewed_at 표시) */}
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${t.neutrals.line}` }}>
+        <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: 6 }}>
+          메모 {memos.length > 0 && `(${memos.length})`}
+        </div>
+
+        {memos.map(m => (
+          <div key={m.id} style={{
+            display: 'flex', alignItems: 'flex-start', gap: 6,
+            background: t.neutrals.card, borderRadius: t.radius.sm,
+            padding: '6px 8px', marginBottom: 4,
+          }}>
+            <span style={{ fontSize: 'calc(11px * var(--fz, 1))', flexShrink: 0, marginTop: 1 }} title={m.reviewed_at ? '윌리 확인됨' : '미확인'}>
+              {m.reviewed_at ? '✅' : '📝'}
+            </span>
+            <span style={{ flex: 1, fontSize: 'calc(12px * var(--fz, 1))', lineHeight: 1.5, color: t.neutrals.text, whiteSpace: 'pre-wrap' }}>
+              {m.text}
+            </span>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0 }}>
+              {fmtDate(m.created_at)}
+            </span>
+            <button onClick={() => handleDeleteMemo(m.id)} style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              color: t.neutrals.subtle, flexShrink: 0, lineHeight: 1,
+            }} title="삭제">
+              <LIcon name="x" size={11} />
+            </button>
+          </div>
+        ))}
+
+        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+          <input
+            value={newMemo}
+            onChange={e => setNewMemo(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAddMemo() }}
+            placeholder="이 노트에 메모 추가… (엔터)"
+            style={{
+              flex: 1, fontSize: 'calc(12px * var(--fz, 1))',
+              background: t.neutrals.card, border: 'none', borderRadius: t.radius.sm,
+              padding: '6px 8px', color: t.neutrals.text, outline: 'none',
+            }}
+          />
+          <LBtn variant="ghost" size="sm" onClick={handleAddMemo} disabled={savingMemo || !newMemo.trim()}>
+            추가
+          </LBtn>
+        </div>
+      </div>
     </div>
   )
 }
