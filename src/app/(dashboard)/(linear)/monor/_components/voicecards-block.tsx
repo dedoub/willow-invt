@@ -197,6 +197,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
 // 텍스트/문자열 정렬 컬럼은 오름차순이 기본, 숫자·날짜는 내림차순이 기본
 const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['name', 'platform', 'version', 'language', 'status'])
 const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key) ? 'asc' : 'desc')
+type SortCrit = { key: UserSortKey; dir: SortDir }
 
 const USER_SORT_STORAGE_KEY = 'voicecards.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
@@ -272,8 +273,8 @@ export function VoicecardsBlock({
   // 매우 좁은 화면(모바일)에서만 sparkline 숨김. LStat이 sub를 자체 줄로 분리해서
   // 일반 PC 해상도에선 sparkline 들어갈 공간 있음.
   const compact = mobile
-  const [userSort, setUserSort] = useState<UserSortKey>('created')
-  const [userSortDir, setUserSortDir] = useState<SortDir>('desc')
+  // 다중 정렬: 우선순위 순서대로 [{key,dir}]. 헤더 클릭으로 컬럼을 체인에 추가/방향전환/해제.
+  const [userSorts, setUserSorts] = useState<SortCrit[]>([{ key: 'created', dir: 'desc' }])
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
   const [userPerPageInput, setUserPerPageInput] = useState('10')
@@ -285,14 +286,22 @@ export function VoicecardsBlock({
     setUserPage(1)
   }
 
-  // 마운트 시 localStorage에서 정렬 상태 복원 (SSR/CSR hydration 안전). 형식: "key:dir"
+  // 마운트 시 localStorage에서 정렬 상태 복원 (SSR/CSR hydration 안전).
+  // 신형: JSON [{key,dir}] (다중 정렬). 구형: "key:dir" 도 지원.
   useEffect(() => {
     const stored = window.localStorage.getItem(USER_SORT_STORAGE_KEY)
     if (!stored) return
+    try {
+      const parsed = JSON.parse(stored) as SortCrit[]
+      if (Array.isArray(parsed) && parsed.length &&
+          parsed.every(s => USER_SORT_KEY_SET.has(s.key) && (s.dir === 'asc' || s.dir === 'desc'))) {
+        setUserSorts(parsed)
+        return
+      }
+    } catch { /* 구형 포맷 폴백 */ }
     const [key, dir] = stored.split(':')
     if (USER_SORT_KEY_SET.has(key as UserSortKey)) {
-      setUserSort(key as UserSortKey)
-      setUserSortDir(dir === 'asc' ? 'asc' : dir === 'desc' ? 'desc' : defaultSortDir(key as UserSortKey))
+      setUserSorts([{ key: key as UserSortKey, dir: dir === 'asc' ? 'asc' : dir === 'desc' ? 'desc' : defaultSortDir(key as UserSortKey) }])
     }
   }, [])
 
@@ -308,9 +317,9 @@ export function VoicecardsBlock({
     const nameOf = (u: U) => (u.nickname || u.email || u.id || '').toLowerCase()
     const isIncomplete = (u: U) => (u.sheetCount === 0 && u.cards === 0 ? 1 : 0)
 
-    // 컬럼별 1차 비교(항상 오름차순 기준). 방향은 아래에서 dirMul로 적용.
-    const primary = (a: U, b: U): number => {
-      switch (userSort) {
+    // 컬럼별 1차 비교(항상 오름차순 기준). 방향은 아래에서 dir로 적용.
+    const cmpByKey = (a: U, b: U, key: UserSortKey): number => {
+      switch (key) {
         case 'name':     return nameOf(a).localeCompare(nameOf(b), 'ko')
         case 'platform': return (a.platform || '').localeCompare(b.platform || '')
         case 'version':  return (a.appVersion || '').localeCompare(b.appVersion || '', undefined, { numeric: true })
@@ -326,14 +335,16 @@ export function VoicecardsBlock({
         default:         return 0
       }
     }
-    const dirMul = userSortDir === 'asc' ? 1 : -1
+    // 다중 정렬: 우선순위 순서대로 비교, 첫 번째로 동점이 아닌 컬럼이 결정.
     arr.sort((a, b) => {
-      const p = primary(a, b)
-      if (p !== 0) return p * dirMul
+      for (const s of userSorts) {
+        const p = cmpByKey(a, b, s.key)
+        if (p !== 0) return p * (s.dir === 'asc' ? 1 : -1)
+      }
       return recencyTiebreak(a, b)
     })
     return arr
-  }, [userStats, userSort, userSortDir])
+  }, [userStats, userSorts])
 
   const totalUserPages = Math.max(1, Math.ceil(sortedUsers.length / userPerPage))
   const safeUserPage = Math.min(userPage, totalUserPages)
@@ -342,14 +353,33 @@ export function VoicecardsBlock({
     safeUserPage * userPerPage
   )
 
-  // 정렬 변경 + 1페이지로 리셋 + localStorage 저장.
-  // 같은 컬럼 재클릭 시 방향 토글, 다른 컬럼 클릭 시 그 컬럼의 기본 방향.
-  const handleSortChange = (key: UserSortKey) => {
-    const nextDir: SortDir = key === userSort ? (userSortDir === 'asc' ? 'desc' : 'asc') : defaultSortDir(key)
-    setUserSort(key)
-    setUserSortDir(nextDir)
+  const persistSorts = (next: SortCrit[]) => {
+    setUserSorts(next)
     setUserPage(1)
-    window.localStorage.setItem(USER_SORT_STORAGE_KEY, `${key}:${nextDir}`)
+    window.localStorage.setItem(USER_SORT_STORAGE_KEY, JSON.stringify(next))
+  }
+
+  // 헤더 클릭(데스크톱): 다중 정렬 체인에 추가/방향전환/해제 3단계 순환.
+  // 미포함 → 체인 끝에 추가(기본방향) → 재클릭 시 반대방향 → 재클릭 시 체인에서 제거.
+  const handleHeaderSort = (key: UserSortKey) => {
+    const idx = userSorts.findIndex(s => s.key === key)
+    if (idx < 0) { persistSorts([...userSorts, { key, dir: defaultSortDir(key) }]); return }
+    const cur = userSorts[idx]
+    if (cur.dir === defaultSortDir(key)) {
+      const next = [...userSorts]
+      next[idx] = { key, dir: cur.dir === 'asc' ? 'desc' : 'asc' }
+      persistSorts(next)
+    } else {
+      persistSorts(userSorts.filter(s => s.key !== key))
+    }
+  }
+
+  // 모바일 드롭다운: 단일 정렬로 교체. 토글 버튼: 1순위 방향 전환.
+  const handleMobileSort = (key: UserSortKey) => persistSorts([{ key, dir: defaultSortDir(key) }])
+  const handleMobileToggle = () => {
+    if (!userSorts.length) return
+    const f = userSorts[0]
+    persistSorts([{ key: f.key, dir: f.dir === 'asc' ? 'desc' : 'asc' }, ...userSorts.slice(1)])
   }
 
   return (
@@ -744,8 +774,8 @@ export function VoicecardsBlock({
             {mobile && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <select
-                  value={userSort}
-                  onChange={e => handleSortChange(e.target.value as UserSortKey)}
+                  value={userSorts[0]?.key || 'created'}
+                  onChange={e => handleMobileSort(e.target.value as UserSortKey)}
                   style={{
                     padding: '3px 6px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
                     fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
@@ -757,7 +787,7 @@ export function VoicecardsBlock({
                   ))}
                 </select>
                 <button
-                  onClick={() => handleSortChange(userSort)}
+                  onClick={handleMobileToggle}
                   title="정렬 방향 전환"
                   style={{
                     padding: '3px 7px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
@@ -765,7 +795,7 @@ export function VoicecardsBlock({
                     background: t.neutrals.inner, color: t.neutrals.muted,
                   }}
                 >
-                  {userSortDir === 'asc' ? '▲' : '▼'}
+                  {(userSorts[0]?.dir ?? 'desc') === 'asc' ? '▲' : '▼'}
                 </button>
               </div>
             )}
@@ -869,15 +899,19 @@ export function VoicecardsBlock({
           ) : (
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* 테이블 헤더 — 클릭하여 정렬, 같은 컬럼 재클릭 시 방향 토글 */}
+            {/* 테이블 헤더 — 클릭하여 다중 정렬. 미포함→추가, 재클릭→방향전환, 또 클릭→해제.
+                여러 컬럼이 활성이면 우선순위 번호 표시. */}
             <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
               {USER_COLUMNS.map(col => {
-                const active = userSort === col.key
+                const sIdx = userSorts.findIndex(s => s.key === col.key)
+                const active = sIdx >= 0
+                const dir = active ? userSorts[sIdx].dir : null
+                const multi = userSorts.length > 1
                 return (
                   <button
                     key={col.key}
-                    onClick={() => handleSortChange(col.key)}
-                    title={`${col.label} 기준 정렬`}
+                    onClick={() => handleHeaderSort(col.key)}
+                    title={active ? `${col.label}: ${dir === 'asc' ? '오름차순' : '내림차순'} (재클릭: 방향전환→해제)` : `${col.label} 기준 정렬 추가`}
                     style={{
                       ...userHeadCell, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
                       display: 'flex', alignItems: 'center', gap: 2, width: '100%',
@@ -886,9 +920,12 @@ export function VoicecardsBlock({
                     }}
                   >
                     {col.label}
-                    <span style={{ fontSize: '0.85em', lineHeight: 1, opacity: active ? 1 : 0 }}>
-                      {userSortDir === 'asc' ? '▲' : '▼'}
-                    </span>
+                    {active && (
+                      <span style={{ fontSize: '0.85em', lineHeight: 1, display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                        {dir === 'asc' ? '▲' : '▼'}
+                        {multi && <sup style={{ fontSize: '0.75em', color: t.neutrals.subtle }}>{sIdx + 1}</sup>}
+                      </span>
+                    )}
                   </button>
                 )
               })}
