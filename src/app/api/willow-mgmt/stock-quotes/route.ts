@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { getPrices, getStocks, getPrevClose, getExchangeRate } from '@/lib/toss'
+import { FX_SNAPSHOT_KEY } from '@/lib/toss-prices'
 
 interface QuoteResult {
   price: number
@@ -62,10 +63,34 @@ export async function GET(request: Request) {
 
   // 토스 Open API는 IP 허용목록이 걸려 있어 Vercel(고정 IP 없음)에서는 실패한다.
   // 게다가 클라이언트당 토큰 1개 제약 탓에 Vercel이 토큰을 발급하면 launchd 동기화
-  // 스크립트의 토큰까지 무효화한다. 따라서 Vercel에서는 토스를 호출하지 않고 야후만 쓴다.
+  // 스크립트의 토큰까지 무효화한다. 따라서 Vercel에서는 토스를 직접 호출하지 않고,
+  // launchd 잡이 적재한 toss_price_snapshot(토스 기준 가격)을 읽는다. 로컬은 직접 호출.
   const useToss = !process.env.VERCEL
 
   const prices: Record<string, QuoteResult> = {}
+  const supabase = getServiceSupabase()
+
+  // Vercel: 토스 스냅샷 테이블에서 토스 기준 가격을 읽어 토스앱과 잔고를 맞춘다.
+  let snapFx: number | null = null
+  if (!useToss) {
+    const { data: snap } = await supabase
+      .from('toss_price_snapshot')
+      .select('symbol, last_price, market_cap, change_percent, currency')
+    const snapMap = new Map((snap || []).map((r) => [r.symbol as string, r]))
+    for (const s of symbols) {
+      const row = snapMap.get(s)
+      if (!row) continue
+      prices[s] = {
+        price: Number(row.last_price),
+        change: 0,
+        changePercent: row.change_percent != null ? Number(row.change_percent) : 0,
+        currency: (row.currency as string) || 'USD',
+        ...(row.market_cap != null ? { marketCap: Number(row.market_cap) } : {}),
+      }
+    }
+    const fxRow = snapMap.get(FX_SNAPSHOT_KEY)
+    if (fxRow) snapFx = Number(fxRow.last_price)
+  }
 
   if (useToss) {
     // 1. 토스 배치: 현재가 + 발행주식수(시총용)
@@ -110,10 +135,9 @@ export async function GET(request: Request) {
     }),
   )
 
-  // 4. 환율(USD/KRW) — 페이지가 KRW=X price로 읽음. 토스 우선, 야후 폴백.
+  // 4. 환율(USD/KRW) — 페이지가 KRW=X price로 읽음. 로컬=토스, Vercel=스냅샷, 폴백 야후.
   if (tickers.includes('KRW=X')) {
-    let rate: number | null = null
-    if (useToss) rate = await getExchangeRate('USD', 'KRW')
+    let rate: number | null = useToss ? await getExchangeRate('USD', 'KRW') : snapFx
     if (rate == null) {
       const q = await fetchYahooQuote('KRW=X')
       if (q) rate = q.price
@@ -124,8 +148,6 @@ export async function GET(request: Request) {
   }
 
   // 5. DB 테마 매핑 (기존과 동일)
-  const supabase = getServiceSupabase()
-
   const { data: tickerThemes } = await supabase
     .from('investment_ticker_themes')
     .select(`

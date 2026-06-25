@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.willow.toss-prices</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
+        <string>--cwd</string>
+        <string>/Volumes/PRO-G40/app-dev/willow-invt</string>
+        <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-toss-prices.sh</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/dongwookkim</string>
+
+    <!-- 15분 간격 (토스 가격 스냅샷 → 배포본이 토스 기준 잔고 표시) -->
+    <key>StartInterval</key>
+    <integer>900</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/dongwookkim/logs/toss-sync/prices.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/dongwookkim/logs/toss-sync/prices.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/dongwookkim</string>
+    </dict>
+</dict>
+</plist>

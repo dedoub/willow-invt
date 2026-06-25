@@ -16,7 +16,8 @@
     "re:naver": "npx tsx scripts/naver-listings-pipeline.ts",
     "re:naver:lookup": "npx tsx scripts/naver-listings-pipeline.ts --lookup",
     "toss:sync": "npx tsx scripts/toss-sync.ts",
-    "toss:sync:dry": "npx tsx scripts/toss-sync.ts --dry"
+    "toss:sync:dry": "npx tsx scripts/toss-sync.ts --dry",
+    "toss:prices": "npx tsx scripts/toss-prices.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
