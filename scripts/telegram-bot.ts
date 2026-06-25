@@ -2457,6 +2457,23 @@ function extractActions(text: string): { cleanText: string; actions: ActionBlock
   return { cleanText, actions, buttons }
 }
 
+// 엔티티 이름 정규화 — 대소문자/공백/괄호/구두점/법인격(주식회사·(주)) 차이를 흡수해
+// "텐소프트웍스"·"(주)텐소프트웍스"·"주식회사 텐소프트웍스"를 같은 키로 본다(중복 노드 방지).
+function normalizeEntityName(s: string): string {
+  return (s || '').toLowerCase().replace(/주식회사|\(주\)/g, '').replace(/[\s()（）.,·\-_]/g, '')
+}
+
+// 정규화 매칭으로 기존 엔티티를 찾는다. 이름 변형이어도 같은 노드로 수렴.
+async function findEntityByNormalizedName(name: string): Promise<{ id: string; name: string } | null> {
+  const norm = normalizeEntityName(name)
+  if (!norm) return null
+  const { data } = await supabase.from('knowledge_entities').select('id, name')
+  for (const e of data || []) {
+    if (normalizeEntityName(e.name as string) === norm) return { id: e.id as string, name: e.name as string }
+  }
+  return null
+}
+
 async function executeAction(action: ActionBlock): Promise<string> {
   try {
     switch (action.type) {
@@ -2590,13 +2607,8 @@ async function executeAction(action: ActionBlock): Promise<string> {
 
       // ─── 온톨로지 액션 ───
       case 'knowledge_entity': {
-        // 기존 엔티티 확인 (이름으로)
-        const { data: existing } = await supabase
-          .from('knowledge_entities')
-          .select('id')
-          .eq('name', action.name)
-          .limit(1)
-          .single()
+        // 기존 엔티티 확인 — 정규화 매칭(이름 변형이어도 같은 노드로 수렴, 중복 방지)
+        const existing = await findEntityByNormalizedName(action.name as string)
 
         if (existing) {
           // 업데이트
@@ -2605,7 +2617,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           if (action.properties) updates.properties = action.properties
           if (action.tags) updates.tags = action.tags
           await supabase.from('knowledge_entities').update(updates).eq('id', existing.id)
-          return `🧠 엔티티 업데이트: "${action.name}"`
+          return `🧠 엔티티 업데이트: "${existing.name}"`
         } else {
           // 생성
           await supabase.from('knowledge_entities').insert({
@@ -2621,10 +2633,10 @@ async function executeAction(action: ActionBlock): Promise<string> {
       }
 
       case 'knowledge_relation': {
-        // subject와 object 엔티티 ID 조회
-        const [{ data: subj }, { data: obj }] = await Promise.all([
-          supabase.from('knowledge_entities').select('id').eq('name', action.subject).limit(1).single(),
-          supabase.from('knowledge_entities').select('id').eq('name', action.object).limit(1).single(),
+        // subject/object 엔티티 — 정규화 매칭으로 canonical 노드에 연결(중복 생성 방지)
+        const [subj, obj] = await Promise.all([
+          findEntityByNormalizedName(action.subject as string),
+          findEntityByNormalizedName(action.object as string),
         ])
 
         if (!subj || !obj) {
@@ -2675,8 +2687,8 @@ async function executeAction(action: ActionBlock): Promise<string> {
         const entityNames = (action.entity_names as string[]) || []
         const entityIds: string[] = []
         for (const name of entityNames) {
-          const { data } = await supabase.from('knowledge_entities').select('id').eq('name', name).limit(1).single()
-          if (data) entityIds.push(data.id)
+          const ent = await findEntityByNormalizedName(name)  // 정규화 매칭(중복 노드 방지)
+          if (ent) entityIds.push(ent.id)
         }
 
         await supabase.from('knowledge_insights').insert({
@@ -3147,6 +3159,7 @@ ${text}
     const codexStart = Date.now()
     const codexFiles = new Set<string>()
     let codexCmds = 0
+    let didAnyWork = false  // 실제 작업(명령·도구·파일·검색) 1회라도 했는지 — 환각 완료 검증용
     let liveActivity = '🤖 작업 시작…'
     let lastLiveEdit = 0
     const fmtElapsed = () => {
@@ -3172,6 +3185,8 @@ ${text}
     }
     const onCodexProgress = (p: CodexProgress) => {
       if (p.phase !== 'item_started' && p.phase !== 'item_completed') return
+      // 말(agent_message)·생각(reasoning) 외의 항목은 실제 작업으로 간주
+      if (p.itemType && p.itemType !== 'agent_message' && p.itemType !== 'reasoning') didAnyWork = true
       switch (p.itemType) {
         case 'command_execution':
           if (p.phase === 'item_started') codexCmds++
@@ -3263,6 +3278,16 @@ ${text}
     } else {
       // 둘 다 없는 경우 (비정상) — 기본 응답
       finalMessage = '처리 완료했습니다.'
+    }
+
+    // ── 액션 검증 ──
+    // 응답은 "했어요"라고 하는데 turn 동안 실제 실행 신호(명령·도구·파일·검색·성공 액션)가
+    // 하나도 없으면 환각 완료로 보고 정직하게 경고를 붙인다. (LLM 비용 없는 휴리스틱)
+    const successfulAction = actionResults.some(r => /^(✅|🧠|🔗|💡|📎|🗓|⚡)/.test(r.trim()))
+    const claimsDone = /(등록|추가|저장|생성|작성|완료|처리|예약|삭제|수정|반영|해소|업데이트|전송|발송|보냈)\s*(했|완료|됐|드렸|해뒀|해놨|하였|시켰|마쳤)/.test(cleanText)
+    if (claimsDone && !didAnyWork && !successfulAction) {
+      console.warn(`[${chatId}] ⚠️ 액션검증 실패: 완료 주장하나 실제 실행 신호 0`)
+      finalMessage += `\n\n⚠️ _방금 작업을 완료했다고 했지만 실제 반영(도구·액션 실행)이 감지되지 않았어요. 반영이 필요하면 한 번 더 말씀해 주세요._`
     }
 
     // 대화 기록 저장 (락으로 보호)
