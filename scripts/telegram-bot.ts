@@ -6,7 +6,7 @@ import { execSync, spawn } from 'child_process'
 import { existsSync, writeFileSync, readFileSync, unlinkSync, mkdirSync, readdirSync } from 'fs'
 import { join, basename } from 'path'
 import { markdownToTelegramHtml } from './telegram-utils'
-import { runAgent, type CodexProgress } from './lib/agent-cli'
+import { runAgent, AgentAbortError, type CodexProgress } from './lib/agent-cli'
 
 // ============================================================
 // Config
@@ -1844,11 +1844,11 @@ function formatMarketPrices(prices: MarketPrice[]): string {
 // --- Major media catalog (속보는 메이저 언론사만) ---
 const MAJOR_MEDIA_KR = new Set([
   // 통신사
-  '연합뉴스', '연합뉴스TV', '뉴스1',
+  '연합뉴스', '연합뉴스TV', '뉴스1', '뉴시스', '연합인포맥스',
   // 경제지
-  '한국경제', '한국경제TV', '매일경제', '서울경제', '서울경제TV', '아시아경제', '이데일리', '머니투데이', '헤럴드경제', '파이낸셜뉴스', '이투데이', '인베스트조선',
+  '한국경제', '한국경제TV', '매일경제', '서울경제', '서울경제TV', '아시아경제', '이데일리', '머니투데이', '헤럴드경제', '파이낸셜뉴스', '이투데이', '인베스트조선', '아주경제', '뉴스핌',
   // 종합지/방송
-  '조선일보', '조선비즈', '중앙일보', '동아일보', '한겨레', '경향신문', '국민일보',
+  '조선일보', '조선비즈', '중앙일보', '동아일보', '한겨레', '경향신문', '국민일보', '한국일보', '세계일보', '문화일보',
   'SBS', 'SBS 뉴스', 'KBS', 'KBS News', 'MBC', 'MBC 뉴스', 'JTBC', 'YTN', 'TV조선', '채널A',
   // IT/산업 전문
   '지디넷코리아', '디지털데일리', '전자신문', '블로터', 'ITWorld Korea',
@@ -1859,6 +1859,8 @@ const MAJOR_MEDIA_EN = new Set([
   'Nikkei', 'Nikkei Asia', 'The New York Times', 'The Washington Post',
   'MarketWatch', 'Barron\'s', 'The Economist', 'Business Insider',
   'TechCrunch', 'The Verge', 'Ars Technica',
+  // 국내 매체 영문 표기 (Google News가 로마자로 줄 때)
+  'Chosunbiz', 'Korea Herald', 'The Korea Herald', 'Korea JoongAng Daily', 'KED Global', 'Forbes', 'Fortune',
 ])
 
 function isMajorMedia(source: string): boolean {
@@ -2012,10 +2014,15 @@ async function buildNewsDigest(): Promise<{ digest: string; marketData: string }
 
   for (const topic of topics) {
     const searchQuery = topic.keywords.length ? topic.keywords.join(' OR ') : topic.topic
-    const [news, videos] = await Promise.all([
-      searchGoogleNews(searchQuery, 5),
+    const [rawNews, videos] = await Promise.all([
+      searchGoogleNews(searchQuery, 8),
       searchYouTube(searchQuery, 2),
     ])
+
+    // 노이즈 컷: 다이제스트도 속보와 동일하게 메이저 매체만 남긴다 (마이너·광고성 매체 제거).
+    const news = rawNews.filter(n => isMajorMedia(n.source))
+    const dropped = rawNews.length - news.length
+    if (dropped > 0) console.log(`  🔇 ${topic.topic}: 마이너 매체 ${dropped}건 제외 (메이저 ${news.length}건 유지)`)
 
     if (!news.length && !videos.length) continue
     hasContent = true
@@ -2029,7 +2036,7 @@ async function buildNewsDigest(): Promise<{ digest: string; marketData: string }
         .sort((a, b) => a.ageMin - b.ageMin)
 
       sections.push('뉴스:')
-      for (const n of sorted) {
+      for (const n of sorted.slice(0, 5)) {
         const ageLabel = n.ageMin < Infinity ? `[${formatNewsAge(n.ageMin)}]` : ''
         sections.push(`• ${ageLabel} ${n.title}${n.source ? ` (${n.source})` : ''}`)
         sections.push(`  ${n.link}`)
@@ -2383,8 +2390,8 @@ const TENSW_MCP_TOOLS = 'mcp__claude_ai_tensw-todo__*'
 const PORTFOLIO_MCP_TOOLS = 'mcp__portfolio-monitor__*'
 const WILLOW_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__*'
 
-function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession?: boolean; onProgress?: (p: CodexProgress) => void }): Promise<string> {
-  return runAgent(prompt, { allowedTools: opts?.allowedTools, backend: 'codex', onProgress: opts?.onProgress })
+function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession?: boolean; onProgress?: (p: CodexProgress) => void; signal?: AbortSignal }): Promise<string> {
+  return runAgent(prompt, { allowedTools: opts?.allowedTools, backend: 'codex', onProgress: opts?.onProgress, signal: opts?.signal })
 }
 
 // ============================================================
@@ -3174,6 +3181,7 @@ ${text}
       fullSession: true,
       allowedTools: [TENSW_MCP_TOOLS, PORTFOLIO_MCP_TOOLS, WILLOW_MCP_TOOLS],
       onProgress: onCodexProgress,
+      signal: abortSignal,  // abort 시 codex 즉시 종료 → 중복 작업 방지
     })
 
     clearInterval(typingInterval)
@@ -3266,6 +3274,11 @@ ${text}
 
   } catch (err) {
     if (progressMsgId) await deleteMsg(chatId, progressMsgId)
+    // abort(메시지 배칭 재처리)로 codex가 종료된 경우 — 조용히 끝낸다. 재배칭 run이 응답한다.
+    if (abortSignal?.aborted || err instanceof AgentAbortError) {
+      console.log(`[${chatId}] ⏹️ 처리 중단(abort) — 재배칭 run으로 이관`)
+      return
+    }
     console.error('Error handling message:', err)
     await sendMessage(chatId, '⚠️ 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
   }

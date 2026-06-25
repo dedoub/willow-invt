@@ -39,6 +39,14 @@ export interface AgentOptions {
   backend?: 'claude' | 'codex'
   // 실시간 진행상황 콜백 (지정 시 codex를 --json으로 실행해 이벤트 스트리밍)
   onProgress?: (p: CodexProgress) => void
+  // abort 시 codex 프로세스를 즉시 종료(SIGTERM)하고 reject. 메시지 배칭 재처리 시
+  // 이전 run의 codex가 끝까지 돌아 같은 작업을 중복 수행하던 버그 방지.
+  signal?: AbortSignal
+}
+
+// abort로 종료된 codex run 식별용. 호출측은 이 에러면 조용히 무시.
+export class AgentAbortError extends Error {
+  constructor() { super('agent aborted'); this.name = 'AgentAbortError' }
 }
 
 // codex --json 이벤트 1건 → CodexProgress 정규화. 파싱 실패/무관 이벤트는 null.
@@ -168,11 +176,23 @@ function runCodex(prompt: string, opts?: AgentOptions): Promise<string> {
     if (opts?.cwd) args.push('-C', opts.cwd)
     args.push('-')  // stdin에서 prompt 읽음
 
+    // 이미 abort된 상태면 시작도 하지 않음
+    if (opts?.signal?.aborted) { reject(new AgentAbortError()); return }
+
     const proc = spawn('codex', args, {
       cwd: opts?.cwd || process.cwd(),
       env: cleanEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
     })
+
+    // abort 시 codex 프로세스 즉시 종료 → 중복 작업 방지
+    let aborted = false
+    const onAbort = () => {
+      aborted = true
+      try { proc.kill('SIGTERM') } catch { /* ignore */ }
+    }
+    opts?.signal?.addEventListener('abort', onAbort, { once: true })
+    const cleanupAbort = () => opts?.signal?.removeEventListener('abort', onAbort)
 
     let stderr = ''
     proc.stderr.on('data', (d: Buffer) => { stderr += d.toString() })
@@ -200,6 +220,12 @@ function runCodex(prompt: string, opts?: AgentOptions): Promise<string> {
 
     proc.on('close', (code) => {
       if (timer) clearTimeout(timer)
+      cleanupAbort()
+      if (aborted) {
+        try { unlinkSync(outFile) } catch { /* ignore */ }
+        reject(new AgentAbortError())
+        return
+      }
       if (code === 0) {
         try {
           const result = readFileSync(outFile, 'utf-8').trim()
@@ -215,6 +241,7 @@ function runCodex(prompt: string, opts?: AgentOptions): Promise<string> {
     })
     proc.on('error', (err) => {
       if (timer) clearTimeout(timer)
+      cleanupAbort()
       try { unlinkSync(outFile) } catch { /* ignore */ }
       reject(new Error(`Failed to spawn codex: ${err.message}`))
     })
