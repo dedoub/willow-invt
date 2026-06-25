@@ -330,8 +330,10 @@ export function VoicecardsBlock({
         case 'attempts': return a.attempts - b.attempts
         case 'listen':   return (a.creditsUsed ?? 0) - (b.creditsUsed ?? 0)
         case 'credits':  return a.credits - b.credits
-        case 'recent':   return (a.lastActiveAt || '').localeCompare(b.lastActiveAt || '')
-        case 'created':  return a.createdAt.localeCompare(b.createdAt)
+        // 날짜로 표시되는 컬럼은 날짜(YYYY-MM-DD) 단위로 비교 → 같은 날끼리는 동점이 되어
+        // 다음 우선순위(예: 듣기 내림차순)가 그 안에서 적용됨.
+        case 'recent':   return (a.lastActiveAt || '').slice(0, 10).localeCompare((b.lastActiveAt || '').slice(0, 10))
+        case 'created':  return a.createdAt.slice(0, 10).localeCompare(b.createdAt.slice(0, 10))
         default:         return 0
       }
     }
