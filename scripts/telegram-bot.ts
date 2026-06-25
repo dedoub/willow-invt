@@ -589,6 +589,22 @@ async function fetchFollowUpsContext(): Promise<string> {
   return `\n## 열린 팔로업 (${openFollowUps.length}건)\n${lines.join('\n')}\n\n팔로업 관련: CEO가 해당 주제를 완료/해결했다고 언급하면 resolve_follow_up 액션으로 해소하세요.`
 }
 
+// 오래된 triggered 팔로업 자동 만료 — 발송 후 14일 지나도 미해소면 obsolete로 간주.
+// 적체 방지(예전엔 triggered가 영영 해소 안 돼 매 프롬프트에 재주입됨). 데이터는 보존(expired).
+const FOLLOWUP_EXPIRE_DAYS = 14
+async function expireStaleFollowUps(): Promise<number> {
+  const cutoff = new Date(Date.now() - FOLLOWUP_EXPIRE_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  const { data } = await supabase
+    .from('agent_follow_ups')
+    .update({ status: 'expired', resolved_at: new Date().toISOString() })
+    .eq('status', 'triggered')
+    .lt('created_at', cutoff)
+    .select('id')
+  const n = data?.length || 0
+  if (n > 0) console.log(`🧹 오래된 팔로업 ${n}건 자동 만료(expired, ${FOLLOWUP_EXPIRE_DAYS}일+)`)
+  return n
+}
+
 async function fetchDashboardContext(): Promise<string> {
   const today = new Date()
   const weekLater = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
@@ -1364,6 +1380,9 @@ async function proactiveCheck() {
   const hour = now.getHours()
 
   try {
+    // 오래된 팔로업 자동 만료(적체 방지) — 주기적으로 sweep
+    await expireStaleFollowUps().catch(() => {})
+
     const dashboardContext = await fetchDashboardContext()
     const currentHash = simpleHash(dashboardContext)
 
@@ -2893,10 +2912,12 @@ ${action.milestone_type ? `유형: ${action.milestone_type}` : ''}
         const keyword = action.content_keyword as string
         if (!keyword) return '⚠️ 팔로업 해소 실패: content_keyword 필수'
 
+        // open + triggered 모두 해소 대상. (triggered = 이미 CEO에게 발송된 항목 —
+        // 예전엔 open만 봐서 발송된 팔로업이 영영 해소 안 되고 적체됐음)
         const { data: matches } = await supabase
           .from('agent_follow_ups')
           .select('id')
-          .eq('status', 'open')
+          .in('status', ['open', 'triggered'])
           .ilike('content', `%${keyword}%`)
 
         if (!matches?.length) return `ℹ️ "${keyword}" 관련 열린 팔로업 없음`
