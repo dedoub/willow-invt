@@ -3,7 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 const SECTOR_THEME_MAP: [RegExp, string][] = [
   [/반도체|semiconductor|chip|메모리|memory|패키징|장비/i, 'AI 반도체'],
   [/에너지|원전|원자력|nuclear|우라늄|power gen/i, 'AI 에너지/원전'],
-  [/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|저장|인프라/i, '데이터센터/냉각/네트워킹'],
+  [/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|저장|인프라/i, '저장/냉각/연결'],
   [/방산|defense|military/i, '방산'],
   [/우주|space|satellite/i, '우주'],
   [/양자|quantum/i, '양자컴퓨팅'],

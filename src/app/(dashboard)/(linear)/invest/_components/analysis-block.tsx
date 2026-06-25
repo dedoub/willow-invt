@@ -31,7 +31,7 @@ const MARKET_COLORS = { '국내': '#3b82f6', '해외': '#10b981' }
 const AI_INFRA_SUB_COLORS: Record<string, string> = {
   'AI 반도체': '#db2777',
   'AI 에너지/원전': '#f59e0b',
-  '데이터센터/냉각/네트워킹': '#06b6d4',
+  '저장/냉각/연결': '#06b6d4',
   '미분류': '#94a3b8',
 }
 

@@ -45,13 +45,13 @@ const THEME_ORDER = ['벤치마크', 'AI 인프라', '지정학/안보', '넥스
 
 // 테마별 세부 분류 — 같은 parentTheme 내에서 sub-theme(theme.name)으로 한 번 더 그룹핑
 const SUB_GROUP_ORDER: Record<string, string[]> = {
-  'AI 인프라':   ['AI 반도체', 'AI 에너지/원전', '데이터센터/냉각/네트워킹'],
+  'AI 인프라':   ['AI 반도체', 'AI 에너지/원전', '저장/냉각/연결'],
   '지정학/안보': ['방산', '우주'],
 }
 const SUB_GROUP_COLORS: Record<string, { bg: string; fg: string }> = {
   'AI 반도체':              { bg: '#FCE7F3', fg: '#9D174D' },
   'AI 에너지/원전':         { bg: '#FEF3C7', fg: '#92400E' },
-  '데이터센터/냉각/네트워킹': { bg: '#CFFAFE', fg: '#155E75' },
+  '저장/냉각/연결': { bg: '#CFFAFE', fg: '#155E75' },
   '방산':                   { bg: '#FEE2E2', fg: '#B91C1C' },
   '우주':                   { bg: '#DBEAFE', fg: '#1E40AF' },
   '기타':                   { bg: '#F1F5F9', fg: '#475569' },

@@ -84,12 +84,12 @@ export async function GET() {
   }
 
   // ── 보유 종목 sub-theme 그룹 — 같은 큰 묶음 종목들의 등가중 평균 trailing return ──
-  // 그룹: AI 반도체 / AI 에너지/원전 / 데이터센터/냉각/네트워킹 / 방산 / 우주 / 넥스트
+  // 그룹: AI 반도체 / AI 에너지/원전 / 저장/냉각/연결 / 방산 / 우주 / 넥스트
   // axis='넥스트'는 그대로 '넥스트', 나머지는 sector를 sub-theme으로 매핑 (holdings/kanban 공통 규칙)
   const THEME_SHORT: Record<string, string> = {
     'AI 반도체': 'SEMI',
     'AI 에너지/원전': 'NRG',
-    '데이터센터/냉각/네트워킹': 'DC',
+    '저장/냉각/연결': 'DC',
     '방산': 'DEF',
     '우주': 'SPACE',
     '넥스트': 'NEXT',
@@ -110,7 +110,7 @@ export async function GET() {
     if (!sector) return null
     if (/반도체|semiconductor|chip|메모리|memory|패키징|장비|HBM|ASIC|GPU|테스터/i.test(sector)) return 'AI 반도체'
     if (/에너지|원전|원자력|nuclear|우라늄|연료전지|fuel cell|가스터빈|발전|터빈/i.test(sector)) return 'AI 에너지/원전'
-    if (/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|스토리지|저장|인프라|광|cloud|클라우드|NAND|SSD|HDD|서버/i.test(sector)) return '데이터센터/냉각/네트워킹'
+    if (/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|스토리지|저장|인프라|광|cloud|클라우드|NAND|SSD|HDD|서버/i.test(sector)) return '저장/냉각/연결'
     if (/방산|defense|military/i.test(sector)) return '방산'
     if (/우주|space|satellite|SpaceX|위성|달|lunar/i.test(sector)) return '우주'
     return null

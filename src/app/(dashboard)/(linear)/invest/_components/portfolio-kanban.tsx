@@ -86,13 +86,13 @@ const PARENT_COLORS: Record<string, { bg: string; fg: string }> = {
 }
 // holdings-block의 SUB_GROUP_ORDER와 동일한 묶음 — 두 섹션의 분류 표시가 같아지도록
 const SUB_ORDER: Record<string, string[]> = {
-  'AI 인프라':   ['AI 반도체', 'AI 에너지/원전', '데이터센터/냉각/네트워킹'],
+  'AI 인프라':   ['AI 반도체', 'AI 에너지/원전', '저장/냉각/연결'],
   '지정학/안보': ['방산', '우주'],
 }
 const SUB_COLORS: Record<string, { bg: string; fg: string }> = {
   'AI 반도체':              { bg: '#FCE7F3', fg: '#9D174D' },
   'AI 에너지/원전':         { bg: '#FEF3C7', fg: '#92400E' },
-  '데이터센터/냉각/네트워킹': { bg: '#CFFAFE', fg: '#155E75' },
+  '저장/냉각/연결': { bg: '#CFFAFE', fg: '#155E75' },
   '방산':                   { bg: '#FEE2E2', fg: '#B91C1C' },
   '우주':                   { bg: '#DBEAFE', fg: '#1E40AF' },
   '기타':                   { bg: '#F1F5F9', fg: '#475569' },
@@ -103,7 +103,7 @@ function mapSectorToSubTheme(sector: string | undefined | null): string {
   if (!sector) return '기타'
   if (/반도체|semiconductor|chip|메모리|memory|패키징|장비|HBM|ASIC|GPU|테스터/i.test(sector)) return 'AI 반도체'
   if (/에너지|원전|원자력|nuclear|우라늄|연료전지|fuel cell|가스터빈|발전|터빈/i.test(sector)) return 'AI 에너지/원전'
-  if (/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|스토리지|저장|인프라|광|cloud|클라우드|NAND|SSD|HDD|서버/i.test(sector)) return '데이터센터/냉각/네트워킹'
+  if (/데이터센터|냉각|네트워킹|네트워크|cooling|datacenter|storage|스토리지|저장|인프라|광|cloud|클라우드|NAND|SSD|HDD|서버/i.test(sector)) return '저장/냉각/연결'
   if (/방산|defense|military/i.test(sector)) return '방산'
   if (/우주|space|satellite|SpaceX|위성|달|lunar/i.test(sector)) return '우주'
   return '기타'
