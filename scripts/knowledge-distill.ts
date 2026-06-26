@@ -3,6 +3,7 @@ config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import { runAgent } from './lib/agent-cli'
+import { markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
 
 const LOG_PREFIX = '[knowledge-distill]'
 const supabase = createClient(
@@ -25,18 +26,23 @@ async function getCeoChatId(): Promise<string | null> {
 }
 
 async function sendTelegramMessage(chatId: string, text: string): Promise<number | null> {
-  const chunks: string[] = []
-  for (let i = 0; i < text.length; i += 4000) {
-    chunks.push(text.slice(i, i + 4000))
-  }
+  const normalized = normalizeTelegramOutboundText(text)
+  const chunks = splitTelegramMessage(normalized, 4000)
   let firstMsgId: number | null = null
   for (const chunk of chunks) {
     const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: chunk }),
+      body: JSON.stringify({ chat_id: chatId, text: markdownToTelegramHtml(chunk), parse_mode: 'HTML' }),
     })
     const json = await res.json()
+    if (!json.ok) {
+      await fetch(`${TELEGRAM_API}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: chunk }),
+      }).catch(() => {})
+    }
     if (!firstMsgId && json.result?.message_id) firstMsgId = json.result.message_id
   }
   return firstMsgId

@@ -4,6 +4,7 @@ config({ path: '.env.local' })
 import { google } from 'googleapis'
 import { createClient } from '@supabase/supabase-js'
 import { runAgent } from './lib/agent-cli'
+import { markdownToTelegramHtml, normalizeTelegramOutboundText } from './telegram-utils'
 import os from 'os'
 
 // ============================================================
@@ -341,12 +342,12 @@ async function sendTelegramNotification(results: ClassificationResult[], applied
   if (!data?.chat_id) return
 
   const lines = labeled.map(r => `  🏷️ ${r.label}: ${r.reason}`).join('\n')
-  const text = `📧 이메일 자동 분류 (${applied}건)\n\n${lines}`
+  const text = normalizeTelegramOutboundText(`📧 이메일 자동 분류 (${applied}건)\n\n${lines}`)
 
   await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: data.chat_id, text }),
+    body: JSON.stringify({ chat_id: data.chat_id, text: markdownToTelegramHtml(text), parse_mode: 'HTML' }),
   })
 }
 

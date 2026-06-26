@@ -118,6 +118,87 @@ function replaceMarkdownTables(text: string, wrap: (content: string) => string):
   return out.join('\n')
 }
 
+function inferCompactLinkLabel(url: string, prevLine: string): string {
+  if (/youtu\.be|youtube\.com/i.test(url)) return '영상 링크'
+  const trimmedPrev = prevLine.trim()
+  if (!trimmedPrev) return '원문 링크'
+
+  const parenMatch = trimmedPrev.match(/\(([^()]+)\)\s*$/)
+  if (parenMatch) {
+    const source = parenMatch[1].split(',')[0].trim()
+    if (source && source.length <= 40) return `${source} 링크`
+  }
+
+  const dashMatch = trimmedPrev.match(/[-–—]\s*([^()]{1,40})$/)
+  if (dashMatch) {
+    const source = dashMatch[1].trim()
+    if (source) return `${source} 링크`
+  }
+
+  return '원문 링크'
+}
+
+function compactBareLinksInLine(line: string, prevLine: string): string {
+  if (!line || line.includes('](')) return line
+
+  const onlyUrl = line.trim().match(/^https?:\/\/\S+$/i)
+  if (onlyUrl) {
+    return line.replace(onlyUrl[0], formatCompactLink(onlyUrl[0], inferCompactLinkLabel(onlyUrl[0], prevLine)))
+  }
+
+  const trailingUrl = line.match(/^(.*?)(https?:\/\/\S+)\s*$/i)
+  if (trailingUrl && trailingUrl[1].trim()) {
+    const [, prefix, url] = trailingUrl
+    return `${prefix.trimEnd()} ${formatCompactLink(url, inferCompactLinkLabel(url, prevLine || prefix))}`
+  }
+
+  return line
+}
+
+export function formatCompactLink(url: string, label = '원문 링크'): string {
+  if (!url) return ''
+  return `[${label}](${url})`
+}
+
+export function normalizeTelegramOutboundText(text: string): string {
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  const normalized: string[] = []
+  let prevNonEmptyLine = ''
+  let inCodeBlock = false
+
+  for (const line of lines) {
+    if (line.trim().startsWith('```')) {
+      inCodeBlock = !inCodeBlock
+      normalized.push(line)
+      if (line.trim()) prevNonEmptyLine = line
+      continue
+    }
+
+    const nextLine = inCodeBlock ? line : compactBareLinksInLine(line, prevNonEmptyLine)
+    normalized.push(nextLine)
+    if (line.trim()) prevNonEmptyLine = nextLine
+  }
+
+  return normalized.join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
+export function splitTelegramMessage(text: string, maxLen = 4000): string[] {
+  if (text.length <= maxLen) return [text]
+  const chunks: string[] = []
+  let remaining = text
+  while (remaining.length > 0) {
+    if (remaining.length <= maxLen) {
+      chunks.push(remaining)
+      break
+    }
+    let splitAt = remaining.lastIndexOf('\n', maxLen)
+    if (splitAt < 100) splitAt = maxLen
+    chunks.push(remaining.slice(0, splitAt))
+    remaining = remaining.slice(splitAt).trimStart()
+  }
+  return chunks
+}
+
 export function markdownToTelegramHtml(text: string): string {
   const phs: string[] = []
   const ph = (s: string) => { phs.push(s); return `\x00${phs.length - 1}\x00` }

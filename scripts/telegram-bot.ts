@@ -3,10 +3,14 @@ config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import { execSync, spawn } from 'child_process'
-import { existsSync, writeFileSync, readFileSync, unlinkSync, mkdirSync, readdirSync } from 'fs'
-import { join, basename } from 'path'
-import { markdownToTelegramHtml } from './telegram-utils'
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, statSync, unlinkSync, writeFileSync, readdirSync } from 'fs'
+import { join, basename, relative } from 'path'
+import { formatCompactLink, markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
 import { runAgent, AgentAbortError, type CodexProgress } from './lib/agent-cli'
+import { isResumablePendingTask, loadPendingTasks, patchPendingTask, removePendingTask, savePendingTask } from './lib/inflight-resume'
+import { type LocalServiceDefinition, getLocalServiceContext, getLocalServiceRegistry, getLocalServiceStatus, executeLocalServiceAction } from './lib/local-services'
+import { resolveLocalProjectContext } from './lib/local-projects'
+import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
 
 // ============================================================
 // Config
@@ -17,17 +21,68 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SECRET_KEY!
 )
+const voicecardsSupabase = process.env.VOICECARDS_SUPABASE_URL && process.env.VOICECARDS_SUPABASE_KEY
+  ? createClient(process.env.VOICECARDS_SUPABASE_URL, process.env.VOICECARDS_SUPABASE_KEY)
+  : null
+const reviewnotesSupabase = process.env.REVIEWNOTES_SUPABASE_URL && process.env.REVIEWNOTES_SUPABASE_KEY
+  ? createClient(process.env.REVIEWNOTES_SUPABASE_URL, process.env.REVIEWNOTES_SUPABASE_KEY)
+  : null
 
 const MAX_HISTORY = 50 // 대화 기록 최대 보관 수
+const MAX_PROMPT_HISTORY = 20 // 프롬프트에는 최근 대화만 주입해 응답 지연을 줄임
 const MAX_AUTO_MESSAGES = 10 // 자동 메시지(브리핑/알림) 최대 보관 수
 const POLL_INTERVAL = 1500 // ms
-const MESSAGE_BATCH_DELAY = 5000 // 메시지 배칭 디바운스 대기 시간 (ms)
+const MESSAGE_BATCH_DELAY = 1000 // 메시지 배칭 디바운스 대기 시간 (ms)
+const MESSAGE_PART_DELAY_MIN = 200 // 여러 메시지로 나눠 보낼 때 최소 대기 (ms)
+const MESSAGE_PART_DELAY_MAX = 450 // 여러 메시지로 나눠 보낼 때 최대 대기 (ms)
+const NEWS_FETCH_TIMEOUT_MS = 6000
+const YOUTUBE_FETCH_TIMEOUT_MS = 4000
+const MARKET_FETCH_TIMEOUT_MS = 8000
 const PROACTIVE_CHECK_INTERVAL = 30 * 60 * 1000 // 30분마다 자율 점검
-const LOCK_FILE = join(__dirname, 'logs', 'telegram-bot.lock')
-const OFFSET_FILE = join(__dirname, 'logs', 'telegram-bot.offset')
-const ALLOWED_USERS_FILE = join(__dirname, 'logs', 'willy-bot-users.json')
+const VOICECARDS_EVENT_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 앱 사용자 로그 점검
+const REVIEWNOTES_MONITOR_INTERVAL = 20 * 60 * 1000 // 20분마다 ReviewNotes 이상징후 점검
+const ENABLE_VOICECARDS_LOCAL_LOG_MONITOR = process.env.WILLY_ENABLE_VOICECARDS_LOCAL_LOG_MONITOR === '1'
+const SERVICE_LOG_MONITOR_INTERVAL = 60 * 1000 // 1분마다 로컬 서비스 로그 감시
+const SERVICE_LOG_ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000 // 같은 오류 중복 알림 억제
+const SERVICE_LOG_MAX_READ_BYTES = 96 * 1024
+const LOG_DIR = join(__dirname, 'logs')
+const LOCK_FILE = join(LOG_DIR, 'telegram-bot.lock')
+const OFFSET_FILE = join(LOG_DIR, 'telegram-bot.offset')
+const ALLOWED_USERS_FILE = join(LOG_DIR, 'willy-bot-users.json')
+const BOT_TEXT_LOG_FILE = join(LOG_DIR, 'telegram-bot.log')
+const BOT_RUNTIME_JSONL_FILE = join(LOG_DIR, 'telegram-bot.runtime.jsonl')
+const BOT_INFLIGHT_FILE = join(LOG_DIR, 'telegram-bot.inflight.json')
 const WILLY_REG_CODE = '윌로우2026'
 const WILLY_MAX_USERS = 2
+const WEBSITE_STRUCTURE_CONTEXT = `## WILLOW-INVT 대시보드 정보구조
+- 윌로우인베스트먼트
+  - 사업관리: 일정, 인보이스, 은행잔고, 이메일, 운영 실무 관리
+  - 업무위키: 사업/프로젝트/투자 관련 메모와 운영 지식 저장소
+  - 주식투자: 포트폴리오, 워치리스트, 리서치, 시그널, 섹터로테이션
+  - 부동산리서치: 시세/매물/추세 기반 부동산 조사
+  - 류하일정: 가족/교육 일정과 학습 관리
+- 프로젝트
+  - 아크로스: ETF/AUM, 상품, 세금계산서, 프로젝트 위키, 이메일
+  - ETC: ETF 플랫폼 및 문서/제품 관련 운영
+  - 텐소프트웍스: 프로젝트, 일정, 현금흐름, 매출, 대출, 위키, 이메일
+  - MonoR Apps: 앱 운영과 사용자/분석 업무
+  - LLM Wiki: 실험적 지식 정리와 밸류체인 연구
+
+이 구조는 대표의 업무가 "윌로우 본업 운영 + 투자관리 + 개별 프로젝트 운영 + 가족/교육 관리"로 병렬 구성되어 있음을 뜻한다.
+질문이 어느 축에 속하는지 먼저 분류한 뒤, 관련 섹션의 데이터와 위키를 우선 참고하세요.`
+
+installRuntimeConsoleCapture({ botKey: 'willy-bot', jsonlPath: BOT_RUNTIME_JSONL_FILE })
+installRuntimeProcessMonitor({ botKey: 'willy-bot', jsonlPath: BOT_RUNTIME_JSONL_FILE })
+recordRuntimeEvent({
+  botKey: 'willy-bot',
+  jsonlPath: BOT_RUNTIME_JSONL_FILE,
+  source: 'process_boot',
+  message: 'runtime logging enabled',
+  details: {
+    textLog: BOT_TEXT_LOG_FILE,
+    structuredLog: BOT_RUNTIME_JSONL_FILE,
+  },
+})
 
 // 허용된 chat_id 목록
 let allowedChatIds: number[] = []
@@ -58,6 +113,254 @@ const messageBatchBuffer: Map<number, { messages: string[]; timer: ReturnType<ty
 const processingAbort: Map<number, AbortController> = new Map()
 // abort 시 원본 메시지 보존 — 새 메시지와 합침
 const inFlightText: Map<number, string> = new Map()
+
+interface ProgressMessageState {
+  messageId: number
+  startedAt: number
+  replyToMessageId?: number
+  lastRendered: string
+}
+
+const progressMessages = new Map<number, ProgressMessageState>()
+
+interface TimedCache<T> {
+  value: T
+  updatedAt: number
+}
+
+function readTimedCache<T>(cache: TimedCache<T> | null, ttlMs: number): T | null {
+  if (!cache) return null
+  if (Date.now() - cache.updatedAt >= ttlMs) return null
+  return cache.value
+}
+
+function writeTimedCache<T>(value: T): TimedCache<T> {
+  return { value, updatedAt: Date.now() }
+}
+
+function randomMessageDelay(): number {
+  return MESSAGE_PART_DELAY_MIN + Math.floor(Math.random() * (MESSAGE_PART_DELAY_MAX - MESSAGE_PART_DELAY_MIN + 1))
+}
+
+function formatProgressElapsed(startedAt: number): string {
+  const sec = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
+  return sec >= 60 ? `${Math.floor(sec / 60)}분 ${sec % 60}초` : `${sec}초`
+}
+
+function buildProgressMessage(opts: {
+  percent: number
+  stage: string
+  current: string
+  startedAt: number
+  recent?: string[]
+  meta?: string[]
+}): string {
+  const lines = [
+    `⏳ 처리현황 ${Math.max(0, Math.min(100, Math.round(opts.percent)))}%`,
+    `단계: ${opts.stage}`,
+    `현재: ${opts.current}`,
+  ]
+  const recent = (opts.recent || []).filter(Boolean).slice(-4)
+  if (recent.length) {
+    lines.push('최근:')
+    for (const item of recent) lines.push(`- ${item}`)
+  }
+  const meta = [`경과 ${formatProgressElapsed(opts.startedAt)}`, ...((opts.meta || []).filter(Boolean))]
+  lines.push(meta.join(' · '))
+  return lines.join('\n').slice(0, 4000)
+}
+
+async function ensureProgressMessage(
+  chatId: number,
+  initialText: string,
+  opts?: { replyToMessageId?: number; startedAt?: number }
+): Promise<ProgressMessageState> {
+  const existing = progressMessages.get(chatId)
+  if (existing) {
+    if (opts?.replyToMessageId) existing.replyToMessageId = opts.replyToMessageId
+    if (opts?.startedAt) existing.startedAt = opts.startedAt
+    return existing
+  }
+
+  const res = await tg('sendMessage', {
+    chat_id: chatId,
+    text: initialText,
+    ...(opts?.replyToMessageId ? { reply_to_message_id: opts.replyToMessageId } : {}),
+  })
+  const state: ProgressMessageState = {
+    messageId: res?.result?.message_id,
+    startedAt: opts?.startedAt ?? Date.now(),
+    replyToMessageId: opts?.replyToMessageId,
+    lastRendered: initialText,
+  }
+  progressMessages.set(chatId, state)
+  return state
+}
+
+async function renderProgressMessage(
+  chatId: number,
+  text: string,
+  opts?: { replyToMessageId?: number; startedAt?: number }
+) {
+  const state = await ensureProgressMessage(chatId, text, opts)
+  if (state.lastRendered === text) return
+  state.lastRendered = text
+  await editMessage(chatId, state.messageId, text)
+}
+
+function getProgressStartedAt(chatId: number): number | null {
+  return progressMessages.get(chatId)?.startedAt ?? null
+}
+
+async function closeProgressMessage(chatId: number, opts?: { finalText?: string; lingerMs?: number }) {
+  const state = progressMessages.get(chatId)
+  if (!state) return
+  progressMessages.delete(chatId)
+
+  if (opts?.finalText) {
+    try { await editMessage(chatId, state.messageId, opts.finalText) } catch { /* ignore */ }
+  }
+  if (opts?.lingerMs) {
+    await new Promise(r => setTimeout(r, opts.lingerMs))
+  }
+  await deleteMsg(chatId, state.messageId)
+}
+
+async function updateQueuedProgress(
+  chatId: number,
+  opts: {
+    messageCount: number
+    replyToMessageId?: number
+    phase: 'queued' | 'merged' | 'restart' | 'starting'
+    startedAt?: number
+  }
+) {
+  const startedAt = opts.startedAt ?? getProgressStartedAt(chatId) ?? Date.now()
+  const currentByPhase = {
+    queued: `메시지 ${opts.messageCount}개를 받았어요. ${Math.round(MESSAGE_BATCH_DELAY / 1000)}초 동안 추가 입력도 같이 볼게요.`,
+    merged: `추가 메시지를 합쳐서 한 번에 처리하려고 정리 중이에요. (${opts.messageCount}개)`,
+    restart: `새 메시지가 와서 기존 작업을 멈추고 다시 묶는 중이에요. (${opts.messageCount}개)`,
+    starting: `배칭을 마치고 본격 처리를 시작해요. (${opts.messageCount}개)`,
+  } as const
+  const percentByPhase = { queued: 10, merged: 12, restart: 14, starting: 18 } as const
+  const noteByPhase = {
+    queued: '접수 완료',
+    merged: `메시지 ${opts.messageCount}개 묶는 중`,
+    restart: '새 입력 반영해 재조정',
+    starting: '배칭 종료, 처리 시작',
+  } as const
+
+  await renderProgressMessage(chatId, buildProgressMessage({
+    percent: percentByPhase[opts.phase],
+    stage: opts.phase === 'starting' ? '처리 시작' : '접수/배칭',
+    current: currentByPhase[opts.phase],
+    startedAt,
+    recent: [noteByPhase[opts.phase]],
+    meta: [`입력 ${opts.messageCount}개`, opts.phase !== 'starting' ? `배칭 ${Math.round(MESSAGE_BATCH_DELAY / 1000)}초` : '곧 컨텍스트 로드'],
+  }), {
+    replyToMessageId: opts.replyToMessageId,
+    startedAt,
+  })
+}
+
+function relPath(p: string, base = process.cwd()): string {
+  const r = relative(base, p)
+  return r && !r.startsWith('..') ? r : p
+}
+
+function persistPendingMessage(chatId: number, text: string, opts?: {
+  lastMessageId?: number
+  startedAt?: number
+  phase?: 'queued' | 'running' | 'codex_running' | 'action_running' | 'response_sending' | 'resuming'
+  workspaceKey?: string
+  workspacePath?: string
+  resumeCount?: number
+}) {
+  savePendingTask(BOT_INFLIGHT_FILE, {
+    chatId,
+    text,
+    lastMessageId: opts?.lastMessageId,
+    startedAt: opts?.startedAt ? new Date(opts.startedAt).toISOString() : undefined,
+    phase: opts?.phase,
+    workspaceKey: opts?.workspaceKey,
+    workspacePath: opts?.workspacePath,
+    resumeCount: opts?.resumeCount,
+  })
+}
+
+async function resumeInterruptedMessages(): Promise<number> {
+  const pendingTasks = loadPendingTasks(BOT_INFLIGHT_FILE)
+  if (!pendingTasks.length) return 0
+
+  let resumedCount = 0
+  const nowMs = Date.now()
+
+  for (const task of pendingTasks) {
+    if (!isResumablePendingTask(task, nowMs)) {
+      recordRuntimeEvent({
+        botKey: 'willy-bot',
+        jsonlPath: BOT_RUNTIME_JSONL_FILE,
+        level: 'warn',
+        source: 'resume_skipped',
+        message: `stale or unsafe pending task skipped for ${task.chatId}`,
+        details: {
+          chatId: task.chatId,
+          phase: task.phase,
+          startedAt: task.startedAt,
+          resumeCount: task.resumeCount,
+        },
+      })
+      removePendingTask(BOT_INFLIGHT_FILE, task.chatId)
+      continue
+    }
+
+    patchPendingTask(BOT_INFLIGHT_FILE, task.chatId, {
+      phase: 'resuming',
+      resumeCount: task.resumeCount + 1,
+    })
+
+    const startedAt = Number.isFinite(Date.parse(task.startedAt)) ? Date.parse(task.startedAt) : Date.now()
+    recordRuntimeEvent({
+      botKey: 'willy-bot',
+      jsonlPath: BOT_RUNTIME_JSONL_FILE,
+      source: 'resume_started',
+      message: `resuming interrupted task for ${task.chatId}`,
+      details: {
+        chatId: task.chatId,
+        phase: task.phase,
+        lastMessageId: task.lastMessageId,
+        resumeCount: task.resumeCount + 1,
+        workspaceKey: task.workspaceKey,
+        workspacePath: task.workspacePath,
+      },
+    })
+
+    await renderProgressMessage(task.chatId, buildProgressMessage({
+      percent: 18,
+      stage: '자동 복구',
+      current: '재시작 전에 끊긴 작업을 다시 이어가고 있어요.',
+      startedAt,
+      recent: ['이전 요청 자동 복구'],
+    }), {
+      replyToMessageId: task.lastMessageId,
+      startedAt,
+    })
+    await sendMessage(task.chatId, '🔄 방금 끊긴 작업을 자동 복구해서 이어갈게요.')
+
+    const ac = new AbortController()
+    processingAbort.set(task.chatId, ac)
+    inFlightText.set(task.chatId, task.text)
+    try {
+      await handleMessage(task.chatId, task.text, ac.signal, task.lastMessageId)
+      resumedCount += 1
+    } finally {
+      processingAbort.delete(task.chatId)
+      inFlightText.delete(task.chatId)
+    }
+  }
+
+  return resumedCount
+}
 
 // ============================================================
 // Process lock — 중복 실행 방지
@@ -140,10 +443,9 @@ async function tg(method: string, body: Record<string, unknown>) {
   return json
 }
 
-
-async function sendMessage(chatId: number, text: string, maxRetries = 2) {
+async function sendMessageRaw(chatId: number, text: string, maxRetries = 2) {
   // Telegram 메시지 길이 제한: 4096자
-  const chunks = splitMessage(text, 4000)
+  const chunks = splitTelegramMessage(text, 4000)
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i]
     let sent = false
@@ -184,41 +486,27 @@ async function sendMessage(chatId: number, text: string, maxRetries = 2) {
   }
 }
 
+async function sendMessage(chatId: number, text: string, maxRetries = 2) {
+  await sendMessageRaw(chatId, normalizeTelegramOutboundText(text), maxRetries)
+}
+
 // SPLIT 구분자를 처리하여 여러 메시지로 나눠 전송 (사람처럼 딜레이 포함)
 async function sendSplitMessage(chatId: number, text: string) {
   const parts = text.split(/\n---SPLIT---\n/).map(p => p.trim()).filter(Boolean)
   for (let i = 0; i < parts.length; i++) {
     await sendMessage(chatId, parts[i])
     if (i < parts.length - 1) {
-      await sendTyping(chatId)
-      await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500))
+      void sendTyping(chatId)
+      await new Promise(r => setTimeout(r, randomMessageDelay()))
     }
   }
-}
-
-function splitMessage(text: string, maxLen: number): string[] {
-  if (text.length <= maxLen) return [text]
-  const chunks: string[] = []
-  let remaining = text
-  while (remaining.length > 0) {
-    if (remaining.length <= maxLen) {
-      chunks.push(remaining)
-      break
-    }
-    // 줄바꿈 기준으로 자르기
-    let splitIdx = remaining.lastIndexOf('\n', maxLen)
-    if (splitIdx === -1 || splitIdx < maxLen / 2) splitIdx = maxLen
-    chunks.push(remaining.slice(0, splitIdx))
-    remaining = remaining.slice(splitIdx).trimStart()
-  }
-  return chunks
 }
 
 async function sendTyping(chatId: number) {
   await tg('sendChatAction', { chat_id: chatId, action: 'typing' })
 }
 
-async function sendMessageWithButtons(chatId: number, text: string, buttons: { text: string; callback_data: string }[][]) {
+async function sendMessageWithButtonsRaw(chatId: number, text: string, buttons: { text: string; callback_data: string }[][]) {
   for (let attempt = 0; attempt <= 2; attempt++) {
     try {
       const res = await tg('sendMessage', {
@@ -251,6 +539,10 @@ async function sendMessageWithButtons(chatId: number, text: string, buttons: { t
     }
   }
   console.error(`[sendMessageWithButtons] 🚨 최종 전송 실패!`)
+}
+
+async function sendMessageWithButtons(chatId: number, text: string, buttons: { text: string; callback_data: string }[][]) {
+  await sendMessageWithButtonsRaw(chatId, normalizeTelegramOutboundText(text), buttons)
 }
 
 async function answerCallbackQuery(callbackQueryId: string, text?: string) {
@@ -401,17 +693,40 @@ function formatTimeAgo(ts: Date, now: Date): string {
   return `${diffDay}일 전`
 }
 
+const ATTRIBUTE_CATALOG_CACHE_TTL = 10 * 60 * 1000
+const PROMPT_SECTIONS_CACHE_TTL = 5 * 60 * 1000
+const KNOWLEDGE_CONTEXT_CACHE_TTL = 2 * 60 * 1000
+const WIKI_CONTEXT_CACHE_TTL = 3 * 60 * 1000
+const DASHBOARD_CONTEXT_CACHE_TTL = 60 * 1000
+const WATCH_TOPICS_CACHE_TTL = 2 * 60 * 1000
+const MARKET_PRICES_CACHE_TTL = 30 * 1000
+
+let attributeCatalogCache: TimedCache<string> | null = null
+type PromptSectionMap = Record<string, { content: string; version: number; is_modifiable: boolean }>
+let promptSectionsCache: TimedCache<PromptSectionMap> | null = null
+let knowledgeContextCache: TimedCache<string> | null = null
+let wikiContextCache: TimedCache<string> | null = null
+let dashboardContextCache: TimedCache<string> | null = null
+let watchTopicsCache: TimedCache<WatchTopic[]> | null = null
+let liveMarketPricesCache: TimedCache<MarketPrice[]> | null = null
+
 // ============================================================
 // ③ Attribute Catalog — key 자율 확장
 // ============================================================
 async function fetchAttributeCatalog(): Promise<string> {
+  const cached = readTimedCache(attributeCatalogCache, ATTRIBUTE_CATALOG_CACHE_TTL)
+  if (cached !== null) return cached
+
   const { data: attrs } = await supabase
     .from('knowledge_attribute_catalog')
     .select('key_name, entity_type, level, description, data_type, importance, usage_count')
     .order('level', { ascending: true })
     .order('importance', { ascending: false })
 
-  if (!attrs?.length) return ''
+  if (!attrs?.length) {
+    attributeCatalogCache = writeTimedCache('')
+    return ''
+  }
 
   const parts: string[] = ['## 속성 카탈로그 (Attribute Catalog)']
   const byLevel: Record<number, typeof attrs> = { 1: [], 2: [], 3: [] }
@@ -444,27 +759,36 @@ async function fetchAttributeCatalog(): Promise<string> {
     }
   }
 
-  return parts.join('\n')
+  const result = parts.join('\n')
+  attributeCatalogCache = writeTimedCache(result)
+  return result
 }
 
 // ============================================================
 // ④ Prompt Sections — 프롬프트 자기 수정
 // ============================================================
-async function fetchPromptSections(): Promise<Record<string, { content: string; version: number; is_modifiable: boolean }>> {
+async function fetchPromptSections(): Promise<PromptSectionMap> {
+  const cached = readTimedCache(promptSectionsCache, PROMPT_SECTIONS_CACHE_TTL)
+  if (cached !== null) return cached
+
   const { data: sections } = await supabase
     .from('agent_prompt_sections')
     .select('section_key, content, version, is_modifiable')
 
-  const result: Record<string, { content: string; version: number; is_modifiable: boolean }> = {}
+  const result: PromptSectionMap = {}
   if (sections) {
     for (const s of sections) {
       result[s.section_key] = { content: s.content, version: s.version, is_modifiable: s.is_modifiable }
     }
   }
+  promptSectionsCache = writeTimedCache(result)
   return result
 }
 
 async function fetchKnowledgeContext(): Promise<string> {
+  const cached = readTimedCache(knowledgeContextCache, KNOWLEDGE_CONTEXT_CACHE_TTL)
+  if (cached !== null) return cached
+
   // First get counts to decide loading strategy
   const [
     { count: entityCount },
@@ -477,11 +801,11 @@ async function fetchKnowledgeContext(): Promise<string> {
   ])
 
   const total = (entityCount || 0) + (relationCount || 0) + (insightCount || 0)
-  const isCompact = total > 80 // 80개 초과 시 요약 모드
+  const isCompact = total > 50 // 자주 쓰는 프롬프트이므로 더 이르게 요약 모드 진입
 
-  const entityLimit = isCompact ? 15 : 50
-  const relationLimit = isCompact ? 20 : 100
-  const insightLimit = isCompact ? 8 : 20
+  const entityLimit = isCompact ? 10 : 24
+  const relationLimit = isCompact ? 12 : 36
+  const insightLimit = isCompact ? 6 : 12
 
   const [
     { data: entities },
@@ -528,17 +852,25 @@ async function fetchKnowledgeContext(): Promise<string> {
     }
   }
 
-  return parts.length ? parts.join('\n') : ''
+  const result = parts.length ? parts.join('\n') : ''
+  knowledgeContextCache = writeTimedCache(result)
+  return result
 }
 
 async function fetchWikiContext(): Promise<string> {
+  const cached = readTimedCache(wikiContextCache, WIKI_CONTEXT_CACHE_TTL)
+  if (cached !== null) return cached
+
   const { data: wikiNotes } = await supabase
     .from('work_wiki')
     .select('id, title, content, category, section, created_at')
     .order('created_at', { ascending: false })
-    .limit(30)
+    .limit(15)
 
-  if (!wikiNotes?.length) return ''
+  if (!wikiNotes?.length) {
+    wikiContextCache = writeTimedCache('')
+    return ''
+  }
 
   const sections: string[] = ['\n## 업무위키 노트']
 
@@ -561,12 +893,14 @@ async function fetchWikiContext(): Promise<string> {
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .trim()
-      const preview = plainContent.length > 500 ? plainContent.slice(0, 500) + '...' : plainContent
+      const preview = plainContent.length > 240 ? plainContent.slice(0, 240) + '...' : plainContent
       sections.push(`- **${n.title}**${n.category ? ` [${n.category}]` : ''} (${n.created_at?.split('T')[0]})\n  ${preview}`)
     }
   }
 
-  return sections.join('\n')
+  const result = sections.join('\n')
+  wikiContextCache = writeTimedCache(result)
+  return result
 }
 
 async function fetchFollowUpsContext(): Promise<string> {
@@ -606,6 +940,9 @@ async function expireStaleFollowUps(): Promise<number> {
 }
 
 async function fetchDashboardContext(): Promise<string> {
+  const cached = readTimedCache(dashboardContextCache, DASHBOARD_CONTEXT_CACHE_TTL)
+  if (cached !== null) return cached
+
   const today = new Date()
   const weekLater = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
   const todayStr = formatDate(today)
@@ -619,12 +956,12 @@ async function fetchDashboardContext(): Promise<string> {
     { data: tasks },
     { data: invoices },
   ] = await Promise.all([
-    supabase.from('willow_mgmt_projects').select('*, client:willow_mgmt_clients(name)').order('created_at', { ascending: false }),
+    supabase.from('willow_mgmt_projects').select('id, name, status, description, client:willow_mgmt_clients(name)').order('created_at', { ascending: false }),
     supabase.from('willow_mgmt_clients').select('id, name').order('name'),
-    supabase.from('willow_mgmt_milestones').select('*, project:willow_mgmt_projects(name, client:willow_mgmt_clients(name))').gte('target_date', formatDate(new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000))).order('target_date'),
-    supabase.from('willow_mgmt_schedules').select('*, client:willow_mgmt_clients(name), tasks:willow_mgmt_tasks(*)').gte('schedule_date', todayStr).lte('schedule_date', weekLaterStr).order('schedule_date'),
-    supabase.from('willow_mgmt_tasks').select('*, schedule:willow_mgmt_schedules(title)').eq('is_completed', false).order('deadline'),
-    supabase.from('willow_mgmt_cash').select('*').order('created_at', { ascending: false }).limit(20),
+    supabase.from('willow_mgmt_milestones').select('id, name, status, target_date, project:willow_mgmt_projects(name, client:willow_mgmt_clients(name))').gte('target_date', formatDate(new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000))).order('target_date'),
+    supabase.from('willow_mgmt_schedules').select('id, title, schedule_date, start_time, is_completed, client:willow_mgmt_clients(name), tasks:willow_mgmt_tasks(id)').gte('schedule_date', todayStr).lte('schedule_date', weekLaterStr).order('schedule_date'),
+    supabase.from('willow_mgmt_tasks').select('id, content, deadline, schedule:willow_mgmt_schedules(title)').eq('is_completed', false).order('deadline'),
+    supabase.from('willow_mgmt_cash').select('type, status, amount, created_at').order('created_at', { ascending: false }).limit(20),
   ])
 
   const sections: string[] = []
@@ -711,7 +1048,9 @@ async function fetchDashboardContext(): Promise<string> {
     }
   }
 
-  return sections.join('\n')
+  const result = sections.join('\n')
+  dashboardContextCache = writeTimedCache(result)
+  return result
 }
 
 // ============================================================
@@ -719,7 +1058,7 @@ async function fetchDashboardContext(): Promise<string> {
 // ============================================================
 let tenswDataCache: string = ''
 let tenswCacheTime = 0
-const TENSW_CACHE_TTL = 10 * 60 * 1000 // 10분 캐시
+const TENSW_CACHE_TTL = 2 * 60 * 1000 // 2분 캐시
 
 async function fetchTenswContext(): Promise<string> {
   // 캐시가 유효하면 반환
@@ -729,21 +1068,139 @@ async function fetchTenswContext(): Promise<string> {
 
   try {
     console.log('🔄 텐소프트웍스 데이터 로딩 중...')
-    const result = await askClaude(
-      `텐소프트웍스 CEO 대시보드를 조회해서 아래 형식으로 정리해줘. MCP 도구(get_ceo_dashboard)를 사용해.
+    const { data: projects } = await supabase
+      .from('tensw_projects')
+      .select('id, name, slug, status')
+      .eq('status', 'active')
+      .order('name')
 
-형식:
-## 텐소프트웍스 현황
-- 전체 프로젝트: N개 (활성 N개)
-- 태스크 진행률: N%
-- 미완료 CEO 할일: (목록)
-- 프로젝트별 진행률: (목록)
-- 최신 주간보고서: (목록)
+    if (!projects?.length) {
+      tenswDataCache = '## 텐소프트웍스 현황\n- 활성 프로젝트가 없습니다.'
+      tenswCacheTime = Date.now()
+      return tenswDataCache
+    }
 
-데이터만 정리하고 부가 설명은 하지 마.`,
-      { allowedTools: [TENSW_MCP_TOOLS] }
+    const projectIds = projects.map(p => p.id)
+    const projectNameById = new Map(projects.map(p => [p.id, p.name]))
+
+    const [
+      { data: todos },
+      { data: members },
+      { data: reports },
+    ] = await Promise.all([
+      supabase
+        .from('tensw_todos')
+        .select('id, project_id, title, status, priority, due_date, readable_id, discarded_at')
+        .in('project_id', projectIds)
+        .is('discarded_at', null),
+      supabase
+        .from('tensw_project_members')
+        .select('id, project_id, name, role, is_manager')
+        .in('project_id', projectIds),
+      supabase
+        .from('tensw_project_docs')
+        .select('project_id, title, doc_type, created_at')
+        .in('project_id', projectIds)
+        .in('doc_type', ['weekly_report', 'progress_report'])
+        .order('created_at', { ascending: false })
+        .limit(6),
+    ])
+
+    const todoList = (todos || []).filter(t => !t.discarded_at)
+    const todoIds = todoList.map(t => t.id)
+    const { data: assignees } = todoIds.length
+      ? await supabase
+          .from('tensw_todo_assignees')
+          .select('todo_id, member_id')
+          .in('todo_id', todoIds)
+      : { data: [] as Array<{ todo_id: string; member_id: string | null }> }
+
+    const memberById = new Map((members || []).map(m => [m.id, m]))
+    const assigneesByTodo = new Map<string, string[]>()
+    for (const a of assignees || []) {
+      if (!a.member_id) continue
+      const list = assigneesByTodo.get(a.todo_id) || []
+      list.push(a.member_id)
+      assigneesByTodo.set(a.todo_id, list)
+    }
+
+    const openStatuses = new Set(['pending', 'assigned', 'in_progress', 'blocked', 'review'])
+    const completedTodos = todoList.filter(t => t.status === 'completed').length
+    const progressPct = todoList.length ? Math.round((completedTodos / todoList.length) * 100) : 0
+
+    const ceoMemberIds = new Set(
+      (members || [])
+        .filter(m => (m.name || '').includes('김동욱'))
+        .map(m => m.id)
     )
 
+    const ceoTodos = todoList
+      .filter(t => openStatuses.has(t.status))
+      .filter(t => (assigneesByTodo.get(t.id) || []).some(id => ceoMemberIds.has(id)))
+      .sort((a, b) => {
+        const priorityRank = (value?: string | null) => {
+          if (value === 'high') return 0
+          if (value === 'medium') return 1
+          return 2
+        }
+        const dueA = a.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER
+        const dueB = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER
+        return priorityRank(a.priority) - priorityRank(b.priority) || dueA - dueB
+      })
+      .slice(0, 6)
+
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const projectProgress = projects.map(project => {
+      const items = todoList.filter(t => t.project_id === project.id)
+      const total = items.length
+      const done = items.filter(t => t.status === 'completed').length
+      const open = items.filter(t => openStatuses.has(t.status)).length
+      const overdue = items.filter(t => openStatuses.has(t.status) && t.due_date && t.due_date.slice(0, 10) < todayStr).length
+      const pct = total ? Math.round((done / total) * 100) : 0
+      return {
+        name: project.name,
+        pct,
+        total,
+        open,
+        overdue,
+      }
+    }).sort((a, b) => a.pct - b.pct || b.overdue - a.overdue)
+
+    const lines: string[] = [
+      '## 텐소프트웍스 현황',
+      `- 활성 프로젝트: ${projects.length}개`,
+      `- 전체 태스크 진행률: ${progressPct}% (${completedTodos}/${todoList.length})`,
+    ]
+
+    if (ceoTodos.length) {
+      lines.push('- 미완료 CEO 할일:')
+      for (const todo of ceoTodos) {
+        const due = todo.due_date ? ` · 마감 ${todo.due_date.slice(0, 10)}` : ''
+        const code = todo.readable_id ? ` [${todo.readable_id}]` : ''
+        lines.push(`  • ${projectNameById.get(todo.project_id) || '프로젝트'}${code} ${todo.title}${due}`)
+      }
+    } else {
+      lines.push('- 미완료 CEO 할일: 없음')
+    }
+
+    lines.push('- 프로젝트별 진행률:')
+    for (const item of projectProgress.slice(0, 8)) {
+      const overdue = item.overdue ? ` · 지연 ${item.overdue}` : ''
+      lines.push(`  • ${item.name}: ${item.pct}% (${item.total}개 중 진행 ${item.open}개${overdue})`)
+    }
+
+    if ((reports || []).length) {
+      lines.push('- 최신 주간보고서:')
+      for (const report of reports!.slice(0, 4)) {
+        const projectName = projectNameById.get(report.project_id) || '프로젝트'
+        const kind = report.doc_type === 'weekly_report' ? '주간보고' : '진척보고'
+        lines.push(`  • ${projectName} · ${kind} · ${report.title} (${report.created_at.slice(0, 10)})`)
+      }
+    } else {
+      lines.push('- 최신 주간보고서: 없음')
+    }
+
+    const result = lines.join('\n')
     tenswDataCache = result
     tenswCacheTime = Date.now()
     console.log('✅ 텐소프트웍스 데이터 로딩 완료')
@@ -1139,6 +1596,9 @@ interface ProactiveState {
 }
 
 const PROACTIVE_STATE_FILE = join(__dirname, 'logs', 'proactive-state.json')
+const SERVICE_LOG_MONITOR_STATE_FILE = join(__dirname, 'logs', 'service-log-monitor-state.json')
+const VOICECARDS_EVENT_MONITOR_STATE_FILE = join(__dirname, 'logs', 'voicecards-event-monitor-state.json')
+const REVIEWNOTES_MONITOR_STATE_FILE = join(__dirname, 'logs', 'reviewnotes-monitor-state.json')
 
 function loadProactiveState(): ProactiveState {
   try {
@@ -1172,6 +1632,874 @@ function saveProactiveState() {
 }
 
 let proactiveState: ProactiveState = loadProactiveState()
+
+interface ServiceLogCursorState {
+  size?: number
+  lastAlertHash?: string
+  lastAlertAt?: string
+  lastMissingCwdAt?: string
+  lastMissingLogPathAt?: string
+  lastMissingLogFileAt?: string
+}
+
+interface ServiceLogMonitorState {
+  services: Record<string, ServiceLogCursorState>
+}
+
+function defaultServiceLogMonitorState(): ServiceLogMonitorState {
+  return { services: {} }
+}
+
+function loadServiceLogMonitorState(): ServiceLogMonitorState {
+  try {
+    const raw = readFileSync(SERVICE_LOG_MONITOR_STATE_FILE, 'utf-8')
+    const saved = JSON.parse(raw)
+    return {
+      services: typeof saved?.services === 'object' && saved.services ? saved.services : {},
+    }
+  } catch {
+    return defaultServiceLogMonitorState()
+  }
+}
+
+function saveServiceLogMonitorState() {
+  try {
+    writeFileSync(SERVICE_LOG_MONITOR_STATE_FILE, JSON.stringify(serviceLogMonitorState, null, 2))
+  } catch (err) {
+    console.error('serviceLogMonitorState 저장 실패:', err)
+  }
+}
+
+let serviceLogMonitorState: ServiceLogMonitorState = loadServiceLogMonitorState()
+
+function getServiceLogCursor(serviceKey: string): ServiceLogCursorState {
+  if (!serviceLogMonitorState.services[serviceKey]) {
+    serviceLogMonitorState.services[serviceKey] = {}
+  }
+  return serviceLogMonitorState.services[serviceKey]
+}
+
+const VOICECARDS_SERVICE_PATTERN = /(voice-?cards|보이스카드)/i
+const SERVICE_LOG_ERROR_PATTERNS = [
+  /\b(error|fatal|exception|fail(?:ed|ure)?)\b/i,
+  /\b(unhandled|uncaught)\b/i,
+  /\b(EADDRINUSE|ECONNREFUSED|ECONNRESET|ENOENT|EACCES|ETIMEDOUT)\b/,
+  /\b(TypeError|ReferenceError|SyntaxError|RangeError)\b/,
+  /\b(bundle|bundling)\s+failed\b/i,
+]
+const SERVICE_LOG_IGNORE_PATTERNS = [
+  /\b0 errors?\b/i,
+  /\bno errors?\b/i,
+  /\berror(s)?\s*=\s*0\b/i,
+]
+
+function stripAnsi(value: string): string {
+  return value.replace(/\u001b\[[0-9;]*m/g, '')
+}
+
+function matchesVoicecardsService(service: LocalServiceDefinition): boolean {
+  const haystack = [
+    service.key,
+    service.displayName,
+    service.description,
+    ...(service.aliases || []),
+  ].join(' ')
+  return VOICECARDS_SERVICE_PATTERN.test(haystack)
+}
+
+function isCooldownActive(ts: string | undefined, cooldownMs = SERVICE_LOG_ALERT_COOLDOWN_MS): boolean {
+  if (!ts) return false
+  const time = Date.parse(ts)
+  return Number.isFinite(time) && (Date.now() - time) < cooldownMs
+}
+
+function looksLikeServiceErrorLine(line: string): boolean {
+  const text = stripAnsi(line).trim()
+  if (!text) return false
+  if (SERVICE_LOG_IGNORE_PATTERNS.some(pattern => pattern.test(text))) return false
+  return SERVICE_LOG_ERROR_PATTERNS.some(pattern => pattern.test(text))
+}
+
+function extractServiceErrorSnippet(text: string): string[] {
+  const lines = text.split('\n').map(line => stripAnsi(line).trimEnd())
+  const picked: string[] = []
+  const seen = new Set<string>()
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (!looksLikeServiceErrorLine(line)) continue
+
+    const block = [line]
+    for (let j = i + 1; j < lines.length && block.length < 4; j++) {
+      const next = lines[j]
+      if (!next.trim()) break
+      if (/^\s*at\b/.test(next) || /^\s*caused by\b/i.test(next) || /\bError:/i.test(next)) {
+        block.push(next)
+        continue
+      }
+      break
+    }
+
+    for (const item of block) {
+      const compact = item.trim()
+      if (!compact || seen.has(compact)) continue
+      seen.add(compact)
+      picked.push(compact)
+      if (picked.length >= 8) return picked
+    }
+  }
+
+  return picked
+}
+
+function readServiceLogDelta(logPath: string, previousSize: number): { text: string; nextSize: number; truncated: boolean } {
+  const stats = statSync(logPath)
+  const currentSize = stats.size
+  const resetDetected = currentSize < previousSize
+  const start = resetDetected ? 0 : previousSize
+  const unreadBytes = Math.max(0, currentSize - start)
+  if (!unreadBytes) {
+    return { text: '', nextSize: currentSize, truncated: false }
+  }
+
+  const bytesToRead = Math.min(unreadBytes, SERVICE_LOG_MAX_READ_BYTES)
+  const readStart = start + Math.max(0, unreadBytes - bytesToRead)
+  const fd = openSync(logPath, 'r')
+
+  try {
+    const buffer = Buffer.alloc(bytesToRead)
+    const bytesRead = readSync(fd, buffer, 0, bytesToRead, readStart)
+    const prefix: string[] = []
+    if (resetDetected) prefix.push('[로그 파일 재생성 감지]')
+    if (readStart > start) prefix.push('[최근 로그 일부만 검사]')
+    const content = buffer.toString('utf-8', 0, bytesRead).trim()
+    return {
+      text: [...prefix, content].filter(Boolean).join('\n'),
+      nextSize: currentSize,
+      truncated: readStart > start,
+    }
+  } finally {
+    closeSync(fd)
+  }
+}
+
+function suggestVoicecardsPath(pathValue: string | undefined): string | null {
+  if (!pathValue || !pathValue.includes('/voicecards')) return null
+  const suggestion = pathValue.replace('/voicecards', '/voice-cards')
+  return suggestion !== pathValue && existsSync(suggestion) ? suggestion : null
+}
+
+async function sendServiceLogAlert(message: string, details: Record<string, unknown>) {
+  if (!ceoChatId) return
+
+  recordRuntimeEvent({
+    botKey: 'willy-bot',
+    jsonlPath: BOT_RUNTIME_JSONL_FILE,
+    level: 'warn',
+    source: 'service_log_alert',
+    message: typeof details.serviceKey === 'string'
+      ? `service log alert for ${details.serviceKey}`
+      : 'service log alert',
+    details,
+  })
+
+  await sendMessage(ceoChatId, message)
+  await appendToConversation(ceoChatId, {
+    role: 'assistant',
+    content: `[서비스 로그 알림]\n${message}`,
+    timestamp: new Date().toISOString(),
+  })
+}
+
+async function monitorVoicecardsServiceLogs() {
+  if (!ceoChatId) return
+
+  const services = (await getLocalServiceRegistry()).filter(matchesVoicecardsService)
+  if (!services.length) return
+
+  let stateChanged = false
+
+  for (const service of services) {
+    const cursor = getServiceLogCursor(service.key)
+
+    if (service.cwd && !existsSync(service.cwd)) {
+      if (!isCooldownActive(cursor.lastMissingCwdAt)) {
+        const suggestion = suggestVoicecardsPath(service.cwd)
+        await sendServiceLogAlert([
+          '⚠️ [VoiceCards 감시 알림]',
+          `- 서비스: ${service.displayName} (${service.key})`,
+          `- 문제: cwd 경로를 찾지 못했어요.`,
+          `- cwd: ${service.cwd}`,
+          suggestion ? `- 제안 경로: ${suggestion}` : '',
+        ].filter(Boolean).join('\n'), {
+          serviceKey: service.key,
+          issue: 'missing_cwd',
+          cwd: service.cwd,
+          suggestion,
+        })
+        cursor.lastMissingCwdAt = new Date().toISOString()
+        stateChanged = true
+      }
+      continue
+    }
+
+    const status = await getLocalServiceStatus(service)
+    if (!service.logPath) {
+      if (status?.state === 'running' && !isCooldownActive(cursor.lastMissingLogPathAt)) {
+        await sendServiceLogAlert([
+          '⚠️ [VoiceCards 감시 알림]',
+          `- 서비스: ${service.displayName} (${service.key})`,
+          '- 문제: log_path가 등록되지 않아 로그 감시를 할 수 없어요.',
+        ].join('\n'), {
+          serviceKey: service.key,
+          issue: 'missing_log_path',
+        })
+        cursor.lastMissingLogPathAt = new Date().toISOString()
+        stateChanged = true
+      }
+      continue
+    }
+
+    if (!existsSync(service.logPath)) {
+      if (status?.state === 'running' && !isCooldownActive(cursor.lastMissingLogFileAt)) {
+        await sendServiceLogAlert([
+          '⚠️ [VoiceCards 감시 알림]',
+          `- 서비스: ${service.displayName} (${service.key})`,
+          '- 문제: 서비스는 실행 중인데 로그 파일이 아직 없어요.',
+          `- log_path: ${service.logPath}`,
+          '- start_command가 stdout/stderr를 로그로 남기고 있는지 확인해 주세요.',
+        ].join('\n'), {
+          serviceKey: service.key,
+          issue: 'missing_log_file',
+          logPath: service.logPath,
+          status: status.state,
+        })
+        cursor.lastMissingLogFileAt = new Date().toISOString()
+        stateChanged = true
+      }
+      continue
+    }
+
+    const currentSize = statSync(service.logPath).size
+    if (cursor.size == null) {
+      cursor.size = currentSize
+      stateChanged = true
+      continue
+    }
+
+    const delta = readServiceLogDelta(service.logPath, cursor.size)
+    cursor.size = delta.nextSize
+    stateChanged = true
+
+    if (!delta.text.trim()) continue
+
+    const snippet = extractServiceErrorSnippet(delta.text)
+    if (!snippet.length) continue
+
+    const alertHash = simpleHash(`${service.key}\n${snippet.join('\n')}`)
+    if (cursor.lastAlertHash === alertHash && isCooldownActive(cursor.lastAlertAt)) {
+      continue
+    }
+
+    await sendServiceLogAlert([
+      '🛠️ [VoiceCards 로그 알림]',
+      `- 서비스: ${service.displayName} (${service.key})`,
+      `- 상태: ${status?.state === 'running' ? 'running' : status?.state || 'unknown'}`,
+      `- 로그: ${service.logPath}`,
+      delta.truncated ? `- 참고: 로그가 많아 최근 ${Math.round(SERVICE_LOG_MAX_READ_BYTES / 1024)}KB만 검사했어요.` : '',
+      '',
+      snippet.join('\n'),
+    ].filter(Boolean).join('\n'), {
+      serviceKey: service.key,
+      issue: 'log_error_detected',
+      logPath: service.logPath,
+      status: status?.state || 'unknown',
+      snippet,
+    })
+
+    cursor.lastAlertHash = alertHash
+    cursor.lastAlertAt = new Date().toISOString()
+    stateChanged = true
+  }
+
+  if (stateChanged) saveServiceLogMonitorState()
+}
+
+interface VoicecardsMonitorAlertState {
+  lastHash?: string
+  lastAlertAt?: string
+}
+
+interface VoicecardsEventMonitorState {
+  alerts: Record<string, VoicecardsMonitorAlertState>
+}
+
+interface VoicecardsEventRow {
+  event_name: string | null
+  created_at: string
+  user_id: string | null
+  device_id: string | null
+  properties: Record<string, unknown> | null
+}
+
+interface VoicecardsUserRow {
+  user_id: string
+  nickname: string | null
+  email: string | null
+}
+
+function defaultVoicecardsEventMonitorState(): VoicecardsEventMonitorState {
+  return { alerts: {} }
+}
+
+function loadVoicecardsEventMonitorState(): VoicecardsEventMonitorState {
+  try {
+    const raw = readFileSync(VOICECARDS_EVENT_MONITOR_STATE_FILE, 'utf-8')
+    const saved = JSON.parse(raw)
+    return {
+      alerts: typeof saved?.alerts === 'object' && saved.alerts ? saved.alerts : {},
+    }
+  } catch {
+    return defaultVoicecardsEventMonitorState()
+  }
+}
+
+function saveVoicecardsEventMonitorState() {
+  try {
+    writeFileSync(VOICECARDS_EVENT_MONITOR_STATE_FILE, JSON.stringify(voicecardsEventMonitorState, null, 2))
+  } catch (err) {
+    console.error('voicecardsEventMonitorState 저장 실패:', err)
+  }
+}
+
+const voicecardsEventMonitorState: VoicecardsEventMonitorState = loadVoicecardsEventMonitorState()
+
+function getVoicecardsAlertState(key: string): VoicecardsMonitorAlertState {
+  if (!voicecardsEventMonitorState.alerts[key]) {
+    voicecardsEventMonitorState.alerts[key] = {}
+  }
+  return voicecardsEventMonitorState.alerts[key]
+}
+
+function formatKstShort(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function shortVoicecardsUserId(value: string | null | undefined): string {
+  if (!value) return '(unknown)'
+  return value.length > 10 ? `${value.slice(0, 6)}...${value.slice(-4)}` : value
+}
+
+function buildVoicecardsEventCounts(events: VoicecardsEventRow[]): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const event of events) {
+    const key = event.event_name || 'unknown'
+    counts.set(key, (counts.get(key) || 0) + 1)
+  }
+  return counts
+}
+
+async function fetchAllVoicecardsRows<T>(
+  fn: (from: number, to: number) => Promise<{ data: T[] | null; error: unknown }>,
+  pageSize = 1000,
+): Promise<T[]> {
+  const out: T[] = []
+  let from = 0
+
+  while (true) {
+    const { data, error } = await fn(from, from + pageSize - 1)
+    if (error) throw error
+    if (!data?.length) break
+    out.push(...data)
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+
+  return out
+}
+
+async function fetchVoicecardsExcludedUserIds(): Promise<Set<string>> {
+  if (!voicecardsSupabase) return new Set<string>()
+  const excludedNicknames = new Set(['류하아빠', '큐트도넛'])
+  const excludedEmailDomains = ['cloudtestlabaccounts.com']
+  const { data, error } = await voicecardsSupabase
+    .from('users')
+    .select('user_id, nickname, email')
+
+  if (error) throw error
+
+  return new Set(
+    (data || [])
+      .filter(row =>
+        (row.nickname && excludedNicknames.has(row.nickname))
+        || (!!row.email && excludedEmailDomains.some(domain => row.email!.toLowerCase().endsWith(`@${domain}`)))
+      )
+      .map(row => row.user_id)
+  )
+}
+
+async function fetchVoicecardsEventsSince(sinceIso: string): Promise<VoicecardsEventRow[]> {
+  if (!voicecardsSupabase) return []
+  const excludedUserIds = await fetchVoicecardsExcludedUserIds()
+  const rows = await fetchAllVoicecardsRows<VoicecardsEventRow>(async (from, to) =>
+    voicecardsSupabase!
+      .from('anonymous_events_real_users')
+      .select('event_name, created_at, user_id, device_id, properties')
+      .eq('is_likely_bot', false)
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: true })
+      .range(from, to)
+  )
+  return rows.filter(row => !row.user_id || !excludedUserIds.has(row.user_id))
+}
+
+async function fetchVoicecardsUsers(userIds: string[]): Promise<Map<string, VoicecardsUserRow>> {
+  const ids = Array.from(new Set(userIds.filter(Boolean)))
+  if (!voicecardsSupabase || !ids.length) return new Map()
+
+  const { data, error } = await voicecardsSupabase
+    .from('users')
+    .select('user_id, nickname, email')
+    .in('user_id', ids)
+
+  if (error) throw error
+
+  return new Map((data || []).map(row => [row.user_id, row as VoicecardsUserRow]))
+}
+
+async function sendVoicecardsEventAlert(message: string, details: Record<string, unknown>) {
+  if (!ceoChatId) return
+
+  recordRuntimeEvent({
+    botKey: 'willy-bot',
+    jsonlPath: BOT_RUNTIME_JSONL_FILE,
+    level: 'warn',
+    source: 'voicecards_event_alert',
+    message: typeof details.issue === 'string'
+      ? `voicecards event alert: ${details.issue}`
+      : 'voicecards event alert',
+    details,
+  })
+
+  await sendMessage(ceoChatId, message)
+  await appendToConversation(ceoChatId, {
+    role: 'assistant',
+    content: `[VoiceCards 사용자 로그 알림]\n${message}`,
+    timestamp: new Date().toISOString(),
+  })
+}
+
+async function monitorVoicecardsUserEvents() {
+  if (!ceoChatId || !voicecardsSupabase) return
+
+  const events = await fetchVoicecardsEventsSince(new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString())
+  if (!events.length) return
+
+  const nowMs = Date.now()
+  const recent12h = events.filter(event => Date.parse(event.created_at) >= nowMs - 12 * 60 * 60 * 1000)
+  const previous60h = events.filter(event => {
+    const ts = Date.parse(event.created_at)
+    return ts < nowMs - 12 * 60 * 60 * 1000 && ts >= nowMs - 72 * 60 * 60 * 1000
+  })
+
+  const recentCounts = buildVoicecardsEventCounts(recent12h)
+  const previousCounts = buildVoicecardsEventCounts(previous60h)
+  let stateChanged = false
+
+  const driveScopeEvents = recent12h.filter(event => event.event_name === 'drive_scope_missing')
+  if (driveScopeEvents.length) {
+    const uniqueUserIds = Array.from(new Set(driveScopeEvents.map(event => event.user_id).filter(Boolean) as string[]))
+    const userMap = await fetchVoicecardsUsers(uniqueUserIds)
+    const latestAt = driveScopeEvents[driveScopeEvents.length - 1]?.created_at || driveScopeEvents[0]?.created_at
+    const relatedHomeEmpty = recentCounts.get('home_empty_shown') || 0
+    const relatedSignin = recentCounts.get('signin_completed') || 0
+    const relatedPrompts = recentCounts.get('prompt_shown') || 0
+    const affectedUsers = uniqueUserIds.slice(0, 4).map(userId => {
+      const user = userMap.get(userId)
+      return user?.nickname
+        ? `${user.nickname}(${shortVoicecardsUserId(userId)})`
+        : shortVoicecardsUserId(userId)
+    })
+
+    const alertHash = simpleHash([
+      String(driveScopeEvents.length),
+      latestAt || '',
+      uniqueUserIds.join(','),
+    ].join('|'))
+    const alertState = getVoicecardsAlertState('drive_scope_missing')
+
+    if (alertState.lastHash !== alertHash || !isCooldownActive(alertState.lastAlertAt, 2 * 60 * 60 * 1000)) {
+      await sendVoicecardsEventAlert([
+        '🛠️ [VoiceCards 사용자 로그 알림]',
+        `- 감지: Google Drive 권한 누락 이벤트 ${driveScopeEvents.length}건`,
+        `- 최근 12시간: prompt_shown ${relatedPrompts} · signin_completed ${relatedSignin} · home_empty_shown ${relatedHomeEmpty}`,
+        '- 추정: 로그인 후 시트 접근/Drive 권한 단계에서 막히는 사용자가 있어요.',
+        affectedUsers.length ? `- 사용자: ${affectedUsers.join(', ')}` : '',
+        latestAt ? `- 최신 발생: ${formatKstShort(latestAt)}` : '',
+      ].filter(Boolean).join('\n'), {
+        issue: 'drive_scope_missing',
+        count: driveScopeEvents.length,
+        relatedHomeEmpty,
+        relatedSignin,
+        relatedPrompts,
+        affectedUsers,
+        latestAt,
+      })
+
+      alertState.lastHash = alertHash
+      alertState.lastAlertAt = new Date().toISOString()
+      stateChanged = true
+    }
+  }
+
+  const totalRecentEvents = recent12h.length
+  const totalPreviousEvents = previous60h.length
+  const inactivityState = getVoicecardsAlertState('no_recent_activity')
+  if (totalRecentEvents === 0 && totalPreviousEvents >= 40) {
+    const alertHash = simpleHash(`inactive|${totalPreviousEvents}`)
+    if (inactivityState.lastHash !== alertHash || !isCooldownActive(inactivityState.lastAlertAt, 12 * 60 * 60 * 1000)) {
+      await sendVoicecardsEventAlert([
+        '⚠️ [VoiceCards 사용자 로그 알림]',
+        '- 감지: 최근 12시간 동안 실사용자 이벤트가 없어요.',
+        `- 이전 60시간 이벤트: ${totalPreviousEvents}건`,
+        '- 추정: 트래킹 파이프라인이 멈췄거나 앱 유입이 급격히 끊겼을 수 있어요.',
+      ].join('\n'), {
+        issue: 'no_recent_activity',
+        recent12h: totalRecentEvents,
+        previous60h: totalPreviousEvents,
+      })
+
+      inactivityState.lastHash = alertHash
+      inactivityState.lastAlertAt = new Date().toISOString()
+      stateChanged = true
+    }
+  }
+
+  const promptShown = recentCounts.get('prompt_shown') || 0
+  const signinCompleted = recentCounts.get('signin_completed') || 0
+  const signinFrictionState = getVoicecardsAlertState('signin_friction')
+  if (promptShown >= 3 && signinCompleted === 0) {
+    const priorPromptShown = previousCounts.get('prompt_shown') || 0
+    const priorSigninCompleted = previousCounts.get('signin_completed') || 0
+    const alertHash = simpleHash(`signin-friction|${promptShown}|${signinCompleted}|${priorPromptShown}|${priorSigninCompleted}`)
+    if (signinFrictionState.lastHash !== alertHash || !isCooldownActive(signinFrictionState.lastAlertAt, 6 * 60 * 60 * 1000)) {
+      await sendVoicecardsEventAlert([
+        '⚠️ [VoiceCards 사용자 로그 알림]',
+        `- 감지: 최근 12시간 prompt_shown ${promptShown}건인데 signin_completed는 0건이에요.`,
+        `- 비교: 이전 60시간 prompt_shown ${priorPromptShown} · signin_completed ${priorSigninCompleted}`,
+        '- 추정: 로그인 퍼널 또는 Add Sheet 진입 동선에서 막힘이 있을 수 있어요.',
+      ].join('\n'), {
+        issue: 'signin_friction',
+        promptShown,
+        signinCompleted,
+        priorPromptShown,
+        priorSigninCompleted,
+      })
+
+      signinFrictionState.lastHash = alertHash
+      signinFrictionState.lastAlertAt = new Date().toISOString()
+      stateChanged = true
+    }
+  }
+
+  if (stateChanged) saveVoicecardsEventMonitorState()
+}
+
+interface ReviewnotesMonitorState {
+  alerts: Record<string, VoicecardsMonitorAlertState>
+}
+
+interface ReviewnotesPageViewRow {
+  path: string | null
+  referrer: string | null
+  country: string | null
+  sessionId: string
+  createdAt: string
+}
+
+interface ReviewnotesUserRow {
+  id: string
+  email: string
+  subscriptionPlan: 'FREE' | 'BASIC' | 'STANDARD' | 'PRO' | string
+  createdAt: string
+}
+
+interface ReviewnotesActivityRow {
+  id: string
+  userId: string | null
+  createdAt: string
+}
+
+interface ReviewnotesSubscriptionRow {
+  status: string
+  planType: string | null
+  updatedAt: string | null
+  currentPeriodEnd: string | null
+  renewsAt: string | null
+  endsAt: string | null
+}
+
+interface ReviewnotesWebhookEventRow {
+  eventName: string
+  payload: Record<string, unknown> | null
+  createdAt: string
+  processedAt: string | null
+}
+
+interface ReviewnotesSystemBugEventRow {
+  id: string
+  source: string
+  severity: string
+  area: string | null
+  route: string | null
+  message: string
+  fingerprint: string
+  statusCode: number | null
+  userId: string | null
+  sessionId: string | null
+  url: string | null
+  createdAt: string
+}
+
+function defaultReviewnotesMonitorState(): ReviewnotesMonitorState {
+  return { alerts: {} }
+}
+
+function loadReviewnotesMonitorState(): ReviewnotesMonitorState {
+  try {
+    const raw = readFileSync(REVIEWNOTES_MONITOR_STATE_FILE, 'utf-8')
+    const saved = JSON.parse(raw)
+    return {
+      alerts: typeof saved?.alerts === 'object' && saved.alerts ? saved.alerts : {},
+    }
+  } catch {
+    return defaultReviewnotesMonitorState()
+  }
+}
+
+function saveReviewnotesMonitorState() {
+  try {
+    writeFileSync(REVIEWNOTES_MONITOR_STATE_FILE, JSON.stringify(reviewnotesMonitorState, null, 2))
+  } catch (err) {
+    console.error('reviewnotesMonitorState 저장 실패:', err)
+  }
+}
+
+const reviewnotesMonitorState: ReviewnotesMonitorState = loadReviewnotesMonitorState()
+
+function getReviewnotesAlertState(key: string): VoicecardsMonitorAlertState {
+  if (!reviewnotesMonitorState.alerts[key]) {
+    reviewnotesMonitorState.alerts[key] = {}
+  }
+  return reviewnotesMonitorState.alerts[key]
+}
+
+async function fetchAllReviewnotesRows<T>(
+  fn: (from: number, to: number) => Promise<{ data: T[] | null; error: unknown }>,
+  pageSize = 1000,
+): Promise<T[]> {
+  const out: T[] = []
+  let from = 0
+
+  while (true) {
+    const { data, error } = await fn(from, from + pageSize - 1)
+    if (error) throw error
+    if (!data?.length) break
+    out.push(...data)
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+
+  return out
+}
+
+async function sendReviewnotesMonitorAlert(message: string, details: Record<string, unknown>) {
+  if (!ceoChatId) return
+
+  recordRuntimeEvent({
+    botKey: 'willy-bot',
+    jsonlPath: BOT_RUNTIME_JSONL_FILE,
+    level: 'warn',
+    source: 'reviewnotes_monitor_alert',
+    message: typeof details.issue === 'string'
+      ? `reviewnotes monitor alert: ${details.issue}`
+      : 'reviewnotes monitor alert',
+    details,
+  })
+
+  await sendMessage(ceoChatId, message)
+  await appendToConversation(ceoChatId, {
+    role: 'assistant',
+    content: `[ReviewNotes 시스템 버그 알림]\n${message}`,
+    timestamp: new Date().toISOString(),
+  })
+}
+
+async function monitorReviewnotesSignals() {
+  if (!ceoChatId || !reviewnotesSupabase) return
+
+  const nowMs = Date.now()
+  const since4hIso = new Date(nowMs - 4 * 60 * 60 * 1000).toISOString()
+
+  const webhookEvents4h = await fetchAllReviewnotesRows<ReviewnotesWebhookEventRow>(async (from, to) =>
+    reviewnotesSupabase!
+      .from('WebhookEvent')
+      .select('eventName, payload, createdAt, processedAt')
+      .gte('createdAt', since4hIso)
+      .order('createdAt', { ascending: false })
+      .range(from, to)
+  ).catch(() => [])
+
+  let stateChanged = false
+  const bugEvents = webhookEvents4h
+    .filter(event => event.eventName === 'system_bug' && !!event.payload)
+    .map<ReviewnotesSystemBugEventRow | null>(event => {
+      const payload = event.payload || {}
+      const message = typeof payload.message === 'string' ? payload.message : ''
+      if (!message) return null
+      return {
+        id: typeof payload.fingerprint === 'string'
+          ? `${payload.fingerprint}:${event.createdAt}`
+          : `system_bug:${event.createdAt}`,
+        source: typeof payload.source === 'string' ? payload.source : 'unknown',
+        severity: typeof payload.severity === 'string' ? payload.severity : 'error',
+        area: typeof payload.area === 'string' ? payload.area : null,
+        route: typeof payload.route === 'string' ? payload.route : null,
+        message,
+        fingerprint: typeof payload.fingerprint === 'string' ? payload.fingerprint : simpleHash(message),
+        statusCode: typeof payload.statusCode === 'number' ? payload.statusCode : null,
+        userId: typeof payload.userId === 'string' ? payload.userId : null,
+        sessionId: typeof payload.sessionId === 'string' ? payload.sessionId : null,
+        url: typeof payload.url === 'string' ? payload.url : null,
+        createdAt: event.createdAt,
+      }
+    })
+    .filter((event): event is ReviewnotesSystemBugEventRow => !!event)
+
+  const severeBugEvents = bugEvents.filter(event => ['error', 'fatal'].includes((event.severity || '').toLowerCase()))
+  const grouped = new Map<string, ReviewnotesSystemBugEventRow[]>()
+  for (const event of severeBugEvents) {
+    const key = event.fingerprint || simpleHash([
+      event.source || 'unknown',
+      event.route || event.area || 'unknown',
+      event.message || 'unknown',
+    ].join('|'))
+    const list = grouped.get(key) || []
+    list.push(event)
+    grouped.set(key, list)
+  }
+
+  const summaries = Array.from(grouped.entries())
+    .map(([fingerprint, events]) => {
+      const ordered = events.slice().sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+      const latest = ordered[ordered.length - 1]
+      const uniqueUsers = new Set(ordered.map(event => event.userId).filter(Boolean)).size
+      const uniqueSessions = new Set(ordered.map(event => event.sessionId).filter(Boolean)).size
+      const hasFatal = ordered.some(event => (event.severity || '').toLowerCase() === 'fatal')
+      const statusCodes = Array.from(new Set(ordered.map(event => event.statusCode).filter((value): value is number => typeof value === 'number')))
+      return {
+        fingerprint,
+        count: ordered.length,
+        uniqueUsers,
+        uniqueSessions,
+        hasFatal,
+        latest,
+        source: latest?.source || 'unknown',
+        route: latest?.route || latest?.area || null,
+        message: latest?.message || '(message missing)',
+        statusCodes,
+      }
+    })
+    .sort((a, b) =>
+      Number(b.hasFatal) - Number(a.hasFatal)
+      || b.count - a.count
+      || Date.parse(b.latest.createdAt) - Date.parse(a.latest.createdAt)
+    )
+
+  for (const summary of summaries.slice(0, 3)) {
+    const isConfigBug = /(not configured|missing|invalid signature|aws|oauth|database_url|nextauth)/i.test(summary.message)
+    const shouldAlert = summary.hasFatal || summary.count >= 3 || summary.uniqueUsers >= 2 || summary.uniqueSessions >= 3 || isConfigBug
+    if (!shouldAlert) continue
+
+    const alertState = getReviewnotesAlertState(`system_bug:${summary.fingerprint}`)
+    const alertHash = simpleHash([
+      summary.count,
+      summary.uniqueUsers,
+      summary.uniqueSessions,
+      summary.latest.createdAt,
+      summary.statusCodes.join(','),
+    ].join('|'))
+
+    if (alertState.lastHash === alertHash && isCooldownActive(alertState.lastAlertAt, 6 * 60 * 60 * 1000)) {
+      continue
+    }
+
+    await sendReviewnotesMonitorAlert([
+      '🛠️ [ReviewNotes 시스템 버그 알림]',
+      `- 감지: ${summary.message}`,
+      `- 최근 90분: ${summary.count}건 · 사용자 ${summary.uniqueUsers}명 · 세션 ${summary.uniqueSessions}건`,
+      summary.route ? `- 위치: ${summary.route}` : '',
+      `- 분류: ${summary.source}${summary.statusCodes.length ? ` · HTTP ${summary.statusCodes.join(', ')}` : ''}`,
+      `- 최신 발생: ${formatKstShort(summary.latest.createdAt)}`,
+    ].filter(Boolean).join('\n'), {
+      issue: 'system_bug',
+      fingerprint: summary.fingerprint,
+      count: summary.count,
+      uniqueUsers: summary.uniqueUsers,
+      uniqueSessions: summary.uniqueSessions,
+      source: summary.source,
+      route: summary.route,
+      statusCodes: summary.statusCodes,
+      latestAt: summary.latest.createdAt,
+      message: summary.message,
+    })
+
+    alertState.lastHash = alertHash
+    alertState.lastAlertAt = new Date().toISOString()
+    stateChanged = true
+  }
+
+  const stuckWebhooks = webhookEvents4h.filter(event =>
+    event.eventName !== 'system_bug'
+    && !event.processedAt
+    && Date.parse(event.createdAt) <= nowMs - 15 * 60 * 1000
+  )
+  if (stuckWebhooks.length) {
+    const eventNames = Array.from(new Set(stuckWebhooks.map(event => event.eventName)))
+    const latestAt = stuckWebhooks[0]?.createdAt || null
+    const alertState = getReviewnotesAlertState('webhook_stuck')
+    const alertHash = simpleHash(`webhook_stuck|${stuckWebhooks.length}|${eventNames.join(',')}|${latestAt || ''}`)
+
+    if (alertState.lastHash !== alertHash || !isCooldownActive(alertState.lastAlertAt, 3 * 60 * 60 * 1000)) {
+      await sendReviewnotesMonitorAlert([
+        '🧩 [ReviewNotes 시스템 버그 알림]',
+        `- 감지: 처리되지 않은 웹훅 ${stuckWebhooks.length}건이 15분 넘게 남아 있어요.`,
+        `- 이벤트: ${eventNames.join(', ') || '(unknown)'}`,
+        latestAt ? `- 최신 발생: ${formatKstShort(latestAt)}` : '',
+        '- 추정: 결제 웹훅 처리 로직이 중간에서 멈췄을 수 있어요.',
+      ].filter(Boolean).join('\n'), {
+        issue: 'webhook_stuck',
+        count: stuckWebhooks.length,
+        eventNames,
+        latestAt,
+      })
+
+      alertState.lastHash = alertHash
+      alertState.lastAlertAt = new Date().toISOString()
+      stateChanged = true
+    }
+  }
+
+  if (stateChanged) saveReviewnotesMonitorState()
+}
 
 // 간단한 해시 함수 (데이터 변화 감지)
 function simpleHash(str: string): string {
@@ -1789,13 +3117,62 @@ interface WatchTopic {
   last_searched_at: string | null
 }
 
+const EXPLICIT_NEWS_HINTS = ['뉴스', '기사', '속보', '헤드라인', '브리핑', '검색', '찾아봐', '찾아줘', 'news']
+const VIDEO_SEARCH_HINTS = ['유튜브', 'youtube', '영상', '동영상']
+const MARKET_SNAPSHOT_HINTS = ['시세', '가격', '환율', '지수', '유가', '원유', '선물', '코스피', 's&p', 'nasdaq', '나스닥', 'dow', '다우']
+const FRESHNESS_HINTS = ['오늘', '지금', '최근', '최신', '실시간', '방금']
+
+function buildNewsPrefetchPlan(text: string, watchTopics: WatchTopic[]): {
+  queries: string[]
+  includeYouTube: boolean
+  includeMarket: boolean
+} | null {
+  const lower = text.toLowerCase()
+  const wantsNews = EXPLICIT_NEWS_HINTS.some(k => lower.includes(k))
+  const wantsVideo = VIDEO_SEARCH_HINTS.some(k => lower.includes(k))
+  const wantsMarket = MARKET_SNAPSHOT_HINTS.some(k => lower.includes(k))
+  const wantsFreshness = FRESHNESS_HINTS.some(k => lower.includes(k))
+
+  const matchedTrackedQueries = watchTopics
+    .filter(t => {
+      const topicWords = [t.topic, ...t.keywords].map(v => v.toLowerCase())
+      return topicWords.some(word => word && lower.includes(word))
+    })
+    .map(t => t.keywords.length ? t.keywords.join(' OR ') : t.topic)
+
+  const shouldPrefetch = wantsNews || wantsVideo || wantsMarket || (matchedTrackedQueries.length > 0 && wantsFreshness)
+  if (!shouldPrefetch) return null
+
+  const cleanedTextQuery = text
+    .replace(/[?？]/g, ' ')
+    .replace(/(뉴스|기사|속보|헤드라인|브리핑|검색|찾아봐|찾아줘|알려줘|유튜브|영상|동영상|today|today's|최근|최신|실시간|오늘|지금|요약)/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const queries = Array.from(new Set([
+    ...matchedTrackedQueries,
+    ...((wantsNews || wantsVideo || matchedTrackedQueries.length > 0) && cleanedTextQuery.length >= 2 && cleanedTextQuery.length <= 80 ? [cleanedTextQuery] : []),
+  ].filter(Boolean))).slice(0, wantsVideo ? 1 : 2)
+
+  return {
+    queries,
+    includeYouTube: wantsVideo,
+    includeMarket: wantsMarket,
+  }
+}
+
 async function getWatchTopics(): Promise<WatchTopic[]> {
+  const cached = readTimedCache(watchTopicsCache, WATCH_TOPICS_CACHE_TTL)
+  if (cached !== null) return cached
+
   const { data } = await supabase
     .from('telegram_watch_topics')
     .select('*')
     .eq('is_active', true)
     .order('created_at')
-  return (data as WatchTopic[]) || []
+  const result = (data as WatchTopic[]) || []
+  watchTopicsCache = writeTimedCache(result)
+  return result
 }
 
 interface NewsItem {
@@ -1810,7 +3187,7 @@ async function searchGoogleNews(query: string, limit = 5): Promise<NewsItem[]> {
     const encoded = encodeURIComponent(query)
     const res = await fetch(
       `https://news.google.com/rss/search?q=${encoded}&hl=ko&gl=KR&ceid=KR:ko`,
-      { signal: AbortSignal.timeout(10000) }
+      { signal: AbortSignal.timeout(NEWS_FETCH_TIMEOUT_MS) }
     )
     const xml = await res.text()
 
@@ -1839,6 +3216,17 @@ interface YouTubeItem {
   publishedAt: string
 }
 
+function formatNewsLink(item: { link: string; source?: string }): string {
+  const source = (item.source || '').trim()
+  const label = source ? `${source} 링크` : '원문 링크'
+  return formatCompactLink(item.link, label)
+}
+
+function formatYouTubeLink(videoId: string, label = '영상 링크'): string {
+  if (!videoId) return ''
+  return formatCompactLink(`https://youtu.be/${videoId}`, label)
+}
+
 async function searchYouTube(query: string, limit = 5): Promise<YouTubeItem[]> {
   try {
     // YouTube RSS search via Invidious (free, no API key)
@@ -1853,7 +3241,7 @@ async function searchYouTube(query: string, limit = 5): Promise<YouTubeItem[]> {
       try {
         const res = await fetch(
           `${instance}/api/v1/search?q=${encoded}&sort_by=upload_date&type=video&region=KR`,
-          { signal: AbortSignal.timeout(8000) }
+          { signal: AbortSignal.timeout(YOUTUBE_FETCH_TIMEOUT_MS) }
         )
         if (!res.ok) continue
         const data = await res.json() as any[]
@@ -1905,6 +3293,9 @@ interface MarketPrice {
 }
 
 async function fetchLiveMarketPrices(): Promise<MarketPrice[]> {
+  const cached = readTimedCache(liveMarketPricesCache, MARKET_PRICES_CACHE_TTL)
+  if (cached !== null) return cached
+
   return new Promise((resolve) => {
     const pyScript = `
 import yfinance as yf, json
@@ -1919,12 +3310,18 @@ for sym, name in tickers.items():
     except: pass
 print(json.dumps(result))
 `
-    const proc = spawn('python3', ['-c', pyScript], { timeout: 15000 })
+    const proc = spawn('python3', ['-c', pyScript], { timeout: MARKET_FETCH_TIMEOUT_MS })
     let stdout = ''
     proc.stdout.on('data', (d: Buffer) => (stdout += d.toString()))
     proc.on('close', (code: number | null) => {
       if (code !== 0) { resolve([]); return }
-      try { resolve(JSON.parse(stdout)) } catch { resolve([]) }
+      try {
+        const parsed = JSON.parse(stdout) as MarketPrice[]
+        liveMarketPricesCache = writeTimedCache(parsed)
+        resolve(parsed)
+      } catch {
+        resolve([])
+      }
     })
     proc.on('error', () => resolve([]))
   })
@@ -2090,7 +3487,7 @@ async function breakingNewsCheck() {
   const marketText = formatMarketPrices(marketPrices)
 
   const alert = breakingItems.map(b =>
-    `🚨 [${b.topic}] ${b.news.title} (${b.news.source}, ${b.ageLabel})\n${b.news.link}`
+    `🚨 [${b.topic}] ${b.news.title} (${b.news.source}, ${b.ageLabel})\n${formatNewsLink(b.news)}`
   ).join('\n\n')
 
   console.log(`🚨 속보 감지! ${breakingItems.length}건`)
@@ -2137,7 +3534,7 @@ async function buildNewsDigest(): Promise<{ digest: string; marketData: string }
       for (const n of sorted.slice(0, 5)) {
         const ageLabel = n.ageMin < Infinity ? `[${formatNewsAge(n.ageMin)}]` : ''
         sections.push(`• ${ageLabel} ${n.title}${n.source ? ` (${n.source})` : ''}`)
-        sections.push(`  ${n.link}`)
+        sections.push(`  ${formatNewsLink(n)}`)
       }
     }
 
@@ -2145,7 +3542,7 @@ async function buildNewsDigest(): Promise<{ digest: string; marketData: string }
       sections.push('유튜브:')
       for (const v of videos) {
         sections.push(`• ${v.title} — ${v.channelName} (${v.publishedAt})`)
-        sections.push(`  https://youtu.be/${v.videoId}`)
+        sections.push(`  ${formatYouTubeLink(v.videoId)}`)
       }
     }
 
@@ -2197,6 +3594,7 @@ async function newsDigestCheck() {
 - 실시간 시장 데이터(유가, 지수 등)가 있으면 뉴스 내용과 교차 검증하여 정확한 수치 사용
 - 중요도 순으로 정렬
 - 각 뉴스 항목에 원문 링크 포함
+- 링크는 생 URL 그대로 길게 노출하지 말고, \`[원문 링크](URL)\`, \`[매체명 링크](URL)\` 같은 짧은 마크다운 링크로 표기
 - "📰 뉴스 다이제스트"로 시작
 - 텔레그램용, 간결하게
 ${result.marketData}
@@ -2259,7 +3657,7 @@ const CORE_PROMPT = `당신은 "윌리(Willy)"입니다. 윌로우인베스트�
 5. **텐소프트웍스 관리**: 텐소프트웍스 프로젝트/태스크 현황 파악 및 관리 (MCP 도구 사용 가능)
 6. **포트폴리오 모니터링**: portfolio-monitor MCP로 주식 포트폴리오 신고가 모니터링, 종목 스캔, 워치리스트 관리 가능
 7. **투자 리서치 관리**: stock_research DB에서 발굴 종목 관리. T1(강한 후보)/T2(관심 후보) 분류, composite score 기반 순위, 워치리스트 승격 등
-8. **코딩 & 시스템 관리**: 코드 수정, 파일 관리, git 작업, DB 마이그레이션 등 개발 작업 수행 가능 (풀 세션 모드)
+8. **코딩 & 시스템 관리**: 코드 수정, 파일 관리, git 작업, DB 마이그레이션, 로컬 맥 서비스 점검/재시작 등 개발 작업 수행 가능 (풀 세션 모드)
 
 ## 입력 형태
 CEO는 텍스트, 음성 메시지, 사진을 보낼 수 있습니다.
@@ -2361,6 +3759,64 @@ CEO가 일정 등록, 위키 작성 등을 요청하면, 응답에 아래 JSON �
 {"type":"list_skills"}
 \`\`\`
 
+### 로컬 맥 서비스 목록/상태
+등록된 서비스만 제어하세요. 서비스명이 애매하면 먼저 목록이나 상태를 조회하세요.
+\`\`\`action
+{"type":"service_list"}
+\`\`\`
+
+\`\`\`action
+{"type":"service_status","service_name":"willy-bot"}
+\`\`\`
+
+### 로컬 맥 서비스 시작
+\`\`\`action
+{"type":"service_start","service_name":"market-research-scan"}
+\`\`\`
+
+### 로컬 맥 서비스 중지/재시작
+중지나 재시작은 CEO가 명시적으로 요청했을 때만 사용하고, 반드시 \`confirmed:true\`를 포함하세요.
+\`\`\`action
+{"type":"service_stop","service_name":"rina-bot","confirmed":true}
+\`\`\`
+
+\`\`\`action
+{"type":"service_restart","service_name":"willy-bot","confirmed":true}
+\`\`\`
+
+### 로컬 맥 로그/진단
+\`\`\`action
+{"type":"service_logs","service_name":"willy-bot","lines":40}
+\`\`\`
+
+\`\`\`action
+{"type":"service_doctor","service_name":"real-estate-sync"}
+\`\`\`
+
+### 로컬 맥 서비스 등록/수정
+새 프로젝트를 제어 대상에 추가할 때 사용하세요. start_command, stop_command는 JSON 배열을 우선 사용하세요.
+\`\`\`action
+{"type":"service_register","service_key":"voicecards-dev","display_name":"VoiceCards Dev","description":"VoiceCards 로컬 Metro 서버","kind":"daemon","start_mode":"detached","cwd":"/Volumes/PRO-G40/app-dev/voice-cards","start_command":["/bin/bash","-lc","npm start"],"log_path":"/Volumes/PRO-G40/app-dev/voice-cards/logs/metro.log","process_patterns":["react-native start","metro"],"aliases":["보이스카드","voicecards"]}
+\`\`\`
+
+\`\`\`action
+{"type":"service_update","service_key":"voicecards-dev","log_path":"/Volumes/PRO-G40/app-dev/voice-cards/logs/metro.log","confirmed":true}
+\`\`\`
+
+### 로컬 맥 서비스 활성화/비활성화
+\`\`\`action
+{"type":"service_disable","service_name":"voicecards-dev","confirmed":true}
+\`\`\`
+
+\`\`\`action
+{"type":"service_enable","service_name":"voicecards-dev","confirmed":true}
+\`\`\`
+
+### 로컬 맥 서비스 삭제
+\`\`\`action
+{"type":"service_delete","service_name":"voicecards-dev","confirmed":true}
+\`\`\`
+
 ### 파일 전송
 프로젝트 내 파일을 텔레그램으로 전송:
 \`\`\`action
@@ -2402,6 +3858,8 @@ CEO가 해당 주제를 완료했거나 더 이상 팔로업이 불필요할 때
 
 참고: 텐소프트웍스 데이터는 "텐소프트웍스 현황" 섹션에 포함되어 있습니다. 텐소프트웍스 관련 질문에 이 데이터를 활용하세요.
 
+참고: 로컬 맥 서비스는 프롬프트에 제공되는 "로컬 맥 서비스 레지스트리"에 있는 이름만 제어하세요. 없으면 service_register로 먼저 등록하고, 임의의 셸 명령을 대화 텍스트로 직접 만들지 말고 service_* 액션만 사용하세요.
+
 참고: 포트폴리오 관련 질문 시 portfolio-monitor MCP 도구를 사용하세요.
 - portfolio_scan: 전체 종목 스캔 (신고가/근접/부진 신호)
 - portfolio_signals: 신호 있는 종목만 조회
@@ -2431,8 +3889,13 @@ CEO가 해당 주제를 완료했거나 더 이상 팔로업이 불필요할 때
 - git 작업 가능 (단, push는 명시적 요청 시에만)
 - DB 마이그레이션, API 수정 등 가능
 - 작업 후 결과를 간결하게 보고 (변경 파일, 주요 수정 내용)
-- 작업 디렉토리: /Volumes/PRO-G40/app-dev/willow-invt (Next.js 프로젝트)
-- 중요: 파괴적 작업 전 반드시 확인 메시지 포함`
+- 기본 작업 디렉토리: /Volumes/PRO-G40/app-dev/willow-invt
+- 단, CEO가 특정 로컬 repo, 절대경로(/Users/..., /Volumes/..., ~/...), 또는 폴더명(예: Downloads 폴더, valuechain-wiki)을 명시하거나 "로컬에서 Claude가 하던 작업 이어받아"라고 말하면, "로컬 프로젝트 레지스트리"에서 맞는 경로를 찾아 그 폴더를 작업 디렉토리로 사용
+- 다른 로컬 프로젝트를 이어받을 때는 먼저 해당 repo의 .claude, git status, 최근 커밋, 핸드오프 문서를 확인하고 그 근거를 바탕으로 실제 작업을 진행
+- repo 이어받기 요청은 설명만 하지 말고, 가능한 범위에서 실제 코드/문서 작업까지 이어서 수행
+- 중요: 파괴적 작업 전 반드시 확인 메시지 포함
+- 최근 "봇 런타임 로그" 섹션에 경고/오류가 있으면 먼저 해당 로그 파일을 직접 읽고 원인을 좁히세요
+- 저위험 수정은 직접 적용 가능하지만, 수정 후에는 관련 서비스 상태를 다시 확인하고 결과를 정직하게 보고하세요`
 
 // 동적 프롬프트 빌더: DB에서 로드한 섹션으로 최종 프롬프트 조립
 function buildSystemPrompt(sections: Record<string, { content: string; version: number; is_modifiable: boolean }>, attrCatalog: string): string {
@@ -2488,8 +3951,8 @@ const TENSW_MCP_TOOLS = 'mcp__claude_ai_tensw-todo__*'
 const PORTFOLIO_MCP_TOOLS = 'mcp__portfolio-monitor__*'
 const WILLOW_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__*'
 
-function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession?: boolean; onProgress?: (p: CodexProgress) => void; signal?: AbortSignal }): Promise<string> {
-  return runAgent(prompt, { allowedTools: opts?.allowedTools, backend: 'codex', onProgress: opts?.onProgress, signal: opts?.signal })
+function askClaude(prompt: string, opts?: { allowedTools?: string[]; fullSession?: boolean; onProgress?: (p: CodexProgress) => void; signal?: AbortSignal; cwd?: string }): Promise<string> {
+  return runAgent(prompt, { allowedTools: opts?.allowedTools, backend: 'codex', onProgress: opts?.onProgress, signal: opts?.signal, cwd: opts?.cwd })
 }
 
 // ============================================================
@@ -2555,6 +4018,9 @@ async function findEntityByNormalizedName(name: string): Promise<{ id: string; n
 
 async function executeAction(action: ActionBlock): Promise<string> {
   try {
+    const localServiceResult = await executeLocalServiceAction(action)
+    if (localServiceResult) return localServiceResult
+
     switch (action.type) {
       case 'create_schedule': {
         // client_name으로 client_id 조회
@@ -2584,6 +4050,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           .single()
 
         if (error) throw error
+        dashboardContextCache = null
         return `✅ 일정 등록: "${action.title}" (${action.schedule_date})`
       }
 
@@ -2599,6 +4066,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           })
 
         if (error) throw error
+        wikiContextCache = null
         return `✅ 위키 작성: "${action.title}"`
       }
 
@@ -2628,6 +4096,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           })
 
         if (error) throw error
+        dashboardContextCache = null
         return `✅ 태스크 추가: "${action.content}"`
       }
 
@@ -2643,6 +4112,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           })
 
         if (error) throw error
+        watchTopicsCache = null
         return `✅ 뉴스 추적 등록: "${action.topic}" (키워드: ${keywords.join(', ')})`
       }
 
@@ -2653,6 +4123,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           .ilike('topic', `%${action.topic}%`)
 
         if (error) throw error
+        watchTopicsCache = null
         return `✅ 뉴스 추적 해제: "${action.topic}"`
       }
 
@@ -2667,6 +4138,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           results.push('\n📰 뉴스:')
           for (const n of news) {
             results.push(`• ${n.title}${n.source ? ` (${n.source})` : ''}`)
+            results.push(`  ${formatNewsLink(n)}`)
           }
         }
 
@@ -2676,7 +4148,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
             results.push('\n🎬 유튜브:')
             for (const v of videos) {
               results.push(`• ${v.title} — ${v.channelName}`)
-              results.push(`  https://youtu.be/${v.videoId}`)
+              results.push(`  ${formatYouTubeLink(v.videoId)}`)
             }
           }
         }
@@ -2696,6 +4168,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           if (action.properties) updates.properties = action.properties
           if (action.tags) updates.tags = action.tags
           await supabase.from('knowledge_entities').update(updates).eq('id', existing.id)
+          knowledgeContextCache = null
           return `🧠 엔티티 업데이트: "${existing.name}"`
         } else {
           // 생성
@@ -2707,6 +4180,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
             tags: action.tags || [],
             source: 'conversation',
           })
+          knowledgeContextCache = null
           return `🧠 엔티티 생성: "${action.name}" (${action.entity_type})`
         }
       }
@@ -2748,6 +4222,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
               source: 'conversation',
             })
           }
+          knowledgeContextCache = null
           return `🔗 관계: "${action.subject}" —[${action.predicate}]→ "${action.object}" (자동 생성: ${missing.join(', ') || 'none'})`
         }
 
@@ -2758,6 +4233,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           properties: action.properties || {},
           source: 'conversation',
         })
+        knowledgeContextCache = null
         return `🔗 관계: "${action.subject}" —[${action.predicate}]→ "${action.object}"`
       }
 
@@ -2776,6 +4252,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           entity_ids: entityIds,
           context: action.context || '',
         })
+        knowledgeContextCache = null
         return `💡 인사이트: "${(action.content as string).slice(0, 60)}..."`
       }
 
@@ -2801,6 +4278,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
           if (action.importance) updates.importance = action.importance
           if (action.description) updates.description = action.description
           await supabase.from('knowledge_attribute_catalog').update(updates).eq('id', existing.id)
+          attributeCatalogCache = null
           return `📊 속성 업데이트: "${action.key_name}" (사용 ${(existing.usage_count || 0) + 1}회)`
         } else {
           await supabase.from('knowledge_attribute_catalog').insert({
@@ -2813,6 +4291,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
             importance: action.importance || 'normal',
             usage_count: 1,
           })
+          attributeCatalogCache = null
           return `🔑 새 속성 발견: "${action.key_name}"${action.entity_type ? ` [${action.entity_type}]` : ''} — ${action.description || ''}`
         }
       }
@@ -2857,6 +4336,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
             updated_at: new Date().toISOString(),
           }).eq('id', existing.id)
 
+          promptSectionsCache = null
           return `✏️ 프롬프트 수정: "${sectionKey}" v${existing.version} → v${existing.version + 1} (이유: ${reason})`
         } else {
           // 새 섹션 생성
@@ -2868,6 +4348,7 @@ async function executeAction(action: ActionBlock): Promise<string> {
             version: 1,
             last_modified_reason: reason,
           })
+          promptSectionsCache = null
           return `✏️ 프롬프트 섹션 생성: "${sectionKey}" v1 (이유: ${reason})`
         }
       }
@@ -2938,7 +4419,8 @@ ${action.due_date ? `마감일: ${action.due_date}` : ''}
 생성 결과만 간단히 알려줘.`,
           { allowedTools: [TENSW_MCP_TOOLS] }
         )
-        tenswDataCache = '' // 캐시 무효화
+        tenswDataCache = ''
+        tenswCacheTime = 0
         return `✅ 텐소프트웍스 태스크: ${result.slice(0, 200)}`
       }
 
@@ -2947,7 +4429,8 @@ ${action.due_date ? `마감일: ${action.due_date}` : ''}
           `텐소프트웍스 태스크 ID "${action.task_id}"의 상태를 "${action.status}"로 변경해줘. 결과만 간단히 알려줘.`,
           { allowedTools: [TENSW_MCP_TOOLS] }
         )
-        tenswDataCache = '' // 캐시 무효화
+        tenswDataCache = ''
+        tenswCacheTime = 0
         return `✅ 텐소프트웍스 상태변경: ${result.slice(0, 200)}`
       }
 
@@ -2961,7 +4444,8 @@ ${action.milestone_type ? `유형: ${action.milestone_type}` : ''}
 생성 결과만 간단히 알려줘.`,
           { allowedTools: [TENSW_MCP_TOOLS] }
         )
-        tenswDataCache = '' // 캐시 무효화
+        tenswDataCache = ''
+        tenswCacheTime = 0
         return `✅ 텐소프트웍스 일정: ${result.slice(0, 200)}`
       }
 
@@ -3042,6 +4526,17 @@ ${action.milestone_type ? `유형: ${action.milestone_type}` : ''}
     }
   } catch (err: any) {
     console.error('Action execution error:', err)
+    recordRuntimeEvent({
+      botKey: 'willy-bot',
+      jsonlPath: BOT_RUNTIME_JSONL_FILE,
+      level: 'error',
+      source: 'action_error',
+      message: `action ${action.type} failed`,
+      details: {
+        action,
+        error: err instanceof Error ? { message: err.message, stack: err.stack } : err,
+      },
+    })
     return `⚠️ 액션 실행 실패 (${action.type}): ${err.message}`
   }
 }
@@ -3051,35 +4546,69 @@ ${action.milestone_type ? `유형: ${action.milestone_type}` : ''}
 // ============================================================
 async function handleMessage(chatId: number, text: string, abortSignal?: AbortSignal, lastMessageId?: number) {
   console.log(`[${chatId}] User: ${text}`)
+  recordRuntimeEvent({
+    botKey: 'willy-bot',
+    jsonlPath: BOT_RUNTIME_JSONL_FILE,
+    source: 'message_received',
+    message: `message received from ${chatId}`,
+    details: {
+      chatId,
+      lastMessageId,
+      textPreview: text.slice(0, 240),
+    },
+  })
 
-  // 처리현황 메시지 — 진행 단계를 실시간으로 업데이트 (try 밖에서 선언)
-  let progressMsgId: number | null = null
+  const progressStart = getProgressStartedAt(chatId) ?? Date.now()
+  const progressLines: string[] = []
+  persistPendingMessage(chatId, text, {
+    lastMessageId,
+    startedAt: progressStart,
+    phase: 'running',
+  })
 
   try {
     // 리액션으로 "읽었다" 표시 (abort 되더라도 문제 없음)
     if (lastMessageId) {
-      await setReaction(chatId, lastMessageId, '👀')
+      void setReaction(chatId, lastMessageId, '👀')
     }
 
-    const progressLines: string[] = []
-    const progressStart = Date.now()
+    let progressPercent = 18
+    let progressStage = '처리 시작'
+    let progressCurrent = '메시지 정리를 마치고 본격 처리 준비 중이에요.'
 
-    const addProgress = async (line: string) => {
-      const sec = ((Date.now() - progressStart) / 1000).toFixed(1)
-      progressLines.push(`${line} (${sec}s)`)
-      const display = progressLines.join('\n')
-      if (progressMsgId) {
-        await editMessage(chatId, progressMsgId, display)
-      }
+    const renderProgress = () => buildProgressMessage({
+      percent: progressPercent,
+      stage: progressStage,
+      current: progressCurrent,
+      startedAt: progressStart,
+      recent: progressLines,
+    })
+
+    const syncProgress = async () => {
+      await renderProgressMessage(chatId, renderProgress(), { replyToMessageId: lastMessageId, startedAt: progressStart })
     }
 
-    // 처리현황 메시지 전송
-    const progressRes = await tg('sendMessage', { chat_id: chatId, text: '⏳ 처리 시작...' })
-    progressMsgId = progressRes?.result?.message_id || null
+    const addProgress = async (
+      line: string,
+      opts?: { percent?: number; stage?: string; current?: string }
+    ) => {
+      if (opts?.percent != null) progressPercent = opts.percent
+      if (opts?.stage) progressStage = opts.stage
+      if (opts?.current) progressCurrent = opts.current
+      progressLines.push(line)
+      if (progressLines.length > 4) progressLines.shift()
+      void syncProgress()
+    }
+
+    await syncProgress()
 
     // 대시보드 + 위키 + 추적주제 + 텐소프트웍스 + 온톨로지 + 프롬프트섹션 + 속성카탈로그 + 팔로업 + 리서치 수집
-    await addProgress('📂 컨텍스트 로드 중...')
-    const [dashboardContext, wikiContext, watchTopics, tenswContext, knowledgeContext, promptSections, attrCatalog, followUpsContext, researchContext] = await Promise.all([
+    await addProgress('대시보드 · 위키 · KG · 리서치를 읽는 중', {
+      percent: 28,
+      stage: '컨텍스트 로드',
+      current: '업무 데이터와 대화 맥락을 모으고 있어요.',
+    })
+    const [dashboardContext, wikiContext, watchTopics, tenswContext, knowledgeContext, promptSections, attrCatalog, followUpsContext, researchContext, localServiceContext, runtimeLogContext] = await Promise.all([
       fetchDashboardContext(),
       fetchWikiContext(),
       getWatchTopics(),
@@ -3089,12 +4618,59 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
       fetchAttributeCatalog(),
       fetchFollowUpsContext(),
       fetchResearchContext(),
+      getLocalServiceContext(),
+      getRuntimeLogContext({
+        botLabel: 'Willy',
+        botKey: 'willy-bot',
+        jsonlPath: BOT_RUNTIME_JSONL_FILE,
+        textLogPath: BOT_TEXT_LOG_FILE,
+      }),
     ])
-    await addProgress('✅ 대시보드 · 위키 · 텐소프트 · KG · 리서치')
+    await addProgress('핵심 컨텍스트 수집 완료', {
+      percent: 38,
+      stage: '컨텍스트 로드',
+      current: '대화기록과 추가 검색 필요 여부를 확인 중이에요.',
+    })
 
     // 대화 기록 조회
     const history = await getConversation(chatId)
-    await addProgress(`✅ 대화기록 ${history.length}건`)
+    const historyForPrompt = history.slice(-MAX_PROMPT_HISTORY)
+    await addProgress(`대화기록 ${historyForPrompt.length}건 확인`, {
+      percent: 42,
+      stage: '맥락 정리',
+      current: '이전 대화 흐름을 붙여서 프롬프트를 조립 중이에요.',
+    })
+
+    const localProjectContext = resolveLocalProjectContext({
+      text,
+      history: historyForPrompt,
+    })
+    const activeWorkspaceLabel = localProjectContext.activeProject?.project.displayName || 'WILLOW-INVT'
+    await addProgress(`활성 워크스페이스: ${activeWorkspaceLabel}`, {
+      percent: 46,
+      stage: '맥락 정리',
+      current: localProjectContext.activeProject
+        ? `${activeWorkspaceLabel} 저장소의 로컬 핸드오프 정보를 붙이고 있어요.`
+        : '별도 repo 지정이 없어 기본 작업 루트를 유지해요.',
+    })
+    recordRuntimeEvent({
+      botKey: 'willy-bot',
+      jsonlPath: BOT_RUNTIME_JSONL_FILE,
+      source: 'workspace_selected',
+      message: `workspace resolved for ${chatId}`,
+      details: {
+        chatId,
+        workspaceKey: localProjectContext.activeProject?.project.key || 'willow-invt',
+        workspacePath: localProjectContext.cwd,
+        matchSource: localProjectContext.activeProject?.matchSource || 'default',
+        matchedAlias: localProjectContext.activeProject?.matchedAlias || null,
+      },
+    })
+    patchPendingTask(BOT_INFLIGHT_FILE, chatId, {
+      phase: 'running',
+      workspaceKey: localProjectContext.activeProject?.project.key || 'willow-invt',
+      workspacePath: localProjectContext.cwd,
+    })
 
     // 추적 주제 컨텍스트
     const topicsText = watchTopics.length
@@ -3104,42 +4680,35 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
       : ''
 
     // 뉴스/검색 관련 메시지면 미리 검색해서 결과를 제공
-    const newsKeywords = ['뉴스', '기사', '소식', '검색', '찾아', '알려줘', 'news', '최근', '요즘', '동향', '시장', '유가', '원유', '지수']
-    const isNewsRelated = newsKeywords.some(k => text.includes(k))
+    const prefetchPlan = buildNewsPrefetchPlan(text, watchTopics)
     let prefetchedNews = ''
 
-    if (isNewsRelated) {
+    if (prefetchPlan) {
       console.log('📰 뉴스 사전검색 중...')
-      // 메시지에서 관련 주제/키워드 추출해서 검색
-      const searchQueries: string[] = []
+      const searchQueries = prefetchPlan.queries
+      const searchTargets = [
+        ...searchQueries.map(q => `"${q.slice(0, 20)}"`),
+        ...(prefetchPlan.includeMarket ? ['시장 데이터'] : []),
+      ]
 
-      // 등록된 주제 중 메시지와 관련된 것
-      for (const t of watchTopics) {
-        const topicWords = [t.topic, ...t.keywords]
-        if (topicWords.some(w => text.includes(w) || text.includes(t.topic.split(' ')[0]))) {
-          searchQueries.push(t.keywords.join(' OR '))
-        }
-      }
-
-      // 메시지 자체도 검색어로 사용 (너무 길지 않으면)
-      if (searchQueries.length === 0 && text.length < 50) {
-        searchQueries.push(text.replace(/[?？뭐있어알려줘찾아봐]/g, '').trim())
-      }
-
-      if (searchQueries.length > 0) {
-        await addProgress(`🔍 검색: ${searchQueries.map(q => '"' + q.slice(0, 20) + '"').join(', ')}`)
-        // 뉴스 검색과 시장 데이터 병렬 수집
+      if (searchQueries.length > 0 || prefetchPlan.includeMarket) {
+        await addProgress(`사전검색 ${searchTargets.join(', ')}`, {
+          percent: 48,
+          stage: '사전검색',
+          current: prefetchPlan.includeMarket ? '뉴스와 시장 데이터를 먼저 확인하고 있어요.' : '관련 뉴스부터 빠르게 확인하고 있어요.',
+        })
+        // 필요한 검색만 골라 병렬 수집
         const [newsResults, marketPrices] = await Promise.all([
           Promise.all(
             searchQueries.map(async q => {
               const [news, videos] = await Promise.all([
                 searchGoogleNews(q, 5),
-                searchYouTube(q, 3),
+                prefetchPlan.includeYouTube ? searchYouTube(q, 3) : Promise.resolve([]),
               ])
               return { query: q, news, videos }
             })
           ),
-          fetchLiveMarketPrices(),
+          prefetchPlan.includeMarket ? fetchLiveMarketPrices() : Promise.resolve([]),
         ])
 
         const parts: string[] = []
@@ -3158,13 +4727,13 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
             for (const n of sorted) {
               const ageLabel = n.ageMin < Infinity ? `[${formatNewsAge(n.ageMin)}]` : ''
               parts.push(`- ${ageLabel} ${n.title} (${n.source})`)
-              parts.push(`  ${n.link}`)
+              parts.push(`  ${formatNewsLink(n)}`)
             }
           }
           if (r.videos.length) {
             parts.push(`\n### 유튜브 "${r.query}":`)
             for (const v of r.videos) {
-              parts.push(`- ${v.title} — ${v.channelName} (${v.publishedAt}) https://youtu.be/${v.videoId}`)
+              parts.push(`- ${v.title} — ${v.channelName} (${v.publishedAt}) ${formatYouTubeLink(v.videoId)}`)
             }
           }
         }
@@ -3173,14 +4742,23 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
         }
         const totalNews = newsResults.reduce((s, r) => s + r.news.length, 0)
         const totalVideos = newsResults.reduce((s, r) => s + r.videos.length, 0)
-        await addProgress(`✅ 뉴스 ${totalNews}건 · 유튜브 ${totalVideos}건`)
+        const resultSummary = [
+          totalNews ? `뉴스 ${totalNews}건` : '',
+          totalVideos ? `유튜브 ${totalVideos}건` : '',
+          prefetchPlan.includeMarket && marketPrices.length ? '시장 데이터 확인' : '',
+        ].filter(Boolean).join(' · ')
+        await addProgress(resultSummary || '사전검색 완료', {
+          percent: 54,
+          stage: '사전검색',
+          current: '검색 결과까지 포함해서 답변 프롬프트를 완성하는 중이에요.',
+        })
       }
     }
 
     // 프롬프트 빌드 — 타임스탬프 포함하여 시간 맥락 제공
     const nowTs = new Date()
-    const historyText = history.length
-      ? '\n## 이전 대화\n' + history.map(m => {
+    const historyText = historyForPrompt.length
+      ? '\n## 이전 대화\n' + historyForPrompt.map(m => {
           const ts = m.timestamp ? new Date(m.timestamp) : null
           const timeLabel = ts ? formatTimeAgo(ts, nowTs) : ''
           const prefix = m.role === 'user' ? '사용자' : '윌리'
@@ -3195,6 +4773,21 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
 
 # 현재 사업 데이터 (윌로우인베스트먼트)
 ${dashboardContext}
+
+# 업무 구조 (WILLOW-INVT 웹사이트/대시보드 기준)
+${WEBSITE_STRUCTURE_CONTEXT}
+
+# 로컬 프로젝트 레지스트리
+${localProjectContext.registryText}
+
+# 활성 로컬 프로젝트
+${localProjectContext.activeProjectText}
+
+# 로컬 맥 서비스 레지스트리
+${localServiceContext}
+
+# 봇 런타임 로그
+${runtimeLogContext}
 
 # 텐소프트웍스 현황
 ${tenswContext}
@@ -3221,16 +4814,28 @@ ${text}
 
 위 데이터를 참고하여 CEO의 메시지에 답하세요.`
 
-    await addProgress(`📝 프롬프트 ${(fullPrompt.length / 1000).toFixed(0)}K자`)
+    await addProgress(`프롬프트 ${(fullPrompt.length / 1000).toFixed(0)}K자 조립`, {
+      percent: 58,
+      stage: '프롬프트 구성',
+      current: '에이전트가 바로 작업할 수 있게 입력을 정리했어요.',
+    })
 
     // abort 체크 — 새 메시지가 와서 이 처리가 취소된 경우
     if (abortSignal?.aborted) {
-      if (progressMsgId) await deleteMsg(chatId, progressMsgId)
       console.log(`[${chatId}] ⏹️ 처리 취소됨 (새 메시지 수신)`)
       return
     }
 
-    await addProgress('🤖 분석 중...')
+    await addProgress('Codex 작업 시작', {
+      percent: 64,
+      stage: '에이전트 실행',
+      current: '도구와 파일을 보면서 실제 처리를 시작했어요.',
+    })
+    patchPendingTask(BOT_INFLIGHT_FILE, chatId, {
+      phase: 'codex_running',
+      workspaceKey: localProjectContext.activeProject?.project.key || 'willow-invt',
+      workspacePath: localProjectContext.cwd,
+    })
 
     // ── 코덱스 실시간 진행상황 ───────────────────────────────────────────
     // 진행 메시지 끝에 "지금 뭐 하는지"를 살아있는 한 줄로 계속 갱신해, 멈춘 것처럼
@@ -3238,29 +4843,36 @@ ${text}
     const codexStart = Date.now()
     const codexFiles = new Set<string>()
     let codexCmds = 0
+    let codexTools = 0
     let didAnyWork = false  // 실제 작업(명령·도구·파일·검색) 1회라도 했는지 — 환각 완료 검증용
     let liveActivity = '🤖 작업 시작…'
     let lastLiveEdit = 0
-    const fmtElapsed = () => {
-      const s = Math.floor((Date.now() - codexStart) / 1000)
-      return s >= 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s}초`
-    }
     const oneLine = (s: string, n = 56) => {
       const t = (s || '').replace(/\s+/g, ' ').trim()
       return t.length > n ? t.slice(0, n) + '…' : t
     }
     const stripShell = (cmd: string) => cmd.replace(/^\/?(?:usr\/)?bin\/(?:ba|z)?sh\s+-l?c\s+['"]?/, '').replace(/['"]?$/, '')
-    const renderLive = () => {
-      const meta = [`경과 ${fmtElapsed()}`]
-      if (codexCmds) meta.push(`명령 ${codexCmds}`)
-      if (codexFiles.size) meta.push(`파일 ${codexFiles.size}`)
-      return `${liveActivity}\n${meta.join(' · ')}`
-    }
     const pushLive = (force = false) => {
       const now = Date.now()
       if (!force && now - lastLiveEdit < 1800) return  // 텔레그램 edit 레이트리밋 보호
       lastLiveEdit = now
-      if (progressMsgId) editMessage(chatId, progressMsgId, [...progressLines, renderLive()].join('\n')).catch(() => {})
+      progressPercent = Math.max(progressPercent, 66)
+      progressStage = '에이전트 실행'
+      progressCurrent = liveActivity
+      renderProgressMessage(chatId, buildProgressMessage({
+        percent: progressPercent,
+        stage: progressStage,
+        current: progressCurrent,
+        startedAt: progressStart,
+        recent: progressLines,
+        meta: [
+          `명령 ${codexCmds}`,
+          codexFiles.size ? `파일 ${codexFiles.size}` : '',
+          codexTools ? `도구 ${codexTools}` : '',
+          `워크스페이스 ${activeWorkspaceLabel}`,
+          `실행 ${formatProgressElapsed(codexStart)}`,
+        ],
+      }), { replyToMessageId: lastMessageId, startedAt: progressStart }).catch(() => {})
     }
     const onCodexProgress = (p: CodexProgress) => {
       if (p.phase !== 'item_started' && p.phase !== 'item_completed') return
@@ -3269,18 +4881,32 @@ ${text}
       switch (p.itemType) {
         case 'command_execution':
           if (p.phase === 'item_started') codexCmds++
+          progressPercent = Math.max(progressPercent, 74)
           liveActivity = `⚙️ ${oneLine(stripShell(p.command || ''))}`
           break
         case 'file_change':
           for (const f of p.files || []) codexFiles.add(f)
-          liveActivity = `✏️ ${oneLine((p.files || []).map(f => f.split('/').pop() || f).join(', '))}`
+          progressPercent = Math.max(progressPercent, 80)
+          liveActivity = `✏️ ${oneLine((p.files || []).map(f => relPath(f, localProjectContext.cwd)).join(', '))}`
           break
         case 'agent_message':
+          progressPercent = Math.max(progressPercent, 84)
           if (p.text) liveActivity = `💬 ${oneLine(p.text)}`
           break
-        case 'reasoning': liveActivity = '🤔 생각 중…'; break
-        case 'web_search': liveActivity = `🔍 ${oneLine(p.text || '검색 중')}`; break
-        case 'mcp_tool_call': liveActivity = `🔧 ${oneLine(p.text || p.command || '도구 호출')}`; break
+        case 'reasoning':
+          progressPercent = Math.max(progressPercent, 68)
+          liveActivity = '🤔 답을 정리하면서 추론 중…'
+          break
+        case 'web_search':
+          codexTools++
+          progressPercent = Math.max(progressPercent, 70)
+          liveActivity = `🔍 ${oneLine(p.text || '웹 검색 중')}`
+          break
+        case 'mcp_tool_call':
+          codexTools++
+          progressPercent = Math.max(progressPercent, 76)
+          liveActivity = `🔧 ${oneLine(p.text || p.command || '도구 호출')}`
+          break
         default: if (p.itemType) liveActivity = `⏳ ${p.itemType}`
       }
       pushLive()
@@ -3296,26 +4922,33 @@ ${text}
       fullSession: true,
       allowedTools: [TENSW_MCP_TOOLS, PORTFOLIO_MCP_TOOLS, WILLOW_MCP_TOOLS],
       onProgress: onCodexProgress,
+      cwd: localProjectContext.cwd,
       signal: abortSignal,  // abort 시 codex 즉시 종료 → 중복 작업 방지
     })
 
     clearInterval(typingInterval)
     clearInterval(liveTimer)
 
-    const liveSummary = [`✅ 응답 ${(response.length / 1000).toFixed(1)}K자`,
-      codexCmds ? `명령 ${codexCmds}` : '', codexFiles.size ? `파일 ${codexFiles.size}` : '']
+    const liveSummary = [`응답 ${(response.length / 1000).toFixed(1)}K자`,
+      codexCmds ? `명령 ${codexCmds}` : '', codexFiles.size ? `파일 ${codexFiles.size}` : '', codexTools ? `도구 ${codexTools}` : '']
       .filter(Boolean).join(' · ')
-    await addProgress(liveSummary)
+    await addProgress(liveSummary, {
+      percent: 88,
+      stage: '응답 정리',
+      current: '에이전트 결과를 읽고 액션과 답변을 분리하는 중이에요.',
+    })
 
     // abort 체크 — Claude 응답 후에도 새 메시지가 왔으면 취소
     if (abortSignal?.aborted) {
-      if (progressMsgId) await deleteMsg(chatId, progressMsgId)
       console.log(`[${chatId}] ⏹️ Claude 응답 후 취소됨 (새 메시지 수신)`)
       return
     }
 
     // 액션 추출 및 실행
     const { cleanText, actions, buttons } = extractActions(response)
+    if (actions.length) {
+      patchPendingTask(BOT_INFLIGHT_FILE, chatId, { phase: 'action_running' })
+    }
 
     // 액션 실행 결과 수집
     // 액션 단계에 들어가면 이전 입력을 재배칭 대상으로 남기지 않는다.
@@ -3330,20 +4963,38 @@ ${text}
         console.log(`[${chatId}] ⏹️ 액션 실행 중 취소됨 (중복 실행 방지)`)
         break
       }
-      await addProgress(`⚡ 액션: ${action.type}`)
+      await addProgress(`액션 실행: ${action.type}`, {
+        percent: 92,
+        stage: '액션 실행',
+        current: `${action.type} 작업을 반영하고 있어요.`,
+      })
       console.log(`⚡ 액션 실행: ${action.type}`)
       const result = await executeAction(action)
       actionResults.push(result)
       console.log(`  → ${result}`)
+      recordRuntimeEvent({
+        botKey: 'willy-bot',
+        jsonlPath: BOT_RUNTIME_JSONL_FILE,
+        level: result.trim().startsWith('⚠️') ? 'warn' : 'info',
+        source: result.trim().startsWith('⚠️') ? 'action_warning' : 'action_success',
+        message: `${action.type}: ${result}`,
+        details: {
+          chatId,
+          actionType: action.type,
+          resultPreview: result.slice(0, 240),
+        },
+      })
     }
     if (abortSignal?.aborted) {
-      if (progressMsgId) await deleteMsg(chatId, progressMsgId)
       return
     }
-    if (actions.length) await addProgress(`✅ 액션 ${actions.length}건 완료`)
-
-    // 처리현황 메시지 삭제
-    if (progressMsgId) await deleteMsg(chatId, progressMsgId)
+    if (actions.length) {
+      await addProgress(`액션 ${actions.length}건 반영 완료`, {
+        percent: 95,
+        stage: '마무리',
+        current: '최종 답변과 실행 결과를 합쳐서 보내는 중이에요.',
+      })
+    }
 
     // 사용자에게 보낼 최종 메시지 (액션 결과 포함)
     let finalMessage = ''
@@ -3366,6 +5017,18 @@ ${text}
     const claimsDone = /(등록|추가|저장|생성|작성|완료|처리|예약|삭제|수정|반영|해소|업데이트|전송|발송|보냈)\s*(했|완료|됐|드렸|해뒀|해놨|하였|시켰|마쳤)/.test(cleanText)
     if (claimsDone && !didAnyWork && !successfulAction) {
       console.warn(`[${chatId}] ⚠️ 액션검증 실패: 완료 주장하나 실제 실행 신호 0`)
+      recordRuntimeEvent({
+        botKey: 'willy-bot',
+        jsonlPath: BOT_RUNTIME_JSONL_FILE,
+        level: 'warn',
+        source: 'action_validation_warning',
+        message: 'assistant claimed completion without observed work',
+        details: {
+          chatId,
+          cleanTextPreview: cleanText.slice(0, 240),
+          actions: actions.map(action => action.type),
+        },
+      })
       finalMessage += `\n\n⚠️ _방금 작업을 완료했다고 했지만 실제 반영(도구·액션 실행)이 감지되지 않았어요. 반영이 필요하면 한 번 더 말씀해 주세요._`
     }
 
@@ -3379,6 +5042,13 @@ ${text}
       await saveConversation(chatId, freshHistory)
     })
 
+    await addProgress('응답 전송 직전', {
+      percent: 98,
+      stage: '응답 전송',
+      current: '정리한 답변을 텔레그램으로 보내고 있어요.',
+    })
+    patchPendingTask(BOT_INFLIGHT_FILE, chatId, { phase: 'response_sending' })
+
     // 응답 전송 — SPLIT 구분자로 멀티 메시지 처리
     const messageParts = finalMessage.split(/\n---SPLIT---\n/).map(p => p.trim()).filter(Boolean)
     for (let i = 0; i < messageParts.length; i++) {
@@ -3391,20 +5061,76 @@ ${text}
       }
       // 멀티 메시지일 때 사이에 짧은 딜레이 (사람처럼)
       if (!isLast) {
-        await sendTyping(chatId)
-        await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500))
+        void sendTyping(chatId)
+        await new Promise(r => setTimeout(r, randomMessageDelay()))
       }
     }
+    removePendingTask(BOT_INFLIGHT_FILE, chatId)
+    await closeProgressMessage(chatId, {
+      finalText: buildProgressMessage({
+        percent: 100,
+        stage: '완료',
+        current: '응답 전송까지 마쳤어요.',
+        startedAt: progressStart,
+        recent: [...progressLines, `응답 ${messageParts.length}개 전송 완료`].slice(-4),
+        meta: [
+          codexCmds ? `명령 ${codexCmds}` : '',
+          codexFiles.size ? `파일 ${codexFiles.size}` : '',
+          codexTools ? `도구 ${codexTools}` : '',
+        ],
+      }),
+      lingerMs: 1200,
+    })
     console.log(`[${chatId}] Bot: ${finalMessage.slice(0, 100)}...`)
+    recordRuntimeEvent({
+      botKey: 'willy-bot',
+      jsonlPath: BOT_RUNTIME_JSONL_FILE,
+      source: 'message_completed',
+      message: `message handled for ${chatId}`,
+      details: {
+        chatId,
+        durationMs: Date.now() - progressStart,
+        workspaceKey: localProjectContext.activeProject?.project.key || 'willow-invt',
+        workspacePath: localProjectContext.cwd,
+        actions: actions.map(action => action.type),
+        actionCount: actions.length,
+        responseParts: messageParts.length,
+        codexWorkObserved: didAnyWork,
+        replyPreview: finalMessage.slice(0, 240),
+      },
+    })
 
   } catch (err) {
-    if (progressMsgId) await deleteMsg(chatId, progressMsgId)
     // abort(메시지 배칭 재처리)로 codex가 종료된 경우 — 조용히 끝낸다. 재배칭 run이 응답한다.
     if (abortSignal?.aborted || err instanceof AgentAbortError) {
       console.log(`[${chatId}] ⏹️ 처리 중단(abort) — 재배칭 run으로 이관`)
       return
     }
     console.error('Error handling message:', err)
+    recordRuntimeEvent({
+      botKey: 'willy-bot',
+      jsonlPath: BOT_RUNTIME_JSONL_FILE,
+      level: 'error',
+      source: 'message_error',
+      message: `message handling failed for ${chatId}`,
+      details: {
+        chatId,
+        durationMs: Date.now() - progressStart,
+        textPreview: text.slice(0, 240),
+        error: err instanceof Error ? { message: err.message, stack: err.stack } : err,
+      },
+    })
+    await closeProgressMessage(chatId, {
+      finalText: buildProgressMessage({
+        percent: 100,
+        stage: '오류',
+        current: '처리 중 문제가 생겨서 여기서 멈췄어요.',
+        startedAt: progressStart,
+        recent: [...progressLines, err instanceof Error ? err.message.slice(0, 60) : '알 수 없는 오류'].slice(-4),
+      }),
+      lingerMs: 1500,
+    })
+    removePendingTask(BOT_INFLIGHT_FILE, chatId)
     await sendMessage(chatId, '⚠️ 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
   }
 }
@@ -3449,6 +5175,17 @@ async function main() {
     process.exit(1)
   }
   console.log(`✅ Bot: @${me.result.username} (${me.result.first_name}) [PID: ${process.pid}]`)
+  recordRuntimeEvent({
+    botKey: 'willy-bot',
+    jsonlPath: BOT_RUNTIME_JSONL_FILE,
+    source: 'startup_ready',
+    message: `bot ready @${me.result.username}`,
+    details: {
+      username: me.result.username,
+      firstName: me.result.first_name,
+      pid: process.pid,
+    },
+  })
 
   loadAllowedUsers()
   console.log(`📌 등록된 사용자: ${allowedChatIds.length}/${WILLY_MAX_USERS}`)
@@ -3456,10 +5193,15 @@ async function main() {
   // CEO chat_id 복원
   await loadCeoChatId()
 
+  // 재시작으로 끊긴 사용자 요청 자동 복구
+  const resumedCount = await resumeInterruptedMessages()
+
   // 재시작 알림
   if (ceoChatId) {
     if (isSundayKST()) {
       console.log('⏭️ restart alert skip (Sunday KST)')
+    } else if (resumedCount > 0) {
+      console.log(`⏭️ restart alert skip (${resumedCount} task resumed)`)
     } else {
       const now = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
       await sendMessage(ceoChatId, `🔄 봇이 재시작되었어요. (${now})`)
@@ -3483,6 +5225,34 @@ async function main() {
   setInterval(async () => {
     try { await breakingNewsCheck() } catch (err) { console.error('Breaking news error:', err) }
   }, BREAKING_CHECK_INTERVAL)
+
+  // VoiceCards 사용자 이벤트 감시 (15분 간격)
+  console.log(`📱 VoiceCards 사용자 로그 감시 활성화 (${VOICECARDS_EVENT_MONITOR_INTERVAL / 60000}분 간격)`)
+  setInterval(async () => {
+    try { await monitorVoicecardsUserEvents() } catch (err) { console.error('VoiceCards user event monitor error:', err) }
+  }, VOICECARDS_EVENT_MONITOR_INTERVAL)
+  setTimeout(() => {
+    void monitorVoicecardsUserEvents().catch(err => console.error('VoiceCards user event monitor bootstrap error:', err))
+  }, 8000)
+
+  // ReviewNotes 시스템 버그 감시 (20분 간격)
+  console.log(`📝 ReviewNotes 시스템 버그 감시 활성화 (${REVIEWNOTES_MONITOR_INTERVAL / 60000}분 간격)`)
+  setInterval(async () => {
+    try { await monitorReviewnotesSignals() } catch (err) { console.error('ReviewNotes monitor error:', err) }
+  }, REVIEWNOTES_MONITOR_INTERVAL)
+  setTimeout(() => {
+    void monitorReviewnotesSignals().catch(err => console.error('ReviewNotes monitor bootstrap error:', err))
+  }, 10000)
+
+  if (ENABLE_VOICECARDS_LOCAL_LOG_MONITOR) {
+    console.log(`🧯 VoiceCards 로컬 로그 감시 활성화 (${SERVICE_LOG_MONITOR_INTERVAL / 1000}초 간격)`)
+    setInterval(async () => {
+      try { await monitorVoicecardsServiceLogs() } catch (err) { console.error('VoiceCards log monitor error:', err) }
+    }, SERVICE_LOG_MONITOR_INTERVAL)
+    setTimeout(() => {
+      void monitorVoicecardsServiceLogs().catch(err => console.error('VoiceCards log monitor bootstrap error:', err))
+    }, 12000)
+  }
 
   // 저장된 offset 복원 (재시작 시 이전 메시지 건너뛰기)
   let offset = loadOffset()
@@ -3510,6 +5280,11 @@ async function main() {
           if (!isAllowedUser(cbChatId)) continue
           console.log(`[${cbChatId}] Button: ${cbData}`)
           // 버튼 데이터를 일반 메시지처럼 처리
+          await updateQueuedProgress(cbChatId, {
+            messageCount: 1,
+            phase: 'starting',
+            startedAt: Date.now(),
+          })
           const ac = new AbortController()
           processingAbort.set(cbChatId, ac)
           try {
@@ -3565,11 +5340,25 @@ async function main() {
         const fileId = msg.voice?.file_id || msg.audio?.file_id
         if (fileId) {
           console.log(`[${chatId}] 🎤 음성 메시지 수신`)
-          await setReaction(chatId, msg.message_id, '👂')
+          void setReaction(chatId, msg.message_id, '👂')
+          await renderProgressMessage(chatId, buildProgressMessage({
+            percent: 12,
+            stage: '음성 접수',
+            current: '음성 파일을 받고 텍스트로 바꾸는 중이에요.',
+            startedAt: Date.now(),
+            recent: ['음성 메시지 수신'],
+          }), { replyToMessageId: msg.message_id, startedAt: Date.now() })
           const localPath = join(TEMP_DIR, `voice_${Date.now()}.ogg`)
           const ok = await downloadTelegramFile(fileId, localPath)
           if (ok) {
             try {
+              await renderProgressMessage(chatId, buildProgressMessage({
+                percent: 20,
+                stage: '음성 변환',
+                current: 'Whisper로 음성을 텍스트로 바꾸고 있어요.',
+                startedAt: getProgressStartedAt(chatId) ?? Date.now(),
+                recent: ['다운로드 완료', '음성 전사 중'],
+              }), { replyToMessageId: msg.message_id, startedAt: getProgressStartedAt(chatId) ?? Date.now() })
               const transcribed = await transcribeVoice(localPath)
               console.log(`[${chatId}] 🎤 음성 변환: ${transcribed.slice(0, 60)}`)
               const voiceText = msg.caption
@@ -3584,9 +5373,28 @@ async function main() {
               }
             } catch (err: any) {
               console.error('음성 변환 실패:', err.message)
+              await closeProgressMessage(chatId, {
+                finalText: buildProgressMessage({
+                  percent: 100,
+                  stage: '오류',
+                  current: '음성 인식 단계에서 문제가 생겼어요.',
+                  startedAt: getProgressStartedAt(chatId) ?? Date.now(),
+                  recent: ['음성 변환 실패'],
+                }),
+                lingerMs: 1200,
+              })
               await sendMessage(chatId, '음성을 인식하지 못했어요. 텍스트로 다시 보내주시겠어요?')
             }
           } else {
+            await closeProgressMessage(chatId, {
+              finalText: buildProgressMessage({
+                percent: 100,
+                stage: '오류',
+                current: '음성 파일 다운로드에 실패했어요.',
+                startedAt: getProgressStartedAt(chatId) ?? Date.now(),
+              }),
+              lingerMs: 1000,
+            })
             await sendMessage(chatId, '음성 파일을 다운로드하지 못했어요.')
           }
         }
@@ -3597,12 +5405,26 @@ async function main() {
       if (msg.photo && msg.photo.length > 0) {
         const photo = msg.photo[msg.photo.length - 1] // 가장 큰 사이즈
         console.log(`[${chatId}] 📷 사진 수신`)
-        await setReaction(chatId, msg.message_id, '👀')
+        void setReaction(chatId, msg.message_id, '👀')
+        await renderProgressMessage(chatId, buildProgressMessage({
+          percent: 12,
+          stage: '사진 접수',
+          current: '사진을 받고 내용을 분석할 준비를 하고 있어요.',
+          startedAt: Date.now(),
+          recent: ['사진 메시지 수신'],
+        }), { replyToMessageId: msg.message_id, startedAt: Date.now() })
         const localPath = join(TEMP_DIR, `photo_${Date.now()}.jpg`)
         const ok = await downloadTelegramFile(photo.file_id, localPath)
         if (ok) {
           try {
             await sendTyping(chatId)
+            await renderProgressMessage(chatId, buildProgressMessage({
+              percent: 22,
+              stage: '이미지 분석',
+              current: '사진 내용을 읽고 텍스트 맥락으로 바꾸는 중이에요.',
+              startedAt: getProgressStartedAt(chatId) ?? Date.now(),
+              recent: ['다운로드 완료', '이미지 분석 중'],
+            }), { replyToMessageId: msg.message_id, startedAt: getProgressStartedAt(chatId) ?? Date.now() })
             const description = await describePhoto(localPath, msg.caption)
             // 사진 설명 + 원본 파일 경로를 컨텍스트로 handleMessage에 전달
             const photoText = msg.caption
@@ -3619,6 +5441,16 @@ async function main() {
             }
           } catch (err: any) {
             console.error('사진 분석 실패:', err.message)
+            await closeProgressMessage(chatId, {
+              finalText: buildProgressMessage({
+                percent: 100,
+                stage: '오류',
+                current: '사진 분석 단계에서 문제가 생겼어요.',
+                startedAt: getProgressStartedAt(chatId) ?? Date.now(),
+                recent: ['이미지 분석 실패'],
+              }),
+              lingerMs: 1200,
+            })
             await sendMessage(chatId, '사진을 분석하지 못했어요.')
           }
         }
@@ -3629,13 +5461,27 @@ async function main() {
       if (msg.document) {
         const doc = msg.document
         console.log(`[${chatId}] 📎 파일 수신: ${doc.file_name} (${doc.mime_type}, ${doc.file_size} bytes)`)
-        await setReaction(chatId, msg.message_id, '📎')
+        void setReaction(chatId, msg.message_id, '📎')
+        await renderProgressMessage(chatId, buildProgressMessage({
+          percent: 12,
+          stage: '파일 접수',
+          current: '파일을 받고 읽을 수 있는 형태로 준비 중이에요.',
+          startedAt: Date.now(),
+          recent: [`파일 수신: ${doc.file_name}`],
+        }), { replyToMessageId: msg.message_id, startedAt: Date.now() })
         const ext = doc.file_name?.split('.').pop() || 'bin'
         const localPath = join(TEMP_DIR, `doc_${Date.now()}.${ext}`)
         const ok = await downloadTelegramFile(doc.file_id, localPath)
         if (ok) {
           try {
             await sendTyping(chatId)
+            await renderProgressMessage(chatId, buildProgressMessage({
+              percent: 22,
+              stage: '파일 준비',
+              current: '파일 경로와 캡션을 정리해서 본문 처리로 넘기는 중이에요.',
+              startedAt: getProgressStartedAt(chatId) ?? Date.now(),
+              recent: ['다운로드 완료', '파일 맥락 정리 중'],
+            }), { replyToMessageId: msg.message_id, startedAt: getProgressStartedAt(chatId) ?? Date.now() })
             const docText = msg.caption
               ? `[파일 수신: ${doc.file_name}] 저장 경로: ${localPath}\n[캡션] ${msg.caption}`
               : `[파일 수신: ${doc.file_name}] 저장 경로: ${localPath}`
@@ -3648,9 +5494,28 @@ async function main() {
             }
           } catch (err: any) {
             console.error('파일 처리 실패:', err.message)
+            await closeProgressMessage(chatId, {
+              finalText: buildProgressMessage({
+                percent: 100,
+                stage: '오류',
+                current: '파일 처리 단계에서 문제가 생겼어요.',
+                startedAt: getProgressStartedAt(chatId) ?? Date.now(),
+                recent: ['파일 처리 실패'],
+              }),
+              lingerMs: 1200,
+            })
             await sendMessage(chatId, '파일을 처리하지 못했어요.')
           }
         } else {
+          await closeProgressMessage(chatId, {
+            finalText: buildProgressMessage({
+              percent: 100,
+              stage: '오류',
+              current: '파일 다운로드에 실패했어요.',
+              startedAt: getProgressStartedAt(chatId) ?? Date.now(),
+            }),
+            lingerMs: 1000,
+          })
           await sendMessage(chatId, '파일을 다운로드하지 못했어요.')
         }
         continue
@@ -3688,6 +5553,17 @@ async function main() {
           // 배칭 버퍼도 클리어
           const buf = messageBatchBuffer.get(chatId)
           if (buf) { clearTimeout(buf.timer); messageBatchBuffer.delete(chatId) }
+          removePendingTask(BOT_INFLIGHT_FILE, chatId)
+          await closeProgressMessage(chatId, {
+            finalText: buildProgressMessage({
+              percent: 100,
+              stage: '중단',
+              current: '사용자 요청으로 처리를 멈췄어요.',
+              startedAt: getProgressStartedAt(chatId) ?? Date.now(),
+              recent: ['사용자 취소 요청'],
+            }),
+            lingerMs: 900,
+          })
           await sendMessage(chatId, '알겠어요, 중단했어요.')
           console.log(`[${chatId}] ⏹️ 사용자 요청으로 처리 중단`)
         } else {
@@ -3722,6 +5598,11 @@ async function main() {
         clearTimeout(existing.timer)
         existing.messages.push(messageText)
         existing.lastMessageId = msgId
+        await updateQueuedProgress(chatId, {
+          messageCount: existing.messages.length,
+          replyToMessageId: msgId,
+          phase: existingAbort ? 'restart' : 'merged',
+        })
         console.log(`📦 메시지 배칭: ${existing.messages.length}개 누적 (chat ${chatId})`)
         existing.timer = setTimeout(async () => {
           const batch = messageBatchBuffer.get(chatId)
@@ -3733,6 +5614,16 @@ async function main() {
             const allMessages = savedText ? [savedText, ...batch.messages] : batch.messages
             const combined = allMessages.join('\n\n')
             console.log(`📨 배칭 완료: ${allMessages.length}개 메시지 통합 처리${savedText ? ' (이전 메시지 포함)' : ''}`)
+            persistPendingMessage(chatId, combined, {
+              lastMessageId: batch.lastMessageId,
+              startedAt: Date.now(),
+              phase: 'queued',
+            })
+            await updateQueuedProgress(chatId, {
+              messageCount: allMessages.length,
+              replyToMessageId: batch.lastMessageId,
+              phase: 'starting',
+            })
             const ac = new AbortController()
             processingAbort.set(chatId, ac)
             inFlightText.set(chatId, combined) // 처리 중 텍스트 보존
@@ -3746,6 +5637,12 @@ async function main() {
         }, MESSAGE_BATCH_DELAY)
       } else {
         // 첫 메시지 → 버퍼 생성하고 디바운스 타이머 시작
+        await updateQueuedProgress(chatId, {
+          messageCount: 1,
+          replyToMessageId: msgId,
+          phase: existingAbort ? 'restart' : 'queued',
+          startedAt: Date.now(),
+        })
         messageBatchBuffer.set(chatId, {
           messages: [messageText],
           lastMessageId: msgId,
@@ -3761,6 +5658,16 @@ async function main() {
               if (allMessages.length > 1) {
                 console.log(`📨 배칭 완료: ${allMessages.length}개 메시지 통합 처리${savedText ? ' (이전 메시지 포함)' : ''}`)
               }
+              persistPendingMessage(chatId, combined, {
+                lastMessageId: batch.lastMessageId,
+                startedAt: Date.now(),
+                phase: 'queued',
+              })
+              await updateQueuedProgress(chatId, {
+                messageCount: allMessages.length,
+                replyToMessageId: batch.lastMessageId,
+                phase: 'starting',
+              })
               const ac = new AbortController()
               processingAbort.set(chatId, ac)
               inFlightText.set(chatId, combined) // 처리 중 텍스트 보존

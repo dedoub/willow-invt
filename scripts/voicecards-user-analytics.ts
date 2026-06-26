@@ -7,7 +7,7 @@ config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import { execFileSync } from 'node:child_process'
-import { markdownToTelegramHtml } from './telegram-utils'
+import { markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`
@@ -77,20 +77,8 @@ async function getCeoChatId(): Promise<number | null> {
   return data?.chat_id ?? null
 }
 
-async function sendTelegram(chatId: number, text: string, parseMode: string = 'Markdown') {
-  const MAX_LEN = 4000
-  const chunks: string[] = []
-  let remaining = text
-  while (remaining.length > 0) {
-    if (remaining.length <= MAX_LEN) {
-      chunks.push(remaining)
-      break
-    }
-    let splitAt = remaining.lastIndexOf('\n', MAX_LEN)
-    if (splitAt < 100) splitAt = MAX_LEN
-    chunks.push(remaining.slice(0, splitAt))
-    remaining = remaining.slice(splitAt).trimStart()
-  }
+async function sendTelegram(chatId: number, text: string, parseMode: string = 'HTML') {
+  const chunks = splitTelegramMessage(text, 4000)
   for (const chunk of chunks) {
     const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: 'POST',
@@ -366,10 +354,10 @@ async function main() {
   }
   const narrative = generateNarrative(digestLines.join('\n'))
 
-  let outText = message
-  let parseMode = 'Markdown'
+  let outText = markdownToTelegramHtml(normalizeTelegramOutboundText(message))
+  let parseMode = 'HTML'
   if (narrative) {
-    outText = markdownToTelegramHtml(`📊 **VoiceCards 일일 분석** (${today})\n\n${narrative}`)
+    outText = markdownToTelegramHtml(normalizeTelegramOutboundText(`📊 **VoiceCards 일일 분석** (${today})\n\n${narrative}`))
     parseMode = 'HTML'
     log(`Using claude narrative (len ${narrative.length})`)
   } else {

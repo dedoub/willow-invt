@@ -3,7 +3,7 @@ config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import { runAgent } from './lib/agent-cli'
-import { markdownToTelegramHtml } from './telegram-utils'
+import { markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
 import { ensureTickerTheme } from '../src/lib/ensure-ticker-theme'
 import { inferAxisFromSector } from '../src/lib/infer-axis'
 
@@ -49,19 +49,8 @@ async function getCeoChatId(): Promise<number | null> {
 }
 
 async function sendTelegramMessage(chatId: number, text: string) {
-  const MAX_LEN = 4000
-  const chunks = []
-  let remaining = text
-  while (remaining.length > 0) {
-    if (remaining.length <= MAX_LEN) {
-      chunks.push(remaining)
-      break
-    }
-    let splitAt = remaining.lastIndexOf('\n', MAX_LEN)
-    if (splitAt < 100) splitAt = MAX_LEN
-    chunks.push(remaining.slice(0, splitAt))
-    remaining = remaining.slice(splitAt).trimStart()
-  }
+  const normalized = normalizeTelegramOutboundText(text)
+  const chunks = splitTelegramMessage(normalized, 4000)
 
   for (const chunk of chunks) {
     try {
@@ -655,7 +644,7 @@ async function main() {
     log('🏁 통합 리서치 스캔 완료')
   } catch (err) {
     log(`❌ 스캔 실패: ${err}`)
-    await sendTelegramMessage(chatId, '🔍 리서치 스캔에서 오류가 발생했어요. 로그를 확인해주세요.')
+    await sendTelegramMessage(chatId, '🛠️ [백그라운드 리서치 스캔] 오류가 발생했어요. 자동 복구에 실패해 로그 확인이 필요합니다.')
     process.exit(1)
   }
 }

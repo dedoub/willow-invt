@@ -2,9 +2,11 @@ import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
-import { runAgent } from './lib/agent-cli'
+import { runAgent, AgentAbortError, type CodexProgress } from './lib/agent-cli'
 import { existsSync, writeFileSync, readFileSync, unlinkSync, mkdirSync } from 'fs'
 import { join } from 'path'
+import { markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
+import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
 
 // ============================================================
 // Config
@@ -17,14 +19,41 @@ const supabase = createClient(
 )
 
 const MAX_HISTORY = 15
+const MAX_PROMPT_HISTORY = 10
 const POLL_INTERVAL = 1500
-const MESSAGE_BATCH_DELAY = 4000
+const MESSAGE_BATCH_DELAY = 1000
 const LOG_DIR = join(__dirname, 'logs')
 const LOCK_FILE = join(LOG_DIR, 'ryuha-bot.lock')
 const OFFSET_FILE = join(LOG_DIR, 'ryuha-bot.offset')
 const ALLOWED_USERS_FILE = join(LOG_DIR, 'ryuha-bot-users.json')
+const BOT_TEXT_LOG_FILE = join(LOG_DIR, 'ryuha-bot.log')
+const BOT_RUNTIME_JSONL_FILE = join(LOG_DIR, 'ryuha-bot.runtime.jsonl')
 const REG_CODE = '공부시작2026'
 const MAX_USERS = 2
+const CONTEXT_CACHE_TTL = 15 * 1000
+const RYUHA_DASHBOARD_STRUCTURE = `## 류하 학습관리 구조
+- 일정: 학교, 학원, 숙제, 기타 일정
+- 숙제: 일정과 연결된 해야 할 일과 마감
+- 과목/교재/챕터: 과목별 학습 진도
+- 메모: 날짜별 짧은 기록
+- 수첩 노트: 기억해둘 내용, 일기, 공부 메모
+- 체형 기록: 키와 몸무게 변화
+
+질문을 받으면 먼저 "일정 / 숙제 / 진도 / 수첩 / 생활기록 / 일반 대화" 중 어디에 속하는지 파악하고,
+관련 데이터가 있으면 그 축을 우선 참고해 답해.`
+
+installRuntimeConsoleCapture({ botKey: 'rina-bot', jsonlPath: BOT_RUNTIME_JSONL_FILE })
+installRuntimeProcessMonitor({ botKey: 'rina-bot', jsonlPath: BOT_RUNTIME_JSONL_FILE })
+recordRuntimeEvent({
+  botKey: 'rina-bot',
+  jsonlPath: BOT_RUNTIME_JSONL_FILE,
+  source: 'process_boot',
+  message: 'runtime logging enabled',
+  details: {
+    textLog: BOT_TEXT_LOG_FILE,
+    structuredLog: BOT_RUNTIME_JSONL_FILE,
+  },
+})
 
 // 허용된 chat_id 목록
 let allowedChatIds: number[] = []
@@ -51,6 +80,78 @@ const messageBatchBuffer: Map<number, { messages: string[]; timer: ReturnType<ty
 // 처리 중 메시지 취소
 const processingAbort: Map<number, AbortController> = new Map()
 const inFlightText: Map<number, string> = new Map()
+
+interface ProgressMessageState {
+  messageId: number
+  startedAt: number
+  replyToMessageId?: number
+  lastRendered: string
+}
+
+const progressMessages = new Map<number, ProgressMessageState>()
+
+let contextCache: { value: string; updatedAt: number } | null = null
+let contextCachePromise: Promise<string> | null = null
+
+function invalidateContextCache() {
+  contextCache = null
+  contextCachePromise = null
+}
+
+function getKstDateString(date = new Date()): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
+}
+
+function getKstClock(date = new Date()): { hour: number; minute: number; dateStr: string } {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date)
+  const pick = (type: string) => parts.find(part => part.type === type)?.value || '00'
+  return {
+    hour: Number(pick('hour')),
+    minute: Number(pick('minute')),
+    dateStr: `${pick('year')}-${pick('month')}-${pick('day')}`,
+  }
+}
+
+function formatProgressElapsed(startedAt: number): string {
+  const sec = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
+  return sec >= 60 ? `${Math.floor(sec / 60)}분 ${sec % 60}초` : `${sec}초`
+}
+
+function buildProgressMessage(opts: {
+  percent: number
+  stage: string
+  current: string
+  startedAt: number
+  recent?: string[]
+  meta?: string[]
+}): string {
+  const lines = [
+    `⏳ 처리현황 ${Math.max(0, Math.min(100, Math.round(opts.percent)))}%`,
+    `단계: ${opts.stage}`,
+    `현재: ${opts.current}`,
+  ]
+  const recent = (opts.recent || []).filter(Boolean).slice(-4)
+  if (recent.length) {
+    lines.push('최근:')
+    for (const item of recent) lines.push(`- ${item}`)
+  }
+  const meta = [`경과 ${formatProgressElapsed(opts.startedAt)}`, ...((opts.meta || []).filter(Boolean))]
+  lines.push(meta.join(' · '))
+  return lines.join('\n').slice(0, 4000)
+}
 
 // ============================================================
 // Process lock
@@ -121,21 +222,21 @@ async function tg(method: string, body: Record<string, unknown>) {
   return json
 }
 
-function markdownToTelegramHtml(text: string): string {
-  let html = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-  html = html.replace(/```(?:\w*)\n?([\s\S]*?)```/g, '<pre>$1</pre>')
-  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>')
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-  html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<i>$1</i>')
-  return html
+async function editMessage(chatId: number, messageId: number, text: string) {
+  await tg('editMessageText', {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+  }).catch(() => {})
+}
+
+async function deleteMsg(chatId: number, messageId: number) {
+  await tg('deleteMessage', { chat_id: chatId, message_id: messageId }).catch(() => {})
 }
 
 async function sendMessage(chatId: number, text: string, maxRetries = 2) {
-  const chunks = splitMessage(text, 4000)
+  const normalized = normalizeTelegramOutboundText(text)
+  const chunks = splitTelegramMessage(normalized, 4000)
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i]
     let sent = false
@@ -167,20 +268,6 @@ async function sendMessage(chatId: number, text: string, maxRetries = 2) {
   }
 }
 
-function splitMessage(text: string, maxLen: number): string[] {
-  if (text.length <= maxLen) return [text]
-  const chunks: string[] = []
-  let remaining = text
-  while (remaining.length > 0) {
-    if (remaining.length <= maxLen) { chunks.push(remaining); break }
-    let splitIdx = remaining.lastIndexOf('\n', maxLen)
-    if (splitIdx === -1 || splitIdx < maxLen / 2) splitIdx = maxLen
-    chunks.push(remaining.slice(0, splitIdx))
-    remaining = remaining.slice(splitIdx).trimStart()
-  }
-  return chunks
-}
-
 async function sendTyping(chatId: number) {
   await tg('sendChatAction', { chat_id: chatId, action: 'typing' }).catch(() => {})
 }
@@ -196,11 +283,12 @@ async function setReaction(chatId: number, messageId: number, emoji: string) {
 }
 
 async function sendMessageWithButtons(chatId: number, text: string, buttons: { text: string; callback_data: string }[][]) {
+  const normalized = normalizeTelegramOutboundText(text)
   for (let attempt = 0; attempt <= 2; attempt++) {
     try {
       await tg('sendMessage', {
         chat_id: chatId,
-        text: markdownToTelegramHtml(text),
+        text: markdownToTelegramHtml(normalized),
         parse_mode: 'HTML',
         reply_markup: { inline_keyboard: buttons },
       })
@@ -209,7 +297,7 @@ async function sendMessageWithButtons(chatId: number, text: string, buttons: { t
       try {
         await tg('sendMessage', {
           chat_id: chatId,
-          text,
+          text: normalized,
           reply_markup: { inline_keyboard: buttons },
         })
         return
@@ -219,6 +307,99 @@ async function sendMessageWithButtons(chatId: number, text: string, buttons: { t
       }
     }
   }
+}
+
+async function ensureProgressMessage(
+  chatId: number,
+  initialText: string,
+  opts?: { replyToMessageId?: number; startedAt?: number }
+): Promise<ProgressMessageState> {
+  const existing = progressMessages.get(chatId)
+  if (existing) {
+    if (opts?.replyToMessageId) existing.replyToMessageId = opts.replyToMessageId
+    if (opts?.startedAt && opts.startedAt < existing.startedAt) existing.startedAt = opts.startedAt
+    return existing
+  }
+
+  const res = await tg('sendMessage', {
+    chat_id: chatId,
+    text: initialText,
+    ...(opts?.replyToMessageId ? { reply_to_message_id: opts.replyToMessageId } : {}),
+  })
+  const state: ProgressMessageState = {
+    messageId: res?.result?.message_id,
+    startedAt: opts?.startedAt ?? Date.now(),
+    replyToMessageId: opts?.replyToMessageId,
+    lastRendered: initialText,
+  }
+  progressMessages.set(chatId, state)
+  return state
+}
+
+async function renderProgressMessage(
+  chatId: number,
+  text: string,
+  opts?: { replyToMessageId?: number; startedAt?: number }
+) {
+  const state = await ensureProgressMessage(chatId, text, opts)
+  if (state.lastRendered === text) return
+  state.lastRendered = text
+  await editMessage(chatId, state.messageId, text)
+}
+
+function getProgressStartedAt(chatId: number): number | null {
+  return progressMessages.get(chatId)?.startedAt ?? null
+}
+
+async function closeProgressMessage(chatId: number, opts?: { finalText?: string; lingerMs?: number }) {
+  const state = progressMessages.get(chatId)
+  if (!state) return
+  progressMessages.delete(chatId)
+
+  if (opts?.finalText) {
+    try { await editMessage(chatId, state.messageId, opts.finalText) } catch { /* ignore */ }
+  }
+  if (opts?.lingerMs) {
+    await new Promise(r => setTimeout(r, opts.lingerMs))
+  }
+  await deleteMsg(chatId, state.messageId)
+}
+
+async function updateQueuedProgress(
+  chatId: number,
+  opts: {
+    messageCount: number
+    replyToMessageId?: number
+    phase: 'queued' | 'merged' | 'restart' | 'starting'
+    startedAt?: number
+  }
+) {
+  const startedAt = opts.startedAt ?? getProgressStartedAt(chatId) ?? Date.now()
+  const currentByPhase = {
+    queued: `메시지 ${opts.messageCount}개를 받았어. ${Math.round(MESSAGE_BATCH_DELAY / 1000)}초 동안 같이 묶어볼게!`,
+    merged: `추가 메시지를 합쳐서 한 번에 정리 중이야. (${opts.messageCount}개)`,
+    restart: `새 메시지가 와서 다시 묶는 중이야. (${opts.messageCount}개)`,
+    starting: `배칭을 마치고 본격 처리 시작! (${opts.messageCount}개)`,
+  } as const
+  const noteByPhase = {
+    queued: '접수 완료',
+    merged: `메시지 ${opts.messageCount}개 묶는 중`,
+    restart: '새 입력 반영 중',
+    starting: '처리 시작',
+  } as const
+  const percentByPhase = { queued: 10, merged: 12, restart: 14, starting: 18 } as const
+
+  await renderProgressMessage(chatId, buildProgressMessage({
+    percent: percentByPhase[opts.phase],
+    stage: opts.phase === 'starting' ? '처리 시작' : '접수/배칭',
+    current: currentByPhase[opts.phase],
+    startedAt,
+    recent: [noteByPhase[opts.phase]],
+    meta: [`입력 ${opts.messageCount}개`, opts.phase !== 'starting' ? `배칭 ${Math.round(MESSAGE_BATCH_DELAY / 1000)}초` : '곧 답변 시작'],
+  }), {
+    replyToMessageId: opts.replyToMessageId,
+    startedAt,
+  })
 }
 
 async function answerCallbackQuery(callbackQueryId: string) {
@@ -280,13 +461,13 @@ async function saveConversation(chatId: number, messages: Message[]) {
 // ============================================================
 // System Prompt
 // ============================================================
-function buildSystemPrompt(context: string, history: Message[]): string {
+function buildSystemPrompt(context: string, history: Message[], runtimeContext: string): string {
   const now = new Date()
   const timeStr = now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
-  const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()]
+  const historyForPrompt = history.slice(-MAX_PROMPT_HISTORY)
 
-  const historyText = history.length > 0
-    ? history.map(m => {
+  const historyText = historyForPrompt.length > 0
+    ? historyForPrompt.map(m => {
         const t = new Date(m.timestamp)
         const tStr = t.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         return `[${tStr}] ${m.role === 'user' ? '류하' : '봇'}: ${m.content.slice(0, 300)}`
@@ -315,6 +496,9 @@ function buildSystemPrompt(context: string, history: Message[]): string {
 3. **공부 도우미**: 모르는 거 물어보면 초등학생 눈높이에 맞게 설명
 4. **생활 친구**: 체형 기록, 일상 대화도 OK
 5. **수첩 관리**: 류하 수첩에 기록 추가/조회/수정 (기억해둘 것, 메모, 일기 등)
+
+## 현재 학습관리 화면 구조
+${RYUHA_DASHBOARD_STRUCTURE}
 
 ## MCP 도구
 류하가 일정/숙제/교재/체형 관련 요청을 하면 MCP 도구를 사용해.
@@ -375,9 +559,13 @@ ryuha_* MCP 도구로 안 되는 복잡한 작업은 Supabase MCP 도구로 직�
 \`\`\`
 9. 도구 실행 결과를 그대로 보여주지 마. 자연스럽게 요약해서 전달해.
 10. 날짜는 "3월 30일 (일)" 형태로 읽기 쉽게.
+11. 내부 오류를 고칠 때는 아래 "봇 런타임 로그"를 먼저 참고하되, 류하에게는 기술 로그를 길게 설명하지 마.
 
 ## 현재 학습 현황
 ${context}
+
+## 봇 런타임 로그
+${runtimeContext}
 
 ## 최근 대화
 ${historyText}`
@@ -387,145 +575,162 @@ ${historyText}`
 // Context builder
 // ============================================================
 async function buildContext(): Promise<string> {
-  const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
-  const weekEnd = new Date(today)
-  weekEnd.setDate(weekEnd.getDate() + 7)
-  const weekEndStr = weekEnd.toISOString().split('T')[0]
+  const cached = contextCache
+  if (cached && Date.now() - cached.updatedAt < CONTEXT_CACHE_TTL) {
+    return cached.value
+  }
+  if (contextCachePromise) {
+    return contextCachePromise
+  }
 
-  const parts: string[] = []
+  contextCachePromise = (async () => {
+    const today = new Date()
+    const todayStr = getKstDateString(today)
+    const weekEnd = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const weekEndStr = getKstDateString(weekEnd)
 
-  // 오늘 & 이번주 일정
-  try {
-    const { data: schedules } = await supabase
-      .from('ryuha_schedules')
-      .select('*, subject:ryuha_subjects(*)')
-      .gte('schedule_date', todayStr)
-      .lte('schedule_date', weekEndStr)
-      .order('schedule_date')
-      .order('start_time')
+    const parts: string[] = []
 
-    if (schedules?.length) {
-      const todaySchedules = schedules.filter(s => s.schedule_date === todayStr)
-      const upcomingSchedules = schedules.filter(s => s.schedule_date !== todayStr)
+    // 오늘 & 이번주 일정
+    try {
+      const { data: schedules } = await supabase
+        .from('ryuha_schedules')
+        .select('*, subject:ryuha_subjects(*)')
+        .gte('schedule_date', todayStr)
+        .lte('schedule_date', weekEndStr)
+        .order('schedule_date')
+        .order('start_time')
 
-      if (todaySchedules.length) {
-        parts.push(`### 오늘 일정 (${todayStr})`)
-        for (const s of todaySchedules) {
-          const status = s.is_completed ? '✅' : '⬜'
-          const time = s.start_time ? ` ${s.start_time}` : ''
-          const subject = s.subject?.name ? ` [${s.subject.name}]` : ''
-          parts.push(`${status}${time}${subject} ${s.title}`)
+      if (schedules?.length) {
+        const todaySchedules = schedules.filter(s => s.schedule_date === todayStr)
+        const upcomingSchedules = schedules.filter(s => s.schedule_date !== todayStr)
+
+        if (todaySchedules.length) {
+          parts.push(`### 오늘 일정 (${todayStr})`)
+          for (const s of todaySchedules) {
+            const status = s.is_completed ? '✅' : '⬜'
+            const time = s.start_time ? ` ${s.start_time}` : ''
+            const subject = s.subject?.name ? ` [${s.subject.name}]` : ''
+            parts.push(`${status}${time}${subject} ${s.title}`)
+          }
+        } else {
+          parts.push(`### 오늘 일정: 없음`)
+        }
+
+        if (upcomingSchedules.length) {
+          parts.push(`\n### 이번주 예정`)
+          for (const s of upcomingSchedules.slice(0, 10)) {
+            const status = s.is_completed ? '✅' : '⬜'
+            const subject = s.subject?.name ? ` [${s.subject.name}]` : ''
+            parts.push(`${status} ${s.schedule_date}${subject} ${s.title}`)
+          }
         }
       } else {
-        parts.push(`### 오늘 일정: 없음`)
+        parts.push('### 오늘 & 이번주 일정: 없음')
       }
+    } catch (e) {
+      console.error('[context] schedules error:', e)
+    }
 
-      if (upcomingSchedules.length) {
-        parts.push(`\n### 이번주 예정`)
-        for (const s of upcomingSchedules.slice(0, 10)) {
-          const status = s.is_completed ? '✅' : '⬜'
-          const subject = s.subject?.name ? ` [${s.subject.name}]` : ''
-          parts.push(`${status} ${s.schedule_date}${subject} ${s.title}`)
+    // 미완료 숙제
+    try {
+      const { data: homework } = await supabase
+        .from('ryuha_homework_items')
+        .select('*, schedule:ryuha_schedules(title, subject:ryuha_subjects(name))')
+        .eq('is_completed', false)
+        .gte('deadline', todayStr)
+        .order('deadline')
+        .limit(10)
+
+      if (homework?.length) {
+        parts.push(`\n### 미완료 숙제`)
+        for (const h of homework) {
+          const subjectName = h.schedule?.subject?.name || ''
+          parts.push(`⬜ [${h.deadline}]${subjectName ? ` ${subjectName}` : ''}: ${h.content}`)
         }
       }
-    } else {
-      parts.push('### 오늘 & 이번주 일정: 없음')
+    } catch (e) {
+      console.error('[context] homework error:', e)
     }
-  } catch (e) {
-    console.error('[context] schedules error:', e)
-  }
 
-  // 미완료 숙제
-  try {
-    const { data: homework } = await supabase
-      .from('ryuha_homework_items')
-      .select('*, schedule:ryuha_schedules(title, subject:ryuha_subjects(name))')
-      .eq('is_completed', false)
-      .gte('deadline', todayStr)
-      .order('deadline')
-      .limit(10)
+    // 과목별 진도
+    try {
+      const { data: subjects } = await supabase
+        .from('ryuha_subjects')
+        .select('id, name')
+        .order('order_index')
 
-    if (homework?.length) {
-      parts.push(`\n### 미완료 숙제`)
-      for (const h of homework) {
-        const subjectName = h.schedule?.subject?.name || ''
-        parts.push(`⬜ [${h.deadline}]${subjectName ? ` ${subjectName}` : ''}: ${h.content}`)
-      }
-    }
-  } catch (e) {
-    console.error('[context] homework error:', e)
-  }
+      const { data: chapters } = await supabase
+        .from('ryuha_chapters')
+        .select('textbook_id, status, textbook:ryuha_textbooks(subject_id)')
 
-  // 과목별 진도
-  try {
-    const { data: subjects } = await supabase
-      .from('ryuha_subjects')
-      .select('id, name')
-      .order('order_index')
-
-    const { data: chapters } = await supabase
-      .from('ryuha_chapters')
-      .select('textbook_id, status, textbook:ryuha_textbooks(subject_id)')
-
-    if (subjects?.length && chapters?.length) {
-      parts.push(`\n### 과목별 진도`)
-      for (const subj of subjects) {
-        const subjChapters = chapters.filter((c: any) => c.textbook?.subject_id === subj.id)
-        const completed = subjChapters.filter(c => c.status === 'completed').length
-        const total = subjChapters.length
-        if (total > 0) {
-          const pct = Math.round((completed / total) * 100)
-          parts.push(`${subj.name}: ${completed}/${total} (${pct}%)`)
+      if (subjects?.length && chapters?.length) {
+        parts.push(`\n### 과목별 진도`)
+        for (const subj of subjects) {
+          const subjChapters = chapters.filter((c: any) => c.textbook?.subject_id === subj.id)
+          const completed = subjChapters.filter(c => c.status === 'completed').length
+          const total = subjChapters.length
+          if (total > 0) {
+            const pct = Math.round((completed / total) * 100)
+            parts.push(`${subj.name}: ${completed}/${total} (${pct}%)`)
+          }
         }
       }
+    } catch (e) {
+      console.error('[context] progress error:', e)
     }
-  } catch (e) {
-    console.error('[context] progress error:', e)
-  }
 
-  // 최근 체형 기록
-  try {
-    const { data: records } = await supabase
-      .from('ryuha_body_records')
-      .select('*')
-      .order('record_date', { ascending: false })
-      .limit(3)
+    // 최근 체형 기록
+    try {
+      const { data: records } = await supabase
+        .from('ryuha_body_records')
+        .select('*')
+        .order('record_date', { ascending: false })
+        .limit(3)
 
-    if (records?.length) {
-      parts.push(`\n### 최근 체형 기록`)
-      for (const r of records) {
-        const height = r.height_cm ? `키 ${r.height_cm}cm` : ''
-        const weight = r.weight_kg ? `몸무게 ${r.weight_kg}kg` : ''
-        parts.push(`${r.record_date}: ${[height, weight].filter(Boolean).join(', ')}`)
+      if (records?.length) {
+        parts.push(`\n### 최근 체형 기록`)
+        for (const r of records) {
+          const height = r.height_cm ? `키 ${r.height_cm}cm` : ''
+          const weight = r.weight_kg ? `몸무게 ${r.weight_kg}kg` : ''
+          parts.push(`${r.record_date}: ${[height, weight].filter(Boolean).join(', ')}`)
+        }
       }
+    } catch (e) {
+      console.error('[context] body records error:', e)
     }
-  } catch (e) {
-    console.error('[context] body records error:', e)
-  }
 
-  // 최근 수첩 노트
-  try {
-    const { data: notes } = await supabase
-      .from('ryuha_notes')
-      .select('id, title, category, is_pinned, updated_at')
-      .order('is_pinned', { ascending: false })
-      .order('updated_at', { ascending: false })
-      .limit(5)
+    // 최근 수첩 노트
+    try {
+      const { data: notes } = await supabase
+        .from('ryuha_notes')
+        .select('id, title, category, is_pinned, updated_at')
+        .order('is_pinned', { ascending: false })
+        .order('updated_at', { ascending: false })
+        .limit(5)
 
-    if (notes?.length) {
-      parts.push(`\n### 류하 수첩 (최근 노트)`)
-      for (const n of notes) {
-        const pin = n.is_pinned ? '📌 ' : ''
-        const cat = n.category && n.category !== '메모' ? ` [${n.category}]` : ''
-        parts.push(`${pin}${n.title}${cat} (${n.updated_at?.split('T')[0]})`)
+      if (notes?.length) {
+        parts.push(`\n### 류하 수첩 (최근 노트)`)
+        for (const n of notes) {
+          const pin = n.is_pinned ? '📌 ' : ''
+          const cat = n.category && n.category !== '메모' ? ` [${n.category}]` : ''
+          parts.push(`${pin}${n.title}${cat} (${n.updated_at?.split('T')[0]})`)
+        }
       }
+    } catch (e) {
+      console.error('[context] notebook notes error:', e)
     }
-  } catch (e) {
-    console.error('[context] notebook notes error:', e)
-  }
 
-  return parts.join('\n') || '(데이터 없음)'
+    const value = parts.join('\n') || '(데이터 없음)'
+    contextCache = { value, updatedAt: Date.now() }
+    return value
+  })()
+
+  try {
+    return await contextCachePromise
+  } finally {
+    contextCachePromise = null
+  }
 }
 
 // ============================================================
@@ -534,10 +739,16 @@ async function buildContext(): Promise<string> {
 const RYUHA_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__ryuha_*'
 const SUPABASE_MCP_TOOLS = 'mcp__supabase__*'
 
-function askClaude(prompt: string, options?: { noTools?: boolean }): Promise<string> {
+function askClaude(prompt: string, options?: {
+  noTools?: boolean
+  onProgress?: (p: CodexProgress) => void
+  signal?: AbortSignal
+}): Promise<string> {
   return runAgent(prompt, {
     allowedTools: options?.noTools ? undefined : [RYUHA_MCP_TOOLS, SUPABASE_MCP_TOOLS],
     backend: 'codex',
+    onProgress: options?.onProgress,
+    signal: options?.signal,
   })
 }
 
@@ -575,44 +786,194 @@ function parseResponse(text: string): { messages: string[]; buttons?: { text: st
 // ============================================================
 async function handleMessage(chatId: number, userText: string, abortSignal?: AbortSignal, lastMessageId?: number) {
   console.log(`[msg] ${chatId}: ${userText.slice(0, 100)}`)
-
-  // ❤️ 리액션으로 "읽었다" 표시
-  if (lastMessageId) {
-    await setReaction(chatId, lastMessageId, '❤️')
-  }
-
-  await sendTyping(chatId)
-
-  // Build context & history
-  const [context, history] = await Promise.all([
-    buildContext(),
-    getConversation(chatId),
-  ])
-
-  if (abortSignal?.aborted) return
-
-  // 무거운 질문이면 확인 메시지 전송
-  const isHeavyQuery = userText.length > 50 || ['일정', '숙제', '진도', '현황', '알려줘', '보여줘', '정리', '기록'].some(k => userText.includes(k))
-  if (isHeavyQuery) {
-    const acks = ['잠깐만~ 확인해볼게! 🔍', '알겠어, 찾아볼게! 📚', '잠시만 기다려~ 👀', '확인하고 바로 알려줄게!']
-    const ack = acks[Math.floor(Math.random() * acks.length)]
-    await sendMessage(chatId, ack)
-  }
-
-  const systemPrompt = buildSystemPrompt(context, history)
-  const fullPrompt = `${systemPrompt}\n\n---\n류하: ${userText}`
-
-  // 타이핑 유지 (Claude 처리 중)
-  const typingInterval = setInterval(() => sendTyping(chatId), 4000)
-
+  recordRuntimeEvent({
+    botKey: 'rina-bot',
+    jsonlPath: BOT_RUNTIME_JSONL_FILE,
+    source: 'message_received',
+    message: `message received from ${chatId}`,
+    details: {
+      chatId,
+      lastMessageId,
+      textPreview: userText.slice(0, 240),
+    },
+  })
   try {
-    const response = await askClaude(fullPrompt)
+    const progressStart = getProgressStartedAt(chatId) ?? Date.now()
+    if (lastMessageId) {
+      void setReaction(chatId, lastMessageId, '❤️')
+    }
+    void sendTyping(chatId)
 
-    clearInterval(typingInterval)
+    const progressLines: string[] = []
+    let progressPercent = 18
+    let progressStage = '처리 시작'
+    let progressCurrent = '메시지 내용을 정리하고 있어.'
+    let progressMeta: string[] = []
+
+    const syncProgress = async () => {
+      await renderProgressMessage(chatId, buildProgressMessage({
+        percent: progressPercent,
+        stage: progressStage,
+        current: progressCurrent,
+        startedAt: progressStart,
+        recent: progressLines,
+        meta: progressMeta,
+      }), {
+        replyToMessageId: lastMessageId,
+        startedAt: progressStart,
+      })
+    }
+
+    const addProgress = async (
+      line: string,
+      opts?: { percent?: number; stage?: string; current?: string; meta?: string[] }
+    ) => {
+      if (opts?.percent != null) progressPercent = opts.percent
+      if (opts?.stage) progressStage = opts.stage
+      if (opts?.current) progressCurrent = opts.current
+      if (opts?.meta) progressMeta = opts.meta
+      progressLines.push(line)
+      if (progressLines.length > 4) progressLines.shift()
+      await syncProgress()
+    }
+
+    await syncProgress()
+    await addProgress('일정 · 숙제 · 진도 · 최근 대화를 읽는 중', {
+      percent: 28,
+      stage: '컨텍스트 로드',
+      current: '학습 현황과 대화 맥락을 모으고 있어.',
+    })
+
+    const [context, history, runtimeContext] = await Promise.all([
+      buildContext(),
+      getConversation(chatId),
+      getRuntimeLogContext({
+        botLabel: 'Rina',
+        botKey: 'rina-bot',
+        jsonlPath: BOT_RUNTIME_JSONL_FILE,
+        textLogPath: BOT_TEXT_LOG_FILE,
+      }),
+    ])
 
     if (abortSignal?.aborted) return
 
+    const historyForPrompt = history.slice(-MAX_PROMPT_HISTORY)
+    await addProgress(`대화기록 ${historyForPrompt.length}건 확인`, {
+      percent: 38,
+      stage: '맥락 정리',
+      current: '질문과 연결될 일정/숙제 흐름을 정리하고 있어.',
+    })
+
+    const systemPrompt = buildSystemPrompt(context, historyForPrompt, runtimeContext)
+    const fullPrompt = `${systemPrompt}\n\n---\n류하: ${userText}`
+    await addProgress(`프롬프트 ${(fullPrompt.length / 1000).toFixed(0)}K자 준비`, {
+      percent: 48,
+      stage: '프롬프트 구성',
+      current: '리나가 바로 답할 수 있게 입력을 정리했어.',
+    })
+
+    if (abortSignal?.aborted) return
+
+    let codexCmds = 0
+    let codexTools = 0
+    const codexFiles = new Set<string>()
+    let liveActivity = '🤖 리나가 답을 만드는 중이야.'
+    let lastLiveEdit = 0
+    const oneLine = (s: string, n = 56) => {
+      const t = (s || '').replace(/\s+/g, ' ').trim()
+      return t.length > n ? t.slice(0, n) + '…' : t
+    }
+    const pushLive = (force = false) => {
+      const now = Date.now()
+      if (!force && now - lastLiveEdit < 1800) return
+      lastLiveEdit = now
+      progressPercent = Math.max(progressPercent, 62)
+      progressStage = '에이전트 실행'
+      progressCurrent = liveActivity
+      progressMeta = [
+        codexCmds ? `명령 ${codexCmds}` : '',
+        codexFiles.size ? `파일 ${codexFiles.size}` : '',
+        codexTools ? `도구 ${codexTools}` : '',
+      ].filter(Boolean)
+      void syncProgress()
+    }
+    const onCodexProgress = (p: CodexProgress) => {
+      if (p.phase !== 'item_started' && p.phase !== 'item_completed') return
+      switch (p.itemType) {
+        case 'command_execution':
+          if (p.phase === 'item_started') codexCmds++
+          progressPercent = Math.max(progressPercent, 68)
+          liveActivity = `⚙️ ${oneLine(p.command || '명령 실행 중')}`
+          break
+        case 'mcp_tool_call':
+          codexTools++
+          progressPercent = Math.max(progressPercent, 76)
+          liveActivity = `🔧 ${oneLine(p.text || p.command || '학습 도구 확인 중')}`
+          break
+        case 'web_search':
+          codexTools++
+          progressPercent = Math.max(progressPercent, 74)
+          liveActivity = `🔍 ${oneLine(p.text || '검색 중')}`
+          break
+        case 'file_change':
+          for (const file of p.files || []) codexFiles.add(file)
+          progressPercent = Math.max(progressPercent, 80)
+          liveActivity = `✏️ ${oneLine((p.files || []).join(', ') || '파일 정리 중')}`
+          break
+        case 'agent_message':
+          progressPercent = Math.max(progressPercent, 84)
+          liveActivity = `💬 ${oneLine(p.text || '답을 정리하는 중')}`
+          break
+        case 'reasoning':
+          progressPercent = Math.max(progressPercent, 64)
+          liveActivity = '🤔 질문을 이해하고 답을 정리하는 중이야.'
+          break
+        default:
+          if (p.itemType) liveActivity = `⏳ ${p.itemType}`
+      }
+      pushLive()
+    }
+
+    await addProgress('리나가 실제 작업 시작', {
+      percent: 58,
+      stage: '에이전트 실행',
+      current: '도구를 보면서 답변을 만들고 있어.',
+    })
+
+    const liveTimer = setInterval(() => pushLive(true), 3000)
+    const typingInterval = setInterval(() => { void sendTyping(chatId) }, 4000)
+
+    let response = ''
+    try {
+      response = await askClaude(fullPrompt, {
+        onProgress: onCodexProgress,
+        signal: abortSignal,
+      })
+    } finally {
+      clearInterval(liveTimer)
+      clearInterval(typingInterval)
+    }
+
+    if (abortSignal?.aborted) return
+
+    invalidateContextCache()
+    await addProgress(`응답 ${(response.length / 1000).toFixed(1)}K자 생성`, {
+      percent: 90,
+      stage: '응답 정리',
+      current: '버튼과 메시지 묶음을 정리하고 있어.',
+      meta: [
+        codexCmds ? `명령 ${codexCmds}` : '',
+        codexFiles.size ? `파일 ${codexFiles.size}` : '',
+        codexTools ? `도구 ${codexTools}` : '',
+      ].filter(Boolean),
+    })
+
     const { messages, buttons } = parseResponse(response)
+    await addProgress(`메시지 ${messages.length}개로 정리`, {
+      percent: 96,
+      stage: '응답 전송',
+      current: '텔레그램으로 답을 보내는 중이야.',
+    })
 
     // Send messages
     for (let i = 0; i < messages.length; i++) {
@@ -633,9 +994,67 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
       await saveConversation(chatId, freshHistory)
     })
 
+    await closeProgressMessage(chatId, {
+      finalText: buildProgressMessage({
+        percent: 100,
+        stage: '완료',
+        current: '답변 전송까지 끝났어.',
+        startedAt: progressStart,
+        recent: [...progressLines, `응답 ${messages.length}개 전송 완료`].slice(-4),
+        meta: [
+          codexCmds ? `명령 ${codexCmds}` : '',
+          codexFiles.size ? `파일 ${codexFiles.size}` : '',
+          codexTools ? `도구 ${codexTools}` : '',
+        ].filter(Boolean),
+      }),
+      lingerMs: 1200,
+    })
+    recordRuntimeEvent({
+      botKey: 'rina-bot',
+      jsonlPath: BOT_RUNTIME_JSONL_FILE,
+      source: 'message_completed',
+      message: `message handled for ${chatId}`,
+      details: {
+        chatId,
+        durationMs: Date.now() - progressStart,
+        responseCount: messages.length,
+        codexCommands: codexCmds,
+        codexFiles: Array.from(codexFiles),
+        codexTools,
+        replyPreview: response.slice(0, 240),
+      },
+    })
+
   } catch (err) {
-    clearInterval(typingInterval)
+    if (abortSignal?.aborted || err instanceof AgentAbortError) {
+      console.log(`[msg] ${chatId}: abort -> 재배칭 run으로 넘김`)
+      return
+    }
     console.error('[handle] error:', err)
+    recordRuntimeEvent({
+      botKey: 'rina-bot',
+      jsonlPath: BOT_RUNTIME_JSONL_FILE,
+      level: 'error',
+      source: 'message_error',
+      message: `message handling failed for ${chatId}`,
+      details: {
+        chatId,
+        durationMs: Date.now() - (getProgressStartedAt(chatId) ?? Date.now()),
+        textPreview: userText.slice(0, 240),
+        error: err instanceof Error ? { message: err.message, stack: err.stack } : err,
+      },
+    })
+    invalidateContextCache()
+    await closeProgressMessage(chatId, {
+      finalText: buildProgressMessage({
+        percent: 100,
+        stage: '오류',
+        current: '처리 중 문제가 생겨서 여기서 멈췄어.',
+        startedAt: getProgressStartedAt(chatId) ?? Date.now(),
+        recent: [err instanceof Error ? err.message.slice(0, 60) : '알 수 없는 오류'],
+      }),
+      lingerMs: 1500,
+    })
     await sendMessage(chatId, '앗, 잠깐 오류가 났어 😅 다시 한번 말해줄래?')
   }
 }
@@ -648,7 +1067,6 @@ function onNewMessage(chatId: number, text: string, messageId: number) {
   const existingAbort = processingAbort.get(chatId)
   if (existingAbort) {
     existingAbort.abort()
-    processingAbort.delete(chatId)
   }
 
   const existing = messageBatchBuffer.get(chatId)
@@ -656,10 +1074,21 @@ function onNewMessage(chatId: number, text: string, messageId: number) {
     clearTimeout(existing.timer)
     existing.messages.push(text)
     existing.lastMessageId = messageId
+    void updateQueuedProgress(chatId, {
+      messageCount: existing.messages.length,
+      replyToMessageId: messageId,
+      phase: existingAbort ? 'restart' : 'merged',
+    })
     existing.timer = setTimeout(() => flushBatch(chatId), MESSAGE_BATCH_DELAY)
   } else {
     const timer = setTimeout(() => flushBatch(chatId), MESSAGE_BATCH_DELAY)
     messageBatchBuffer.set(chatId, { messages: [text], timer, lastMessageId: messageId })
+    void updateQueuedProgress(chatId, {
+      messageCount: 1,
+      replyToMessageId: messageId,
+      phase: existingAbort ? 'restart' : 'queued',
+      startedAt: Date.now(),
+    })
   }
 }
 
@@ -679,8 +1108,14 @@ async function flushBatch(chatId: number) {
 
   const ac = new AbortController()
   processingAbort.set(chatId, ac)
+  inFlightText.set(chatId, combinedText)
 
   try {
+    await updateQueuedProgress(chatId, {
+      messageCount: combinedText.split('\n').filter(Boolean).length,
+      replyToMessageId: batch.lastMessageId,
+      phase: 'starting',
+    })
     await handleMessage(chatId, combinedText, ac.signal, batch.lastMessageId)
   } catch (err) {
     if (!ac.signal.aborted) {
@@ -689,6 +1124,9 @@ async function flushBatch(chatId: number) {
   } finally {
     if (processingAbort.get(chatId) === ac) {
       processingAbort.delete(chatId)
+    }
+    if (inFlightText.get(chatId) === combinedText) {
+      inFlightText.delete(chatId)
     }
   }
 }
@@ -726,10 +1164,7 @@ async function checkMorningGreeting() {
   if (allowedChatIds.length === 0) return
 
   const now = new Date()
-  const kst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
-  const hour = kst.getHours()
-  const min = kst.getMinutes()
-  const todayStr = kst.toISOString().split('T')[0]
+  const { hour, minute: min, dateStr: todayStr } = getKstClock(now)
 
   // 07:30~08:30 사이 한번만
   if ((hour === 7 && min >= 30) || (hour === 8 && min <= 30)) {
@@ -739,8 +1174,8 @@ async function checkMorningGreeting() {
     console.log('[greeting] sending morning greeting')
     const context = await buildContext()
     const prompt = `너는 류하의 학습관리 도우미 봇 "리나(Rina)"야.
-오늘 날짜: ${kst.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-현재 시각: ${kst.toLocaleString('ko-KR')}
+오늘 날짜: ${now.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+현재 시각: ${now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
 
 오늘의 학습 현황:
 ${context}
@@ -762,10 +1197,7 @@ async function checkEveningReminder() {
   if (allowedChatIds.length === 0) return
 
   const now = new Date()
-  const kst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
-  const hour = kst.getHours()
-  const min = kst.getMinutes()
-  const todayStr = kst.toISOString().split('T')[0]
+  const { hour, minute: min, dateStr: todayStr } = getKstClock(now)
 
   // 19:30~20:30 사이 한번만
   if ((hour === 19 && min >= 30) || (hour === 20 && min <= 30)) {
@@ -775,8 +1207,8 @@ async function checkEveningReminder() {
     console.log('[evening] sending evening reminder')
     const context = await buildContext()
     const prompt = `너는 류하의 학습관리 도우미 봇 "리나(Rina)"야.
-오늘 날짜: ${kst.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-현재 시각: ${kst.toLocaleString('ko-KR')}
+오늘 날짜: ${now.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+현재 시각: ${now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
 
 오늘의 학습 현황:
 ${context}
@@ -892,6 +1324,16 @@ async function main() {
   })
 
   console.log('🎓 류하 공부친구 봇 시작!')
+  recordRuntimeEvent({
+    botKey: 'rina-bot',
+    jsonlPath: BOT_RUNTIME_JSONL_FILE,
+    source: 'startup_ready',
+    message: 'ryuha bot ready',
+    details: {
+      pid: process.pid,
+      allowedUsers: allowedChatIds.length,
+    },
+  })
 
   // 아침 인사 + 저녁 알람 체크 (30분 간격)
   setInterval(checkMorningGreeting, 30 * 60 * 1000)

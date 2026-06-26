@@ -3,6 +3,7 @@ config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import { runAgent } from './lib/agent-cli'
+import { markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
 
 // ============================================================
 // Portfolio Briefing — 장 개장/마감 포트폴리오 브리핑
@@ -55,28 +56,22 @@ async function getCeoChatId(): Promise<number | null> {
 }
 
 async function sendTelegramMessage(chatId: number, text: string) {
-  const MAX_LEN = 4000
-  const chunks: string[] = []
-  let remaining = text
-  while (remaining.length > 0) {
-    if (remaining.length <= MAX_LEN) {
-      chunks.push(remaining)
-      break
-    }
-    let splitAt = remaining.lastIndexOf('\n', MAX_LEN)
-    if (splitAt < 100) splitAt = MAX_LEN
-    chunks.push(remaining.slice(0, splitAt))
-    remaining = remaining.slice(splitAt).trimStart()
-  }
+  const normalized = normalizeTelegramOutboundText(text)
+  const chunks = splitTelegramMessage(normalized, 4000)
 
   for (const chunk of chunks) {
     const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: chunk }),
+      body: JSON.stringify({ chat_id: chatId, text: markdownToTelegramHtml(chunk), parse_mode: 'HTML' }),
     })
     if (!res.ok) {
-      log(`Telegram send failed: ${res.status} ${await res.text()}`)
+      log(`Telegram HTML send failed: ${res.status} ${await res.text()}`)
+      await fetch(`${TELEGRAM_API}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: chunk }),
+      }).catch(e => log(`Telegram plain send failed: ${e}`))
     }
     if (chunks.length > 1) await new Promise(r => setTimeout(r, 500))
   }

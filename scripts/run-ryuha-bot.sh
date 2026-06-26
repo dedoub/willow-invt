@@ -10,6 +10,7 @@ PROJECT_DIR="${VOLUME_PATH}/app-dev/willow-invt"
 LOG_DIR="${PROJECT_DIR}/scripts/logs"
 LOG_FILE="${LOG_DIR}/ryuha-bot.log"
 PID_FILE="${LOG_DIR}/ryuha-bot.pid"
+SCRIPT_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 MAX_RETRIES=10
 RETRY_COOLDOWN=30
 
@@ -74,14 +75,29 @@ stop_existing() {
     local old_pid
     old_pid=$(cat "$PID_FILE")
     if kill -0 "$old_pid" 2>/dev/null; then
-      log "⚠️ 기존 봇 프로세스 종료 중 (PID: $old_pid)"
-      kill "$old_pid" 2>/dev/null || true
+      log "⚠️ 기존 봇 프로세스 그룹 종료 중 (PID: $old_pid)"
+      kill -- -"$old_pid" 2>/dev/null || kill "$old_pid" 2>/dev/null || true
       sleep 2
-      if kill -0 "$old_pid" 2>/dev/null; then
-        kill -9 "$old_pid" 2>/dev/null || true
-      fi
     fi
     rm -f "$PID_FILE"
+  fi
+  local LOCK_FILE="${LOG_DIR}/ryuha-bot.lock"
+  if [ -f "$LOCK_FILE" ]; then
+    local lock_pid
+    lock_pid=$(cat "$LOCK_FILE")
+    if kill -0 "$lock_pid" 2>/dev/null; then
+      log "⚠️ lock 파일 프로세스 종료 중 (PID: $lock_pid)"
+      kill "$lock_pid" 2>/dev/null || true
+      sleep 1
+    fi
+    rm -f "$LOCK_FILE"
+  fi
+  pkill -f 'scripts/ryuha-telegram-bot.ts' 2>/dev/null || true
+  sleep 2
+  if pgrep -f 'scripts/ryuha-telegram-bot.ts' >/dev/null 2>&1; then
+    log "⚠️ 강제 종료 (SIGKILL)"
+    pkill -9 -f 'scripts/ryuha-telegram-bot.ts' 2>/dev/null || true
+    sleep 1
   fi
 }
 
@@ -102,10 +118,14 @@ run_bot() {
     cd "$PROJECT_DIR"
     npx tsx scripts/ryuha-telegram-bot.ts &
     BOT_PID=$!
-    echo $$ > "$PID_FILE"
+    # PID_FILE은 래퍼 셸 PID를 유지한다. 실제 봇 프로세스 PID는 lock 파일이 담당한다.
 
-    wait "$BOT_PID"
-    local exit_code=$?
+    local exit_code=0
+    if wait "$BOT_PID"; then
+      exit_code=0
+    else
+      exit_code=$?
+    fi
 
     if [ $exit_code -eq 0 ]; then
       log "✅ 봇이 정상 종료되었습니다"
@@ -130,14 +150,28 @@ check_volume
 check_project
 check_dependencies
 mkdir -p "$LOG_DIR"
+
+if [ "${1:-}" = "--daemon-child" ]; then
+  run_bot
+  exit $?
+fi
+
+if [ "${1:-}" = "--stop" ]; then
+  stop_existing
+  log "🛑 기존 봇 정리 완료"
+  exit 0
+fi
+
 stop_existing
 
 if [ "${1:-}" = "--daemon" ]; then
   log "🔄 데몬 모드로 실행합니다 (로그: $LOG_FILE)"
-  run_bot >> "$LOG_FILE" 2>&1 &
+  nohup "$SCRIPT_PATH" --daemon-child >> "$LOG_FILE" 2>&1 < /dev/null &
   DAEMON_PID=$!
   echo $DAEMON_PID > "$PID_FILE"
   log "✅ 봇 시작됨 (PID: $DAEMON_PID)"
+  log "   로그 확인: tail -f $LOG_FILE"
+  log "   종료: kill $DAEMON_PID"
   exit 0
 fi
 

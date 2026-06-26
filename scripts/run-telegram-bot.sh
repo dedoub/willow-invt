@@ -19,6 +19,7 @@ PROJECT_DIR="${VOLUME_PATH}/app-dev/willow-invt"
 LOG_DIR="${PROJECT_DIR}/scripts/logs"
 LOG_FILE="${LOG_DIR}/telegram-bot.log"
 PID_FILE="${LOG_DIR}/telegram-bot.pid"
+SCRIPT_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 MAX_RETRIES=10
 RETRY_COOLDOWN=30  # seconds
 
@@ -138,11 +139,15 @@ run_bot() {
     cd "$PROJECT_DIR"
     npx tsx scripts/telegram-bot.ts &
     BOT_PID=$!
-    echo $BOT_PID > "$PID_FILE"  # 봇 프로세스 PID 저장
+    # PID_FILE은 래퍼 셸 PID를 유지한다. 실제 봇 프로세스 PID는 lock 파일이 담당한다.
 
     # 봇 프로세스 대기
-    wait "$BOT_PID"
-    local exit_code=$?
+    local exit_code=0
+    if wait "$BOT_PID"; then
+      exit_code=0
+    else
+      exit_code=$?
+    fi
 
     if [ $exit_code -eq 0 ]; then
       log "✅ 봇이 정상 종료되었습니다"
@@ -171,13 +176,26 @@ check_dependencies
 # 로그 디렉토리 생성
 mkdir -p "$LOG_DIR"
 
+# 데몬 자식 프로세스: 부모 셸과 완전히 분리된 상태로 실제 봇 실행
+if [ "${1:-}" = "--daemon-child" ]; then
+  run_bot
+  exit $?
+fi
+
+# 정지 전용 모드
+if [ "${1:-}" = "--stop" ]; then
+  stop_existing
+  log "🛑 기존 봇 정리 완료"
+  exit 0
+fi
+
 # 기존 프로세스 정리
 stop_existing
 
 # 데몬 모드
 if [ "${1:-}" = "--daemon" ]; then
   log "🔄 데몬 모드로 실행합니다 (로그: $LOG_FILE)"
-  run_bot >> "$LOG_FILE" 2>&1 &
+  nohup "$SCRIPT_PATH" --daemon-child >> "$LOG_FILE" 2>&1 < /dev/null &
   DAEMON_PID=$!
   echo $DAEMON_PID > "$PID_FILE"
   log "✅ 봇 시작됨 (PID: $DAEMON_PID)"

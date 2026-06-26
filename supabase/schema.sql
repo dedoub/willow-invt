@@ -344,3 +344,45 @@ CREATE TABLE IF NOT EXISTS agent_follow_ups (
 
 CREATE INDEX IF NOT EXISTS idx_follow_ups_status ON agent_follow_ups(status);
 CREATE INDEX IF NOT EXISTS idx_follow_ups_trigger ON agent_follow_ups(trigger_after) WHERE status = 'open';
+
+-- ============================================
+-- Local Service Registry (로컬 맥 서비스 레지스트리)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS local_service_registry (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_key TEXT NOT NULL UNIQUE,
+    display_name TEXT NOT NULL,
+    description TEXT,
+    kind TEXT NOT NULL DEFAULT 'job' CHECK (kind IN ('daemon', 'job')),
+    start_mode TEXT NOT NULL DEFAULT 'detached' CHECK (start_mode IN ('command', 'detached')),
+    cwd TEXT,
+    start_command JSONB,
+    stop_command JSONB,
+    pid_file TEXT,
+    lock_file TEXT,
+    log_path TEXT,
+    process_patterns TEXT[],
+    launchd_label TEXT,
+    healthcheck_url TEXT,
+    aliases TEXT[],
+    is_enabled BOOLEAN NOT NULL DEFAULT true,
+    is_protected BOOLEAN NOT NULL DEFAULT false,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_local_service_registry_enabled
+    ON local_service_registry (is_enabled, kind);
+
+CREATE INDEX IF NOT EXISTS idx_local_service_registry_aliases
+    ON local_service_registry USING gin (aliases);
+
+DROP TRIGGER IF EXISTS update_local_service_registry_updated_at ON local_service_registry;
+CREATE TRIGGER update_local_service_registry_updated_at
+    BEFORE UPDATE ON local_service_registry
+    FOR EACH ROW
+    EXECUTE FUNCTION willow_update_updated_at_column();
+
+ALTER TABLE local_service_registry ENABLE ROW LEVEL SECURITY;
