@@ -7,7 +7,6 @@ import { JetBrains_Mono } from 'next/font/google'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LinearSidebar } from '@/app/(dashboard)/_components/linear-sidebar'
 import { LinearHeader } from '@/app/(dashboard)/_components/linear-header'
-import { LinearChatPanel } from '@/app/(dashboard)/_components/linear-chat-panel'
 
 const interTight = InterTight({
   subsets: ['latin'],
@@ -35,26 +34,13 @@ const PAGE_INFO: Record<string, { group: string; title: string }> = {
   '/valuechain': { group: '프로젝트', title: 'LLM Wiki' },
 }
 
-function useNarrow(threshold = 1180) {
-  const [narrow, setNarrow] = useState(false)
-  useEffect(() => {
-    const check = () => setNarrow(window.innerWidth < threshold)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [threshold])
-  return narrow
-}
-
 export default function LinearRouteLayout({
   children,
 }: {
   children: ReactNode
 }) {
   const pathname = usePathname()
-  const narrow = useNarrow()
   const mobile = useIsMobile()
-  const [chatOpen, setChatOpen] = useState<boolean | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   // localStorage에서 동기적으로 초기화 → 첫 렌더부터 올바른 상태(깜빡임 방지)
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
@@ -64,21 +50,12 @@ export default function LinearRouteLayout({
   // 첫 렌더에는 width 트랜지션을 끄고, 마운트 후 사용자 토글부터 애니메이션
   const [sidebarReady, setSidebarReady] = useState(false)
 
-  useEffect(() => {
-    const saved = localStorage.getItem('linear-chat-open')
-    setChatOpen(saved !== null ? saved === '1' : !narrow)
-  }, [])
-
   useEffect(() => { setSidebarReady(true) }, [])
 
   useEffect(() => {
     localStorage.setItem('linear-sidebar-open', sidebarOpen ? '1' : '0')
   }, [sidebarOpen])
 
-  useEffect(() => {
-    if (chatOpen === null) return
-    localStorage.setItem('linear-chat-open', chatOpen ? '1' : '0')
-  }, [chatOpen])
   // Close menu on route change
   useEffect(() => { setMenuOpen(false) }, [pathname])
 
@@ -100,8 +77,6 @@ export default function LinearRouteLayout({
           <LinearHeader
             title={info.title}
             group={info.group}
-            onAgentToggle={() => setChatOpen(v => !v)}
-            agentOpen={!!chatOpen}
             mobile={mobile}
             onMenuToggle={() => setMenuOpen(v => !v)}
             onSidebarToggle={() => setSidebarOpen(v => !v)}
@@ -111,8 +86,6 @@ export default function LinearRouteLayout({
             {children}
           </main>
         </div>
-
-        {!mobile && <LinearChatPanel open={!!chatOpen} onClose={() => setChatOpen(false)} />}
       </div>
     </div>
   )
