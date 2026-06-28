@@ -77,8 +77,8 @@ export default function ValueChainPage() {
     color: t.neutrals.muted, textDecoration: 'none',
   }
   // 업데이트 테이블: 날짜 | 노드 | 티커 | 매출처 | 지급처 | 티어 | 완성도
-  const UPDATE_COLS = '40px minmax(80px,1fr) 54px 44px 44px 32px 46px'
-  const UPDATE_MIN_WIDTH = 420
+  const UPDATE_COLS = '46px minmax(80px,1fr) 72px 44px 44px 32px 46px'
+  const UPDATE_MIN_WIDTH = 440
   // AI 크롤 테이블: 봇 | 횟수 | 재방문 | 비중
   const CRAWL_COLS = 'minmax(0,1fr) 56px 56px 44px'
   const headCell: React.CSSProperties = {
@@ -149,7 +149,7 @@ export default function ValueChainPage() {
     totalPages > 1 ? (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, padding: '8px 8px 0' }}>
         <button disabled={safe === 1} onClick={() => setPage(p => Math.max(1, p - 1))} style={chevBtn(safe === 1)}><LIcon name="chevronLeft" size={13} stroke={2} /></button>
-        <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>{(safe - 1) * PER + 1}-{Math.min(safe * PER, total)} / {total}</span>
+        <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{(safe - 1) * PER + 1}-{Math.min(safe * PER, total)} / {total}</span>
         <button disabled={safe >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} style={chevBtn(safe >= totalPages)}><LIcon name="chevronRight" size={13} stroke={2} /></button>
       </div>
     ) : null
@@ -206,13 +206,13 @@ export default function ValueChainPage() {
             {updateRows.map(n => (
               <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer"
                 style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
-                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle }}>{(n.updated_at ?? '').slice(5, 10)}</span>
+                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.updated_at ?? '').slice(5, 10)}</span>
                 <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{n.name}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: n.ticker ? t.neutrals.muted : t.neutrals.line, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.ticker || '—'}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n.rev}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n.cost}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold, textAlign: 'center' }}>{n.tier}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n.pass}/{maturity.checks}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{n.rev}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{n.cost}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold, textAlign: 'center', whiteSpace: 'nowrap' }}>{n.tier}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{n.pass}/{maturity.checks}</span>
               </a>
             ))}
             {updates.recent.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>업데이트 내역 없음</span>}
@@ -237,9 +237,9 @@ export default function ValueChainPage() {
               return (
                 <div key={b.bot} style={{ display: 'grid', gridTemplateColumns: CRAWL_COLS, gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
                   <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{b.bot}</span>
-                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{b.count.toLocaleString()}</span>
-                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{b.days.toLocaleString()}</span>
-                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{b.count.toLocaleString()}</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{b.days.toLocaleString()}</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{pct}%</span>
                 </div>
               )
             })}
