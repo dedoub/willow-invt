@@ -6,7 +6,8 @@ import { execSync, spawn } from 'child_process'
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, statSync, unlinkSync, writeFileSync, readdirSync } from 'fs'
 import { join, basename, relative } from 'path'
 import { formatCompactLink, markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
-import { runAgent, AgentAbortError, type CodexProgress } from './lib/agent-cli'
+import { runAgent, runAgentTurn, AgentAbortError, type CodexProgress } from './lib/agent-cli'
+import { getAgentThread, markAgentThreadFailed, shortThreadId, upsertAgentThread } from './lib/agents/thread-registry'
 import { isResumablePendingTask, loadPendingTasks, patchPendingTask, removePendingTask, savePendingTask } from './lib/inflight-resume'
 import { type LocalServiceDefinition, getLocalServiceContext, getLocalServiceRegistry, getLocalServiceStatus, executeLocalServiceAction } from './lib/local-services'
 import { resolveLocalProjectContext } from './lib/local-projects'
@@ -42,6 +43,10 @@ const PROACTIVE_CHECK_INTERVAL = 30 * 60 * 1000 // 30분마다 자율 점검
 const VOICECARDS_EVENT_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 앱 사용자 로그 점검
 const REVIEWNOTES_MONITOR_INTERVAL = 20 * 60 * 1000 // 20분마다 ReviewNotes 이상징후 점검
 const ENABLE_VOICECARDS_LOCAL_LOG_MONITOR = process.env.WILLY_ENABLE_VOICECARDS_LOCAL_LOG_MONITOR === '1'
+const TELEGRAM_RETRY_FALLBACK_MS = 1000
+const TELEGRAM_RETRY_CAP_MS = 3 * 60 * 1000
+const TYPING_MIN_INTERVAL_MS = 6000
+const PROGRESS_EDIT_MIN_INTERVAL_MS = 2500
 const SERVICE_LOG_MONITOR_INTERVAL = 60 * 1000 // 1분마다 로컬 서비스 로그 감시
 const SERVICE_LOG_ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000 // 같은 오류 중복 알림 억제
 const SERVICE_LOG_MAX_READ_BYTES = 96 * 1024
@@ -52,6 +57,7 @@ const ALLOWED_USERS_FILE = join(LOG_DIR, 'willy-bot-users.json')
 const BOT_TEXT_LOG_FILE = join(LOG_DIR, 'telegram-bot.log')
 const BOT_RUNTIME_JSONL_FILE = join(LOG_DIR, 'telegram-bot.runtime.jsonl')
 const BOT_INFLIGHT_FILE = join(LOG_DIR, 'telegram-bot.inflight.json')
+const BOT_THREAD_REGISTRY_FILE = join(LOG_DIR, 'willy-agent-threads.json')
 const WILLY_REG_CODE = '윌로우2026'
 const WILLY_MAX_USERS = 2
 const WEBSITE_STRUCTURE_CONTEXT = `## WILLOW-INVT 대시보드 정보구조
@@ -122,6 +128,10 @@ interface ProgressMessageState {
 }
 
 const progressMessages = new Map<number, ProgressMessageState>()
+const typingCooldownUntilByChat = new Map<number, number>()
+const lastTypingAtByChat = new Map<number, number>()
+const progressCooldownUntilByChat = new Map<number, number>()
+const lastProgressRenderAtByChat = new Map<number, number>()
 
 interface TimedCache<T> {
   value: T
@@ -174,19 +184,27 @@ async function ensureProgressMessage(
   chatId: number,
   initialText: string,
   opts?: { replyToMessageId?: number; startedAt?: number }
-): Promise<ProgressMessageState> {
+): Promise<ProgressMessageState | null> {
   const existing = progressMessages.get(chatId)
   if (existing) {
     if (opts?.replyToMessageId) existing.replyToMessageId = opts.replyToMessageId
-    if (opts?.startedAt) existing.startedAt = opts.startedAt
+    if (opts?.startedAt && opts.startedAt < existing.startedAt) existing.startedAt = opts.startedAt
     return existing
   }
 
-  const res = await tg('sendMessage', {
-    chat_id: chatId,
-    text: initialText,
-    ...(opts?.replyToMessageId ? { reply_to_message_id: opts.replyToMessageId } : {}),
-  })
+  if (isChatCoolingDown(progressCooldownUntilByChat, chatId)) return null
+
+  let res
+  try {
+    res = await tg('sendMessage', {
+      chat_id: chatId,
+      text: initialText,
+      ...(opts?.replyToMessageId ? { reply_to_message_id: opts.replyToMessageId } : {}),
+    })
+  } catch (err) {
+    if (noteChatCooldown(progressCooldownUntilByChat, chatId, err)) return null
+    throw err
+  }
   const state: ProgressMessageState = {
     messageId: res?.result?.message_id,
     startedAt: opts?.startedAt ?? Date.now(),
@@ -194,6 +212,7 @@ async function ensureProgressMessage(
     lastRendered: initialText,
   }
   progressMessages.set(chatId, state)
+  lastProgressRenderAtByChat.set(chatId, Date.now())
   return state
 }
 
@@ -202,10 +221,23 @@ async function renderProgressMessage(
   text: string,
   opts?: { replyToMessageId?: number; startedAt?: number }
 ) {
+  if (isChatCoolingDown(progressCooldownUntilByChat, chatId)) return
   const state = await ensureProgressMessage(chatId, text, opts)
+  if (!state) return
   if (state.lastRendered === text) return
-  state.lastRendered = text
-  await editMessage(chatId, state.messageId, text)
+  const now = Date.now()
+  if (now - (lastProgressRenderAtByChat.get(chatId) || 0) < PROGRESS_EDIT_MIN_INTERVAL_MS) return
+  try {
+    await tg('editMessageText', {
+      chat_id: chatId,
+      message_id: state.messageId,
+      text: text.slice(0, 4000),
+    })
+    state.lastRendered = text
+    lastProgressRenderAtByChat.set(chatId, now)
+  } catch (err) {
+    noteChatCooldown(progressCooldownUntilByChat, chatId, err)
+  }
 }
 
 function getProgressStartedAt(chatId: number): number | null {
@@ -266,6 +298,10 @@ async function updateQueuedProgress(
 function relPath(p: string, base = process.cwd()): string {
   const r = relative(base, p)
   return r && !r.startsWith('..') ? r : p
+}
+
+function getConversationTaskScope(_text: string): string {
+  return 'interactive-main'
 }
 
 function persistPendingMessage(chatId: number, text: string, opts?: {
@@ -443,6 +479,34 @@ async function tg(method: string, body: Record<string, unknown>) {
   return json
 }
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function getTelegramRetryAfterMs(err: unknown): number | null {
+  const retryAfterSec = Number((err as { telegramError?: { parameters?: { retry_after?: number } } })?.telegramError?.parameters?.retry_after)
+  if (!Number.isFinite(retryAfterSec) || retryAfterSec <= 0) return null
+  return Math.min(TELEGRAM_RETRY_CAP_MS, Math.max(TELEGRAM_RETRY_FALLBACK_MS, retryAfterSec * 1000))
+}
+
+function isChatCoolingDown(cooldowns: Map<number, number>, chatId: number): boolean {
+  return (cooldowns.get(chatId) || 0) > Date.now()
+}
+
+function noteChatCooldown(cooldowns: Map<number, number>, chatId: number, err: unknown): number | null {
+  const retryMs = getTelegramRetryAfterMs(err)
+  if (!retryMs) return null
+  const until = Date.now() + retryMs
+  if (until > (cooldowns.get(chatId) || 0)) cooldowns.set(chatId, until)
+  return retryMs
+}
+
+function startTypingPulse(chatId: number, intervalMs = TYPING_MIN_INTERVAL_MS): () => void {
+  void sendTyping(chatId)
+  const timer = setInterval(() => { void sendTyping(chatId) }, intervalMs)
+  return () => clearInterval(timer)
+}
+
 async function sendMessageRaw(chatId: number, text: string, maxRetries = 2) {
   // Telegram 메시지 길이 제한: 4096자
   const chunks = splitTelegramMessage(text, 4000)
@@ -462,6 +526,12 @@ async function sendMessageRaw(chatId: number, text: string, maxRetries = 2) {
           console.log(`[sendMessage] ✅ 전송 확인 (chunk ${i + 1}/${chunks.length}, message_id: ${res.result.message_id})`)
         }
       } catch (mdErr) {
+        const htmlRetryMs = getTelegramRetryAfterMs(mdErr)
+        if (htmlRetryMs && attempt < maxRetries) {
+          console.warn(`[sendMessage] ⏳ Telegram rate limit 대기 ${htmlRetryMs}ms (chunk ${i + 1}/${chunks.length})`)
+          await sleep(htmlRetryMs)
+          continue
+        }
         // Markdown 파싱 실패 시 plain text로 재시도
         try {
           const res = await tg('sendMessage', { chat_id: chatId, text: chunk })
@@ -472,9 +542,9 @@ async function sendMessageRaw(chatId: number, text: string, maxRetries = 2) {
         } catch (plainErr) {
           console.error(`[sendMessage] ❌ 전송 실패 (chunk ${i + 1}/${chunks.length}, attempt ${attempt + 1}/${maxRetries + 1}):`, plainErr)
           if (attempt < maxRetries) {
-            const delay = 1000 * (attempt + 1)
+            const delay = getTelegramRetryAfterMs(plainErr) ?? getTelegramRetryAfterMs(mdErr) ?? 1000 * (attempt + 1)
             console.log(`[sendMessage] ${delay}ms 후 재시도...`)
-            await new Promise(r => setTimeout(r, delay))
+            await sleep(delay)
           }
         }
       }
@@ -503,7 +573,16 @@ async function sendSplitMessage(chatId: number, text: string) {
 }
 
 async function sendTyping(chatId: number) {
-  await tg('sendChatAction', { chat_id: chatId, action: 'typing' })
+  const now = Date.now()
+  if (isChatCoolingDown(typingCooldownUntilByChat, chatId)) return
+  if (now - (lastTypingAtByChat.get(chatId) || 0) < TYPING_MIN_INTERVAL_MS) return
+  lastTypingAtByChat.set(chatId, now)
+  try {
+    await tg('sendChatAction', { chat_id: chatId, action: 'typing' })
+  } catch (err) {
+    if (noteChatCooldown(typingCooldownUntilByChat, chatId, err)) return
+    console.warn(`[typing] failed for ${chatId}:`, err)
+  }
 }
 
 async function sendMessageWithButtonsRaw(chatId: number, text: string, buttons: { text: string; callback_data: string }[][]) {
@@ -520,6 +599,12 @@ async function sendMessageWithButtonsRaw(chatId: number, text: string, buttons: 
         return
       }
     } catch (mdErr) {
+      const htmlRetryMs = getTelegramRetryAfterMs(mdErr)
+      if (htmlRetryMs && attempt < 2) {
+        console.warn(`[sendMessageWithButtons] ⏳ Telegram rate limit 대기 ${htmlRetryMs}ms`)
+        await sleep(htmlRetryMs)
+        continue
+      }
       try {
         const res = await tg('sendMessage', {
           chat_id: chatId,
@@ -533,7 +618,7 @@ async function sendMessageWithButtonsRaw(chatId: number, text: string, buttons: 
       } catch (plainErr) {
         console.error(`[sendMessageWithButtons] ❌ 전송 실패 (attempt ${attempt + 1}/3):`, plainErr)
         if (attempt < 2) {
-          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+          await sleep(getTelegramRetryAfterMs(plainErr) ?? getTelegramRetryAfterMs(mdErr) ?? 1000 * (attempt + 1))
         }
       }
     }
@@ -546,10 +631,12 @@ async function sendMessageWithButtons(chatId: number, text: string, buttons: { t
 }
 
 async function answerCallbackQuery(callbackQueryId: string, text?: string) {
-  await tg('answerCallbackQuery', {
-    callback_query_id: callbackQueryId,
-    text: text || '',
-  })
+  try {
+    await tg('answerCallbackQuery', {
+      callback_query_id: callbackQueryId,
+      text: text || '',
+    })
+  } catch { /* ignore */ }
 }
 
 async function editMessage(chatId: number, messageId: number, text: string) {
@@ -559,7 +646,9 @@ async function editMessage(chatId: number, messageId: number, text: string) {
       message_id: messageId,
       text: text.slice(0, 4000),
     })
-  } catch { /* 동일 텍스트 등 무시 */ }
+  } catch (err) {
+    noteChatCooldown(progressCooldownUntilByChat, chatId, err)
+  }
 }
 
 async function deleteMsg(chatId: number, messageId: number) {
@@ -1813,6 +1902,10 @@ async function sendServiceLogAlert(message: string, details: Record<string, unkn
 
 async function monitorVoicecardsServiceLogs() {
   if (!ceoChatId) return
+  if (isSundayKST()) {
+    console.log('⏭️ voicecards log monitor skip (Sunday KST)')
+    return
+  }
 
   const services = (await getLocalServiceRegistry()).filter(matchesVoicecardsService)
   if (!services.length) return
@@ -1928,6 +2021,7 @@ async function monitorVoicecardsServiceLogs() {
 interface VoicecardsMonitorAlertState {
   lastHash?: string
   lastAlertAt?: string
+  lastEventAt?: string
 }
 
 interface VoicecardsEventMonitorState {
@@ -2099,6 +2193,10 @@ async function sendVoicecardsEventAlert(message: string, details: Record<string,
 
 async function monitorVoicecardsUserEvents() {
   if (!ceoChatId || !voicecardsSupabase) return
+  if (isSundayKST()) {
+    console.log('⏭️ voicecards event monitor skip (Sunday KST)')
+    return
+  }
 
   const events = await fetchVoicecardsEventsSince(new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString())
   if (!events.length) return
@@ -2135,8 +2233,9 @@ async function monitorVoicecardsUserEvents() {
       uniqueUserIds.join(','),
     ].join('|'))
     const alertState = getVoicecardsAlertState('drive_scope_missing')
+    const hasNewDriveScopeEvent = Boolean(latestAt && alertState.lastEventAt !== latestAt)
 
-    if (alertState.lastHash !== alertHash || !isCooldownActive(alertState.lastAlertAt, 2 * 60 * 60 * 1000)) {
+    if (hasNewDriveScopeEvent) {
       await sendVoicecardsEventAlert([
         '🛠️ [VoiceCards 사용자 로그 알림]',
         `- 감지: Google Drive 권한 누락 이벤트 ${driveScopeEvents.length}건`,
@@ -2156,6 +2255,7 @@ async function monitorVoicecardsUserEvents() {
 
       alertState.lastHash = alertHash
       alertState.lastAlertAt = new Date().toISOString()
+      alertState.lastEventAt = latestAt
       stateChanged = true
     }
   }
@@ -2631,10 +2731,13 @@ async function checkFollowUps() {
       .replace('{follow_ups}', followUpText)
       .replace('{context}', dashboardContext.slice(0, 2000)) // 맥락은 간결하게
 
-    await sendTyping(ceoChatId)
-    const typingInterval = setInterval(() => sendTyping(ceoChatId!), 4000)
-    const response = await askClaude(prompt)
-    clearInterval(typingInterval)
+    const stopTyping = startTypingPulse(ceoChatId)
+    let response = ''
+    try {
+      response = await askClaude(prompt)
+    } finally {
+      stopTyping()
+    }
 
     // 팔로업 상태 → triggered
     await supabase
@@ -2656,7 +2759,6 @@ async function checkFollowUps() {
 
 async function sendWeeklyBriefing(chatId: number) {
   console.log('📋 텐소프트웍스 주간 브리핑 생성 중...')
-  await sendTyping(chatId)
 
   const rawData = await fetchWeeklyBriefingData()
   const prompt = `당신은 윌리(Willy)입니다. 윌로우인베스트먼트의 COO.
@@ -2685,9 +2787,13 @@ ${getCurrentKSTString()}
 # 원시 데이터
 ${rawData}`
 
-  const typingInterval = setInterval(() => sendTyping(chatId), 4000)
-  const response = await askClaude(prompt)
-  clearInterval(typingInterval)
+  const stopTyping = startTypingPulse(chatId)
+  let response = ''
+  try {
+    response = await askClaude(prompt)
+  } finally {
+    stopTyping()
+  }
 
   await sendSplitMessage(chatId, response)
 
@@ -2796,12 +2902,15 @@ async function proactiveCheck() {
     // 1) 아침 브리핑 (08:00~09:00, 하루 1회)
     if (hour >= 8 && hour < 9 && proactiveState.morningBriefSent !== todayStr) {
       console.log('🌅 아침 브리핑 생성 중...')
-      await sendTyping(ceoChatId)
 
       const prompt = `${getMorningBriefPrompt()}\n\n# 현재 사업 데이터\n${dashboardContext}`
-      const typingInterval = setInterval(() => sendTyping(ceoChatId!), 4000)
-      const response = await askClaude(prompt)
-      clearInterval(typingInterval)
+      const stopTyping = startTypingPulse(ceoChatId!)
+      let response = ''
+      try {
+        response = await askClaude(prompt)
+      } finally {
+        stopTyping()
+      }
 
       await sendSplitMessage(ceoChatId, response)
       proactiveState.morningBriefSent = todayStr
@@ -3083,10 +3192,13 @@ async function marketMonitorCheck() {
           .replace('{greeting}', capturedGreeting)
           + `\n\n# 투자 리서치 현황\n${researchCtx}`
 
-        await sendTyping(capturedChatId!)
-        const typingInterval = setInterval(() => sendTyping(capturedChatId!), 4000)
-        const response = await askClaude(prompt, { allowedTools: [PORTFOLIO_MCP_TOOLS] })
-        clearInterval(typingInterval)
+        const stopTyping = startTypingPulse(capturedChatId!)
+        let response = ''
+        try {
+          response = await askClaude(prompt, { allowedTools: [PORTFOLIO_MCP_TOOLS] })
+        } finally {
+          stopTyping()
+        }
 
         await sendSplitMessage(capturedChatId!, response)
 
@@ -3602,10 +3714,13 @@ ${result.marketData}
 ## 검색 결과
 ${result.digest}`
 
-  await sendTyping(ceoChatId)
-  const typingInterval = setInterval(() => sendTyping(ceoChatId!), 4000)
-  const response = await askClaude(prompt)
-  clearInterval(typingInterval)
+  const stopTyping = startTypingPulse(ceoChatId)
+  let response = ''
+  try {
+    response = await askClaude(prompt)
+  } finally {
+    stopTyping()
+  }
 
   await sendSplitMessage(ceoChatId, response)
   lastNewsDigestAt = now
@@ -4560,6 +4675,11 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
 
   const progressStart = getProgressStartedAt(chatId) ?? Date.now()
   const progressLines: string[] = []
+  let activeWorkspaceKey = 'willow-invt'
+  let activeWorkspacePath = process.cwd()
+  let activeWorkspaceLabel = 'WILLOW-INVT'
+  let activeThreadScope = getConversationTaskScope(text)
+  let activeThreadId: string | null = null
   persistPendingMessage(chatId, text, {
     lastMessageId,
     startedAt: progressStart,
@@ -4645,7 +4765,10 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
       text,
       history: historyForPrompt,
     })
-    const activeWorkspaceLabel = localProjectContext.activeProject?.project.displayName || 'WILLOW-INVT'
+    activeWorkspaceKey = localProjectContext.activeProject?.project.key || 'willow-invt'
+    activeWorkspacePath = localProjectContext.cwd
+    activeWorkspaceLabel = localProjectContext.activeProject?.project.displayName || 'WILLOW-INVT'
+    activeThreadScope = getConversationTaskScope(text)
     await addProgress(`활성 워크스페이스: ${activeWorkspaceLabel}`, {
       percent: 46,
       stage: '맥락 정리',
@@ -4660,17 +4783,31 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
       message: `workspace resolved for ${chatId}`,
       details: {
         chatId,
-        workspaceKey: localProjectContext.activeProject?.project.key || 'willow-invt',
-        workspacePath: localProjectContext.cwd,
+        workspaceKey: activeWorkspaceKey,
+        workspacePath: activeWorkspacePath,
         matchSource: localProjectContext.activeProject?.matchSource || 'default',
         matchedAlias: localProjectContext.activeProject?.matchedAlias || null,
       },
     })
     patchPendingTask(BOT_INFLIGHT_FILE, chatId, {
       phase: 'running',
-      workspaceKey: localProjectContext.activeProject?.project.key || 'willow-invt',
-      workspacePath: localProjectContext.cwd,
+      workspaceKey: activeWorkspaceKey,
+      workspacePath: activeWorkspacePath,
     })
+    const existingThread = getAgentThread(BOT_THREAD_REGISTRY_FILE, {
+      botKey: 'willy-bot',
+      chatId,
+      workspaceKey: activeWorkspaceKey,
+      taskScope: activeThreadScope,
+    })
+    activeThreadId = existingThread?.threadId ?? null
+    if (activeThreadId) {
+      await addProgress(`Codex thread 이어받기 준비: ${shortThreadId(activeThreadId)}`, {
+        percent: 50,
+        stage: '맥락 정리',
+        current: '같은 워크스페이스의 이전 작업 흐름을 이어받을 준비를 하고 있어요.',
+      })
+    }
 
     // 추적 주제 컨텍스트
     const topicsText = watchTopics.length
@@ -4833,8 +4970,8 @@ ${text}
     })
     patchPendingTask(BOT_INFLIGHT_FILE, chatId, {
       phase: 'codex_running',
-      workspaceKey: localProjectContext.activeProject?.project.key || 'willow-invt',
-      workspacePath: localProjectContext.cwd,
+      workspaceKey: activeWorkspaceKey,
+      workspacePath: activeWorkspacePath,
     })
 
     // ── 코덱스 실시간 진행상황 ───────────────────────────────────────────
@@ -4870,6 +5007,7 @@ ${text}
           codexFiles.size ? `파일 ${codexFiles.size}` : '',
           codexTools ? `도구 ${codexTools}` : '',
           `워크스페이스 ${activeWorkspaceLabel}`,
+          activeThreadId ? `thread ${shortThreadId(activeThreadId)}` : '',
           `실행 ${formatProgressElapsed(codexStart)}`,
         ],
       }), { replyToMessageId: lastMessageId, startedAt: progressStart }).catch(() => {})
@@ -4887,7 +5025,7 @@ ${text}
         case 'file_change':
           for (const f of p.files || []) codexFiles.add(f)
           progressPercent = Math.max(progressPercent, 80)
-          liveActivity = `✏️ ${oneLine((p.files || []).map(f => relPath(f, localProjectContext.cwd)).join(', '))}`
+          liveActivity = `✏️ ${oneLine((p.files || []).map(f => relPath(f, activeWorkspacePath)).join(', '))}`
           break
         case 'agent_message':
           progressPercent = Math.max(progressPercent, 84)
@@ -4913,24 +5051,84 @@ ${text}
     }
 
     // 경과시간이 계속 흐르도록 이벤트 없어도 3초마다 갱신
-    const liveTimer = setInterval(() => pushLive(true), 3000)
-    // 타이핑 유지 (처리 중)
-    const typingInterval = setInterval(() => sendTyping(chatId), 4000)
+    const liveTimer = setInterval(() => { void pushLive(true) }, 3000)
+    const stopTyping = startTypingPulse(chatId)
 
-    // 항상 풀 세션: Claude Code + 모든 도구 + MCP
-    const response = await askClaude(fullPrompt, {
-      fullSession: true,
-      allowedTools: [TENSW_MCP_TOOLS, PORTFOLIO_MCP_TOOLS, WILLOW_MCP_TOOLS],
-      onProgress: onCodexProgress,
-      cwd: localProjectContext.cwd,
-      signal: abortSignal,  // abort 시 codex 즉시 종료 → 중복 작업 방지
-    })
+    let response = ''
+    let responseBackend = 'codex-sdk'
+    try {
+      const responseTurn = await runAgentTurn(fullPrompt, {
+        runner: 'sdk',
+        backend: 'codex',
+        allowedTools: [TENSW_MCP_TOOLS, PORTFOLIO_MCP_TOOLS, WILLOW_MCP_TOOLS],
+        onProgress: onCodexProgress,
+        cwd: activeWorkspacePath,
+        signal: abortSignal,
+        threadId: activeThreadId,
+        onThreadEvent: (event) => {
+          activeThreadId = event.threadId
+          upsertAgentThread(BOT_THREAD_REGISTRY_FILE, {
+            botKey: 'willy-bot',
+            chatId,
+            workspaceKey: activeWorkspaceKey,
+            workspacePath: activeWorkspacePath,
+            taskScope: activeThreadScope,
+            threadId: event.threadId,
+            status: 'active',
+            lastUserMessage: text,
+          })
+          recordRuntimeEvent({
+            botKey: 'willy-bot',
+            jsonlPath: BOT_RUNTIME_JSONL_FILE,
+            source: 'thread_bound',
+            message: `${event.mode} codex thread for ${chatId}`,
+            details: {
+              chatId,
+              workspaceKey: activeWorkspaceKey,
+              workspacePath: activeWorkspacePath,
+              threadId: event.threadId,
+              taskScope: activeThreadScope,
+              mode: event.mode,
+            },
+          })
+          void addProgress(
+            `${event.mode === 'resumed' ? 'Codex thread 재개' : 'Codex thread 시작'}: ${shortThreadId(event.threadId)}`,
+            {
+              percent: Math.max(progressPercent, 67),
+              stage: '에이전트 실행',
+              current: event.mode === 'resumed'
+                ? '이전 작업 스레드를 이어받아 계속 진행하고 있어요.'
+                : '새 작업 스레드를 열고 실행을 시작했어요.',
+            }
+          )
+          void pushLive(true)
+        },
+      })
+      response = responseTurn.text
+      responseBackend = responseTurn.backend
+      if (responseTurn.threadId) activeThreadId = responseTurn.threadId
+    } finally {
+      stopTyping()
+      clearInterval(liveTimer)
+    }
 
-    clearInterval(typingInterval)
-    clearInterval(liveTimer)
+    if (activeThreadId) {
+      upsertAgentThread(BOT_THREAD_REGISTRY_FILE, {
+        botKey: 'willy-bot',
+        chatId,
+        workspaceKey: activeWorkspaceKey,
+        workspacePath: activeWorkspacePath,
+        taskScope: activeThreadScope,
+        threadId: activeThreadId,
+        status: 'active',
+        lastUserMessage: text,
+        lastSummary: response.slice(0, 400),
+        countRun: true,
+      })
+    }
 
     const liveSummary = [`응답 ${(response.length / 1000).toFixed(1)}K자`,
-      codexCmds ? `명령 ${codexCmds}` : '', codexFiles.size ? `파일 ${codexFiles.size}` : '', codexTools ? `도구 ${codexTools}` : '']
+      codexCmds ? `명령 ${codexCmds}` : '', codexFiles.size ? `파일 ${codexFiles.size}` : '', codexTools ? `도구 ${codexTools}` : '', activeThreadId ? `thread ${shortThreadId(activeThreadId)}` : '', `백엔드 ${responseBackend}`]
       .filter(Boolean).join(' · ')
     await addProgress(liveSummary, {
       percent: 88,
@@ -5090,8 +5288,10 @@ ${text}
       details: {
         chatId,
         durationMs: Date.now() - progressStart,
-        workspaceKey: localProjectContext.activeProject?.project.key || 'willow-invt',
-        workspacePath: localProjectContext.cwd,
+        workspaceKey: activeWorkspaceKey,
+        workspacePath: activeWorkspacePath,
+        taskScope: activeThreadScope,
+        threadId: activeThreadId,
         actions: actions.map(action => action.type),
         actionCount: actions.length,
         responseParts: messageParts.length,
@@ -5106,6 +5306,14 @@ ${text}
       console.log(`[${chatId}] ⏹️ 처리 중단(abort) — 재배칭 run으로 이관`)
       return
     }
+    if (activeThreadId) {
+      markAgentThreadFailed(BOT_THREAD_REGISTRY_FILE, {
+        botKey: 'willy-bot',
+        chatId,
+        workspaceKey: activeWorkspaceKey,
+        taskScope: activeThreadScope,
+      }, err instanceof Error ? err.message : String(err))
+    }
     console.error('Error handling message:', err)
     recordRuntimeEvent({
       botKey: 'willy-bot',
@@ -5116,6 +5324,10 @@ ${text}
       details: {
         chatId,
         durationMs: Date.now() - progressStart,
+        workspaceKey: activeWorkspaceKey,
+        workspacePath: activeWorkspacePath,
+        taskScope: activeThreadScope,
+        threadId: activeThreadId,
         textPreview: text.slice(0, 240),
         error: err instanceof Error ? { message: err.message, stack: err.stack } : err,
       },

@@ -2,7 +2,8 @@ import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
-import { runAgent, AgentAbortError, type CodexProgress } from './lib/agent-cli'
+import { runAgentTurn, AgentAbortError, type AgentThreadEvent, type CodexProgress } from './lib/agent-cli'
+import { getAgentThread, markAgentThreadFailed, shortThreadId, upsertAgentThread } from './lib/agents/thread-registry'
 import { existsSync, writeFileSync, readFileSync, unlinkSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
@@ -28,9 +29,16 @@ const OFFSET_FILE = join(LOG_DIR, 'ryuha-bot.offset')
 const ALLOWED_USERS_FILE = join(LOG_DIR, 'ryuha-bot-users.json')
 const BOT_TEXT_LOG_FILE = join(LOG_DIR, 'ryuha-bot.log')
 const BOT_RUNTIME_JSONL_FILE = join(LOG_DIR, 'ryuha-bot.runtime.jsonl')
+const BOT_THREAD_REGISTRY_FILE = join(LOG_DIR, 'ryuha-agent-threads.json')
 const REG_CODE = '공부시작2026'
 const MAX_USERS = 2
 const CONTEXT_CACHE_TTL = 15 * 1000
+const TELEGRAM_RETRY_FALLBACK_MS = 1000
+const TELEGRAM_RETRY_CAP_MS = 3 * 60 * 1000
+const TYPING_MIN_INTERVAL_MS = 6000
+const PROGRESS_EDIT_MIN_INTERVAL_MS = 2500
+const RINA_WORKSPACE_KEY = 'rina-learning'
+const RINA_WORKSPACE_LABEL = 'Rina Learning'
 const RYUHA_DASHBOARD_STRUCTURE = `## 류하 학습관리 구조
 - 일정: 학교, 학원, 숙제, 기타 일정
 - 숙제: 일정과 연결된 해야 할 일과 마감
@@ -89,6 +97,10 @@ interface ProgressMessageState {
 }
 
 const progressMessages = new Map<number, ProgressMessageState>()
+const typingCooldownUntilByChat = new Map<number, number>()
+const lastTypingAtByChat = new Map<number, number>()
+const progressCooldownUntilByChat = new Map<number, number>()
+const lastProgressRenderAtByChat = new Map<number, number>()
 
 let contextCache: { value: string; updatedAt: number } | null = null
 let contextCachePromise: Promise<string> | null = null
@@ -151,6 +163,14 @@ function buildProgressMessage(opts: {
   const meta = [`경과 ${formatProgressElapsed(opts.startedAt)}`, ...((opts.meta || []).filter(Boolean))]
   lines.push(meta.join(' · '))
   return lines.join('\n').slice(0, 4000)
+}
+
+function getInteractiveTaskScope(_userText: string): string {
+  return 'interactive-main'
+}
+
+function getScheduledTaskScope(tag: string): string {
+  return `scheduled-${tag}`
 }
 
 // ============================================================
@@ -222,12 +242,44 @@ async function tg(method: string, body: Record<string, unknown>) {
   return json
 }
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function getTelegramRetryAfterMs(err: unknown): number | null {
+  const retryAfterSec = Number((err as { telegramError?: { parameters?: { retry_after?: number } } })?.telegramError?.parameters?.retry_after)
+  if (!Number.isFinite(retryAfterSec) || retryAfterSec <= 0) return null
+  return Math.min(TELEGRAM_RETRY_CAP_MS, Math.max(TELEGRAM_RETRY_FALLBACK_MS, retryAfterSec * 1000))
+}
+
+function isChatCoolingDown(cooldowns: Map<number, number>, chatId: number): boolean {
+  return (cooldowns.get(chatId) || 0) > Date.now()
+}
+
+function noteChatCooldown(cooldowns: Map<number, number>, chatId: number, err: unknown): number | null {
+  const retryMs = getTelegramRetryAfterMs(err)
+  if (!retryMs) return null
+  const until = Date.now() + retryMs
+  if (until > (cooldowns.get(chatId) || 0)) cooldowns.set(chatId, until)
+  return retryMs
+}
+
+function startTypingPulse(chatId: number, intervalMs = TYPING_MIN_INTERVAL_MS): () => void {
+  void sendTyping(chatId)
+  const timer = setInterval(() => { void sendTyping(chatId) }, intervalMs)
+  return () => clearInterval(timer)
+}
+
 async function editMessage(chatId: number, messageId: number, text: string) {
-  await tg('editMessageText', {
-    chat_id: chatId,
-    message_id: messageId,
-    text,
-  }).catch(() => {})
+  try {
+    await tg('editMessageText', {
+      chat_id: chatId,
+      message_id: messageId,
+      text: text.slice(0, 4000),
+    })
+  } catch (err) {
+    noteChatCooldown(progressCooldownUntilByChat, chatId, err)
+  }
 }
 
 async function deleteMsg(chatId: number, messageId: number) {
@@ -251,7 +303,13 @@ async function sendMessage(chatId: number, text: string, maxRetries = 2) {
           sent = true
           console.log(`[send] chunk ${i + 1}/${chunks.length} (id: ${res.result.message_id})`)
         }
-      } catch {
+      } catch (mdErr) {
+        const htmlRetryMs = getTelegramRetryAfterMs(mdErr)
+        if (htmlRetryMs && attempt < maxRetries) {
+          console.warn(`[send] rate limit wait ${htmlRetryMs}ms (chunk ${i + 1}/${chunks.length})`)
+          await sleep(htmlRetryMs)
+          continue
+        }
         try {
           const res = await tg('sendMessage', { chat_id: chatId, text: chunk })
           if (res.result?.message_id) {
@@ -260,7 +318,9 @@ async function sendMessage(chatId: number, text: string, maxRetries = 2) {
           }
         } catch (plainErr) {
           console.error(`[send] fail chunk ${i + 1}, attempt ${attempt + 1}:`, plainErr)
-          if (attempt < maxRetries) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+          if (attempt < maxRetries) {
+            await sleep(getTelegramRetryAfterMs(plainErr) ?? getTelegramRetryAfterMs(mdErr) ?? 1000 * (attempt + 1))
+          }
         }
       }
     }
@@ -269,7 +329,16 @@ async function sendMessage(chatId: number, text: string, maxRetries = 2) {
 }
 
 async function sendTyping(chatId: number) {
-  await tg('sendChatAction', { chat_id: chatId, action: 'typing' }).catch(() => {})
+  const now = Date.now()
+  if (isChatCoolingDown(typingCooldownUntilByChat, chatId)) return
+  if (now - (lastTypingAtByChat.get(chatId) || 0) < TYPING_MIN_INTERVAL_MS) return
+  lastTypingAtByChat.set(chatId, now)
+  try {
+    await tg('sendChatAction', { chat_id: chatId, action: 'typing' })
+  } catch (err) {
+    if (noteChatCooldown(typingCooldownUntilByChat, chatId, err)) return
+    console.warn(`[typing] failed for ${chatId}:`, err)
+  }
 }
 
 async function setReaction(chatId: number, messageId: number, emoji: string) {
@@ -293,7 +362,12 @@ async function sendMessageWithButtons(chatId: number, text: string, buttons: { t
         reply_markup: { inline_keyboard: buttons },
       })
       return
-    } catch {
+    } catch (mdErr) {
+      const htmlRetryMs = getTelegramRetryAfterMs(mdErr)
+      if (htmlRetryMs && attempt < 2) {
+        await sleep(htmlRetryMs)
+        continue
+      }
       try {
         await tg('sendMessage', {
           chat_id: chatId,
@@ -302,7 +376,7 @@ async function sendMessageWithButtons(chatId: number, text: string, buttons: { t
         })
         return
       } catch (e) {
-        if (attempt < 2) await new Promise(r => setTimeout(r, 1000))
+        if (attempt < 2) await sleep(getTelegramRetryAfterMs(e) ?? getTelegramRetryAfterMs(mdErr) ?? 1000)
         else console.error('[sendButtons] fail:', e)
       }
     }
@@ -313,7 +387,7 @@ async function ensureProgressMessage(
   chatId: number,
   initialText: string,
   opts?: { replyToMessageId?: number; startedAt?: number }
-): Promise<ProgressMessageState> {
+): Promise<ProgressMessageState | null> {
   const existing = progressMessages.get(chatId)
   if (existing) {
     if (opts?.replyToMessageId) existing.replyToMessageId = opts.replyToMessageId
@@ -321,11 +395,19 @@ async function ensureProgressMessage(
     return existing
   }
 
-  const res = await tg('sendMessage', {
-    chat_id: chatId,
-    text: initialText,
-    ...(opts?.replyToMessageId ? { reply_to_message_id: opts.replyToMessageId } : {}),
-  })
+  if (isChatCoolingDown(progressCooldownUntilByChat, chatId)) return null
+
+  let res
+  try {
+    res = await tg('sendMessage', {
+      chat_id: chatId,
+      text: initialText,
+      ...(opts?.replyToMessageId ? { reply_to_message_id: opts.replyToMessageId } : {}),
+    })
+  } catch (err) {
+    if (noteChatCooldown(progressCooldownUntilByChat, chatId, err)) return null
+    throw err
+  }
   const state: ProgressMessageState = {
     messageId: res?.result?.message_id,
     startedAt: opts?.startedAt ?? Date.now(),
@@ -333,6 +415,7 @@ async function ensureProgressMessage(
     lastRendered: initialText,
   }
   progressMessages.set(chatId, state)
+  lastProgressRenderAtByChat.set(chatId, Date.now())
   return state
 }
 
@@ -341,10 +424,23 @@ async function renderProgressMessage(
   text: string,
   opts?: { replyToMessageId?: number; startedAt?: number }
 ) {
+  if (isChatCoolingDown(progressCooldownUntilByChat, chatId)) return
   const state = await ensureProgressMessage(chatId, text, opts)
+  if (!state) return
   if (state.lastRendered === text) return
-  state.lastRendered = text
-  await editMessage(chatId, state.messageId, text)
+  const now = Date.now()
+  if (now - (lastProgressRenderAtByChat.get(chatId) || 0) < PROGRESS_EDIT_MIN_INTERVAL_MS) return
+  try {
+    await tg('editMessageText', {
+      chat_id: chatId,
+      message_id: state.messageId,
+      text: text.slice(0, 4000),
+    })
+    state.lastRendered = text
+    lastProgressRenderAtByChat.set(chatId, now)
+  } catch (err) {
+    noteChatCooldown(progressCooldownUntilByChat, chatId, err)
+  }
 }
 
 function getProgressStartedAt(chatId: number): number | null {
@@ -739,16 +835,22 @@ async function buildContext(): Promise<string> {
 const RYUHA_MCP_TOOLS = 'mcp__claude_ai_willow-dashboard__ryuha_*'
 const SUPABASE_MCP_TOOLS = 'mcp__supabase__*'
 
-function askClaude(prompt: string, options?: {
+function runRinaTurn(prompt: string, options?: {
   noTools?: boolean
   onProgress?: (p: CodexProgress) => void
   signal?: AbortSignal
-}): Promise<string> {
-  return runAgent(prompt, {
+  threadId?: string | null
+  onThreadEvent?: (event: AgentThreadEvent) => void
+}) {
+  return runAgentTurn(prompt, {
+    runner: 'sdk',
     allowedTools: options?.noTools ? undefined : [RYUHA_MCP_TOOLS, SUPABASE_MCP_TOOLS],
     backend: 'codex',
     onProgress: options?.onProgress,
     signal: options?.signal,
+    threadId: options?.threadId,
+    onThreadEvent: options?.onThreadEvent,
+    cwd: process.cwd(),
   })
 }
 
@@ -797,6 +899,9 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
       textPreview: userText.slice(0, 240),
     },
   })
+  const workspacePath = process.cwd()
+  const taskScope = getInteractiveTaskScope(userText)
+  let activeThreadId: string | null = null
   try {
     const progressStart = getProgressStartedAt(chatId) ?? Date.now()
     if (lastMessageId) {
@@ -863,6 +968,20 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
       stage: '맥락 정리',
       current: '질문과 연결될 일정/숙제 흐름을 정리하고 있어.',
     })
+    const existingThread = getAgentThread(BOT_THREAD_REGISTRY_FILE, {
+      botKey: 'rina-bot',
+      chatId,
+      workspaceKey: RINA_WORKSPACE_KEY,
+      taskScope,
+    })
+    activeThreadId = existingThread?.threadId ?? null
+    if (activeThreadId) {
+      await addProgress(`Codex thread 이어받기 준비: ${shortThreadId(activeThreadId)}`, {
+        percent: 42,
+        stage: '맥락 정리',
+        current: '이전에 하던 학습 대화 흐름을 이어받을 준비를 하고 있어.',
+      })
+    }
 
     const systemPrompt = buildSystemPrompt(context, historyForPrompt, runtimeContext)
     const fullPrompt = `${systemPrompt}\n\n---\n류하: ${userText}`
@@ -894,6 +1013,7 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
         codexCmds ? `명령 ${codexCmds}` : '',
         codexFiles.size ? `파일 ${codexFiles.size}` : '',
         codexTools ? `도구 ${codexTools}` : '',
+        activeThreadId ? `thread ${shortThreadId(activeThreadId)}` : '',
       ].filter(Boolean)
       void syncProgress()
     }
@@ -940,18 +1060,76 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
       current: '도구를 보면서 답변을 만들고 있어.',
     })
 
-    const liveTimer = setInterval(() => pushLive(true), 3000)
-    const typingInterval = setInterval(() => { void sendTyping(chatId) }, 4000)
-
+    const liveTimer = setInterval(() => { void pushLive(true) }, 3000)
+    const stopTyping = startTypingPulse(chatId)
     let response = ''
+    let responseBackend = 'codex-sdk'
     try {
-      response = await askClaude(fullPrompt, {
+      const responseTurn = await runRinaTurn(fullPrompt, {
         onProgress: onCodexProgress,
         signal: abortSignal,
+        threadId: activeThreadId,
+        onThreadEvent: (event) => {
+          activeThreadId = event.threadId
+          upsertAgentThread(BOT_THREAD_REGISTRY_FILE, {
+            botKey: 'rina-bot',
+            chatId,
+            workspaceKey: RINA_WORKSPACE_KEY,
+            workspacePath,
+            taskScope,
+            threadId: event.threadId,
+            status: 'active',
+            lastUserMessage: userText,
+          })
+          recordRuntimeEvent({
+            botKey: 'rina-bot',
+            jsonlPath: BOT_RUNTIME_JSONL_FILE,
+            source: 'thread_bound',
+            message: `${event.mode} codex thread for ${chatId}`,
+            details: {
+              chatId,
+              workspaceKey: RINA_WORKSPACE_KEY,
+              workspaceLabel: RINA_WORKSPACE_LABEL,
+              workspacePath,
+              taskScope,
+              threadId: event.threadId,
+              mode: event.mode,
+            },
+          })
+          void addProgress(
+            `${event.mode === 'resumed' ? 'Codex thread 재개' : 'Codex thread 시작'}: ${shortThreadId(event.threadId)}`,
+            {
+              percent: Math.max(progressPercent, 60),
+              stage: '에이전트 실행',
+              current: event.mode === 'resumed'
+                ? '이전에 이어서 학습 대화를 계속 정리하고 있어.'
+                : '새 학습 대화 thread를 열고 답을 만들고 있어.',
+            }
+          )
+          void pushLive(true)
+        },
       })
+      response = responseTurn.text
+      responseBackend = responseTurn.backend
+      if (responseTurn.threadId) activeThreadId = responseTurn.threadId
     } finally {
       clearInterval(liveTimer)
-      clearInterval(typingInterval)
+      stopTyping()
+    }
+
+    if (activeThreadId) {
+      upsertAgentThread(BOT_THREAD_REGISTRY_FILE, {
+        botKey: 'rina-bot',
+        chatId,
+        workspaceKey: RINA_WORKSPACE_KEY,
+        workspacePath,
+        taskScope,
+        threadId: activeThreadId,
+        status: 'active',
+        lastUserMessage: userText,
+        lastSummary: response.slice(0, 400),
+        countRun: true,
+      })
     }
 
     if (abortSignal?.aborted) return
@@ -965,6 +1143,8 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
         codexCmds ? `명령 ${codexCmds}` : '',
         codexFiles.size ? `파일 ${codexFiles.size}` : '',
         codexTools ? `도구 ${codexTools}` : '',
+        activeThreadId ? `thread ${shortThreadId(activeThreadId)}` : '',
+        `백엔드 ${responseBackend}`,
       ].filter(Boolean),
     })
 
@@ -1017,10 +1197,16 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
       details: {
         chatId,
         durationMs: Date.now() - progressStart,
+        workspaceKey: RINA_WORKSPACE_KEY,
+        workspaceLabel: RINA_WORKSPACE_LABEL,
+        workspacePath,
+        taskScope,
+        threadId: activeThreadId,
         responseCount: messages.length,
         codexCommands: codexCmds,
         codexFiles: Array.from(codexFiles),
         codexTools,
+        backend: responseBackend,
         replyPreview: response.slice(0, 240),
       },
     })
@@ -1029,6 +1215,14 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
     if (abortSignal?.aborted || err instanceof AgentAbortError) {
       console.log(`[msg] ${chatId}: abort -> 재배칭 run으로 넘김`)
       return
+    }
+    if (activeThreadId) {
+      markAgentThreadFailed(BOT_THREAD_REGISTRY_FILE, {
+        botKey: 'rina-bot',
+        chatId,
+        workspaceKey: RINA_WORKSPACE_KEY,
+        taskScope,
+      }, err instanceof Error ? err.message : String(err))
     }
     console.error('[handle] error:', err)
     recordRuntimeEvent({
@@ -1040,6 +1234,11 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
       details: {
         chatId,
         durationMs: Date.now() - (getProgressStartedAt(chatId) ?? Date.now()),
+        workspaceKey: RINA_WORKSPACE_KEY,
+        workspaceLabel: RINA_WORKSPACE_LABEL,
+        workspacePath,
+        taskScope,
+        threadId: activeThreadId,
         textPreview: userText.slice(0, 240),
         error: err instanceof Error ? { message: err.message, stack: err.stack } : err,
       },
@@ -1138,8 +1337,64 @@ let lastGreetingDate = ''
 let lastEveningDate = ''
 
 async function sendScheduledMessage(chatId: number, prompt: string, tag: string) {
+  const workspacePath = process.cwd()
+  const taskScope = getScheduledTaskScope(tag)
+  let activeThreadId = getAgentThread(BOT_THREAD_REGISTRY_FILE, {
+    botKey: 'rina-bot',
+    chatId,
+    workspaceKey: RINA_WORKSPACE_KEY,
+    taskScope,
+  })?.threadId ?? null
   try {
-    const response = await askClaude(prompt, { noTools: true })
+    const responseTurn = await runRinaTurn(prompt, {
+      noTools: true,
+      threadId: activeThreadId,
+      onThreadEvent: (event) => {
+        activeThreadId = event.threadId
+        upsertAgentThread(BOT_THREAD_REGISTRY_FILE, {
+          botKey: 'rina-bot',
+          chatId,
+          workspaceKey: RINA_WORKSPACE_KEY,
+          workspacePath,
+          taskScope,
+          threadId: event.threadId,
+          status: 'active',
+          lastUserMessage: `[${tag}] scheduled prompt`,
+        })
+        recordRuntimeEvent({
+          botKey: 'rina-bot',
+          jsonlPath: BOT_RUNTIME_JSONL_FILE,
+          source: 'scheduled_thread_bound',
+          message: `${tag} thread ${event.mode} for ${chatId}`,
+          details: {
+            chatId,
+            tag,
+            workspaceKey: RINA_WORKSPACE_KEY,
+            workspaceLabel: RINA_WORKSPACE_LABEL,
+            workspacePath,
+            taskScope,
+            threadId: event.threadId,
+            mode: event.mode,
+          },
+        })
+      },
+    })
+    const response = responseTurn.text
+    if (responseTurn.threadId) activeThreadId = responseTurn.threadId
+    if (activeThreadId) {
+      upsertAgentThread(BOT_THREAD_REGISTRY_FILE, {
+        botKey: 'rina-bot',
+        chatId,
+        workspaceKey: RINA_WORKSPACE_KEY,
+        workspacePath,
+        taskScope,
+        threadId: activeThreadId,
+        status: 'active',
+        lastUserMessage: `[${tag}] scheduled prompt`,
+        lastSummary: response.slice(0, 400),
+        countRun: true,
+      })
+    }
     const { messages, buttons } = parseResponse(response)
     for (let i = 0; i < messages.length; i++) {
       if (!messages[i]) continue
@@ -1155,7 +1410,32 @@ async function sendScheduledMessage(chatId: number, prompt: string, tag: string)
       history.push({ role: 'assistant', content: `[${tag}] ${response.slice(0, 500)}`, timestamp: new Date().toISOString() })
       await saveConversation(chatId, history)
     })
+    recordRuntimeEvent({
+      botKey: 'rina-bot',
+      jsonlPath: BOT_RUNTIME_JSONL_FILE,
+      source: 'scheduled_message_completed',
+      message: `${tag} message sent`,
+      details: {
+        chatId,
+        tag,
+        workspaceKey: RINA_WORKSPACE_KEY,
+        workspaceLabel: RINA_WORKSPACE_LABEL,
+        workspacePath,
+        taskScope,
+        threadId: activeThreadId,
+        responseCount: messages.length,
+        replyPreview: response.slice(0, 240),
+      },
+    })
   } catch (err) {
+    if (activeThreadId) {
+      markAgentThreadFailed(BOT_THREAD_REGISTRY_FILE, {
+        botKey: 'rina-bot',
+        chatId,
+        workspaceKey: RINA_WORKSPACE_KEY,
+        taskScope,
+      }, err instanceof Error ? err.message : String(err))
+    }
     console.error(`[${tag}] error:`, err)
   }
 }
