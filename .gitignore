@@ -21,7 +21,6 @@
 /build
 
 # misc
-.DS_Store
 *.pem
 *.p8
 consummate-tine-*.json
@@ -47,9 +46,24 @@ scripts/logs/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-._*
 doc/
 .env*.local
 
 # Local data backups (never commit)
 .backups/
+
+# macOS metadata
+.DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.apdisk
+__MACOSX
