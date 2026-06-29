@@ -903,22 +903,18 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, creditEventsRows, versionRows] = await Promise.all([
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, listenRes, metaRes] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
     vc.from('user_analytics').select('user_id, total_cards, total_attempts'),
     vc.from('user_analytics').select('user_id, last_updated'),
     fetchAllPaged<{ user_id: string; date: string; problems_learned: number; attempts: number }>(
       () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true })
     ),
-    fetchAllPaged<{ user_id: string; event_name: string; properties: Record<string, unknown> | null }>(
-      () => vc.from('anonymous_events_real_users').select('user_id, event_name, properties').in('event_name', ['tts_played', 'voice_preview_played']).eq('is_likely_bot', false)
-    ),
-    // 사용자별 최근 앱 버전 + 플랫폼 + 언어 — created_at desc 정렬 후 user_id별 첫 row가 최신
-    fetchAllPaged<{ user_id: string; app_version: string | null; platform: string | null; locale: string | null; created_at: string }>(
-      () => vc.from('anonymous_events_real_users').select('user_id, app_version, platform, locale, created_at').not('user_id', 'is', null).not('app_version', 'is', null).order('created_at', { ascending: false })
-    ),
+    // 듣기 학습 횟수 — user당 1행으로 DB 집계 (전수 이벤트 스캔 5만+행 회피)
+    vc.rpc('vc_user_listen_counts'),
+    // 사용자별 최신 앱버전/플랫폼/언어 + 최근 이벤트 시각 — user당 1행 (DISTINCT ON)
+    vc.rpc('vc_user_latest_meta'),
   ])
-  const creditEventsRes = { data: creditEventsRows }
 
   if (usersRes.error) {
     console.error('[VoiceCards] Error fetching users:', usersRes.error)
@@ -990,29 +986,26 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 사용자별 듣기 학습 횟수 (이벤트 1건 = 1회)
   // 포함: tts_played, voice_preview_played (AI 카드 생성은 사용량 적어 제외)
   const userCreditsUsedMap = new Map<string, number>()
-  for (const row of (creditEventsRes.data || [])) {
-    const uid = row.user_id as string | null
+  for (const row of ((listenRes.data || []) as Array<{ user_id: string | null; listen_count: number }>)) {
+    const uid = row.user_id
     if (!uid || !visibleUserIds.has(uid)) continue
-    userCreditsUsedMap.set(uid, (userCreditsUsedMap.get(uid) || 0) + 1)
+    userCreditsUsedMap.set(uid, Number(row.listen_count) || 0)
   }
 
-  // 사용자별 최근 앱 버전 + 플랫폼 + 언어 (versionRows는 created_at desc로 정렬됨 → user_id 첫 등장이 최신)
+  // 사용자별 최근 앱 버전 + 플랫폼 + 언어 (vc_user_latest_meta RPC: user당 최신 1행)
   const userAppVersionMap = new Map<string, string>()
   const userPlatformMap = new Map<string, string>()
   const userLocaleMap = new Map<string, string>()
-  // 앱 이벤트 최근 시각 (versionRows는 created_at desc → user_id 첫 등장이 최신 이벤트)
-  // 듣기/미리듣기만 한 유저는 user_analytics 기록이 없어 last_updated가 비는데,
-  // 이벤트 시각을 활동일에 합쳐 "마지막 활동일"이 빈칸으로 뜨지 않게 한다.
+  // 앱 이벤트 최근 시각 — 듣기/미리듣기만 한 유저는 user_analytics 기록이 없어 last_updated가
+  // 비는데, 이벤트 시각을 활동일에 합쳐 "마지막 활동일"이 빈칸으로 뜨지 않게 한다.
   const userLastEventMap = new Map<string, string>()
-  for (const row of versionRows) {
-    if (row.user_id && row.app_version && !userAppVersionMap.has(row.user_id)) {
-      userAppVersionMap.set(row.user_id, row.app_version)
-      if (row.platform) userPlatformMap.set(row.user_id, row.platform)
-      if (row.locale) userLocaleMap.set(row.user_id, row.locale)
-    }
-    if (row.user_id && row.created_at && !userLastEventMap.has(row.user_id)) {
-      userLastEventMap.set(row.user_id, row.created_at)
-    }
+  // RPC가 user당 1행(최신)을 반환하므로 첫 등장 판별 없이 그대로 매핑
+  for (const row of ((metaRes.data || []) as Array<{ user_id: string | null; app_version: string | null; platform: string | null; locale: string | null; last_event: string | null }>)) {
+    if (!row.user_id) continue
+    if (row.app_version) userAppVersionMap.set(row.user_id, row.app_version)
+    if (row.platform) userPlatformMap.set(row.user_id, row.platform)
+    if (row.locale) userLocaleMap.set(row.user_id, row.locale)
+    if (row.last_event) userLastEventMap.set(row.user_id, row.last_event)
   }
 
   const userList = users.map(u => ({
