@@ -120,14 +120,6 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
       height: '100%',
       boxSizing: 'border-box',
     }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
-        <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.brand[600], fontFamily: t.font.mono, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-          Wiki Note
-        </div>
-        <div style={{ fontSize: 'calc(13px * var(--fz, 1))', color: t.neutrals.muted, lineHeight: 1.5 }}>
-          제목, 본문, 첨부파일을 한 화면에서 정리해둘 수 있어요.
-        </div>
-      </div>
 
       <div style={{ ...panelStyle, flexShrink: 0 }}>
         <div style={labelStyle}>섹션</div>
