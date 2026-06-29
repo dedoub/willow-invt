@@ -569,6 +569,17 @@ const CREDIT_PRODUCT_PRICES_USD: Record<string, number> = {
   'com.monor.voicecards.credits.12000': 99.99,
 }
 
+const EXCLUDED_VOICECARDS_NICKNAMES = new Set(['류하아빠', '큐트도넛'])
+const EXCLUDED_VOICECARDS_EMAIL_DOMAINS = ['cloudtestlabaccounts.com']
+
+function isExcludedVoicecardsEmail(email: string | null | undefined): boolean {
+  return !!email && EXCLUDED_VOICECARDS_EMAIL_DOMAINS.some(domain => email.toLowerCase().endsWith(`@${domain}`))
+}
+
+function isExcludedVoicecardsUser(user: { nickname?: string | null; email?: string | null }): boolean {
+  return !!(user.nickname && EXCLUDED_VOICECARDS_NICKNAMES.has(user.nickname)) || isExcludedVoicecardsEmail(user.email)
+}
+
 export interface AppDbRevenue {
   iosByDate: Map<string, number>
   androidByDate: Map<string, number>
@@ -643,8 +654,8 @@ export async function getCombinedStats(
     getCachedStatsRange('android', startDate, endDate),
     getAppDbRevenue(startDate, endDate),
     voicecardsSupabase
-      ? voicecardsSupabase.from('users').select('*', { count: 'exact', head: true }).eq('has_purchased', true)
-      : Promise.resolve({ count: 0, error: null }),
+      ? voicecardsSupabase.from('users').select('nickname, email').eq('has_purchased', true)
+      : Promise.resolve({ data: [], error: null }),
   ])
 
   // 가장 최근 날짜의 통계
@@ -672,7 +683,7 @@ export async function getCombinedStats(
     android: latestAndroid ? { ...latestAndroid, revenue: androidRevenue } : null,
     combined: {
       totalRevenue: iosRevenue + androidRevenue,
-      totalPaidUsers: paidUsersRes.count || 0,
+      totalPaidUsers: (paidUsersRes.data || []).filter(user => !isExcludedVoicecardsUser(user)).length,
       totalActiveSubscriptions: (latestIos?.activeSubscriptions || 0) + (latestAndroid?.activeSubscriptions || 0),
       totalNewSubscriptions: iosSum.newSubscriptions + androidSum.newSubscriptions,
       totalChurnedSubscriptions: iosSum.churnedSubscriptions + androidSum.churnedSubscriptions,
