@@ -53,6 +53,7 @@ export interface CombinedStats {
   android: IAPStats | null
   combined: {
     totalRevenue: number
+    totalPaidUsers: number
     totalActiveSubscriptions: number
     totalNewSubscriptions: number
     totalChurnedSubscriptions: number
@@ -590,16 +591,27 @@ export async function getAppDbRevenue(
   }
   if (!voicecardsSupabase) return result
 
-  const { data, error } = await voicecardsSupabase
-    .from('anonymous_events')
-    .select('created_at, platform, properties')
-    .eq('event_name', 'credits_changed')
-    .gte('created_at', `${startDate}T00:00:00Z`)
-    .lte('created_at', `${endDate}T23:59:59.999Z`)
+  const PAGE = 1000
+  const data: Array<{ created_at: string; platform: string | null; properties: Record<string, unknown> | null }> = []
+  let from = 0
 
-  if (error || !data) return result
+  while (true) {
+    const { data: page, error } = await voicecardsSupabase
+      .from('anonymous_events')
+      .select('created_at, platform, properties')
+      .eq('event_name', 'credits_changed')
+      .gte('created_at', `${startDate}T00:00:00Z`)
+      .lte('created_at', `${endDate}T23:59:59.999Z`)
+      .order('created_at', { ascending: true })
+      .range(from, from + PAGE - 1)
 
-  for (const row of data as Array<{ created_at: string; platform: string | null; properties: Record<string, unknown> | null }>) {
+    if (error || !page?.length) break
+    data.push(...(page as Array<{ created_at: string; platform: string | null; properties: Record<string, unknown> | null }>))
+    if (page.length < PAGE) break
+    from += PAGE
+  }
+
+  for (const row of data) {
     const props = row.properties || {}
     if (props.reason !== 'purchase') continue
     const price = CREDIT_PRODUCT_PRICES_USD[String(props.product_id)]
@@ -626,10 +638,13 @@ export async function getCombinedStats(
   startDate: string,
   endDate: string
 ): Promise<CombinedStats> {
-  const [iosStats, androidStats, appRevenue] = await Promise.all([
+  const [iosStats, androidStats, appRevenue, paidUsersRes] = await Promise.all([
     getCachedStatsRange('ios', startDate, endDate),
     getCachedStatsRange('android', startDate, endDate),
     getAppDbRevenue(startDate, endDate),
+    voicecardsSupabase
+      ? voicecardsSupabase.from('users').select('*', { count: 'exact', head: true }).eq('has_purchased', true)
+      : Promise.resolve({ count: 0, error: null }),
   ])
 
   // 가장 최근 날짜의 통계
@@ -657,6 +672,7 @@ export async function getCombinedStats(
     android: latestAndroid ? { ...latestAndroid, revenue: androidRevenue } : null,
     combined: {
       totalRevenue: iosRevenue + androidRevenue,
+      totalPaidUsers: paidUsersRes.count || 0,
       totalActiveSubscriptions: (latestIos?.activeSubscriptions || 0) + (latestAndroid?.activeSubscriptions || 0),
       totalNewSubscriptions: iosSum.newSubscriptions + androidSum.newSubscriptions,
       totalChurnedSubscriptions: iosSum.churnedSubscriptions + androidSum.churnedSubscriptions,

@@ -41,6 +41,7 @@ const YOUTUBE_FETCH_TIMEOUT_MS = 4000
 const MARKET_FETCH_TIMEOUT_MS = 8000
 const PROACTIVE_CHECK_INTERVAL = 30 * 60 * 1000 // 30분마다 자율 점검
 const VOICECARDS_EVENT_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 앱 사용자 로그 점검
+const VOICECARDS_PURCHASE_MONITOR_INTERVAL = 60 * 1000 // 1분마다 결제 감시
 const REVIEWNOTES_MONITOR_INTERVAL = 20 * 60 * 1000 // 20분마다 ReviewNotes 이상징후 점검
 const ENABLE_VOICECARDS_LOCAL_LOG_MONITOR = process.env.WILLY_ENABLE_VOICECARDS_LOCAL_LOG_MONITOR === '1'
 const TELEGRAM_RETRY_FALLBACK_MS = 1000
@@ -50,6 +51,9 @@ const PROGRESS_EDIT_MIN_INTERVAL_MS = 2500
 const SERVICE_LOG_MONITOR_INTERVAL = 60 * 1000 // 1분마다 로컬 서비스 로그 감시
 const SERVICE_LOG_ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000 // 같은 오류 중복 알림 억제
 const SERVICE_LOG_MAX_READ_BYTES = 96 * 1024
+const VOICECARDS_PURCHASE_BOOT_LOOKBACK_MS = 12 * 60 * 60 * 1000
+const VOICECARDS_PURCHASE_RESCAN_BUFFER_MS = 5 * 60 * 1000
+const VOICECARDS_PURCHASE_LOOKBACK_CAP_MS = 24 * 60 * 60 * 1000
 const LOG_DIR = join(__dirname, 'logs')
 const LOCK_FILE = join(LOG_DIR, 'telegram-bot.lock')
 const OFFSET_FILE = join(LOG_DIR, 'telegram-bot.offset')
@@ -2042,6 +2046,13 @@ interface VoicecardsUserRow {
   email: string | null
 }
 
+function formatVoicecardsUserLabel(user: VoicecardsUserRow | undefined, userId: string | null | undefined): string {
+  if (!user) return shortVoicecardsUserId(userId)
+  if (user.nickname?.trim()) return user.nickname.trim()
+  if (user.email?.trim()) return user.email.trim().split('@')[0] || user.email.trim()
+  return shortVoicecardsUserId(user.user_id)
+}
+
 function defaultVoicecardsEventMonitorState(): VoicecardsEventMonitorState {
   return { alerts: {} }
 }
@@ -2099,6 +2110,13 @@ function buildVoicecardsEventCounts(events: VoicecardsEventRow[]): Map<string, n
     counts.set(key, (counts.get(key) || 0) + 1)
   }
   return counts
+}
+
+function isVoicecardsPurchaseEvent(event: VoicecardsEventRow): boolean {
+  if (event.event_name !== 'credits_changed') return false
+  const delta = Number(event.properties?.delta || 0)
+  const reason = typeof event.properties?.reason === 'string' ? event.properties.reason : null
+  return delta > 0 && reason === 'purchase'
 }
 
 async function fetchAllVoicecardsRows<T>(
@@ -2189,6 +2207,76 @@ async function sendVoicecardsEventAlert(message: string, details: Record<string,
     content: `[VoiceCards 사용자 로그 알림]\n${message}`,
     timestamp: new Date().toISOString(),
   })
+}
+
+async function monitorVoicecardsPurchases() {
+  if (!ceoChatId || !voicecardsSupabase) return
+
+  const purchaseAlertState = getVoicecardsAlertState('purchase')
+  const lastEventMs = Number.isFinite(Date.parse(purchaseAlertState.lastEventAt || ''))
+    ? Date.parse(purchaseAlertState.lastEventAt!)
+    : NaN
+  const sinceMs = Number.isFinite(lastEventMs)
+    ? Math.max(Date.now() - VOICECARDS_PURCHASE_LOOKBACK_CAP_MS, lastEventMs - VOICECARDS_PURCHASE_RESCAN_BUFFER_MS)
+    : Date.now() - VOICECARDS_PURCHASE_BOOT_LOOKBACK_MS
+
+  const events = await fetchVoicecardsEventsSince(new Date(sinceMs).toISOString())
+  if (!events.length) return
+
+  const purchaseEvents = events.filter(isVoicecardsPurchaseEvent)
+  if (!purchaseEvents.length) return
+
+  const relevantEvents = Number.isFinite(lastEventMs)
+    ? purchaseEvents.filter(event => Date.parse(event.created_at) >= lastEventMs)
+    : purchaseEvents
+  if (!relevantEvents.length) return
+
+  const purchaseUserIds = Array.from(new Set(relevantEvents.map(event => event.user_id).filter(Boolean) as string[]))
+  const userMap = await fetchVoicecardsUsers(purchaseUserIds)
+  const latestEvent = relevantEvents[relevantEvents.length - 1] || relevantEvents[0]
+  const latestAt = latestEvent?.created_at || ''
+  const totalCreditsAdded = relevantEvents.reduce((sum, event) => sum + (Number(event.properties?.delta || 0) || 0), 0)
+  const uniqueProducts = Array.from(new Set(
+    relevantEvents
+      .map(event => typeof event.properties?.product_id === 'string' ? event.properties.product_id : '')
+      .filter(Boolean)
+  ))
+  const purchaserLabels = purchaseUserIds
+    .slice(0, 4)
+    .map(userId => formatVoicecardsUserLabel(userMap.get(userId), userId))
+
+  const alertHash = simpleHash(JSON.stringify(
+    relevantEvents.map(event => ({
+      created_at: event.created_at,
+      user_id: event.user_id,
+      delta: Number(event.properties?.delta || 0) || 0,
+      product_id: typeof event.properties?.product_id === 'string' ? event.properties.product_id : '',
+    }))
+  ))
+  if (purchaseAlertState.lastHash === alertHash) return
+
+  await sendVoicecardsEventAlert([
+    '💳 [VoiceCards 결제 알림]',
+    `- 감지: 새 결제 ${relevantEvents.length}건`,
+    purchaserLabels.length ? `- 사용자: ${purchaserLabels.join(', ')}` : '',
+    totalCreditsAdded > 0 ? `- 충전 크레딧 합계: +${totalCreditsAdded}` : '',
+    uniqueProducts.length ? `- 상품: ${uniqueProducts.slice(0, 3).join(', ')}` : '',
+    latestAt ? `- 최신 결제: ${formatKstShort(latestAt)}` : '',
+  ].filter(Boolean).join('\n'), {
+    issue: 'purchase',
+    count: relevantEvents.length,
+    purchaseUserIds,
+    purchaserLabels,
+    totalCreditsAdded,
+    uniqueProducts,
+    latestAt,
+    since: new Date(sinceMs).toISOString(),
+  })
+
+  purchaseAlertState.lastHash = alertHash
+  purchaseAlertState.lastAlertAt = new Date().toISOString()
+  purchaseAlertState.lastEventAt = latestAt
+  saveVoicecardsEventMonitorState()
 }
 
 async function monitorVoicecardsUserEvents() {
@@ -5437,6 +5525,15 @@ async function main() {
   setInterval(async () => {
     try { await breakingNewsCheck() } catch (err) { console.error('Breaking news error:', err) }
   }, BREAKING_CHECK_INTERVAL)
+
+  // VoiceCards 결제 감시 (1분 간격, 실시간에 가깝게)
+  console.log(`💳 VoiceCards 결제 감시 활성화 (${VOICECARDS_PURCHASE_MONITOR_INTERVAL / 1000}초 간격)`)
+  setInterval(async () => {
+    try { await monitorVoicecardsPurchases() } catch (err) { console.error('VoiceCards purchase monitor error:', err) }
+  }, VOICECARDS_PURCHASE_MONITOR_INTERVAL)
+  setTimeout(() => {
+    void monitorVoicecardsPurchases().catch(err => console.error('VoiceCards purchase monitor bootstrap error:', err))
+  }, 5000)
 
   // VoiceCards 사용자 이벤트 감시 (15분 간격)
   console.log(`📱 VoiceCards 사용자 로그 감시 활성화 (${VOICECARDS_EVENT_MONITOR_INTERVAL / 60000}분 간격)`)

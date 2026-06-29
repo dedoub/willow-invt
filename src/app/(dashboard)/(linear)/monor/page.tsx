@@ -8,12 +8,14 @@ import { ReviewnotesBlock } from './_components/reviewnotes-block'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats } from '@/lib/reviewnotes-supabase'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
+import { kstToday } from '@/lib/kst'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CombinedStats {
   combined: {
     totalRevenue: number
+    totalPaidUsers: number
     totalNewDownloads: number
   }
 }
@@ -121,11 +123,11 @@ export default function MonorPage() {
       setVcRevenueLoading(true)
     }
 
-    const end = new Date().toISOString().split('T')[0]
-    const start = `${new Date().getFullYear()}-01-01`
+    const end = kstToday()
+    const start = `${end.slice(0, 4)}-01-01`
 
     // 3개 API 병렬 호출 — 각 응답이 도착하는 대로 즉시 화면 반영
-    const usersP = fetch('/api/voicecards/stats/users')
+    const usersP = fetch('/api/voicecards/stats/users', { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) setVcUserStats(data.userStats || null)
@@ -133,7 +135,7 @@ export default function MonorPage() {
       .catch(err => console.error('VoiceCards users load error:', err))
       .finally(() => setVcUsersLoading(false))
 
-    const eventsP = fetch('/api/voicecards/stats/events')
+    const eventsP = fetch('/api/voicecards/stats/events', { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) setVcAnonStats(data.anonymousStats || null)
@@ -141,7 +143,7 @@ export default function MonorPage() {
       .catch(err => console.error('VoiceCards events load error:', err))
       .finally(() => setVcEventsLoading(false))
 
-    const revenueP = fetch(`/api/voicecards/stats?startDate=${start}&endDate=${end}`)
+    const revenueP = fetch(`/api/voicecards/stats?startDate=${start}&endDate=${end}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) {

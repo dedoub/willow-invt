@@ -6,6 +6,8 @@ import {
 import { kstToday } from '@/lib/kst'
 
 export const maxDuration = 300
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 // GET: 매출/차트 통계 (사용자 통계는 /users, 익명 이벤트는 /events 사용)
 export async function GET(request: Request) {
@@ -53,6 +55,10 @@ export async function GET(request: Request) {
       connection: connectionStatus,
       stats,
       chartData,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
     })
   } catch (error) {
     console.error('Error fetching combined stats:', error)

@@ -47,6 +47,7 @@ interface UserStats {
 interface CombinedStats {
   combined: {
     totalRevenue: number
+    totalPaidUsers: number
     totalNewDownloads: number
   }
 }
@@ -439,6 +440,7 @@ export function VoicecardsBlock({
           const incompleteSignups = (userStats?.users ?? []).filter(u => u.sheetCount === 0 && u.cards === 0).length
           const signedUp = userStats.totalUsers - incompleteSignups
           const revenue = stats?.combined.totalRevenue ?? 0
+          const paidUsers = stats?.combined.totalPaidUsers ?? 0
 
           const learnConv = devices > 0 ? (learned / devices) * 100 : 0
           const signupConv = learned > 0 ? (signedUp / learned) * 100 : 0
@@ -562,6 +564,14 @@ export function VoicecardsBlock({
                   <LStat
                     label="누적 매출"
                     value={formatCurrency(revenue)}
+                    valueExtra={paidUsers > 0 ? (
+                      <span style={{
+                        fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                        color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
+                      }}>
+                        유료 {paidUsers.toLocaleString()}명
+                      </span>
+                    ) : undefined}
                     sub={revenue > 0 ? `오늘 ${fmtRev(revenueToday)} · 7일 ${fmtRev(revenue7d)}` : '아직 없음'}
                     tone={revenue > 0 ? 'pos' : 'default'}
                     sparkline={compact ? undefined : revenueData}
@@ -1229,4 +1239,3 @@ function DistributionPie({
     </div>
   )
 }
-
