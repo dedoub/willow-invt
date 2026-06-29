@@ -793,6 +793,7 @@ export interface VoicecardsUserStats {
     appVersion: string | null  // 가장 최근 활동 시 앱 버전
     platform: string | null    // 'ios' | 'android' 등
     locale: string | null      // 'ko' | 'en' | 'de' | 'fr' | 'es' | 'zh' | 'ja' 등
+    hasPurchased: boolean
     credits: number          // 현재 잔액
     creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played). AI 카드 생성은 사용량 적어 제외
     sheetCount: number
@@ -959,6 +960,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     appVersion: userAppVersionMap.get(u.user_id) || null,
     platform: userPlatformMap.get(u.user_id) || null,
     locale: userLocaleMap.get(u.user_id) || null,
+    hasPurchased: !!u.has_purchased,
     credits: u.credits || 0,
     creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
     sheetCount: u.sheet_ids?.length || 0,

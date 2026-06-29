@@ -34,6 +34,7 @@ interface UserStats {
     appVersion: string | null
     platform: string | null
     locale: string | null
+    hasPurchased: boolean
     credits: number
     creditsUsed: number
     sheetCount: number
@@ -126,10 +127,10 @@ function formatDateShort(dateString?: string | null): string {
   return `${key.slice(2, 4)}.${key.slice(5, 7)}.${key.slice(8, 10)}`
 }
 
-// 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·가입·활동
-// 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 가입 | 활동
-const USER_TABLE_COLS = 'minmax(64px,1fr) 44px 52px 44px 56px 36px 48px 52px 44px 52px 60px 60px'
-const USER_TABLE_MIN_WIDTH = 668 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용
+// 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
+// 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
+const USER_TABLE_COLS = 'minmax(64px,1fr) 44px 52px 44px 56px 36px 48px 52px 44px 52px 54px 60px 60px'
+const USER_TABLE_MIN_WIDTH = 728 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -175,7 +176,7 @@ function formatLocale(locale: string): string {
 
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'status'
-  | 'sheets' | 'cards' | 'attempts' | 'listen' | 'credits'
+  | 'sheets' | 'cards' | 'attempts' | 'listen' | 'credits' | 'paid'
   | 'created' | 'recent'
 type SortDir = 'asc' | 'desc'
 
@@ -191,6 +192,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'attempts', label: '말하기', mobileLabel: '말하기',   align: 'center' },
   { key: 'listen',   label: '듣기',   mobileLabel: '듣기',     align: 'center' },
   { key: 'credits',  label: '크레딧', mobileLabel: '크레딧',   align: 'center' },
+  { key: 'paid',     label: '유료',   mobileLabel: '유료결제', align: 'center' },
   { key: 'created',  label: '가입',   mobileLabel: '가입일',   align: 'center' },
   { key: 'recent',   label: '활동',   mobileLabel: '활동일',   align: 'center' },
 ]
@@ -331,6 +333,7 @@ export function VoicecardsBlock({
         case 'attempts': return a.attempts - b.attempts
         case 'listen':   return (a.creditsUsed ?? 0) - (b.creditsUsed ?? 0)
         case 'credits':  return a.credits - b.credits
+        case 'paid':     return Number(!!a.hasPurchased) - Number(!!b.hasPurchased)
         // 날짜로 표시되는 컬럼은 날짜(YYYY-MM-DD) 단위로 비교 → 같은 날끼리는 동점이 되어
         // 다음 우선순위(예: 듣기 내림차순)가 그 안에서 적용됨.
         case 'recent':   return (a.lastActiveAt ? kstDateKey(a.lastActiveAt) : '').localeCompare(b.lastActiveAt ? kstDateKey(b.lastActiveAt) : '')
@@ -894,7 +897,7 @@ export function VoicecardsBlock({
                     wordBreak: mobile ? ('keep-all' as const) : ('normal' as const),
                     lineHeight: 1.4,
                   }}>
-                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 듣기 {formatNumber(user.creditsUsed)}회 · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'} · 가입일 {formatDate(user.createdAt)}
+                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 듣기 {formatNumber(user.creditsUsed)}회 · {user.hasPurchased ? '유료결제' : '무료'} · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'} · 가입일 {formatDate(user.createdAt)}
                   </div>
                 </div>
 
@@ -1029,6 +1032,16 @@ export function VoicecardsBlock({
                   <div style={userNumCell}>{formatNumber(user.attempts)}</div>
                   <div style={userNumCell}>{formatNumber(user.creditsUsed)}</div>
                   <div style={{ ...userNumCell, color: t.neutrals.muted }}>{formatNumber(user.credits)}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                    <span style={{
+                      fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                      color: user.hasPurchased ? '#166534' : t.neutrals.muted,
+                      background: user.hasPurchased ? '#DCFCE7' : t.neutrals.card,
+                      padding: '1px 5px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
+                    }}>
+                      {user.hasPurchased ? '유료' : '무료'}
+                    </span>
+                  </div>
                   <div style={userDateCell}>{formatDateShort(user.createdAt)}</div>
                   <div style={userDateCell}>{formatDateShort(user.lastActiveAt)}</div>
                 </div>
