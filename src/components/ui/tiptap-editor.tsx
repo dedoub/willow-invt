@@ -5,6 +5,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import { cn } from '@/lib/utils'
 import { Bold, Italic, List, ListOrdered, Heading2, Undo, Redo, Minus } from 'lucide-react'
+import { marked } from 'marked'
 
 interface TiptapEditorProps {
   content: string
@@ -46,7 +47,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   if (!editor) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-slate-50 dark:bg-slate-600 rounded-t-md">
+    <div className="flex flex-wrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 p-1.5 dark:border-slate-600 dark:bg-slate-600">
       <MenuButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive('bold')}
@@ -124,8 +125,8 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class: cn(
-          'focus:outline-none text-xs',
-          'min-h-[var(--editor-min-height)] px-3 py-2',
+          'tiptap focus:outline-none text-sm leading-7 text-slate-800 dark:text-slate-100',
+          'min-h-[var(--editor-min-height)] px-4 py-3',
           editorClassName
         ),
       },
@@ -135,8 +136,8 @@ export function TiptapEditor({
   return (
     <div
       className={cn(
-        "!border-0 rounded-md bg-slate-100 dark:bg-slate-700 overflow-hidden transition-colors",
-        "focus-within:bg-slate-50 dark:focus-within:bg-slate-600",
+        "overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-colors",
+        "focus-within:border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:focus-within:border-slate-500",
         className
       )}
       style={{ '--editor-min-height': minHeight } as React.CSSProperties}
@@ -255,9 +256,84 @@ export function TiptapEditor({
 
 // HTML을 일반 텍스트로 변환하는 유틸리티
 export function htmlToPlainText(html: string): string {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  }
   const tmp = document.createElement('div')
   tmp.innerHTML = html
   return tmp.textContent || tmp.innerText || ''
+}
+
+const HTML_TAG_PATTERN = /<\/?[a-z][\s\S]*>/i
+
+export function looksLikeHtml(text: string): boolean {
+  return HTML_TAG_PATTERN.test(text.trim())
+}
+
+function isSafeHref(href: string): boolean {
+  return /^(https?:|mailto:|tel:|\/)/i.test(href)
+}
+
+export function sanitizeEditorHtml(html: string): string {
+  if (!html) return ''
+  if (typeof window === 'undefined' || typeof document === 'undefined' || typeof DOMParser === 'undefined') {
+    return html
+  }
+
+  const allowedTags = new Set([
+    'p', 'br', 'strong', 'em', 's', 'ul', 'ol', 'li',
+    'h1', 'h2', 'h3', 'blockquote', 'hr', 'code', 'pre', 'a',
+  ])
+
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+
+  const sanitizeNode = (node: Node): Node | DocumentFragment | null => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return document.createTextNode(node.textContent || '')
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return null
+    }
+
+    const sourceEl = node as HTMLElement
+    const tagName = sourceEl.tagName.toLowerCase()
+
+    if (!allowedTags.has(tagName)) {
+      const fragment = document.createDocumentFragment()
+      Array.from(sourceEl.childNodes).forEach(child => {
+        const cleanChild = sanitizeNode(child)
+        if (cleanChild) fragment.appendChild(cleanChild)
+      })
+      return fragment
+    }
+
+    const cleanEl = document.createElement(tagName)
+    if (tagName === 'a') {
+      const href = sourceEl.getAttribute('href') || ''
+      if (href && isSafeHref(href)) {
+        cleanEl.setAttribute('href', href)
+        cleanEl.setAttribute('target', '_blank')
+        cleanEl.setAttribute('rel', 'noopener noreferrer')
+      }
+    }
+
+    Array.from(sourceEl.childNodes).forEach(child => {
+      const cleanChild = sanitizeNode(child)
+      if (cleanChild) cleanEl.appendChild(cleanChild)
+    })
+
+    return cleanEl
+  }
+
+  const container = document.createElement('div')
+  Array.from(doc.body.childNodes).forEach(child => {
+    const cleanChild = sanitizeNode(child)
+    if (cleanChild) container.appendChild(cleanChild)
+  })
+
+  return container.innerHTML
 }
 
 // 마크다운 감지 패턴
@@ -267,7 +343,7 @@ const MARKDOWN_PATTERNS = /^#{1,6}\s|^\*\*|^-{3,}|^\*\s|^-\s|^\d+\.\s|^>\s|```|^
 export function plainTextToHtml(text: string): string {
   if (!text) return ''
   // 이미 HTML인 경우 그대로 반환
-  if (text.startsWith('<')) return text
+  if (looksLikeHtml(text)) return text
   // 마크다운 패턴이 있으면 마크다운으로 파싱
   if (MARKDOWN_PATTERNS.test(text)) {
     return markdownToHtml(text)
@@ -278,9 +354,6 @@ export function plainTextToHtml(text: string): string {
     .map(line => `<p>${line || '<br>'}</p>`)
     .join('')
 }
-
-// 마크다운을 HTML로 변환 (동기)
-import { marked } from 'marked'
 
 marked.setOptions({
   breaks: true,
