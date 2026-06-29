@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
+import { useRef, useState } from 'react'
+import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { TiptapEditor, htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/components/ui/tiptap-editor'
 
 type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 
@@ -28,15 +29,17 @@ const SECTIONS: { value: WikiSection; label: string }[] = [
 ]
 
 export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFormProps) {
+  const mobile = useIsMobile()
   const [section, setSection] = useState<WikiSection>(initial?.section || 'willow-mgmt')
   const [title, setTitle] = useState(initial?.title || '')
-  const [content, setContent] = useState(initial?.content || '')
+  const [content, setContent] = useState(() => plainTextToHtml(initial?.content || ''))
   const [existingFiles, setExistingFiles] = useState(initial?.attachments || [])
   const [newFiles, setNewFiles] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const canSave = (title.trim() || content.trim() || newFiles.length > 0 || existingFiles.length > 0) && !saving
+  const contentText = htmlToPlainText(content).trim()
+  const canSave = (title.trim() || contentText || newFiles.length > 0 || existingFiles.length > 0) && !saving
 
   const handleSave = async () => {
     if (!canSave) return
@@ -52,11 +55,15 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
           uploadedFiles = data.files || []
         }
       }
+
       const allAttachments = [...existingFiles, ...uploadedFiles]
+      const normalizedContent = sanitizeEditorHtml(content)
+      const finalContent = htmlToPlainText(normalizedContent).trim() ? normalizedContent : ''
+
       await onSave({
         section,
         title: title.trim(),
-        content: content.trim(),
+        content: finalContent,
         attachments: allAttachments.length > 0 ? allAttachments : undefined,
       })
     } finally {
@@ -72,110 +79,227 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
     setNewFiles(prev => prev.filter((_, i) => i !== idx))
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', fontSize: 'calc(13px * var(--fz, 1))', fontFamily: t.font.sans,
-    background: t.neutrals.inner, borderRadius: t.radius.sm, border: 'none',
-    color: t.neutrals.text, outline: 'none',
+  const labelStyle: React.CSSProperties = {
+    fontSize: 'calc(10.5px * var(--fz, 1))',
+    color: t.neutrals.subtle,
+    marginBottom: 6,
+    fontFamily: t.font.mono,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  }
+
+  const panelStyle: React.CSSProperties = {
+    background: t.neutrals.inner,
+    borderRadius: t.radius.md,
+    padding: 12,
+    boxShadow: `inset 0 0 0 1px ${t.neutrals.line}`,
+  }
+
+  const titleInputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px 14px',
+    // 모바일은 16px 미만이면 iOS가 포커스 시 자동 확대 → 16px로 고정
+    fontSize: mobile ? '16px' : 'calc(15px * var(--fz, 1))',
+    fontFamily: t.font.sans,
+    background: t.neutrals.card,
+    borderRadius: t.radius.md,
+    border: 'none',
+    color: t.neutrals.text,
+    outline: 'none',
+    boxShadow: `inset 0 0 0 1px ${t.neutrals.line}`,
   }
 
   return (
     <div style={{
-      background: t.neutrals.card, borderRadius: t.radius.md,
-      padding: 14, display: 'flex', flexDirection: 'column',
-      height: '100%', boxSizing: 'border-box',
+      background: t.neutrals.card,
+      borderRadius: t.radius.md,
+      padding: mobile ? 12 : 16,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: mobile ? 10 : 12,
+      height: '100%',
+      boxSizing: 'border-box',
     }}>
-      {/* Section selector */}
-      <div style={{ marginBottom: 10, flexShrink: 0 }}>
-        <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4, fontFamily: t.font.mono, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-          섹션
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+        <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.brand[600], fontFamily: t.font.mono, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+          Wiki Note
         </div>
-        <div style={{ display: 'inline-flex', background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
+        <div style={{ fontSize: 'calc(13px * var(--fz, 1))', color: t.neutrals.muted, lineHeight: 1.5 }}>
+          제목, 본문, 첨부파일을 한 화면에서 정리해둘 수 있어요.
+        </div>
+      </div>
+
+      <div style={{ ...panelStyle, flexShrink: 0 }}>
+        <div style={labelStyle}>섹션</div>
+        <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 6 }}>
           {SECTIONS.map(s => (
-            <button key={s.value} onClick={() => setSection(s.value)} style={{
-              border: 'none', cursor: 'pointer', padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))',
-              borderRadius: 4, fontFamily: t.font.sans,
-              fontWeight: section === s.value ? t.weight.medium : t.weight.regular,
-              background: section === s.value ? t.neutrals.card : 'transparent',
-              color: t.neutrals.text,
-            }}>{s.label}</button>
+            <button
+              key={s.value}
+              onClick={() => setSection(s.value)}
+              style={{
+                border: 'none',
+                cursor: 'pointer',
+                padding: '7px 12px',
+                fontSize: 'calc(12px * var(--fz, 1))',
+                borderRadius: 999,
+                fontFamily: t.font.sans,
+                fontWeight: section === s.value ? t.weight.medium : t.weight.regular,
+                background: section === s.value ? t.neutrals.card : 'transparent',
+                color: section === s.value ? t.neutrals.text : t.neutrals.muted,
+                boxShadow: section === s.value ? `0 0 0 1px ${t.neutrals.line}` : 'none',
+              }}
+            >
+              {s.label}
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Title */}
-      <div style={{ marginBottom: 8, flexShrink: 0 }}>
+      <div style={{ ...panelStyle, flexShrink: 0 }}>
+        <div style={labelStyle}>제목</div>
         <input
-          value={title} onChange={e => setTitle(e.target.value)}
-          placeholder="제목"
-          style={inputStyle}
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="노트 제목을 먼저 적어두세요"
+          style={titleInputStyle}
         />
       </div>
 
-      {/* Content — fills remaining space */}
-      <div style={{ marginBottom: 8, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <textarea
-          value={content} onChange={e => setContent(e.target.value)}
-          placeholder="내용을 입력하세요..."
-          style={{ ...inputStyle, resize: 'none', lineHeight: 1.6, flex: 1 }}
-        />
+      <div style={{ ...panelStyle, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8, flexShrink: 0 }}>
+          <div style={labelStyle}>본문</div>
+          <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>
+            굵게, 제목, 목록까지 바로 쓸 수 있어요
+          </div>
+        </div>
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <TiptapEditor
+            content={content}
+            onChange={setContent}
+            placeholder="핵심 내용, 맥락, 다음 액션까지 편하게 적어두세요..."
+            minHeight={mobile ? '200px' : '280px'}
+            className="h-full"
+            editorClassName={mobile ? 'text-[16px] leading-7' : 'text-[14px] leading-7'}
+          />
+        </div>
       </div>
 
-      {/* File attachments */}
-      <div style={{ marginBottom: 12, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-          <button onClick={() => fileRef.current?.click()} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm,
-            padding: '4px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
-            cursor: 'pointer', fontFamily: t.font.sans,
-          }}>
+      <div style={{ ...panelStyle, flexShrink: 0 }}>
+        <div style={labelStyle}>첨부파일</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => fileRef.current?.click()}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              background: t.neutrals.card,
+              border: 'none',
+              borderRadius: t.radius.sm,
+              boxShadow: `inset 0 0 0 1px ${t.neutrals.line}`,
+              padding: '7px 10px',
+              fontSize: 'calc(12px * var(--fz, 1))',
+              color: t.neutrals.muted,
+              cursor: 'pointer',
+              fontFamily: t.font.sans,
+            }}
+          >
             <LIcon name="paperclip" size={12} />
             파일 첨부
           </button>
-          <input ref={fileRef} type="file" multiple style={{ display: 'none' }}
-            onChange={e => { if (e.target.files) setNewFiles(prev => [...prev, ...Array.from(e.target.files!)]) }}
+          <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>
+            계약서, PDF, 이미지 같은 참고자료를 함께 남길 수 있어요
+          </span>
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            style={{ display: 'none' }}
+            onChange={e => {
+              const files = e.target.files
+              if (files) {
+                setNewFiles(prev => [...prev, ...Array.from(files)])
+              }
+            }}
           />
         </div>
+
         {existingFiles.map((f, i) => (
-          <div key={`ex-${i}`} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            background: t.neutrals.inner, borderRadius: t.radius.sm,
-            padding: '3px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
-            marginRight: 4, marginBottom: 4,
-          }}>
+          <div
+            key={`ex-${i}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              background: t.neutrals.card,
+              borderRadius: t.radius.sm,
+              padding: '5px 9px',
+              fontSize: 'calc(11px * var(--fz, 1))',
+              color: t.neutrals.muted,
+              boxShadow: `inset 0 0 0 1px ${t.neutrals.line}`,
+              marginRight: 4,
+              marginBottom: 4,
+            }}
+          >
             <LIcon name="file" size={11} />
             <span>{f.name}</span>
-            <button onClick={() => removeExistingFile(i)} style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              color: t.neutrals.subtle, fontSize: 'calc(10px * var(--fz, 1))',
-            }}>
+            <button
+              onClick={() => removeExistingFile(i)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                color: t.neutrals.subtle,
+                fontSize: 'calc(10px * var(--fz, 1))',
+              }}
+            >
               <LIcon name="x" size={10} />
             </button>
           </div>
         ))}
+
         {newFiles.map((f, i) => (
-          <div key={`new-${i}`} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            background: tonePalettes.brand.bg, borderRadius: t.radius.sm,
-            padding: '3px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: tonePalettes.brand.fg,
-            marginRight: 4, marginBottom: 4,
-          }}>
+          <div
+            key={`new-${i}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              background: tonePalettes.brand.bg,
+              borderRadius: t.radius.sm,
+              padding: '5px 9px',
+              fontSize: 'calc(11px * var(--fz, 1))',
+              color: tonePalettes.brand.fg,
+              marginRight: 4,
+              marginBottom: 4,
+            }}
+          >
             <LIcon name="file" size={11} />
             <span>{f.name}</span>
-            <button onClick={() => removeNewFile(i)} style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              color: tonePalettes.brand.fg, fontSize: 'calc(10px * var(--fz, 1))',
-            }}>
+            <button
+              onClick={() => removeNewFile(i)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                color: tonePalettes.brand.fg,
+                fontSize: 'calc(10px * var(--fz, 1))',
+              }}
+            >
               <LIcon name="x" size={10} />
             </button>
           </div>
         ))}
       </div>
 
-      {/* Actions */}
       <div style={{
-        display: 'flex', justifyContent: onDelete ? 'space-between' : 'flex-end',
-        alignItems: 'center', gap: 8,
+        display: 'flex',
+        justifyContent: onDelete ? 'space-between' : 'flex-end',
+        alignItems: 'center',
+        gap: 8,
+        paddingTop: 2,
       }}>
         {onDelete && (
           <LBtn variant="danger" size="sm" onClick={onDelete}>삭제</LBtn>

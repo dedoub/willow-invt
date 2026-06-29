@@ -5,6 +5,7 @@ import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { WikiNoteForm } from './wiki-note-form'
+import { htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/components/ui/tiptap-editor'
 
 export interface WikiMemo {
   id: string
@@ -51,6 +52,8 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
   const [editing, setEditing] = useState(false)
   const [hovered, setHovered] = useState(false)
   const badge = SECTION_BADGES[note.section] || SECTION_BADGES['akros']
+  const renderedContent = sanitizeEditorHtml(plainTextToHtml(note.content))
+  const hasRenderedContent = htmlToPlainText(renderedContent).trim().length > 0
 
   const handleSave = async (data: { section: WikiSection; title: string; content: string; attachments?: unknown }) => {
     await onUpdate(note.id, data)
@@ -208,13 +211,17 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         </div>
       </div>
 
-      {note.content && (
-        <div style={{
-          fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.7, color: t.neutrals.text,
-          whiteSpace: 'pre-wrap', marginBottom: note.attachments?.length ? 12 : 0,
-        }}>
-          {note.content}
-        </div>
+      {hasRenderedContent && (
+        <div
+          style={{
+            fontSize: 'calc(13px * var(--fz, 1))',
+            lineHeight: 1.7,
+            color: t.neutrals.text,
+            marginBottom: note.attachments?.length ? 12 : 0,
+          }}
+          className="wiki-content"
+          dangerouslySetInnerHTML={{ __html: renderedContent }}
+        />
       )}
 
       {note.attachments && note.attachments.length > 0 && (

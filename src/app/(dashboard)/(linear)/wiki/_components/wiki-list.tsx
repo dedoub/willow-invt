@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -12,6 +10,7 @@ import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { WikiNote, WikiMemo } from './wiki-note-row'
 import { WikiNoteForm } from './wiki-note-form'
+import { htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/components/ui/tiptap-editor'
 
 type SectionFilter = 'all' | 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
@@ -61,6 +60,14 @@ function fmtDate(dateStr: string): string {
   return `${d.getMonth() + 1}월 ${d.getDate()}일`
 }
 
+function renderWikiHtml(content: string): string {
+  return sanitizeEditorHtml(plainTextToHtml(content))
+}
+
+function getSearchableWikiText(content: string): string {
+  return htmlToPlainText(renderWikiHtml(content))
+}
+
 export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFilter }: WikiListProps) {
   const mobile = useIsMobile()
   const [sectionFilter, setSectionFilter] = useState<SectionFilter>('all')
@@ -81,7 +88,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
     if (search.trim()) {
       const q = search.trim().toLowerCase()
       result = result.filter(n =>
-        n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q)
+        n.title.toLowerCase().includes(q) || getSearchableWikiText(n.content).toLowerCase().includes(q)
       )
     }
     // 핀고정 우선 → 선택한 기준일자 desc
@@ -98,6 +105,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
   const containerH = FILTER_H + pageSize * ROW_H + 4 + PAGI_H
   const selectedNote = selectedId ? notes.find(n => n.id === selectedId) : null
+  const renderedSelectedContent = selectedNote ? renderWikiHtml(selectedNote.content) : ''
+  const hasSelectedContent = htmlToPlainText(renderedSelectedContent).trim().length > 0
 
   // 데스크탑 진입 시 우측 패널이 비지 않도록 가장 최근 업데이트된 노트를 자동 선택.
   // 모바일에선 list만 표시(사용자 클릭으로 진입)하므로 자동 선택 X.
@@ -455,52 +464,17 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
 
               {/* Detail body */}
               <div style={{ padding: '14px 18px', flex: 1 }}>
-                {selectedNote.content ? (
-                  <div style={{
-                    fontSize: 'calc(12.5px * var(--fz, 1))', lineHeight: 1.7, color: t.neutrals.text,
-                    fontFamily: t.font.sans,
-                  }}>
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        h1: ({ children }) => <h1 style={{ fontSize: 'calc(16px * var(--fz, 1))', fontWeight: t.weight.semibold, margin: '14px 0 6px', color: t.neutrals.text, fontFamily: t.font.sans }}>{children}</h1>,
-                        h2: ({ children }) => <h2 style={{ fontSize: 'calc(14px * var(--fz, 1))', fontWeight: t.weight.semibold, margin: '12px 0 4px', color: t.neutrals.text, fontFamily: t.font.sans }}>{children}</h2>,
-                        h3: ({ children }) => <h3 style={{ fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.semibold, margin: '10px 0 4px', color: t.neutrals.text, fontFamily: t.font.sans }}>{children}</h3>,
-                        p: ({ children }) => <p style={{ margin: '0 0 8px' }}>{children}</p>,
-                        ul: ({ children }) => <ul style={{ margin: '0 0 8px', paddingLeft: 18 }}>{children}</ul>,
-                        ol: ({ children }) => <ol style={{ margin: '0 0 8px', paddingLeft: 18 }}>{children}</ol>,
-                        li: ({ children }) => <li style={{ margin: '2px 0' }}>{children}</li>,
-                        strong: ({ children }) => <strong style={{ fontWeight: t.weight.semibold }}>{children}</strong>,
-                        code: ({ children, className }) => {
-                          const isBlock = className?.startsWith('language-')
-                          if (isBlock) {
-                            return <code style={{
-                              display: 'block', background: t.neutrals.inner, borderRadius: t.radius.sm,
-                              padding: '10px 12px', fontSize: 'calc(11.5px * var(--fz, 1))', fontFamily: t.font.mono,
-                              overflowX: 'auto', margin: '8px 0', lineHeight: 1.5,
-                            }}>{children}</code>
-                          }
-                          return <code style={{
-                            background: t.neutrals.inner, borderRadius: 3,
-                            padding: '1px 4px', fontSize: 'calc(11.5px * var(--fz, 1))', fontFamily: t.font.mono,
-                          }}>{children}</code>
-                        },
-                        pre: ({ children }) => <pre style={{ margin: 0 }}>{children}</pre>,
-                        blockquote: ({ children }) => <blockquote style={{
-                          margin: '8px 0', paddingLeft: 12,
-                          borderLeft: `3px solid ${t.neutrals.line}`,
-                          color: t.neutrals.muted,
-                        }}>{children}</blockquote>,
-                        a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: t.brand[600], textDecoration: 'none' }}>{children}</a>,
-                        table: ({ children }) => <table style={{ borderCollapse: 'collapse', width: '100%', margin: '8px 0', fontSize: 'calc(11.5px * var(--fz, 1))' }}>{children}</table>,
-                        th: ({ children }) => <th style={{ textAlign: 'left', padding: '5px 10px', background: t.neutrals.inner, fontWeight: t.weight.semibold, fontSize: 'calc(11px * var(--fz, 1))' }}>{children}</th>,
-                        td: ({ children }) => <td style={{ padding: '4px 10px', borderTop: `1px solid ${t.neutrals.line}` }}>{children}</td>,
-                        hr: () => <hr style={{ border: 'none', borderTop: `1px solid ${t.neutrals.line}`, margin: '12px 0' }} />,
-                      }}
-                    >
-                      {selectedNote.content}
-                    </ReactMarkdown>
-                  </div>
+                {hasSelectedContent ? (
+                  <div
+                    style={{
+                      fontSize: 'calc(12.5px * var(--fz, 1))',
+                      lineHeight: 1.7,
+                      color: t.neutrals.text,
+                      fontFamily: t.font.sans,
+                    }}
+                    className="wiki-content"
+                    dangerouslySetInnerHTML={{ __html: renderedSelectedContent }}
+                  />
                 ) : (
                   <div style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
                     내용 없음
