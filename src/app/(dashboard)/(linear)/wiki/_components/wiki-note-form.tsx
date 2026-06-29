@@ -152,23 +152,18 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
         <input
           value={title}
           onChange={e => setTitle(e.target.value)}
-          placeholder="노트 제목을 먼저 적어두세요"
+          placeholder="제목 입력"
           style={titleInputStyle}
         />
       </div>
 
       <div style={{ ...panelStyle, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8, flexShrink: 0 }}>
-          <div style={labelStyle}>본문</div>
-          <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>
-            굵게, 제목, 목록까지 바로 쓸 수 있어요
-          </div>
-        </div>
+        <div style={labelStyle}>본문</div>
         <div style={{ flex: 1, minHeight: 0 }}>
           <TiptapEditor
             content={content}
             onChange={setContent}
-            placeholder="핵심 내용, 맥락, 다음 액션까지 편하게 적어두세요..."
+            placeholder="내용 입력"
             minHeight={mobile ? '200px' : '280px'}
             className="h-full"
             editorClassName={mobile ? 'text-[16px] leading-7' : 'text-[14px] leading-7'}
@@ -199,9 +194,6 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
             <LIcon name="paperclip" size={12} />
             파일 첨부
           </button>
-          <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>
-            계약서, PDF, 이미지 같은 참고자료를 함께 남길 수 있어요
-          </span>
           <input
             ref={fileRef}
             type="file"
