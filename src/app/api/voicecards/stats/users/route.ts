@@ -4,11 +4,11 @@ import { getVoicecardsUserStats } from '@/lib/voicecards-server'
 
 export const maxDuration = 300
 
-// anonymous_events_real_users 전수 스캔(앱버전·크레딧)을 포함해 ~15초 걸리므로 5분 캐싱.
+// DB 집계 RPC로 ~1초대로 단축됨(이전 ~15초). 신선도 위해 60초 캐싱.
 const getCachedUserStats = unstable_cache(
   async () => getVoicecardsUserStats(),
   ['voicecards-user-stats'],
-  { revalidate: 300, tags: ['voicecards-stats'] }
+  { revalidate: 60, tags: ['voicecards-stats'] }
 )
 
 export async function GET() {

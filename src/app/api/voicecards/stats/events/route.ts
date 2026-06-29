@@ -4,11 +4,11 @@ import { getAnonymousEventStats } from '@/lib/voicecards-server'
 
 export const maxDuration = 300
 
-// anonymous_events 대량 스캔 — 5분 캐싱
+// anonymous_events 집계 — 60초 캐싱 (이전 5분)
 const getCachedAnonStats = unstable_cache(
   async () => getAnonymousEventStats(),
   ['voicecards-anon-stats'],
-  { revalidate: 300, tags: ['voicecards-stats'] }
+  { revalidate: 60, tags: ['voicecards-stats'] }
 )
 
 export async function GET() {
