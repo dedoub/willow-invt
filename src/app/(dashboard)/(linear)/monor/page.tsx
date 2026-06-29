@@ -103,7 +103,7 @@ export default function MonorPage() {
   const [vcStats, setVcStats] = useState<CombinedStats | null>(null)
   const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
   const [vcAnonStats, setVcAnonStats] = useState<AnonymousEventStats | null>(null)
-  const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number }>>([])
+  const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; paidUsers?: number }>>([])
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   // ReviewNotes state

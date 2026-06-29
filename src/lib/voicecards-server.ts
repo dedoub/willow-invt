@@ -583,8 +583,10 @@ function isExcludedVoicecardsUser(user: { nickname?: string | null; email?: stri
 export interface AppDbRevenue {
   iosByDate: Map<string, number>
   androidByDate: Map<string, number>
+  paidUsersByDate: Map<string, number>
   iosTotal: number
   androidTotal: number
+  totalPaidUsers: number
 }
 
 // 앱 DB(anonymous_events)의 credits_changed/reason=purchase 이벤트로 매출 산출.
@@ -597,10 +599,21 @@ export async function getAppDbRevenue(
   const result: AppDbRevenue = {
     iosByDate: new Map(),
     androidByDate: new Map(),
+    paidUsersByDate: new Map(),
     iosTotal: 0,
     androidTotal: 0,
+    totalPaidUsers: 0,
   }
   if (!voicecardsSupabase) return result
+
+  const excludedUsersRes = await voicecardsSupabase
+    .from('users')
+    .select('user_id, nickname, email')
+  const excludedUserIds = new Set(
+    (excludedUsersRes.data || [])
+      .filter(user => isExcludedVoicecardsUser(user))
+      .map(user => user.user_id)
+  )
 
   const PAGE = 1000
   const data: Array<{ created_at: string; platform: string | null; properties: Record<string, unknown> | null }> = []
@@ -637,6 +650,54 @@ export async function getAppDbRevenue(
       result.iosTotal += price
     }
   }
+
+  const payingEvents: Array<{ created_at: string; user_id: string | null; properties: Record<string, unknown> | null }> = []
+  from = 0
+  while (true) {
+    const { data: page, error } = await voicecardsSupabase
+      .from('anonymous_events_real_users')
+      .select('created_at, user_id, properties')
+      .eq('event_name', 'credits_changed')
+      .eq('is_likely_bot', false)
+      .lte('created_at', `${endDate}T23:59:59.999Z`)
+      .order('created_at', { ascending: true })
+      .range(from, from + PAGE - 1)
+
+    if (error || !page?.length) break
+    payingEvents.push(...(page as Array<{ created_at: string; user_id: string | null; properties: Record<string, unknown> | null }>))
+    if (page.length < PAGE) break
+    from += PAGE
+  }
+
+  const firstPurchaseByUser = new Map<string, string>()
+  for (const row of payingEvents) {
+    if (!row.user_id || excludedUserIds.has(row.user_id)) continue
+    const props = row.properties || {}
+    if (props.reason !== 'purchase') continue
+    const productId = String(props.product_id || '')
+    if (!CREDIT_PRODUCT_PRICES_USD[productId]) continue
+    if (!firstPurchaseByUser.has(row.user_id)) firstPurchaseByUser.set(row.user_id, row.created_at)
+  }
+
+  result.totalPaidUsers = firstPurchaseByUser.size
+  const newPaidUsersByDate = new Map<string, number>()
+  let baselinePaidUsers = 0
+  for (const createdAt of firstPurchaseByUser.values()) {
+    const date = kstDateKey(createdAt)
+    if (date < startDate) {
+      baselinePaidUsers += 1
+      continue
+    }
+    newPaidUsersByDate.set(date, (newPaidUsersByDate.get(date) || 0) + 1)
+  }
+
+  let runningPaidUsers = baselinePaidUsers
+  if (baselinePaidUsers > 0) result.paidUsersByDate.set(startDate, baselinePaidUsers)
+  for (const date of Array.from(newPaidUsersByDate.keys()).sort()) {
+    runningPaidUsers += newPaidUsersByDate.get(date) || 0
+    result.paidUsersByDate.set(date, runningPaidUsers)
+  }
+
   return result
 }
 
@@ -649,13 +710,10 @@ export async function getCombinedStats(
   startDate: string,
   endDate: string
 ): Promise<CombinedStats> {
-  const [iosStats, androidStats, appRevenue, paidUsersRes] = await Promise.all([
+  const [iosStats, androidStats, appRevenue] = await Promise.all([
     getCachedStatsRange('ios', startDate, endDate),
     getCachedStatsRange('android', startDate, endDate),
     getAppDbRevenue(startDate, endDate),
-    voicecardsSupabase
-      ? voicecardsSupabase.from('users').select('nickname, email').eq('has_purchased', true)
-      : Promise.resolve({ data: [], error: null }),
   ])
 
   // 가장 최근 날짜의 통계
@@ -683,7 +741,7 @@ export async function getCombinedStats(
     android: latestAndroid ? { ...latestAndroid, revenue: androidRevenue } : null,
     combined: {
       totalRevenue: iosRevenue + androidRevenue,
-      totalPaidUsers: (paidUsersRes.data || []).filter(user => !isExcludedVoicecardsUser(user)).length,
+      totalPaidUsers: appRevenue.totalPaidUsers,
       totalActiveSubscriptions: (latestIos?.activeSubscriptions || 0) + (latestAndroid?.activeSubscriptions || 0),
       totalNewSubscriptions: iosSum.newSubscriptions + androidSum.newSubscriptions,
       totalChurnedSubscriptions: iosSum.churnedSubscriptions + androidSum.churnedSubscriptions,
@@ -867,17 +925,10 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     return empty
   }
 
-  // 분석에서 제외할 내부 계정 (운영자/테스트)
-  const EXCLUDED_NICKNAMES = new Set(['류하아빠', '큐트도넛'])
-  // 봇/자동화 계정 이메일 도메인 (Firebase Test Lab 등) — 닉네임이 없어 도메인으로 식별
-  const EXCLUDED_EMAIL_DOMAINS = ['cloudtestlabaccounts.com']
-  const isExcludedEmail = (email: string | null) =>
-    !!email && EXCLUDED_EMAIL_DOMAINS.some(d => email.toLowerCase().endsWith(`@${d}`))
-
   const allUsers = usersRes.data || []
   const excludedUserIds = new Set(
     allUsers
-      .filter(u => (u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)) || isExcludedEmail(u.email))
+      .filter(u => isExcludedVoicecardsUser(u))
       .map(u => u.user_id)
   )
   const users = allUsers.filter(u => !excludedUserIds.has(u.user_id))
@@ -1057,17 +1108,12 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   // 분석에서 제외할 내부 계정 (운영자/테스트) — getVoicecardsUserStats와 동일
   // 정책. 'tts_played' 등 이벤트가 매일 카운트되는데 운영 계정 사용이 함께
   // 집계되면 외부 사용자 활동량을 과대 추정함.
-  const EXCLUDED_NICKNAMES = new Set(['류하아빠', '큐트도넛'])
-  // 봇/자동화 계정 이메일 도메인 (Firebase Test Lab 등) — getVoicecardsUserStats와 동일 정책
-  const EXCLUDED_EMAIL_DOMAINS = ['cloudtestlabaccounts.com']
-  const isExcludedEmail = (email: string | null) =>
-    !!email && EXCLUDED_EMAIL_DOMAINS.some(d => email.toLowerCase().endsWith(`@${d}`))
   const { data: excludedUsersRows } = await voicecardsSupabase
     .from('users')
     .select('user_id, nickname, email')
   const excludedUserIds = new Set(
     (excludedUsersRows || [])
-      .filter(u => (u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)) || isExcludedEmail(u.email))
+      .filter(u => isExcludedVoicecardsUser(u))
       .map(u => u.user_id)
   )
 

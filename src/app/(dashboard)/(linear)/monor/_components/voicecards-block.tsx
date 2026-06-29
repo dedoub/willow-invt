@@ -96,7 +96,7 @@ export interface VoicecardsBlockProps {
   stats: CombinedStats | null
   userStats: UserStats | null
   anonymousStats: AnonymousEventStats | null
-  chartData?: Array<{ date: string; ios: number; android: number; total: number }>
+  chartData?: Array<{ date: string; ios: number; android: number; total: number; paidUsers?: number }>
   onOpenSettings: () => void
   onRefresh: () => void
   refreshing: boolean
@@ -474,8 +474,10 @@ export function VoicecardsBlock({
 
           // 매출 누적
           const revenueByDate = new Map<string, number>()
+          const paidUsersByDate = new Map<string, number>()
           for (const row of (chartData ?? [])) {
             revenueByDate.set(row.date, (revenueByDate.get(row.date) ?? 0) + row.total)
+            if (typeof row.paidUsers === 'number') paidUsersByDate.set(row.date, row.paidUsers)
           }
           let runningRevenue = 0
           const cumulativeRevenueByDate = new Map<string, number>()
@@ -487,6 +489,13 @@ export function VoicecardsBlock({
             let total = 0
             for (const [revDate, val] of cumulativeRevenueByDate) {
               if (revDate <= date) total = val
+            }
+            return { date, value: total }
+          })
+          const paidUsersData = allDates.map(date => {
+            let total = 0
+            for (const [paidDate, val] of paidUsersByDate) {
+              if (paidDate <= date) total = val
             }
             return { date, value: total }
           })
@@ -578,6 +587,8 @@ export function VoicecardsBlock({
                     sub={revenue > 0 ? `오늘 ${fmtRev(revenueToday)} · 7일 ${fmtRev(revenue7d)}` : '아직 없음'}
                     tone={revenue > 0 ? 'pos' : 'default'}
                     sparkline={compact ? undefined : revenueData}
+                    sparkline2={compact ? undefined : paidUsersData}
+                    spark2Color={t.brand[600]}
                     sparkFormat={formatCurrency}
                   />
                 )}
