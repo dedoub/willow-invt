@@ -99,9 +99,12 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
     setPage(0)
   }
 
-  // Summary stats (부가세 포함 = total_amount 기준)
-  const paidTotal = yearFiltered.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.total_amount, 0)
-  const pendingTotal = yearFiltered.filter(i => i.payment_status === 'pending').reduce((s, i) => s + i.total_amount, 0)
+  // Summary stats (부가세 포함 = total_amount 기준). 부분수금(paid_amount)을 반영해
+  // 수금완료 = 완납 총액 + 미완납 건의 수금액, 미수금 = 미완납 건의 잔액(총액 − 수금액).
+  const paidTotal =
+    yearFiltered.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.total_amount, 0) +
+    yearFiltered.filter(i => i.payment_status === 'pending').reduce((s, i) => s + (i.paid_amount || 0), 0)
+  const pendingTotal = yearFiltered.filter(i => i.payment_status === 'pending').reduce((s, i) => s + (i.total_amount - (i.paid_amount || 0)), 0)
   const scheduledTotal = yearFiltered.filter(i => i.payment_status === 'scheduled').reduce((s, i) => s + i.total_amount, 0)
 
   return (
@@ -276,6 +279,9 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                     <DetailRow label="입금예정일" value={inv.expected_payment_date || '-'} mono />
                     {inv.paid_amount != null && (
                       <DetailRow label="수금액" value={`${inv.paid_amount.toLocaleString()}원`} mono />
+                    )}
+                    {inv.paid_amount != null && inv.paid_amount < inv.total_amount && (
+                      <DetailRow label="미수잔액" value={`${(inv.total_amount - inv.paid_amount).toLocaleString()}원`} mono />
                     )}
                     {inv.bank_ref && (
                       <DetailRow label="은행참조" value={inv.bank_ref} mono />
