@@ -571,9 +571,24 @@ const CREDIT_PRODUCT_PRICES_USD: Record<string, number> = {
 
 const EXCLUDED_VOICECARDS_NICKNAMES = new Set(['류하아빠', '큐트도넛'])
 const EXCLUDED_VOICECARDS_EMAIL_DOMAINS = ['cloudtestlabaccounts.com']
+// Synthetic/bot signup email patterns — kept in sync with the app's own bot
+// definition (voice-cards scripts/ceo-report-prompt.md):
+//  - Google Play test bots:         name.NNN@gmail.com  (dot + 3+ digits)
+//  - structured batch-naming abuse: ...batchNN@gmail.com / waveNNbatchNN
+//    (first seen 2026-06-30, e.g. wave31batch01@gmail.com — NOT a dev test acct).
+// Excluded from BOTH the insight stat cards and the user list, since
+// getVoicecardsUserStats derives both from the same filtered `users` set.
+const EXCLUDED_VOICECARDS_EMAIL_PATTERNS: RegExp[] = [
+  /\.[0-9]{3,}@gmail\.com$/i,
+  /batch[0-9]+@gmail\.com$/i,
+  /wave[0-9]+batch[0-9]+/i,
+]
 
 function isExcludedVoicecardsEmail(email: string | null | undefined): boolean {
-  return !!email && EXCLUDED_VOICECARDS_EMAIL_DOMAINS.some(domain => email.toLowerCase().endsWith(`@${domain}`))
+  if (!email) return false
+  const e = email.toLowerCase()
+  if (EXCLUDED_VOICECARDS_EMAIL_DOMAINS.some(domain => e.endsWith(`@${domain}`))) return true
+  return EXCLUDED_VOICECARDS_EMAIL_PATTERNS.some(re => re.test(e))
 }
 
 function isExcludedVoicecardsUser(user: { nickname?: string | null; email?: string | null }): boolean {
