@@ -583,10 +583,13 @@ const EXCLUDED_VOICECARDS_EMAIL_PATTERNS: RegExp[] = [
   /batch[0-9]+@gmail\.com$/i,
   /wave[0-9]+batch[0-9]+/i,
 ]
+// 관리자/내부 테스트 계정 (정확 일치) — 2026-07-03 willowinvt 관리자 계정 추가
+const EXCLUDED_VOICECARDS_EMAILS = new Set(['dw.kim@willowinvt.com'])
 
 function isExcludedVoicecardsEmail(email: string | null | undefined): boolean {
   if (!email) return false
   const e = email.toLowerCase()
+  if (EXCLUDED_VOICECARDS_EMAILS.has(e)) return true
   if (EXCLUDED_VOICECARDS_EMAIL_DOMAINS.some(domain => e.endsWith(`@${domain}`))) return true
   return EXCLUDED_VOICECARDS_EMAIL_PATTERNS.some(re => re.test(e))
 }
