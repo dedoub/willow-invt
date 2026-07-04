@@ -221,6 +221,37 @@ export default function ValueChainPage() {
           {pager(updatePage, setUpdatePage, updateSorted.length, updatePages, updSafe)}
         </div>
 
+        {/* AI 인용 퍼널 — 학습 수집 → 답변 인덱싱 → 사용자 질문 인용 (wiki /crawls와 동일 분류) */}
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <div style={sectionLabel}>AI 인용 퍼널</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {([['① 학습 수집', crawl.funnel.train], ['② 답변 인덱싱', crawl.funnel.index], ['③ 사용자 질문 인용', crawl.funnel.cite]] as const).map(([label, tier]) => (
+              <div key={label} style={{ display: 'grid', gridTemplateColumns: mobile ? '112px 52px 52px minmax(0,1fr)' : '128px 64px 64px 52px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
+                <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap' }}>{label}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>7일 {tier.last7d.toLocaleString()}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>총 {tier.total.toLocaleString()}</span>
+                {!mobile && <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, textAlign: 'right', whiteSpace: 'nowrap' }}>{tier.last ? tier.last.slice(5, 10) : '—'}</span>}
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                  {tier.bots.length ? tier.bots.slice(0, 3).map(b => `${b.bot} ${b.count.toLocaleString()}×`).join(' · ') : '아직 없음'}
+                </span>
+              </div>
+            ))}
+          </div>
+          {/* ③ 실사용자 질문이 실시간으로 가져간 페이지 — 인용 전환의 직접 증거 */}
+          {crawl.citedFetches.length > 0 && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {crawl.citedFetches.slice(0, 6).map((x, i) => (
+                <a key={i} href={`${SITE_URL}${x.path}`} target="_blank" rel="noreferrer"
+                  style={{ display: 'grid', gridTemplateColumns: mobile ? '78px minmax(0,1fr)' : '78px 110px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.ts.slice(5, 16).replace('T', ' ')}</span>
+                  {!mobile && <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.bot ?? '?'}</span>}
+                  <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{x.path}</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* AI 크롤 의존도 — 봇별 테이블 (봇·횟수·재방문·비중) */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={sectionLabel}>AI 크롤 의존도</div>

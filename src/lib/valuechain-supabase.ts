@@ -72,6 +72,13 @@ export interface TrendBlock {
   last7: number // 최근 7일 신규
 }
 
+export interface FunnelTier {
+  total: number
+  last7d: number
+  last: string | null
+  bots: { bot: string; count: number }[]
+}
+
 export interface ValueChainStats {
   summary: {
     nodes: number
@@ -100,6 +107,13 @@ export interface ValueChainStats {
     lastTs: string | null
     topBots: { bot: string; count: number; days: number }[]
     topResources: { resource: string; count: number; bots: number }[]
+    // AI 인용 퍼널: 학습 수집 → 답변 인덱싱 → 사용자 질문 인용 (wiki /crawls와 동일 분류)
+    funnel: {
+      train: FunnelTier
+      index: FunnelTier
+      cite: FunnelTier
+    }
+    citedFetches: { ts: string; path: string; bot: string | null }[] // ③ 실사용자 질문이 가져간 페이지
   }
   trends: {
     nodes: TrendBlock
@@ -214,6 +228,34 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     .sort((a, b) => b.count - a.count)
     .slice(0, 12)
 
+  // ── AI 인용 퍼널 (wiki lib/queries.ts getCrawlStats와 동일 분류 — 원본이 바뀌면 여기도 맞출 것) ──
+  const tierOf = (bot: string | null): 'train' | 'index' | 'cite' | null => {
+    const b = (bot ?? '').toLowerCase()
+    if (/chatgpt-user|claude-user|perplexity-user|externalfetcher|mistralai-user/.test(b)) return 'cite'
+    if (/searchbot|duckassist|perplexitybot|youbot|petalbot/.test(b)) return 'index'
+    if (/gptbot|claudebot|anthropic|ccbot|bytespider|google-extended|meta-external|applebot-extended|cohere|diffbot|omgili|timpibot|amazonbot/.test(b)) return 'train'
+    return null
+  }
+  type TierAgg = { total: number; last7d: number; last: string; bots: Map<string, number> }
+  const mkTier = (): TierAgg => ({ total: 0, last7d: 0, last: '', bots: new Map() })
+  const tierAgg = { train: mkTier(), index: mkTier(), cite: mkTier() }
+  const citedFetches: { ts: string; path: string; bot: string | null }[] = []
+  for (const x of crawl) {
+    const tier = tierOf(x.bot)
+    if (!tier) continue
+    const e = tierAgg[tier]
+    e.total++
+    if (now - new Date(x.ts).getTime() <= 7 * dayMs) e.last7d++
+    if (x.ts > e.last) e.last = x.ts
+    e.bots.set(x.bot ?? '?', (e.bots.get(x.bot ?? '?') ?? 0) + 1)
+    if (tier === 'cite' && citedFetches.length < 12) citedFetches.push({ ts: x.ts, path: x.path, bot: x.bot })
+  }
+  const packTier = (e: TierAgg): FunnelTier => ({
+    total: e.total, last7d: e.last7d, last: e.last || null,
+    bots: [...e.bots.entries()].map(([bot, count]) => ({ bot, count })).sort((a, b) => b.count - a.count),
+  })
+  const funnel = { train: packTier(tierAgg.train), index: packTier(tierAgg.index), cite: packTier(tierAgg.cite) }
+
   // ── 메트릭별 추이 (14일 누적 스파크라인 + 오늘/7일 신규) ──
   const buildTrend = (
     rows: Array<{ created_at?: string | null; updated_at?: string | null }> | null,
@@ -275,6 +317,8 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
       lastTs: crawl[0]?.ts ?? null,
       topBots,
       topResources,
+      funnel,
+      citedFetches,
     },
   }
 }
