@@ -97,7 +97,7 @@ export interface ValueChainStats {
     last7d: number
     last30d: number
     daily: { date: string; count: number }[] // 최근 14일
-    recent: { slug: string; name: string; ticker: string | null; rev: number; cost: number; pass: number; tier: string; updated_at: string | null }[]
+    recent: { slug: string; name: string; ticker: string | null; rev: number; cost: number; pass: number; tier: string; created_at: string | null; updated_at: string | null; hasReport: boolean; hasChainImpact: boolean }[]
   }
   crawl: {
     total: number
@@ -145,22 +145,25 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     supabase.from('vc_articles').select('*', { count: 'exact', head: true }),
     supabase
       .from('vc_companies')
-      .select('slug,name,ticker,kicker,lead,segments,updated_at, vc_edges!company_id(direction,counterparty_id,confidence,metric, vc_edge_sources(stance,metric, vc_sources(kind,published_at,lang)))'),
+      .select('slug,name,ticker,kicker,lead,segments,updated_at,created_at, vc_analyst_ratings(id), vc_edges!company_id(direction,counterparty_id,confidence,metric, vc_edge_sources(stance,metric, vc_sources(kind,published_at,lang)))'),
     supabase.from('vc_crawl_log').select('ts,path,bot,category').neq('category', 'attack').order('ts', { ascending: false }).limit(3000),
     supabase.from('vc_companies').select('created_at').gte('created_at', windowStartKey).limit(100000),
     supabase.from('vc_edges').select('created_at').gte('created_at', windowStartKey).limit(100000),
     supabase.from('vc_sources').select('created_at').gte('created_at', windowStartKey).limit(100000),
-    supabase.from('vc_articles').select('updated_at').gte('updated_at', windowStartKey).limit(100000),
+    supabase.from('vc_articles').select('published_at').gte('published_at', windowStartKey).limit(100000),
   ])
 
   // ── 성숙도 집계 ──
-  type MRow = MNode & { slug: string; name: string; ticker: string | null; updated_at: string | null }
+  type MRow = MNode & { slug: string; name: string; ticker: string | null; updated_at: string | null; created_at: string | null; vc_analyst_ratings?: { id: string }[] | null }
   const mrows = ((maturityRes.data ?? []) as unknown as MRow[]).map((n) => {
     const edges = n.vc_edges || []
     return {
-      slug: n.slug, name: n.name, ticker: n.ticker, updated_at: n.updated_at,
+      slug: n.slug, name: n.name, ticker: n.ticker, updated_at: n.updated_at, created_at: n.created_at,
       rev: edges.filter((e) => e.direction === 'revenue').length,  // 매출처
       cost: edges.filter((e) => e.direction === 'cost').length,    // 지급처
+      // 노드 페이지 섹션 유무와 동일: 증권사 리포트 = vc_analyst_ratings 존재 / 가치사슬 파급 = 매출처·지급처 counterparty(등록노드) 존재
+      hasReport: (n.vc_analyst_ratings?.length ?? 0) > 0,
+      hasChainImpact: edges.some((e) => !!e.counterparty_id && (e.direction === 'revenue' || e.direction === 'cost')),
       m: auditNode(n),
     }
   })
@@ -197,7 +200,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     .filter((r) => r.updated_at)
     .sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
     .slice(0, 50)
-    .map((r) => ({ slug: r.slug, name: r.name, ticker: r.ticker, rev: r.rev, cost: r.cost, pass: r.m.pass, tier: r.m.tierShort, updated_at: r.updated_at }))
+    .map((r) => ({ slug: r.slug, name: r.name, ticker: r.ticker, rev: r.rev, cost: r.cost, pass: r.m.pass, tier: r.m.tierShort, created_at: r.created_at, updated_at: r.updated_at, hasReport: r.hasReport, hasChainImpact: r.hasChainImpact }))
 
   // ── 크롤 / AI 의존도 ──
   type CrawlRow = { ts: string; path: string; bot: string | null; category: string | null }
@@ -258,9 +261,9 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
 
   // ── 메트릭별 추이 (14일 누적 스파크라인 + 오늘/7일 신규) ──
   const buildTrend = (
-    rows: Array<{ created_at?: string | null; updated_at?: string | null }> | null,
+    rows: Array<{ created_at?: string | null; updated_at?: string | null; published_at?: string | null }> | null,
     total: number,
-    key: 'created_at' | 'updated_at',
+    key: 'created_at' | 'updated_at' | 'published_at',
   ): TrendBlock => {
     const days = (rows ?? []).map(r => r[key] ?? '').filter(Boolean).map(s => (s as string).slice(0, 10)).sort()
     const baseline = Math.max(0, total - days.length)
@@ -280,7 +283,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     nodes: buildTrend(nodesRecent.data ?? null, nodesHead.count ?? mrows.length, 'created_at'),
     edges: buildTrend(edgesRecent.data ?? null, edgesHead.count ?? 0, 'created_at'),
     sources: buildTrend(sourcesRecent.data ?? null, sourcesHead.count ?? 0, 'created_at'),
-    articles: buildTrend(articlesRecent.data ?? null, articlesHead.count ?? 0, 'updated_at'),
+    articles: buildTrend(articlesRecent.data ?? null, articlesHead.count ?? 0, 'published_at'),
     crawl: {
       series: [...crawlDayMap.entries()].map(([date, value]) => ({ date, value })),
       today: aiRows.filter(x => x.ts.slice(0, 10) === dayKey(new Date(now))).length,

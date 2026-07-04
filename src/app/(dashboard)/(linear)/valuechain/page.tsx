@@ -30,9 +30,9 @@ export default function ValueChainPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updateSort, setUpdateSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'date', dir: 'desc' })
-  const [crawlSort, setCrawlSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'count', dir: 'desc' })
   const [updatePage, setUpdatePage] = useState(1)
-  const [crawlPage, setCrawlPage] = useState(1)
+  const [updatePerPage, setUpdatePerPage] = useState(8)
+  const [updatePerPageInput, setUpdatePerPageInput] = useState('8')
 
   const load = useCallback(async (refresh = false) => {
     if (!refresh) setLoading(true)
@@ -77,21 +77,21 @@ export default function ValueChainPage() {
     color: t.neutrals.muted, textDecoration: 'none',
   }
   // 업데이트 테이블: 날짜 | 노드 | 티커 | 매출처 | 지급처 | 티어 | 완성도
-  const UPDATE_COLS = '46px minmax(80px,1fr) 72px 44px 44px 32px 46px'
-  const UPDATE_MIN_WIDTH = 440
-  // AI 크롤 테이블: 봇 | 횟수 | 재방문 | 비중
-  const CRAWL_COLS = 'minmax(0,1fr) 56px 56px 44px'
+  const UPDATE_COLS = '44px 44px minmax(76px,1fr) 58px 40px 40px 30px 44px 34px 34px'
+  const UPDATE_MIN_WIDTH = 540
   const headCell: React.CSSProperties = {
     fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
     letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
   }
-  const PER = 8 // 테이블 페이지당 행 수
 
   // ── 클릭 정렬 헤더 ──
-  const numDescKeys = new Set(['date', 'rev', 'cost', 'pass', 'count', 'pct', 'days'])
+  const numDescKeys = new Set(['date', 'created', 'rev', 'cost', 'pass', 'count', 'pct', 'days'])
   const defaultDir = (key: string): 'asc' | 'desc' => (numDescKeys.has(key) ? 'desc' : 'asc')
   const onUpdateSort = (key: string) => { setUpdatePage(1); setUpdateSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: defaultDir(key) }) }
-  const onCrawlSort = (key: string) => { setCrawlPage(1); setCrawlSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: defaultDir(key) }) }
+  const commitUpdatePerPage = () => {
+    const n = Math.max(5, Math.min(100, Number(updatePerPageInput) || 8))
+    setUpdatePerPageInput(String(n)); setUpdatePerPage(n); setUpdatePage(1)
+  }
   const sortHead = (colKey: string, label: string, align: 'left' | 'center' | 'right', sortState: { key: string; dir: 'asc' | 'desc' }, onSort: (k: string) => void) => {
     const active = sortState.key === colKey
     return (
@@ -118,42 +118,20 @@ export default function ValueChainPage() {
       case 'cost': r = a.cost - b.cost; break
       case 'tier': r = a.tier.localeCompare(b.tier); break
       case 'pass': r = a.pass - b.pass; break
+      case 'created': r = (a.created_at || '').localeCompare(b.created_at || ''); break
       case 'date':
       default: r = (a.updated_at || '').localeCompare(b.updated_at || '')
     }
     return r !== 0 ? r * updateDir : (b.updated_at || '').localeCompare(a.updated_at || '')
   })
-  const crawlDir = crawlSort.dir === 'asc' ? 1 : -1
-  const crawlSorted = [...crawl.topBots].sort((a, b) => {
-    let r = 0
-    switch (crawlSort.key) {
-      case 'bot': r = a.bot.localeCompare(b.bot); break
-      case 'days': r = a.days - b.days; break
-      default: r = a.count - b.count // count, pct
-    }
-    return r !== 0 ? r * crawlDir : b.count - a.count
-  })
-
   // ── 페이지네이션 ──
-  const updatePages = Math.max(1, Math.ceil(updateSorted.length / PER))
+  const updatePages = Math.max(1, Math.ceil(updateSorted.length / updatePerPage))
   const updSafe = Math.min(updatePage, updatePages)
-  const updateRows = updateSorted.slice((updSafe - 1) * PER, updSafe * PER)
-  const crawlPages = Math.max(1, Math.ceil(crawlSorted.length / PER))
-  const crwSafe = Math.min(crawlPage, crawlPages)
-  const crawlRows = crawlSorted.slice((crwSafe - 1) * PER, crwSafe * PER)
+  const updateRows = updateSorted.slice((updSafe - 1) * updatePerPage, updSafe * updatePerPage)
   const chevBtn = (disabled: boolean): React.CSSProperties => ({
     background: 'transparent', border: 'none', cursor: disabled ? 'default' : 'pointer',
     padding: 4, borderRadius: 4, color: disabled ? t.neutrals.line : t.neutrals.muted, opacity: disabled ? 0.4 : 1,
   })
-  const pager = (page: number, setPage: (f: (p: number) => number) => void, total: number, totalPages: number, safe: number) => (
-    totalPages > 1 ? (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, padding: '8px 8px 0' }}>
-        <button disabled={safe === 1} onClick={() => setPage(p => Math.max(1, p - 1))} style={chevBtn(safe === 1)}><LIcon name="chevronLeft" size={13} stroke={2} /></button>
-        <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{(safe - 1) * PER + 1}-{Math.min(safe * PER, total)} / {total}</span>
-        <button disabled={safe >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} style={chevBtn(safe >= totalPages)}><LIcon name="chevronRight" size={13} stroke={2} /></button>
-      </div>
-    ) : null
-  )
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, alignItems: 'start' }}>
@@ -187,6 +165,36 @@ export default function ValueChainPage() {
           </div>
         </div>
 
+        {/* AI 인용 퍼널 — 학습 수집 → 답변 인덱싱 → 사용자 질문 인용 (/crawls 요약) */}
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <div style={sectionLabel}>AI 인용 퍼널</div>
+          <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 420, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* 헤더행 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '128px 56px 56px 56px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+              <span style={headCell}>단계</span>
+              <span style={headCell}>7일</span>
+              <span style={headCell}>총</span>
+              <span style={headCell}>최근</span>
+              <span style={headCell}>상위봇</span>
+            </div>
+            {([['①', '학습 수집', crawl.funnel.train], ['②', '답변 인덱싱', crawl.funnel.index], ['③', '사용자 질문 인용', crawl.funnel.cite]] as const).map(([num, label, tier]) => (
+              <div key={label} style={{ display: 'grid', gridTemplateColumns: '128px 56px 56px 56px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
+                <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle, marginRight: 3 }}>{num}</span>{label}
+                </span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tier.last7d.toLocaleString()}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tier.total.toLocaleString()}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{tier.last ? tier.last.slice(5, 10) : '—'}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                  {tier.bots.length ? tier.bots.slice(0, 3).map(b => `${b.bot} ${b.count.toLocaleString()}×`).join(' · ') : '아직 없음'}
+                </span>
+              </div>
+            ))}
+          </div>
+          </div>
+        </div>
+
         {/* 업데이트 */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={sectionLabel}>업데이트</div>
@@ -195,17 +203,21 @@ export default function ValueChainPage() {
           <div style={{ minWidth: UPDATE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* 테이블 헤더 — 클릭 정렬 */}
             <div style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
-              {sortHead('date', '날짜', 'left', updateSort, onUpdateSort)}
+              {sortHead('created', '최초', 'left', updateSort, onUpdateSort)}
+              {sortHead('date', '수정', 'left', updateSort, onUpdateSort)}
               {sortHead('name', '노드', 'left', updateSort, onUpdateSort)}
               {sortHead('ticker', '티커', 'left', updateSort, onUpdateSort)}
               {sortHead('rev', '매출처', 'center', updateSort, onUpdateSort)}
               {sortHead('cost', '지급처', 'center', updateSort, onUpdateSort)}
               {sortHead('tier', '티어', 'center', updateSort, onUpdateSort)}
               {sortHead('pass', '완성도', 'center', updateSort, onUpdateSort)}
+              <span style={{ ...headCell, textAlign: 'center' }}>리포트</span>
+              <span style={{ ...headCell, textAlign: 'center' }}>파급</span>
             </div>
             {updateRows.map(n => (
               <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer"
                 style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
+                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.created_at ?? '').slice(5, 10) || '—'}</span>
                 <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.updated_at ?? '').slice(5, 10)}</span>
                 <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{n.name}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: n.ticker ? t.neutrals.muted : t.neutrals.line, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.ticker || '—'}</span>
@@ -213,71 +225,35 @@ export default function ValueChainPage() {
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{n.cost}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold, textAlign: 'center', whiteSpace: 'nowrap' }}>{n.tier}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{n.pass}/{maturity.checks}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', textAlign: 'center', color: n.hasReport ? '#10b981' : t.neutrals.line, whiteSpace: 'nowrap' }} title={n.hasReport ? '증권사 리포트 섹션 있음' : '없음'}>{n.hasReport ? '●' : '—'}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', textAlign: 'center', color: n.hasChainImpact ? '#3b82f6' : t.neutrals.line, whiteSpace: 'nowrap' }} title={n.hasChainImpact ? '가치사슬 파급 섹션 있음' : '없음'}>{n.hasChainImpact ? '●' : '—'}</span>
               </a>
             ))}
             {updates.recent.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>업데이트 내역 없음</span>}
           </div>
           </div>
-          {pager(updatePage, setUpdatePage, updateSorted.length, updatePages, updSafe)}
-        </div>
-
-        {/* AI 인용 퍼널 — 학습 수집 → 답변 인덱싱 → 사용자 질문 인용 (wiki /crawls와 동일 분류) */}
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>AI 인용 퍼널</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {([['① 학습 수집', crawl.funnel.train], ['② 답변 인덱싱', crawl.funnel.index], ['③ 사용자 질문 인용', crawl.funnel.cite]] as const).map(([label, tier]) => (
-              <div key={label} style={{ display: 'grid', gridTemplateColumns: mobile ? '112px 52px 52px minmax(0,1fr)' : '128px 64px 64px 52px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
-                <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap' }}>{label}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>7일 {tier.last7d.toLocaleString()}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>총 {tier.total.toLocaleString()}</span>
-                {!mobile && <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, textAlign: 'right', whiteSpace: 'nowrap' }}>{tier.last ? tier.last.slice(5, 10) : '—'}</span>}
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                  {tier.bots.length ? tier.bots.slice(0, 3).map(b => `${b.bot} ${b.count.toLocaleString()}×`).join(' · ') : '아직 없음'}
-                </span>
+          {/* 페이저 — N개씩 보기(좌) + 페이지 이동(우), 다른 테이블과 동일 */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '8px 8px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input
+                value={updatePerPageInput}
+                onChange={e => setUpdatePerPageInput(e.target.value.replace(/\D/g, ''))}
+                onBlur={commitUpdatePerPage}
+                onKeyDown={e => { if (e.key === 'Enter') commitUpdatePerPage() }}
+                style={{ width: 32, textAlign: 'center', border: 'none', background: t.neutrals.inner, borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, padding: '2px 0', outline: 'none' }}
+              />
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+            </div>
+            {updatePages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button disabled={updSafe === 1} onClick={() => setUpdatePage(p => Math.max(1, p - 1))} style={chevBtn(updSafe === 1)}><LIcon name="chevronLeft" size={13} stroke={2} /></button>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{(updSafe - 1) * updatePerPage + 1}-{Math.min(updSafe * updatePerPage, updateSorted.length)} / {updateSorted.length}</span>
+                <button disabled={updSafe >= updatePages} onClick={() => setUpdatePage(p => Math.min(updatePages, p + 1))} style={chevBtn(updSafe >= updatePages)}><LIcon name="chevronRight" size={13} stroke={2} /></button>
               </div>
-            ))}
+            )}
           </div>
-          {/* ③ 실사용자 질문이 실시간으로 가져간 페이지 — 인용 전환의 직접 증거 */}
-          {crawl.citedFetches.length > 0 && (
-            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {crawl.citedFetches.slice(0, 6).map((x, i) => (
-                <a key={i} href={`${SITE_URL}${x.path}`} target="_blank" rel="noreferrer"
-                  style={{ display: 'grid', gridTemplateColumns: mobile ? '78px minmax(0,1fr)' : '78px 110px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
-                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.ts.slice(5, 16).replace('T', ' ')}</span>
-                  {!mobile && <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.bot ?? '?'}</span>}
-                  <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{x.path}</span>
-                </a>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* AI 크롤 의존도 — 봇별 테이블 (봇·횟수·재방문·비중) */}
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>AI 크롤 의존도</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* 테이블 헤더 — 클릭 정렬 */}
-            <div style={{ display: 'grid', gridTemplateColumns: CRAWL_COLS, gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
-              {sortHead('bot', '봇', 'left', crawlSort, onCrawlSort)}
-              {sortHead('count', '횟수', 'right', crawlSort, onCrawlSort)}
-              {sortHead('days', '재방문', 'right', crawlSort, onCrawlSort)}
-              {sortHead('pct', '비중', 'right', crawlSort, onCrawlSort)}
-            </div>
-            {crawlRows.map(b => {
-              const pct = crawl.ai > 0 ? Math.round((b.count / crawl.ai) * 100) : 0
-              return (
-                <div key={b.bot} style={{ display: 'grid', gridTemplateColumns: CRAWL_COLS, gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
-                  <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{b.bot}</span>
-                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{b.count.toLocaleString()}</span>
-                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{b.days.toLocaleString()}</span>
-                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{pct}%</span>
-                </div>
-              )
-            })}
-            {crawl.topBots.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>AI 크롤 기록 없음</span>}
-          </div>
-          {pager(crawlPage, setCrawlPage, crawlSorted.length, crawlPages, crwSafe)}
-        </div>
       </LCard>
     </div>
   )
