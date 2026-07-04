@@ -69,6 +69,8 @@ interface AnonymousEventStats {
     cardsLearned: number
     promptShown: number
     signinCompleted: number
+    loggedDevices: number
+    anonDevices: number
   }>
   cumulativeDistinct: Array<{
     date: string
@@ -249,6 +251,31 @@ function SkelPie() {
   )
 }
 
+function SkelBars() {
+  // SkelPie와 동일한 컨테이너·body 래퍼(flex:1, padding 6px 0)를 써서 높이를 픽셀 단위로 일치시킴.
+  // 원형(80x80) 자리에 80 높이 바 컨테이너를 배치.
+  return (
+    <div style={{
+      padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 96, height: '100%', boxSizing: 'border-box',
+      minWidth: 0, overflow: 'hidden',
+    }}>
+      <SkelBar width={70} height={10} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '6px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, width: '100%', height: 80 }}>
+          {Array.from({ length: 21 }).map((_, i) => (
+            <div
+              key={i}
+              className="l-skeleton"
+              style={{ flex: 1, minWidth: 2, height: 24 + ((i * 37) % 48), borderRadius: 1 }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function SkelUserRow() {
   return (
     <div style={{
@@ -424,19 +451,44 @@ export function VoicecardsBlock({
         />
 
         {/* 인사이트 — 사용자/이벤트/매출 모두 필요 */}
-        {(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats) && (
+        {(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats?.summary) && (
           <>
             <SkelSectionHeader width={80} />
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
               {[0, 1, 2, 3].map(i => <SkelStat key={i} compact={!!mobile} />)}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
               <SkelPie />
               <SkelPie />
+              <div style={{ gridColumn: mobile ? '1 / -1' : 'auto' }}>
+                <SkelBars />
+              </div>
             </div>
           </>
         )}
-        {userStats && anonymousStats && (() => {
+        {/* 로딩 끝났는데 데이터가 없으면(최초 로드 실패) 빈 화면 대신 재시도 UI */}
+        {!(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats?.summary) && (
+          <div style={{
+            padding: '18px 12px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))',
+          }}>
+            <span>인사이트 데이터를 불러오지 못했어요</span>
+            <button
+              onClick={onRefresh}
+              disabled={refreshing}
+              style={{
+                padding: '4px 12px', borderRadius: t.radius.sm, border: 'none',
+                cursor: refreshing ? 'default' : 'pointer', opacity: refreshing ? 0.5 : 1,
+                background: t.brand[500], color: '#fff',
+                fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans,
+              }}
+            >
+              다시 시도
+            </button>
+          </div>
+        )}
+        {userStats && anonymousStats?.summary && (() => {
           const devices = anonymousStats.summary.totalDevices
           const learned = anonymousStats.summary.learnedDevices
           // 가입 미완료: 로그인했지만 시트 0 & 카드 0 (드라이브 공유 거부 등). 완료 = 전체 − 미완료
@@ -594,8 +646,8 @@ export function VoicecardsBlock({
                 )}
               </div>
 
-            {/* 플랫폼 / 언어 파이차트 (기기/가입 탭) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+            {/* 플랫폼 / 언어 / 일별 활동자 */}
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
               <DistributionPie
                 title="플랫폼"
                 tabs={[
@@ -650,6 +702,9 @@ export function VoicecardsBlock({
                 unit="명"
                 topN={3}
               />
+              <div style={{ gridColumn: mobile ? '1 / -1' : 'auto' }}>
+                <DauTrendCard daily={anonymousStats.daily} />
+              </div>
             </div>
             </>
           )
@@ -1125,6 +1180,75 @@ export function VoicecardsBlock({
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+// 일별 활동자 추이 — 하루 한 바를 로그인/비로그인으로 스택.
+// loggedDevices(그 날 로그인 이벤트가 있던 디바이스) 아래, anonDevices(익명) 위. 합 = daily.devices.
+// 서버 집계(vc_event_stats)를 그대로 재사용해 대시보드 정의와 일치. 봇/관리자 제외 뷰 기준.
+function DauTrendCard({ daily, days = 21 }: {
+  daily: Array<{ date: string; devices: number; loggedDevices: number; anonDevices: number }>
+  days?: number
+}) {
+  const rows = (daily ?? []).slice(-days)
+  const max = rows.reduce((m, r) => Math.max(m, r.devices), 0)
+  const latest = rows.length ? rows[rows.length - 1] : null
+  const LOGGED = t.brand[500]
+  const ANON = '#94a3b8'
+
+  return (
+    <div style={{
+      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px',
+      height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 4, marginBottom: 6,
+      }}>
+        <div style={{
+          fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+          textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
+        }}>
+          일별 활동자
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, whiteSpace: 'nowrap' as const,
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: LOGGED }} />로그인 {latest?.loggedDevices ?? 0}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: ANON }} />비로그인 {latest?.anonDevices ?? 0}
+          </span>
+        </div>
+      </div>
+      {rows.length === 0 || max === 0 ? (
+        <div style={{
+          flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle,
+        }}>
+          데이터 없음
+        </div>
+      ) : (
+        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'flex-end', gap: 2 }}>
+          {rows.map(r => {
+            const anonH = Math.round((r.anonDevices / max) * 72)
+            const loggedH = Math.round((r.loggedDevices / max) * 72)
+            return (
+              <div
+                key={r.date}
+                title={`${r.date} · 로그인 ${r.loggedDevices} · 비로그인 ${r.anonDevices} (총 ${r.devices})`}
+                style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+              >
+                {anonH > 0 && <div style={{ height: anonH, background: ANON, borderRadius: '1px 1px 0 0' }} />}
+                {loggedH > 0 && <div style={{ height: loggedH, background: LOGGED, borderRadius: anonH > 0 ? 0 : '1px 1px 0 0' }} />}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function DistributionPie({
   title, tabs, palette, unit, topN,

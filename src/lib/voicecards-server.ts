@@ -1090,6 +1090,8 @@ export interface AnonymousEventStats {
     cardsLearned: number
     promptShown: number
     signinCompleted: number
+    loggedDevices: number   // 그 날 로그인 이벤트가 있던 디바이스
+    anonDevices: number     // 그 날 로그인 없던(익명) 디바이스. loggedDevices + anonDevices = devices
   }>
   cumulativeDistinct: Array<{
     date: string

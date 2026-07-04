@@ -70,6 +70,8 @@ interface AnonymousEventStats {
     cardsLearned: number
     promptShown: number
     signinCompleted: number
+    loggedDevices: number
+    anonDevices: number
   }>
   cumulativeDistinct: Array<{
     date: string
