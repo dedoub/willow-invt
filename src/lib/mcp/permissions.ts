@@ -16,6 +16,7 @@ export type McpScope =
   | 'willow:read' | 'willow:write'
   | 'tensw:read' | 'tensw:write'
   | 'knowledge:read' | 'knowledge:write'
+  | 'workstation:read' | 'workstation:write'
   | 'admin:read' | 'admin:write'
 
 interface ToolPermission {
@@ -202,6 +203,16 @@ const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   knowledge_create_insight:    { roles: ['admin', 'editor'], scopes: ['knowledge:write'] },
   knowledge_search:            { roles: ['admin', 'editor', 'viewer'], scopes: ['knowledge:read'] },
   knowledge_get_stats:         { roles: ['admin', 'editor', 'viewer'], scopes: ['knowledge:read'] },
+
+  // Workstation (cross-project 맥락 평면)
+  ws_context_load:   { roles: ['admin', 'editor', 'viewer'], scopes: ['workstation:read'] },
+  ws_thread_list:    { roles: ['admin', 'editor', 'viewer'], scopes: ['workstation:read'] },
+  ws_thread_get:     { roles: ['admin', 'editor', 'viewer'], scopes: ['workstation:read'] },
+  ws_search:         { roles: ['admin', 'editor', 'viewer'], scopes: ['workstation:read'] },
+  ws_thread_upsert:  { roles: ['admin', 'editor'], scopes: ['workstation:write'] },
+  ws_thread_log:     { roles: ['admin', 'editor'], scopes: ['workstation:write'] },
+  ws_thread_resolve: { roles: ['admin', 'editor'], scopes: ['workstation:write'] },
+  ws_session_log:    { roles: ['admin', 'editor'], scopes: ['workstation:write'] },
 }
 
 /**
@@ -248,6 +259,7 @@ export function getDefaultScopes(role: UserRole): string[] {
         'willow:read', 'willow:write',
         'tensw:read', 'tensw:write',
         'knowledge:read', 'knowledge:write',
+        'workstation:read', 'workstation:write',
         'admin:read', 'admin:write',
       ]
     case 'editor':
@@ -262,6 +274,7 @@ export function getDefaultScopes(role: UserRole): string[] {
         'willow:read', 'willow:write',
         'tensw:read', 'tensw:write',
         'knowledge:read', 'knowledge:write',
+        'workstation:read', 'workstation:write',
       ]
     case 'viewer':
       return [
@@ -274,6 +287,7 @@ export function getDefaultScopes(role: UserRole): string[] {
         'willow:read',
         'tensw:read',
         'knowledge:read',
+        'workstation:read',
       ]
     default:
       return ['wiki:read', 'projects:read']

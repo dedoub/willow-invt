@@ -94,8 +94,8 @@ Willow Dashboard는 자체 MCP 서버를 내장하고 있으며, Claude Desktop 
 
 - **Endpoint**: `/api/mcp` (Streamable HTTP)
 - **Auth**: OAuth 2.1 + PKCE (`/api/mcp/oauth/*`)
-- **도구 수**: 88개 (10개 모듈)
-- **리소스**: 3개 (`willow://wiki/notes`, `willow://users/me`, `willow://projects/{section}`)
+- **도구 수**: 96개 (11개 모듈)
+- **리소스**: 4개 (`willow://wiki/notes`, `willow://users/me`, `willow://projects/{section}`, `willow://workstation/context`)
 
 ### MCP 도구 모듈
 | 모듈 | 파일 | 도구 수 | 접두사 |
@@ -110,6 +110,7 @@ Willow Dashboard는 자체 MCP 서버를 내장하고 있으며, Claude Desktop 
 | 류하 학습관리 | `ryuha.ts` | 18+ | `ryuha_` |
 | 윌로우 경영관리 | `willow-mgmt.ts` | 18+ | `willow_` |
 | 텐소프트웍스 | `tensw-mgmt.ts` | 18+ | `tensw_` |
+| 워크스테이션 맥락 | `workstation.ts` | 8 | `ws_` |
 
 > 상세 문서: `docs/mcp.md`
 

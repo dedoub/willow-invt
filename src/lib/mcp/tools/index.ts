@@ -10,6 +10,7 @@ import { registerWillowMgmtTools } from './willow-mgmt'
 import { registerTenswMgmtTools } from './tensw-mgmt'
 import { registerKnowledgeTools } from './knowledge'
 import { registerRealEstateTools } from './real-estate'
+import { registerWorkstationTools } from './workstation'
 
 export function registerAllTools(server: McpServer) {
   registerWikiTools(server)
@@ -23,4 +24,5 @@ export function registerAllTools(server: McpServer) {
   registerTenswMgmtTools(server)
   registerKnowledgeTools(server)
   registerRealEstateTools(server)
+  registerWorkstationTools(server)
 }

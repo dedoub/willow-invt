@@ -55,6 +55,49 @@ export function registerAllResources(server: McpServer) {
     }
   })
 
+  // Workstation boot context (cross-project 열린 스레드 + 최근 결정 + 최근 세션)
+  server.registerResource('workstation-context', 'willow://workstation/context', {
+    description: '워크스테이션 부팅 맥락: cross-project 열린 스레드, 최근 결정, 최근 세션 요약',
+    mimeType: 'application/json',
+  }, async (_uri: URL, extra: Extra) => {
+    const user = getUserFromAuthInfo(extra.authInfo)
+    if (!user) return { contents: [{ uri: 'willow://workstation/context', text: '{}' }] }
+
+    const supabase = getServiceSupabase()
+    const [{ data: threads }, { data: decisions }, { data: sessions }] = await Promise.all([
+      supabase
+        .from('ws_threads')
+        .select('id, project, title, status, priority, summary, tags, last_touched_at')
+        .in('status', ['open', 'blocked'])
+        .order('priority', { ascending: true })
+        .order('last_touched_at', { ascending: false })
+        .limit(20),
+      supabase
+        .from('ws_thread_events')
+        .select('thread_id, project, body, ref, created_at')
+        .eq('kind', 'decision')
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('ws_sessions')
+        .select('project, worktree_path, title, summary, highlights, started_at')
+        .order('started_at', { ascending: false })
+        .limit(8),
+    ])
+
+    await logMcpAction({ userId: user.userId, action: 'resource_read', resourceUri: 'willow://workstation/context' })
+    return {
+      contents: [{
+        uri: 'willow://workstation/context',
+        text: JSON.stringify({
+          open_threads: threads || [],
+          recent_decisions: decisions || [],
+          recent_sessions: sessions || [],
+        }, null, 2),
+      }],
+    }
+  })
+
   // Projects by section (template resource)
   server.registerResource('projects-by-section', new ResourceTemplate('willow://projects/{section}', { list: undefined }), {
     description: '섹션별 프로젝트 목록 (tensw, willow 등)',
