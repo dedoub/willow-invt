@@ -1194,6 +1194,8 @@ function DauTrendCard({ daily, days = 21 }: {
   // 플랫폼 파이차트 팔레트 재사용 (구분 명확하게): 로그인=블루, 비로그인=그린
   const LOGGED = '#3b82f6'
   const ANON = '#10b981'
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const barH = (v: number) => (max > 0 ? Math.round((v / max) * 72) : 0)
 
   return (
     <div style={{
@@ -1230,21 +1232,45 @@ function DauTrendCard({ daily, days = 21 }: {
           데이터 없음
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'flex-end', gap: 2 }}>
-          {rows.map(r => {
-            const anonH = Math.round((r.anonDevices / max) * 72)
-            const loggedH = Math.round((r.loggedDevices / max) * 72)
+        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'flex-end', gap: 2, position: 'relative' }}>
+          {rows.map((r, i) => {
+            const anonH = barH(r.anonDevices)
+            const loggedH = barH(r.loggedDevices)
+            const dim = hoverIdx !== null && hoverIdx !== i
             return (
               <div
                 key={r.date}
-                title={`${r.date} · 로그인 ${r.loggedDevices} · 비로그인 ${r.anonDevices} (총 ${r.devices})`}
-                style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+                onMouseEnter={() => setHoverIdx(i)}
+                onMouseLeave={() => setHoverIdx(prev => (prev === i ? null : prev))}
+                style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}
               >
-                {anonH > 0 && <div style={{ height: anonH, background: ANON, borderRadius: '1px 1px 0 0' }} />}
-                {loggedH > 0 && <div style={{ height: loggedH, background: LOGGED, borderRadius: anonH > 0 ? 0 : '1px 1px 0 0' }} />}
+                {anonH > 0 && <div style={{ height: anonH, background: ANON, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {loggedH > 0 && <div style={{ height: loggedH, background: LOGGED, borderRadius: anonH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
               </div>
             )
           })}
+          {hoverIdx !== null && rows[hoverIdx] && (() => {
+            const r = rows[hoverIdx]
+            const leftPct = Math.min(86, Math.max(14, ((hoverIdx + 0.5) / rows.length) * 100))
+            return (
+              <div style={{
+                position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
+                bottom: barH(r.devices) + 8, pointerEvents: 'none', zIndex: 10,
+                background: '#1E293B', color: '#F8FAFC',
+                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
+                borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
+              }}>
+                <div style={{ opacity: 0.7, marginBottom: 3 }}>{r.date}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 1, background: LOGGED }} />로그인 {r.loggedDevices}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 1, background: ANON }} />비로그인 {r.anonDevices}
+                </div>
+                <div style={{ opacity: 0.7, marginTop: 3 }}>총 {r.devices}</div>
+              </div>
+            )
+          })()}
         </div>
       )}
     </div>
