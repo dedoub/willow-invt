@@ -769,17 +769,16 @@ export function VoicecardsBlock({
             // 보유 카드: daily_inventory_snapshots 일별 스냅샷 → 일별 증감(diff)으로 추세 표시
             const inventory = userStats.dailyCardInventory ?? []
             const cardTrajectory = inventory.map(d => ({ date: d.date, value: d.totalCards }))
-            // 일별 증감 = 오늘값 - 어제 스냅샷. 오늘 스냅샷이 아직 없으면(스냅샷 job 전) live 합계 사용.
-            // (기존 ??0 은 스냅샷 전에 0-어제값 = -전체 하락으로 찍히던 버그)
+            // 오늘 = live 합계 − 오늘 00:05 스냅샷 = 자정 이후 실제 증가분.
+            // (스냅샷은 KST 자정에 찍혀서 '오늘 스냅샷 − 어제 스냅샷'은 전날 증가분을 오늘로 표기하던 문제.
+            //  live와 오늘 스냅샷을 비교해야 '오늘 실제로 늘어난 카드'가 나온다. 오늘 스냅샷 없으면 0.)
             const dateToCards = new Map(inventory.map(d => [d.date, d.totalCards]))
-            const yesterdayStr = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return toKst(d) })()
-            const todayCardsVal = dateToCards.get(todayStr) ?? userStats.totalCards
-            const todayCardsDelta = todayCardsVal - (dateToCards.get(yesterdayStr) ?? todayCardsVal)
-            // 7일 전 값 = sevenDaysAgo 이하 중 '가장 최근' 스냅샷 (오름차순이라 filter 후 마지막).
-            // (기존 find 는 조건 만족 '최초'=가장 오래된 스냅샷을 반환하던 버그)
+            const liveCards = userStats.totalCards
+            const todayCardsDelta = liveCards - (dateToCards.get(todayStr) ?? liveCards)
+            // 7일 = live − (7일전 이하 중 가장 최근 스냅샷). find는 오름차순에서 가장 오래된 걸 반환하던 버그라 filter 후 마지막 사용.
             const beforeSeven = inventory.filter(d => d.date <= sevenDaysAgoStr)
-            const sevenAgoCards = (beforeSeven.length ? beforeSeven[beforeSeven.length - 1].totalCards : inventory[0]?.totalCards) ?? 0
-            const last7CardsDelta = todayCardsVal - sevenAgoCards
+            const sevenAgoCards = (beforeSeven.length ? beforeSeven[beforeSeven.length - 1].totalCards : inventory[0]?.totalCards) ?? liveCards
+            const last7CardsDelta = liveCards - sevenAgoCards
 
             return (
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
