@@ -1191,8 +1191,9 @@ function DauTrendCard({ daily, days = 21 }: {
   const rows = (daily ?? []).slice(-days)
   const max = rows.reduce((m, r) => Math.max(m, r.devices), 0)
   const latest = rows.length ? rows[rows.length - 1] : null
-  const LOGGED = t.brand[500]
-  const ANON = '#94a3b8'
+  // 플랫폼 파이차트 팔레트 재사용 (구분 명확하게): 로그인=블루, 비로그인=그린
+  const LOGGED = '#3b82f6'
+  const ANON = '#10b981'
 
   return (
     <div style={{
