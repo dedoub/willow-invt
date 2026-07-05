@@ -126,6 +126,18 @@ async function fetchAllPages(url: string, districtCode: string, dealYm: string):
   return allItems
 }
 
+// 압구정 현대: MOLIT 원시 아파트명(현대1차(...동), 신현대9차 등 분리·다양)을
+// 네이버 호가·re_complexes 추적명과 일치하는 통합 3개 이름으로 정규화한다.
+// dong(umdNm='압구정동') 스코핑으로 타 지역 현대 오매핑을 방지.
+function normalizeComplexName(aptNm: string, umdNm: string): string {
+  const name = (aptNm || '').trim()
+  if ((umdNm || '').trim() !== '압구정동') return name
+  if (['현대1차(12,13,21,22,31,32,33동)', '현대2차(10,11,20,23,24,25동)'].includes(name)) return '현대1,2차'
+  if (['현대6차(78~81,83,84,86,87동)', '현대7차(73~77,82,85동)'].includes(name)) return '현대6,7차'
+  if (['신현대9차', '신현대11차', '신현대12차'].includes(name)) return '신현대(9,11,12차)'
+  return name
+}
+
 // ============================================================
 // Trade Data Processing
 // ============================================================
@@ -138,7 +150,7 @@ function mapTradeItem(item: any, districtCode: string) {
   return {
     district_code: districtCode,
     dong_name: str(item.umdNm),
-    complex_name: str(item.aptNm),
+    complex_name: normalizeComplexName(str(item.aptNm), str(item.umdNm)),
     deal_year: year,
     deal_month: month,
     deal_day: day,
@@ -171,7 +183,7 @@ function mapRentalItem(item: any, districtCode: string) {
   return {
     district_code: districtCode,
     dong_name: str(item.umdNm),
-    complex_name: str(item.aptNm),
+    complex_name: normalizeComplexName(str(item.aptNm), str(item.umdNm)),
     deal_year: year,
     deal_month: month,
     deal_day: day,
