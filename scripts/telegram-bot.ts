@@ -10,7 +10,8 @@ import { runAgent, runAgentTurn, AgentAbortError, type CodexProgress } from './l
 import { getAgentThread, markAgentThreadFailed, shortThreadId, upsertAgentThread } from './lib/agents/thread-registry'
 import { isResumablePendingTask, loadPendingTasks, patchPendingTask, removePendingTask, savePendingTask } from './lib/inflight-resume'
 import { type LocalServiceDefinition, getLocalServiceContext, getLocalServiceRegistry, getLocalServiceStatus, executeLocalServiceAction } from './lib/local-services'
-import { resolveLocalProjectContext } from './lib/local-projects'
+import { resolveLocalProjectContext, getLocalProjectByKey } from './lib/local-projects'
+import { randomUUID } from 'node:crypto'
 import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
 
 // ============================================================
@@ -3612,7 +3613,7 @@ ${memoText}`
 
   const { cleanText, actions } = extractActions(response)
   const actionResults: string[] = []
-  for (const action of actions) actionResults.push(await executeAction(action))
+  for (const action of actions) actionResults.push(await executeAction(action, { chatId }))
 
   const body = [cleanText, actionResults.length ? actionResults.join('\n') : '']
     .filter(Boolean).join('\n\n')
@@ -4710,6 +4711,16 @@ CEO가 해당 주제를 완료했거나 더 이상 팔로업이 불필요할 때
 {"type":"resolve_follow_up","content_keyword":"회사소개서","reason":"CEO가 완료했다고 언급"}
 \`\`\`
 
+### 로컬 세션에 작업 지시 전달 (dispatch_command)
+CEO가 특정 로컬 프로젝트(들)에서 **실제 코드/작업을 실행하라**고 지시하면, 그 지시를 워크스테이션 명령 큐에 넣습니다.
+로컬 디스패처가 각 대상 레포에서 codex로 자동 실행하고 완료/막힘을 다시 보고합니다. (여러 프로젝트에 동시 전달 = 팬아웃)
+targets에는 "로컬 프로젝트 레지스트리" 섹션의 프로젝트 키만 사용하세요.
+\`\`\`action
+{"type":"dispatch_command","targets":["valuechain-wiki"],"instruction":"교차검증 T4 게이트를 재점검하고 실패한 노드 목록을 docs/에 정리해줘"}
+\`\`\`
+- 단순 질문·조회·대화는 이 액션을 쓰지 마세요(직접 답변). "~레포에서 ~해줘/구현/수정/실행"처럼 **실행 위임**일 때만.
+- 여러 프로젝트면 targets에 키를 여러 개: {"targets":["willow-invt","valuechain-wiki"], ...}
+
 ## 후속 액션 버튼
 응답 끝에 자연스러운 후속 액션을 제안하고 싶으면, 텍스트 맨 끝에 아래 형식으로 버튼을 추가하세요.
 버튼은 상황에 맞을 때만. 매번 넣지 마세요. 간단한 대화에는 불필요.
@@ -4886,12 +4897,47 @@ async function findEntityByNormalizedName(name: string): Promise<{ id: string; n
   return null
 }
 
-async function executeAction(action: ActionBlock): Promise<string> {
+async function executeAction(action: ActionBlock, ctx?: { chatId?: number }): Promise<string> {
   try {
     const localServiceResult = await executeLocalServiceAction(action)
     if (localServiceResult) return localServiceResult
 
     switch (action.type) {
+      case 'dispatch_command': {
+        const rawTargets: string[] = Array.isArray(action.targets)
+          ? (action.targets as unknown[]).map(String)
+          : action.target ? [String(action.target)]
+          : action.project ? [String(action.project)]
+          : []
+        const instruction: string = String(action.instruction || action.content || '').trim()
+        if (!instruction) return '⚠️ dispatch_command: instruction 없음'
+        if (!rawTargets.length) return '⚠️ dispatch_command: targets 없음'
+
+        const batchId = randomUUID()
+        const rows: Record<string, unknown>[] = []
+        const unknown: string[] = []
+        for (const key of rawTargets) {
+          const proj = getLocalProjectByKey(key)
+          if (!proj) { unknown.push(key); continue }
+          rows.push({
+            batch_id: batchId,
+            source: 'telegram',
+            source_chat_id: ctx?.chatId ?? null,
+            project: proj.key,
+            cwd: proj.path,
+            instruction,
+            created_by: 'willy',
+          })
+        }
+        if (!rows.length) return `⚠️ 대상 프로젝트를 못 찾음: ${unknown.join(', ')}`
+
+        const { error } = await supabase.from('ws_commands').insert(rows)
+        if (error) return `⚠️ 명령 등록 실패: ${error.message}`
+
+        const names = rows.map(r => r.project).join(', ')
+        const warn = unknown.length ? ` (미인식 제외: ${unknown.join(', ')})` : ''
+        return `📤 로컬 디스패치 등록: ${names}${warn} — 각 레포에서 codex 실행 후 완료/막힘을 보고합니다.`
+      }
       case 'create_schedule': {
         // client_name으로 client_id 조회
         let clientId: string | null = null
@@ -5949,7 +5995,7 @@ ${text}
         current: `${action.type} 작업을 반영하고 있어요.`,
       })
       console.log(`⚡ 액션 실행: ${action.type}`)
-      const result = await executeAction(action)
+      const result = await executeAction(action, { chatId })
       actionResults.push(result)
       console.log(`  → ${result}`)
       recordRuntimeEvent({

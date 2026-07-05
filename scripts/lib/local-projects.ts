@@ -138,6 +138,16 @@ const LOCAL_PROJECTS: LocalProjectDefinition[] = [
   },
 ]
 
+// 프로젝트 키 → 정의 조회 (dispatch_command 등 외부에서 cwd 해석용)
+export function getLocalProjectByKey(key: string): LocalProjectDefinition | null {
+  const norm = (key || '').trim().toLowerCase()
+  return LOCAL_PROJECTS.find(p =>
+    p.key.toLowerCase() === norm ||
+    p.displayName.toLowerCase() === norm ||
+    p.aliases.some(a => a.toLowerCase() === norm)
+  ) || null
+}
+
 const snapshotCache = new Map<string, TimedCache<string>>()
 const directorySearchCache = new Map<string, TimedCache<string[]>>()
 

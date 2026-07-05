@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.willow.ws-dispatcher</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-ws-dispatcher.sh</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+        <key>HOME</key>
+        <string>/Users/dongwookkim</string>
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>/Volumes/PRO-G40/app-dev/willow-invt</string>
+
+    <!-- 30초마다 pending 명령 폴링 (단일 패스 후 종료, launchd가 겹침 방지) -->
+    <key>StartInterval</key>
+    <integer>30</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/dongwookkim/Library/Logs/willow-ws-dispatcher.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/dongwookkim/Library/Logs/willow-ws-dispatcher.log</string>
+</dict>
+</plist>
