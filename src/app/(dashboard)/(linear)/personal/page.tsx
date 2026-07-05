@@ -50,7 +50,13 @@ export default function PersonalPage() {
 
   useEffect(() => { fetchEmails() }, [fetchEmails])
 
-  const handleConnect = () => { window.location.href = '/api/gmail/auth?context=personal' }
+  const handleConnect = async () => {
+    const res = await fetch('/api/gmail/auth?context=personal')
+    if (res.ok) {
+      const { authUrl } = await res.json()
+      if (authUrl) window.location.href = authUrl
+    }
+  }
   const handleSyncEmails = async () => {
     setIsSyncing(true)
     try { await fetchEmails() } finally { setIsSyncing(false) }
