@@ -14,7 +14,7 @@ const SCOPES = [
 ]
 
 // Gmail context types for multi-account support
-export type GmailContext = 'default' | 'tensoftworks' | 'willow'
+export type GmailContext = 'default' | 'tensoftworks' | 'willow' | 'personal'
 
 // Supabase 클라이언트
 const supabase = createClient(
@@ -38,12 +38,13 @@ async function getCurrentUserId(): Promise<string | null> {
 
 // OAuth2 클라이언트 생성 (context별 GCP 프로젝트 분리)
 export function getOAuth2Client(context: GmailContext = 'default') {
-  const isTensw = context === 'tensoftworks'
-  return new google.auth.OAuth2(
-    isTensw ? process.env.GOOGLE_CLIENT_ID_TENSW : process.env.GOOGLE_CLIENT_ID,
-    isTensw ? process.env.GOOGLE_CLIENT_SECRET_TENSW : process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-  )
+  const creds =
+    context === 'tensoftworks'
+      ? { id: process.env.GOOGLE_CLIENT_ID_TENSW, secret: process.env.GOOGLE_CLIENT_SECRET_TENSW }
+      : context === 'personal'
+        ? { id: process.env.GOOGLE_CLIENT_ID_PERSONAL, secret: process.env.GOOGLE_CLIENT_SECRET_PERSONAL }
+        : { id: process.env.GOOGLE_CLIENT_ID, secret: process.env.GOOGLE_CLIENT_SECRET }
+  return new google.auth.OAuth2(creds.id, creds.secret, process.env.GOOGLE_REDIRECT_URI)
 }
 
 // 인증 URL 생성
