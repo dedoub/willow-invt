@@ -103,7 +103,77 @@ async function runOne(cmd: any) {
   }
 }
 
-// ─── main: 락 → pending 전부 순차 처리 → 종료 ───
+// ─── 브리지 응답: 브리지로 willy-bot 앞에 온 에이전트 메시지에 codex로 자동 답장 ───
+// ws-bridge.mjs가 만든 bridge 스레드(tags: agent-bridge, bridge:<agent>)를 폴링해,
+// to=willy-bot 미읽음 메시지에 codex(willow-invt cwd, willow-dashboard MCP 사용가능)로 응답.
+// 커서는 ws-bridge.mjs와 같은 state 파일을 공유해 CLI/응답기 읽음상태가 어긋나지 않게 한다.
+const BRIDGE_AGENT = process.env.WS_BRIDGE_RESPONDER_AGENT || 'willy-bot'
+const BRIDGE_STATE = join(ROOT, 'scripts', 'logs', 'ws-bridge-state.json')
+
+function loadBridgeCursor(agent: string, threadId: string): string | null {
+  try {
+    const s = JSON.parse(readFileSync(BRIDGE_STATE, 'utf-8'))
+    return s.agents?.[agent]?.[threadId] || null
+  } catch { return null }
+}
+function saveBridgeCursor(agent: string, threadId: string, iso: string) {
+  let s: any = { agents: {} }
+  try { s = JSON.parse(readFileSync(BRIDGE_STATE, 'utf-8')) } catch { /* 없으면 새로 */ }
+  if (!s.agents) s.agents = {}
+  if (!s.agents[agent]) s.agents[agent] = {}
+  s.agents[agent][threadId] = iso
+  try { writeFileSync(BRIDGE_STATE, JSON.stringify(s, null, 2)) } catch { /* noop */ }
+}
+
+async function processBridge(): Promise<number> {
+  if (process.env.WS_BRIDGE_RESPONDER === '0') return 0
+  let replied = 0
+  const threads = await rest('ws_threads?select=id,project,tags&order=last_touched_at.desc&limit=100')
+  for (const th of threads) {
+    const tags = Array.isArray(th.tags) ? th.tags : []
+    if (!tags.includes('agent-bridge') || !tags.includes(`bridge:${BRIDGE_AGENT}`)) continue
+    const events = await rest(`ws_thread_events?thread_id=eq.${th.id}&select=id,body,ref,author,created_at&order=created_at.asc&limit=100`)
+    const cursor = loadBridgeCursor(BRIDGE_AGENT, th.id)
+    const unread = events.filter((e: any) =>
+      e.ref?.bridge === true &&
+      e.ref?.to === BRIDGE_AGENT &&
+      e.ref?.from !== BRIDGE_AGENT &&
+      !String(e.body || '').startsWith('[bridge 종료]') &&
+      (!cursor || e.created_at > cursor)
+    )
+    for (const msg of unread) {
+      const from = msg.ref?.from || msg.author || 'agent'
+      try {
+        const reply = await runAgent(
+          `다른 에이전트 '${from}'가 워크스테이션 브리지로 이렇게 물었습니다:\n"${msg.body}"\n\n` +
+          `윌로우인베스트먼트 CEO의 비서 '윌리'로서 답하세요. 필요하면 willow-dashboard MCP 도구로 실제 데이터를 확인하세요. 답변 본문만 간결히 출력하세요.`,
+          { backend: 'codex', cwd: ROOT, timeoutMs: CMD_TIMEOUT_MS } as any
+        )
+        await rest('ws_thread_events', {
+          method: 'POST',
+          body: JSON.stringify({
+            thread_id: th.id, project: th.project, kind: 'note',
+            body: short(reply, 3500),
+            ref: { bridge: true, from: BRIDGE_AGENT, to: from, channel: msg.ref?.channel || 'default' },
+            author: BRIDGE_AGENT,
+          }),
+        })
+        await rest(`ws_threads?id=eq.${th.id}`, {
+          method: 'PATCH', headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ last_touched_at: new Date().toISOString() }),
+        })
+        console.log(`✉️ 브리지 답장 → ${from} (thread ${th.id.slice(0, 8)})`)
+        replied++
+      } catch (e) {
+        console.error(`브리지 답장 실패 (${from}): ${(e as Error).message}`)
+      }
+      saveBridgeCursor(BRIDGE_AGENT, th.id, msg.created_at) // 실패해도 커서 전진(무한 재시도 방지)
+    }
+  }
+  return replied
+}
+
+// ─── main: 락 → pending 명령 처리 → 브리지 응답 → 종료 ───
 const LOCK = join(ROOT, 'scripts', 'logs', 'ws-dispatcher.lock')
 function alive(pid: number): boolean { try { process.kill(pid, 0); return true } catch { return false } }
 
@@ -115,6 +185,7 @@ async function main() {
   try { writeFileSync(LOCK, String(process.pid)) } catch { /* logs 디렉토리 없을 수 있음 */ }
 
   let n = 0
+  let bridged = 0
   try {
     for (;;) {
       const cmd = await claimNext()
@@ -122,10 +193,11 @@ async function main() {
       await runOne(cmd)
       n++
     }
+    bridged = await processBridge()
   } finally {
     try { rmSync(LOCK) } catch { /* noop */ }
   }
-  console.log(n ? `디스패처: ${n}건 처리 완료` : '대기 명령 없음')
+  console.log(`디스패처: 명령 ${n}건 · 브리지 답장 ${bridged}건`)
   process.exit(0)
 }
 

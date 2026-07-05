@@ -82,6 +82,24 @@ if (cmd === 'load') {
     for (const s of sessions) lines.push(`- [${s.project}] ${s.title || s.summary?.slice(0, 80) || ''}`)
     lines.push('')
   }
+
+  // 브리지 수신함 — 이 로컬 에이전트 앞으로 온 미읽음 메시지 (있을 때만 노출)
+  try {
+    const bridgeAgent = process.env.WS_BRIDGE_AGENT || 'local-claude'
+    const proj = HUB_ENV.replace(/\/\.env\.local$/, '')
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const msgs = await rest(`ws_thread_events?select=thread_id,body,ref,author,created_at&ref->>bridge=eq.true&ref->>to=eq.${encodeURIComponent(bridgeAgent)}&created_at=gte.${dayAgo}&order=created_at.desc&limit=15`)
+    let cursors = {}
+    try { cursors = (JSON.parse(readFileSync(`${proj}/scripts/logs/ws-bridge-state.json`, 'utf-8')).agents?.[bridgeAgent]) || {} } catch { /* state 없음 */ }
+    const unread = (msgs || []).filter(m => (m.ref?.from || m.author) !== bridgeAgent && (!cursors[m.thread_id] || m.created_at > cursors[m.thread_id]))
+    if (unread.length) {
+      lines.push(`## 📨 브리지 수신함 (${bridgeAgent} · ${unread.length}건 미읽음)`)
+      for (const m of unread) lines.push(`- [${m.thread_id.slice(0, 8)}] ${m.ref?.from || m.author}: ${(m.body || '').replace(/\s+/g, ' ').slice(0, 120)}`)
+      lines.push('_답장: `node scripts/ws-bridge.mjs send --thread <id> --from ' + bridgeAgent + ' --to <상대> --body "..."` (읽음 처리: `ws-bridge.mjs inbox --agent ' + bridgeAgent + ' --mark-read`)_')
+      lines.push('')
+    }
+  } catch { /* 브리지 조회 실패는 맥락 로드를 막지 않는다 */ }
+
   lines.push('_이 맥락은 모든 프로젝트/워크트리 세션이 공유합니다. 의미있는 진행·결정·막힘은 `ws_*` MCP 툴 또는 `ws-context.mjs log`로 기록하세요._')
   process.stdout.write(lines.join('\n') + '\n')
   process.exit(0)

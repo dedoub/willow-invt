@@ -11,6 +11,7 @@
     "bot:daemon": "./scripts/run-telegram-bot.sh --daemon",
     "bot:stop": "./scripts/run-telegram-bot.sh --stop",
     "bot:logs": "tail -f scripts/logs/telegram-bot.log",
+    "ws:bridge": "node scripts/ws-bridge.mjs",
     "service:migrate": "npx tsx scripts/lib/apply-local-service-registry-migration.ts",
     "re:sync": "npx tsx scripts/real-estate-pipeline.ts",
     "re:sync:full": "npx tsx scripts/real-estate-pipeline.ts --full",
