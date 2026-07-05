@@ -804,8 +804,11 @@ export function VoicecardsBlock({
               <SkelStat compact={!!mobile} />
             ) : (() => {
               const usage = anonymousStats?.dailyCreditUsage ?? []
-              const todayUsage = usage.length > 0 ? usage[usage.length - 1].credits : 0
-              const last7Sum = usage.slice(-7).reduce((sum, d) => sum + d.credits, 0)
+              // 오늘/7일은 날짜 매칭으로 계산 (말하기 학습과 동일). dailyCreditUsage는
+              // 활동 있는 날만 행이 있어 배열 마지막 원소가 '오늘'이 아닐 수 있음(오늘 0건이면
+              // 직전 활동일이 마지막). slice(-7)도 날짜 갭 시 7일 초과 집계됨.
+              const todayUsage = usage.find(d => d.date === todayStr)?.credits ?? 0
+              const last7Sum = usage.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + d.credits, 0)
               const totalUsed = usage.reduce((sum, d) => sum + d.credits, 0)
               // 누적 sparkline
               let running = 0
