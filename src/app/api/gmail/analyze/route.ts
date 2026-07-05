@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGmailClient, parseEmail } from '@/lib/gmail-server'
+import { getGmailClient, parseEmail, GmailContext } from '@/lib/gmail-server'
 import { analyzeEmails, EmailForAnalysis } from '@/lib/gemini-server'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
@@ -44,7 +44,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 })
     }
 
-    const gmail = await getGmailClient()
+    const body = await request.json()
+    const context = (body.context || 'default') as GmailContext
+
+    const gmail = await getGmailClient(context)
 
     if (!gmail) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
@@ -56,7 +59,6 @@ export async function POST(request: NextRequest) {
       ? contextSettings.context_text
       : undefined
 
-    const body = await request.json()
     const label = body.label || 'INBOX'
     const daysBack = body.daysBack || 30 // 분석은 기본 30일
 
