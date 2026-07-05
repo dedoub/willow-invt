@@ -1147,6 +1147,50 @@ async function fetchFollowUpsContext(): Promise<string> {
   return `\n## 열린 팔로업 (${openFollowUps.length}건)\n${lines.join('\n')}\n\n팔로업 관련: CEO가 해당 주제를 완료/해결했다고 언급하면 resolve_follow_up 액션으로 해소하세요.`
 }
 
+// ─── 워크스테이션 공유 맥락 (cross-project 단일 진실원) ───
+// ws_threads/ws_thread_events는 이 봇과 같은 메인 DB(axcfvieqsaphhvbkyzzv)에 있다.
+// 여러 프로젝트/워크트리 세션이 남긴 열린 스레드·최근 결정을 Willy 프롬프트에 주입해,
+// CEO가 "뭐 진행중이야 / 뭐 결정했었지"를 물으면 전 프로젝트 상태로 답할 수 있게 한다.
+async function fetchWorkstationContext(): Promise<string> {
+  try {
+    const [{ data: threads }, { data: decisions }] = await Promise.all([
+      supabase
+        .from('ws_threads')
+        .select('project, title, priority, summary, status')
+        .in('status', ['open', 'blocked'])
+        .order('priority', { ascending: true })
+        .order('last_touched_at', { ascending: false })
+        .limit(15),
+      supabase
+        .from('ws_thread_events')
+        .select('project, body, created_at')
+        .eq('kind', 'decision')
+        .order('created_at', { ascending: false })
+        .limit(6),
+    ])
+
+    if (!threads?.length && !decisions?.length) return ''
+
+    const parts: string[] = ['\n## 워크스테이션 공유 맥락 (모든 프로젝트 cross-project)']
+    if (threads?.length) {
+      const lines = threads.map(t => {
+        const pri = t.priority === 'high' ? '🔴' : t.priority === 'low' ? '⚪' : '🟡'
+        return `- ${pri} [${t.project}] ${t.title}${t.summary ? ` — ${t.summary}` : ''}`
+      })
+      parts.push(`### 열린 스레드 (${threads.length}건)\n${lines.join('\n')}`)
+    }
+    if (decisions?.length) {
+      const lines = decisions.map(d => `- [${d.project}] ${d.body}`)
+      parts.push(`### 최근 결정\n${lines.join('\n')}`)
+    }
+    parts.push('워크스테이션 관련: CEO가 진행상황·결정·막힘을 물으면 이 맥락으로 답하세요. willow-invt·valuechain·voicecards·ryuha 등 전 프로젝트에 걸친 단일 진실원입니다.')
+    return parts.join('\n\n')
+  } catch (e) {
+    console.error('fetchWorkstationContext 실패:', (e as Error).message)
+    return ''
+  }
+}
+
 // 오래된 triggered 팔로업 자동 만료 — 발송 후 14일 지나도 미해소면 obsolete로 간주.
 // 적체 방지(예전엔 triggered가 영영 해소 안 돼 매 프롬프트에 재주입됨). 데이터는 보존(expired).
 const FOLLOWUP_EXPIRE_DAYS = 14
@@ -5462,7 +5506,7 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
       stage: '컨텍스트 로드',
       current: '업무 데이터와 대화 맥락을 모으고 있어요.',
     })
-    const [dashboardContext, wikiContext, memoRefineContext, watchTopics, tenswContext, knowledgeContext, promptSections, attrCatalog, followUpsContext, researchContext, localServiceContext, runtimeLogContext] = await Promise.all([
+    const [dashboardContext, wikiContext, memoRefineContext, watchTopics, tenswContext, knowledgeContext, promptSections, attrCatalog, followUpsContext, researchContext, localServiceContext, runtimeLogContext, workstationContext] = await Promise.all([
       fetchDashboardContext(),
       fetchWikiContext(),
       fetchMemoRefineContext(text),
@@ -5480,6 +5524,7 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
         jsonlPath: BOT_RUNTIME_JSONL_FILE,
         textLogPath: BOT_TEXT_LOG_FILE,
       }),
+      fetchWorkstationContext(),
     ])
     await addProgress('핵심 컨텍스트 수집 완료', {
       percent: 38,
@@ -5674,6 +5719,7 @@ ${knowledgeContext}
 ${wikiContext}
 ${memoRefineContext ? `\n\n${memoRefineContext}` : ''}
 ${followUpsContext}
+${workstationContext}
 ${topicsText}
 ${prefetchedNews}
 ${historyText}
