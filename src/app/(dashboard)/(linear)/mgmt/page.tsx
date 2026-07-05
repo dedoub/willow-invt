@@ -68,6 +68,7 @@ export default function MgmtPage() {
     { context: 'tensoftworks', label: 'TENSW',  sourceLabel: 'TENSW' },
     { context: 'default',      label: 'ETC',    sourceLabel: 'ETC' },
     { context: 'default',      label: 'Akros',  sourceLabel: 'Akros' },
+    { context: 'personal',     label: 'INBOX',  sourceLabel: 'PERSONAL' },
   ] as const
 
   const loadData = useCallback(async () => {

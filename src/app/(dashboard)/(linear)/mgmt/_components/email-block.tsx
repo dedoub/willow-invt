@@ -23,6 +23,7 @@ const SOURCE_FILTERS = [
   { key: 'TENSW',  label: '텐소프트웍스' },
   { key: 'ETC',    label: 'ETC' },
   { key: 'Akros',  label: '아크로스' },
+  { key: 'PERSONAL', label: '개인' },
 ] as const
 
 const SOURCE_TONE: Record<string, { bg: string; fg: string }> = {
@@ -30,6 +31,7 @@ const SOURCE_TONE: Record<string, { bg: string; fg: string }> = {
   TENSW:  tonePalettes.warn,
   ETC:    tonePalettes.info,
   Akros:  { bg: '#E0F2F1', fg: '#00695C' },
+  PERSONAL: { bg: '#EDE9FE', fg: '#6D28D9' },
 }
 
 function timeAgo(dateStr: string): string {
