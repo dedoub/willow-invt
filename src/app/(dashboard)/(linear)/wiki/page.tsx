@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { WikiSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { WikiList } from './_components/wiki-list'
 import { WikiNote } from './_components/wiki-note-row'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 
-type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
+type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt' | 'ryuha'
 
 export default function WikiPage() {
   const [notes, setNotes] = useState<WikiNote[]>([])

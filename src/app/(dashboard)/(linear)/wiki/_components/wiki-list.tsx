@@ -12,12 +12,13 @@ import { WikiNote, WikiMemo } from './wiki-note-row'
 import { WikiNoteForm } from './wiki-note-form'
 import { htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/components/ui/tiptap-editor'
 
-type SectionFilter = 'all' | 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
-type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
+type SectionFilter = 'all' | 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt' | 'ryuha'
+type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt' | 'ryuha'
 
 const SECTION_FILTERS: { value: SectionFilter; label: string }[] = [
   { value: 'all', label: '전체' },
   { value: 'willow-mgmt', label: '윌로우' },
+  { value: 'ryuha', label: '류하' },
   { value: 'invest-mgmt', label: '투자관리' },
   { value: 'tensw-mgmt', label: '텐소프트웍스' },
   { value: 'etf-etc', label: 'ETC' },
@@ -26,6 +27,7 @@ const SECTION_FILTERS: { value: SectionFilter; label: string }[] = [
 
 const SECTION_BADGES: Record<string, { label: string; bg: string; fg: string }> = {
   'willow-mgmt': { label: '윌로우',       ...tonePalettes.done },
+  'ryuha':        { label: '류하',         bg: '#FCE7F3', fg: '#BE185D' },
   'tensw-mgmt':  { label: '텐소프트웍스', ...tonePalettes.warn },
   'invest-mgmt': { label: '투자관리',     bg: '#E0E7FF', fg: '#4338CA' },
   'etf-etc':     { label: 'ETC',          ...tonePalettes.info },

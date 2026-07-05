@@ -26,11 +26,13 @@ export interface WikiNote {
   updated_at: string
 }
 
-type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
+type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt' | 'ryuha'
 
 const SECTION_BADGES: Record<string, { label: string; bg: string; fg: string }> = {
   'willow-mgmt':{ label: '윌로우',       ...tonePalettes.done },
+  'ryuha':       { label: '류하',         bg: '#FCE7F3', fg: '#BE185D' },
   'tensw-mgmt': { label: '텐소프트웍스', ...tonePalettes.warn },
+  'invest-mgmt':{ label: '투자관리',     bg: '#E0E7FF', fg: '#4338CA' },
   'etf-etc':    { label: 'ETC',          ...tonePalettes.info },
   'akros':      { label: '아크로스',     ...tonePalettes.brand },
 }

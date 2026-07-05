@@ -904,11 +904,11 @@ export const agentTools = [
   // ---- 업무위키 전용 도구 ----
   {
     name: 'wiki_list_notes',
-    description: '[위키] 업무위키 노트 목록 조회. section으로 필터 가능 (akros, etf-etc, willow-mgmt, tensw-mgmt). 미지정 시 전체.',
+    description: '[위키] 업무위키 노트 목록 조회. section으로 필터 가능 (akros, etf-etc, willow-mgmt, tensw-mgmt, invest-mgmt, ryuha). 미지정 시 전체.',
     parameters: {
       type: 'object' as const,
       properties: {
-        section: { type: 'string', description: '섹션 필터: akros | etf-etc | willow-mgmt | tensw-mgmt' },
+        section: { type: 'string', description: '섹션 필터: akros | etf-etc | willow-mgmt | tensw-mgmt | invest-mgmt | ryuha' },
       },
     },
   },
@@ -918,7 +918,7 @@ export const agentTools = [
     parameters: {
       type: 'object' as const,
       properties: {
-        section: { type: 'string', description: '섹션 (필수): akros | etf-etc | willow-mgmt | tensw-mgmt' },
+        section: { type: 'string', description: '섹션 (필수): akros | etf-etc | willow-mgmt | tensw-mgmt | invest-mgmt | ryuha' },
         title: { type: 'string', description: '제목' },
         content: { type: 'string', description: '내용 (마크다운 가능)' },
         is_pinned: { type: 'string', description: '고정 여부: true/false (기본 false)' },
@@ -933,7 +933,7 @@ export const agentTools = [
       type: 'object' as const,
       properties: {
         id: { type: 'string', description: '노트 ID (필수)' },
-        section: { type: 'string', description: '섹션: akros | etf-etc | willow-mgmt | tensw-mgmt' },
+        section: { type: 'string', description: '섹션: akros | etf-etc | willow-mgmt | tensw-mgmt | invest-mgmt | ryuha' },
         title: { type: 'string', description: '제목' },
         content: { type: 'string', description: '내용 (마크다운 가능)' },
         is_pinned: { type: 'string', description: '고정 여부: true/false' },

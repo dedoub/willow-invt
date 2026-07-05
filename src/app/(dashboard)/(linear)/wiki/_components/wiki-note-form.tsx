@@ -6,7 +6,7 @@ import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TiptapEditor, htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/components/ui/tiptap-editor'
 
-type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
+type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt' | 'ryuha'
 
 interface WikiNoteFormProps {
   onSave: (data: { section: WikiSection; title: string; content: string; attachments?: { name: string; url: string; size: number; type: string }[] }) => Promise<void>
@@ -22,6 +22,7 @@ interface WikiNoteFormProps {
 
 const SECTIONS: { value: WikiSection; label: string }[] = [
   { value: 'willow-mgmt', label: '윌로우' },
+  { value: 'ryuha', label: '류하' },
   { value: 'invest-mgmt', label: '투자관리' },
   { value: 'tensw-mgmt', label: '텐소프트웍스' },
   { value: 'etf-etc', label: 'ETC' },
