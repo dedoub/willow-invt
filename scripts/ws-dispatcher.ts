@@ -76,22 +76,50 @@ function short(s: string, n: number): string {
   return flat.length > n ? flat.slice(0, n - 1) + '…' : flat
 }
 
+// 대화형 dispatch — 프로젝트별 지시/결과 트랜스크립트를 유지해 후속 지시에 맥락으로 얹는다.
+// codex는 매 실행 시 레포 파일을 다시 읽으므로, 이 대화 기록 + 디스크 상태 = 맥락 이어받기.
+const DISPATCH_HISTORY = join(ROOT, 'scripts', 'logs', 'ws-dispatch-threads.json')
+const HISTORY_KEEP = 5
+
+function loadHistory(project: string): Array<{ instruction: string; result: string; at: string }> {
+  try {
+    const s = JSON.parse(readFileSync(DISPATCH_HISTORY, 'utf-8'))
+    return Array.isArray(s?.[project]) ? s[project] : []
+  } catch { return [] }
+}
+function appendHistory(project: string, entry: { instruction: string; result: string; at: string }) {
+  let s: any = {}
+  try { s = JSON.parse(readFileSync(DISPATCH_HISTORY, 'utf-8')) } catch { /* 없으면 새로 */ }
+  if (!Array.isArray(s[project])) s[project] = []
+  s[project].push(entry)
+  if (s[project].length > HISTORY_KEEP) s[project] = s[project].slice(-HISTORY_KEEP)
+  try { writeFileSync(DISPATCH_HISTORY, JSON.stringify(s, null, 2)) } catch { /* noop */ }
+}
+
 async function runOne(cmd: any) {
   const label = `[${cmd.project}] ${short(cmd.instruction, 60)}`
   console.log(`▶ ${label}`)
   try {
     if (!existsSync(cmd.cwd)) throw new Error(`레포 경로 없음: ${cmd.cwd}`)
-    const out = await runAgent(cmd.instruction, {
+    const history = loadHistory(cmd.project)
+    const turn = history.length + 1
+    const contextPrefix = history.length
+      ? `# 이 프로젝트에서 방금까지의 dispatch 대화 (맥락 이어서 작업하세요)\n` +
+        history.map((h, i) => `${i + 1}. 지시: ${h.instruction}\n   결과: ${short(h.result, 300)}`).join('\n') +
+        `\n\n# 현재 지시 (${turn}번째)\n`
+      : ''
+    const out = await runAgent(contextPrefix + cmd.instruction, {
       backend: 'codex',
       cwd: cmd.cwd,
       timeoutMs: CMD_TIMEOUT_MS,
     } as any)
+    appendHistory(cmd.project, { instruction: cmd.instruction, result: short(out, 600), at: new Date().toISOString() })
     await rest(`ws_commands?id=eq.${cmd.id}`, {
       method: 'PATCH',
       body: JSON.stringify({ status: 'done', result: short(out, 4000), finished_at: new Date().toISOString() }),
     })
-    console.log(`✅ ${label}`)
-    await tgReport(cmd.source_chat_id, `✅ [${cmd.project}] 완료\n${short(cmd.instruction, 80)}\n\n${short(out, 500)}`)
+    console.log(`✅ ${label} (대화 ${turn}번째)`)
+    await tgReport(cmd.source_chat_id, `✅ [${cmd.project}] 완료 (대화 ${turn}번째)\n${short(cmd.instruction, 80)}\n\n${short(out, 500)}`)
   } catch (e) {
     const msg = (e as Error).message
     await rest(`ws_commands?id=eq.${cmd.id}`, {
