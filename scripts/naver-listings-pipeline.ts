@@ -355,13 +355,18 @@ async function buildAndUpsertDailySummary(snapshotDate: string): Promise<number>
     const prices = bucket.prices
     const sum = prices.reduce((a, b) => a + b, 0)
 
+    // min_ppp = P10(10분위) — API listings 뷰와 동일 방식. 단일 저가 매물 아웃라이어 방지.
+    // 표본 적으면(n<10) floor(n*0.1)=0 → 자연히 최저값으로 수렴.
+    const sortedPrices = [...prices].sort((a, b) => a - b)
+    const p10Ppp = sortedPrices[Math.floor(sortedPrices.length * 0.1)]
+
     rows.push({
       snapshot_date: snapshotDate,
       complex_name: complexName,
       trade_type: tradeType,
       area_band: parseInt(bandStr),
       listing_count: prices.length,
-      min_ppp: Math.round(Math.min(...prices)),
+      min_ppp: Math.round(p10Ppp),
       max_ppp: Math.round(Math.max(...prices)),
       avg_ppp: Math.round(sum / prices.length),
     })
