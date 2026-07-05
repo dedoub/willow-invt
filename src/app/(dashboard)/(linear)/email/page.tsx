@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { EmailBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/email-block'
 import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_components/email-detail-dialog'
 import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/compose-email-dialog'
@@ -16,6 +17,8 @@ const WORK_SOURCES = [
 ] as const
 
 export default function EmailPage() {
+  const mobile = useIsMobile()
+
   // 회사 이메일 (여러 context 집계)
   const [workEmails, setWorkEmails] = useState<FullEmail[]>([])
   const [workConnected, setWorkConnected] = useState(false)
@@ -131,28 +134,37 @@ export default function EmailPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <EmailBlock
-          eyebrow="WORK"
-          title="회사 이메일"
-          emails={workEmails}
-          connected={workConnected}
-          onSelectEmail={setSelectedEmail}
-          onSync={handleWorkSync}
-          onCompose={handleComposeWork}
-          isSyncing={workSyncing}
-        />
-        <EmailBlock
-          eyebrow="PERSONAL"
-          title="개인 이메일"
-          emails={personalEmails}
-          connected={personalConnected}
-          onSelectEmail={setSelectedEmail}
-          onSync={handlePersonalSync}
-          onCompose={handleComposePersonal}
-          isSyncing={personalSyncing}
-          onConnect={handleConnectPersonal}
-        />
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+        gap: 14,
+        alignItems: 'start',
+      }}>
+        <div style={{ minWidth: 0 }}>
+          <EmailBlock
+            eyebrow="WORK"
+            title="회사 이메일"
+            emails={workEmails}
+            connected={workConnected}
+            onSelectEmail={setSelectedEmail}
+            onSync={handleWorkSync}
+            onCompose={handleComposeWork}
+            isSyncing={workSyncing}
+          />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <EmailBlock
+            eyebrow="PERSONAL"
+            title="개인 이메일"
+            emails={personalEmails}
+            connected={personalConnected}
+            onSelectEmail={setSelectedEmail}
+            onSync={handlePersonalSync}
+            onCompose={handleComposePersonal}
+            isSyncing={personalSyncing}
+            onConnect={handleConnectPersonal}
+          />
+        </div>
       </div>
 
       <EmailDetailDialog
