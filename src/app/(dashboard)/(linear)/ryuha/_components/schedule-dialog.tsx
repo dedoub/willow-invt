@@ -26,7 +26,7 @@ export interface ScheduleFormData {
   end_date: string
   start_time: string
   end_time: string
-  type: 'school' | 'academy' | 'homework' | 'etc'
+  type: 'school' | 'academy' | 'arts' | 'homework' | 'etc'
   subject_id: string
   chapter_ids: string[]
   color: string
@@ -192,6 +192,7 @@ export function ScheduleDialog({
               {([
                 { key: 'school', label: '학교' },
                 { key: 'academy', label: '학원' },
+                { key: 'arts', label: '예체능' },
                 { key: 'homework', label: '과제' },
                 { key: 'etc', label: '기타' },
               ] as const).map(({ key, label }) => (

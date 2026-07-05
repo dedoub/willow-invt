@@ -41,7 +41,7 @@ export interface RyuhaSchedule {
   end_date: string | null
   start_time: string | null
   end_time: string | null
-  type: 'school' | 'academy' | 'homework' | 'etc'
+  type: 'school' | 'academy' | 'arts' | 'homework' | 'etc'
   color: string | null
   subject_id: string | null
   chapter_id: string | null

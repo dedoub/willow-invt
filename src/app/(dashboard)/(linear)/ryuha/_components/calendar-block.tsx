@@ -61,6 +61,7 @@ function matchesDate(s: RyuhaSchedule, dateStr: string) {
 const CATEGORY_TONES: Record<string, { bg: string; fg: string }> = {
   school:   { bg: '#DBEAFE', fg: '#1E40AF' },   // 파랑
   academy:  { bg: '#FEF3C7', fg: '#92400E' },   // 주황/앰버
+  arts:     { bg: '#FCE7F3', fg: '#9D174B' },   // 로즈/핑크 (예체능)
   homework: { bg: '#EDE9FE', fg: '#5B21B6' },   // 보라
   etc:      tonePalettes.neutral,                // 회색
 }
@@ -69,6 +70,7 @@ const CATEGORY_FILTERS = [
   { key: 'all',      label: '전체' },
   { key: 'school',   label: '학교' },
   { key: 'academy',  label: '학원' },
+  { key: 'arts',     label: '예체능' },
   { key: 'homework', label: '과제' },
   { key: 'etc',      label: '기타' },
 ] as const
