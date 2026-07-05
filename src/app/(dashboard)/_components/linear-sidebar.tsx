@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { key: 'invest',     href: '/invest',     label: '주식투자',     icon: 'trending' },
   { key: 'realestate', href: '/realestate', label: '부동산리서치', icon: 'building' },
   { key: 'ryuha',      href: '/ryuha',      label: '류하일정',    icon: 'calendar' },
+  { key: 'personal',   href: '/personal',   label: '개인 메일',   icon: 'mail' },
 ]
 
 const CLIENTS = [
