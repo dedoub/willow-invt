@@ -249,7 +249,7 @@ TRIGGERS 배열 = [null, 10%, 20%, 30%, 40%, 55%, 75%, 100%, 135%, 175%] (인덱
 **stock_watchlist 테이블 컬럼:** name, ticker, sector, group_name(portfolio|watchlist|benchmark), axis, pinned, monitor_date, monitor_price
 
 ### 업무위키 전용 도구 (wiki_*)
-업무위키 노트 CRUD. 섹션: akros(아크로스), etf-etc(ETC), willow-mgmt(윌로우), tensw-mgmt(텐소프트웍스), invest-mgmt(투자관리), ryuha(류하). 마크다운 내용 지원.
+업무위키 노트 CRUD. 섹션: akros(아크로스), etf-etc(ETC), willow-mgmt(윌로우), tensw-mgmt(텐소프트웍스), invest-mgmt(투자관리). 마크다운 내용 지원.
 - **wiki_list_notes**: 위키 노트 목록 (section 필터 가능)
 - **wiki_create_note**: 위키 노트 생성
 - **wiki_update_note**: 위키 노트 수정
@@ -297,7 +297,7 @@ willow_mgmt_*와 동일 구조. 테이블명만 tensw_mgmt_. 메모는 tensw_mgm
 - **willow_invoices**: id (ETC 인보이스 - invoice_date, bill_to_company, attention, line_items, notes, status)
 
 ### 업무위키
-- **work_wiki**: id, title, content, section(akros|etf-etc|willow-mgmt|tensw-mgmt|invest-mgmt|ryuha), category, is_pinned, attachments
+- **work_wiki**: id, title, content, section(akros|etf-etc|willow-mgmt|tensw-mgmt|invest-mgmt), category, is_pinned, attachments
 
 ### 류하 학습관리 (ryuha_*)
 - **ryuha_subjects**: id, name, color, icon, order_index

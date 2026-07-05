@@ -6,7 +6,7 @@ import { WikiList } from './_components/wiki-list'
 import { WikiNote } from './_components/wiki-note-row'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 
-type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt' | 'ryuha'
+type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 
 export default function WikiPage() {
   const [notes, setNotes] = useState<WikiNote[]>([])
