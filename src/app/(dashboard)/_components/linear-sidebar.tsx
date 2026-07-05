@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { key: 'email',      href: '/email',      label: '이메일',      icon: 'mail' },
   { key: 'wiki',       href: '/wiki',       label: '업무위키',    icon: 'book' },
   { key: 'invest',     href: '/invest',     label: '주식투자',     icon: 'trending' },
-  { key: 'realestate', href: '/realestate', label: '부동산리서치', icon: 'building' },
+  { key: 'realestate', href: '/realestate', label: '부동산',      icon: 'building' },
   { key: 'ryuha',      href: '/ryuha',      label: '류하일정',    icon: 'calendar' },
 ]
 
