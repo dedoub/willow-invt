@@ -15,6 +15,8 @@ interface EmailBlockProps {
   onCompose: () => void
   isSyncing?: boolean
   onConnect?: () => void
+  title?: string
+  eyebrow?: string
 }
 
 const SOURCE_FILTERS = [
@@ -85,6 +87,7 @@ function getStoredPageSize(): number {
 
 export function EmailBlock({
   emails, connected, onSelectEmail, onSync, onCompose, isSyncing, onConnect,
+  title = '이메일', eyebrow = 'EMAIL',
 }: EmailBlockProps) {
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [page, setPage] = useState(0)
@@ -134,7 +137,7 @@ export function EmailBlock({
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
         <LSectionHead eyebrow={
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            EMAIL
+            {eyebrow}
             <span style={{
               fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono,
               color: connected ? t.accent.pos : t.accent.neg,
@@ -148,7 +151,7 @@ export function EmailBlock({
               {connected ? '연결됨' : '미연결'}
             </span>
           </span>
-        } title="이메일" action={connected ? (
+        } title={title} action={connected ? (
           <div style={{ display: 'flex', gap: 4 }}>
             <ActionBtn icon="refresh" label="동기화" onClick={onSync} spinning={isSyncing} />
             <ActionBtn icon="send" label="이메일 작성" onClick={onCompose} />

@@ -7,7 +7,7 @@ const CONTEXT_REDIRECT_PATHS: Record<GmailContext, string> = {
   default: '/etc',
   tensoftworks: '/tensw',
   willow: '/mgmt',
-  personal: '/personal',
+  personal: '/email',
 }
 
 export async function GET(request: NextRequest) {
