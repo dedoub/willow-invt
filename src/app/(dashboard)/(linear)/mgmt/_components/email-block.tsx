@@ -14,6 +14,7 @@ interface EmailBlockProps {
   onSync: () => void
   onCompose: () => void
   isSyncing?: boolean
+  onConnect?: () => void
 }
 
 const SOURCE_FILTERS = [
@@ -81,7 +82,7 @@ function getStoredPageSize(): number {
 }
 
 export function EmailBlock({
-  emails, connected, onSelectEmail, onSync, onCompose, isSyncing,
+  emails, connected, onSelectEmail, onSync, onCompose, isSyncing, onConnect,
 }: EmailBlockProps) {
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [page, setPage] = useState(0)
@@ -256,8 +257,22 @@ export function EmailBlock({
         {!connected && (
           <div style={{
             padding: '20px 16px', textAlign: 'center',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
             fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
-          }}>Gmail 연결이 필요합니다</div>
+          }}>
+            <div>Gmail 연결이 필요합니다</div>
+            {onConnect && (
+              <button
+                onClick={onConnect}
+                style={{
+                  padding: '6px 14px', borderRadius: t.radius.pill, border: 'none',
+                  cursor: 'pointer', fontSize: 'calc(12px * var(--fz, 1))',
+                  fontFamily: t.font.sans, fontWeight: t.weight.medium,
+                  background: t.brand[100], color: t.brand[700],
+                }}
+              >Gmail 연결</button>
+            )}
+          </div>
         )}
       </div>
 
