@@ -104,5 +104,74 @@ if (cmd === 'log') {
   process.exit(0)
 }
 
-console.error('usage: ws-context.mjs load [project] | log --project X --summary "..."')
+// SessionEnd 훅용 자동 write-back. 훅 JSON을 stdin으로 받아 팩트 기반 세션 기록을 남긴다.
+// 에이전트가 CLAUDE.md 지시대로 ws_session_log로 이미 기록했으면(최근 창) 스킵(중복 방지).
+// 사소한 세션(1턴 · 편집/커밋 없음)도 스킵(노이즈 방지). 어떤 경우에도 훅을 실패시키지 않는다.
+if (cmd === 'autolog') {
+  let hook = {}
+  try { hook = JSON.parse(readFileSync(0, 'utf-8') || '{}') } catch { /* stdin 없거나 파싱 실패 → 빈 객체 */ }
+  const cwd = hook.cwd || process.cwd()
+
+  // cwd → 프로젝트 키 매핑 (경로 마커 기반, 기본 willow-invt)
+  const lc = cwd.toLowerCase()
+  const project =
+    lc.includes('valuechain') ? 'valuechain-wiki' :
+    lc.includes('voicecards') ? 'voicecards' :
+    lc.includes('review-notes') || lc.includes('reviewnotes') ? 'review-notes' :
+    lc.includes('ryuha') ? 'ryuha' :
+    lc.includes('portfolio') ? 'portfolio' :
+    lc.includes('willow') || lc.includes('invt') ? 'willow-invt' :
+    (cwd.split('/').filter(Boolean).pop() || 'global')
+
+  // transcript 파싱: 첫 실제 user 요청 · user 턴수 · 편집 파일 · 커밋 수
+  let firstReq = '', userTurns = 0, edits = new Set(), commits = 0
+  if (hook.transcript_path) {
+    try {
+      const raw = readFileSync(hook.transcript_path, 'utf-8')
+      for (const line of raw.split('\n')) {
+        if (!line.trim()) continue
+        let o; try { o = JSON.parse(line) } catch { continue }
+        if (o.type === 'user' && o.message) {
+          const c = o.message.content
+          const txt = typeof c === 'string' ? c : Array.isArray(c) ? c.filter(x => x.type === 'text').map(x => x.text).join(' ') : ''
+          if (txt && !txt.trimStart().startsWith('<') && txt.trim().length > 4) {
+            userTurns++
+            if (!firstReq) firstReq = txt.trim().replace(/\s+/g, ' ').slice(0, 140)
+          }
+        } else if (o.type === 'assistant' && Array.isArray(o.message?.content)) {
+          for (const item of o.message.content) {
+            if (item.type !== 'tool_use') continue
+            if ((item.name === 'Edit' || item.name === 'Write') && item.input?.file_path) edits.add(item.input.file_path)
+            if (item.name === 'Bash' && typeof item.input?.command === 'string' && /\bgit commit\b/.test(item.input.command)) commits++
+          }
+        }
+      }
+    } catch { /* transcript 못 읽어도 계속 */ }
+  }
+
+  // 사소한 세션 스킵
+  const meaningful = userTurns >= 2 || edits.size > 0 || commits > 0
+  if (!meaningful) process.exit(0)
+
+  // 중복 방지: 같은 worktree에서 최근 45분 내 세션 기록이 있으면(수동 로그 포함) 스킵
+  const cutoff = new Date(Date.now() - 45 * 60 * 1000).toISOString()
+  const recent = await rest(`ws_sessions?worktree_path=eq.${encodeURIComponent(cwd)}&ended_at=gte.${cutoff}&select=id&limit=1`)
+  if (recent && recent.length) process.exit(0)
+
+  const bits = []
+  if (userTurns) bits.push(`${userTurns}턴`)
+  if (edits.size) bits.push(`편집 ${edits.size}파일`)
+  if (commits) bits.push(`커밋 ${commits}개`)
+  const body = {
+    project,
+    title: `[auto] ${firstReq || '세션'}`,
+    summary: `[자동] ${bits.join(' · ') || '세션 종료'}${firstReq ? ` — 첫 요청: ${firstReq}` : ''}`,
+    worktree_path: cwd,
+    ended_at: new Date().toISOString(),
+  }
+  await rest('ws_sessions', { method: 'POST', body: JSON.stringify(body) })
+  process.exit(0)
+}
+
+console.error('usage: ws-context.mjs load [project] | log --project X --summary "..." | autolog (stdin: SessionEnd hook JSON)')
 process.exit(1)
