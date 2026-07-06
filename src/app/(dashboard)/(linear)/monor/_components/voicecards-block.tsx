@@ -163,12 +163,13 @@ const userNumCell: React.CSSProperties = {
 
 // 총값 + 오늘 변동(전일대비) 2줄 셀. delta 양수=초록(+), 음수=빨강(−), 0=미표시
 function NumDeltaCell({ total, delta, dim }: { total: number; delta: number; dim?: boolean }) {
+  const d = Number(delta)
   return (
     <div style={{ ...userNumCell, color: dim ? t.neutrals.muted : userNumCell.color, display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15 }}>
       <span>{formatNumber(total)}</span>
-      {delta !== 0 && (
-        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 600, color: delta > 0 ? '#059669' : '#DC2626' }}>
-          {delta > 0 ? '+' : '−'}{formatNumber(Math.abs(delta))}
+      {Number.isFinite(d) && d !== 0 && (
+        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
+          {d > 0 ? '+' : '−'}{formatNumber(Math.abs(d))}
         </span>
       )}
     </div>
