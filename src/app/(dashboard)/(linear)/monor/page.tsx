@@ -59,6 +59,7 @@ interface UserStats {
     activeDays7d: number
     purchasedToday: number
     balanceDeltaToday: number
+    sheetsDeltaToday: number
     createdAt: string
     lastActiveAt: string | null
   }>

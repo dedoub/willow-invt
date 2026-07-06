@@ -48,6 +48,7 @@ interface UserStats {
     activeDays7d: number
     purchasedToday: number
     balanceDeltaToday: number
+    sheetsDeltaToday: number
     createdAt: string
     lastActiveAt: string | null
   }>
@@ -1169,7 +1170,7 @@ export function VoicecardsBlock({
                   }}>
                     {incomplete ? '미완료' : '완료'}
                   </div>
-                  <div style={userNumCell}>{user.sheetCount}</div>
+                  <NumDeltaCell total={user.sheetCount} delta={user.sheetsDeltaToday} />
                   <NumDeltaCell total={user.cards} delta={user.cardsToday} />
                   <NumDeltaCell total={user.attempts} delta={user.attemptsToday} />
                   <NumDeltaCell total={user.creditsUsed} delta={user.listenToday} />
