@@ -909,6 +909,8 @@ export interface VoicecardsUserStats {
     attemptsToday: number     // 오늘 말하기 증가분
     listenToday: number       // 오늘 듣기 증가분
     activeDays7d: number      // 최근 7일 중 활동한 날짜 수 (0-7)
+    purchasedToday: number    // 오늘 구매 크레딧
+    balanceDeltaToday: number // 오늘 보유 잔액 순변동 (±)
     createdAt: string
     lastActiveAt: string | null
   }>
@@ -1062,13 +1064,15 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   // 사용자별 오늘 증가분 + 7일 활동일
-  const userActivityMap = new Map<string, { cardsToday: number; attemptsToday: number; listenToday: number; activeDays7d: number }>()
-  for (const row of ((activityRes.data || []) as Array<{ user_id: string | null; cards_today: number | string | null; attempts_today: number | string | null; listen_today: number | string | null; active_days_7d: number | null }>)) {
+  const userActivityMap = new Map<string, { cardsToday: number; attemptsToday: number; listenToday: number; activeDays7d: number; purchasedToday: number; balanceDeltaToday: number }>()
+  for (const row of ((activityRes.data || []) as Array<{ user_id: string | null; cards_today: number | string | null; attempts_today: number | string | null; listen_today: number | string | null; active_days_7d: number | null; purchased_today: number | string | null; balance_delta_today: number | string | null }>)) {
     if (row.user_id) userActivityMap.set(row.user_id, {
       cardsToday: Number(row.cards_today) || 0,
       attemptsToday: Number(row.attempts_today) || 0,
       listenToday: Number(row.listen_today) || 0,
       activeDays7d: Number(row.active_days_7d) || 0,
+      purchasedToday: Number(row.purchased_today) || 0,
+      balanceDeltaToday: Number(row.balance_delta_today) || 0,
     })
   }
 
@@ -1092,6 +1096,8 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     attemptsToday: userActivityMap.get(u.user_id)?.attemptsToday || 0,
     listenToday: userActivityMap.get(u.user_id)?.listenToday || 0,
     activeDays7d: userActivityMap.get(u.user_id)?.activeDays7d || 0,
+    purchasedToday: userActivityMap.get(u.user_id)?.purchasedToday || 0,
+    balanceDeltaToday: userActivityMap.get(u.user_id)?.balanceDeltaToday || 0,
     // 학습 활동(user_analytics.last_updated)과 앱 이벤트 최근 시각 중 더 최근값
     lastActiveAt: (() => {
       const cands = [lastActivityMap.get(u.user_id), userLastEventMap.get(u.user_id)].filter(Boolean) as string[]

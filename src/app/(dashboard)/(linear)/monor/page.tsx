@@ -57,6 +57,8 @@ interface UserStats {
     attemptsToday: number
     listenToday: number
     activeDays7d: number
+    purchasedToday: number
+    balanceDeltaToday: number
     createdAt: string
     lastActiveAt: string | null
   }>
