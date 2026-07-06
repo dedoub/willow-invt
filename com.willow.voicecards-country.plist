@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.willow.voicecards-country</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
+        <string>--cwd</string>
+        <string>/Volumes/PRO-G40/app-dev/willow-invt</string>
+        <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-voicecards-country.sh</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/dongwookkim</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>10</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/dongwookkim/logs/voicecards-country/launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/dongwookkim/logs/voicecards-country/launchd.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+</dict>
+</plist>

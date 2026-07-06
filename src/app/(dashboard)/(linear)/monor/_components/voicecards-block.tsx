@@ -134,8 +134,8 @@ function formatDateShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 66px 66px 54px 60px 60px'
-const USER_TABLE_MIN_WIDTH = 928 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px, 보유/구매 크레딧 각 66px)
+const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 54px 48px 48px 60px 60px'
+const USER_TABLE_MIN_WIDTH = 892 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px)
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -224,9 +224,9 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'cards',    label: '카드',   mobileLabel: '카드',     align: 'center' },
   { key: 'attempts', label: '말하기', mobileLabel: '말하기',   align: 'center' },
   { key: 'listen',   label: '듣기',   mobileLabel: '듣기',     align: 'center' },
-  { key: 'credits',  label: '보유 크레딧', mobileLabel: '보유 크레딧', align: 'center' },
-  { key: 'purchased', label: '구매 크레딧', mobileLabel: '구매 크레딧', align: 'center' },
   { key: 'paid',     label: '유료',   mobileLabel: '유료결제', align: 'center' },
+  { key: 'purchased', label: '구매', mobileLabel: '구매 크레딧', align: 'center' },
+  { key: 'credits',  label: '보유', mobileLabel: '보유 크레딧', align: 'center' },
   { key: 'created',  label: '가입',   mobileLabel: '가입일',   align: 'center' },
   { key: 'recent',   label: '활동',   mobileLabel: '활동일',   align: 'center' },
 ]
@@ -1163,8 +1163,6 @@ export function VoicecardsBlock({
                   <div style={userNumCell}>{formatNumber(user.cards)}</div>
                   <div style={userNumCell}>{formatNumber(user.attempts)}</div>
                   <div style={userNumCell}>{formatNumber(user.creditsUsed)}</div>
-                  <div style={{ ...userNumCell, color: t.neutrals.muted }}>{formatNumber(user.credits)}</div>
-                  <div style={userNumCell}>{user.purchasedCredits ? formatNumber(user.purchasedCredits) : '—'}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     <span style={{
                       fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
@@ -1175,6 +1173,8 @@ export function VoicecardsBlock({
                       {user.hasPurchased ? '유료' : '무료'}
                     </span>
                   </div>
+                  <div style={userNumCell}>{user.purchasedCredits ? formatNumber(user.purchasedCredits) : '—'}</div>
+                  <div style={{ ...userNumCell, color: t.neutrals.muted }}>{formatNumber(user.credits)}</div>
                   <div style={userDateCell}>{formatDateShort(user.createdAt)}</div>
                   <div style={userDateCell}>{formatDateShort(user.lastActiveAt)}</div>
                 </div>
