@@ -899,7 +899,8 @@ export interface VoicecardsUserStats {
     locale: string | null      // 'ko' | 'en' | 'de' | 'fr' | 'es' | 'zh' | 'ja' 등
     country: string | null     // IP 기반 국가코드 (백필). anonymous_events.country
     hasPurchased: boolean
-    credits: number          // 현재 잔액
+    credits: number          // 현재 잔액 (보유 크레딧)
+    purchasedCredits: number // 구매 크레딧 누적 (purchase 이벤트 합)
     creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played). AI 카드 생성은 사용량 적어 제외
     sheetCount: number
     cards: number
@@ -939,7 +940,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, listenRes, metaRes] = await Promise.all([
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, listenRes, metaRes, purchasedRes] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
     vc.from('user_analytics').select('user_id, total_cards, total_attempts'),
     vc.from('user_analytics').select('user_id, last_updated'),
@@ -948,8 +949,10 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     ),
     // 듣기 학습 횟수 — user당 1행으로 DB 집계 (전수 이벤트 스캔 5만+행 회피)
     vc.rpc('vc_user_listen_counts'),
-    // 사용자별 최신 앱버전/플랫폼/언어 + 최근 이벤트 시각 — user당 1행 (DISTINCT ON)
+    // 사용자별 최신 앱버전/플랫폼/언어/국가 + 최근 이벤트 시각 — user당 1행 (DISTINCT ON)
     vc.rpc('vc_user_latest_meta'),
+    // 사용자별 구매 크레딧 합계 (purchase 이벤트, 봇 제외)
+    vc.rpc('vc_user_purchased_credits'),
   ])
 
   if (usersRes.error) {
@@ -1046,6 +1049,12 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     if (row.last_event) userLastEventMap.set(row.user_id, row.last_event)
   }
 
+  // 사용자별 구매 크레딧 합계
+  const userPurchasedMap = new Map<string, number>()
+  for (const row of ((purchasedRes.data || []) as Array<{ user_id: string | null; purchased_credits: number | string | null }>)) {
+    if (row.user_id) userPurchasedMap.set(row.user_id, Number(row.purchased_credits) || 0)
+  }
+
   const userList = users.map(u => ({
     id: u.user_id,
     nickname: u.nickname,
@@ -1056,6 +1065,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     country: userCountryMap.get(u.user_id) || null,
     hasPurchased: !!u.has_purchased,
     credits: u.credits || 0,
+    purchasedCredits: userPurchasedMap.get(u.user_id) || 0,
     creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
     sheetCount: u.sheet_ids?.length || 0,
     cards: userCardsMap.get(u.user_id) || 0,

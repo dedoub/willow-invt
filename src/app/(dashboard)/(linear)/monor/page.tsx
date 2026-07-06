@@ -48,6 +48,7 @@ interface UserStats {
     country: string | null
     hasPurchased: boolean
     credits: number
+    purchasedCredits: number
     creditsUsed: number
     sheetCount: number
     cards: number

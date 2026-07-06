@@ -37,6 +37,7 @@ interface UserStats {
     country: string | null
     hasPurchased: boolean
     credits: number
+    purchasedCredits: number
     creditsUsed: number
     sheetCount: number
     cards: number
@@ -133,8 +134,8 @@ function formatDateShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 52px 54px 60px 60px'
-const USER_TABLE_MIN_WIDTH = 842 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 최소 120px)
+const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 66px 66px 54px 60px 60px'
+const USER_TABLE_MIN_WIDTH = 928 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px, 보유/구매 크레딧 각 66px)
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -207,7 +208,7 @@ function formatCountry(country: string | null, locale?: string | null): { flag: 
 
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status'
-  | 'sheets' | 'cards' | 'attempts' | 'listen' | 'credits' | 'paid'
+  | 'sheets' | 'cards' | 'attempts' | 'listen' | 'credits' | 'purchased' | 'paid'
   | 'created' | 'recent'
 type SortDir = 'asc' | 'desc'
 
@@ -223,7 +224,8 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'cards',    label: '카드',   mobileLabel: '카드',     align: 'center' },
   { key: 'attempts', label: '말하기', mobileLabel: '말하기',   align: 'center' },
   { key: 'listen',   label: '듣기',   mobileLabel: '듣기',     align: 'center' },
-  { key: 'credits',  label: '크레딧', mobileLabel: '크레딧',   align: 'center' },
+  { key: 'credits',  label: '보유 크레딧', mobileLabel: '보유 크레딧', align: 'center' },
+  { key: 'purchased', label: '구매 크레딧', mobileLabel: '구매 크레딧', align: 'center' },
   { key: 'paid',     label: '유료',   mobileLabel: '유료결제', align: 'center' },
   { key: 'created',  label: '가입',   mobileLabel: '가입일',   align: 'center' },
   { key: 'recent',   label: '활동',   mobileLabel: '활동일',   align: 'center' },
@@ -391,6 +393,7 @@ export function VoicecardsBlock({
         case 'attempts': return a.attempts - b.attempts
         case 'listen':   return (a.creditsUsed ?? 0) - (b.creditsUsed ?? 0)
         case 'credits':  return a.credits - b.credits
+        case 'purchased': return (a.purchasedCredits ?? 0) - (b.purchasedCredits ?? 0)
         case 'paid':     return Number(!!a.hasPurchased) - Number(!!b.hasPurchased)
         // 날짜로 표시되는 컬럼은 날짜(YYYY-MM-DD) 단위로 비교 → 같은 날끼리는 동점이 되어
         // 다음 우선순위(예: 듣기 내림차순)가 그 안에서 적용됨.
@@ -1161,6 +1164,7 @@ export function VoicecardsBlock({
                   <div style={userNumCell}>{formatNumber(user.attempts)}</div>
                   <div style={userNumCell}>{formatNumber(user.creditsUsed)}</div>
                   <div style={{ ...userNumCell, color: t.neutrals.muted }}>{formatNumber(user.credits)}</div>
+                  <div style={userNumCell}>{user.purchasedCredits ? formatNumber(user.purchasedCredits) : '—'}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     <span style={{
                       fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
