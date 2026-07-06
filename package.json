@@ -19,16 +19,17 @@
     "re:naver:lookup": "npx tsx scripts/naver-listings-pipeline.ts --lookup",
     "toss:sync": "npx tsx scripts/toss-sync.ts",
     "toss:sync:dry": "npx tsx scripts/toss-sync.ts --dry",
-    "toss:prices": "npx tsx scripts/toss-prices.ts"
+    "toss:prices": "npx tsx scripts/toss-prices.ts",
+    "vc:country": "npx tsx scripts/voicecards-country-backfill.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
-    "@openai/codex-sdk": "^0.142.3",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@openai/codex-sdk": "^0.142.3",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-checkbox": "^1.3.3",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -85,6 +86,7 @@
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.4.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "geoip-lite": "^2.0.3"
   }
 }
