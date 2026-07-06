@@ -1138,12 +1138,15 @@ export interface AnonymousEventStats {
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>
+  countries: Array<{ country: string; devices: number }>
   // 가입(signin_completed) 발화한 디바이스만 필터링한 분포
   signinPlatforms: Array<{ platform: string; devices: number }>
   signinLocales: Array<{ locale: string; devices: number }>
+  signinCountries: Array<{ country: string; devices: number }>
   // 결제(credits_changed/reason=purchase) 발생한 디바이스만 필터링한 분포
   payingPlatforms: Array<{ platform: string; devices: number }>
   payingLocales: Array<{ locale: string; devices: number }>
+  payingCountries: Array<{ country: string; devices: number }>
 }
 
 export async function getAnonymousEventStats(): Promise<AnonymousEventStats | null> {

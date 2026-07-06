@@ -90,10 +90,13 @@ interface AnonymousEventStats {
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>
+  countries: Array<{ country: string; devices: number }>
   signinPlatforms: Array<{ platform: string; devices: number }>
   signinLocales: Array<{ locale: string; devices: number }>
+  signinCountries: Array<{ country: string; devices: number }>
   payingPlatforms: Array<{ platform: string; devices: number }>
   payingLocales: Array<{ locale: string; devices: number }>
+  payingCountries: Array<{ country: string; devices: number }>
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────

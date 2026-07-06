@@ -88,10 +88,13 @@ interface AnonymousEventStats {
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>
+  countries: Array<{ country: string; devices: number }>
   signinPlatforms: Array<{ platform: string; devices: number }>
   signinLocales: Array<{ locale: string; devices: number }>
+  signinCountries: Array<{ country: string; devices: number }>
   payingPlatforms: Array<{ platform: string; devices: number }>
   payingLocales: Array<{ locale: string; devices: number }>
+  payingCountries: Array<{ country: string; devices: number }>
 }
 
 export interface VoicecardsBlockProps {
@@ -202,6 +205,13 @@ function formatCountry(country: string | null, locale?: string | null): { flag: 
   const code = (country || regionOf(locale ?? null)).toUpperCase()
   if (!code || !/^[A-Z]{2}$/.test(code)) return null
   return { flag: codeToFlag(code), code, name: COUNTRY_NAMES[code] || code }
+}
+// 분포 차트 라벨용: "🇺🇸 미국" / 미상
+function formatCountryName(code: string): string {
+  if (!code || code === 'unknown') return '미상'
+  const cc = code.toUpperCase()
+  if (!/^[A-Z]{2}$/.test(cc)) return code
+  return `${codeToFlag(cc)} ${COUNTRY_NAMES[cc] || cc}`
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -723,22 +733,22 @@ export function VoicecardsBlock({
                 unit="명"
               />
               <DistributionPie
-                title="언어"
+                title="국가"
                 tabs={[
                   {
                     key: 'devices',
                     label: '기기',
-                    data: anonymousStats.locales.map(l => ({ name: formatLocale(l.locale), value: l.devices })),
+                    data: anonymousStats.countries.map(c => ({ name: formatCountryName(c.country), value: c.devices })),
                   },
                   {
                     key: 'signin',
                     label: '가입',
-                    data: anonymousStats.signinLocales.map(l => ({ name: formatLocale(l.locale), value: l.devices })),
+                    data: anonymousStats.signinCountries.map(c => ({ name: formatCountryName(c.country), value: c.devices })),
                   },
                   {
                     key: 'paying',
                     label: '결제',
-                    data: anonymousStats.payingLocales.map(l => ({ name: formatLocale(l.locale), value: l.devices })),
+                    data: anonymousStats.payingCountries.map(c => ({ name: formatCountryName(c.country), value: c.devices })),
                   },
                 ]}
                 palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
