@@ -135,6 +135,12 @@ function formatDateShort(dateString?: string | null): string {
   return `${key.slice(2, 4)}.${key.slice(5, 7)}.${key.slice(8, 10)}`
 }
 
+// 시간 HH:mm (KST)
+function formatTimeShort(dateString?: string | null): string {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' })
+}
+
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
 const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 54px 48px 48px 60px 60px'
@@ -1157,8 +1163,18 @@ export function VoicecardsBlock({
                   </div>
                   <div style={userNumCell}>{user.purchasedCredits ? formatNumber(user.purchasedCredits) : '—'}</div>
                   <div style={{ ...userNumCell, color: t.neutrals.muted }}>{formatNumber(user.credits)}</div>
-                  <div style={userDateCell}>{formatDateShort(user.createdAt)}</div>
-                  <div style={userDateCell}>{formatDateShort(user.lastActiveAt)}</div>
+                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                    <span>{formatDateShort(user.createdAt)}</span>
+                    <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>{formatTimeShort(user.createdAt)}</span>
+                  </div>
+                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                    {user.lastActiveAt ? (
+                      <>
+                        <span>{formatDateShort(user.lastActiveAt)}</span>
+                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>{formatTimeShort(user.lastActiveAt)}</span>
+                      </>
+                    ) : '—'}
+                  </div>
                 </div>
               )
             })}
