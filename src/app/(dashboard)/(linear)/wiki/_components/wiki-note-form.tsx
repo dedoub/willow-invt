@@ -117,7 +117,8 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
       display: 'flex',
       flexDirection: 'column',
       gap: mobile ? 10 : 12,
-      height: '100%',
+      height: mobile ? 'auto' : '100%',
+      overflowY: mobile ? 'visible' : 'auto',
       boxSizing: 'border-box',
     }}>
 
@@ -157,9 +158,9 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
         />
       </div>
 
-      <div style={{ ...panelStyle, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div style={{ ...panelStyle, flex: 1, display: 'flex', flexDirection: 'column', minHeight: mobile ? 300 : 220 }}>
         <div style={labelStyle}>본문</div>
-        <div style={{ flex: 1, minHeight: 0 }}>
+        <div style={{ flex: 1, minHeight: mobile ? 260 : 180 }}>
           <TiptapEditor
             content={content}
             onChange={setContent}
