@@ -152,34 +152,6 @@ const userDateCell: React.CSSProperties = {
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
 }
 
-const LOCALE_LABELS: Record<string, { flag: string; name: string }> = {
-  ko: { flag: '🇰🇷', name: '한국어' },
-  en: { flag: '🇺🇸', name: '영어' },
-  zh: { flag: '🇨🇳', name: '중국어' },
-  ja: { flag: '🇯🇵', name: '일본어' },
-  de: { flag: '🇩🇪', name: '독일어' },
-  es: { flag: '🇪🇸', name: '스페인어' },
-  fr: { flag: '🇫🇷', name: '프랑스어' },
-  it: { flag: '🇮🇹', name: '이탈리아어' },
-  pt: { flag: '🇵🇹', name: '포르투갈어' },
-  ru: { flag: '🇷🇺', name: '러시아어' },
-  vi: { flag: '🇻🇳', name: '베트남어' },
-  th: { flag: '🇹🇭', name: '태국어' },
-  id: { flag: '🇮🇩', name: '인도네시아어' },
-  hi: { flag: '🇮🇳', name: '힌디어' },
-  ar: { flag: '🇸🇦', name: '아랍어' },
-  tr: { flag: '🇹🇷', name: '터키어' },
-  nl: { flag: '🇳🇱', name: '네덜란드어' },
-  pl: { flag: '🇵🇱', name: '폴란드어' },
-}
-
-function formatLocale(locale: string): string {
-  // 'en-US', 'zh-CN' 같은 BCP 47 코드도 지원
-  const base = locale.split(/[-_]/)[0].toLowerCase()
-  const entry = LOCALE_LABELS[base]
-  return entry ? `${entry.flag} ${entry.name}` : locale
-}
-
 // 국가 한글명 (툴팁용). 국기는 코드에서 자동 생성하므로 여기 없어도 표시된다.
 const COUNTRY_NAMES: Record<string, string> = {
   KR: '한국', US: '미국', JP: '일본', CN: '중국', TW: '대만', HK: '홍콩', GB: '영국', DE: '독일',
@@ -738,17 +710,17 @@ export function VoicecardsBlock({
                   {
                     key: 'devices',
                     label: '기기',
-                    data: anonymousStats.countries.map(c => ({ name: formatCountryName(c.country), value: c.devices })),
+                    data: (anonymousStats.countries ?? []).map(c => ({ name: formatCountryName(c.country), value: c.devices })),
                   },
                   {
                     key: 'signin',
                     label: '가입',
-                    data: anonymousStats.signinCountries.map(c => ({ name: formatCountryName(c.country), value: c.devices })),
+                    data: (anonymousStats.signinCountries ?? []).map(c => ({ name: formatCountryName(c.country), value: c.devices })),
                   },
                   {
                     key: 'paying',
                     label: '결제',
-                    data: anonymousStats.payingCountries.map(c => ({ name: formatCountryName(c.country), value: c.devices })),
+                    data: (anonymousStats.payingCountries ?? []).map(c => ({ name: formatCountryName(c.country), value: c.devices })),
                   },
                 ]}
                 palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
