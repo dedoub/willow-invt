@@ -200,7 +200,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
       <div style={{
         display: 'flex',
         flexDirection: mobile ? 'column' : 'row',
-        height: mobile ? 'auto' : containerH,
+        height: (mobile || editing || adding) ? 'auto' : containerH,
       }}>
         {/* ===== LEFT PANEL: list ===== */}
         {(!mobile || (!selectedId && !adding)) && (
@@ -379,7 +379,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
 
         {/* ===== RIGHT PANEL: detail ===== */}
         {(!mobile || selectedId || adding) && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: mobile ? 'visible' : 'hidden', minHeight: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: (mobile || editing || adding) ? 'visible' : 'hidden', minHeight: 0 }}>
           {/* Mobile back button */}
           {mobile && (
             <button

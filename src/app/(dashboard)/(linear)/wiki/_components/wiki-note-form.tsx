@@ -117,8 +117,8 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
       display: 'flex',
       flexDirection: 'column',
       gap: mobile ? 10 : 12,
-      height: mobile ? 'auto' : '100%',
-      overflowY: mobile ? 'visible' : 'auto',
+      height: 'auto',
+      overflowY: 'visible',
       boxSizing: 'border-box',
     }}>
 
