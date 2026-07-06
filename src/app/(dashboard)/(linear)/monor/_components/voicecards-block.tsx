@@ -697,6 +697,7 @@ export function VoicecardsBlock({
                     sparkline2={compact ? undefined : paidUsersData}
                     spark2Color={t.brand[600]}
                     sparkFormat={fmtCr}
+                    dualScale
                   />
                 )}
               </div>

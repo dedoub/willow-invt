@@ -16,28 +16,34 @@ interface LStatProps {
   sparkline2?: number[] | SparkPoint[]
   spark2Color?: string
   sparkFormat?: (v: number) => string
+  dualScale?: boolean
 }
 
 function Sparkline({
-  data, color, format, data2, color2,
-}: { data: SparkPoint[]; color: string; format?: (v: number) => string; data2?: SparkPoint[]; color2?: string }) {
+  data, color, format, data2, color2, dualScale,
+}: { data: SparkPoint[]; color: string; format?: (v: number) => string; data2?: SparkPoint[]; color2?: string; dualScale?: boolean }) {
   const [hover, setHover] = useState<number | null>(null)
   const svgRef = useRef<SVGSVGElement | null>(null)
   if (!data.length) return null
   const w = 60, h = 18
-  // 두 시리즈를 같은 축에 맞추기 위해 min/max는 합쳐서 계산
-  const values = [...data.map(d => d.value), ...((data2 ?? []).map(d => d.value))]
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const range = max - min || 1
-  const project = (arr: SparkPoint[]) => {
-    const step = arr.length > 1 ? w / (arr.length - 1) : 0
-    return arr.map((d, i) => ({ x: i * step, y: h - ((d.value - min) / range) * h }))
+  // 기본: 두 시리즈를 같은 축에 맞춤(합친 min/max). dualScale=true면 시리즈별 독립 스케일(이중 y축)
+  // — 스케일이 크게 다른 두 지표(예: 크레딧 vs 유료 유저 수)를 한 스파크라인에 겹칠 때 사용.
+  const scaleOf = (arr: SparkPoint[]) => {
+    const vs = arr.map(d => d.value)
+    const mn = Math.min(...vs), mx = Math.max(...vs)
+    return { mn, range: (mx - mn) || 1 }
   }
-  const xy = project(data)
+  const shared = scaleOf([...data, ...(data2 ?? [])])
+  const s1 = dualScale ? scaleOf(data) : shared
+  const s2 = dualScale && data2 && data2.length ? scaleOf(data2) : shared
+  const project = (arr: SparkPoint[], s: { mn: number; range: number }) => {
+    const step = arr.length > 1 ? w / (arr.length - 1) : 0
+    return arr.map((d, i) => ({ x: i * step, y: h - ((d.value - s.mn) / s.range) * h }))
+  }
+  const xy = project(data, s1)
   const points = xy.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
   const lastX = xy[xy.length - 1].x, lastY = xy[xy.length - 1].y
-  const xy2 = data2 && data2.length > 1 ? project(data2) : null
+  const xy2 = data2 && data2.length > 1 ? project(data2, s2) : null
   const points2 = xy2 ? xy2.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') : null
 
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -96,7 +102,7 @@ function Sparkline({
   )
 }
 
-export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, wrap }: LStatProps & { wrap?: boolean }) {
+export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, dualScale, wrap }: LStatProps & { wrap?: boolean }) {
   const color = tone === 'pos' ? t.accent.pos
     : tone === 'neg' ? t.accent.neg
     : tone === 'warn' ? t.accent.warn
@@ -146,6 +152,7 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
               format={sparkFormat}
               data2={sparkData2.length > 1 ? sparkData2 : undefined}
               color2={spark2Color}
+              dualScale={dualScale}
             />
           </div>
         )}
