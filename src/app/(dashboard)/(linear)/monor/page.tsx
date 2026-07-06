@@ -53,6 +53,10 @@ interface UserStats {
     sheetCount: number
     cards: number
     attempts: number
+    cardsToday: number
+    attemptsToday: number
+    listenToday: number
+    activeDays7d: number
     createdAt: string
     lastActiveAt: string | null
   }>

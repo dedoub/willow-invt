@@ -42,6 +42,10 @@ interface UserStats {
     sheetCount: number
     cards: number
     attempts: number
+    cardsToday: number
+    attemptsToday: number
+    listenToday: number
+    activeDays7d: number
     createdAt: string
     lastActiveAt: string | null
   }>
@@ -143,8 +147,8 @@ function formatTimeShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 54px 48px 48px 60px 60px'
-const USER_TABLE_MIN_WIDTH = 892 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px)
+const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 54px 48px 48px 60px 60px 44px'
+const USER_TABLE_MIN_WIDTH = 942 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px, 7일 활동일 44px)
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -152,6 +156,18 @@ const userHeadCell: React.CSSProperties = {
 const userNumCell: React.CSSProperties = {
   fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text,
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
+}
+
+// 총값 + 오늘 증가분(전일대비) 2줄 셀
+function NumDeltaCell({ total, delta }: { total: number; delta: number }) {
+  return (
+    <div style={{ ...userNumCell, display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15 }}>
+      <span>{formatNumber(total)}</span>
+      {delta > 0 && (
+        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: '#059669', fontWeight: 600 }}>+{formatNumber(delta)}</span>
+      )}
+    </div>
+  )
 }
 const userDateCell: React.CSSProperties = {
   fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
@@ -197,7 +213,7 @@ function formatCountryName(code: string): string {
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status'
   | 'sheets' | 'cards' | 'attempts' | 'listen' | 'credits' | 'purchased' | 'paid'
-  | 'created' | 'recent'
+  | 'created' | 'recent' | 'active7'
 type SortDir = 'asc' | 'desc'
 
 // 테이블 컬럼 정의 (헤더 라벨 + 정렬키 + 정렬, 모바일 드롭다운 라벨). 순서 = 그리드 순서.
@@ -217,6 +233,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'credits',  label: '보유', mobileLabel: '보유 크레딧', align: 'center' },
   { key: 'created',  label: '가입',   mobileLabel: '가입일',   align: 'center' },
   { key: 'recent',   label: '활동',   mobileLabel: '활동일',   align: 'center' },
+  { key: 'active7',  label: '7일',    mobileLabel: '7일 활동일', align: 'center' },
 ]
 
 // 텍스트/문자열 정렬 컬럼은 오름차순이 기본, 숫자·날짜는 내림차순이 기본
@@ -386,6 +403,7 @@ export function VoicecardsBlock({
         // 날짜로 표시되는 컬럼은 날짜(YYYY-MM-DD) 단위로 비교 → 같은 날끼리는 동점이 되어
         // 다음 우선순위(예: 듣기 내림차순)가 그 안에서 적용됨.
         case 'recent':   return (a.lastActiveAt ? kstDateKey(a.lastActiveAt) : '').localeCompare(b.lastActiveAt ? kstDateKey(b.lastActiveAt) : '')
+        case 'active7':  return (a.activeDays7d ?? 0) - (b.activeDays7d ?? 0)
         case 'created':  return kstDateKey(a.createdAt).localeCompare(kstDateKey(b.createdAt))
         default:         return 0
       }
@@ -1148,9 +1166,9 @@ export function VoicecardsBlock({
                     {incomplete ? '미완료' : '완료'}
                   </div>
                   <div style={userNumCell}>{user.sheetCount}</div>
-                  <div style={userNumCell}>{formatNumber(user.cards)}</div>
-                  <div style={userNumCell}>{formatNumber(user.attempts)}</div>
-                  <div style={userNumCell}>{formatNumber(user.creditsUsed)}</div>
+                  <NumDeltaCell total={user.cards} delta={user.cardsToday} />
+                  <NumDeltaCell total={user.attempts} delta={user.attemptsToday} />
+                  <NumDeltaCell total={user.creditsUsed} delta={user.listenToday} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     <span style={{
                       fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
@@ -1174,6 +1192,11 @@ export function VoicecardsBlock({
                         <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>{formatTimeShort(user.lastActiveAt)}</span>
                       </>
                     ) : '—'}
+                  </div>
+                  <div style={userNumCell}>
+                    {user.activeDays7d > 0
+                      ? <span style={{ fontWeight: 600 }}>{user.activeDays7d}<span style={{ color: t.neutrals.subtle, fontWeight: 400 }}>/7</span></span>
+                      : <span style={{ color: t.neutrals.subtle }}>—</span>}
                   </div>
                 </div>
               )

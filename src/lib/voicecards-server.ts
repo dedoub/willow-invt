@@ -905,6 +905,10 @@ export interface VoicecardsUserStats {
     sheetCount: number
     cards: number
     attempts: number
+    cardsToday: number        // 오늘 카드 증가분
+    attemptsToday: number     // 오늘 말하기 증가분
+    listenToday: number       // 오늘 듣기 증가분
+    activeDays7d: number      // 최근 7일 중 활동한 날짜 수 (0-7)
     createdAt: string
     lastActiveAt: string | null
   }>
@@ -940,7 +944,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, listenRes, metaRes, purchasedRes] = await Promise.all([
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, listenRes, metaRes, purchasedRes, activityRes] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
     vc.from('user_analytics').select('user_id, total_cards, total_attempts'),
     vc.from('user_analytics').select('user_id, last_updated'),
@@ -953,6 +957,8 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     vc.rpc('vc_user_latest_meta'),
     // 사용자별 구매 크레딧 합계 (purchase 이벤트, 봇 제외)
     vc.rpc('vc_user_purchased_credits'),
+    // 사용자별 오늘 증가분(카드/말하기/듣기) + 최근 7일 활동일 수
+    vc.rpc('vc_user_activity_deltas'),
   ])
 
   if (usersRes.error) {
@@ -1055,6 +1061,17 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     if (row.user_id) userPurchasedMap.set(row.user_id, Number(row.purchased_credits) || 0)
   }
 
+  // 사용자별 오늘 증가분 + 7일 활동일
+  const userActivityMap = new Map<string, { cardsToday: number; attemptsToday: number; listenToday: number; activeDays7d: number }>()
+  for (const row of ((activityRes.data || []) as Array<{ user_id: string | null; cards_today: number | string | null; attempts_today: number | string | null; listen_today: number | string | null; active_days_7d: number | null }>)) {
+    if (row.user_id) userActivityMap.set(row.user_id, {
+      cardsToday: Number(row.cards_today) || 0,
+      attemptsToday: Number(row.attempts_today) || 0,
+      listenToday: Number(row.listen_today) || 0,
+      activeDays7d: Number(row.active_days_7d) || 0,
+    })
+  }
+
   const userList = users.map(u => ({
     id: u.user_id,
     nickname: u.nickname,
@@ -1071,6 +1088,10 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     cards: userCardsMap.get(u.user_id) || 0,
     attempts: userAttemptsMap.get(u.user_id) || 0,
     createdAt: u.created_at,
+    cardsToday: userActivityMap.get(u.user_id)?.cardsToday || 0,
+    attemptsToday: userActivityMap.get(u.user_id)?.attemptsToday || 0,
+    listenToday: userActivityMap.get(u.user_id)?.listenToday || 0,
+    activeDays7d: userActivityMap.get(u.user_id)?.activeDays7d || 0,
     // 학습 활동(user_analytics.last_updated)과 앱 이벤트 최근 시각 중 더 최근값
     lastActiveAt: (() => {
       const cands = [lastActivityMap.get(u.user_id), userLastEventMap.get(u.user_id)].filter(Boolean) as string[]
