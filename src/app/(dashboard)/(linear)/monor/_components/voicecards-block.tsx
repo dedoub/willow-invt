@@ -48,6 +48,7 @@ interface UserStats {
 interface CombinedStats {
   combined: {
     totalRevenue: number
+    totalCreditsSold: number
     totalPaidUsers: number
     totalNewDownloads: number
   }
@@ -98,7 +99,7 @@ export interface VoicecardsBlockProps {
   stats: CombinedStats | null
   userStats: UserStats | null
   anonymousStats: AnonymousEventStats | null
-  chartData?: Array<{ date: string; ios: number; android: number; total: number; paidUsers?: number }>
+  chartData?: Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>
   onOpenSettings: () => void
   onRefresh: () => void
   refreshing: boolean
@@ -131,8 +132,8 @@ function formatDateShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = 'minmax(64px,1fr) 44px 52px 44px 56px 36px 48px 52px 44px 52px 54px 60px 60px'
-const USER_TABLE_MIN_WIDTH = 728 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용
+const USER_TABLE_COLS = 'minmax(64px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 52px 54px 60px 60px'
+const USER_TABLE_MIN_WIDTH = 786 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -174,10 +175,34 @@ function formatLocale(locale: string): string {
   return entry ? `${entry.flag} ${entry.name}` : locale
 }
 
+// 국가(로케일 지역 서브태그, 예: ko-KR → KR). 지역이 없으면 null.
+const COUNTRY_LABELS: Record<string, { flag: string; name: string }> = {
+  KR: { flag: '🇰🇷', name: '한국' }, US: { flag: '🇺🇸', name: '미국' }, JP: { flag: '🇯🇵', name: '일본' },
+  CN: { flag: '🇨🇳', name: '중국' }, TW: { flag: '🇹🇼', name: '대만' }, HK: { flag: '🇭🇰', name: '홍콩' },
+  GB: { flag: '🇬🇧', name: '영국' }, DE: { flag: '🇩🇪', name: '독일' }, FR: { flag: '🇫🇷', name: '프랑스' },
+  ES: { flag: '🇪🇸', name: '스페인' }, IT: { flag: '🇮🇹', name: '이탈리아' }, BR: { flag: '🇧🇷', name: '브라질' },
+  RU: { flag: '🇷🇺', name: '러시아' }, IN: { flag: '🇮🇳', name: '인도' }, ID: { flag: '🇮🇩', name: '인도네시아' },
+  VN: { flag: '🇻🇳', name: '베트남' }, TH: { flag: '🇹🇭', name: '태국' }, PH: { flag: '🇵🇭', name: '필리핀' },
+  TR: { flag: '🇹🇷', name: '터키' }, NL: { flag: '🇳🇱', name: '네덜란드' }, PL: { flag: '🇵🇱', name: '폴란드' },
+  CA: { flag: '🇨🇦', name: '캐나다' }, AU: { flag: '🇦🇺', name: '호주' }, MX: { flag: '🇲🇽', name: '멕시코' },
+  SG: { flag: '🇸🇬', name: '싱가포르' }, MY: { flag: '🇲🇾', name: '말레이시아' }, SA: { flag: '🇸🇦', name: '사우디' },
+  AE: { flag: '🇦🇪', name: 'UAE' },
+}
+function regionOf(locale: string | null): string {
+  if (!locale) return ''
+  return (locale.split(/[-_]/)[1] || '').toUpperCase()
+}
+function formatCountry(locale: string | null): { flag: string; code: string; name: string } | null {
+  const code = regionOf(locale)
+  if (!code) return null
+  const e = COUNTRY_LABELS[code]
+  return { flag: e?.flag || '🏳️', code, name: e?.name || code }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type UserSortKey =
-  | 'name' | 'platform' | 'version' | 'language' | 'status'
+  | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status'
   | 'sheets' | 'cards' | 'attempts' | 'listen' | 'credits' | 'paid'
   | 'created' | 'recent'
 type SortDir = 'asc' | 'desc'
@@ -188,6 +213,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'platform', label: '플랫폼', mobileLabel: '플랫폼',   align: 'center' },
   { key: 'version',  label: '앱버전', mobileLabel: '앱버전',   align: 'center' },
   { key: 'language', label: '언어',   mobileLabel: '언어',     align: 'center' },
+  { key: 'country',  label: '국가',   mobileLabel: '국가',     align: 'center' },
   { key: 'status',   label: '구글연동', mobileLabel: '구글연동', align: 'center' },
   { key: 'sheets',   label: '시트',   mobileLabel: '시트',     align: 'center' },
   { key: 'cards',    label: '카드',   mobileLabel: '카드',     align: 'center' },
@@ -200,7 +226,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
 ]
 
 // 텍스트/문자열 정렬 컬럼은 오름차순이 기본, 숫자·날짜는 내림차순이 기본
-const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['name', 'platform', 'version', 'language', 'status'])
+const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['name', 'platform', 'version', 'language', 'country', 'status'])
 const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key) ? 'asc' : 'desc')
 type SortCrit = { key: UserSortKey; dir: SortDir }
 
@@ -354,6 +380,7 @@ export function VoicecardsBlock({
         case 'platform': return (a.platform || '').localeCompare(b.platform || '')
         case 'version':  return (a.appVersion || '').localeCompare(b.appVersion || '', undefined, { numeric: true })
         case 'language': return (a.locale || '').localeCompare(b.locale || '')
+        case 'country':  return regionOf(a.locale).localeCompare(regionOf(b.locale))
         case 'status':   return isIncomplete(a) - isIncomplete(b)
         case 'sheets':   return a.sheetCount - b.sheetCount
         case 'cards':    return a.cards - b.cards
@@ -494,7 +521,6 @@ export function VoicecardsBlock({
           // 가입 미완료: 로그인했지만 시트 0 & 카드 0 (드라이브 공유 거부 등). 완료 = 전체 − 미완료
           const incompleteSignups = (userStats?.users ?? []).filter(u => u.sheetCount === 0 && u.cards === 0).length
           const signedUp = userStats.totalUsers - incompleteSignups
-          const revenue = stats?.combined.totalRevenue ?? 0
           const paidUsers = stats?.combined.totalPaidUsers ?? 0
 
           const learnConv = devices > 0 ? (learned / devices) * 100 : 0
@@ -524,26 +550,13 @@ export function VoicecardsBlock({
             value: incompleteDates.filter(d => d <= date).length,
           }))
 
-          // 매출 누적
-          const revenueByDate = new Map<string, number>()
+          // 크레딧 판매/유료전환 누적 (매출은 크레딧 볼륨으로 표시)
+          const creditsByDate = new Map<string, number>()
           const paidUsersByDate = new Map<string, number>()
           for (const row of (chartData ?? [])) {
-            revenueByDate.set(row.date, (revenueByDate.get(row.date) ?? 0) + row.total)
+            creditsByDate.set(row.date, (creditsByDate.get(row.date) ?? 0) + (row.credits ?? 0))
             if (typeof row.paidUsers === 'number') paidUsersByDate.set(row.date, row.paidUsers)
           }
-          let runningRevenue = 0
-          const cumulativeRevenueByDate = new Map<string, number>()
-          for (const d of Array.from(revenueByDate.keys()).sort()) {
-            runningRevenue += revenueByDate.get(d) ?? 0
-            cumulativeRevenueByDate.set(d, runningRevenue)
-          }
-          const revenueData = allDates.map(date => {
-            let total = 0
-            for (const [revDate, val] of cumulativeRevenueByDate) {
-              if (revDate <= date) total = val
-            }
-            return { date, value: total }
-          })
           const paidUsersData = allDates.map(date => {
             let total = 0
             for (const [paidDate, val] of paidUsersByDate) {
@@ -552,14 +565,37 @@ export function VoicecardsBlock({
             return { date, value: total }
           })
 
-          // 누적 매출 보조지표 — 오늘 / 최근 7일 (모두 KST 기준)
+          // 오늘 / 최근 7일 컷오프 (KST 기준)
           const revTodayKey = kstToday()
           const rev7AgoKey = kstDaysAgo(6)
-          const revenueToday = revenueByDate.get(revTodayKey) ?? 0
-          const revenue7d = Array.from(revenueByDate.entries())
+
+          // 누적 매출을 크레딧 볼륨으로 표시 (k 단위 축약)
+          const creditsSold = stats?.combined.totalCreditsSold ?? 0
+          const creditsToday = creditsByDate.get(revTodayKey) ?? 0
+          const credits7d = Array.from(creditsByDate.entries())
             .filter(([date]) => date >= rev7AgoKey)
             .reduce((sum, [, v]) => sum + v, 0)
-          const fmtRev = (v: number) => v <= 0 ? '$0' : `$${Math.round(v).toLocaleString()}`
+          let runningCredits = 0
+          const cumulativeCreditsByDate = new Map<string, number>()
+          for (const d of Array.from(creditsByDate.keys()).sort()) {
+            runningCredits += creditsByDate.get(d) ?? 0
+            cumulativeCreditsByDate.set(d, runningCredits)
+          }
+          const creditsData = allDates.map(date => {
+            let total = 0
+            for (const [cDate, val] of cumulativeCreditsByDate) {
+              if (cDate <= date) total = val
+            }
+            return { date, value: total }
+          })
+          const fmtK = (v: number): string => {
+            if (v >= 1000) {
+              const k = v / 1000
+              return `${k >= 100 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, '')}k`
+            }
+            return String(Math.round(v))
+          }
+          const fmtCr = (v: number) => `${fmtK(v)} cr`
 
           // 누적 기기/데모 학습/가입 완료 — 오늘 / 최근 7일 신규 (모두 KST 기준, cumulativeDistinct 델타)
           const yesterdayKey = kstDaysAgo(1)
@@ -627,7 +663,7 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="누적 매출"
-                    value={formatCurrency(revenue)}
+                    value={fmtCr(creditsSold)}
                     valueExtra={paidUsers > 0 ? (
                       <span style={{
                         fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
@@ -636,12 +672,12 @@ export function VoicecardsBlock({
                         유료 {paidUsers.toLocaleString()}명
                       </span>
                     ) : undefined}
-                    sub={revenue > 0 ? `오늘 ${fmtRev(revenueToday)} · 7일 ${fmtRev(revenue7d)}` : '아직 없음'}
-                    tone={revenue > 0 ? 'pos' : 'default'}
-                    sparkline={compact ? undefined : revenueData}
+                    sub={creditsSold > 0 ? `오늘 ${fmtCr(creditsToday)} · 7일 ${fmtCr(credits7d)}` : '아직 없음'}
+                    tone={creditsSold > 0 ? 'pos' : 'default'}
+                    sparkline={compact ? undefined : creditsData}
                     sparkline2={compact ? undefined : paidUsersData}
                     spark2Color={t.brand[600]}
-                    sparkFormat={formatCurrency}
+                    sparkFormat={fmtCr}
                   />
                 )}
               </div>
@@ -1090,6 +1126,23 @@ export function VoicecardsBlock({
                     ) : (
                       <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                     )}
+                  </div>
+                  {/* 국가 (locale 지역) */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                    {(() => {
+                      const c = formatCountry(user.locale)
+                      return c ? (
+                        <span title={c.name} style={{
+                          fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                          color: '#1E40AF', background: '#DBEAFE',
+                          padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
+                        }}>
+                          {c.flag} {c.code}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                      )
+                    })()}
                   </div>
                   {/* 구글연동 (가입 완료 여부) */}
                   <div style={{

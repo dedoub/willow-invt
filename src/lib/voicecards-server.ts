@@ -53,6 +53,7 @@ export interface CombinedStats {
   android: IAPStats | null
   combined: {
     totalRevenue: number
+    totalCreditsSold: number
     totalPaidUsers: number
     totalActiveSubscriptions: number
     totalNewSubscriptions: number
@@ -569,6 +570,13 @@ const CREDIT_PRODUCT_PRICES_USD: Record<string, number> = {
   'com.monor.voicecards.credits.12000': 99.99,
 }
 
+// 상품별 판매 크레딧 수 (매출을 크레딧 볼륨으로 집계)
+const CREDIT_PRODUCT_CREDITS: Record<string, number> = {
+  'com.monor.voicecards.credits.1000': 1000,
+  'com.monor.voicecards.credits.5500': 5500,
+  'com.monor.voicecards.credits.12000': 12000,
+}
+
 const EXCLUDED_VOICECARDS_NICKNAMES = new Set(['류하아빠', '큐트도넛'])
 const EXCLUDED_VOICECARDS_EMAIL_DOMAINS = ['cloudtestlabaccounts.com']
 // Synthetic/bot signup email patterns — kept in sync with the app's own bot
@@ -602,8 +610,10 @@ export interface AppDbRevenue {
   iosByDate: Map<string, number>
   androidByDate: Map<string, number>
   paidUsersByDate: Map<string, number>
+  creditsByDate: Map<string, number>
   iosTotal: number
   androidTotal: number
+  creditsTotal: number
   totalPaidUsers: number
 }
 
@@ -618,8 +628,10 @@ export async function getAppDbRevenue(
     iosByDate: new Map(),
     androidByDate: new Map(),
     paidUsersByDate: new Map(),
+    creditsByDate: new Map(),
     iosTotal: 0,
     androidTotal: 0,
+    creditsTotal: 0,
     totalPaidUsers: 0,
   }
   if (!voicecardsSupabase) return result
@@ -659,6 +671,10 @@ export async function getAppDbRevenue(
     const price = CREDIT_PRODUCT_PRICES_USD[String(props.product_id)]
     if (!price) continue
     const date = kstDateKey(row.created_at) // KST 날짜
+    // 판매 크레딧: 상품 매핑 우선, 없으면 이벤트의 credits_changed 폴백
+    const credits = CREDIT_PRODUCT_CREDITS[String(props.product_id)] ?? Math.max(0, Number(props.credits_changed) || 0)
+    result.creditsByDate.set(date, (result.creditsByDate.get(date) || 0) + credits)
+    result.creditsTotal += credits
     if (row.platform === 'android') {
       result.androidByDate.set(date, (result.androidByDate.get(date) || 0) + price)
       result.androidTotal += price
@@ -759,6 +775,7 @@ export async function getCombinedStats(
     android: latestAndroid ? { ...latestAndroid, revenue: androidRevenue } : null,
     combined: {
       totalRevenue: iosRevenue + androidRevenue,
+      totalCreditsSold: appRevenue.creditsTotal,
       totalPaidUsers: appRevenue.totalPaidUsers,
       totalActiveSubscriptions: (latestIos?.activeSubscriptions || 0) + (latestAndroid?.activeSubscriptions || 0),
       totalNewSubscriptions: iosSum.newSubscriptions + androidSum.newSubscriptions,

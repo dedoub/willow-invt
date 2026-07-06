@@ -27,24 +27,30 @@ export async function GET(request: Request) {
     // 날짜별 매출 차트 데이터 — 앱 DB(anonymous_events) 결제 이벤트 기반 (그로스, USD)
     // getCombinedStats가 이미 계산한 결과 재사용 (중복 스캔 제거)
     const appRevenue = stats.appRevenue
-    const dateMap = new Map<string, { ios: number; android: number; total: number; paidUsers?: number }>()
+    const dateMap = new Map<string, { ios: number; android: number; total: number; credits: number; paidUsers?: number }>()
 
     for (const [date, rev] of appRevenue.iosByDate) {
-      const existing = dateMap.get(date) || { ios: 0, android: 0, total: 0 }
+      const existing = dateMap.get(date) || { ios: 0, android: 0, total: 0, credits: 0 }
       existing.ios += rev
       existing.total += rev
       dateMap.set(date, existing)
     }
 
     for (const [date, rev] of appRevenue.androidByDate) {
-      const existing = dateMap.get(date) || { ios: 0, android: 0, total: 0 }
+      const existing = dateMap.get(date) || { ios: 0, android: 0, total: 0, credits: 0 }
       existing.android += rev
       existing.total += rev
       dateMap.set(date, existing)
     }
 
+    for (const [date, credits] of appRevenue.creditsByDate) {
+      const existing = dateMap.get(date) || { ios: 0, android: 0, total: 0, credits: 0 }
+      existing.credits += credits
+      dateMap.set(date, existing)
+    }
+
     for (const [date, paidUsers] of appRevenue.paidUsersByDate) {
-      const existing = dateMap.get(date) || { ios: 0, android: 0, total: 0 }
+      const existing = dateMap.get(date) || { ios: 0, android: 0, total: 0, credits: 0 }
       existing.paidUsers = paidUsers
       dateMap.set(date, existing)
     }

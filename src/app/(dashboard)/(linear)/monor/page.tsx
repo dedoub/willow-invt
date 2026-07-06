@@ -5,6 +5,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { VoicecardsBlock } from './_components/voicecards-block'
 import { VoicecardsSettingsDialog } from './_components/voicecards-settings-dialog'
 import { ReviewnotesBlock } from './_components/reviewnotes-block'
+import { useMonorCols } from './_components/cols-toggle'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats } from '@/lib/reviewnotes-supabase'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
@@ -15,6 +16,7 @@ import { kstToday } from '@/lib/kst'
 interface CombinedStats {
   combined: {
     totalRevenue: number
+    totalCreditsSold: number
     totalPaidUsers: number
     totalNewDownloads: number
   }
@@ -96,6 +98,7 @@ interface AnonymousEventStats {
 
 export default function MonorPage() {
   const mobile = useIsMobile()
+  const cols = useMonorCols()
 
   // VoiceCards state — 3개 파트 독립 로딩 (사용자/이벤트/매출)
   const [vcUsersLoading, setVcUsersLoading] = useState(true)
@@ -105,7 +108,7 @@ export default function MonorPage() {
   const [vcStats, setVcStats] = useState<CombinedStats | null>(null)
   const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
   const [vcAnonStats, setVcAnonStats] = useState<AnonymousEventStats | null>(null)
-  const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; paidUsers?: number }>>([])
+  const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>>([])
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   // ReviewNotes state
@@ -199,7 +202,7 @@ export default function MonorPage() {
     <>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+        gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
         gap: 14,
         alignItems: 'start',
       }}>

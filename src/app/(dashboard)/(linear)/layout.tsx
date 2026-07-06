@@ -7,6 +7,7 @@ import { JetBrains_Mono } from 'next/font/google'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LinearSidebar } from '@/app/(dashboard)/_components/linear-sidebar'
 import { LinearHeader } from '@/app/(dashboard)/_components/linear-header'
+import { MonorColsToggle } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 
 const interTight = InterTight({
   subsets: ['latin'],
@@ -81,6 +82,7 @@ export default function LinearRouteLayout({
             onMenuToggle={() => setMenuOpen(v => !v)}
             onSidebarToggle={() => setSidebarOpen(v => !v)}
             sidebarOpen={sidebarOpen}
+            actions={!mobile && pathname === '/monor' ? <MonorColsToggle /> : undefined}
           />
           <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '16px 12px 24px' : '16px 20px 24px' }}>
             {children}
