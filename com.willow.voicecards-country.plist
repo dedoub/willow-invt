@@ -16,8 +16,6 @@
     <string>/Users/dongwookkim</string>
     <key>StartCalendarInterval</key>
     <dict>
-        <key>Hour</key>
-        <integer>9</integer>
         <key>Minute</key>
         <integer>10</integer>
     </dict>
