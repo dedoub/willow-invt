@@ -34,6 +34,7 @@ interface UserStats {
     appVersion: string | null
     platform: string | null
     locale: string | null
+    country: string | null
     hasPurchased: boolean
     credits: number
     creditsUsed: number
@@ -175,28 +176,31 @@ function formatLocale(locale: string): string {
   return entry ? `${entry.flag} ${entry.name}` : locale
 }
 
-// 국가(로케일 지역 서브태그, 예: ko-KR → KR). 지역이 없으면 null.
-const COUNTRY_LABELS: Record<string, { flag: string; name: string }> = {
-  KR: { flag: '🇰🇷', name: '한국' }, US: { flag: '🇺🇸', name: '미국' }, JP: { flag: '🇯🇵', name: '일본' },
-  CN: { flag: '🇨🇳', name: '중국' }, TW: { flag: '🇹🇼', name: '대만' }, HK: { flag: '🇭🇰', name: '홍콩' },
-  GB: { flag: '🇬🇧', name: '영국' }, DE: { flag: '🇩🇪', name: '독일' }, FR: { flag: '🇫🇷', name: '프랑스' },
-  ES: { flag: '🇪🇸', name: '스페인' }, IT: { flag: '🇮🇹', name: '이탈리아' }, BR: { flag: '🇧🇷', name: '브라질' },
-  RU: { flag: '🇷🇺', name: '러시아' }, IN: { flag: '🇮🇳', name: '인도' }, ID: { flag: '🇮🇩', name: '인도네시아' },
-  VN: { flag: '🇻🇳', name: '베트남' }, TH: { flag: '🇹🇭', name: '태국' }, PH: { flag: '🇵🇭', name: '필리핀' },
-  TR: { flag: '🇹🇷', name: '터키' }, NL: { flag: '🇳🇱', name: '네덜란드' }, PL: { flag: '🇵🇱', name: '폴란드' },
-  CA: { flag: '🇨🇦', name: '캐나다' }, AU: { flag: '🇦🇺', name: '호주' }, MX: { flag: '🇲🇽', name: '멕시코' },
-  SG: { flag: '🇸🇬', name: '싱가포르' }, MY: { flag: '🇲🇾', name: '말레이시아' }, SA: { flag: '🇸🇦', name: '사우디' },
-  AE: { flag: '🇦🇪', name: 'UAE' },
+// 국가 한글명 (툴팁용). 국기는 코드에서 자동 생성하므로 여기 없어도 표시된다.
+const COUNTRY_NAMES: Record<string, string> = {
+  KR: '한국', US: '미국', JP: '일본', CN: '중국', TW: '대만', HK: '홍콩', GB: '영국', DE: '독일',
+  FR: '프랑스', ES: '스페인', IT: '이탈리아', BR: '브라질', RU: '러시아', IN: '인도', ID: '인도네시아',
+  VN: '베트남', TH: '태국', PH: '필리핀', TR: '터키', NL: '네덜란드', PL: '폴란드', CA: '캐나다',
+  AU: '호주', MX: '멕시코', SG: '싱가포르', MY: '말레이시아', SA: '사우디', AE: 'UAE', CO: '콜롬비아',
+  AT: '오스트리아', VE: '베네수엘라', UA: '우크라이나', PK: '파키스탄', AR: '아르헨티나', BO: '볼리비아',
+  SV: '엘살바도르', CL: '칠레', CZ: '체코', EE: '에스토니아', EG: '이집트', IE: '아일랜드', MA: '모로코',
+  MZ: '모잠비크', NP: '네팔', PT: '포르투갈', UZ: '우즈베키스탄', NG: '나이지리아', ZA: '남아공',
 }
 function regionOf(locale: string | null): string {
   if (!locale) return ''
   return (locale.split(/[-_]/)[1] || '').toUpperCase()
 }
-function formatCountry(locale: string | null): { flag: string; code: string; name: string } | null {
-  const code = regionOf(locale)
-  if (!code) return null
-  const e = COUNTRY_LABELS[code]
-  return { flag: e?.flag || '🏳️', code, name: e?.name || code }
+// ISO 3166-1 alpha-2 → 국기 이모지 (지역 표시 기호). 임의 2자리 코드 지원.
+function codeToFlag(code: string): string {
+  if (!/^[A-Za-z]{2}$/.test(code)) return '🏳️'
+  const cc = code.toUpperCase()
+  return String.fromCodePoint(...[...cc].map(c => 0x1f1e6 + c.charCodeAt(0) - 65))
+}
+// 국가코드(백필된 anonymous_events.country) 우선, 없으면 로케일 지역 폴백.
+function formatCountry(country: string | null, locale?: string | null): { flag: string; code: string; name: string } | null {
+  const code = (country || regionOf(locale ?? null)).toUpperCase()
+  if (!code || !/^[A-Z]{2}$/.test(code)) return null
+  return { flag: codeToFlag(code), code, name: COUNTRY_NAMES[code] || code }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -380,7 +384,7 @@ export function VoicecardsBlock({
         case 'platform': return (a.platform || '').localeCompare(b.platform || '')
         case 'version':  return (a.appVersion || '').localeCompare(b.appVersion || '', undefined, { numeric: true })
         case 'language': return (a.locale || '').localeCompare(b.locale || '')
-        case 'country':  return regionOf(a.locale).localeCompare(regionOf(b.locale))
+        case 'country':  return (a.country || regionOf(a.locale)).localeCompare(b.country || regionOf(b.locale))
         case 'status':   return isIncomplete(a) - isIncomplete(b)
         case 'sheets':   return a.sheetCount - b.sheetCount
         case 'cards':    return a.cards - b.cards
@@ -1130,7 +1134,7 @@ export function VoicecardsBlock({
                   {/* 국가 (locale 지역) */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {(() => {
-                      const c = formatCountry(user.locale)
+                      const c = formatCountry(user.country, user.locale)
                       return c ? (
                         <span title={c.name} style={{
                           fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,

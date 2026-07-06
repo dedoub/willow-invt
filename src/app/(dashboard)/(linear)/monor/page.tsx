@@ -45,6 +45,7 @@ interface UserStats {
     appVersion: string | null
     platform: string | null
     locale: string | null
+    country: string | null
     hasPurchased: boolean
     credits: number
     creditsUsed: number

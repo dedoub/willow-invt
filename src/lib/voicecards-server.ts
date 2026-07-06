@@ -897,6 +897,7 @@ export interface VoicecardsUserStats {
     appVersion: string | null  // 가장 최근 활동 시 앱 버전
     platform: string | null    // 'ios' | 'android' 등
     locale: string | null      // 'ko' | 'en' | 'de' | 'fr' | 'es' | 'zh' | 'ja' 등
+    country: string | null     // IP 기반 국가코드 (백필). anonymous_events.country
     hasPurchased: boolean
     credits: number          // 현재 잔액
     creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played). AI 카드 생성은 사용량 적어 제외
@@ -1031,15 +1032,17 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const userAppVersionMap = new Map<string, string>()
   const userPlatformMap = new Map<string, string>()
   const userLocaleMap = new Map<string, string>()
+  const userCountryMap = new Map<string, string>()
   // 앱 이벤트 최근 시각 — 듣기/미리듣기만 한 유저는 user_analytics 기록이 없어 last_updated가
   // 비는데, 이벤트 시각을 활동일에 합쳐 "마지막 활동일"이 빈칸으로 뜨지 않게 한다.
   const userLastEventMap = new Map<string, string>()
   // RPC가 user당 1행(최신)을 반환하므로 첫 등장 판별 없이 그대로 매핑
-  for (const row of ((metaRes.data || []) as Array<{ user_id: string | null; app_version: string | null; platform: string | null; locale: string | null; last_event: string | null }>)) {
+  for (const row of ((metaRes.data || []) as Array<{ user_id: string | null; app_version: string | null; platform: string | null; locale: string | null; country: string | null; last_event: string | null }>)) {
     if (!row.user_id) continue
     if (row.app_version) userAppVersionMap.set(row.user_id, row.app_version)
     if (row.platform) userPlatformMap.set(row.user_id, row.platform)
     if (row.locale) userLocaleMap.set(row.user_id, row.locale)
+    if (row.country) userCountryMap.set(row.user_id, row.country)
     if (row.last_event) userLastEventMap.set(row.user_id, row.last_event)
   }
 
@@ -1050,6 +1053,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     appVersion: userAppVersionMap.get(u.user_id) || null,
     platform: userPlatformMap.get(u.user_id) || null,
     locale: userLocaleMap.get(u.user_id) || null,
+    country: userCountryMap.get(u.user_id) || null,
     hasPurchased: !!u.has_purchased,
     credits: u.credits || 0,
     creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
