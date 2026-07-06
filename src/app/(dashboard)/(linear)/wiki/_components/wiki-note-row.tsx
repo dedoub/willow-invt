@@ -46,7 +46,11 @@ interface WikiNoteRowProps {
 
 function fmtDate(dateStr: string): string {
   const d = new Date(dateStr)
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`
+  const yy = d.getFullYear() !== new Date().getFullYear() ? `${d.getFullYear()}. ` : ''
+  return `${yy}${d.getMonth() + 1}월 ${d.getDate()}일`
+}
+function fmtUpdatedTitle(dateStr: string): string {
+  return `마지막 업데이트: ${new Date(dateStr).toLocaleString('ko-KR')}`
 }
 
 export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: WikiNoteRowProps) {
@@ -139,7 +143,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
           {badge.label}
         </span>
 
-        <span style={{
+        <span title={fmtUpdatedTitle(note.updated_at)} style={{
           fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono,
           flexShrink: 0, minWidth: 52,
         }}>
@@ -192,8 +196,8 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, marginRight: 8 }}>
-            {fmtDate(note.updated_at)}
+          <span title={fmtUpdatedTitle(note.updated_at)} style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, marginRight: 8 }}>
+            마지막 업데이트 {fmtDate(note.updated_at)}
           </span>
           <button onClick={handlePin} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 4,

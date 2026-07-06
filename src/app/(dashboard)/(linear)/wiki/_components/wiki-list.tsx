@@ -57,7 +57,11 @@ interface WikiListProps {
 
 function fmtDate(dateStr: string): string {
   const d = new Date(dateStr)
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`
+  const yy = d.getFullYear() !== new Date().getFullYear() ? `${d.getFullYear()}. ` : ''
+  return `${yy}${d.getMonth() + 1}월 ${d.getDate()}일`
+}
+function fmtUpdatedTitle(dateStr: string): string {
+  return `마지막 업데이트: ${new Date(dateStr).toLocaleString('ko-KR')}`
 }
 
 function renderWikiHtml(content: string): string {
@@ -299,7 +303,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                         }}>
                           {badge.label}
                         </span>
-                        <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                        <span title={fmtUpdatedTitle(note.updated_at)} style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                           {fmtDate(note.updated_at)}
                         </span>
                         {note.attachments && note.attachments.length > 0 && (
@@ -456,8 +460,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                       </span>
                     )
                   })()}
-                  <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
-                    {fmtDate(selectedNote.updated_at)}
+                  <span title={fmtUpdatedTitle(selectedNote.updated_at)} style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                    마지막 업데이트 {fmtDate(selectedNote.updated_at)}
                   </span>
                 </div>
               </div>
