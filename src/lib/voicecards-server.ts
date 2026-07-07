@@ -13,8 +13,13 @@ const supabase = createClient(
 )
 
 // VoiceCards 앱 자체 Supabase — 회원 수 조회용
+// 서버사이드 전용 — service_role 키 우선(RLS 우회 + anon 3s statement_timeout 회피). anon 폴백.
 const voicecardsSupabase = process.env.VOICECARDS_SUPABASE_URL
-  ? createClient(process.env.VOICECARDS_SUPABASE_URL, process.env.VOICECARDS_SUPABASE_KEY!)
+  ? createClient(
+      process.env.VOICECARDS_SUPABASE_URL,
+      process.env.VOICECARDS_SUPABASE_SERVICE_KEY || process.env.VOICECARDS_SUPABASE_KEY!,
+      { auth: { persistSession: false } }
+    )
   : null
 
 // 타입 정의
