@@ -17,9 +17,11 @@ export function useIsMobile(breakpoint = 768) {
 
 export const t = {
   font: {
+    // 맨 앞 "Twemoji Country Flags": Windows처럼 국기 이모지 미지원 브라우저에서만 주입되는 폰트(폴리필).
+    //   국기 글리프만 담고 있어 일반 라틴/한글은 다음 폰트로 폴백 → 국기만 이 폰트로 렌더됨.
     // 한글/Windows 폴백 포함 — mono엔 한글 글리프가 없어 Windows에서 깨지므로 Apple SD Gothic Neo(맥)/Malgun Gothic(윈)을 명시
-    sans: '"Inter Tight", "Inter", system-ui, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
-    mono: '"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Apple SD Gothic Neo", "Malgun Gothic", monospace',
+    sans: '"Twemoji Country Flags", "Inter Tight", "Inter", system-ui, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
+    mono: '"Twemoji Country Flags", "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Apple SD Gothic Neo", "Malgun Gothic", monospace',
   },
   weight: { regular: 420, medium: 520, semibold: 620, bold: 720 },
   neutrals: {
