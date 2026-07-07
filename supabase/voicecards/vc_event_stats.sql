@@ -3,16 +3,10 @@
 -- ----------------------------------------------------------------------------
 -- 대상 프로젝트: voice-cards (juyitkynbavhllyjidhz) — 메인 willow-invt DB 아님.
 -- 이 파일이 vc_event_stats() 의 정본. 원격에 apply 후 반드시 이 파일도 갱신할 것.
---   적용: supabase MCP apply_migration(project_id='juyitkynbavhllyjidhz', ...)
---
--- 소비처: src/lib/voicecards-server.ts getAnonymousEventStats() → rpc('vc_event_stats')
---         → MonoR 페이지 보이스카드 섹션(디바이스/플랫폼/언어/일별 활동자 등)
---
--- ⚠️ 제외 규칙 단일 소스 (아래 excluded_devices):
---   관리자/봇/테스트 계정은 device_id 단위로 통째 제외(로그인 前 익명 이벤트까지).
---   이 목록은 유저 통계(src/lib/voicecards-server.ts 의 EXCLUDED_VOICECARDS_* )와
---   반드시 동일하게 유지해야 함. 한 곳만 고치면 섹션 간 숫자가 어긋난다.
---   (2026-07-04: 이벤트 통계가 관리자 dw.kim + 봇패턴을 안 거르던 불일치를 이걸로 정리)
+-- excluded_devices: 관리자/봇/테스트 계정 device_id 통째 제외 (로그인 前 익명 이벤트까지).
+-- 2026-07-06: platforms/locales 옆에 country 분포(countries/signinCountries/payingCountries) 추가.
+--   country 는 IP 백필(scripts/voicecards-country-backfill.ts). 미백필/미상은 'unknown'.
+-- 주의: base CTE 를 MATERIALIZED 로 바꾸면 오히려 느려짐(회귀) → 인라인 유지 (~890ms, 60초 캐시).
 -- ============================================================================
 CREATE OR REPLACE FUNCTION public.vc_event_stats()
  RETURNS jsonb
@@ -20,7 +14,6 @@ CREATE OR REPLACE FUNCTION public.vc_event_stats()
  STABLE
 AS $function$
 with excluded_devices as (
-  -- 관리자/봇/테스트 계정과 연결된 device_id를 통째로 제외 (로그인 前 익명 이벤트까지 제거)
   select distinct e.device_id
   from anonymous_events_real_users e
   join users u on u.user_id = e.user_id
@@ -35,7 +28,7 @@ with excluded_devices as (
     )
 ),
 base as (
-  select e.device_id, e.user_id, e.event_name, e.platform, e.locale, e.properties, e.created_at,
+  select e.device_id, e.user_id, e.event_name, e.platform, e.locale, e.country, e.properties, e.created_at,
          (e.created_at at time zone 'Asia/Seoul')::date as kdate
   from anonymous_events_real_users e
   where e.is_likely_bot = false
@@ -66,7 +59,6 @@ daily as (
   from base group by kdate
 ),
 dev_day as (
-  -- 그 날 로그인 이벤트가 있던 디바이스(로그인) vs 없던 디바이스(익명)
   select kdate, device_id, bool_or(user_id is not null) as has_login
   from base group by kdate, device_id
 ),
@@ -94,18 +86,25 @@ locales as (
   select coalesce(nullif(locale,''),'unknown') as locale, count(distinct device_id) as devices
   from base group by 1
 ),
+countries as (
+  select coalesce(nullif(country,''),'unknown') as country, count(distinct device_id) as devices
+  from base group by 1
+),
 dev_meta as (
   select distinct on (device_id) device_id,
     coalesce(nullif(platform,''),'unknown') as platform,
-    coalesce(nullif(locale,''),'unknown') as locale
+    coalesce(nullif(locale,''),'unknown') as locale,
+    coalesce(nullif(country,''),'unknown') as country
   from base order by device_id, created_at desc
 ),
 signin_dev as (select distinct device_id from base where event_name='signin_completed'),
 paying_dev as (select distinct device_id from base where event_name='credits_changed' and properties->>'reason'='purchase'),
 signin_plat as (select m.platform, count(*) as devices from signin_dev s join dev_meta m using(device_id) group by 1),
 signin_loc  as (select m.locale,   count(*) as devices from signin_dev s join dev_meta m using(device_id) group by 1),
+signin_ctry as (select m.country,  count(*) as devices from signin_dev s join dev_meta m using(device_id) group by 1),
 paying_plat as (select m.platform, count(*) as devices from paying_dev s join dev_meta m using(device_id) group by 1),
 paying_loc  as (select m.locale,   count(*) as devices from paying_dev s join dev_meta m using(device_id) group by 1),
+paying_ctry as (select m.country,  count(*) as devices from paying_dev s join dev_meta m using(device_id) group by 1),
 summary as (
   select
     (select count(*) from base) as total_events,
@@ -126,9 +125,12 @@ select jsonb_build_object(
   'demoSheets', coalesce((select jsonb_agg(jsonb_build_object('sheetId',sheet_id,'cards',cards,'devices',devices) order by cards desc) from sheets),'[]'::jsonb),
   'platforms', coalesce((select jsonb_agg(jsonb_build_object('platform',platform,'devices',devices,'events',events) order by events desc) from platforms),'[]'::jsonb),
   'locales', coalesce((select jsonb_agg(jsonb_build_object('locale',locale,'devices',devices) order by devices desc) from locales),'[]'::jsonb),
+  'countries', coalesce((select jsonb_agg(jsonb_build_object('country',country,'devices',devices) order by devices desc) from countries),'[]'::jsonb),
   'signinPlatforms', coalesce((select jsonb_agg(jsonb_build_object('platform',platform,'devices',devices) order by devices desc) from signin_plat),'[]'::jsonb),
   'signinLocales', coalesce((select jsonb_agg(jsonb_build_object('locale',locale,'devices',devices) order by devices desc) from signin_loc),'[]'::jsonb),
+  'signinCountries', coalesce((select jsonb_agg(jsonb_build_object('country',country,'devices',devices) order by devices desc) from signin_ctry),'[]'::jsonb),
   'payingPlatforms', coalesce((select jsonb_agg(jsonb_build_object('platform',platform,'devices',devices) order by devices desc) from paying_plat),'[]'::jsonb),
-  'payingLocales', coalesce((select jsonb_agg(jsonb_build_object('locale',locale,'devices',devices) order by devices desc) from paying_loc),'[]'::jsonb)
+  'payingLocales', coalesce((select jsonb_agg(jsonb_build_object('locale',locale,'devices',devices) order by devices desc) from paying_loc),'[]'::jsonb),
+  'payingCountries', coalesce((select jsonb_agg(jsonb_build_object('country',country,'devices',devices) order by devices desc) from paying_ctry),'[]'::jsonb)
 )
 $function$;
