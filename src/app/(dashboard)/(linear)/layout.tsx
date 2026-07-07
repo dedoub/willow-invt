@@ -54,8 +54,9 @@ export default function LinearRouteLayout({
 
   useEffect(() => { setSidebarReady(true) }, [])
 
-  // Windows 등 국기 이모지 미지원 브라우저에 Twemoji 국기 폰트 주입 (지원 브라우저엔 no-op)
-  useEffect(() => { polyfillCountryFlagEmojis() }, [])
+  // Windows/테슬라 등 국기 이모지 미지원 브라우저에 Twemoji 국기 폰트 주입 (지원 브라우저엔 no-op).
+  // 폰트는 자체 호스팅(/fonts) — CDN 차단/불안정한 인카 브라우저(테슬라)에서도 동일 오리진으로 안정 로드.
+  useEffect(() => { polyfillCountryFlagEmojis('Twemoji Country Flags', '/fonts/TwemojiCountryFlags.woff2') }, [])
 
   useEffect(() => {
     localStorage.setItem('linear-sidebar-open', sidebarOpen ? '1' : '0')
