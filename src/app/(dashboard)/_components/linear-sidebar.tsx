@@ -88,6 +88,68 @@ function RailTip({ label, sub, enabled, children }: {
   )
 }
 
+// 사이드바 행(메뉴/프로젝트 공용) — hover/active 상태 + 활성 좌측 액센트 바.
+// 모듈 레벨 컴포넌트라 hover 상태가 부모 리렌더에도 안정적으로 유지됨.
+function NavRow({ href, icon, label, dot, tag, isActive, rail, onClose }: {
+  href?: string; icon?: string; label: string; dot?: string; tag?: string
+  isActive: boolean; rail: boolean; onClose?: () => void
+}) {
+  const [hover, setHover] = useState(false)
+  const bg = isActive ? t.brand[600] + '14' : hover ? t.neutrals.inner : 'transparent'
+  const color = isActive ? t.brand[700] : hover ? t.neutrals.text : t.neutrals.muted
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const Wrapper: any = href ? Link : 'div'
+  return (
+    <RailTip label={label} sub={tag} enabled={rail}>
+      <Wrapper
+        {...(href ? { href, onClick: onClose } : {})}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          position: 'relative', width: '100%', display: 'flex', alignItems: 'center',
+          justifyContent: rail ? 'center' : undefined, gap: 10,
+          padding: rail ? '8px 0' : '7px 10px',
+          background: bg, color, fontWeight: isActive ? t.weight.medium : t.weight.regular,
+          fontSize: 'calc(13px * var(--fz, 1))', borderRadius: 6, textDecoration: 'none',
+          marginBottom: 1, letterSpacing: -0.1, cursor: href ? 'pointer' : 'default',
+          transition: 'background .12s ease, color .12s ease',
+        }}
+      >
+        {isActive && !rail && (
+          <span style={{ position: 'absolute', left: 0, top: 7, bottom: 7, width: 3, borderRadius: 3, background: t.brand[600] }} />
+        )}
+        {icon ? (
+          <LIcon name={icon} size={rail ? 18 : 14} stroke={1.8} />
+        ) : dot ? (
+          <span style={{ width: rail ? 9 : 7, height: rail ? 9 : 7, borderRadius: 2, background: dot, flexShrink: 0 }} />
+        ) : null}
+        {!rail && <span style={{ flex: tag ? 1 : undefined }}>{label}</span>}
+        {!rail && tag && (
+          <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: isActive ? t.brand[600] : t.neutrals.subtle }}>{tag}</span>
+        )}
+      </Wrapper>
+    </RailTip>
+  )
+}
+
+// hover 피드백이 있는 고스트 아이콘 버튼 (로그아웃 등)
+function GhostIconBtn({ onClick, title, children }: { onClick?: () => void; title: string; children: ReactNode }) {
+  const [h, setH] = useState(false)
+  return (
+    <button
+      onClick={onClick} title={title} aria-label={title}
+      onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+      style={{
+        background: h ? t.neutrals.inner : 'none', border: 'none', cursor: 'pointer',
+        padding: 4, borderRadius: 5, flexShrink: 0, display: 'inline-flex', alignItems: 'center',
+        color: h ? t.neutrals.text : t.neutrals.subtle, transition: 'background .12s ease, color .12s ease',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 interface LinearSidebarProps {
   mobile?: boolean
   open?: boolean
@@ -104,26 +166,11 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   // 접힌 상태(아이콘 전용 rail)는 데스크톱에서만 사용
   const rail = collapsed && !mobile
 
-  const navLink = (n: { key: string; href: string; label: string; icon: string }) => {
-    const isActive = pathname === n.href || pathname.startsWith(n.href + '/')
-    return (
-      <RailTip key={n.key} label={n.label} enabled={rail}>
-        <Link href={n.href} onClick={onClose} style={{
-          width: '100%', display: 'flex', alignItems: 'center',
-          justifyContent: rail ? 'center' : undefined,
-          gap: 10, padding: rail ? '8px 0' : '7px 10px',
-          background: isActive ? t.brand[600] + '14' : 'transparent',
-          color: isActive ? t.brand[700] : t.neutrals.muted,
-          fontWeight: isActive ? t.weight.medium : t.weight.regular,
-          fontSize: 'calc(13px * var(--fz, 1))', borderRadius: 6, textDecoration: 'none',
-          marginBottom: 1, letterSpacing: -0.1,
-        }}>
-          <LIcon name={n.icon} size={rail ? 18 : 14} stroke={1.8} />
-          {!rail && <span>{n.label}</span>}
-        </Link>
-      </RailTip>
-    )
-  }
+  const isActiveHref = (href?: string) => !!href && (pathname === href || pathname.startsWith(href + '/'))
+  const navLink = (n: { key: string; href: string; label: string; icon: string }) => (
+    <NavRow key={n.key} href={n.href} icon={n.icon} label={n.label}
+      isActive={isActiveHref(n.href)} rail={rail} onClose={onClose} />
+  )
 
   const sidebar = (
     <aside style={{
@@ -162,29 +209,10 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
 
         {!rail && <GroupLabel label="프로젝트" />}
         {rail && <div style={{ height: 1, background: t.neutrals.line, margin: '8px 6px' }} />}
-        {CLIENTS.map(c => {
-          const href = CLIENT_HREF[c.id]
-          const isActive = href ? (pathname === href || pathname.startsWith(href + '/')) : false
-          const Wrapper = href ? Link : 'div' as any
-          return (
-            <RailTip key={c.id} label={c.name} sub={c.tag} enabled={rail}>
-              <Wrapper {...(href ? { href, onClick: onClose } : {})} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                justifyContent: rail ? 'center' : undefined,
-                padding: rail ? '8px 0' : '6px 10px',
-                fontSize: 'calc(12.5px * var(--fz, 1))', color: isActive ? t.brand[700] : t.neutrals.muted, borderRadius: 6,
-                cursor: href ? 'pointer' : 'default',
-                textDecoration: 'none',
-                background: isActive ? t.brand[600] + '14' : 'transparent',
-                fontWeight: isActive ? 500 : 400,
-              }}>
-                <span style={{ width: rail ? 9 : 7, height: rail ? 9 : 7, borderRadius: 2, background: c.dot, flexShrink: 0 }} />
-                {!rail && <span style={{ flex: 1 }}>{c.name}</span>}
-                {!rail && <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>{c.tag}</span>}
-              </Wrapper>
-            </RailTip>
-          )
-        })}
+        {CLIENTS.map(c => (
+          <NavRow key={c.id} href={CLIENT_HREF[c.id]} dot={c.dot} label={c.name} tag={c.tag}
+            isActive={isActiveHref(CLIENT_HREF[c.id])} rail={rail} onClose={onClose} />
+        ))}
 
         {isAdmin && (
           <>
@@ -219,12 +247,9 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{user.email}</div>
               </div>
-              <button onClick={logout} title="로그아웃" style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: 4, color: t.neutrals.subtle, flexShrink: 0,
-              }}>
+              <GhostIconBtn onClick={logout} title="로그아웃">
                 <LIcon name="logOut" size={14} stroke={1.8} />
-              </button>
+              </GhostIconBtn>
             </>
           )}
         </div>

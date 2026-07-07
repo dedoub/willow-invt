@@ -21,6 +21,7 @@ interface LinearHeaderProps {
 
 export function LinearHeader({ title, group = '윌로우인베스트먼트', subtitle, onAgentToggle, agentOpen, actions, mobile, onMenuToggle, onSidebarToggle, sidebarOpen }: LinearHeaderProps) {
   const [spinning, setSpinning] = useState(false)
+  const [refreshHover, setRefreshHover] = useState(false)
   const handleRefresh = () => {
     refreshAllData()
     setSpinning(true)
@@ -78,13 +79,17 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
         {actions}
         <button
           onClick={handleRefresh}
+          onMouseEnter={() => setRefreshHover(true)}
+          onMouseLeave={() => setRefreshHover(false)}
           title="데이터 새로고침"
           aria-label="데이터 새로고침"
           style={{
             height: 28, width: 28, borderRadius: 6,
-            background: t.neutrals.inner, color: t.neutrals.muted,
+            background: refreshHover ? t.brand[50] : t.neutrals.inner,
+            color: refreshHover ? t.brand[700] : t.neutrals.muted,
             border: 'none', cursor: 'pointer',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background .12s ease, color .12s ease',
           }}
         >
           <span style={{

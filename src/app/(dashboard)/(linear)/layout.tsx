@@ -64,6 +64,11 @@ export default function LinearRouteLayout({
 
   return (
     <div className={`${interTight.variable} ${jetbrainsMono.variable}`}>
+      {/* 키보드 포커스 링 (접근성) — 마우스 클릭엔 안 뜨고 키보드 탐색 시에만 */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        :where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid #166A97;outline-offset:1px;}
+        :where(a,button,input,select,textarea,[tabindex]):focus:not(:focus-visible){outline:none;}
+      ` }} />
       <div style={{
         height: '100vh', background: t.neutrals.page,
         color: t.neutrals.text, fontFamily: t.font.sans,
