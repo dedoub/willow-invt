@@ -215,7 +215,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
       <div ref={wrapRef} style={{
         display: 'flex',
         flexDirection: mobile ? 'column' : 'row',
-        height: (mobile || editing || adding) ? 'auto' : availH,
+        height: mobile ? 'auto' : availH,
       }}>
         {/* ===== LEFT PANEL: list ===== */}
         {(!mobile || (!selectedId && !adding)) && (
@@ -394,7 +394,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
 
         {/* ===== RIGHT PANEL: detail ===== */}
         {(!mobile || selectedId || adding) && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: (mobile || editing || adding) ? 'visible' : 'hidden', minHeight: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: mobile ? 'visible' : 'hidden', minHeight: 0 }}>
           {/* Mobile back button */}
           {mobile && (
             <button
@@ -411,13 +411,13 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
             </button>
           )}
           {adding ? (
-            /* New note form */
-            <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column' }}>
+            /* New note form — 뷰포트 높이 안에서 폼 내부 스크롤 */
+            <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', overflowY: mobile ? 'visible' : 'auto', minHeight: 0 }}>
               <WikiNoteForm onSave={handleCreate} onCancel={() => setAdding(false)} />
             </div>
           ) : selectedNote && editing ? (
-            /* Edit mode */
-            <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column' }}>
+            /* Edit mode — 뷰포트 높이 안에서 폼 내부 스크롤 */
+            <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', overflowY: mobile ? 'visible' : 'auto', minHeight: 0 }}>
               <WikiNoteForm
                 initial={{
                   section: selectedNote.section as WikiSection,
