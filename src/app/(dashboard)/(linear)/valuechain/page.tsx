@@ -8,6 +8,7 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { ValueChainSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
+import { useValuechainCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import type { ValueChainStats } from '@/lib/valuechain-supabase'
 
 const SITE_URL = 'https://valuechain.wiki'
@@ -26,6 +27,7 @@ const TIER_TONE: Record<string, { bg: string; fg: string }> = {
 
 export default function ValueChainPage() {
   const mobile = useIsMobile()
+  const cols = useValuechainCols()
   const [stats, setStats] = useState<ValueChainStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -134,7 +136,7 @@ export default function ValueChainPage() {
   })
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, alignItems: 'start' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: 14, alignItems: 'start' }}>
       <LCard pad={0}>
         {/* 헤더 + 현황 */}
         <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>

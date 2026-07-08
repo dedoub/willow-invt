@@ -7,7 +7,7 @@ import { JetBrains_Mono } from 'next/font/google'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LinearSidebar } from '@/app/(dashboard)/_components/linear-sidebar'
 import { LinearHeader } from '@/app/(dashboard)/_components/linear-header'
-import { MonorColsToggle } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
+import { MonorColsToggle, ValuechainColsToggle } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill'
 
 const interTight = InterTight({
@@ -92,7 +92,9 @@ export default function LinearRouteLayout({
             onMenuToggle={() => setMenuOpen(v => !v)}
             onSidebarToggle={() => setSidebarOpen(v => !v)}
             sidebarOpen={sidebarOpen}
-            actions={!mobile && pathname === '/monor' ? <MonorColsToggle /> : undefined}
+            actions={!mobile && pathname === '/monor' ? <MonorColsToggle />
+              : !mobile && pathname === '/valuechain' ? <ValuechainColsToggle />
+              : undefined}
           />
           <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '16px 12px 24px' : '16px 20px 24px' }}>
             {children}

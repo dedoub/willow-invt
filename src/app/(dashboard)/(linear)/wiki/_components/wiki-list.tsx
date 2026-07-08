@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -34,9 +34,9 @@ const SECTION_BADGES: Record<string, { label: string; bg: string; fg: string }> 
 
 const PAGE_SIZE_KEY = 'wiki-page-size'
 const DEFAULT_PAGE_SIZE = 10
-const ROW_H = 50
-const FILTER_H = 80
-const PAGI_H = 33
+// 섹션이 뷰포트를 넘지 않도록 하한/하단 여백(메인 패딩 24 + 카드 하단 여유)
+const MIN_SECTION_H = 360
+const BOTTOM_GAP = 28
 
 function getStoredPageSize(): number {
   if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
@@ -84,6 +84,22 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
 
+  // 섹션 높이를 브라우저(뷰포트)에 맞춰 동적 조정. 컨테이너 top을 측정해
+  // 카드 하단이 뷰포트 하단에 닿도록 높이를 계산하고, 리사이즈 시 갱신한다.
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [availH, setAvailH] = useState(560)
+  useEffect(() => {
+    const compute = () => {
+      const el = wrapRef.current
+      if (!el) return
+      const top = el.getBoundingClientRect().top
+      setAvailH(Math.max(MIN_SECTION_H, Math.round(window.innerHeight - top - BOTTOM_GAP)))
+    }
+    compute()
+    window.addEventListener('resize', compute)
+    return () => window.removeEventListener('resize', compute)
+  }, [mobile, editing, adding])
+
   const filtered = useMemo(() => {
     let result = notes
     if (sectionFilter !== 'all') {
@@ -107,7 +123,6 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
-  const containerH = FILTER_H + pageSize * ROW_H + 4 + PAGI_H
   const selectedNote = selectedId ? notes.find(n => n.id === selectedId) : null
   const renderedSelectedContent = selectedNote ? renderWikiHtml(selectedNote.content) : ''
   const hasSelectedContent = htmlToPlainText(renderedSelectedContent).trim().length > 0
@@ -197,10 +212,10 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
         } />
       </div>
 
-      <div style={{
+      <div ref={wrapRef} style={{
         display: 'flex',
         flexDirection: mobile ? 'column' : 'row',
-        height: (mobile || editing || adding) ? 'auto' : containerH,
+        height: (mobile || editing || adding) ? 'auto' : availH,
       }}>
         {/* ===== LEFT PANEL: list ===== */}
         {(!mobile || (!selectedId && !adding)) && (
@@ -254,8 +269,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
             )}
           </div>
 
-          {/* Note rows */}
-          <div style={{ flex: 1, overflow: 'hidden', padding: '0 4px 4px' }}>
+          {/* Note rows — 뷰포트에 맞춘 높이 안에서 내부 스크롤 */}
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 4px 4px' }}>
             {loading ? (
               <div style={{ padding: '30px 14px', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
                 로딩 중...
