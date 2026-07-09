@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { AkrosSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { fetchAllTimeSeriesData, fetchAkrosProducts, fetchYearLaunches } from '@/lib/etf-client'
@@ -11,14 +11,9 @@ import { AumBlock } from './_components/aum-block'
 import { ProductBlock } from './_components/product-block'
 import { TaxInvoiceBlock, AkrosTaxInvoice } from './_components/tax-invoice-block'
 import { AkrosWikiBlock } from './_components/wiki-block'
-import { EmailBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/email-block'
-import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_components/email-detail-dialog'
-import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/compose-email-dialog'
 import { WikiNote } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-note-row'
 import { IssueTrackerBlock } from './_components/issue-tracker-block'
 import type { AkrosEmailIssue, AkrosEmailDeadline } from '@/lib/supabase-etf'
-
-type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 export default function AkrosPage() {
   const mobile = useIsMobile()
@@ -36,15 +31,6 @@ export default function AkrosPage() {
   // Wiki
   const [wikiNotes, setWikiNotes] = useState<WikiNote[]>([])
   const [wikiLoading, setWikiLoading] = useState(true)
-
-  // Email
-  const [emails, setEmails] = useState<FullEmail[]>([])
-  const [emailConnected, setEmailConnected] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [selectedEmail, setSelectedEmail] = useState<FullEmail | null>(null)
-  const [composeOpen, setComposeOpen] = useState(false)
-  const [composeMode, setComposeMode] = useState<ComposeMode>('new')
-  const [composeOriginal, setComposeOriginal] = useState<FullEmail | null>(null)
 
   // Email 이슈 트래킹
   const [issues, setIssues] = useState<AkrosEmailIssue[]>([])
@@ -94,76 +80,20 @@ export default function AkrosPage() {
     setWikiLoading(false)
   }, [])
 
-  const fetchEmails = useCallback(async () => {
-    try {
-      const statusRes = await fetch('/api/gmail/status?context=default')
-      if (!statusRes.ok) return
-      const statusData = await statusRes.json()
-      setEmailConnected(statusData.isConnected)
-      if (statusData.isConnected) {
-        const emailRes = await fetch('/api/gmail/emails?context=default&label=Akros&maxResults=50&daysBack=30&autoAnalyze=false')
-        if (emailRes.ok) {
-          const emailData = await emailRes.json()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setEmails((emailData.emails || []).map((e: any) => ({
-            id: e.id,
-            from: e.from || '',
-            fromName: e.fromName || undefined,
-            to: e.to || '',
-            subject: e.subject || '(제목 없음)',
-            date: e.date || new Date().toISOString(),
-            body: e.body || undefined,
-            snippet: e.snippet || undefined,
-            direction: e.direction || 'inbound',
-            category: e.category || null,
-            attachments: e.attachments || undefined,
-            unread: !e.isRead,
-            sourceLabel: 'Akros',
-            gmailContext: 'default',
-          })))
-        }
-      }
-    } catch { /* ignore */ }
-  }, [])
-
   useEffect(() => {
     let cancelled = false
     async function load() {
       await Promise.all([loadProducts(), loadInvoices(), loadWiki()])
       if (!cancelled) setLoadPhase(1)
-      await Promise.all([fetchEmails(), loadIssues()])
+      await loadIssues()
       if (!cancelled) setLoadPhase(2)
     }
     load()
     return () => { cancelled = true }
-  }, [loadProducts, loadInvoices, loadWiki, fetchEmails, loadIssues])
+  }, [loadProducts, loadInvoices, loadWiki, loadIssues])
   useAgentRefresh(['akros_', 'etf_', 'work_wiki'], () => {
     loadProducts(); loadInvoices(); loadWiki(); loadIssues()
   })
-
-  // Email handlers
-  const handleSyncEmails = async () => {
-    setIsSyncing(true)
-    try { await fetchEmails() } finally { setIsSyncing(false) }
-  }
-
-  const handleReply = (email: FullEmail) => {
-    setComposeMode('reply')
-    setComposeOriginal(email)
-    setComposeOpen(true)
-  }
-
-  const handleForward = (email: FullEmail) => {
-    setComposeMode('forward')
-    setComposeOriginal(email)
-    setComposeOpen(true)
-  }
-
-  const handleCompose = () => {
-    setComposeMode('new')
-    setComposeOriginal(null)
-    setComposeOpen(true)
-  }
 
   // Wiki CRUD handlers
   const handleCreateWiki = async (data: { section: 'akros'; title: string; content: string; attachments?: unknown }) => {
@@ -212,11 +142,12 @@ export default function AkrosPage() {
             </div>
           </div>
 
-          {/* Wiki + Email */}
+          {/* 업무위키 + 이메일 이슈 트래킹 (2열 시 1/2씩) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
+            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
             gap: 14,
+            alignItems: 'start',
           }}>
             <div style={{ minWidth: 0 }}>
               <AkrosWikiBlock
@@ -228,41 +159,15 @@ export default function AkrosPage() {
               />
             </div>
             <div style={{ minWidth: 0 }}>
-              <EmailBlock
-                emails={emails}
-                connected={emailConnected}
-                onSelectEmail={setSelectedEmail}
-                onSync={handleSyncEmails}
-                onCompose={handleCompose}
-                isSyncing={isSyncing}
+              <IssueTrackerBlock
+                issues={issues}
+                deadlines={deadlines}
+                loading={issuesLoading}
+                onRefresh={loadIssues}
               />
             </div>
           </div>
-
-          {/* 이메일 이슈 트래킹 (전폭) */}
-          <IssueTrackerBlock
-            issues={issues}
-            deadlines={deadlines}
-            loading={issuesLoading}
-            onRefresh={loadIssues}
-          />
         </div>
-
-        {/* Email dialogs */}
-        <EmailDetailDialog
-          email={selectedEmail}
-          onClose={() => setSelectedEmail(null)}
-          onReply={handleReply}
-          onForward={handleForward}
-        />
-        <ComposeEmailDialog
-          open={composeOpen}
-          mode={composeMode}
-          originalEmail={composeOriginal}
-          gmailContext={composeOriginal?.gmailContext || 'default'}
-          onClose={() => { setComposeOpen(false); setComposeOriginal(null) }}
-          onSent={() => { fetchEmails() }}
-        />
         </>
       )}
     </>
