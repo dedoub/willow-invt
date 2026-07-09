@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { SignalBar } from './_components/signal-bar'
 import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, StockQuote } from './_components/portfolio-kanban'
@@ -20,6 +21,7 @@ const BENCHMARK_MARKET = 'US'
 
 export default function InvestPage() {
   const mobile = useIsMobile()
+  const cols = useDashCols()
   const [loadPhase, setLoadPhase] = useState(0) // 0=nothing, 1=base, 2=quotes
   const [watchlistData, setWatchlistData] = useState<{ portfolio: WatchlistItem[]; watchlist: WatchlistItem[]; benchmark: WatchlistItem[] } | null>(null)
   const [signalData, setSignalData] = useState<SignalData[]>([])
@@ -513,7 +515,7 @@ export default function InvestPage() {
         />
 
         {loadPhase < 2 ? <InvestHoldingsSkeleton /> : (
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: 14, overflow: 'hidden' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
             <HoldingsBlock
               stockTrades={stockTradesFull}

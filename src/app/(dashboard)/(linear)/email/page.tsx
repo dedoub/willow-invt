@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { EmailBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/email-block'
 import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_components/email-detail-dialog'
 import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/compose-email-dialog'
@@ -18,6 +19,7 @@ const WORK_SOURCES = [
 
 export default function EmailPage() {
   const mobile = useIsMobile()
+  const cols = useDashCols()
 
   // 회사 이메일 (여러 context 집계)
   const [workEmails, setWorkEmails] = useState<FullEmail[]>([])
@@ -136,7 +138,7 @@ export default function EmailPage() {
     <>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+        gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
         gap: 14,
         alignItems: 'start',
       }}>

@@ -8,7 +8,7 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { ValueChainSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { useValuechainCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
+import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import type { ValueChainStats } from '@/lib/valuechain-supabase'
 
 const SITE_URL = 'https://valuechain.wiki'
@@ -27,7 +27,7 @@ const TIER_TONE: Record<string, { bg: string; fg: string }> = {
 
 export default function ValueChainPage() {
   const mobile = useIsMobile()
-  const cols = useValuechainCols()
+  const cols = useDashCols()
   const [stats, setStats] = useState<ValueChainStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

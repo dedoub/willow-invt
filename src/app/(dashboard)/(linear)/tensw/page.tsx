@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { TenswSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 
 // Blocks
@@ -34,6 +35,7 @@ type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 export default function TenswPage() {
   const mobile = useIsMobile()
+  const cols = useDashCols()
   const [loadPhase, setLoadPhase] = useState(0) // 0=nothing, 1=DB+wiki done, 2=all done
 
   // Data states
@@ -520,7 +522,7 @@ export default function TenswPage() {
           {/* Cash (1.5fr) + Sales+Loans (1fr) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr',
+            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'),
             gap: 14,
             overflow: 'hidden',
           }}>

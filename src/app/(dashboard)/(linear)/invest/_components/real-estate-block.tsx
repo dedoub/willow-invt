@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -394,6 +395,7 @@ function TableSkeleton() {
 
 export function RealEstateBlock() {
   const mobile = useIsMobile()
+  const cols = useDashCols()
 
   /* ── Filter state ── */
   const [districts, setDistricts] = useState<string[]>([...ALL_DISTRICTS])
@@ -936,7 +938,7 @@ export function RealEstateBlock() {
         {/* 2-column grid: 매매 (left) / 전세 (right) */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+          gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
           gap: 12,
         }}>
           {/* ── Left: 매매 ── */}

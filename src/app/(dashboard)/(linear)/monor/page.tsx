@@ -5,7 +5,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { VoicecardsBlock } from './_components/voicecards-block'
 import { VoicecardsSettingsDialog } from './_components/voicecards-settings-dialog'
 import { ReviewnotesBlock } from './_components/reviewnotes-block'
-import { useMonorCols } from './_components/cols-toggle'
+import { useDashCols } from './_components/cols-toggle'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats } from '@/lib/reviewnotes-supabase'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
@@ -110,7 +110,7 @@ interface AnonymousEventStats {
 
 export default function MonorPage() {
   const mobile = useIsMobile()
-  const cols = useMonorCols()
+  const cols = useDashCols()
 
   // VoiceCards state — 3개 파트 독립 로딩 (사용자/이벤트/매출)
   const [vcUsersLoading, setVcUsersLoading] = useState(true)

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { EtcSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { fetchETFDisplayData, fetchETFProducts, fetchHistoricalData, deleteETFProduct } from '@/lib/etf-client'
 import type { ETFDisplayData, HistoricalDataPoint } from '@/lib/etf-types'
@@ -24,6 +25,7 @@ type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 export default function EtcPage() {
   const mobile = useIsMobile()
+  const cols = useDashCols()
   const [loadPhase, setLoadPhase] = useState(0) // 0=loading, 1=DB done, 2=all done
 
   // Products + Stats
@@ -189,7 +191,7 @@ export default function EtcPage() {
           {/* Stats + Products (left 2/3) + Invoices (right 1/3, full height) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
+            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '2fr 1fr'),
             gridTemplateRows: mobile ? 'auto auto auto' : 'auto 1fr',
             gap: 14,
           }}>

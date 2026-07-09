@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { RyuhaSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule, RyuhaDailyMemo, RyuhaBodyRecord } from '@/types/ryuha'
 import { CalendarBlock } from './_components/calendar-block'
@@ -26,6 +27,7 @@ interface RyuhaNote {
 
 export default function RyuhaPage() {
   const mobile = useIsMobile()
+  const cols = useDashCols()
   const [loading, setLoading] = useState(true)
   const [subjects, setSubjects] = useState<RyuhaSubject[]>([])
   const [textbooks, setTextbooks] = useState<RyuhaTextbook[]>([])
@@ -361,7 +363,7 @@ export default function RyuhaPage() {
           {/* Textbook + Progress 2-col grid */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
             gap: 14,
           }}>
             <TextbookBlock

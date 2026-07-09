@@ -7,7 +7,7 @@ import { JetBrains_Mono } from 'next/font/google'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LinearSidebar } from '@/app/(dashboard)/_components/linear-sidebar'
 import { LinearHeader } from '@/app/(dashboard)/_components/linear-header'
-import { MonorColsToggle, ValuechainColsToggle } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
+import { DashColsToggle } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill'
 
 const interTight = InterTight({
@@ -35,6 +35,11 @@ const PAGE_INFO: Record<string, { group: string; title: string }> = {
   '/monor':      { group: '프로젝트', title: 'MonoR Apps' },
   '/valuechain': { group: '프로젝트', title: 'LLM Wiki' },
 }
+
+// 1열/2열 토글을 상단바에 노출할 페이지 (바디 그리드가 있는 페이지들). wiki는 마스터-디테일이라 제외.
+const COLS_TOGGLE_PATHS = new Set([
+  '/mgmt', '/invest', '/realestate', '/akros', '/etc', '/tensw', '/ryuha', '/email', '/monor', '/valuechain',
+])
 
 export default function LinearRouteLayout({
   children,
@@ -92,9 +97,7 @@ export default function LinearRouteLayout({
             onMenuToggle={() => setMenuOpen(v => !v)}
             onSidebarToggle={() => setSidebarOpen(v => !v)}
             sidebarOpen={sidebarOpen}
-            actions={!mobile && pathname === '/monor' ? <MonorColsToggle />
-              : !mobile && pathname === '/valuechain' ? <ValuechainColsToggle />
-              : undefined}
+            actions={!mobile && COLS_TOGGLE_PATHS.has(pathname) ? <DashColsToggle /> : undefined}
           />
           <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '16px 12px 24px' : '16px 20px 24px' }}>
             {children}

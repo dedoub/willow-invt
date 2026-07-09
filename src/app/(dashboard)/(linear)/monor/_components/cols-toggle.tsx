@@ -79,3 +79,10 @@ const valuechain = makeColsToggle('valuechain-cols')
 export const getValuechainCols = valuechain.read
 export const useValuechainCols = valuechain.useCols
 export const ValuechainColsToggle = valuechain.Toggle
+
+// ─── 전역(모든 페이지 공용) ───────────────────────────────────────────────────────
+// 한 번 토글하면 지원하는 모든 페이지의 바디 그리드가 함께 1열/2열로 바뀐다.
+const dash = makeColsToggle('dash-cols')
+export const getDashCols = dash.read
+export const useDashCols = dash.useCols
+export const DashColsToggle = dash.Toggle
