@@ -15,6 +15,8 @@ import { EmailBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/email-bl
 import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_components/email-detail-dialog'
 import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/compose-email-dialog'
 import { WikiNote } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-note-row'
+import { IssueTrackerBlock } from './_components/issue-tracker-block'
+import type { AkrosEmailIssue, AkrosEmailDeadline } from '@/lib/supabase-etf'
 
 type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
@@ -43,6 +45,25 @@ export default function AkrosPage() {
   const [composeOpen, setComposeOpen] = useState(false)
   const [composeMode, setComposeMode] = useState<ComposeMode>('new')
   const [composeOriginal, setComposeOriginal] = useState<FullEmail | null>(null)
+
+  // Email 이슈 트래킹
+  const [issues, setIssues] = useState<AkrosEmailIssue[]>([])
+  const [deadlines, setDeadlines] = useState<AkrosEmailDeadline[]>([])
+  const [issuesLoading, setIssuesLoading] = useState(true)
+
+  const loadIssues = useCallback(async () => {
+    setIssuesLoading(true)
+    try {
+      const res = await fetch('/api/akros/issues', { cache: 'no-store' })
+      if (res.ok) {
+        const data = await res.json()
+        setIssues(data.issues || [])
+        setDeadlines(data.deadlines || [])
+      }
+    } finally {
+      setIssuesLoading(false)
+    }
+  }, [])
 
   const loadProducts = useCallback(async () => {
     const [ts, prods, launches] = await Promise.all([
@@ -110,14 +131,14 @@ export default function AkrosPage() {
     async function load() {
       await Promise.all([loadProducts(), loadInvoices(), loadWiki()])
       if (!cancelled) setLoadPhase(1)
-      await fetchEmails()
+      await Promise.all([fetchEmails(), loadIssues()])
       if (!cancelled) setLoadPhase(2)
     }
     load()
     return () => { cancelled = true }
-  }, [loadProducts, loadInvoices, loadWiki, fetchEmails])
+  }, [loadProducts, loadInvoices, loadWiki, fetchEmails, loadIssues])
   useAgentRefresh(['akros_', 'etf_', 'work_wiki'], () => {
-    loadProducts(); loadInvoices(); loadWiki()
+    loadProducts(); loadInvoices(); loadWiki(); loadIssues()
   })
 
   // Email handlers
@@ -217,6 +238,14 @@ export default function AkrosPage() {
               />
             </div>
           </div>
+
+          {/* 이메일 이슈 트래킹 (전폭) */}
+          <IssueTrackerBlock
+            issues={issues}
+            deadlines={deadlines}
+            loading={issuesLoading}
+            onRefresh={loadIssues}
+          />
         </div>
 
         {/* Email dialogs */}

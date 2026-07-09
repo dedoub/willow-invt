@@ -954,6 +954,59 @@ export async function fetchYearLaunches(year: number): Promise<number> {
   return data?.length || 0
 }
 
+// ============ Akros 이메일 이슈 트래킹 (수퍼노바 DB) ============
+
+// 이메일에서 추출된 진행 이슈. Akros 페이지 이슈 트래킹 섹션용.
+export interface AkrosEmailIssue {
+  id: string
+  issue_code: string | null
+  title: string
+  cluster: string | null
+  counterparty: string | null
+  status: string // 'needs-action' | 'waiting' | 'resolved'
+  last_email_date: string | null
+  next_action: string | null
+  deadline: string | null
+  thread_url: string | null
+  detail: string | null
+  resolved_at: string | null
+  updated_at: string | null
+}
+
+// 다가오는 주요 마감/일정
+export interface AkrosEmailDeadline {
+  id: string
+  due_label: string | null
+  due_date: string | null
+  event: string
+}
+
+export async function fetchAkrosEmailIssues(): Promise<AkrosEmailIssue[]> {
+  const { data, error } = await akrosDb
+    .from('email_issues')
+    .select('id, issue_code, title, cluster, counterparty, status, last_email_date, next_action, deadline, thread_url, detail, resolved_at, updated_at')
+    .order('updated_at', { ascending: false })
+    .limit(500)
+  if (error) {
+    console.error('Error fetching Akros email issues:', error)
+    return []
+  }
+  return (data || []) as AkrosEmailIssue[]
+}
+
+export async function fetchAkrosEmailDeadlines(): Promise<AkrosEmailDeadline[]> {
+  const { data, error } = await akrosDb
+    .from('email_deadlines')
+    .select('id, due_label, due_date, event')
+    .order('due_date', { ascending: true })
+    .limit(100)
+  if (error) {
+    console.error('Error fetching Akros email deadlines:', error)
+    return []
+  }
+  return (data || []) as AkrosEmailDeadline[]
+}
+
 // ============ Akros 상품 목록 ============
 
 export interface AkrosProduct {
