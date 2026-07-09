@@ -1128,32 +1128,35 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     purchasedToday: userActivityMap.get(u.user_id)?.purchasedToday || 0,
     balanceDeltaToday: userActivityMap.get(u.user_id)?.balanceDeltaToday || 0,
     sheetsDeltaToday: userActivityMap.get(u.user_id)?.sheetsDeltaToday || 0,
-    // 구매 고려 신호. 칩은 모든 신호를 표시하되, 핫리드 배지는 엄격 기준:
-    //   강신호(AI 생성 or 배너 탭 = 크레딧 소모·구매 CTA, 지불 직전) && 최근 14일 && 활성(시트≥1) && 미구매.
-    //   프리미엄보이스 '미리듣기'는 둘러보기라 약해서 핫리드에서 제외(칩으로만 표시).
+    // 구매 신호 (단순화, 2026-07-09). CEO 정의: 핫리드 = 헤비 유저(TTS 많이 듣고 ·
+    //   시트 많고 · 카드 많고 · 최근 연속 사용) 이면서 업그레이드 모달을 눌러본 미구매자.
+    //   intentBanner = 크레딧/프리미엄(업그레이드) 배너·모달 탭. 나머지 intent 플래그는
+    //   데이터로만 유지(표엔 핫리드+점수+업그레이드클릭만 노출).
     intentPremiumVoice: userIntentMap.get(u.user_id)?.premiumVoice || false,
     intentAi: userIntentMap.get(u.user_id)?.ai || false,
     intentBanner: userIntentMap.get(u.user_id)?.banner || false,
     intentGated: userIntentMap.get(u.user_id)?.gated || false,
     hotLead: (() => {
-      const it = userIntentMap.get(u.user_id)
-      if (!it || u.has_purchased) return false
-      const strongSignal = it.ai || it.banner
-      const recent = !!it.lastIntent && (Date.now() - new Date(it.lastIntent).getTime()) <= 14 * 864e5
-      const active = (u.sheet_ids?.length || 0) > 0
-      return strongSignal && recent && active
+      if (u.has_purchased) return false
+      const clickedUpgrade = !!userIntentMap.get(u.user_id)?.banner // 업그레이드 모달 클릭
+      if (!clickedUpgrade) return false
+      const listen = userCreditsUsedMap.get(u.user_id) || 0         // TTS/듣기 볼륨
+      const sheets = u.sheet_ids?.length || 0
+      const cards = userCardsMap.get(u.user_id) || 0
+      const streak = userActivityMap.get(u.user_id)?.activeDays7d || 0 // 최근 7일 활동일
+      // 헤비 유저(듣기·시트·카드·연속사용) 임계값 — 소표본이라 조정 가능.
+      return listen >= 20 && sheets >= 2 && cards >= 40 && streak >= 3
     })(),
-    // 구매 가능성 점수 — 헤비 TTS 최우선(결제자=몰입 듣기 유저 패턴). 듣기 볼륨을
-    // 기저로 하고 프리미엄보이스 오디션(강신호)·AI/배너 의도·최근활동을 가산. 이미
-    // 구매한 유저는 타겟 아님 → 0. 오퍼 캠페인 대상 랭킹의 기준값.
+    // 구매 가능성 점수 — 헤비 유저 복합(결제자=몰입 듣기 패턴). 듣기(TTS) 볼륨을 기저로
+    // 시트·카드·연속사용·업그레이드클릭을 가산. 구매자=0. 오퍼 타겟 랭킹 기준값.
     purchaseScore: (() => {
       if (u.has_purchased) return 0
-      const listen = userCreditsUsedMap.get(u.user_id) || 0 // TTS/듣기 볼륨 (주 신호)
-      const it = userIntentMap.get(u.user_id)
-      const premiumVoice = it?.premiumVoice ? 25 : 0        // 프리미엄 보이스 오디션 = 강한 구매 신호
-      const aiOrBanner = (it?.ai || it?.banner) ? 10 : 0    // AI 생성/배너 탭
-      const active7 = (userActivityMap.get(u.user_id)?.activeDays7d || 0) * 3 // 최근 7일 활성
-      return listen + premiumVoice + aiOrBanner + active7
+      const listen = userCreditsUsedMap.get(u.user_id) || 0            // TTS/듣기 (주 신호)
+      const sheets = u.sheet_ids?.length || 0
+      const cards = userCardsMap.get(u.user_id) || 0
+      const streak = userActivityMap.get(u.user_id)?.activeDays7d || 0
+      const clickedUpgrade = userIntentMap.get(u.user_id)?.banner ? 20 : 0
+      return Math.round(listen + sheets * 5 + Math.min(cards, 300) * 0.2 + streak * 8 + clickedUpgrade)
     })(),
     lastIntentAt: userIntentMap.get(u.user_id)?.lastIntent || null,
     // 학습 활동(user_analytics.last_updated)과 앱 이벤트 최근 시각 중 더 최근값

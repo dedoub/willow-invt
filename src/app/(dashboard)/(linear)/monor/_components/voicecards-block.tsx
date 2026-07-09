@@ -194,34 +194,30 @@ function intentScore(u: UserStats['users'][number]): number {
   return (u.purchaseScore ?? 0) * 1e13 + ts
 }
 
-// 구매 고려 신호 셀 — 핫리드 배지 + 신호 칩(🔊 프리미엄보이스 / ✨ AI / 💳 배너) + 마지막 의도 시각
+// 구매 신호 셀 (단순화) — 구매가능성 점수 + 🔥 핫리드(헤비 유저 & 업그레이드 클릭) +
+// 💳 업그레이드 모달 클릭. 나머지 약한 신호(프리미엄보이스 미리듣기·AI·게이트)는 표에서 생략.
 function IntentCell({ u }: { u: UserStats['users'][number] }) {
-  const chips = [
-    { icon: '🔊', on: u.intentPremiumVoice, title: '프리미엄 보이스 관심' },
-    { icon: '✨', on: u.intentAi, title: 'AI 생성 관심' },
-    { icon: '💳', on: u.intentBanner, title: '프리미엄 배너 탭' },
-  ].filter(c => c.on)
-  // 헤비 TTS(듣기) 유저는 의도 칩이 없어도 구매 가능성이 높다 → purchaseScore>0면 표시.
-  const hasAny = chips.length > 0 || u.intentGated || (u.purchaseScore ?? 0) > 0
-  if (!hasAny) return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</div>
+  const score = u.purchaseScore ?? 0
+  if (score <= 0 && !u.intentBanner) {
+    return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</div>
+  }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
         {u.hotLead && (
-          <span title="핫리드: 강한 구매의도(AI/배너) · 최근 14일 · 활성 · 미구매" style={{
+          <span title="핫리드: 헤비 유저(듣기·시트·카드·연속사용 많음) & 업그레이드 모달 클릭 & 미구매" style={{
             fontSize: 'calc(9px * var(--fz, 1))', background: '#FEE2E2', color: '#B91C1C',
             borderRadius: 3, padding: '0 3px', fontWeight: t.weight.medium,
           }}>🔥</span>
         )}
-        {(u.purchaseScore ?? 0) > 0 && (
-          <span title="구매 가능성 점수 — 헤비 TTS(듣기 볼륨) 최우선 + 프리미엄보이스 오디션·AI/배너 의도 + 최근활동. 미구매자만." style={{
+        {score > 0 && (
+          <span title="구매 가능성 점수 — 헤비 유저 복합(듣기 TTS 최우선 + 시트·카드·연속사용 + 업그레이드 클릭). 미구매자만." style={{
             fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.mono,
             color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums',
-          }}>{u.purchaseScore}</span>
+          }}>{score}</span>
         )}
-        {chips.map(c => <span key={c.icon} title={c.title} style={{ fontSize: 'calc(11px * var(--fz, 1))' }}>{c.icon}</span>)}
-        {chips.length === 0 && u.intentGated && (
-          <span title="게이트 충돌 (약한 신호)" style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>🔒</span>
+        {u.intentBanner && (
+          <span title="업그레이드 모달/배너 클릭" style={{ fontSize: 'calc(11px * var(--fz, 1))' }}>💳</span>
         )}
       </div>
       {u.lastIntentAt && (
