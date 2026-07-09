@@ -38,8 +38,11 @@ interface Props {
   onRefresh?: () => void
 }
 
+const PAGE_SIZE = 8
+
 export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Props) {
   const [filter, setFilter] = useState<StatusFilter>('needs-action')
+  const [page, setPage] = useState(0)
 
   const counts = useMemo(() => {
     const c = { 'needs-action': 0, waiting: 0, resolved: 0 } as Record<string, number>
@@ -61,6 +64,10 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
       return (b.updated_at || '').localeCompare(a.updated_at || '')
     })
   }, [issues, filter])
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages - 1)
+  const paged = rows.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
 
   const FILTERS: { key: StatusFilter; label: string }[] = [
     { key: 'needs-action', label: `처리필요 ${counts['needs-action'] || 0}` },
@@ -87,18 +94,18 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
         />
       </div>
 
-      {/* 다가오는 마감 스트립 */}
+      {/* 다가오는 마감 스트립 (줄바꿈, 글자 안 잘림) */}
       {deadlines.length > 0 && (
         <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 14px 10px',
+          display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 14px 18px',
         }}>
           {deadlines.map(d => {
             const n = dday(d.due_date)
             const overdue = n !== null && n < 0
             const soon = n !== null && n >= 0 && n <= 3
             return (
-              <div key={d.id} title={d.event} style={{
-                flexShrink: 0, maxWidth: 260, display: 'flex', alignItems: 'center', gap: 6,
+              <div key={d.id} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
                 background: t.neutrals.inner, borderRadius: t.radius.md, padding: '5px 9px',
               }}>
                 <LIcon name="calendar" size={11} color={overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.subtle} />
@@ -108,10 +115,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
                 }}>
                   {d.due_label || fmtDate(d.due_date)}
                 </span>
-                <span style={{
-                  fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>
+                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text }}>
                   {d.event}
                 </span>
               </div>
@@ -125,7 +129,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
         {FILTERS.map(f => {
           const active = filter === f.key
           return (
-            <button key={f.key} onClick={() => setFilter(f.key)} style={{
+            <button key={f.key} onClick={() => { setFilter(f.key); setPage(0) }} style={{
               border: 'none', cursor: 'pointer', borderRadius: t.radius.pill,
               padding: '3px 10px', fontFamily: t.font.sans,
               fontSize: 'calc(11px * var(--fz, 1))', fontWeight: active ? t.weight.medium : t.weight.regular,
@@ -144,7 +148,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
           <div style={{ padding: '28px 14px', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>불러오는 중…</div>
         ) : rows.length === 0 ? (
           <div style={{ padding: '28px 14px', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>해당 상태의 이슈가 없습니다</div>
-        ) : rows.map(issue => {
+        ) : paged.map(issue => {
           const sm = STATUS_META[issue.status] || { label: issue.status, ...tonePalettes.neutral, rank: 9 }
           const n = issue.status === 'resolved' ? null : dday(issue.deadline)
           const overdue = n !== null && n < 0
@@ -213,6 +217,30 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
           )
         })}
       </div>
+
+      {/* 페이지네이션 (wiki-list 패턴 참조) */}
+      {!loading && rows.length > PAGE_SIZE && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
+          padding: '8px 14px', borderTop: `1px solid ${t.neutrals.line}`,
+        }}>
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            {safePage * PAGE_SIZE + 1}-{Math.min((safePage + 1) * PAGE_SIZE, rows.length)} / {rows.length}
+          </span>
+          <button disabled={safePage === 0} onClick={() => setPage(safePage - 1)} style={{
+            background: 'transparent', border: 'none', cursor: safePage === 0 ? 'default' : 'pointer',
+            padding: 4, borderRadius: 4, color: safePage === 0 ? t.neutrals.line : t.neutrals.muted, opacity: safePage === 0 ? 0.4 : 1,
+          }}>
+            <LIcon name="chevronLeft" size={13} stroke={2} />
+          </button>
+          <button disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)} style={{
+            background: 'transparent', border: 'none', cursor: safePage >= totalPages - 1 ? 'default' : 'pointer',
+            padding: 4, borderRadius: 4, color: safePage >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted, opacity: safePage >= totalPages - 1 ? 0.4 : 1,
+          }}>
+            <LIcon name="chevronRight" size={13} stroke={2} />
+          </button>
+        </div>
+      )}
     </LCard>
   )
 }

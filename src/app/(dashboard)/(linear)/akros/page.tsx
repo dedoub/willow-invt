@@ -142,13 +142,21 @@ export default function AkrosPage() {
             </div>
           </div>
 
-          {/* 업무위키 + 이메일 이슈 트래킹 (2열 시 1/2씩) */}
+          {/* 이메일 이슈 트래킹(좌 2/3) + 업무위키(우 1/3) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
+            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '2fr 1fr'),
             gap: 14,
             alignItems: 'start',
           }}>
+            <div style={{ minWidth: 0 }}>
+              <IssueTrackerBlock
+                issues={issues}
+                deadlines={deadlines}
+                loading={issuesLoading}
+                onRefresh={loadIssues}
+              />
+            </div>
             <div style={{ minWidth: 0 }}>
               <AkrosWikiBlock
                 notes={wikiNotes}
@@ -156,14 +164,6 @@ export default function AkrosPage() {
                 onCreate={handleCreateWiki}
                 onUpdate={handleUpdateWiki}
                 onDelete={handleDeleteWiki}
-              />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <IssueTrackerBlock
-                issues={issues}
-                deadlines={deadlines}
-                loading={issuesLoading}
-                onRefresh={loadIssues}
               />
             </div>
           </div>
