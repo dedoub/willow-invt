@@ -197,11 +197,11 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
             }}>
               {/* 좌: 코드 + 제목 + 메타 */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 3 }}>
+                <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', alignItems: 'flex-start', gap: mobile ? 3 : 6, marginBottom: 3 }}>
                   {issue.issue_code && (
                     <span style={{
                       fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
-                      color: t.neutrals.subtle, background: t.neutrals.inner, borderRadius: 3, padding: '1px 4px', flexShrink: 0, marginTop: 1,
+                      color: t.neutrals.subtle, background: t.neutrals.inner, borderRadius: 3, padding: '1px 4px', flexShrink: 0, marginTop: mobile ? 0 : 1,
                     }}>{issue.issue_code}</span>
                   )}
                   <span style={{
