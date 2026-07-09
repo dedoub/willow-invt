@@ -189,67 +189,91 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
           const n = issue.status === 'resolved' ? null : dday(issue.deadline)
           const overdue = n !== null && n < 0
           const soon = n !== null && n >= 0 && n <= 3
-          return (
-            <div key={issue.id} style={{
-              display: 'flex', flexDirection: mobile ? 'column' : 'row',
-              alignItems: mobile ? 'stretch' : 'flex-start', gap: mobile ? 6 : 10,
-              padding: '9px 14px', borderTop: `1px solid ${t.neutrals.line}`,
-            }}>
-              {/* 좌: 코드 + 제목 + 메타 */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', alignItems: 'flex-start', gap: mobile ? 3 : 6, marginBottom: 3 }}>
-                  {issue.issue_code && (
-                    <span style={{
-                      fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
-                      color: t.neutrals.subtle, background: t.neutrals.inner, borderRadius: 3, padding: '1px 4px', flexShrink: 0, marginTop: mobile ? 0 : 1,
-                    }}>{issue.issue_code}</span>
-                  )}
-                  <span style={{
-                    fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text, lineHeight: 1.35,
-                  }}>{issue.title}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle }}>
-                  {issue.cluster && <span style={{ color: t.brand[600] }}>{issue.cluster}</span>}
-                  {issue.counterparty && <span>· {issue.counterparty}</span>}
-                  {issue.last_email_date && <span style={{ fontFamily: t.font.mono }}>· 최근메일 {fmtDate(issue.last_email_date)}</span>}
-                </div>
-                {/* 상세 내용 — 이슈별 내용 파악의 핵심, 항상 노출 */}
-                {issue.detail && (
-                  <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, marginTop: 5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
-                    {issue.detail}
-                  </div>
-                )}
-                {issue.next_action && issue.status !== 'resolved' && (
-                  <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.brand[700], marginTop: 4, fontWeight: t.weight.medium }}>
-                    → {issue.next_action}
-                  </div>
-                )}
-              </div>
 
-              {/* 우: 마감 + 상태 + Gmail */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                {n !== null && (
-                  <span style={{
-                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
-                    color: overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.muted, whiteSpace: 'nowrap',
-                  }}>
-                    {overdue ? `초과 ${Math.abs(n)}일` : n === 0 ? '오늘' : `D-${n}`}
-                  </span>
-                )}
+          const codeChip = issue.issue_code ? (
+            <span style={{
+              fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
+              color: t.neutrals.subtle, background: t.neutrals.inner, borderRadius: 3, padding: '1px 4px', flexShrink: 0,
+            }}>{issue.issue_code}</span>
+          ) : null
+
+          // 2열 요소: 마감 D-day + 상태 배지 + Gmail 링크
+          const controls = (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              {n !== null && (
                 <span style={{
-                  fontSize: `calc(${t.badge.size}px * var(--fz, 1))`, fontWeight: t.badge.weight,
-                  padding: `${t.badge.padY}px ${t.badge.padX}px`, borderRadius: t.badge.radius,
-                  background: sm.bg, color: sm.fg, whiteSpace: 'nowrap',
-                }}>{sm.label}</span>
-                {issue.thread_url && (
-                  <a href={issue.thread_url} target="_blank" rel="noopener noreferrer" title="Gmail 스레드 열기" style={{
-                    width: 26, height: 26, borderRadius: t.radius.sm, background: t.neutrals.inner,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
-                  }}>
-                    <LIcon name="mail" size={12} />
-                  </a>
-                )}
+                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
+                  color: overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.muted, whiteSpace: 'nowrap',
+                }}>
+                  {overdue ? `초과 ${Math.abs(n)}일` : n === 0 ? '오늘' : `D-${n}`}
+                </span>
+              )}
+              <span style={{
+                fontSize: `calc(${t.badge.size}px * var(--fz, 1))`, fontWeight: t.badge.weight,
+                padding: `${t.badge.padY}px ${t.badge.padX}px`, borderRadius: t.badge.radius,
+                background: sm.bg, color: sm.fg, whiteSpace: 'nowrap',
+              }}>{sm.label}</span>
+              {issue.thread_url && (
+                <a href={issue.thread_url} target="_blank" rel="noopener noreferrer" title="Gmail 스레드 열기" style={{
+                  width: 26, height: 26, borderRadius: t.radius.sm, background: t.neutrals.inner,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted, flexShrink: 0,
+                }}>
+                  <LIcon name="mail" size={12} />
+                </a>
+              )}
+            </div>
+          )
+
+          const titleEl = (
+            <span style={{
+              fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text, lineHeight: 1.35,
+            }}>{issue.title}</span>
+          )
+
+          const body = (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle }}>
+                {issue.cluster && <span style={{ color: t.brand[600] }}>{issue.cluster}</span>}
+                {issue.counterparty && <span>· {issue.counterparty}</span>}
+                {issue.last_email_date && <span style={{ fontFamily: t.font.mono }}>· 최근메일 {fmtDate(issue.last_email_date)}</span>}
               </div>
+              {issue.detail && (
+                <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, marginTop: 5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
+                  {issue.detail}
+                </div>
+              )}
+              {issue.next_action && issue.status !== 'resolved' && (
+                <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.brand[700], marginTop: 4, fontWeight: t.weight.medium }}>
+                  → {issue.next_action}
+                </div>
+              )}
+            </>
+          )
+
+          return (
+            <div key={issue.id} style={{ padding: '9px 14px', borderTop: `1px solid ${t.neutrals.line}` }}>
+              {mobile ? (
+                <>
+                  {/* 상단: 이슈번호(좌) + 2열 요소(우) */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                    {codeChip || <span />}
+                    {controls}
+                  </div>
+                  <div style={{ marginBottom: 3 }}>{titleEl}</div>
+                  {body}
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 3 }}>
+                      {codeChip}
+                      {titleEl}
+                    </div>
+                    {body}
+                  </div>
+                  {controls}
+                </div>
+              )}
             </div>
           )
         })}
