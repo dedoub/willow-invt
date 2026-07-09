@@ -60,6 +60,12 @@ interface UserStats {
     purchasedToday: number
     balanceDeltaToday: number
     sheetsDeltaToday: number
+    intentPremiumVoice: boolean
+    intentAi: boolean
+    intentBanner: boolean
+    intentGated: boolean
+    hotLead: boolean
+    lastIntentAt: string | null
     createdAt: string
     lastActiveAt: string | null
   }>
