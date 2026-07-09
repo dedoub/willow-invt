@@ -923,6 +923,7 @@ export interface VoicecardsUserStats {
     intentBanner: boolean       // 크레딧/프리미엄 배너 탭
     intentGated: boolean        // 게이트 충돌(약한 신호)
     hotLead: boolean            // 엄격 기준: 강신호(AI/배너)+최근14일+활성(시트≥1)+미구매
+    purchaseScore: number       // 구매 가능성 점수. 헤비 TTS(듣기 볼륨) 최우선 + 프리미엄보이스 오디션/AI·배너 의도 + 최근활동. 구매자=0
     lastIntentAt: string | null // 가장 최근 구매의도 이벤트 시각
     createdAt: string
     lastActiveAt: string | null
@@ -1141,6 +1142,18 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       const recent = !!it.lastIntent && (Date.now() - new Date(it.lastIntent).getTime()) <= 14 * 864e5
       const active = (u.sheet_ids?.length || 0) > 0
       return strongSignal && recent && active
+    })(),
+    // 구매 가능성 점수 — 헤비 TTS 최우선(결제자=몰입 듣기 유저 패턴). 듣기 볼륨을
+    // 기저로 하고 프리미엄보이스 오디션(강신호)·AI/배너 의도·최근활동을 가산. 이미
+    // 구매한 유저는 타겟 아님 → 0. 오퍼 캠페인 대상 랭킹의 기준값.
+    purchaseScore: (() => {
+      if (u.has_purchased) return 0
+      const listen = userCreditsUsedMap.get(u.user_id) || 0 // TTS/듣기 볼륨 (주 신호)
+      const it = userIntentMap.get(u.user_id)
+      const premiumVoice = it?.premiumVoice ? 25 : 0        // 프리미엄 보이스 오디션 = 강한 구매 신호
+      const aiOrBanner = (it?.ai || it?.banner) ? 10 : 0    // AI 생성/배너 탭
+      const active7 = (userActivityMap.get(u.user_id)?.activeDays7d || 0) * 3 // 최근 7일 활성
+      return listen + premiumVoice + aiOrBanner + active7
     })(),
     lastIntentAt: userIntentMap.get(u.user_id)?.lastIntent || null,
     // 학습 활동(user_analytics.last_updated)과 앱 이벤트 최근 시각 중 더 최근값

@@ -54,6 +54,7 @@ interface UserStats {
     intentBanner: boolean
     intentGated: boolean
     hotLead: boolean
+    purchaseScore: number
     lastIntentAt: string | null
     createdAt: string
     lastActiveAt: string | null
@@ -186,10 +187,11 @@ const userDateCell: React.CSSProperties = {
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
 }
 
-// 정렬용 점수: 핫리드(최상위) → 최근 의도 시각. 미표시(신호 없음)는 0.
+// 정렬용 점수: 구매 가능성(purchaseScore) 최우선 — 헤비 TTS(듣기 볼륨)를 기저로 한
+// 서버측 점수(결제자=몰입 듣기 유저 패턴). 동점 시 최근 의도 시각. 구매자/무신호는 0.
 function intentScore(u: UserStats['users'][number]): number {
   const ts = u.lastIntentAt ? new Date(u.lastIntentAt).getTime() : 0
-  return (u.hotLead ? 1 : 0) * 1e15 + ts
+  return (u.purchaseScore ?? 0) * 1e13 + ts
 }
 
 // 구매 고려 신호 셀 — 핫리드 배지 + 신호 칩(🔊 프리미엄보이스 / ✨ AI / 💳 배너) + 마지막 의도 시각
@@ -199,7 +201,8 @@ function IntentCell({ u }: { u: UserStats['users'][number] }) {
     { icon: '✨', on: u.intentAi, title: 'AI 생성 관심' },
     { icon: '💳', on: u.intentBanner, title: '프리미엄 배너 탭' },
   ].filter(c => c.on)
-  const hasAny = chips.length > 0 || u.intentGated
+  // 헤비 TTS(듣기) 유저는 의도 칩이 없어도 구매 가능성이 높다 → purchaseScore>0면 표시.
+  const hasAny = chips.length > 0 || u.intentGated || (u.purchaseScore ?? 0) > 0
   if (!hasAny) return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</div>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
@@ -209,6 +212,12 @@ function IntentCell({ u }: { u: UserStats['users'][number] }) {
             fontSize: 'calc(9px * var(--fz, 1))', background: '#FEE2E2', color: '#B91C1C',
             borderRadius: 3, padding: '0 3px', fontWeight: t.weight.medium,
           }}>🔥</span>
+        )}
+        {(u.purchaseScore ?? 0) > 0 && (
+          <span title="구매 가능성 점수 — 헤비 TTS(듣기 볼륨) 최우선 + 프리미엄보이스 오디션·AI/배너 의도 + 최근활동. 미구매자만." style={{
+            fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: t.weight.medium, fontFamily: t.font.mono,
+            color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums',
+          }}>{u.purchaseScore}</span>
         )}
         {chips.map(c => <span key={c.icon} title={c.title} style={{ fontSize: 'calc(11px * var(--fz, 1))' }}>{c.icon}</span>)}
         {chips.length === 0 && u.intentGated && (

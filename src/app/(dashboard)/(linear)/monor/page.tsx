@@ -65,6 +65,7 @@ interface UserStats {
     intentBanner: boolean
     intentGated: boolean
     hotLead: boolean
+    purchaseScore: number
     lastIntentAt: string | null
     createdAt: string
     lastActiveAt: string | null
