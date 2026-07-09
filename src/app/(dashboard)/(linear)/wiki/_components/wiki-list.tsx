@@ -53,6 +53,8 @@ interface WikiListProps {
   onUpdate: (id: string, data: Partial<{ title: string; content: string; section: string; is_pinned: boolean; attachments: unknown; memos: unknown }>) => Promise<void>
   onDelete: (id: string) => Promise<void>
   hideFilter?: boolean
+  // 좁은 임베드(예: 아크로스 1/3 칼럼) — 모바일식 마스터-디테일 + 부모 높이 채움
+  embedded?: boolean
 }
 
 function fmtDate(dateStr: string): string {
@@ -72,8 +74,10 @@ function getSearchableWikiText(content: string): string {
   return htmlToPlainText(renderWikiHtml(content))
 }
 
-export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFilter }: WikiListProps) {
+export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFilter, embedded }: WikiListProps) {
   const mobile = useIsMobile()
+  // 임베드 모드에선 실제 모바일이 아니어도 모바일식(리스트 → 클릭 시 상세, 리스트 감춤) 레이아웃 사용
+  const compact = mobile || !!embedded
   const [sectionFilter, setSectionFilter] = useState<SectionFilter>('all')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'updated' | 'created'>('updated')
@@ -132,13 +136,14 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   // useIsMobile 훅은 첫 렌더 시 항상 false를 반환하므로 window 너비를 직접 체크해야 한다.
   useEffect(() => {
     if (selectedId || notes.length === 0) return
+    if (embedded) return // 임베드: 리스트 우선, 클릭해야 상세 진입
     if (typeof window !== 'undefined' && window.innerWidth < 768) return
     const latest = notes.reduce((acc, n) => {
       if (!acc) return n
       return new Date(n.updated_at).getTime() > new Date(acc.updated_at).getTime() ? n : acc
     }, notes[0])
     if (latest) setSelectedId(latest.id)
-  }, [selectedId, notes])
+  }, [selectedId, notes, embedded])
 
   const handleFilterChange = (f: SectionFilter) => {
     setSectionFilter(f)
@@ -203,8 +208,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   }
 
   return (
-    <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+    <LCard pad={0} style={embedded ? { height: '100%', display: 'flex', flexDirection: 'column' } : undefined}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: 10, flexShrink: 0 }}>
         <LSectionHead eyebrow="WIKI" title="업무위키" action={
           <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
             {notes.length}건
@@ -214,16 +219,17 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
 
       <div ref={wrapRef} style={{
         display: 'flex',
-        flexDirection: mobile ? 'column' : 'row',
-        height: mobile ? 'auto' : availH,
+        flexDirection: compact ? 'column' : 'row',
+        ...(embedded ? { flex: 1, minHeight: 0 } : { height: compact ? 'auto' : availH }),
       }}>
         {/* ===== LEFT PANEL: list ===== */}
-        {(!mobile || (!selectedId && !adding)) && (
+        {(!compact || (!selectedId && !adding)) && (
         <div style={{
-          width: mobile ? '100%' : '42%',
-          minWidth: mobile ? undefined : 280,
+          width: compact ? '100%' : '42%',
+          minWidth: compact ? undefined : 280,
           display: 'flex', flexDirection: 'column',
-          borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
+          borderRight: compact ? 'none' : `1px solid ${t.neutrals.line}`,
+          ...(embedded ? { flex: 1, minHeight: 0 } : {}),
         }}>
           {/* Filter bar */}
           <div style={{ padding: '10px 12px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -393,10 +399,10 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
         )}
 
         {/* ===== RIGHT PANEL: detail ===== */}
-        {(!mobile || selectedId || adding) && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: mobile ? 'visible' : 'hidden', minHeight: 0 }}>
-          {/* Mobile back button */}
-          {mobile && (
+        {(!compact || selectedId || adding) && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: (mobile && !embedded) ? 'visible' : 'hidden', minHeight: 0 }}>
+          {/* 목록으로 back button (compact) */}
+          {compact && (
             <button
               onClick={() => { setSelectedId(null); setAdding(false); setEditing(false) }}
               style={{
@@ -412,12 +418,12 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           )}
           {adding ? (
             /* New note form — 뷰포트 높이 안에서 폼 내부 스크롤 */
-            <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', overflowY: mobile ? 'visible' : 'auto', minHeight: 0 }}>
+            <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', overflowY: (mobile && !embedded) ? 'visible' : 'auto', minHeight: 0 }}>
               <WikiNoteForm onSave={handleCreate} onCancel={() => setAdding(false)} />
             </div>
           ) : selectedNote && editing ? (
             /* Edit mode — 뷰포트 높이 안에서 폼 내부 스크롤 */
-            <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', overflowY: mobile ? 'visible' : 'auto', minHeight: 0 }}>
+            <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', overflowY: (mobile && !embedded) ? 'visible' : 'auto', minHeight: 0 }}>
               <WikiNoteForm
                 initial={{
                   section: selectedNote.section as WikiSection,

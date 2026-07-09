@@ -142,12 +142,12 @@ export default function AkrosPage() {
             </div>
           </div>
 
-          {/* 이메일 이슈 트래킹(좌 2/3) + 업무위키(우 1/3) */}
+          {/* 이메일 이슈 트래킹(좌 2/3) + 업무위키(우 1/3, 높이 맞춤·모바일식) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '2fr 1fr'),
             gap: 14,
-            alignItems: 'start',
+            alignItems: mobile ? 'start' : 'stretch',
           }}>
             <div style={{ minWidth: 0 }}>
               <IssueTrackerBlock
