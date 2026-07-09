@@ -90,8 +90,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
       {/* 다가오는 마감 스트립 */}
       {deadlines.length > 0 && (
         <div style={{
-          display: 'flex', gap: 6, overflowX: 'auto', padding: '0 14px 10px',
-          scrollbarWidth: 'thin',
+          display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 14px 10px',
         }}>
           {deadlines.map(d => {
             const n = dday(d.due_date)
@@ -157,16 +156,15 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
             }}>
               {/* 좌: 코드 + 제목 + 메타 */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 3 }}>
                   {issue.issue_code && (
                     <span style={{
                       fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
-                      color: t.neutrals.subtle, background: t.neutrals.inner, borderRadius: 3, padding: '1px 4px', flexShrink: 0,
+                      color: t.neutrals.subtle, background: t.neutrals.inner, borderRadius: 3, padding: '1px 4px', flexShrink: 0, marginTop: 1,
                     }}>{issue.issue_code}</span>
                   )}
                   <span style={{
-                    fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.text,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text, lineHeight: 1.35,
                   }}>{issue.title}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle }}>
@@ -174,8 +172,14 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
                   {issue.counterparty && <span>· {issue.counterparty}</span>}
                   {issue.last_email_date && <span style={{ fontFamily: t.font.mono }}>· 최근메일 {fmtDate(issue.last_email_date)}</span>}
                 </div>
+                {/* 상세 내용 — 이슈별 내용 파악의 핵심, 항상 노출 */}
+                {issue.detail && (
+                  <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, marginTop: 5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
+                    {issue.detail}
+                  </div>
+                )}
                 {issue.next_action && issue.status !== 'resolved' && (
-                  <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 3 }}>
+                  <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.brand[700], marginTop: 4, fontWeight: t.weight.medium }}>
                     → {issue.next_action}
                   </div>
                 )}
