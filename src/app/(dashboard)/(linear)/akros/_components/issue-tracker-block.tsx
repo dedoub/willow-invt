@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -48,6 +48,7 @@ function getStoredPageSize(): number {
 }
 
 export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Props) {
+  const mobile = useIsMobile()
   const [filter, setFilter] = useState<StatusFilter>('needs-action')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
@@ -185,7 +186,8 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
           const soon = n !== null && n >= 0 && n <= 3
           return (
             <div key={issue.id} style={{
-              display: 'flex', alignItems: 'flex-start', gap: 10,
+              display: 'flex', flexDirection: mobile ? 'column' : 'row',
+              alignItems: mobile ? 'stretch' : 'flex-start', gap: mobile ? 6 : 10,
               padding: '9px 14px', borderTop: `1px solid ${t.neutrals.line}`,
             }}>
               {/* 좌: 코드 + 제목 + 메타 */}
