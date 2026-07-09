@@ -205,7 +205,7 @@ function IntentCell({ u }: { u: UserStats['users'][number] }) {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
         {u.hotLead && (
-          <span title="핫리드: 구매의도 있음 · 미구매" style={{
+          <span title="핫리드: 강한 구매의도(AI/배너) · 최근 14일 · 활성 · 미구매" style={{
             fontSize: 'calc(9px * var(--fz, 1))', background: '#FEE2E2', color: '#B91C1C',
             borderRadius: 3, padding: '0 3px', fontWeight: t.weight.medium,
           }}>🔥</span>

@@ -922,7 +922,7 @@ export interface VoicecardsUserStats {
     intentAi: boolean           // AI 생성 관심
     intentBanner: boolean       // 크레딧/프리미엄 배너 탭
     intentGated: boolean        // 게이트 충돌(약한 신호)
-    hotLead: boolean            // 프리미엄/AI/배너 의도 있음 && 미구매
+    hotLead: boolean            // 엄격 기준: 강신호(AI/배너)+최근14일+활성(시트≥1)+미구매
     lastIntentAt: string | null // 가장 최근 구매의도 이벤트 시각
     createdAt: string
     lastActiveAt: string | null
@@ -1127,14 +1127,20 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     purchasedToday: userActivityMap.get(u.user_id)?.purchasedToday || 0,
     balanceDeltaToday: userActivityMap.get(u.user_id)?.balanceDeltaToday || 0,
     sheetsDeltaToday: userActivityMap.get(u.user_id)?.sheetsDeltaToday || 0,
-    // 구매 고려 신호 — 핫리드 = 프리미엄/AI/배너 의도 && 미구매
+    // 구매 고려 신호. 칩은 모든 신호를 표시하되, 핫리드 배지는 엄격 기준:
+    //   강신호(AI 생성 or 배너 탭 = 크레딧 소모·구매 CTA, 지불 직전) && 최근 14일 && 활성(시트≥1) && 미구매.
+    //   프리미엄보이스 '미리듣기'는 둘러보기라 약해서 핫리드에서 제외(칩으로만 표시).
     intentPremiumVoice: userIntentMap.get(u.user_id)?.premiumVoice || false,
     intentAi: userIntentMap.get(u.user_id)?.ai || false,
     intentBanner: userIntentMap.get(u.user_id)?.banner || false,
     intentGated: userIntentMap.get(u.user_id)?.gated || false,
     hotLead: (() => {
       const it = userIntentMap.get(u.user_id)
-      return !!it && (it.premiumVoice || it.ai || it.banner) && !u.has_purchased
+      if (!it || u.has_purchased) return false
+      const strongSignal = it.ai || it.banner
+      const recent = !!it.lastIntent && (Date.now() - new Date(it.lastIntent).getTime()) <= 14 * 864e5
+      const active = (u.sheet_ids?.length || 0) > 0
+      return strongSignal && recent && active
     })(),
     lastIntentAt: userIntentMap.get(u.user_id)?.lastIntent || null,
     // 학습 활동(user_analytics.last_updated)과 앱 이벤트 최근 시각 중 더 최근값
