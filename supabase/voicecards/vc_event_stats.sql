@@ -51,7 +51,9 @@ cumulative as (
 ),
 daily as (
   select kdate,
-    count(distinct device_id) as devices,
+    -- 활동 디바이스: learning_session_ended(앱 백그라운드/종료 시 발화하는 세션-종료
+    -- 이벤트, 실제 학습 아님)만 있는 디바이스는 활동으로 치지 않는다. (juanagil.u 케이스)
+    count(distinct device_id) filter (where event_name <> 'learning_session_ended') as devices,
     count(*) filter (where event_name='app_opened') as app_opened,
     count(*) filter (where event_name='card_learned_anonymous') as cards_learned,
     count(*) filter (where event_name='prompt_shown') as prompt_shown,
@@ -59,8 +61,9 @@ daily as (
   from base group by kdate
 ),
 dev_day as (
+  -- 로그인/익명 분리도 동일 기준: 세션-종료만 있는 디바이스는 그 날 활동으로 안 침.
   select kdate, device_id, bool_or(user_id is not null) as has_login
-  from base group by kdate, device_id
+  from base where event_name <> 'learning_session_ended' group by kdate, device_id
 ),
 login_daily as (
   select kdate,
