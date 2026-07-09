@@ -1136,7 +1136,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     intentAi: userIntentMap.get(u.user_id)?.ai || false,
     intentBanner: userIntentMap.get(u.user_id)?.banner || false,
     intentGated: userIntentMap.get(u.user_id)?.gated || false,
-    // 핫리드는 상대 기준(최근 7일 활성 미구매자 중 purchaseScore 상위 10%)이라 전체
+    // 핫리드는 상대 기준(최근 7일 활성 미구매자 중 purchaseScore 상위 30%)이라 전체
     // 분포를 알아야 함 → 목록 조립 후 후처리에서 설정(아래 hotLead 후처리). 여기선 false.
     hotLead: false,
     // 구매 가능성 점수 — 헤비 유저 복합(결제자=몰입 듣기 패턴). 듣기(TTS) 볼륨을 기저로
@@ -1158,7 +1158,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     })(),
   }))
 
-  // 핫리드 = 최근 7일 활성(lastActiveAt ≤ 7일) 미구매자 중 purchaseScore 상위 10%.
+  // 핫리드 = 최근 7일 활성(lastActiveAt ≤ 7일) 미구매자 중 purchaseScore 상위 30%.
   // 상대 기준이라 전체 분포를 본 뒤 후처리로 설정. (절대 임계값 대신 코호트 상위권.)
   {
     const nowMs = Date.now()
@@ -1168,7 +1168,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       !!u.lastActiveAt && (nowMs - new Date(u.lastActiveAt).getTime()) <= SEVEN_D,
     )
     pool.sort((a, b) => b.purchaseScore - a.purchaseScore)
-    const topN = Math.ceil(pool.length * 0.10)
+    const topN = Math.ceil(pool.length * 0.30)
     const hotIds = new Set(pool.slice(0, topN).map(u => u.id))
     for (const u of userList) u.hotLead = hotIds.has(u.id)
   }
