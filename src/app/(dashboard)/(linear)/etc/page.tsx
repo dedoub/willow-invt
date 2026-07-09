@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { EtcSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { fetchETFDisplayData, fetchETFProducts, fetchHistoricalData, deleteETFProduct } from '@/lib/etf-client'
@@ -26,6 +26,7 @@ type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 export default function EtcPage() {
   const mobile = useIsMobile()
   const cols = useDashCols()
+  const singleCol = mobile || cols === 1 // 모바일 또는 1열 토글 → 단일 컬럼 순서
   const [loadPhase, setLoadPhase] = useState(0) // 0=loading, 1=DB done, 2=all done
 
   // Products + Stats
@@ -188,28 +189,10 @@ export default function EtcPage() {
       {loadPhase === 0 ? <EtcSkeleton /> : (
         <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Stats + Products (left 2/3) + Invoices (right 1/3, full height) */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '2fr 1fr'),
-            gridTemplateRows: mobile ? 'auto auto auto' : 'auto 1fr',
-            gap: 14,
-          }}>
-            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 1, gridRow: 1 }) }}>
+          {singleCol ? (
+            /* 단일열(모바일·1열 토글): 운용현황 > 상품관리 > 업무위키 > 인보이스 > 이메일 */
+            <>
               <StatsBlock etfs={etfs} historicalData={historicalData} />
-            </div>
-            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }) }}>
-              <InvoiceBlock
-                invoices={invoices}
-                onRefresh={loadInvoices}
-                onAdd={handleAddInvoice}
-                onEdit={handleEditInvoice}
-                onSendEtc={handleSendEtc}
-                onSendBank={handleSendBank}
-                style={mobile ? undefined : { height: '100%' }}
-              />
-            </div>
-            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 1, gridRow: 2 }) }}>
               <ProductBlock
                 etfs={etfs}
                 onAdd={handleAddProduct}
@@ -218,16 +201,6 @@ export default function EtcPage() {
                 onDelete={handleDeleteProduct}
                 onRefresh={() => loadData().then(loadHistorical)}
               />
-            </div>
-          </div>
-
-          {/* Wiki + Email */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
-            gap: 14,
-          }}>
-            <div style={{ minWidth: 0 }}>
               <EtcWikiBlock
                 notes={wikiNotes}
                 loading={wikiLoading}
@@ -235,8 +208,14 @@ export default function EtcPage() {
                 onUpdate={handleUpdateWiki}
                 onDelete={handleDeleteWiki}
               />
-            </div>
-            <div style={{ minWidth: 0 }}>
+              <InvoiceBlock
+                invoices={invoices}
+                onRefresh={loadInvoices}
+                onAdd={handleAddInvoice}
+                onEdit={handleEditInvoice}
+                onSendEtc={handleSendEtc}
+                onSendBank={handleSendBank}
+              />
               <EmailBlock
                 emails={emails}
                 connected={emailConnected}
@@ -245,8 +224,70 @@ export default function EtcPage() {
                 onCompose={handleCompose}
                 isSyncing={isSyncing}
               />
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              {/* Stats + Products (left 2/3) + Invoices (right 1/3, full height) */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr',
+                gridTemplateRows: 'auto 1fr',
+                gap: 14,
+              }}>
+                <div style={{ minWidth: 0, gridColumn: 1, gridRow: 1 }}>
+                  <StatsBlock etfs={etfs} historicalData={historicalData} />
+                </div>
+                <div style={{ minWidth: 0, gridColumn: 2, gridRow: '1 / -1' }}>
+                  <InvoiceBlock
+                    invoices={invoices}
+                    onRefresh={loadInvoices}
+                    onAdd={handleAddInvoice}
+                    onEdit={handleEditInvoice}
+                    onSendEtc={handleSendEtc}
+                    onSendBank={handleSendBank}
+                    style={{ height: '100%' }}
+                  />
+                </div>
+                <div style={{ minWidth: 0, gridColumn: 1, gridRow: 2 }}>
+                  <ProductBlock
+                    etfs={etfs}
+                    onAdd={handleAddProduct}
+                    onEdit={handleEditProduct}
+                    onDocuments={(etf) => setDocEtf(etf)}
+                    onDelete={handleDeleteProduct}
+                    onRefresh={() => loadData().then(loadHistorical)}
+                  />
+                </div>
+              </div>
+
+              {/* Wiki + Email */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr',
+                gap: 14,
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <EtcWikiBlock
+                    notes={wikiNotes}
+                    loading={wikiLoading}
+                    onCreate={handleCreateWiki}
+                    onUpdate={handleUpdateWiki}
+                    onDelete={handleDeleteWiki}
+                  />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <EmailBlock
+                    emails={emails}
+                    connected={emailConnected}
+                    onSelectEmail={setSelectedEmail}
+                    onSync={handleSyncEmails}
+                    onCompose={handleCompose}
+                    isSyncing={isSyncing}
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Dialogs */}

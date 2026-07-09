@@ -18,6 +18,7 @@ import type { AkrosEmailIssue, AkrosEmailDeadline } from '@/lib/supabase-etf'
 export default function AkrosPage() {
   const mobile = useIsMobile()
   const cols = useDashCols()
+  const singleCol = mobile || cols === 1 // 모바일 또는 1열 토글 → 단일 컬럼 순서
   const [loadPhase, setLoadPhase] = useState(0) // 0=nothing, 1=DB done, 2=all done
 
   // AUM + Products
@@ -124,40 +125,13 @@ export default function AkrosPage() {
       {loadPhase === 0 ? <AkrosSkeleton /> : (
         <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* AUM + Products (left 2/3) + Tax Invoices (right 1/3, full height) */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '2fr 1fr'),
-            gridTemplateRows: mobile ? 'auto auto auto' : 'auto 1fr',
-            gap: 14,
-          }}>
-            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 1, gridRow: 1 }) }}>
+          {singleCol ? (
+            /* 단일열(모바일·1열 토글): 운용현황 > 상품관리 > 이슈트래킹 > 세금계산서 > 업무위키 */
+            <>
               <AumBlock timeSeries={timeSeries} productCount={products.length} yearLaunches={yearLaunches} />
-            </div>
-            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }) }}>
-              <TaxInvoiceBlock invoices={invoices} onRefresh={loadInvoices} style={mobile ? undefined : { height: '100%' }} />
-            </div>
-            <div style={{ minWidth: 0, ...(mobile ? {} : { gridColumn: 1, gridRow: 2 }) }}>
               <ProductBlock products={products} />
-            </div>
-          </div>
-
-          {/* 이메일 이슈 트래킹(좌 2/3) + 업무위키(우 1/3, 높이 맞춤·모바일식) */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '2fr 1fr'),
-            gap: 14,
-            alignItems: mobile ? 'start' : 'stretch',
-          }}>
-            <div style={{ minWidth: 0 }}>
-              <IssueTrackerBlock
-                issues={issues}
-                deadlines={deadlines}
-                loading={issuesLoading}
-                onRefresh={loadIssues}
-              />
-            </div>
-            <div style={{ minWidth: 0 }}>
+              <IssueTrackerBlock issues={issues} deadlines={deadlines} loading={issuesLoading} onRefresh={loadIssues} />
+              <TaxInvoiceBlock invoices={invoices} onRefresh={loadInvoices} />
               <AkrosWikiBlock
                 notes={wikiNotes}
                 loading={wikiLoading}
@@ -165,8 +139,55 @@ export default function AkrosPage() {
                 onUpdate={handleUpdateWiki}
                 onDelete={handleDeleteWiki}
               />
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              {/* AUM + Products (left 2/3) + Tax Invoices (right 1/3, full height) */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr',
+                gridTemplateRows: 'auto 1fr',
+                gap: 14,
+              }}>
+                <div style={{ minWidth: 0, gridColumn: 1, gridRow: 1 }}>
+                  <AumBlock timeSeries={timeSeries} productCount={products.length} yearLaunches={yearLaunches} />
+                </div>
+                <div style={{ minWidth: 0, gridColumn: 2, gridRow: '1 / -1' }}>
+                  <TaxInvoiceBlock invoices={invoices} onRefresh={loadInvoices} style={{ height: '100%' }} />
+                </div>
+                <div style={{ minWidth: 0, gridColumn: 1, gridRow: 2 }}>
+                  <ProductBlock products={products} />
+                </div>
+              </div>
+
+              {/* 이메일 이슈 트래킹(좌 2/3) + 업무위키(우 1/3, 높이 맞춤·모바일식) */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr',
+                gap: 14,
+                alignItems: 'stretch',
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <IssueTrackerBlock
+                    issues={issues}
+                    deadlines={deadlines}
+                    loading={issuesLoading}
+                    onRefresh={loadIssues}
+                  />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <AkrosWikiBlock
+                    notes={wikiNotes}
+                    loading={wikiLoading}
+                    onCreate={handleCreateWiki}
+                    onUpdate={handleUpdateWiki}
+                    onDelete={handleDeleteWiki}
+                    embedded
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
         </>
       )}

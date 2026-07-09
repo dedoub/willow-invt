@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
 import { TenswSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 
@@ -553,10 +553,10 @@ export default function TenswPage() {
             </div>
           </div>
 
-          {/* Wiki (2fr) + Email (1fr) */}
+          {/* Wiki (2fr) + Email (1fr) — 1열 토글 시에도 세로 스택 */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr',
+            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'),
             gap: 14,
           }}>
             <TenswWikiBlock
