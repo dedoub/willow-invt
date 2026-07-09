@@ -49,6 +49,12 @@ interface UserStats {
     purchasedToday: number
     balanceDeltaToday: number
     sheetsDeltaToday: number
+    intentPremiumVoice: boolean
+    intentAi: boolean
+    intentBanner: boolean
+    intentGated: boolean
+    hotLead: boolean
+    lastIntentAt: string | null
     createdAt: string
     lastActiveAt: string | null
   }>
@@ -150,8 +156,8 @@ function formatTimeShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 54px 48px 48px 60px 60px 44px'
-const USER_TABLE_MIN_WIDTH = 942 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px, 7일 활동일 44px)
+const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 78px 54px 48px 48px 60px 60px 44px'
+const USER_TABLE_MIN_WIDTH = 1026 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px, 구매신호 78px)
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -178,6 +184,44 @@ function NumDeltaCell({ total, delta, dim }: { total: number; delta: number; dim
 const userDateCell: React.CSSProperties = {
   fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
+}
+
+// 정렬용 점수: 핫리드(최상위) → 최근 의도 시각. 미표시(신호 없음)는 0.
+function intentScore(u: UserStats['users'][number]): number {
+  const ts = u.lastIntentAt ? new Date(u.lastIntentAt).getTime() : 0
+  return (u.hotLead ? 1 : 0) * 1e15 + ts
+}
+
+// 구매 고려 신호 셀 — 핫리드 배지 + 신호 칩(🔊 프리미엄보이스 / ✨ AI / 💳 배너) + 마지막 의도 시각
+function IntentCell({ u }: { u: UserStats['users'][number] }) {
+  const chips = [
+    { icon: '🔊', on: u.intentPremiumVoice, title: '프리미엄 보이스 관심' },
+    { icon: '✨', on: u.intentAi, title: 'AI 생성 관심' },
+    { icon: '💳', on: u.intentBanner, title: '프리미엄 배너 탭' },
+  ].filter(c => c.on)
+  const hasAny = chips.length > 0 || u.intentGated
+  if (!hasAny) return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</div>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
+        {u.hotLead && (
+          <span title="핫리드: 구매의도 있음 · 미구매" style={{
+            fontSize: 'calc(9px * var(--fz, 1))', background: '#FEE2E2', color: '#B91C1C',
+            borderRadius: 3, padding: '0 3px', fontWeight: t.weight.medium,
+          }}>🔥</span>
+        )}
+        {chips.map(c => <span key={c.icon} title={c.title} style={{ fontSize: 'calc(11px * var(--fz, 1))' }}>{c.icon}</span>)}
+        {chips.length === 0 && u.intentGated && (
+          <span title="게이트 충돌 (약한 신호)" style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>🔒</span>
+        )}
+      </div>
+      {u.lastIntentAt && (
+        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+          {formatDateShort(u.lastIntentAt)}
+        </span>
+      )}
+    </div>
+  )
 }
 
 // 국가 한글명 (툴팁용). 국기는 코드에서 자동 생성하므로 여기 없어도 표시된다.
@@ -218,7 +262,7 @@ function formatCountryName(code: string): string {
 
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status'
-  | 'sheets' | 'cards' | 'attempts' | 'listen' | 'credits' | 'purchased' | 'paid'
+  | 'sheets' | 'cards' | 'attempts' | 'listen' | 'intent' | 'credits' | 'purchased' | 'paid'
   | 'created' | 'recent' | 'active7'
 type SortDir = 'asc' | 'desc'
 
@@ -234,6 +278,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'cards',    label: '카드',   mobileLabel: '카드',     align: 'center' },
   { key: 'attempts', label: '말하기', mobileLabel: '말하기',   align: 'center' },
   { key: 'listen',   label: '듣기',   mobileLabel: '듣기',     align: 'center' },
+  { key: 'intent',   label: '구매신호', mobileLabel: '구매신호', align: 'center' },
   { key: 'paid',     label: '유료',   mobileLabel: '유료결제', align: 'center' },
   { key: 'purchased', label: '구매', mobileLabel: '구매 크레딧', align: 'center' },
   { key: 'credits',  label: '보유', mobileLabel: '보유 크레딧', align: 'center' },
@@ -403,6 +448,8 @@ export function VoicecardsBlock({
         case 'cards':    return a.cards - b.cards
         case 'attempts': return a.attempts - b.attempts
         case 'listen':   return (a.creditsUsed ?? 0) - (b.creditsUsed ?? 0)
+        // 구매신호: 핫리드 우선, 그 안에서 최근 의도 시각 순 (동점이면 다음 정렬로)
+        case 'intent':   return intentScore(a) - intentScore(b)
         case 'credits':  return a.credits - b.credits
         case 'purchased': return (a.purchasedCredits ?? 0) - (b.purchasedCredits ?? 0)
         case 'paid':     return Number(!!a.hasPurchased) - Number(!!b.hasPurchased)
@@ -1176,6 +1223,7 @@ export function VoicecardsBlock({
                   <NumDeltaCell total={user.cards} delta={user.cardsToday} />
                   <NumDeltaCell total={user.attempts} delta={user.attemptsToday} />
                   <NumDeltaCell total={user.creditsUsed} delta={user.listenToday} />
+                  <IntentCell u={user} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     <span style={{
                       fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,

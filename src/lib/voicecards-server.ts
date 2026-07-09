@@ -917,6 +917,13 @@ export interface VoicecardsUserStats {
     purchasedToday: number    // 오늘 구매 크레딧
     balanceDeltaToday: number // 오늘 보유 잔액 순변동 (±)
     sheetsDeltaToday: number  // 오늘 시트 증가분 (user_sheet_snapshots 대비)
+    // 구매 고려(purchase-intent) 신호 — vc_user_intent_signals RPC
+    intentPremiumVoice: boolean // 프리미엄 보이스 관심
+    intentAi: boolean           // AI 생성 관심
+    intentBanner: boolean       // 크레딧/프리미엄 배너 탭
+    intentGated: boolean        // 게이트 충돌(약한 신호)
+    hotLead: boolean            // 프리미엄/AI/배너 의도 있음 && 미구매
+    lastIntentAt: string | null // 가장 최근 구매의도 이벤트 시각
     createdAt: string
     lastActiveAt: string | null
   }>
@@ -952,7 +959,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, listenRes, metaRes, purchasedRes, activityRes] = await Promise.all([
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, listenRes, metaRes, purchasedRes, activityRes, intentRes] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
     vc.from('user_analytics').select('user_id, total_cards, total_attempts'),
     vc.from('user_analytics').select('user_id, last_updated'),
@@ -967,6 +974,8 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     vc.rpc('vc_user_purchased_credits'),
     // 사용자별 오늘 증가분(카드/말하기/듣기) + 최근 7일 활동일 수
     vc.rpc('vc_user_activity_deltas'),
+    // 사용자별 구매 고려(purchase-intent) 신호 + 마지막 의도 시각
+    vc.rpc('vc_user_intent_signals'),
   ])
 
   if (usersRes.error) {
@@ -1083,6 +1092,18 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     })
   }
 
+  // 사용자별 구매 고려 신호
+  const userIntentMap = new Map<string, { premiumVoice: boolean; ai: boolean; banner: boolean; gated: boolean; lastIntent: string | null }>()
+  for (const row of ((intentRes.data || []) as Array<{ user_id: string | null; premium_voice: boolean | null; ai_feature: boolean | null; banner_tap: boolean | null; gated: boolean | null; last_intent: string | null }>)) {
+    if (row.user_id) userIntentMap.set(row.user_id, {
+      premiumVoice: !!row.premium_voice,
+      ai: !!row.ai_feature,
+      banner: !!row.banner_tap,
+      gated: !!row.gated,
+      lastIntent: row.last_intent,
+    })
+  }
+
   const userList = users.map(u => ({
     id: u.user_id,
     nickname: u.nickname,
@@ -1106,6 +1127,16 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     purchasedToday: userActivityMap.get(u.user_id)?.purchasedToday || 0,
     balanceDeltaToday: userActivityMap.get(u.user_id)?.balanceDeltaToday || 0,
     sheetsDeltaToday: userActivityMap.get(u.user_id)?.sheetsDeltaToday || 0,
+    // 구매 고려 신호 — 핫리드 = 프리미엄/AI/배너 의도 && 미구매
+    intentPremiumVoice: userIntentMap.get(u.user_id)?.premiumVoice || false,
+    intentAi: userIntentMap.get(u.user_id)?.ai || false,
+    intentBanner: userIntentMap.get(u.user_id)?.banner || false,
+    intentGated: userIntentMap.get(u.user_id)?.gated || false,
+    hotLead: (() => {
+      const it = userIntentMap.get(u.user_id)
+      return !!it && (it.premiumVoice || it.ai || it.banner) && !u.has_purchased
+    })(),
+    lastIntentAt: userIntentMap.get(u.user_id)?.lastIntent || null,
     // 학습 활동(user_analytics.last_updated)과 앱 이벤트 최근 시각 중 더 최근값
     lastActiveAt: (() => {
       const cands = [lastActivityMap.get(u.user_id), userLastEventMap.get(u.user_id)].filter(Boolean) as string[]
