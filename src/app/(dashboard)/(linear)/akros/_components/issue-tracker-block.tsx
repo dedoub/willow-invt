@@ -5,6 +5,7 @@ import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { kstToday } from '@/lib/kst'
 import type { AkrosEmailIssue, AkrosEmailDeadline } from '@/lib/supabase-etf'
 
@@ -38,11 +39,27 @@ interface Props {
   onRefresh?: () => void
 }
 
-const PAGE_SIZE = 8
+const PAGE_SIZE_KEY = 'akros-issues-page-size'
+const DEFAULT_PAGE_SIZE = 8
+function getStoredPageSize(): number {
+  if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
+  const n = Number(localStorage.getItem(PAGE_SIZE_KEY))
+  return n >= 3 && n <= 50 ? n : DEFAULT_PAGE_SIZE
+}
 
 export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Props) {
   const [filter, setFilter] = useState<StatusFilter>('needs-action')
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(getStoredPageSize)
+  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
+
+  const commitPageSize = () => {
+    const n = Math.max(3, Math.min(50, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
+    setPageSizeInput(String(n))
+    setPageSize(n)
+    setPage(0)
+    localStorage.setItem(PAGE_SIZE_KEY, String(n))
+  }
 
   const counts = useMemo(() => {
     const c = { 'needs-action': 0, waiting: 0, resolved: 0 } as Record<string, number>
@@ -65,9 +82,9 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
     })
   }, [issues, filter])
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const safePage = Math.min(page, totalPages - 1)
-  const paged = rows.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
+  const paged = rows.slice(safePage * pageSize, (safePage + 1) * pageSize)
 
   const FILTERS: { key: StatusFilter; label: string }[] = [
     { key: 'needs-action', label: `처리필요 ${counts['needs-action'] || 0}` },
@@ -145,7 +162,20 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
       {/* 이슈 목록 */}
       <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: 6 }}>
         {loading ? (
-          <div style={{ padding: '28px 14px', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>불러오는 중…</div>
+          // 로딩 스켈레톤 — 앱 전체 shimmer(.l-skeleton)와 동일, 페이지당 개수만큼 행 표시
+          Array.from({ length: Math.min(pageSize, 6) }).map((_, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+              padding: '11px 14px', borderTop: `1px solid ${t.neutrals.line}`,
+            }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Bone w={`${58 + (i % 3) * 12}%`} h={12} />
+                <Bone w="42%" h={9} />
+                <Bone w="88%" h={9} />
+              </div>
+              <Bone w={40} h={16} r={4} />
+            </div>
+          ))
         ) : rows.length === 0 ? (
           <div style={{ padding: '28px 14px', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>해당 상태의 이슈가 없습니다</div>
         ) : paged.map(issue => {
@@ -218,27 +248,49 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
         })}
       </div>
 
-      {/* 페이지네이션 (wiki-list 패턴 참조) */}
-      {!loading && rows.length > PAGE_SIZE && (
+      {/* 페이지네이션 (wiki-list 패턴 참조) — N개씩 선택 + 이전/다음 */}
+      {!loading && rows.length > 0 && (
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
           padding: '8px 14px', borderTop: `1px solid ${t.neutrals.line}`,
         }}>
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
-            {safePage * PAGE_SIZE + 1}-{Math.min((safePage + 1) * PAGE_SIZE, rows.length)} / {rows.length}
-          </span>
-          <button disabled={safePage === 0} onClick={() => setPage(safePage - 1)} style={{
-            background: 'transparent', border: 'none', cursor: safePage === 0 ? 'default' : 'pointer',
-            padding: 4, borderRadius: 4, color: safePage === 0 ? t.neutrals.line : t.neutrals.muted, opacity: safePage === 0 ? 0.4 : 1,
-          }}>
-            <LIcon name="chevronLeft" size={13} stroke={2} />
-          </button>
-          <button disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)} style={{
-            background: 'transparent', border: 'none', cursor: safePage >= totalPages - 1 ? 'default' : 'pointer',
-            padding: 4, borderRadius: 4, color: safePage >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted, opacity: safePage >= totalPages - 1 ? 0.4 : 1,
-          }}>
-            <LIcon name="chevronRight" size={13} stroke={2} />
-          </button>
+          {/* 페이지당 개수 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <input
+              value={pageSizeInput}
+              onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
+              onBlur={commitPageSize}
+              onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
+              style={{
+                width: 32, textAlign: 'center', border: 'none',
+                background: t.neutrals.inner, borderRadius: t.radius.sm,
+                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                padding: '2px 0', outline: 'none',
+              }}
+            />
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          </div>
+
+          {/* 범위 + 네비게이션 */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                {safePage * pageSize + 1}-{Math.min((safePage + 1) * pageSize, rows.length)} / {rows.length}
+              </span>
+              <button disabled={safePage === 0} onClick={() => setPage(safePage - 1)} style={{
+                background: 'transparent', border: 'none', cursor: safePage === 0 ? 'default' : 'pointer',
+                padding: 4, borderRadius: 4, color: safePage === 0 ? t.neutrals.line : t.neutrals.muted, opacity: safePage === 0 ? 0.4 : 1,
+              }}>
+                <LIcon name="chevronLeft" size={13} stroke={2} />
+              </button>
+              <button disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)} style={{
+                background: 'transparent', border: 'none', cursor: safePage >= totalPages - 1 ? 'default' : 'pointer',
+                padding: 4, borderRadius: 4, color: safePage >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted, opacity: safePage >= totalPages - 1 ? 0.4 : 1,
+              }}>
+                <LIcon name="chevronRight" size={13} stroke={2} />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </LCard>
