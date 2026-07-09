@@ -49,6 +49,8 @@ interface UserStats {
     hasPurchased: boolean
     credits: number
     purchasedCredits: number
+    bonusCredits: number
+    offerStage: string | null
     creditsUsed: number
     sheetCount: number
     cards: number

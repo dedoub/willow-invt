@@ -38,6 +38,8 @@ interface UserStats {
     hasPurchased: boolean
     credits: number
     purchasedCredits: number
+    bonusCredits: number
+    offerStage: string | null
     creditsUsed: number
     sheetCount: number
     cards: number
@@ -157,8 +159,8 @@ function formatTimeShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 78px 54px 48px 48px 60px 60px 44px'
-const USER_TABLE_MIN_WIDTH = 1026 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px, 구매신호 78px)
+const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 78px 60px 54px 48px 52px 48px 60px 60px 44px'
+const USER_TABLE_MIN_WIDTH = 1138 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px, 구매신호 78px, +오퍼 60px +보너스 52px)
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -194,6 +196,19 @@ function intentScore(u: UserStats['users'][number]): number {
   return (u.purchaseScore ?? 0) * 1e13 + ts
 }
 
+// 오퍼 단계 정렬용 진행도 점수 (높을수록 퍼널 뒤쪽). 없음은 최하.
+function offerStageScore(stage: string | null): number {
+  switch (stage) {
+    case 'redeemed': return 6
+    case 'snoozed':  return 4
+    case 'seen':     return 3
+    case 'sent':     return 2
+    case 'dismissed': return 1
+    case 'expired':  return 0.5
+    default:         return 0
+  }
+}
+
 // 구매 신호 셀 (단순화) — 구매가능성 점수 + 🔥 핫리드(헤비 유저 & 업그레이드 클릭) +
 // 💳 업그레이드 모달 클릭. 나머지 약한 신호(프리미엄보이스 미리듣기·AI·게이트)는 표에서 생략.
 function IntentCell({ u }: { u: UserStats['users'][number] }) {
@@ -219,6 +234,32 @@ function IntentCell({ u }: { u: UserStats['users'][number] }) {
           {formatDateShort(u.lastIntentAt)}
         </span>
       )}
+    </div>
+  )
+}
+
+// 타겟 오퍼 단계 셀. 퍼널: 발송 → 열람 → 스누즈 → 전환. 종료: 닫음/만료.
+const OFFER_STAGE_STYLE: Record<string, { label: string; fg: string; bg: string; title: string }> = {
+  sent:     { label: '발송',  fg: '#4B5563', bg: '#F3F4F6', title: '오퍼 발송됨 (아직 열람 전)' },
+  seen:     { label: '열람',  fg: '#1E40AF', bg: '#DBEAFE', title: '오퍼 모달을 봄' },
+  snoozed:  { label: '스누즈', fg: '#92400E', bg: '#FEF3C7', title: '“나중에” — 배너로 스누즈' },
+  redeemed: { label: '전환',  fg: '#166534', bg: '#DCFCE7', title: '구매하여 보너스 지급됨 (전환)' },
+  dismissed:{ label: '닫음',  fg: '#6B7280', bg: '#F3F4F6', title: '배너 X — 영구 닫음' },
+  expired:  { label: '만료',  fg: '#9CA3AF', bg: '#F9FAFB', title: '만료됨 (미전환)' },
+}
+function OfferStageCell({ stage }: { stage: string | null }) {
+  if (!stage || !OFFER_STAGE_STYLE[stage]) {
+    return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</div>
+  }
+  const s = OFFER_STAGE_STYLE[stage]
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+      <span title={s.title} style={{
+        fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+        color: s.fg, background: s.bg, padding: '1px 5px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
+      }}>
+        {stage === 'redeemed' ? '💰' + s.label : s.label}
+      </span>
     </div>
   )
 }
@@ -261,7 +302,7 @@ function formatCountryName(code: string): string {
 
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status'
-  | 'sheets' | 'cards' | 'attempts' | 'listen' | 'intent' | 'credits' | 'purchased' | 'paid'
+  | 'sheets' | 'cards' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'paid'
   | 'created' | 'recent' | 'active7'
 type SortDir = 'asc' | 'desc'
 
@@ -278,8 +319,10 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'attempts', label: '말하기', mobileLabel: '말하기',   align: 'center' },
   { key: 'listen',   label: '듣기',   mobileLabel: '듣기',     align: 'center' },
   { key: 'intent',   label: '구매신호', mobileLabel: '구매신호', align: 'center' },
+  { key: 'offer',    label: '오퍼',   mobileLabel: '오퍼단계', align: 'center' },
   { key: 'paid',     label: '유료',   mobileLabel: '유료결제', align: 'center' },
   { key: 'purchased', label: '구매', mobileLabel: '구매 크레딧', align: 'center' },
+  { key: 'bonus',    label: '보너스', mobileLabel: '보너스 크레딧', align: 'center' },
   { key: 'credits',  label: '보유', mobileLabel: '보유 크레딧', align: 'center' },
   { key: 'created',  label: '가입',   mobileLabel: '가입일',   align: 'center' },
   { key: 'recent',   label: '활동',   mobileLabel: '활동일',   align: 'center' },
@@ -449,8 +492,11 @@ export function VoicecardsBlock({
         case 'listen':   return (a.creditsUsed ?? 0) - (b.creditsUsed ?? 0)
         // 구매신호: 핫리드 우선, 그 안에서 최근 의도 시각 순 (동점이면 다음 정렬로)
         case 'intent':   return intentScore(a) - intentScore(b)
+        // 오퍼 단계: 퍼널 진행도 순 (전환 > 스누즈 > 열람 > 발송 > 닫음 > 만료 > 없음)
+        case 'offer':    return offerStageScore(a.offerStage) - offerStageScore(b.offerStage)
         case 'credits':  return a.credits - b.credits
         case 'purchased': return (a.purchasedCredits ?? 0) - (b.purchasedCredits ?? 0)
+        case 'bonus':    return (a.bonusCredits ?? 0) - (b.bonusCredits ?? 0)
         case 'paid':     return Number(!!a.hasPurchased) - Number(!!b.hasPurchased)
         // 날짜로 표시되는 컬럼은 날짜(YYYY-MM-DD) 단위로 비교 → 같은 날끼리는 동점이 되어
         // 다음 우선순위(예: 듣기 내림차순)가 그 안에서 적용됨.
@@ -1223,6 +1269,7 @@ export function VoicecardsBlock({
                   <NumDeltaCell total={user.attempts} delta={user.attemptsToday} />
                   <NumDeltaCell total={user.creditsUsed} delta={user.listenToday} />
                   <IntentCell u={user} />
+                  <OfferStageCell stage={user.offerStage} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     <span style={{
                       fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
@@ -1234,6 +1281,11 @@ export function VoicecardsBlock({
                     </span>
                   </div>
                   <NumDeltaCell total={user.purchasedCredits} delta={user.purchasedToday} />
+                  <div style={userNumCell}>
+                    {user.bonusCredits > 0
+                      ? <span style={{ color: '#166534', fontWeight: 600 }}>+{user.bonusCredits.toLocaleString()}</span>
+                      : <span style={{ color: t.neutrals.subtle }}>—</span>}
+                  </div>
                   <NumDeltaCell total={user.credits} delta={user.balanceDeltaToday} dim />
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                     <span>{formatDateShort(user.createdAt)}</span>
