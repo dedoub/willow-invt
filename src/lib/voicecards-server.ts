@@ -1136,17 +1136,9 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     intentAi: userIntentMap.get(u.user_id)?.ai || false,
     intentBanner: userIntentMap.get(u.user_id)?.banner || false,
     intentGated: userIntentMap.get(u.user_id)?.gated || false,
-    hotLead: (() => {
-      if (u.has_purchased) return false
-      const clickedUpgrade = !!userIntentMap.get(u.user_id)?.banner // 업그레이드 모달 클릭
-      if (!clickedUpgrade) return false
-      const listen = userCreditsUsedMap.get(u.user_id) || 0         // TTS/듣기 볼륨
-      const sheets = u.sheet_ids?.length || 0
-      const cards = userCardsMap.get(u.user_id) || 0
-      const streak = userActivityMap.get(u.user_id)?.activeDays7d || 0 // 최근 7일 활동일
-      // 헤비 유저(듣기·시트·카드·연속사용) 임계값 — 소표본이라 조정 가능.
-      return listen >= 20 && sheets >= 2 && cards >= 40 && streak >= 3
-    })(),
+    // 핫리드는 상대 기준(최근 7일 활성 미구매자 중 purchaseScore 상위 10%)이라 전체
+    // 분포를 알아야 함 → 목록 조립 후 후처리에서 설정(아래 hotLead 후처리). 여기선 false.
+    hotLead: false,
     // 구매 가능성 점수 — 헤비 유저 복합(결제자=몰입 듣기 패턴). 듣기(TTS) 볼륨을 기저로
     // 시트·카드·연속사용·업그레이드클릭을 가산. 구매자=0. 오퍼 타겟 랭킹 기준값.
     purchaseScore: (() => {
@@ -1165,6 +1157,21 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       return cands.length ? cands.reduce((a, b) => (new Date(a) >= new Date(b) ? a : b)) : null
     })(),
   }))
+
+  // 핫리드 = 최근 7일 활성(lastActiveAt ≤ 7일) 미구매자 중 purchaseScore 상위 10%.
+  // 상대 기준이라 전체 분포를 본 뒤 후처리로 설정. (절대 임계값 대신 코호트 상위권.)
+  {
+    const nowMs = Date.now()
+    const SEVEN_D = 7 * 864e5
+    const pool = userList.filter(u =>
+      !u.hasPurchased && u.purchaseScore > 0 &&
+      !!u.lastActiveAt && (nowMs - new Date(u.lastActiveAt).getTime()) <= SEVEN_D,
+    )
+    pool.sort((a, b) => b.purchaseScore - a.purchaseScore)
+    const topN = Math.ceil(pool.length * 0.10)
+    const hotIds = new Set(pool.slice(0, topN).map(u => u.id))
+    for (const u of userList) u.hotLead = hotIds.has(u.id)
+  }
 
   // 최근 활동일 기준 정렬 (활동 있는 유저 먼저, 없으면 가입일 기준)
   userList.sort((a, b) => {
