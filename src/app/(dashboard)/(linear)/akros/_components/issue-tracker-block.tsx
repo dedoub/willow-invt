@@ -123,15 +123,20 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
             const soon = n !== null && n >= 0 && n <= 3
             return (
               <div key={d.id} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: t.neutrals.inner, borderRadius: t.radius.md, padding: '5px 9px',
+                display: 'flex', flexDirection: mobile ? 'column' : 'row',
+                alignItems: mobile ? 'flex-start' : 'center', gap: mobile ? 2 : 6,
+                width: mobile ? '100%' : undefined,
+                background: t.neutrals.inner, borderRadius: t.radius.md, padding: '6px 9px',
               }}>
-                <LIcon name="calendar" size={11} color={overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.subtle} />
-                <span style={{
-                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
-                  color: overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.muted, whiteSpace: 'nowrap',
-                }}>
-                  {d.due_label || fmtDate(d.due_date)}
+                {/* 날짜 (모바일: 내용 위) */}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                  <LIcon name="calendar" size={11} color={overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.subtle} />
+                  <span style={{
+                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
+                    color: overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.muted, whiteSpace: 'nowrap',
+                  }}>
+                    {d.due_label || fmtDate(d.due_date)}
+                  </span>
                 </span>
                 <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text }}>
                   {d.event}
