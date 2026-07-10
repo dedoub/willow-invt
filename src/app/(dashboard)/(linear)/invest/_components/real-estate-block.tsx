@@ -400,7 +400,7 @@ export function RealEstateBlock() {
   /* ── Filter state ── */
   const [districts, setDistricts] = useState<string[]>([...ALL_DISTRICTS])
   const [selectedComplexIds, setSelectedComplexIds] = useState<string[]>([])
-  const [areaRange, setAreaRange] = useState('30')
+  const [areaRange, setAreaRange] = useState('')
   const [period] = useState('12')
   const [complexDropdownOpen, setComplexDropdownOpen] = useState(false)
 
@@ -580,18 +580,12 @@ export function RealEstateBlock() {
 
   const lastTradeGap = useMemo(() => {
     if (!reListingTrend?.trend?.length) return null
-    for (let i = reListingTrend.trend.length - 1; i >= 0; i--) {
-      if (reListingTrend.trend[i].gapRate !== null) return reListingTrend.trend[i].gapRate
-    }
-    return null
+    return reListingTrend.trend.at(-1)?.gapRate ?? null
   }, [reListingTrend])
 
   const lastJeonseGap = useMemo(() => {
     if (!reListingTrendJeonse?.trend?.length) return null
-    for (let i = reListingTrendJeonse.trend.length - 1; i >= 0; i--) {
-      if (reListingTrendJeonse.trend[i].gapRate !== null) return reListingTrendJeonse.trend[i].gapRate
-    }
-    return null
+    return reListingTrendJeonse.trend.at(-1)?.gapRate ?? null
   }, [reListingTrendJeonse])
 
   /* ── Chart data ── */

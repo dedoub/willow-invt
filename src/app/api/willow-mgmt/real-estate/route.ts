@@ -1,6 +1,38 @@
 import { NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 
+// A single reported transaction can make an incomplete current month look like
+// a market-wide price move. Keep the volume bar, but wait for a minimally useful
+// aggregate sample before drawing the current-month price point.
+const MIN_AGGREGATE_CURRENT_MONTH_COUNT = 5
+
+function subtractCalendarMonth(date: string): string {
+  const [year, month, day] = date.split('-').map(Number)
+  const target = new Date(year, month - 2, 1)
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate()
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`
+}
+
+function getFilteredActualAverage(
+  values: number[] | undefined,
+  listingMinPpp: number | null | undefined,
+): { avg: number; count: number } | null {
+  if (!values?.length) return null
+
+  const sorted = [...values].sort((a, b) => a - b)
+  const median = sorted[Math.floor(sorted.length / 2)]
+  const listingFloor = listingMinPpp ? listingMinPpp * 0.5 : 0
+  const filtered = values.filter(value =>
+    Math.abs(value - median) / median <= 0.5 && value >= listingFloor
+  )
+  if (filtered.length === 0) return null
+
+  return {
+    avg: filtered.reduce((sum, value) => sum + value, 0) / filtered.length,
+    count: filtered.length,
+  }
+}
+
 // Paginated fetch to bypass Supabase max_rows (default 1000)
 // Always appends .order('id') for deterministic pagination — without a
 // fully-deterministic ORDER BY, rows at page boundaries can be skipped or
@@ -119,6 +151,8 @@ export async function GET(request: Request) {
     return months
   }
   const expectedMonths = generateMonths()
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const currentDate = `${currentMonth}-${String(now.getDate()).padStart(2, '0')}`
 
   // Resolve tracked complex names: always filter by tracked complexes only
   // If user selected specific complexes → use those (subset of tracked)
@@ -185,8 +219,7 @@ export async function GET(request: Request) {
       const complexCount = allTrackedNames.length
       const districtSet = new Set(trackedData?.map(c => c.district_name))
 
-      const oma = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const oneMonthAgo = `${oma.getFullYear()}-${String(oma.getMonth() + 1).padStart(2, '0')}-01`
+      const oneMonthAgo = subtractCalendarMonth(currentDate)
 
       // Fetch trades & rentals (no DB area filter — filter by supply pyeong in code).
       // These are independent of each other and of the area mapping → run in parallel.
@@ -303,13 +336,13 @@ export async function GET(request: Request) {
       const tradeGaps: number[] = []
       const jeonseGaps: number[] = []
       for (const [key, li] of Object.entries(listingBands)) {
-        if (li.trade !== null && tradeActuals[key]?.length > 0) {
-          const avgActual = tradeActuals[key].reduce((s, v) => s + v, 0) / tradeActuals[key].length
-          if (avgActual > 0) tradeGaps.push(((li.trade - avgActual) / avgActual) * 100)
+        if (li.trade !== null) {
+          const actual = getFilteredActualAverage(tradeActuals[key], li.trade)
+          if (actual) tradeGaps.push(((li.trade - actual.avg) / actual.avg) * 100)
         }
-        if (li.jeonse !== null && jeonseActuals[key]?.length > 0) {
-          const avgActual = jeonseActuals[key].reduce((s, v) => s + v, 0) / jeonseActuals[key].length
-          if (avgActual > 0) jeonseGaps.push(((li.jeonse - avgActual) / avgActual) * 100)
+        if (li.jeonse !== null) {
+          const actual = getFilteredActualAverage(jeonseActuals[key], li.jeonse)
+          if (actual) jeonseGaps.push(((li.jeonse - actual.avg) / actual.avg) * 100)
         }
       }
 
@@ -371,11 +404,22 @@ export async function GET(request: Request) {
         : ([...new Set((data || []).map((t: any) => t.complex_name))] as string[]).sort()
       const complexData = keys.map(name => ({
         name,
-        data: months.map(m => ({
-          month: m,
-          avgPpp: monthly[m]?.[name] ? Math.round(monthly[m][name].sum / monthly[m][name].count) : null,
-          count: monthly[m]?.[name]?.count || 0,
-        }))
+        data: months.map(m => {
+          const bucket = monthly[m]?.[name]
+          const count = bucket?.count || 0
+          const isSparseCurrentAggregate = useAggregate
+            && m === currentMonth
+            && count > 0
+            && count < MIN_AGGREGATE_CURRENT_MONTH_COUNT
+
+          return {
+            month: m,
+            avgPpp: bucket && !isSparseCurrentAggregate
+              ? Math.round(bucket.sum / bucket.count)
+              : null,
+            count,
+          }
+        })
       }))
 
       return NextResponse.json({ months, complexes: complexData })
@@ -410,11 +454,22 @@ export async function GET(request: Request) {
       const keys: string[] = useAggregate ? ['전체'] : ([...new Set((data || []).map((r: any) => r.complex_name))] as string[]).sort()
       const complexData = keys.map(name => ({
         name,
-        data: months.map(m => ({
-          month: m,
-          avgPpp: monthly[m]?.[name] ? Math.round(monthly[m][name].sum / monthly[m][name].count) : null,
-          count: monthly[m]?.[name]?.count || 0,
-        }))
+        data: months.map(m => {
+          const bucket = monthly[m]?.[name]
+          const count = bucket?.count || 0
+          const isSparseCurrentAggregate = useAggregate
+            && m === currentMonth
+            && count > 0
+            && count < MIN_AGGREGATE_CURRENT_MONTH_COUNT
+
+          return {
+            month: m,
+            avgPpp: bucket && !isSparseCurrentAggregate
+              ? Math.round(bucket.sum / bucket.count)
+              : null,
+            count,
+          }
+        })
       }))
 
       return NextResponse.json({ months, complexes: complexData })
@@ -496,8 +551,7 @@ export async function GET(request: Request) {
       }
 
       // Fetch actual prices (1-month window) and match to 평형대
-      const oma = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const oneMonthAgo = `${oma.getFullYear()}-${String(oma.getMonth() + 1).padStart(2, '0')}-01`
+      const oneMonthAgo = subtractCalendarMonth(currentDate)
       const allActuals = await fetchAll(
         tradeType === '매매'
           ? supabase.from('re_trades').select('complex_name, deal_amount, area_sqm').gte('deal_date', oneMonthAgo).eq('cancel_yn', 'N').in('complex_name', complexNames)
@@ -525,15 +579,11 @@ export async function GET(request: Request) {
       // 1) Median-based: exclude >50% deviation from median
       // 2) Listing cross-check: exclude trades below 40% of listing min PPP
       for (const [key, ppps] of Object.entries(actualPpps)) {
-        if (ppps.length === 0) continue
         const r = rowMap[key]
-        const sorted = [...ppps].sort((a, b) => a - b)
-        const median = sorted[Math.floor(sorted.length / 2)]
-        const listingFloor = r.listingMinPpp ? r.listingMinPpp * 0.5 : 0
-        const filtered = ppps.filter(p => Math.abs(p - median) / median <= 0.5 && p >= listingFloor)
-        if (filtered.length === 0) continue
-        r.actualAvgPpp = filtered.reduce((s, p) => s + p, 0) / filtered.length
-        r.actualCount = filtered.length
+        const actual = getFilteredActualAverage(ppps, r.listingMinPpp)
+        if (!actual) continue
+        r.actualAvgPpp = actual.avg
+        r.actualCount = actual.count
       }
 
       // Calculate gaps
@@ -594,9 +644,7 @@ export async function GET(request: Request) {
       const dates = [...dateSet].sort()
       // Fetch trades from (earliest snapshot - 1 month) to cover all windows
       const earliestDate = dates[0] || now.toISOString().slice(0, 10)
-      const ed = new Date(earliestDate)
-      ed.setMonth(ed.getMonth() - 1)
-      const tradeCutoff = `${ed.getFullYear()}-${String(ed.getMonth() + 1).padStart(2, '0')}-01`
+      const tradeCutoff = subtractCalendarMonth(earliestDate)
 
       // Pre-load all trades/rentals with deal_date for per-date windowing
       type TradeRow = { complex_name: string; deal_amount?: number; deposit?: number; area_sqm: number; deal_date: string }
@@ -631,29 +679,21 @@ export async function GET(request: Request) {
       // 3. Compute daily gap rate: each date uses trades from [date - 1 month, date]
       const trend: { date: string; gapRate: number | null }[] = dates.map(d => {
         // Compute 1-month window for this snapshot date
-        const sd = new Date(d)
-        sd.setMonth(sd.getMonth() - 1)
-        const windowStart = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, '0')}-${String(sd.getDate()).padStart(2, '0')}`
+        const windowStart = subtractCalendarMonth(d)
 
         // Build actualBands for this date's window
-        const dateBands: Record<string, { sum: number; count: number }> = {}
+        const dateBands: Record<string, number[]> = {}
         for (const e of tradeEntries) {
           if (e.dealDate >= windowStart && e.dealDate <= d) {
-            if (!dateBands[e.key]) dateBands[e.key] = { sum: 0, count: 0 }
-            dateBands[e.key].sum += e.ppp
-            dateBands[e.key].count += 1
+            if (!dateBands[e.key]) dateBands[e.key] = []
+            dateBands[e.key].push(e.ppp)
           }
         }
 
         const gaps: number[] = []
         for (const [key, minPpp] of Object.entries(dateListings[d] || {})) {
-          const actual = dateBands[key]
-          if (actual && actual.count > 0) {
-            const avgActual = actual.sum / actual.count
-            if (avgActual > 0) {
-              gaps.push(((minPpp - avgActual) / avgActual) * 100)
-            }
-          }
+          const actual = getFilteredActualAverage(dateBands[key], minPpp)
+          if (actual) gaps.push(((minPpp - actual.avg) / actual.avg) * 100)
         }
         return {
           date: d,
