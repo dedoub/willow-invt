@@ -77,6 +77,7 @@ export interface FunnelTier {
   last7d: number
   last: string | null
   bots: { bot: string; count: number }[]
+  series7d: number[] // 최근 7일 일별 건수 (오래된→최신, 길이 7) — 인라인 바차트용
 }
 
 export interface ValueChainStats {
@@ -250,9 +251,12 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     if (/gptbot|claudebot|anthropic|ccbot|bytespider|google-extended|meta-external|applebot-extended|cohere|diffbot|omgili|timpibot|amazonbot/.test(b)) return 'train'
     return null
   }
-  type TierAgg = { total: number; last7d: number; last: string; bots: Map<string, number> }
-  const mkTier = (): TierAgg => ({ total: 0, last7d: 0, last: '', bots: new Map() })
+  type TierAgg = { total: number; last7d: number; last: string; bots: Map<string, number>; series: number[] }
+  const mkTier = (): TierAgg => ({ total: 0, last7d: 0, last: '', bots: new Map(), series: Array(7).fill(0) })
   const tierAgg = { train: mkTier(), index: mkTier(), cite: mkTier(), visit: mkTier() }
+  // 최근 7일 일별 버킷 (오래된→최신)
+  const day7 = Array.from({ length: 7 }, (_, i) => dayKey(new Date(now - (6 - i) * dayMs)))
+  const day7Idx = new Map(day7.map((k, i) => [k, i]))
   const citedFetches: { ts: string; path: string; bot: string | null }[] = []
   for (const x of crawl) {
     // referral = 인용 링크로 들어온 실제 사람 방문(④). 그 외는 봇 UA로 학습/인덱싱/인용 분류.
@@ -263,11 +267,14 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     if (now - new Date(x.ts).getTime() <= 7 * dayMs) e.last7d++
     if (x.ts > e.last) e.last = x.ts
     e.bots.set(x.bot ?? '?', (e.bots.get(x.bot ?? '?') ?? 0) + 1)
+    const di = day7Idx.get(x.ts.slice(0, 10))
+    if (di !== undefined) e.series[di]++
     if (tier === 'cite' && citedFetches.length < 12) citedFetches.push({ ts: x.ts, path: x.path, bot: x.bot })
   }
   const packTier = (e: TierAgg): FunnelTier => ({
     total: e.total, last7d: e.last7d, last: e.last || null,
     bots: [...e.bots.entries()].map(([bot, count]) => ({ bot, count })).sort((a, b) => b.count - a.count),
+    series7d: e.series,
   })
   const funnel = { train: packTier(tierAgg.train), index: packTier(tierAgg.index), cite: packTier(tierAgg.cite), visit: packTier(tierAgg.visit) }
 

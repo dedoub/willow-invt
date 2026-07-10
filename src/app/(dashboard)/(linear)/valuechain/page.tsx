@@ -35,6 +35,9 @@ export default function ValueChainPage() {
   const [updatePage, setUpdatePage] = useState(1)
   const [updatePerPage, setUpdatePerPage] = useState(8)
   const [updatePerPageInput, setUpdatePerPageInput] = useState('8')
+  const [articlePage, setArticlePage] = useState(1)
+  const [articlePerPage, setArticlePerPage] = useState(8)
+  const [articlePerPageInput, setArticlePerPageInput] = useState('8')
 
   const load = useCallback(async (refresh = false) => {
     if (!refresh) setLoading(true)
@@ -94,6 +97,10 @@ export default function ValueChainPage() {
     const n = Math.max(5, Math.min(100, Number(updatePerPageInput) || 8))
     setUpdatePerPageInput(String(n)); setUpdatePerPage(n); setUpdatePage(1)
   }
+  const commitArticlePerPage = () => {
+    const n = Math.max(5, Math.min(100, Number(articlePerPageInput) || 8))
+    setArticlePerPageInput(String(n)); setArticlePerPage(n); setArticlePage(1)
+  }
   const sortHead = (colKey: string, label: string, align: 'left' | 'center' | 'right', sortState: { key: string; dir: 'asc' | 'desc' }, onSort: (k: string) => void) => {
     const active = sortState.key === colKey
     return (
@@ -130,6 +137,9 @@ export default function ValueChainPage() {
   const updatePages = Math.max(1, Math.ceil(updateSorted.length / updatePerPage))
   const updSafe = Math.min(updatePage, updatePages)
   const updateRows = updateSorted.slice((updSafe - 1) * updatePerPage, updSafe * updatePerPage)
+  const articlePages = Math.max(1, Math.ceil(articleUpdates.length / articlePerPage))
+  const artSafe = Math.min(articlePage, articlePages)
+  const articleRows = articleUpdates.slice((artSafe - 1) * articlePerPage, artSafe * articlePerPage)
   const chevBtn = (disabled: boolean): React.CSSProperties => ({
     background: 'transparent', border: 'none', cursor: disabled ? 'default' : 'pointer',
     padding: 4, borderRadius: 4, color: disabled ? t.neutrals.line : t.neutrals.muted, opacity: disabled ? 0.4 : 1,
@@ -171,23 +181,25 @@ export default function ValueChainPage() {
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={sectionLabel}>AI 인용 퍼널</div>
           <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 420, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ minWidth: 500, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* 헤더행 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '128px 56px 56px 56px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 44px 44px 48px 66px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
               <span style={headCell}>단계</span>
               <span style={headCell}>7일</span>
               <span style={headCell}>총</span>
               <span style={headCell}>최근</span>
+              <span style={headCell}>7일추이</span>
               <span style={headCell}>상위봇</span>
             </div>
             {([['①', '학습 수집', crawl.funnel.train], ['②', '답변 인덱싱', crawl.funnel.index], ['③', '사용자 질문 인용', crawl.funnel.cite], ['④', '사용자 방문', crawl.funnel.visit]] as const).map(([num, label, tier]) => (
-              <div key={label} style={{ display: 'grid', gridTemplateColumns: '128px 56px 56px 56px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
+              <div key={label} style={{ display: 'grid', gridTemplateColumns: '120px 44px 44px 48px 66px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
                 <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap' }}>
                   <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle, marginRight: 3 }}>{num}</span>{label}
                 </span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tier.last7d.toLocaleString()}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tier.total.toLocaleString()}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{tier.last ? tier.last.slice(5, 10) : '—'}</span>
+                <span style={{ display: 'flex', alignItems: 'center' }} title="최근 7일 일별 추이"><MiniBars data={tier.series7d} /></span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {tier.bots.length ? tier.bots.slice(0, 3).map(b => `${b.bot} ${b.count.toLocaleString()}×`).join(' · ') : '아직 없음'}
                 </span>
@@ -268,7 +280,7 @@ export default function ValueChainPage() {
               <span style={headCell}>제목</span>
               <span style={{ ...headCell, textAlign: 'center' }}>변경</span>
             </div>
-            {articleUpdates.map(a => (
+            {articleRows.map(a => (
               <a key={a.slug} href={`${SITE_URL}/analysis/${a.slug}`} target="_blank" rel="noreferrer"
                 style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 48px', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
                 <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.updatedAt ?? '').slice(5, 10) || '—'}</span>
@@ -280,6 +292,26 @@ export default function ValueChainPage() {
             {articleUpdates.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>아티클 없음</span>}
           </div>
           </div>
+          {/* 페이저 — N개씩(좌) + 이동(우), 업데이트 테이블과 동일 */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '8px 8px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input
+                value={articlePerPageInput}
+                onChange={e => setArticlePerPageInput(e.target.value.replace(/\D/g, ''))}
+                onBlur={commitArticlePerPage}
+                onKeyDown={e => { if (e.key === 'Enter') commitArticlePerPage() }}
+                style={{ width: 32, textAlign: 'center', border: 'none', background: t.neutrals.inner, borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, padding: '2px 0', outline: 'none' }}
+              />
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+            </div>
+            {articlePages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button disabled={artSafe === 1} onClick={() => setArticlePage(p => Math.max(1, p - 1))} style={chevBtn(artSafe === 1)}><LIcon name="chevronLeft" size={13} stroke={2} /></button>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{(artSafe - 1) * articlePerPage + 1}-{Math.min(artSafe * articlePerPage, articleUpdates.length)} / {articleUpdates.length}</span>
+                <button disabled={artSafe >= articlePages} onClick={() => setArticlePage(p => Math.min(articlePages, p + 1))} style={chevBtn(artSafe >= articlePages)}><LIcon name="chevronRight" size={13} stroke={2} /></button>
+              </div>
+            )}
+          </div>
         </div>
 
       </LCard>
@@ -288,6 +320,21 @@ export default function ValueChainPage() {
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────────
+
+// 최근 7일 추이 미니 바차트 (인라인, SVG)
+function MiniBars({ data }: { data: number[] }) {
+  const max = Math.max(1, ...data)
+  const H = 16, W = 58, n = data.length || 1, gap = 2
+  const bw = (W - gap * (n - 1)) / n
+  return (
+    <svg width={W} height={H} style={{ display: 'block' }} aria-hidden="true">
+      {data.map((v, i) => {
+        const h = Math.max(1, Math.round((v / max) * (H - 1)))
+        return <rect key={i} x={i * (bw + gap)} y={H - h} width={bw} height={h} rx={1} fill={v > 0 ? t.brand[400] : t.neutrals.line} />
+      })}
+    </svg>
+  )
+}
 
 function refreshBtnStyle(active = false): React.CSSProperties {
   return {
