@@ -82,6 +82,7 @@ export const codexSdkRunner: AgentRunner = {
       skipGitRepoCheck: true,
       networkAccessEnabled: true,
       ...(opts?.model ? { model: opts.model } : {}),
+      ...(opts?.effort ? { modelReasoningEffort: opts.effort } : {}),
     }
 
     const thread = opts?.threadId

@@ -59,6 +59,7 @@ export const codexCliRunner: AgentRunner = {
       if (wantProgress) args.push('--json')
       args.push('-o', outFile)
       if (opts?.model) args.push('-m', opts.model)
+      if (opts?.effort) args.push('-c', `model_reasoning_effort="${opts.effort}"`)
       if (opts?.cwd) args.push('-C', opts.cwd)
       args.push('-')
 

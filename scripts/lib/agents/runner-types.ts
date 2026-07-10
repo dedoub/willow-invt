@@ -21,6 +21,8 @@ export interface AgentOptions {
   allowedTools?: string[]
   timeoutMs?: number
   model?: string
+  // 추론 강도 오버라이드 (미지정 시 codex config 기본값). CLI: -c model_reasoning_effort, SDK: modelReasoningEffort
+  effort?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
   sandbox?: 'read-only' | 'workspace-write' | 'danger-full-access'
   backend?: 'claude' | 'codex'
   onProgress?: (p: CodexProgress) => void

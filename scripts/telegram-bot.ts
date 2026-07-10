@@ -10,6 +10,15 @@ import { runAgent, runAgentTurn, AgentAbortError, type CodexProgress } from './l
 
 // 텔레그램봇 전용 codex 모델 (봇의 모든 codex 호출에 -m 로 오버라이드). 전역 codex config는 건드리지 않음.
 const BOT_MODEL = 'gpt-5.6-sol'
+
+// 하이브리드 추론 강도: 일상 대화는 medium(캡 절약), 무거운 분석/코딩/계획 요청만 high로 승격.
+const HEAVY_EFFORT_RE = /분석|왜|원인|디버그|디버깅|조사|리서치|검토|진단|전략|비교|평가|계획|설계|리팩터|최적화|성능|버그|고쳐|코드|스크립트|구현|짜줘|만들어\s*줘/
+function pickEffort(text: string): 'medium' | 'high' {
+  const t = (text || '').trim()
+  if (HEAVY_EFFORT_RE.test(t)) return 'high'
+  if (t.length > 160) return 'high' // 긴 요청은 대체로 복잡
+  return 'medium'
+}
 import { getAgentThread, markAgentThreadFailed, shortThreadId, upsertAgentThread } from './lib/agents/thread-registry'
 import { isResumablePendingTask, loadPendingTasks, patchPendingTask, removePendingTask, savePendingTask } from './lib/inflight-resume'
 import { type LocalServiceDefinition, getLocalServiceContext, getLocalServiceRegistry, getLocalServiceStatus, executeLocalServiceAction } from './lib/local-services'
@@ -5907,6 +5916,7 @@ ${text}
         runner: 'sdk',
         backend: 'codex',
         model: BOT_MODEL,
+        effort: pickEffort(text),
         allowedTools: [TENSW_MCP_TOOLS, PORTFOLIO_MCP_TOOLS, WILLOW_MCP_TOOLS],
         onProgress: onCodexProgress,
         cwd: activeWorkspacePath,
