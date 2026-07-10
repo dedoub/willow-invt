@@ -116,6 +116,10 @@ export interface ValueChainStats {
       visit: FunnelTier // ④ 인용 링크를 통해 실제 사람이 방문 (vc_crawl_log category='referral')
     }
     citedFetches: { ts: string; path: string; bot: string | null }[] // ③ 실사용자 질문이 가져간 페이지
+    // 질문 역설계 (valuechain-wiki docs/traffic-capture.md): 유형=패싯 fetch, 방향=panel_nav, 묶음=co-fetch 세션
+    questionTypes: { facet: string; total: number; top: string | null }[]
+    panelSignal: { revenue: number; cost: number; recent: { from: string; to: string; side: 'in' | 'out' }[] }
+    cofetch: { total: number; multi: number; relation: number; recent: { start: string; bot: string; cls: 'relation' | 'theme'; seq: string[] }[] }
   }
   // 분석 아티클 업데이트 현황 (vc_articles)
   articleUpdates: {
@@ -158,7 +162,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     supabase
       .from('vc_companies')
       .select('slug,name,ticker,kicker,lead,segments,updated_at,created_at, vc_analyst_ratings(id), vc_edges!company_id(direction,counterparty_id,confidence,metric, vc_edge_sources(stance,metric, vc_sources(kind,published_at,lang)))'),
-    supabase.from('vc_crawl_log').select('ts,path,bot,category').neq('category', 'attack').order('ts', { ascending: false }).limit(3000),
+    supabase.from('vc_crawl_log').select('ts,path,bot,category,referer,country').neq('category', 'attack').order('ts', { ascending: false }).limit(3000),
     supabase.from('vc_companies').select('created_at').gte('created_at', windowStartKey).limit(100000),
     supabase.from('vc_edges').select('created_at').gte('created_at', windowStartKey).limit(100000),
     supabase.from('vc_sources').select('created_at').gte('created_at', windowStartKey).limit(100000),
@@ -216,7 +220,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     .map((r) => ({ slug: r.slug, name: r.name, ticker: r.ticker, rev: r.rev, cost: r.cost, pass: r.m.pass, tier: r.m.tierShort, created_at: r.created_at, updated_at: r.updated_at, hasReport: r.hasReport, hasChainImpact: r.hasChainImpact }))
 
   // ── 크롤 / AI 의존도 ──
-  type CrawlRow = { ts: string; path: string; bot: string | null; category: string | null }
+  type CrawlRow = { ts: string; path: string; bot: string | null; category: string | null; referer: string | null; country: string | null }
   const crawl = (crawlRes.data ?? []) as CrawlRow[]
   const aiRows = crawl.filter((x) => x.category === 'ai')
   const since = (days: number) => crawl.filter((x) => now - new Date(x.ts).getTime() <= days * dayMs).length
@@ -232,7 +236,12 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     .map(([bot, count]) => ({ bot, count, days: botDays.get(bot)?.size ?? 0 }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8)
-  const resOf = (p: string) => p.replace(/\.(md|json)$/, '') || '/'
+  const FACET_RE = /^\/([a-z0-9-]+)\/(customers|suppliers|ripple|consensus)(\.md)?$/
+  const resOf = (p: string) => {
+    const q = p.replace(/\.(md|json)$/, '') || '/'
+    const fm = q.match(/^\/([a-z0-9-]+)\/(customers|suppliers|ripple|consensus)$/)
+    return fm ? `/${fm[1]}` : q
+  }
   const resMap = new Map<string, { count: number; bots: Set<string> }>()
   for (const x of aiRows) {
     const res = resOf(x.path)
@@ -286,6 +295,78 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     series7d: e.series,
   })
   const funnel = { train: packTier(tierAgg.train), index: packTier(tierAgg.index), cite: packTier(tierAgg.cite), visit: packTier(tierAgg.visit) }
+
+  // ── 질문 역설계: 트래픽을 질문 유형 × 방향 × 엔티티 묶음으로 해석 ──
+  // (a) 질문 유형 = 패싯 fetch
+  const facetCnt = new Map<string, { total: number; nodes: Map<string, number> }>()
+  for (const f of ['customers', 'suppliers', 'ripple', 'consensus']) facetCnt.set(f, { total: 0, nodes: new Map() })
+  for (const x of crawl) {
+    const fm = x.path.split('?')[0].match(FACET_RE)
+    if (!fm || x.category !== 'ai') continue
+    const e = facetCnt.get(fm[2])!
+    e.total++; e.nodes.set(fm[1], (e.nodes.get(fm[1]) ?? 0) + 1)
+  }
+  const questionTypes = [...facetCnt.entries()].map(([facet, e]) => ({
+    facet, total: e.total,
+    top: [...e.nodes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
+  }))
+  // (b) 질문 방향 = 사람의 패널 확장 (panel_nav)
+  const pn = crawl.filter((x) => x.category === 'panel_nav')
+  const panelSignal = {
+    revenue: pn.filter((x) => x.bot === 'panel-revenue').length,
+    cost: pn.filter((x) => x.bot === 'panel-cost').length,
+    recent: pn.slice(0, 6).map((x) => ({ from: (x.referer ?? '?').replace(/^\//, ''), to: x.path.replace(/^\//, ''), side: (x.bot === 'panel-revenue' ? 'in' : 'out') as 'in' | 'out' })),
+  }
+  // (c) 질문의 엔티티 묶음 = co-fetch 세션 (봇+국가, 10분 간격, 그래프 연결 쌍이면 관계형)
+  const [eg1, eg2, eg3, compRows] = await Promise.all([
+    supabase.from('vc_edges').select('company_id,counterparty_id').not('counterparty_id', 'is', null).range(0, 999),
+    supabase.from('vc_edges').select('company_id,counterparty_id').not('counterparty_id', 'is', null).range(1000, 1999),
+    supabase.from('vc_edges').select('company_id,counterparty_id').not('counterparty_id', 'is', null).range(2000, 2999),
+    supabase.from('vc_companies').select('id,slug').range(0, 999),
+  ])
+  const slugById = new Map(((compRows.data ?? []) as { id: string; slug: string }[]).map((c) => [c.id, c.slug]))
+  const linkedPairs = new Set<string>()
+  for (const e of [...(eg1.data ?? []), ...(eg2.data ?? []), ...(eg3.data ?? [])] as { company_id: string; counterparty_id: string }[]) {
+    linkedPairs.add(`${slugById.get(e.company_id)}|${slugById.get(e.counterparty_id)}`)
+  }
+  const isLinkedSlug = (a: string, b: string) => linkedPairs.has(`${a}|${b}`) || linkedPairs.has(`${b}|${a}`)
+  const RESERVED_RES = new Set(['sources', 'roadmap', 'crawls', 'schema', 'analysis', 'llms.txt'])
+  const nodeSlugOf = (p: string) => {
+    const m = resOf(p.split('?')[0]).match(/^\/([a-z0-9-]+)$/)
+    return m && !RESERVED_RES.has(m[1]) ? m[1] : null
+  }
+  const byKeySes = new Map<string, { ts: string; slug: string; bot: string }[]>()
+  for (let i = crawl.length - 1; i >= 0; i--) { // 시간 오름차순
+    const x = crawl[i]
+    if (x.category !== 'ai' && tierOf(x.bot) !== 'cite') continue
+    const slug = nodeSlugOf(x.path); if (!slug) continue
+    const key = `${x.bot ?? '?'}|${x.country ?? ''}`
+    if (!byKeySes.has(key)) byKeySes.set(key, [])
+    byKeySes.get(key)!.push({ ts: x.ts, slug, bot: x.bot ?? '?' })
+  }
+  type Ses = { bot: string; start: string; seq: string[] }
+  const sesAll: Ses[] = []
+  for (const list of byKeySes.values()) {
+    let cur: Ses | null = null; let lastTs = ''
+    for (const x of list) {
+      if (!cur || new Date(x.ts).getTime() - new Date(lastTs).getTime() > 10 * 60e3) { cur = { bot: x.bot, start: x.ts, seq: [] }; sesAll.push(cur) }
+      lastTs = x.ts
+      if (cur.seq[cur.seq.length - 1] !== x.slug) cur.seq.push(x.slug)
+    }
+  }
+  const clsOf = (seq: string[]): 'relation' | 'theme' => {
+    const nodes = [...new Set(seq)]
+    for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) if (isLinkedSlug(nodes[i], nodes[j])) return 'relation'
+    return 'theme'
+  }
+  const multiSes = sesAll.filter((x) => new Set(x.seq).size >= 2)
+  const cofetch = {
+    total: sesAll.length,
+    multi: multiSes.length,
+    relation: multiSes.filter((x) => clsOf(x.seq) === 'relation').length,
+    recent: [...multiSes].sort((a, b) => b.start.localeCompare(a.start)).slice(0, 5)
+      .map((x) => ({ start: x.start, bot: x.bot, cls: clsOf(x.seq), seq: x.seq.slice(0, 6) })),
+  }
 
   // ── 분석 아티클 업데이트 현황 (vc_articles) ──
   const articleUpdates = ((articlesFull.data ?? []) as Array<{ slug: string; title: string; published_at: string | null; updated_at: string | null; changelog: unknown }>).map((a) => ({
@@ -360,6 +441,9 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
       topResources,
       funnel,
       citedFetches,
+      questionTypes,
+      panelSignal,
+      cofetch,
     },
     articleUpdates,
   }

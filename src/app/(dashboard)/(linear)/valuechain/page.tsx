@@ -238,6 +238,67 @@ export default function ValueChainPage() {
           </div>
         </div>
 
+        {/* 질문 역설계 — 유형(패싯)·방향(패널)·묶음(co-fetch 세션) */}
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <div style={sectionLabel}>질문 역설계 <span style={{ color: t.neutrals.subtle, fontWeight: 400, textTransform: 'none' }}>유형 · 방향 · 묶음</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 8 }}>
+            {/* 질문 유형: 패싯 fetch */}
+            <div style={{ padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
+              <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>질문 유형 (패싯 fetch)</div>
+              {crawl.questionTypes.every(q => q.total === 0) ? (
+                <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>아직 없음 — 패싯 색인 대기 (7/11 배포)</div>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {crawl.questionTypes.map(q => (
+                    <span key={q.facet} style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: q.total > 0 ? t.neutrals.text : t.neutrals.line, background: 'transparent', border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.sm, padding: '3px 7px' }}>
+                      {q.facet} <b>{q.total}</b>{q.top ? ` · ${q.top}` : ''}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* 질문 방향: 패널 확장 */}
+            <div style={{ padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
+              <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>질문 방향 (패널 확장)</div>
+              {crawl.panelSignal.revenue + crawl.panelSignal.cost === 0 ? (
+                <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>아직 없음 — 방문자 패널 사용 대기</div>
+              ) : (
+                <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text }}>
+                  매출쪽(수요) <b>{crawl.panelSignal.revenue}</b> · 비용쪽(공급) <b>{crawl.panelSignal.cost}</b>
+                  <div style={{ marginTop: 4, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {crawl.panelSignal.recent.map(x => `${x.from} ${x.side === 'in' ? '◀' : '▶'} ${x.to}`).join(' · ')}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          {/* co-fetch 세션 */}
+          <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
+            <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>
+              co-fetch 세션 <span style={{ textTransform: 'none' }}>— 함께 가져간 노드 묶음 = 질문의 대상 집합</span>
+            </div>
+            {crawl.cofetch.multi === 0 ? (
+              <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>이 창에는 다중 fetch 세션 없음</div>
+            ) : (
+              <>
+                <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, marginBottom: 5 }}>
+                  {crawl.cofetch.multi} co-fetch / {crawl.cofetch.total} 세션 · 관계형 {crawl.cofetch.relation}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {crawl.cofetch.recent.map((x, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, overflow: 'hidden' }}>
+                      <span style={{ color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.start.slice(5, 16).replace('T', ' ')}</span>
+                      <span style={{ color: x.cls === 'relation' ? t.brand[500] : t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.cls === 'relation' ? '관계' : '테마'}</span>
+                      <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{x.bot}</span>
+                      <span style={{ color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{x.seq.join(' → ')}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* 기업 노드 업데이트 */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={sectionLabel}>기업 노드 업데이트</div>
