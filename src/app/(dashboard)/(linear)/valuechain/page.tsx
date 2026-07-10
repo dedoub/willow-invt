@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -32,6 +32,7 @@ export default function ValueChainPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updateSort, setUpdateSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'date', dir: 'desc' })
+  const [articleSort, setArticleSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'updated', dir: 'desc' })
   const [updatePage, setUpdatePage] = useState(1)
   const [updatePerPage, setUpdatePerPage] = useState(8)
   const [updatePerPageInput, setUpdatePerPageInput] = useState('8')
@@ -82,15 +83,15 @@ export default function ValueChainPage() {
     color: t.neutrals.muted, textDecoration: 'none',
   }
   // 업데이트 테이블: 날짜 | 노드 | 티커 | 매출처 | 지급처 | 티어 | 완성도
-  const UPDATE_COLS = '44px 44px minmax(76px,1fr) 58px 40px 40px 30px 44px 34px 34px 78px'
-  const UPDATE_MIN_WIDTH = 626
+  const UPDATE_COLS = '44px 44px minmax(76px,1fr) 58px 40px 40px 30px 44px 34px 34px 40px 40px 40px 40px'
+  const UPDATE_MIN_WIDTH = 720
   const headCell: React.CSSProperties = {
     fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
     letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
   }
 
   // ── 클릭 정렬 헤더 ──
-  const numDescKeys = new Set(['date', 'created', 'rev', 'cost', 'pass', 'count', 'pct', 'days'])
+  const numDescKeys = new Set(['date', 'created', 'rev', 'cost', 'pass', 'count', 'pct', 'days', 'f_train', 'f_index', 'f_cite', 'f_visit', 'changelog', 'published', 'updated'])
   const defaultDir = (key: string): 'asc' | 'desc' => (numDescKeys.has(key) ? 'desc' : 'asc')
   const onUpdateSort = (key: string) => { setUpdatePage(1); setUpdateSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: defaultDir(key) }) }
   const commitUpdatePerPage = () => {
@@ -128,18 +129,46 @@ export default function ValueChainPage() {
       case 'tier': r = a.tier.localeCompare(b.tier); break
       case 'pass': r = a.pass - b.pass; break
       case 'created': r = (a.created_at || '').localeCompare(b.created_at || ''); break
+      case 'f_train': r = a.funnel.train - b.funnel.train; break
+      case 'f_index': r = a.funnel.index - b.funnel.index; break
+      case 'f_cite': r = a.funnel.cite - b.funnel.cite; break
+      case 'f_visit': r = a.funnel.visit - b.funnel.visit; break
       case 'date':
       default: r = (a.updated_at || '').localeCompare(b.updated_at || '')
     }
     return r !== 0 ? r * updateDir : (b.updated_at || '').localeCompare(a.updated_at || '')
   })
+  // 인용퍼널 공통 컬럼 정의 (학습·인덱싱·인용·방문) — 두 테이블 헤더/셀 공용
+  const FUNNEL_HEADS = [
+    { key: 'f_train', label: '학습', color: t.neutrals.muted, get: (f: { train: number; index: number; cite: number; visit: number }) => f.train },
+    { key: 'f_index', label: '인덱싱', color: t.neutrals.muted, get: (f: { train: number; index: number; cite: number; visit: number }) => f.index },
+    { key: 'f_cite', label: '인용', color: t.brand[500], get: (f: { train: number; index: number; cite: number; visit: number }) => f.cite },
+    { key: 'f_visit', label: '방문', color: '#10b981', get: (f: { train: number; index: number; cite: number; visit: number }) => f.visit },
+  ] as const
   // ── 페이지네이션 ──
   const updatePages = Math.max(1, Math.ceil(updateSorted.length / updatePerPage))
   const updSafe = Math.min(updatePage, updatePages)
   const updateRows = updateSorted.slice((updSafe - 1) * updatePerPage, updSafe * updatePerPage)
-  const articlePages = Math.max(1, Math.ceil(articleUpdates.length / articlePerPage))
+  const onArticleSort = (key: string) => { setArticlePage(1); setArticleSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: defaultDir(key) }) }
+  const articleDir = articleSort.dir === 'asc' ? 1 : -1
+  const articleSorted = [...articleUpdates].sort((a, b) => {
+    let r = 0
+    switch (articleSort.key) {
+      case 'title': r = a.title.localeCompare(b.title, 'ko'); break
+      case 'published': r = (a.publishedAt || '').localeCompare(b.publishedAt || ''); break
+      case 'changelog': r = a.changelogCount - b.changelogCount; break
+      case 'f_train': r = a.funnel.train - b.funnel.train; break
+      case 'f_index': r = a.funnel.index - b.funnel.index; break
+      case 'f_cite': r = a.funnel.cite - b.funnel.cite; break
+      case 'f_visit': r = a.funnel.visit - b.funnel.visit; break
+      case 'updated':
+      default: r = (a.updatedAt || '').localeCompare(b.updatedAt || '')
+    }
+    return r !== 0 ? r * articleDir : (b.updatedAt || '').localeCompare(a.updatedAt || '')
+  })
+  const articlePages = Math.max(1, Math.ceil(articleSorted.length / articlePerPage))
   const artSafe = Math.min(articlePage, articlePages)
-  const articleRows = articleUpdates.slice((artSafe - 1) * articlePerPage, artSafe * articlePerPage)
+  const articleRows = articleSorted.slice((artSafe - 1) * articlePerPage, artSafe * articlePerPage)
   const chevBtn = (disabled: boolean): React.CSSProperties => ({
     background: 'transparent', border: 'none', cursor: disabled ? 'default' : 'pointer',
     padding: 4, borderRadius: 4, color: disabled ? t.neutrals.line : t.neutrals.muted, opacity: disabled ? 0.4 : 1,
@@ -227,7 +256,7 @@ export default function ValueChainPage() {
               {sortHead('pass', '완성도', 'center', updateSort, onUpdateSort)}
               <span style={{ ...headCell, textAlign: 'center' }}>리포트</span>
               <span style={{ ...headCell, textAlign: 'center' }}>파급</span>
-              <span style={{ ...headCell, textAlign: 'center' }}>인용퍼널</span>
+              {FUNNEL_HEADS.map(h => <Fragment key={h.key}>{sortHead(h.key, h.label, 'center', updateSort, onUpdateSort)}</Fragment>)}
             </div>
             {updateRows.map(n => (
               <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer"
@@ -242,7 +271,7 @@ export default function ValueChainPage() {
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{n.pass}/{maturity.checks}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', textAlign: 'center', color: n.hasReport ? '#10b981' : t.neutrals.line, whiteSpace: 'nowrap' }} title={n.hasReport ? '증권사 리포트 섹션 있음' : '없음'}>{n.hasReport ? '●' : '—'}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', textAlign: 'center', color: n.hasChainImpact ? '#3b82f6' : t.neutrals.line, whiteSpace: 'nowrap' }} title={n.hasChainImpact ? '가치사슬 파급 섹션 있음' : '없음'}>{n.hasChainImpact ? '●' : '—'}</span>
-                <span style={{ display: 'flex', justifyContent: 'center' }}><FunnelMini f={n.funnel} /></span>
+                {FUNNEL_HEADS.map(h => { const v = h.get(n.funnel); return <span key={h.key} style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap', color: v > 0 ? h.color : t.neutrals.line }}>{v || '—'}</span> })}
               </a>
             ))}
             {updates.recent.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>업데이트 내역 없음</span>}
@@ -274,23 +303,23 @@ export default function ValueChainPage() {
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={sectionLabel}>분석 아티클 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: 400 }}>{articleUpdates.length}건</span></div>
           <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 452, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* 헤더 — 최초 | 수정 | 제목 | 변경 | 인용퍼널 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 78px', gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
-              <span style={headCell}>최초</span>
-              <span style={headCell}>수정</span>
-              <span style={headCell}>제목</span>
-              <span style={{ ...headCell, textAlign: 'center' }}>변경</span>
-              <span style={{ ...headCell, textAlign: 'center' }}>인용퍼널</span>
+          <div style={{ minWidth: 540, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* 헤더 (정렬 가능) — 최초 | 수정 | 제목 | 변경 | 학습·인덱싱·인용·방문 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 40px 40px 40px 40px', gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+              {sortHead('published', '최초', 'left', articleSort, onArticleSort)}
+              {sortHead('updated', '수정', 'left', articleSort, onArticleSort)}
+              {sortHead('title', '제목', 'left', articleSort, onArticleSort)}
+              {sortHead('changelog', '변경', 'center', articleSort, onArticleSort)}
+              {FUNNEL_HEADS.map(h => <Fragment key={h.key}>{sortHead(h.key, h.label, 'center', articleSort, onArticleSort)}</Fragment>)}
             </div>
             {articleRows.map(a => (
               <a key={a.slug} href={`${SITE_URL}/analysis/${a.slug}`} target="_blank" rel="noreferrer"
-                style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 78px', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
+                style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 40px 40px 40px 40px', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
                 <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.publishedAt ?? '').slice(5, 10) || '—'}</span>
                 <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.updatedAt ?? '').slice(5, 10) || '—'}</span>
                 <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{a.title}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: a.changelogCount ? t.neutrals.muted : t.neutrals.line, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{a.changelogCount || '—'}</span>
-                <span style={{ display: 'flex', justifyContent: 'center' }}><FunnelMini f={a.funnel} /></span>
+                {FUNNEL_HEADS.map(h => { const v = h.get(a.funnel); return <span key={h.key} style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap', color: v > 0 ? h.color : t.neutrals.line }}>{v || '—'}</span> })}
               </a>
             ))}
             {articleUpdates.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>아티클 없음</span>}
@@ -337,17 +366,6 @@ function MiniBars({ data }: { data: number[] }) {
         return <rect key={i} x={i * (bw + gap)} y={H - h} width={bw} height={h} rx={1} fill={v > 0 ? t.brand[400] : t.neutrals.line} />
       })}
     </svg>
-  )
-}
-
-// 경로별 인용퍼널 수치 (학습·인덱싱·인용·방문) 인라인 셀
-function FunnelMini({ f }: { f: { train: number; index: number; cite: number; visit: number } }) {
-  const cell = (v: number, color: string) => <span style={{ color: v > 0 ? color : t.neutrals.line }}>{v}</span>
-  const dot = <span style={{ color: t.neutrals.line }}>·</span>
-  return (
-    <span title="학습·인덱싱·인용·방문" style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', display: 'inline-flex', gap: 3, justifyContent: 'center', whiteSpace: 'nowrap' }}>
-      {cell(f.train, t.neutrals.muted)}{dot}{cell(f.index, t.neutrals.muted)}{dot}{cell(f.cite, t.brand[500])}{dot}{cell(f.visit, '#10b981')}
-    </span>
   )
 }
 
