@@ -21,7 +21,7 @@ const CLIENTS = [
   { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#1F4E79' },
   { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#B88A2A' },
   { id: 'monor', name: 'MonoR Apps',    tag: 'Education', dot: '#2F8F5B' },
-  { id: 'valuechain', name: 'LLM Wiki', tag: 'Experiment', dot: '#7C5CD6' },
+  { id: 'valuechain', name: 'LLM Wiki', tag: 'Official', dot: '#7C5CD6' },
 ]
 
 const CLIENT_HREF: Record<string, string | undefined> = {
