@@ -66,7 +66,7 @@ export default function ValueChainPage() {
     )
   }
 
-  const { summary, maturity, updates, crawl, trends } = stats
+  const { summary, maturity, updates, crawl, trends, articleUpdates } = stats
 
   const sectionLabel: React.CSSProperties = {
     fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
@@ -180,7 +180,7 @@ export default function ValueChainPage() {
               <span style={headCell}>최근</span>
               <span style={headCell}>상위봇</span>
             </div>
-            {([['①', '학습 수집', crawl.funnel.train], ['②', '답변 인덱싱', crawl.funnel.index], ['③', '사용자 질문 인용', crawl.funnel.cite]] as const).map(([num, label, tier]) => (
+            {([['①', '학습 수집', crawl.funnel.train], ['②', '답변 인덱싱', crawl.funnel.index], ['③', '사용자 질문 인용', crawl.funnel.cite], ['④', '사용자 방문', crawl.funnel.visit]] as const).map(([num, label, tier]) => (
               <div key={label} style={{ display: 'grid', gridTemplateColumns: '128px 56px 56px 56px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
                 <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap' }}>
                   <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle, marginRight: 3 }}>{num}</span>{label}
@@ -253,6 +253,32 @@ export default function ValueChainPage() {
                 <button disabled={updSafe >= updatePages} onClick={() => setUpdatePage(p => Math.min(updatePages, p + 1))} style={chevBtn(updSafe >= updatePages)}><LIcon name="chevronRight" size={13} stroke={2} /></button>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* 분석 아티클 업데이트 현황 (vc_articles) */}
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <div style={sectionLabel}>분석 아티클 업데이트 현황 <span style={{ color: t.neutrals.subtle, fontWeight: 400 }}>{articleUpdates.length}건</span></div>
+          <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 360, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* 헤더 — 수정 | 발행 | 제목 | 변경 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 48px', gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+              <span style={headCell}>수정</span>
+              <span style={headCell}>발행</span>
+              <span style={headCell}>제목</span>
+              <span style={{ ...headCell, textAlign: 'center' }}>변경</span>
+            </div>
+            {articleUpdates.map(a => (
+              <a key={a.slug} href={`${SITE_URL}/analysis/${a.slug}`} target="_blank" rel="noreferrer"
+                style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 48px', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
+                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.updatedAt ?? '').slice(5, 10) || '—'}</span>
+                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.publishedAt ?? '').slice(5, 10) || '—'}</span>
+                <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{a.title}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: a.changelogCount ? t.neutrals.muted : t.neutrals.line, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{a.changelogCount || '—'}</span>
+              </a>
+            ))}
+            {articleUpdates.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>아티클 없음</span>}
+          </div>
           </div>
         </div>
 

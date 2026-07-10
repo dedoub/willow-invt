@@ -107,14 +107,23 @@ export interface ValueChainStats {
     lastTs: string | null
     topBots: { bot: string; count: number; days: number }[]
     topResources: { resource: string; count: number; bots: number }[]
-    // AI 인용 퍼널: 학습 수집 → 답변 인덱싱 → 사용자 질문 인용 (wiki /crawls와 동일 분류)
+    // AI 인용 퍼널: 학습 수집 → 답변 인덱싱 → 사용자 질문 인용 → 사용자 방문(referral)
     funnel: {
       train: FunnelTier
       index: FunnelTier
       cite: FunnelTier
+      visit: FunnelTier // ④ 인용 링크를 통해 실제 사람이 방문 (vc_crawl_log category='referral')
     }
     citedFetches: { ts: string; path: string; bot: string | null }[] // ③ 실사용자 질문이 가져간 페이지
   }
+  // 분석 아티클 업데이트 현황 (vc_articles)
+  articleUpdates: {
+    slug: string
+    title: string
+    publishedAt: string | null
+    updatedAt: string | null
+    changelogCount: number
+  }[]
   trends: {
     nodes: TrendBlock
     edges: TrendBlock
@@ -138,6 +147,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     nodesHead, edgesHead, sourcesHead, articlesHead,
     maturityRes, crawlRes,
     nodesRecent, edgesRecent, sourcesRecent, articlesRecent,
+    articlesFull,
   ] = await Promise.all([
     supabase.from('vc_companies').select('*', { count: 'exact', head: true }),
     supabase.from('vc_edges').select('*', { count: 'exact', head: true }),
@@ -151,6 +161,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     supabase.from('vc_edges').select('created_at').gte('created_at', windowStartKey).limit(100000),
     supabase.from('vc_sources').select('created_at').gte('created_at', windowStartKey).limit(100000),
     supabase.from('vc_articles').select('published_at').gte('published_at', windowStartKey).limit(100000),
+    supabase.from('vc_articles').select('slug,title,published_at,updated_at,changelog').order('updated_at', { ascending: false, nullsFirst: false }).limit(100),
   ])
 
   // ── 성숙도 집계 ──
@@ -241,10 +252,11 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
   }
   type TierAgg = { total: number; last7d: number; last: string; bots: Map<string, number> }
   const mkTier = (): TierAgg => ({ total: 0, last7d: 0, last: '', bots: new Map() })
-  const tierAgg = { train: mkTier(), index: mkTier(), cite: mkTier() }
+  const tierAgg = { train: mkTier(), index: mkTier(), cite: mkTier(), visit: mkTier() }
   const citedFetches: { ts: string; path: string; bot: string | null }[] = []
   for (const x of crawl) {
-    const tier = tierOf(x.bot)
+    // referral = 인용 링크로 들어온 실제 사람 방문(④). 그 외는 봇 UA로 학습/인덱싱/인용 분류.
+    const tier: 'train' | 'index' | 'cite' | 'visit' | null = x.category === 'referral' ? 'visit' : tierOf(x.bot)
     if (!tier) continue
     const e = tierAgg[tier]
     e.total++
@@ -257,7 +269,16 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     total: e.total, last7d: e.last7d, last: e.last || null,
     bots: [...e.bots.entries()].map(([bot, count]) => ({ bot, count })).sort((a, b) => b.count - a.count),
   })
-  const funnel = { train: packTier(tierAgg.train), index: packTier(tierAgg.index), cite: packTier(tierAgg.cite) }
+  const funnel = { train: packTier(tierAgg.train), index: packTier(tierAgg.index), cite: packTier(tierAgg.cite), visit: packTier(tierAgg.visit) }
+
+  // ── 분석 아티클 업데이트 현황 (vc_articles) ──
+  const articleUpdates = ((articlesFull.data ?? []) as Array<{ slug: string; title: string; published_at: string | null; updated_at: string | null; changelog: unknown }>).map((a) => ({
+    slug: a.slug,
+    title: a.title,
+    publishedAt: a.published_at,
+    updatedAt: a.updated_at,
+    changelogCount: Array.isArray(a.changelog) ? a.changelog.length : 0,
+  }))
 
   // ── 메트릭별 추이 (14일 누적 스파크라인 + 오늘/7일 신규) ──
   const buildTrend = (
@@ -323,5 +344,6 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
       funnel,
       citedFetches,
     },
+    articleUpdates,
   }
 }
