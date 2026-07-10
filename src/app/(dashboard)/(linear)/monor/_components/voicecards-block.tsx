@@ -40,6 +40,7 @@ interface UserStats {
     purchasedCredits: number
     bonusCredits: number
     offerStage: string | null
+    offerStageAt: string | null
     creditsUsed: number
     sheetCount: number
     cards: number
@@ -247,19 +248,24 @@ const OFFER_STAGE_STYLE: Record<string, { label: string; fg: string; bg: string;
   dismissed:{ label: '닫음',  fg: '#6B7280', bg: '#F3F4F6', title: '배너 X — 영구 닫음' },
   expired:  { label: '만료',  fg: '#9CA3AF', bg: '#F9FAFB', title: '만료됨 (미전환)' },
 }
-function OfferStageCell({ stage }: { stage: string | null }) {
+function OfferStageCell({ stage, at }: { stage: string | null; at: string | null }) {
   if (!stage || !OFFER_STAGE_STYLE[stage]) {
     return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</div>
   }
   const s = OFFER_STAGE_STYLE[stage]
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
       <span title={s.title} style={{
         fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
         color: s.fg, background: s.bg, padding: '1px 5px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
       }}>
         {stage === 'redeemed' ? '💰' + s.label : s.label}
       </span>
+      {at && (
+        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+          {formatDateShort(at)}
+        </span>
+      )}
     </div>
   )
 }
@@ -1269,7 +1275,7 @@ export function VoicecardsBlock({
                   <NumDeltaCell total={user.attempts} delta={user.attemptsToday} />
                   <NumDeltaCell total={user.creditsUsed} delta={user.listenToday} />
                   <IntentCell u={user} />
-                  <OfferStageCell stage={user.offerStage} />
+                  <OfferStageCell stage={user.offerStage} at={user.offerStageAt} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     <span style={{
                       fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
@@ -1281,11 +1287,7 @@ export function VoicecardsBlock({
                     </span>
                   </div>
                   <NumDeltaCell total={user.purchasedCredits} delta={user.purchasedToday} />
-                  <div style={userNumCell}>
-                    {user.bonusCredits > 0
-                      ? <span style={{ color: '#166534', fontWeight: 600 }}>+{user.bonusCredits.toLocaleString()}</span>
-                      : <span style={{ color: t.neutrals.subtle }}>—</span>}
-                  </div>
+                  <NumDeltaCell total={user.bonusCredits} delta={0} />
                   <NumDeltaCell total={user.credits} delta={user.balanceDeltaToday} dim />
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                     <span>{formatDateShort(user.createdAt)}</span>

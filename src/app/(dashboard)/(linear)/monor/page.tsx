@@ -51,6 +51,7 @@ interface UserStats {
     purchasedCredits: number
     bonusCredits: number
     offerStage: string | null
+    offerStageAt: string | null
     creditsUsed: number
     sheetCount: number
     cards: number

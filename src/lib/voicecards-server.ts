@@ -908,6 +908,7 @@ export interface VoicecardsUserStats {
     purchasedCredits: number // 구매 크레딧 누적 (purchase 이벤트 합)
     bonusCredits: number     // 오퍼로 지급된 무상 보너스 크레딧 누적 (user_offers.redeemed_credits 합)
     offerStage: string | null // 타겟 오퍼 단계: sent|seen|snoozed|redeemed|dismissed|expired (없으면 null)
+    offerStageAt: string | null // 현재 단계 진입 시각 (발송일/열람일/전환일 등)
     creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played). AI 카드 생성은 사용량 적어 제외
     sheetCount: number
     cards: number
@@ -981,7 +982,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     vc.rpc('vc_user_intent_signals'),
     // 타겟 오퍼 — 사용자별 오퍼 행(단계 추적 + 지급된 보너스 크레딧). RLS는 anon USING(true)라
     // service 키로 전수 조회 가능. 캠페인 규모가 작아(수십 건) 전수 select로 충분.
-    vc.from('user_offers').select('user_id, status, seen_at, snoozed_at, redeemed_at, redeemed_credits, expires_at'),
+    vc.from('user_offers').select('user_id, status, seen_at, snoozed_at, redeemed_at, redeemed_credits, expires_at, created_at'),
   ])
 
   if (usersRes.error) {
@@ -1115,26 +1116,31 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 보너스 = redeemed_credits 합(오퍼로 지급된 무상 크레딧).
   const nowMsOffer = Date.now()
   const offerStageRank: Record<string, number> = { redeemed: 6, snoozed: 4, seen: 3, sent: 2, dismissed: 1, expired: 0 }
-  const perOfferStage = (row: { status: string | null; seen_at: string | null; snoozed_at: string | null; redeemed_at: string | null; expires_at: string | null }): string => {
-    if (row.redeemed_at) return 'redeemed'
-    if (row.status === 'dismissed') return 'dismissed'
-    if (row.expires_at && new Date(row.expires_at).getTime() < nowMsOffer) return 'expired'
-    if (row.snoozed_at) return 'snoozed'
-    if (row.seen_at) return 'seen'
-    return 'sent'
+  // 단계 + 그 단계에 진입한 시각(발송일/열람일/전환일 등)
+  const perOfferStage = (row: { status: string | null; seen_at: string | null; snoozed_at: string | null; redeemed_at: string | null; expires_at: string | null; created_at: string | null }): { stage: string; at: string | null } => {
+    if (row.redeemed_at) return { stage: 'redeemed', at: row.redeemed_at }
+    if (row.status === 'dismissed') return { stage: 'dismissed', at: row.created_at }
+    if (row.expires_at && new Date(row.expires_at).getTime() < nowMsOffer) return { stage: 'expired', at: row.expires_at }
+    if (row.snoozed_at) return { stage: 'snoozed', at: row.snoozed_at }
+    if (row.seen_at) return { stage: 'seen', at: row.seen_at }
+    return { stage: 'sent', at: row.created_at }
   }
-  const userOfferMap = new Map<string, { stage: string; bonus: number }>()
-  for (const row of ((offersRes.data || []) as Array<{ user_id: string | null; status: string | null; seen_at: string | null; snoozed_at: string | null; redeemed_at: string | null; redeemed_credits: number | string | null; expires_at: string | null }>)) {
+  const userOfferMap = new Map<string, { stage: string; stageAt: string | null; bonus: number }>()
+  for (const row of ((offersRes.data || []) as Array<{ user_id: string | null; status: string | null; seen_at: string | null; snoozed_at: string | null; redeemed_at: string | null; redeemed_credits: number | string | null; expires_at: string | null; created_at: string | null }>)) {
     const uid = row.user_id
     if (!uid) continue
-    const stage = perOfferStage(row)
+    const { stage, at } = perOfferStage(row)
     const bonus = Number(row.redeemed_credits) || 0
     const prev = userOfferMap.get(uid)
-    if (!prev) userOfferMap.set(uid, { stage, bonus })
-    else userOfferMap.set(uid, {
-      stage: offerStageRank[stage] > offerStageRank[prev.stage] ? stage : prev.stage,
-      bonus: prev.bonus + bonus,
-    })
+    if (!prev) userOfferMap.set(uid, { stage, stageAt: at, bonus })
+    else {
+      const furthest = offerStageRank[stage] > offerStageRank[prev.stage]
+      userOfferMap.set(uid, {
+        stage: furthest ? stage : prev.stage,
+        stageAt: furthest ? at : prev.stageAt,
+        bonus: prev.bonus + bonus,
+      })
+    }
   }
 
   const userList = users.map(u => ({
@@ -1150,6 +1156,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     purchasedCredits: userPurchasedMap.get(u.user_id) || 0,
     bonusCredits: userOfferMap.get(u.user_id)?.bonus || 0,
     offerStage: userOfferMap.get(u.user_id)?.stage || null,
+    offerStageAt: userOfferMap.get(u.user_id)?.stageAt || null,
     creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
     sheetCount: u.sheet_ids?.length || 0,
     cards: userCardsMap.get(u.user_id) || 0,
