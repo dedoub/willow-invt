@@ -270,7 +270,7 @@ export default function ValueChainPage() {
 
         {/* 분석 아티클 업데이트 현황 (vc_articles) */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>분석 아티클 업데이트 현황 <span style={{ color: t.neutrals.subtle, fontWeight: 400 }}>{articleUpdates.length}건</span></div>
+          <div style={sectionLabel}>분석 아티클 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: 400 }}>{articleUpdates.length}건</span></div>
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 360, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* 헤더 — 수정 | 발행 | 제목 | 변경 */}
