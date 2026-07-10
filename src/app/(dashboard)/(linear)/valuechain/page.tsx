@@ -209,9 +209,9 @@ export default function ValueChainPage() {
           </div>
         </div>
 
-        {/* 업데이트 */}
+        {/* 기업 노드 업데이트 */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>업데이트</div>
+          <div style={sectionLabel}>기업 노드 업데이트</div>
           {/* 최근 업데이트 내역 — 테이블 (날짜·노드·티커·매출처·지급처·티어·완성도) */}
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: UPDATE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
