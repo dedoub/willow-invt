@@ -82,8 +82,8 @@ export default function ValueChainPage() {
     color: t.neutrals.muted, textDecoration: 'none',
   }
   // 업데이트 테이블: 날짜 | 노드 | 티커 | 매출처 | 지급처 | 티어 | 완성도
-  const UPDATE_COLS = '44px 44px minmax(76px,1fr) 58px 40px 40px 30px 44px 34px 34px'
-  const UPDATE_MIN_WIDTH = 540
+  const UPDATE_COLS = '44px 44px minmax(76px,1fr) 58px 40px 40px 30px 44px 34px 34px 78px'
+  const UPDATE_MIN_WIDTH = 626
   const headCell: React.CSSProperties = {
     fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
     letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -227,6 +227,7 @@ export default function ValueChainPage() {
               {sortHead('pass', '완성도', 'center', updateSort, onUpdateSort)}
               <span style={{ ...headCell, textAlign: 'center' }}>리포트</span>
               <span style={{ ...headCell, textAlign: 'center' }}>파급</span>
+              <span style={{ ...headCell, textAlign: 'center' }}>인용퍼널</span>
             </div>
             {updateRows.map(n => (
               <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer"
@@ -241,6 +242,7 @@ export default function ValueChainPage() {
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{n.pass}/{maturity.checks}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', textAlign: 'center', color: n.hasReport ? '#10b981' : t.neutrals.line, whiteSpace: 'nowrap' }} title={n.hasReport ? '증권사 리포트 섹션 있음' : '없음'}>{n.hasReport ? '●' : '—'}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', textAlign: 'center', color: n.hasChainImpact ? '#3b82f6' : t.neutrals.line, whiteSpace: 'nowrap' }} title={n.hasChainImpact ? '가치사슬 파급 섹션 있음' : '없음'}>{n.hasChainImpact ? '●' : '—'}</span>
+                <span style={{ display: 'flex', justifyContent: 'center' }}><FunnelMini f={n.funnel} /></span>
               </a>
             ))}
             {updates.recent.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>업데이트 내역 없음</span>}
@@ -272,21 +274,23 @@ export default function ValueChainPage() {
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={sectionLabel}>분석 아티클 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: 400 }}>{articleUpdates.length}건</span></div>
           <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 360, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* 헤더 — 수정 | 발행 | 제목 | 변경 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 48px', gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+          <div style={{ minWidth: 452, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* 헤더 — 최초 | 수정 | 제목 | 변경 | 인용퍼널 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 78px', gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+              <span style={headCell}>최초</span>
               <span style={headCell}>수정</span>
-              <span style={headCell}>발행</span>
               <span style={headCell}>제목</span>
               <span style={{ ...headCell, textAlign: 'center' }}>변경</span>
+              <span style={{ ...headCell, textAlign: 'center' }}>인용퍼널</span>
             </div>
             {articleRows.map(a => (
               <a key={a.slug} href={`${SITE_URL}/analysis/${a.slug}`} target="_blank" rel="noreferrer"
-                style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 48px', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
-                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.updatedAt ?? '').slice(5, 10) || '—'}</span>
+                style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 78px', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
                 <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.publishedAt ?? '').slice(5, 10) || '—'}</span>
+                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.updatedAt ?? '').slice(5, 10) || '—'}</span>
                 <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{a.title}</span>
                 <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: a.changelogCount ? t.neutrals.muted : t.neutrals.line, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{a.changelogCount || '—'}</span>
+                <span style={{ display: 'flex', justifyContent: 'center' }}><FunnelMini f={a.funnel} /></span>
               </a>
             ))}
             {articleUpdates.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>아티클 없음</span>}
@@ -333,6 +337,17 @@ function MiniBars({ data }: { data: number[] }) {
         return <rect key={i} x={i * (bw + gap)} y={H - h} width={bw} height={h} rx={1} fill={v > 0 ? t.brand[400] : t.neutrals.line} />
       })}
     </svg>
+  )
+}
+
+// 경로별 인용퍼널 수치 (학습·인덱싱·인용·방문) 인라인 셀
+function FunnelMini({ f }: { f: { train: number; index: number; cite: number; visit: number } }) {
+  const cell = (v: number, color: string) => <span style={{ color: v > 0 ? color : t.neutrals.line }}>{v}</span>
+  const dot = <span style={{ color: t.neutrals.line }}>·</span>
+  return (
+    <span title="학습·인덱싱·인용·방문" style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', display: 'inline-flex', gap: 3, justifyContent: 'center', whiteSpace: 'nowrap' }}>
+      {cell(f.train, t.neutrals.muted)}{dot}{cell(f.index, t.neutrals.muted)}{dot}{cell(f.cite, t.brand[500])}{dot}{cell(f.visit, '#10b981')}
+    </span>
   )
 }
 

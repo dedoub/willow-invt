@@ -98,7 +98,7 @@ export interface ValueChainStats {
     last7d: number
     last30d: number
     daily: { date: string; count: number }[] // 최근 14일
-    recent: { slug: string; name: string; ticker: string | null; rev: number; cost: number; pass: number; tier: string; created_at: string | null; updated_at: string | null; hasReport: boolean; hasChainImpact: boolean }[]
+    recent: { slug: string; name: string; ticker: string | null; rev: number; cost: number; pass: number; tier: string; created_at: string | null; updated_at: string | null; hasReport: boolean; hasChainImpact: boolean; funnel: { train: number; index: number; cite: number; visit: number } }[]
   }
   crawl: {
     total: number
@@ -124,6 +124,7 @@ export interface ValueChainStats {
     publishedAt: string | null
     updatedAt: string | null
     changelogCount: number
+    funnel: { train: number; index: number; cite: number; visit: number }
   }[]
   trends: {
     nodes: TrendBlock
@@ -258,6 +259,9 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
   const day7 = Array.from({ length: 7 }, (_, i) => dayKey(new Date(now - (6 - i) * dayMs)))
   const day7Idx = new Map(day7.map((k, i) => [k, i]))
   const citedFetches: { ts: string; path: string; bot: string | null }[] = []
+  // 경로(resource)별 퍼널 수치 — 노드(/slug)·아티클(/analysis/slug) 행에 붙임
+  type PathFunnel = { train: number; index: number; cite: number; visit: number }
+  const pathFunnel = new Map<string, PathFunnel>()
   for (const x of crawl) {
     // referral = 인용 링크로 들어온 실제 사람 방문(④). 그 외는 봇 UA로 학습/인덱싱/인용 분류.
     const tier: 'train' | 'index' | 'cite' | 'visit' | null = x.category === 'referral' ? 'visit' : tierOf(x.bot)
@@ -269,8 +273,13 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     e.bots.set(x.bot ?? '?', (e.bots.get(x.bot ?? '?') ?? 0) + 1)
     const di = day7Idx.get(x.ts.slice(0, 10))
     if (di !== undefined) e.series[di]++
+    const res = resOf(x.path)
+    let pfe = pathFunnel.get(res)
+    if (!pfe) { pfe = { train: 0, index: 0, cite: 0, visit: 0 }; pathFunnel.set(res, pfe) }
+    pfe[tier]++
     if (tier === 'cite' && citedFetches.length < 12) citedFetches.push({ ts: x.ts, path: x.path, bot: x.bot })
   }
+  const pf = (res: string): PathFunnel => pathFunnel.get(res) ?? { train: 0, index: 0, cite: 0, visit: 0 }
   const packTier = (e: TierAgg): FunnelTier => ({
     total: e.total, last7d: e.last7d, last: e.last || null,
     bots: [...e.bots.entries()].map(([bot, count]) => ({ bot, count })).sort((a, b) => b.count - a.count),
@@ -285,6 +294,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     publishedAt: a.published_at,
     updatedAt: a.updated_at,
     changelogCount: Array.isArray(a.changelog) ? a.changelog.length : 0,
+    funnel: pf(`/analysis/${a.slug}`),
   }))
 
   // ── 메트릭별 추이 (14일 누적 스파크라인 + 오늘/7일 신규) ──
@@ -338,7 +348,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
       last7d: last7,
       last30d: last30,
       daily,
-      recent,
+      recent: recent.map((r) => ({ ...r, funnel: pf(`/${r.slug}`) })),
     },
     crawl: {
       total: crawl.length,
