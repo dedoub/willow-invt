@@ -133,11 +133,6 @@ export interface VoicecardsBlockProps {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// 매출은 앱 DB 결제 이벤트의 정가(USD, 그로스) 합계 — 달러로 표시.
-function formatCurrency(value: number): string {
-  // 누적 매출은 소수점 이하 반올림(정수 달러)으로 표시
-  return `$${Math.round(value).toLocaleString()}`
-}
 
 function formatNumber(value: number): string {
   return value.toLocaleString()
@@ -479,6 +474,8 @@ export function VoicecardsBlock({
       const parsed = JSON.parse(stored) as SortCrit[]
       if (Array.isArray(parsed) && parsed.length &&
           parsed.every(s => USER_SORT_KEY_SET.has(s.key) && (s.dir === 'asc' || s.dir === 'desc'))) {
+        // 하이드레이션 안전을 위해 마운트 후 1회 복원(서버엔 localStorage 없음) — 의도된 동기 setState
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUserSorts(parsed)
         return
       }
@@ -1687,7 +1684,7 @@ function DistributionPie({
                     contentStyle={{ fontSize: 'calc(11px * var(--fz, 1))', background: '#1E293B', border: 'none', borderRadius: 6, padding: '6px 10px' }}
                     itemStyle={{ color: '#F8FAFC' }}
                     labelStyle={{ color: '#F8FAFC' }}
-                    formatter={(value: any, name: any) => [`${value}${unit ?? ''}`, String(name)]}
+                    formatter={(value, name) => [`${value}${unit ?? ''}`, String(name)]}
                   />
                 </PieChart>
               </ResponsiveContainer>
