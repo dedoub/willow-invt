@@ -43,6 +43,7 @@ interface UserStats {
     offerStageAt: string | null
     creditsUsed: number
     hasFolder: boolean
+    ownCards: number
     sheetCount: number
     cards: number
     attempts: number
@@ -493,7 +494,7 @@ export function VoicecardsBlock({
         case 'language': return (a.locale || '').localeCompare(b.locale || '')
         case 'country':  return (a.country || regionOf(a.locale)).localeCompare(b.country || regionOf(b.locale))
         case 'status':   return Number(a.hasFolder) - Number(b.hasFolder)
-        case 'active':   return Number(a.sheetCount > 0 || a.cards > 0) - Number(b.sheetCount > 0 || b.cards > 0)
+        case 'active':   return Number(a.sheetCount > 0 || a.ownCards > 0) - Number(b.sheetCount > 0 || b.ownCards > 0)
         case 'sheets':   return a.sheetCount - b.sheetCount
         case 'cards':    return a.cards - b.cards
         case 'attempts': return a.attempts - b.attempts
@@ -636,26 +637,28 @@ export function VoicecardsBlock({
         )}
         {userStats && anonymousStats?.summary && (() => {
           const devices = anonymousStats.summary.totalDevices
-          const learned = anonymousStats.summary.learnedDevices
-          // 미활성: 로그인했지만 시트 0 & 카드 0 — 아직 첫 시트를 저장하지 않은 단계.
+          // 미활성: 로그인했지만 시트 0 & 자기 카드 0 — 아직 첫 시트를 저장하지 않은 단계.
+          // 카드는 ownCards(데모 제외) 기준 — 데모 한 세션(total_cards 100)이 활성화로
+          // 과대 분류되지 않게 한다. 데모만 체험한 유저는 미활성.
           // (구글연동(Drive)과는 별개 축: deferred-Drive라 연동을 마치고도 미활성일 수 있다.
           //  그 교집합 = "연동후대기" — AI draft만 두고 이탈한 코호트, 복귀 유도 타깃.)
           // 활성화 = 전체 − 미활성 (첫 시트 저장 완료)
-          const incompleteSignups = (userStats?.users ?? []).filter(u => u.sheetCount === 0 && u.cards === 0).length
-          const linkedButIdle = (userStats?.users ?? []).filter(u => u.hasFolder && u.sheetCount === 0 && u.cards === 0).length
+          const isIdleUser = (u: { sheetCount: number; ownCards: number }) => u.sheetCount === 0 && u.ownCards === 0
+          const incompleteSignups = (userStats?.users ?? []).filter(isIdleUser).length
+          const linkedButIdle = (userStats?.users ?? []).filter(u => u.hasFolder && isIdleUser(u)).length
+          const linkedUsers = (userStats?.users ?? []).filter(u => u.hasFolder).length
           const signedUp = userStats.totalUsers - incompleteSignups
           const paidUsers = stats?.combined.totalPaidUsers ?? 0
 
-          const learnConv = devices > 0 ? (learned / devices) * 100 : 0
-          const signupConv = learned > 0 ? (signedUp / learned) * 100 : 0
+          // 활성화 전환율 = 구글연동 대비 (퍼널: 기기 → 연동 → 활성화)
+          const signupConv = linkedUsers > 0 ? (signedUp / linkedUsers) * 100 : 0
 
           // 누적 trajectories
           const cumulative = anonymousStats.cumulativeDistinct ?? []
           const devicesData = cumulative.map(d => ({ date: d.date, value: d.devices }))
-          const learnedData = cumulative.map(d => ({ date: d.date, value: d.learned }))
 
           const signupDates = (userStats?.users ?? [])
-            .filter(u => !(u.sheetCount === 0 && u.cards === 0))
+            .filter(u => !isIdleUser(u))
             .map(u => kstDateKey(u.createdAt))
             .sort()
           const allDates = cumulative.map(d => d.date)
@@ -663,11 +666,21 @@ export function VoicecardsBlock({
             date,
             value: signupDates.filter(d => d <= date).length,
           }))
-          // 미활성(시트 0 & 카드 0) 누적 추이 — 활성화 스파크라인의 보조선
+          // 미활성(시트 0 & 자기 카드 0) 누적 추이 — 활성화 스파크라인의 보조선
           const incompleteDates = (userStats?.users ?? [])
-            .filter(u => u.sheetCount === 0 && u.cards === 0)
+            .filter(isIdleUser)
             .map(u => kstDateKey(u.createdAt))
             .sort()
+          // 구글연동(Drive 폴더 보유) 누적 추이 — 폴더 생성 시각은 따로 없어 가입일로
+          // 근사(대부분 가입 직후 or 첫 저장 시 승인). 추세선 용도로 충분.
+          const linkedDates = (userStats?.users ?? [])
+            .filter(u => u.hasFolder)
+            .map(u => kstDateKey(u.createdAt))
+            .sort()
+          const linkedData = allDates.map(date => ({
+            date,
+            value: linkedDates.filter(d => d <= date).length,
+          }))
           const incompleteData = allDates.map(date => ({
             date,
             value: incompleteDates.filter(d => d <= date).length,
@@ -734,10 +747,10 @@ export function VoicecardsBlock({
           }
           const devToday = (lastCum?.devices ?? 0) - cumValBefore(yesterdayKey, r => r.devices)
           const dev7 = (lastCum?.devices ?? 0) - cumValBefore(dayBefore7Key, r => r.devices)
-          const learnToday = (lastCum?.learned ?? 0) - cumValBefore(yesterdayKey, r => r.learned)
-          const learn7 = (lastCum?.learned ?? 0) - cumValBefore(dayBefore7Key, r => r.learned)
           const signupToday = signupDates.filter(d => d === revTodayKey).length
           const signup7 = signupDates.filter(d => d >= rev7AgoKey).length
+          const linkedToday = linkedDates.filter(d => d === revTodayKey).length
+          const linked7 = linkedDates.filter(d => d >= rev7AgoKey).length
 
           return (
             <>
@@ -759,11 +772,11 @@ export function VoicecardsBlock({
                   sparkline={compact ? undefined : devicesData}
                 />
                 <LStat
-                  label="데모 학습"
-                  value={learned.toLocaleString()}
-                  sub={`오늘 ${learnToday.toLocaleString()}명 · 7일 ${learn7.toLocaleString()}명`}
-                  tone={devices > 0 && learnConv >= 40 ? 'pos' : 'warn'}
-                  sparkline={compact ? undefined : learnedData}
+                  label="구글 연동"
+                  value={linkedUsers.toLocaleString()}
+                  sub={`오늘 ${linkedToday.toLocaleString()}명 · 7일 ${linked7.toLocaleString()}명`}
+                  tone={userStats.totalUsers > 0 && linkedUsers / userStats.totalUsers >= 0.5 ? 'pos' : 'warn'}
+                  sparkline={compact ? undefined : linkedData}
                 />
                 <LStat
                   label="활성화"
@@ -778,7 +791,7 @@ export function VoicecardsBlock({
                     </span>
                   ) : undefined}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
-                  tone={learned > 0 && signupConv >= 10 ? 'pos' : 'warn'}
+                  tone={linkedUsers > 0 && signupConv >= 50 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}
                   sparkline2={compact ? undefined : incompleteData}
                 />
@@ -1014,7 +1027,7 @@ export function VoicecardsBlock({
               whiteSpace: 'nowrap' as const,
             }}>
               사용자{(() => {
-                const n = userStats.users.filter(u => u.sheetCount === 0 && u.cards === 0).length
+                const n = userStats.users.filter(u => u.sheetCount === 0 && u.ownCards === 0).length
                 return n > 0 ? ` · 미활성 ${n}` : ''
               })()}
             </div>
@@ -1111,7 +1124,7 @@ export function VoicecardsBlock({
                         {user.locale}
                       </span>
                     )}
-                    {user.sheetCount === 0 && user.cards === 0 && (
+                    {user.sheetCount === 0 && user.ownCards === 0 && (
                       <span style={{
                         fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
                         color: '#92400E', background: '#FEF3C7',
@@ -1282,9 +1295,9 @@ export function VoicecardsBlock({
                   <div style={{
                     fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
                     whiteSpace: 'nowrap', textAlign: 'center',
-                    color: (user.sheetCount > 0 || user.cards > 0) ? t.neutrals.muted : '#B45309',
+                    color: (user.sheetCount > 0 || user.ownCards > 0) ? t.neutrals.muted : '#B45309',
                   }}>
-                    {(user.sheetCount > 0 || user.cards > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'}
+                    {(user.sheetCount > 0 || user.ownCards > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'}
                   </div>
                   <NumDeltaCell total={user.sheetCount} delta={user.sheetsDeltaToday} />
                   <NumDeltaCell total={user.cards} delta={user.cardsToday} />

@@ -915,6 +915,7 @@ export interface VoicecardsUserStats {
     hasFolder: boolean
     sheetCount: number
     cards: number
+    ownCards: number // 데모 덱 제외 보유 카드 — 활성화(미활성/연동후대기) 판정 전용
     attempts: number
     cardsToday: number        // 오늘 카드 증가분
     attemptsToday: number     // 오늘 말하기 증가분
@@ -968,7 +969,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
   const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, listenRes, metaRes, purchasedRes, activityRes, intentRes, offersRes] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
-    vc.from('user_analytics').select('user_id, total_cards, total_attempts'),
+    vc.from('user_analytics').select('user_id, total_cards, total_attempts, sheet_id'),
     vc.from('user_analytics').select('user_id, last_updated'),
     fetchAllPaged<{ user_id: string; date: string; problems_learned: number; attempts: number }>(
       () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true })
@@ -1019,11 +1020,18 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   ).length
 
   // 유저별 보유 카드 수/말하기 시도 맵 (total_cards = 시트별 보유 카드, 합산 = 전체 보유 카드)
+  // ownCards = 데모 덱(sheet_id 'demo-' 접두) 제외 — 활성화 판정 전용. 데모 한 세션이
+  // total_cards 100을 만들어 "활성화"로 과대 분류되는 것을 막는다(예: sollunamola).
+  // '카드' 컬럼/총계는 기존 정의(데모 포함) 유지.
   const userAttemptsMap = new Map<string, number>()
   const userCardsMap = new Map<string, number>()
+  const userOwnCardsMap = new Map<string, number>()
   for (const a of analytics) {
     userAttemptsMap.set(a.user_id, (userAttemptsMap.get(a.user_id) || 0) + (Number(a.total_attempts) || 0))
     userCardsMap.set(a.user_id, (userCardsMap.get(a.user_id) || 0) + (Number(a.total_cards) || 0))
+    if (!String(a.sheet_id || '').startsWith('demo-')) {
+      userOwnCardsMap.set(a.user_id, (userOwnCardsMap.get(a.user_id) || 0) + (Number(a.total_cards) || 0))
+    }
   }
 
   const totalCredits = users.reduce((sum, u) => sum + (u.credits || 0), 0)
@@ -1164,6 +1172,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     hasFolder: !!u.folder_id,
     sheetCount: u.sheet_ids?.length || 0,
     cards: userCardsMap.get(u.user_id) || 0,
+    ownCards: userOwnCardsMap.get(u.user_id) || 0,
     attempts: userAttemptsMap.get(u.user_id) || 0,
     createdAt: u.created_at,
     cardsToday: userActivityMap.get(u.user_id)?.cardsToday || 0,
