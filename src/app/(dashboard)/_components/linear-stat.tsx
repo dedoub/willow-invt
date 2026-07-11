@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { Info } from 'lucide-react'
 import { t } from './linear-tokens'
 
 export interface SparkPoint { date: string; value: number }
@@ -151,9 +152,12 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
           <div style={{
             fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
             textTransform: 'uppercase' as const, color: t.neutrals.subtle,
-            marginBottom: 2,
+            marginBottom: 2, display: 'flex', alignItems: 'center', gap: 3,
             whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>{label}</div>
+          }}>
+            {label}
+            {title && <Info size={10} strokeWidth={2} style={{ flexShrink: 0, opacity: 0.75 }} aria-label="지표 설명" />}
+          </div>
           <div style={{
             fontSize: 'calc(13px * var(--fz, 1))', fontWeight: 600, letterSpacing: -0.3,
             fontVariantNumeric: 'tabular-nums' as const,

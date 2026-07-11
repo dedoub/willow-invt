@@ -184,11 +184,14 @@ const userNumCell: React.CSSProperties = {
 }
 
 // 총값 + 오늘 변동(전일대비) 2줄 셀. delta 양수=초록(+), 음수=빨강(−), 0=미표시
-function NumDeltaCell({ total, delta, dim }: { total: number; delta: number; dim?: boolean }) {
+function NumDeltaCell({ total, delta, dim, note }: { total: number; delta: number; dim?: boolean; note?: string }) {
   const d = Number(delta)
   return (
     <div style={{ ...userNumCell, color: dim ? t.neutrals.muted : userNumCell.color, display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15 }}>
       <span>{formatNumber(total)}</span>
+      {note && (
+        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.subtle }}>{note}</span>
+      )}
       {Number.isFinite(d) && d !== 0 && (
         <span style={{ fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
           {d > 0 ? '+' : '−'}{formatNumber(Math.abs(d))}
@@ -1357,7 +1360,11 @@ export function VoicecardsBlock({
                     {(user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'}
                   </div>
                   <NumDeltaCell total={user.sheetCount} delta={user.sheetsDeltaToday} />
-                  <NumDeltaCell total={user.cards} delta={user.cardsToday} />
+                  {/* 카드 합계는 데모 포함(대시보드 정의). 전부 데모면 흐리게 + '데모' 표기 —
+                      시트 0인데 카드 100 같은 표가 저장 자산으로 오독되지 않게. */}
+                  <NumDeltaCell total={user.cards} delta={user.cardsToday}
+                    dim={(user.ownCards ?? user.cards) === 0 && user.cards > 0}
+                    note={(user.ownCards ?? user.cards) === 0 && user.cards > 0 ? '데모' : undefined} />
                   <NumDeltaCell total={user.attempts} delta={user.attemptsToday} />
                   <NumDeltaCell total={user.creditsUsed} delta={user.listenToday} />
                   <IntentCell u={user} />
