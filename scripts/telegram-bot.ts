@@ -2218,6 +2218,7 @@ interface VoicecardsMonitorAlertState {
 
 interface VoicecardsEventMonitorState {
   alerts: Record<string, VoicecardsMonitorAlertState>
+  activatedUserIds?: string[]
 }
 
 interface VoicecardsEventRow {
@@ -2251,6 +2252,7 @@ function loadVoicecardsEventMonitorState(): VoicecardsEventMonitorState {
     const saved = JSON.parse(raw)
     return {
       alerts: typeof saved?.alerts === 'object' && saved.alerts ? saved.alerts : {},
+      activatedUserIds: Array.isArray(saved?.activatedUserIds) ? saved.activatedUserIds : undefined,
     }
   } catch {
     return defaultVoicecardsEventMonitorState()
@@ -2329,7 +2331,18 @@ async function fetchAllVoicecardsRows<T>(
 async function fetchVoicecardsExcludedUserIds(): Promise<Set<string>> {
   if (!voicecardsSupabase) return new Set<string>()
   const excludedNicknames = new Set(['류하아빠', '큐트도넛'])
+  const excludedUserIds = new Set([
+    '101662172713686736923',
+    '100644446554227652222',
+    '107821687966181028778',
+  ])
+  const excludedEmails = new Set(['dw.kim@willowinvt.com'])
   const excludedEmailDomains = ['cloudtestlabaccounts.com']
+  const excludedEmailPatterns = [
+    /\.[0-9]{5,}@gmail\.com$/i,
+    /batch[0-9]+@gmail\.com$/i,
+    /wave[0-9]+batch[0-9]+/i,
+  ]
   const { data, error } = await voicecardsSupabase
     .from('users')
     .select('user_id, nickname, email')
@@ -2339,11 +2352,45 @@ async function fetchVoicecardsExcludedUserIds(): Promise<Set<string>> {
   return new Set(
     (data || [])
       .filter(row =>
-        (row.nickname && excludedNicknames.has(row.nickname))
+        excludedUserIds.has(row.user_id)
+        || (row.nickname && excludedNicknames.has(row.nickname))
+        || (!!row.email && excludedEmails.has(row.email.toLowerCase()))
         || (!!row.email && excludedEmailDomains.some(domain => row.email!.toLowerCase().endsWith(`@${domain}`)))
+        || (!!row.email && excludedEmailPatterns.some(pattern => pattern.test(row.email!)))
       )
       .map(row => row.user_id)
   )
+}
+
+async function fetchVoicecardsActivatedUserIds(excludedUserIds: Set<string>): Promise<Set<string>> {
+  if (!voicecardsSupabase) return new Set()
+  const [users, analytics] = await Promise.all([
+    fetchAllVoicecardsRows<{ user_id: string; sheet_ids: unknown }>(async (from, to) =>
+      voicecardsSupabase!
+        .from('users')
+        .select('user_id, sheet_ids')
+        .range(from, to)
+    ),
+    fetchAllVoicecardsRows<{ user_id: string }>(async (from, to) =>
+      voicecardsSupabase!
+        .from('user_analytics')
+        .select('user_id')
+        .gt('total_cards', 0)
+        .not('sheet_id', 'like', 'demo-%')
+        .range(from, to)
+    ),
+  ])
+
+  const activated = new Set<string>()
+  for (const user of users) {
+    if (!excludedUserIds.has(user.user_id) && Array.isArray(user.sheet_ids) && user.sheet_ids.length > 0) {
+      activated.add(user.user_id)
+    }
+  }
+  for (const row of analytics) {
+    if (!excludedUserIds.has(row.user_id)) activated.add(row.user_id)
+  }
+  return activated
 }
 
 async function fetchVoicecardsEventsSince(sinceIso: string): Promise<VoicecardsEventRow[]> {
@@ -2488,58 +2535,47 @@ async function monitorVoicecardsUserEvents() {
   const previousCounts = buildVoicecardsEventCounts(previous60h)
   let stateChanged = false
 
-  // 구글 연동(Drive 폴더 연결 = folder_recovered)까지 마친 '신규' 사용자 감지 → 좋은 신호 알림.
-  // 신규 가입자의 Drive 권한 미부여는 기본 상태라 에러가 아니므로, 연동 실패는 경보하지 않는다.
-  const folderRecoveredHistory = events.filter(event => event.event_name === 'folder_recovered')
-  const recentFolderRecovered = recent12h.filter(event => event.event_name === 'folder_recovered')
-  // 각 유저의 '최초' folder_recovered(=처음 구글 연동 완료)만 신규로 간주.
-  const newlyLinkedUsers = new Map<string, string>() // user_id -> 최초 연동 완료 시각(ISO)
-  for (const event of recentFolderRecovered) {
-    const userId = event.user_id
-    const eventTs = Date.parse(event.created_at)
-    if (!userId || !Number.isFinite(eventTs)) continue
-    const hadEarlierLink = folderRecoveredHistory.some(prev => (
-      prev.user_id === userId
-      && Date.parse(prev.created_at) < eventTs
-    ))
-    if (hadEarlierLink) continue
-    const existing = newlyLinkedUsers.get(userId)
-    if (!existing || Date.parse(existing) > eventTs) newlyLinkedUsers.set(userId, event.created_at)
-  }
+  // 활성화 완료 = 대시보드와 동일하게 자기 시트가 있거나 데모 외 자기 카드가 생긴 상태.
+  // Drive 연동이나 AI draft 생성만으로는 알림하지 않는다.
+  const excludedUserIds = await fetchVoicecardsExcludedUserIds()
+  const activatedUserIds = await fetchVoicecardsActivatedUserIds(excludedUserIds)
+  const knownActivatedUserIds = voicecardsEventMonitorState.activatedUserIds
 
-  if (newlyLinkedUsers.size) {
-    const linkedAlertState = getVoicecardsAlertState('drive_linked_new_user')
-    const lastNotifiedMs = linkedAlertState.lastEventAt ? Date.parse(linkedAlertState.lastEventAt) : 0
-    // 이미 통지한 시점 이후로 새로 연동을 마친 유저만 (같은 유저 재통지 방지)
-    const freshEntries = Array.from(newlyLinkedUsers.entries())
-      .filter(([, at]) => Date.parse(at) > lastNotifiedMs)
-      .sort((a, b) => Date.parse(a[1]) - Date.parse(b[1]))
+  // 최초 배포 시에는 현재 활성 사용자를 기준선으로 저장해 과거 사용자 재알림을 막는다.
+  if (!knownActivatedUserIds) {
+    voicecardsEventMonitorState.activatedUserIds = Array.from(activatedUserIds)
+    stateChanged = true
+  } else {
+    const known = new Set(knownActivatedUserIds)
+    const freshUserIds = Array.from(activatedUserIds).filter(userId => !known.has(userId))
 
-    if (freshEntries.length) {
-      const uniqueUserIds = freshEntries.map(([userId]) => userId)
-      const userMap = await fetchVoicecardsUsers(uniqueUserIds)
-      const latestAt = freshEntries[freshEntries.length - 1][1]
-      const linkedUsers = uniqueUserIds.slice(0, 5).map(userId =>
+    if (freshUserIds.length) {
+      const activationAlertState = getVoicecardsAlertState('activated_new_user')
+      const userMap = await fetchVoicecardsUsers(freshUserIds)
+      const detectedAt = new Date().toISOString()
+      const activatedUsers = freshUserIds.slice(0, 5).map(userId =>
         formatVoicecardsUserLabel(userMap.get(userId), userId)
       )
 
       await sendVoicecardsEventAlert([
         '🎉 [VoiceCards 사용자 로그 알림]',
-        `- 구글 연동(Drive 폴더 연결)까지 마친 신규 사용자 ${uniqueUserIds.length}명`,
-        linkedUsers.length ? `- 사용자: ${linkedUsers.join(', ')}` : '',
-        latestAt ? `- 최신 연동: ${formatKstShort(latestAt)}` : '',
+        `- 활성화(자기 시트·카드 생성)까지 마친 신규 사용자 ${freshUserIds.length}명`,
+        activatedUsers.length ? `- 사용자: ${activatedUsers.join(', ')}` : '',
+        `- 감지 시각: ${formatKstShort(detectedAt)}`,
       ].filter(Boolean).join('\n'), {
-        issue: 'drive_linked_new_user',
-        count: uniqueUserIds.length,
-        linkedUsers,
-        latestAt,
+        issue: 'activated_new_user',
+        count: freshUserIds.length,
+        activatedUsers,
+        detectedAt,
       })
 
-      linkedAlertState.lastHash = simpleHash(uniqueUserIds.slice().sort().join(','))
-      linkedAlertState.lastAlertAt = new Date().toISOString()
-      linkedAlertState.lastEventAt = latestAt
-      stateChanged = true
+      activationAlertState.lastHash = simpleHash(freshUserIds.slice().sort().join(','))
+      activationAlertState.lastAlertAt = detectedAt
+      activationAlertState.lastEventAt = detectedAt
     }
+
+    voicecardsEventMonitorState.activatedUserIds = Array.from(new Set([...known, ...activatedUserIds]))
+    if (freshUserIds.length) stateChanged = true
   }
 
   const totalRecentEvents = recent12h.length
