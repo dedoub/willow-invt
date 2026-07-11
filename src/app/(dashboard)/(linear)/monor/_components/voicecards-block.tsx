@@ -669,7 +669,6 @@ export function VoicecardsBlock({
           // 누적 trajectories
           const cumulative = anonymousStats.cumulativeDistinct ?? []
           const devicesData = cumulative.map(d => ({ date: d.date, value: d.devices }))
-          const signinData = cumulative.map(d => ({ date: d.date, value: d.signin }))
 
           const signupDates = (userStats?.users ?? [])
             .filter(u => !isIdleUser(u))
@@ -695,6 +694,14 @@ export function VoicecardsBlock({
             date,
             value: linkedDates.filter(d => d <= date).length,
           }))
+          // 로그인(=users 계정) 누적 — 위계 항등식(로그인 = 연동 + 미연동, 활성화+미활성)이
+          // 전부 계정 기준이므로 로그인 카드도 기기 이벤트가 아니라 users 테이블로 센다.
+          const allUserDates = (userStats?.users ?? []).map(u => kstDateKey(u.createdAt)).sort()
+          const allUsersData = allDates.map(date => ({
+            date,
+            value: allUserDates.filter(d => d <= date).length,
+          }))
+          const notLinked = userStats.totalUsers - linkedUsers
           const incompleteData = allDates.map(date => ({
             date,
             value: incompleteDates.filter(d => d <= date).length,
@@ -761,13 +768,12 @@ export function VoicecardsBlock({
           }
           const devToday = (lastCum?.devices ?? 0) - cumValBefore(yesterdayKey, r => r.devices)
           const dev7 = (lastCum?.devices ?? 0) - cumValBefore(dayBefore7Key, r => r.devices)
-          const signinDev = anonymousStats.summary.signinDevices
-          const signinToday = (lastCum?.signin ?? 0) - cumValBefore(yesterdayKey, r => r.signin)
-          const signin7 = (lastCum?.signin ?? 0) - cumValBefore(dayBefore7Key, r => r.signin)
           const signupToday = signupDates.filter(d => d === revTodayKey).length
           const signup7 = signupDates.filter(d => d >= rev7AgoKey).length
           const linkedToday = linkedDates.filter(d => d === revTodayKey).length
           const linked7 = linkedDates.filter(d => d >= rev7AgoKey).length
+          const loginToday = allUserDates.filter(d => d === revTodayKey).length
+          const login7 = allUserDates.filter(d => d >= rev7AgoKey).length
 
           return (
             <>
@@ -790,14 +796,30 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="로그인"
-                  value={signinDev.toLocaleString()}
-                  sub={`오늘 ${signinToday.toLocaleString()}명 · 7일 ${signin7.toLocaleString()}명`}
-                  tone={devices > 0 && signinDev / devices >= 0.2 ? 'pos' : 'warn'}
-                  sparkline={compact ? undefined : signinData}
+                  value={userStats.totalUsers.toLocaleString()}
+                  valueExtra={notLinked > 0 ? (
+                    <span style={{
+                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+                    }}>
+                      미연동 {notLinked.toLocaleString()}
+                    </span>
+                  ) : undefined}
+                  sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명`}
+                  tone={devices > 0 && userStats.totalUsers / devices >= 0.2 ? 'pos' : 'warn'}
+                  sparkline={compact ? undefined : allUsersData}
                 />
                 <LStat
                   label="구글 연동"
                   value={linkedUsers.toLocaleString()}
+                  valueExtra={linkedButIdle > 0 ? (
+                    <span style={{
+                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+                    }}>
+                      대기 {linkedButIdle.toLocaleString()}
+                    </span>
+                  ) : undefined}
                   sub={`오늘 ${linkedToday.toLocaleString()}명 · 7일 ${linked7.toLocaleString()}명`}
                   tone={userStats.totalUsers > 0 && linkedUsers / userStats.totalUsers >= 0.5 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : linkedData}
@@ -811,7 +833,6 @@ export function VoicecardsBlock({
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       미활성 {incompleteSignups.toLocaleString()}
-                      {linkedButIdle > 0 ? ` (연동후대기 ${linkedButIdle.toLocaleString()})` : ''}
                     </span>
                   ) : undefined}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
