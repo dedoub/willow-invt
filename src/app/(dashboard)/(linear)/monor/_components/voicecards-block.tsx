@@ -613,6 +613,9 @@ export function VoicecardsBlock({
             <SkelSectionHeader width={80} />
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
               {[0, 1, 2, 3].map(i => <SkelStat key={i} compact={!!mobile} />)}
+              <div style={{ gridColumn: mobile ? '1 / -1' : 'auto', display: 'grid' }}>
+                <SkelStat compact={!!mobile} />
+              </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
               <SkelPie />
@@ -789,6 +792,7 @@ export function VoicecardsBlock({
               <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
                 <LStat
                   label="설치 기기"
+                  title="앱을 설치해 한 번 이상 실행한 고유 기기 수(이벤트 기준). 스토어 다운로드보다 작게 잡히고, 재설치는 새 기기로 집계됨."
                   value={devices.toLocaleString()}
                   sub={`오늘 ${devToday.toLocaleString()}명 · 7일 ${dev7.toLocaleString()}명`}
                   tone="info"
@@ -796,6 +800,7 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="로그인"
+                  title="구글 계정으로 가입까지 마친 사용자 수(users). 미연동 = 아직 Drive 연동(첫 저장/AI생성 시도) 전. 로그인 = 구글 연동 + 미연동."
                   value={userStats.totalUsers.toLocaleString()}
                   valueExtra={notLinked > 0 ? (
                     <span style={{
@@ -811,6 +816,7 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="구글 연동"
+                  title="Drive 폴더 생성까지 마친 사용자(folder_id 보유). 대기 = 연동 후 아직 첫 시트를 저장하지 않음(AI 생성 draft만 두고 이탈 포함). 구글 연동 = 활성화 + 대기."
                   value={linkedUsers.toLocaleString()}
                   valueExtra={linkedButIdle > 0 ? (
                     <span style={{
@@ -826,6 +832,7 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="활성화"
+                  title="첫 시트를 저장한 사용자(시트 1개 이상 또는 데모 제외 카드 기록 보유). 데모만 체험한 유저는 미활성. 활성화 + 미활성 = 로그인 전체."
                   value={signedUp.toLocaleString()}
                   valueExtra={incompleteSignups > 0 ? (
                     <span style={{
@@ -847,6 +854,7 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="누적 매출"
+                    title="판매 크레딧 누적(정가 환산 그로스 — 환불·스토어 수수료 미반영). 유료 = 결제 이력 실사용자 수. 점선 = 유료 유저 수 추이."
                     value={fmtCr(creditsSold)}
                     valueExtra={paidUsers > 0 ? (
                       <span style={{
@@ -938,7 +946,7 @@ export function VoicecardsBlock({
       {usersLoading && !userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <SkelSectionHeader width={140} />
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
             {[0, 1, 2, 3].map(i => <SkelStat key={i} compact={!!mobile} />)}
           </div>
         </div>
@@ -1004,7 +1012,7 @@ export function VoicecardsBlock({
             const last7CardsDelta = liveCards - sevenAgoCards
 
             return (
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
             <LStat
               label="보유 시트"
               value={formatNumber(userStats.totalSheets)}

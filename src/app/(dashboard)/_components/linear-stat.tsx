@@ -17,6 +17,8 @@ interface LStatProps {
   spark2Color?: string
   sparkFormat?: (v: number) => string
   dualScale?: boolean
+  // 지표 정의 설명 — 카드 전체 hover 시 네이티브 툴팁으로 노출
+  title?: string
 }
 
 function Sparkline({
@@ -102,7 +104,7 @@ function Sparkline({
   )
 }
 
-export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, dualScale, wrap }: LStatProps & { wrap?: boolean }) {
+export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, dualScale, title, wrap }: LStatProps & { wrap?: boolean }) {
   const color = tone === 'pos' ? t.accent.pos
     : tone === 'neg' ? t.accent.neg
     : tone === 'warn' ? t.accent.warn
@@ -119,7 +121,7 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
     ? (sparkData[sparkData.length - 1].value >= sparkData[0].value ? t.accent.pos : t.accent.neg)
     : t.neutrals.muted
   return (
-    <div style={{
+    <div title={title} style={{
       background: t.neutrals.inner, borderRadius: t.radius.sm,
       padding: '8px 10px', position: 'relative',
       minWidth: 0,
