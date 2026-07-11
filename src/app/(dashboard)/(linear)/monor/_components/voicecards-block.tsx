@@ -161,7 +161,7 @@ function formatTimeShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 36px 48px 52px 44px 78px 60px 54px 48px 52px 48px 60px 60px 44px'
+const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 48px 36px 48px 52px 44px 78px 60px 54px 48px 52px 48px 60px 60px 44px'
 const USER_TABLE_MIN_WIDTH = 1138 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px, 구매신호 78px, +오퍼 60px +보너스 52px)
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
@@ -308,7 +308,7 @@ function formatCountryName(code: string): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type UserSortKey =
-  | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status'
+  | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status' | 'active'
   | 'sheets' | 'cards' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'paid'
   | 'created' | 'recent' | 'active7'
 type SortDir = 'asc' | 'desc'
@@ -321,6 +321,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'language', label: '언어',   mobileLabel: '언어',     align: 'center' },
   { key: 'country',  label: '국가',   mobileLabel: '국가',     align: 'center' },
   { key: 'status',   label: '구글연동', mobileLabel: '구글연동', align: 'center' },
+  { key: 'active',   label: '활성화', mobileLabel: '활성화',   align: 'center' },
   { key: 'sheets',   label: '시트',   mobileLabel: '시트',     align: 'center' },
   { key: 'cards',    label: '카드',   mobileLabel: '카드',     align: 'center' },
   { key: 'attempts', label: '말하기', mobileLabel: '말하기',   align: 'center' },
@@ -492,6 +493,7 @@ export function VoicecardsBlock({
         case 'language': return (a.locale || '').localeCompare(b.locale || '')
         case 'country':  return (a.country || regionOf(a.locale)).localeCompare(b.country || regionOf(b.locale))
         case 'status':   return Number(a.hasFolder) - Number(b.hasFolder)
+        case 'active':   return Number(a.sheetCount > 0 || a.cards > 0) - Number(b.sheetCount > 0 || b.cards > 0)
         case 'sheets':   return a.sheetCount - b.sheetCount
         case 'cards':    return a.cards - b.cards
         case 'attempts': return a.attempts - b.attempts
@@ -1274,6 +1276,15 @@ export function VoicecardsBlock({
                     color: user.hasFolder ? t.neutrals.muted : '#B45309',
                   }}>
                     {user.hasFolder ? '완료' : '미완료'}
+                  </div>
+                  {/* 활성화 = 첫 시트 저장(또는 카드 보유). 미활성 && 구글연동 완료 = "연동후대기" —
+                      draft만 두고 이탈한 복귀 유도 타깃이라 대기로 구분 표기. */}
+                  <div style={{
+                    fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
+                    whiteSpace: 'nowrap', textAlign: 'center',
+                    color: (user.sheetCount > 0 || user.cards > 0) ? t.neutrals.muted : '#B45309',
+                  }}>
+                    {(user.sheetCount > 0 || user.cards > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'}
                   </div>
                   <NumDeltaCell total={user.sheetCount} delta={user.sheetsDeltaToday} />
                   <NumDeltaCell total={user.cards} delta={user.cardsToday} />
