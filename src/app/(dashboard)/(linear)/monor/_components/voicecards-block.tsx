@@ -708,6 +708,7 @@ export function VoicecardsBlock({
             value: allUserDates.filter(d => d <= date).length,
           }))
           const notLinked = userStats.totalUsers - linkedUsers
+          const notSignedIn = Math.max(0, devices - userStats.totalUsers)
           const incompleteData = allDates.map(date => ({
             date,
             value: incompleteDates.filter(d => d <= date).length,
@@ -803,14 +804,14 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="로그인"
-                  title="구글 계정으로 가입까지 마친 사용자 수(users). 미연동 = 아직 Drive 연동(첫 저장/AI생성 시도) 전. 로그인 = 구글 연동 + 미연동."
+                  title="구글 계정으로 가입까지 마친 사용자 수(users). 비로그인 = 설치 후 가입까지 오지 않은 기기(설치 기기 − 로그인, 기기·계정 단위 차이는 근사)."
                   value={userStats.totalUsers.toLocaleString()}
-                  valueExtra={notLinked > 0 ? (
+                  valueExtra={notSignedIn > 0 ? (
                     <span style={{
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
-                      미연동 {notLinked.toLocaleString()}
+                      비로그인 {notSignedIn.toLocaleString()}
                     </span>
                   ) : undefined}
                   sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명`}
@@ -819,14 +820,14 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="구글 연동"
-                  title="Drive 폴더 생성까지 마친 사용자(folder_id 보유). 대기 = 연동 후 아직 첫 시트를 저장하지 않음(AI 생성 draft만 두고 이탈 포함). 구글 연동 = 활성화 + 대기."
+                  title="Drive 폴더 생성까지 마친 사용자(folder_id 보유). 미연동 = 로그인했지만 아직 Drive 연동(첫 저장/AI생성 시도) 전. 로그인 = 구글 연동 + 미연동."
                   value={linkedUsers.toLocaleString()}
-                  valueExtra={linkedButIdle > 0 ? (
+                  valueExtra={notLinked > 0 ? (
                     <span style={{
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
-                      대기 {linkedButIdle.toLocaleString()}
+                      미연동 {notLinked.toLocaleString()}
                     </span>
                   ) : undefined}
                   sub={`오늘 ${linkedToday.toLocaleString()}명 · 7일 ${linked7.toLocaleString()}명`}
@@ -835,14 +836,14 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="활성화"
-                  title="첫 시트를 저장한 사용자(시트 1개 이상 또는 데모 제외 카드 기록 보유). 데모만 체험한 유저는 미활성. 활성화 + 미활성 = 로그인 전체."
+                  title="첫 시트를 저장한 사용자(시트 1개 이상 또는 데모 제외 카드 기록 보유). 대기 = 연동 완료 후 저장 전(draft 이탈 포함), 미활성 = 대기 + 미연동 = 전체 − 활성화."
                   value={signedUp.toLocaleString()}
                   valueExtra={incompleteSignups > 0 ? (
                     <span style={{
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
-                      미활성 {incompleteSignups.toLocaleString()}
+                      대기 {linkedButIdle.toLocaleString()} · 미활성 {incompleteSignups.toLocaleString()}
                     </span>
                   ) : undefined}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
