@@ -782,7 +782,7 @@ export function VoicecardsBlock({
 
               <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
                 <LStat
-                  label="누적 기기"
+                  label="설치 기기"
                   value={devices.toLocaleString()}
                   sub={`오늘 ${devToday.toLocaleString()}명 · 7일 ${dev7.toLocaleString()}명`}
                   tone="info"
