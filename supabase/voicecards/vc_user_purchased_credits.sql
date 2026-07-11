@@ -12,7 +12,7 @@ AS $function$
                when 'com.monor.voicecards.credits.5500'  then 5500
                when 'com.monor.voicecards.credits.12000' then 12000
                else 0 end)::bigint as purchased_credits
-  from anonymous_events_real_users
+  from mv_real_users
   where event_name = 'credits_changed'
     and properties->>'reason' = 'purchase'
     and is_likely_bot = false

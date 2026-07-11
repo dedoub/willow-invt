@@ -4,7 +4,7 @@
 -- banner_tap: 크레딧/프리미엄 배너 탭
 -- gated: 게이트 충돌 (익명 시트추가·로그인 프롬프트 클릭) — 약한 활성화 신호
 -- last_intent: 가장 최근 구매의도 이벤트 시각
--- 봇 제외, 실유저(로그인) 매핑된 이벤트(anonymous_events_real_users)만.
+-- 봇 제외, 실유저(로그인) 매핑된 이벤트(mv_real_users)만.
 -- apply: 원격 project juyitkynbavhllyjidhz
 CREATE OR REPLACE FUNCTION public.vc_user_intent_signals()
  RETURNS TABLE(user_id text, premium_voice boolean, ai_feature boolean, banner_tap boolean, gated boolean, last_intent timestamptz)
@@ -17,7 +17,7 @@ AS $function$
     bool_or(event_name = 'credit_banner_tapped') as banner_tap,
     bool_or(event_name in ('add_sheet_opened_anonymous','add_sheet_signin_and_create_clicked','prompt_signin_clicked')) as gated,
     max(created_at) as last_intent
-  from anonymous_events_real_users
+  from mv_real_users
   where is_likely_bot = false
     and user_id is not null
     and event_name in (

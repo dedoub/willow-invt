@@ -18,7 +18,7 @@ tsa_today as (
 ),
 listen_today as (
   select e.user_id, count(*)::bigint as listen
-  from anonymous_events_real_users e, td
+  from mv_real_users e, td
   where e.event_name in ('tts_played','voice_preview_played')
     and (e.created_at at time zone 'Asia/Seoul')::date = td.d and e.user_id is not null
   group by e.user_id
@@ -28,7 +28,7 @@ purchased_today as (
       when 'com.monor.voicecards.credits.1000'  then 1000
       when 'com.monor.voicecards.credits.5500'  then 5500
       when 'com.monor.voicecards.credits.12000' then 12000 else 0 end)::bigint as pc
-  from anonymous_events_real_users e, td
+  from mv_real_users e, td
   where e.event_name='credits_changed' and e.properties->>'reason'='purchase'
     and e.is_likely_bot = false and e.user_id is not null
     and (e.created_at at time zone 'Asia/Seoul')::date = td.d
@@ -48,7 +48,7 @@ learn_days as (
 ),
 listen_days as (
   select e.user_id, (e.created_at at time zone 'Asia/Seoul')::date as d
-  from anonymous_events_real_users e, td
+  from mv_real_users e, td
   where e.event_name in ('tts_played','voice_preview_played')
     and (e.created_at at time zone 'Asia/Seoul')::date >= td.d - 6 and e.user_id is not null
 ),

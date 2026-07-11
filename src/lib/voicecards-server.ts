@@ -702,7 +702,8 @@ export async function getAppDbRevenue(
   from = 0
   while (true) {
     const { data: page, error } = await voicecardsSupabase
-      .from('anonymous_events_real_users')
+      // mv_real_users: anonymous_events_real_users(→deduped 무거움)의 5분 주기 스냅샷. 로드 속도/타임아웃 개선.
+      .from('mv_real_users')
       .select('created_at, user_id, properties')
       .eq('event_name', 'credits_changed')
       .eq('is_likely_bot', false)
