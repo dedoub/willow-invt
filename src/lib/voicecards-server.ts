@@ -910,6 +910,9 @@ export interface VoicecardsUserStats {
     offerStage: string | null // 타겟 오퍼 단계: sent|seen|snoozed|redeemed|dismissed|expired (없으면 null)
     offerStageAt: string | null // 현재 단계 진입 시각 (발송일/열람일/전환일 등)
     creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played). AI 카드 생성은 사용량 적어 제외
+    // 구글연동(Drive) 완료 = users.folder_id 존재. deferred-Drive 가입 이후 시트 0이어도
+    // 연동은 끝났을 수 있다(예: AI 생성 후 draft만 두고 이탈) — sheetCount로 판정하지 말 것.
+    hasFolder: boolean
     sheetCount: number
     cards: number
     attempts: number
@@ -1158,6 +1161,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     offerStage: userOfferMap.get(u.user_id)?.stage || null,
     offerStageAt: userOfferMap.get(u.user_id)?.stageAt || null,
     creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
+    hasFolder: !!u.folder_id,
     sheetCount: u.sheet_ids?.length || 0,
     cards: userCardsMap.get(u.user_id) || 0,
     attempts: userAttemptsMap.get(u.user_id) || 0,

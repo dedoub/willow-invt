@@ -42,6 +42,7 @@ interface UserStats {
     offerStage: string | null
     offerStageAt: string | null
     creditsUsed: number
+    hasFolder: boolean
     sheetCount: number
     cards: number
     attempts: number
@@ -481,7 +482,6 @@ export function VoicecardsBlock({
       return cmp !== 0 ? cmp : b.createdAt.localeCompare(a.createdAt)
     }
     const nameOf = (u: U) => (u.nickname || u.email || u.id || '').toLowerCase()
-    const isIncomplete = (u: U) => (u.sheetCount === 0 && u.cards === 0 ? 1 : 0)
 
     // 컬럼별 1차 비교(항상 오름차순 기준). 방향은 아래에서 dir로 적용.
     const cmpByKey = (a: U, b: U, key: UserSortKey): number => {
@@ -491,7 +491,7 @@ export function VoicecardsBlock({
         case 'version':  return (a.appVersion || '').localeCompare(b.appVersion || '', undefined, { numeric: true })
         case 'language': return (a.locale || '').localeCompare(b.locale || '')
         case 'country':  return (a.country || regionOf(a.locale)).localeCompare(b.country || regionOf(b.locale))
-        case 'status':   return isIncomplete(a) - isIncomplete(b)
+        case 'status':   return Number(a.hasFolder) - Number(b.hasFolder)
         case 'sheets':   return a.sheetCount - b.sheetCount
         case 'cards':    return a.cards - b.cards
         case 'attempts': return a.attempts - b.attempts
@@ -635,8 +635,12 @@ export function VoicecardsBlock({
         {userStats && anonymousStats?.summary && (() => {
           const devices = anonymousStats.summary.totalDevices
           const learned = anonymousStats.summary.learnedDevices
-          // 가입 미완료: 로그인했지만 시트 0 & 카드 0 (드라이브 공유 거부 등). 완료 = 전체 − 미완료
+          // 미활성: 로그인했지만 시트 0 & 카드 0 — 아직 첫 시트를 저장하지 않은 단계.
+          // (구글연동(Drive)과는 별개 축: deferred-Drive라 연동을 마치고도 미활성일 수 있다.
+          //  그 교집합 = "연동후대기" — AI draft만 두고 이탈한 코호트, 복귀 유도 타깃.)
+          // 활성화 = 전체 − 미활성 (첫 시트 저장 완료)
           const incompleteSignups = (userStats?.users ?? []).filter(u => u.sheetCount === 0 && u.cards === 0).length
+          const linkedButIdle = (userStats?.users ?? []).filter(u => u.hasFolder && u.sheetCount === 0 && u.cards === 0).length
           const signedUp = userStats.totalUsers - incompleteSignups
           const paidUsers = stats?.combined.totalPaidUsers ?? 0
 
@@ -657,7 +661,7 @@ export function VoicecardsBlock({
             date,
             value: signupDates.filter(d => d <= date).length,
           }))
-          // 가입 미완료(시트 0 & 카드 0) 누적 추이 — 가입완료 스파크라인의 보조선
+          // 미활성(시트 0 & 카드 0) 누적 추이 — 활성화 스파크라인의 보조선
           const incompleteDates = (userStats?.users ?? [])
             .filter(u => u.sheetCount === 0 && u.cards === 0)
             .map(u => kstDateKey(u.createdAt))
@@ -760,14 +764,15 @@ export function VoicecardsBlock({
                   sparkline={compact ? undefined : learnedData}
                 />
                 <LStat
-                  label="가입 완료"
+                  label="활성화"
                   value={signedUp.toLocaleString()}
                   valueExtra={incompleteSignups > 0 ? (
                     <span style={{
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
-                      미완료 {incompleteSignups.toLocaleString()}
+                      미활성 {incompleteSignups.toLocaleString()}
+                      {linkedButIdle > 0 ? ` (연동후대기 ${linkedButIdle.toLocaleString()})` : ''}
                     </span>
                   ) : undefined}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
@@ -1008,7 +1013,7 @@ export function VoicecardsBlock({
             }}>
               사용자{(() => {
                 const n = userStats.users.filter(u => u.sheetCount === 0 && u.cards === 0).length
-                return n > 0 ? ` · 미완료 ${n}` : ''
+                return n > 0 ? ` · 미활성 ${n}` : ''
               })()}
             </div>
             {/* 데스크톱은 테이블 헤더 클릭으로 정렬. 모바일은 헤더가 없어 드롭다운으로 정렬. */}
@@ -1111,7 +1116,7 @@ export function VoicecardsBlock({
                         padding: '1px 5px', borderRadius: 3,
                         flexShrink: 0, lineHeight: 1.4, whiteSpace: 'nowrap' as const,
                       }}>
-                        가입 미완료
+                        미활성
                       </span>
                     )}
                   </div>
@@ -1175,7 +1180,6 @@ export function VoicecardsBlock({
               const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
               const fallbackName = user.email || (shortId ? `#${shortId}` : 'Unknown')
               const initial = (user.nickname?.charAt(0) || user.email?.charAt(0) || shortId.charAt(0) || '?').toUpperCase()
-              const incomplete = user.sheetCount === 0 && user.cards === 0
               const titleParts = [user.appVersion ? `v${user.appVersion}` : null, user.locale].filter(Boolean).join(' · ')
               return (
                 <div key={user.id} style={{
@@ -1262,13 +1266,14 @@ export function VoicecardsBlock({
                       )
                     })()}
                   </div>
-                  {/* 구글연동 (가입 완료 여부) */}
+                  {/* 구글연동 = Drive 폴더 생성 완료(users.folder_id). deferred-Drive라
+                      시트 0이어도 연동은 끝났을 수 있다(AI draft만 두고 이탈 등). */}
                   <div style={{
                     fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
                     whiteSpace: 'nowrap', textAlign: 'center',
-                    color: incomplete ? '#B45309' : t.neutrals.muted,
+                    color: user.hasFolder ? t.neutrals.muted : '#B45309',
                   }}>
-                    {incomplete ? '미완료' : '완료'}
+                    {user.hasFolder ? '완료' : '미완료'}
                   </div>
                   <NumDeltaCell total={user.sheetCount} delta={user.sheetsDeltaToday} />
                   <NumDeltaCell total={user.cards} delta={user.cardsToday} />
