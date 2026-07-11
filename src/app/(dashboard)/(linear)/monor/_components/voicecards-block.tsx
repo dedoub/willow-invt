@@ -611,7 +611,7 @@ export function VoicecardsBlock({
         {(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats?.summary) && (
           <>
             <SkelSectionHeader width={80} />
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
               {[0, 1, 2, 3].map(i => <SkelStat key={i} compact={!!mobile} />)}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
@@ -669,6 +669,7 @@ export function VoicecardsBlock({
           // 누적 trajectories
           const cumulative = anonymousStats.cumulativeDistinct ?? []
           const devicesData = cumulative.map(d => ({ date: d.date, value: d.devices }))
+          const signinData = cumulative.map(d => ({ date: d.date, value: d.signin }))
 
           const signupDates = (userStats?.users ?? [])
             .filter(u => !isIdleUser(u))
@@ -760,6 +761,9 @@ export function VoicecardsBlock({
           }
           const devToday = (lastCum?.devices ?? 0) - cumValBefore(yesterdayKey, r => r.devices)
           const dev7 = (lastCum?.devices ?? 0) - cumValBefore(dayBefore7Key, r => r.devices)
+          const signinDev = anonymousStats.summary.signinDevices
+          const signinToday = (lastCum?.signin ?? 0) - cumValBefore(yesterdayKey, r => r.signin)
+          const signin7 = (lastCum?.signin ?? 0) - cumValBefore(dayBefore7Key, r => r.signin)
           const signupToday = signupDates.filter(d => d === revTodayKey).length
           const signup7 = signupDates.filter(d => d >= rev7AgoKey).length
           const linkedToday = linkedDates.filter(d => d === revTodayKey).length
@@ -776,13 +780,20 @@ export function VoicecardsBlock({
                 인사이트
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
                 <LStat
                   label="누적 기기"
                   value={devices.toLocaleString()}
                   sub={`오늘 ${devToday.toLocaleString()}명 · 7일 ${dev7.toLocaleString()}명`}
                   tone="info"
                   sparkline={compact ? undefined : devicesData}
+                />
+                <LStat
+                  label="로그인"
+                  value={signinDev.toLocaleString()}
+                  sub={`오늘 ${signinToday.toLocaleString()}명 · 7일 ${signin7.toLocaleString()}명`}
+                  tone={devices > 0 && signinDev / devices >= 0.2 ? 'pos' : 'warn'}
+                  sparkline={compact ? undefined : signinData}
                 />
                 <LStat
                   label="구글 연동"
@@ -808,6 +819,8 @@ export function VoicecardsBlock({
                   sparkline={compact ? undefined : signupData}
                   sparkline2={compact ? undefined : incompleteData}
                 />
+                {/* 모바일(2열 그리드)에선 매출 카드가 홀수 번째 낙오로 반쪽이 되지 않게 1행 전폭 사용 */}
+                <div style={{ gridColumn: mobile ? '1 / -1' : 'auto', display: 'grid' }}>
                 {revenueLoading && !stats ? (
                   <SkelStat compact={!!mobile} />
                 ) : (
@@ -831,6 +844,7 @@ export function VoicecardsBlock({
                     dualScale
                   />
                 )}
+                </div>
               </div>
 
             {/* 플랫폼 / 언어 / 일별 활동자 */}
@@ -902,7 +916,7 @@ export function VoicecardsBlock({
       {usersLoading && !userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <SkelSectionHeader width={140} />
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
             {[0, 1, 2, 3].map(i => <SkelStat key={i} compact={!!mobile} />)}
           </div>
         </div>
@@ -968,7 +982,7 @@ export function VoicecardsBlock({
             const last7CardsDelta = liveCards - sevenAgoCards
 
             return (
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
             <LStat
               label="보유 시트"
               value={formatNumber(userStats.totalSheets)}
