@@ -62,14 +62,22 @@ daily as (
 ),
 dev_day as (
   -- 로그인/익명 분리도 동일 기준: 세션-종료만 있는 디바이스는 그 날 활동으로 안 침.
-  select kdate, device_id, bool_or(user_id is not null) as has_login
+  select kdate, device_id, bool_or(user_id is not null) as has_login, max(user_id) as uid
   from base where event_name <> 'learning_session_ended' group by kdate, device_id
+),
+-- 신규/회원 분리: 그 날 활동한 로그인 디바이스의 유저가 그 날 가입(users.created_at KST)했으면 신규.
+dev_day_flag as (
+  select d.kdate, d.device_id, d.has_login,
+    (u.user_id is not null and (u.created_at at time zone 'Asia/Seoul')::date = d.kdate) as is_new
+  from dev_day d left join users u on u.user_id = d.uid
 ),
 login_daily as (
   select kdate,
     count(*) filter (where has_login) as logged_devices,
+    count(*) filter (where has_login and is_new) as new_logged_devices,
+    count(*) filter (where has_login and not is_new) as member_logged_devices,
     count(*) filter (where not has_login) as anon_devices
-  from dev_day group by kdate
+  from dev_day_flag group by kdate
 ),
 credit_daily as (
   select kdate, count(*) as credits from base
@@ -122,7 +130,7 @@ select jsonb_build_object(
      'learnConversionPct',  case when total_devices>0 then round(100.0*learned_devices/total_devices)::int else 0 end,
      'signinConversionPct', case when total_devices>0 then round(100.0*signin_devices/total_devices)::int else 0 end
    ) from summary),
-  'daily', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'devices',d.devices,'appOpened',d.app_opened,'cardsLearned',d.cards_learned,'promptShown',d.prompt_shown,'signinCompleted',d.signin_completed,'loggedDevices',coalesce(l.logged_devices,0),'anonDevices',coalesce(l.anon_devices,0)) order by d.kdate) from daily d left join login_daily l using(kdate)),'[]'::jsonb),
+  'daily', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'devices',d.devices,'appOpened',d.app_opened,'cardsLearned',d.cards_learned,'promptShown',d.prompt_shown,'signinCompleted',d.signin_completed,'loggedDevices',coalesce(l.logged_devices,0),'anonDevices',coalesce(l.anon_devices,0),'newLoggedDevices',coalesce(l.new_logged_devices,0),'memberLoggedDevices',coalesce(l.member_logged_devices,0)) order by d.kdate) from daily d left join login_daily l using(kdate)),'[]'::jsonb),
   'cumulativeDistinct', coalesce((select jsonb_agg(jsonb_build_object('date',kdate,'devices',devices,'learned',learned,'signin',signin) order by kdate) from cumulative),'[]'::jsonb),
   'dailyCreditUsage', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'credits',coalesce(c.credits,0)) order by d.kdate) from all_dates d left join credit_daily c using(kdate)),'[]'::jsonb),
   'demoSheets', coalesce((select jsonb_agg(jsonb_build_object('sheetId',sheet_id,'cards',cards,'devices',devices) order by cards desc) from sheets),'[]'::jsonb),
