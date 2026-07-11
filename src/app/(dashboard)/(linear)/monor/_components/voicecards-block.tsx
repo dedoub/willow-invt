@@ -715,6 +715,9 @@ export function VoicecardsBlock({
             date,
             value: incompleteDates.filter(d => d <= date).length,
           }))
+          // 비로그인(설치 기기 − 로그인) / 미연동(로그인 − 연동) 누적 추이 — 각 카드의 점선 보조선
+          const notSignedInData = allDates.map((date, i) => ({ date, value: Math.max(0, (devicesData[i]?.value ?? 0) - (allUsersData[i]?.value ?? 0)) }))
+          const notLinkedData = allDates.map((date, i) => ({ date, value: Math.max(0, (allUsersData[i]?.value ?? 0) - (linkedData[i]?.value ?? 0)) }))
 
           // 크레딧 판매/유료전환 누적 (매출은 크레딧 볼륨으로 표시)
           const creditsByDate = new Map<string, number>()
@@ -819,6 +822,7 @@ export function VoicecardsBlock({
                   sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명`}
                   tone={devices > 0 && userStats.totalUsers / devices >= 0.2 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : allUsersData}
+                  sparkline2={compact ? undefined : notSignedInData}
                 />
                 <LStat
                   label="구글 연동"
@@ -835,6 +839,7 @@ export function VoicecardsBlock({
                   sub={`오늘 ${linkedToday.toLocaleString()}명 · 7일 ${linked7.toLocaleString()}명`}
                   tone={userStats.totalUsers > 0 && linkedUsers / userStats.totalUsers >= 0.5 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : linkedData}
+                  sparkline2={compact ? undefined : notLinkedData}
                 />
                 <LStat
                   label="활성화"
