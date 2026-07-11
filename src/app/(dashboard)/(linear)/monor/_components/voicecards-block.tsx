@@ -803,8 +803,8 @@ export function VoicecardsBlock({
                   sparkline={compact ? undefined : devicesData}
                 />
                 <LStat
-                  label="로그인"
-                  title="구글 계정으로 가입까지 마친 사용자 수(users). 비로그인 = 설치 후 가입까지 오지 않은 기기(설치 기기 − 로그인, 기기·계정 단위 차이는 근사)."
+                  label="신규 로그인"
+                  title="구글 계정으로 처음 가입(신규 로그인)한 사용자 누적 수. 비로그인 = 설치 후 가입까지 오지 않은 기기(설치 기기 − 로그인, 기기·계정 단위 차이는 근사)."
                   value={userStats.totalUsers.toLocaleString()}
                   valueExtra={notSignedIn > 0 ? (
                     <span style={{
