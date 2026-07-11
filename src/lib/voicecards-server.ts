@@ -598,6 +598,11 @@ const EXCLUDED_VOICECARDS_EMAIL_PATTERNS: RegExp[] = [
 ]
 // 관리자/내부 테스트 계정 (정확 일치) — 2026-07-03 willowinvt 관리자 계정 추가
 const EXCLUDED_VOICECARDS_EMAILS = new Set(['dw.kim@willowinvt.com'])
+const EXCLUDED_VOICECARDS_USER_IDS = new Set([
+  '101662172713686736923',
+  '100644446554227652222',
+  '107821687966181028778',
+])
 
 function isExcludedVoicecardsEmail(email: string | null | undefined): boolean {
   if (!email) return false
@@ -607,8 +612,10 @@ function isExcludedVoicecardsEmail(email: string | null | undefined): boolean {
   return EXCLUDED_VOICECARDS_EMAIL_PATTERNS.some(re => re.test(e))
 }
 
-function isExcludedVoicecardsUser(user: { nickname?: string | null; email?: string | null }): boolean {
-  return !!(user.nickname && EXCLUDED_VOICECARDS_NICKNAMES.has(user.nickname)) || isExcludedVoicecardsEmail(user.email)
+function isExcludedVoicecardsUser(user: { user_id?: string | null; nickname?: string | null; email?: string | null }): boolean {
+  return !!(user.user_id && EXCLUDED_VOICECARDS_USER_IDS.has(user.user_id)) ||
+    !!(user.nickname && EXCLUDED_VOICECARDS_NICKNAMES.has(user.nickname)) ||
+    isExcludedVoicecardsEmail(user.email)
 }
 
 export interface AppDbRevenue {
@@ -651,13 +658,13 @@ export async function getAppDbRevenue(
   )
 
   const PAGE = 1000
-  const data: Array<{ created_at: string; platform: string | null; properties: Record<string, unknown> | null }> = []
+  const data: Array<{ created_at: string; user_id: string | null; platform: string | null; properties: Record<string, unknown> | null }> = []
   let from = 0
 
   while (true) {
     const { data: page, error } = await voicecardsSupabase
       .from('anonymous_events')
-      .select('created_at, platform, properties')
+      .select('created_at, user_id, platform, properties')
       .eq('event_name', 'credits_changed')
       .gte('created_at', `${startDate}T00:00:00Z`)
       .lte('created_at', `${endDate}T23:59:59.999Z`)
@@ -665,12 +672,13 @@ export async function getAppDbRevenue(
       .range(from, from + PAGE - 1)
 
     if (error || !page?.length) break
-    data.push(...(page as Array<{ created_at: string; platform: string | null; properties: Record<string, unknown> | null }>))
+    data.push(...(page as Array<{ created_at: string; user_id: string | null; platform: string | null; properties: Record<string, unknown> | null }>))
     if (page.length < PAGE) break
     from += PAGE
   }
 
   for (const row of data) {
+    if (row.user_id && excludedUserIds.has(row.user_id)) continue
     const props = row.properties || {}
     if (props.reason !== 'purchase') continue
     const price = CREDIT_PRODUCT_PRICES_USD[String(props.product_id)]

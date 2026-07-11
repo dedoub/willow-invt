@@ -774,9 +774,14 @@ async function main() {
   log(`Loaded ${users.length} users, ${analytics.length} analytics rows, ${recentEvents.length} recent events`)
 
   // Filter: 가족 + 운영자 + 봇(테스트랩) 제외
+  const adminUserIds = new Set([
+    '101662172713686736923',
+    '100644446554227652222',
+    '107821687966181028778',
+  ])
   const excludedIds = new Set(
     users
-      .filter(u => (u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)) || isExcludedEmail(u.email))
+      .filter(u => adminUserIds.has(u.user_id) || (u.nickname && EXCLUDED_NICKNAMES.has(u.nickname)) || isExcludedEmail(u.email))
       .map(u => u.user_id),
   )
   const externalUsers = users.filter(u => !excludedIds.has(u.user_id))
