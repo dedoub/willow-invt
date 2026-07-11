@@ -858,8 +858,9 @@ export function VoicecardsBlock({
                     ) : undefined}
                     sub={creditsSold > 0 ? `오늘 ${fmtCr(creditsToday)} · 7일 ${fmtCr(credits7d)}` : '아직 없음'}
                     tone={creditsSold > 0 ? 'pos' : 'default'}
-                    sparkline={compact ? undefined : creditsData}
-                    sparkline2={compact ? undefined : paidUsersData}
+                    // 모바일에선 1행 전폭이라 공간 충분 — 매출 카드만 compact에서도 스파크라인 유지
+                    sparkline={creditsData}
+                    sparkline2={paidUsersData}
                     spark2Color={t.brand[600]}
                     sparkFormat={fmtCr}
                     dualScale
