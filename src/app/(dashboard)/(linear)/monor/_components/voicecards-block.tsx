@@ -43,7 +43,7 @@ interface UserStats {
     offerStageAt: string | null
     creditsUsed: number
     hasFolder: boolean
-    ownCards: number
+    ownCards?: number
     sheetCount: number
     cards: number
     attempts: number
@@ -163,7 +163,17 @@ function formatTimeShort(dateString?: string | null): string {
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
 const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 48px 36px 48px 52px 44px 78px 60px 54px 48px 52px 48px 60px 60px 44px'
-const USER_TABLE_MIN_WIDTH = 1138 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (닉네임 120px, 구매신호 78px, +오퍼 60px +보너스 52px)
+// 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용. 컬럼 정의에서 자동 산출 —
+// 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져 마지막 열들이 회색 행 배경
+// 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
+const USER_TABLE_MIN_WIDTH = (() => {
+  const cols = USER_TABLE_COLS.split(' ')
+  const px = cols.reduce((sum, c) => {
+    const m = c.match(/minmax\((\d+)px/) || c.match(/^(\d+)px$/)
+    return sum + (m ? Number(m[1]) : 0)
+  }, 0)
+  return px + (cols.length - 1) * 6 /* grid gap */ + 16 /* 행 좌우 padding */
+})()
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -494,7 +504,7 @@ export function VoicecardsBlock({
         case 'language': return (a.locale || '').localeCompare(b.locale || '')
         case 'country':  return (a.country || regionOf(a.locale)).localeCompare(b.country || regionOf(b.locale))
         case 'status':   return Number(a.hasFolder) - Number(b.hasFolder)
-        case 'active':   return Number(a.sheetCount > 0 || a.ownCards > 0) - Number(b.sheetCount > 0 || b.ownCards > 0)
+        case 'active':   return Number(a.sheetCount > 0 || (a.ownCards ?? a.cards) > 0) - Number(b.sheetCount > 0 || (b.ownCards ?? b.cards) > 0)
         case 'sheets':   return a.sheetCount - b.sheetCount
         case 'cards':    return a.cards - b.cards
         case 'attempts': return a.attempts - b.attempts
@@ -643,7 +653,10 @@ export function VoicecardsBlock({
           // (구글연동(Drive)과는 별개 축: deferred-Drive라 연동을 마치고도 미활성일 수 있다.
           //  그 교집합 = "연동후대기" — AI draft만 두고 이탈한 코호트, 복귀 유도 타깃.)
           // 활성화 = 전체 − 미활성 (첫 시트 저장 완료)
-          const isIdleUser = (u: { sheetCount: number; ownCards: number }) => u.sheetCount === 0 && u.ownCards === 0
+          // ownCards가 없는 응답(배포 직후 ~60s unstable_cache의 옛 payload)은 cards로
+          // 강등 — undefined 비교로 전원 활성화가 되는 착시를 막는다(2026-07-11 실제 발생).
+          const isIdleUser = (u: { sheetCount: number; cards: number; ownCards?: number }) =>
+            u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0
           const incompleteSignups = (userStats?.users ?? []).filter(isIdleUser).length
           const linkedButIdle = (userStats?.users ?? []).filter(u => u.hasFolder && isIdleUser(u)).length
           const linkedUsers = (userStats?.users ?? []).filter(u => u.hasFolder).length
@@ -1027,7 +1040,7 @@ export function VoicecardsBlock({
               whiteSpace: 'nowrap' as const,
             }}>
               사용자{(() => {
-                const n = userStats.users.filter(u => u.sheetCount === 0 && u.ownCards === 0).length
+                const n = userStats.users.filter(u => u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0).length
                 return n > 0 ? ` · 미활성 ${n}` : ''
               })()}
             </div>
@@ -1124,7 +1137,7 @@ export function VoicecardsBlock({
                         {user.locale}
                       </span>
                     )}
-                    {user.sheetCount === 0 && user.ownCards === 0 && (
+                    {user.sheetCount === 0 && (user.ownCards ?? user.cards) === 0 && (
                       <span style={{
                         fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
                         color: '#92400E', background: '#FEF3C7',
@@ -1295,9 +1308,9 @@ export function VoicecardsBlock({
                   <div style={{
                     fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
                     whiteSpace: 'nowrap', textAlign: 'center',
-                    color: (user.sheetCount > 0 || user.ownCards > 0) ? t.neutrals.muted : '#B45309',
+                    color: (user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0) ? t.neutrals.muted : '#B45309',
                   }}>
-                    {(user.sheetCount > 0 || user.ownCards > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'}
+                    {(user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'}
                   </div>
                   <NumDeltaCell total={user.sheetCount} delta={user.sheetsDeltaToday} />
                   <NumDeltaCell total={user.cards} delta={user.cardsToday} />
