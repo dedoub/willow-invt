@@ -671,6 +671,17 @@ export function VoicecardsBlock({
           // 활성화 전환율 = 구글연동 대비 (퍼널: 기기 → 연동 → 활성화)
           const signupConv = linkedUsers > 0 ? (signedUp / linkedUsers) * 100 : 0
 
+          // 파이 카드 '활성' 탭: 활성화(!isIdleUser) 사용자의 플랫폼/국가 분포.
+          // 기기/결제 탭은 이벤트 기기 기준이지만 활성화는 계정 속성(시트 보유)이라 users로 센다.
+          const activatedUsers = (userStats?.users ?? []).filter(u => !isIdleUser(u))
+          const distOf = (label: (u: (typeof activatedUsers)[number]) => string) => {
+            const m = new Map<string, number>()
+            for (const u of activatedUsers) m.set(label(u), (m.get(label(u)) ?? 0) + 1)
+            return Array.from(m, ([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+          }
+          const activePlatforms = distOf(u => u.platform === 'ios' ? 'iOS' : u.platform === 'android' ? 'Android' : (u.platform || 'unknown'))
+          const activeCountries = distOf(u => formatCountryName(u.country || 'unknown'))
+
           // 누적 trajectories
           const cumulative = anonymousStats.cumulativeDistinct ?? []
           const devicesData = cumulative.map(d => ({ date: d.date, value: d.devices }))
@@ -899,12 +910,9 @@ export function VoicecardsBlock({
                     })),
                   },
                   {
-                    key: 'signin',
-                    label: '가입',
-                    data: anonymousStats.signinPlatforms.map(p => ({
-                      name: p.platform === 'ios' ? 'iOS' : p.platform === 'android' ? 'Android' : p.platform,
-                      value: p.devices,
-                    })),
+                    key: 'active',
+                    label: '활성',
+                    data: activePlatforms,
                   },
                   {
                     key: 'paying',
@@ -927,9 +935,9 @@ export function VoicecardsBlock({
                     data: (anonymousStats.countries ?? []).map(c => ({ name: formatCountryName(c.country), value: c.devices })),
                   },
                   {
-                    key: 'signin',
-                    label: '가입',
-                    data: (anonymousStats.signinCountries ?? []).map(c => ({ name: formatCountryName(c.country), value: c.devices })),
+                    key: 'active',
+                    label: '활성',
+                    data: activeCountries,
                   },
                   {
                     key: 'paying',
