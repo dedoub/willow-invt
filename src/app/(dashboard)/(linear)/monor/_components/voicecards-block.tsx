@@ -402,7 +402,7 @@ function SkelPie() {
         <SkelBar width={64} height={12} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, padding: '4px 0' }}>
-        <div className="l-skeleton" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, maxWidth: '100%' }} />
+        <div className="l-skeleton" style={{ width: 80, height: 80, borderRadius: '50%', flexShrink: 0, maxWidth: '100%' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
           <SkelBar width="85%" height={9} />
           <SkelBar width="70%" height={9} />
@@ -674,7 +674,6 @@ export function VoicecardsBlock({
           const isIdleUser = (u: { sheetCount: number; cards: number; ownCards?: number }) =>
             u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0
           const incompleteSignups = (userStats?.users ?? []).filter(isIdleUser).length
-          const linkedButIdle = (userStats?.users ?? []).filter(u => u.hasFolder && isIdleUser(u)).length
           const linkedUsers = (userStats?.users ?? []).filter(u => u.hasFolder).length
           const signedUp = userStats.totalUsers - incompleteSignups
           const paidUsers = stats?.combined.totalPaidUsers ?? 0
@@ -725,8 +724,6 @@ export function VoicecardsBlock({
             date,
             value: allUserDates.filter(d => d <= date).length,
           }))
-          const notLinked = userStats.totalUsers - linkedUsers
-          const notSignedIn = Math.max(0, devices - userStats.totalUsers)
           // 비율 추이(%) — 각 카드의 점선 보조선(dualScale 우측 축).
           // 항등식 위계와 같은 기준: 로그인%=기기 대비, 연동%·활성%=로그인 대비 (보조 짝과 합이 100%).
           const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : 0)
@@ -847,9 +844,8 @@ export function VoicecardsBlock({
                   value={devices.toLocaleString()}
                   subExtra={svTotal > 0 ? (
                     <span style={{
-                      display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
+                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
-                      whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
                       <span>설치 {installRate}%</span>
                       {notInstalled > 0 && <span> · 미설치 {notInstalled.toLocaleString()}명</span>}
@@ -867,14 +863,12 @@ export function VoicecardsBlock({
                   label="신규 로그인"
                   title="구글 계정으로 처음 가입(신규 로그인)한 사용자 누적 수. 비로그인 = 설치 후 가입까지 오지 않은 기기(설치 기기 − 로그인, 기기·계정 단위 차이는 근사). 점선 = 로그인 전환율(%, 기기 대비) 추이 — 우측 축."
                   value={userStats.totalUsers.toLocaleString()}
-                  subExtra={(
+                  valueExtra={(
                     <span style={{
-                      display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
+                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
-                      whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
                       <span>로그인 {loginRate}%</span>
-                      {notSignedIn > 0 && <span> · 비로그인 {notSignedIn.toLocaleString()}</span>}
                     </span>
                   )}
                   sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명`}
@@ -889,14 +883,12 @@ export function VoicecardsBlock({
                   label="구글 연동"
                   title="Drive 폴더 생성까지 마친 사용자(folder_id 보유). 미연동 = 로그인했지만 아직 Drive 연동(첫 저장/AI생성 시도) 전. 로그인 = 구글 연동 + 미연동. 점선 = 연동률(%, 로그인 대비) 추이 — 우측 축."
                   value={linkedUsers.toLocaleString()}
-                  subExtra={(
+                  valueExtra={(
                     <span style={{
-                      display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
+                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
-                      whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
                       <span>연동 {linkedRate}%</span>
-                      {notLinked > 0 && <span> · 미연동 {notLinked.toLocaleString()}</span>}
                     </span>
                   )}
                   sub={`오늘 ${linkedToday.toLocaleString()}명 · 7일 ${linked7.toLocaleString()}명`}
@@ -911,14 +903,12 @@ export function VoicecardsBlock({
                   label="활성화"
                   title="첫 시트를 저장한 사용자(시트 1개 이상 또는 데모 제외 카드 기록 보유). 대기 = 연동 완료 후 저장 전(draft 이탈 포함), 미활성 = 대기 + 미연동 = 전체 − 활성화. 점선 = 활성화율(%, 로그인 대비) 추이 — 우측 축."
                   value={signedUp.toLocaleString()}
-                  subExtra={(
+                  valueExtra={(
                     <span style={{
-                      display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
+                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
-                      whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
                       <span>활성 {activeRate}%</span>
-                      {incompleteSignups > 0 && <span> · 미활성 {incompleteSignups.toLocaleString()} (대기 {linkedButIdle.toLocaleString()})</span>}
                     </span>
                   )}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
@@ -937,13 +927,12 @@ export function VoicecardsBlock({
                     label="누적 매출"
                     title="판매 크레딧 누적(정가 환산 그로스 — 환불·스토어 수수료 미반영). 유료 = 결제 이력 실사용자 수, 결제율 = 유료 / 활성 사용자. 점선 = 결제율(%) 추이 — 우측 축 0~100%."
                     value={fmtCr(creditsSold)}
-                    subExtra={(
+                    valueExtra={(
                       <span style={{
-                        display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
+                        fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                         color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
-                        whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>
-                        결제 {payRate}% · 유료 {paidUsers.toLocaleString()}명
+                        결제 {payRate}%
                       </span>
                     )}
                     sub={creditsSold > 0 ? `오늘 ${fmtCr(creditsToday)} · 7일 ${fmtCr(credits7d)}` : '아직 없음'}
@@ -1693,7 +1682,8 @@ function DistributionPie({
   return (
     <div style={{
       background: t.neutrals.inner, borderRadius: t.radius.sm,
-      padding: '8px 8px',
+      padding: '8px 10px', height: '100%', boxSizing: 'border-box' as const,
+      display: 'flex', flexDirection: 'column' as const,
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1736,15 +1726,15 @@ function DistributionPie({
           데이터 없음
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
           {!mobile && (
-            <div style={{ width: 44, height: 44, flexShrink: 0 }}>
+            <div style={{ width: 80, height: 80, flexShrink: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={data}
                     cx="50%" cy="50%"
-                    innerRadius={11} outerRadius={20}
+                    innerRadius={20} outerRadius={36}
                     paddingAngle={2}
                     dataKey="value"
                     stroke="none"
@@ -1767,20 +1757,20 @@ function DistributionPie({
             {data.map(d => {
               const pct = total > 0 ? Math.round((d.value / total) * 100) : 0
               return (
-                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
+                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
                   <div style={{
-                    width: 6, height: 6, borderRadius: 2,
+                    width: 8, height: 8, borderRadius: 2,
                     background: colorByName.get(d.name) ?? t.neutrals.subtle, flexShrink: 0,
                   }} />
                   <span style={{
-                    fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.text,
+                    fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     flex: 1, minWidth: 0,
                   }}>
                     {d.name}
                   </span>
                   <span style={{
-                    fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
                     fontVariantNumeric: 'tabular-nums', flexShrink: 0,
                   }}>
                     {pct}%
