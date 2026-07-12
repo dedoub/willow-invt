@@ -99,13 +99,13 @@ export function ProductBlock({ products }: ProductBlockProps) {
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <table style={{ width: '100%', minWidth: 660, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <colgroup>
             <col style={{ width: 72 }} />
             <col style={{ width: 62 }} />
             <col />
-            <col style={{ width: 78 }} />
-            <col style={{ width: 96 }} />
+            <col style={{ width: 92 }} />
+            <col style={{ width: 100 }} />
             <col style={{ width: 104 }} />
             <col style={{ width: 80 }} />
           </colgroup>

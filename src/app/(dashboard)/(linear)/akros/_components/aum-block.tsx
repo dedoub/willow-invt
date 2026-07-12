@@ -30,7 +30,7 @@ export function AumBlock({ timeSeries, yearLaunches }: AumBlockProps) {
   return (
     <LCard>
       <LSectionHead eyebrow="AUM DASHBOARD" title="운용 현황" />
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 10 }}>
         <LStat
           label="총 AUM"
           value={fmtKrw(latest?.total_aum_krw)}
