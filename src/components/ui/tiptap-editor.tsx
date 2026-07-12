@@ -264,10 +264,12 @@ export function htmlToPlainText(html: string): string {
   return tmp.textContent || tmp.innerText || ''
 }
 
-const HTML_TAG_PATTERN = /<\/?[a-z][\s\S]*>/i
+// Rich-text notes always start with a block element. Matching arbitrary tags
+// would misclassify Markdown containing placeholders such as `<model>`.
+const HTML_DOCUMENT_PATTERN = /^\s*<(?:p|h[1-6]|ul|ol|blockquote|pre|table|hr)\b/i
 
 export function looksLikeHtml(text: string): boolean {
-  return HTML_TAG_PATTERN.test(text.trim())
+  return HTML_DOCUMENT_PATTERN.test(text)
 }
 
 function isSafeHref(href: string): boolean {
@@ -281,8 +283,9 @@ export function sanitizeEditorHtml(html: string): string {
   }
 
   const allowedTags = new Set([
-    'p', 'br', 'strong', 'em', 's', 'ul', 'ol', 'li',
-    'h1', 'h2', 'h3', 'blockquote', 'hr', 'code', 'pre', 'a',
+    'p', 'br', 'strong', 'em', 's', 'del', 'ul', 'ol', 'li',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'hr', 'code', 'pre', 'a',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td', 'input',
   ])
 
   const parser = new DOMParser()
@@ -317,6 +320,18 @@ export function sanitizeEditorHtml(html: string): string {
         cleanEl.setAttribute('target', '_blank')
         cleanEl.setAttribute('rel', 'noopener noreferrer')
       }
+    }
+    if (tagName === 'th' || tagName === 'td') {
+      const align = sourceEl.getAttribute('align') || ''
+      if (['left', 'center', 'right'].includes(align)) {
+        cleanEl.setAttribute('align', align)
+      }
+    }
+    if (tagName === 'input') {
+      if (sourceEl.getAttribute('type') !== 'checkbox') return null
+      cleanEl.setAttribute('type', 'checkbox')
+      cleanEl.setAttribute('disabled', '')
+      if (sourceEl.hasAttribute('checked')) cleanEl.setAttribute('checked', '')
     }
 
     Array.from(sourceEl.childNodes).forEach(child => {
