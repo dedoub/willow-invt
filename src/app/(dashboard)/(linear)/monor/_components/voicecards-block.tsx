@@ -670,6 +670,8 @@ export function VoicecardsBlock({
 
           // 활성화 전환율 = 구글연동 대비 (퍼널: 기기 → 연동 → 활성화)
           const signupConv = linkedUsers > 0 ? (signedUp / linkedUsers) * 100 : 0
+          // 결제율 = 유료 / 활성 사용자
+          const payRate = signedUp > 0 ? Math.round((paidUsers / signedUp) * 100) : 0
 
           // 파이 카드 '활성' 탭: 활성화(!isIdleUser) 사용자의 플랫폼/국가 분포.
           // 기기/결제 탭은 이벤트 기기 기준이지만 활성화는 계정 속성(시트 보유)이라 users로 센다.
@@ -816,60 +818,66 @@ export function VoicecardsBlock({
                   label="신규 로그인"
                   title="구글 계정으로 처음 가입(신규 로그인)한 사용자 누적 수. 비로그인 = 설치 후 가입까지 오지 않은 기기(설치 기기 − 로그인, 기기·계정 단위 차이는 근사). 점선 = 로그인 전환율(%, 기기 대비) 추이 — 우측 축."
                   value={userStats.totalUsers.toLocaleString()}
-                  valueExtra={(
+                  subExtra={(
                     <span style={{
                       display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
-                      fontVariantNumeric: 'tabular-nums' as const,
+                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                       whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
-                      <span style={{ color: t.brand[600] }}>로그인 {loginRate}%</span>
-                      {notSignedIn > 0 && <span style={{ color: t.accent.warn }}> · 비로그인 {notSignedIn.toLocaleString()}</span>}
+                      <span>로그인 {loginRate}%</span>
+                      {notSignedIn > 0 && <span> · 비로그인 {notSignedIn.toLocaleString()}</span>}
                     </span>
                   )}
                   sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명`}
                   tone={devices > 0 && userStats.totalUsers / devices >= 0.2 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : allUsersData}
                   sparkline2={compact ? undefined : loginRateData}
+                  sparkFormat2={(v) => `${v}%`}
+                  spark2Domain={[0, 100]}
                   dualScale
                 />
                 <LStat
                   label="구글 연동"
                   title="Drive 폴더 생성까지 마친 사용자(folder_id 보유). 미연동 = 로그인했지만 아직 Drive 연동(첫 저장/AI생성 시도) 전. 로그인 = 구글 연동 + 미연동. 점선 = 연동률(%, 로그인 대비) 추이 — 우측 축."
                   value={linkedUsers.toLocaleString()}
-                  valueExtra={(
+                  subExtra={(
                     <span style={{
                       display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
-                      fontVariantNumeric: 'tabular-nums' as const,
+                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                       whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
-                      <span style={{ color: t.brand[600] }}>연동 {linkedRate}%</span>
-                      {notLinked > 0 && <span style={{ color: t.accent.warn }}> · 미연동 {notLinked.toLocaleString()}</span>}
+                      <span>연동 {linkedRate}%</span>
+                      {notLinked > 0 && <span> · 미연동 {notLinked.toLocaleString()}</span>}
                     </span>
                   )}
                   sub={`오늘 ${linkedToday.toLocaleString()}명 · 7일 ${linked7.toLocaleString()}명`}
                   tone={userStats.totalUsers > 0 && linkedUsers / userStats.totalUsers >= 0.5 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : linkedData}
                   sparkline2={compact ? undefined : linkedRateData}
+                  sparkFormat2={(v) => `${v}%`}
+                  spark2Domain={[0, 100]}
                   dualScale
                 />
                 <LStat
                   label="활성화"
                   title="첫 시트를 저장한 사용자(시트 1개 이상 또는 데모 제외 카드 기록 보유). 대기 = 연동 완료 후 저장 전(draft 이탈 포함), 미활성 = 대기 + 미연동 = 전체 − 활성화. 점선 = 활성화율(%, 로그인 대비) 추이 — 우측 축."
                   value={signedUp.toLocaleString()}
-                  valueExtra={(
+                  subExtra={(
                     <span style={{
                       display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
-                      fontVariantNumeric: 'tabular-nums' as const,
+                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                       whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
-                      <span style={{ color: t.brand[600] }}>활성 {activeRate}%</span>
-                      {incompleteSignups > 0 && <span style={{ color: t.accent.warn }}> · 미활성 {incompleteSignups.toLocaleString()} (대기 {linkedButIdle.toLocaleString()})</span>}
+                      <span>활성 {activeRate}%</span>
+                      {incompleteSignups > 0 && <span> · 미활성 {incompleteSignups.toLocaleString()} (대기 {linkedButIdle.toLocaleString()})</span>}
                     </span>
                   )}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
                   tone={linkedUsers > 0 && signupConv >= 50 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}
                   sparkline2={compact ? undefined : activeRateData}
+                  sparkFormat2={(v) => `${v}%`}
+                  spark2Domain={[0, 100]}
                   dualScale
                 />
                 {/* 모바일(2열 그리드)에선 매출 카드가 홀수 번째 낙오로 반쪽이 되지 않게 1행 전폭 사용 */}
@@ -879,16 +887,17 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="누적 매출"
-                    title="판매 크레딧 누적(정가 환산 그로스 — 환불·스토어 수수료 미반영). 유료 = 결제 이력 실사용자 수. 점선 = 유료 유저 수 추이."
+                    title="판매 크레딧 누적(정가 환산 그로스 — 환불·스토어 수수료 미반영). 유료 = 결제 이력 실사용자 수, 결제율 = 유료 / 활성 사용자. 점선 = 유료 유저 수 추이."
                     value={fmtCr(creditsSold)}
-                    valueExtra={paidUsers > 0 ? (
+                    subExtra={(
                       <span style={{
-                        fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                        display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
                         color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
+                        whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>
-                        유료 {paidUsers.toLocaleString()}명
+                        결제 {payRate}% · 유료 {paidUsers.toLocaleString()}명
                       </span>
-                    ) : undefined}
+                    )}
                     sub={creditsSold > 0 ? `오늘 ${fmtCr(creditsToday)} · 7일 ${fmtCr(credits7d)}` : '아직 없음'}
                     tone={creditsSold > 0 ? 'pos' : 'default'}
                     // 모바일에선 1행 전폭이라 공간 충분 — 매출 카드만 compact에서도 스파크라인 유지
@@ -896,6 +905,7 @@ export function VoicecardsBlock({
                     sparkline2={paidUsersData}
                     spark2Color={t.brand[600]}
                     sparkFormat={fmtCr}
+                    sparkFormat2={(v) => `${v.toLocaleString()}명`}
                     dualScale
                   />
                 )}

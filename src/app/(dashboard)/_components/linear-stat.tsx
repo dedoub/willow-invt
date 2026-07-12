@@ -12,19 +12,22 @@ interface LStatProps {
   valueExtra?: React.ReactNode
   unit?: string
   sub?: string
+  subExtra?: React.ReactNode // sub(오늘·7일) 아래 보조라벨 줄 — 카드 간 위치 통일용
   tone?: 'pos' | 'neg' | 'warn' | 'info' | 'default'
   sparkline?: number[] | SparkPoint[]
   sparkline2?: number[] | SparkPoint[]
   spark2Color?: string
   sparkFormat?: (v: number) => string
+  sparkFormat2?: (v: number) => string // 점선(보조 시리즈) 호버 툴팁 포맷
+  spark2Domain?: [number, number] // 점선 고정 스케일 (예: 비율 [0,100])
   dualScale?: boolean
   // 지표 정의 설명 — 카드 hover 시 즉시 뜨는 커스텀 툴팁 (네이티브 title은 ~1s 지연)
   title?: string
 }
 
 function Sparkline({
-  data, color, format, data2, color2, dualScale, fill,
-}: { data: SparkPoint[]; color: string; format?: (v: number) => string; data2?: SparkPoint[]; color2?: string; dualScale?: boolean; fill?: boolean }) {
+  data, color, format, data2, color2, format2, domain2, dualScale, fill,
+}: { data: SparkPoint[]; color: string; format?: (v: number) => string; data2?: SparkPoint[]; color2?: string; format2?: (v: number) => string; domain2?: [number, number]; dualScale?: boolean; fill?: boolean }) {
   const [hover, setHover] = useState<number | null>(null)
   const svgRef = useRef<SVGSVGElement | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
@@ -50,7 +53,10 @@ function Sparkline({
   }
   const shared = scaleOf([...data, ...(data2 ?? [])])
   const s1 = dualScale ? scaleOf(data) : shared
-  const s2 = dualScale && data2 && data2.length ? scaleOf(data2) : shared
+  // domain2: 보조(점선) 시리즈 고정 스케일 — 비율(%)은 [0,100]으로 놓아 노이즈 과장을 막는다
+  const s2 = domain2
+    ? { mn: domain2[0], range: (domain2[1] - domain2[0]) || 1 }
+    : dualScale && data2 && data2.length ? scaleOf(data2) : shared
   const project = (arr: SparkPoint[], s: { mn: number; range: number }) => {
     const step = arr.length > 1 ? w / (arr.length - 1) : 0
     return arr.map((d, i) => ({ x: i * step, y: h - ((d.value - s.mn) / s.range) * h }))
@@ -94,6 +100,9 @@ function Sparkline({
         {hover != null && (
           <>
             <line x1={xy[hover].x} y1={0} x2={xy[hover].x} y2={h} stroke={t.neutrals.line} strokeWidth={0.8} strokeDasharray="2 2" />
+            {xy2 && xy2[hover] && (
+              <circle cx={xy2[hover].x} cy={xy2[hover].y} r={2} fill={color2 ?? t.accent.warn} stroke={t.neutrals.card} strokeWidth={1} />
+            )}
             <circle cx={xy[hover].x} cy={xy[hover].y} r={2.4} fill={color} stroke={t.neutrals.card} strokeWidth={1} />
           </>
         )}
@@ -110,14 +119,24 @@ function Sparkline({
           zIndex: 10, lineHeight: 1.3,
         }}>
           <div style={{ fontFamily: t.font.mono, opacity: 0.7, fontSize: 'calc(8.5px * var(--fz, 1))' }}>{data[hover].date}</div>
-          <div style={{ fontWeight: 600 }}>{fmt(data[hover].value)}</div>
+          <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+            {data2 && data2[hover] != null && <span style={{ display: 'inline-block', width: 7, height: 2, borderRadius: 1, background: color, flexShrink: 0 }} />}
+            {fmt(data[hover].value)}
+          </div>
+          {/* 점선(보조 시리즈) 값도 함께 표시 */}
+          {data2 && data2[hover] != null && (
+            <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ display: 'inline-block', width: 7, height: 2, borderRadius: 1, background: color2 ?? t.accent.warn, flexShrink: 0, backgroundImage: 'none' }} />
+              {(format2 ?? ((v: number) => v.toLocaleString()))(data2[hover].value)}
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, dualScale, title, wrap }: LStatProps & { wrap?: boolean }) {
+export function LStat({ label, value, valueExtra, unit, sub, subExtra, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, sparkFormat2, spark2Domain, dualScale, title, wrap }: LStatProps & { wrap?: boolean }) {
   const [showTip, setShowTip] = useState(false)
   const color = tone === 'pos' ? t.accent.pos
     : tone === 'neg' ? t.accent.neg
@@ -194,6 +213,7 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
               whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{sub}</div>
           )}
+          {subExtra}
         </div>
         {hasSpark && (
           <div style={{ flex: 1, minWidth: 30, maxWidth: '50%', display: 'flex', alignItems: 'center' }}>
@@ -204,6 +224,8 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
                 data={sparkData}
                 color={sparkColor}
                 format={sparkFormat}
+                format2={sparkFormat2}
+                domain2={spark2Domain}
                 data2={sparkData2.length > 1 ? sparkData2 : undefined}
                 color2={spark2Color}
                 dualScale={dualScale}
