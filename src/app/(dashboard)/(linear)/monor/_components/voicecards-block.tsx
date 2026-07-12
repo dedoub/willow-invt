@@ -619,7 +619,7 @@ export function VoicecardsBlock({
                 <SkelStat compact={!!mobile} />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)', gap: 8, marginTop: 8 }}>
               <SkelPie />
               <SkelPie />
               <div style={{ gridColumn: mobile ? '1 / -1' : 'auto' }}>
@@ -740,6 +740,8 @@ export function VoicecardsBlock({
             }
             return { date, value: total }
           })
+          // 결제율(%) 추이 = 유료 누적 / 활성화 누적 — 매출 카드 점선 (0~100% 고정 스케일)
+          const payRateData = allDates.map((date, i) => ({ date, value: pct(paidUsersData[i]?.value ?? 0, signupData[i]?.value ?? 0) }))
 
           // 오늘 / 최근 7일 컷오프 (KST 기준)
           const revTodayKey = kstToday()
@@ -887,7 +889,7 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="누적 매출"
-                    title="판매 크레딧 누적(정가 환산 그로스 — 환불·스토어 수수료 미반영). 유료 = 결제 이력 실사용자 수, 결제율 = 유료 / 활성 사용자. 점선 = 유료 유저 수 추이."
+                    title="판매 크레딧 누적(정가 환산 그로스 — 환불·스토어 수수료 미반영). 유료 = 결제 이력 실사용자 수, 결제율 = 유료 / 활성 사용자. 점선 = 결제율(%) 추이 — 우측 축 0~100%."
                     value={fmtCr(creditsSold)}
                     subExtra={(
                       <span style={{
@@ -902,10 +904,11 @@ export function VoicecardsBlock({
                     tone={creditsSold > 0 ? 'pos' : 'default'}
                     // 모바일에선 1행 전폭이라 공간 충분 — 매출 카드만 compact에서도 스파크라인 유지
                     sparkline={creditsData}
-                    sparkline2={paidUsersData}
+                    sparkline2={payRateData}
                     spark2Color={t.brand[600]}
                     sparkFormat={fmtCr}
-                    sparkFormat2={(v) => `${v.toLocaleString()}명`}
+                    sparkFormat2={(v) => `${v}%`}
+                    spark2Domain={[0, 100]}
                     dualScale
                   />
                 )}
@@ -913,7 +916,7 @@ export function VoicecardsBlock({
               </div>
 
             {/* 플랫폼 / 언어 / 일별 활동자 */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)', gap: 8, marginTop: 8 }}>
               <DistributionPie
                 title="플랫폼"
                 tabs={[
@@ -1503,7 +1506,7 @@ export function VoicecardsBlock({
 // 회원(그 날 활동한 기존 가입자) 아래, 신규(그 날 가입) 가운데, 비로그인(익명) 위. 합 = daily.devices.
 // 서버 집계(vc_event_stats)를 그대로 재사용해 대시보드 정의와 일치. 봇/관리자 제외 뷰 기준.
 // newLoggedDevices가 없는 옛 캐시 payload는 회원=logged 전체로 강등.
-function DauTrendCard({ daily, days = 21 }: {
+function DauTrendCard({ daily, days = 42 }: {
   daily: Array<{ date: string; devices: number; loggedDevices: number; anonDevices: number; newLoggedDevices?: number; memberLoggedDevices?: number }>
   days?: number
 }) {
@@ -1649,7 +1652,7 @@ function DistributionPie({
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 4, marginBottom: 6,
+        flexWrap: 'wrap' as const, gap: 4, marginBottom: 6,
       }}>
         <div style={{
           fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
@@ -1666,7 +1669,8 @@ function DistributionPie({
                 key={tb.key}
                 onClick={() => setActiveTab(tb.key)}
                 style={{
-                  padding: '2px 7px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
+                  padding: '2px 6px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
+                  whiteSpace: 'nowrap' as const,
                   fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans,
                   background: active ? t.brand[500] : 'transparent',
                   color: active ? '#fff' : t.neutrals.muted,
@@ -1687,15 +1691,15 @@ function DistributionPie({
           데이터 없음
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
           {!mobile && (
-            <div style={{ width: 80, height: 80, flexShrink: 0 }}>
+            <div style={{ width: 72, height: 72, flexShrink: 0, alignSelf: 'center' as const }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={data}
                     cx="50%" cy="50%"
-                    innerRadius={20} outerRadius={36}
+                    innerRadius={18} outerRadius={32}
                     paddingAngle={2}
                     dataKey="value"
                     stroke="none"
@@ -1714,7 +1718,7 @@ function DistributionPie({
               </ResponsiveContainer>
             </div>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
             {data.map(d => {
               const pct = total > 0 ? Math.round((d.value / total) * 100) : 0
               return (
