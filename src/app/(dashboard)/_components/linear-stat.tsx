@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Info } from 'lucide-react'
 import { t } from './linear-tokens'
 
@@ -23,12 +23,24 @@ interface LStatProps {
 }
 
 function Sparkline({
-  data, color, format, data2, color2, dualScale,
-}: { data: SparkPoint[]; color: string; format?: (v: number) => string; data2?: SparkPoint[]; color2?: string; dualScale?: boolean }) {
+  data, color, format, data2, color2, dualScale, fill,
+}: { data: SparkPoint[]; color: string; format?: (v: number) => string; data2?: SparkPoint[]; color2?: string; dualScale?: boolean; fill?: boolean }) {
   const [hover, setHover] = useState<number | null>(null)
   const svgRef = useRef<SVGSVGElement | null>(null)
+  const wrapRef = useRef<HTMLDivElement | null>(null)
+  // fill 모드: 부모(우측 열)의 실제 픽셀 크기를 측정해 그 좌표계로 그림 — 스트레치 왜곡 없음
+  const [dim, setDim] = useState({ w: 60, h: 18 })
+  useEffect(() => {
+    if (!fill || !wrapRef.current) return
+    const el = wrapRef.current
+    const ro = new ResizeObserver(() => {
+      setDim({ w: Math.max(30, el.clientWidth), h: Math.max(16, el.clientHeight) })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [fill])
   if (!data.length) return null
-  const w = 60, h = 18
+  const w = fill ? dim.w : 60, h = fill ? dim.h : 18
   // 기본: 두 시리즈를 같은 축에 맞춤(합친 min/max). dualScale=true면 시리즈별 독립 스케일(이중 y축)
   // — 스케일이 크게 다른 두 지표(예: 크레딧 vs 유료 유저 수)를 한 스파크라인에 겹칠 때 사용.
   const scaleOf = (arr: SparkPoint[]) => {
@@ -66,7 +78,7 @@ function Sparkline({
   const fmt = format ?? ((v: number) => v.toLocaleString())
 
   return (
-    <div style={{ position: 'relative', width: w, height: h }}>
+    <div ref={wrapRef} style={fill ? { position: 'relative', width: '100%', height: '100%', minWidth: 0 } : { position: 'relative', width: w, height: h }}>
       <svg
         ref={svgRef}
         width={w} height={h}
@@ -122,10 +134,9 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
   const sparkColor = sparkData.length > 1
     ? (sparkData[sparkData.length - 1].value >= sparkData[0].value ? t.accent.pos : t.accent.neg)
     : t.neutrals.muted
+  const hasSpark = sparkData.length > 1
   return (
     <div
-      onMouseEnter={title ? () => setShowTip(true) : undefined}
-      onMouseLeave={title ? () => setShowTip(false) : undefined}
       style={{
         background: t.neutrals.inner, borderRadius: t.radius.sm,
         padding: '8px 10px', position: 'relative',
@@ -146,15 +157,21 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
           {title}
         </div>
       )}
-      {/* Row 1: label/value (왼쪽) + sparkline (오른쪽) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{
-            fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
-            textTransform: 'uppercase' as const, color: t.neutrals.subtle,
-            marginBottom: 2, display: 'flex', alignItems: 'center', gap: 3,
-            whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
+      {/* 2열 배치: 텍스트(좌, 내용 폭 유지) + sparkline(우, 남는 너비·카드 높이 100%) — akros/etc 스탯 카드 참조 */}
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}>
+        <div style={hasSpark
+          ? { minWidth: 0, flexShrink: 0, maxWidth: '72%' }
+          : { minWidth: 0, flex: 1 }}>
+          <div
+            onMouseEnter={title ? () => setShowTip(true) : undefined}
+            onMouseLeave={title ? () => setShowTip(false) : undefined}
+            style={{
+              fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+              textTransform: 'uppercase' as const, color: t.neutrals.subtle,
+              marginBottom: 2, display: 'flex', alignItems: 'center', gap: 3,
+              whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
+              cursor: title ? 'help' : undefined,
+            }}>
             {label}
             {title && <Info size={10} strokeWidth={2} style={{ flexShrink: 0, opacity: 0.75 }} aria-label="지표 설명" />}
           </div>
@@ -168,10 +185,20 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
             {unit && <span style={{ fontSize: 'calc(11px * var(--fz, 1))', marginLeft: 3, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
             {valueExtra}
           </div>
+          {sub && (
+            <div style={wrap ? {
+              fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 4,
+              wordBreak: 'break-word' as const, lineHeight: 1.4,
+            } : {
+              fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 4,
+              whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>{sub}</div>
+          )}
         </div>
-        {sparkData.length > 1 && (
-          <div style={{ flexShrink: 0 }}>
+        {hasSpark && (
+          <div style={{ flex: 1, minWidth: 30 }}>
             <Sparkline
+              fill
               data={sparkData}
               color={sparkColor}
               format={sparkFormat}
@@ -182,16 +209,6 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
           </div>
         )}
       </div>
-      {/* Row 2: sub (전체 폭) */}
-      {sub && (
-        <div style={wrap ? {
-          fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 4,
-          wordBreak: 'break-word' as const, lineHeight: 1.4,
-        } : {
-          fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 4,
-          whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{sub}</div>
-      )}
     </div>
   )
 }
