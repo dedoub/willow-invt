@@ -159,7 +159,9 @@ function MemoChip({ content, compact, onClick }: {
         display: 'flex', alignItems: 'center', gap: 3,
       }}
     >
-      <span style={{ flexShrink: 0, fontSize: `calc(${compact ? 8 : 9}px * var(--fz, 1))` }}>memo</span>
+      <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
+        <LIcon name="pencil" size={compact ? 8 : 10} stroke={2} />
+      </span>
       <span style={{
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         opacity: 0.8,
