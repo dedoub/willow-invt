@@ -129,21 +129,33 @@ async function collectAppStore(): Promise<Row[]> {
   const appId = process.env.APPSTORE_APP_ID!
   const api = 'https://api.appstoreconnect.apple.com'
 
-  const reqs = await (await fetch(`${api}/v1/apps/${appId}/analyticsReportRequests?filter[accessType]=ONGOING`, { headers: H })).json()
-  const reqId = reqs.data?.[0]?.id
-  if (!reqId) throw new Error('no ONGOING analyticsReportRequest')
+  // ONGOING(일별 증분) + ONE_TIME_SNAPSHOT(과거 백필) 모두 순회 — upsert라 겹쳐도 안전
+  const reqs = await (await fetch(`${api}/v1/apps/${appId}/analyticsReportRequests`, { headers: H })).json()
+  const reqIds: string[] = (reqs.data ?? []).map((r: { id: string }) => r.id)
+  if (reqIds.length === 0) throw new Error('no analyticsReportRequest')
 
   // 스토어 방문 = "App Store Discovery and Engagement" 리포트 (노출·제품 페이지 조회)
-  const reports = await (await fetch(`${api}/v1/analyticsReportRequests/${reqId}/reports?limit=200`, { headers: H })).json()
-  const report = (reports.data ?? []).find((r: { attributes: { name: string } }) => /discovery|engagement/i.test(r.attributes.name))
-  if (!report) {
-    const names = (reports.data ?? []).map((r: { attributes: { name: string } }) => r.attributes.name)
-    throw new Error(`discovery report not ready yet (available: ${names.slice(0, 5).join(', ') || 'none'})`)
+  const reportIds: string[] = []
+  const seenNames: string[] = []
+  for (const reqId of reqIds) {
+    const reports = await (await fetch(`${api}/v1/analyticsReportRequests/${reqId}/reports?limit=200`, { headers: H })).json()
+    for (const r of reports.data ?? []) {
+      seenNames.push(r.attributes.name)
+      if (/discovery|engagement/i.test(r.attributes.name)) reportIds.push(r.id)
+    }
+  }
+  if (reportIds.length === 0) {
+    throw new Error(`discovery report not ready yet (available: ${[...new Set(seenNames)].slice(0, 5).join(', ') || 'none'})`)
   }
 
-  const instances = await (await fetch(`${api}/v1/analyticsReports/${report.id}/instances?filter[granularity]=DAILY&limit=200`, { headers: H })).json()
+  const instanceIds: string[] = []
+  for (const reportId of reportIds) {
+    const instances = await (await fetch(`${api}/v1/analyticsReports/${reportId}/instances?filter[granularity]=DAILY&limit=200`, { headers: H })).json()
+    instanceIds.push(...(instances.data ?? []).map((i: { id: string }) => i.id))
+  }
   const byDate = new Map<string, { visitors: number; impressions: number }>()
-  for (const inst of instances.data ?? []) {
+  for (const instId of instanceIds) {
+    const inst = { id: instId }
     const segs = await (await fetch(`${api}/v1/analyticsReportInstances/${inst.id}/segments`, { headers: H })).json()
     for (const seg of segs.data ?? []) {
       const gz = await fetch(seg.attributes.url)
