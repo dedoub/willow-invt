@@ -92,17 +92,15 @@ export default function ValueChainPage() {
   }
   // 업데이트 테이블 — 위키 /roadmap 노드 현황과 동일 항목:
   // 최초 | 수정 | 노드 | 신뢰도 | 증명·파급 | 사업구조 | 매출 | 비용 | 투자 | 리서치 | 파급 | 출처 | 교차검증 | 인용퍼널 4
-  const UPDATE_COLS = '44px 44px minmax(76px,1fr) 60px 74px 40px 34px 34px 34px 40px 34px 34px 44px 40px 40px 40px 40px'
-  const UPDATE_MIN_WIDTH = 880
+  const UPDATE_COLS = '44px 44px minmax(76px,1fr) 60px 96px 52px 34px 34px 34px 40px 34px 34px 52px 40px 40px 40px 40px'
+  const UPDATE_MIN_WIDTH = 930
   const headCell: React.CSSProperties = {
     fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
     letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
   }
   // 질문 역설계 블록 공통 스타일
-  const qBox: React.CSSProperties = { padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner, minWidth: 0 }
-  const qTitle: React.CSSProperties = { fontSize: 'calc(11.5px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.text, marginBottom: 6 }
-  const qTitleSub: React.CSSProperties = { fontWeight: 400, color: t.neutrals.subtle, fontSize: 'calc(10px * var(--fz, 1))' }
-  const qEmpty: React.CSSProperties = { fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 5, lineHeight: 1.5 }
+  const qHead: React.CSSProperties = { fontSize: 'calc(11.5px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.text, marginBottom: 6, display: 'flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden' }
+  const qHeadSub: React.CSSProperties = { fontWeight: 400, color: t.neutrals.subtle, fontSize: 'calc(10px * var(--fz, 1))', overflow: 'hidden', textOverflow: 'ellipsis' }
   const ellip: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }
 
   // ── 클릭 정렬 헤더 ──
@@ -260,82 +258,55 @@ export default function ValueChainPage() {
 
         {/* 질문 역설계 — fetch 흔적을 사용자 질문으로 되짚는 관측 신호 (valuechain-wiki docs/traffic-capture.md) */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>질문 역설계</div>
-          <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, lineHeight: 1.55, marginBottom: 8 }}>
-            AI가 답변에 위키를 인용할 때 남는 fetch 흔적으로, 사용자가 기업에 대해 <b style={{ fontWeight: 600 }}>어떤 측면을</b> · <b style={{ fontWeight: 600 }}>어느 방향으로</b> · <b style={{ fontWeight: 600 }}>무엇과 엮어</b> 물었는지 되짚는다. 이 질문 수요 데이터가 위키를 관측소로 만드는 핵심 신호.
+          <div style={sectionLabel}>질문 역설계 <span style={{ color: t.neutrals.subtle, fontWeight: 400, textTransform: 'none' }}>AI 인용 fetch 흔적 → 사용자 질문 역추적</span></div>
+
+          {/* ① 측면: 질문형 패싯 fetch — 인사이트 KPI와 동일한 칩 그리드 */}
+          <div style={qHead}>① 어떤 측면을 물었나 <span style={qHeadSub}>AI가 가져간 질문형 패싯</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+            {crawl.questionTypes.map(q => (
+              <LStat
+                key={q.facet}
+                label={FACET_META[q.facet]?.q ?? q.facet}
+                value={q.total.toLocaleString()}
+                sub={q.total > 0 && q.top ? `최다 ${q.top}` : '패싯 인용 대기'}
+                tone={q.total > 0 ? 'info' : 'default'}
+                title={`AI가 /${q.facet} 패싯 페이지를 인용에 가져간 횟수. 쌓이면 이 유형의 질문 수요를 뜻한다.`}
+              />
+            ))}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-            {/* ① 측면: 질문형 패싯 fetch */}
-            <div style={qBox}>
-              <div style={qTitle}>① 어떤 측면을 물었나 <span style={qTitleSub}>— AI가 가져간 질문형 패싯 페이지 집계</span></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {crawl.questionTypes.map(q => {
-                  const on = q.total > 0
-                  return (
-                    <div key={q.facet} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 34px minmax(0,0.7fr)', gap: 8, alignItems: 'baseline' }}>
-                      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: on ? t.neutrals.text : t.neutrals.subtle, ...ellip }}>
-                        “{FACET_META[q.facet]?.q ?? q.facet}” <span style={{ fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle }}>/{q.facet}</span>
-                      </span>
-                      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', color: on ? t.brand[500] : t.neutrals.line, fontWeight: on ? t.weight.semibold : t.weight.regular }}>{on ? q.total : '·'}</span>
-                      <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, ...ellip }}>{on && q.top ? `최다 ${q.top}` : ''}</span>
-                    </div>
-                  )
-                })}
-              </div>
-              {crawl.questionTypes.every(q => q.total === 0) && (
-                <div style={qEmpty}>아직 신호 없음 — AI가 노드의 패싯 페이지(고객·공급·파급·컨센서스)를 인용에 가져가기 시작하면 질문 유형별로 쌓인다 (패싯 7/11 배포)</div>
-              )}
+          {/* ② 방향: 방문자 패널 확장 */}
+          <div style={{ ...qHead, marginTop: 12 }}>② 어느 방향을 파고드나 <span style={qHeadSub}>방문자가 펼친 거래처 패널</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+            <LStat label="매출쪽 · 수요" value={crawl.panelSignal.revenue.toLocaleString()} sub="누가 사주나" tone={crawl.panelSignal.revenue > 0 ? 'info' : 'default'} title="방문자가 노드 페이지에서 매출처 패널을 펼친 횟수. 수요(고객) 방향 관심." />
+            <LStat label="비용쪽 · 공급" value={crawl.panelSignal.cost.toLocaleString()} sub="어디에 의존하나" tone={crawl.panelSignal.cost > 0 ? 'pos' : 'default'} title="방문자가 노드 페이지에서 지급처 패널을 펼친 횟수. 공급(의존) 방향 관심." />
+          </div>
+          {crawl.panelSignal.recent.length > 0 && (
+            <div style={{ marginTop: 6, fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, ...ellip }}>
+              최근 {crawl.panelSignal.recent.slice(0, 3).map(x => `${x.from} →${x.side === 'in' ? '매출' : '비용'}→ ${x.to}`).join(' · ')}
             </div>
+          )}
 
-            {/* ② 방향: 방문자 패널 확장 */}
-            <div style={qBox}>
-              <div style={qTitle}>② 어느 방향을 파고드나 <span style={qTitleSub}>— 방문자가 노드에서 펼친 거래처 패널</span></div>
-              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)', gap: 8 }}>
-                {([
-                  ['매출쪽', '누가 사주나 · 수요 관심', crawl.panelSignal.revenue, t.brand[500]],
-                  ['비용쪽', '어디에 의존하나 · 공급 관심', crawl.panelSignal.cost, '#10b981'],
-                ] as const).map(([label, desc, v, color]) => (
-                  <div key={label} style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-                    <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap' }}>{label}</span>
-                    <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, ...ellip }}>{desc}</span>
-                    <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', color: v > 0 ? color : t.neutrals.line, fontWeight: v > 0 ? t.weight.semibold : t.weight.regular, marginLeft: 'auto' }}>{v > 0 ? v : '·'}</span>
-                  </div>
-                ))}
-              </div>
-              {crawl.panelSignal.revenue + crawl.panelSignal.cost === 0 ? (
-                <div style={qEmpty}>아직 신호 없음 — 방문자가 노드 페이지에서 매출처/지급처 패널을 펼치면 관심 방향(수요/공급)이 집계된다</div>
-              ) : (
-                <div style={{ marginTop: 5, fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, ...ellip }}>
-                  최근 {crawl.panelSignal.recent.map(x => `${x.from} →${x.side === 'in' ? '매출' : '비용'}→ ${x.to}`).join(' · ')}
+          {/* ③ 묶음: co-fetch 세션 */}
+          <div style={{ ...qHead, marginTop: 12 }}>
+            ③ 무엇과 엮어 물었나
+            <span style={qHeadSub}>
+              한 질문이 함께 가져간 기업 묶음{crawl.cofetch.multi > 0 && ` · ${crawl.cofetch.multi}묶음 / ${crawl.cofetch.total}세션 · 관계형 ${crawl.cofetch.relation} · 테마형 ${crawl.cofetch.multi - crawl.cofetch.relation}`}
+            </span>
+          </div>
+          {crawl.cofetch.multi === 0 ? (
+            <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, lineHeight: 1.5 }}>아직 없음 — 한 질문이 여러 기업을 비교·연결하면 그 묶음이 여기에 보인다</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {crawl.cofetch.recent.map((x, i) => (
+                <div key={i} title={`${x.bot} 세션 — 관계형은 밸류체인으로 연결된 기업끼리, 테마형은 연결 없는 비교`} style={{ display: 'grid', gridTemplateColumns: '80px 34px minmax(0,1fr)', gap: 8, alignItems: 'baseline', padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono }}>
+                  <span style={{ color: t.neutrals.subtle, whiteSpace: 'nowrap', ...ellip }}>{x.start.slice(5, 16).replace('T', ' ')}</span>
+                  <span style={{ color: x.cls === 'relation' ? t.brand[500] : t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.cls === 'relation' ? '관계' : '테마'}</span>
+                  <span style={{ color: t.neutrals.text, ...ellip }}>{x.seq.join(' + ')}</span>
                 </div>
-              )}
+              ))}
             </div>
-
-            {/* ③ 묶음: co-fetch 세션 */}
-            <div style={qBox}>
-              <div style={qTitle}>③ 무엇과 엮어 물었나 <span style={qTitleSub}>— 한 질문(세션)이 함께 가져간 기업 묶음</span></div>
-              {crawl.cofetch.multi === 0 ? (
-                <div style={{ ...qEmpty, marginTop: 0 }}>최근 로그 창에는 여러 기업을 함께 가져간 세션 없음 — 한 질문이 여러 기업을 비교·연결하면 그 묶음이 여기에 보인다</div>
-              ) : (
-                <>
-                  <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, marginBottom: 5 }}>
-                    {crawl.cofetch.multi}묶음 / {crawl.cofetch.total}세션 · 관계형(밸류체인으로 연결된 기업끼리) {crawl.cofetch.relation} · 테마형 {crawl.cofetch.multi - crawl.cofetch.relation}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {crawl.cofetch.recent.map((x, i) => (
-                      <div key={i} title={x.bot} style={{ display: 'grid', gridTemplateColumns: '80px 34px minmax(0,1fr)', gap: 8, alignItems: 'baseline', fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono }}>
-                        <span style={{ color: t.neutrals.subtle, whiteSpace: 'nowrap', ...ellip }}>{x.start.slice(5, 16).replace('T', ' ')}</span>
-                        <span style={{ color: x.cls === 'relation' ? t.brand[500] : t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.cls === 'relation' ? '관계' : '테마'}</span>
-                        <span style={{ color: t.neutrals.text, ...ellip }}>{x.seq.join(' + ')}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-          </div>
+          )}
         </div>
 
         {/* 기업 노드 업데이트 */}
