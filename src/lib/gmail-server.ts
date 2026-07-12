@@ -40,10 +40,15 @@ async function getCurrentUserId(): Promise<string | null> {
 export function getOAuth2Client(context: GmailContext = 'default') {
   const creds =
     context === 'tensoftworks'
-      ? { id: process.env.GOOGLE_CLIENT_ID_TENSW, secret: process.env.GOOGLE_CLIENT_SECRET_TENSW }
+      ? { id: process.env.GOOGLE_CLIENT_ID_TENSW, secret: process.env.GOOGLE_CLIENT_SECRET_TENSW, label: 'TENSW' }
       : context === 'personal'
-        ? { id: process.env.GOOGLE_CLIENT_ID_PERSONAL, secret: process.env.GOOGLE_CLIENT_SECRET_PERSONAL }
-        : { id: process.env.GOOGLE_CLIENT_ID, secret: process.env.GOOGLE_CLIENT_SECRET }
+        ? { id: process.env.GOOGLE_CLIENT_ID_PERSONAL, secret: process.env.GOOGLE_CLIENT_SECRET_PERSONAL, label: 'PERSONAL' }
+        : { id: process.env.GOOGLE_CLIENT_ID, secret: process.env.GOOGLE_CLIENT_SECRET, label: 'DEFAULT' }
+
+  if (!creds.id || !creds.secret) {
+    throw new Error(`Missing Google OAuth credentials for Gmail context=${context} (${creds.label})`)
+  }
+
   return new google.auth.OAuth2(creds.id, creds.secret, process.env.GOOGLE_REDIRECT_URI)
 }
 

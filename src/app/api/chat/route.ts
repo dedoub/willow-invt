@@ -193,6 +193,7 @@ async function buildSystemPrompt(): Promise<string> {
 - **gmail_search_emails**: Gmail 검색 (키워드, 발신자, 기간 등 Gmail 쿼리 문법)
 - **gmail_analyze_emails**: AI 이메일 분석 (Gemini — 카테고리별 요약, 이슈, TODO 추출)
 - **gmail_send_email**: 이메일 발송
+컨텍스트: willow=윌로우 업무메일, tensoftworks=텐소프트웍스, default=ETC/Akros, personal=대표 개인 Gmail. 류하 학교/입학/가족 관련 메일은 personal + INBOX를 우선 사용.
 
 ### 류하 학습관리 전용 도구 (ryuha_*)
 - **ryuha_get_dashboard**: 학습 대시보드 (이번주 일정, 미완료 숙제, 신체기록)

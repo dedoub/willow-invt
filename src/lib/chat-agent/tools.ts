@@ -759,10 +759,10 @@ export const agentTools = [
   { name: 'etc_create_invoice', description: '[ETC] 인보이스 생성', parameters: { type: 'object' as const, properties: { invoice_date: { type: 'string', description: '발행일 (필수)' }, bill_to_company: { type: 'string', description: '수신 회사 (기본: Exchange Traded Concepts, LLC)' }, attention: { type: 'string', description: '담당자 (기본: Garrett Stevens)' }, line_items: { type: 'string', description: 'JSON 배열 [{description, qty?, unitPrice?, amount}] (필수)' }, notes: { type: 'string', description: '비고' } }, required: ['invoice_date', 'line_items'] } },
   { name: 'etc_get_invoice', description: '[ETC] 인보이스 상세 조회', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: '인보이스 ID (필수)' } }, required: ['id'] } },
   // ---- Gmail 이메일 전용 도구 ----
-  { name: 'gmail_list_emails', description: '[Gmail] 이메일 목록 조회 — 라벨별, 최근 N일, 카테고리/방향(수신/발신) 정보 포함. "이메일 보여줘", "최근 메일" 등에 사용', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default (기본: willow)' }, label: { type: 'string', description: '라벨명 (기본: WILLOW). INBOX, WILLOW, ETC 등' }, days_back: { type: 'string', description: '조회 기간 일수 (기본: 30)' }, max_results: { type: 'string', description: '최대 건수 (기본: 20)' } } } },
-  { name: 'gmail_search_emails', description: '[Gmail] 이메일 검색 — 키워드, 발신자, 기간 등으로 검색. "아크로스에서 온 메일", "계약서 관련 메일" 등에 사용', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default (기본: willow)' }, query: { type: 'string', description: 'Gmail 검색 쿼리 (필수). 예: "from:akros", "subject:계약서", "newer_than:7d 아크로스"' }, max_results: { type: 'string', description: '최대 건수 (기본: 10)' } }, required: ['query'] } },
-  { name: 'gmail_analyze_emails', description: '[Gmail] 이메일 AI 분석 — 최근 이메일을 Gemini로 분석하여 카테고리별 요약, 이슈, TODO 추출. "이메일 분석해줘", "이메일 요약" 등에 사용. 시간이 걸릴 수 있음', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default (기본: willow)' }, label: { type: 'string', description: '분석할 라벨 (기본: WILLOW)' }, days_back: { type: 'string', description: '분석 기간 일수 (기본: 30)' } } } },
-  { name: 'gmail_send_email', description: '[Gmail] 이메일 발송 — 새 이메일 또는 답장 발송. "이메일 보내줘", "답장 해줘" 등에 사용', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default (기본: willow)' }, to: { type: 'string', description: '수신자 이메일 (필수)' }, subject: { type: 'string', description: '제목 (필수)' }, body: { type: 'string', description: '본문 (필수)' }, cc: { type: 'string', description: '참조' } }, required: ['to', 'subject', 'body'] } },
+  { name: 'gmail_list_emails', description: '[Gmail] 이메일 목록 조회 — 라벨별, 최근 N일, 카테고리/방향(수신/발신) 정보 포함. 개인메일/류하 학교 메일은 context=personal, label=INBOX 사용.', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default|personal (기본: willow, 개인메일은 personal)' }, label: { type: 'string', description: '라벨명. 개인메일 기본 INBOX, 그 외 기본 WILLOW. 예: INBOX, WILLOW, ETC' }, days_back: { type: 'string', description: '조회 기간 일수 (기본: 30)' }, max_results: { type: 'string', description: '최대 건수 (기본: 20)' } } } },
+  { name: 'gmail_search_emails', description: '[Gmail] 이메일 검색 — 키워드, 발신자, 기간 등으로 검색. 개인메일/류하 학교 메일은 context=personal 사용.', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default|personal (기본: willow, 개인메일은 personal)' }, query: { type: 'string', description: 'Gmail 검색 쿼리 (필수). 예: "from:akros", "subject:계약서", "newer_than:7d 아크로스"' }, max_results: { type: 'string', description: '최대 건수 (기본: 10)' } }, required: ['query'] } },
+  { name: 'gmail_analyze_emails', description: '[Gmail] 이메일 AI 분석 — 최근 이메일을 Gemini로 분석하여 카테고리별 요약, 이슈, TODO 추출. 개인메일은 context=personal, label=INBOX 사용.', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default|personal (기본: willow, 개인메일은 personal)' }, label: { type: 'string', description: '분석할 라벨. 개인메일 기본 INBOX, 그 외 기본 WILLOW' }, days_back: { type: 'string', description: '분석 기간 일수 (기본: 30)' } } } },
+  { name: 'gmail_send_email', description: '[Gmail] 이메일 발송 — 새 이메일 또는 답장 발송. 개인 Gmail에서 보내려면 context=personal 사용.', parameters: { type: 'object' as const, properties: { context: { type: 'string', description: 'willow|tensoftworks|default|personal (기본: willow, 개인 발송은 personal)' }, to: { type: 'string', description: '수신자 이메일 (필수)' }, subject: { type: 'string', description: '제목 (필수)' }, body: { type: 'string', description: '본문 (필수)' }, cc: { type: 'string', description: '참조' } }, required: ['to', 'subject', 'body'] } },
   // ---- 류하 학습관리 전용 도구 ----
   { name: 'ryuha_get_dashboard', description: '[류하] 학습 대시보드 — 이번주 일정, 미완료 숙제, 최근 신체기록', parameters: { type: 'object' as const, properties: {} } },
   // -- Subjects --
@@ -1513,7 +1513,7 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
     // ---- Gmail 이메일 도구 ----
     case 'gmail_list_emails': {
       const ctx = (args.context as GmailContext) || 'willow'
-      const label = (args.label as string) || 'WILLOW'
+      const label = (args.label as string) || (ctx === 'personal' ? 'INBOX' : 'WILLOW')
       const daysBack = args.days_back ? Number(args.days_back) : 30
       const maxResults = args.max_results ? Number(args.max_results) : 20
       const gmail = await getGmailClient(ctx)
@@ -1580,7 +1580,7 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
 
     case 'gmail_analyze_emails': {
       const ctx = (args.context as GmailContext) || 'willow'
-      const label = (args.label as string) || 'WILLOW'
+      const label = (args.label as string) || (ctx === 'personal' ? 'INBOX' : 'WILLOW')
       const daysBack = args.days_back ? Number(args.days_back) : 30
       const gmail = await getGmailClient(ctx)
       if (!gmail) return { error: 'Gmail 미연결' }

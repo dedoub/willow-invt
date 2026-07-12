@@ -37,10 +37,19 @@ interface TokenData {
 }
 
 function getOAuth2Client(context: string = 'default') {
-  const isTensw = context === 'tensoftworks'
+  const creds = context === 'tensoftworks'
+    ? { id: process.env.GOOGLE_CLIENT_ID_TENSW, secret: process.env.GOOGLE_CLIENT_SECRET_TENSW, label: 'TENSW' }
+    : context === 'personal'
+      ? { id: process.env.GOOGLE_CLIENT_ID_PERSONAL, secret: process.env.GOOGLE_CLIENT_SECRET_PERSONAL, label: 'PERSONAL' }
+      : { id: process.env.GOOGLE_CLIENT_ID, secret: process.env.GOOGLE_CLIENT_SECRET, label: 'DEFAULT' }
+
+  if (!creds.id || !creds.secret) {
+    throw new Error(`Missing Google OAuth credentials for Gmail context=${context} (${creds.label})`)
+  }
+
   return new google.auth.OAuth2(
-    isTensw ? process.env.GOOGLE_CLIENT_ID_TENSW : process.env.GOOGLE_CLIENT_ID,
-    isTensw ? process.env.GOOGLE_CLIENT_SECRET_TENSW : process.env.GOOGLE_CLIENT_SECRET,
+    creds.id,
+    creds.secret,
     process.env.GOOGLE_REDIRECT_URI
   )
 }
