@@ -170,7 +170,7 @@ export function InvoiceBlock({
                 justifyContent: 'space-between',
                 gap: 6,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
                   <span style={{
                     fontSize: 'calc(9px * var(--fz, 1))',
                     fontFamily: t.font.mono,
@@ -195,11 +195,16 @@ export function InvoiceBlock({
                   }}>
                     {inv.invoice_no}
                   </span>
+                  {/* 좁은 화면에선 날짜가 먼저 줄어들어 액션 버튼과 겹치지 않게 */}
                   <span style={{
                     fontSize: 'calc(10px * var(--fz, 1))',
                     fontFamily: t.font.mono,
                     color: t.neutrals.subtle,
-                    flexShrink: 0,
+                    flexShrink: 1,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}>
                     {inv.invoice_date}
                   </span>
