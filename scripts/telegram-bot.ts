@@ -2601,24 +2601,31 @@ async function monitorVoicecardsUserEvents() {
     }
   }
 
-  const promptShown = recentCounts.get('prompt_shown') || 0
+  // 프롬프트 노출 대비 signin 0은 저의도 dismiss가 대부분이라 오탐 (2026-07-13 확인).
+  // "시도했는데 실패"만 진짜 막힘 신호: 로그인 버튼 탭 또는 파이프라인 오류 이벤트 기준.
+  const signinClicked = (recentCounts.get('prompt_signin_clicked') || 0)
+    + (recentCounts.get('add_sheet_signin_and_create_clicked') || 0)
   const signinCompleted = recentCounts.get('signin_completed') || 0
+  const signinErrors = (recentCounts.get('signup_folder_failed') || 0)
+    + (recentCounts.get('user_row_create_failed') || 0)
   const signinFrictionState = getVoicecardsAlertState('signin_friction')
-  if (promptShown >= 3 && signinCompleted === 0) {
-    const priorPromptShown = previousCounts.get('prompt_shown') || 0
+  if ((signinClicked >= 1 && signinCompleted === 0) || signinErrors >= 1) {
+    const priorSigninClicked = (previousCounts.get('prompt_signin_clicked') || 0)
+      + (previousCounts.get('add_sheet_signin_and_create_clicked') || 0)
     const priorSigninCompleted = previousCounts.get('signin_completed') || 0
-    const alertHash = simpleHash(`signin-friction|${promptShown}|${signinCompleted}|${priorPromptShown}|${priorSigninCompleted}`)
+    const alertHash = simpleHash(`signin-friction|${signinClicked}|${signinCompleted}|${signinErrors}|${priorSigninClicked}|${priorSigninCompleted}`)
     if (signinFrictionState.lastHash !== alertHash || !isCooldownActive(signinFrictionState.lastAlertAt, 6 * 60 * 60 * 1000)) {
       await sendVoicecardsEventAlert([
         '⚠️ [VoiceCards 사용자 로그 알림]',
-        `- 감지: 최근 12시간 prompt_shown ${promptShown}건인데 signin_completed는 0건이에요.`,
-        `- 비교: 이전 60시간 prompt_shown ${priorPromptShown} · signin_completed ${priorSigninCompleted}`,
-        '- 추정: 로그인 퍼널 또는 Add Sheet 진입 동선에서 막힘이 있을 수 있어요.',
+        `- 감지: 최근 12시간 로그인 시도(버튼 탭) ${signinClicked}건 · signin_completed ${signinCompleted}건 · 파이프라인 오류 ${signinErrors}건`,
+        `- 비교: 이전 60시간 시도 ${priorSigninClicked} · 완료 ${priorSigninCompleted}`,
+        '- 추정: 로그인을 시도했는데 완료되지 않았거나(OAuth/폴더 생성 실패), 가입 파이프라인 오류가 발생했어요.',
       ].join('\n'), {
         issue: 'signin_friction',
-        promptShown,
+        signinClicked,
         signinCompleted,
-        priorPromptShown,
+        signinErrors,
+        priorSigninClicked,
         priorSigninCompleted,
       })
 
