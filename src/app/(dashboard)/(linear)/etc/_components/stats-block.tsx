@@ -1,8 +1,9 @@
 'use client'
 
-import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import type { ETFDisplayData, HistoricalDataPoint } from '@/lib/etf-types'
 
 interface StatsBlockProps {
@@ -10,67 +11,11 @@ interface StatsBlockProps {
   historicalData: HistoricalDataPoint[]
 }
 
-function Sparkline({ data }: { data: number[] }) {
-  if (data.length < 2) return null
-  const min = Math.min(...data)
-  const max = Math.max(...data)
-  const range = max - min || 1
-  const h = 28
-  const points = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * 100
-    const y = h - ((v - min) / range) * h
-    return `${x},${y}`
-  }).join(' ')
-  return (
-    <svg viewBox={`0 0 100 ${h}`} preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: h }}>
-      <polyline points={points} fill="none" stroke={t.brand[500]} strokeWidth={1} vectorEffect="non-scaling-stroke" />
-    </svg>
-  )
-}
-
 function fmtUsd(v: number | null): string {
   if (v == null) return '-'
   if (v >= 1000000) return `$${(v / 1000000).toFixed(2)}M`
   if (v >= 1000) return `$${(v / 1000).toFixed(1)}K`
   return `$${v.toFixed(0)}`
-}
-
-interface StatCardProps {
-  label: string
-  value: string
-  sub: string
-  sparkData: number[]
-}
-
-function StatCard({ label, value, sub, sparkData }: StatCardProps) {
-  return (
-    <div style={{
-      background: t.neutrals.inner, borderRadius: t.radius.sm,
-      padding: '8px 10px', minWidth: 0, flex: 1,
-    }}>
-      <div style={{
-        fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
-        textTransform: 'uppercase' as const, color: t.neutrals.subtle,
-        marginBottom: 6,
-      }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{
-            fontSize: 'calc(15px * var(--fz, 1))', fontWeight: 600, letterSpacing: -0.3,
-            fontVariantNumeric: 'tabular-nums', color: t.neutrals.text,
-            whiteSpace: 'nowrap',
-          }}>{value}</div>
-          <div style={{
-            fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 1,
-            whiteSpace: 'nowrap',
-          }}>{sub}</div>
-        </div>
-        <div style={{ width: 80, flexShrink: 0 }}>
-          <Sparkline data={sparkData} />
-        </div>
-      </div>
-    </div>
-  )
 }
 
 const FIXED_OVERHEAD = 2083.33
@@ -85,23 +30,23 @@ export function StatsBlock({ etfs, historicalData }: StatsBlockProps) {
     <LCard>
       <LSectionHead eyebrow="DASHBOARD" title="운용 현황" />
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 10 }}>
-        <StatCard
+        <LStat
           label="총 AUM"
           value={fmtUsd(totalAum)}
           sub={`${etfs.length}개 상품`}
-          sparkData={historicalData.map(d => d.totalAum)}
+          sparkline={historicalData.map(d => ({ date: d.date, value: d.totalAum }))}
         />
-        <StatCard
+        <LStat
           label="월 수수료"
           value={fmtUsd(totalMonthlyFee)}
           sub="Platform + PM Fee"
-          sparkData={historicalData.map(d => d.totalMonthlyFee)}
+          sparkline={historicalData.map(d => ({ date: d.date, value: d.totalMonthlyFee }))}
         />
-        <StatCard
+        <LStat
           label="잔여 수수료"
           value={fmtUsd(totalRemainingFee)}
           sub="36개월 프로라타"
-          sparkData={historicalData.map(d => d.totalRemainingFee)}
+          sparkline={historicalData.map(d => ({ date: d.date, value: d.totalRemainingFee }))}
         />
       </div>
     </LCard>
