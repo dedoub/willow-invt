@@ -732,14 +732,15 @@ export function VoicecardsBlock({
             value: allUserDates.filter(d => d <= date).length,
           }))
           // 비율 추이(%) — 각 카드의 점선 보조선(dualScale 우측 축).
-          // 항등식 위계와 같은 기준: 로그인%=기기 대비, 연동%·활성%=로그인 대비 (보조 짝과 합이 100%).
+          // 모든 비율은 직전 퍼널 단계 대비: 설치%=방문, 로그인%=설치기기, 연동%=로그인, 활성%=연동, 결제%=활성.
           const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : 0)
           const loginRateData = allDates.map((date, i) => ({ date, value: pct(allUsersData[i]?.value ?? 0, devicesData[i]?.value ?? 0) }))
           const linkedRateData = allDates.map((date, i) => ({ date, value: pct(linkedData[i]?.value ?? 0, allUsersData[i]?.value ?? 0) }))
-          const activeRateData = allDates.map((date, i) => ({ date, value: pct(signupData[i]?.value ?? 0, allUsersData[i]?.value ?? 0) }))
+          // 활성화율은 직전 단계(구글 연동) 대비 — 단계별 전환 효율 측정 (2026-07-12 CEO)
+          const activeRateData = allDates.map((date, i) => ({ date, value: pct(signupData[i]?.value ?? 0, linkedData[i]?.value ?? 0) }))
           const loginRate = Math.round(pct(userStats.totalUsers, devices))
           const linkedRate = Math.round(pct(linkedUsers, userStats.totalUsers))
-          const activeRate = Math.round(pct(signedUp, userStats.totalUsers))
+          const activeRate = Math.round(pct(signedUp, linkedUsers))
 
           // 스토어 방문(퍼널 최상단) — store_visits 일별 합산. 누적 시리즈는 allDates 축으로 재샘플.
           const storeVisits = anonymousStats.storeVisits ?? []
@@ -839,7 +840,7 @@ export function VoicecardsBlock({
               <div style={{ display: 'grid', gridTemplateColumns: insightGridCols, gap: 8 }}>
                 <LStat
                   label="스토어 방문"
-                  title="플레이스토어·앱스토어 등록정보 방문자 누적 — 퍼널 최상단(방문 → 설치). 일 1회 수집, 스토어 리포트 특성상 1~2일 지연."
+                  title="플레이·앱스토어 등록정보 방문자 누적. 일 1회 수집(1~2일 지연). 퍼널: 방문→설치→로그인→연동→활성화→결제."
                   value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
                   sub={svTotal > 0 ? `최근 ${(svLast?.date ?? '').slice(5)} ${(svLast?.visitors ?? 0).toLocaleString()}명 · 7일 ${sv7.toLocaleString()}명` : '수집 대기'}
                   tone="info"
@@ -847,7 +848,7 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="설치 기기"
-                  title="앱을 설치해 한 번 이상 실행한 고유 기기 수(이벤트 기준). 스토어 다운로드보다 작게 잡히고, 재설치는 새 기기로 집계됨. 점선 = 설치율(%, 스토어 방문 대비) 추이 — 우측 축 0~100%."
+                  title="앱을 설치해 실행까지 온 고유 기기 누적. 점선 = 설치율(스토어 방문 대비)."
                   value={devices.toLocaleString()}
                   subExtra={svTotal > 0 ? (
                     <span style={{
@@ -868,7 +869,7 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="신규 로그인"
-                  title="구글 계정으로 처음 가입(신규 로그인)한 사용자 누적 수. 비로그인 = 설치 후 가입까지 오지 않은 기기(설치 기기 − 로그인, 기기·계정 단위 차이는 근사). 점선 = 로그인 전환율(%, 기기 대비) 추이 — 우측 축."
+                  title="구글 계정으로 가입한 사용자 누적. 점선 = 로그인율(설치 기기 대비)."
                   value={userStats.totalUsers.toLocaleString()}
                   valueExtra={(
                     <span style={{
@@ -888,7 +889,7 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="구글 연동"
-                  title="Drive 폴더 생성까지 마친 사용자(folder_id 보유). 미연동 = 로그인했지만 아직 Drive 연동(첫 저장/AI생성 시도) 전. 로그인 = 구글 연동 + 미연동. 점선 = 연동률(%, 로그인 대비) 추이 — 우측 축."
+                  title="Drive 폴더 연동까지 마친 사용자 누적. 점선 = 연동률(로그인 대비)."
                   value={linkedUsers.toLocaleString()}
                   valueExtra={(
                     <span style={{
@@ -908,7 +909,7 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="활성화"
-                  title="첫 시트를 저장한 사용자(시트 1개 이상 또는 데모 제외 카드 기록 보유). 대기 = 연동 완료 후 저장 전(draft 이탈 포함), 미활성 = 대기 + 미연동 = 전체 − 활성화. 점선 = 활성화율(%, 로그인 대비) 추이 — 우측 축."
+                  title="첫 시트를 저장한 사용자(데모 체험 제외). 점선 = 활성화율(구글 연동 대비)."
                   value={signedUp.toLocaleString()}
                   valueExtra={(
                     <span style={{
@@ -932,7 +933,7 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="누적 매출"
-                    title="판매 크레딧 누적(정가 환산 그로스 — 환불·스토어 수수료 미반영). 유료 = 결제 이력 실사용자 수, 결제율 = 유료 / 활성 사용자. 점선 = 결제율(%) 추이 — 우측 축 0~100%."
+                    title="판매 크레딧 누적(정가 그로스, 환불·수수료 미반영). 점선 = 결제율(활성 대비)."
                     value={fmtCr(creditsSold)}
                     valueExtra={(
                       <span style={{
