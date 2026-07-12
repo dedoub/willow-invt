@@ -695,11 +695,6 @@ export function VoicecardsBlock({
             date,
             value: signupDates.filter(d => d <= date).length,
           }))
-          // 미활성(시트 0 & 자기 카드 0) 누적 추이 — 활성화 스파크라인의 보조선
-          const incompleteDates = (userStats?.users ?? [])
-            .filter(isIdleUser)
-            .map(u => kstDateKey(u.createdAt))
-            .sort()
           // 구글연동(Drive 폴더 보유) 누적 추이 — 폴더 생성 시각은 따로 없어 가입일로
           // 근사(대부분 가입 직후 or 첫 저장 시 승인). 추세선 용도로 충분.
           const linkedDates = (userStats?.users ?? [])
@@ -719,13 +714,15 @@ export function VoicecardsBlock({
           }))
           const notLinked = userStats.totalUsers - linkedUsers
           const notSignedIn = Math.max(0, devices - userStats.totalUsers)
-          const incompleteData = allDates.map(date => ({
-            date,
-            value: incompleteDates.filter(d => d <= date).length,
-          }))
-          // 비로그인(설치 기기 − 로그인) / 미연동(로그인 − 연동) 누적 추이 — 각 카드의 점선 보조선
-          const notSignedInData = allDates.map((date, i) => ({ date, value: Math.max(0, (devicesData[i]?.value ?? 0) - (allUsersData[i]?.value ?? 0)) }))
-          const notLinkedData = allDates.map((date, i) => ({ date, value: Math.max(0, (allUsersData[i]?.value ?? 0) - (linkedData[i]?.value ?? 0)) }))
+          // 비율 추이(%) — 각 카드의 점선 보조선(dualScale 우측 축).
+          // 항등식 위계와 같은 기준: 로그인%=기기 대비, 연동%·활성%=로그인 대비 (보조 짝과 합이 100%).
+          const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : 0)
+          const loginRateData = allDates.map((date, i) => ({ date, value: pct(allUsersData[i]?.value ?? 0, devicesData[i]?.value ?? 0) }))
+          const linkedRateData = allDates.map((date, i) => ({ date, value: pct(linkedData[i]?.value ?? 0, allUsersData[i]?.value ?? 0) }))
+          const activeRateData = allDates.map((date, i) => ({ date, value: pct(signupData[i]?.value ?? 0, allUsersData[i]?.value ?? 0) }))
+          const loginRate = Math.round(pct(userStats.totalUsers, devices))
+          const linkedRate = Math.round(pct(linkedUsers, userStats.totalUsers))
+          const activeRate = Math.round(pct(signedUp, userStats.totalUsers))
 
           // 크레딧 판매/유료전환 누적 (매출은 크레딧 볼륨으로 표시)
           const creditsByDate = new Map<string, number>()
@@ -817,54 +814,63 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="신규 로그인"
-                  title="구글 계정으로 처음 가입(신규 로그인)한 사용자 누적 수. 비로그인 = 설치 후 가입까지 오지 않은 기기(설치 기기 − 로그인, 기기·계정 단위 차이는 근사)."
+                  title="구글 계정으로 처음 가입(신규 로그인)한 사용자 누적 수. 비로그인 = 설치 후 가입까지 오지 않은 기기(설치 기기 − 로그인, 기기·계정 단위 차이는 근사). 점선 = 로그인 전환율(%, 기기 대비) 추이 — 우측 축."
                   value={userStats.totalUsers.toLocaleString()}
-                  valueExtra={notSignedIn > 0 ? (
+                  valueExtra={(
                     <span style={{
-                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
-                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+                      display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
+                      fontVariantNumeric: 'tabular-nums' as const,
+                      whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
-                      비로그인 {notSignedIn.toLocaleString()}
+                      <span style={{ color: t.brand[600] }}>로그인 {loginRate}%</span>
+                      {notSignedIn > 0 && <span style={{ color: t.accent.warn }}> · 비로그인 {notSignedIn.toLocaleString()}</span>}
                     </span>
-                  ) : undefined}
+                  )}
                   sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명`}
                   tone={devices > 0 && userStats.totalUsers / devices >= 0.2 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : allUsersData}
-                  sparkline2={compact ? undefined : notSignedInData}
+                  sparkline2={compact ? undefined : loginRateData}
+                  dualScale
                 />
                 <LStat
                   label="구글 연동"
-                  title="Drive 폴더 생성까지 마친 사용자(folder_id 보유). 미연동 = 로그인했지만 아직 Drive 연동(첫 저장/AI생성 시도) 전. 로그인 = 구글 연동 + 미연동."
+                  title="Drive 폴더 생성까지 마친 사용자(folder_id 보유). 미연동 = 로그인했지만 아직 Drive 연동(첫 저장/AI생성 시도) 전. 로그인 = 구글 연동 + 미연동. 점선 = 연동률(%, 로그인 대비) 추이 — 우측 축."
                   value={linkedUsers.toLocaleString()}
-                  valueExtra={notLinked > 0 ? (
+                  valueExtra={(
                     <span style={{
-                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
-                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+                      display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
+                      fontVariantNumeric: 'tabular-nums' as const,
+                      whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
-                      미연동 {notLinked.toLocaleString()}
+                      <span style={{ color: t.brand[600] }}>연동 {linkedRate}%</span>
+                      {notLinked > 0 && <span style={{ color: t.accent.warn }}> · 미연동 {notLinked.toLocaleString()}</span>}
                     </span>
-                  ) : undefined}
+                  )}
                   sub={`오늘 ${linkedToday.toLocaleString()}명 · 7일 ${linked7.toLocaleString()}명`}
                   tone={userStats.totalUsers > 0 && linkedUsers / userStats.totalUsers >= 0.5 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : linkedData}
-                  sparkline2={compact ? undefined : notLinkedData}
+                  sparkline2={compact ? undefined : linkedRateData}
+                  dualScale
                 />
                 <LStat
                   label="활성화"
-                  title="첫 시트를 저장한 사용자(시트 1개 이상 또는 데모 제외 카드 기록 보유). 대기 = 연동 완료 후 저장 전(draft 이탈 포함), 미활성 = 대기 + 미연동 = 전체 − 활성화."
+                  title="첫 시트를 저장한 사용자(시트 1개 이상 또는 데모 제외 카드 기록 보유). 대기 = 연동 완료 후 저장 전(draft 이탈 포함), 미활성 = 대기 + 미연동 = 전체 − 활성화. 점선 = 활성화율(%, 로그인 대비) 추이 — 우측 축."
                   value={signedUp.toLocaleString()}
-                  valueExtra={incompleteSignups > 0 ? (
+                  valueExtra={(
                     <span style={{
-                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
-                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+                      display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
+                      fontVariantNumeric: 'tabular-nums' as const,
+                      whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
-                      미활성 {incompleteSignups.toLocaleString()} (대기 {linkedButIdle.toLocaleString()})
+                      <span style={{ color: t.brand[600] }}>활성 {activeRate}%</span>
+                      {incompleteSignups > 0 && <span style={{ color: t.accent.warn }}> · 미활성 {incompleteSignups.toLocaleString()} (대기 {linkedButIdle.toLocaleString()})</span>}
                     </span>
-                  ) : undefined}
+                  )}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
                   tone={linkedUsers > 0 && signupConv >= 50 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}
-                  sparkline2={compact ? undefined : incompleteData}
+                  sparkline2={compact ? undefined : activeRateData}
+                  dualScale
                 />
                 {/* 모바일(2열 그리드)에선 매출 카드가 홀수 번째 낙오로 반쪽이 되지 않게 1행 전폭 사용 */}
                 <div style={{ gridColumn: mobile ? '1 / -1' : 'auto', display: 'grid' }}>

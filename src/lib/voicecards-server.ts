@@ -1307,6 +1307,10 @@ export interface AnonymousEventStats {
   payingCountries: Array<{ country: string; devices: number }>
 }
 
+// 마지막 정상 집계 (프로세스 메모리) — RPC가 일시적으로 느려지거나(mv_real_users 리프레시 창)
+// 실패할 때 인사이트 블록이 통째로 빠지는 대신 직전 값을 서빙한다.
+let lastGoodAnonStats: AnonymousEventStats | null = null
+
 export async function getAnonymousEventStats(): Promise<AnonymousEventStats | null> {
   if (!voicecardsSupabase) return null
   // 집계는 DB 함수 vc_event_stats()에서 1회 수행 — anonymous_events_real_users(중첩 뷰:
@@ -1318,10 +1322,14 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
     await new Promise(r => setTimeout(r, 700))
     ;({ data, error } = await voicecardsSupabase.rpc('vc_event_stats'))
     if (error || !data) {
-      console.error('[VoiceCards] vc_event_stats RPC failed after retry:', error)
-      return null
+      console.error('[VoiceCards] vc_event_stats RPC failed after retry:', error, lastGoodAnonStats ? '— serving last good snapshot' : '')
+      return lastGoodAnonStats
     }
   }
   const stats = data as AnonymousEventStats
-  return stats.summary.totalEvents > 0 ? stats : null
+  if (stats.summary.totalEvents > 0) {
+    lastGoodAnonStats = stats
+    return stats
+  }
+  return lastGoodAnonStats
 }
