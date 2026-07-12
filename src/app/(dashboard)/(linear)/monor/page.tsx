@@ -220,6 +220,22 @@ export default function MonorPage() {
   }, [loadVoicecards, loadReviewnotes])
   useAgentRefresh(['voicecards_', 'reviewnotes_'], refreshAll)
 
+  // 페이지를 보고 있는 동안 5분마다 자동 새로고침 — 탭이 숨겨져 있으면 쉬고,
+  // 다시 보이는 순간 경과했으면 즉시 갱신. 30초 틱으로 경과만 체크(요청은 5분당 1회).
+  useEffect(() => {
+    const REFRESH_MS = 5 * 60 * 1000
+    let last = Date.now()
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() - last < REFRESH_MS) return
+      last = Date.now()
+      refreshAll()
+    }
+    const id = setInterval(tick, 30_000)
+    document.addEventListener('visibilitychange', tick)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick) }
+  }, [refreshAll])
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
