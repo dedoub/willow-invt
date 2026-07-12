@@ -1305,6 +1305,8 @@ export interface AnonymousEventStats {
   payingPlatforms: Array<{ platform: string; devices: number }>
   payingLocales: Array<{ locale: string; devices: number }>
   payingCountries: Array<{ country: string; devices: number }>
+  // 스토어 등록정보 방문 (store_visits 테이블, 일별 플랫폼 합산) — 퍼널 최상단. 수집 전엔 빈 배열.
+  storeVisits?: Array<{ date: string; visitors: number }>
 }
 
 // 마지막 정상 집계 (프로세스 메모리) — RPC가 일시적으로 느려지거나(mv_real_users 리프레시 창)
@@ -1327,6 +1329,16 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
     }
   }
   const stats = data as AnonymousEventStats
+  // 스토어 방문(퍼널 최상단) — 일별 플랫폼 합산해 붙인다. 테이블이 비어 있으면 빈 배열.
+  const { data: sv } = await voicecardsSupabase
+    .from('store_visits')
+    .select('date, visitors')
+    .order('date', { ascending: true })
+  const svByDate = new Map<string, number>()
+  for (const r of (sv ?? []) as Array<{ date: string; visitors: number }>) {
+    svByDate.set(r.date, (svByDate.get(r.date) ?? 0) + (Number(r.visitors) || 0))
+  }
+  stats.storeVisits = Array.from(svByDate.entries()).map(([date, visitors]) => ({ date, visitors }))
   if (stats.summary.totalEvents > 0) {
     lastGoodAnonStats = stats
     return stats

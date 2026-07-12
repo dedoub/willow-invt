@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useDashCols } from './cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
@@ -116,6 +117,7 @@ interface AnonymousEventStats {
   payingPlatforms: Array<{ platform: string; devices: number }>
   payingLocales: Array<{ locale: string; devices: number }>
   payingCountries: Array<{ country: string; devices: number }>
+  storeVisits?: Array<{ date: string; visitors: number }>
 }
 
 export interface VoicecardsBlockProps {
@@ -399,12 +401,12 @@ function SkelPie() {
         <SkelBar width={40} height={10} />
         <SkelBar width={64} height={12} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
-        <div className="l-skeleton" style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, maxWidth: '100%' }} />
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <SkelBar width="85%" height={9} />
-        <SkelBar width="70%" height={9} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, padding: '4px 0' }}>
+        <div className="l-skeleton" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, maxWidth: '100%' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <SkelBar width="85%" height={9} />
+          <SkelBar width="70%" height={9} />
+        </div>
       </div>
     </div>
   )
@@ -458,9 +460,12 @@ export function VoicecardsBlock({
   onOpenSettings, onRefresh, refreshing,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
+  const dashCols = useDashCols()
   // 매우 좁은 화면(모바일)에서만 sparkline 숨김. LStat이 sub를 자체 줄로 분리해서
   // 일반 PC 해상도에선 sparkline 들어갈 공간 있음.
   const compact = mobile
+  // 인사이트 6카드: 모바일 2열 · 대시보드 2열 모드 3열(2줄) · 1열 모드 6열(1줄)
+  const insightGridCols = mobile ? 'repeat(2, 1fr)' : dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'
   // 다중 정렬: 우선순위 순서대로 [{key,dir}]. 헤더 클릭으로 컬럼을 체인에 추가/방향전환/해제.
   const [userSorts, setUserSorts] = useState<SortCrit[]>([{ key: 'created', dir: 'desc' }])
   const [userPage, setUserPage] = useState(1)
@@ -622,13 +627,10 @@ export function VoicecardsBlock({
         {(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats?.summary) && (
           <>
             <SkelSectionHeader width={80} />
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
-              {[0, 1, 2, 3].map(i => <SkelStat key={i} compact={!!mobile} />)}
-              <div style={{ gridColumn: mobile ? '1 / -1' : 'auto', display: 'grid' }}>
-                <SkelStat compact={!!mobile} />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: insightGridCols, gap: 8 }}>
+              {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)', gap: 8, marginTop: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'minmax(0,1.08fr) minmax(0,1.08fr) minmax(0,1.84fr)', gap: 8, marginTop: 8 }}>
               <SkelPie />
               <SkelPie />
               <div style={{ gridColumn: mobile ? '1 / -1' : 'auto' }}>
@@ -735,6 +737,20 @@ export function VoicecardsBlock({
           const linkedRate = Math.round(pct(linkedUsers, userStats.totalUsers))
           const activeRate = Math.round(pct(signedUp, userStats.totalUsers))
 
+          // 스토어 방문(퍼널 최상단) — store_visits 일별 합산. 누적 시리즈는 allDates 축으로 재샘플.
+          const storeVisits = anonymousStats.storeVisits ?? []
+          const svTotal = storeVisits.reduce((sum, r) => sum + r.visitors, 0)
+          const svLast = storeVisits[storeVisits.length - 1]
+          const sv7 = storeVisits.filter(r => r.date >= kstDaysAgo(6)).reduce((sum, r) => sum + r.visitors, 0)
+          let svCum = 0, svIdx = 0
+          const storeVisitsData = allDates.map(date => {
+            while (svIdx < storeVisits.length && storeVisits[svIdx].date <= date) { svCum += storeVisits[svIdx].visitors; svIdx++ }
+            return { date, value: svCum }
+          })
+          const installRateData = allDates.map((date, i) => ({ date, value: pct(devicesData[i]?.value ?? 0, storeVisitsData[i]?.value ?? 0) }))
+          const installRate = svTotal > 0 ? Math.round(pct(devices, svTotal)) : 0
+          const notInstalled = Math.max(0, svTotal - devices)
+
           // 크레딧 판매/유료전환 누적 (매출은 크레딧 볼륨으로 표시)
           const creditsByDate = new Map<string, number>()
           const paidUsersByDate = new Map<string, number>()
@@ -816,14 +832,36 @@ export function VoicecardsBlock({
                 인사이트
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: insightGridCols, gap: 8 }}>
+                <LStat
+                  label="스토어 방문"
+                  title="플레이스토어·앱스토어 등록정보 방문자 누적 — 퍼널 최상단(방문 → 설치). 일 1회 수집, 스토어 리포트 특성상 1~2일 지연."
+                  value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
+                  sub={svTotal > 0 ? `최근 ${(svLast?.date ?? '').slice(5)} ${(svLast?.visitors ?? 0).toLocaleString()}명 · 7일 ${sv7.toLocaleString()}명` : '수집 대기'}
+                  tone="info"
+                  sparkline={compact || svTotal === 0 ? undefined : storeVisitsData}
+                />
                 <LStat
                   label="설치 기기"
-                  title="앱을 설치해 한 번 이상 실행한 고유 기기 수(이벤트 기준). 스토어 다운로드보다 작게 잡히고, 재설치는 새 기기로 집계됨."
+                  title="앱을 설치해 한 번 이상 실행한 고유 기기 수(이벤트 기준). 스토어 다운로드보다 작게 잡히고, 재설치는 새 기기로 집계됨. 점선 = 설치율(%, 스토어 방문 대비) 추이 — 우측 축 0~100%."
                   value={devices.toLocaleString()}
+                  subExtra={svTotal > 0 ? (
+                    <span style={{
+                      display: 'block', fontSize: 'calc(9.5px * var(--fz, 1))', marginTop: 1, fontWeight: 500,
+                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+                      whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      <span>설치 {installRate}%</span>
+                      {notInstalled > 0 && <span> · 미설치 {notInstalled.toLocaleString()}명</span>}
+                    </span>
+                  ) : undefined}
                   sub={`오늘 ${devToday.toLocaleString()}명 · 7일 ${dev7.toLocaleString()}명`}
                   tone="info"
                   sparkline={compact ? undefined : devicesData}
+                  sparkline2={compact || svTotal === 0 ? undefined : installRateData}
+                  sparkFormat2={(v) => `${v}%`}
+                  spark2Domain={[0, 100]}
+                  dualScale
                 />
                 <LStat
                   label="신규 로그인"
@@ -891,8 +929,7 @@ export function VoicecardsBlock({
                   spark2Domain={[0, 100]}
                   dualScale
                 />
-                {/* 모바일(2열 그리드)에선 매출 카드가 홀수 번째 낙오로 반쪽이 되지 않게 1행 전폭 사용 */}
-                <div style={{ gridColumn: mobile ? '1 / -1' : 'auto', display: 'grid' }}>
+                <div style={{ display: 'grid' }}>
                 {revenueLoading && !stats ? (
                   <SkelStat compact={!!mobile} />
                 ) : (
@@ -911,9 +948,8 @@ export function VoicecardsBlock({
                     )}
                     sub={creditsSold > 0 ? `오늘 ${fmtCr(creditsToday)} · 7일 ${fmtCr(credits7d)}` : '아직 없음'}
                     tone={creditsSold > 0 ? 'pos' : 'default'}
-                    // 모바일에선 1행 전폭이라 공간 충분 — 매출 카드만 compact에서도 스파크라인 유지
-                    sparkline={creditsData}
-                    sparkline2={payRateData}
+                    sparkline={compact ? undefined : creditsData}
+                    sparkline2={compact ? undefined : payRateData}
                     spark2Color={t.brand[600]}
                     sparkFormat={fmtCr}
                     sparkFormat2={(v) => `${v}%`}
@@ -925,7 +961,7 @@ export function VoicecardsBlock({
               </div>
 
             {/* 플랫폼 / 언어 / 일별 활동자 */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)', gap: 8, marginTop: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'minmax(0,1.08fr) minmax(0,1.08fr) minmax(0,1.84fr)', gap: 8, marginTop: 8 }}>
               <DistributionPie
                 title="플랫폼"
                 tabs={[
@@ -1657,7 +1693,7 @@ function DistributionPie({
   return (
     <div style={{
       background: t.neutrals.inner, borderRadius: t.radius.sm,
-      padding: '8px 10px',
+      padding: '8px 8px',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1700,15 +1736,15 @@ function DistributionPie({
           데이터 없음
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
           {!mobile && (
-            <div style={{ width: 72, height: 72, flexShrink: 0, alignSelf: 'center' as const }}>
+            <div style={{ width: 44, height: 44, flexShrink: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={data}
                     cx="50%" cy="50%"
-                    innerRadius={18} outerRadius={32}
+                    innerRadius={11} outerRadius={20}
                     paddingAngle={2}
                     dataKey="value"
                     stroke="none"
@@ -1727,24 +1763,24 @@ function DistributionPie({
               </ResponsiveContainer>
             </div>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
             {data.map(d => {
               const pct = total > 0 ? Math.round((d.value / total) * 100) : 0
               return (
-                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
                   <div style={{
-                    width: 8, height: 8, borderRadius: 2,
+                    width: 6, height: 6, borderRadius: 2,
                     background: colorByName.get(d.name) ?? t.neutrals.subtle, flexShrink: 0,
                   }} />
                   <span style={{
-                    fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text,
+                    fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.text,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     flex: 1, minWidth: 0,
                   }}>
                     {d.name}
                   </span>
                   <span style={{
-                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                    fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
                     fontVariantNumeric: 'tabular-nums', flexShrink: 0,
                   }}>
                     {pct}%

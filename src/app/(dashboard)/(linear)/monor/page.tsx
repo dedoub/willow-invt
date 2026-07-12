@@ -116,6 +116,7 @@ interface AnonymousEventStats {
   payingPlatforms: Array<{ platform: string; devices: number }>
   payingLocales: Array<{ locale: string; devices: number }>
   payingCountries: Array<{ country: string; devices: number }>
+  storeVisits?: Array<{ date: string; visitors: number }>
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
