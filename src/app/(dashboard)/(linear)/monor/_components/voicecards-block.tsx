@@ -363,20 +363,22 @@ function SkelBar({ width, height = 12, style }: { width: number | string; height
 }
 
 function SkelStat({ compact }: { compact: boolean }) {
+  // LStat 2열 배치와 동일: 좌측 라벨/값/오늘·7일/보조라벨 4줄, 우측 스파크라인(≤50% 폭·80% 높이)
   return (
     <div style={{
       padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 78,
+      display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: 10, minHeight: 84,
       minWidth: 0, overflow: 'hidden',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <SkelBar width={60} height={9} style={{ marginBottom: 6 }} />
-          <SkelBar width={80} height={18} />
-        </div>
-        {!compact && <SkelBar width={56} height={20} style={{ flexShrink: 0 }} />}
+      <div style={{ minWidth: 0 }}>
+        <SkelBar width={56} height={9} style={{ marginBottom: 6 }} />
+        <SkelBar width={64} height={16} style={{ marginBottom: 5 }} />
+        <SkelBar width={76} height={9} style={{ marginBottom: 4 }} />
+        <SkelBar width={68} height={9} />
       </div>
-      <SkelBar width="70%" height={9} />
+      {!compact && (
+        <div className="l-skeleton" style={{ flex: 1, minWidth: 20, maxWidth: '50%', height: '80%', alignSelf: 'center', borderRadius: 4 }} />
+      )}
     </div>
   )
 }
@@ -386,37 +388,44 @@ function SkelSectionHeader({ width = 100 }: { width?: number }) {
 }
 
 function SkelPie() {
+  // DistributionPie 세로 스택과 동일: 제목+탭 → 도넛(72) 가운데 → 범례 행들
   return (
     <div style={{
       padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 96,
+      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 150,
       minWidth: 0, overflow: 'hidden',
     }}>
-      <SkelBar width={70} height={10} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '6px 0' }}>
-        <div className="l-skeleton" style={{ width: 80, height: 80, borderRadius: '50%', flexShrink: 0, maxWidth: '100%' }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+        <SkelBar width={40} height={10} />
+        <SkelBar width={64} height={12} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
+        <div className="l-skeleton" style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, maxWidth: '100%' }} />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <SkelBar width="85%" height={9} />
+        <SkelBar width="70%" height={9} />
       </div>
     </div>
   )
 }
 
 function SkelBars() {
-  // SkelPie와 동일한 컨테이너·body 래퍼(flex:1, padding 6px 0)를 써서 높이를 픽셀 단위로 일치시킴.
-  // 원형(80x80) 자리에 80 높이 바 컨테이너를 배치.
+  // SkelPie와 동일한 컨테이너 높이(minHeight 150)에 42일 바 차트 실물과 동일한 밀도로 채움.
   return (
     <div style={{
       padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 96, height: '100%', boxSizing: 'border-box',
+      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 150, height: '100%', boxSizing: 'border-box',
       minWidth: 0, overflow: 'hidden',
     }}>
       <SkelBar width={70} height={10} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '6px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, width: '100%', height: 80 }}>
-          {Array.from({ length: 21 }).map((_, i) => (
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, width: '100%', height: '100%', minHeight: 96 }}>
+          {Array.from({ length: 42 }).map((_, i) => (
             <div
               key={i}
               className="l-skeleton"
-              style={{ flex: 1, minWidth: 2, height: 24 + ((i * 37) % 48), borderRadius: 1 }}
+              style={{ flex: 1, minWidth: 2, height: `${28 + ((i * 37) % 56)}%`, borderRadius: 1 }}
             />
           ))}
         </div>
