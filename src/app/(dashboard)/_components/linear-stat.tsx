@@ -157,10 +157,10 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
           {title}
         </div>
       )}
-      {/* 2열 배치: 텍스트(좌, 내용 폭 유지) + sparkline(우, 남는 너비·카드 높이 100%) — akros/etc 스탯 카드 참조 */}
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}>
+      {/* 2열 배치: 텍스트(좌, 내용 폭 유지) + sparkline(우측 끝, 카드 너비 최대 50%·높이 80%) — akros/etc 스탯 카드 참조 */}
+      <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: 10 }}>
         <div style={hasSpark
-          ? { minWidth: 0, flexShrink: 0, maxWidth: '72%' }
+          ? { minWidth: 0, flexShrink: 0, maxWidth: 'calc(100% - 40px)' } // 텍스트 우선: 자연 폭 유지, 스파크라인이 남는 폭만
           : { minWidth: 0, flex: 1 }}>
           <div
             onMouseEnter={title ? () => setShowTip(true) : undefined}
@@ -196,16 +196,19 @@ export function LStat({ label, value, valueExtra, unit, sub, tone = 'default', s
           )}
         </div>
         {hasSpark && (
-          <div style={{ flex: 1, minWidth: 30 }}>
-            <Sparkline
-              fill
-              data={sparkData}
-              color={sparkColor}
-              format={sparkFormat}
-              data2={sparkData2.length > 1 ? sparkData2 : undefined}
-              color2={spark2Color}
-              dualScale={dualScale}
-            />
+          <div style={{ flex: 1, minWidth: 30, maxWidth: '50%', display: 'flex', alignItems: 'center' }}>
+            {/* 카드 높이의 80%만 사용 — 텍스트와 시각적 균형 (CEO 지정) */}
+            <div style={{ width: '100%', height: '80%', minHeight: 16 }}>
+              <Sparkline
+                fill
+                data={sparkData}
+                color={sparkColor}
+                format={sparkFormat}
+                data2={sparkData2.length > 1 ? sparkData2 : undefined}
+                color2={spark2Color}
+                dualScale={dualScale}
+              />
+            </div>
           </div>
         )}
       </div>
