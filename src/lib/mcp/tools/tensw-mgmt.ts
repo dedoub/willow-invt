@@ -442,8 +442,8 @@ export function registerTenswMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     const { data, error } = await supabase
-      .from('willow_mgmt_schedules')
-      .insert({ ...input, category: 'tensw-mgmt' })
+      .from('tensw_mgmt_schedules')
+      .insert(input)
       .select('*')
       .single()
 
