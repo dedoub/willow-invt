@@ -1,10 +1,11 @@
 import { getServiceSupabase } from '@/lib/supabase'
 
-// ─── 노드 성숙도 티어 (valuechain-wiki/lib/maturity.ts와 동일한 13개 체크) ──────────
+// ─── 노드 성숙도 티어 (valuechain-wiki/lib/maturity.ts와 동일한 15개 체크·2축) ──────
 // 원본을 willow 대시보드로 옮긴 것. 원본 규칙이 바뀌면 여기도 맞춰야 한다.
+// 신뢰도 = 두 직교 축: ① 증명성(proof) — 믿을 근거, ② 파급성/결정성(prop) — 관계 연결. 각 6점.
 
-type MSrc = { stance?: string | null; metric?: unknown; vc_sources?: { kind?: string | null; published_at?: string | null; lang?: string | null } | null }
-type MEdge = { direction: 'revenue' | 'cost'; counterparty_id?: string | null; confidence?: string | null; metric?: unknown; vc_edge_sources?: MSrc[] | null }
+type MSrc = { stance?: string | null; metric?: unknown; vc_sources?: { kind?: string | null; published_at?: string | null; lang?: string | null; publisher?: string | null } | null }
+type MEdge = { direction: 'revenue' | 'cost' | 'investor' | 'investment'; counterparty_id?: string | null; confidence?: string | null; metric?: unknown; vc_edge_sources?: MSrc[] | null }
 type MNode = { name?: string | null; kicker?: string | null; lead?: string | null; segments?: { total?: string; parts?: unknown[]; private?: boolean } | null; vc_edges?: MEdge[] | null }
 
 export type Maturity = {
@@ -12,6 +13,11 @@ export type Maturity = {
   tierShort: 'T0' | 'T1' | 'T2' | 'T3' | 'T4'
   pass: number
   total: number
+  // 구성 항목(표에 그대로 노출)
+  rev: number; cost: number; inv: number; research: number; linked: number
+  src: number; verified: number; segParts: number
+  // 두 축 소점수 — "리서치(증명) 대비 파급(결정)" 비교
+  proof: number; prop: number
   fails: string[]
 }
 
@@ -19,49 +25,73 @@ function auditNode(n: MNode): Maturity {
   const edges = n.vc_edges || []
   const rev = edges.filter((e) => e.direction === 'revenue')
   const cost = edges.filter((e) => e.direction === 'cost')
+  const inv = edges.filter((e) => e.direction === 'investor' || e.direction === 'investment')
+  const linked = edges.filter((e) => e.counterparty_id) // 파급 = 실제 노드와 연결된(결정적) 엣지
   const allSrc = edges.flatMap((e) => (e.vc_edge_sources || []).map((s) => ({ ...s, pub: s.vc_sources })))
   const langs = new Set(allSrc.map((s) => s.pub?.lang).filter(Boolean))
+  const publishers = new Set(allSrc.map((s) => s.pub?.publisher).filter(Boolean))
   const kinds = new Set(allSrc.map((s) => s.pub?.kind || 'news'))
   const hasFiling = kinds.has('filing')
+  const research = allSrc.filter((s) => s.pub?.kind === 'research' || s.pub?.kind === 'analysis') // 증권사 리서치·애널
   const isPrivate = !!n.segments?.private
   const mediaCrossVerified = allSrc.filter((s) => s.stance === 'confirms').length >= 2
   const hasFilingOrPrivateVerify = hasFiling || (isPrivate && mediaCrossVerified)
   const dates = allSrc.map((s) => s.pub?.published_at).filter(Boolean).sort() as string[]
   const latest = dates[dates.length - 1] || null
-  const quantObs = allSrc.filter((s) => /share|amount|value|count/.test(JSON.stringify(s.metric || '')) || s.metric)
+  const quantObs = allSrc.filter((s) => /share|amount|value|count|volume|contract/.test(JSON.stringify(s.metric || '')) || s.metric)
   const verifiedEdges = edges.filter((e) => {
     const ss = e.vc_edge_sources || []
     const confirms = ss.filter((s) => s.stance === 'confirms').length
     const filing = ss.some((s) => s.vc_sources?.kind === 'filing')
     return (ss.length >= 2 && confirms >= 1 && filing) || (isPrivate && confirms >= 2)
   })
-  const tiered = edges.filter((e) => e.confidence).length
+  const segParts = (n.segments?.parts?.length ?? 0) || (n.segments?.total ? 1 : 0)
 
-  const checks: Record<string, boolean> = {
+  // ── 기본(3) ──
+  const base: Record<string, boolean> = {
     '정체성': !!n.name,
     '목록 메타': !!(n.kicker && n.lead),
-    '세그먼트+총매출': !!(n.segments && (n.segments.total || n.segments.parts?.length)),
-    '매출 엣지': rev.length >= 1,
-    '비용 엣지': cost.length >= 1,
+    '재무사업구조': !!(n.segments && (n.segments.total || n.segments.parts?.length)),
+  }
+  // ── 증명성 축(6): 믿을 근거 ──
+  const proofChecks: Record<string, boolean> = {
     '출처 ≥3': allSrc.length >= 3,
-    '다국어(KO+EN)': langs.size >= 2,
+    '다출처(언어≥2/발행처≥3)': langs.size >= 2 || publishers.size >= 3,
     '1차공시/매체검증': hasFilingOrPrivateVerify,
     '교차검증 엣지': verifiedEdges.length >= 1,
-    '정규화 metric': quantObs.length >= 1,
-    '신뢰등급 전부': tiered === edges.length && edges.length > 0,
+    '증권사 리서치': research.length >= 1,
     '최신성(2025+)': !!(latest && latest >= '2025-01-01'),
+  }
+  // ── 파급성/결정성 축(6): 관계 연결 ──
+  const propChecks: Record<string, boolean> = {
+    '매출 엣지': rev.length >= 1,
+    '비용 엣지': cost.length >= 1,
+    '투자 구조': inv.length >= 1,
+    '파급 연결(그래프 ≥2)': linked.length >= 2,
+    '정규화 metric': quantObs.length >= 1,
     '엣지 폭(각 ≥2)': rev.length >= 2 && cost.length >= 2,
   }
+
+  const checks = { ...base, ...proofChecks, ...propChecks }
+  const proof = Object.values(proofChecks).filter(Boolean).length
+  const prop = Object.values(propChecks).filter(Boolean).length
   const pass = Object.values(checks).filter(Boolean).length
-  const total = Object.keys(checks).length
+  const total = Object.keys(checks).length // 15
   const fails = Object.entries(checks).filter(([, v]) => !v).map(([k]) => k)
+
+  // 15개 기준 티어 밴드. 투자 구조·엣지 폭은 노드 성격상 해당 없을 수 있어 T4는 13/15로 둔다.
   let tier: string, tierShort: Maturity['tierShort']
-  if (pass <= 2) { tier = 'T0 Stub'; tierShort = 'T0' }
-  else if (pass <= 6) { tier = 'T1 Seeded'; tierShort = 'T1' }
-  else if (pass <= 9) { tier = 'T2 Sourced'; tierShort = 'T2' }
-  else if (pass <= 11) { tier = 'T3 Verified'; tierShort = 'T3' }
+  if (pass <= 3) { tier = 'T0 Stub'; tierShort = 'T0' }
+  else if (pass <= 7) { tier = 'T1 Seeded'; tierShort = 'T1' }
+  else if (pass <= 10) { tier = 'T2 Sourced'; tierShort = 'T2' }
+  else if (pass <= 12) { tier = 'T3 Verified'; tierShort = 'T3' }
   else { tier = 'T4 Reference'; tierShort = 'T4' }
-  return { tier, tierShort, pass, total, fails }
+  return {
+    tier, tierShort, pass, total,
+    rev: rev.length, cost: cost.length, inv: inv.length, research: research.length, linked: linked.length,
+    src: allSrc.length, verified: verifiedEdges.length, segParts,
+    proof, prop, fails,
+  }
 }
 
 // ─── 타입 ───────────────────────────────────────────────────────────────────────
@@ -98,7 +128,13 @@ export interface ValueChainStats {
     last7d: number
     last30d: number
     daily: { date: string; count: number }[] // 최근 14일
-    recent: { slug: string; name: string; ticker: string | null; rev: number; cost: number; pass: number; tier: string; created_at: string | null; updated_at: string | null; hasReport: boolean; hasChainImpact: boolean; funnel: { train: number; index: number; cite: number; visit: number } }[]
+    // 위키 /roadmap 노드 현황 표와 동일 항목: 티어(pass/total) · 증명/파급 축 · 사업구조 · 매출 · 비용 · 투자 · 리서치 · 파급 · 출처 · 교차검증
+    recent: {
+      slug: string; name: string; tier: string; pass: number; proof: number; prop: number
+      seg: number; rev: number; cost: number; inv: number; research: number; linked: number; src: number; verified: number
+      created_at: string | null; updated_at: string | null
+      funnel: { train: number; index: number; cite: number; visit: number }
+    }[]
   }
   crawl: {
     total: number
@@ -116,10 +152,10 @@ export interface ValueChainStats {
       visit: FunnelTier // ④ 인용 링크를 통해 실제 사람이 방문 (vc_crawl_log category='referral')
     }
     citedFetches: { ts: string; path: string; bot: string | null }[] // ③ 실사용자 질문이 가져간 페이지
-    // 질문 역설계 (valuechain-wiki docs/traffic-capture.md): 유형=패싯 fetch, 방향=panel_nav, 묶음=co-fetch 세션
-    questionTypes: { facet: string; total: number; top: string | null }[]
-    panelSignal: { revenue: number; cost: number; recent: { from: string; to: string; side: 'in' | 'out' }[] }
-    cofetch: { total: number; multi: number; relation: number; recent: { start: string; bot: string; cls: 'relation' | 'theme'; seq: string[] }[] }
+    // 질문 역설계 (valuechain-wiki docs/traffic-capture.md): fetch 흔적을 "어떤 측면을·어느 방향으로·무엇과 엮어" 물었는지로 되짚는 신호
+    questionTypes: { facet: string; total: number; top: string | null }[] // A. 질문형 패싯 fetch = 질문의 측면
+    panelSignal: { revenue: number; cost: number; recent: { from: string; to: string; side: 'in' | 'out' }[] } // C. 패널 확장 = 질문 방향(수요/공급)
+    cofetch: { total: number; multi: number; relation: number; recent: { start: string; bot: string; cls: 'relation' | 'theme'; seq: string[] }[] } // B. co-fetch 세션 = 질문의 대상 묶음
   }
   // 분석 아티클 업데이트 현황 (vc_articles)
   articleUpdates: {
@@ -161,7 +197,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     supabase.from('vc_articles').select('*', { count: 'exact', head: true }),
     supabase
       .from('vc_companies')
-      .select('slug,name,ticker,kicker,lead,segments,updated_at,created_at, vc_analyst_ratings(id), vc_edges!company_id(direction,counterparty_id,confidence,metric, vc_edge_sources(stance,metric, vc_sources(kind,published_at,lang)))'),
+      .select('slug,name,kicker,lead,segments,updated_at,created_at, vc_edges!company_id(direction,counterparty_id,confidence,metric, vc_edge_sources(stance,metric, vc_sources(kind,published_at,lang,publisher)))'),
     supabase.from('vc_crawl_log').select('ts,path,bot,category,referer,country').neq('category', 'attack').order('ts', { ascending: false }).limit(3000),
     supabase.from('vc_companies').select('created_at').gte('created_at', windowStartKey).limit(100000),
     supabase.from('vc_edges').select('created_at').gte('created_at', windowStartKey).limit(100000),
@@ -171,19 +207,11 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
   ])
 
   // ── 성숙도 집계 ──
-  type MRow = MNode & { slug: string; name: string; ticker: string | null; updated_at: string | null; created_at: string | null; vc_analyst_ratings?: { id: string }[] | null }
-  const mrows = ((maturityRes.data ?? []) as unknown as MRow[]).map((n) => {
-    const edges = n.vc_edges || []
-    return {
-      slug: n.slug, name: n.name, ticker: n.ticker, updated_at: n.updated_at, created_at: n.created_at,
-      rev: edges.filter((e) => e.direction === 'revenue').length,  // 매출처
-      cost: edges.filter((e) => e.direction === 'cost').length,    // 지급처
-      // 노드 페이지 섹션 유무와 동일: 증권사 리포트 = vc_analyst_ratings 존재 / 가치사슬 파급 = 매출처·지급처 counterparty(등록노드) 존재
-      hasReport: (n.vc_analyst_ratings?.length ?? 0) > 0,
-      hasChainImpact: edges.some((e) => !!e.counterparty_id && (e.direction === 'revenue' || e.direction === 'cost')),
-      m: auditNode(n),
-    }
-  })
+  type MRow = MNode & { slug: string; name: string; updated_at: string | null; created_at: string | null }
+  const mrows = ((maturityRes.data ?? []) as unknown as MRow[]).map((n) => ({
+    slug: n.slug, name: n.name, updated_at: n.updated_at, created_at: n.created_at,
+    m: auditNode(n),
+  }))
   const tierCounts: Record<string, number> = { T0: 0, T1: 0, T2: 0, T3: 0, T4: 0 }
   const failTally = new Map<string, number>()
   let passSum = 0
@@ -192,7 +220,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     passSum += r.m.pass
     for (const f of r.m.fails) failTally.set(f, (failTally.get(f) ?? 0) + 1)
   }
-  const checks = mrows[0]?.m.total ?? 13
+  const checks = mrows[0]?.m.total ?? 15
   const avgPass = mrows.length ? passSum / mrows.length : 0
   const topFails = [...failTally.entries()]
     .map(([check, count]) => ({ check, count }))
@@ -217,7 +245,11 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     .filter((r) => r.updated_at)
     .sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
     .slice(0, 50)
-    .map((r) => ({ slug: r.slug, name: r.name, ticker: r.ticker, rev: r.rev, cost: r.cost, pass: r.m.pass, tier: r.m.tierShort, created_at: r.created_at, updated_at: r.updated_at, hasReport: r.hasReport, hasChainImpact: r.hasChainImpact }))
+    .map((r) => ({
+      slug: r.slug, name: r.name, tier: r.m.tierShort, pass: r.m.pass, proof: r.m.proof, prop: r.m.prop,
+      seg: r.m.segParts, rev: r.m.rev, cost: r.m.cost, inv: r.m.inv, research: r.m.research, linked: r.m.linked, src: r.m.src, verified: r.m.verified,
+      created_at: r.created_at, updated_at: r.updated_at,
+    }))
 
   // ── 크롤 / AI 의존도 ──
   type CrawlRow = { ts: string; path: string; bot: string | null; category: string | null; referer: string | null; country: string | null }
@@ -296,8 +328,8 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
   })
   const funnel = { train: packTier(tierAgg.train), index: packTier(tierAgg.index), cite: packTier(tierAgg.cite), visit: packTier(tierAgg.visit) }
 
-  // ── 질문 역설계: 트래픽을 질문 유형 × 방향 × 엔티티 묶음으로 해석 ──
-  // (a) 질문 유형 = 패싯 fetch
+  // ── 질문 역설계: 트래픽을 질문의 측면 × 방향 × 대상 묶음으로 해석 ──
+  // (a) 질문의 측면 = 질문형 패싯 fetch
   const facetCnt = new Map<string, { total: number; nodes: Map<string, number> }>()
   for (const f of ['customers', 'suppliers', 'ripple', 'consensus']) facetCnt.set(f, { total: 0, nodes: new Map() })
   for (const x of crawl) {
@@ -317,7 +349,7 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     cost: pn.filter((x) => x.bot === 'panel-cost').length,
     recent: pn.slice(0, 6).map((x) => ({ from: (x.referer ?? '?').replace(/^\//, ''), to: x.path.replace(/^\//, ''), side: (x.bot === 'panel-revenue' ? 'in' : 'out') as 'in' | 'out' })),
   }
-  // (c) 질문의 엔티티 묶음 = co-fetch 세션 (봇+국가, 10분 간격, 그래프 연결 쌍이면 관계형)
+  // (c) 질문의 대상 묶음 = co-fetch 세션 (봇+국가, 10분 간격, 그래프 연결 쌍이면 관계형)
   const [eg1, eg2, eg3, compRows] = await Promise.all([
     supabase.from('vc_edges').select('company_id,counterparty_id').not('counterparty_id', 'is', null).range(0, 999),
     supabase.from('vc_edges').select('company_id,counterparty_id').not('counterparty_id', 'is', null).range(1000, 1999),

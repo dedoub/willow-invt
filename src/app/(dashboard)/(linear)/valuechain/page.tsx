@@ -21,6 +21,14 @@ const TIER_TONE: Record<string, { bg: string; fg: string }> = {
   T4: tonePalettes.pos,
 }
 
+// 질문형 패싯 → 사용자 질문 해석 (valuechain-wiki docs/traffic-capture.md)
+const FACET_META: Record<string, { q: string }> = {
+  customers: { q: '고객이 누구인가' },
+  suppliers: { q: '공급사가 누구인가' },
+  ripple: { q: '파급이 어디로 번지나' },
+  consensus: { q: '시장 컨센서스는 어떤가' },
+}
+
 // ─── 작은 프리미티브 ─────────────────────────────────────────────────────────────
 
 // ─── 페이지 ─────────────────────────────────────────────────────────────────────
@@ -82,16 +90,23 @@ export default function ValueChainPage() {
     border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: t.neutrals.muted, textDecoration: 'none',
   }
-  // 업데이트 테이블: 날짜 | 노드 | 티커 | 매출처 | 지급처 | 티어 | 완성도
-  const UPDATE_COLS = '44px 44px minmax(76px,1fr) 58px 40px 40px 30px 44px 34px 34px 40px 40px 40px 40px'
-  const UPDATE_MIN_WIDTH = 720
+  // 업데이트 테이블 — 위키 /roadmap 노드 현황과 동일 항목:
+  // 최초 | 수정 | 노드 | 신뢰도 | 증명·파급 | 사업구조 | 매출 | 비용 | 투자 | 리서치 | 파급 | 출처 | 교차검증 | 인용퍼널 4
+  const UPDATE_COLS = '44px 44px minmax(76px,1fr) 60px 74px 40px 34px 34px 34px 40px 34px 34px 44px 40px 40px 40px 40px'
+  const UPDATE_MIN_WIDTH = 880
   const headCell: React.CSSProperties = {
     fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
     letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
   }
+  // 질문 역설계 블록 공통 스타일
+  const qBox: React.CSSProperties = { padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner, minWidth: 0 }
+  const qTitle: React.CSSProperties = { fontSize: 'calc(11.5px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.text, marginBottom: 6 }
+  const qTitleSub: React.CSSProperties = { fontWeight: 400, color: t.neutrals.subtle, fontSize: 'calc(10px * var(--fz, 1))' }
+  const qEmpty: React.CSSProperties = { fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 5, lineHeight: 1.5 }
+  const ellip: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }
 
   // ── 클릭 정렬 헤더 ──
-  const numDescKeys = new Set(['date', 'created', 'rev', 'cost', 'pass', 'count', 'pct', 'days', 'f_train', 'f_index', 'f_cite', 'f_visit', 'changelog', 'published', 'updated'])
+  const numDescKeys = new Set(['date', 'created', 'tier', 'axis', 'seg', 'rev', 'cost', 'inv', 'research', 'linked', 'src', 'verified', 'f_train', 'f_index', 'f_cite', 'f_visit', 'changelog', 'published', 'updated'])
   const defaultDir = (key: string): 'asc' | 'desc' => (numDescKeys.has(key) ? 'desc' : 'asc')
   const onUpdateSort = (key: string) => { setUpdatePage(1); setUpdateSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: defaultDir(key) }) }
   const commitUpdatePerPage = () => {
@@ -123,11 +138,16 @@ export default function ValueChainPage() {
     let r = 0
     switch (updateSort.key) {
       case 'name': r = a.name.localeCompare(b.name, 'ko'); break
-      case 'ticker': r = (a.ticker || '').localeCompare(b.ticker || ''); break
+      case 'tier': r = a.pass - b.pass; break
+      case 'axis': r = (a.proof + a.prop) - (b.proof + b.prop); break
+      case 'seg': r = a.seg - b.seg; break
       case 'rev': r = a.rev - b.rev; break
       case 'cost': r = a.cost - b.cost; break
-      case 'tier': r = a.tier.localeCompare(b.tier); break
-      case 'pass': r = a.pass - b.pass; break
+      case 'inv': r = a.inv - b.inv; break
+      case 'research': r = a.research - b.research; break
+      case 'linked': r = a.linked - b.linked; break
+      case 'src': r = a.src - b.src; break
+      case 'verified': r = a.verified - b.verified; break
       case 'created': r = (a.created_at || '').localeCompare(b.created_at || ''); break
       case 'f_train': r = a.funnel.train - b.funnel.train; break
       case 'f_index': r = a.funnel.index - b.funnel.index; break
@@ -238,71 +258,90 @@ export default function ValueChainPage() {
           </div>
         </div>
 
-        {/* 질문 역설계 — 유형(패싯)·방향(패널)·묶음(co-fetch 세션) */}
+        {/* 질문 역설계 — fetch 흔적을 사용자 질문으로 되짚는 관측 신호 (valuechain-wiki docs/traffic-capture.md) */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>질문 역설계 <span style={{ color: t.neutrals.subtle, fontWeight: 400, textTransform: 'none' }}>유형 · 방향 · 묶음</span></div>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 8 }}>
-            {/* 질문 유형: 패싯 fetch */}
-            <div style={{ padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
-              <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>질문 유형 (패싯 fetch)</div>
-              {crawl.questionTypes.every(q => q.total === 0) ? (
-                <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>아직 없음 — 패싯 색인 대기 (7/11 배포)</div>
-              ) : (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {crawl.questionTypes.map(q => (
-                    <span key={q.facet} style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: q.total > 0 ? t.neutrals.text : t.neutrals.line, background: 'transparent', border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.sm, padding: '3px 7px' }}>
-                      {q.facet} <b>{q.total}</b>{q.top ? ` · ${q.top}` : ''}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            {/* 질문 방향: 패널 확장 */}
-            <div style={{ padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
-              <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>질문 방향 (패널 확장)</div>
-              {crawl.panelSignal.revenue + crawl.panelSignal.cost === 0 ? (
-                <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>아직 없음 — 방문자 패널 사용 대기</div>
-              ) : (
-                <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text }}>
-                  매출쪽(수요) <b>{crawl.panelSignal.revenue}</b> · 비용쪽(공급) <b>{crawl.panelSignal.cost}</b>
-                  <div style={{ marginTop: 4, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {crawl.panelSignal.recent.map(x => `${x.from} ${x.side === 'in' ? '◀' : '▶'} ${x.to}`).join(' · ')}
-                  </div>
-                </div>
-              )}
-            </div>
+          <div style={sectionLabel}>질문 역설계</div>
+          <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, lineHeight: 1.55, marginBottom: 8 }}>
+            AI가 답변에 위키를 인용할 때 남는 fetch 흔적으로, 사용자가 기업에 대해 <b style={{ fontWeight: 600 }}>어떤 측면을</b> · <b style={{ fontWeight: 600 }}>어느 방향으로</b> · <b style={{ fontWeight: 600 }}>무엇과 엮어</b> 물었는지 되짚는다. 이 질문 수요 데이터가 위키를 관측소로 만드는 핵심 신호.
           </div>
-          {/* co-fetch 세션 */}
-          <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
-            <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>
-              co-fetch 세션 <span style={{ textTransform: 'none' }}>— 함께 가져간 노드 묶음 = 질문의 대상 집합</span>
-            </div>
-            {crawl.cofetch.multi === 0 ? (
-              <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle }}>이 창에는 다중 fetch 세션 없음</div>
-            ) : (
-              <>
-                <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, marginBottom: 5 }}>
-                  {crawl.cofetch.multi} co-fetch / {crawl.cofetch.total} 세션 · 관계형 {crawl.cofetch.relation}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {crawl.cofetch.recent.map((x, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, overflow: 'hidden' }}>
-                      <span style={{ color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.start.slice(5, 16).replace('T', ' ')}</span>
-                      <span style={{ color: x.cls === 'relation' ? t.brand[500] : t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.cls === 'relation' ? '관계' : '테마'}</span>
-                      <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{x.bot}</span>
-                      <span style={{ color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{x.seq.join(' → ')}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+            {/* ① 측면: 질문형 패싯 fetch */}
+            <div style={qBox}>
+              <div style={qTitle}>① 어떤 측면을 물었나 <span style={qTitleSub}>— AI가 가져간 질문형 패싯 페이지 집계</span></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {crawl.questionTypes.map(q => {
+                  const on = q.total > 0
+                  return (
+                    <div key={q.facet} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 34px minmax(0,0.7fr)', gap: 8, alignItems: 'baseline' }}>
+                      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: on ? t.neutrals.text : t.neutrals.subtle, ...ellip }}>
+                        “{FACET_META[q.facet]?.q ?? q.facet}” <span style={{ fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle }}>/{q.facet}</span>
+                      </span>
+                      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', color: on ? t.brand[500] : t.neutrals.line, fontWeight: on ? t.weight.semibold : t.weight.regular }}>{on ? q.total : '·'}</span>
+                      <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, ...ellip }}>{on && q.top ? `최다 ${q.top}` : ''}</span>
                     </div>
-                  ))}
+                  )
+                })}
+              </div>
+              {crawl.questionTypes.every(q => q.total === 0) && (
+                <div style={qEmpty}>아직 신호 없음 — AI가 노드의 패싯 페이지(고객·공급·파급·컨센서스)를 인용에 가져가기 시작하면 질문 유형별로 쌓인다 (패싯 7/11 배포)</div>
+              )}
+            </div>
+
+            {/* ② 방향: 방문자 패널 확장 */}
+            <div style={qBox}>
+              <div style={qTitle}>② 어느 방향을 파고드나 <span style={qTitleSub}>— 방문자가 노드에서 펼친 거래처 패널</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)', gap: 8 }}>
+                {([
+                  ['매출쪽', '누가 사주나 · 수요 관심', crawl.panelSignal.revenue, t.brand[500]],
+                  ['비용쪽', '어디에 의존하나 · 공급 관심', crawl.panelSignal.cost, '#10b981'],
+                ] as const).map(([label, desc, v, color]) => (
+                  <div key={label} style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap' }}>{label}</span>
+                    <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, ...ellip }}>{desc}</span>
+                    <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', color: v > 0 ? color : t.neutrals.line, fontWeight: v > 0 ? t.weight.semibold : t.weight.regular, marginLeft: 'auto' }}>{v > 0 ? v : '·'}</span>
+                  </div>
+                ))}
+              </div>
+              {crawl.panelSignal.revenue + crawl.panelSignal.cost === 0 ? (
+                <div style={qEmpty}>아직 신호 없음 — 방문자가 노드 페이지에서 매출처/지급처 패널을 펼치면 관심 방향(수요/공급)이 집계된다</div>
+              ) : (
+                <div style={{ marginTop: 5, fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, ...ellip }}>
+                  최근 {crawl.panelSignal.recent.map(x => `${x.from} →${x.side === 'in' ? '매출' : '비용'}→ ${x.to}`).join(' · ')}
                 </div>
-              </>
-            )}
+              )}
+            </div>
+
+            {/* ③ 묶음: co-fetch 세션 */}
+            <div style={qBox}>
+              <div style={qTitle}>③ 무엇과 엮어 물었나 <span style={qTitleSub}>— 한 질문(세션)이 함께 가져간 기업 묶음</span></div>
+              {crawl.cofetch.multi === 0 ? (
+                <div style={{ ...qEmpty, marginTop: 0 }}>최근 로그 창에는 여러 기업을 함께 가져간 세션 없음 — 한 질문이 여러 기업을 비교·연결하면 그 묶음이 여기에 보인다</div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, marginBottom: 5 }}>
+                    {crawl.cofetch.multi}묶음 / {crawl.cofetch.total}세션 · 관계형(밸류체인으로 연결된 기업끼리) {crawl.cofetch.relation} · 테마형 {crawl.cofetch.multi - crawl.cofetch.relation}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {crawl.cofetch.recent.map((x, i) => (
+                      <div key={i} title={x.bot} style={{ display: 'grid', gridTemplateColumns: '80px 34px minmax(0,1fr)', gap: 8, alignItems: 'baseline', fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono }}>
+                        <span style={{ color: t.neutrals.subtle, whiteSpace: 'nowrap', ...ellip }}>{x.start.slice(5, 16).replace('T', ' ')}</span>
+                        <span style={{ color: x.cls === 'relation' ? t.brand[500] : t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.cls === 'relation' ? '관계' : '테마'}</span>
+                        <span style={{ color: t.neutrals.text, ...ellip }}>{x.seq.join(' + ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
           </div>
         </div>
 
         {/* 기업 노드 업데이트 */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>기업 노드 업데이트</div>
-          {/* 최근 업데이트 내역 — 테이블 (날짜·노드·티커·매출처·지급처·티어·완성도) */}
+          <div style={sectionLabel}>기업 노드 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: 400, textTransform: 'none' }}>증명(P) · 파급(R) 각 6점</span></div>
+          {/* 최근 업데이트 내역 — 위키 /roadmap 노드 현황과 동일 항목 + 인용퍼널 */}
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: UPDATE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* 테이블 헤더 — 클릭 정렬 */}
@@ -310,13 +349,16 @@ export default function ValueChainPage() {
               {sortHead('created', '최초', 'left', updateSort, onUpdateSort)}
               {sortHead('date', '수정', 'left', updateSort, onUpdateSort)}
               {sortHead('name', '노드', 'left', updateSort, onUpdateSort)}
-              {sortHead('ticker', '티커', 'left', updateSort, onUpdateSort)}
-              {sortHead('rev', '매출처', 'center', updateSort, onUpdateSort)}
-              {sortHead('cost', '지급처', 'center', updateSort, onUpdateSort)}
-              {sortHead('tier', '티어', 'center', updateSort, onUpdateSort)}
-              {sortHead('pass', '완성도', 'center', updateSort, onUpdateSort)}
-              <span style={{ ...headCell, textAlign: 'center' }}>리포트</span>
-              <span style={{ ...headCell, textAlign: 'center' }}>파급</span>
+              {sortHead('tier', '신뢰도', 'left', updateSort, onUpdateSort)}
+              {sortHead('axis', '증명·파급', 'left', updateSort, onUpdateSort)}
+              {sortHead('seg', '사업구조', 'center', updateSort, onUpdateSort)}
+              {sortHead('rev', '매출', 'center', updateSort, onUpdateSort)}
+              {sortHead('cost', '비용', 'center', updateSort, onUpdateSort)}
+              {sortHead('inv', '투자', 'center', updateSort, onUpdateSort)}
+              {sortHead('research', '리서치', 'center', updateSort, onUpdateSort)}
+              {sortHead('linked', '파급', 'center', updateSort, onUpdateSort)}
+              {sortHead('src', '출처', 'center', updateSort, onUpdateSort)}
+              {sortHead('verified', '교차검증', 'center', updateSort, onUpdateSort)}
               {FUNNEL_HEADS.map(h => <Fragment key={h.key}>{sortHead(h.key, h.label, 'center', updateSort, onUpdateSort)}</Fragment>)}
             </div>
             {updateRows.map(n => (
@@ -325,13 +367,14 @@ export default function ValueChainPage() {
                 <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.created_at ?? '').slice(5, 10) || '—'}</span>
                 <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.updated_at ?? '').slice(5, 10)}</span>
                 <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{n.name}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: n.ticker ? t.neutrals.muted : t.neutrals.line, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.ticker || '—'}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{n.rev}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{n.cost}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold, textAlign: 'center', whiteSpace: 'nowrap' }}>{n.tier}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{n.pass}/{maturity.checks}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', textAlign: 'center', color: n.hasReport ? '#10b981' : t.neutrals.line, whiteSpace: 'nowrap' }} title={n.hasReport ? '증권사 리포트 섹션 있음' : '없음'}>{n.hasReport ? '●' : '—'}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', textAlign: 'center', color: n.hasChainImpact ? '#3b82f6' : t.neutrals.line, whiteSpace: 'nowrap' }} title={n.hasChainImpact ? '가치사슬 파급 섹션 있음' : '없음'}>{n.hasChainImpact ? '●' : '—'}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold }}>{n.tier}</span>
+                  <span style={{ fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, marginLeft: 4, fontVariantNumeric: 'tabular-nums' }}>{n.pass}/{maturity.checks}</span>
+                </span>
+                <AxisMini proof={n.proof} prop={n.prop} />
+                {([n.seg, n.rev, n.cost, n.inv, n.research, n.linked, n.src, n.verified] as const).map((v, i) => (
+                  <span key={i} style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', color: v > 0 ? t.neutrals.muted : t.neutrals.line }}>{v || '·'}</span>
+                ))}
                 {FUNNEL_HEADS.map(h => { const v = h.get(n.funnel); return <span key={h.key} style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap', color: v > 0 ? h.color : t.neutrals.line }}>{v || '—'}</span> })}
               </a>
             ))}
@@ -414,6 +457,24 @@ export default function ValueChainPage() {
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────────
+
+// 증명(P)·파급(R) 2축 미니 게이지 — 위키 /roadmap Axis2의 대시보드 버전 (각 6점)
+function AxisMini({ proof, prop }: { proof: number; prop: number }) {
+  const rows: [string, number, string][] = [['증', proof, t.brand[500]], ['파', prop, '#10b981']]
+  return (
+    <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }} title={`증명 ${proof}/6 · 파급 ${prop}/6`}>
+      {rows.map(([lbl, v, color]) => (
+        <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <span style={{ fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{lbl}</span>
+          <span style={{ flex: 1, height: 3, borderRadius: 2, background: t.neutrals.line, overflow: 'hidden' }}>
+            <span style={{ display: 'block', width: `${(v / 6) * 100}%`, height: '100%', borderRadius: 2, background: color }} />
+          </span>
+          <span style={{ fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
+        </span>
+      ))}
+    </span>
+  )
+}
 
 // 최근 7일 추이 미니 바차트 (인라인, SVG)
 function MiniBars({ data }: { data: number[] }) {
