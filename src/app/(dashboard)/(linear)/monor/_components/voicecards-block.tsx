@@ -358,6 +358,13 @@ type SortCrit = { key: UserSortKey; dir: SortDir }
 const USER_SORT_STORAGE_KEY = 'voicecards.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
+
+// 'YYYY-MM-DD (요일)' — 요일 효과 관찰용. 달력 날짜의 요일이라 타임존 무관(UTC 기준 계산).
+const WEEKDAYS_KO = ['일', '월', '화', '수', '목', '금', '토']
+function withWeekday(d: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d} (${WEEKDAYS_KO[new Date(d + 'T00:00:00Z').getUTCDay()]})` : d
+}
+
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 
 function SkelBar({ width, height = 12, style }: { width: number | string; height?: number; style?: React.CSSProperties }) {
@@ -1003,7 +1010,7 @@ export function VoicecardsBlock({
                 topN={3}
               />
               <div style={{ gridColumn: mobile ? '1 / -1' : 'auto' }}>
-                <DauTrendCard daily={anonymousStats.daily} />
+                <DauTrendCard daily={anonymousStats.daily} showTotals={!mobile && dashCols === 1} />
               </div>
             </div>
             </>
@@ -1540,9 +1547,10 @@ export function VoicecardsBlock({
 // 회원(그 날 활동한 기존 가입자) 아래, 신규(그 날 가입) 가운데, 비로그인(익명) 위. 합 = daily.devices.
 // 서버 집계(vc_event_stats)를 그대로 재사용해 대시보드 정의와 일치. 봇/관리자 제외 뷰 기준.
 // newLoggedDevices가 없는 옛 캐시 payload는 회원=logged 전체로 강등.
-function DauTrendCard({ daily, days = 42 }: {
+function DauTrendCard({ daily, days = 42, showTotals }: {
   daily: Array<{ date: string; devices: number; loggedDevices: number; anonDevices: number; newLoggedDevices?: number; memberLoggedDevices?: number }>
   days?: number
+  showTotals?: boolean // 바 위 희미한 총합 — 바 폭이 충분한 와이드(1열) 모드에서만
 }) {
   const rows = (daily ?? []).slice(-days)
   const max = rows.reduce((m, r) => Math.max(m, r.devices), 0)
@@ -1608,6 +1616,13 @@ function DauTrendCard({ daily, days = 42 }: {
                 onMouseLeave={() => setHoverIdx(prev => (prev === i ? null : prev))}
                 style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}
               >
+                {showTotals && r.devices > 0 && (
+                  <span style={{
+                    fontSize: 'calc(7.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+                    fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: 2,
+                    whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
+                  }}>{r.devices}</span>
+                )}
                 {anonH > 0 && <div style={{ height: anonH, background: ANON, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
                 {newH > 0 && <div style={{ height: newH, background: NEW, borderRadius: anonH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
                 {memberH > 0 && <div style={{ height: memberH, background: MEMBER, borderRadius: (anonH > 0 || newH > 0) ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
@@ -1625,7 +1640,7 @@ function DauTrendCard({ daily, days = 42 }: {
                 fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
               }}>
-                <div style={{ opacity: 0.7, marginBottom: 3 }}>{r.date}</div>
+                <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(r.date)}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: MEMBER }} />회원 로그인 {memberOf(r)}
                 </div>

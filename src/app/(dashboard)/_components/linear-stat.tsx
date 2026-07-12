@@ -25,6 +25,13 @@ interface LStatProps {
   title?: string
 }
 
+
+// 'YYYY-MM-DD (요일)' — 스파크라인 툴팁용. number[] 시리즈의 인덱스 date는 그대로 둔다.
+const WEEKDAYS_KO = ['일', '월', '화', '수', '목', '금', '토']
+function withWeekday(d: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d} (${WEEKDAYS_KO[new Date(d + 'T00:00:00Z').getUTCDay()]})` : d
+}
+
 function Sparkline({
   data, color, format, data2, color2, format2, domain2, dualScale, fill,
 }: { data: SparkPoint[]; color: string; format?: (v: number) => string; data2?: SparkPoint[]; color2?: string; format2?: (v: number) => string; domain2?: [number, number]; dualScale?: boolean; fill?: boolean }) {
@@ -118,7 +125,7 @@ function Sparkline({
           whiteSpace: 'nowrap', pointerEvents: 'none',
           zIndex: 10, lineHeight: 1.3,
         }}>
-          <div style={{ fontFamily: t.font.mono, opacity: 0.7, fontSize: 'calc(8.5px * var(--fz, 1))' }}>{data[hover].date}</div>
+          <div style={{ fontFamily: t.font.mono, opacity: 0.7, fontSize: 'calc(8.5px * var(--fz, 1))' }}>{withWeekday(data[hover].date)}</div>
           <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
             {data2 && data2[hover] != null && <span style={{ display: 'inline-block', width: 7, height: 2, borderRadius: 1, background: color, flexShrink: 0 }} />}
             {fmt(data[hover].value)}
