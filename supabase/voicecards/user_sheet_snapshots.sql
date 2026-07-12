@@ -10,3 +10,7 @@ CREATE TABLE IF NOT EXISTS public.user_sheet_snapshots (
   PRIMARY KEY (user_id, date)
 );
 CREATE INDEX IF NOT EXISTS idx_user_sheet_snapshots_date ON public.user_sheet_snapshots(date);
+
+-- RLS: 모든 접근(스냅샷 upsert 스크립트, vc_user_activity_deltas RPC)이 service key 경유라
+-- 정책 없이 enable만 한다 — anon 직접 접근 차단 (2026-07-12 보안 어드바이저 지적).
+ALTER TABLE public.user_sheet_snapshots ENABLE ROW LEVEL SECURITY;

@@ -1311,10 +1311,16 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   if (!voicecardsSupabase) return null
   // 집계는 DB 함수 vc_event_stats()에서 1회 수행 — anonymous_events_real_users(중첩 뷰:
   // dedup + IP봇필터)를 페이지마다 재평가하던 전수 스캔(수만 행 전송)을 제거. 결과는 JS 집계와 동일.
-  const { data, error } = await voicecardsSupabase.rpc('vc_event_stats')
+  let { data, error } = await voicecardsSupabase.rpc('vc_event_stats')
   if (error || !data) {
-    console.error('[VoiceCards] vc_event_stats RPC failed:', error)
-    return null
+    // 일시 오류(커넥션 풀 등)로 인사이트 블록이 통째로 빠지는 걸 막기 위해 1회 재시도
+    console.error('[VoiceCards] vc_event_stats RPC failed, retrying once:', error)
+    await new Promise(r => setTimeout(r, 700))
+    ;({ data, error } = await voicecardsSupabase.rpc('vc_event_stats'))
+    if (error || !data) {
+      console.error('[VoiceCards] vc_event_stats RPC failed after retry:', error)
+      return null
+    }
   }
   const stats = data as AnonymousEventStats
   return stats.summary.totalEvents > 0 ? stats : null
