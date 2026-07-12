@@ -1564,8 +1564,8 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
   const ANON = '#10b981'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const barH = (v: number) => (max > 0 ? Math.round((v / max) * 72) : 0)
-  // 7일 이동평균(총 활동 기기) — 바 위에 가볍게 얹는 추세선
-  const MA_COLOR = '#64748b'
+  // 7일 이동평균(총 활동 기기) — 바 위에 가볍게 얹는 추세선. 바 팔레트(블루/퍼플/그린)와 대비되는 주황
+  const MA_COLOR = '#f97316'
   const ma = rows.map((_, i) => {
     const win = rows.slice(Math.max(0, i - 6), i + 1)
     return win.reduce((sum, r) => sum + r.devices, 0) / win.length
