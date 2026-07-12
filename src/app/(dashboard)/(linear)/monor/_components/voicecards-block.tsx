@@ -1564,6 +1564,12 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
   const ANON = '#10b981'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const barH = (v: number) => (max > 0 ? Math.round((v / max) * 72) : 0)
+  // 7일 이동평균(총 활동 기기) — 바 위에 가볍게 얹는 추세선
+  const MA_COLOR = '#64748b'
+  const ma = rows.map((_, i) => {
+    const win = rows.slice(Math.max(0, i - 6), i + 1)
+    return win.reduce((sum, r) => sum + r.devices, 0) / win.length
+  })
 
   return (
     <div style={{
@@ -1592,6 +1598,9 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: ANON }} />비로그인 {latest?.anonDevices ?? 0}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+            <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
           </span>
         </div>
       </div>
@@ -1629,6 +1638,19 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
               </div>
             )
           })}
+          {/* 7일 이동평균 라인 — 바 높이 좌표계(0~72px)와 동일 스케일 */}
+          {max > 0 && rows.length > 1 && (
+            <svg
+              viewBox="0 0 100 72" preserveAspectRatio="none"
+              style={{ position: 'absolute', left: 0, bottom: 0, width: '100%', height: 72, pointerEvents: 'none', overflow: 'visible' }}
+            >
+              <polyline
+                points={ma.map((v, i) => `${(((i + 0.5) / rows.length) * 100).toFixed(2)},${(72 - (v / max) * 72).toFixed(2)}`).join(' ')}
+                fill="none" stroke={MA_COLOR} strokeWidth={1.2} opacity={0.75}
+                vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"
+              />
+            </svg>
+          )}
           {hoverIdx !== null && rows[hoverIdx] && (() => {
             const r = rows[hoverIdx]
             const leftPct = Math.min(86, Math.max(14, ((hoverIdx + 0.5) / rows.length) * 100))
@@ -1650,7 +1672,7 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: ANON }} />비로그인 {r.anonDevices}
                 </div>
-                <div style={{ opacity: 0.7, marginTop: 3 }}>총 {r.devices}</div>
+                <div style={{ opacity: 0.7, marginTop: 3 }}>총 {r.devices} · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
               </div>
             )
           })()}
