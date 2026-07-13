@@ -170,6 +170,12 @@ function formatDateShort(dateString?: string | null): string {
   return `${key.slice(2, 4)}.${key.slice(5, 7)}.${key.slice(8, 10)}`
 }
 
+// 요일 한 글자 (KST) — 예: "일"
+function formatWeekdayShort(dateString?: string | null): string {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', weekday: 'short' })
+}
+
 // 시간 HH:mm (KST)
 function formatTimeShort(dateString?: string | null): string {
   if (!dateString) return ''
@@ -191,7 +197,7 @@ const USER_TABLE_MIN_WIDTH = (() => {
   return px + (cols.length - 1) * 6 /* grid gap */ + 16 /* 행 좌우 padding */
 })()
 // 비로그인 저니 테이블 — 컬럼: 활동(날짜) | 기기 | 단계 | 플랫폼 | 앱버전 | 국가 | 카드 | 학습 | 시트 | AI | 클릭 | 일수
-const JOURNEY_TABLE_COLS = '112px minmax(90px,1fr) 64px 44px 52px 48px 40px 40px 40px 36px 40px 40px'
+const JOURNEY_TABLE_COLS = '128px minmax(90px,1fr) 64px 44px 52px 48px 40px 40px 40px 36px 40px 40px'
 const JOURNEY_TABLE_MIN_WIDTH = (() => {
   const cols = JOURNEY_TABLE_COLS.split(' ')
   const px = cols.reduce((sum, c) => {
@@ -1669,7 +1675,7 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
             }}>
               {/* 활동 (마지막 활동, 최신순 첫 컬럼) */}
               <div style={{ ...userDateCell, textAlign: 'left' as const }}>
-                {formatDateShort(d.lastSeenAt)} <span style={{ color: t.neutrals.subtle }}>{formatTimeShort(d.lastSeenAt)}</span>
+                {formatDateShort(d.lastSeenAt)}<span style={{ color: t.neutrals.subtle }}>({formatWeekdayShort(d.lastSeenAt)}) {formatTimeShort(d.lastSeenAt)}</span>
               </div>
               {/* 기기 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
