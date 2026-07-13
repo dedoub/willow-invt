@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS public.user_sheet_snapshots (
   user_id text NOT NULL,
   date date NOT NULL,
   sheet_count integer NOT NULL DEFAULT 0,
+  card_count integer, -- 자정 기준 보유 카드(user_analytics.total_cards 합) — 2026-07-13 추가
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, date)
 );

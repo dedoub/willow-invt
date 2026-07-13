@@ -1,11 +1,13 @@
 -- 사용자별 오늘 증가분(카드/말하기/듣기/구매/보유/시트) + 최근 7일 활동일 수 (user당 1행)
 -- 대시보드 사용자 테이블의 전일대비 diff 둘째 줄 + 7일 활동일 열에 사용.
---   cards/attempts: time_series_analytics (앱 일별 기록)
+--   cards: 보유 카드 오늘 증가분 = live(user_analytics.total_cards 합) − 자정 스냅샷(user_sheet_snapshots.card_count)
+--   attempts: time_series_analytics (앱 일별 기록)
 --   listen/purchased: anonymous_events (이벤트 로그, 오늘 필터)
 --   balance: credit_transactions.delta 합 (순변동 ±)
---   sheets: live users.sheet_ids − 오늘 user_sheet_snapshots (스냅샷 파이프라인)
+--   sheets: live users.sheet_ids − 자정 스냅샷 sheet_count
+--   오늘 가입자는 스냅샷이 없으므로 기준선 0 (시트/카드 전량이 오늘 증가). 스냅샷 없음+기존 유저는 0(잡 실패 안전장치).
 --   active_days_7d: 학습/듣기 distinct 날짜 (최근 7일)
--- apply: 원격 project juyitkynbavhllyjidhz
+-- apply: 원격 project juyitkynbavhllyjidhz (2026-07-13 card_count·신규유저 규칙 반영)
 CREATE OR REPLACE FUNCTION public.vc_user_activity_deltas()
  RETURNS TABLE(user_id text, cards_today bigint, attempts_today bigint, listen_today bigint, active_days_7d integer, purchased_today bigint, balance_delta_today bigint, sheets_delta_today bigint)
  LANGUAGE sql
@@ -13,7 +15,7 @@ CREATE OR REPLACE FUNCTION public.vc_user_activity_deltas()
 AS $function$
 with td as (select (now() at time zone 'Asia/Seoul')::date as d),
 tsa_today as (
-  select t.user_id, sum(t.problems_learned)::bigint as cards, sum(t.attempts)::bigint as attempts
+  select t.user_id, sum(t.attempts)::bigint as attempts
   from time_series_analytics t, td where t.date = td.d group by t.user_id
 ),
 listen_today as (
@@ -41,7 +43,9 @@ balance_today as (
   group by c.user_id
 ),
 live_sheets as (select user_id, coalesce(array_length(sheet_ids,1),0) as sc from users where user_id is not null),
-sheet_snap as (select s.user_id, s.sheet_count from user_sheet_snapshots s, td where s.date = td.d),
+live_cards as (select ua.user_id, coalesce(sum(ua.total_cards),0)::bigint as tc from user_analytics ua group by ua.user_id),
+sheet_snap as (select s.user_id, s.sheet_count, s.card_count from user_sheet_snapshots s, td where s.date = td.d),
+u_created as (select u.user_id, (u.created_at at time zone 'Asia/Seoul')::date as cdate from users u where u.user_id is not null),
 learn_days as (
   select t.user_id, t.date as d from time_series_analytics t, td
   where t.date >= td.d - 6 and (coalesce(t.attempts,0) > 0 or coalesce(t.problems_learned,0) > 0)
@@ -58,22 +62,31 @@ active7 as (
 ),
 ids as (
   select user_id from live_sheets
+  union select user_id from live_cards
   union select user_id from tsa_today
   union select user_id from listen_today
   union select user_id from purchased_today
-  union select user_id from balance_today
   union select user_id from active7
 )
 select i.user_id,
-       coalesce(t.cards,0)::bigint, coalesce(t.attempts,0)::bigint, coalesce(l.listen,0)::bigint,
+       (case when ss.card_count is not null then coalesce(lc.tc,0) - ss.card_count
+             when uc.cdate = td.d then coalesce(lc.tc,0)
+             else 0 end)::bigint as cards_today,
+       coalesce(t.attempts,0)::bigint, coalesce(l.listen,0)::bigint,
        coalesce(a.days,0)::int,
        coalesce(p.pc,0)::bigint, coalesce(b.bd,0)::bigint,
-       (case when ss.sheet_count is null then 0 else coalesce(ls.sc,0) - ss.sheet_count end)::bigint as sheets_delta_today
+       (case when ss.sheet_count is not null then coalesce(ls.sc,0) - ss.sheet_count
+             when uc.cdate = td.d then coalesce(ls.sc,0)
+             else 0 end)::bigint as sheets_delta_today
 from ids i
+cross join td
 left join tsa_today t using(user_id)
 left join listen_today l using(user_id)
 left join active7 a using(user_id)
 left join purchased_today p using(user_id)
 left join balance_today b using(user_id)
 left join live_sheets ls using(user_id)
-left join sheet_snap ss using(user_id);
+left join live_cards lc using(user_id)
+left join sheet_snap ss using(user_id)
+left join u_created uc using(user_id);
+$function$;

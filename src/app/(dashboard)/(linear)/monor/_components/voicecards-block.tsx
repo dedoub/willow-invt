@@ -157,12 +157,6 @@ function formatNumber(value: number): string {
   return value.toLocaleString()
 }
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('ko-KR', {
-    timeZone: 'Asia/Seoul', year: 'numeric', month: 'short', day: 'numeric',
-  })
-}
-
 // 테이블 셀용 짧은 날짜 — 연월일 모두 표시 (YY.MM.DD), KST 기준
 function formatDateShort(dateString?: string | null): string {
   if (!dateString) return '—'
@@ -184,7 +178,7 @@ function formatTimeShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = 'minmax(120px,1fr) 44px 52px 44px 52px 56px 48px 36px 48px 52px 44px 78px 60px 54px 48px 52px 48px 60px 60px 44px'
+const USER_TABLE_COLS = '64px 64px minmax(120px,1fr) 44px 52px 44px 52px 56px 48px 36px 48px 52px 44px 78px 60px 54px 48px 52px 48px 44px'
 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용. 컬럼 정의에서 자동 산출 —
 // 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져 마지막 열들이 회색 행 배경
 // 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
@@ -361,6 +355,8 @@ type SortDir = 'asc' | 'desc'
 
 // 테이블 컬럼 정의 (헤더 라벨 + 정렬키 + 정렬, 모바일 드롭다운 라벨). 순서 = 그리드 순서.
 const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string; align: 'left' | 'center' | 'right' }> = [
+  { key: 'created',  label: '가입',   mobileLabel: '가입일',   align: 'center' },
+  { key: 'recent',   label: '활동',   mobileLabel: '활동일',   align: 'center' },
   { key: 'name',     label: '닉네임', mobileLabel: '닉네임',   align: 'left' },
   { key: 'platform', label: '플랫폼', mobileLabel: '플랫폼',   align: 'center' },
   { key: 'version',  label: '앱버전', mobileLabel: '앱버전',   align: 'center' },
@@ -378,13 +374,11 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'purchased', label: '구매', mobileLabel: '구매 크레딧', align: 'center' },
   { key: 'bonus',    label: '보너스', mobileLabel: '보너스 크레딧', align: 'center' },
   { key: 'credits',  label: '보유', mobileLabel: '보유 크레딧', align: 'center' },
-  { key: 'created',  label: '가입',   mobileLabel: '가입일',   align: 'center' },
-  { key: 'recent',   label: '활동',   mobileLabel: '활동일',   align: 'center' },
   { key: 'active7',  label: '7일',    mobileLabel: '7일 활동일', align: 'center' },
 ]
 
 // 텍스트/문자열 정렬 컬럼은 오름차순이 기본, 숫자·날짜는 내림차순이 기본
-const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['name', 'platform', 'version', 'language', 'country', 'status'])
+const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['name', 'platform', 'language', 'country', 'status'])
 const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key) ? 'asc' : 'desc')
 type SortCrit = { key: UserSortKey; dir: SortDir }
 
@@ -508,8 +502,6 @@ export function VoicecardsBlock({
   const insightGridCols = mobile ? 'repeat(2, 1fr)' : dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'
   // 다중 정렬: 우선순위 순서대로 [{key,dir}]. 헤더 클릭으로 컬럼을 체인에 추가/방향전환/해제.
   const [userSorts, setUserSorts] = useState<SortCrit[]>([{ key: 'created', dir: 'desc' }])
-  // 모바일 카드 펼침 — 탭하면 PC 테이블의 빠진 필드(국가·연동·구매신호·오퍼·크레딧 구성·7일)가 격자로 펼쳐짐
-  const [expandedUserId, setExpandedUserId] = useState<string | null>(null)
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
   const [userPerPageInput, setUserPerPageInput] = useState('10')
@@ -558,7 +550,19 @@ export function VoicecardsBlock({
       switch (key) {
         case 'name':     return nameOf(a).localeCompare(nameOf(b), 'ko')
         case 'platform': return (a.platform || '').localeCompare(b.platform || '')
-        case 'version':  return (a.appVersion || '').localeCompare(b.appVersion || '', undefined, { numeric: true })
+        // 앱버전: 세그먼트 숫자 비교(1.1.9 < 1.1.10). 버전 없음은 가장 오래된 것으로 취급
+        case 'version': {
+          const seg = (v: string | null) => (v ? v.split(/[^0-9]+/).filter(Boolean).map(Number) : null)
+          const va = seg(a.appVersion), vb = seg(b.appVersion)
+          if (!va && !vb) return 0
+          if (!va) return -1
+          if (!vb) return 1
+          for (let i = 0; i < Math.max(va.length, vb.length); i++) {
+            const d = (va[i] ?? 0) - (vb[i] ?? 0)
+            if (d) return d
+          }
+          return 0
+        }
         case 'language': return (a.locale || '').localeCompare(b.locale || '')
         case 'country':  return (a.country || regionOf(a.locale)).localeCompare(b.country || regionOf(b.locale))
         case 'status':   return Number(a.hasFolder) - Number(b.hasFolder)
@@ -609,26 +613,25 @@ export function VoicecardsBlock({
 
   // 헤더 클릭(데스크톱): 다중 정렬 체인에 추가/방향전환/해제 3단계 순환.
   // 미포함 → 체인 끝에 추가(기본방향) → 재클릭 시 반대방향 → 재클릭 시 체인에서 제거.
+  // 클릭한 컬럼이 항상 1순위가 되게 (기존 체인은 동점 처리용으로 뒤에 유지).
+  // 1순위 재클릭: 방향전환 → 한 번 더 클릭하면 해제. (기존 '뒤에 추가' 방식은
+  // 표가 그대로인 것처럼 보여 정렬이 안 되는 걸로 오인됨 — 2026-07-13 CEO 피드백)
   const handleHeaderSort = (key: UserSortKey) => {
     const idx = userSorts.findIndex(s => s.key === key)
-    if (idx < 0) { persistSorts([...userSorts, { key, dir: defaultSortDir(key) }]); return }
-    const cur = userSorts[idx]
+    if (idx < 0) { persistSorts([{ key, dir: defaultSortDir(key) }, ...userSorts]); return }
+    if (idx > 0) {
+      // 체인에 있지만 1순위가 아님 → 1순위로 승격 (방향은 유지)
+      persistSorts([userSorts[idx], ...userSorts.filter(s => s.key !== key)])
+      return
+    }
+    const cur = userSorts[0]
     if (cur.dir === defaultSortDir(key)) {
-      const next = [...userSorts]
-      next[idx] = { key, dir: cur.dir === 'asc' ? 'desc' : 'asc' }
-      persistSorts(next)
+      persistSorts([{ key, dir: cur.dir === 'asc' ? 'desc' : 'asc' }, ...userSorts.slice(1)])
     } else {
-      persistSorts(userSorts.filter(s => s.key !== key))
+      persistSorts(userSorts.slice(1))
     }
   }
 
-  // 모바일 드롭다운: 단일 정렬로 교체. 토글 버튼: 1순위 방향 전환.
-  const handleMobileSort = (key: UserSortKey) => persistSorts([{ key, dir: defaultSortDir(key) }])
-  const handleMobileToggle = () => {
-    if (!userSorts.length) return
-    const f = userSorts[0]
-    persistSorts([{ key: f.key, dir: f.dir === 'asc' ? 'desc' : 'asc' }, ...userSorts.slice(1)])
-  }
 
   return (
     <LCard pad={0}>
@@ -1202,165 +1205,7 @@ export function VoicecardsBlock({
               })()}
             </div>
             {/* 데스크톱은 테이블 헤더 클릭으로 정렬. 모바일은 헤더가 없어 드롭다운으로 정렬. */}
-            {mobile && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <select
-                  value={userSorts[0]?.key || 'created'}
-                  onChange={e => handleMobileSort(e.target.value as UserSortKey)}
-                  style={{
-                    padding: '3px 6px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
-                    background: t.neutrals.inner, color: t.neutrals.text,
-                  }}
-                >
-                  {USER_COLUMNS.map(col => (
-                    <option key={col.key} value={col.key}>{col.mobileLabel}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleMobileToggle}
-                  title="정렬 방향 전환"
-                  style={{
-                    padding: '3px 7px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
-                    background: t.neutrals.inner, color: t.neutrals.muted,
-                  }}
-                >
-                  {(userSorts[0]?.dir ?? 'desc') === 'asc' ? '▲' : '▼'}
-                </button>
-              </div>
-            )}
           </div>
-          {mobile ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {paginatedUsers.map((user) => {
-              const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
-              const fallbackName = user.email || (shortId ? `#${shortId}` : 'Unknown')
-              const initial = (user.nickname?.charAt(0) || user.email?.charAt(0) || shortId.charAt(0) || '?').toUpperCase()
-              const expanded = expandedUserId === user.id
-              const activation = (user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'
-              const countryInfo = formatCountry(user.country, user.locale)
-              const intents = [user.intentPremiumVoice && '프리미엄보이스', user.intentAi && 'AI', user.intentBanner && '배너'].filter(Boolean).join(' · ')
-              return (
-              <div
-                key={user.id}
-                onClick={() => setExpandedUserId(prev => (prev === user.id ? null : user.id))}
-                style={{
-                  padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                  display: 'flex', flexDirection: 'column', gap: 0, cursor: 'pointer',
-                }}
-              >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{
-                  width: 26, height: 26, borderRadius: 26, flexShrink: 0,
-                  background: t.brand[200], color: t.brand[800],
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600,
-                }}>
-                  {initial}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
-                  }}>
-                    <span style={{
-                      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500,
-                      color: user.nickname ? t.neutrals.text : t.neutrals.muted,
-                      fontFamily: user.nickname ? t.font.sans : t.font.mono,
-                      whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
-                      minWidth: 0,
-                    }}>
-                      {user.nickname || fallbackName}
-                    </span>
-                    {user.appVersion && (
-                      <span style={{
-                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                        background: t.neutrals.card, padding: '1px 4px', borderRadius: 3,
-                        flexShrink: 0, lineHeight: 1.4,
-                      }}>
-                        v{user.appVersion}
-                      </span>
-                    )}
-                    {user.platform && (
-                      <span style={{
-                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                        color: user.platform === 'ios' ? '#0369A1' : user.platform === 'android' ? '#15803D' : t.neutrals.muted,
-                        background: user.platform === 'ios' ? '#E0F2FE' : user.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
-                        padding: '1px 5px', borderRadius: 3,
-                        flexShrink: 0, lineHeight: 1.4, textTransform: 'uppercase' as const,
-                      }}>
-                        {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform}
-                      </span>
-                    )}
-                    {user.locale && (
-                      <span style={{
-                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                        color: '#6B21A8', background: '#F3E8FF',
-                        padding: '1px 5px', borderRadius: 3,
-                        flexShrink: 0, lineHeight: 1.4, textTransform: 'uppercase' as const,
-                      }}>
-                        {user.locale}
-                      </span>
-                    )}
-                    {user.sheetCount === 0 && (user.ownCards ?? user.cards) === 0 && (
-                      <span style={{
-                        fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                        color: '#92400E', background: '#FEF3C7',
-                        padding: '1px 5px', borderRadius: 3,
-                        flexShrink: 0, lineHeight: 1.4, whiteSpace: 'nowrap' as const,
-                      }}>
-                        미활성
-                      </span>
-                    )}
-                  </div>
-                  <div style={{
-                    fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted,
-                    whiteSpace: mobile ? ('normal' as const) : ('nowrap' as const),
-                    overflow: mobile ? 'visible' : 'hidden',
-                    textOverflow: mobile ? 'clip' : 'ellipsis',
-                    wordBreak: mobile ? ('keep-all' as const) : ('normal' as const),
-                    lineHeight: 1.4,
-                  }}>
-                    시트 {user.sheetCount}개 · 카드 {formatNumber(user.cards)}개 · 말하기 {formatNumber(user.attempts)}회 · 듣기 {formatNumber(user.creditsUsed)}회 · {user.hasPurchased ? '유료결제' : '무료'} · 마지막 활동일 {user.lastActiveAt ? formatDate(user.lastActiveAt) : '—'} · 가입일 {formatDate(user.createdAt)}
-                  </div>
-                </div>
-
-                <span style={{
-                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, flexShrink: 0,
-                  fontVariantNumeric: 'tabular-nums',
-                }}>
-                  {formatNumber(user.credits)} cr
-                </span>
-                <span style={{ color: t.neutrals.subtle, flexShrink: 0, fontSize: 'calc(9px * var(--fz, 1))', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 120ms ease' }}>▾</span>
-              </div>
-              {expanded && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginTop: 6 }}>
-                  {([
-                    ['국가', countryInfo ? `${countryInfo.flag} ${countryInfo.name}` : '—'],
-                    ['구글연동', user.hasFolder ? '완료' : '미완료'],
-                    ['활성화', activation],
-                    ['7일 활동', `${user.activeDays7d ?? 0}일`],
-                    ['구매신호', intents || '—'],
-                    ['오퍼', user.offerStage || '—'],
-                    ['구매 크레딧', formatNumber(user.purchasedCredits ?? 0)],
-                    ['보너스 크레딧', formatNumber(user.bonusCredits ?? 0)],
-                  ] as Array<[string, string]>).map(([label, value]) => (
-                    <div key={label} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
-                      padding: '3px 7px', borderRadius: 4, background: t.neutrals.card, minWidth: 0,
-                    }}>
-                      <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{label}</span>
-                      <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              </div>
-              )
-            })}
-          </div>
-          ) : (
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* 테이블 헤더 — 클릭하여 다중 정렬. 미포함→추가, 재클릭→방향전환, 또 클릭→해제.
@@ -1404,6 +1249,18 @@ export function VoicecardsBlock({
                   display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center',
                   padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
+                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                    <span>{formatDateShort(user.createdAt)}</span>
+                    <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>
+                  </div>
+                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                    {user.lastActiveAt ? (
+                      <>
+                        <span>{formatDateShort(user.lastActiveAt)}</span>
+                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastActiveAt)}) {formatTimeShort(user.lastActiveAt)}</span>
+                      </>
+                    ) : '—'}
+                  </div>
                   {/* 닉네임 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                     <div style={{
@@ -1525,18 +1382,6 @@ export function VoicecardsBlock({
                   <NumDeltaCell total={user.purchasedCredits} delta={user.purchasedToday} />
                   <NumDeltaCell total={user.bonusCredits} delta={0} />
                   <NumDeltaCell total={user.credits} delta={user.balanceDeltaToday} dim />
-                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                    <span>{formatDateShort(user.createdAt)}</span>
-                    <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>{formatTimeShort(user.createdAt)}</span>
-                  </div>
-                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                    {user.lastActiveAt ? (
-                      <>
-                        <span>{formatDateShort(user.lastActiveAt)}</span>
-                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>{formatTimeShort(user.lastActiveAt)}</span>
-                      </>
-                    ) : '—'}
-                  </div>
                   <div style={userNumCell}>
                     {user.activeDays7d > 0
                       ? <span style={{ fontWeight: 600 }}>{user.activeDays7d}<span style={{ color: t.neutrals.subtle, fontWeight: 400 }}>/7</span></span>
@@ -1547,7 +1392,6 @@ export function VoicecardsBlock({
             })}
           </div>
           </div>
-          )}
 
           {/* 페이지네이션 (주식투자 페이지 섹션과 동일 스타일) */}
           {sortedUsers.length > 0 && (
@@ -1674,8 +1518,9 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
               padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
             }}>
               {/* 활동 (마지막 활동, 최신순 첫 컬럼) */}
-              <div style={{ ...userDateCell, textAlign: 'left' as const }}>
-                {formatDateShort(d.lastSeenAt)}<span style={{ color: t.neutrals.subtle }}>({formatWeekdayShort(d.lastSeenAt)}) {formatTimeShort(d.lastSeenAt)}</span>
+              <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' as const }}>
+                <span>{formatDateShort(d.lastSeenAt)}</span>
+                <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(d.lastSeenAt)}) {formatTimeShort(d.lastSeenAt)}</span>
               </div>
               {/* 기기 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
