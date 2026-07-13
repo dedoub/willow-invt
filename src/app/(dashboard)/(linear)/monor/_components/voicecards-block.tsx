@@ -515,17 +515,6 @@ export function VoicecardsBlock({
     setUserPage(1)
   }
 
-  // 비로그인 저니 테이블 페이지네이션 (사용자 테이블과 동일 패턴)
-  const [journeyPage, setJourneyPage] = useState(1)
-  const [journeyPerPage, setJourneyPerPage] = useState(10)
-  const [journeyPerPageInput, setJourneyPerPageInput] = useState('10')
-  const commitJourneyPerPage = () => {
-    const n = Math.max(5, Math.min(100, Number(journeyPerPageInput) || 10))
-    setJourneyPerPageInput(String(n))
-    setJourneyPerPage(n)
-    setJourneyPage(1)
-  }
-
   // 마운트 시 localStorage에서 정렬 상태 복원 (SSR/CSR hydration 안전).
   // 신형: JSON [{key,dir}] (다중 정렬). 구형: "key:dir" 도 지원.
   useEffect(() => {
@@ -1055,195 +1044,6 @@ export function VoicecardsBlock({
               </div>
             </div>
 
-            {/* 비로그인 저니 — vc_device_journeys 뷰. 최근 14일 미로그인 기기, 사용자 테이블과 동일 문법 */}
-            {anonymousStats.journeys && anonymousStats.journeys.recentAnon.length > 0 && (() => {
-              const stageMeta: Record<string, { label: string; desc: string; color: string; bg: string }> = {
-                opened: { label: '실행만', desc: '앱 실행 후 데모도 열지 않고 이탈한 기기', color: t.neutrals.muted, bg: t.neutrals.card },
-                demo: { label: '데모', desc: '익명 상태로 데모 학습까지 한 기기', color: '#0369A1', bg: '#E0F2FE' },
-                intent: { label: '생성의도', desc: '시트 추가 또는 AI 생성 화면까지 진입한 기기', color: '#B45309', bg: '#FEF3C7' },
-                signin_attempted: { label: '로그인시도', desc: '로그인 버튼을 눌렀지만 완료하지 못한 기기 (전원 ≤1.1.77 구버전 유물, 신규 발생 시 요주의)', color: '#B91C1C', bg: '#FEE2E2' },
-              }
-              const stageOf = (key: string) => stageMeta[key] ?? { label: key, desc: '', color: t.neutrals.muted, bg: t.neutrals.card }
-              const allRecent = anonymousStats.journeys.recentAnon
-              const totalJourneyPages = Math.max(1, Math.ceil(allRecent.length / journeyPerPage))
-              const safeJourneyPage = Math.min(journeyPage, totalJourneyPages)
-              const recent = allRecent.slice((safeJourneyPage - 1) * journeyPerPage, safeJourneyPage * journeyPerPage)
-              const heads: Array<{ label: string; align?: 'center' }> = [
-                { label: '활동' }, { label: '기기' }, { label: '단계', align: 'center' },
-                { label: '플랫폼', align: 'center' }, { label: '앱버전', align: 'center' }, { label: '국가', align: 'center' },
-                { label: '카드', align: 'center' }, { label: '학습', align: 'center' }, { label: '시트', align: 'center' },
-                { label: 'AI', align: 'center' }, { label: '클릭', align: 'center' }, { label: '일수', align: 'center' },
-              ]
-              return (
-                <div style={{ marginTop: 12 }}>
-                  <div style={{
-                    fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
-                    fontFamily: t.font.mono, letterSpacing: 0.3,
-                    textTransform: 'uppercase' as const, marginBottom: 10,
-                  }}>
-                    비로그인 저니 <span style={{ fontWeight: 500, textTransform: 'none' }}>· 최근 14일 · {allRecent.length}기기</span>
-                  </div>
-                  <div style={{ overflowX: 'auto' }}>
-                  <div style={{ minWidth: JOURNEY_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: JOURNEY_TABLE_COLS, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
-                      {heads.map(h => (
-                        <span key={h.label} style={{ ...userHeadCell, textAlign: h.align === 'center' ? 'center' as const : 'left' as const }}>{h.label}</span>
-                      ))}
-                    </div>
-                    {recent.map(d => {
-                      const sm = stageOf(d.stage)
-                      const shortId = (d.deviceId || '').replace(/-/g, '').slice(0, 4)
-                      return (
-                        <div key={d.deviceId} style={{
-                          display: 'grid', gridTemplateColumns: JOURNEY_TABLE_COLS, gap: 6, alignItems: 'center',
-                          padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                        }}>
-                          {/* 활동 (마지막 활동, 최신순 첫 컬럼) */}
-                          <div style={{ ...userDateCell, textAlign: 'left' as const }}>
-                            {formatDateShort(d.lastSeenAt)} <span style={{ color: t.neutrals.subtle }}>{formatTimeShort(d.lastSeenAt)}</span>
-                          </div>
-                          {/* 기기 */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                            <div style={{
-                              width: 22, height: 22, borderRadius: 22, flexShrink: 0,
-                              background: sm.bg, color: sm.color,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 600,
-                            }}>
-                              {(shortId.charAt(0) || '?').toUpperCase()}
-                            </div>
-                            <span style={{
-                              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.muted,
-                              fontFamily: t.font.mono, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
-                            }}>
-                              #{shortId || '????'}
-                            </span>
-                          </div>
-                          {/* 단계 */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
-                            <span title={sm.desc} style={{
-                              fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                              color: sm.color, background: sm.bg,
-                              padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap' as const,
-                            }}>
-                              {sm.label}
-                            </span>
-                          </div>
-                          {/* 플랫폼 */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
-                            {d.platform ? (
-                              <span style={{
-                                fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                                color: d.platform === 'ios' ? '#0369A1' : d.platform === 'android' ? '#15803D' : t.neutrals.muted,
-                                background: d.platform === 'ios' ? '#E0F2FE' : d.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
-                                padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
-                              }}>
-                                {d.platform === 'ios' ? 'iOS' : d.platform === 'android' ? 'AND' : d.platform}
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
-                            )}
-                          </div>
-                          {/* 앱버전 (사용자 테이블과 동일 칩) */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
-                            {d.appVersion ? (
-                              <span style={{
-                                fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                                color: t.neutrals.muted, background: t.neutrals.card,
-                                padding: '1px 4px', borderRadius: 3, lineHeight: 1.4,
-                                whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
-                              }}>
-                                v{d.appVersion}
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
-                            )}
-                          </div>
-                          {/* 국가 (사용자 테이블과 동일 칩: 국기+코드) */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
-                            {(() => {
-                              const c = formatCountry(d.country)
-                              return c ? (
-                                <span title={c.name} style={{
-                                  fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                                  color: '#1E40AF', background: '#DBEAFE',
-                                  padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap' as const,
-                                }}>
-                                  {c.flag} {c.code}
-                                </span>
-                              ) : (
-                                <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
-                              )
-                            })()}
-                          </div>
-                          {/* 카드 / 학습 / 시트 / AI / 클릭 / 일수 */}
-                          <div style={userNumCell}>{d.cardsViewed > 0 ? formatNumber(d.cardsViewed) : '—'}</div>
-                          <div style={userNumCell}>{d.cardsLearned > 0 ? formatNumber(d.cardsLearned) : '—'}</div>
-                          <div style={userNumCell}>{d.addSheetOpens > 0 ? formatNumber(d.addSheetOpens) : '—'}</div>
-                          <div style={userNumCell}>{d.aiGenOpens > 0 ? formatNumber(d.aiGenOpens) : '—'}</div>
-                          <div style={{ ...userNumCell, color: d.signinClicks > 0 ? t.accent.neg : userNumCell.color as string, fontWeight: d.signinClicks > 0 ? 600 : undefined }}>
-                            {d.signinClicks > 0 ? formatNumber(d.signinClicks) : '—'}
-                          </div>
-                          <div style={userNumCell}>{d.activeDays > 1 ? `${d.activeDays}일` : '—'}</div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  </div>
-                  {/* 페이지네이션 — 사용자 테이블과 동일 스타일 */}
-                  <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '6px 8px 0',
-                    borderTop: `1px solid ${t.neutrals.line}`, marginTop: 6,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <input
-                        value={journeyPerPageInput}
-                        onChange={e => setJourneyPerPageInput(e.target.value.replace(/\D/g, ''))}
-                        onBlur={commitJourneyPerPage}
-                        onKeyDown={e => { if (e.key === 'Enter') commitJourneyPerPage() }}
-                        style={{
-                          width: 32, textAlign: 'center', border: 'none',
-                          background: t.neutrals.inner, borderRadius: t.radius.sm,
-                          fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                          padding: '2px 0', outline: 'none',
-                        }}
-                      />
-                      <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
-                    </div>
-                    {totalJourneyPages > 1 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <button disabled={safeJourneyPage === 1} onClick={() => setJourneyPage(p => Math.max(1, p - 1))}
-                          style={{
-                            background: 'transparent', border: 'none',
-                            cursor: safeJourneyPage === 1 ? 'default' : 'pointer',
-                            padding: 4, borderRadius: 4,
-                            color: safeJourneyPage === 1 ? t.neutrals.line : t.neutrals.muted,
-                            opacity: safeJourneyPage === 1 ? 0.4 : 1,
-                          }}>
-                          <LIcon name="chevronLeft" size={13} stroke={2} />
-                        </button>
-                        <span style={{
-                          fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                        }}>
-                          {(safeJourneyPage - 1) * journeyPerPage + 1}-{Math.min(safeJourneyPage * journeyPerPage, allRecent.length)} / {allRecent.length}
-                        </span>
-                        <button disabled={safeJourneyPage >= totalJourneyPages} onClick={() => setJourneyPage(p => Math.min(totalJourneyPages, p + 1))}
-                          style={{
-                            background: 'transparent', border: 'none',
-                            cursor: safeJourneyPage >= totalJourneyPages ? 'default' : 'pointer',
-                            padding: 4, borderRadius: 4,
-                            color: safeJourneyPage >= totalJourneyPages ? t.neutrals.line : t.neutrals.muted,
-                            opacity: safeJourneyPage >= totalJourneyPages ? 0.4 : 1,
-                          }}>
-                          <LIcon name="chevronRight" size={13} stroke={2} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })()}
             </>
           )
         })()}
@@ -1801,11 +1601,219 @@ export function VoicecardsBlock({
           )}
         </div>
       )}
+
+      {/* 비로그인 저니 — 사용자 테이블 아래 */}
+      {anonymousStats?.journeys && anonymousStats.journeys.recentAnon.length > 0 && (
+        <div style={{ padding: `0 ${t.density.cardPad}px 12px` }}>
+          <JourneyTable journeys={anonymousStats.journeys} />
+        </div>
+      )}
     </LCard>
   )
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+// 비로그인 저니 — vc_device_journeys 뷰. 최근 14일 미로그인 기기, 사용자 테이블과 동일 문법.
+// 사용자 테이블 바로 아래 배치. 페이지네이션 상태는 이 컴포넌트 소유.
+function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats['journeys']> }) {
+  const [journeyPage, setJourneyPage] = useState(1)
+  const [journeyPerPage, setJourneyPerPage] = useState(10)
+  const [journeyPerPageInput, setJourneyPerPageInput] = useState('10')
+  const commitJourneyPerPage = () => {
+    const n = Math.max(5, Math.min(100, Number(journeyPerPageInput) || 10))
+    setJourneyPerPageInput(String(n))
+    setJourneyPerPage(n)
+    setJourneyPage(1)
+  }
+  const stageMeta: Record<string, { label: string; desc: string; color: string; bg: string }> = {
+    opened: { label: '실행만', desc: '앱 실행 후 데모도 열지 않고 이탈한 기기', color: t.neutrals.muted, bg: t.neutrals.card },
+    demo: { label: '데모', desc: '익명 상태로 데모 학습까지 한 기기', color: '#0369A1', bg: '#E0F2FE' },
+    intent: { label: '생성의도', desc: '시트 추가 또는 AI 생성 화면까지 진입한 기기', color: '#B45309', bg: '#FEF3C7' },
+    signin_attempted: { label: '로그인시도', desc: '로그인 버튼을 눌렀지만 완료하지 못한 기기 (전원 ≤1.1.77 구버전 유물, 신규 발생 시 요주의)', color: '#B91C1C', bg: '#FEE2E2' },
+  }
+  const stageOf = (key: string) => stageMeta[key] ?? { label: key, desc: '', color: t.neutrals.muted, bg: t.neutrals.card }
+  const allRecent = journeys.recentAnon
+  const totalJourneyPages = Math.max(1, Math.ceil(allRecent.length / journeyPerPage))
+  const safeJourneyPage = Math.min(journeyPage, totalJourneyPages)
+  const recent = allRecent.slice((safeJourneyPage - 1) * journeyPerPage, safeJourneyPage * journeyPerPage)
+  const heads: Array<{ label: string; align?: 'center' }> = [
+    { label: '활동' }, { label: '기기' }, { label: '단계', align: 'center' },
+    { label: '플랫폼', align: 'center' }, { label: '앱버전', align: 'center' }, { label: '국가', align: 'center' },
+    { label: '카드', align: 'center' }, { label: '학습', align: 'center' }, { label: '시트', align: 'center' },
+    { label: 'AI', align: 'center' }, { label: '클릭', align: 'center' }, { label: '일수', align: 'center' },
+  ]
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{
+        fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
+        fontFamily: t.font.mono, letterSpacing: 0.3,
+        textTransform: 'uppercase' as const, marginBottom: 10,
+      }}>
+        비로그인 저니 <span style={{ fontWeight: 500, textTransform: 'none' }}>· 최근 14일 · {allRecent.length}기기</span>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+      <div style={{ minWidth: JOURNEY_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: JOURNEY_TABLE_COLS, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
+          {heads.map(h => (
+            <span key={h.label} style={{ ...userHeadCell, textAlign: h.align === 'center' ? 'center' as const : 'left' as const }}>{h.label}</span>
+          ))}
+        </div>
+        {recent.map(d => {
+          const sm = stageOf(d.stage)
+          const shortId = (d.deviceId || '').replace(/-/g, '').slice(0, 4)
+          return (
+            <div key={d.deviceId} style={{
+              display: 'grid', gridTemplateColumns: JOURNEY_TABLE_COLS, gap: 6, alignItems: 'center',
+              padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+            }}>
+              {/* 활동 (마지막 활동, 최신순 첫 컬럼) */}
+              <div style={{ ...userDateCell, textAlign: 'left' as const }}>
+                {formatDateShort(d.lastSeenAt)} <span style={{ color: t.neutrals.subtle }}>{formatTimeShort(d.lastSeenAt)}</span>
+              </div>
+              {/* 기기 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <div style={{
+                  width: 22, height: 22, borderRadius: 22, flexShrink: 0,
+                  background: sm.bg, color: sm.color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 600,
+                }}>
+                  {(shortId.charAt(0) || '?').toUpperCase()}
+                </div>
+                <span style={{
+                  fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.muted,
+                  fontFamily: t.font.mono, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+                }}>
+                  #{shortId || '????'}
+                </span>
+              </div>
+              {/* 단계 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                <span title={sm.desc} style={{
+                  fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                  color: sm.color, background: sm.bg,
+                  padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap' as const,
+                }}>
+                  {sm.label}
+                </span>
+              </div>
+              {/* 플랫폼 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                {d.platform ? (
+                  <span style={{
+                    fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                    color: d.platform === 'ios' ? '#0369A1' : d.platform === 'android' ? '#15803D' : t.neutrals.muted,
+                    background: d.platform === 'ios' ? '#E0F2FE' : d.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
+                    padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
+                  }}>
+                    {d.platform === 'ios' ? 'iOS' : d.platform === 'android' ? 'AND' : d.platform}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                )}
+              </div>
+              {/* 앱버전 (사용자 테이블과 동일 칩) */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                {d.appVersion ? (
+                  <span style={{
+                    fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                    color: t.neutrals.muted, background: t.neutrals.card,
+                    padding: '1px 4px', borderRadius: 3, lineHeight: 1.4,
+                    whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
+                  }}>
+                    v{d.appVersion}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                )}
+              </div>
+              {/* 국가 (사용자 테이블과 동일 칩: 국기+코드) */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                {(() => {
+                  const c = formatCountry(d.country)
+                  return c ? (
+                    <span title={c.name} style={{
+                      fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                      color: '#1E40AF', background: '#DBEAFE',
+                      padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap' as const,
+                    }}>
+                      {c.flag} {c.code}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                  )
+                })()}
+              </div>
+              {/* 카드 / 학습 / 시트 / AI / 클릭 / 일수 */}
+              <div style={userNumCell}>{d.cardsViewed > 0 ? formatNumber(d.cardsViewed) : '—'}</div>
+              <div style={userNumCell}>{d.cardsLearned > 0 ? formatNumber(d.cardsLearned) : '—'}</div>
+              <div style={userNumCell}>{d.addSheetOpens > 0 ? formatNumber(d.addSheetOpens) : '—'}</div>
+              <div style={userNumCell}>{d.aiGenOpens > 0 ? formatNumber(d.aiGenOpens) : '—'}</div>
+              <div style={{ ...userNumCell, color: d.signinClicks > 0 ? t.accent.neg : userNumCell.color as string, fontWeight: d.signinClicks > 0 ? 600 : undefined }}>
+                {d.signinClicks > 0 ? formatNumber(d.signinClicks) : '—'}
+              </div>
+              <div style={userNumCell}>{d.activeDays > 1 ? `${d.activeDays}일` : '—'}</div>
+            </div>
+          )
+        })}
+      </div>
+      </div>
+      {/* 페이지네이션 — 사용자 테이블과 동일 스타일 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 8px 0',
+        borderTop: `1px solid ${t.neutrals.line}`, marginTop: 6,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            value={journeyPerPageInput}
+            onChange={e => setJourneyPerPageInput(e.target.value.replace(/\D/g, ''))}
+            onBlur={commitJourneyPerPage}
+            onKeyDown={e => { if (e.key === 'Enter') commitJourneyPerPage() }}
+            style={{
+              width: 32, textAlign: 'center', border: 'none',
+              background: t.neutrals.inner, borderRadius: t.radius.sm,
+              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+              padding: '2px 0', outline: 'none',
+            }}
+          />
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+        </div>
+        {totalJourneyPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button disabled={safeJourneyPage === 1} onClick={() => setJourneyPage(p => Math.max(1, p - 1))}
+              style={{
+                background: 'transparent', border: 'none',
+                cursor: safeJourneyPage === 1 ? 'default' : 'pointer',
+                padding: 4, borderRadius: 4,
+                color: safeJourneyPage === 1 ? t.neutrals.line : t.neutrals.muted,
+                opacity: safeJourneyPage === 1 ? 0.4 : 1,
+              }}>
+              <LIcon name="chevronLeft" size={13} stroke={2} />
+            </button>
+            <span style={{
+              fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+            }}>
+              {(safeJourneyPage - 1) * journeyPerPage + 1}-{Math.min(safeJourneyPage * journeyPerPage, allRecent.length)} / {allRecent.length}
+            </span>
+            <button disabled={safeJourneyPage >= totalJourneyPages} onClick={() => setJourneyPage(p => Math.min(totalJourneyPages, p + 1))}
+              style={{
+                background: 'transparent', border: 'none',
+                cursor: safeJourneyPage >= totalJourneyPages ? 'default' : 'pointer',
+                padding: 4, borderRadius: 4,
+                color: safeJourneyPage >= totalJourneyPages ? t.neutrals.line : t.neutrals.muted,
+                opacity: safeJourneyPage >= totalJourneyPages ? 0.4 : 1,
+              }}>
+              <LIcon name="chevronRight" size={13} stroke={2} />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 
 // 일별 활동자 추이 — 하루 한 바를 회원 로그인/신규 로그인/비로그인 3단 스택.
 // 회원(그 날 활동한 기존 가입자) 아래, 신규(그 날 가입) 가운데, 비로그인(익명) 위. 합 = daily.devices.
