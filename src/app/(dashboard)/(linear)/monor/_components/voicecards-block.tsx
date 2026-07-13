@@ -790,9 +790,16 @@ export function VoicecardsBlock({
             while (svIdx < storeVisits.length && storeVisits[svIdx].date <= date) { svCum += storeVisits[svIdx].visitors; svIdx++ }
             return { date, value: svCum }
           })
-          const installRateData = allDates.map((date, i) => ({ date, value: pct(devicesData[i]?.value ?? 0, storeVisitsData[i]?.value ?? 0) }))
-          const installRate = svTotal > 0 ? Math.round(pct(devices, svTotal)) : 0
-          const notInstalled = Math.max(0, svTotal - devices)
+          // 설치율은 방문 집계가 시작된 날 이후의 '신규 기기'만 분자로 — 그 전 기기까지 넣으면
+          // 100%를 넘는 무의미한 값이 됨 (방문 데이터: 플레이 6/1~, iOS는 ASC 백필 대기).
+          const svStartIdx = storeVisitsData.findIndex(d => d.value > 0)
+          const devBaseline = svStartIdx > 0 ? (devicesData[svStartIdx - 1]?.value ?? 0) : 0
+          const installRateData = allDates.map((date, i) => ({
+            date,
+            value: Math.min(100, pct(Math.max(0, (devicesData[i]?.value ?? 0) - devBaseline), storeVisitsData[i]?.value ?? 0)),
+          }))
+          const devicesSinceSv = Math.max(0, devices - devBaseline)
+          const installRate = svTotal > 0 ? Math.min(100, Math.round(pct(devicesSinceSv, svTotal))) : 0
 
           // 크레딧 판매/유료전환 누적 (매출은 크레딧 볼륨으로 표시)
           const creditsByDate = new Map<string, number>()
@@ -886,15 +893,14 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="설치 기기"
-                  title="앱을 설치해 실행까지 온 고유 기기 누적. 점선 = 설치율(스토어 방문 대비)."
+                  title="앱을 설치해 실행까지 온 고유 기기 누적. 설치율 = 방문 집계 시작 이후 신규 기기 / 스토어 방문 누적 (iOS 방문은 ASC 백필 대기 — 그 전까지 과대 표시를 100%로 클램프)."
                   value={devices.toLocaleString()}
-                  subExtra={svTotal > 0 ? (
+                  valueExtra={svTotal > 0 ? (
                     <span style={{
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       <span>설치 {installRate}%</span>
-                      {notInstalled > 0 && <span> · 미설치 {notInstalled.toLocaleString()}명</span>}
                     </span>
                   ) : undefined}
                   sub={`오늘 ${devToday.toLocaleString()}명 · 7일 ${dev7.toLocaleString()}명`}
