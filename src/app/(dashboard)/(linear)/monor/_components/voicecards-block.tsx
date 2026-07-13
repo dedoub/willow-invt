@@ -118,6 +118,23 @@ interface AnonymousEventStats {
   payingLocales: Array<{ locale: string; devices: number }>
   payingCountries: Array<{ country: string; devices: number }>
   storeVisits?: Array<{ date: string; visitors: number }>
+  journeys?: {
+    stages: Array<{ stage: string; devices: number }>
+    recentAnon: Array<{
+      deviceId: string
+      stage: string
+      platform: string | null
+      appVersion: string | null
+      country: string | null
+      lastSeenAt: string
+      activeDays: number
+      cardsViewed: number
+      cardsLearned: number
+      addSheetOpens: number
+      aiGenOpens: number
+      signinClicks: number
+    }>
+  }
 }
 
 export interface VoicecardsBlockProps {
@@ -1016,6 +1033,68 @@ export function VoicecardsBlock({
                 <DauTrendCard daily={anonymousStats.daily} showTotals={!mobile && dashCols === 1} />
               </div>
             </div>
+
+            {/* 비로그인 저니 — vc_device_journeys 뷰. 가입 전 기기가 어디까지 왔는지 + 최근 14일 미로그인 기기 */}
+            {anonymousStats.journeys && (() => {
+              const stageMeta: Record<string, { label: string; desc: string; color: string }> = {
+                opened: { label: '실행만', desc: '앱 실행 후 데모도 열지 않고 이탈한 기기', color: t.neutrals.muted },
+                demo: { label: '데모 체험', desc: '익명 상태로 데모 학습까지 한 기기', color: '#3b82f6' },
+                intent: { label: '생성 의도', desc: '시트 추가 또는 AI 생성 화면까지 진입한 기기', color: '#f59e0b' },
+                signin_attempted: { label: '로그인 시도', desc: '로그인 버튼을 눌렀지만 완료하지 못한 기기 (전원 ≤1.1.77 구버전 유물, 신규 발생 시 요주의)', color: '#DC2626' },
+              }
+              const stages = anonymousStats.journeys.stages.filter(s => s.stage !== 'signed_in')
+              const recent = anonymousStats.journeys.recentAnon.slice(0, mobile ? 5 : 8)
+              const stageOf = (key: string) => stageMeta[key] ?? { label: key, desc: '', color: t.neutrals.muted }
+              return (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{
+                    fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
+                    fontFamily: t.font.mono, letterSpacing: 0.3,
+                    textTransform: 'uppercase' as const, marginBottom: 10,
+                  }}>
+                    비로그인 저니
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+                    {stages.map(s => (
+                      <LStat
+                        key={s.stage}
+                        label={stageOf(s.stage).label}
+                        title={stageOf(s.stage).desc}
+                        value={s.devices.toLocaleString()}
+                        tone={s.stage === 'signin_attempted' && s.devices > 14 ? 'warn' : 'default'}
+                      />
+                    ))}
+                  </div>
+                  {recent.length > 0 && (
+                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column' as const, gap: 3 }}>
+                      {recent.map(d => {
+                        const sm = stageOf(d.stage)
+                        return (
+                          <div key={d.deviceId} style={{
+                            display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px',
+                            background: t.neutrals.inner, borderRadius: 5,
+                            fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
+                            color: t.neutrals.text, whiteSpace: 'nowrap' as const, overflow: 'hidden',
+                          }}>
+                            <span style={{ color: sm.color, fontWeight: 600, minWidth: mobile ? 52 : 64 }} title={sm.desc}>{sm.label}</span>
+                            <span style={{ color: t.neutrals.subtle }}>
+                              {d.platform === 'ios' ? 'iOS' : d.platform === 'android' ? 'And' : d.platform ?? '?'} {d.appVersion ?? '?'} · {d.country ?? '—'}
+                            </span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              카드 {d.cardsViewed}{d.cardsLearned > 0 ? ` · 학습 ${d.cardsLearned}` : ''}
+                              {d.addSheetOpens > 0 ? ` · 시트 ${d.addSheetOpens}` : ''}{d.aiGenOpens > 0 ? ` · AI ${d.aiGenOpens}` : ''}
+                              {d.signinClicks > 0 ? ` · 클릭 ${d.signinClicks}` : ''}
+                              {d.activeDays > 1 ? ` · ${d.activeDays}일` : ''}
+                            </span>
+                            <span style={{ marginLeft: 'auto', color: t.neutrals.subtle }}>{formatDateShort(d.lastSeenAt)} {formatTimeShort(d.lastSeenAt)}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             </>
           )
         })()}

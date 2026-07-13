@@ -1307,6 +1307,24 @@ export interface AnonymousEventStats {
   payingCountries: Array<{ country: string; devices: number }>
   // 스토어 등록정보 방문 (store_visits 테이블, 일별 플랫폼 합산) — 퍼널 최상단. 수집 전엔 빈 배열.
   storeVisits?: Array<{ date: string; visitors: number }>
+  // 비로그인 저니 (vc_device_journeys 뷰) — 스테이지 분포(전 기간) + 최근 14일 미로그인 기기
+  journeys?: {
+    stages: Array<{ stage: string; devices: number }>
+    recentAnon: Array<{
+      deviceId: string
+      stage: string
+      platform: string | null
+      appVersion: string | null
+      country: string | null
+      lastSeenAt: string
+      activeDays: number
+      cardsViewed: number
+      cardsLearned: number
+      addSheetOpens: number
+      aiGenOpens: number
+      signinClicks: number
+    }>
+  }
 }
 
 // 마지막 정상 집계 (프로세스 메모리) — RPC가 일시적으로 느려지거나(mv_real_users 리프레시 창)
@@ -1339,6 +1357,43 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
     svByDate.set(r.date, (svByDate.get(r.date) ?? 0) + (Number(r.visitors) || 0))
   }
   stats.storeVisits = Array.from(svByDate.entries()).map(([date, visitors]) => ({ date, visitors }))
+  // 비로그인 저니 — 실패해도 인사이트 블록 전체를 막지 않는다 (best-effort)
+  try {
+    const [{ data: stageRows }, { data: anonRows }] = await Promise.all([
+      voicecardsSupabase.from('vc_device_journeys').select('journey_stage'),
+      voicecardsSupabase
+        .from('vc_device_journeys')
+        .select('device_id, journey_stage, platform, app_version, country, last_seen_at, active_days, anon_cards_viewed, anon_cards_learned, add_sheet_opens, ai_gen_opens, signin_clicks')
+        .eq('signed_in', false)
+        .gte('last_seen_at', new Date(Date.now() - 14 * 86400_000).toISOString())
+        .order('last_seen_at', { ascending: false })
+        .limit(20),
+    ])
+    const stageOrder = ['opened', 'demo', 'intent', 'signin_attempted', 'signed_in']
+    const counts = new Map<string, number>()
+    for (const r of (stageRows ?? []) as Array<{ journey_stage: string }>) {
+      counts.set(r.journey_stage, (counts.get(r.journey_stage) ?? 0) + 1)
+    }
+    stats.journeys = {
+      stages: stageOrder.map(stage => ({ stage, devices: counts.get(stage) ?? 0 })),
+      recentAnon: ((anonRows ?? []) as Array<Record<string, unknown>>).map(r => ({
+        deviceId: String(r.device_id),
+        stage: String(r.journey_stage),
+        platform: (r.platform as string | null) ?? null,
+        appVersion: (r.app_version as string | null) ?? null,
+        country: (r.country as string | null) ?? null,
+        lastSeenAt: String(r.last_seen_at),
+        activeDays: Number(r.active_days) || 0,
+        cardsViewed: Number(r.anon_cards_viewed) || 0,
+        cardsLearned: Number(r.anon_cards_learned) || 0,
+        addSheetOpens: Number(r.add_sheet_opens) || 0,
+        aiGenOpens: Number(r.ai_gen_opens) || 0,
+        signinClicks: Number(r.signin_clicks) || 0,
+      })),
+    }
+  } catch (e) {
+    console.error('[VoiceCards] vc_device_journeys fetch failed (non-fatal):', e)
+  }
   if (stats.summary.totalEvents > 0) {
     lastGoodAnonStats = stats
     return stats
