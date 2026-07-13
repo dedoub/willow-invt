@@ -135,3 +135,9 @@ tail -20 scripts/logs/{task-name}.log
 - 실행 권한 안 줌 → Permission denied
 - bootout 없이 bootstrap → 중복 로드 에러
 - WorkingDirectory 누락 → 상대 경로 깨짐
+- **외장 볼륨 경로를 plist에 직접 쓰면 EX_CONFIG(78)로 spawn 실패** (2026-07-13 실제 발생, store-visits-sync 22회 연속 실패):
+  `WorkingDirectory`/`StandardOutPath`를 /Volumes/PRO-G40 로 두면 안 됨. 반드시 아래 패턴 사용:
+  - ProgramArguments: `/bin/bash /Users/dongwookkim/scripts/drive-launcher.sh --cwd /Volumes/PRO-G40/app-dev/willow-invt <스크립트>`
+  - WorkingDirectory: `/Users/dongwookkim`
+  - 로그: `/Users/dongwookkim/logs/<task>/launchd.log` (스크립트 내부 >> 로그는 볼륨에 둬도 됨)
+  - EnvironmentVariables에 `HOME=/Users/dongwookkim` 포함

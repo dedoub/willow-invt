@@ -7,10 +7,13 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
+        <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
+        <string>--cwd</string>
+        <string>/Volumes/PRO-G40/app-dev/willow-invt</string>
         <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-store-visits-sync.sh</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Volumes/PRO-G40/app-dev/willow-invt</string>
+    <string>/Users/dongwookkim</string>
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
@@ -19,13 +22,15 @@
         <integer>10</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/logs/store-visits-sync.log</string>
+    <string>/Users/dongwookkim/logs/store-visits-sync/launchd.log</string>
     <key>StandardErrorPath</key>
-    <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/logs/store-visits-sync.log</string>
+    <string>/Users/dongwookkim/logs/store-visits-sync/launchd.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/dongwookkim</string>
     </dict>
 </dict>
 </plist>
