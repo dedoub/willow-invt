@@ -141,7 +141,9 @@ async function collectAppStore(): Promise<Row[]> {
     const reports = await (await fetch(`${api}/v1/analyticsReportRequests/${reqId}/reports?limit=200`, { headers: H })).json()
     for (const r of reports.data ?? []) {
       seenNames.push(r.attributes.name)
-      if (/discovery|engagement/i.test(r.attributes.name)) reportIds.push(r.id)
+      // 정확히 메인 스토어 퍼널 리포트만 — Web Preview/Notification 'Engagement' 류 오매칭과
+      // Standard+Detailed 이중집계 방지 (2026-07-14 리포트 목록 확인 후 고정)
+      if (/^app store discovery and engagement standard$/i.test(r.attributes.name.trim())) reportIds.push(r.id)
     }
   }
   if (reportIds.length === 0) {
