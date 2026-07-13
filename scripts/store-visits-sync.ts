@@ -202,12 +202,37 @@ async function main() {
     }
   }
   if (all.length === 0) { console.log(`${LOG} nothing to upsert`); return }
+  // iOS 첫 유입 감지 (upsert 전 기준) → CEO 텔레그램 원샷 알림
+  const { count: iosBefore } = await supabase.from('store_visits').select('*', { count: 'exact', head: true }).eq('platform', 'ios')
   const CHUNK = 500
   for (let i = 0; i < all.length; i += CHUNK) {
     const { error } = await supabase.from('store_visits').upsert(all.slice(i, i + CHUNK), { onConflict: 'date,platform' })
     if (error) throw new Error(`upsert failed: ${error.message}`)
   }
   console.log(`${LOG} upserted ${all.length} rows`)
+  const iosRows = all.filter(r => r.platform === 'ios')
+  if ((iosBefore ?? 0) === 0 && iosRows.length > 0) {
+    await notifyCeo(`🍎 애플 스토어 방문 데이터 수집 시작\n${iosRows.length}일치 백필 완료 (페이지뷰 합계 ${iosRows.reduce((s2, r) => s2 + r.visitors, 0).toLocaleString()}건)\n대시보드 '스토어 방문' 카드와 설치율 분모가 완성됐습니다.`)
+  }
+}
+
+// CEO 텔레그램 알림 (메인 DB telegram_conversations에서 chat_id 조회, 실패해도 수집엔 영향 없음)
+async function notifyCeo(text: string) {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN
+    if (!botToken || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) return
+    const mainDb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } })
+    const { data } = await mainDb.from('telegram_conversations').select('chat_id').eq('bot_type', 'ceo')
+      .order('updated_at', { ascending: false }).limit(1).maybeSingle()
+    if (!data?.chat_id) return
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: data.chat_id, text }),
+    })
+    console.log(`${LOG} CEO notified`)
+  } catch (e) {
+    console.error(`${LOG} notify failed:`, e instanceof Error ? e.message : e)
+  }
 }
 
 main().catch(e => { console.error(`${LOG} FATAL`, e); process.exit(1) })
