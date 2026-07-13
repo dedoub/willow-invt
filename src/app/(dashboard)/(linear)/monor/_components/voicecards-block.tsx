@@ -190,6 +190,16 @@ const USER_TABLE_MIN_WIDTH = (() => {
   }, 0)
   return px + (cols.length - 1) * 6 /* grid gap */ + 16 /* 행 좌우 padding */
 })()
+// 비로그인 저니 테이블 — 컬럼: 활동(날짜) | 기기 | 단계 | 플랫폼 | 앱버전 | 국가 | 카드 | 학습 | 시트 | AI | 클릭 | 일수
+const JOURNEY_TABLE_COLS = '84px minmax(90px,1fr) 64px 44px 52px 44px 40px 40px 40px 36px 40px 40px'
+const JOURNEY_TABLE_MIN_WIDTH = (() => {
+  const cols = JOURNEY_TABLE_COLS.split(' ')
+  const px = cols.reduce((sum, c) => {
+    const m = c.match(/minmax\((\d+)px/) || c.match(/^(\d+)px$/)
+    return sum + (m ? Number(m[1]) : 0)
+  }, 0)
+  return px + (cols.length - 1) * 6 + 16
+})()
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -1034,17 +1044,22 @@ export function VoicecardsBlock({
               </div>
             </div>
 
-            {/* 비로그인 저니 — vc_device_journeys 뷰. 가입 전 기기가 어디까지 왔는지 + 최근 14일 미로그인 기기 */}
-            {anonymousStats.journeys && (() => {
-              const stageMeta: Record<string, { label: string; desc: string; color: string }> = {
-                opened: { label: '실행만', desc: '앱 실행 후 데모도 열지 않고 이탈한 기기', color: t.neutrals.muted },
-                demo: { label: '데모 체험', desc: '익명 상태로 데모 학습까지 한 기기', color: '#3b82f6' },
-                intent: { label: '생성 의도', desc: '시트 추가 또는 AI 생성 화면까지 진입한 기기', color: '#f59e0b' },
-                signin_attempted: { label: '로그인 시도', desc: '로그인 버튼을 눌렀지만 완료하지 못한 기기 (전원 ≤1.1.77 구버전 유물, 신규 발생 시 요주의)', color: '#DC2626' },
+            {/* 비로그인 저니 — vc_device_journeys 뷰. 최근 14일 미로그인 기기, 사용자 테이블과 동일 문법 */}
+            {anonymousStats.journeys && anonymousStats.journeys.recentAnon.length > 0 && (() => {
+              const stageMeta: Record<string, { label: string; desc: string; color: string; bg: string }> = {
+                opened: { label: '실행만', desc: '앱 실행 후 데모도 열지 않고 이탈한 기기', color: t.neutrals.muted, bg: t.neutrals.card },
+                demo: { label: '데모', desc: '익명 상태로 데모 학습까지 한 기기', color: '#0369A1', bg: '#E0F2FE' },
+                intent: { label: '생성의도', desc: '시트 추가 또는 AI 생성 화면까지 진입한 기기', color: '#B45309', bg: '#FEF3C7' },
+                signin_attempted: { label: '로그인시도', desc: '로그인 버튼을 눌렀지만 완료하지 못한 기기 (전원 ≤1.1.77 구버전 유물, 신규 발생 시 요주의)', color: '#B91C1C', bg: '#FEE2E2' },
               }
-              const stages = anonymousStats.journeys.stages.filter(s => s.stage !== 'signed_in')
-              const recent = anonymousStats.journeys.recentAnon.slice(0, mobile ? 5 : 8)
-              const stageOf = (key: string) => stageMeta[key] ?? { label: key, desc: '', color: t.neutrals.muted }
+              const stageOf = (key: string) => stageMeta[key] ?? { label: key, desc: '', color: t.neutrals.muted, bg: t.neutrals.card }
+              const recent = anonymousStats.journeys.recentAnon
+              const heads: Array<{ label: string; align?: 'center' }> = [
+                { label: '활동' }, { label: '기기' }, { label: '단계', align: 'center' },
+                { label: '플랫폼', align: 'center' }, { label: '앱버전', align: 'center' }, { label: '국가', align: 'center' },
+                { label: '카드', align: 'center' }, { label: '학습', align: 'center' }, { label: '시트', align: 'center' },
+                { label: 'AI', align: 'center' }, { label: '클릭', align: 'center' }, { label: '일수', align: 'center' },
+              ]
               return (
                 <div style={{ marginTop: 12 }}>
                   <div style={{
@@ -1052,46 +1067,87 @@ export function VoicecardsBlock({
                     fontFamily: t.font.mono, letterSpacing: 0.3,
                     textTransform: 'uppercase' as const, marginBottom: 10,
                   }}>
-                    비로그인 저니
+                    비로그인 저니 <span style={{ fontWeight: 500, textTransform: 'none' }}>· 최근 14일 · {recent.length}기기</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
-                    {stages.map(s => (
-                      <LStat
-                        key={s.stage}
-                        label={stageOf(s.stage).label}
-                        title={stageOf(s.stage).desc}
-                        value={s.devices.toLocaleString()}
-                        tone={s.stage === 'signin_attempted' && s.devices > 14 ? 'warn' : 'default'}
-                      />
-                    ))}
-                  </div>
-                  {recent.length > 0 && (
-                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column' as const, gap: 3 }}>
-                      {recent.map(d => {
-                        const sm = stageOf(d.stage)
-                        return (
-                          <div key={d.deviceId} style={{
-                            display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px',
-                            background: t.neutrals.inner, borderRadius: 5,
-                            fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
-                            color: t.neutrals.text, whiteSpace: 'nowrap' as const, overflow: 'hidden',
-                          }}>
-                            <span style={{ color: sm.color, fontWeight: 600, minWidth: mobile ? 52 : 64 }} title={sm.desc}>{sm.label}</span>
-                            <span style={{ color: t.neutrals.subtle }}>
-                              {d.platform === 'ios' ? 'iOS' : d.platform === 'android' ? 'And' : d.platform ?? '?'} {d.appVersion ?? '?'} · {d.country ?? '—'}
-                            </span>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              카드 {d.cardsViewed}{d.cardsLearned > 0 ? ` · 학습 ${d.cardsLearned}` : ''}
-                              {d.addSheetOpens > 0 ? ` · 시트 ${d.addSheetOpens}` : ''}{d.aiGenOpens > 0 ? ` · AI ${d.aiGenOpens}` : ''}
-                              {d.signinClicks > 0 ? ` · 클릭 ${d.signinClicks}` : ''}
-                              {d.activeDays > 1 ? ` · ${d.activeDays}일` : ''}
-                            </span>
-                            <span style={{ marginLeft: 'auto', color: t.neutrals.subtle }}>{formatDateShort(d.lastSeenAt)} {formatTimeShort(d.lastSeenAt)}</span>
-                          </div>
-                        )
-                      })}
+                  <div style={{ overflowX: 'auto' }}>
+                  <div style={{ minWidth: JOURNEY_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: JOURNEY_TABLE_COLS, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
+                      {heads.map(h => (
+                        <span key={h.label} style={{ ...userHeadCell, textAlign: h.align === 'center' ? 'center' as const : 'left' as const }}>{h.label}</span>
+                      ))}
                     </div>
-                  )}
+                    {recent.map(d => {
+                      const sm = stageOf(d.stage)
+                      const shortId = (d.deviceId || '').replace(/-/g, '').slice(0, 4)
+                      return (
+                        <div key={d.deviceId} style={{
+                          display: 'grid', gridTemplateColumns: JOURNEY_TABLE_COLS, gap: 6, alignItems: 'center',
+                          padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                        }}>
+                          {/* 활동 (마지막 활동, 최신순 첫 컬럼) */}
+                          <div style={{ ...userNumCell, textAlign: 'left' as const, color: t.neutrals.muted }}>
+                            {formatDateShort(d.lastSeenAt)} {formatTimeShort(d.lastSeenAt)}
+                          </div>
+                          {/* 기기 */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <div style={{
+                              width: 22, height: 22, borderRadius: 22, flexShrink: 0,
+                              background: sm.bg, color: sm.color,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 600,
+                            }}>
+                              {(shortId.charAt(0) || '?').toUpperCase()}
+                            </div>
+                            <span style={{
+                              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.muted,
+                              fontFamily: t.font.mono, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+                            }}>
+                              #{shortId || '????'}
+                            </span>
+                          </div>
+                          {/* 단계 */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                            <span title={sm.desc} style={{
+                              fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                              color: sm.color, background: sm.bg,
+                              padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap' as const,
+                            }}>
+                              {sm.label}
+                            </span>
+                          </div>
+                          {/* 플랫폼 */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                            {d.platform ? (
+                              <span style={{
+                                fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                                color: d.platform === 'ios' ? '#0369A1' : d.platform === 'android' ? '#15803D' : t.neutrals.muted,
+                                background: d.platform === 'ios' ? '#E0F2FE' : d.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
+                                padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
+                              }}>
+                                {d.platform === 'ios' ? 'iOS' : d.platform === 'android' ? 'AND' : d.platform}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                            )}
+                          </div>
+                          {/* 앱버전 */}
+                          <div style={{ ...userNumCell, color: t.neutrals.muted }}>{d.appVersion ?? '—'}</div>
+                          {/* 국가 */}
+                          <div style={{ ...userNumCell, color: t.neutrals.muted }}>{d.country ?? '—'}</div>
+                          {/* 카드 / 학습 / 시트 / AI / 클릭 / 일수 */}
+                          <div style={userNumCell}>{d.cardsViewed > 0 ? formatNumber(d.cardsViewed) : '—'}</div>
+                          <div style={userNumCell}>{d.cardsLearned > 0 ? formatNumber(d.cardsLearned) : '—'}</div>
+                          <div style={userNumCell}>{d.addSheetOpens > 0 ? formatNumber(d.addSheetOpens) : '—'}</div>
+                          <div style={userNumCell}>{d.aiGenOpens > 0 ? formatNumber(d.aiGenOpens) : '—'}</div>
+                          <div style={{ ...userNumCell, color: d.signinClicks > 0 ? t.accent.neg : userNumCell.color as string, fontWeight: d.signinClicks > 0 ? 600 : undefined }}>
+                            {d.signinClicks > 0 ? formatNumber(d.signinClicks) : '—'}
+                          </div>
+                          <div style={userNumCell}>{d.activeDays > 1 ? `${d.activeDays}일` : '—'}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  </div>
                 </div>
               )
             })()}
