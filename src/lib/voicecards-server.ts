@@ -1367,7 +1367,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
         .eq('signed_in', false)
         .gte('last_seen_at', new Date(Date.now() - 14 * 86400_000).toISOString())
         .order('last_seen_at', { ascending: false })
-        .limit(20),
+        .limit(100),
     ])
     const stageOrder = ['opened', 'demo', 'intent', 'signin_attempted', 'signed_in']
     const counts = new Map<string, number>()
