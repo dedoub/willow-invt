@@ -475,6 +475,8 @@ export function VoicecardsBlock({
   const insightGridCols = mobile ? 'repeat(2, 1fr)' : dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'
   // 다중 정렬: 우선순위 순서대로 [{key,dir}]. 헤더 클릭으로 컬럼을 체인에 추가/방향전환/해제.
   const [userSorts, setUserSorts] = useState<SortCrit[]>([{ key: 'created', dir: 'desc' }])
+  // 모바일 카드 펼침 — 탭하면 PC 테이블의 빠진 필드(국가·연동·구매신호·오퍼·크레딧 구성·7일)가 격자로 펼쳐짐
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null)
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
   const [userPerPageInput, setUserPerPageInput] = useState('10')
@@ -1201,11 +1203,20 @@ export function VoicecardsBlock({
               const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
               const fallbackName = user.email || (shortId ? `#${shortId}` : 'Unknown')
               const initial = (user.nickname?.charAt(0) || user.email?.charAt(0) || shortId.charAt(0) || '?').toUpperCase()
+              const expanded = expandedUserId === user.id
+              const activation = (user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'
+              const countryInfo = formatCountry(user.country, user.locale)
+              const intents = [user.intentPremiumVoice && '프리미엄보이스', user.intentAi && 'AI', user.intentBanner && '배너'].filter(Boolean).join(' · ')
               return (
-              <div key={user.id} style={{
-                padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                display: 'flex', alignItems: 'center', gap: 8,
-              }}>
+              <div
+                key={user.id}
+                onClick={() => setExpandedUserId(prev => (prev === user.id ? null : user.id))}
+                style={{
+                  padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                  display: 'flex', flexDirection: 'column', gap: 0, cursor: 'pointer',
+                }}
+              >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{
                   width: 26, height: 26, borderRadius: 26, flexShrink: 0,
                   background: t.brand[200], color: t.brand[800],
@@ -1287,6 +1298,30 @@ export function VoicecardsBlock({
                 }}>
                   {formatNumber(user.credits)} cr
                 </span>
+                <span style={{ color: t.neutrals.subtle, flexShrink: 0, fontSize: 'calc(9px * var(--fz, 1))', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 120ms ease' }}>▾</span>
+              </div>
+              {expanded && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginTop: 6 }}>
+                  {([
+                    ['국가', countryInfo ? `${countryInfo.flag} ${countryInfo.name}` : '—'],
+                    ['구글연동', user.hasFolder ? '완료' : '미완료'],
+                    ['활성화', activation],
+                    ['7일 활동', `${user.activeDays7d ?? 0}일`],
+                    ['구매신호', intents || '—'],
+                    ['오퍼', user.offerStage || '—'],
+                    ['구매 크레딧', formatNumber(user.purchasedCredits ?? 0)],
+                    ['보너스 크레딧', formatNumber(user.bonusCredits ?? 0)],
+                  ] as Array<[string, string]>).map(([label, value]) => (
+                    <div key={label} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
+                      padding: '3px 7px', borderRadius: 4, background: t.neutrals.card, minWidth: 0,
+                    }}>
+                      <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{label}</span>
+                      <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               </div>
               )
             })}
