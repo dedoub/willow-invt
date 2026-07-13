@@ -178,7 +178,7 @@ function formatTimeShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = '126px 126px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 52px 44px 78px 60px 54px 48px 52px 48px 44px'
+const USER_TABLE_COLS = '64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 52px 44px 78px 60px 54px 48px 52px 48px 44px'
 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용. 컬럼 정의에서 자동 산출 —
 // 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져 마지막 열들이 회색 행 배경
 // 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
@@ -191,7 +191,7 @@ const USER_TABLE_MIN_WIDTH = (() => {
   return px + (cols.length - 1) * 6 /* grid gap */ + 16 /* 행 좌우 padding */
 })()
 // 비로그인 저니 테이블 — 컬럼: 활동(날짜) | 기기 | 단계 | 플랫폼 | 앱버전 | 국가 | 카드 | 학습 | 시트 | AI | 클릭 | 일수
-const JOURNEY_TABLE_COLS = '126px minmax(90px,1fr) 64px 44px 64px 48px 40px 40px 40px 36px 40px 40px'
+const JOURNEY_TABLE_COLS = '64px minmax(90px,1fr) 64px 44px 64px 48px 40px 40px 40px 36px 40px 40px'
 const JOURNEY_TABLE_MIN_WIDTH = (() => {
   const cols = JOURNEY_TABLE_COLS.split(' ')
   const px = cols.reduce((sum, c) => {
@@ -1249,13 +1249,15 @@ export function VoicecardsBlock({
                   display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center',
                   padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
-                  <div style={{ ...userDateCell, textAlign: 'left' as const }}>
-                    {formatDateShort(user.createdAt)} <span style={{ color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>
+                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                    <span>{formatDateShort(user.createdAt)}</span>
+                    <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>
                   </div>
-                  <div style={{ ...userDateCell, textAlign: 'left' as const }}>
+                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                     {user.lastActiveAt ? (
                       <>
-                        {formatDateShort(user.lastActiveAt)} <span style={{ color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastActiveAt)}) {formatTimeShort(user.lastActiveAt)}</span>
+                        <span>{formatDateShort(user.lastActiveAt)}</span>
+                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastActiveAt)}) {formatTimeShort(user.lastActiveAt)}</span>
                       </>
                     ) : '—'}
                   </div>
@@ -1516,8 +1518,9 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
               padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
             }}>
               {/* 활동 (마지막 활동, 최신순 첫 컬럼) */}
-              <div style={{ ...userDateCell, textAlign: 'left' as const }}>
-                {formatDateShort(d.lastSeenAt)} <span style={{ color: t.neutrals.subtle }}>({formatWeekdayShort(d.lastSeenAt)}) {formatTimeShort(d.lastSeenAt)}</span>
+              <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' as const }}>
+                <span>{formatDateShort(d.lastSeenAt)}</span>
+                <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(d.lastSeenAt)}) {formatTimeShort(d.lastSeenAt)}</span>
               </div>
               {/* 기기 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
