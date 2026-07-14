@@ -2444,6 +2444,18 @@ async function sendVoicecardsEventAlert(message: string, details: Record<string,
   })
 }
 
+// 크레딧 상품 정가 (USD) — 결제 알림에 금액 표기용 (voicecards-server.ts와 동일 맵)
+const VC_PRODUCT_PRICES_USD: Record<string, number> = {
+  'com.monor.voicecards.credits.1000': 9.99,
+  'com.monor.voicecards.credits.5500': 49.99,
+  'com.monor.voicecards.credits.12000': 99.99,
+}
+const vcProductLabel = (productId: string): string => {
+  const credits = productId.split('.').pop()
+  const price = VC_PRODUCT_PRICES_USD[productId]
+  return price ? `크레딧 ${credits} ($${price})` : productId
+}
+
 async function monitorVoicecardsPurchases() {
   if (!ceoChatId || !voicecardsSupabase) return
 
@@ -2471,6 +2483,10 @@ async function monitorVoicecardsPurchases() {
   const latestEvent = relevantEvents[relevantEvents.length - 1] || relevantEvents[0]
   const latestAt = latestEvent?.created_at || ''
   const totalCreditsAdded = relevantEvents.reduce((sum, event) => sum + (Number(event.properties?.delta || 0) || 0), 0)
+  const totalUsd = relevantEvents.reduce((sum, event) => {
+    const pid = typeof event.properties?.product_id === 'string' ? event.properties.product_id : ''
+    return sum + (VC_PRODUCT_PRICES_USD[pid] ?? 0)
+  }, 0)
   const uniqueProducts = Array.from(new Set(
     relevantEvents
       .map(event => typeof event.properties?.product_id === 'string' ? event.properties.product_id : '')
@@ -2495,7 +2511,8 @@ async function monitorVoicecardsPurchases() {
     `- 감지: 새 결제 ${relevantEvents.length}건`,
     purchaserLabels.length ? `- 사용자: ${purchaserLabels.join(', ')}` : '',
     totalCreditsAdded > 0 ? `- 충전 크레딧 합계: +${totalCreditsAdded}` : '',
-    uniqueProducts.length ? `- 상품: ${uniqueProducts.slice(0, 3).join(', ')}` : '',
+    totalUsd > 0 ? `- 금액 합계: $${totalUsd.toFixed(2)} (정가 기준)` : '',
+    uniqueProducts.length ? `- 상품: ${uniqueProducts.slice(0, 3).map(vcProductLabel).join(', ')}` : '',
     latestAt ? `- 최신 결제: ${formatKstShort(latestAt)}` : '',
   ].filter(Boolean).join('\n'), {
     issue: 'purchase',
