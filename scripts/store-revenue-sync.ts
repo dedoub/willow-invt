@@ -113,11 +113,43 @@ async function main() {
     }
   }
   if (all.length === 0) { console.log(`${LOG} nothing to upsert`); return }
+  // 신규 행 감지 (upsert 전 존재 여부) — 확정 실액 후속 알림용
+  const fresh: Row[] = []
+  for (const r of all) {
+    const { count } = await supabase.from('store_revenue').select('*', { count: 'exact', head: true })
+      .eq('date', r.date).eq('platform', r.platform).eq('product_id', r.product_id).eq('currency', r.currency)
+    if ((count ?? 0) === 0) fresh.push(r)
+  }
   for (let i = 0; i < all.length; i += 500) {
     const { error } = await supabase.from('store_revenue').upsert(all.slice(i, i + 500), { onConflict: 'date,platform,product_id,currency' })
     if (error) throw new Error(`upsert failed: ${error.message}`)
   }
-  console.log(`${LOG} upserted ${all.length} rows`)
+  console.log(`${LOG} upserted ${all.length} rows (${fresh.length} new)`)
+  if (fresh.length > 0) {
+    const lines = fresh.map(r =>
+      `${r.date} ${r.platform === 'ios' ? 'iOS' : 'Android'} · ${r.product_id} × ${r.units} · 결제통화 ${r.currency} → 실수령 ${r.proceeds}${r.proceeds_currency ? ` ${r.proceeds_currency}` : ''}`
+    )
+    await notifyCeo(`💵 스토어 정산 확정 (실제 금액)\n${lines.slice(0, 8).join('\n')}`)
+  }
+}
+
+// CEO 텔레그램 알림 (메인 DB telegram_conversations에서 chat_id 조회, 실패해도 수집엔 영향 없음)
+async function notifyCeo(text: string) {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN
+    if (!botToken || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) return
+    const mainDb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } })
+    const { data } = await mainDb.from('telegram_conversations').select('chat_id').eq('bot_type', 'ceo')
+      .order('updated_at', { ascending: false }).limit(1).maybeSingle()
+    if (!data?.chat_id) return
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: data.chat_id, text }),
+    })
+    console.log(`${LOG} CEO notified`)
+  } catch (e) {
+    console.error(`${LOG} notify failed:`, e instanceof Error ? e.message : e)
+  }
 }
 
 main().catch(e => { console.error(`${LOG} FATAL`, e); process.exit(1) })
