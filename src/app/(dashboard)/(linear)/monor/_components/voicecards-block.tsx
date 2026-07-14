@@ -784,7 +784,9 @@ export function VoicecardsBlock({
           const storeVisits = anonymousStats.storeVisits ?? []
           const svTotal = storeVisits.reduce((sum, r) => sum + r.visitors, 0)
           const svLast = storeVisits[storeVisits.length - 1]
-          const sv7 = storeVisits.filter(r => r.date >= kstDaysAgo(6)).reduce((sum, r) => sum + r.visitors, 0)
+          // 스토어 리포트는 ~1주 지연 → '7일'은 마지막 데이터일 기준 최근 7일
+          const sv7From = svLast ? new Date(new Date(svLast.date + 'T00:00:00Z').getTime() - 6 * 86400000).toISOString().slice(0, 10) : ''
+          const sv7 = storeVisits.filter(r => r.date >= sv7From).reduce((sum, r) => sum + r.visitors, 0)
           let svCum = 0, svIdx = 0
           const storeVisitsData = allDates.map(date => {
             while (svIdx < storeVisits.length && storeVisits[svIdx].date <= date) { svCum += storeVisits[svIdx].visitors; svIdx++ }
@@ -885,9 +887,17 @@ export function VoicecardsBlock({
               <div style={{ display: 'grid', gridTemplateColumns: insightGridCols, gap: 8 }}>
                 <LStat
                   label="스토어 방문"
-                  title="플레이·앱스토어 등록정보 방문자 누적. 일 1회 수집(1~2일 지연). 퍼널: 방문→설치→로그인→연동→활성화→결제."
+                  title="플레이·앱스토어 등록정보 방문자 누적(값 옆 = 마지막 집계일). 스토어 리포트 특성상 ~1주 지연. 퍼널: 방문→설치→로그인→연동→활성화→결제."
                   value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
-                  sub={svTotal > 0 ? `최근 ${(svLast?.date ?? '').slice(5)} ${(svLast?.visitors ?? 0).toLocaleString()}명 · 7일 ${sv7.toLocaleString()}명` : '수집 대기'}
+                  valueExtra={svLast ? (
+                    <span style={{
+                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                      fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                    }}>
+                      {svLast.date.slice(5)} 기준
+                    </span>
+                  ) : undefined}
+                  sub={svTotal > 0 ? `최근 ${(svLast?.visitors ?? 0).toLocaleString()}명 · 7일 ${sv7.toLocaleString()}명` : '수집 대기'}
                   tone="info"
                   sparkline={compact || svTotal === 0 ? undefined : storeVisitsData}
                 />
