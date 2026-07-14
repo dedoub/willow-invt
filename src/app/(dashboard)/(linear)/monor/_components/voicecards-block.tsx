@@ -498,8 +498,6 @@ export function VoicecardsBlock({
   // 매우 좁은 화면(모바일)에서만 sparkline 숨김. LStat이 sub를 자체 줄로 분리해서
   // 일반 PC 해상도에선 sparkline 들어갈 공간 있음.
   const compact = mobile
-  // 인사이트 6카드: 모바일 2열 · 대시보드 2열 모드 3열(2줄) · 1열 모드 6열(1줄)
-  const insightGridCols = mobile ? 'repeat(2, 1fr)' : dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'
   // 다중 정렬: 우선순위 순서대로 [{key,dir}]. 헤더 클릭으로 컬럼을 체인에 추가/방향전환/해제.
   const [userSorts, setUserSorts] = useState<SortCrit[]>([{ key: 'created', dir: 'desc' }])
   const [userPage, setUserPage] = useState(1)
@@ -672,13 +670,17 @@ export function VoicecardsBlock({
         {(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats?.summary) && (
           <>
             <SkelSectionHeader width={80} />
-            <div style={{ display: 'grid', gridTemplateColumns: insightGridCols, gap: 8 }}>
-              {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'minmax(0,1.08fr) minmax(0,1.08fr) minmax(0,1.84fr)', gap: 8, marginTop: 8 }}>
-              <SkelPie />
-              <SkelPie />
-              <div style={{ gridColumn: mobile ? '1 / -1' : 'auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
+                  {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+                  <SkelPie />
+                  <SkelPie />
+                </div>
+              </div>
+              <div style={{ minWidth: 0 }}>
                 <SkelBars />
               </div>
             </div>
@@ -884,7 +886,10 @@ export function VoicecardsBlock({
                 인사이트
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: insightGridCols, gap: 8 }}>
+              {/* 좌: 퍼널 6카드(3×2) + 플랫폼/국가 파이 · 우: 일별 활동자 전체 높이 (CEO 레이아웃) */}
+              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
                 <LStat
                   label="스토어 방문"
                   title="플레이·앱스토어 등록정보 방문자 누적(값 옆 = 마지막 집계일). 스토어 리포트 특성상 ~1주 지연. 퍼널: 방문→설치→로그인→연동→활성화→결제."
@@ -1011,8 +1016,8 @@ export function VoicecardsBlock({
                 </div>
               </div>
 
-            {/* 플랫폼 / 언어 / 일별 활동자 */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'minmax(0,1.08fr) minmax(0,1.08fr) minmax(0,1.84fr)', gap: 8, marginTop: 8 }}>
+            {/* 플랫폼 / 국가 */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
               <DistributionPie
                 title="플랫폼"
                 tabs={[
@@ -1064,9 +1069,12 @@ export function VoicecardsBlock({
                 unit="명"
                 topN={3}
               />
-              <div style={{ gridColumn: mobile ? '1 / -1' : 'auto' }}>
-                <DauTrendCard daily={anonymousStats.daily} showTotals={!mobile && dashCols === 1} />
-              </div>
+            </div>
+            </div>
+            {/* 우측: 일별 활동자 — 좌측 열 전체 높이로 stretch */}
+            <div style={{ minWidth: 0 }}>
+              <DauTrendCard daily={anonymousStats.daily} showTotals={!mobile && dashCols === 1} />
+            </div>
             </div>
 
             </>
@@ -1702,7 +1710,8 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
   const NEW = '#8b5cf6'
   const ANON = '#10b981'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
-  const barH = (v: number) => (max > 0 ? Math.round((v / max) * 72) : 0)
+  // 바 높이는 컨테이너 대비 % — 카드가 커지면 차트도 같이 커짐 (좌측 퍼널 열 높이에 맞춰 stretch)
+  const barPct = (v: number) => (max > 0 ? (v / max) * 100 : 0)
   // 7일 이동평균(총 활동 기기) — 바 위에 가볍게 얹는 추세선. 바 팔레트(블루/퍼플/그린)와 대비되는 주황
   const MA_COLOR = '#f97316'
   const ma = rows.map((_, i) => {
@@ -1751,11 +1760,11 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
           데이터 없음
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'flex-end', gap: 2, position: 'relative' }}>
+        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: 2, position: 'relative' }}>
           {rows.map((r, i) => {
-            const anonH = barH(r.anonDevices)
-            const newH = barH(newOf(r))
-            const memberH = barH(memberOf(r))
+            const anonH = barPct(r.anonDevices)
+            const newH = barPct(newOf(r))
+            const memberH = barPct(memberOf(r))
             const dim = hoverIdx !== null && hoverIdx !== i
             return (
               <div
@@ -1771,20 +1780,20 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
                     whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
                   }}>{r.devices}</span>
                 )}
-                {anonH > 0 && <div style={{ height: anonH, background: ANON, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
-                {newH > 0 && <div style={{ height: newH, background: NEW, borderRadius: anonH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
-                {memberH > 0 && <div style={{ height: memberH, background: MEMBER, borderRadius: (anonH > 0 || newH > 0) ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {anonH > 0 && <div style={{ height: `${anonH}%`, background: ANON, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {newH > 0 && <div style={{ height: `${newH}%`, background: NEW, borderRadius: anonH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {memberH > 0 && <div style={{ height: `${memberH}%`, background: MEMBER, borderRadius: (anonH > 0 || newH > 0) ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
               </div>
             )
           })}
           {/* 7일 이동평균 라인 — 바 높이 좌표계(0~72px)와 동일 스케일 */}
           {max > 0 && rows.length > 1 && (
             <svg
-              viewBox="0 0 100 72" preserveAspectRatio="none"
-              style={{ position: 'absolute', left: 0, bottom: 0, width: '100%', height: 72, pointerEvents: 'none', overflow: 'visible' }}
+              viewBox="0 0 100 100" preserveAspectRatio="none"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}
             >
               <polyline
-                points={ma.map((v, i) => `${(((i + 0.5) / rows.length) * 100).toFixed(2)},${(72 - (v / max) * 72).toFixed(2)}`).join(' ')}
+                points={ma.map((v, i) => `${(((i + 0.5) / rows.length) * 100).toFixed(2)},${(100 - (v / max) * 100).toFixed(2)}`).join(' ')}
                 fill="none" stroke={MA_COLOR} strokeWidth={1.2} opacity={0.75}
                 vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"
               />
@@ -1796,7 +1805,7 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
             return (
               <div style={{
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
-                bottom: barH(r.devices) + 8, pointerEvents: 'none', zIndex: 10,
+                bottom: `calc(${barPct(r.devices).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
                 fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
