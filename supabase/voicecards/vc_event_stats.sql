@@ -28,7 +28,7 @@ with excluded_devices as (
     )
 ),
 base as (
-  select e.device_id, e.user_id, e.event_name, e.platform, e.locale, e.country, e.properties, e.created_at,
+  select e.device_id, e.user_id, e.event_name, e.platform, e.locale, e.country, e.app_version, e.properties, e.created_at,
          (e.created_at at time zone 'Asia/Seoul')::date as kdate
   from anonymous_events_real_users e
   where e.is_likely_bot = false
@@ -105,8 +105,21 @@ dev_meta as (
   select distinct on (device_id) device_id,
     coalesce(nullif(platform,''),'unknown') as platform,
     coalesce(nullif(locale,''),'unknown') as locale,
-    coalesce(nullif(country,''),'unknown') as country
+    coalesce(nullif(country,''),'unknown') as country,
+    coalesce(nullif(app_version,''),'unknown') as app_version
   from base order by device_id, created_at desc
+),
+versions as (
+  select m.app_version as version, count(*) as devices from dev_meta m group by 1
+),
+recent_active_dev as (
+  select distinct b.device_id from base b
+  where b.kdate >= (now() at time zone 'Asia/Seoul')::date - 6
+    and b.event_name <> 'learning_session_ended' and b.device_id is not null
+),
+versions_recent as (
+  select m.app_version as version, count(*) as devices
+  from recent_active_dev r join dev_meta m using(device_id) group by 1
 ),
 signin_dev as (select distinct device_id from base where event_name='signin_completed'),
 paying_dev as (select distinct device_id from base where event_name='credits_changed' and properties->>'reason'='purchase'),
@@ -142,6 +155,8 @@ select jsonb_build_object(
   'signinCountries', coalesce((select jsonb_agg(jsonb_build_object('country',country,'devices',devices) order by devices desc) from signin_ctry),'[]'::jsonb),
   'payingPlatforms', coalesce((select jsonb_agg(jsonb_build_object('platform',platform,'devices',devices) order by devices desc) from paying_plat),'[]'::jsonb),
   'payingLocales', coalesce((select jsonb_agg(jsonb_build_object('locale',locale,'devices',devices) order by devices desc) from paying_loc),'[]'::jsonb),
-  'payingCountries', coalesce((select jsonb_agg(jsonb_build_object('country',country,'devices',devices) order by devices desc) from paying_ctry),'[]'::jsonb)
+  'payingCountries', coalesce((select jsonb_agg(jsonb_build_object('country',country,'devices',devices) order by devices desc) from paying_ctry),'[]'::jsonb),
+  'versions', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions),'[]'::jsonb),
+  'versionsRecent', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions_recent),'[]'::jsonb)
 )
 $function$;

@@ -1307,6 +1307,9 @@ export interface AnonymousEventStats {
   payingCountries: Array<{ country: string; devices: number }>
   // 스토어 등록정보 방문 (store_visits 테이블, 일별 플랫폼 합산) — 퍼널 최상단. 수집 전엔 빈 배열.
   storeVisits?: Array<{ date: string; visitors: number }>
+  // 앱버전 분포 — 전체 기기 / 최근 7일 활성 기기 (업데이트 채택률)
+  versions?: Array<{ version: string; devices: number }>
+  versionsRecent?: Array<{ version: string; devices: number }>
   // 비로그인 저니 (vc_device_journeys 뷰) — 스테이지 분포(전 기간) + 최근 14일 미로그인 기기
   journeys?: {
     stages: Array<{ stage: string; devices: number }>

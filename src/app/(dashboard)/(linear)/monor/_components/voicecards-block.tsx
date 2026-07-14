@@ -118,6 +118,9 @@ interface AnonymousEventStats {
   payingLocales: Array<{ locale: string; devices: number }>
   payingCountries: Array<{ country: string; devices: number }>
   storeVisits?: Array<{ date: string; visitors: number }>
+  // 앱버전 분포 — 전체 기기 / 최근 7일 활성 기기 (업데이트 채택률)
+  versions?: Array<{ version: string; devices: number }>
+  versionsRecent?: Array<{ version: string; devices: number }>
   journeys?: {
     stages: Array<{ stage: string; devices: number }>
     recentAnon: Array<{
@@ -677,7 +680,8 @@ export function VoicecardsBlock({
                 <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
                   {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
+                  <SkelPie />
                   <SkelPie />
                   <SkelPie />
                 </div>
@@ -1018,8 +1022,8 @@ export function VoicecardsBlock({
                 </div>
               </div>
 
-            {/* 플랫폼 / 국가 */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+            {/* 플랫폼 / 국가 / 앱버전 */}
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
               <DistributionPie
                 title="플랫폼"
                 tabs={[
@@ -1069,6 +1073,24 @@ export function VoicecardsBlock({
                 ]}
                 palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
                 unit="명"
+                topN={3}
+              />
+              <DistributionPie
+                title="앱버전"
+                tabs={[
+                  {
+                    key: 'recent',
+                    label: '7일',
+                    data: (anonymousStats.versionsRecent ?? []).map(v => ({ name: v.version === 'unknown' ? '미상' : `v${v.version}`, value: v.devices })),
+                  },
+                  {
+                    key: 'devices',
+                    label: '전체',
+                    data: (anonymousStats.versions ?? []).map(v => ({ name: v.version === 'unknown' ? '미상' : `v${v.version}`, value: v.devices })),
+                  },
+                ]}
+                palette={['#0ea5e9', '#8b5cf6', '#f59e0b', '#94a3b8']}
+                unit="대"
                 topN={3}
               />
             </div>
