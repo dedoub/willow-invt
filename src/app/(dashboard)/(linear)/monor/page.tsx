@@ -120,6 +120,8 @@ interface AnonymousEventStats {
   // 앱버전 분포 — 전체 기기 / 최근 7일 활성 기기 (업데이트 채택률)
   versions?: Array<{ version: string; devices: number }>
   versionsRecent?: Array<{ version: string; devices: number }>
+  versionsIos?: Array<{ version: string; devices: number }>
+  versionsAndroid?: Array<{ version: string; devices: number }>
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────

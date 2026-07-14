@@ -121,6 +121,8 @@ interface AnonymousEventStats {
   // 앱버전 분포 — 전체 기기 / 최근 7일 활성 기기 (업데이트 채택률)
   versions?: Array<{ version: string; devices: number }>
   versionsRecent?: Array<{ version: string; devices: number }>
+  versionsIos?: Array<{ version: string; devices: number }>
+  versionsAndroid?: Array<{ version: string; devices: number }>
   journeys?: {
     stages: Array<{ stage: string; devices: number }>
     recentAnon: Array<{
@@ -1079,19 +1081,24 @@ export function VoicecardsBlock({
                 title="앱버전"
                 tabs={[
                   {
-                    key: 'recent',
-                    label: '7일',
-                    data: (anonymousStats.versionsRecent ?? []).map(v => ({ name: v.version === 'unknown' ? '미상' : `v${v.version}`, value: v.devices })),
-                  },
-                  {
-                    key: 'devices',
+                    key: 'all',
                     label: '전체',
                     data: (anonymousStats.versions ?? []).map(v => ({ name: v.version === 'unknown' ? '미상' : `v${v.version}`, value: v.devices })),
                   },
+                  {
+                    key: 'ios',
+                    label: 'iOS',
+                    data: (anonymousStats.versionsIos ?? []).map(v => ({ name: v.version === 'unknown' ? '미상' : `v${v.version}`, value: v.devices })),
+                  },
+                  {
+                    key: 'and',
+                    label: 'AND',
+                    data: (anonymousStats.versionsAndroid ?? []).map(v => ({ name: v.version === 'unknown' ? '미상' : `v${v.version}`, value: v.devices })),
+                  },
                 ]}
-                palette={['#0ea5e9', '#8b5cf6', '#f59e0b', '#94a3b8']}
+                palette={['#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#6366f1', '#84cc16', '#06b6d4']}
                 unit="대"
-                topN={3}
+                topN={4}
               />
             </div>
             </div>

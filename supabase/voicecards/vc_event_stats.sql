@@ -112,6 +112,12 @@ dev_meta as (
 versions as (
   select m.app_version as version, count(*) as devices from dev_meta m group by 1
 ),
+versions_ios as (
+  select m.app_version as version, count(*) as devices from dev_meta m where m.platform = 'ios' group by 1
+),
+versions_and as (
+  select m.app_version as version, count(*) as devices from dev_meta m where m.platform = 'android' group by 1
+),
 recent_active_dev as (
   select distinct b.device_id from base b
   where b.kdate >= (now() at time zone 'Asia/Seoul')::date - 6
@@ -157,6 +163,8 @@ select jsonb_build_object(
   'payingLocales', coalesce((select jsonb_agg(jsonb_build_object('locale',locale,'devices',devices) order by devices desc) from paying_loc),'[]'::jsonb),
   'payingCountries', coalesce((select jsonb_agg(jsonb_build_object('country',country,'devices',devices) order by devices desc) from paying_ctry),'[]'::jsonb),
   'versions', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions),'[]'::jsonb),
-  'versionsRecent', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions_recent),'[]'::jsonb)
+  'versionsRecent', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions_recent),'[]'::jsonb),
+  'versionsIos', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions_ios),'[]'::jsonb),
+  'versionsAndroid', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions_and),'[]'::jsonb)
 )
 $function$;

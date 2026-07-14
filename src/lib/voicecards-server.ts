@@ -1310,6 +1310,8 @@ export interface AnonymousEventStats {
   // 앱버전 분포 — 전체 기기 / 최근 7일 활성 기기 (업데이트 채택률)
   versions?: Array<{ version: string; devices: number }>
   versionsRecent?: Array<{ version: string; devices: number }>
+  versionsIos?: Array<{ version: string; devices: number }>
+  versionsAndroid?: Array<{ version: string; devices: number }>
   // 비로그인 저니 (vc_device_journeys 뷰) — 스테이지 분포(전 기간) + 최근 14일 미로그인 기기
   journeys?: {
     stages: Array<{ stage: string; devices: number }>
