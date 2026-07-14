@@ -938,7 +938,7 @@ export interface VoicecardsUserStats {
     intentAi: boolean           // AI 생성 관심
     intentBanner: boolean       // 크레딧/프리미엄 배너 탭
     intentGated: boolean        // 게이트 충돌(약한 신호)
-    hotLead: boolean            // 엄격 기준: 강신호(AI/배너)+최근14일+활성(시트≥1)+미구매
+    hotLead: boolean            // 상대 기준: 최근 7일 활성 미구매자 중 purchaseScore 상위 30%
     purchaseScore: number       // 구매 가능성 점수. 헤비 TTS(듣기 볼륨) 최우선 + 프리미엄보이스 오디션/AI·배너 의도 + 최근활동. 구매자=0
     lastIntentAt: string | null // 가장 최근 구매의도 이벤트 시각
     createdAt: string
@@ -1203,15 +1203,23 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     // 분포를 알아야 함 → 목록 조립 후 후처리에서 설정(아래 hotLead 후처리). 여기선 false.
     hotLead: false,
     // 구매 가능성 점수 — 헤비 유저 복합(결제자=몰입 듣기 패턴). 듣기(TTS) 볼륨을 기저로
-    // 시트·카드·연속사용·업그레이드클릭을 가산. 구매자=0. 오퍼 타겟 랭킹 기준값.
+    // 시트·카드·연속사용을 가산하고, 의도(배너/프리미엄보이스/AI)와 **소진 임박**(실사용자의
+    // 낮은 잔액 — 결제는 크레딧이 바닥나는 순간 일어난다: cavon·elena)을 얹는다. 구매자=0.
+    // ⚠️ 공식은 voice-cards migration 046(vc 데일리 다이제스트 SQL)과 동기 유지할 것.
     purchaseScore: (() => {
       if (u.has_purchased) return 0
       const listen = userCreditsUsedMap.get(u.user_id) || 0            // TTS/듣기 (주 신호)
       const sheets = u.sheet_ids?.length || 0
       const cards = userCardsMap.get(u.user_id) || 0
       const streak = userActivityMap.get(u.user_id)?.activeDays7d || 0
-      const clickedUpgrade = userIntentMap.get(u.user_id)?.banner ? 20 : 0
-      return Math.round(listen + sheets * 5 + Math.min(cards, 300) * 0.2 + streak * 8 + clickedUpgrade)
+      const intent = userIntentMap.get(u.user_id)
+      const clickedUpgrade = intent?.banner ? 20 : 0
+      const premiumCurious = intent?.premiumVoice ? 10 : 0
+      const aiCurious = intent?.ai ? 5 : 0
+      const credits = u.credits || 0
+      // 소진 임박 가산: 듣기 이력이 실재(≥20)하는 미구매자의 잔액이 낮을수록 타이밍 신호
+      const urgency = listen >= 20 ? (credits <= 20 ? 30 : credits <= 50 ? 15 : 0) : 0
+      return Math.round(listen + sheets * 5 + Math.min(cards, 300) * 0.2 + streak * 8 + clickedUpgrade + premiumCurious + aiCurious + urgency)
     })(),
     lastIntentAt: userIntentMap.get(u.user_id)?.lastIntent || null,
     // 학습 활동(user_analytics.last_updated)과 앱 이벤트 최근 시각 중 더 최근값
