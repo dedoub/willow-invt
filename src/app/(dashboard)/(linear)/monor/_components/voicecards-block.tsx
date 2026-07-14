@@ -118,9 +118,8 @@ interface AnonymousEventStats {
   payingLocales: Array<{ locale: string; devices: number }>
   payingCountries: Array<{ country: string; devices: number }>
   storeVisits?: Array<{ date: string; visitors: number }>
-  // 앱버전 분포 — 전체 기기 / 최근 7일 활성 기기 (업데이트 채택률)
+  // 앱버전 분포 — 최근 30일 활동 기기 기준 (업데이트 전파속도)
   versions?: Array<{ version: string; devices: number }>
-  versionsRecent?: Array<{ version: string; devices: number }>
   versionsIos?: Array<{ version: string; devices: number }>
   versionsAndroid?: Array<{ version: string; devices: number }>
   journeys?: {

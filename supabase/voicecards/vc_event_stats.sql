@@ -109,23 +109,23 @@ dev_meta as (
     coalesce(nullif(app_version,''),'unknown') as app_version
   from base order by device_id, created_at desc
 ),
-versions as (
-  select m.app_version as version, count(*) as devices from dev_meta m group by 1
-),
-versions_ios as (
-  select m.app_version as version, count(*) as devices from dev_meta m where m.platform = 'ios' group by 1
-),
-versions_and as (
-  select m.app_version as version, count(*) as devices from dev_meta m where m.platform = 'android' group by 1
-),
-recent_active_dev as (
+-- 앱버전 분포 분모 = 최근 30일 활동 기기 (죽은 옛 기기 제외 — 업데이트 전파속도 목적, 2026-07-14 CEO)
+active30_dev as (
   select distinct b.device_id from base b
-  where b.kdate >= (now() at time zone 'Asia/Seoul')::date - 6
+  where b.kdate >= (now() at time zone 'Asia/Seoul')::date - 29
     and b.event_name <> 'learning_session_ended' and b.device_id is not null
 ),
-versions_recent as (
+versions as (
   select m.app_version as version, count(*) as devices
-  from recent_active_dev r join dev_meta m using(device_id) group by 1
+  from active30_dev a join dev_meta m using(device_id) group by 1
+),
+versions_ios as (
+  select m.app_version as version, count(*) as devices
+  from active30_dev a join dev_meta m using(device_id) where m.platform = 'ios' group by 1
+),
+versions_and as (
+  select m.app_version as version, count(*) as devices
+  from active30_dev a join dev_meta m using(device_id) where m.platform = 'android' group by 1
 ),
 signin_dev as (select distinct device_id from base where event_name='signin_completed'),
 paying_dev as (select distinct device_id from base where event_name='credits_changed' and properties->>'reason'='purchase'),
@@ -163,7 +163,6 @@ select jsonb_build_object(
   'payingLocales', coalesce((select jsonb_agg(jsonb_build_object('locale',locale,'devices',devices) order by devices desc) from paying_loc),'[]'::jsonb),
   'payingCountries', coalesce((select jsonb_agg(jsonb_build_object('country',country,'devices',devices) order by devices desc) from paying_ctry),'[]'::jsonb),
   'versions', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions),'[]'::jsonb),
-  'versionsRecent', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions_recent),'[]'::jsonb),
   'versionsIos', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions_ios),'[]'::jsonb),
   'versionsAndroid', coalesce((select jsonb_agg(jsonb_build_object('version',version,'devices',devices) order by devices desc) from versions_and),'[]'::jsonb)
 )
