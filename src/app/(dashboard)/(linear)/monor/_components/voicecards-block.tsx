@@ -498,6 +498,8 @@ export function VoicecardsBlock({
   // 매우 좁은 화면(모바일)에서만 sparkline 숨김. LStat이 sub를 자체 줄로 분리해서
   // 일반 PC 해상도에선 sparkline 들어갈 공간 있음.
   const compact = mobile
+  // 인사이트 분할(좌 퍼널 / 우 대형 DAU)은 와이드(1열) 모드에서만 — 2열·모바일은 스택
+  const splitLayout = !mobile && dashCols === 1
   // 다중 정렬: 우선순위 순서대로 [{key,dir}]. 헤더 클릭으로 컬럼을 체인에 추가/방향전환/해제.
   const [userSorts, setUserSorts] = useState<SortCrit[]>([{ key: 'created', dir: 'desc' }])
   const [userPage, setUserPage] = useState(1)
@@ -670,7 +672,7 @@ export function VoicecardsBlock({
         {(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats?.summary) && (
           <>
             <SkelSectionHeader width={80} />
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
                   {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
@@ -680,7 +682,7 @@ export function VoicecardsBlock({
                   <SkelPie />
                 </div>
               </div>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 190 }}>
                 <SkelBars />
               </div>
             </div>
@@ -886,8 +888,8 @@ export function VoicecardsBlock({
                 인사이트
               </div>
 
-              {/* 좌: 퍼널 6카드(3×2) + 플랫폼/국가 파이 · 우: 일별 활동자 전체 높이 (CEO 레이아웃) */}
-              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
+              {/* 좌: 퍼널 6카드(3×2) + 플랫폼/국가 파이 · 우: 일별 활동자 전체 높이 (와이드 모드 전용, CEO 레이아웃) */}
+              <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
               <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
                 <LStat
@@ -1071,9 +1073,9 @@ export function VoicecardsBlock({
               />
             </div>
             </div>
-            {/* 우측: 일별 활동자 — 좌측 열 전체 높이로 stretch */}
-            <div style={{ minWidth: 0 }}>
-              <DauTrendCard daily={anonymousStats.daily} showTotals={!mobile && dashCols === 1} />
+            {/* 우측(와이드): 좌측 열 전체 높이로 stretch · 스택 모드: 아래 전폭 + 최소 높이 */}
+            <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 190 }}>
+              <DauTrendCard daily={anonymousStats.daily} showTotals={splitLayout} />
             </div>
             </div>
 
@@ -1478,7 +1480,7 @@ export function VoicecardsBlock({
 
       {/* 비로그인 저니 — 사용자 테이블 아래 */}
       {anonymousStats?.journeys && anonymousStats.journeys.recentAnon.length > 0 && (
-        <div style={{ padding: `0 ${t.density.cardPad}px 12px` }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           <JourneyTable journeys={anonymousStats.journeys} />
         </div>
       )}
@@ -1637,7 +1639,7 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
       {/* 페이지네이션 — 사용자 테이블과 동일 스타일 */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 8px 0',
+        padding: '6px 8px',
         borderTop: `1px solid ${t.neutrals.line}`, marginTop: 6,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
