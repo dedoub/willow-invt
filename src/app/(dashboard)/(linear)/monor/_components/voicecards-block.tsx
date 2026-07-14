@@ -336,6 +336,24 @@ function codeToFlag(code: string): string {
   const cc = code.toUpperCase()
   return String.fromCodePoint(...[...cc].map(c => 0x1f1e6 + c.charCodeAt(0) - 65))
 }
+// 앱버전 파이 데이터: '최신 버전순' 상위 3개 + 나머지(구버전·미상)는 기타로 합침 — 업데이트 전파 파악용
+function versionPieData(rows?: Array<{ version: string; devices: number }>): Array<{ name: string; value: number }> {
+  const seg = (v: string) => v.split(/[^0-9]+/).filter(Boolean).map(Number)
+  const newerFirst = (a: string, b: string) => {
+    const x = seg(a), y = seg(b)
+    for (let i = 0; i < Math.max(x.length, y.length); i++) {
+      const d = (y[i] ?? 0) - (x[i] ?? 0)
+      if (d) return d
+    }
+    return 0
+  }
+  const named = (rows ?? []).filter(r => r.version !== 'unknown').sort((a, b) => newerFirst(a.version, b.version))
+  const top = named.slice(0, 3).map(r => ({ name: `v${r.version}`, value: r.devices }))
+  const rest = named.slice(3).reduce((sum, r) => sum + r.devices, 0)
+    + (rows ?? []).filter(r => r.version === 'unknown').reduce((sum, r) => sum + r.devices, 0)
+  return rest > 0 ? [...top, { name: '기타', value: rest }] : top
+}
+
 // 국가코드(백필된 anonymous_events.country) 우선, 없으면 로케일 지역 폴백.
 function formatCountry(country: string | null, locale?: string | null): { flag: string; code: string; name: string } | null {
   const code = (country || regionOf(locale ?? null)).toUpperCase()
@@ -1080,25 +1098,12 @@ export function VoicecardsBlock({
               <DistributionPie
                 title="앱버전"
                 tabs={[
-                  {
-                    key: 'all',
-                    label: '전체',
-                    data: (anonymousStats.versions ?? []).map(v => ({ name: v.version === 'unknown' ? '미상' : `v${v.version}`, value: v.devices })),
-                  },
-                  {
-                    key: 'ios',
-                    label: 'iOS',
-                    data: (anonymousStats.versionsIos ?? []).map(v => ({ name: v.version === 'unknown' ? '미상' : `v${v.version}`, value: v.devices })),
-                  },
-                  {
-                    key: 'and',
-                    label: 'AND',
-                    data: (anonymousStats.versionsAndroid ?? []).map(v => ({ name: v.version === 'unknown' ? '미상' : `v${v.version}`, value: v.devices })),
-                  },
+                  { key: 'all', label: '전체', data: versionPieData(anonymousStats.versions) },
+                  { key: 'ios', label: 'iOS', data: versionPieData(anonymousStats.versionsIos) },
+                  { key: 'and', label: 'AND', data: versionPieData(anonymousStats.versionsAndroid) },
                 ]}
                 palette={['#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#6366f1', '#84cc16', '#06b6d4']}
                 unit="대"
-                topN={4}
               />
             </div>
             </div>
