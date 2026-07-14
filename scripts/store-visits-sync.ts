@@ -78,10 +78,13 @@ async function collectPlay(): Promise<Row[]> {
     const d = new Date(now.getFullYear(), now.getMonth() - back, 1)
     months.push(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
-  const targets = items.filter(o => o.name.endsWith('.csv') && months.some(m => o.name.includes(m)))
+  // country 분해 파일 하나만 사용 — country/traffic_source 를 둘 다 합치면 같은 날이 이중집계됨
+  // (total_* 파일은 acquisitions만 있어 제외). 2026-07-14 이중집계 발견 후 고정.
+  const isCountryFile = (n: string) => /\/store_performance_[^/]*_country\.csv$/.test(n) && !n.includes('/total_')
+  const targets = items.filter(o => isCountryFile(o.name) && months.some(m => o.name.includes(m)))
   // 첫 실행: 전체 히스토리 백필 (테이블이 비어 있을 때)
   const { count } = await supabase.from('store_visits').select('*', { count: 'exact', head: true }).eq('platform', 'android')
-  const files = (count ?? 0) === 0 ? items.filter(o => o.name.endsWith('.csv')) : targets
+  const files = (count ?? 0) === 0 ? items.filter(o => isCountryFile(o.name)) : targets
   console.log(`${LOG} play: ${files.length} file(s) to parse (backfill=${(count ?? 0) === 0})`)
 
   const byDate = new Map<string, { visitors: number; impressions: number }>()
