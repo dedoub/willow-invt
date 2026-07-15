@@ -1307,6 +1307,8 @@ export interface AnonymousEventStats {
   }>
   // 일별 카드 앞뒤 수동 전환 (card_flipped_manual) — 활동 있는 날만 행 존재
   dailyFlips?: Array<{ date: string; flips: number }>
+  // 일별 실제 크레딧 소진 — tts: TTS 차감(credits_changed/tts_premium), ai: AI 생성(ai_generation_success)
+  dailyCreditSpend?: Array<{ date: string; tts: number; ai: number }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>

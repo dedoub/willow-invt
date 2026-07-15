@@ -109,6 +109,7 @@ interface AnonymousEventStats {
     credits: number
   }>
   dailyFlips?: Array<{ date: string; flips: number }>
+  dailyCreditSpend?: Array<{ date: string; tts: number; ai: number }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>
@@ -1126,9 +1127,9 @@ export function VoicecardsBlock({
       {usersLoading && !userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <SkelSectionHeader width={140} />
-          {/* 5카드: 와이드(1열) 모드 한 줄, 2열 모드 3+2 (인사이트 6카드와 동일 규칙), 모바일 2+2+1 */}
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
-            {[0, 1, 2, 3, 4].map(i => <SkelStat key={i} compact={!!mobile} />)}
+          {/* 6카드: 와이드(1열) 모드 한 줄, 2열 모드 3+3 (인사이트 6카드와 동일 규칙), 모바일 2×3 */}
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
+            {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
           </div>
         </div>
       )}
@@ -1203,7 +1204,7 @@ export function VoicecardsBlock({
             ) : undefined
 
             return (
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
             <LStat
               label="보유 시트"
               value={formatNumber(userStats.totalSheets)}
@@ -1272,6 +1273,31 @@ export function VoicecardsBlock({
                   valueExtra={cardRatioExtra(totalUsed)}
                   sub={`오늘 ${formatNumber(todayUsage)}회 · 7일 ${formatNumber(last7Sum)}회`}
                   sparkline={compact ? undefined : (sparkData.length > 1 ? sparkData : undefined)}
+                />
+              )
+            })()}
+            {/* 실제 크레딧 소진 (TTS 차감 + AI 생성) — 듣기 학습과 같은 이벤트 통계 소스 */}
+            {eventsLoading && !anonymousStats ? (
+              <SkelStat compact={!!mobile} />
+            ) : (() => {
+              const spend = anonymousStats?.dailyCreditSpend ?? []
+              const dayTotal = (d: { tts: number; ai: number }) => (d.tts || 0) + (d.ai || 0)
+              const todaySpend = (() => { const d = spend.find(s => s.date === todayStr); return d ? dayTotal(d) : 0 })()
+              const last7Spend = spend.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + dayTotal(d), 0)
+              const totalTts = spend.reduce((sum, d) => sum + (d.tts || 0), 0)
+              const totalAi = spend.reduce((sum, d) => sum + (d.ai || 0), 0)
+              let runningSpend = 0
+              const spendSpark = spend.map(d => {
+                runningSpend += dayTotal(d)
+                return { date: d.date, value: runningSpend }
+              })
+              return (
+                <LStat
+                  label="크레딧 사용"
+                  title={`실제 소진된 크레딧 누적 (TTS 차감 ${formatNumber(totalTts)} + AI 생성 ${formatNumber(totalAi)}). 유저의 크레딧 소진 속도 = 구매 압력.`}
+                  value={formatNumber(totalTts + totalAi)}
+                  sub={`오늘 ${formatNumber(todaySpend)} · 7일 ${formatNumber(last7Spend)}`}
+                  sparkline={compact ? undefined : (spendSpark.length > 1 ? spendSpark : undefined)}
                 />
               )
             })()}

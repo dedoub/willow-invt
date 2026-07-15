@@ -88,6 +88,17 @@ flip_daily as (
   select kdate, count(*) as flips from base
   where event_name = 'card_flipped_manual' group by kdate
 ),
+-- 실제 크레딧 소진: TTS 차감(credits_changed/tts_premium 음수 delta) + AI 생성(ai_generation_success/credits_used)
+credit_spend_daily as (
+  select kdate,
+    sum(case when event_name = 'credits_changed' and properties->>'reason' = 'tts_premium'
+             and (properties->>'delta')::numeric < 0 then -(properties->>'delta')::numeric else 0 end)::int as tts_spent,
+    sum(case when event_name = 'ai_generation_success'
+             then coalesce((properties->>'credits_used')::numeric, 0) else 0 end)::int as ai_spent
+  from base
+  where event_name in ('credits_changed','ai_generation_success')
+  group by kdate
+),
 sheets as (
   select properties->>'sheet_id' as sheet_id, count(*) as cards, count(distinct device_id) as devices
   from base
@@ -158,6 +169,7 @@ select jsonb_build_object(
   'cumulativeDistinct', coalesce((select jsonb_agg(jsonb_build_object('date',kdate,'devices',devices,'learned',learned,'signin',signin) order by kdate) from cumulative),'[]'::jsonb),
   'dailyCreditUsage', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'credits',coalesce(c.credits,0)) order by d.kdate) from all_dates d left join credit_daily c using(kdate)),'[]'::jsonb),
   'dailyFlips', coalesce((select jsonb_agg(jsonb_build_object('date',kdate,'flips',flips) order by kdate) from flip_daily),'[]'::jsonb),
+  'dailyCreditSpend', coalesce((select jsonb_agg(jsonb_build_object('date',kdate,'tts',tts_spent,'ai',ai_spent) order by kdate) from credit_spend_daily),'[]'::jsonb),
   'demoSheets', coalesce((select jsonb_agg(jsonb_build_object('sheetId',sheet_id,'cards',cards,'devices',devices) order by cards desc) from sheets),'[]'::jsonb),
   'platforms', coalesce((select jsonb_agg(jsonb_build_object('platform',platform,'devices',devices,'events',events) order by events desc) from platforms),'[]'::jsonb),
   'locales', coalesce((select jsonb_agg(jsonb_build_object('locale',locale,'devices',devices) order by devices desc) from locales),'[]'::jsonb),
