@@ -250,11 +250,11 @@ export function ReviewnotesBlock({
         )}
 
         {loading && <SkeletonRow count={4} />}
-      </div>
 
-      {/* 인사이트 — 랜딩 트래픽 → 가입 → 활동 → 유료 퍼널 (2026-07-15 방문 통계에서 승격) */}
+      {/* 인사이트 — 랜딩 트래픽 → 가입 → 로그인 → 활동 → 유료 퍼널.
+          보이스카드와 동일하게 헤더 컨테이너 안에 배치 — 두 블록의 인사이트 시작 높이 정렬 (2026-07-15 CEO) */}
       {!loading && trafficStats && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+        <div>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
           }}>
@@ -303,6 +303,13 @@ export function ReviewnotesBlock({
             }
             let runSignups = 0
             const cumSignups = daily.map(d => ({ date: d.date, value: (runSignups += signupByDay.get(d.date) ?? 0) }))
+            // 회원 로그인 연인원 — 하루에 유저당 1회만 카운트, 누적 (2026-07-15 CEO)
+            const loginByDay = new Map(trafficStats.dailyLogins.map(d => [d.date, d.users]))
+            const loginsToday = loginByDay.get(todayKey) ?? 0
+            const logins7 = trafficStats.dailyLogins.filter(d => d.date >= sevenAgoKey).reduce((s, d) => s + d.users, 0)
+            let runLogins = 0
+            const cumLogins = daily.map(d => ({ date: d.date, value: (runLogins += loginByDay.get(d.date) ?? 0) }))
+            const totalLogins = trafficStats.dailyLogins.reduce((s, d) => s + d.users, 0)
             const totalUsersAll = users.length
             const paidUsers = users.filter(u => u.subscriptionPlan !== 'FREE').length
             const activeUsers = trafficStats.activeUsers
@@ -318,7 +325,7 @@ export function ReviewnotesBlock({
             )
             return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
             <LStat
               label="페이지뷰"
               title="랜딩(/ko, /en) 페이지뷰 누적 — 세션당 1회, 봇 제외 (집계 시작 2026-06-24 이후)"
@@ -342,6 +349,13 @@ export function ReviewnotesBlock({
               valueExtra={rateExtra('전환', rate(signupsSinceStart, trafficStats.totals.visitors))}
               sub={`오늘 ${signupsToday.toLocaleString()}명 · 7일 ${signups7.toLocaleString()}명`}
               sparkline={cumSignups}
+            />
+            <LStat
+              label="회원 로그인"
+              title="회원 로그인 연인원 누적 — 하루에 유저당 1회만 카운트 (EventLog, 집계 시작 이후). 같은 유저가 3일 쓰면 3으로 집계."
+              value={totalLogins.toLocaleString()}
+              sub={`오늘 ${loginsToday.toLocaleString()}명 · 7일 ${logins7.toLocaleString()}명`}
+              sparkline={cumLogins}
             />
             <LStat
               label="활동 사용자"
@@ -380,6 +394,7 @@ export function ReviewnotesBlock({
           })()}
         </div>
       )}
+      </div>
 
       {/* 운영 지표 (임시 이름) — 매출 + 가입 통합 4카드, 옛 '인사이트' 섹션 (2026-07-15 아래로 이동) */}
       {!loading && stats && userStats && (() => {

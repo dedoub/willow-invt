@@ -29,6 +29,15 @@ daily as (
          count(*) as views, count(distinct "sessionId") as visitors
   from cur group by 1
 ),
+-- 회원 로그인 연인원: 하루에 유저당 1회만 카운트 (EventLog, KST) — 2026-07-15
+login_daily as (
+  select ("createdAt" at time zone 'Asia/Seoul')::date as kdate,
+         count(distinct "userId") as users
+  from "EventLog"
+  where "userId" is not null
+    and "createdAt" >= now() - make_interval(days => range_days)
+  group by 1
+),
 refs as (
   select coalesce(nullif(referrer, ''), 'direct') as referrer, count(*) as n
   from cur group by 1 order by n desc limit 6
@@ -53,6 +62,8 @@ select jsonb_build_object(
       and "createdAt" < now() - make_interval(days => range_days)),
   'daily', coalesce((select jsonb_agg(jsonb_build_object(
     'date', kdate, 'views', views, 'visitors', visitors) order by kdate) from daily), '[]'::jsonb),
+  'dailyLogins', coalesce((select jsonb_agg(jsonb_build_object(
+    'date', kdate, 'users', users) order by kdate) from login_daily), '[]'::jsonb),
   'topReferrers', coalesce((select jsonb_agg(jsonb_build_object(
     'referrer', referrer, 'count', n)) from refs), '[]'::jsonb),
   'topCountries', coalesce((select jsonb_agg(jsonb_build_object(

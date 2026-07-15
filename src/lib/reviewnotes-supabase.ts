@@ -55,6 +55,8 @@ export interface ReviewNotesTrafficStats {
   activeUsers: number
   prevActiveUsers: number
   daily: Array<{ date: string; views: number; visitors: number }>
+  // 일별 회원 로그인 — 하루에 유저당 1회만 카운트 (연인원 집계용)
+  dailyLogins: Array<{ date: string; users: number }>
   topReferrers: Array<{ referrer: string; count: number }>
   topCountries: Array<{ country: string; count: number }>
 }
@@ -80,6 +82,7 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     activeUsers: 0,
     prevActiveUsers: 0,
     daily: [],
+    dailyLogins: [],
     topReferrers: [],
     topCountries: [],
   }
@@ -100,6 +103,7 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     activeUsers?: number
     prevActiveUsers?: number
     daily: Array<{ date: string; views: number; visitors: number }>
+    dailyLogins?: Array<{ date: string; users: number }>
     topReferrers: Array<{ referrer: string; count: number }>
     topCountries: Array<{ country: string; count: number }>
   }
@@ -127,6 +131,7 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     activeUsers: stats.activeUsers ?? 0,
     prevActiveUsers: stats.prevActiveUsers ?? 0,
     daily,
+    dailyLogins: stats.dailyLogins ?? [],
     topReferrers: stats.topReferrers ?? [],
     topCountries: stats.topCountries ?? [],
   }
