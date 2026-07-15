@@ -7,6 +7,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats } from '@/lib/reviewnotes-supabase'
 
@@ -325,20 +326,27 @@ export function ReviewnotesBlock({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
             <LStat
-              label="페이지뷰"
-              title="랜딩(/ko, /en) 페이지뷰 누적 — 세션당 1회, 봇 제외 (집계 시작 2026-06-24 이후)"
-              value={trafficStats.totals.views.toLocaleString()}
-              sub={`오늘 ${todayViews.toLocaleString()}회 · 7일 ${last7Views.toLocaleString()}회`}
-              sparkline={cumViews}
-            />
-            <LStat
               label="순 방문자"
               title="랜딩 유니크 방문자 누적 (기기 기준, 집계 시작 이후)"
               value={trafficStats.totals.visitors.toLocaleString()}
-              valueExtra={rateExtra('방문율', rate(trafficStats.totals.visitors, trafficStats.totals.views))}
               sub={`오늘 ${todayVisitors.toLocaleString()}명 · 7일 ${last7Visitors.toLocaleString()}명`}
               tone="info"
               sparkline={cumVisitors}
+            />
+            <LStat
+              label="페이지뷰"
+              title="랜딩(/ko, /en) 페이지뷰 누적 — 세션당 1회, 봇 제외 (집계 시작 2026-06-24 이후). 배수 = 방문자당 조회."
+              value={trafficStats.totals.views.toLocaleString()}
+              valueExtra={trafficStats.totals.visitors > 0 ? (
+                <span style={{
+                  fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                  fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                }}>
+                  {(trafficStats.totals.views / trafficStats.totals.visitors).toFixed(1)}x
+                </span>
+              ) : undefined}
+              sub={`오늘 ${todayViews.toLocaleString()}회 · 7일 ${last7Views.toLocaleString()}회`}
+              sparkline={cumViews}
             />
             <LStat
               label="가입"
@@ -365,20 +373,29 @@ export function ReviewnotesBlock({
               tone={paidUsers > 0 ? 'pos' : 'default'}
             />
           </div>
+          {/* 유입 경로 / 국가 — 보이스카드와 동일한 파이 + 탭(방문/회원/유료).
+              회원·유료는 EventLog↔PageView 방문자 ID 조인의 first-touch 귀속이라 랜딩 미경유 유저는 빠짐. */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
-            <BreakdownStat
-              label="유입 경로"
-              items={trafficStats.topReferrers.map(r => ({
-                label: r.referrer === 'direct' ? '직접 유입' : r.referrer,
-                count: r.count,
-              }))}
+            <DistributionPie
+              title="유입 경로"
+              tabs={[
+                { key: 'visit', label: '방문', data: trafficStats.topReferrers.map(r => ({ name: r.referrer === 'direct' ? '직접 유입' : r.referrer, value: r.count })) },
+                { key: 'member', label: '회원', data: trafficStats.memberReferrers.map(r => ({ name: r.referrer === 'direct' ? '직접 유입' : r.referrer, value: r.count })) },
+                { key: 'paid', label: '유료', data: trafficStats.paidReferrers.map(r => ({ name: r.referrer === 'direct' ? '직접 유입' : r.referrer, value: r.count })) },
+              ]}
+              palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
+              topN={4}
             />
-            <BreakdownStat
-              label="국가"
-              items={trafficStats.topCountries.map(c => ({
-                label: c.country === 'Unknown' ? '알 수 없음' : c.country,
-                count: c.count,
-              }))}
+            <DistributionPie
+              title="국가"
+              tabs={[
+                { key: 'visit', label: '방문', data: trafficStats.topCountries.map(c => ({ name: c.country === 'Unknown' ? '알 수 없음' : c.country, value: c.count })) },
+                { key: 'member', label: '회원', data: trafficStats.memberCountries.map(c => ({ name: c.country === 'Unknown' ? '알 수 없음' : c.country, value: c.count })) },
+                { key: 'paid', label: '유료', data: trafficStats.paidCountries.map(c => ({ name: c.country === 'Unknown' ? '알 수 없음' : c.country, value: c.count })) },
+              ]}
+              palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
+              unit="명"
+              topN={4}
             />
           </div>
           </div>
@@ -705,39 +722,6 @@ function SignupStat({ userStats }: { userStats: ReviewNotesUserStats }) {
   )
 }
 
-function BreakdownStat({ label, items }: { label: string; items: Array<{ label: string; count: number }> }) {
-  return (
-    <div style={{
-      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px',
-      minWidth: 0,
-    }}>
-      <div style={{
-        fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
-        textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: 4,
-      }}>{label}</div>
-      {items.length === 0 ? (
-        <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted }}>-</div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {items.slice(0, 3).map(item => (
-            <div key={item.label} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
-            }}>
-              <span style={{
-                fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>{item.label}</span>
-              <span style={{
-                fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                fontVariantNumeric: 'tabular-nums', flexShrink: 0,
-              }}>{item.count.toLocaleString()}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 function SkeletonRow({ count }: { count: number }) {
   return (

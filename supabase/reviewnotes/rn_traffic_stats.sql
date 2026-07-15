@@ -3,9 +3,10 @@
 -- ----------------------------------------------------------------------------
 -- 대상 프로젝트: review-notes (kumaqaizejnjrvfqhahu) — 메인 willow-invt DB 아님.
 -- 배경(2026-07-15): 대시보드는 publishable(anon) 키로 ReviewNotes DB를 읽는데,
---   RLS 하드닝으로 PageView에 anon SELECT 정책이 없어 raw select가 에러 없이 0행을
---   반환 → 트래픽 카드가 조용히 0으로 표시되던 문제.
+--   RLS 하드닝으로 PageView/EventLog에 anon SELECT 정책이 없어 raw select가 에러 없이
+--   0행을 반환 → 트래픽 카드가 조용히 0으로 표시되던 문제.
 -- 해법: raw 행을 다시 열지 않고, 집계만 SECURITY DEFINER 함수로 노출 (vc_event_stats 패턴).
+-- 대시보드는 range_days에 큰 값(3650)을 넘겨 집계 시작 이후 전체 누적으로 쓴다.
 -- 소비처: src/lib/reviewnotes-supabase.ts getReviewNotesTrafficStats()
 -- ============================================================================
 create or replace function public.rn_traffic_stats(range_days int default 30)
@@ -45,7 +46,26 @@ refs as (
 ctrs as (
   select coalesce(nullif(country, ''), 'Unknown') as country, count(*) as n
   from cur group by 1 order by n desc limit 6
-)
+),
+-- 회원/유료 유입경로·국가: EventLog와 PageView가 같은 방문자 ID(sessionId)를 공유 →
+-- 유저별 첫 랜딩 방문(first-touch)의 referrer/country로 귀속. 랜딩을 안 거친 유저는 미포함.
+user_sessions as (
+  select distinct "userId", "sessionId" from "EventLog"
+  where "userId" is not null and coalesce("sessionId", '') <> ''
+),
+user_touch as (
+  select distinct on (us."userId") us."userId",
+    coalesce(nullif(pv.referrer, ''), 'direct') as referrer,
+    coalesce(nullif(pv.country, ''), 'Unknown') as country
+  from user_sessions us
+  join "PageView" pv on pv."sessionId" = us."sessionId"
+  order by us."userId", pv."createdAt" asc
+),
+paid_users as (select id from "User" where "subscriptionPlan" <> 'FREE'),
+member_refs as (select referrer, count(*) as n from user_touch group by 1),
+member_ctrs as (select country, count(*) as n from user_touch group by 1),
+paid_refs as (select ut.referrer, count(*) as n from user_touch ut join paid_users p on p.id = ut."userId" group by 1),
+paid_ctrs as (select ut.country, count(*) as n from user_touch ut join paid_users p on p.id = ut."userId" group by 1)
 select jsonb_build_object(
   'totals', jsonb_build_object(
     'views', (select count(*) from cur),
@@ -53,7 +73,6 @@ select jsonb_build_object(
   'prev', jsonb_build_object(
     'views', (select count(*) from prev),
     'visitors', (select count(distinct "sessionId") from prev)),
-  -- 앱 내 로그인 활동 사용자 (EventLog, 윈도우 내 distinct userId) — 퍼널 카드용 (2026-07-15)
   'activeUsers', (select count(distinct "userId") from "EventLog"
     where "userId" is not null and "createdAt" >= now() - make_interval(days => range_days)),
   'prevActiveUsers', (select count(distinct "userId") from "EventLog"
@@ -67,7 +86,15 @@ select jsonb_build_object(
   'topReferrers', coalesce((select jsonb_agg(jsonb_build_object(
     'referrer', referrer, 'count', n)) from refs), '[]'::jsonb),
   'topCountries', coalesce((select jsonb_agg(jsonb_build_object(
-    'country', country, 'count', n)) from ctrs), '[]'::jsonb)
+    'country', country, 'count', n)) from ctrs), '[]'::jsonb),
+  'memberReferrers', coalesce((select jsonb_agg(jsonb_build_object(
+    'referrer', referrer, 'count', n)) from member_refs), '[]'::jsonb),
+  'memberCountries', coalesce((select jsonb_agg(jsonb_build_object(
+    'country', country, 'count', n)) from member_ctrs), '[]'::jsonb),
+  'paidReferrers', coalesce((select jsonb_agg(jsonb_build_object(
+    'referrer', referrer, 'count', n)) from paid_refs), '[]'::jsonb),
+  'paidCountries', coalesce((select jsonb_agg(jsonb_build_object(
+    'country', country, 'count', n)) from paid_ctrs), '[]'::jsonb)
 )
 $$;
 revoke all on function public.rn_traffic_stats(int) from public;

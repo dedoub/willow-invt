@@ -59,6 +59,11 @@ export interface ReviewNotesTrafficStats {
   dailyLogins: Array<{ date: string; users: number }>
   topReferrers: Array<{ referrer: string; count: number }>
   topCountries: Array<{ country: string; count: number }>
+  // 회원/유료 유입경로·국가 — EventLog↔PageView 방문자 ID 조인, 유저별 first-touch 귀속
+  memberReferrers: Array<{ referrer: string; count: number }>
+  memberCountries: Array<{ country: string; count: number }>
+  paidReferrers: Array<{ referrer: string; count: number }>
+  paidCountries: Array<{ country: string; count: number }>
 }
 
 function pctChange(current: number, previous: number): number {
@@ -85,6 +90,10 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     dailyLogins: [],
     topReferrers: [],
     topCountries: [],
+    memberReferrers: [],
+    memberCountries: [],
+    paidReferrers: [],
+    paidCountries: [],
   }
 
   if (!reviewnotesSupabase) return empty
@@ -106,6 +115,10 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     dailyLogins?: Array<{ date: string; users: number }>
     topReferrers: Array<{ referrer: string; count: number }>
     topCountries: Array<{ country: string; count: number }>
+    memberReferrers?: Array<{ referrer: string; count: number }>
+    memberCountries?: Array<{ country: string; count: number }>
+    paidReferrers?: Array<{ referrer: string; count: number }>
+    paidCountries?: Array<{ country: string; count: number }>
   }
 
   // 일별 추이 — 첫 데이터 날짜(집계 시작)부터 오늘까지, 활동 없는 날짜 0으로 채우기 (KST)
@@ -134,6 +147,10 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     dailyLogins: stats.dailyLogins ?? [],
     topReferrers: stats.topReferrers ?? [],
     topCountries: stats.topCountries ?? [],
+    memberReferrers: stats.memberReferrers ?? [],
+    memberCountries: stats.memberCountries ?? [],
+    paidReferrers: stats.paidReferrers ?? [],
+    paidCountries: stats.paidCountries ?? [],
   }
 }
 
