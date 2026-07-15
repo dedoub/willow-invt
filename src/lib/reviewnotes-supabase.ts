@@ -55,13 +55,6 @@ export interface ReviewNotesTrafficStats {
   topCountries: Array<{ country: string; count: number }>
 }
 
-interface PageViewRow {
-  referrer: string | null
-  country: string | null
-  sessionId: string
-  createdAt: string
-}
-
 function pctChange(current: number, previous: number): number {
   if (previous === 0) return current > 0 ? 100 : 0
   return Math.round(((current - previous) / previous) * 100)
@@ -83,72 +76,42 @@ export async function getReviewNotesTrafficStats(range = 30): Promise<ReviewNote
 
   if (!reviewnotesSupabase) return empty
 
-  const now = new Date()
-  const start = new Date(now.getTime() - range * 24 * 60 * 60 * 1000)
-  const prevStart = new Date(now.getTime() - 2 * range * 24 * 60 * 60 * 1000)
-
-  // 현재 기간 + 이전 기간(증감률 계산용)을 한 번에 조회
-  const { data, error } = await reviewnotesSupabase
-    .from('PageView')
-    .select('referrer, country, sessionId, createdAt')
-    .gte('createdAt', prevStart.toISOString())
-    .order('createdAt', { ascending: true })
-    .limit(50000)
-
+  // PageView는 RLS로 raw select가 막혀 있어(anon 정책 없음, 2026-06-21 하드닝)
+  // 집계 전용 SECURITY DEFINER RPC로 조회한다. 정본: supabase/reviewnotes/rn_traffic_stats.sql
+  const { data, error } = await reviewnotesSupabase.rpc('rn_traffic_stats', { range_days: range })
   if (error || !data) {
-    console.error('Error fetching PageView traffic:', error)
+    console.error('Error fetching rn_traffic_stats:', error)
     return empty
   }
 
-  const rows = data as PageViewRow[]
-  const current = rows.filter(r => new Date(r.createdAt) >= start)
-  const previous = rows.filter(r => {
-    const d = new Date(r.createdAt)
-    return d >= prevStart && d < start
-  })
-
-  const distinct = (arr: PageViewRow[]) => new Set(arr.map(r => r.sessionId)).size
-
-  // 일별 추이 (빈 날짜 채우기)
-  const dailyMap = new Map<string, { views: number; sessions: Set<string> }>()
-  for (const r of current) {
-    const key = toDateKey(new Date(r.createdAt))
-    const entry = dailyMap.get(key) ?? { views: 0, sessions: new Set<string>() }
-    entry.views += 1
-    entry.sessions.add(r.sessionId)
-    dailyMap.set(key, entry)
+  const stats = data as {
+    totals: { views: number; visitors: number }
+    prev: { views: number; visitors: number }
+    daily: Array<{ date: string; views: number; visitors: number }>
+    topReferrers: Array<{ referrer: string; count: number }>
+    topCountries: Array<{ country: string; count: number }>
   }
+
+  // 일별 추이 — 활동 없는 날짜 0으로 채우기 (KST)
+  const dailyMap = new Map(stats.daily.map(d => [d.date, d]))
+  const now = new Date()
   const daily: ReviewNotesTrafficStats['daily'] = []
   for (let i = range - 1; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-    const key = toDateKey(d)
+    const key = toDateKey(new Date(now.getTime() - i * 24 * 60 * 60 * 1000))
     const entry = dailyMap.get(key)
-    daily.push({ date: key, views: entry?.views ?? 0, visitors: entry?.sessions.size ?? 0 })
-  }
-
-  // 유입 경로 / 국가 집계 (상위 6개)
-  const tally = (key: 'referrer' | 'country', fallback: string) => {
-    const counts = new Map<string, number>()
-    for (const r of current) {
-      const label = (r[key] || fallback) as string
-      counts.set(label, (counts.get(label) ?? 0) + 1)
-    }
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([label, count]) => ({ label, count }))
+    daily.push({ date: key, views: entry?.views ?? 0, visitors: entry?.visitors ?? 0 })
   }
 
   return {
     range,
-    totals: { views: current.length, visitors: distinct(current) },
+    totals: { views: stats.totals.views, visitors: stats.totals.visitors },
     change: {
-      views: pctChange(current.length, previous.length),
-      visitors: pctChange(distinct(current), distinct(previous)),
+      views: pctChange(stats.totals.views, stats.prev.views),
+      visitors: pctChange(stats.totals.visitors, stats.prev.visitors),
     },
     daily,
-    topReferrers: tally('referrer', 'direct').map(r => ({ referrer: r.label, count: r.count })),
-    topCountries: tally('country', 'Unknown').map(r => ({ country: r.label, count: r.count })),
+    topReferrers: stats.topReferrers ?? [],
+    topCountries: stats.topCountries ?? [],
   }
 }
 
