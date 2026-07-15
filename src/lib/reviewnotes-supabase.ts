@@ -27,6 +27,15 @@ export interface ReviewNotesUser {
   storageUsed: number
   createdAt: string
   lastActiveAt?: string | null // EventLog 마지막 활동 (rn_user_last_active RPC, 2026-06-24 트래킹 시작 이후)
+  // 콘텐츠/학습 누적 + 오늘 증가분 (rn_user_content RPC) — 문제는 Note 경유 귀속
+  notes?: number
+  notesToday?: number
+  problems?: number
+  problemsToday?: number
+  problemSets?: number
+  problemSetsToday?: number
+  solves?: number
+  solvesToday?: number
   // Not fetched by getReviewNotesUsers (column-scoped) and unused by any consumer.
   emailVerified?: string | null
   lemonSqueezyCustomerId?: string | null
@@ -180,13 +189,20 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
   }
 }
 
-// 콘텐츠/학습 카운트 (rn_content_stats RPC) — 노트/문제/문제 세트/풀이/학습 노트, 총계+오늘/7일
+// 콘텐츠/학습 카운트 (rn_content_stats RPC) — 노트/문제/문제 세트/풀이/학습 노트,
+// 총계 + 오늘/7일 + 일별(daily, 누적 스파크라인용)
+interface ContentMetric {
+  total: number
+  today: number
+  d7: number
+  daily: Array<{ date: string; n: number }>
+}
 export interface ReviewNotesContentStats {
-  notes: { total: number; today: number; d7: number }
-  problems: { total: number; today: number; d7: number }
-  problemSets: { total: number; today: number; d7: number }
-  studyResults: { total: number; today: number; d7: number; correct: number }
-  studyNotes: { total: number; today: number; d7: number }
+  notes: ContentMetric
+  problems: ContentMetric
+  problemSets: ContentMetric
+  studyResults: ContentMetric & { correct: number }
+  studyNotes: ContentMetric
 }
 
 export async function getReviewNotesContentStats(): Promise<ReviewNotesContentStats | null> {
@@ -213,15 +229,16 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
     throw new Error('ReviewNotes Supabase not configured')
   }
 
-  const [{ data, error }, lastActiveRes] = await Promise.all([
+  const [{ data, error }, lastActiveRes, contentRes] = await Promise.all([
     reviewnotesSupabase
       .from('User')
       // Only the columns consumed by getReviewNotesUserStats passes + the monor reviewnotes block.
       // (emailVerified / updatedAt / lemonSqueezyCustomerId are unused.)
       .select('id, name, email, image, subscriptionPlan, role, storageUsed, createdAt')
       .order('createdAt', { ascending: false }),
-    // 마지막 활동 — EventLog는 RLS로 raw 접근 불가, 집계 RPC 사용 (실패해도 목록은 유지)
+    // 마지막 활동 / 유저별 콘텐츠 — RLS로 raw 접근 불가, 집계 RPC 사용 (실패해도 목록은 유지)
     reviewnotesSupabase.rpc('rn_user_last_active'),
+    reviewnotesSupabase.rpc('rn_user_content'),
   ])
 
   if (error) {
@@ -232,27 +249,53 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
     ((lastActiveRes.data ?? []) as Array<{ user_id: string; last_active: string }>)
       .map(r => [r.user_id, r.last_active])
   )
-  return (data || []).map(u => ({ ...u, lastActiveAt: lastActiveMap.get(u.id) ?? null }))
+  type ContentRow = {
+    user_id: string
+    notes: number; notes_today: number
+    problems: number; problems_today: number
+    problem_sets: number; problem_sets_today: number
+    solves: number; solves_today: number
+  }
+  const contentMap = new Map<string, ContentRow>(
+    ((contentRes.data ?? []) as ContentRow[]).map(r => [r.user_id, r])
+  )
+  return (data || []).map(u => {
+    const c = contentMap.get(u.id)
+    return {
+      ...u,
+      lastActiveAt: lastActiveMap.get(u.id) ?? null,
+      notes: Number(c?.notes) || 0,
+      notesToday: Number(c?.notes_today) || 0,
+      problems: Number(c?.problems) || 0,
+      problemsToday: Number(c?.problems_today) || 0,
+      problemSets: Number(c?.problem_sets) || 0,
+      problemSetsToday: Number(c?.problem_sets_today) || 0,
+      solves: Number(c?.solves) || 0,
+      solvesToday: Number(c?.solves_today) || 0,
+    }
+  })
 }
 
-// 유저 통계 계산
+// 유저 통계 계산 — 집계 수치는 관리자(role=ADMIN) 제외 (2026-07-16 CEO).
+// users 배열은 전체 유지 (사용자 테이블에는 관리자도 표시, 통계 소비처에서 role로 필터).
 export async function getReviewNotesUserStats(): Promise<ReviewNotesUserStats> {
   const users = await getReviewNotesUsers()
+  const real = users.filter(u => u.role !== 'ADMIN')
 
   // KST 기준 이번 달 1일 / 최근 7일(오늘 포함)
   const monthStartKst = kstMonthStart()
   const weekStartKst = kstDaysAgo(6)
 
   const stats: ReviewNotesUserStats = {
-    totalUsers: users.length,
+    totalUsers: real.length,
     adminUsers: users.filter(u => u.role === 'ADMIN').length,
-    freeUsers: users.filter(u => u.subscriptionPlan === 'FREE').length,
-    basicUsers: users.filter(u => u.subscriptionPlan === 'BASIC').length,
-    standardUsers: users.filter(u => u.subscriptionPlan === 'STANDARD').length,
-    proUsers: users.filter(u => u.subscriptionPlan === 'PRO').length,
-    newUsersThisMonth: users.filter(u => kstDateKey(u.createdAt) >= monthStartKst).length,
-    newUsersThisWeek: users.filter(u => kstDateKey(u.createdAt) >= weekStartKst).length,
-    totalStorageUsed: users.reduce((sum, u) => sum + (u.storageUsed || 0), 0),
+    freeUsers: real.filter(u => u.subscriptionPlan === 'FREE').length,
+    basicUsers: real.filter(u => u.subscriptionPlan === 'BASIC').length,
+    standardUsers: real.filter(u => u.subscriptionPlan === 'STANDARD').length,
+    proUsers: real.filter(u => u.subscriptionPlan === 'PRO').length,
+    newUsersThisMonth: real.filter(u => kstDateKey(u.createdAt) >= monthStartKst).length,
+    newUsersThisWeek: real.filter(u => kstDateKey(u.createdAt) >= weekStartKst).length,
+    totalStorageUsed: real.reduce((sum, u) => sum + (u.storageUsed || 0), 0),
     users,
   }
 

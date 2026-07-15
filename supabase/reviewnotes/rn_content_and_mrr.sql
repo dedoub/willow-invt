@@ -23,7 +23,8 @@ $$;
 revoke all on function public.rn_paid_users() from public;
 grant execute on function public.rn_paid_users() to anon, authenticated, service_role;
 
--- 2) 콘텐츠/학습 카운트 — 총계 + 오늘/7일 (KST). studyResults.correct = 정답 수 (정답률 계산용)
+-- 2) 콘텐츠/학습 카운트 — 총계 + 오늘/7일 + 일별(daily, 스파크라인용) (KST).
+--    studyResults.correct = 정답 수 (정답률 계산용)
 create or replace function public.rn_content_stats()
 returns jsonb
 language sql
@@ -38,28 +39,38 @@ select jsonb_build_object(
   'notes', (select jsonb_build_object(
     'total', count(*),
     'today', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)),
-    'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6)
+    'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6),
+    'daily', (select coalesce(jsonb_agg(jsonb_build_object('date', d, 'n', n) order by d), '[]'::jsonb)
+      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from "Note" group by 1) x)
   ) from "Note"),
   'problems', (select jsonb_build_object(
     'total', count(*),
     'today', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)),
-    'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6)
+    'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6),
+    'daily', (select coalesce(jsonb_agg(jsonb_build_object('date', d, 'n', n) order by d), '[]'::jsonb)
+      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from "Problem" group by 1) x)
   ) from "Problem"),
   'problemSets', (select jsonb_build_object(
     'total', count(*),
     'today', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)),
-    'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6)
+    'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6),
+    'daily', (select coalesce(jsonb_agg(jsonb_build_object('date', d, 'n', n) order by d), '[]'::jsonb)
+      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from "ProblemSet" group by 1) x)
   ) from "ProblemSet"),
   'studyResults', (select jsonb_build_object(
     'total', count(*),
     'today', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)),
     'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6),
-    'correct', count(*) filter (where "isCorrect" = true)
+    'correct', count(*) filter (where "isCorrect" = true),
+    'daily', (select coalesce(jsonb_agg(jsonb_build_object('date', d, 'n', n) order by d), '[]'::jsonb)
+      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from "StudyResult" group by 1) x)
   ) from "StudyResult"),
   'studyNotes', (select jsonb_build_object(
     'total', count(*),
     'today', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)),
-    'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6)
+    'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6),
+    'daily', (select coalesce(jsonb_agg(jsonb_build_object('date', d, 'n', n) order by d), '[]'::jsonb)
+      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from "StudyNote" group by 1) x)
   ) from "StudyNote")
 )
 $$;
@@ -100,3 +111,53 @@ as $$
 $$;
 revoke all on function public.rn_mrr_history() from public;
 grant execute on function public.rn_mrr_history() to anon, authenticated, service_role;
+
+-- 4) 유저별 콘텐츠/학습 누적 + 오늘 증가분 (KST) — 사용자 테이블 컬럼용 (2026-07-16).
+--    문제는 Note 경유 귀속 (Problem.noteId → Note.userId).
+create or replace function public.rn_user_content()
+returns table(
+  user_id text,
+  notes bigint, notes_today bigint,
+  problems bigint, problems_today bigint,
+  problem_sets bigint, problem_sets_today bigint,
+  solves bigint, solves_today bigint
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+with kst as (select (now() at time zone 'Asia/Seoul')::date as today),
+n as (
+  select "userId" as u, count(*) as c,
+    count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)) as ct
+  from "Note" group by 1
+),
+p as (
+  select nt."userId" as u, count(*) as c,
+    count(*) filter (where (pr."createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)) as ct
+  from "Problem" pr join "Note" nt on nt.id = pr."noteId" group by 1
+),
+ps as (
+  select "userId" as u, count(*) as c,
+    count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)) as ct
+  from "ProblemSet" group by 1
+),
+sr as (
+  select "userId" as u, count(*) as c,
+    count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)) as ct
+  from "StudyResult" group by 1
+)
+select usr.id,
+  coalesce(n.c, 0), coalesce(n.ct, 0),
+  coalesce(p.c, 0), coalesce(p.ct, 0),
+  coalesce(ps.c, 0), coalesce(ps.ct, 0),
+  coalesce(sr.c, 0), coalesce(sr.ct, 0)
+from "User" usr
+left join n on n.u = usr.id
+left join p on p.u = usr.id
+left join ps on ps.u = usr.id
+left join sr on sr.u = usr.id
+$$;
+revoke all on function public.rn_user_content() from public;
+grant execute on function public.rn_user_content() to anon, authenticated, service_role;

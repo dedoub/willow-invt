@@ -86,7 +86,7 @@ function formatTimeShort(dateString?: string | null): string {
   return new Date(dateString).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' })
 }
 
-type UserSortKey = 'created' | 'active' | 'name' | 'email' | 'plan' | 'role' | 'storage'
+type UserSortKey = 'created' | 'active' | 'name' | 'email' | 'notes' | 'problems' | 'sets' | 'solves' | 'plan' | 'role' | 'storage'
 type SortDir = 'asc' | 'desc'
 
 // 컬럼 정의 (헤더 라벨 + 정렬키 + 정렬, 모바일 드롭다운 라벨). 순서 = 그리드 순서.
@@ -96,6 +96,10 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'active',  label: '활동',   mobileLabel: '활동일', align: 'center' },
   { key: 'name',    label: '닉네임', mobileLabel: '닉네임', align: 'left' },
   { key: 'email',   label: '이메일', mobileLabel: '이메일', align: 'left' },
+  { key: 'notes',    label: '노트',   mobileLabel: '노트',   align: 'center' },
+  { key: 'problems', label: '문제',   mobileLabel: '문제',   align: 'center' },
+  { key: 'sets',     label: '세트',   mobileLabel: '문제 세트', align: 'center' },
+  { key: 'solves',   label: '풀이',   mobileLabel: '문제 풀이', align: 'center' },
   { key: 'plan',    label: '플랜',   mobileLabel: '플랜',   align: 'center' },
   { key: 'role',    label: '권한',   mobileLabel: '권한',   align: 'center' },
   { key: 'storage', label: '용량',   mobileLabel: '용량',   align: 'center' },
@@ -108,8 +112,8 @@ const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key)
 const USER_SORT_STORAGE_KEY = 'reviewnotes.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 60px 48px 58px'
-const USER_TABLE_MIN_WIDTH = 520 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (모바일 포함)
+const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 40px 44px 40px 40px 60px 48px 58px'
+const USER_TABLE_MIN_WIDTH = 690 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (모바일 포함)
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -125,6 +129,24 @@ const userNumCell: React.CSSProperties = {
 const userDateCell: React.CSSProperties = {
   fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
   fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap',
+}
+
+// 총값 + 오늘 변동 2줄 셀 — 보이스카드 NumDeltaCell과 동일 문법. delta 양수=초록(+), 0=미표시
+function NumDeltaCell({ total, delta }: { total: number; delta: number }) {
+  const d = Number(delta)
+  return (
+    <div style={{
+      ...userNumCell, textAlign: 'center' as const,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15,
+    }}>
+      <span>{total.toLocaleString()}</span>
+      {Number.isFinite(d) && d !== 0 && (
+        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
+          {d > 0 ? '+' : '−'}{Math.abs(d).toLocaleString()}
+        </span>
+      )}
+    </div>
+  )
 }
 
 // 전환율 계산 + 값 뒤 주황 보조라벨 (보이스카드 퍼널 문법) — 퍼널/운영지표 공용
@@ -183,6 +205,10 @@ export function ReviewnotesBlock({
         case 'plan':    return (PLAN_ORDER[a.subscriptionPlan] ?? 0) - (PLAN_ORDER[b.subscriptionPlan] ?? 0)
         case 'role':    return (a.role === 'ADMIN' ? 1 : 0) - (b.role === 'ADMIN' ? 1 : 0)
         case 'storage': return (a.storageUsed || 0) - (b.storageUsed || 0)
+        case 'notes':    return (a.notes ?? 0) - (b.notes ?? 0)
+        case 'problems': return (a.problems ?? 0) - (b.problems ?? 0)
+        case 'sets':     return (a.problemSets ?? 0) - (b.problemSets ?? 0)
+        case 'solves':   return (a.solves ?? 0) - (b.solves ?? 0)
         case 'created': return a.createdAt.localeCompare(b.createdAt)
         // 활동 기록 없는 유저(null)는 항상 뒤로
         case 'active':  return (a.lastActiveAt ?? '').localeCompare(b.lastActiveAt ?? '')
@@ -302,7 +328,8 @@ export function ReviewnotesBlock({
             const cumVisitors = daily.map(d => ({ date: d.date, value: (runVisitors += d.visitors) }))
 
             // 가입/유료 — userStats 기반 (KST 날짜키). 시작일 = 트래픽 집계 시작(첫 PageView 날짜)
-            const users = userStats?.users ?? []
+            // 통계는 관리자 제외 (2026-07-16 CEO) — 테이블에만 전체 표시
+            const users = (userStats?.users ?? []).filter(u => u.role !== 'ADMIN')
             const trackStartKey = daily.length ? daily[0].date : ''
             const todayKey = daily.length ? daily[daily.length - 1].date : ''
             const sevenAgoKey = daily.length >= 7 ? daily[daily.length - 7].date : trackStartKey
@@ -459,19 +486,41 @@ export function ReviewnotesBlock({
 
       {/* 운영 지표 (임시 이름) — 매출 + 가입 통합 4카드, 옛 '인사이트' 섹션 (2026-07-15 아래로 이동) */}
       {!loading && stats && userStats && (() => {
-        // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생
+        // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생. 통계는 관리자 제외 (2026-07-16 CEO)
+        const realUsers = userStats.users.filter(u => u.role !== 'ADMIN')
         const toKst = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
         const todayKst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
         const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 6) // 오늘 포함 7일
         const sevenAgoKst = sevenAgo.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
         const inToday = (u: typeof userStats.users[number]) => toKst(u.createdAt) === todayKst
         const in7 = (u: typeof userStats.users[number]) => toKst(u.createdAt) >= sevenAgoKst
-        // 신규 유료(non-FREE) 가입
-        const paidToday = userStats.users.filter(u => inToday(u) && u.subscriptionPlan !== 'FREE').length
-        const paid7 = userStats.users.filter(u => in7(u) && u.subscriptionPlan !== 'FREE').length
         // 신규 가입자 업로드 용량
-        const storageToday = userStats.users.filter(inToday).reduce((s, u) => s + (u.storageUsed || 0), 0)
-        const storage7 = userStats.users.filter(in7).reduce((s, u) => s + (u.storageUsed || 0), 0)
+        const storageToday = realUsers.filter(inToday).reduce((s, u) => s + (u.storageUsed || 0), 0)
+        const storage7 = realUsers.filter(in7).reduce((s, u) => s + (u.storageUsed || 0), 0)
+        // 누적 스파크라인 — 트래픽 집계 시작(첫 PageView) 이후 윈도우, 이전분은 베이스라인 (인사이트와 동일 문법)
+        const winDates = (trafficStats?.daily ?? []).map(d => d.date)
+        const cumOf = (rows?: Array<{ date: string; n: number }>) => {
+          if (!rows || winDates.length === 0) return undefined
+          const byDay = new Map(rows.map(r => [r.date, r.n]))
+          let run = rows.filter(r => r.date < winDates[0]).reduce((s, r) => s + r.n, 0)
+          const spark = winDates.map(d => ({ date: d, value: (run += byDay.get(d) ?? 0) }))
+          return spark.length > 1 ? spark : undefined
+        }
+        // 용량은 파일별 타임라인이 없어 가입일 기준 누적(그 시점까지 가입한 유저들의 현재 사용량 합) 프록시
+        const storageCum = (() => {
+          if (winDates.length === 0) return undefined
+          const byDay = new Map<string, number>()
+          let base = 0
+          for (const u of realUsers) {
+            const k = toKst(u.createdAt)
+            const mb = (u.storageUsed || 0) / (1024 * 1024)
+            if (k < winDates[0]) base += mb
+            else byDay.set(k, (byDay.get(k) ?? 0) + mb)
+          }
+          let run = base
+          const spark = winDates.map(d => ({ date: d, value: Math.round((run += byDay.get(d) ?? 0) * 10) / 10 }))
+          return spark.length > 1 ? spark : undefined
+        })()
         return (
           <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
             <div style={{
@@ -481,23 +530,26 @@ export function ReviewnotesBlock({
             }}>
               운영 지표
             </div>
-            {/* 콘텐츠·학습 카운트 (2026-07-16 CEO): 노트/문제/문제 세트 + 풀이/학습 노트 + 용량.
-                MRR·가입·유료는 인사이트 퍼널로 이동, 활성 구독자는 MRR 카드 sub로 흡수. */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+            {/* 콘텐츠·학습 카운트 (2026-07-16 CEO): 노트/문제/문제 세트/풀이/용량 5카드.
+                와이드(1열) 모드 한 줄, 2열 모드 3+2, 모바일 2열. MRR·가입·유료는 인사이트 퍼널로 이동. */}
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
               <LStat
                 label="노트"
                 value={(contentStats?.notes.total ?? 0).toLocaleString()}
                 sub={contentStats ? `오늘 ${contentStats.notes.today}개 · 7일 ${contentStats.notes.d7}개` : undefined}
+                sparkline={mobile ? undefined : cumOf(contentStats?.notes.daily)}
               />
               <LStat
                 label="문제"
                 value={(contentStats?.problems.total ?? 0).toLocaleString()}
                 sub={contentStats ? `오늘 ${contentStats.problems.today}개 · 7일 ${contentStats.problems.d7}개` : undefined}
+                sparkline={mobile ? undefined : cumOf(contentStats?.problems.daily)}
               />
               <LStat
                 label="문제 세트"
                 value={(contentStats?.problemSets.total ?? 0).toLocaleString()}
                 sub={contentStats ? `오늘 ${contentStats.problemSets.today}개 · 7일 ${contentStats.problemSets.d7}개` : undefined}
+                sparkline={mobile ? undefined : cumOf(contentStats?.problemSets.daily)}
               />
               <LStat
                 label="문제 풀이"
@@ -505,12 +557,16 @@ export function ReviewnotesBlock({
                 value={(contentStats?.studyResults.total ?? 0).toLocaleString()}
                 valueExtra={contentStats && contentStats.studyResults.total > 0 ? rateExtra('정답', rate(contentStats.studyResults.correct, contentStats.studyResults.total)) : undefined}
                 sub={contentStats ? `오늘 ${contentStats.studyResults.today}회 · 7일 ${contentStats.studyResults.d7}회` : undefined}
+                sparkline={mobile ? undefined : cumOf(contentStats?.studyResults.daily)}
               />
               {/* 학습 노트 카드는 제외 (2026-07-16 CEO) — 여섯 번째 자리는 비워둠, 데이터(studyNotes)는 RPC에 유지 */}
               <LStat
                 label="용량"
+                title="가입일 기준 누적 프록시 — 파일별 업로드 시점 데이터가 없어, 그 날짜까지 가입한 유저들의 현재 사용량 합으로 근사."
                 value={`${(userStats.totalStorageUsed / (1024 * 1024)).toFixed(1)} MB`}
                 sub={`오늘 ${formatBytes(storageToday)} · 7일 ${formatBytes(storage7)}`}
+                sparkline={mobile ? undefined : storageCum}
+                sparkFormat={(v) => `${v.toLocaleString()} MB`}
               />
             </div>
           </div>
@@ -637,6 +693,11 @@ export function ReviewnotesBlock({
                     </div>
                     {/* 이메일 */}
                     <div style={userTextCell} title={user.email}>{user.email}</div>
+                    {/* 노트 / 문제 / 세트 / 풀이 — 누적 + 오늘 증가분 (보이스카드 문법) */}
+                    <NumDeltaCell total={user.notes ?? 0} delta={user.notesToday ?? 0} />
+                    <NumDeltaCell total={user.problems ?? 0} delta={user.problemsToday ?? 0} />
+                    <NumDeltaCell total={user.problemSets ?? 0} delta={user.problemSetsToday ?? 0} />
+                    <NumDeltaCell total={user.solves ?? 0} delta={user.solvesToday ?? 0} />
                     {/* 플랜 */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                       <span style={{
