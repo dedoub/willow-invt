@@ -385,7 +385,7 @@ export function ReviewnotesBlock({
               ]}
               palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
               unit="명"
-              topN={4}
+              topN={3}
             />
           </div>
           </div>
