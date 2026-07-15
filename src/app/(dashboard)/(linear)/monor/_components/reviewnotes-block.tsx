@@ -303,7 +303,8 @@ export function ReviewnotesBlock({
             </span>
           </div>
 
-          {/* 방문 KPI + 일별 추이 스파크라인 */}
+          {/* 방문 KPI + 30일 누적 스파크라인 — 일별 값은 노이즈 스파이크라 누적 기울기로 추세를 읽는다.
+              누적 끝점 = 헤드라인(30일 합계) 일치. (2026-07-15 CEO) */}
           {(() => {
             const daily = trafficStats.daily
             const last = daily.length ? daily[daily.length - 1] : null
@@ -311,20 +312,23 @@ export function ReviewnotesBlock({
             const todayVisitors = last?.visitors ?? 0
             const last7Views = daily.slice(-7).reduce((s, d) => s + d.views, 0)
             const last7Visitors = daily.slice(-7).reduce((s, d) => s + d.visitors, 0)
+            let runViews = 0, runVisitors = 0
+            const cumViews = daily.map(d => ({ date: d.date, value: (runViews += d.views) }))
+            const cumVisitors = daily.map(d => ({ date: d.date, value: (runVisitors += d.visitors) }))
             return (
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
             <LStat
               label="페이지뷰"
               value={trafficStats.totals.views.toLocaleString()}
               sub={`오늘 ${todayViews.toLocaleString()}회 · 7일 ${last7Views.toLocaleString()}회`}
-              sparkline={trafficStats.daily.map(d => ({ date: d.date, value: d.views }))}
+              sparkline={cumViews}
             />
             <LStat
               label="순 방문자"
               value={trafficStats.totals.visitors.toLocaleString()}
               sub={`오늘 ${todayVisitors.toLocaleString()}명 · 7일 ${last7Visitors.toLocaleString()}명`}
               tone="info"
-              sparkline={trafficStats.daily.map(d => ({ date: d.date, value: d.visitors }))}
+              sparkline={cumVisitors}
             />
             <BreakdownStat
               label="유입 경로"
