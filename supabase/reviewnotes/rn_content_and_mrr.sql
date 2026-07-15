@@ -18,7 +18,7 @@ as $$
   select u.id as user_id,
     coalesce((select min(s."createdAt") from "Subscription" s where s."userId" = u.id), u."createdAt") as paid_at
   from "User" u
-  where u."subscriptionPlan" <> 'FREE'
+  where u."subscriptionPlan" <> 'FREE' and u.role <> 'ADMIN' and u.email <> 'test@reviewnotes.app'
 $$;
 revoke all on function public.rn_paid_users() from public;
 grant execute on function public.rn_paid_users() to anon, authenticated, service_role;
@@ -34,44 +34,53 @@ set search_path = public
 as $$
 with kst as (
   select (now() at time zone 'Asia/Seoul')::date as today
-)
+),
+-- 통계 제외: role=ADMIN + 스토어 심사용 test@reviewnotes.app (2026-07-16)
+admins as (
+  select id from "User" where role = 'ADMIN' or email = 'test@reviewnotes.app'
+),
+notes_v as (select * from "Note" where "userId" not in (select id from admins)),
+problems_v as (select p.* from "Problem" p join notes_v n on n.id = p."noteId"),
+sets_v as (select * from "ProblemSet" where "userId" not in (select id from admins)),
+results_v as (select * from "StudyResult" where "userId" not in (select id from admins)),
+snotes_v as (select sn.* from "StudyNote" sn)
 select jsonb_build_object(
   'notes', (select jsonb_build_object(
     'total', count(*),
     'today', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)),
     'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6),
     'daily', (select coalesce(jsonb_agg(jsonb_build_object('date', d, 'n', n) order by d), '[]'::jsonb)
-      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from "Note" group by 1) x)
-  ) from "Note"),
+      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from notes_v group by 1) x)
+  ) from notes_v),
   'problems', (select jsonb_build_object(
     'total', count(*),
     'today', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)),
     'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6),
     'daily', (select coalesce(jsonb_agg(jsonb_build_object('date', d, 'n', n) order by d), '[]'::jsonb)
-      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from "Problem" group by 1) x)
-  ) from "Problem"),
+      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from problems_v group by 1) x)
+  ) from problems_v),
   'problemSets', (select jsonb_build_object(
     'total', count(*),
     'today', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)),
     'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6),
     'daily', (select coalesce(jsonb_agg(jsonb_build_object('date', d, 'n', n) order by d), '[]'::jsonb)
-      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from "ProblemSet" group by 1) x)
-  ) from "ProblemSet"),
+      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from sets_v group by 1) x)
+  ) from sets_v),
   'studyResults', (select jsonb_build_object(
     'total', count(*),
     'today', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)),
     'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6),
     'correct', count(*) filter (where "isCorrect" = true),
     'daily', (select coalesce(jsonb_agg(jsonb_build_object('date', d, 'n', n) order by d), '[]'::jsonb)
-      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from "StudyResult" group by 1) x)
-  ) from "StudyResult"),
+      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from results_v group by 1) x)
+  ) from results_v),
   'studyNotes', (select jsonb_build_object(
     'total', count(*),
     'today', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date = (select today from kst)),
     'd7', count(*) filter (where ("createdAt" at time zone 'Asia/Seoul')::date >= (select today from kst) - 6),
     'daily', (select coalesce(jsonb_agg(jsonb_build_object('date', d, 'n', n) order by d), '[]'::jsonb)
-      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from "StudyNote" group by 1) x)
-  ) from "StudyNote")
+      from (select ("createdAt" at time zone 'Asia/Seoul')::date as d, count(*) as n from snotes_v group by 1) x)
+  ) from snotes_v)
 )
 $$;
 revoke all on function public.rn_content_stats() from public;
