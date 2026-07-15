@@ -366,12 +366,12 @@ export function ReviewnotesBlock({
               palette={['#94a3b8', '#3b82f6', '#10b981']}
               unit="명"
             />
+            {/* 회원/유료 귀속 탭은 데이터가 쌓이면 복원 — memberReferrers/paidReferrers가 RPC에 이미 있음.
+                지금은 랜딩 경유 가입자가 1명뿐이라 전체(방문)만 의미 있음 (2026-07-15 CEO). */}
             <DistributionPie
               title="유입 경로"
               tabs={[
-                { key: 'visit', label: '방문', data: trafficStats.topReferrers.map(r => ({ name: r.referrer === 'direct' ? '직접 유입' : r.referrer, value: r.count })) },
-                { key: 'member', label: '회원', data: trafficStats.memberReferrers.map(r => ({ name: r.referrer === 'direct' ? '직접 유입' : r.referrer, value: r.count })) },
-                { key: 'paid', label: '유료', data: trafficStats.paidReferrers.map(r => ({ name: r.referrer === 'direct' ? '직접 유입' : r.referrer, value: r.count })) },
+                { key: 'visit', label: '전체', data: trafficStats.topReferrers.map(r => ({ name: r.referrer === 'direct' ? '직접 유입' : r.referrer, value: r.count })) },
               ]}
               palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
               topN={4}
