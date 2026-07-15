@@ -1346,6 +1346,7 @@ export interface AnonymousEventStats {
       cardsViewed: number
       cardsLearned: number
       flips: number
+      creditsSpent: number
       addSheetOpens: number
       aiGenOpens: number
       signinClicks: number
@@ -1389,7 +1390,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       voicecardsSupabase.from('vc_device_journeys').select('journey_stage'),
       voicecardsSupabase
         .from('vc_device_journeys')
-        .select('device_id, journey_stage, platform, app_version, country, last_seen_at, active_days, anon_cards_viewed, anon_cards_learned, anon_flips, add_sheet_opens, ai_gen_opens, signin_clicks')
+        .select('device_id, journey_stage, platform, app_version, country, last_seen_at, active_days, anon_cards_viewed, anon_cards_learned, anon_flips, anon_credits_spent, add_sheet_opens, ai_gen_opens, signin_clicks')
         .eq('signed_in', false)
         .gte('last_seen_at', new Date(Date.now() - 14 * 86400_000).toISOString())
         .order('last_seen_at', { ascending: false })
@@ -1413,6 +1414,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
         cardsViewed: Number(r.anon_cards_viewed) || 0,
         cardsLearned: Number(r.anon_cards_learned) || 0,
         flips: Number(r.anon_flips) || 0,
+        creditsSpent: Number(r.anon_credits_spent) || 0,
         addSheetOpens: Number(r.add_sheet_opens) || 0,
         aiGenOpens: Number(r.ai_gen_opens) || 0,
         signinClicks: Number(r.signin_clicks) || 0,

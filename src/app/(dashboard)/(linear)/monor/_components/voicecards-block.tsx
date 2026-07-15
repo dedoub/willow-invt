@@ -139,6 +139,7 @@ interface AnonymousEventStats {
       cardsViewed: number
       cardsLearned: number
       flips: number
+      creditsSpent?: number
       addSheetOpens: number
       aiGenOpens: number
       signinClicks: number
@@ -200,7 +201,7 @@ const USER_TABLE_MIN_WIDTH = (() => {
   return px + (cols.length - 1) * 6 /* grid gap */ + 16 /* 행 좌우 padding */
 })()
 // 비로그인 저니 테이블 — 컬럼: 활동(날짜) | 기기 | 단계 | 플랫폼 | 앱버전 | 국가 | 카드 | 학습 | 시트 | AI | 클릭 | 일수
-const JOURNEY_TABLE_COLS = '64px minmax(90px,1fr) 64px 44px 64px 48px 40px 40px 44px 40px 36px 40px 40px'
+const JOURNEY_TABLE_COLS = '64px minmax(90px,1fr) 64px 44px 64px 48px 40px 40px 44px 44px 40px 36px 40px 40px'
 const JOURNEY_TABLE_MIN_WIDTH = (() => {
   const cols = JOURNEY_TABLE_COLS.split(' ')
   const px = cols.reduce((sum, c) => {
@@ -1626,8 +1627,8 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
     { label: '활동' }, { label: '기기' }, { label: '단계', align: 'center' },
     { label: '플랫폼', align: 'center' }, { label: '앱버전', align: 'center' }, { label: '국가', align: 'center' },
     { label: '카드', align: 'center' }, { label: '학습', align: 'center' }, { label: '뒤집기', align: 'center' },
-    { label: '시트', align: 'center' }, { label: 'AI', align: 'center' }, { label: '클릭', align: 'center' },
-    { label: '일수', align: 'center' },
+    { label: '크레딧', align: 'center' }, { label: '시트', align: 'center' }, { label: 'AI', align: 'center' },
+    { label: '클릭', align: 'center' }, { label: '일수', align: 'center' },
   ]
   return (
     <div style={{ marginTop: 12 }}>
@@ -1732,10 +1733,11 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
                   )
                 })()}
               </div>
-              {/* 카드 / 학습 / 뒤집기 / 시트 / AI / 클릭 / 일수 */}
+              {/* 카드 / 학습 / 뒤집기 / 크레딧 / 시트 / AI / 클릭 / 일수 */}
               <div style={userNumCell}>{d.cardsViewed > 0 ? formatNumber(d.cardsViewed) : '—'}</div>
               <div style={userNumCell}>{d.cardsLearned > 0 ? formatNumber(d.cardsLearned) : '—'}</div>
               <div style={userNumCell}>{d.flips > 0 ? formatNumber(d.flips) : '—'}</div>
+              <div style={userNumCell}>{(d.creditsSpent ?? 0) > 0 ? formatNumber(d.creditsSpent ?? 0) : '—'}</div>
               <div style={userNumCell}>{d.addSheetOpens > 0 ? formatNumber(d.addSheetOpens) : '—'}</div>
               <div style={userNumCell}>{d.aiGenOpens > 0 ? formatNumber(d.aiGenOpens) : '—'}</div>
               <div style={{ ...userNumCell, color: d.signinClicks > 0 ? t.accent.neg : userNumCell.color as string, fontWeight: d.signinClicks > 0 ? 600 : undefined }}>
