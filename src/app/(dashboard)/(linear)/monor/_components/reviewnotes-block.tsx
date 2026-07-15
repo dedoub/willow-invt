@@ -303,10 +303,8 @@ export function ReviewnotesBlock({
             }
             let runSignups = 0
             const cumSignups = daily.map(d => ({ date: d.date, value: (runSignups += signupByDay.get(d.date) ?? 0) }))
-            // 회원 로그인 연인원 — 하루에 유저당 1회만 카운트, 누적 (2026-07-15 CEO)
+            // 로그인 연인원 — 하루에 유저당 1회만 카운트. 활동 사용자 카드의 강도 지표로 사용 (2026-07-15)
             const loginByDay = new Map(trafficStats.dailyLogins.map(d => [d.date, d.users]))
-            const loginsToday = loginByDay.get(todayKey) ?? 0
-            const logins7 = trafficStats.dailyLogins.filter(d => d.date >= sevenAgoKey).reduce((s, d) => s + d.users, 0)
             let runLogins = 0
             const cumLogins = daily.map(d => ({ date: d.date, value: (runLogins += loginByDay.get(d.date) ?? 0) }))
             const totalLogins = trafficStats.dailyLogins.reduce((s, d) => s + d.users, 0)
@@ -325,7 +323,7 @@ export function ReviewnotesBlock({
             )
             return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
             <LStat
               label="페이지뷰"
               title="랜딩(/ko, /en) 페이지뷰 누적 — 세션당 1회, 봇 제외 (집계 시작 2026-06-24 이후)"
@@ -351,18 +349,12 @@ export function ReviewnotesBlock({
               sparkline={cumSignups}
             />
             <LStat
-              label="회원 로그인"
-              title="회원 로그인 연인원 누적 — 하루에 유저당 1회만 카운트 (EventLog, 집계 시작 이후). 같은 유저가 3일 쓰면 3으로 집계."
-              value={totalLogins.toLocaleString()}
-              sub={`오늘 ${loginsToday.toLocaleString()}명 · 7일 ${logins7.toLocaleString()}명`}
-              sparkline={cumLogins}
-            />
-            <LStat
               label="활동 사용자"
-              title="집계 시작(2026-06-24) 이후 앱에서 활동한 로그인 사용자 누적 (EventLog). 활동률 = 활동 ÷ 전체 가입자."
+              title="집계 시작 이후 앱에서 활동한 로그인 사용자 (유니크). 활동률 = 활동 ÷ 전체 가입자. 연 로그인 = 하루에 유저당 1회만 센 로그인 일수 합 — 스파크라인은 그 누적(기울기 = 사용 페이스). 오늘/7일은 그날 로그인한 유저 수."
               value={activeUsers.toLocaleString()}
               valueExtra={rateExtra('활동', rate(activeUsers, totalUsersAll))}
-              sub={`전체 ${totalUsersAll.toLocaleString()}명 중`}
+              sub={`연 로그인 ${totalLogins.toLocaleString()}일 · 인당 ${activeUsers > 0 ? (totalLogins / activeUsers).toFixed(1) : '0'}일`}
+              sparkline={cumLogins}
             />
             <LStat
               label="유료 사용자"
