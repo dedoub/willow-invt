@@ -1192,6 +1192,16 @@ export function VoicecardsBlock({
             const sevenAgoCards = (beforeSeven.length ? beforeSeven[beforeSeven.length - 1].totalCards : inventory[0]?.totalCards) ?? liveCards
             const last7CardsDelta = liveCards - sevenAgoCards
 
+            // 학습량(뒤집기/말하기/듣기)이 보유 카드의 몇 배수인지 — 카드당 반복 학습 강도
+            const cardRatioExtra = (n: number) => userStats.totalCards > 0 ? (
+              <span style={{
+                fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+              }}>
+                {(n / userStats.totalCards).toFixed(1)}x
+              </span>
+            ) : undefined
+
             return (
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
             <LStat
@@ -1222,7 +1232,9 @@ export function VoicecardsBlock({
               return (
                 <LStat
                   label="카드 뒤집기"
+                  title="카드를 수동으로 앞뒤 전환한 횟수. 배수 = 보유 카드 대비 (카드당 반복 강도)."
                   value={formatNumber(totalFlips)}
+                  valueExtra={cardRatioExtra(totalFlips)}
                   sub={`오늘 ${formatNumber(todayFlips)}회 · 7일 ${formatNumber(last7Flips)}회`}
                   sparkline={compact ? undefined : (flipSpark.length > 1 ? flipSpark : undefined)}
                 />
@@ -1230,7 +1242,9 @@ export function VoicecardsBlock({
             })()}
             <LStat
               label="말하기 학습"
+              title="채점까지 성사된 말하기 시도 누적. 배수 = 보유 카드 대비 (카드당 반복 강도)."
               value={formatNumber(userStats.totalAttempts)}
+              valueExtra={cardRatioExtra(userStats.totalAttempts)}
               sub={`오늘 ${formatNumber(todayAttempts)}회 · 7일 ${formatNumber(last7Attempts)}회`}
               sparkline={compact ? undefined : (attemptTrajectory.length > 1 ? attemptTrajectory : undefined)}
             />
@@ -1253,7 +1267,9 @@ export function VoicecardsBlock({
               return (
                 <LStat
                   label="듣기 학습"
+                  title="TTS·미리듣기 재생 횟수 누적. 배수 = 보유 카드 대비 (카드당 반복 강도)."
                   value={formatNumber(totalUsed)}
+                  valueExtra={cardRatioExtra(totalUsed)}
                   sub={`오늘 ${formatNumber(todayUsage)}회 · 7일 ${formatNumber(last7Sum)}회`}
                   sparkline={compact ? undefined : (sparkData.length > 1 ? sparkData : undefined)}
                 />
