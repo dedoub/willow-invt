@@ -57,6 +57,7 @@ interface UserStats {
     ownCards?: number
     sheetCount: number
     cards: number
+    flips: number
     attempts: number
     cardsToday: number
     attemptsToday: number

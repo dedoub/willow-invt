@@ -47,6 +47,7 @@ interface UserStats {
     ownCards?: number
     sheetCount: number
     cards: number
+    flips?: number
     attempts: number
     cardsToday: number
     attemptsToday: number
@@ -182,7 +183,7 @@ function formatTimeShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = '64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 52px 44px 78px 60px 54px 48px 52px 48px 44px'
+const USER_TABLE_COLS = '64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 48px 52px 48px 44px'
 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용. 컬럼 정의에서 자동 산출 —
 // 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져 마지막 열들이 회색 행 배경
 // 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
@@ -371,7 +372,7 @@ function formatCountryName(code: string): string {
 
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status' | 'active'
-  | 'sheets' | 'cards' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'paid'
+  | 'sheets' | 'cards' | 'flips' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'paid'
   | 'created' | 'recent' | 'active7'
 type SortDir = 'asc' | 'desc'
 
@@ -388,6 +389,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'active',   label: '활성화', mobileLabel: '활성화',   align: 'center' },
   { key: 'sheets',   label: '시트',   mobileLabel: '시트',     align: 'center' },
   { key: 'cards',    label: '카드',   mobileLabel: '카드',     align: 'center' },
+  { key: 'flips',    label: '뒤집기', mobileLabel: '뒤집기',   align: 'center' },
   { key: 'attempts', label: '말하기', mobileLabel: '말하기',   align: 'center' },
   { key: 'listen',   label: '듣기',   mobileLabel: '듣기',     align: 'center' },
   { key: 'intent',   label: '구매신호', mobileLabel: '구매신호', align: 'center' },
@@ -591,6 +593,7 @@ export function VoicecardsBlock({
         case 'active':   return Number(a.sheetCount > 0 || (a.ownCards ?? a.cards) > 0) - Number(b.sheetCount > 0 || (b.ownCards ?? b.cards) > 0)
         case 'sheets':   return a.sheetCount - b.sheetCount
         case 'cards':    return a.cards - b.cards
+        case 'flips':    return (a.flips ?? 0) - (b.flips ?? 0)
         case 'attempts': return a.attempts - b.attempts
         case 'listen':   return (a.creditsUsed ?? 0) - (b.creditsUsed ?? 0)
         // 구매신호: 핫리드 우선, 그 안에서 최근 의도 시각 순 (동점이면 다음 정렬로)
@@ -1424,6 +1427,7 @@ export function VoicecardsBlock({
                   <NumDeltaCell total={user.cards} delta={user.cardsToday}
                     dim={(user.ownCards ?? user.cards) === 0 && user.cards > 0}
                     note={(user.ownCards ?? user.cards) === 0 && user.cards > 0 ? '데모' : undefined} />
+                  <NumDeltaCell total={user.flips ?? 0} delta={0} />
                   <NumDeltaCell total={user.attempts} delta={user.attemptsToday} />
                   <NumDeltaCell total={user.creditsUsed} delta={user.listenToday} />
                   <IntentCell u={user} />

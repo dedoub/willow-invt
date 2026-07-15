@@ -925,6 +925,7 @@ export interface VoicecardsUserStats {
     sheetCount: number
     cards: number
     ownCards: number // 데모 덱 제외 보유 카드 — 활성화(미활성/연동후대기) 판정 전용
+    flips: number    // 카드 앞뒤 수동 전환 횟수 (card_flipped_manual) — 말하기 없이 눈으로만 학습하는 패턴 감지
     attempts: number
     cardsToday: number        // 오늘 카드 증가분
     attemptsToday: number     // 오늘 말하기 증가분
@@ -1072,13 +1073,15 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 누적 말하기 시도 (user_analytics.total_attempts 합) — 사용자 리스트 "말하기" 합과 일치
   const totalAttempts = Array.from(userAttemptsMap.values()).reduce((sum, n) => sum + n, 0)
 
-  // 사용자별 듣기 학습 횟수 (이벤트 1건 = 1회)
-  // 포함: tts_played, voice_preview_played (AI 카드 생성은 사용량 적어 제외)
+  // 사용자별 듣기 학습 횟수 (이벤트 1건 = 1회) + 카드 뒤집기 횟수
+  // 포함: tts_played, voice_preview_played (AI 카드 생성은 사용량 적어 제외) / card_flipped_manual
   const userCreditsUsedMap = new Map<string, number>()
-  for (const row of ((listenRes.data || []) as Array<{ user_id: string | null; listen_count: number }>)) {
+  const userFlipsMap = new Map<string, number>()
+  for (const row of ((listenRes.data || []) as Array<{ user_id: string | null; listen_count: number; flip_count: number }>)) {
     const uid = row.user_id
     if (!uid || !visibleUserIds.has(uid)) continue
     userCreditsUsedMap.set(uid, Number(row.listen_count) || 0)
+    userFlipsMap.set(uid, Number(row.flip_count) || 0)
   }
 
   // 사용자별 최근 앱 버전 + 플랫폼 + 언어 (vc_user_latest_meta RPC: user당 최신 1행)
@@ -1182,6 +1185,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     sheetCount: u.sheet_ids?.length || 0,
     cards: userCardsMap.get(u.user_id) || 0,
     ownCards: userOwnCardsMap.get(u.user_id) || 0,
+    flips: userFlipsMap.get(u.user_id) || 0,
     attempts: userAttemptsMap.get(u.user_id) || 0,
     createdAt: u.created_at,
     cardsToday: userActivityMap.get(u.user_id)?.cardsToday || 0,
