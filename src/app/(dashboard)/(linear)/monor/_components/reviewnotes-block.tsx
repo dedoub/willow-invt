@@ -306,6 +306,21 @@ export function ReviewnotesBlock({
             }
             let runSignups = 0
             const cumSignups = daily.map(d => ({ date: d.date, value: (runSignups += signupByDay.get(d.date) ?? 0) }))
+            // 활성화 = 문제를 하나라도 등록한 유저 (rn_activation, 첫 등록 시각 기준).
+            // 스파크라인은 집계 시작 이전 활성화분을 베이스라인으로 깔고 누적 — 끝점 = 총 활성 유저.
+            const activation = trafficStats.activation ?? []
+            const activatedTotal = activation.length
+            const activatedToday = activation.filter(a => kstKey(a.firstProblemAt) === todayKey).length
+            const activated7 = activation.filter(a => kstKey(a.firstProblemAt) >= sevenAgoKey).length
+            const actByDay = new Map<string, number>()
+            let actBaseline = 0
+            for (const a of activation) {
+              const k = kstKey(a.firstProblemAt)
+              if (k < trackStartKey) actBaseline++
+              else actByDay.set(k, (actByDay.get(k) ?? 0) + 1)
+            }
+            let runAct = actBaseline
+            const cumActivated = daily.map(d => ({ date: d.date, value: (runAct += actByDay.get(d.date) ?? 0) }))
 
             const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
             const rateExtra = (label: string, pct: number) => (
@@ -318,7 +333,7 @@ export function ReviewnotesBlock({
             )
             return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
             <LStat
               label="순 방문자"
               title="랜딩 유니크 방문자 누적 (기기 기준, 집계 시작 이후)"
@@ -349,6 +364,22 @@ export function ReviewnotesBlock({
               valueExtra={rateExtra('전환', rate(signupsSinceStart, trafficStats.totals.visitors))}
               sub={`오늘 ${signupsToday.toLocaleString()}명 · 7일 ${signups7.toLocaleString()}명`}
               sparkline={mobile ? undefined : cumSignups}
+            />
+            <LStat
+              label="활성화"
+              title="문제를 하나라도 등록한 유저 (전 기간). 활성 = 활성화 ÷ 전체 가입자. 스파크라인은 집계 시작 이후 누적(이전 활성화분은 베이스라인)."
+              value={activatedTotal.toLocaleString()}
+              valueExtra={rateExtra('활성', rate(activatedTotal, users.length))}
+              sub={`오늘 ${activatedToday.toLocaleString()}명 · 7일 ${activated7.toLocaleString()}명`}
+              tone={users.length > 0 && activatedTotal / users.length >= 0.5 ? 'pos' : 'warn'}
+              sparkline={mobile ? undefined : cumActivated}
+            />
+            <LStat
+              label="MRR"
+              title="월간 반복 매출 (LemonSqueezy 활성 구독 기준)."
+              value={stats ? formatCurrency(stats.mrr) : '—'}
+              sub={stats ? `활성 구독 ${stats.activeSubscriptions}건` : '월간 반복 매출'}
+              tone="info"
             />
           </div>
           {/* 유입 경로 / 국가 / 기기 — 보이스카드와 동일한 파이 + 탭 (2026-07-15 사용자 구성 파이는 제거).
@@ -423,13 +454,8 @@ export function ReviewnotesBlock({
             }}>
               운영 지표
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
-              <LStat
-                label="MRR"
-                value={formatCurrency(stats.mrr)}
-                sub="월간 반복 매출"
-                tone="info"
-              />
+            {/* MRR은 인사이트 퍼널로 이동 (2026-07-15) */}
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
               <LStat
                 label="활성 구독자"
                 value={String(stats.activeSubscriptions)}

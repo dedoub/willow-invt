@@ -61,6 +61,8 @@ export interface ReviewNotesTrafficStats {
   topCountries: Array<{ country: string; count: number }>
   // 기기 분포 (mobile/tablet/desktop, 방문자 기준) — 2026-07-15부터 수집, 이전 방문은 unknown
   devices: Array<{ device: string; count: number }>
+  // 활성화 — 문제를 하나라도 등록한 유저의 첫 등록 시각 (rn_activation RPC)
+  activation: Array<{ userId: string; firstProblemAt: string }>
   // 회원/유료 유입경로·국가 — EventLog↔PageView 방문자 ID 조인, 유저별 first-touch 귀속
   memberReferrers: Array<{ referrer: string; count: number }>
   memberCountries: Array<{ country: string; count: number }>
@@ -93,6 +95,7 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     topReferrers: [],
     topCountries: [],
     devices: [],
+    activation: [],
     memberReferrers: [],
     memberCountries: [],
     paidReferrers: [],
@@ -103,7 +106,11 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
 
   // PageView는 RLS로 raw select가 막혀 있어(anon 정책 없음, 2026-06-21 하드닝)
   // 집계 전용 SECURITY DEFINER RPC로 조회한다. 정본: supabase/reviewnotes/rn_traffic_stats.sql
-  const { data, error } = await reviewnotesSupabase.rpc('rn_traffic_stats', { range_days: CUMULATIVE_RANGE_DAYS })
+  const [{ data, error }, activationRes] = await Promise.all([
+    reviewnotesSupabase.rpc('rn_traffic_stats', { range_days: CUMULATIVE_RANGE_DAYS }),
+    // 활성화(첫 문제 등록) — 실패해도 트래픽 통계는 유지 (best-effort)
+    reviewnotesSupabase.rpc('rn_activation'),
+  ])
   if (error || !data) {
     console.error('Error fetching rn_traffic_stats:', error)
     return empty
@@ -152,6 +159,8 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     topReferrers: stats.topReferrers ?? [],
     topCountries: stats.topCountries ?? [],
     devices: stats.devices ?? [],
+    activation: ((activationRes.data ?? []) as Array<{ user_id: string; first_problem_at: string }>)
+      .map(r => ({ userId: r.user_id, firstProblemAt: r.first_problem_at })),
     memberReferrers: stats.memberReferrers ?? [],
     memberCountries: stats.memberCountries ?? [],
     paidReferrers: stats.paidReferrers ?? [],
