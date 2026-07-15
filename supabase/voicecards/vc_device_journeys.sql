@@ -4,6 +4,8 @@
 --   소비처: willow 대시보드, willy-bot (예: WHERE NOT signed_in AND last_seen_at >= now()-interval '48 hours')
 -- journey_stage: opened → demo → intent(add_sheet/AI생성 진입) → signin_attempted(클릭했으나 미완료) → signed_in
 -- 제외 규칙은 vc_event_stats()와 동일 (excluded_devices CTE + is_likely_bot). 정본: voicecards-stats 스킬 문서.
+-- 컬럼 중간 삽입이 있어 재적용 시 drop 후 재생성 필요 (2026-07-15 anon_flips 추가)
+drop view if exists vc_device_journeys;
 create or replace view vc_device_journeys as
 with excluded_devices as (
   select distinct e.device_id
@@ -42,6 +44,7 @@ agg as (
       'card_learned_anonymous','tts_played','listen_session_started') and user_id is null) as demo_engaged,
     count(*) filter (where event_name = 'card_viewed' and user_id is null) as anon_cards_viewed,
     count(*) filter (where event_name = 'card_learned_anonymous') as anon_cards_learned,
+    count(*) filter (where event_name = 'card_flipped_manual' and user_id is null) as anon_flips,
     count(*) filter (where event_name = 'card_attempted' and user_id is null) as anon_speak_attempts,
     count(*) filter (where event_name = 'listen_session_started' and user_id is null) as anon_listen_sessions,
     count(*) filter (where event_name in ('add_sheet_opened_anonymous','add_sheet_opened')) as add_sheet_opens,
@@ -70,6 +73,7 @@ select
   a.demo_engaged,
   a.anon_cards_viewed,
   a.anon_cards_learned,
+  a.anon_flips,
   a.anon_speak_attempts,
   a.anon_listen_sessions,
   a.add_sheet_opens,
