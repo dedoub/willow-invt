@@ -506,12 +506,7 @@ export function ReviewnotesBlock({
                 valueExtra={contentStats && contentStats.studyResults.total > 0 ? rateExtra('정답', rate(contentStats.studyResults.correct, contentStats.studyResults.total)) : undefined}
                 sub={contentStats ? `오늘 ${contentStats.studyResults.today}회 · 7일 ${contentStats.studyResults.d7}회` : undefined}
               />
-              <LStat
-                label="학습 노트"
-                title="복습 중 남긴 학습 메모(StudyNote) 누적."
-                value={(contentStats?.studyNotes.total ?? 0).toLocaleString()}
-                sub={contentStats ? `오늘 ${contentStats.studyNotes.today}개 · 7일 ${contentStats.studyNotes.d7}개` : undefined}
-              />
+              {/* 학습 노트 카드는 제외 (2026-07-16 CEO) — 여섯 번째 자리는 비워둠, 데이터(studyNotes)는 RPC에 유지 */}
               <LStat
                 label="용량"
                 value={`${(userStats.totalStorageUsed / (1024 * 1024)).toFixed(1)} MB`}
