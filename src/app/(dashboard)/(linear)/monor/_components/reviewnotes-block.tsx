@@ -10,6 +10,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats } from '@/lib/reviewnotes-supabase'
+import { formatCountryName } from '@/lib/country-format'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -379,9 +380,9 @@ export function ReviewnotesBlock({
             <DistributionPie
               title="국가"
               tabs={[
-                { key: 'visit', label: '방문', data: trafficStats.topCountries.map(c => ({ name: c.country === 'Unknown' ? '알 수 없음' : c.country, value: c.count })) },
-                { key: 'member', label: '회원', data: trafficStats.memberCountries.map(c => ({ name: c.country === 'Unknown' ? '알 수 없음' : c.country, value: c.count })) },
-                { key: 'paid', label: '유료', data: trafficStats.paidCountries.map(c => ({ name: c.country === 'Unknown' ? '알 수 없음' : c.country, value: c.count })) },
+                { key: 'visit', label: '방문', data: trafficStats.topCountries.map(c => ({ name: formatCountryName(c.country), value: c.count })) },
+                { key: 'member', label: '회원', data: trafficStats.memberCountries.map(c => ({ name: formatCountryName(c.country), value: c.count })) },
+                { key: 'paid', label: '유료', data: trafficStats.paidCountries.map(c => ({ name: formatCountryName(c.country), value: c.count })) },
               ]}
               palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
               unit="명"
