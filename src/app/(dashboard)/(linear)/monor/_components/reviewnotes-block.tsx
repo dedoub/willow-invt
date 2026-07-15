@@ -372,8 +372,16 @@ export function ReviewnotesBlock({
             }
             let runPaid = paidBaseline
             const cumPaid = daily.map(d => ({ date: d.date, value: (runPaid += paidByDay.get(d.date) ?? 0) }))
-            // MRR 스파크라인 — 일별 스냅샷(달러). 스냅샷은 오늘부터 쌓이기 시작 (2일차부터 선이 생김)
-            const mrrSpark = (trafficStats.mrrHistory ?? []).map(h => ({ date: h.date, value: Math.round(h.mrr / 100) }))
+            // MRR 스파크라인 — 일별 스냅샷(달러)을 윈도우 전체로 전개 (각 날짜 = 그날 이전 최신 스냅샷 값).
+            // 스냅샷 이전 구간은 첫 스냅샷 값으로 채움 — 구독이 없던 기간이라 $0 채움은 실제와 일치.
+            const mrrHist = trafficStats.mrrHistory ?? []
+            const mrrSpark = mrrHist.length > 0
+              ? daily.map(d => {
+                  let v = mrrHist[0].mrr
+                  for (const h of mrrHist) { if (h.date <= d.date) v = h.mrr; else break }
+                  return { date: d.date, value: Math.round(v / 100) }
+                })
+              : []
 
             return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -429,7 +437,7 @@ export function ReviewnotesBlock({
             />
             <LStat
               label="MRR"
-              title="월간 반복 매출 (LemonSqueezy 활성 구독 기준). 스파크라인은 일별 MRR 스냅샷 — 2026-07-16부터 축적."
+              title="월간 반복 매출 (LemonSqueezy 활성 구독 기준). 스파크라인은 일별 MRR 스냅샷(2026-07-16부터 축적, 그 이전 무구독 구간은 $0)."
               value={stats ? formatCurrency(stats.mrr) : '—'}
               sub={stats ? `활성 구독 ${stats.activeSubscriptions}건` : '월간 반복 매출'}
               tone="info"
