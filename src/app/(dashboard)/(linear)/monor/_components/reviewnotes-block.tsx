@@ -9,7 +9,7 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
-import type { ReviewNotesUserStats, ReviewNotesTrafficStats } from '@/lib/reviewnotes-supabase'
+import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
 import { formatCountryName } from '@/lib/country-format'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -19,6 +19,7 @@ export interface ReviewnotesBlockProps {
   stats: ReviewNotesStats | null
   userStats: ReviewNotesUserStats | null
   trafficStats: ReviewNotesTrafficStats | null
+  contentStats: ReviewNotesContentStats | null
   onRefresh: () => void
   refreshing: boolean
   error: string | null
@@ -126,10 +127,21 @@ const userDateCell: React.CSSProperties = {
   fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap',
 }
 
+// 전환율 계산 + 값 뒤 주황 보조라벨 (보이스카드 퍼널 문법) — 퍼널/운영지표 공용
+const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
+const rateExtra = (label: string, pct: number) => (
+  <span style={{
+    fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+    color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+  }}>
+    {label} {pct}%
+  </span>
+)
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ReviewnotesBlock({
-  loading, stats, userStats, trafficStats,
+  loading, stats, userStats, trafficStats, contentStats,
   onRefresh, refreshing, error,
 }: ReviewnotesBlockProps) {
   const mobile = useIsMobile()
@@ -321,16 +333,20 @@ export function ReviewnotesBlock({
             }
             let runAct = actBaseline
             const cumActivated = daily.map(d => ({ date: d.date, value: (runAct += actByDay.get(d.date) ?? 0) }))
+            // 유료 사용자 누적 — 전환 시점(구독 생성일, 수동 부여는 가입일 폴백) 기준, 활성화와 동일한 베이스라인 방식
+            const paidTimeline = trafficStats.paidTimeline ?? []
+            const paidByDay = new Map<string, number>()
+            let paidBaseline = 0
+            for (const p of paidTimeline) {
+              const k = kstKey(p.paidAt)
+              if (k < trackStartKey) paidBaseline++
+              else paidByDay.set(k, (paidByDay.get(k) ?? 0) + 1)
+            }
+            let runPaid = paidBaseline
+            const cumPaid = daily.map(d => ({ date: d.date, value: (runPaid += paidByDay.get(d.date) ?? 0) }))
+            // MRR 스파크라인 — 일별 스냅샷(달러). 스냅샷은 오늘부터 쌓이기 시작 (2일차부터 선이 생김)
+            const mrrSpark = (trafficStats.mrrHistory ?? []).map(h => ({ date: h.date, value: Math.round(h.mrr / 100) }))
 
-            const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
-            const rateExtra = (label: string, pct: number) => (
-              <span style={{
-                fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
-                color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
-              }}>
-                {label} {pct}%
-              </span>
-            )
             return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
@@ -376,18 +392,21 @@ export function ReviewnotesBlock({
             />
             <LStat
               label="유료 사용자"
-              title="현재 유료 플랜(BASIC/STANDARD/PRO) 사용자. 전환 = 유료 ÷ 활성화 — 문제 등록까지 간 유저 중 결제 비율."
+              title="현재 유료 플랜(BASIC/STANDARD/PRO) 사용자. 전환 = 유료 ÷ 활성화. 스파크라인은 전환 시점(구독 생성일, 수동 부여는 가입일) 누적."
               value={users.filter(u => u.subscriptionPlan !== 'FREE').length.toLocaleString()}
               valueExtra={rateExtra('전환', rate(users.filter(u => u.subscriptionPlan !== 'FREE').length, activatedTotal))}
               sub={userStats ? `B ${userStats.basicUsers} · S ${userStats.standardUsers} · P ${userStats.proUsers}` : undefined}
               tone={users.some(u => u.subscriptionPlan !== 'FREE') ? 'pos' : 'default'}
+              sparkline={mobile ? undefined : cumPaid}
             />
             <LStat
               label="MRR"
-              title="월간 반복 매출 (LemonSqueezy 활성 구독 기준)."
+              title="월간 반복 매출 (LemonSqueezy 활성 구독 기준). 스파크라인은 일별 MRR 스냅샷 — 2026-07-16부터 축적."
               value={stats ? formatCurrency(stats.mrr) : '—'}
               sub={stats ? `활성 구독 ${stats.activeSubscriptions}건` : '월간 반복 매출'}
               tone="info"
+              sparkline={mobile ? undefined : (mrrSpark.length > 1 ? mrrSpark : undefined)}
+              sparkFormat={(v) => `$${v.toLocaleString()}`}
             />
           </div>
           {/* 유입 경로 / 국가 / 기기 — 보이스카드와 동일한 파이 + 탭 (2026-07-15 사용자 구성 파이는 제거).
@@ -462,15 +481,37 @@ export function ReviewnotesBlock({
             }}>
               운영 지표
             </div>
-            {/* MRR은 인사이트 퍼널로 이동 (2026-07-15) */}
+            {/* 콘텐츠·학습 카운트 (2026-07-16 CEO): 노트/문제/문제 세트 + 풀이/학습 노트 + 용량.
+                MRR·가입·유료는 인사이트 퍼널로 이동, 활성 구독자는 MRR 카드 sub로 흡수. */}
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
               <LStat
-                label="활성 구독자"
-                value={String(stats.activeSubscriptions)}
-                sub={`오늘 ${paidToday}명 · 7일 ${paid7}명`}
-                tone="pos"
+                label="노트"
+                value={(contentStats?.notes.total ?? 0).toLocaleString()}
+                sub={contentStats ? `오늘 ${contentStats.notes.today}개 · 7일 ${contentStats.notes.d7}개` : undefined}
               />
-              <SignupStat userStats={userStats} />
+              <LStat
+                label="문제"
+                value={(contentStats?.problems.total ?? 0).toLocaleString()}
+                sub={contentStats ? `오늘 ${contentStats.problems.today}개 · 7일 ${contentStats.problems.d7}개` : undefined}
+              />
+              <LStat
+                label="문제 세트"
+                value={(contentStats?.problemSets.total ?? 0).toLocaleString()}
+                sub={contentStats ? `오늘 ${contentStats.problemSets.today}개 · 7일 ${contentStats.problemSets.d7}개` : undefined}
+              />
+              <LStat
+                label="문제 풀이"
+                title="StudyResult 누적 — 문제를 실제로 풀어 제출한 횟수. 정답률 = 정답 ÷ 전체 풀이."
+                value={(contentStats?.studyResults.total ?? 0).toLocaleString()}
+                valueExtra={contentStats && contentStats.studyResults.total > 0 ? rateExtra('정답', rate(contentStats.studyResults.correct, contentStats.studyResults.total)) : undefined}
+                sub={contentStats ? `오늘 ${contentStats.studyResults.today}회 · 7일 ${contentStats.studyResults.d7}회` : undefined}
+              />
+              <LStat
+                label="학습 노트"
+                title="복습 중 남긴 학습 메모(StudyNote) 누적."
+                value={(contentStats?.studyNotes.total ?? 0).toLocaleString()}
+                sub={contentStats ? `오늘 ${contentStats.studyNotes.today}개 · 7일 ${contentStats.studyNotes.d7}개` : undefined}
+              />
               <LStat
                 label="용량"
                 value={`${(userStats.totalStorageUsed / (1024 * 1024)).toFixed(1)} MB`}
@@ -699,56 +740,6 @@ export function ReviewnotesBlock({
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 // 가입자 카드 — 총원 + 오늘/7일 신규 + 플랜 분포 (LStat 스타일 매칭)
-function SignupStat({ userStats }: { userStats: ReviewNotesUserStats }) {
-  // 오늘/7일 신규 가입 — createdAt(KST 날짜) 기준
-  const toKst = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-  const todayKst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-  const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 6) // 오늘 포함 7일
-  const sevenAgoKst = sevenAgo.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-  const todayCount = userStats.users.filter(u => toKst(u.createdAt) === todayKst).length
-  const last7Count = userStats.users.filter(u => toKst(u.createdAt) >= sevenAgoKst).length
-  return (
-    <div style={{
-      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px', minWidth: 0,
-    }}>
-      <div style={{
-        fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
-        textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: 2,
-        whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>가입자</div>
-      {/* 가입자 수 + 플랜 분포 배지 (바로 옆) */}
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 5 }}>
-        <span style={{
-          fontSize: 'calc(13px * var(--fz, 1))', fontWeight: 600, letterSpacing: -0.3,
-          fontVariantNumeric: 'tabular-nums' as const, color: t.neutrals.text,
-        }}>{userStats.totalUsers}</span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-          {[
-            { plan: 'FREE', count: userStats.freeUsers },
-            { plan: 'BASIC', count: userStats.basicUsers },
-            { plan: 'STANDARD', count: userStats.standardUsers },
-            { plan: 'PRO', count: userStats.proUsers },
-          ].filter(p => p.count > 0).map(p => {
-            const tone = getTone(PLAN_TONES, p.plan)
-            return (
-              <span key={p.plan} style={{
-                fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                padding: '1px 4px', borderRadius: 3, lineHeight: 1.4,
-                background: tone.bg, color: tone.fg,
-              }}>
-                {p.plan} {p.count}
-              </span>
-            )
-          })}
-        </div>
-      </div>
-      <div style={{
-        fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 4,
-        whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>오늘 {todayCount}명 · 7일 {last7Count}명</div>
-    </div>
-  )
-}
 
 
 function SkeletonRow({ count }: { count: number }) {

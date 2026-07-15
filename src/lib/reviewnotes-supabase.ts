@@ -63,6 +63,10 @@ export interface ReviewNotesTrafficStats {
   devices: Array<{ device: string; count: number }>
   // 활성화 — 문제를 하나라도 등록한 유저의 첫 등록 시각 (rn_activation RPC)
   activation: Array<{ userId: string; firstProblemAt: string }>
+  // 유료 전환 시점 — Subscription 최초 생성일, 수동 부여는 가입일 폴백 (rn_paid_users RPC)
+  paidTimeline: Array<{ userId: string; paidAt: string }>
+  // MRR 일별 스냅샷 (rn_mrr_snapshots — 대시보드 로드 시 기록 축적)
+  mrrHistory: Array<{ date: string; mrr: number; activeSubs: number }>
   // 회원/유료 유입경로·국가 — EventLog↔PageView 방문자 ID 조인, 유저별 first-touch 귀속
   memberReferrers: Array<{ referrer: string; count: number }>
   memberCountries: Array<{ country: string; count: number }>
@@ -96,6 +100,8 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     topCountries: [],
     devices: [],
     activation: [],
+    paidTimeline: [],
+    mrrHistory: [],
     memberReferrers: [],
     memberCountries: [],
     paidReferrers: [],
@@ -106,10 +112,12 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
 
   // PageView는 RLS로 raw select가 막혀 있어(anon 정책 없음, 2026-06-21 하드닝)
   // 집계 전용 SECURITY DEFINER RPC로 조회한다. 정본: supabase/reviewnotes/rn_traffic_stats.sql
-  const [{ data, error }, activationRes] = await Promise.all([
+  const [{ data, error }, activationRes, paidRes, mrrHistRes] = await Promise.all([
     reviewnotesSupabase.rpc('rn_traffic_stats', { range_days: CUMULATIVE_RANGE_DAYS }),
-    // 활성화(첫 문제 등록) — 실패해도 트래픽 통계는 유지 (best-effort)
+    // 활성화(첫 문제 등록) / 유료 전환 시점 / MRR 스냅샷 — 실패해도 트래픽 통계는 유지 (best-effort)
     reviewnotesSupabase.rpc('rn_activation'),
+    reviewnotesSupabase.rpc('rn_paid_users'),
+    reviewnotesSupabase.rpc('rn_mrr_history'),
   ])
   if (error || !data) {
     console.error('Error fetching rn_traffic_stats:', error)
@@ -161,11 +169,42 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     devices: stats.devices ?? [],
     activation: ((activationRes.data ?? []) as Array<{ user_id: string; first_problem_at: string }>)
       .map(r => ({ userId: r.user_id, firstProblemAt: r.first_problem_at })),
+    paidTimeline: ((paidRes.data ?? []) as Array<{ user_id: string; paid_at: string }>)
+      .map(r => ({ userId: r.user_id, paidAt: r.paid_at })),
+    mrrHistory: ((mrrHistRes.data ?? []) as Array<{ date: string; mrr: number; active_subs: number }>)
+      .map(r => ({ date: r.date, mrr: Number(r.mrr) || 0, activeSubs: Number(r.active_subs) || 0 })),
     memberReferrers: stats.memberReferrers ?? [],
     memberCountries: stats.memberCountries ?? [],
     paidReferrers: stats.paidReferrers ?? [],
     paidCountries: stats.paidCountries ?? [],
   }
+}
+
+// 콘텐츠/학습 카운트 (rn_content_stats RPC) — 노트/문제/문제 세트/풀이/학습 노트, 총계+오늘/7일
+export interface ReviewNotesContentStats {
+  notes: { total: number; today: number; d7: number }
+  problems: { total: number; today: number; d7: number }
+  problemSets: { total: number; today: number; d7: number }
+  studyResults: { total: number; today: number; d7: number; correct: number }
+  studyNotes: { total: number; today: number; d7: number }
+}
+
+export async function getReviewNotesContentStats(): Promise<ReviewNotesContentStats | null> {
+  if (!reviewnotesSupabase) return null
+  const { data, error } = await reviewnotesSupabase.rpc('rn_content_stats')
+  if (error || !data) {
+    console.error('Error fetching rn_content_stats:', error)
+    return null
+  }
+  return data as ReviewNotesContentStats
+}
+
+// MRR 스냅샷 기록 — LemonSqueezy에서 계산한 오늘 MRR을 리뷰노트 DB에 남겨 히스토리 축적.
+// 리뷰노트 쪽에 크론이 없어 대시보드 로드가 기록 트리거 (하루 1행 upsert, 실패 무시).
+export async function recordReviewNotesMrr(mrr: number, activeSubs: number): Promise<void> {
+  if (!reviewnotesSupabase) return
+  const { error } = await reviewnotesSupabase.rpc('rn_record_mrr', { p_mrr: Math.round(mrr), p_subs: activeSubs })
+  if (error) console.error('rn_record_mrr failed (non-fatal):', error)
 }
 
 // 유저 목록 조회

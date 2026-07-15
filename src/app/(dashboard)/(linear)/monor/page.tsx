@@ -7,7 +7,7 @@ import { VoicecardsSettingsDialog } from './_components/voicecards-settings-dial
 import { ReviewnotesBlock } from './_components/reviewnotes-block'
 import { useDashCols } from './_components/cols-toggle'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
-import type { ReviewNotesUserStats, ReviewNotesTrafficStats } from '@/lib/reviewnotes-supabase'
+import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { kstToday } from '@/lib/kst'
 
@@ -150,6 +150,7 @@ export default function MonorPage() {
   const [rnStats, setRnStats] = useState<ReviewNotesStats | null>(null)
   const [rnUserStats, setRnUserStats] = useState<ReviewNotesUserStats | null>(null)
   const [rnTrafficStats, setRnTrafficStats] = useState<ReviewNotesTrafficStats | null>(null)
+  const [rnContentStats, setRnContentStats] = useState<ReviewNotesContentStats | null>(null)
   const [rnError, setRnError] = useState<string | null>(null)
 
   // ─── Data loading ─────────────────────────────────────────────────────────
@@ -211,6 +212,7 @@ export default function MonorPage() {
       setRnStats(data.stats)
       setRnUserStats(data.userStats || null)
       setRnTrafficStats(data.trafficStats || null)
+      setRnContentStats(data.contentStats || null)
     } catch (err) {
       console.error('ReviewNotes load error:', err)
       setRnError(String(err))
@@ -273,6 +275,7 @@ export default function MonorPage() {
           stats={rnStats}
           userStats={rnUserStats}
           trafficStats={rnTrafficStats}
+          contentStats={rnContentStats}
           onRefresh={() => loadReviewnotes(true)}
           refreshing={rnRefreshing}
           error={rnError}
