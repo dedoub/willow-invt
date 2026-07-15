@@ -276,11 +276,18 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
   })
 }
 
-// 유저 통계 계산 — 집계 수치는 관리자(role=ADMIN) 제외 (2026-07-16 CEO).
-// users 배열은 전체 유지 (사용자 테이블에는 관리자도 표시, 통계 소비처에서 role로 필터).
+// 통계 제외 계정 (2026-07-16 CEO): role=ADMIN + 스토어 심사용 PG Reviewer(role은 USER지만 관리자 계정).
+// PG Reviewer는 role을 ADMIN으로 바꾸면 심사자에게 관리자 UI가 노출될 수 있어 이메일로 제외.
+// SQL 쪽 동일 규칙: supabase/reviewnotes/*.sql 의 admins CTE — 두 곳이 항상 일치해야 함.
+export function isExcludedReviewNotesUser(u: { role?: string | null; email?: string | null }): boolean {
+  return u.role === 'ADMIN' || u.email === 'test@reviewnotes.app'
+}
+
+// 유저 통계 계산 — 집계 수치는 관리자 제외.
+// users 배열은 전체 유지 (사용자 테이블에는 관리자도 표시, 통계 소비처에서 필터).
 export async function getReviewNotesUserStats(): Promise<ReviewNotesUserStats> {
   const users = await getReviewNotesUsers()
-  const real = users.filter(u => u.role !== 'ADMIN')
+  const real = users.filter(u => !isExcludedReviewNotesUser(u))
 
   // KST 기준 이번 달 1일 / 최근 7일(오늘 포함)
   const monthStartKst = kstMonthStart()

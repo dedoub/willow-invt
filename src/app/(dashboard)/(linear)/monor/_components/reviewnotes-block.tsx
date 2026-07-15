@@ -9,6 +9,7 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
+import { isExcludedReviewNotesUser } from '@/lib/reviewnotes-supabase'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
 import { formatCountryName } from '@/lib/country-format'
 
@@ -329,7 +330,7 @@ export function ReviewnotesBlock({
 
             // 가입/유료 — userStats 기반 (KST 날짜키). 시작일 = 트래픽 집계 시작(첫 PageView 날짜)
             // 통계는 관리자 제외 (2026-07-16 CEO) — 테이블에만 전체 표시
-            const users = (userStats?.users ?? []).filter(u => u.role !== 'ADMIN')
+            const users = (userStats?.users ?? []).filter(u => !isExcludedReviewNotesUser(u))
             const trackStartKey = daily.length ? daily[0].date : ''
             const todayKey = daily.length ? daily[daily.length - 1].date : ''
             const sevenAgoKey = daily.length >= 7 ? daily[daily.length - 7].date : trackStartKey
@@ -487,7 +488,7 @@ export function ReviewnotesBlock({
       {/* 운영 지표 (임시 이름) — 매출 + 가입 통합 4카드, 옛 '인사이트' 섹션 (2026-07-15 아래로 이동) */}
       {!loading && stats && userStats && (() => {
         // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생. 통계는 관리자 제외 (2026-07-16 CEO)
-        const realUsers = userStats.users.filter(u => u.role !== 'ADMIN')
+        const realUsers = userStats.users.filter(u => !isExcludedReviewNotesUser(u))
         const toKst = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
         const todayKst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
         const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 6) // 오늘 포함 7일
