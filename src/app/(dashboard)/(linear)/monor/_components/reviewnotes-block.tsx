@@ -325,7 +325,7 @@ export function ReviewnotesBlock({
               value={trafficStats.totals.visitors.toLocaleString()}
               sub={`오늘 ${todayVisitors.toLocaleString()}명 · 7일 ${last7Visitors.toLocaleString()}명`}
               tone="info"
-              sparkline={cumVisitors}
+              sparkline={mobile ? undefined : cumVisitors}
             />
             <LStat
               label="페이지뷰"
@@ -340,7 +340,7 @@ export function ReviewnotesBlock({
                 </span>
               ) : undefined}
               sub={`오늘 ${todayViews.toLocaleString()}회 · 7일 ${last7Views.toLocaleString()}회`}
-              sparkline={cumViews}
+              sparkline={mobile ? undefined : cumViews}
             />
             <LStat
               label="가입"
@@ -348,7 +348,7 @@ export function ReviewnotesBlock({
               value={signupsSinceStart.toLocaleString()}
               valueExtra={rateExtra('전환', rate(signupsSinceStart, trafficStats.totals.visitors))}
               sub={`오늘 ${signupsToday.toLocaleString()}명 · 7일 ${signups7.toLocaleString()}명`}
-              sparkline={cumSignups}
+              sparkline={mobile ? undefined : cumSignups}
             />
           </div>
           {/* 유입 경로 / 국가 / 기기 — 보이스카드와 동일한 파이 + 탭 (2026-07-15 사용자 구성 파이는 제거).
