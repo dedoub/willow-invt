@@ -59,6 +59,8 @@ export interface ReviewNotesTrafficStats {
   dailyLogins: Array<{ date: string; users: number }>
   topReferrers: Array<{ referrer: string; count: number }>
   topCountries: Array<{ country: string; count: number }>
+  // 기기 분포 (mobile/tablet/desktop, 방문자 기준) — 2026-07-15부터 수집, 이전 방문은 unknown
+  devices: Array<{ device: string; count: number }>
   // 회원/유료 유입경로·국가 — EventLog↔PageView 방문자 ID 조인, 유저별 first-touch 귀속
   memberReferrers: Array<{ referrer: string; count: number }>
   memberCountries: Array<{ country: string; count: number }>
@@ -90,6 +92,7 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     dailyLogins: [],
     topReferrers: [],
     topCountries: [],
+    devices: [],
     memberReferrers: [],
     memberCountries: [],
     paidReferrers: [],
@@ -115,6 +118,7 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     dailyLogins?: Array<{ date: string; users: number }>
     topReferrers: Array<{ referrer: string; count: number }>
     topCountries: Array<{ country: string; count: number }>
+    devices?: Array<{ device: string; count: number }>
     memberReferrers?: Array<{ referrer: string; count: number }>
     memberCountries?: Array<{ country: string; count: number }>
     paidReferrers?: Array<{ referrer: string; count: number }>
@@ -147,6 +151,7 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     dailyLogins: stats.dailyLogins ?? [],
     topReferrers: stats.topReferrers ?? [],
     topCountries: stats.topCountries ?? [],
+    devices: stats.devices ?? [],
     memberReferrers: stats.memberReferrers ?? [],
     memberCountries: stats.memberCountries ?? [],
     paidReferrers: stats.paidReferrers ?? [],

@@ -47,6 +47,11 @@ ctrs as (
   select coalesce(nullif(country, ''), 'Unknown') as country, count(*) as n
   from cur group by 1 order by n desc limit 6
 ),
+-- 기기 분포 — 방문자(세션) 기준. device는 2026-07-15부터 수집, 이전 행은 unknown
+devs as (
+  select coalesce(nullif(device, ''), 'unknown') as device, count(distinct "sessionId") as n
+  from cur group by 1 order by n desc
+),
 -- 회원/유료 유입경로·국가: EventLog와 PageView가 같은 방문자 ID(sessionId)를 공유 →
 -- 유저별 첫 랜딩 방문(first-touch)의 referrer/country로 귀속. 랜딩을 안 거친 유저는 미포함.
 user_sessions as (
@@ -87,6 +92,8 @@ select jsonb_build_object(
     'referrer', referrer, 'count', n)) from refs), '[]'::jsonb),
   'topCountries', coalesce((select jsonb_agg(jsonb_build_object(
     'country', country, 'count', n)) from ctrs), '[]'::jsonb),
+  'devices', coalesce((select jsonb_agg(jsonb_build_object(
+    'device', device, 'count', n)) from devs), '[]'::jsonb),
   'memberReferrers', coalesce((select jsonb_agg(jsonb_build_object(
     'referrer', referrer, 'count', n)) from member_refs), '[]'::jsonb),
   'memberCountries', coalesce((select jsonb_agg(jsonb_build_object(

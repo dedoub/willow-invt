@@ -388,6 +388,22 @@ export function ReviewnotesBlock({
               unit="명"
               topN={3}
             />
+            {/* 기기 — 2026-07-15부터 수집. 그 전 방문(device null)은 제외하고 실측만 표시 —
+                수집 전 데이터가 '미상 100%'로 파이를 무의미하게 만드는 것 방지. 새 방문부터 채워짐. */}
+            <DistributionPie
+              title="기기"
+              tabs={[{
+                key: 'all', label: '전체',
+                data: trafficStats.devices
+                  .filter(d => ['mobile', 'tablet', 'desktop'].includes(d.device))
+                  .map(d => ({
+                    name: d.device === 'mobile' ? '모바일' : d.device === 'tablet' ? '태블릿' : 'PC',
+                    value: d.count,
+                  })),
+              }]}
+              palette={['#3b82f6', '#8b5cf6', '#10b981']}
+              unit="명"
+            />
           </div>
           </div>
             )
