@@ -273,7 +273,8 @@ export function ReviewnotesBlock({
             </span>
           </div>
 
-          {/* 퍼널 KPI (집계 시작 2026-06-24 이후 전체 누적): 페이지뷰 → 순 방문자 → 가입 → 활동 사용자 → 유료 —
+          {/* 퍼널 KPI (집계 시작 2026-06-24 이후 전체 누적): 순 방문자 → 페이지뷰 → 가입 —
+              활동/유료 사용자는 카드 대신 "사용자" 구성 파이(비가입/무료/유료)로 표현 (2026-07-15 CEO).
               보이스카드 인사이트처럼 각 카드 값 뒤에 전단계 대비 전환율 (2026-07-15 CEO).
               스파크라인도 누적 — 일별 값은 노이즈 스파이크라 누적 기울기로 추세를 읽고, 끝점 = 헤드라인. */}
           {(() => {
@@ -304,14 +305,6 @@ export function ReviewnotesBlock({
             }
             let runSignups = 0
             const cumSignups = daily.map(d => ({ date: d.date, value: (runSignups += signupByDay.get(d.date) ?? 0) }))
-            // 로그인 연인원 — 하루에 유저당 1회만 카운트. 활동 사용자 카드의 강도 지표로 사용 (2026-07-15)
-            const loginByDay = new Map(trafficStats.dailyLogins.map(d => [d.date, d.users]))
-            let runLogins = 0
-            const cumLogins = daily.map(d => ({ date: d.date, value: (runLogins += loginByDay.get(d.date) ?? 0) }))
-            const totalLogins = trafficStats.dailyLogins.reduce((s, d) => s + d.users, 0)
-            const totalUsersAll = users.length
-            const paidUsers = users.filter(u => u.subscriptionPlan !== 'FREE').length
-            const activeUsers = trafficStats.activeUsers
 
             const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
             const rateExtra = (label: string, pct: number) => (
@@ -324,7 +317,7 @@ export function ReviewnotesBlock({
             )
             return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
             <LStat
               label="순 방문자"
               title="랜딩 유니크 방문자 누적 (기기 기준, 집계 시작 이후)"
@@ -356,26 +349,23 @@ export function ReviewnotesBlock({
               sub={`오늘 ${signupsToday.toLocaleString()}명 · 7일 ${signups7.toLocaleString()}명`}
               sparkline={cumSignups}
             />
-            <LStat
-              label="활동 사용자"
-              title="집계 시작 이후 앱에서 활동한 로그인 사용자 (유니크). 활동률 = 활동 ÷ 전체 가입자. 연 로그인 = 하루에 유저당 1회만 센 로그인 일수 합 — 스파크라인은 그 누적(기울기 = 사용 페이스). 오늘/7일은 그날 로그인한 유저 수."
-              value={activeUsers.toLocaleString()}
-              valueExtra={rateExtra('활동', rate(activeUsers, totalUsersAll))}
-              sub={`연 로그인 ${totalLogins.toLocaleString()}일 · 인당 ${activeUsers > 0 ? (totalLogins / activeUsers).toFixed(1) : '0'}일`}
-              sparkline={cumLogins}
-            />
-            <LStat
-              label="유료 사용자"
-              title="현재 유료 플랜(BASIC/STANDARD/PRO) 사용자. 전환율 = 유료 ÷ 전체 가입자."
-              value={paidUsers.toLocaleString()}
-              valueExtra={rateExtra('전환', rate(paidUsers, totalUsersAll))}
-              sub={userStats ? `B ${userStats.basicUsers} · S ${userStats.standardUsers} · P ${userStats.proUsers}` : undefined}
-              tone={paidUsers > 0 ? 'pos' : 'default'}
-            />
           </div>
-          {/* 유입 경로 / 국가 — 보이스카드와 동일한 파이 + 탭(방문/회원/유료).
-              회원·유료는 EventLog↔PageView 방문자 ID 조인의 first-touch 귀속이라 랜딩 미경유 유저는 빠짐. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+          {/* 사용자 구성 / 유입 경로 / 국가 — 보이스카드와 동일한 파이 + 탭.
+              회원·유료 유입은 EventLog↔PageView 방문자 ID 조인의 first-touch 귀속이라 랜딩 미경유 유저는 빠짐. */}
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
+            <DistributionPie
+              title="사용자"
+              tabs={[{
+                key: 'all', label: '전체', data: [
+                  // 비가입 = 랜딩 순 방문자(기기) 중 회원으로 연결되지 않은 수 — 방문했지만 가입 안 한 잠재층
+                  { name: '비가입', value: Math.max(0, trafficStats.totals.visitors - trafficStats.memberCountries.reduce((s, c) => s + c.count, 0)) },
+                  { name: '무료', value: (userStats?.users ?? []).filter(u => u.subscriptionPlan === 'FREE').length },
+                  { name: '유료', value: (userStats?.users ?? []).filter(u => u.subscriptionPlan !== 'FREE').length },
+                ].filter(d => d.value > 0),
+              }]}
+              palette={['#94a3b8', '#3b82f6', '#10b981']}
+              unit="명"
+            />
             <DistributionPie
               title="유입 경로"
               tabs={[
