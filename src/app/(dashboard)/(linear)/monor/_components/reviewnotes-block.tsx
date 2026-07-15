@@ -249,57 +249,10 @@ export function ReviewnotesBlock({
           </div>
         )}
 
-        {/* 인사이트 (매출 + 가입 통합, 4개 카드) */}
-        {!loading && stats && userStats && (() => {
-          // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생
-          const toKst = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-          const todayKst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-          const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 6) // 오늘 포함 7일
-          const sevenAgoKst = sevenAgo.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-          const inToday = (u: typeof userStats.users[number]) => toKst(u.createdAt) === todayKst
-          const in7 = (u: typeof userStats.users[number]) => toKst(u.createdAt) >= sevenAgoKst
-          // 신규 유료(non-FREE) 가입
-          const paidToday = userStats.users.filter(u => inToday(u) && u.subscriptionPlan !== 'FREE').length
-          const paid7 = userStats.users.filter(u => in7(u) && u.subscriptionPlan !== 'FREE').length
-          // 신규 가입자 업로드 용량
-          const storageToday = userStats.users.filter(inToday).reduce((s, u) => s + (u.storageUsed || 0), 0)
-          const storage7 = userStats.users.filter(in7).reduce((s, u) => s + (u.storageUsed || 0), 0)
-          return (
-            <>
-              <div style={{
-                fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
-                fontFamily: t.font.mono, letterSpacing: 0.3,
-                textTransform: 'uppercase' as const, marginBottom: 10,
-              }}>
-                인사이트
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
-                <LStat
-                  label="MRR"
-                  value={formatCurrency(stats.mrr)}
-                  sub="월간 반복 매출"
-                  tone="info"
-                />
-                <LStat
-                  label="활성 구독자"
-                  value={String(stats.activeSubscriptions)}
-                  sub={`오늘 ${paidToday}명 · 7일 ${paid7}명`}
-                  tone="pos"
-                />
-                <SignupStat userStats={userStats} />
-                <LStat
-                  label="용량"
-                  value={`${(userStats.totalStorageUsed / (1024 * 1024)).toFixed(1)} MB`}
-                  sub={`오늘 ${formatBytes(storageToday)} · 7일 ${formatBytes(storage7)}`}
-                />
-              </div>
-            </>
-          )
-        })()}
         {loading && <SkeletonRow count={4} />}
       </div>
 
-      {/* 방문 통계 (랜딩페이지 트래픽) */}
+      {/* 인사이트 — 랜딩 트래픽 → 가입 → 활동 → 유료 퍼널 (2026-07-15 방문 통계에서 승격) */}
       {!loading && trafficStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={{
@@ -309,19 +262,19 @@ export function ReviewnotesBlock({
               fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
               fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase' as const,
             }}>
-              방문 통계
+              인사이트
             </span>
             <span style={{
               fontSize: 'calc(9px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
               background: t.neutrals.inner, color: t.neutrals.muted, fontWeight: 500,
             }}>
-              최근 {trafficStats.range}일 · 봇 제외
+              {trafficStats.daily[0] ? `${trafficStats.daily[0].date.slice(2).replace(/-/g, '.')} 집계 시작 · 누적` : '누적'} · 봇 제외
             </span>
           </div>
 
-          {/* 퍼널 KPI (30일 윈도우 통일): 페이지뷰 → 순 방문자 → 신규 가입 → 활동 사용자 → 유료 —
+          {/* 퍼널 KPI (집계 시작 2026-06-24 이후 전체 누적): 페이지뷰 → 순 방문자 → 가입 → 활동 사용자 → 유료 —
               보이스카드 인사이트처럼 각 카드 값 뒤에 전단계 대비 전환율 (2026-07-15 CEO).
-              스파크라인은 30일 누적 — 일별 값은 노이즈 스파이크라 누적 기울기로 추세를 읽고, 끝점 = 헤드라인. */}
+              스파크라인도 누적 — 일별 값은 노이즈 스파이크라 누적 기울기로 추세를 읽고, 끝점 = 헤드라인. */}
           {(() => {
             const daily = trafficStats.daily
             const last = daily.length ? daily[daily.length - 1] : null
@@ -333,20 +286,20 @@ export function ReviewnotesBlock({
             const cumViews = daily.map(d => ({ date: d.date, value: (runViews += d.views) }))
             const cumVisitors = daily.map(d => ({ date: d.date, value: (runVisitors += d.visitors) }))
 
-            // 가입/유료 — userStats 기반 (KST 날짜키)
+            // 가입/유료 — userStats 기반 (KST 날짜키). 시작일 = 트래픽 집계 시작(첫 PageView 날짜)
             const users = userStats?.users ?? []
-            const rangeStartKey = daily.length ? daily[0].date : ''
+            const trackStartKey = daily.length ? daily[0].date : ''
             const todayKey = daily.length ? daily[daily.length - 1].date : ''
-            const sevenAgoKey = daily.length >= 7 ? daily[daily.length - 7].date : rangeStartKey
+            const sevenAgoKey = daily.length >= 7 ? daily[daily.length - 7].date : trackStartKey
             const kstKey = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-            const signups30 = users.filter(u => kstKey(u.createdAt) >= rangeStartKey).length
+            const signupsSinceStart = users.filter(u => kstKey(u.createdAt) >= trackStartKey).length
             const signupsToday = users.filter(u => kstKey(u.createdAt) === todayKey).length
             const signups7 = users.filter(u => kstKey(u.createdAt) >= sevenAgoKey).length
-            // 30일 누적 가입 스파크라인
+            // 집계 시작 이후 누적 가입 스파크라인
             const signupByDay = new Map<string, number>()
             for (const u of users) {
               const k = kstKey(u.createdAt)
-              if (k >= rangeStartKey) signupByDay.set(k, (signupByDay.get(k) ?? 0) + 1)
+              if (k >= trackStartKey) signupByDay.set(k, (signupByDay.get(k) ?? 0) + 1)
             }
             let runSignups = 0
             const cumSignups = daily.map(d => ({ date: d.date, value: (runSignups += signupByDay.get(d.date) ?? 0) }))
@@ -368,14 +321,14 @@ export function ReviewnotesBlock({
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
             <LStat
               label="페이지뷰"
-              title="랜딩(/ko, /en) 페이지뷰 — 세션당 1회, 봇 제외 (최근 30일)"
+              title="랜딩(/ko, /en) 페이지뷰 누적 — 세션당 1회, 봇 제외 (집계 시작 2026-06-24 이후)"
               value={trafficStats.totals.views.toLocaleString()}
               sub={`오늘 ${todayViews.toLocaleString()}회 · 7일 ${last7Views.toLocaleString()}회`}
               sparkline={cumViews}
             />
             <LStat
               label="순 방문자"
-              title="랜딩 유니크 방문자 (기기 기준, 최근 30일)"
+              title="랜딩 유니크 방문자 누적 (기기 기준, 집계 시작 이후)"
               value={trafficStats.totals.visitors.toLocaleString()}
               valueExtra={rateExtra('방문율', rate(trafficStats.totals.visitors, trafficStats.totals.views))}
               sub={`오늘 ${todayVisitors.toLocaleString()}명 · 7일 ${last7Visitors.toLocaleString()}명`}
@@ -383,16 +336,16 @@ export function ReviewnotesBlock({
               sparkline={cumVisitors}
             />
             <LStat
-              label="신규 가입"
-              title="최근 30일 가입자. 전환율 = 신규 가입 ÷ 순 방문자 — 랜딩을 안 거친 가입도 포함되므로 참고치."
-              value={signups30.toLocaleString()}
-              valueExtra={rateExtra('전환', rate(signups30, trafficStats.totals.visitors))}
+              label="가입"
+              title="집계 시작(2026-06-24) 이후 가입자 누적. 전환율 = 가입 ÷ 순 방문자 — 랜딩을 안 거친 가입도 포함되므로 참고치."
+              value={signupsSinceStart.toLocaleString()}
+              valueExtra={rateExtra('전환', rate(signupsSinceStart, trafficStats.totals.visitors))}
               sub={`오늘 ${signupsToday.toLocaleString()}명 · 7일 ${signups7.toLocaleString()}명`}
               sparkline={cumSignups}
             />
             <LStat
               label="활동 사용자"
-              title="최근 30일 앱에서 활동한 로그인 사용자 (EventLog, 6/24 트래킹 시작). 활동률 = 활동 ÷ 전체 가입자."
+              title="집계 시작(2026-06-24) 이후 앱에서 활동한 로그인 사용자 누적 (EventLog). 활동률 = 활동 ÷ 전체 가입자."
               value={activeUsers.toLocaleString()}
               valueExtra={rateExtra('활동', rate(activeUsers, totalUsersAll))}
               sub={`전체 ${totalUsersAll.toLocaleString()}명 중`}
@@ -427,6 +380,54 @@ export function ReviewnotesBlock({
           })()}
         </div>
       )}
+
+      {/* 운영 지표 (임시 이름) — 매출 + 가입 통합 4카드, 옛 '인사이트' 섹션 (2026-07-15 아래로 이동) */}
+      {!loading && stats && userStats && (() => {
+        // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생
+        const toKst = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+        const todayKst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+        const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 6) // 오늘 포함 7일
+        const sevenAgoKst = sevenAgo.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+        const inToday = (u: typeof userStats.users[number]) => toKst(u.createdAt) === todayKst
+        const in7 = (u: typeof userStats.users[number]) => toKst(u.createdAt) >= sevenAgoKst
+        // 신규 유료(non-FREE) 가입
+        const paidToday = userStats.users.filter(u => inToday(u) && u.subscriptionPlan !== 'FREE').length
+        const paid7 = userStats.users.filter(u => in7(u) && u.subscriptionPlan !== 'FREE').length
+        // 신규 가입자 업로드 용량
+        const storageToday = userStats.users.filter(inToday).reduce((s, u) => s + (u.storageUsed || 0), 0)
+        const storage7 = userStats.users.filter(in7).reduce((s, u) => s + (u.storageUsed || 0), 0)
+        return (
+          <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+            <div style={{
+              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
+              fontFamily: t.font.mono, letterSpacing: 0.3,
+              textTransform: 'uppercase' as const, marginBottom: 10,
+            }}>
+              운영 지표
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+              <LStat
+                label="MRR"
+                value={formatCurrency(stats.mrr)}
+                sub="월간 반복 매출"
+                tone="info"
+              />
+              <LStat
+                label="활성 구독자"
+                value={String(stats.activeSubscriptions)}
+                sub={`오늘 ${paidToday}명 · 7일 ${paid7}명`}
+                tone="pos"
+              />
+              <SignupStat userStats={userStats} />
+              <LStat
+                label="용량"
+                value={`${(userStats.totalStorageUsed / (1024 * 1024)).toFixed(1)} MB`}
+                sub={`오늘 ${formatBytes(storageToday)} · 7일 ${formatBytes(storage7)}`}
+              />
+            </div>
+          </div>
+        )
+      })()}
 
       {/* User list section */}
       {!loading && userStats && (

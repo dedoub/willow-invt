@@ -68,9 +68,13 @@ function toDateKey(d: Date): string {
   return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }) // KST 날짜
 }
 
-export async function getReviewNotesTrafficStats(range = 30): Promise<ReviewNotesTrafficStats> {
+// 집계 시작(PageView 트래킹 2026-06-24) 이후 전체 누적 — 윈도우 없음 (2026-07-15 CEO).
+// range_days는 전 기간을 덮는 큰 값으로 넘긴다.
+const CUMULATIVE_RANGE_DAYS = 3650
+
+export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficStats> {
   const empty: ReviewNotesTrafficStats = {
-    range,
+    range: 0,
     totals: { views: 0, visitors: 0 },
     change: { views: 0, visitors: 0 },
     activeUsers: 0,
@@ -84,7 +88,7 @@ export async function getReviewNotesTrafficStats(range = 30): Promise<ReviewNote
 
   // PageView는 RLS로 raw select가 막혀 있어(anon 정책 없음, 2026-06-21 하드닝)
   // 집계 전용 SECURITY DEFINER RPC로 조회한다. 정본: supabase/reviewnotes/rn_traffic_stats.sql
-  const { data, error } = await reviewnotesSupabase.rpc('rn_traffic_stats', { range_days: range })
+  const { data, error } = await reviewnotesSupabase.rpc('rn_traffic_stats', { range_days: CUMULATIVE_RANGE_DAYS })
   if (error || !data) {
     console.error('Error fetching rn_traffic_stats:', error)
     return empty
@@ -100,18 +104,21 @@ export async function getReviewNotesTrafficStats(range = 30): Promise<ReviewNote
     topCountries: Array<{ country: string; count: number }>
   }
 
-  // 일별 추이 — 활동 없는 날짜 0으로 채우기 (KST)
+  // 일별 추이 — 첫 데이터 날짜(집계 시작)부터 오늘까지, 활동 없는 날짜 0으로 채우기 (KST)
   const dailyMap = new Map(stats.daily.map(d => [d.date, d]))
   const now = new Date()
+  const todayKey = toDateKey(now)
+  const firstKey = stats.daily.length ? stats.daily[0].date : todayKey
   const daily: ReviewNotesTrafficStats['daily'] = []
-  for (let i = range - 1; i >= 0; i--) {
-    const key = toDateKey(new Date(now.getTime() - i * 24 * 60 * 60 * 1000))
+  for (let d = new Date(`${firstKey}T00:00:00+09:00`); ; d.setDate(d.getDate() + 1)) {
+    const key = toDateKey(d)
+    if (key > todayKey) break
     const entry = dailyMap.get(key)
     daily.push({ date: key, views: entry?.views ?? 0, visitors: entry?.visitors ?? 0 })
   }
 
   return {
-    range,
+    range: daily.length,
     totals: { views: stats.totals.views, visitors: stats.totals.visitors },
     change: {
       views: pctChange(stats.totals.views, stats.prev.views),
