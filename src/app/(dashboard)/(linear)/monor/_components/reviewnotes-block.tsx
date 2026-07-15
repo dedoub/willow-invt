@@ -351,22 +351,9 @@ export function ReviewnotesBlock({
               sparkline={cumSignups}
             />
           </div>
-          {/* 사용자 구성 / 유입 경로 / 국가 — 보이스카드와 동일한 파이 + 탭.
+          {/* 유입 경로 / 국가 / 기기 — 보이스카드와 동일한 파이 + 탭 (2026-07-15 사용자 구성 파이는 제거).
               회원·유료 유입은 EventLog↔PageView 방문자 ID 조인의 first-touch 귀속이라 랜딩 미경유 유저는 빠짐. */}
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
-            <DistributionPie
-              title="사용자"
-              tabs={[{
-                key: 'all', label: '전체', data: [
-                  // 비가입 = 랜딩 순 방문자(기기) 중 회원으로 연결되지 않은 수 — 방문했지만 가입 안 한 잠재층
-                  { name: '비가입', value: Math.max(0, trafficStats.totals.visitors - trafficStats.memberCountries.reduce((s, c) => s + c.count, 0)) },
-                  { name: '무료', value: (userStats?.users ?? []).filter(u => u.subscriptionPlan === 'FREE').length },
-                  { name: '유료', value: (userStats?.users ?? []).filter(u => u.subscriptionPlan !== 'FREE').length },
-                ].filter(d => d.value > 0),
-              }]}
-              palette={['#94a3b8', '#3b82f6', '#10b981']}
-              unit="명"
-            />
             {/* 회원/유료 귀속 탭은 데이터가 쌓이면 복원 — memberReferrers/paidReferrers가 RPC에 이미 있음.
                 지금은 랜딩 경유 가입자가 1명뿐이라 전체(방문)만 의미 있음 (2026-07-15 CEO). */}
             <DistributionPie
