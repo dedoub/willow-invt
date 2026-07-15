@@ -888,12 +888,6 @@ export function VoicecardsBlock({
           }
           const fmtCr = (v: number) => `${fmtK(v)} cr`
 
-          // 크레딧 사용 대비 매출 전환율 — 판매 크레딧 ÷ 실사용 크레딧(TTS 차감 + AI 생성).
-          // 100% 이상이면 소진되는 것보다 많이 팔리는 중 (유료 재고가 쌓임).
-          const creditsSpentTotal = (anonymousStats?.dailyCreditSpend ?? [])
-            .reduce((sum, d) => sum + (d.tts || 0) + (d.ai || 0), 0)
-          const spendConvRate = creditsSpentTotal > 0 ? Math.round((creditsSold / creditsSpentTotal) * 100) : null
-
           // 누적 기기/데모 학습/가입 완료 — 오늘 / 최근 7일 신규 (모두 KST 기준, cumulativeDistinct 델타)
           const yesterdayKey = kstDaysAgo(1)
           const dayBefore7Key = kstDaysAgo(7)
@@ -1032,7 +1026,7 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="누적 매출"
-                    title="판매 크레딧 누적(정가 그로스, 환불·수수료 미반영). 점선 = 결제율(활성 대비). 사용대비 = 판매 크레딧 ÷ 실사용 크레딧(TTS+AI) — 100% 이상이면 소진보다 판매가 빠름."
+                    title="판매 크레딧 누적(정가 그로스, 환불·수수료 미반영). 점선 = 결제율(활성 대비)."
                     value={fmtCr(creditsSold)}
                     valueExtra={(
                       <span style={{
@@ -1040,9 +1034,6 @@ export function VoicecardsBlock({
                         color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                       }}>
                         결제 {payRate}%
-                        {spendConvRate != null && (
-                          <span style={{ color: t.neutrals.subtle, marginLeft: 5 }}>사용 {spendConvRate}%</span>
-                        )}
                       </span>
                     )}
                     sub={creditsSold > 0 ? `오늘 ${fmtCr(creditsToday)} · 7일 ${fmtCr(credits7d)}` : '아직 없음'}
