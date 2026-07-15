@@ -1297,8 +1297,9 @@ export function VoicecardsBlock({
               return (
                 <LStat
                   label="크레딧 사용"
-                  title={`실제 소진된 크레딧 누적 (TTS 차감 ${formatNumber(totalTts)} + AI 생성 ${formatNumber(totalAi)}). 유저의 크레딧 소진 속도 = 구매 압력.`}
+                  title={`실제 소진된 크레딧 누적 (TTS 차감 ${formatNumber(totalTts)} + AI 생성 ${formatNumber(totalAi)}). 유저의 크레딧 소진 속도 = 구매 압력. 배수 = 보유 카드 대비 — 카드가 늘수록 소진도 빨라진다.`}
                   value={formatNumber(totalTts + totalAi)}
+                  valueExtra={cardRatioExtra(totalTts + totalAi)}
                   sub={`오늘 ${formatNumber(todaySpend)} · 7일 ${formatNumber(last7Spend)}`}
                   sparkline={compact ? undefined : (spendSpark.length > 1 ? spendSpark : undefined)}
                 />
