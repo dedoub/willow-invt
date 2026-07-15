@@ -43,6 +43,7 @@ interface UserStats {
     offerStage: string | null
     offerStageAt: string | null
     creditsUsed: number
+    creditsSpent?: number
     hasFolder: boolean
     ownCards?: number
     sheetCount: number
@@ -186,7 +187,7 @@ function formatTimeShort(dateString?: string | null): string {
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
 // 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = '64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 48px 52px 48px 44px'
+const USER_TABLE_COLS = '64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 48px 52px 44px 48px 44px'
 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용. 컬럼 정의에서 자동 산출 —
 // 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져 마지막 열들이 회색 행 배경
 // 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
@@ -375,7 +376,7 @@ function formatCountryName(code: string): string {
 
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status' | 'active'
-  | 'sheets' | 'cards' | 'flips' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'paid'
+  | 'sheets' | 'cards' | 'flips' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'spent' | 'paid'
   | 'created' | 'recent' | 'active7'
 type SortDir = 'asc' | 'desc'
 
@@ -400,6 +401,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'paid',     label: '유료',   mobileLabel: '유료결제', align: 'center' },
   { key: 'purchased', label: '구매', mobileLabel: '구매 크레딧', align: 'center' },
   { key: 'bonus',    label: '보너스', mobileLabel: '보너스 크레딧', align: 'center' },
+  { key: 'spent',    label: '사용', mobileLabel: '사용 크레딧', align: 'center' },
   { key: 'credits',  label: '보유', mobileLabel: '보유 크레딧', align: 'center' },
   { key: 'active7',  label: '7일',    mobileLabel: '7일 활동일', align: 'center' },
 ]
@@ -606,6 +608,7 @@ export function VoicecardsBlock({
         case 'credits':  return a.credits - b.credits
         case 'purchased': return (a.purchasedCredits ?? 0) - (b.purchasedCredits ?? 0)
         case 'bonus':    return (a.bonusCredits ?? 0) - (b.bonusCredits ?? 0)
+        case 'spent':    return (a.creditsSpent ?? 0) - (b.creditsSpent ?? 0)
         case 'paid':     return Number(!!a.hasPurchased) - Number(!!b.hasPurchased)
         // 날짜로 표시되는 컬럼은 날짜(YYYY-MM-DD) 단위로 비교 → 같은 날끼리는 동점이 되어
         // 다음 우선순위(예: 듣기 내림차순)가 그 안에서 적용됨.
@@ -1520,6 +1523,7 @@ export function VoicecardsBlock({
                   </div>
                   <NumDeltaCell total={user.purchasedCredits} delta={user.purchasedToday} />
                   <NumDeltaCell total={user.bonusCredits} delta={0} />
+                  <NumDeltaCell total={user.creditsSpent ?? 0} delta={0} />
                   <NumDeltaCell total={user.credits} delta={user.balanceDeltaToday} dim />
                   <div style={userNumCell}>
                     {user.activeDays7d > 0

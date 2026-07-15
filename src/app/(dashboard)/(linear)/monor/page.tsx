@@ -53,6 +53,7 @@ interface UserStats {
     offerStage: string | null
     offerStageAt: string | null
     creditsUsed: number
+    creditsSpent?: number
     hasFolder: boolean
     ownCards?: number
     sheetCount: number

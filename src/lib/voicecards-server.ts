@@ -919,6 +919,7 @@ export interface VoicecardsUserStats {
     offerStage: string | null // 타겟 오퍼 단계: sent|seen|snoozed|redeemed|dismissed|expired (없으면 null)
     offerStageAt: string | null // 현재 단계 진입 시각 (발송일/열람일/전환일 등)
     creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played). AI 카드 생성은 사용량 적어 제외
+    creditsSpent: number     // 실사용 크레딧 = TTS 차감(tts_premium) + AI 생성(credits_used) — 크레딧 원장 기준
     // 구글연동(Drive) 완료 = users.folder_id 존재. deferred-Drive 가입 이후 시트 0이어도
     // 연동은 끝났을 수 있다(예: AI 생성 후 draft만 두고 이탈) — sheetCount로 판정하지 말 것.
     hasFolder: boolean
@@ -1073,15 +1074,18 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 누적 말하기 시도 (user_analytics.total_attempts 합) — 사용자 리스트 "말하기" 합과 일치
   const totalAttempts = Array.from(userAttemptsMap.values()).reduce((sum, n) => sum + n, 0)
 
-  // 사용자별 듣기 학습 횟수 (이벤트 1건 = 1회) + 카드 뒤집기 횟수
-  // 포함: tts_played, voice_preview_played (AI 카드 생성은 사용량 적어 제외) / card_flipped_manual
+  // 사용자별 듣기 학습 횟수 (이벤트 1건 = 1회) + 카드 뒤집기 횟수 + 실사용 크레딧
+  // 듣기: tts_played, voice_preview_played / 뒤집기: card_flipped_manual
+  // 실사용 크레딧: TTS 차감(credits_changed/tts_premium) + AI 생성(ai_generation_success/credits_used)
   const userCreditsUsedMap = new Map<string, number>()
   const userFlipsMap = new Map<string, number>()
-  for (const row of ((listenRes.data || []) as Array<{ user_id: string | null; listen_count: number; flip_count: number }>)) {
+  const userCreditsSpentMap = new Map<string, number>()
+  for (const row of ((listenRes.data || []) as Array<{ user_id: string | null; listen_count: number; flip_count: number; credits_spent: number }>)) {
     const uid = row.user_id
     if (!uid || !visibleUserIds.has(uid)) continue
     userCreditsUsedMap.set(uid, Number(row.listen_count) || 0)
     userFlipsMap.set(uid, Number(row.flip_count) || 0)
+    userCreditsSpentMap.set(uid, Number(row.credits_spent) || 0)
   }
 
   // 사용자별 최근 앱 버전 + 플랫폼 + 언어 (vc_user_latest_meta RPC: user당 최신 1행)
@@ -1181,6 +1185,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     offerStage: userOfferMap.get(u.user_id)?.stage || null,
     offerStageAt: userOfferMap.get(u.user_id)?.stageAt || null,
     creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
+    creditsSpent: userCreditsSpentMap.get(u.user_id) || 0,
     hasFolder: !!u.folder_id,
     sheetCount: u.sheet_ids?.length || 0,
     cards: userCardsMap.get(u.user_id) || 0,
