@@ -1305,6 +1305,8 @@ export interface AnonymousEventStats {
     // 크레딧 사용 = AI 생성 카드 수 + tts_played 재생 횟수 (둘 다 1크레딧/건 가정)
     credits: number
   }>
+  // 일별 카드 앞뒤 수동 전환 (card_flipped_manual) — 활동 있는 날만 행 존재
+  dailyFlips?: Array<{ date: string; flips: number }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>

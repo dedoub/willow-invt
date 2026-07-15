@@ -108,6 +108,7 @@ interface AnonymousEventStats {
     date: string
     credits: number
   }>
+  dailyFlips?: Array<{ date: string; flips: number }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>
@@ -1120,12 +1121,13 @@ export function VoicecardsBlock({
         })()}
       </div>
 
-      {/* 가입 후 활동 · 매출 동인 — userStats 필요 (4번째 카드는 anonymousStats) */}
+      {/* 가입 후 활동 · 매출 동인 — userStats 필요 (뒤집기/듣기 카드는 anonymousStats) */}
       {usersLoading && !userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <SkelSectionHeader width={140} />
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
-            {[0, 1, 2, 3].map(i => <SkelStat key={i} compact={!!mobile} />)}
+          {/* 5카드: 와이드(1열) 모드 한 줄, 2열 모드 3+2 (인사이트 6카드와 동일 규칙), 모바일 2+2+1 */}
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
+            {[0, 1, 2, 3, 4].map(i => <SkelStat key={i} compact={!!mobile} />)}
           </div>
         </div>
       )}
@@ -1190,7 +1192,7 @@ export function VoicecardsBlock({
             const last7CardsDelta = liveCards - sevenAgoCards
 
             return (
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
             <LStat
               label="보유 시트"
               value={formatNumber(userStats.totalSheets)}
@@ -1203,6 +1205,28 @@ export function VoicecardsBlock({
               sub={inventory.length > 0 ? `오늘 ${formatNumber(todayCardsDelta)}개 · 7일 ${formatNumber(last7CardsDelta)}개` : undefined}
               sparkline={compact ? undefined : (cardTrajectory.length > 1 ? cardTrajectory : undefined)}
             />
+            {/* 카드 뒤집기 — 말하기/듣기 없이 눈으로만 넘기는 학습 볼륨 (card_flipped_manual, 듣기와 동일한 이벤트 통계 소스) */}
+            {eventsLoading && !anonymousStats ? (
+              <SkelStat compact={!!mobile} />
+            ) : (() => {
+              const flips = anonymousStats?.dailyFlips ?? []
+              const todayFlips = flips.find(d => d.date === todayStr)?.flips ?? 0
+              const last7Flips = flips.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + d.flips, 0)
+              const totalFlips = flips.reduce((sum, d) => sum + d.flips, 0)
+              let runningFlips = 0
+              const flipSpark = flips.map(d => {
+                runningFlips += d.flips
+                return { date: d.date, value: runningFlips }
+              })
+              return (
+                <LStat
+                  label="카드 뒤집기"
+                  value={formatNumber(totalFlips)}
+                  sub={`오늘 ${formatNumber(todayFlips)}회 · 7일 ${formatNumber(last7Flips)}회`}
+                  sparkline={compact ? undefined : (flipSpark.length > 1 ? flipSpark : undefined)}
+                />
+              )
+            })()}
             <LStat
               label="말하기 학습"
               value={formatNumber(userStats.totalAttempts)}

@@ -83,6 +83,11 @@ credit_daily as (
   select kdate, count(*) as credits from base
   where event_name in ('tts_played','voice_preview_played') group by kdate
 ),
+-- 카드 앞뒤 수동 전환 (card_flipped_manual) — 말하기/듣기 없이 눈으로만 학습하는 볼륨
+flip_daily as (
+  select kdate, count(*) as flips from base
+  where event_name = 'card_flipped_manual' group by kdate
+),
 sheets as (
   select properties->>'sheet_id' as sheet_id, count(*) as cards, count(distinct device_id) as devices
   from base
@@ -152,6 +157,7 @@ select jsonb_build_object(
   'daily', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'devices',d.devices,'appOpened',d.app_opened,'cardsLearned',d.cards_learned,'promptShown',d.prompt_shown,'signinCompleted',d.signin_completed,'loggedDevices',coalesce(l.logged_devices,0),'anonDevices',coalesce(l.anon_devices,0),'newLoggedDevices',coalesce(l.new_logged_devices,0),'memberLoggedDevices',coalesce(l.member_logged_devices,0)) order by d.kdate) from daily d left join login_daily l using(kdate)),'[]'::jsonb),
   'cumulativeDistinct', coalesce((select jsonb_agg(jsonb_build_object('date',kdate,'devices',devices,'learned',learned,'signin',signin) order by kdate) from cumulative),'[]'::jsonb),
   'dailyCreditUsage', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'credits',coalesce(c.credits,0)) order by d.kdate) from all_dates d left join credit_daily c using(kdate)),'[]'::jsonb),
+  'dailyFlips', coalesce((select jsonb_agg(jsonb_build_object('date',kdate,'flips',flips) order by kdate) from flip_daily),'[]'::jsonb),
   'demoSheets', coalesce((select jsonb_agg(jsonb_build_object('sheetId',sheet_id,'cards',cards,'devices',devices) order by cards desc) from sheets),'[]'::jsonb),
   'platforms', coalesce((select jsonb_agg(jsonb_build_object('platform',platform,'devices',devices,'events',events) order by events desc) from platforms),'[]'::jsonb),
   'locales', coalesce((select jsonb_agg(jsonb_build_object('locale',locale,'devices',devices) order by devices desc) from locales),'[]'::jsonb),

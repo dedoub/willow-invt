@@ -107,6 +107,7 @@ interface AnonymousEventStats {
     date: string
     credits: number
   }>
+  dailyFlips?: Array<{ date: string; flips: number }>
   demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
   platforms: Array<{ platform: string; devices: number; events: number }>
   locales: Array<{ locale: string; devices: number }>
