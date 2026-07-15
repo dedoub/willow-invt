@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useDashCols } from './cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
@@ -72,14 +73,26 @@ function formatDateShort(dateString?: string | null): string {
   return `${key.slice(2, 4)}.${key.slice(5, 7)}.${key.slice(8, 10)}`
 }
 
-type UserSortKey = 'name' | 'email' | 'plan' | 'role' | 'storage' | 'created'
+// 요일 (월)/(화)... + 시간 HH:mm — 보이스카드 사용자 테이블과 동일 (KST)
+function formatWeekdayShort(dateString?: string | null): string {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', weekday: 'short' })
+}
+function formatTimeShort(dateString?: string | null): string {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' })
+}
+
+type UserSortKey = 'created' | 'active' | 'name' | 'email' | 'plan' | 'role' | 'storage'
 type SortDir = 'asc' | 'desc'
 
 // 컬럼 정의 (헤더 라벨 + 정렬키 + 정렬, 모바일 드롭다운 라벨). 순서 = 그리드 순서.
+// 보이스카드 사용자 테이블과 동일: 가입/활동 날짜가 맨 앞 (2026-07-15 CEO)
 const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string; align: 'left' | 'center' | 'right' }> = [
+  { key: 'created', label: '가입',   mobileLabel: '가입일', align: 'center' },
+  { key: 'active',  label: '활동',   mobileLabel: '활동일', align: 'center' },
   { key: 'name',    label: '닉네임', mobileLabel: '닉네임', align: 'left' },
   { key: 'email',   label: '이메일', mobileLabel: '이메일', align: 'left' },
-  { key: 'created', label: '가입',   mobileLabel: '가입일', align: 'center' },
   { key: 'plan',    label: '플랜',   mobileLabel: '플랜',   align: 'center' },
   { key: 'role',    label: '권한',   mobileLabel: '권한',   align: 'center' },
   { key: 'storage', label: '용량',   mobileLabel: '용량',   align: 'center' },
@@ -92,8 +105,8 @@ const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key)
 const USER_SORT_STORAGE_KEY = 'reviewnotes.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = 'minmax(72px,1fr) minmax(84px,1.1fr) 52px 60px 48px 58px'
-const USER_TABLE_MIN_WIDTH = 418 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용
+const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 60px 48px 58px'
+const USER_TABLE_MIN_WIDTH = 520 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (모바일 포함)
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -118,6 +131,7 @@ export function ReviewnotesBlock({
   onRefresh, refreshing, error,
 }: ReviewnotesBlockProps) {
   const mobile = useIsMobile()
+  const dashCols = useDashCols()
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
   const [userPerPageInput, setUserPerPageInput] = useState('10')
@@ -156,6 +170,8 @@ export function ReviewnotesBlock({
         case 'role':    return (a.role === 'ADMIN' ? 1 : 0) - (b.role === 'ADMIN' ? 1 : 0)
         case 'storage': return (a.storageUsed || 0) - (b.storageUsed || 0)
         case 'created': return a.createdAt.localeCompare(b.createdAt)
+        // 활동 기록 없는 유저(null)는 항상 뒤로
+        case 'active':  return (a.lastActiveAt ?? '').localeCompare(b.lastActiveAt ?? '')
         default:        return 0
       }
     }
@@ -303,8 +319,9 @@ export function ReviewnotesBlock({
             </span>
           </div>
 
-          {/* 방문 KPI + 30일 누적 스파크라인 — 일별 값은 노이즈 스파이크라 누적 기울기로 추세를 읽는다.
-              누적 끝점 = 헤드라인(30일 합계) 일치. (2026-07-15 CEO) */}
+          {/* 퍼널 KPI (30일 윈도우 통일): 페이지뷰 → 순 방문자 → 신규 가입 → 활동 사용자 → 유료 —
+              보이스카드 인사이트처럼 각 카드 값 뒤에 전단계 대비 전환율 (2026-07-15 CEO).
+              스파크라인은 30일 누적 — 일별 값은 노이즈 스파이크라 누적 기울기로 추세를 읽고, 끝점 = 헤드라인. */}
           {(() => {
             const daily = trafficStats.daily
             const last = daily.length ? daily[daily.length - 1] : null
@@ -315,21 +332,81 @@ export function ReviewnotesBlock({
             let runViews = 0, runVisitors = 0
             const cumViews = daily.map(d => ({ date: d.date, value: (runViews += d.views) }))
             const cumVisitors = daily.map(d => ({ date: d.date, value: (runVisitors += d.visitors) }))
+
+            // 가입/유료 — userStats 기반 (KST 날짜키)
+            const users = userStats?.users ?? []
+            const rangeStartKey = daily.length ? daily[0].date : ''
+            const todayKey = daily.length ? daily[daily.length - 1].date : ''
+            const sevenAgoKey = daily.length >= 7 ? daily[daily.length - 7].date : rangeStartKey
+            const kstKey = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+            const signups30 = users.filter(u => kstKey(u.createdAt) >= rangeStartKey).length
+            const signupsToday = users.filter(u => kstKey(u.createdAt) === todayKey).length
+            const signups7 = users.filter(u => kstKey(u.createdAt) >= sevenAgoKey).length
+            // 30일 누적 가입 스파크라인
+            const signupByDay = new Map<string, number>()
+            for (const u of users) {
+              const k = kstKey(u.createdAt)
+              if (k >= rangeStartKey) signupByDay.set(k, (signupByDay.get(k) ?? 0) + 1)
+            }
+            let runSignups = 0
+            const cumSignups = daily.map(d => ({ date: d.date, value: (runSignups += signupByDay.get(d.date) ?? 0) }))
+            const totalUsersAll = users.length
+            const paidUsers = users.filter(u => u.subscriptionPlan !== 'FREE').length
+            const activeUsers = trafficStats.activeUsers
+
+            const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
+            const rateExtra = (label: string, pct: number) => (
+              <span style={{
+                fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+              }}>
+                {label} {pct}%
+              </span>
+            )
             return (
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
             <LStat
               label="페이지뷰"
+              title="랜딩(/ko, /en) 페이지뷰 — 세션당 1회, 봇 제외 (최근 30일)"
               value={trafficStats.totals.views.toLocaleString()}
               sub={`오늘 ${todayViews.toLocaleString()}회 · 7일 ${last7Views.toLocaleString()}회`}
               sparkline={cumViews}
             />
             <LStat
               label="순 방문자"
+              title="랜딩 유니크 방문자 (기기 기준, 최근 30일)"
               value={trafficStats.totals.visitors.toLocaleString()}
+              valueExtra={rateExtra('방문율', rate(trafficStats.totals.visitors, trafficStats.totals.views))}
               sub={`오늘 ${todayVisitors.toLocaleString()}명 · 7일 ${last7Visitors.toLocaleString()}명`}
               tone="info"
               sparkline={cumVisitors}
             />
+            <LStat
+              label="신규 가입"
+              title="최근 30일 가입자. 전환율 = 신규 가입 ÷ 순 방문자 — 랜딩을 안 거친 가입도 포함되므로 참고치."
+              value={signups30.toLocaleString()}
+              valueExtra={rateExtra('전환', rate(signups30, trafficStats.totals.visitors))}
+              sub={`오늘 ${signupsToday.toLocaleString()}명 · 7일 ${signups7.toLocaleString()}명`}
+              sparkline={cumSignups}
+            />
+            <LStat
+              label="활동 사용자"
+              title="최근 30일 앱에서 활동한 로그인 사용자 (EventLog, 6/24 트래킹 시작). 활동률 = 활동 ÷ 전체 가입자."
+              value={activeUsers.toLocaleString()}
+              valueExtra={rateExtra('활동', rate(activeUsers, totalUsersAll))}
+              sub={`전체 ${totalUsersAll.toLocaleString()}명 중`}
+            />
+            <LStat
+              label="유료 사용자"
+              title="현재 유료 플랜(BASIC/STANDARD/PRO) 사용자. 전환율 = 유료 ÷ 전체 가입자."
+              value={paidUsers.toLocaleString()}
+              valueExtra={rateExtra('전환', rate(paidUsers, totalUsersAll))}
+              sub={userStats ? `B ${userStats.basicUsers} · S ${userStats.standardUsers} · P ${userStats.proUsers}` : undefined}
+              tone={paidUsers > 0 ? 'pos' : 'default'}
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
             <BreakdownStat
               label="유입 경로"
               items={trafficStats.topReferrers.map(r => ({
@@ -344,6 +421,7 @@ export function ReviewnotesBlock({
                 count: c.count,
               }))}
             />
+          </div>
           </div>
             )
           })()}
@@ -396,68 +474,7 @@ export function ReviewnotesBlock({
                 </div>
               )}
             </div>
-            {mobile ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {paginatedUsers.map(user => {
-                const planTone = getTone(PLAN_TONES, user.subscriptionPlan)
-                return (
-                  <div key={user.id} style={{
-                    padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                    display: 'flex', alignItems: 'center', gap: 8,
-                  }}>
-                    {/* Avatar */}
-                    <div style={{
-                      width: 26, height: 26, borderRadius: 26, flexShrink: 0,
-                      background: t.brand[200], color: t.brand[800],
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, overflow: 'hidden',
-                    }}>
-                      {user.image
-                        ? <img src={user.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : (user.name?.charAt(0) || user.email.charAt(0)).toUpperCase()
-                      }
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {user.name || 'Unknown'}
-                      </div>
-                      <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {user.email}
-                      </div>
-                    </div>
-
-                    <span style={{
-                      fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                      flexShrink: 0, fontVariantNumeric: 'tabular-nums',
-                    }}>
-                      {formatBytes(user.storageUsed || 0)}
-                    </span>
-
-                    <span style={{
-                      fontSize: 'calc(9px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
-                      background: planTone.bg, color: planTone.fg, fontWeight: 600, flexShrink: 0,
-                    }}>
-                      {user.subscriptionPlan}
-                    </span>
-
-                    {user.role === 'ADMIN' && (
-                      <span style={{
-                        fontSize: 'calc(9px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
-                        background: tonePalettes.warn.bg, color: tonePalettes.warn.fg, fontWeight: 600, flexShrink: 0,
-                      }}>
-                        Admin
-                      </span>
-                    )}
-
-                    <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, flexShrink: 0 }}>
-                      {formatDate(user.createdAt)}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-            ) : (
+            {/* PC/모바일 동일 테이블 — 모바일은 가로 스크롤 (보이스카드 사용자 테이블과 동일, 2026-07-15) */}
             <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
               {/* 테이블 헤더 — 클릭하여 정렬, 같은 컬럼 재클릭 시 방향 토글 */}
@@ -492,6 +509,22 @@ export function ReviewnotesBlock({
                     display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center',
                     padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
                   }}>
+                    {/* 가입 — 두 줄: 날짜 / (요일) 시각 (보이스카드와 동일) */}
+                    <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' as const }}>
+                      <span>{formatDateShort(user.createdAt)}</span>
+                      <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>
+                    </div>
+                    {/* 활동 — EventLog 마지막 활동 (트래킹 이전 활동은 — 표시) */}
+                    <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' as const }}>
+                      {user.lastActiveAt ? (
+                        <>
+                          <span>{formatDateShort(user.lastActiveAt)}</span>
+                          <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastActiveAt)}) {formatTimeShort(user.lastActiveAt)}</span>
+                        </>
+                      ) : (
+                        <span style={{ color: t.neutrals.subtle }}>—</span>
+                      )}
+                    </div>
                     {/* 닉네임 */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                       <div style={{
@@ -515,8 +548,6 @@ export function ReviewnotesBlock({
                     </div>
                     {/* 이메일 */}
                     <div style={userTextCell} title={user.email}>{user.email}</div>
-                    {/* 가입 */}
-                    <div style={{ ...userDateCell, textAlign: 'center' }}>{formatDateShort(user.createdAt)}</div>
                     {/* 플랜 */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                       <span style={{
@@ -548,7 +579,6 @@ export function ReviewnotesBlock({
               })}
             </div>
             </div>
-            )}
 
             {/* 페이지네이션 (주식투자 페이지 섹션과 동일 스타일) */}
             {totalUsers > 0 && (

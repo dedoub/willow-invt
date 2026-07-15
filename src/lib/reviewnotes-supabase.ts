@@ -26,6 +26,7 @@ export interface ReviewNotesUser {
   role: UserRole
   storageUsed: number
   createdAt: string
+  lastActiveAt?: string | null // EventLog 마지막 활동 (rn_user_last_active RPC, 2026-06-24 트래킹 시작 이후)
   // Not fetched by getReviewNotesUsers (column-scoped) and unused by any consumer.
   emailVerified?: string | null
   lemonSqueezyCustomerId?: string | null
@@ -50,6 +51,9 @@ export interface ReviewNotesTrafficStats {
   range: number
   totals: { views: number; visitors: number }
   change: { views: number; visitors: number }
+  // 앱 내 로그인 활동 사용자 (EventLog 윈도우 내 distinct userId) — 퍼널 카드용
+  activeUsers: number
+  prevActiveUsers: number
   daily: Array<{ date: string; views: number; visitors: number }>
   topReferrers: Array<{ referrer: string; count: number }>
   topCountries: Array<{ country: string; count: number }>
@@ -69,6 +73,8 @@ export async function getReviewNotesTrafficStats(range = 30): Promise<ReviewNote
     range,
     totals: { views: 0, visitors: 0 },
     change: { views: 0, visitors: 0 },
+    activeUsers: 0,
+    prevActiveUsers: 0,
     daily: [],
     topReferrers: [],
     topCountries: [],
@@ -87,6 +93,8 @@ export async function getReviewNotesTrafficStats(range = 30): Promise<ReviewNote
   const stats = data as {
     totals: { views: number; visitors: number }
     prev: { views: number; visitors: number }
+    activeUsers?: number
+    prevActiveUsers?: number
     daily: Array<{ date: string; views: number; visitors: number }>
     topReferrers: Array<{ referrer: string; count: number }>
     topCountries: Array<{ country: string; count: number }>
@@ -109,6 +117,8 @@ export async function getReviewNotesTrafficStats(range = 30): Promise<ReviewNote
       views: pctChange(stats.totals.views, stats.prev.views),
       visitors: pctChange(stats.totals.visitors, stats.prev.visitors),
     },
+    activeUsers: stats.activeUsers ?? 0,
+    prevActiveUsers: stats.prevActiveUsers ?? 0,
     daily,
     topReferrers: stats.topReferrers ?? [],
     topCountries: stats.topCountries ?? [],
@@ -121,18 +131,26 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
     throw new Error('ReviewNotes Supabase not configured')
   }
 
-  const { data, error } = await reviewnotesSupabase
-    .from('User')
-    // Only the columns consumed by getReviewNotesUserStats passes + the monor reviewnotes block.
-    // (emailVerified / updatedAt / lemonSqueezyCustomerId are unused.)
-    .select('id, name, email, image, subscriptionPlan, role, storageUsed, createdAt')
-    .order('createdAt', { ascending: false })
+  const [{ data, error }, lastActiveRes] = await Promise.all([
+    reviewnotesSupabase
+      .from('User')
+      // Only the columns consumed by getReviewNotesUserStats passes + the monor reviewnotes block.
+      // (emailVerified / updatedAt / lemonSqueezyCustomerId are unused.)
+      .select('id, name, email, image, subscriptionPlan, role, storageUsed, createdAt')
+      .order('createdAt', { ascending: false }),
+    // 마지막 활동 — EventLog는 RLS로 raw 접근 불가, 집계 RPC 사용 (실패해도 목록은 유지)
+    reviewnotesSupabase.rpc('rn_user_last_active'),
+  ])
 
   if (error) {
     throw new Error(`Failed to fetch users: ${error.message}`)
   }
 
-  return data || []
+  const lastActiveMap = new Map<string, string>(
+    ((lastActiveRes.data ?? []) as Array<{ user_id: string; last_active: string }>)
+      .map(r => [r.user_id, r.last_active])
+  )
+  return (data || []).map(u => ({ ...u, lastActiveAt: lastActiveMap.get(u.id) ?? null }))
 }
 
 // 유저 통계 계산

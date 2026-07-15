@@ -44,6 +44,13 @@ select jsonb_build_object(
   'prev', jsonb_build_object(
     'views', (select count(*) from prev),
     'visitors', (select count(distinct "sessionId") from prev)),
+  -- 앱 내 로그인 활동 사용자 (EventLog, 윈도우 내 distinct userId) — 퍼널 카드용 (2026-07-15)
+  'activeUsers', (select count(distinct "userId") from "EventLog"
+    where "userId" is not null and "createdAt" >= now() - make_interval(days => range_days)),
+  'prevActiveUsers', (select count(distinct "userId") from "EventLog"
+    where "userId" is not null
+      and "createdAt" >= now() - make_interval(days => 2 * range_days)
+      and "createdAt" < now() - make_interval(days => range_days)),
   'daily', coalesce((select jsonb_agg(jsonb_build_object(
     'date', kdate, 'views', views, 'visitors', visitors) order by kdate) from daily), '[]'::jsonb),
   'topReferrers', coalesce((select jsonb_agg(jsonb_build_object(
