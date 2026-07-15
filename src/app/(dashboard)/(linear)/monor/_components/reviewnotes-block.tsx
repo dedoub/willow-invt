@@ -333,7 +333,7 @@ export function ReviewnotesBlock({
             )
             return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
             <LStat
               label="순 방문자"
               title="랜딩 유니크 방문자 누적 (기기 기준, 집계 시작 이후)"
@@ -373,6 +373,14 @@ export function ReviewnotesBlock({
               sub={`오늘 ${activatedToday.toLocaleString()}명 · 7일 ${activated7.toLocaleString()}명`}
               tone={users.length > 0 && activatedTotal / users.length >= 0.5 ? 'pos' : 'warn'}
               sparkline={mobile ? undefined : cumActivated}
+            />
+            <LStat
+              label="유료 사용자"
+              title="현재 유료 플랜(BASIC/STANDARD/PRO) 사용자. 전환 = 유료 ÷ 활성화 — 문제 등록까지 간 유저 중 결제 비율."
+              value={users.filter(u => u.subscriptionPlan !== 'FREE').length.toLocaleString()}
+              valueExtra={rateExtra('전환', rate(users.filter(u => u.subscriptionPlan !== 'FREE').length, activatedTotal))}
+              sub={userStats ? `B ${userStats.basicUsers} · S ${userStats.standardUsers} · P ${userStats.proUsers}` : undefined}
+              tone={users.some(u => u.subscriptionPlan !== 'FREE') ? 'pos' : 'default'}
             />
             <LStat
               label="MRR"
