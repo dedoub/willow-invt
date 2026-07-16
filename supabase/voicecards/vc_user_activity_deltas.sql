@@ -1,18 +1,16 @@
--- 사용자별 오늘 증가분(카드/말하기/듣기/구매/보유/시트) + 최근 7일 활동일 수 (user당 1행)
+-- 사용자별 오늘 증가분(카드/말하기/듣기/뒤집기/사용/구매/보유/시트) + 최근 7일 활동일 수 (user당 1행)
 -- 대시보드 사용자 테이블의 전일대비 diff 둘째 줄 + 7일 활동일 열에 사용.
 --   cards: 보유 카드 오늘 증가분 = live(user_analytics.total_cards 합) − 자정 스냅샷(user_sheet_snapshots.card_count)
 --   attempts: time_series_analytics (앱 일별 기록)
---   listen/purchased: anonymous_events (이벤트 로그, 오늘 필터)
---   balance: credit_transactions.delta 합 (순변동 ±)
---   sheets: live users.sheet_ids − 자정 스냅샷 sheet_count
---   오늘 가입자는 스냅샷이 없으므로 기준선 0 (시트/카드 전량이 오늘 증가). 스냅샷 없음+기존 유저는 0(잡 실패 안전장치).
---   active_days_7d: 학습/듣기 distinct 날짜 (최근 7일)
--- apply: 원격 project juyitkynbavhllyjidhz (2026-07-13 card_count·신규유저 규칙 반영)
-CREATE OR REPLACE FUNCTION public.vc_user_activity_deltas()
- RETURNS TABLE(user_id text, cards_today bigint, attempts_today bigint, listen_today bigint, active_days_7d integer, purchased_today bigint, balance_delta_today bigint, sheets_delta_today bigint)
- LANGUAGE sql
- STABLE
-AS $function$
+--   listen/flips/spent/purchased: mv_real_users (이벤트 로그, 오늘 필터)
+--     flips = card_flipped_manual, spent = tts_premium 차감 + ai_generation_success credits_used (2026-07-16 추가)
+--   반환 컬럼 변경 시 drop 후 재생성 필요 (return type replace 불가).
+drop function if exists public.vc_user_activity_deltas();
+create or replace function public.vc_user_activity_deltas()
+ returns table(user_id text, cards_today bigint, attempts_today bigint, listen_today bigint, flips_today bigint, spent_today bigint, active_days_7d integer, purchased_today bigint, balance_delta_today bigint, sheets_delta_today bigint)
+ language sql
+ stable
+as $function$
 with td as (select (now() at time zone 'Asia/Seoul')::date as d),
 tsa_today as (
   select t.user_id, sum(t.attempts)::bigint as attempts
@@ -23,6 +21,25 @@ listen_today as (
   from mv_real_users e, td
   where e.event_name in ('tts_played','voice_preview_played')
     and (e.created_at at time zone 'Asia/Seoul')::date = td.d and e.user_id is not null
+  group by e.user_id
+),
+flips_today as (
+  select e.user_id, count(*)::bigint as fc
+  from mv_real_users e, td
+  where e.event_name = 'card_flipped_manual'
+    and (e.created_at at time zone 'Asia/Seoul')::date = td.d and e.user_id is not null
+  group by e.user_id
+),
+spent_today as (
+  select e.user_id, sum(case
+      when e.event_name = 'credits_changed' and e.properties->>'reason' = 'tts_premium'
+           and (e.properties->>'delta')::numeric < 0 then -(e.properties->>'delta')::numeric
+      when e.event_name = 'ai_generation_success' then coalesce((e.properties->>'credits_used')::numeric, 0)
+      else 0 end)::bigint as sc
+  from mv_real_users e, td
+  where e.event_name in ('credits_changed','ai_generation_success')
+    and e.is_likely_bot = false and e.user_id is not null
+    and (e.created_at at time zone 'Asia/Seoul')::date = td.d
   group by e.user_id
 ),
 purchased_today as (
@@ -65,6 +82,8 @@ ids as (
   union select user_id from live_cards
   union select user_id from tsa_today
   union select user_id from listen_today
+  union select user_id from flips_today
+  union select user_id from spent_today
   union select user_id from purchased_today
   union select user_id from active7
 )
@@ -73,6 +92,7 @@ select i.user_id,
              when uc.cdate = td.d then coalesce(lc.tc,0)
              else 0 end)::bigint as cards_today,
        coalesce(t.attempts,0)::bigint, coalesce(l.listen,0)::bigint,
+       coalesce(f.fc,0)::bigint as flips_today, coalesce(sp.sc,0)::bigint as spent_today,
        coalesce(a.days,0)::int,
        coalesce(p.pc,0)::bigint, coalesce(b.bd,0)::bigint,
        (case when ss.sheet_count is not null then coalesce(ls.sc,0) - ss.sheet_count
@@ -82,6 +102,8 @@ from ids i
 cross join td
 left join tsa_today t using(user_id)
 left join listen_today l using(user_id)
+left join flips_today f using(user_id)
+left join spent_today sp using(user_id)
 left join active7 a using(user_id)
 left join purchased_today p using(user_id)
 left join balance_today b using(user_id)

@@ -54,6 +54,8 @@ interface UserStats {
     cardsToday: number
     attemptsToday: number
     listenToday: number
+    flipsToday?: number
+    spentToday?: number
     activeDays7d: number
     purchasedToday: number
     balanceDeltaToday: number
@@ -929,7 +931,7 @@ export function VoicecardsBlock({
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
-                      <span>설치 {installRate}%</span>
+                      <span>전환 {installRate}%</span>
                     </span>
                   ) : undefined}
                   sub={`오늘 ${devToday.toLocaleString()}명 · 7일 ${dev7.toLocaleString()}명`}
@@ -949,7 +951,7 @@ export function VoicecardsBlock({
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
-                      <span>로그인 {loginRate}%</span>
+                      <span>전환 {loginRate}%</span>
                     </span>
                   )}
                   sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명`}
@@ -969,7 +971,7 @@ export function VoicecardsBlock({
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
-                      <span>연동 {linkedRate}%</span>
+                      <span>전환 {linkedRate}%</span>
                     </span>
                   )}
                   sub={`오늘 ${linkedToday.toLocaleString()}명 · 7일 ${linked7.toLocaleString()}명`}
@@ -989,7 +991,7 @@ export function VoicecardsBlock({
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
-                      <span>활성 {activeRate}%</span>
+                      <span>전환 {activeRate}%</span>
                     </span>
                   )}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
@@ -1005,9 +1007,9 @@ export function VoicecardsBlock({
                   <SkelStat compact={!!mobile} />
                 ) : (
                   <LStat
-                    label="누적 매출"
+                    label="판매 크레딧"
                     title="판매 크레딧 누적(정가 그로스, 환불·수수료 미반영). 점선 = 결제율(활성 대비)."
-                    value={fmtCr(creditsSold)}
+                    value={fmtK(creditsSold)}
                     valueExtra={(
                       <span style={{
                         fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
@@ -1016,12 +1018,12 @@ export function VoicecardsBlock({
                         결제 {payRate}%
                       </span>
                     )}
-                    sub={creditsSold > 0 ? `오늘 ${fmtCr(creditsToday)} · 7일 ${fmtCr(credits7d)}` : '아직 없음'}
+                    sub={creditsSold > 0 ? `오늘 ${fmtK(creditsToday)} · 7일 ${fmtK(credits7d)}` : '아직 없음'}
                     tone={creditsSold > 0 ? 'pos' : 'default'}
                     sparkline={compact ? undefined : creditsData}
                     sparkline2={compact ? undefined : payRateData}
                     spark2Color={t.brand[600]}
-                    sparkFormat={fmtCr}
+                    sparkFormat={(v) => fmtK(v)}
                     sparkFormat2={(v) => `${v}%`}
                     spark2Domain={[0, 100]}
                     dualScale
@@ -1505,7 +1507,7 @@ export function VoicecardsBlock({
                   <NumDeltaCell total={user.cards} delta={user.cardsToday}
                     dim={(user.ownCards ?? user.cards) === 0 && user.cards > 0}
                     note={(user.ownCards ?? user.cards) === 0 && user.cards > 0 ? '데모' : undefined} />
-                  <NumDeltaCell total={user.flips ?? 0} delta={0} />
+                  <NumDeltaCell total={user.flips ?? 0} delta={user.flipsToday ?? 0} />
                   <NumDeltaCell total={user.attempts} delta={user.attemptsToday} />
                   <NumDeltaCell total={user.creditsUsed} delta={user.listenToday} />
                   <IntentCell u={user} />
@@ -1522,7 +1524,7 @@ export function VoicecardsBlock({
                   </div>
                   <NumDeltaCell total={user.purchasedCredits} delta={user.purchasedToday} />
                   <NumDeltaCell total={user.bonusCredits} delta={0} />
-                  <NumDeltaCell total={user.creditsSpent ?? 0} delta={0} />
+                  <NumDeltaCell total={user.creditsSpent ?? 0} delta={user.spentToday ?? 0} />
                   <NumDeltaCell total={user.credits} delta={user.balanceDeltaToday} dim />
                   <div style={userNumCell}>
                     {user.activeDays7d > 0

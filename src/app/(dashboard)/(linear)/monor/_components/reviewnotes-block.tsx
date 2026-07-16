@@ -486,9 +486,12 @@ export function ReviewnotesBlock({
                 })
               : []
 
+            const splitLayout = !mobile && dashCols === 1
             return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
+          {/* 좌: 퍼널 카드(3×2) + 파이 · 우: 일별 활동자 전체높이 (1열 모드 전용, 보이스카드와 동일) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
             <LStat
               label="순 방문자"
               title="랜딩 유니크 방문자 누적 (기기 기준, 집계 시작 이후)"
@@ -524,7 +527,7 @@ export function ReviewnotesBlock({
               label="활성화"
               title="문제를 하나라도 등록한 유저 (전 기간). 활성 = 활성화 ÷ 전체 가입자. 스파크라인은 집계 시작 이후 누적(이전 활성화분은 베이스라인)."
               value={activatedTotal.toLocaleString()}
-              valueExtra={rateExtra('활성', rate(activatedTotal, users.length))}
+              valueExtra={rateExtra('전환', rate(activatedTotal, users.length))}
               sub={`오늘 ${activatedToday.toLocaleString()}명 · 7일 ${activated7.toLocaleString()}명`}
               tone={users.length > 0 && activatedTotal / users.length >= 0.5 ? 'pos' : 'warn'}
               sparkline={mobile ? undefined : cumActivated}
@@ -589,8 +592,9 @@ export function ReviewnotesBlock({
               unit="명"
             />
           </div>
-          {/* 일별 활동자 — 보이스카드 DauTrendCard 리뷰노트판 (회원/신규 + 7일평균, 익명 tier 없음) */}
-          <div style={{ minHeight: 150 }}>
+          </div>
+          {/* 일별 활동자 — 1열 모드는 우측 전체높이, 그 외(2열·모바일) 파이 아래 전체폭 */}
+          <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 150 }}>
             <RnDauTrendCard daily={trafficStats.dailyActive} />
           </div>
           </div>

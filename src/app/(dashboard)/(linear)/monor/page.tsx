@@ -63,6 +63,8 @@ interface UserStats {
     cardsToday: number
     attemptsToday: number
     listenToday: number
+    flipsToday: number
+    spentToday: number
     activeDays7d: number
     purchasedToday: number
     balanceDeltaToday: number
