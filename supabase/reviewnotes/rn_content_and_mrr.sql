@@ -170,3 +170,35 @@ left join sr on sr.u = usr.id
 $$;
 revoke all on function public.rn_user_content() from public;
 grant execute on function public.rn_user_content() to anon, authenticated, service_role;
+
+-- 5) 일별 활동 사용자 (EventLog, KST) — 회원(기존 가입자)/신규(그날 가입) 분리. 관리자 제외 (2026-07-16).
+--    소비처: reviewnotes-block RnDauTrendCard (보이스카드 DauTrendCard 리뷰노트판).
+create or replace function public.rn_daily_active(range_days int default 60)
+returns table(date date, active bigint, new_users bigint, member bigint)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+with admins as (
+  select id from "User" where role = 'ADMIN' or email = 'test@reviewnotes.app'
+),
+day_user as (
+  select distinct ("createdAt" at time zone 'Asia/Seoul')::date as d, "userId" as uid
+  from "EventLog"
+  where "userId" is not null and "userId" not in (select id from admins)
+    and "createdAt" >= now() - make_interval(days => range_days)
+),
+flagged as (
+  select du.d, du.uid,
+    (u."createdAt" is not null and (u."createdAt" at time zone 'Asia/Seoul')::date = du.d) as is_new
+  from day_user du left join "User" u on u.id = du.uid
+)
+select d as date,
+  count(*)::bigint as active,
+  count(*) filter (where is_new)::bigint as new_users,
+  count(*) filter (where not is_new)::bigint as member
+from flagged group by d order by d
+$$;
+revoke all on function public.rn_daily_active(int) from public;
+grant execute on function public.rn_daily_active(int) to anon, authenticated, service_role;

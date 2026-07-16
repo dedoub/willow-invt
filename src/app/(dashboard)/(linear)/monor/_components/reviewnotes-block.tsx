@@ -161,6 +161,109 @@ const rateExtra = (label: string, pct: number) => (
   </span>
 )
 
+// 일별 활동자 차트 — 보이스카드 DauTrendCard 리뷰노트판. 회원(기존 가입자)/신규(그날 가입) 2계열 + 7일 이동평균.
+// 리뷰노트는 로그인 후에만 활동이라 익명(비로그인) tier 없음. 관리자 제외는 RPC(rn_daily_active)에서.
+const RN_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+function rnWithWeekday(d: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d} (${RN_WEEKDAYS[new Date(d + 'T00:00:00Z').getUTCDay()]})` : d
+}
+function RnDauTrendCard({ daily, days = 42 }: {
+  daily: Array<{ date: string; active: number; newUsers: number; member: number }>
+  days?: number
+}) {
+  const rows = (daily ?? []).slice(-days)
+  const max = rows.reduce((m, r) => Math.max(m, r.active), 0)
+  const latest = rows.length ? rows[rows.length - 1] : null
+  const MEMBER = '#3b82f6'
+  const NEW = '#8b5cf6'
+  const MA_COLOR = '#f97316'
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const barPct = (v: number) => (max > 0 ? (v / max) * 100 : 0)
+  const ma = rows.map((_, i) => {
+    const win = rows.slice(Math.max(0, i - 6), i + 1)
+    return win.reduce((sum, r) => sum + r.active, 0) / win.length
+  })
+  return (
+    <div style={{
+      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px',
+      height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6 }}>
+        <div style={{
+          fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+          textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
+        }}>
+          일별 활동자
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: MEMBER }} />회원 {latest?.member ?? 0}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: NEW }} />신규 {latest?.newUsers ?? 0}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+            <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
+          </span>
+        </div>
+      </div>
+      {rows.length === 0 || max === 0 ? (
+        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
+          데이터 없음
+        </div>
+      ) : (
+        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: 2, position: 'relative' }}>
+          {rows.map((r, i) => {
+            const newH = barPct(r.newUsers)
+            const memberH = barPct(r.member)
+            const dim = hoverIdx !== null && hoverIdx !== i
+            return (
+              <div key={r.date}
+                onMouseEnter={() => setHoverIdx(i)}
+                onMouseLeave={() => setHoverIdx(prev => (prev === i ? null : prev))}
+                style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}>
+                {newH > 0 && <div style={{ height: `${newH}%`, background: NEW, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {memberH > 0 && <div style={{ height: `${memberH}%`, background: MEMBER, borderRadius: newH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+              </div>
+            )
+          })}
+          {max > 0 && rows.length > 1 && (
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
+              <polyline
+                points={ma.map((v, i) => `${(((i + 0.5) / rows.length) * 100).toFixed(2)},${(100 - (v / max) * 100).toFixed(2)}`).join(' ')}
+                fill="none" stroke={MA_COLOR} strokeWidth={1.2} opacity={0.75}
+                vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+          )}
+          {hoverIdx !== null && rows[hoverIdx] && (() => {
+            const r = rows[hoverIdx]
+            const leftPct = Math.min(86, Math.max(14, ((hoverIdx + 0.5) / rows.length) * 100))
+            return (
+              <div style={{
+                position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
+                bottom: `calc(${barPct(r.active).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
+                background: '#1E293B', color: '#F8FAFC',
+                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
+                borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
+              }}>
+                <div style={{ opacity: 0.7, marginBottom: 3 }}>{rnWithWeekday(r.date)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 1, background: MEMBER }} />회원 {r.member}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 1, background: NEW }} />신규 {r.newUsers}
+                </div>
+                <div style={{ opacity: 0.7, marginTop: 3 }}>총 {r.active} · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
+              </div>
+            )
+          })()}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ReviewnotesBlock({
@@ -485,6 +588,10 @@ export function ReviewnotesBlock({
               palette={['#3b82f6', '#8b5cf6', '#10b981']}
               unit="명"
             />
+          </div>
+          {/* 일별 활동자 — 보이스카드 DauTrendCard 리뷰노트판 (회원/신규 + 7일평균, 익명 tier 없음) */}
+          <div style={{ minHeight: 150 }}>
+            <RnDauTrendCard daily={trafficStats.dailyActive} />
           </div>
           </div>
             )

@@ -66,6 +66,8 @@ export interface ReviewNotesTrafficStats {
   daily: Array<{ date: string; views: number; visitors: number }>
   // 일별 회원 로그인 — 하루에 유저당 1회만 카운트 (연인원 집계용)
   dailyLogins: Array<{ date: string; users: number }>
+  // 일별 활동 사용자 — 회원(기존 가입자)/신규(그날 가입) 분리 (일별 활동자 차트용)
+  dailyActive: Array<{ date: string; active: number; newUsers: number; member: number }>
   topReferrers: Array<{ referrer: string; count: number }>
   topCountries: Array<{ country: string; count: number }>
   // 기기 분포 (mobile/tablet/desktop, 방문자 기준) — 2026-07-15부터 수집, 이전 방문은 unknown
@@ -105,6 +107,7 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
     prevActiveUsers: 0,
     daily: [],
     dailyLogins: [],
+    dailyActive: [],
     topReferrers: [],
     topCountries: [],
     devices: [],
@@ -121,12 +124,13 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
 
   // PageView는 RLS로 raw select가 막혀 있어(anon 정책 없음, 2026-06-21 하드닝)
   // 집계 전용 SECURITY DEFINER RPC로 조회한다. 정본: supabase/reviewnotes/rn_traffic_stats.sql
-  const [{ data, error }, activationRes, paidRes, mrrHistRes] = await Promise.all([
+  const [{ data, error }, activationRes, paidRes, mrrHistRes, dailyActiveRes] = await Promise.all([
     reviewnotesSupabase.rpc('rn_traffic_stats', { range_days: CUMULATIVE_RANGE_DAYS }),
-    // 활성화(첫 문제 등록) / 유료 전환 시점 / MRR 스냅샷 — 실패해도 트래픽 통계는 유지 (best-effort)
+    // 활성화(첫 문제 등록) / 유료 전환 시점 / MRR 스냅샷 / 일별 활동 — 실패해도 트래픽 통계는 유지 (best-effort)
     reviewnotesSupabase.rpc('rn_activation'),
     reviewnotesSupabase.rpc('rn_paid_users'),
     reviewnotesSupabase.rpc('rn_mrr_history'),
+    reviewnotesSupabase.rpc('rn_daily_active', { range_days: 60 }),
   ])
   if (error || !data) {
     console.error('Error fetching rn_traffic_stats:', error)
@@ -182,6 +186,8 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
       .map(r => ({ userId: r.user_id, paidAt: r.paid_at })),
     mrrHistory: ((mrrHistRes.data ?? []) as Array<{ date: string; mrr: number; active_subs: number }>)
       .map(r => ({ date: r.date, mrr: Number(r.mrr) || 0, activeSubs: Number(r.active_subs) || 0 })),
+    dailyActive: ((dailyActiveRes.data ?? []) as Array<{ date: string; active: number; new_users: number; member: number }>)
+      .map(r => ({ date: r.date, active: Number(r.active) || 0, newUsers: Number(r.new_users) || 0, member: Number(r.member) || 0 })),
     memberReferrers: stats.memberReferrers ?? [],
     memberCountries: stats.memberCountries ?? [],
     paidReferrers: stats.paidReferrers ?? [],
