@@ -48,7 +48,9 @@ const getCachedReviewNotesData = unstable_cache(
     }
   },
   ['reviewnotes-stats'],
-  { revalidate: 300, tags: ['reviewnotes-stats'] }
+  // 60초 캐시 — 보이스카드(events/users)와 동일 신선도로 맞춤 (2026-07-16 CEO).
+  // LemonSqueezy 3콜 + Supabase RPC 묶음이 1분당 최대 1회. 뷰어가 CEO 1인이라 레이트리밋 여유.
+  { revalidate: 60, tags: ['reviewnotes-stats'] }
 )
 
 export async function GET() {
