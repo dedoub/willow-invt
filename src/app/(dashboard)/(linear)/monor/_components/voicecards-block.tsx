@@ -1186,6 +1186,17 @@ export function VoicecardsBlock({
               </span>
             ) : undefined
 
+            // 배수(누적 학습량 ÷ 그 시점 보유 카드) 점선 시리즈 — 인사이트 카드의 비율 점선과 동일 문법.
+            // 끝점 = valueExtra 배수 라벨과 일치. 카드 0인 초기 날은 0으로 둬 발산 방지.
+            const invSorted = [...inventory].sort((a, b) => a.date.localeCompare(b.date))
+            const cardsAt = (date: string): number => {
+              let c = invSorted[0]?.totalCards ?? liveCards
+              for (const inv of invSorted) { if (inv.date <= date) c = inv.totalCards; else break }
+              return c
+            }
+            const ratioSpark = (cum: Array<{ date: string; value: number }>) =>
+              cum.map(p => { const c = cardsAt(p.date); return { date: p.date, value: c > 0 ? p.value / c : 0 } })
+
             return (
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
             <LStat
@@ -1216,21 +1227,29 @@ export function VoicecardsBlock({
               return (
                 <LStat
                   label="카드 뒤집기"
-                  title="카드를 수동으로 앞뒤 전환한 횟수. 배수 = 보유 카드 대비 (카드당 반복 강도)."
+                  title="카드를 수동으로 앞뒤 전환한 횟수. 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
                   value={formatNumber(totalFlips)}
                   valueExtra={cardRatioExtra(totalFlips)}
                   sub={`오늘 ${formatNumber(todayFlips)}회 · 7일 ${formatNumber(last7Flips)}회`}
                   sparkline={compact ? undefined : (flipSpark.length > 1 ? flipSpark : undefined)}
+                  sparkline2={compact ? undefined : (flipSpark.length > 1 ? ratioSpark(flipSpark) : undefined)}
+                  sparkFormat2={(v) => `${v.toFixed(1)}x`}
+                  spark2Color={t.neutrals.muted}
+                  dualScale
                 />
               )
             })()}
             <LStat
               label="말하기 학습"
-              title="채점까지 성사된 말하기 시도 누적. 배수 = 보유 카드 대비 (카드당 반복 강도)."
+              title="채점까지 성사된 말하기 시도 누적. 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
               value={formatNumber(userStats.totalAttempts)}
               valueExtra={cardRatioExtra(userStats.totalAttempts)}
               sub={`오늘 ${formatNumber(todayAttempts)}회 · 7일 ${formatNumber(last7Attempts)}회`}
               sparkline={compact ? undefined : (attemptTrajectory.length > 1 ? attemptTrajectory : undefined)}
+              sparkline2={compact ? undefined : (attemptTrajectory.length > 1 ? ratioSpark(attemptTrajectory) : undefined)}
+              sparkFormat2={(v) => `${v.toFixed(1)}x`}
+              spark2Color={t.neutrals.muted}
+              dualScale
             />
             {eventsLoading && !anonymousStats ? (
               <SkelStat compact={!!mobile} />
@@ -1251,11 +1270,15 @@ export function VoicecardsBlock({
               return (
                 <LStat
                   label="듣기 학습"
-                  title="TTS·미리듣기 재생 횟수 누적. 배수 = 보유 카드 대비 (카드당 반복 강도)."
+                  title="TTS·미리듣기 재생 횟수 누적. 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
                   value={formatNumber(totalUsed)}
                   valueExtra={cardRatioExtra(totalUsed)}
                   sub={`오늘 ${formatNumber(todayUsage)}회 · 7일 ${formatNumber(last7Sum)}회`}
                   sparkline={compact ? undefined : (sparkData.length > 1 ? sparkData : undefined)}
+                  sparkline2={compact ? undefined : (sparkData.length > 1 ? ratioSpark(sparkData) : undefined)}
+                  sparkFormat2={(v) => `${v.toFixed(1)}x`}
+                  spark2Color={t.neutrals.muted}
+                  dualScale
                 />
               )
             })()}
@@ -1277,11 +1300,15 @@ export function VoicecardsBlock({
               return (
                 <LStat
                   label="크레딧 사용"
-                  title={`실제 소진된 크레딧 누적 (TTS 차감 ${formatNumber(totalTts)} + AI 생성 ${formatNumber(totalAi)}). 유저의 크레딧 소진 속도 = 구매 압력. 배수 = 보유 카드 대비 — 카드가 늘수록 소진도 빨라진다.`}
+                  title={`실제 소진된 크레딧 누적 (TTS 차감 ${formatNumber(totalTts)} + AI 생성 ${formatNumber(totalAi)}). 유저의 크레딧 소진 속도 = 구매 압력. 점선 = 보유 카드 대비 배수 — 카드가 늘수록 소진도 빨라진다.`}
                   value={formatNumber(totalTts + totalAi)}
                   valueExtra={cardRatioExtra(totalTts + totalAi)}
                   sub={`오늘 ${formatNumber(todaySpend)} · 7일 ${formatNumber(last7Spend)}`}
                   sparkline={compact ? undefined : (spendSpark.length > 1 ? spendSpark : undefined)}
+                  sparkline2={compact ? undefined : (spendSpark.length > 1 ? ratioSpark(spendSpark) : undefined)}
+                  sparkFormat2={(v) => `${v.toFixed(1)}x`}
+                  spark2Color={t.neutrals.muted}
+                  dualScale
                 />
               )
             })()}
