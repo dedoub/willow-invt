@@ -597,7 +597,8 @@ const EXCLUDED_VOICECARDS_EMAIL_PATTERNS: RegExp[] = [
   /wave[0-9]+batch[0-9]+/i,
 ]
 // 관리자/내부 테스트 계정 (정확 일치) — 2026-07-03 willowinvt 관리자 계정 추가
-const EXCLUDED_VOICECARDS_EMAILS = new Set(['dw.kim@willowinvt.com'])
+// 2026-07-18 qwe.gpt22022 봇/throwaway 추가 (가입 즉시 이탈, 기존 숫자 정규식엔 안 걸림)
+const EXCLUDED_VOICECARDS_EMAILS = new Set(['dw.kim@willowinvt.com', 'qwe.gpt22022@gmail.com'])
 const EXCLUDED_VOICECARDS_USER_IDS = new Set([
   '101662172713686736923',
   '100644446554227652222',

@@ -22,6 +22,7 @@ with excluded_devices as (
       u.nickname in ('류하아빠','큐트도넛')
       or lower(u.email) like '%@cloudtestlabaccounts.com'
       or lower(u.email) = 'dw.kim@willowinvt.com'
+      or lower(u.email) = 'qwe.gpt22022@gmail.com'
       or u.email ~ '\.[0-9]{5,}@gmail\.com'
       or u.email ~ 'batch[0-9]+@gmail\.com'
       or u.email ~ 'wave[0-9]+batch[0-9]+'
