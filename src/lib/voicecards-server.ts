@@ -1051,10 +1051,13 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const totalCredits = users.reduce((sum, u) => sum + (u.credits || 0), 0)
   const totalSheets = users.reduce((sum, u) => sum + (Array.isArray(u.sheet_ids) ? u.sheet_ids.length : 0), 0)
 
-  // 일별 보유 카드 스냅샷 — 테이블 존재 시에만 채움 (미존재 시 조용히 빈 배열)
-  const inventorySnapRes = await vc.from('daily_inventory_snapshots').select('date, total_cards').order('date', { ascending: true })
-  const dailyCardInventory = (inventorySnapRes.data || []).map(r => ({
-    date: r.date as string,
+  // 일별 보유 카드 스냅샷 — user_sheet_snapshots(유저별 자정 스냅샷)를 날짜별 합산(vc_daily_card_inventory RPC).
+  // total_cards 정의가 liveCards(userStats.totalCards)와 동일 → live − 오늘 스냅샷 = 오늘 증가분이
+  // 사용자 테이블 per-user delta 합과 정확히 일치. (구 daily_inventory_snapshots 는 모집단이 달라
+  // 상시 오프셋 → 통계 '오늘'이 실제 증가분보다 수천 부풀던 버그. 2026-07-19 교체.)
+  const inventorySnapRes = await vc.rpc('vc_daily_card_inventory')
+  const dailyCardInventory = ((inventorySnapRes.data || []) as Array<{ date: string; total_cards: number | null }>).map(r => ({
+    date: r.date,
     totalCards: Number(r.total_cards) || 0,
   }))
 

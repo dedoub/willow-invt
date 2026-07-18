@@ -1147,9 +1147,10 @@ export function VoicecardsBlock({
               runningSheets += u.sheetCount
               return { date: toKst(u.createdAt), value: runningSheets }
             })
-            const todaySheets = sortedUsersByDate
-              .filter(u => toKst(u.createdAt) === todayStr)
-              .reduce((sum, u) => sum + u.sheetCount, 0)
+            // 오늘 시트 증가분 = 사용자 테이블 per-user 델타(sheetsDeltaToday) 합 — 헤더 '오늘'과
+            // 테이블 diff 열이 항상 일치하도록 같은 소스로 계산(신규유저 시트만 세던 옛 정의는 기존 유저의
+            // 시트 추가를 놓쳐 테이블 합과 어긋났음, 2026-07-19). 7일은 테이블 대응열이 없어 신규 기준 유지.
+            const todaySheets = userStats.users.reduce((sum, u) => sum + (u.sheetsDeltaToday || 0), 0)
             const last7Sheets = sortedUsersByDate
               .filter(u => toKst(u.createdAt) >= sevenDaysAgoStr)
               .reduce((sum, u) => sum + u.sheetCount, 0)
@@ -1170,9 +1171,11 @@ export function VoicecardsBlock({
             // 오늘 = live 합계 − 오늘 00:05 스냅샷 = 자정 이후 실제 증가분.
             // (스냅샷은 KST 자정에 찍혀서 '오늘 스냅샷 − 어제 스냅샷'은 전날 증가분을 오늘로 표기하던 문제.
             //  live와 오늘 스냅샷을 비교해야 '오늘 실제로 늘어난 카드'가 나온다. 오늘 스냅샷 없으면 0.)
-            const dateToCards = new Map(inventory.map(d => [d.date, d.totalCards]))
             const liveCards = userStats.totalCards
-            const todayCardsDelta = liveCards - (dateToCards.get(todayStr) ?? liveCards)
+            // 오늘 카드 증가분 = 사용자 테이블 per-user 델타(cardsToday) 합 — 헤더 '오늘'과 테이블 diff 열이
+            // 항상 일치. (live − 오늘 스냅샷 집계는 user_analytics orphan 행(users 테이블에 없는 계정)을
+            // 포함해 매일 수십장 부풀던 문제, 2026-07-19.) 7일은 테이블 대응열이 없어 스냅샷 집계 유지.
+            const todayCardsDelta = userStats.users.reduce((sum, u) => sum + (u.cardsToday || 0), 0)
             // 7일 = live − (7일전 이하 중 가장 최근 스냅샷). find는 오름차순에서 가장 오래된 걸 반환하던 버그라 filter 후 마지막 사용.
             const beforeSeven = inventory.filter(d => d.date <= sevenDaysAgoStr)
             const sevenAgoCards = (beforeSeven.length ? beforeSeven[beforeSeven.length - 1].totalCards : inventory[0]?.totalCards) ?? liveCards
