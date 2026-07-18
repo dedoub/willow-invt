@@ -1851,7 +1851,9 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
     const base = r.memberActive30 ?? 0
     return base > 0 ? (memberOf(r) / base) * 100 : 0
   })
-  const hasLoginRate = rows.some(r => (r.memberActive30 ?? 0) > 0) && loginRate.some(v => v > 0)
+  // 로그인율 라인은 당분간 숨김(복잡도 정리, CEO). 되살리려면 true. 데이터(memberActive30)·계산은 유지.
+  const SHOW_LOGIN_RATE = false
+  const hasLoginRate = SHOW_LOGIN_RATE && rows.some(r => (r.memberActive30 ?? 0) > 0) && loginRate.some(v => v > 0)
   // 원본 로그인율은 base가 작아 하루 1명에 크게 튐 → 7일 이동평균으로 추세만 남긴다(기기 7일평균 라인과 동일 방식).
   const loginRateMA = loginRate.map((_, i) => {
     const win = loginRate.slice(Math.max(0, i - 6), i + 1)
