@@ -2219,13 +2219,17 @@ interface VoicecardsMonitorAlertState {
 interface VoicecardsEventMonitorState {
   alerts: Record<string, VoicecardsMonitorAlertState>
   activatedUserIds?: string[]
+  processedPurchaseEventIds?: string[]
 }
 
 interface VoicecardsEventRow {
+  id?: string
   event_name: string | null
   created_at: string
   user_id: string | null
   device_id: string | null
+  country?: string | null
+  platform?: string | null
   properties: Record<string, unknown> | null
 }
 
@@ -2253,6 +2257,9 @@ function loadVoicecardsEventMonitorState(): VoicecardsEventMonitorState {
     return {
       alerts: typeof saved?.alerts === 'object' && saved.alerts ? saved.alerts : {},
       activatedUserIds: Array.isArray(saved?.activatedUserIds) ? saved.activatedUserIds : undefined,
+      processedPurchaseEventIds: Array.isArray(saved?.processedPurchaseEventIds)
+        ? saved.processedPurchaseEventIds.filter((value: unknown): value is string => typeof value === 'string').slice(-200)
+        : undefined,
     }
   } catch {
     return defaultVoicecardsEventMonitorState()
@@ -2408,6 +2415,51 @@ async function fetchVoicecardsEventsSince(sinceIso: string): Promise<VoicecardsE
   return rows.filter(row => !row.user_id || !excludedUserIds.has(row.user_id))
 }
 
+async function fetchVoicecardsRawEventsSince(sinceIso: string): Promise<VoicecardsEventRow[]> {
+  if (!voicecardsSupabase) return []
+  const excludedUserIds = await fetchVoicecardsExcludedUserIds()
+  const rows = await fetchAllVoicecardsRows<VoicecardsEventRow>(async (from, to) =>
+    voicecardsSupabase!
+      .from('anonymous_events')
+      .select('event_name, created_at, user_id, device_id, properties')
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: true })
+      .range(from, to)
+  )
+  return rows.filter(row => !row.user_id || !excludedUserIds.has(row.user_id))
+}
+
+// Count of ALL raw events (no user/bot exclusions) since a cutoff — used to tell a
+// genuine ingestion outage apart from a natural quiet window. Returns -1 on error /
+// no client so a failed count never triggers an outage alert.
+async function fetchVoicecardsRawAllCountSince(sinceIso: string): Promise<number> {
+  if (!voicecardsSupabase) return -1
+  const { count, error } = await voicecardsSupabase
+    .from('anonymous_events')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', sinceIso)
+  if (error) return -1
+  return count ?? 0
+}
+
+async function fetchVoicecardsPurchaseEventsSince(sinceIso: string): Promise<VoicecardsEventRow[]> {
+  if (!voicecardsSupabase) return []
+  const excludedUserIds = await fetchVoicecardsExcludedUserIds()
+  const rows = await fetchAllVoicecardsRows<VoicecardsEventRow>(async (from, to) =>
+    voicecardsSupabase!
+      .from('anonymous_events')
+      .select('id, event_name, created_at, user_id, device_id, country, platform, properties')
+      .eq('event_name', 'credits_changed')
+      .eq('properties->>reason', 'purchase')
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: true })
+      .range(from, to)
+  )
+  return rows.filter(row =>
+    isVoicecardsPurchaseEvent(row) && (!row.user_id || !excludedUserIds.has(row.user_id))
+  )
+}
+
 async function fetchVoicecardsUsers(userIds: string[]): Promise<Map<string, VoicecardsUserRow>> {
   const ids = Array.from(new Set(userIds.filter(Boolean)))
   if (!voicecardsSupabase || !ids.length) return new Map()
@@ -2420,6 +2472,29 @@ async function fetchVoicecardsUsers(userIds: string[]): Promise<Map<string, Voic
   if (error) throw error
 
   return new Map((data || []).map(row => [row.user_id, row as VoicecardsUserRow]))
+}
+
+async function fetchVoicecardsUserCountries(userIds: string[]): Promise<Map<string, string>> {
+  const ids = Array.from(new Set(userIds.filter(Boolean)))
+  if (!voicecardsSupabase || !ids.length) return new Map()
+
+  const { data, error } = await voicecardsSupabase
+    .from('anonymous_events')
+    .select('user_id, country, created_at')
+    .in('user_id', ids)
+    .not('country', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(Math.max(100, ids.length * 20))
+
+  if (error) throw error
+
+  const countries = new Map<string, string>()
+  for (const row of data || []) {
+    if (row.user_id && row.country && !countries.has(row.user_id)) {
+      countries.set(row.user_id, row.country)
+    }
+  }
+  return countries
 }
 
 async function sendVoicecardsEventAlert(message: string, details: Record<string, unknown>) {
@@ -2444,19 +2519,68 @@ async function sendVoicecardsEventAlert(message: string, details: Record<string,
   })
 }
 
-// 크레딧 상품 정가 (USD) — 결제 알림에 금액 표기용 (voicecards-server.ts와 동일 맵)
+// 스토어에 실제 적용한 지역가만 명시하고, 미설정 국가는 USD 기준가로 표시한다.
 const VC_PRODUCT_PRICES_USD: Record<string, number> = {
   'com.monor.voicecards.credits.1000': 9.99,
   'com.monor.voicecards.credits.5500': 49.99,
   'com.monor.voicecards.credits.12000': 99.99,
 }
-const vcProductLabel = (productId: string): string => {
-  const credits = productId.split('.').pop()
-  const price = VC_PRODUCT_PRICES_USD[productId]
-  return price ? `크레딧 ${credits} ($${price})` : productId
+const VC_PRODUCT_PRICES_LOCAL: Record<string, Record<string, string>> = {
+  IN: {
+    'com.monor.voicecards.credits.1000': '₹449',
+    'com.monor.voicecards.credits.5500': '₹2,499',
+    'com.monor.voicecards.credits.12000': '₹4,999',
+  },
+  PH: {
+    'com.monor.voicecards.credits.1000': '₱349',
+    'com.monor.voicecards.credits.5500': '₱1,999',
+    'com.monor.voicecards.credits.12000': '₱3,999',
+  },
+}
+const VC_PRODUCT_PRICES_LOCAL_USD: Record<string, Record<string, number>> = {
+  IN: {
+    'com.monor.voicecards.credits.1000': 5.39,
+    'com.monor.voicecards.credits.5500': 29.99,
+    'com.monor.voicecards.credits.12000': 59.97,
+  },
+  PH: {
+    'com.monor.voicecards.credits.1000': 6.13,
+    'com.monor.voicecards.credits.5500': 35.11,
+    'com.monor.voicecards.credits.12000': 70.24,
+  },
+}
+const VC_COUNTRY_LABELS: Record<string, string> = {
+  IN: '인도',
+  PH: '필리핀',
 }
 
+function vcPurchasePriceLabel(productId: string, country: string | null | undefined): string {
+  const countryCode = country?.trim().toUpperCase() || ''
+  const localPrice = VC_PRODUCT_PRICES_LOCAL[countryCode]?.[productId]
+  const localUsd = VC_PRODUCT_PRICES_LOCAL_USD[countryCode]?.[productId]
+  if (localPrice) return localUsd ? `${localPrice} (약 $${localUsd.toFixed(2)})` : localPrice
+  const usdPrice = VC_PRODUCT_PRICES_USD[productId]
+  return usdPrice ? `$${usdPrice.toFixed(2)}` : '가격 미확인'
+}
+
+function vcPurchaseCountryLabel(country: string | null | undefined): string {
+  const countryCode = country?.trim().toUpperCase() || ''
+  return VC_COUNTRY_LABELS[countryCode] || countryCode || '국가 미확인'
+}
+
+let voicecardsPurchaseMonitorRunning = false
+
 async function monitorVoicecardsPurchases() {
+  if (voicecardsPurchaseMonitorRunning) return
+  voicecardsPurchaseMonitorRunning = true
+  try {
+    await monitorVoicecardsPurchasesOnce()
+  } finally {
+    voicecardsPurchaseMonitorRunning = false
+  }
+}
+
+async function monitorVoicecardsPurchasesOnce() {
   if (!ceoChatId || !voicecardsSupabase) return
 
   const purchaseAlertState = getVoicecardsAlertState('purchase')
@@ -2467,38 +2591,45 @@ async function monitorVoicecardsPurchases() {
     ? Math.max(Date.now() - VOICECARDS_PURCHASE_LOOKBACK_CAP_MS, lastEventMs - VOICECARDS_PURCHASE_RESCAN_BUFFER_MS)
     : Date.now() - VOICECARDS_PURCHASE_BOOT_LOOKBACK_MS
 
-  const events = await fetchVoicecardsEventsSince(new Date(sinceMs).toISOString())
-  if (!events.length) return
-
-  const purchaseEvents = events.filter(isVoicecardsPurchaseEvent)
+  const purchaseEvents = await fetchVoicecardsPurchaseEventsSince(new Date(sinceMs).toISOString())
   if (!purchaseEvents.length) return
 
+  const processedIds = new Set(voicecardsEventMonitorState.processedPurchaseEventIds || [])
   const relevantEvents = Number.isFinite(lastEventMs)
-    ? purchaseEvents.filter(event => Date.parse(event.created_at) >= lastEventMs)
-    : purchaseEvents
+    ? purchaseEvents.filter(event => {
+        const eventMs = Date.parse(event.created_at)
+        if (eventMs < lastEventMs) return false
+        if (!voicecardsEventMonitorState.processedPurchaseEventIds?.length && eventMs === lastEventMs) return false
+        return !event.id || !processedIds.has(event.id)
+      })
+    : purchaseEvents.filter(event => !event.id || !processedIds.has(event.id))
   if (!relevantEvents.length) return
 
   const purchaseUserIds = Array.from(new Set(relevantEvents.map(event => event.user_id).filter(Boolean) as string[]))
-  const userMap = await fetchVoicecardsUsers(purchaseUserIds)
+  const [userMap, userCountryMap] = await Promise.all([
+    fetchVoicecardsUsers(purchaseUserIds),
+    fetchVoicecardsUserCountries(purchaseUserIds),
+  ])
   const latestEvent = relevantEvents[relevantEvents.length - 1] || relevantEvents[0]
   const latestAt = latestEvent?.created_at || ''
   const totalCreditsAdded = relevantEvents.reduce((sum, event) => sum + (Number(event.properties?.delta || 0) || 0), 0)
-  const totalUsd = relevantEvents.reduce((sum, event) => {
-    const pid = typeof event.properties?.product_id === 'string' ? event.properties.product_id : ''
-    return sum + (VC_PRODUCT_PRICES_USD[pid] ?? 0)
-  }, 0)
-  const uniqueProducts = Array.from(new Set(
-    relevantEvents
-      .map(event => typeof event.properties?.product_id === 'string' ? event.properties.product_id : '')
-      .filter(Boolean)
-  ))
   const purchaserLabels = purchaseUserIds
     .slice(0, 4)
     .map(userId => formatVoicecardsUserLabel(userMap.get(userId), userId))
+  const purchaseLines = relevantEvents.slice(0, 6).map(event => {
+    const productId = typeof event.properties?.product_id === 'string' ? event.properties.product_id : ''
+    const credits = Number(event.properties?.delta || 0) || Number(productId.split('.').pop()) || 0
+    const userLabel = formatVoicecardsUserLabel(event.user_id ? userMap.get(event.user_id) : undefined, event.user_id)
+    const country = event.country || (event.user_id ? userCountryMap.get(event.user_id) : null)
+    const countryLabel = vcPurchaseCountryLabel(country)
+    const priceLabel = vcPurchasePriceLabel(productId, country)
+    return `- ${userLabel} · ${countryLabel} · ${credits.toLocaleString('en-US')}크레딧 · ${priceLabel}`
+  })
 
   const alertHash = simpleHash(JSON.stringify(
     relevantEvents.map(event => ({
       created_at: event.created_at,
+      id: event.id || '',
       user_id: event.user_id,
       delta: Number(event.properties?.delta || 0) || 0,
       product_id: typeof event.properties?.product_id === 'string' ? event.properties.product_id : '',
@@ -2509,10 +2640,9 @@ async function monitorVoicecardsPurchases() {
   await sendVoicecardsEventAlert([
     '💳 [VoiceCards 결제 알림]',
     `- 감지: 새 결제 ${relevantEvents.length}건`,
-    purchaserLabels.length ? `- 사용자: ${purchaserLabels.join(', ')}` : '',
-    totalCreditsAdded > 0 ? `- 충전 크레딧 합계: +${totalCreditsAdded}` : '',
-    totalUsd > 0 ? `- 금액 합계: $${totalUsd.toFixed(2)} (정가 기준)` : '',
-    uniqueProducts.length ? `- 상품: ${uniqueProducts.slice(0, 3).map(vcProductLabel).join(', ')}` : '',
+    ...purchaseLines,
+    relevantEvents.length > purchaseLines.length ? `- 외 ${relevantEvents.length - purchaseLines.length}건` : '',
+    relevantEvents.length > 1 && totalCreditsAdded > 0 ? `- 충전 크레딧 합계: +${totalCreditsAdded.toLocaleString('en-US')}` : '',
     latestAt ? `- 최신 결제: ${formatKstShort(latestAt)}` : '',
   ].filter(Boolean).join('\n'), {
     issue: 'purchase',
@@ -2520,7 +2650,9 @@ async function monitorVoicecardsPurchases() {
     purchaseUserIds,
     purchaserLabels,
     totalCreditsAdded,
-    uniqueProducts,
+    countries: Array.from(new Set(relevantEvents.map(event =>
+      event.country || (event.user_id ? userCountryMap.get(event.user_id) : null)
+    ).filter(Boolean))),
     latestAt,
     since: new Date(sinceMs).toISOString(),
   })
@@ -2528,6 +2660,10 @@ async function monitorVoicecardsPurchases() {
   purchaseAlertState.lastHash = alertHash
   purchaseAlertState.lastAlertAt = new Date().toISOString()
   purchaseAlertState.lastEventAt = latestAt
+  voicecardsEventMonitorState.processedPurchaseEventIds = [
+    ...(voicecardsEventMonitorState.processedPurchaseEventIds || []),
+    ...relevantEvents.map(event => event.id).filter((id): id is string => !!id),
+  ].slice(-200)
   saveVoicecardsEventMonitorState()
 }
 
@@ -2542,7 +2678,12 @@ async function monitorVoicecardsUserEvents() {
   if (!events.length) return
 
   const nowMs = Date.now()
-  const recent12h = events.filter(event => Date.parse(event.created_at) >= nowMs - 12 * 60 * 60 * 1000)
+  const recentCutoffIso = new Date(nowMs - 12 * 60 * 60 * 1000).toISOString()
+  let recent12h = events.filter(event => Date.parse(event.created_at) >= nowMs - 12 * 60 * 60 * 1000)
+  if (!recent12h.length) {
+    // The real-users view can lag or return an empty window while the source table is current.
+    recent12h = await fetchVoicecardsRawEventsSince(recentCutoffIso)
+  }
   const previous60h = events.filter(event => {
     const ts = Date.parse(event.created_at)
     return ts < nowMs - 12 * 60 * 60 * 1000 && ts >= nowMs - 72 * 60 * 60 * 1000
@@ -2598,17 +2739,26 @@ async function monitorVoicecardsUserEvents() {
   const totalRecentEvents = recent12h.length
   const totalPreviousEvents = previous60h.length
   const inactivityState = getVoicecardsAlertState('no_recent_activity')
-  if (totalRecentEvents === 0 && totalPreviousEvents >= 40) {
-    const alertHash = simpleHash(`inactive|${totalPreviousEvents}`)
+  // The real-user base is small and bursty — a few heavy users generate most events
+  // in short bursts, so "0 real-user events in 12h" happens naturally overnight and is
+  // NOT an outage. Only escalate when the RAW table (all sources: anonymous, test,
+  // App Review, bots; no exclusions) is ALSO empty in the window — that is a genuine
+  // ingestion stop. The count query returns -1 on failure, which never alerts.
+  const rawAllRecentCount = totalRecentEvents === 0
+    ? await fetchVoicecardsRawAllCountSince(recentCutoffIso)
+    : -1
+  if (totalRecentEvents === 0 && rawAllRecentCount === 0 && totalPreviousEvents >= 40) {
+    const alertHash = simpleHash('inactive')
     if (inactivityState.lastHash !== alertHash || !isCooldownActive(inactivityState.lastAlertAt, 12 * 60 * 60 * 1000)) {
       await sendVoicecardsEventAlert([
         '⚠️ [VoiceCards 사용자 로그 알림]',
-        '- 감지: 최근 12시간 동안 실사용자 이벤트가 없어요.',
+        '- 감지: 최근 12시간 동안 이벤트 수집이 0건이에요 (익명·테스트 포함 전 소스 기준).',
         `- 이전 60시간 이벤트: ${totalPreviousEvents}건`,
-        '- 추정: 트래킹 파이프라인이 멈췄거나 앱 유입이 급격히 끊겼을 수 있어요.',
+        '- 추정: 트래킹 파이프라인(수집)이 멈췄을 가능성이 높아요.',
       ].join('\n'), {
         issue: 'no_recent_activity',
         recent12h: totalRecentEvents,
+        rawAllRecent: rawAllRecentCount,
         previous60h: totalPreviousEvents,
       })
 
@@ -4621,13 +4771,14 @@ CEO가 일정 등록, 위키 작성 등을 요청하면, 응답에 아래 JSON �
 
 ### 위키 노트 작성
 \`\`\`action
-{"type":"create_wiki","title":"노트 제목","content":"노트 내용 (마크다운 가능)","section":"willow-mgmt","category":"전략"}
+{"type":"create_wiki","title":"노트 제목","content":"노트 내용 (마크다운 가능)","section":"willow-mgmt","category":"전략","file_path":"/absolute/path/document.pdf","attachment_name":"표시할 파일명.pdf"}
 \`\`\`
+관련 파일을 받은 위키 작성 요청에는 file_path를 반드시 포함하세요. 파일은 Storage 업로드와 위키 첨부 메타데이터 검증이 모두 끝나야 완료됩니다.
 
 ### 위키 노트 수정/덮어쓰기
 사용자가 "이 메모 정리해줘", "기존 노트 덮어쓰기"처럼 기존 노트를 다듬어 달라고 하면 \`create_wiki\` 대신 이 액션을 사용하세요.
 \`\`\`action
-{"type":"update_wiki","note_id":"UUID","title":"정리된 제목","content":"정리된 내용 (마크다운 가능)","section":"willow-mgmt","category":"전략"}
+{"type":"update_wiki","note_id":"UUID","title":"정리된 제목","content":"정리된 내용 (마크다운 가능)","section":"willow-mgmt","category":"전략","file_path":"/absolute/path/document.pdf","attachment_name":"표시할 파일명.pdf"}
 \`\`\`
 
 ### 태스크 추가 (일정에 하위 태스크)
@@ -4918,6 +5069,102 @@ interface ActionBlock {
   [key: string]: unknown
 }
 
+interface WikiAttachment {
+  name: string
+  url: string
+  size: number
+  type: string
+}
+
+const WIKI_ATTACHMENT_BUCKET = 'wiki-attachments'
+
+function wikiAttachmentMimeType(filePath: string): string {
+  const ext = filePath.toLowerCase().split('.').pop()
+  const types: Record<string, string> = {
+    pdf: 'application/pdf',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  }
+  return types[ext || ''] || 'application/octet-stream'
+}
+
+function wikiStorageFileName(fileName: string): string {
+  const dot = fileName.lastIndexOf('.')
+  const stem = dot > 0 ? fileName.slice(0, dot) : fileName
+  const ext = dot > 0 ? fileName.slice(dot).toLowerCase() : ''
+  const safeStem = stem.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'file'
+  return `${safeStem}${ext}`
+}
+
+function wikiActionLocalFiles(action: ActionBlock): Array<{ path: string; name: string }> {
+  const files: Array<{ path: string; name: string }> = []
+  if (typeof action.file_path === 'string') {
+    files.push({
+      path: action.file_path,
+      name: typeof action.attachment_name === 'string' ? action.attachment_name : basename(action.file_path),
+    })
+  }
+  if (Array.isArray(action.file_paths)) {
+    for (const value of action.file_paths) {
+      if (typeof value === 'string') files.push({ path: value, name: basename(value) })
+      else if (value && typeof value === 'object' && typeof (value as { file_path?: unknown }).file_path === 'string') {
+        const item = value as { file_path: string; name?: unknown }
+        files.push({ path: item.file_path, name: typeof item.name === 'string' ? item.name : basename(item.file_path) })
+      }
+    }
+  }
+  return files
+}
+
+async function uploadWikiActionFiles(action: ActionBlock): Promise<{ attachments: WikiAttachment[]; objectPaths: string[] }> {
+  const files = wikiActionLocalFiles(action)
+  const attachments: WikiAttachment[] = []
+  const objectPaths: string[] = []
+
+  try {
+    for (const file of files) {
+      if (!existsSync(file.path) || !statSync(file.path).isFile()) {
+        throw new Error(`첨부 원본을 찾을 수 없습니다: ${file.path}`)
+      }
+      const storageName = `${Date.now()}_${randomUUID().slice(0, 8)}_${wikiStorageFileName(file.name)}`
+      const objectPath = `dw_kim_willowinvt_com/${storageName}`
+      const type = wikiAttachmentMimeType(file.path)
+      const size = statSync(file.path).size
+      const { error: uploadError } = await supabase.storage
+        .from(WIKI_ATTACHMENT_BUCKET)
+        .upload(objectPath, readFileSync(file.path), { contentType: type, cacheControl: '3600', upsert: false })
+      if (uploadError) throw uploadError
+      objectPaths.push(objectPath)
+
+      const folder = objectPath.slice(0, objectPath.lastIndexOf('/'))
+      const objectName = basename(objectPath)
+      const { data: listed, error: listError } = await supabase.storage
+        .from(WIKI_ATTACHMENT_BUCKET)
+        .list(folder, { search: objectName, limit: 10 })
+      if (listError || !listed?.some(item => item.name === objectName)) {
+        throw listError || new Error(`첨부 업로드 검증 실패: ${file.name}`)
+      }
+
+      const { data: publicUrl } = supabase.storage.from(WIKI_ATTACHMENT_BUCKET).getPublicUrl(objectPath)
+      attachments.push({ name: file.name, url: publicUrl.publicUrl, size, type })
+    }
+    return { attachments, objectPaths }
+  } catch (error) {
+    if (objectPaths.length) await supabase.storage.from(WIKI_ATTACHMENT_BUCKET).remove(objectPaths)
+    throw error
+  }
+}
+
+async function removeWikiActionUploads(objectPaths: string[]): Promise<void> {
+  if (objectPaths.length) await supabase.storage.from(WIKI_ATTACHMENT_BUCKET).remove(objectPaths)
+}
+
 function extractActions(text: string): { cleanText: string; actions: ActionBlock[]; buttons: { text: string; callback_data: string }[][] } {
   const actions: ActionBlock[] = []
   let buttons: { text: string; callback_data: string }[][] = []
@@ -5045,7 +5292,8 @@ async function executeAction(action: ActionBlock, ctx?: { chatId?: number }): Pr
       }
 
       case 'create_wiki': {
-        const { error } = await supabase
+        const uploaded = await uploadWikiActionFiles(action)
+        const { data, error } = await supabase
           .from('work_wiki')
           .insert({
             user_id: 'dw.kim@willowinvt.com',
@@ -5053,34 +5301,72 @@ async function executeAction(action: ActionBlock, ctx?: { chatId?: number }): Pr
             content: action.content,
             section: action.section || 'willow-mgmt',
             category: action.category || null,
+            attachments: uploaded.attachments.length ? uploaded.attachments : null,
           })
+          .select('id, title, attachments')
+          .single()
 
-        if (error) throw error
+        if (error) {
+          await removeWikiActionUploads(uploaded.objectPaths)
+          throw error
+        }
+        if (uploaded.attachments.length && (!Array.isArray(data.attachments) || data.attachments.length !== uploaded.attachments.length)) {
+          await removeWikiActionUploads(uploaded.objectPaths)
+          throw new Error('위키 첨부 메타데이터 검증에 실패했습니다')
+        }
         wikiContextCache = null
-        return `✅ 위키 작성: "${action.title}"`
+        const attached = uploaded.attachments.length ? ` · 첨부 ${uploaded.attachments.length}개 검증 완료` : ''
+        return `✅ 위키 작성: "${action.title}"${attached}`
       }
 
       case 'update_wiki': {
         const noteId = (action.note_id || action.id) as string | undefined
         if (!noteId) return '⚠️ 위키 업데이트 실패: note_id가 없습니다'
 
+        const uploaded = await uploadWikiActionFiles(action)
         const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
         if (action.title !== undefined) updates.title = action.title
         if (action.content !== undefined) updates.content = action.content
         if (action.section !== undefined) updates.section = action.section
         if (action.category !== undefined) updates.category = action.category
+        if (uploaded.attachments.length) {
+          const { data: existing, error: existingError } = await supabase
+            .from('work_wiki')
+            .select('attachments')
+            .eq('id', noteId)
+            .eq('user_id', 'dw.kim@willowinvt.com')
+            .single()
+          if (existingError) {
+            await removeWikiActionUploads(uploaded.objectPaths)
+            throw existingError
+          }
+          const current = Array.isArray(existing.attachments) ? existing.attachments as WikiAttachment[] : []
+          const names = new Set(uploaded.attachments.map(item => item.name))
+          updates.attachments = [...current.filter(item => !names.has(item.name)), ...uploaded.attachments]
+        }
 
         const { data, error } = await supabase
           .from('work_wiki')
           .update(updates)
           .eq('id', noteId)
           .eq('user_id', 'dw.kim@willowinvt.com')
-          .select('title')
+          .select('title, attachments')
           .single()
 
-        if (error) throw error
+        if (error) {
+          await removeWikiActionUploads(uploaded.objectPaths)
+          throw error
+        }
+        if (uploaded.attachments.length) {
+          const saved = Array.isArray(data.attachments) ? data.attachments as WikiAttachment[] : []
+          if (!uploaded.attachments.every(item => saved.some(savedItem => savedItem.name === item.name && savedItem.url === item.url))) {
+            await removeWikiActionUploads(uploaded.objectPaths)
+            throw new Error('위키 첨부 메타데이터 검증에 실패했습니다')
+          }
+        }
         wikiContextCache = null
-        return `✅ 위키 업데이트: "${data?.title || action.title || noteId}"`
+        const attached = uploaded.attachments.length ? ` · 첨부 ${uploaded.attachments.length}개 검증 완료` : ''
+        return `✅ 위키 업데이트: "${data?.title || action.title || noteId}"${attached}`
       }
 
       case 'create_task': {
