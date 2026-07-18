@@ -1162,7 +1162,8 @@ export function VoicecardsBlock({
               runningAttempts += d.attempts
               return { date: d.date, value: runningAttempts }
             })
-            const todayAttempts = activity.find(d => d.date === todayStr)?.attempts ?? 0
+            // 오늘 = 테이블 per-user 델타 합 (헤더·테이블 항상 일치, 2026-07-19 CEO). 7일은 대응열 없어 집계 유지.
+            const todayAttempts = userStats.users.reduce((s, u) => s + (u.attemptsToday || 0), 0)
             const last7Attempts = activity.filter(d => d.date >= sevenDaysAgoStr).reduce((s, d) => s + d.attempts, 0)
 
             // 보유 카드: daily_inventory_snapshots 일별 스냅샷 → 일별 증감(diff)으로 추세 표시
@@ -1221,7 +1222,7 @@ export function VoicecardsBlock({
               <SkelStat compact={!!mobile} />
             ) : (() => {
               const flips = anonymousStats?.dailyFlips ?? []
-              const todayFlips = flips.find(d => d.date === todayStr)?.flips ?? 0
+              const todayFlips = userStats.users.reduce((s, u) => s + (u.flipsToday || 0), 0)
               const last7Flips = flips.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + d.flips, 0)
               const totalFlips = flips.reduce((sum, d) => sum + d.flips, 0)
               let runningFlips = 0
@@ -1263,7 +1264,7 @@ export function VoicecardsBlock({
               // 오늘/7일은 날짜 매칭으로 계산 (말하기 학습과 동일). dailyCreditUsage는
               // 활동 있는 날만 행이 있어 배열 마지막 원소가 '오늘'이 아닐 수 있음(오늘 0건이면
               // 직전 활동일이 마지막). slice(-7)도 날짜 갭 시 7일 초과 집계됨.
-              const todayUsage = usage.find(d => d.date === todayStr)?.credits ?? 0
+              const todayUsage = userStats.users.reduce((s, u) => s + (u.listenToday || 0), 0)
               const last7Sum = usage.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + d.credits, 0)
               const totalUsed = usage.reduce((sum, d) => sum + d.credits, 0)
               // 누적 sparkline
@@ -1293,7 +1294,7 @@ export function VoicecardsBlock({
             ) : (() => {
               const spend = anonymousStats?.dailyCreditSpend ?? []
               const dayTotal = (d: { tts: number; ai: number }) => (d.tts || 0) + (d.ai || 0)
-              const todaySpend = (() => { const d = spend.find(s => s.date === todayStr); return d ? dayTotal(d) : 0 })()
+              const todaySpend = userStats.users.reduce((s, u) => s + (u.spentToday || 0), 0)
               const last7Spend = spend.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + dayTotal(d), 0)
               const totalTts = spend.reduce((sum, d) => sum + (d.tts || 0), 0)
               const totalAi = spend.reduce((sum, d) => sum + (d.ai || 0), 0)
