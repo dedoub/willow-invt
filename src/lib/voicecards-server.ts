@@ -1305,6 +1305,9 @@ export interface AnonymousEventStats {
     signinCompleted: number
     loggedDevices: number   // 그 날 로그인 이벤트가 있던 디바이스
     anonDevices: number     // 그 날 로그인 없던(익명) 디바이스. loggedDevices + anonDevices = devices
+    newLoggedDevices?: number    // 그 날 가입한 로그인 디바이스(신규)
+    memberLoggedDevices?: number // 그 날 로그인한 기존 회원 디바이스(회원)
+    memberActive30?: number      // 직전 30일(당일 포함) 활동 회원 디바이스 distinct — 로그인율 분모(롤링 MAU)
   }>
   cumulativeDistinct: Array<{
     date: string

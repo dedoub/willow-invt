@@ -80,6 +80,15 @@ login_daily as (
     count(*) filter (where not has_login) as anon_devices
   from dev_day_flag group by kdate
 ),
+-- 롤링 회원 MAU: 각 날짜 기준 직전 30일(당일 포함) 활동 회원(로그인) 디바이스 distinct.
+-- 일별 활동자 차트 로그인율 분모 — 누적(죽은 계정 누적)이 아니라 살아있는 회원 base라 선이 안 흘러내림.
+member_active30 as (
+  select d.kdate,
+    (select count(distinct f.device_id)
+       from dev_day_flag f
+      where f.has_login and f.kdate <= d.kdate and f.kdate > d.kdate - 30) as base
+  from all_dates d
+),
 credit_daily as (
   select kdate, count(*) as credits from base
   where event_name in ('tts_played','voice_preview_played') group by kdate
@@ -166,7 +175,7 @@ select jsonb_build_object(
      'learnConversionPct',  case when total_devices>0 then round(100.0*learned_devices/total_devices)::int else 0 end,
      'signinConversionPct', case when total_devices>0 then round(100.0*signin_devices/total_devices)::int else 0 end
    ) from summary),
-  'daily', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'devices',d.devices,'appOpened',d.app_opened,'cardsLearned',d.cards_learned,'promptShown',d.prompt_shown,'signinCompleted',d.signin_completed,'loggedDevices',coalesce(l.logged_devices,0),'anonDevices',coalesce(l.anon_devices,0),'newLoggedDevices',coalesce(l.new_logged_devices,0),'memberLoggedDevices',coalesce(l.member_logged_devices,0)) order by d.kdate) from daily d left join login_daily l using(kdate)),'[]'::jsonb),
+  'daily', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'devices',d.devices,'appOpened',d.app_opened,'cardsLearned',d.cards_learned,'promptShown',d.prompt_shown,'signinCompleted',d.signin_completed,'loggedDevices',coalesce(l.logged_devices,0),'anonDevices',coalesce(l.anon_devices,0),'newLoggedDevices',coalesce(l.new_logged_devices,0),'memberLoggedDevices',coalesce(l.member_logged_devices,0),'memberActive30',coalesce(ma.base,0)) order by d.kdate) from daily d left join login_daily l using(kdate) left join member_active30 ma using(kdate)),'[]'::jsonb),
   'cumulativeDistinct', coalesce((select jsonb_agg(jsonb_build_object('date',kdate,'devices',devices,'learned',learned,'signin',signin) order by kdate) from cumulative),'[]'::jsonb),
   'dailyCreditUsage', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'credits',coalesce(c.credits,0)) order by d.kdate) from all_dates d left join credit_daily c using(kdate)),'[]'::jsonb),
   'dailyFlips', coalesce((select jsonb_agg(jsonb_build_object('date',kdate,'flips',flips) order by kdate) from flip_daily),'[]'::jsonb),

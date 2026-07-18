@@ -1819,7 +1819,7 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
 // 서버 집계(vc_event_stats)를 그대로 재사용해 대시보드 정의와 일치. 봇/관리자 제외 뷰 기준.
 // newLoggedDevices가 없는 옛 캐시 payload는 회원=logged 전체로 강등.
 function DauTrendCard({ daily, days = 42, showTotals }: {
-  daily: Array<{ date: string; devices: number; loggedDevices: number; anonDevices: number; newLoggedDevices?: number; memberLoggedDevices?: number }>
+  daily: Array<{ date: string; devices: number; loggedDevices: number; anonDevices: number; newLoggedDevices?: number; memberLoggedDevices?: number; memberActive30?: number }>
   days?: number
   showTotals?: boolean // 바 위 희미한 총합 — 바 폭이 충분한 와이드(1열) 모드에서만
 }) {
@@ -1842,6 +1842,22 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
     const win = rows.slice(Math.max(0, i - 6), i + 1)
     return win.reduce((sum, r) => sum + r.devices, 0) / win.length
   })
+  // 로그인율(%) — 회원 stickiness: 그날 회원 로그인 / 직전 30일 활동 회원(롤링 MAU).
+  // 분모가 누적이 아니라 살아있는 회원 base라 선이 기계적으로 흘러내리지 않음. DAU/MAU와 같은 척도.
+  // 자체 최대값에 맞춰 스케일링(로즈 점선).
+  const LOGIN_RATE_COLOR = '#334155' // 짙은 회색(slate-700) — 차트 라이트 배경에서 선명. 툴팁(다크 bg) 스와치만 밝게 별도 처리.
+  const LOGIN_RATE_SWATCH_ON_DARK = '#CBD5E1'
+  const loginRate = rows.map(r => {
+    const base = r.memberActive30 ?? 0
+    return base > 0 ? (memberOf(r) / base) * 100 : 0
+  })
+  const hasLoginRate = rows.some(r => (r.memberActive30 ?? 0) > 0) && loginRate.some(v => v > 0)
+  // 원본 로그인율은 base가 작아 하루 1명에 크게 튐 → 7일 이동평균으로 추세만 남긴다(기기 7일평균 라인과 동일 방식).
+  const loginRateMA = loginRate.map((_, i) => {
+    const win = loginRate.slice(Math.max(0, i - 6), i + 1)
+    return win.reduce((sum, v) => sum + v, 0) / win.length
+  })
+  const maxLoginRate = loginRateMA.reduce((m, v) => Math.max(m, v), 0)
 
   return (
     <div style={{
@@ -1874,6 +1890,11 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
             <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
           </span>
+          {hasLoginRate && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }} title="회원 stickiness 7일평균: 그날 회원 로그인 / 최근 30일 활동 회원(롤링)의 7일 이동평균. 회원 DAU/MAU와 같은 척도.">
+              <span style={{ width: 10, height: 2, borderRadius: 1, background: LOGIN_RATE_COLOR, backgroundImage: `repeating-linear-gradient(90deg, ${LOGIN_RATE_COLOR} 0 3px, transparent 3px 5px)` }} />로그인율(7일) {loginRateMA.length ? `${Math.round(loginRateMA[loginRateMA.length - 1] * 10) / 10}%` : '0%'}
+            </span>
+          )}
         </div>
       </div>
       {rows.length === 0 || max === 0 ? (
@@ -1921,6 +1942,14 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
                 fill="none" stroke={MA_COLOR} strokeWidth={1.2} opacity={0.75}
                 vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"
               />
+              {/* 로그인율 7일평균(%) — 자체 최대값 스케일. 바/기기7일평균과 다른 우측 지표라 점선으로 구분. */}
+              {hasLoginRate && maxLoginRate > 0 && (
+                <polyline
+                  points={loginRateMA.map((v, i) => `${(((i + 0.5) / rows.length) * 100).toFixed(2)},${(100 - (v / maxLoginRate) * 100).toFixed(2)}`).join(' ')}
+                  fill="none" stroke={LOGIN_RATE_COLOR} strokeWidth={1.1} opacity={0.85}
+                  strokeDasharray="3 2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"
+                />
+              )}
             </svg>
           )}
           {hoverIdx !== null && rows[hoverIdx] && (() => {
@@ -1944,6 +1973,11 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: ANON }} />비로그인 {r.anonDevices}
                 </div>
+                {hasLoginRate && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 7, height: 2, borderRadius: 1, background: LOGIN_RATE_SWATCH_ON_DARK }} />로그인율 7일평균 {Math.round(loginRateMA[hoverIdx] * 10) / 10}% <span style={{ opacity: 0.6 }}>(당일 {Math.round(loginRate[hoverIdx] * 10) / 10}% · 최근30일 회원 {r.memberActive30 ?? 0} 중 {memberOf(r)})</span>
+                  </div>
+                )}
                 <div style={{ opacity: 0.7, marginTop: 3 }}>총 {r.devices} · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
               </div>
             )
