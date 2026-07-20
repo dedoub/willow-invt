@@ -10,6 +10,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import { isExcludedReviewNotesUser } from '@/lib/reviewnotes-supabase'
+import { kstDateKey, kstToday, kstDaysAgo, kstWeekday, kstTime } from '@/lib/kst'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
 import { formatCountryName } from '@/lib/country-format'
 
@@ -71,20 +72,19 @@ function getTone(map: Record<string, { bg: string; fg: string }>, key: string) {
 // ─── User table (VoiceCards 사용자 테이블과 동일 스타일) ─────────────────────────
 
 // 테이블 셀용 짧은 날짜 — 연월일 모두 표시 (YY.MM.DD), KST 기준
+// createdAt은 timestamp-without-tz(=UTC naive)라 반드시 kstDateKey로 UTC 명시 후 변환한다.
 function formatDateShort(dateString?: string | null): string {
   if (!dateString) return '—'
-  const key = new Date(dateString).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }) // YYYY-MM-DD
+  const key = kstDateKey(dateString) // YYYY-MM-DD
   return `${key.slice(2, 4)}.${key.slice(5, 7)}.${key.slice(8, 10)}`
 }
 
 // 요일 (월)/(화)... + 시간 HH:mm — 보이스카드 사용자 테이블과 동일 (KST)
 function formatWeekdayShort(dateString?: string | null): string {
-  if (!dateString) return ''
-  return new Date(dateString).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', weekday: 'short' })
+  return kstWeekday(dateString)
 }
 function formatTimeShort(dateString?: string | null): string {
-  if (!dateString) return ''
-  return new Date(dateString).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' })
+  return kstTime(dateString)
 }
 
 type UserSortKey = 'created' | 'active' | 'name' | 'email' | 'notes' | 'problems' | 'sets' | 'solves' | 'plan' | 'role' | 'storage'
@@ -437,7 +437,7 @@ export function ReviewnotesBlock({
             const trackStartKey = daily.length ? daily[0].date : ''
             const todayKey = daily.length ? daily[daily.length - 1].date : ''
             const sevenAgoKey = daily.length >= 7 ? daily[daily.length - 7].date : trackStartKey
-            const kstKey = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+            const kstKey = (iso: string) => kstDateKey(iso) // UTC naive → KST 날짜키 (Z 명시 파싱)
             const signupsSinceStart = users.filter(u => kstKey(u.createdAt) >= trackStartKey).length
             const signupsToday = users.filter(u => kstKey(u.createdAt) === todayKey).length
             const signups7 = users.filter(u => kstKey(u.createdAt) >= sevenAgoKey).length
@@ -608,10 +608,9 @@ export function ReviewnotesBlock({
       {!loading && stats && userStats && (() => {
         // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생. 통계는 관리자 제외 (2026-07-16 CEO)
         const realUsers = userStats.users.filter(u => !isExcludedReviewNotesUser(u))
-        const toKst = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-        const todayKst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-        const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 6) // 오늘 포함 7일
-        const sevenAgoKst = sevenAgo.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+        const toKst = (iso: string) => kstDateKey(iso) // UTC naive → KST 날짜키 (Z 명시 파싱)
+        const todayKst = kstToday()
+        const sevenAgoKst = kstDaysAgo(6) // 오늘 포함 7일
         const inToday = (u: typeof userStats.users[number]) => toKst(u.createdAt) === todayKst
         const in7 = (u: typeof userStats.users[number]) => toKst(u.createdAt) >= sevenAgoKst
         // 신규 가입자 업로드 용량
