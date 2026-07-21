@@ -2,8 +2,9 @@
 -- 대시보드 사용자 테이블의 전일대비 diff 둘째 줄 + 7일 활동일 열에 사용.
 --   cards: 보유 카드 오늘 증가분 = live(user_analytics.total_cards 합) − 자정 스냅샷(user_sheet_snapshots.card_count)
 --   attempts: time_series_analytics (앱 일별 기록)
---   listen/flips/spent/purchased: mv_real_users (이벤트 로그, 오늘 필터)
---     flips = card_flipped_manual, spent = tts_premium 차감 + ai_generation_success credits_used (2026-07-16 추가)
+--   listen/flips/purchased: mv_real_users (이벤트 로그, 오늘 필터)
+--     flips = card_flipped_manual, purchased = credits_changed/purchase 상품매핑
+--   spent: credit_transactions 음수 delta 합 (완전 원장, 2026-07-22; 상세는 spent_today CTE 주석)
 --   반환 컬럼 변경 시 drop 후 재생성 필요 (return type replace 불가).
 drop function if exists public.vc_user_activity_deltas();
 create or replace function public.vc_user_activity_deltas()
@@ -31,16 +32,14 @@ flips_today as (
   group by e.user_id
 ),
 spent_today as (
-  select e.user_id, sum(case
-      when e.event_name = 'credits_changed' and e.properties->>'reason' = 'tts_premium'
-           and (e.properties->>'delta')::numeric < 0 then -(e.properties->>'delta')::numeric
-      when e.event_name = 'ai_generation_success' then coalesce((e.properties->>'credits_used')::numeric, 0)
-      else 0 end)::bigint as sc
-  from mv_real_users e, td
-  where e.event_name in ('credits_changed','ai_generation_success')
-    and e.is_likely_bot = false and e.user_id is not null
-    and (e.created_at at time zone 'Asia/Seoul')::date = td.d
-  group by e.user_id
+  -- 오늘 실사용 크레딧 = credit_transactions 음수 delta 합 (완전 원장).
+  -- 2026-07-22: credits_changed(tts_premium)+ai_generation_success → credit_transactions.
+  -- 이유는 vc_user_listen_counts.sql 헤더 참조 (AI 채점 누락 + 분수 TTS 과대집계 해소).
+  select c.user_id, sum(-c.delta)::bigint as sc
+  from credit_transactions c, td
+  where c.delta < 0 and c.user_id is not null
+    and (c.created_at at time zone 'Asia/Seoul')::date = td.d
+  group by c.user_id
 ),
 purchased_today as (
   select e.user_id, sum(case e.properties->>'product_id'
