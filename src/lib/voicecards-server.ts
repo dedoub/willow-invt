@@ -1149,11 +1149,17 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 단계 = 유저가 가진 오퍼들 중 가장 진행된 것(redeemed > snoozed > seen > sent > dismissed > expired).
   // 보너스 = redeemed_credits 합(오퍼로 지급된 무상 크레딧).
   const nowMsOffer = Date.now()
+  const OFFER_SEEN_TTL_MS = 3 * 24 * 60 * 60 * 1000 // 확인(seen) 후 3일 지나면 만료
   const offerStageRank: Record<string, number> = { redeemed: 6, snoozed: 4, seen: 3, sent: 2, dismissed: 1, expired: 0 }
   // 단계 + 그 단계에 진입한 시각(발송일/열람일/전환일 등)
   const perOfferStage = (row: { status: string | null; seen_at: string | null; snoozed_at: string | null; redeemed_at: string | null; expires_at: string | null; created_at: string | null }): { stage: string; at: string | null } => {
     if (row.redeemed_at) return { stage: 'redeemed', at: row.redeemed_at }
     if (row.status === 'dismissed') return { stage: 'dismissed', at: row.created_at }
+    if (row.status === 'expired') return { stage: 'expired', at: row.seen_at || row.expires_at || row.created_at }
+    // 만료 판정: 확인(seen) 후 3일 경과 또는 하드캡(expires_at) 도래
+    if (row.seen_at && new Date(row.seen_at).getTime() + OFFER_SEEN_TTL_MS < nowMsOffer) {
+      return { stage: 'expired', at: new Date(new Date(row.seen_at).getTime() + OFFER_SEEN_TTL_MS).toISOString() }
+    }
     if (row.expires_at && new Date(row.expires_at).getTime() < nowMsOffer) return { stage: 'expired', at: row.expires_at }
     if (row.snoozed_at) return { stage: 'snoozed', at: row.snoozed_at }
     if (row.seen_at) return { stage: 'seen', at: row.seen_at }
