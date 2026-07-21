@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/gmail-scheduled-send",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/voicecards-expire-offers",
+      "schedule": "17 0 * * *"
     }
   ]
 }
