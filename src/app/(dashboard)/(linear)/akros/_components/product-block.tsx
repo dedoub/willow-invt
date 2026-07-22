@@ -30,6 +30,11 @@ function fmtAum(v: number | null, currency: string): string {
     if (v >= 1000) return `A$${(v / 1000).toFixed(1)}K`
     return `A$${v.toFixed(0)}`
   }
+  if (currency === 'JPY') {
+    if (v >= 1000000) return `¥${(v / 1000000).toFixed(2)}M`
+    if (v >= 1000) return `¥${(v / 1000).toFixed(1)}K`
+    return `¥${v.toFixed(0)}`
+  }
   if (v >= 1000000) return `$${(v / 1000000).toFixed(2)}M`
   if (v >= 1000) return `$${(v / 1000).toFixed(1)}K`
   return `$${v.toFixed(0)}`
@@ -45,6 +50,11 @@ function fmtFlow(v: number | null, currency: string): string {
     if (abs >= 1000) return `${sign}A$${(abs / 1000).toFixed(1)}K`
     return `${sign}A$${abs.toFixed(0)}`
   }
+  if (currency === 'JPY') {
+    if (abs >= 1000000) return `${sign}¥${(abs / 1000000).toFixed(2)}M`
+    if (abs >= 1000) return `${sign}¥${(abs / 1000).toFixed(1)}K`
+    return `${sign}¥${abs.toFixed(0)}`
+  }
   if (abs >= 1000000) return `${sign}$${(abs / 1000000).toFixed(2)}M`
   if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(1)}K`
   return `${sign}$${abs.toFixed(0)}`
@@ -57,6 +67,11 @@ function fmtArr(v: number | null, currency: string): string {
     if (v >= 1000000) return `A$${(v / 1000000).toFixed(2)}M`
     if (v >= 1000) return `A$${(v / 1000).toFixed(1)}K`
     return `A$${v.toFixed(0)}`
+  }
+  if (currency === 'JPY') {
+    if (v >= 1000000) return `¥${(v / 1000000).toFixed(2)}M`
+    if (v >= 1000) return `¥${(v / 1000).toFixed(1)}K`
+    return `¥${v.toFixed(0)}`
   }
   if (v >= 1000000) return `$${(v / 1000000).toFixed(2)}M`
   if (v >= 1000) return `$${(v / 1000).toFixed(1)}K`

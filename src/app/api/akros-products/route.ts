@@ -157,8 +157,14 @@ export async function GET() {
         return (marketCap * 100000000) / krwRate
       }
       if (currency === 'AUD') {
-        const audRate = exchangeRates.AUD || 0.65
-        return marketCap * audRate
+        // AUD는 raw 호주달러, 환율은 USD당 AUD (예: 1.43)
+        const audRate = exchangeRates.AUD || 1.5
+        return marketCap / audRate
+      }
+      if (currency === 'JPY') {
+        // JPY는 raw 엔화, 환율은 USD당 엔 (예: 163)
+        const jpyRate = exchangeRates.JPY || 155
+        return marketCap / jpyRate
       }
       return marketCap  // USD
     }
