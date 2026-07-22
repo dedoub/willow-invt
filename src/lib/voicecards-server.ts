@@ -951,12 +951,30 @@ export interface VoicecardsUserStats {
   }>
 }
 
+// 마지막으로 성공한 유저 통계 스냅샷 — 일시 오류(커넥션 풀/경합/RPC 실패 등) 시 사용자 테이블이
+// 통째로 500 나는 걸 막고 직전 정상 데이터를 제공한다 (getAnonymousEventStats 와 동일 패턴).
+let lastGoodUserStats: VoicecardsUserStats | null = null
+const EMPTY_USER_STATS: VoicecardsUserStats = {
+  totalUsers: 0, activeUsers: 0, totalSheets: 0,
+  totalCards: 0, totalAttempts: 0, totalCredits: 0,
+  dailyLearnActivity: [], dailyCardInventory: [], users: [],
+}
+
+// 방어적 래퍼: 내부 집계가 어디서 throw 하든(=RPC null 역참조 등) 500 대신 직전 정상 스냅샷 제공.
 export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
-  const empty: VoicecardsUserStats = {
-    totalUsers: 0, activeUsers: 0, totalSheets: 0,
-    totalCards: 0, totalAttempts: 0, totalCredits: 0,
-    dailyLearnActivity: [], dailyCardInventory: [], users: [],
+  try {
+    const result = await computeVoicecardsUserStats()
+    // 비정상 empty(0명)는 캐시/노출하지 않고 직전 정상 스냅샷으로 대체
+    if (!result.users.length && lastGoodUserStats) return lastGoodUserStats
+    return result
+  } catch (e) {
+    console.error('[VoiceCards] user stats compute failed:', e, lastGoodUserStats ? '— serving last good snapshot' : '')
+    return lastGoodUserStats ?? EMPTY_USER_STATS
   }
+}
+
+async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
+  const empty = EMPTY_USER_STATS
 
   if (!voicecardsSupabase) {
     console.log('[VoiceCards] VoiceCards Supabase not configured')
@@ -1004,8 +1022,9 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   ])
 
   if (usersRes.error) {
-    console.error('[VoiceCards] Error fetching users:', usersRes.error)
-    return empty
+    // 일시 오류 시 throw(→500, 테이블 깨짐) 대신 직전 정상 스냅샷 제공. 없으면 empty.
+    console.error('[VoiceCards] Error fetching users:', usersRes.error, lastGoodUserStats ? '— serving last good snapshot' : '')
+    return lastGoodUserStats ?? empty
   }
 
   const allUsers = usersRes.data || []
@@ -1278,7 +1297,7 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     return b.createdAt.localeCompare(a.createdAt)
   })
 
-  return {
+  const result: VoicecardsUserStats = {
     totalUsers: users.length,
     activeUsers,
     totalSheets,
@@ -1289,6 +1308,8 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     dailyCardInventory,
     users: userList,
   }
+  if (result.users.length) lastGoodUserStats = result
+  return result
 }
 
 // ============================================================
