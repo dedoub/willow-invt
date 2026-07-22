@@ -6,7 +6,10 @@
 -- excluded_devices: 관리자/봇/테스트 계정 device_id 통째 제외 (로그인 前 익명 이벤트까지).
 -- 2026-07-06: platforms/locales 옆에 country 분포(countries/signinCountries/payingCountries) 추가.
 --   country 는 IP 백필(scripts/voicecards-country-backfill.ts). 미백필/미상은 'unknown'.
--- 주의: base CTE 를 MATERIALIZED 로 바꾸면 오히려 느려짐(회귀) → 인라인 유지 (~890ms, 60초 캐시).
+-- 주의: base CTE 를 MATERIALIZED 로 바꾸면 오히려 느려짐(회귀) → 인라인 유지.
+-- 소스는 mv_real_users(materialized, 15분 리프레시) — 라이브 뷰 anonymous_events_real_users 를
+--   매 호출마다 dedup/canonical 재계산하던 것이 데이터 증가로 ~5.7s 까지 회귀 → MV 스냅샷으로 전환(2026-07-22).
+--   ≤15분 staleness 는 분석용으로 무방(대시보드도 60초 캐시). vc_user_* RPC 들과 동일 패턴.
 -- ============================================================================
 CREATE OR REPLACE FUNCTION public.vc_event_stats()
  RETURNS jsonb
@@ -15,7 +18,7 @@ CREATE OR REPLACE FUNCTION public.vc_event_stats()
 AS $function$
 with excluded_devices as (
   select distinct e.device_id
-  from anonymous_events_real_users e
+  from mv_real_users e
   join users u on u.user_id = e.user_id
   where e.device_id is not null
     and (
@@ -31,7 +34,7 @@ with excluded_devices as (
 base as (
   select e.device_id, e.user_id, e.event_name, e.platform, e.locale, e.country, e.app_version, e.properties, e.created_at,
          (e.created_at at time zone 'Asia/Seoul')::date as kdate
-  from anonymous_events_real_users e
+  from mv_real_users e
   where e.is_likely_bot = false
     and (e.device_id is null or e.device_id not in (select device_id from excluded_devices))
 ),

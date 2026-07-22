@@ -9,7 +9,7 @@ drop view if exists vc_device_journeys;
 create or replace view vc_device_journeys as
 with excluded_devices as (
   select distinct e.device_id
-  from anonymous_events_real_users e
+  from mv_real_users e
   join users u on u.user_id = e.user_id
   where e.device_id is not null
     and (
@@ -23,7 +23,7 @@ with excluded_devices as (
 ),
 base as (
   select e.*
-  from anonymous_events_real_users e
+  from mv_real_users e
   where e.is_likely_bot = false
     and e.device_id is not null
     and e.device_id not in (select device_id from excluded_devices)
