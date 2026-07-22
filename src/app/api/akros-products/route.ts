@@ -32,10 +32,14 @@ export async function GET() {
       }
     }
 
-    // 1. product_meta에서 전체 상품 조회
+    // 1. product_meta에서 Akros 상품 조회
+    //    ⚠️ 필터를 서버측(ilike)에서 적용해야 함. 클라이언트 필터로 하면
+    //    product_meta 전체(1000행 초과)가 PostgREST 기본 max-rows(1000)에서 잘린 뒤
+    //    필터링돼 뒤쪽 Akros 상품이 조용히 누락됨 (40개 중 21개만 반환되던 버그).
     const { data: metaData, error: metaError } = await akrosDb
       .from('product_meta')
       .select('symbol, country, product_type, product_name, product_name_local, listing_date, index_fee, index_fee_min, product_issuer, index_provider')
+      .ilike('index_provider', '%akros%')
 
     if (metaError) {
       console.error('Error fetching product meta:', metaError)
@@ -46,10 +50,8 @@ export async function GET() {
       return NextResponse.json({ products: [], message: 'No product meta data found' })
     }
 
-    // Akros 관련 상품만 필터링 (대소문자 무시)
-    const akrosMetaData = metaData.filter(p =>
-      p.index_provider && p.index_provider.toLowerCase().includes('akros')
-    )
+    // ilike 로 이미 Akros 만 조회됨 (index_provider NULL 방어만 유지)
+    const akrosMetaData = metaData.filter(p => p.index_provider)
 
     if (akrosMetaData.length === 0) {
       return NextResponse.json({ products: [], message: 'No Akros products found' })
@@ -72,15 +74,27 @@ export async function GET() {
     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
 
     // 3. 최근 30일 product_figures 데이터 가져오기
-    const { data: figuresData, error: figuresError } = await akrosDb
-      .from('product_figures')
-      .select('symbol, date, market_cap, currency, product_flow')
-      .in('symbol', symbols)
-      .gte('date', thirtyDaysAgoStr)
-      .order('date', { ascending: false })
+    //    심볼수 × ~30일이 PostgREST 기본 max-rows(1000)를 넘을 수 있어 range 페이지네이션으로 전량 확보.
+    //    (안 하면 오래된 날짜 row 가 잘려 30일 flow 합산이 일부 심볼에서 과소 집계됨)
+    type FigureRow = { symbol: string; date: string; market_cap: number | null; currency: string | null; product_flow: number | null }
+    const figuresData: FigureRow[] = []
+    const FIG_PAGE = 1000
+    for (let from = 0; ; from += FIG_PAGE) {
+      const { data: page, error: figuresError } = await akrosDb
+        .from('product_figures')
+        .select('symbol, date, market_cap, currency, product_flow')
+        .in('symbol', symbols)
+        .gte('date', thirtyDaysAgoStr)
+        .order('date', { ascending: false })
+        .range(from, from + FIG_PAGE - 1)
 
-    if (figuresError) {
-      console.error('Error fetching product figures:', figuresError)
+      if (figuresError) {
+        console.error('Error fetching product figures:', figuresError)
+        break
+      }
+      if (!page || page.length === 0) break
+      figuresData.push(...(page as FigureRow[]))
+      if (page.length < FIG_PAGE) break
     }
 
     // 각 심볼별로 최신 데이터 + 30일 flow 합산 계산
