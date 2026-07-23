@@ -20,4 +20,5 @@ CREATE INDEX IF NOT EXISTS mv_real_users_user_event ON mv_real_users (user_id, e
 CREATE INDEX IF NOT EXISTS mv_real_users_event_created ON mv_real_users (event_name, created_at);
 
 -- 5분 주기 새로고침 (CONCURRENTLY = 새로고침 중에도 읽기 blocking 없음)
--- select cron.schedule('refresh-mv-real-users', '*/5 * * * *', $$REFRESH MATERIALIZED VIEW CONCURRENTLY mv_real_users$$);
+-- cron 잡 3(*/15)이 refresh_vc_mvs() 로 이 MV + mv_user_latest_meta 를 순차 CONCURRENTLY 리프레시.
+-- (정의: mv_user_latest_meta.sql. 이 MV 단독 스케줄 예시: cron.schedule(..., $$REFRESH MATERIALIZED VIEW CONCURRENTLY mv_real_users$$))
