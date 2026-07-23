@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, ReactNode } from 'react'
+import { useState, useEffect, type ReactNode, type CSSProperties } from 'react'
 import { t } from './linear-tokens'
 import { LIcon } from './linear-icons'
 import { useAuth, useIsAdmin } from '@/lib/auth-context'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 const NAV_ITEMS = [
   { key: 'mgmt',       href: '/mgmt',       label: '사업관리',    icon: 'briefcase' },
@@ -26,6 +29,24 @@ const CLIENTS = [
 
 const CLIENT_HREF: Record<string, string | undefined> = {
   akros: '/akros', etc: '/etc', tensw: '/tensw', monor: '/monor', valuechain: '/valuechain',
+}
+
+type Client = (typeof CLIENTS)[number]
+
+// 프로젝트 메뉴 순서 — 사용자가 드래그로 바꾼 순서를 localStorage에 저장(기기별).
+const PROJECT_ORDER_KEY = 'sidebar-project-order'
+
+// 저장된 id 순서로 CLIENTS 정렬. 저장에 없는 신규 항목은 뒤에 붙이고, 사라진 id는 무시.
+function orderClients(order: string[]): Client[] {
+  const byId = new Map(CLIENTS.map(c => [c.id, c]))
+  const seen = new Set<string>()
+  const out: Client[] = []
+  for (const id of order) {
+    const c = byId.get(id)
+    if (c && !seen.has(id)) { out.push(c); seen.add(id) }
+  }
+  for (const c of CLIENTS) if (!seen.has(c.id)) out.push(c)
+  return out
 }
 
 const ADMIN_ITEMS = [
@@ -150,6 +171,26 @@ function GhostIconBtn({ onClick, title, children }: { onClick?: () => void; titl
   )
 }
 
+// 드래그로 순서 변경 가능한 프로젝트 행 (확장 모드 전용). distance:8 활성화라 짧은 탭은 클릭(내비) 유지.
+function SortableClient({ c, isActive, onClose }: { c: Client; isActive: boolean; onClose?: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id })
+  const style: CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: isDragging ? 'grabbing' : 'grab',
+    touchAction: 'none',
+    position: 'relative',
+    zIndex: isDragging ? 20 : undefined,
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <NavRow href={CLIENT_HREF[c.id]} dot={c.dot} label={c.name} tag={c.tag}
+        isActive={isActive} rail={false} onClose={onClose} />
+    </div>
+  )
+}
+
 interface LinearSidebarProps {
   mobile?: boolean
   open?: boolean
@@ -171,6 +212,28 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
     <NavRow key={n.key} href={n.href} icon={n.icon} label={n.label}
       isActive={isActiveHref(n.href)} rail={rail} onClose={onClose} />
   )
+
+  // 프로젝트 메뉴 순서 — 드래그로 변경, localStorage에 저장(기기별)
+  const [projectOrder, setProjectOrder] = useState<string[]>(() => CLIENTS.map(c => c.id))
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PROJECT_ORDER_KEY)
+      if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr)) setProjectOrder(arr) }
+    } catch { /* 파싱 실패 시 기본 순서 유지 */ }
+  }, [])
+  const orderedClients = orderClients(projectOrder)
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+  const handleProjectDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const ids = orderedClients.map(c => c.id)
+    const from = ids.indexOf(String(active.id))
+    const to = ids.indexOf(String(over.id))
+    if (from < 0 || to < 0) return
+    const next = arrayMove(ids, from, to)
+    setProjectOrder(next)
+    try { localStorage.setItem(PROJECT_ORDER_KEY, JSON.stringify(next)) } catch { /* 저장 실패 무시 */ }
+  }
 
   const sidebar = (
     <aside style={{
@@ -209,10 +272,21 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
 
         {!rail && <GroupLabel label="프로젝트" />}
         {rail && <div style={{ height: 1, background: t.neutrals.line, margin: '8px 6px' }} />}
-        {CLIENTS.map(c => (
-          <NavRow key={c.id} href={CLIENT_HREF[c.id]} dot={c.dot} label={c.name} tag={c.tag}
-            isActive={isActiveHref(CLIENT_HREF[c.id])} rail={rail} onClose={onClose} />
-        ))}
+        {rail ? (
+          orderedClients.map(c => (
+            <NavRow key={c.id} href={CLIENT_HREF[c.id]} dot={c.dot} label={c.name} tag={c.tag}
+              isActive={isActiveHref(CLIENT_HREF[c.id])} rail={rail} onClose={onClose} />
+          ))
+        ) : (
+          <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
+            <SortableContext items={orderedClients.map(c => c.id)} strategy={verticalListSortingStrategy}>
+              {orderedClients.map(c => (
+                <SortableClient key={c.id} c={c}
+                  isActive={isActiveHref(CLIENT_HREF[c.id])} onClose={onClose} />
+              ))}
+            </SortableContext>
+          </DndContext>
+        )}
 
         {isAdmin && (
           <>
