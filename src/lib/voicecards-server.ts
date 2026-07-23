@@ -954,10 +954,6 @@ export interface VoicecardsUserStats {
 // 마지막으로 성공한 유저 통계 스냅샷 — 일시 오류(커넥션 풀/경합/RPC 실패 등) 시 사용자 테이블이
 // 통째로 500 나는 걸 막고 직전 정상 데이터를 제공한다 (getAnonymousEventStats 와 동일 패턴).
 let lastGoodUserStats: VoicecardsUserStats | null = null
-// 플랫폼/앱버전/언어/국가 열 전용 last-good — metaRes(vc_user_latest_meta) 일시 실패 시
-// 그 4열이 통째로 빈칸으로 캐시되는 걸 막고 직전 정상 메타를 제공한다.
-type VcMetaRow = { user_id: string | null; app_version: string | null; platform: string | null; locale: string | null; country: string | null; last_event: string | null }
-let lastGoodUserMeta: VcMetaRow[] | null = null
 const EMPTY_USER_STATS: VoicecardsUserStats = {
   totalUsers: 0, activeUsers: 0, totalSheets: 0,
   totalCards: 0, totalAttempts: 0, totalCredits: 0,
@@ -1122,16 +1118,8 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 앱 이벤트 최근 시각 — 듣기/미리듣기만 한 유저는 user_analytics 기록이 없어 last_updated가
   // 비는데, 이벤트 시각을 활동일에 합쳐 "마지막 활동일"이 빈칸으로 뜨지 않게 한다.
   const userLastEventMap = new Map<string, string>()
-  // metaRes 가 일시 실패/빈 응답이면 이 4열이 통째로 빈칸으로 캐시되던 문제 → 1회 재시도 후
-  // 그래도 없으면 직전 정상 메타로 폴백. (RPC가 user당 1행(최신)을 반환해 그대로 매핑)
-  let metaRows: VcMetaRow[] | null = (!metaRes.error && metaRes.data?.length) ? (metaRes.data as VcMetaRow[]) : null
-  if (!metaRows) {
-    const retry = await vc.rpc('vc_user_latest_meta')
-    if (!retry.error && retry.data?.length) metaRows = retry.data as VcMetaRow[]
-  }
-  if (metaRows && metaRows.length) lastGoodUserMeta = metaRows
-  else { metaRows = lastGoodUserMeta; if (!metaRows) console.error('[VoiceCards] latest_meta 실패 + last-good 없음 — 메타 4열 빈칸') }
-  for (const row of (metaRows || [])) {
+  // vc_user_latest_meta 는 mv_user_latest_meta 롤업을 읽어 빠르고 안정적(user당 최신 1행)이라 그대로 매핑
+  for (const row of ((metaRes.data || []) as Array<{ user_id: string | null; app_version: string | null; platform: string | null; locale: string | null; country: string | null; last_event: string | null }>)) {
     if (!row.user_id) continue
     if (row.app_version) userAppVersionMap.set(row.user_id, row.app_version)
     if (row.platform) userPlatformMap.set(row.user_id, row.platform)
