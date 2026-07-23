@@ -8,7 +8,8 @@
 --   같은 테이블·같은 predicate(is_likely_bot=false, user_id not null)에 event_name FILTER만
 --   달랐으므로 1회 스캔 + FILTER 집계로 합침. mv_real_users_event_created 인덱스(bitmap)를 타 ~50ms.
 -- 검증(2026-07-23): 기존 3 RPC 합집합과 유저별·필드별 완전 동일 (115행, mismatch 0).
---   credits_spent 는 credit_transactions 완전 원장 음수 delta 합 (vc_user_listen_counts 와 동일).
+--   credits_spent 는 credit_transactions 완전 원장 음수 delta 합. (이벤트 집계 대비 AI 채점 차감
+--     누락 + 분수 TTS 과대집계를 해소 — 잔액에서 실제 빠진 모든 차감을 담는 원장이라 정확.)
 -- 유지 대상(합치지 않음):
 --   - vc_user_latest_meta: 소스가 anonymous_events. mv 로 바꾸면 3명 메타 누락(mv 필터) → 유지.
 --   - vc_user_activity_deltas: 오늘/7일 시간한정(인덱스 레인지 저렴) + aux 테이블 다수 → 유지.

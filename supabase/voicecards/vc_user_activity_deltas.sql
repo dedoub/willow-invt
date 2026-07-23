@@ -34,7 +34,7 @@ flips_today as (
 spent_today as (
   -- 오늘 실사용 크레딧 = credit_transactions 음수 delta 합 (완전 원장).
   -- 2026-07-22: credits_changed(tts_premium)+ai_generation_success → credit_transactions.
-  -- 이유는 vc_user_listen_counts.sql 헤더 참조 (AI 채점 누락 + 분수 TTS 과대집계 해소).
+  -- 이유는 vc_user_rollup.sql 헤더 참조 (AI 채점 누락 + 분수 TTS 과대집계 해소).
   select c.user_id, sum(-c.delta)::bigint as sc
   from credit_transactions c, td
   where c.delta < 0 and c.user_id is not null
