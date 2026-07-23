@@ -33,13 +33,15 @@ export async function GET() {
     }
 
     // 1. product_meta에서 Akros 상품 조회
-    //    ⚠️ 필터를 서버측(ilike)에서 적용해야 함. 클라이언트 필터로 하면
-    //    product_meta 전체(1000행 초과)가 PostgREST 기본 max-rows(1000)에서 잘린 뒤
-    //    필터링돼 뒤쪽 Akros 상품이 조용히 누락됨 (40개 중 21개만 반환되던 버그).
+    //    "Akros 상품" = Akros가 어떤 role 이든(인덱스 제공/산출/자문 등) 맡은 상품 = akros_role 채워진 것.
+    //    index_provider~'akros'(=인덱스 제공 role 40개)로 필터하면 상단 통계 total_products(=akros_role 86)와
+    //    안 맞음. akros_role 기준으로 통일. (상단 통계도 akros_role 정의를 씀)
+    //    ⚠️ 필터는 서버측에서. 클라 필터는 product_meta 1000행 max-rows 잘림 뒤 적용돼 누락됨.
     const { data: metaData, error: metaError } = await akrosDb
       .from('product_meta')
-      .select('symbol, country, product_type, product_name, product_name_local, listing_date, index_fee, index_fee_min, product_issuer, index_provider')
-      .ilike('index_provider', '%akros%')
+      .select('symbol, country, product_type, product_name, product_name_local, listing_date, index_fee, index_fee_min, product_issuer, index_provider, akros_role')
+      .not('akros_role', 'is', null)
+      .neq('akros_role', '')
 
     if (metaError) {
       console.error('Error fetching product meta:', metaError)
@@ -50,8 +52,8 @@ export async function GET() {
       return NextResponse.json({ products: [], message: 'No product meta data found' })
     }
 
-    // ilike 로 이미 Akros 만 조회됨 (index_provider NULL 방어만 유지)
-    const akrosMetaData = metaData.filter(p => p.index_provider)
+    // 서버 필터로 이미 akros_role 채워진 것만 조회됨 (방어만 유지)
+    const akrosMetaData = metaData.filter(p => p.akros_role)
 
     if (akrosMetaData.length === 0) {
       return NextResponse.json({ products: [], message: 'No Akros products found' })
