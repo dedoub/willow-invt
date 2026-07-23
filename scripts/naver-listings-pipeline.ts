@@ -41,7 +41,6 @@ const TARGET_COMPLEXES: { name: string; district: string; hscpNo: string }[] = [
   { name: '개나리래미안', district: '강남구', hscpNo: '18213' },
   { name: '동부센트레빌', district: '강남구', hscpNo: '8710' },
   { name: '디에이치퍼스티어아이파크', district: '강남구', hscpNo: '134062' },
-  { name: '래미안블레스티지', district: '강남구', hscpNo: '112228' },
   { name: '현대1,2차', district: '강남구', hscpNo: '712' },
   { name: '현대6,7차', district: '강남구', hscpNo: '724' },
   { name: '신현대(9,11,12차)', district: '강남구', hscpNo: '3037' },
