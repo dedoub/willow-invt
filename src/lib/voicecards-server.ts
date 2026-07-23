@@ -999,23 +999,21 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, listenRes, metaRes, purchasedRes, activityRes, intentRes, offersRes] = await Promise.all([
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, rollupRes, metaRes, activityRes, offersRes] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
     vc.from('user_analytics').select('user_id, total_cards, total_attempts, sheet_id'),
     vc.from('user_analytics').select('user_id, last_updated'),
     fetchAllPaged<{ user_id: string; date: string; problems_learned: number; attempts: number }>(
       () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true })
     ),
-    // 듣기 학습 횟수 — user당 1행으로 DB 집계 (전수 이벤트 스캔 5만+행 회피)
-    vc.rpc('vc_user_listen_counts'),
+    // 통합 롤업 — 듣기/뒤집기/실사용크레딧 + 구매크레딧 + 구매의도 신호를 mv_real_users 1회 스캔으로.
+    // (기존 vc_user_listen_counts + vc_user_purchased_credits + vc_user_intent_signals 3 RPC 대체 —
+    //  각각 10만행 MV 전체스캔하던 것을 1회로. 출력은 세 RPC 합집합과 동일 검증됨.)
+    vc.rpc('vc_user_rollup'),
     // 사용자별 최신 앱버전/플랫폼/언어/국가 + 최근 이벤트 시각 — user당 1행 (DISTINCT ON)
     vc.rpc('vc_user_latest_meta'),
-    // 사용자별 구매 크레딧 합계 (purchase 이벤트, 봇 제외)
-    vc.rpc('vc_user_purchased_credits'),
     // 사용자별 오늘 증가분(카드/말하기/듣기) + 최근 7일 활동일 수
     vc.rpc('vc_user_activity_deltas'),
-    // 사용자별 구매 고려(purchase-intent) 신호 + 마지막 의도 시각
-    vc.rpc('vc_user_intent_signals'),
     // 타겟 오퍼 — 사용자별 오퍼 행(단계 추적 + 지급된 보너스 크레딧). RLS는 anon USING(true)라
     // service 키로 전수 조회 가능. 캠페인 규모가 작아(수십 건) 전수 select로 충분.
     vc.from('user_offers').select('user_id, status, seen_at, snoozed_at, redeemed_at, redeemed_credits, expires_at, created_at'),
@@ -1104,7 +1102,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const userCreditsUsedMap = new Map<string, number>()
   const userFlipsMap = new Map<string, number>()
   const userCreditsSpentMap = new Map<string, number>()
-  for (const row of ((listenRes.data || []) as Array<{ user_id: string | null; listen_count: number; flip_count: number; credits_spent: number }>)) {
+  for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; listen_count: number; flip_count: number; credits_spent: number }>)) {
     const uid = row.user_id
     if (!uid || !visibleUserIds.has(uid)) continue
     userCreditsUsedMap.set(uid, Number(row.listen_count) || 0)
@@ -1132,7 +1130,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
 
   // 사용자별 구매 크레딧 합계
   const userPurchasedMap = new Map<string, number>()
-  for (const row of ((purchasedRes.data || []) as Array<{ user_id: string | null; purchased_credits: number | string | null }>)) {
+  for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; purchased_credits: number | string | null }>)) {
     if (row.user_id) userPurchasedMap.set(row.user_id, Number(row.purchased_credits) || 0)
   }
 
@@ -1154,7 +1152,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
 
   // 사용자별 구매 고려 신호
   const userIntentMap = new Map<string, { premiumVoice: boolean; ai: boolean; banner: boolean; gated: boolean; lastIntent: string | null }>()
-  for (const row of ((intentRes.data || []) as Array<{ user_id: string | null; premium_voice: boolean | null; ai_feature: boolean | null; banner_tap: boolean | null; gated: boolean | null; last_intent: string | null }>)) {
+  for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; premium_voice: boolean | null; ai_feature: boolean | null; banner_tap: boolean | null; gated: boolean | null; last_intent: string | null }>)) {
     if (row.user_id) userIntentMap.set(row.user_id, {
       premiumVoice: !!row.premium_voice,
       ai: !!row.ai_feature,
