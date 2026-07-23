@@ -17,10 +17,10 @@ const NAV_ITEMS = [
 ]
 
 const CLIENTS = [
+  { id: 'monor', name: 'MonoR Apps',    tag: 'Education', dot: '#2F8F5B' },
+  { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#B88A2A' },
   { id: 'akros', name: '아크로스',      tag: 'Indexing',  dot: '#3F93C6' },
   { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#1F4E79' },
-  { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#B88A2A' },
-  { id: 'monor', name: 'MonoR Apps',    tag: 'Education', dot: '#2F8F5B' },
   { id: 'valuechain', name: 'LLM Wiki', tag: 'Experiment', dot: '#7C5CD6' },
 ]
 
