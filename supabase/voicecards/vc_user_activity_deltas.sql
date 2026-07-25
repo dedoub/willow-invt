@@ -72,9 +72,16 @@ listen_days as (
   where e.event_name in ('tts_played','voice_preview_played')
     and (e.created_at at time zone 'Asia/Seoul')::date >= td.d - 6 and e.user_id is not null
 ),
+-- 뒤집기(card_flipped_manual)만 한 날도 활동일로 카운트 (2026-07-25 CEO — 활성화 정의와 동기).
+flip_days as (
+  select e.user_id, (e.created_at at time zone 'Asia/Seoul')::date as d
+  from mv_real_users e, td
+  where e.event_name = 'card_flipped_manual'
+    and (e.created_at at time zone 'Asia/Seoul')::date >= td.d - 6 and e.user_id is not null
+),
 active7 as (
   select user_id, count(distinct d)::int as days
-  from (select user_id, d from learn_days union select user_id, d from listen_days) x group by user_id
+  from (select user_id, d from learn_days union select user_id, d from listen_days union select user_id, d from flip_days) x group by user_id
 ),
 ids as (
   select user_id from live_sheets
