@@ -598,7 +598,9 @@ const EXCLUDED_VOICECARDS_EMAIL_PATTERNS: RegExp[] = [
 ]
 // 관리자/내부 테스트 계정 (정확 일치) — 2026-07-03 willowinvt 관리자 계정 추가
 // 2026-07-18 qwe.gpt22022 봇/throwaway 추가 (가입 즉시 이탈, 기존 숫자 정규식엔 안 걸림)
-const EXCLUDED_VOICECARDS_EMAILS = new Set(['dw.kim@willowinvt.com', 'qwe.gpt22022@gmail.com'])
+// 2026-07-25 forcemajor1315 봇 추가 (가입 3초만에 이탈, 4자리+점없음이라 숫자 정규식 미포착).
+//   이벤트통계는 IP필터(54.144/12)로 이미 제외됐지만, 유저 테이블은 이 JS 이메일 목록이라 별도 추가 필요.
+const EXCLUDED_VOICECARDS_EMAILS = new Set(['dw.kim@willowinvt.com', 'qwe.gpt22022@gmail.com', 'forcemajor1315@gmail.com'])
 const EXCLUDED_VOICECARDS_USER_IDS = new Set([
   '101662172713686736923',
   '100644446554227652222',
