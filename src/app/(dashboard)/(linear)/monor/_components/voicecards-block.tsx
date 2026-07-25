@@ -577,7 +577,7 @@ export function VoicecardsBlock({
         case 'language': return (a.locale || '').localeCompare(b.locale || '')
         case 'country':  return (a.country || regionOf(a.locale)).localeCompare(b.country || regionOf(b.locale))
         case 'status':   return Number(a.hasFolder) - Number(b.hasFolder)
-        case 'active':   return Number(a.sheetCount > 0 || (a.ownCards ?? a.cards) > 0) - Number(b.sheetCount > 0 || (b.ownCards ?? b.cards) > 0)
+        case 'active':   return Number(a.sheetCount > 0 || (a.ownCards ?? a.cards) > 0 || (a.flips ?? 0) > 0) - Number(b.sheetCount > 0 || (b.ownCards ?? b.cards) > 0 || (b.flips ?? 0) > 0)
         case 'sheets':   return a.sheetCount - b.sheetCount
         case 'cards':    return a.cards - b.cards
         case 'flips':    return (a.flips ?? 0) - (b.flips ?? 0)
@@ -726,16 +726,18 @@ export function VoicecardsBlock({
         )}
         {userStats && anonymousStats?.summary && (() => {
           const devices = anonymousStats.summary.totalDevices
-          // 미활성: 로그인했지만 시트 0 & 자기 카드 0 — 아직 첫 시트를 저장하지 않은 단계.
+          // 미활성: 로그인했지만 시트 0 & 자기 카드 0 & 뒤집기 0 — 아직 어떤 학습 활동도 안 한 단계.
           // 카드는 ownCards(데모 제외) 기준 — 데모 한 세션(total_cards 100)이 활성화로
           // 과대 분류되지 않게 한다. 데모만 체험한 유저는 미활성.
+          // 뒤집기(flips, card_flipped_manual)만 한 사용자도 활동으로 간주해 활성화로 센다
+          //   (2026-07-25 CEO — 말하기/듣기 없이 눈으로만 카드 넘긴 것도 학습 활동).
           // (구글연동(Drive)과는 별개 축: deferred-Drive라 연동을 마치고도 미활성일 수 있다.
           //  그 교집합 = "연동후대기" — AI draft만 두고 이탈한 코호트, 복귀 유도 타깃.)
-          // 활성화 = 전체 − 미활성 (첫 시트 저장 완료)
+          // 활성화 = 전체 − 미활성
           // ownCards가 없는 응답(배포 직후 ~60s unstable_cache의 옛 payload)은 cards로
           // 강등 — undefined 비교로 전원 활성화가 되는 착시를 막는다(2026-07-11 실제 발생).
-          const isIdleUser = (u: { sheetCount: number; cards: number; ownCards?: number }) =>
-            u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0
+          const isIdleUser = (u: { sheetCount: number; cards: number; ownCards?: number; flips?: number }) =>
+            u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0
           const incompleteSignups = (userStats?.users ?? []).filter(isIdleUser).length
           const linkedUsers = (userStats?.users ?? []).filter(u => u.hasFolder).length
           const signedUp = userStats.totalUsers - incompleteSignups
@@ -1346,7 +1348,7 @@ export function VoicecardsBlock({
               whiteSpace: 'nowrap' as const,
             }}>
               사용자{(() => {
-                const n = userStats.users.filter(u => u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0).length
+                const n = userStats.users.filter(u => u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0).length
                 return n > 0 ? ` · 미활성 ${n}` : ''
               })()}
             </div>
@@ -1501,9 +1503,9 @@ export function VoicecardsBlock({
                   <div style={{
                     fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
                     whiteSpace: 'nowrap', textAlign: 'center',
-                    color: (user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0) ? t.neutrals.muted : '#B45309',
+                    color: (user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0 || (user.flips ?? 0) > 0) ? t.neutrals.muted : '#B45309',
                   }}>
-                    {(user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'}
+                    {(user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0 || (user.flips ?? 0) > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'}
                   </div>
                   <NumDeltaCell total={user.sheetCount} delta={user.sheetsDeltaToday} />
                   {/* 카드 합계는 데모 포함(대시보드 정의). 전부 데모면 흐리게 + '데모' 표기 —
