@@ -20,8 +20,8 @@ const NAV_ITEMS = [
 ]
 
 const CLIENTS = [
-  { id: 'voicecards',  name: 'VoiceCards',  tag: 'Language',  dot: '#2F8F5B' },
-  { id: 'reviewnotes', name: 'ReviewNotes', tag: 'Education', dot: '#3F93C6' },
+  { id: 'voicecards',  name: 'VoiceCards',  tag: 'MonoR Apps', dot: '#2F8F5B' },
+  { id: 'reviewnotes', name: 'ReviewNotes', tag: 'MonoR Apps', dot: '#3F93C6' },
   { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#B88A2A' },
   { id: 'akros', name: '아크로스',      tag: 'Indexing',  dot: '#3F93C6' },
   { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#1F4E79' },
