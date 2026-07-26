@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
-import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { SignalBar } from './_components/signal-bar'
 import { PortfolioKanban, WatchlistItem, SignalData, StockTrade, StockResearch, StockQuote } from './_components/portfolio-kanban'

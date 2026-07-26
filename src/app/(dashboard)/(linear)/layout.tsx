@@ -7,7 +7,7 @@ import { JetBrains_Mono } from 'next/font/google'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LinearSidebar } from '@/app/(dashboard)/_components/linear-sidebar'
 import { LinearHeader } from '@/app/(dashboard)/_components/linear-header'
-import { DashColsToggle } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
+import { DashColsToggle } from '@/app/(dashboard)/_components/cols-toggle'
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill'
 
 const interTight = InterTight({

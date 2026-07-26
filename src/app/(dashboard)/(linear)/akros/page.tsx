@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
-import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { AkrosSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { fetchAllTimeSeriesData, fetchAkrosProducts, fetchYearLaunches } from '@/lib/etf-client'
 import type { AkrosProduct, TimeSeriesData } from '@/lib/etf-types'

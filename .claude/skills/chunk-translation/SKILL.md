@@ -21,29 +21,25 @@ metadata:
 - **컬럼**: `Question` (한글), `Answer` (영어)
 - **인코딩**: UTF-8 with BOM (`\uFEFF` 접두) — 엑셀 한글 깨짐 방지
 - **따옴표**: 모든 셀을 큰따옴표로 감쌈 (줄바꿈 포함 셀 보호)
-- **1행 = 1문장**: 한 문장의 모든 청크가 하나의 셀 안에 줄바꿈으로 들어감
-- **줄바꿈은 실제 newline 문자**: `\n` 리터럴(백슬래시+n) 절대 금지. CSV 셀 안에 실제 줄바꿈(0x0A)을 넣어야 엑셀에서 Alt+Enter로 보임
-- **절대 금지**: 청크 하나를 개별 행으로 분리하는 것. 반드시 한 셀에 줄바꿈으로 묶을 것
+- **레이아웃 기본값 = 한 행 = 한 청크** (CEO 확정 2026-07): 청크 1개가 개별 행(개별 플래시카드). 각 청크는 아래 "청크 크기 (granularity)" 규칙을 따른다.
 - **용도**: 플래시카드(Anki 등) 임포트 — Question(한국어)=Front, Answer(영어)=Back
+- **대안 레이아웃(1행 = 1문장)**: CEO가 명시 요청 시에만. 한 문장의 모든 청크를 한 셀 안에 **실제 줄바꿈(0x0A)**으로 묶음(`\n` 리터럴 금지, Question/Answer 줄바꿈 수 1:1).
 
-### 행 구성 규칙 (핵심!)
-1. **한 행 = 한 문장** (마침표/물음표/느낌표로 끝나는 단위)
-2. 한 문장 내에서 **의미 구절(phrase) 단위로 줄바꿈** (`\n`)
-3. Question 셀의 줄바꿈 수 = Answer 셀의 줄바꿈 수 (1:1 대응)
-4. 영어 원문의 줄바꿈 위치와 한글 번역의 줄바꿈 위치를 **대응**시킴
+### 행 구성 규칙 (핵심!) — 기본: 한 행 = 한 청크
+1. **한 행 = 한 청크** (아래 "청크 크기" 규칙을 따르는 의미 묶음 하나)
+2. Question(한글) = Answer(영어) 청크가 같은 행에서 위치 1:1 대응
+3. 문장 경계와 무관하게 청크 단위로 행을 나눔 (긴 문장은 여러 행, 짧은 완전 문장은 1행)
 
-### 예시
+### 예시 (한 행 = 한 청크)
 ```csv
 "Question","Answer"
-"이 과정은 반복되며
-매 2분마다, 혹은 심지어 매 90초마다,
-각 크레인은 시간당 30개에서 40개의 상자를 옮긴다
-배에서 부두로.","The process is repeated
-every two minutes, or even every ninety seconds,
-each crane moving 30 or 40 boxes an hour
-from ship to dock."
-"그것이 혁명의 시작이었다.","Such was the beginning of a revolution."
+"이 영상들은","These videos"
+"인터넷 곳곳에 퍼져 있다.","are all over the internet."
+"그들은 럭셔리 기능들을 자랑하고 있다.","They're touting luxury features."
+"나는 깜짝 놀랐다.","I'm astonished."
 ```
+
+> 대안(1행=1문장) 요청 시에만: 한 문장의 청크들을 한 셀 안에 **실제 줄바꿈**으로 묶고 Question/Answer 줄바꿈 수를 1:1로 맞춘다.
 
 ### 엑셀에서 보이는 모습
 | Question | Answer |
@@ -62,6 +58,15 @@ from ship to dock."
 - 전문 용어는 원어 병기 가능 (예: "컨테이너 크레인(stacking crane)")
 - 고유명사는 원문 유지 (예: "Ideal-X", "Terry Malloy")
 - 숫자/단위는 원문 기준 유지
+
+### 청크 크기 (granularity) — 필수, CEO 확정(2026-07)
+> 각 청크 = **한 호흡에 말할 수 있는 의미 묶음(speaking sense-group)**. 목표 평균 4~5단어, 대개 3~6단어.
+
+- **너무 잘게 쪼개기 금지**: 응집된 핵(주어+동사, 동사+목적어, be+보어)은 분리하지 않는다. 예: `Everything massages you`, `American car influencers are hawking`는 한 청크.
+- **1~2단어 파편 금지**: 인접 청크에 합쳐 3단어 이상으로. 단, **완전한 짧은 문장**(예: `I'm astonished.`)은 그대로 둔다.
+- **너무 길게(8단어+) 금지**: 내부에 자연스러운 끊는 지점이 있으면 그 경계에서 분할. (단일 응집 구가 8단어면 예외 허용)
+- **분할 경계**: 종속절(that/because/which/when…), 등위접속(and/but/or…), 부정사구(to+V), 부가 전치사구(in China, on social media, from China), 큰 명사구 ↔ 술어.
+- 자가검증: 각 청크 단어수를 세서 ≤2 파편과 ≥8 과대청크를 잡아 조정할 것.
 
 ### 좋은 예 vs 나쁜 예
 

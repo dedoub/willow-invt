@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
-import { useDashCols } from './cols-toggle'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'

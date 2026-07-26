@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
-import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'

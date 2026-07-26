@@ -8,7 +8,7 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { ValueChainSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { useDashCols } from '@/app/(dashboard)/(linear)/monor/_components/cols-toggle'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import type { ValueChainStats } from '@/lib/valuechain-supabase'
 
 const SITE_URL = 'https://valuechain.wiki'

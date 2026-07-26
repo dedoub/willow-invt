@@ -105,6 +105,16 @@ type GcpLoginAlertState = {
   lastReason: string | null
 }
 
+type VoicecardsEventStatsDaily = {
+  date: string
+  loggedDevices: number
+  memberActive30: number
+}
+
+type VoicecardsEventStats = {
+  daily?: VoicecardsEventStatsDaily[]
+}
+
 function log(msg: string) {
   console.log(`[voicecards-analytics] [${new Date().toISOString()}] ${msg}`)
 }
@@ -118,6 +128,50 @@ function isSundayKST(): boolean {
 function kstDateStr(d: Date = new Date()): string {
   const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000)
   return kst.toISOString().split('T')[0]
+}
+
+function formatShortDate(date: string): string {
+  const [, month, day] = date.split('-')
+  return `${Number(month)}/${Number(day)}`
+}
+
+function buildDauMauTrendLines(stats: VoicecardsEventStats | null, today: string): string[] {
+  const daily = (stats?.daily || [])
+    .filter(row => row.date < today && row.memberActive30 > 0)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-21)
+
+  if (daily.length < 7) return ['집계 데이터가 부족해 추이를 계산하지 못했어요.']
+
+  const chunks: VoicecardsEventStatsDaily[][] = []
+  for (let end = daily.length; end > 0 && chunks.length < 3; end -= 7) {
+    const start = Math.max(0, end - 7)
+    const chunk = daily.slice(start, end)
+    if (chunk.length === 7) chunks.unshift(chunk)
+  }
+
+  const summaries = chunks.map(chunk => {
+    const avgDau = chunk.reduce((sum, row) => sum + row.loggedDevices, 0) / chunk.length
+    const avgMau = chunk.reduce((sum, row) => sum + row.memberActive30, 0) / chunk.length
+    return {
+      label: `${formatShortDate(chunk[0].date)}~${formatShortDate(chunk[chunk.length - 1].date)}`,
+      avgDau,
+      avgMau,
+      ratio: avgMau > 0 ? (avgDau / avgMau) * 100 : 0,
+    }
+  })
+
+  const latest = summaries[summaries.length - 1]
+  const trend = summaries.map(item => `${item.label} ${item.ratio.toFixed(1)}%`).join(' → ')
+  const todayRow = (stats?.daily || []).find(row => row.date === today)
+  const todayLine = todayRow && todayRow.memberActive30 > 0
+    ? `오늘 ${todayRow.loggedDevices}/${todayRow.memberActive30}명 = ${((todayRow.loggedDevices / todayRow.memberActive30) * 100).toFixed(1)}% (진행 중).`
+    : '오늘 수치는 아직 집계 전이에요.'
+
+  return [
+    `7일 평균: ${trend}.`,
+    `최근 구간 평균 DAU ${latest.avgDau.toFixed(1)}명 / MAU ${latest.avgMau.toFixed(1)}명. ${todayLine}`,
+  ]
 }
 
 function firstDayOfMonth(dateStr: string): string {
@@ -744,7 +798,7 @@ async function main() {
 
   log(`Running analytics for ${today} (dayStart=${dayStartIso}, last24h=${last24hStartIso})`)
 
-  const [users, analytics, recentEvents, gcpBillingInfo, gcpCostResult] = await Promise.all([
+  const [users, analytics, recentEvents, gcpBillingInfo, gcpCostResult, eventStats] = await Promise.all([
     fetchAll<UserRow>((from, to) =>
       voicecards.from('users').select('*').order('created_at', { ascending: false }).range(from, to),
     ),
@@ -768,6 +822,13 @@ async function main() {
       rememberGcpLoginRequired(error)
       log(`GCP cost lookup failed: ${extractErrorMessage(error)}`)
       return { error: simplifyGcpCostError(error) }
+    }),
+    voicecards.rpc('vc_event_stats').then(({ data, error }) => {
+      if (error) throw error
+      return data as VoicecardsEventStats
+    }).catch(error => {
+      log(`DAU/MAU stats lookup failed: ${extractErrorMessage(error)}`)
+      return null
     }),
   ])
 
@@ -925,6 +986,8 @@ async function main() {
       ? `지난 24h 결제 ${purchaseUsers24h.length}건 (${purchaseUsers24h.map(user => shortUserLabel(user)).join(', ')}). 누적 유료 고객 ${paidUsers.length}명 (${formatUserList(paidUserLabels)}).`
       : `지난 24h 결제 없음. 누적 유료 고객 ${paidUsers.length}명 (${formatUserList(paidUserLabels)}).`
 
+  const dauMauTrendLines = buildDauMauTrendLines(eventStats, today)
+
   let conversionLine = '크레딧 배너 탭 / 잔액 0 도달 유저 없음 — 근전환 신호 없음.'
   if (creditBannerTapUserIds.length > 0 || zeroBalanceUserIds.length > 0) {
     const tappedLabels = creditBannerTapUserIds
@@ -1001,6 +1064,9 @@ async function main() {
     signupSummaryLine,
     activationLine,
     cohortThemeLine,
+    '',
+    '📊 DAU/MAU 추이',
+    ...dauMauTrendLines,
     '',
     '💳 결제·전환',
     paymentLine,
