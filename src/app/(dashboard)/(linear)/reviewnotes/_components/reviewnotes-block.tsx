@@ -371,6 +371,14 @@ export function ReviewnotesBlock({
           title="인사이트"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {trafficStats?.daily[0] && (
+                <span style={{
+                  fontSize: 'calc(9px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
+                  background: t.neutrals.inner, color: t.neutrals.muted, fontWeight: 500, whiteSpace: 'nowrap' as const,
+                }}>
+                  {`${trafficStats.daily[0].date.slice(2).replace(/-/g, '.')} 집계 시작 · 누적`} · 봇 제외
+                </span>
+              )}
               <a
                 href="https://app.lemonsqueezy.com/products"
                 target="_blank"
@@ -417,23 +425,6 @@ export function ReviewnotesBlock({
           보이스카드와 동일하게 헤더 컨테이너 안에 배치 — 두 블록의 인사이트 시작 높이 정렬 (2026-07-15 CEO) */}
       {!loading && trafficStats && (
         <div>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
-          }}>
-            <span style={{
-              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
-              fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase' as const,
-            }}>
-              인사이트
-            </span>
-            <span style={{
-              fontSize: 'calc(9px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
-              background: t.neutrals.inner, color: t.neutrals.muted, fontWeight: 500,
-            }}>
-              {trafficStats.daily[0] ? `${trafficStats.daily[0].date.slice(2).replace(/-/g, '.')} 집계 시작 · 누적` : '누적'} · 봇 제외
-            </span>
-          </div>
-
           {/* 퍼널 KPI (집계 시작 2026-06-24 이후 전체 누적): 순 방문자 → 페이지뷰 → 가입 —
               활동/유료 사용자는 카드 대신 "사용자" 구성 파이(비가입/무료/유료)로 표현 (2026-07-15 CEO).
               보이스카드 인사이트처럼 각 카드 값 뒤에 전단계 대비 전환율 (2026-07-15 CEO).
