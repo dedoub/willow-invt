@@ -1598,7 +1598,7 @@ export function VoicecardsBlock({
     ) : eventsLoading ? (
       <LCard pad={0}>
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <LSectionHead eyebrow="VISITORS" title="비로그인 저니" mb={10} />
+          <LSectionHead eyebrow="VISITORS" title="비로그인" mb={10} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => <SkelUserRow key={i} />)}
           </div>
@@ -1644,7 +1644,7 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
   ]
   return (
     <div style={{ marginTop: 12 }}>
-      <LSectionHead eyebrow="VISITORS" title={`비로그인 저니 · 최근 14일 · ${allRecent.length}기기`} mb={10} />
+      <LSectionHead eyebrow="VISITORS" title={`비로그인 · 최근 14일 · ${allRecent.length}기기`} mb={10} />
       <div style={{ overflowX: 'auto' }}>
       <div style={{ minWidth: JOURNEY_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
         <div style={{ display: 'grid', gridTemplateColumns: JOURNEY_TABLE_COLS, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
