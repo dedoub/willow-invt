@@ -361,8 +361,7 @@ export function ReviewnotesBlock({
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
         <LSectionHead
-          eyebrow="REVIEWNOTES"
-          title="리뷰노트"
+          title="인사이트"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <a
@@ -657,13 +656,7 @@ export function ReviewnotesBlock({
         })()
         return (
           <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-            <div style={{
-              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
-              fontFamily: t.font.mono, letterSpacing: 0.3,
-              textTransform: 'uppercase' as const, marginBottom: 10,
-            }}>
-              운영 지표
-            </div>
+            <LSectionHead title="운영 지표" mb={10} />
             {/* 콘텐츠·학습 카운트 (2026-07-16 CEO): 노트/문제/문제 세트/풀이/용량 5카드.
                 와이드(1열) 모드 한 줄, 2열 모드 3+2, 모바일 2열. MRR·가입·유료는 인사이트 퍼널로 이동. */}
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
@@ -715,19 +708,10 @@ export function ReviewnotesBlock({
         <>
           {/* Recent users list */}
           <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 6, marginBottom: 8, flexWrap: 'wrap',
-            }}>
-              <div style={{
-                fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
-                fontFamily: t.font.mono, letterSpacing: 0.3,
-                textTransform: 'uppercase' as const,
-              }}>
-                사용자
-              </div>
-              {/* 데스크톱은 테이블 헤더 클릭으로 정렬. 모바일은 헤더가 없어 드롭다운으로 정렬. */}
-              {mobile && (
+            <LSectionHead
+              title="사용자"
+              mb={8}
+              action={mobile ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <select
                     value={userSort}
@@ -754,8 +738,8 @@ export function ReviewnotesBlock({
                     {userSortDir === 'asc' ? '▲' : '▼'}
                   </button>
                 </div>
-              )}
-            </div>
+              ) : undefined}
+            />
             {/* PC/모바일 동일 테이블 — 모바일은 가로 스크롤 (보이스카드 사용자 테이블과 동일, 2026-07-15) */}
             <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>

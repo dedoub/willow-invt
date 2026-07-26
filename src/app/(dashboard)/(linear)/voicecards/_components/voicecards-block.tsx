@@ -652,8 +652,7 @@ export function VoicecardsBlock({
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
         <LSectionHead
-          eyebrow="VOICECARDS"
-          title="보이스카드"
+          title="인사이트"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <button
@@ -686,7 +685,6 @@ export function VoicecardsBlock({
         {/* 인사이트 — 사용자/이벤트/매출 모두 필요 */}
         {(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats?.summary) && (
           <>
-            <SkelSectionHeader width={80} />
             <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
@@ -897,14 +895,6 @@ export function VoicecardsBlock({
 
           return (
             <>
-              <div style={{
-                fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
-                fontFamily: t.font.mono, letterSpacing: 0.3,
-                textTransform: 'uppercase' as const, marginBottom: 10,
-                whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
-                인사이트
-              </div>
 
               {/* 좌: 퍼널 6카드(3×2) + 플랫폼/국가 파이 · 우: 일별 활동자 전체 높이 (와이드 모드 전용, CEO 레이아웃) */}
               <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
@@ -1127,14 +1117,7 @@ export function VoicecardsBlock({
       )}
       {userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={{
-            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
-            fontFamily: t.font.mono, letterSpacing: 0.3,
-            textTransform: 'uppercase' as const, marginBottom: 10,
-            whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            가입 후 활동 · 매출 동인
-          </div>
+          <LSectionHead title="가입 후 활동 · 매출 동인" mb={10} />
 
           {(() => {
             // 날짜 기준 — KST 기준 오늘 / 최근 7일 컷오프 계산
@@ -1345,23 +1328,10 @@ export function VoicecardsBlock({
       )}
       {userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            gap: 6, marginBottom: 8, flexWrap: 'wrap',
-          }}>
-            <div style={{
-              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
-              fontFamily: t.font.mono, letterSpacing: 0.3,
-              textTransform: 'uppercase' as const,
-              whiteSpace: 'nowrap' as const,
-            }}>
-              사용자{(() => {
-                const n = userStats.users.filter(u => u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0).length
-                return n > 0 ? ` · 미활성 ${n}` : ''
-              })()}
-            </div>
-            {/* 데스크톱은 테이블 헤더 클릭으로 정렬. 모바일은 헤더가 없어 드롭다운으로 정렬. */}
-          </div>
+          {(() => {
+            const n = userStats.users.filter(u => u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0).length
+            return <LSectionHead title={`사용자${n > 0 ? ` · 미활성 ${n}` : ''}`} mb={8} />
+          })()}
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* 테이블 헤더 — 클릭하여 다중 정렬. 미포함→추가, 재클릭→방향전환, 또 클릭→해제.
