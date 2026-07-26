@@ -12,7 +12,7 @@ import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import { isExcludedReviewNotesUser } from '@/lib/reviewnotes-supabase'
 import { kstDateKey, kstToday, kstDaysAgo, kstWeekday, kstTime } from '@/lib/kst'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
-import { formatCountryName } from '@/lib/country-format'
+import { formatCountryName, codeToFlag, COUNTRY_NAMES } from '@/lib/country-format'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -87,7 +87,14 @@ function formatTimeShort(dateString?: string | null): string {
   return kstTime(dateString)
 }
 
-type UserSortKey = 'created' | 'active' | 'name' | 'email' | 'notes' | 'problems' | 'sets' | 'solves' | 'plan' | 'role' | 'storage'
+type UserSortKey = 'created' | 'active' | 'name' | 'email' | 'country' | 'notes' | 'problems' | 'sets' | 'solves' | 'plan' | 'role' | 'storage'
+
+// 국가코드(EventLog↔PageView first-touch IP) → 국기+코드 배지. 2자리 ISO 아니면 null → '—'.
+function formatCountryBadge(country?: string | null): { flag: string; code: string; name: string } | null {
+  const code = (country || '').toUpperCase()
+  if (!/^[A-Z]{2}$/.test(code)) return null
+  return { flag: codeToFlag(code), code, name: COUNTRY_NAMES[code] || code }
+}
 type SortDir = 'asc' | 'desc'
 
 // 컬럼 정의 (헤더 라벨 + 정렬키 + 정렬, 모바일 드롭다운 라벨). 순서 = 그리드 순서.
@@ -97,6 +104,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'active',  label: '활동',   mobileLabel: '활동일', align: 'center' },
   { key: 'name',    label: '닉네임', mobileLabel: '닉네임', align: 'left' },
   { key: 'email',   label: '이메일', mobileLabel: '이메일', align: 'left' },
+  { key: 'country', label: '국가',   mobileLabel: '국가',   align: 'center' },
   { key: 'notes',    label: '노트',   mobileLabel: '노트',   align: 'center' },
   { key: 'problems', label: '문제',   mobileLabel: '문제',   align: 'center' },
   { key: 'sets',     label: '세트',   mobileLabel: '문제 세트', align: 'center' },
@@ -107,14 +115,14 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
 ]
 
 // 텍스트 컬럼은 오름차순이 기본, 그 외(플랜·권한·용량·날짜)는 내림차순이 기본
-const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['name', 'email'])
+const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['name', 'email', 'country'])
 const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key) ? 'asc' : 'desc')
 
 const USER_SORT_STORAGE_KEY = 'reviewnotes.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 40px 44px 40px 40px 60px 48px 58px'
-const USER_TABLE_MIN_WIDTH = 690 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (모바일 포함)
+const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 52px 40px 44px 40px 40px 60px 48px 58px'
+const USER_TABLE_MIN_WIDTH = 748 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (모바일 포함)
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -306,6 +314,8 @@ export function ReviewnotesBlock({
       switch (userSort) {
         case 'name':    return nameOf(a).localeCompare(nameOf(b), 'ko')
         case 'email':   return a.email.localeCompare(b.email)
+        // 국가 미상(null)은 최대 문자로 치환 → 오름차순에서 실제 국가 뒤로 밀림
+        case 'country': return (a.country || '￿').localeCompare(b.country || '￿')
         case 'plan':    return (PLAN_ORDER[a.subscriptionPlan] ?? 0) - (PLAN_ORDER[b.subscriptionPlan] ?? 0)
         case 'role':    return (a.role === 'ADMIN' ? 1 : 0) - (b.role === 'ADMIN' ? 1 : 0)
         case 'storage': return (a.storageUsed || 0) - (b.storageUsed || 0)
@@ -593,8 +603,8 @@ export function ReviewnotesBlock({
             />
           </div>
           </div>
-          {/* 일별 활동자 — 1열 모드는 우측 전체높이, 그 외(2열·모바일) 파이 아래 전체폭 */}
-          <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 150 }}>
+          {/* 일별 활동자 — 1열 모드는 우측 전체높이, 그 외(2열·모바일) 파이 아래 전체폭 (보이스카드와 동일 190) */}
+          <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 190 }}>
             <RnDauTrendCard daily={trafficStats.dailyActive} />
           </div>
           </div>
@@ -812,6 +822,23 @@ export function ReviewnotesBlock({
                     </div>
                     {/* 이메일 */}
                     <div style={userTextCell} title={user.email}>{user.email}</div>
+                    {/* 국가 — EventLog↔PageView first-touch IP 국가 (방문 이력 없으면 —) */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                      {(() => {
+                        const c = formatCountryBadge(user.country)
+                        return c ? (
+                          <span title={c.name} style={{
+                            fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                            color: '#1E40AF', background: '#DBEAFE',
+                            padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
+                          }}>
+                            {c.flag} {c.code}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                        )
+                      })()}
+                    </div>
                     {/* 노트 / 문제 / 세트 / 풀이 — 누적 + 오늘 증가분 (보이스카드 문법) */}
                     <NumDeltaCell total={user.notes ?? 0} delta={user.notesToday ?? 0} />
                     <NumDeltaCell total={user.problems ?? 0} delta={user.problemsToday ?? 0} />

@@ -26,6 +26,8 @@ export interface ReviewNotesUser {
   role: UserRole
   storageUsed: number
   createdAt: string
+  // 유저별 국가 (rn_user_country RPC) — EventLog↔PageView first-touch IP 국가. 방문 이력 없으면 null.
+  country?: string | null
   lastActiveAt?: string | null // EventLog 마지막 활동 (rn_user_last_active RPC, 2026-06-24 트래킹 시작 이후)
   // 콘텐츠/학습 누적 + 오늘 증가분 (rn_user_content RPC) — 문제는 Note 경유 귀속
   notes?: number
@@ -235,16 +237,17 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
     throw new Error('ReviewNotes Supabase not configured')
   }
 
-  const [{ data, error }, lastActiveRes, contentRes] = await Promise.all([
+  const [{ data, error }, lastActiveRes, contentRes, countryRes] = await Promise.all([
     reviewnotesSupabase
       .from('User')
       // Only the columns consumed by getReviewNotesUserStats passes + the monor reviewnotes block.
       // (emailVerified / updatedAt / lemonSqueezyCustomerId are unused.)
       .select('id, name, email, image, subscriptionPlan, role, storageUsed, createdAt')
       .order('createdAt', { ascending: false }),
-    // 마지막 활동 / 유저별 콘텐츠 — RLS로 raw 접근 불가, 집계 RPC 사용 (실패해도 목록은 유지)
+    // 마지막 활동 / 유저별 콘텐츠 / 국가 — RLS로 raw 접근 불가, 집계 RPC 사용 (실패해도 목록은 유지)
     reviewnotesSupabase.rpc('rn_user_last_active'),
     reviewnotesSupabase.rpc('rn_user_content'),
+    reviewnotesSupabase.rpc('rn_user_country'),
   ])
 
   if (error) {
@@ -265,10 +268,16 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
   const contentMap = new Map<string, ContentRow>(
     ((contentRes.data ?? []) as ContentRow[]).map(r => [r.user_id, r])
   )
+  const countryMap = new Map<string, string>(
+    ((countryRes.data ?? []) as Array<{ user_id: string; country: string }>)
+      .filter(r => r.country)
+      .map(r => [r.user_id, r.country])
+  )
   return (data || []).map(u => {
     const c = contentMap.get(u.id)
     return {
       ...u,
+      country: countryMap.get(u.id) ?? null,
       lastActiveAt: lastActiveMap.get(u.id) ?? null,
       notes: Number(c?.notes) || 0,
       notesToday: Number(c?.notes_today) || 0,
