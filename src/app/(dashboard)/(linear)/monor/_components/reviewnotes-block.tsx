@@ -356,6 +356,8 @@ export function ReviewnotesBlock({
   }
 
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    {/* 카드1: 헤더 + 인사이트 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
         <LSectionHead
@@ -613,7 +615,10 @@ export function ReviewnotesBlock({
         </div>
       )}
       </div>
+    </LCard>
 
+    {/* 카드2: 콘텐츠·학습 지표 */}
+    <LCard pad={0}>
       {/* 운영 지표 (임시 이름) — 매출 + 가입 통합 4카드, 옛 '인사이트' 섹션 (2026-07-15 아래로 이동) */}
       {!loading && stats && userStats && (() => {
         // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생. 통계는 관리자 제외 (2026-07-16 CEO)
@@ -701,7 +706,10 @@ export function ReviewnotesBlock({
           </div>
         )
       })()}
+    </LCard>
 
+    {/* 카드3: 사용자 테이블 */}
+    <LCard pad={0}>
       {/* User list section */}
       {!loading && userStats && (
         <>
@@ -936,6 +944,7 @@ export function ReviewnotesBlock({
         </>
       )}
     </LCard>
+    </div>
   )
 }
 
