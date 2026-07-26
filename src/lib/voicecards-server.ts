@@ -1425,8 +1425,8 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   stats.storeVisits = Array.from(svByDate.entries()).map(([date, visitors]) => ({ date, visitors }))
   // 비로그인 저니 — 실패해도 인사이트 블록 전체를 막지 않는다 (best-effort)
   try {
-    const [{ data: stageRows }, { data: anonRows }] = await Promise.all([
-      voicecardsSupabase.from('vc_device_journeys').select('journey_stage'),
+    const [{ data: stageRows }, { data: anonRows }, { data: signedVerRows }] = await Promise.all([
+      voicecardsSupabase.from('vc_device_journeys').select('journey_stage, platform, app_version'),
       voicecardsSupabase
         .from('vc_device_journeys')
         .select('device_id, journey_stage, platform, app_version, country, last_seen_at, active_days, anon_cards_viewed, anon_cards_learned, anon_flips, anon_credits_spent, add_sheet_opens, ai_gen_opens, signin_clicks')
@@ -1434,15 +1434,38 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
         .gte('last_seen_at', new Date(Date.now() - 14 * 86400_000).toISOString())
         .order('last_seen_at', { ascending: false })
         .limit(100),
+      // 출시 버전 상한 — iOS에서 로그인한 기기의 최고 버전. App Store 심사/TestFlight 빌드는
+      // 미출시(로그인 0)라 항상 이보다 높아 제외된다. 새 버전 출시로 실사용자가 로그인하면 상한이 자동 상승.
+      voicecardsSupabase.from('vc_device_journeys').select('app_version').eq('platform', 'ios').eq('signed_in', true),
     ])
+    // semver 비교 (문자열 비교는 1.1.9 vs 1.1.10 오류라 숫자 파트로 비교)
+    const cmpVer = (a: string, b: string): number => {
+      const pa = a.split('.').map(n => parseInt(n, 10) || 0)
+      const pb = b.split('.').map(n => parseInt(n, 10) || 0)
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const d = (pa[i] ?? 0) - (pb[i] ?? 0)
+        if (d) return d
+      }
+      return 0
+    }
+    let iosCeiling: string | null = null
+    for (const r of (signedVerRows ?? []) as Array<{ app_version: string | null }>) {
+      if (r.app_version && (!iosCeiling || cmpVer(r.app_version, iosCeiling) > 0)) iosCeiling = r.app_version
+    }
+    // 심사 빌드 판정: iOS + 출시 상한보다 높은 버전 (상한을 못 구하면 제외 안 함)
+    const isReviewBuild = (platform: string | null, version: string | null): boolean =>
+      platform === 'ios' && !!version && !!iosCeiling && cmpVer(version, iosCeiling) > 0
     const stageOrder = ['opened', 'demo', 'intent', 'signin_attempted', 'signed_in']
     const counts = new Map<string, number>()
-    for (const r of (stageRows ?? []) as Array<{ journey_stage: string }>) {
+    for (const r of (stageRows ?? []) as Array<{ journey_stage: string; platform: string | null; app_version: string | null }>) {
+      if (isReviewBuild(r.platform, r.app_version)) continue
       counts.set(r.journey_stage, (counts.get(r.journey_stage) ?? 0) + 1)
     }
     stats.journeys = {
       stages: stageOrder.map(stage => ({ stage, devices: counts.get(stage) ?? 0 })),
-      recentAnon: ((anonRows ?? []) as Array<Record<string, unknown>>).map(r => ({
+      recentAnon: ((anonRows ?? []) as Array<Record<string, unknown>>)
+        .filter(r => !isReviewBuild((r.platform as string | null) ?? null, (r.app_version as string | null) ?? null))
+        .map(r => ({
         deviceId: String(r.device_id),
         stage: String(r.journey_stage),
         platform: (r.platform as string | null) ?? null,
