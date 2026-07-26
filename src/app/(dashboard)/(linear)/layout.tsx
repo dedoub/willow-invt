@@ -32,13 +32,14 @@ const PAGE_INFO: Record<string, { group: string; title: string }> = {
   '/akros':      { group: '프로젝트', title: '아크로스' },
   '/etc':        { group: '프로젝트', title: 'ETC' },
   '/tensw':      { group: '프로젝트', title: '텐소프트웍스' },
-  '/monor':      { group: '프로젝트', title: 'MonoR Apps' },
+  '/voicecards':  { group: '프로젝트', title: 'VoiceCards' },
+  '/reviewnotes': { group: '프로젝트', title: 'ReviewNotes' },
   '/valuechain': { group: '프로젝트', title: 'LLM Wiki' },
 }
 
 // 1열/2열 토글을 상단바에 노출할 페이지 (바디 그리드가 있는 페이지들). wiki는 마스터-디테일이라 제외.
 const COLS_TOGGLE_PATHS = new Set([
-  '/mgmt', '/invest', '/realestate', '/akros', '/etc', '/tensw', '/ryuha', '/email', '/monor', '/valuechain',
+  '/mgmt', '/invest', '/realestate', '/akros', '/etc', '/tensw', '/ryuha', '/email', '/valuechain',
 ])
 
 export default function LinearRouteLayout({
