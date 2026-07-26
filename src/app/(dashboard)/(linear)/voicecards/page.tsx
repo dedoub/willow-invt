@@ -1,0 +1,227 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { VoicecardsBlock } from '@/app/(dashboard)/(linear)/monor/_components/voicecards-block'
+import { VoicecardsSettingsDialog } from '@/app/(dashboard)/(linear)/monor/_components/voicecards-settings-dialog'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
+import { kstToday } from '@/lib/kst'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface CombinedStats {
+  combined: {
+    totalRevenue: number
+    totalCreditsSold: number
+    totalPaidUsers: number
+    totalNewDownloads: number
+  }
+}
+
+interface UserStats {
+  totalUsers: number
+  activeUsers: number
+  totalSheets: number
+  totalCards: number
+  totalAttempts: number
+  totalCredits: number
+  dailyLearnActivity: Array<{
+    date: string
+    cardsLearned: number
+    attempts: number
+  }>
+  dailyCardInventory: Array<{
+    date: string
+    totalCards: number
+  }>
+  users: Array<{
+    id: string
+    nickname: string | null
+    email: string | null
+    appVersion: string | null
+    platform: string | null
+    locale: string | null
+    country: string | null
+    hasPurchased: boolean
+    credits: number
+    purchasedCredits: number
+    bonusCredits: number
+    offerStage: string | null
+    offerStageAt: string | null
+    creditsUsed: number
+    creditsSpent?: number
+    hasFolder: boolean
+    ownCards?: number
+    sheetCount: number
+    cards: number
+    flips: number
+    attempts: number
+    cardsToday: number
+    attemptsToday: number
+    listenToday: number
+    flipsToday: number
+    spentToday: number
+    activeDays7d: number
+    purchasedToday: number
+    balanceDeltaToday: number
+    sheetsDeltaToday: number
+    intentPremiumVoice: boolean
+    intentAi: boolean
+    intentBanner: boolean
+    intentGated: boolean
+    hotLead: boolean
+    purchaseScore: number
+    lastIntentAt: string | null
+    createdAt: string
+    lastActiveAt: string | null
+  }>
+}
+
+interface AnonymousEventStats {
+  summary: {
+    totalEvents: number
+    totalDevices: number
+    learnedDevices: number
+    signinDevices: number
+    learnConversionPct: number
+    signinConversionPct: number
+  }
+  daily: Array<{
+    date: string
+    devices: number
+    appOpened: number
+    cardsLearned: number
+    promptShown: number
+    signinCompleted: number
+    loggedDevices: number
+    anonDevices: number
+  }>
+  cumulativeDistinct: Array<{
+    date: string
+    devices: number
+    learned: number
+    signin: number
+  }>
+  dailyCreditUsage: Array<{
+    date: string
+    credits: number
+  }>
+  dailyFlips?: Array<{ date: string; flips: number }>
+  dailyCreditSpend?: Array<{ date: string; tts: number; ai: number }>
+  demoSheets: Array<{ sheetId: string; cards: number; devices: number }>
+  platforms: Array<{ platform: string; devices: number; events: number }>
+  locales: Array<{ locale: string; devices: number }>
+  countries: Array<{ country: string; devices: number }>
+  signinPlatforms: Array<{ platform: string; devices: number }>
+  signinLocales: Array<{ locale: string; devices: number }>
+  signinCountries: Array<{ country: string; devices: number }>
+  payingPlatforms: Array<{ platform: string; devices: number }>
+  payingLocales: Array<{ locale: string; devices: number }>
+  payingCountries: Array<{ country: string; devices: number }>
+  storeVisits?: Array<{ date: string; visitors: number }>
+  versions?: Array<{ version: string; devices: number }>
+  versionsIos?: Array<{ version: string; devices: number }>
+  versionsAndroid?: Array<{ version: string; devices: number }>
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function VoicecardsPage() {
+  // 3개 파트 독립 로딩 (사용자/이벤트/매출)
+  const [vcUsersLoading, setVcUsersLoading] = useState(true)
+  const [vcEventsLoading, setVcEventsLoading] = useState(true)
+  const [vcRevenueLoading, setVcRevenueLoading] = useState(true)
+  const [vcRefreshing, setVcRefreshing] = useState(false)
+  const [vcStats, setVcStats] = useState<CombinedStats | null>(null)
+  const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
+  const [vcAnonStats, setVcAnonStats] = useState<AnonymousEventStats | null>(null)
+  const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>>([])
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  const loadVoicecards = useCallback(async (refresh = false) => {
+    if (refresh) setVcRefreshing(true)
+    if (!refresh) {
+      setVcUsersLoading(true)
+      setVcEventsLoading(true)
+      setVcRevenueLoading(true)
+    }
+
+    const end = kstToday()
+    const start = `${end.slice(0, 4)}-01-01`
+
+    // 3개 API 병렬 호출 — 각 응답이 도착하는 대로 즉시 화면 반영
+    const usersP = fetch('/api/voicecards/stats/users', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setVcUserStats(data.userStats || null)
+      })
+      .catch(err => console.error('VoiceCards users load error:', err))
+      .finally(() => setVcUsersLoading(false))
+
+    const eventsP = fetch('/api/voicecards/stats/events', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setVcAnonStats(data.anonymousStats || null)
+      })
+      .catch(err => console.error('VoiceCards events load error:', err))
+      .finally(() => setVcEventsLoading(false))
+
+    const revenueP = fetch(`/api/voicecards/stats?startDate=${start}&endDate=${end}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setVcStats(data.stats)
+          setVcChartData(data.chartData || [])
+        }
+      })
+      .catch(err => console.error('VoiceCards revenue load error:', err))
+      .finally(() => setVcRevenueLoading(false))
+
+    await Promise.all([usersP, eventsP, revenueP])
+    setVcRefreshing(false)
+  }, [])
+
+  useEffect(() => { loadVoicecards() }, [loadVoicecards])
+
+  const refresh = useCallback(() => loadVoicecards(true), [loadVoicecards])
+  useAgentRefresh(['voicecards_'], refresh)
+
+  // 페이지를 보고 있는 동안 5분마다 자동 새로고침 — 탭이 숨겨져 있으면 쉬고,
+  // 다시 보이는 순간 경과했으면 즉시 갱신. 30초 틱으로 경과만 체크(요청은 5분당 1회).
+  useEffect(() => {
+    const REFRESH_MS = 5 * 60 * 1000
+    let last = Date.now()
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() - last < REFRESH_MS) return
+      last = Date.now()
+      refresh()
+    }
+    const id = setInterval(tick, 30_000)
+    document.addEventListener('visibilitychange', tick)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick) }
+  }, [refresh])
+
+  return (
+    <>
+      <VoicecardsBlock
+        cols={1}
+        usersLoading={vcUsersLoading}
+        eventsLoading={vcEventsLoading}
+        revenueLoading={vcRevenueLoading}
+        stats={vcStats}
+        userStats={vcUserStats}
+        anonymousStats={vcAnonStats}
+        chartData={vcChartData}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onRefresh={() => loadVoicecards(true)}
+        refreshing={vcRefreshing}
+      />
+
+      <VoicecardsSettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSave={() => loadVoicecards(true)}
+      />
+    </>
+  )
+}
