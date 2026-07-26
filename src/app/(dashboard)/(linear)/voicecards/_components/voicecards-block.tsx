@@ -652,6 +652,7 @@ export function VoicecardsBlock({
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
         <LSectionHead
+          eyebrow="INSIGHT"
           title="인사이트"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1117,7 +1118,7 @@ export function VoicecardsBlock({
       )}
       {userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <LSectionHead title="가입 후 활동 · 매출 동인" mb={10} />
+          <LSectionHead eyebrow="ENGAGEMENT" title="가입 후 활동 · 매출 동인" mb={10} />
 
           {(() => {
             // 날짜 기준 — KST 기준 오늘 / 최근 7일 컷오프 계산
@@ -1315,6 +1316,12 @@ export function VoicecardsBlock({
       )}
     </LCard>
 
+    {/* 카드3+4: 사용자 테이블·비로그인 저니 — 2열모드(데스크톱)에서 나란히. 저니 없으면 사용자 전폭 */}
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: (dashCols === 2 && !mobile && !!(anonymousStats?.journeys && anonymousStats.journeys.recentAnon.length > 0)) ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+      gap: 14, alignItems: 'start',
+    }}>
     {/* 카드3: 사용자 테이블 */}
     <LCard pad={0}>
       {/* 사용자 목록 (맨 아래) — userStats만 필요 */}
@@ -1330,7 +1337,7 @@ export function VoicecardsBlock({
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           {(() => {
             const n = userStats.users.filter(u => u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0).length
-            return <LSectionHead title={`사용자${n > 0 ? ` · 미활성 ${n}` : ''}`} mb={8} />
+            return <LSectionHead eyebrow="USERS" title={`사용자${n > 0 ? ` · 미활성 ${n}` : ''}`} mb={8} />
           })()}
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1591,6 +1598,7 @@ export function VoicecardsBlock({
       </LCard>
     )}
     </div>
+    </div>
   )
 }
 
@@ -1628,13 +1636,7 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
   ]
   return (
     <div style={{ marginTop: 12 }}>
-      <div style={{
-        fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
-        fontFamily: t.font.mono, letterSpacing: 0.3,
-        textTransform: 'uppercase' as const, marginBottom: 10,
-      }}>
-        비로그인 저니 <span style={{ fontWeight: 500, textTransform: 'none' }}>· 최근 14일 · {allRecent.length}기기</span>
-      </div>
+      <LSectionHead eyebrow="JOURNEY" title={`비로그인 저니 · 최근 14일 · ${allRecent.length}기기`} mb={10} />
       <div style={{ overflowX: 'auto' }}>
       <div style={{ minWidth: JOURNEY_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
         <div style={{ display: 'grid', gridTemplateColumns: JOURNEY_TABLE_COLS, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>

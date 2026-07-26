@@ -361,6 +361,7 @@ export function ReviewnotesBlock({
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
         <LSectionHead
+          eyebrow="INSIGHT"
           title="인사이트"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -656,7 +657,7 @@ export function ReviewnotesBlock({
         })()
         return (
           <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-            <LSectionHead title="운영 지표" mb={10} />
+            <LSectionHead eyebrow="METRICS" title="운영 지표" mb={10} />
             {/* 콘텐츠·학습 카운트 (2026-07-16 CEO): 노트/문제/문제 세트/풀이/용량 5카드.
                 와이드(1열) 모드 한 줄, 2열 모드 3+2, 모바일 2열. MRR·가입·유료는 인사이트 퍼널로 이동. */}
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
@@ -709,6 +710,7 @@ export function ReviewnotesBlock({
           {/* Recent users list */}
           <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
             <LSectionHead
+              eyebrow="USERS"
               title="사용자"
               mb={8}
               action={mobile ? (

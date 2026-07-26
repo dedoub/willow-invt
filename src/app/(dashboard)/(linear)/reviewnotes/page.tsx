@@ -5,10 +5,12 @@ import { ReviewnotesBlock } from './_components/reviewnotes-block'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ReviewnotesPage() {
+  const cols = useDashCols()
   const [rnLoading, setRnLoading] = useState(true)
   const [rnRefreshing, setRnRefreshing] = useState(false)
   const [rnStats, setRnStats] = useState<ReviewNotesStats | null>(null)
@@ -63,7 +65,7 @@ export default function ReviewnotesPage() {
 
   return (
     <ReviewnotesBlock
-      cols={1}
+      cols={cols}
       loading={rnLoading}
       stats={rnStats}
       userStats={rnUserStats}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { VoicecardsBlock } from './_components/voicecards-block'
 import { VoicecardsSettingsDialog } from './_components/voicecards-settings-dialog'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { kstToday } from '@/lib/kst'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -126,6 +127,7 @@ interface AnonymousEventStats {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function VoicecardsPage() {
+  const cols = useDashCols()
   // 3개 파트 독립 로딩 (사용자/이벤트/매출)
   const [vcUsersLoading, setVcUsersLoading] = useState(true)
   const [vcEventsLoading, setVcEventsLoading] = useState(true)
@@ -204,7 +206,7 @@ export default function VoicecardsPage() {
   return (
     <>
       <VoicecardsBlock
-        cols={1}
+        cols={cols}
         usersLoading={vcUsersLoading}
         eventsLoading={vcEventsLoading}
         revenueLoading={vcRevenueLoading}
