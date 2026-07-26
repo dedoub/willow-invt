@@ -419,7 +419,26 @@ export function ReviewnotesBlock({
           </div>
         )}
 
-        {loading && <SkeletonRow count={4} />}
+        {loading && (() => {
+          const splitLayout = !mobile && dashCols === 1
+          const pulse = { borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' } as const
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                {/* 퍼널 6카드 */}
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+                  {[0, 1, 2, 3, 4, 5].map(i => <div key={i} style={{ ...pulse, height: 64 }} />)}
+                </div>
+                {/* 분포 파이 3 */}
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+                  {[0, 1, 2].map(i => <div key={i} style={{ ...pulse, height: 150 }} />)}
+                </div>
+              </div>
+              {/* 일별 활동자(DAU) */}
+              <div style={{ ...pulse, minWidth: 0, minHeight: splitLayout ? undefined : 190 }} />
+            </div>
+          )
+        })()}
 
       {/* 인사이트 — 랜딩 트래픽 → 가입 → 로그인 → 활동 → 유료 퍼널.
           보이스카드와 동일하게 헤더 컨테이너 안에 배치 — 두 블록의 인사이트 시작 높이 정렬 (2026-07-15 CEO) */}
