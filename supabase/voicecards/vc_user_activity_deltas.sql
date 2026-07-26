@@ -4,6 +4,7 @@
 --   attempts: time_series_analytics (앱 일별 기록)
 --   listen/flips/purchased: mv_real_users (이벤트 로그, 오늘 필터)
 --     flips = card_flipped_manual, purchased = credits_changed/purchase 상품매핑
+--   active_days_7d 학습일: card_attempted 이벤트 KST (듣기/뒤집기와 동일 기준 — tz 이중집계 방지)
 --   spent: credit_transactions 음수 delta 합 (완전 원장, 2026-07-22; 상세는 spent_today CTE 주석)
 --   반환 컬럼 변경 시 drop 후 재생성 필요 (return type replace 불가).
 drop function if exists public.vc_user_activity_deltas();
@@ -62,9 +63,16 @@ live_sheets as (select user_id, coalesce(array_length(sheet_ids,1),0) as sc from
 live_cards as (select ua.user_id, coalesce(sum(ua.total_cards),0)::bigint as tc from user_analytics ua group by ua.user_id),
 sheet_snap as (select s.user_id, s.sheet_count, s.card_count from user_sheet_snapshots s, td where s.date = td.d),
 u_created as (select u.user_id, (u.created_at at time zone 'Asia/Seoul')::date as cdate from users u where u.user_id is not null),
+-- 학습일 — card_attempted 이벤트의 KST 날짜. 듣기/뒤집기와 동일 기준(mv_real_users + KST)으로 통일.
+-- (구: time_series_analytics.date 를 썼으나 이 date가 KST가 아닌 tz로 찍혀서, 같은 KST 하루 세션이
+--  듣기/뒤집기(KST)와 학습(앱 tz)으로 서로 다른 날짜에 걸려 활동일이 이중집계됐다 — 신규가입자가
+--  당일만 활동해도 2/7로 뜨던 문제, 2026-07-26 CEO. attempts>0 인 날은 항상 card_attempted 이벤트가
+--  있어(최근 7일 problems_learned>0 & attempts=0 케이스 0건) 신호 손실 없음.)
 learn_days as (
-  select t.user_id, t.date as d from time_series_analytics t, td
-  where t.date >= td.d - 6 and (coalesce(t.attempts,0) > 0 or coalesce(t.problems_learned,0) > 0)
+  select e.user_id, (e.created_at at time zone 'Asia/Seoul')::date as d
+  from mv_real_users e, td
+  where e.event_name = 'card_attempted'
+    and (e.created_at at time zone 'Asia/Seoul')::date >= td.d - 6 and e.user_id is not null
 ),
 listen_days as (
   select e.user_id, (e.created_at at time zone 'Asia/Seoul')::date as d
