@@ -430,10 +430,6 @@ function SkelStat({ compact }: { compact: boolean }) {
   )
 }
 
-function SkelSectionHeader({ width = 100 }: { width?: number }) {
-  return <SkelBar width={width} height={11} style={{ marginBottom: 10 }} />
-}
-
 function SkelPie() {
   // DistributionPie 세로 스택과 동일: 제목+탭 → 도넛(72) 가운데 → 범례 행들
   return (
@@ -1115,7 +1111,7 @@ export function VoicecardsBlock({
       {/* 가입 후 활동 · 매출 동인 — userStats 필요 (뒤집기/듣기 카드는 anonymousStats) */}
       {usersLoading && !userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <SkelSectionHeader width={140} />
+          <LSectionHead eyebrow="ENGAGEMENT" title="가입 후 활동 · 매출 동인" mb={10} />
           {/* 6카드: 와이드(1열) 모드 한 줄, 2열 모드 3+3 (인사이트 6카드와 동일 규칙), 모바일 2×3 */}
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
             {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
@@ -1330,7 +1326,7 @@ export function VoicecardsBlock({
       {/* 사용자 목록 (맨 아래) — userStats만 필요 */}
       {usersLoading && !userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <SkelSectionHeader width={50} />
+          <LSectionHead eyebrow="USERS" title="사용자" mb={8} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => <SkelUserRow key={i} />)}
           </div>
@@ -1602,7 +1598,7 @@ export function VoicecardsBlock({
     ) : eventsLoading ? (
       <LCard pad={0}>
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <SkelSectionHeader width={140} />
+          <LSectionHead eyebrow="VISITORS" title="비로그인 저니" mb={10} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => <SkelUserRow key={i} />)}
           </div>

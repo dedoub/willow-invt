@@ -616,6 +616,12 @@ export function ReviewnotesBlock({
 
     {/* 카드2: 콘텐츠·학습 지표 */}
     <LCard pad={0}>
+      {loading && (
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <LSectionHead eyebrow="METRICS" title="운영 지표" mb={10} />
+          <SkeletonRow count={mobile ? 2 : (dashCols === 2 ? 3 : 5)} />
+        </div>
+      )}
       {/* 운영 지표 (임시 이름) — 매출 + 가입 통합 4카드, 옛 '인사이트' 섹션 (2026-07-15 아래로 이동) */}
       {!loading && stats && userStats && (() => {
         // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생. 통계는 관리자 제외 (2026-07-16 CEO)
@@ -704,6 +710,16 @@ export function ReviewnotesBlock({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
     {/* 카드3: 사용자 테이블 */}
     <LCard pad={0}>
+      {loading && (
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <LSectionHead eyebrow="USERS" title="사용자" mb={8} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
+              <div key={i} style={{ height: 40, borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' }} />
+            ))}
+          </div>
+        </div>
+      )}
       {/* User list section */}
       {!loading && userStats && (
         <>
