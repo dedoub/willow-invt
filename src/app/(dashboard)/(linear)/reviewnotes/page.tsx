@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { ReviewnotesBlock } from '@/app/(dashboard)/(linear)/monor/_components/reviewnotes-block'
+import { ReviewnotesBlock } from './_components/reviewnotes-block'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'

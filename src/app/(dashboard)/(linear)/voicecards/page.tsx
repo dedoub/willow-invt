@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { VoicecardsBlock } from '@/app/(dashboard)/(linear)/monor/_components/voicecards-block'
-import { VoicecardsSettingsDialog } from '@/app/(dashboard)/(linear)/monor/_components/voicecards-settings-dialog'
+import { VoicecardsBlock } from './_components/voicecards-block'
+import { VoicecardsSettingsDialog } from './_components/voicecards-settings-dialog'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { kstToday } from '@/lib/kst'
 
