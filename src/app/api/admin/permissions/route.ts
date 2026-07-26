@@ -11,7 +11,8 @@ export const AVAILABLE_PAGES = [
   { path: '/etc',        section: 'etfIndexing',  name: 'ETC' },
   { path: '/akros',      section: 'etfIndexing',  name: 'Akros' },
   { path: '/tensw',      section: 'tenSoftworks', name: '텐소프트웍스' },
-  { path: '/monor',      section: 'monoRApps',    name: 'MonoR Apps' },
+  { path: '/voicecards',  section: 'monoRApps',    name: 'VoiceCards' },
+  { path: '/reviewnotes', section: 'monoRApps',    name: 'ReviewNotes' },
   { path: '/ryuha',      section: 'others',       name: '류하일정' },
 ]
 
