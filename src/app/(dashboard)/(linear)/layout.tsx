@@ -34,7 +34,7 @@ const PAGE_INFO: Record<string, { group: string; title: string }> = {
   '/tensw':      { group: '프로젝트', title: '텐소프트웍스' },
   '/voicecards':  { group: '프로젝트', title: 'VoiceCards' },
   '/reviewnotes': { group: '프로젝트', title: 'ReviewNotes' },
-  '/valuechain': { group: '프로젝트', title: 'LLM Wiki' },
+  '/valuechain': { group: '프로젝트', title: 'ValueChain' },
 }
 
 // 1열/2열 토글을 상단바에 노출할 페이지 (바디 그리드가 있는 페이지들). wiki는 마스터-디테일이라 제외.
