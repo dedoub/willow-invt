@@ -198,8 +198,8 @@ export default function ValueChainPage() {
         {/* 헤더 + 현황 */}
         <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
           <LSectionHead
-            eyebrow="VALUECHAIN"
-            title="밸류체인"
+            eyebrow="WIKI"
+            title="ValueChain"
             action={
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <a href={SITE_URL} target="_blank" rel="noreferrer" style={iconBtn}>
