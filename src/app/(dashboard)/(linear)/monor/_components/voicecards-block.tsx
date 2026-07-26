@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
-import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
@@ -161,6 +160,7 @@ export interface VoicecardsBlockProps {
   onOpenSettings: () => void
   onRefresh: () => void
   refreshing: boolean
+  cols: 1 | 2 // 레이아웃 열 수 (1=wide: 인사이트 분할·KPI 6/row). 단일 앱 페이지는 1 고정.
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -502,10 +502,10 @@ function SkelUserRow() {
 export function VoicecardsBlock({
   usersLoading, eventsLoading, revenueLoading,
   stats, userStats, anonymousStats, chartData,
-  onOpenSettings, onRefresh, refreshing,
+  onOpenSettings, onRefresh, refreshing, cols,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
-  const dashCols = useDashCols()
+  const dashCols = cols
   // 매우 좁은 화면(모바일)에서만 sparkline 숨김. LStat이 sub를 자체 줄로 분리해서
   // 일반 PC 해상도에선 sparkline 들어갈 공간 있음.
   const compact = mobile

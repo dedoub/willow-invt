@@ -260,6 +260,7 @@ export default function MonorPage() {
         alignItems: 'start',
       }}>
         <VoicecardsBlock
+          cols={cols}
           usersLoading={vcUsersLoading}
           eventsLoading={vcEventsLoading}
           revenueLoading={vcRevenueLoading}
@@ -273,6 +274,7 @@ export default function MonorPage() {
         />
 
         <ReviewnotesBlock
+          cols={cols}
           loading={rnLoading}
           stats={rnStats}
           userStats={rnUserStats}

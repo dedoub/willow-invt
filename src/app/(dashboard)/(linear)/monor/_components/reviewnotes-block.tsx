@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
-import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
@@ -25,6 +24,7 @@ export interface ReviewnotesBlockProps {
   onRefresh: () => void
   refreshing: boolean
   error: string | null
+  cols: 1 | 2 // 레이아웃 열 수 (1=wide). 단일 앱 페이지는 1 고정.
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -276,10 +276,10 @@ function RnDauTrendCard({ daily, days = 42 }: {
 
 export function ReviewnotesBlock({
   loading, stats, userStats, trafficStats, contentStats,
-  onRefresh, refreshing, error,
+  onRefresh, refreshing, error, cols,
 }: ReviewnotesBlockProps) {
   const mobile = useIsMobile()
-  const dashCols = useDashCols()
+  const dashCols = cols
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
   const [userPerPageInput, setUserPerPageInput] = useState('10')
