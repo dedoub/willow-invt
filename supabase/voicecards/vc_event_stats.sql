@@ -31,12 +31,33 @@ with excluded_devices as (
       or u.email ~ 'wave[0-9]+batch[0-9]+'
     )
 ),
+-- 출시 상한: 로그인(user_id 있음)한 iOS 기기의 최고 app_version(semver). App Store 심사/TestFlight
+-- 빌드는 미출시(로그인 0)라 항상 이보다 높은 버전 → 심사봇으로 보고 통째 제외. 새 버전 출시로 실사용자가
+-- 로그인하면 상한이 자동 상승 → 제출마다 device_id 등록 불필요. (2026-07-26)
+ios_ceiling as (
+  -- 개발자/테스트 계정(excluded_devices) 제외 — 이들이 TestFlight로 미출시 버전에 로그인하면
+  -- 상한이 오염돼 심사봇이 안 걸린다. 실사용자 로그인 버전만으로 상한을 잡는다.
+  select max(string_to_array(app_version,'.')::int[]) as ver
+  from mv_real_users
+  where platform='ios' and user_id is not null and coalesce(is_likely_bot,false)=false
+    and app_version ~ '^[0-9]+(\.[0-9]+)*$'
+    and (device_id is null or device_id not in (select device_id from excluded_devices))
+),
+review_build_devices as (
+  select distinct e.device_id
+  from mv_real_users e
+  where e.platform='ios' and e.device_id is not null
+    and e.app_version ~ '^[0-9]+(\.[0-9]+)*$'
+    and (select ver from ios_ceiling) is not null
+    and string_to_array(e.app_version,'.')::int[] > (select ver from ios_ceiling)
+),
 base as (
   select e.device_id, e.user_id, e.event_name, e.platform, e.locale, e.country, e.app_version, e.properties, e.created_at,
          (e.created_at at time zone 'Asia/Seoul')::date as kdate
   from mv_real_users e
   where e.is_likely_bot = false
     and (e.device_id is null or e.device_id not in (select device_id from excluded_devices))
+    and (e.device_id is null or e.device_id not in (select device_id from review_build_devices))
 ),
 dev_first as (
   select device_id,

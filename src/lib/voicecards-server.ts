@@ -1425,7 +1425,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   stats.storeVisits = Array.from(svByDate.entries()).map(([date, visitors]) => ({ date, visitors }))
   // 비로그인 저니 — 실패해도 인사이트 블록 전체를 막지 않는다 (best-effort)
   try {
-    const [{ data: stageRows }, { data: anonRows }, { data: signedVerRows }] = await Promise.all([
+    const [{ data: stageRows }, { data: anonRows }, { data: ceilingData }] = await Promise.all([
       voicecardsSupabase.from('vc_device_journeys').select('journey_stage, platform, app_version'),
       voicecardsSupabase
         .from('vc_device_journeys')
@@ -1434,9 +1434,9 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
         .gte('last_seen_at', new Date(Date.now() - 14 * 86400_000).toISOString())
         .order('last_seen_at', { ascending: false })
         .limit(100),
-      // 출시 버전 상한 — iOS에서 로그인한 기기의 최고 버전. App Store 심사/TestFlight 빌드는
-      // 미출시(로그인 0)라 항상 이보다 높아 제외된다. 새 버전 출시로 실사용자가 로그인하면 상한이 자동 상승.
-      voicecardsSupabase.from('vc_device_journeys').select('app_version').eq('platform', 'ios').eq('signed_in', true),
+      // 출시 버전 상한 — 개발자/테스트 제외한 실사용자 로그인 iOS 최고 버전 (vc_event_stats 와 동일 RPC).
+      // App Store 심사/TestFlight 빌드는 미출시라 항상 이보다 높아 제외된다. 새 버전 출시로 상한 자동 상승.
+      voicecardsSupabase.rpc('vc_released_ios_ceiling'),
     ])
     // semver 비교 (문자열 비교는 1.1.9 vs 1.1.10 오류라 숫자 파트로 비교)
     const cmpVer = (a: string, b: string): number => {
@@ -1448,10 +1448,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       }
       return 0
     }
-    let iosCeiling: string | null = null
-    for (const r of (signedVerRows ?? []) as Array<{ app_version: string | null }>) {
-      if (r.app_version && (!iosCeiling || cmpVer(r.app_version, iosCeiling) > 0)) iosCeiling = r.app_version
-    }
+    const iosCeiling: string | null = (ceilingData as string | null) ?? null
     // 심사 빌드 판정: iOS + 출시 상한보다 높은 버전 (상한을 못 구하면 제외 안 함)
     const isReviewBuild = (platform: string | null, version: string | null): boolean =>
       platform === 'ios' && !!version && !!iosCeiling && cmpVer(version, iosCeiling) > 0
