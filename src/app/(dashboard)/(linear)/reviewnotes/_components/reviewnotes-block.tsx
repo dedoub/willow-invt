@@ -356,7 +356,13 @@ export function ReviewnotesBlock({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: (dashCols === 2 && !mobile) ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+      gap: 14, alignItems: 'start',
+    }}>
+    {/* 좌열: 인사이트 · 운영 지표 (2열모드에서 왼쪽 반폭) */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
     {/* 카드1: 헤더 + 인사이트 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
@@ -701,7 +707,10 @@ export function ReviewnotesBlock({
         )
       })()}
     </LCard>
+    </div>
 
+    {/* 우열: 사용자 테이블 (2열모드에서 오른쪽 반폭) */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
     {/* 카드3: 사용자 테이블 */}
     <LCard pad={0}>
       {/* User list section */}
@@ -930,6 +939,7 @@ export function ReviewnotesBlock({
         </>
       )}
     </LCard>
+    </div>
     </div>
   )
 }

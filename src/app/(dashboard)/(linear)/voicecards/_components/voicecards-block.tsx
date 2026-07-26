@@ -647,7 +647,13 @@ export function VoicecardsBlock({
 
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: (dashCols === 2 && !mobile) ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+      gap: 14, alignItems: 'start',
+    }}>
+    {/* 좌열: 인사이트 · 가입 후 활동 (2열모드에서 왼쪽 반폭) */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
     {/* 카드1: 헤더 + 인사이트 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
@@ -1315,13 +1321,10 @@ export function VoicecardsBlock({
         </div>
       )}
     </LCard>
+    </div>
 
-    {/* 카드3+4: 사용자 테이블·비로그인 저니 — 2열모드(데스크톱)에서 나란히. 저니 없으면 사용자 전폭 */}
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: (dashCols === 2 && !mobile && !!(anonymousStats?.journeys && anonymousStats.journeys.recentAnon.length > 0)) ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
-      gap: 14, alignItems: 'start',
-    }}>
+    {/* 우열: 사용자 테이블 · 비로그인 저니 (2열모드에서 오른쪽 반폭) */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
     {/* 카드3: 사용자 테이블 */}
     <LCard pad={0}>
       {/* 사용자 목록 (맨 아래) — userStats만 필요 */}
