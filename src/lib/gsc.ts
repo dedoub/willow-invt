@@ -216,7 +216,7 @@ export async function getSearchConsoleStats(
     })
     .filter((q): q is GscQueryRow & { reason: 'low_ctr' | 'page_two' } => q !== null)
     .sort((a, b) => b.impressions - a.impressions)
-    .slice(0, 12)
+    .slice(0, 50)
 
   // 도메인 속성은 www/non-www·http/https가 각각 다른 URL로 오므로 경로 기준으로 합친다.
   // 순위는 노출 가중 평균, CTR은 합계로 재계산해야 맞다.
@@ -269,9 +269,9 @@ export async function getSearchConsoleStats(
         ctr: pct1(r.ctr), position: round1(r.position),
       }))
       .sort((a, b) => a.date.localeCompare(b.date)),
-    queries: queries.slice(0, 20),
+    queries: queries.slice(0, 100),
     opportunities,
-    pages: pages.slice(0, 12),
+    pages: pages.slice(0, 100),
     countries: countryRows.map(r => ({
       code: (r.keys?.[0] ?? '').toUpperCase(), clicks: r.clicks, impressions: r.impressions,
     })).filter(c => c.code),

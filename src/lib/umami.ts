@@ -352,12 +352,12 @@ export async function getSearchDemandStats(
   const entryPages: SearchDemandPage[] = touchedPaths
     .map(p => ({ path: p, views: viewedByPath.get(p) ?? 0, searchViews: searchViewsByPath.get(p) ?? 0 }))
     .sort((a, b) => b.views - a.views)
-    .slice(0, 12)
+    .slice(0, 100)
 
   const searchPages: SearchDemandPage[] = Array.from(searchViewsByPath.entries())
     .map(([path, searchViews]) => ({ path, searchViews, views: viewedByPath.get(path) ?? searchViews }))
     .sort((a, b) => b.searchViews - a.searchViews)
-    .slice(0, 12)
+    .slice(0, 100)
 
   notes.push('Umami는 리퍼러까지만 전달돼 검색어는 안 보임 — 키워드 단위는 위 Search Console 섹션에서 본다')
 

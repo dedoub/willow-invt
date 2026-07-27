@@ -7,7 +7,7 @@
 //
 // 방문자 수를 세는 카드가 아니라 "발행한 페이지가 검색 수요를 잡고 있는가"를 보는 카드다.
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from './linear-tokens'
 import { LCard } from './linear-card'
 import { LSectionHead } from './linear-section-head'
@@ -163,6 +163,8 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
 // 헤더는 mono 대문자, 행은 패널(inner) 위에 카드색으로 얹고, 숫자는 tabular-nums.
 // 좁은 폭에서는 가로 스크롤 — 사용자 테이블이 쓰는 방식 그대로다.
 
+type SortDir = 'asc' | 'desc'
+
 interface TableColumn {
   key: string
   label: string
@@ -174,6 +176,8 @@ interface TableRow {
   key: string
   href?: string
   cells: React.ReactNode[]
+  /** 정렬용 원값 — cells와 같은 순서. 포맷된 문자열로 정렬하면 1,000 < 9가 되므로 분리한다. */
+  sort?: Array<string | number>
 }
 
 const headCell: React.CSSProperties = {
@@ -200,6 +204,42 @@ function DataTable({
   minWidth?: number
 }) {
   const template = columns.map(c => c.width).join(' ')
+
+  // 사용자 테이블과 동일한 페이지네이션 — 개수 입력 + 쉐브론 네비게이션.
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(10)
+  const [perPageInput, setPerPageInput] = useState('10')
+  const commitPerPage = () => {
+    const n = Math.max(5, Math.min(100, Number(perPageInput) || 10))
+    setPerPageInput(String(n))
+    setPerPage(n)
+    setPage(1)
+  }
+  // 정렬 — 사용자 테이블과 동일하게 헤더 클릭, 같은 컬럼 재클릭 시 방향 토글.
+  // 기본값은 원본 순서(각 표가 이미 의미 있는 순서로 넘어온다).
+  const [sortIdx, setSortIdx] = useState<number | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const handleSort = (i: number) => {
+    if (i === sortIdx) { setSortDir(d => (d === 'asc' ? 'desc' : 'asc')); return }
+    setSortIdx(i)
+    // 텍스트 컬럼은 오름차순, 숫자는 내림차순이 기본
+    setSortDir(columns[i].align === 'right' ? 'desc' : 'asc')
+    setPage(1)
+  }
+
+  const sortedRows = useMemo(() => {
+    if (sortIdx == null) return rows
+    const mul = sortDir === 'asc' ? 1 : -1
+    return [...rows].sort((a, b) => {
+      const av = a.sort?.[sortIdx], bv = b.sort?.[sortIdx]
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * mul
+      return String(av ?? '').localeCompare(String(bv ?? ''), 'ko') * mul
+    })
+  }, [rows, sortIdx, sortDir])
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / perPage))
+  const safePage = Math.min(page, totalPages)
+  const pageRows = sortedRows.slice((safePage - 1) * perPage, safePage * perPage)
   return (
     <div style={panelStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
@@ -215,13 +255,25 @@ function DataTable({
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: minWidth ?? 300, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <div style={{ display: 'grid', gridTemplateColumns: template, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
-              {columns.map(c => (
-                <div key={c.key} style={{ ...headCell, textAlign: c.align === 'right' ? 'right' : 'left' }}>
-                  {c.label}
-                </div>
-              ))}
+              {columns.map((c, i) => {
+                const active = sortIdx === i
+                return (
+                  <button key={c.key} onClick={() => handleSort(i)} title={`${c.label} 기준 정렬`}
+                    style={{
+                      ...headCell, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+                      display: 'flex', alignItems: 'center', gap: 2, width: '100%',
+                      justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start',
+                      color: active ? t.neutrals.text : t.neutrals.subtle,
+                    }}>
+                    {c.label}
+                    <span style={{ fontSize: '0.85em', lineHeight: 1, opacity: active ? 1 : 0 }}>
+                      {sortDir === 'asc' ? '▲' : '▼'}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
-            {rows.map(r => {
+            {pageRows.map(r => {
               const inner = columns.map((c, i) => (
                 <div key={c.key} style={c.align === 'right' ? numCell : textCell}>{r.cells[i]}</div>
               ))
@@ -237,6 +289,53 @@ function DataTable({
               )
             })}
           </div>
+        </div>
+      )}
+      {sortedRows.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginTop: 6, paddingTop: 6, borderTop: `1px solid ${t.neutrals.line}`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <input
+              value={perPageInput}
+              onChange={e => setPerPageInput(e.target.value.replace(/\D/g, ''))}
+              onBlur={commitPerPage}
+              onKeyDown={e => { if (e.key === 'Enter') commitPerPage() }}
+              style={{
+                width: 30, textAlign: 'center', border: 'none',
+                background: t.neutrals.card, borderRadius: t.radius.sm,
+                fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                padding: '2px 0', outline: 'none',
+              }}
+            />
+            <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle }}>개씩</span>
+          </div>
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button disabled={safePage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}
+                style={{
+                  background: 'transparent', border: 'none', padding: 3, borderRadius: 4,
+                  cursor: safePage === 1 ? 'default' : 'pointer',
+                  color: safePage === 1 ? t.neutrals.line : t.neutrals.muted,
+                  opacity: safePage === 1 ? 0.4 : 1,
+                }}>
+                <LIcon name="chevronLeft" size={12} stroke={2} />
+              </button>
+              <span style={{ ...mono(9.5), color: t.neutrals.muted }}>
+                {(safePage - 1) * perPage + 1}-{Math.min(safePage * perPage, sortedRows.length)} / {sortedRows.length}
+              </span>
+              <button disabled={safePage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                style={{
+                  background: 'transparent', border: 'none', padding: 3, borderRadius: 4,
+                  cursor: safePage >= totalPages ? 'default' : 'pointer',
+                  color: safePage >= totalPages ? t.neutrals.line : t.neutrals.muted,
+                  opacity: safePage >= totalPages ? 0.4 : 1,
+                }}>
+                <LIcon name="chevronRight" size={12} stroke={2} />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -902,6 +1001,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                   rows={gsc.queries.map(q => ({
                     key: q.query,
                     cells: [q.query, q.impressions.toLocaleString(), q.clicks.toLocaleString(), `${q.ctr}%`, `${q.position}위`],
+                    sort: [q.query, q.impressions, q.clicks, q.ctr, q.position],
                   }))}
                   empty="기간 내 검색어 데이터가 없습니다"
                 />
@@ -925,6 +1025,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                       </span>,
                       q.impressions.toLocaleString(), q.clicks.toLocaleString(), `${q.ctr}%`, `${q.position}위`,
                     ],
+                    sort: [q.query, q.impressions, q.clicks, q.ctr, q.position],
                   }))}
                   empty="개선 여지가 큰 검색어가 아직 없습니다"
                 />
@@ -941,6 +1042,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     key: p.path,
                     href: `https://${gsc.site.domain}${p.path}`,
                     cells: [p.path, p.impressions.toLocaleString(), p.clicks.toLocaleString(), `${p.position}위`],
+                    sort: [p.path, p.impressions, p.clicks, p.position],
                   }))}
                   empty="노출된 페이지가 없습니다"
                 />
@@ -1052,6 +1154,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     key: p.path,
                     href: `https://${data.site.domain}${p.path}`,
                     cells: [p.path, p.searchViews.toLocaleString(), p.views.toLocaleString()],
+                    sort: [p.path, p.searchViews, p.views],
                   }))}
                   empty={<>검색 진입 기록이 없습니다<br />색인 상태부터 확인 필요</>}
                 />
@@ -1068,6 +1171,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     key: p.path,
                     href: `https://${data.site.domain}${p.path}`,
                     cells: [p.path, p.views.toLocaleString(), p.searchViews > 0 ? p.searchViews.toLocaleString() : '—'],
+                    sort: [p.path, p.views, p.searchViews],
                   }))}
                   empty="조회 기록이 없습니다"
                 />
