@@ -205,10 +205,11 @@ function getStoredPageSize(key: string): number {
 }
 
 function DataTable({
-  title, hint, columns, rows, empty, minWidth,
+  title, meta, columns, rows, empty, minWidth,
 }: {
   title: string
-  hint?: React.ReactNode
+  /** 제목 우측 보조 정보 — 검사일·총계처럼 표 전체에 걸리는 값 */
+  meta?: React.ReactNode
   columns: TableColumn[]
   rows: TableRow[]
   empty: React.ReactNode
@@ -254,14 +255,15 @@ function DataTable({
   const pageRows = sortedRows.slice((safePage - 1) * perPage, safePage * perPage)
   return (
     <div style={panelStyle}>
-      <div style={{ marginBottom: 6 }}>
+      <div style={{
+        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+        gap: 6, marginBottom: 6, flexWrap: 'wrap' as const,
+      }}>
         <div style={panelTitle}>{title}</div>
+        {meta && (
+          <div style={{ ...mono(9), color: t.neutrals.subtle, lineHeight: 1.5 }}>{meta}</div>
+        )}
       </div>
-      {hint && (
-        <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
-          {hint}
-        </div>
-      )}
       {rows.length === 0 ? <EmptyLine>{empty}</EmptyLine> : (
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: minWidth ?? 300, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -561,10 +563,11 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
   return (
     <DataTable
       title="색인 상태"
-      hint={total > 0 ? (
+      meta={total > 0 ? (
         <>
-          {data.latestDate} 검사 · {total.toLocaleString()}쪽
-          {data.trend.length > 1 && <> · 색인 추이 {data.trend.map(d => d.indexed).join(' → ')}</>}
+          {data.latestDate} · {total.toLocaleString()}쪽
+          {/* 4열 헤더에 30일치 숫자는 다 못 들어간다 — 최근 7회만 */}
+          {data.trend.length > 1 && <> · 추이 {data.trend.slice(-7).map(d => d.indexed).join(' → ')}</>}
           {data.changeFromPrev != null && data.changeFromPrev !== 0 && (
             <span style={{ marginLeft: 4, fontWeight: 600, color: data.changeFromPrev > 0 ? t.accent.pos : t.accent.neg }}>
               ({data.changeFromPrev > 0 ? '+' : '−'}{Math.abs(data.changeFromPrev)})
@@ -730,6 +733,8 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
   const statCols = mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'
   // 목록 패널: 1열 모드는 한 줄에 3개, 2열 모드는 2개, 모바일은 1개.
   const panelCols = mobile ? '1fr' : splitLayout ? 'repeat(3, minmax(0,1fr))' : 'repeat(2, minmax(0,1fr))'
+  // Search Console 패널은 4장뿐 — 1열 모드에서는 한 줄에 다 넣는다.
+  const gscPanelCols = splitLayout ? 'repeat(4, minmax(0,1fr))' : panelCols
   const cov = data?.coverage
 
   const periodToggle = (
@@ -890,7 +895,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
 
               {!splitLayout && <GscTrendCard daily={gsc.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: 8, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: gscPanelCols, gap: 8, alignItems: 'stretch' }}>
                 {/* 색인 → 노출 → 클릭 순서로 읽히게 배치 */}
                 {index && <IndexStatusCard data={index} />}
                 {index && <IndexGroupsCard data={index} />}
