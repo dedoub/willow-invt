@@ -13,6 +13,8 @@ import { LCard } from './linear-card'
 import { LSectionHead } from './linear-section-head'
 import { LStat } from './linear-stat'
 import { LIcon } from './linear-icons'
+import { LPageSize, getStoredPageSize, savePageSize } from './linear-page-size'
+import { formatCountryName } from '@/lib/country-format'
 import { useDashCols } from './cols-toggle'
 import type { SearchDemandStats, Channel } from '@/lib/umami'
 import type { SearchConsoleStats } from '@/lib/gsc'
@@ -37,12 +39,6 @@ const CHANNEL_COLOR: Record<Channel, string> = {
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 function withWeekday(d: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d} (${WEEKDAYS[new Date(d + 'T00:00:00Z').getUTCDay()]})` : d
-}
-
-// ISO 2자리 국가코드 → 국기 이모지(리저널 인디케이터). 규격 밖 코드는 빈 문자열.
-function flagOf(code: string): string {
-  if (!/^[A-Za-z]{2}$/.test(code)) return ''
-  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65))
 }
 
 // 브라우저 언어 태그 → 한국어 언어명. ko-KR·ko 모두 '한국어'로 접는다
@@ -224,18 +220,6 @@ const numCell: React.CSSProperties = {
   ...mono(10), color: t.neutrals.muted, textAlign: 'right' as const, whiteSpace: 'nowrap' as const,
 }
 
-// 표별 행수는 브라우저에 기억시킨다 — 매번 다시 맞추게 하지 않는다.
-const PAGE_SIZE_PREFIX = 'search-demand-page-size:'
-const DEFAULT_PAGE_SIZE = 10
-
-function getStoredPageSize(key: string): number {
-  if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
-  const v = localStorage.getItem(PAGE_SIZE_PREFIX + key)
-  if (!v) return DEFAULT_PAGE_SIZE
-  const n = Number(v)
-  return n >= 5 && n <= 100 ? n : DEFAULT_PAGE_SIZE
-}
-
 function DataTable({
   title, meta, columns, rows, empty, minWidth,
 }: {
@@ -252,13 +236,10 @@ function DataTable({
   // 사용자 테이블과 동일한 페이지네이션 — 개수 입력 + 쉐브론 네비게이션.
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(() => getStoredPageSize(title))
-  const [perPageInput, setPerPageInput] = useState(() => String(getStoredPageSize(title)))
-  const commitPerPage = () => {
-    const n = Math.max(5, Math.min(100, Number(perPageInput) || DEFAULT_PAGE_SIZE))
-    setPerPageInput(String(n))
+  const changePerPage = (n: number) => {
     setPerPage(n)
     setPage(1)
-    localStorage.setItem(PAGE_SIZE_PREFIX + title, String(n))
+    savePageSize(title, n)
   }
   // 정렬 — 사용자 테이블과 동일하게 헤더 클릭, 같은 컬럼 재클릭 시 방향 토글.
   // 기본값은 원본 순서(각 표가 이미 의미 있는 순서로 넘어온다).
@@ -341,21 +322,7 @@ function DataTable({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginTop: 6, paddingTop: 6, borderTop: `1px solid ${t.neutrals.line}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <input
-              value={perPageInput}
-              onChange={e => setPerPageInput(e.target.value.replace(/\D/g, ''))}
-              onBlur={commitPerPage}
-              onKeyDown={e => { if (e.key === 'Enter') commitPerPage() }}
-              style={{
-                width: 30, textAlign: 'center', border: 'none',
-                background: t.neutrals.card, borderRadius: t.radius.sm,
-                fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                padding: '2px 0', outline: 'none',
-              }}
-            />
-            <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle }}>개씩</span>
-          </div>
+          <LPageSize value={perPage} onChange={changePerPage} fontSize={10.5} />
           {totalPages > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <button disabled={safePage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -460,7 +427,7 @@ function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
     return {
       key: `${c?.code ?? '-'}:${l?.name ?? '-'}:${i}`,
       cells: [
-        c ? `${flagOf(c.code)} ${c.code}`.trim() : '', c ? c.visits.toLocaleString() : '',
+        c ? formatCountryName(c.code) : '', c ? c.visits.toLocaleString() : '',
         l?.name ?? '', l ? l.visits.toLocaleString() : '',
       ],
       sort: [c?.code ?? '', c?.visits ?? 0, l?.name ?? '', l?.visits ?? 0],

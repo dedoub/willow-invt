@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LPageSize, getStoredPageSize, savePageSize } from '@/app/(dashboard)/_components/linear-page-size'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
 import { COUNTRY_NAMES, codeToFlag, formatCountryName } from '@/lib/country-format'
@@ -510,14 +511,12 @@ export function VoicecardsBlock({
   // 다중 정렬: 우선순위 순서대로 [{key,dir}]. 헤더 클릭으로 컬럼을 체인에 추가/방향전환/해제.
   const [userSorts, setUserSorts] = useState<SortCrit[]>([{ key: 'created', dir: 'desc' }])
   const [userPage, setUserPage] = useState(1)
-  const [userPerPage, setUserPerPage] = useState(10)
-  const [userPerPageInput, setUserPerPageInput] = useState('10')
+  const [userPerPage, setUserPerPage] = useState(() => getStoredPageSize('voicecards-users'))
 
-  const commitUserPerPage = () => {
-    const n = Math.max(5, Math.min(100, Number(userPerPageInput) || 10))
-    setUserPerPageInput(String(n))
+  const changeUserPerPage = (n: number) => {
     setUserPerPage(n)
     setUserPage(1)
+    savePageSize('voicecards-users', n)
   }
 
   // 마운트 시 localStorage에서 정렬 상태 복원 (SSR/CSR hydration 안전).
@@ -1535,21 +1534,7 @@ export function VoicecardsBlock({
               borderTop: `1px solid ${t.neutrals.line}`,
             }}>
               {/* Page size input */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <input
-                  value={userPerPageInput}
-                  onChange={e => setUserPerPageInput(e.target.value.replace(/\D/g, ''))}
-                  onBlur={commitUserPerPage}
-                  onKeyDown={e => { if (e.key === 'Enter') commitUserPerPage() }}
-                  style={{
-                    width: 32, textAlign: 'center', border: 'none',
-                    background: t.neutrals.inner, borderRadius: t.radius.sm,
-                    fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                    padding: '2px 0', outline: 'none',
-                  }}
-                />
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
-              </div>
+              <LPageSize value={userPerPage} onChange={changeUserPerPage} bg={t.neutrals.inner} />
 
               {/* Page navigation */}
               {totalUserPages > 1 && (
@@ -1616,13 +1601,11 @@ export function VoicecardsBlock({
 // 사용자 테이블 바로 아래 배치. 페이지네이션 상태는 이 컴포넌트 소유.
 function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats['journeys']> }) {
   const [journeyPage, setJourneyPage] = useState(1)
-  const [journeyPerPage, setJourneyPerPage] = useState(10)
-  const [journeyPerPageInput, setJourneyPerPageInput] = useState('10')
-  const commitJourneyPerPage = () => {
-    const n = Math.max(5, Math.min(100, Number(journeyPerPageInput) || 10))
-    setJourneyPerPageInput(String(n))
+  const [journeyPerPage, setJourneyPerPage] = useState(() => getStoredPageSize('voicecards-journey'))
+  const changeJourneyPerPage = (n: number) => {
     setJourneyPerPage(n)
     setJourneyPage(1)
+    savePageSize('voicecards-journey', n)
   }
   const stageMeta: Record<string, { label: string; desc: string; color: string; bg: string }> = {
     opened: { label: '실행만', desc: '앱 실행 후 데모도 열지 않고 이탈한 기기', color: t.neutrals.muted, bg: t.neutrals.card },
@@ -1762,21 +1745,7 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
         padding: '6px 8px',
         borderTop: `1px solid ${t.neutrals.line}`, marginTop: 6,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            value={journeyPerPageInput}
-            onChange={e => setJourneyPerPageInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitJourneyPerPage}
-            onKeyDown={e => { if (e.key === 'Enter') commitJourneyPerPage() }}
-            style={{
-              width: 32, textAlign: 'center', border: 'none',
-              background: t.neutrals.inner, borderRadius: t.radius.sm,
-              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
-        </div>
+        <LPageSize value={journeyPerPage} onChange={changeJourneyPerPage} bg={t.neutrals.inner} />
         {totalJourneyPages > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button disabled={safeJourneyPage === 1} onClick={() => setJourneyPage(p => Math.max(1, p - 1))}
