@@ -16,10 +16,11 @@ interface LSectionHeadProps {
 export function LSectionHead({ eyebrow, title, meta, action, mb }: LSectionHeadProps) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8,
       marginBottom: mb ?? t.density.gapMd,
     }}>
-      <div>
+      {/* 좁은 화면에서 보조 정보가 길어지면 제목 아래로 흘러야 우측 액션과 안 겹친다 */}
+      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
         {eyebrow && (
           <div style={{
             fontSize: 'calc(10.5px * var(--fz, 1))', fontWeight: t.weight.semibold, letterSpacing: 1.2,
@@ -41,7 +42,7 @@ export function LSectionHead({ eyebrow, title, meta, action, mb }: LSectionHeadP
           )}
         </div>
       </div>
-      {action}
+      {action && <div style={{ flexShrink: 0 }}>{action}</div>}
     </div>
   )
 }

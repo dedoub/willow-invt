@@ -872,7 +872,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     valueExtra={<Delta now={gsc.totals.impressions} prev={gsc.previous.impressions} />}
                     sub="검색 결과에 보여진 횟수"
                     title="검색 결과에 우리 페이지가 노출된 횟수. 이 숫자가 작으면 애초에 수요와 연결되는 콘텐츠가 없다는 뜻이고, 크면 수요는 있는데 클릭에서 새고 있는지 봐야 한다."
-                    sparkline={gsc.daily.map(d => ({ date: d.date, value: d.impressions }))}
+                    sparkline={mobile ? undefined : gsc.daily.map(d => ({ date: d.date, value: d.impressions }))}
                   />
                   <LStat
                     label="클릭"
@@ -881,7 +881,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     sub={`노출 대비 CTR ${gsc.totals.ctr}%`}
                     tone={gsc.totals.clicks > 0 ? 'pos' : 'default'}
                     title="검색 결과에서 실제로 눌린 횟수. 노출 대비 이 값이 곧 '수요를 잡은 비율'."
-                    sparkline={gsc.daily.map(d => ({ date: d.date, value: d.clicks }))}
+                    sparkline={mobile ? undefined : gsc.daily.map(d => ({ date: d.date, value: d.clicks }))}
                   />
                   <LStat
                     label="평균 게재순위"
@@ -907,7 +907,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                       : '검사 기록 없음'}
                     tone={index && index.indexedPct >= 50 ? 'pos' : index && index.total > 0 ? 'warn' : 'default'}
                     title="URL 검사 API로 매일 전수 확인한 색인 비율. 노출·클릭보다 앞단이라, 여기가 낮으면 아래 지표는 볼 필요도 없다."
-                    sparkline={index?.trend.map(d => ({ date: d.date, value: d.indexed }))}
+                    sparkline={mobile ? undefined : index?.trend.map(d => ({ date: d.date, value: d.indexed }))}
                   />
                   <LStat
                     label="노출된 콘텐츠"
@@ -1029,7 +1029,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     sub={`전체 유입의 ${data.search.share}%`}
                     tone={data.search.share >= 30 ? 'pos' : 'default'}
                     title="검색엔진·AI 답변 리퍼러로 들어온 세션. Umami는 검색어를 받지 못하므로 리퍼러 호스트 기준이다."
-                    sparkline={data.daily.map(d => ({ date: d.date, value: d.searchSessions }))}
+                    sparkline={mobile ? undefined : data.daily.map(d => ({ date: d.date, value: d.searchSessions }))}
                   />
                   <LStat
                     label="콘텐츠 커버리지"
@@ -1059,7 +1059,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     label="방문자"
                     value={data.totals.visitors.toLocaleString()}
                     sub={`세션 ${data.totals.visits.toLocaleString()} · 페이지뷰 ${data.totals.pageviews.toLocaleString()}`}
-                    sparkline={data.daily.map(d => ({ date: d.date, value: d.sessions }))}
+                    sparkline={mobile ? undefined : data.daily.map(d => ({ date: d.date, value: d.sessions }))}
                     title="기간 내 고유 방문자. 자기 방문(관리자·개발 브라우저)은 Umami에서 제외되지 않으니 초기 수치는 감안할 것."
                   />
                   <LStat
