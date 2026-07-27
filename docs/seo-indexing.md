@@ -17,6 +17,34 @@ URL Inspection API로만 갈라진다. 이 문서는 그 스냅샷의 해석과 
 검사 대상은 사이트맵의 콘텐츠 대표 URL이다. 로케일 변형(`/de/faq`, `/es/faq` 등)은 기본 경로 하나로
 접어서 검사한다. 그래서 사이트맵 URL 수(보이스카드 566)와 검사 수(210)가 다르다.
 
+## IndexNow (구글 외 엔진)
+
+구글은 크롤 시점을 자기가 정하지만 Bing·Yandex·Seznam·Naver는 IndexNow 핑을 받으면 바로 가지러 온다.
+지금 병목이 색인 거부가 아니라 발견 지연이라 이쪽이 직접 듣는다.
+
+| 항목 | 위치 |
+|---|---|
+| 크론 | `/api/cron/indexnow`, 매일 22:10 UTC (07:10 KST). 색인 스캔 30분 뒤 |
+| 로직 | `src/lib/indexnow.ts` (`submitNewUrls`) |
+| 제출 기록 | `seo_indexnow_submitted` (site_key, url, submitted_on) |
+| 수동 실행 | `GET /api/cron/indexnow` + `Authorization: Bearer $CRON_SECRET`<br>(secret에 `+`가 들어 있어 쿼리스트링으로 넘기면 공백으로 깨진다) |
+
+같은 URL을 반복 제출하면 스팸으로 취급되므로, 사이트맵과 제출 기록을 비교해 **새 URL만** 보낸다.
+2xx를 받은 배치만 기록에 남겨서 실패분은 다음 실행에 자동 재시도된다.
+
+키 파일은 각 사이트가 자기 도메인 루트에 호스팅한다(그게 소유 증명이다).
+
+| 사이트 | 키 파일 | 최초 전량 제출 |
+|---|---|---|
+| voicecards.quest | `/753d1cd9057ce620b226c0552e889eb6.txt` | 2026-07-27, 566 URL |
+| reviewnotes.app | `/9c11942ff47a213900b9169cae503395.txt` | 2026-07-27, 429 URL |
+| valuechain.wiki | `/debb10663e050e40fcaa238c9fc589b5.txt` | 2026-07-27, 1,395 URL |
+
+키 파일을 갓 배포한 직후에는 403(`SiteVerificationNotCompleted`)이 난다. 엔진이 키 파일을 읽을 때까지
+1~2분 기다렸다 다시 쏘면 된다.
+
+Bing 웹마스터 도구에는 세 사이트 모두 등록·사이트맵 제출까지 되어 있다.
+
 ## 상태 구분
 
 | 버킷 | GSC 원문 | 의미 | 처방 |
