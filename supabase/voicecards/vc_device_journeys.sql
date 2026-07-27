@@ -3,7 +3,7 @@
 -- 목적: 비로그인 방문자 행동 분석을 이벤트 풀스캔 없이 한 쿼리로.
 --   소비처: willow 대시보드, willy-bot (예: WHERE NOT signed_in AND last_seen_at >= now()-interval '48 hours')
 -- journey_stage: opened → demo → intent(add_sheet/AI생성 진입) → signin_attempted(클릭했으나 미완료) → signed_in
--- 제외 규칙은 vc_event_stats()와 동일 (excluded_devices CTE + is_likely_bot). 정본: voicecards-stats 스킬 문서.
+-- 제외 규칙은 vc_event_stats()와 동일 (excluded_devices + apple_ip_devices + is_likely_bot). 정본: voicecards-stats 스킬 문서.
 -- 컬럼 중간 삽입이 있어 재적용 시 drop 후 재생성 필요 (2026-07-15 anon_flips, anon_credits_spent 추가)
 drop view if exists vc_device_journeys;
 create or replace view vc_device_journeys as
@@ -22,12 +22,25 @@ with excluded_devices as (
       or u.email ~ 'wave[0-9]+batch[0-9]+'
     )
 ),
+-- 애플 IP 대역 = App Store 심사·자동화 트래픽. 앱은 심사 때마다 새로 설치되므로
+-- device_id가 매번 바뀌어 목록으로는 못 막는다. 출처 대역으로 끊는다.
+-- (17/8은 애플의 전통 대역, 144.178/16·139.178.128/18은 이후 할당분. 2026-07-27:
+--  144.178 대역 3대가 is_likely_bot=false로 새어 비로그인 여정에 실사용자처럼 잡혀 추가)
+apple_ip_devices as (
+  select distinct e.device_id
+  from mv_real_users e
+  where e.device_id is not null
+    and (e.ip_address << '17.0.0.0/8'::inet
+      or e.ip_address << '144.178.0.0/16'::inet
+      or e.ip_address << '139.178.128.0/18'::inet)
+),
 base as (
   select e.*
   from mv_real_users e
   where e.is_likely_bot = false
     and e.device_id is not null
     and e.device_id not in (select device_id from excluded_devices)
+    and e.device_id not in (select device_id from apple_ip_devices)
 ),
 latest_meta as (
   select distinct on (device_id) device_id, platform, app_version, locale, country

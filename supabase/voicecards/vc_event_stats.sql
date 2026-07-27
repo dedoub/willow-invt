@@ -31,6 +31,18 @@ with excluded_devices as (
       or u.email ~ 'wave[0-9]+batch[0-9]+'
     )
 ),
+-- 애플 IP 대역 = App Store 심사·자동화 트래픽. 앱은 심사 때마다 새로 설치되므로
+-- device_id가 매번 바뀌어 목록으로는 못 막는다. 출처 대역으로 끊는다.
+-- (17/8은 애플의 전통 대역, 144.178/16·139.178.128/18은 이후 할당분. 2026-07-27:
+--  144.178 대역 3대가 is_likely_bot=false로 새어 비로그인 여정에 실사용자처럼 잡혀 추가)
+apple_ip_devices as (
+  select distinct e.device_id
+  from mv_real_users e
+  where e.device_id is not null
+    and (e.ip_address << '17.0.0.0/8'::inet
+      or e.ip_address << '144.178.0.0/16'::inet
+      or e.ip_address << '139.178.128.0/18'::inet)
+),
 -- 출시 상한: 로그인(user_id 있음)한 iOS 기기의 최고 app_version(semver). App Store 심사/TestFlight
 -- 빌드는 미출시(로그인 0)라 항상 이보다 높은 버전 → 심사봇으로 보고 통째 제외. 새 버전 출시로 실사용자가
 -- 로그인하면 상한이 자동 상승 → 제출마다 device_id 등록 불필요. (2026-07-26)
@@ -58,6 +70,7 @@ base as (
   where e.is_likely_bot = false
     and (e.device_id is null or e.device_id not in (select device_id from excluded_devices))
     and (e.device_id is null or e.device_id not in (select device_id from review_build_devices))
+    and (e.device_id is null or e.device_id not in (select device_id from apple_ip_devices))
 ),
 dev_first as (
   select device_id,
