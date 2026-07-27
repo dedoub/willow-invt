@@ -1032,7 +1032,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     sub={`전체 유입의 ${data.search.share}%`}
                     tone={data.search.share >= 30 ? 'pos' : 'default'}
                     title="검색엔진·AI 답변 리퍼러로 들어온 세션. Umami는 검색어를 받지 못하므로 리퍼러 호스트 기준이다."
-                    sparkline={mobile ? undefined : data.daily.map(d => ({ date: d.date, value: d.searchSessions }))}
+                    sparkline={mobile ? undefined : cumulative(data.daily.map(d => ({ date: d.date, value: d.searchSessions })))}
                   />
                   <LStat
                     label="콘텐츠 커버리지"
@@ -1062,7 +1062,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     label="방문자"
                     value={data.totals.visitors.toLocaleString()}
                     sub={`세션 ${data.totals.visits.toLocaleString()} · 페이지뷰 ${data.totals.pageviews.toLocaleString()}`}
-                    sparkline={mobile ? undefined : data.daily.map(d => ({ date: d.date, value: d.sessions }))}
+                    sparkline={mobile ? undefined : cumulative(data.daily.map(d => ({ date: d.date, value: d.sessions })))}
                     title="기간 내 고유 방문자. 자기 방문(관리자·개발 브라우저)은 Umami에서 제외되지 않으니 초기 수치는 감안할 것."
                   />
                   <LStat
