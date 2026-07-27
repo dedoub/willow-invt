@@ -6,6 +6,7 @@ import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
+import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,12 @@ export default function ReviewnotesPage() {
   }, [refresh])
 
   return (
+    <>
+    {/* 최상단: 검색 수요 포착 (Umami) — 앱 지표와 별개로 웹에서 수요를 잡고 있는지 본다 */}
+    <div style={{ marginBottom: 14 }}>
+      <SearchDemandCard site="reviewnotes" cols={cols} />
+    </div>
+
     <ReviewnotesBlock
       cols={cols}
       loading={rnLoading}
@@ -75,5 +82,6 @@ export default function ReviewnotesPage() {
       refreshing={rnRefreshing}
       error={rnError}
     />
+    </>
   )
 }
