@@ -33,8 +33,7 @@ export function getUmamiSite(key: string): UmamiSiteConfig | null {
   if (!def) return null
   const websiteId = process.env[def.envKey]
   if (!websiteId) return null
-  const { envKey: _envKey, ...rest } = def
-  return { ...rest, websiteId }
+  return { key: def.key, name: def.name, domain: def.domain, websiteId }
 }
 
 // ─── 저수준 호출 ──────────────────────────────────────────────────────────────

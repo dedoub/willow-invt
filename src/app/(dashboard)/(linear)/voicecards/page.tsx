@@ -208,7 +208,7 @@ export default function VoicecardsPage() {
     <>
       {/* 최상단: 검색 수요 포착 (Umami) — 앱 지표와 별개로 웹에서 수요를 잡고 있는지 본다 */}
       <div style={{ marginBottom: 14 }}>
-        <SearchDemandCard site="voicecards" cols={cols} />
+        <SearchDemandCard site="voicecards" />
       </div>
 
       <VoicecardsBlock

@@ -326,11 +326,9 @@ function Skeleton({ mobile }: { mobile: boolean }) {
 export interface SearchDemandCardProps {
   /** Umami 사이트 키 — /api/umami/search-demand?site= 와 동일 */
   site: 'voicecards' | 'reviewnotes'
-  /** 2열 대시보드 모드에서 좁게 렌더할지 */
-  cols?: 1 | 2
 }
 
-export function SearchDemandCard({ site, cols = 1 }: SearchDemandCardProps) {
+export function SearchDemandCard({ site }: SearchDemandCardProps) {
   const mobile = useIsMobile()
   const [days, setDays] = useState<Period>(30)
   const [data, setData] = useState<SearchDemandStats | null>(null)
@@ -357,7 +355,8 @@ export function SearchDemandCard({ site, cols = 1 }: SearchDemandCardProps) {
 
   useEffect(() => { load(days) }, [load, days])
 
-  const wide = !mobile && cols === 1
+  // 이 카드는 대시보드 열 설정과 무관하게 항상 전폭으로 놓이므로, 내부 패널 배치는 뷰포트만 본다.
+  const wide = !mobile
   const cov = data?.coverage
   const listCols = wide ? 'repeat(3, minmax(0,1fr))' : '1fr'
 
@@ -503,7 +502,7 @@ export function SearchDemandCard({ site, cols = 1 }: SearchDemandCardProps) {
                 {data.countries.length === 0 && data.languages.length === 0 ? (
                   <EmptyLine>기록 없음</EmptyLine>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,200px))', gap: 16, justifyContent: 'start' }}>
                     <div>
                       <div style={{ ...mono(9), color: t.neutrals.subtle, marginBottom: 4 }}>국가</div>
                       {data.countries.slice(0, 6).map(c => (
