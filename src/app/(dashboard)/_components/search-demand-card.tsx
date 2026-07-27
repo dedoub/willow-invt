@@ -39,6 +39,12 @@ function withWeekday(d: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d} (${WEEKDAYS[new Date(d + 'T00:00:00Z').getUTCDay()]})` : d
 }
 
+// ISO 2자리 국가코드 → 국기 이모지(리저널 인디케이터). 규격 밖 코드는 빈 문자열.
+function flagOf(code: string): string {
+  if (!/^[A-Za-z]{2}$/.test(code)) return ''
+  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65))
+}
+
 function fmtDuration(sec: number): string {
   if (!sec || sec < 0) return '0초'
   if (sec < 60) return `${Math.round(sec)}초`
@@ -426,7 +432,7 @@ function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
     return {
       key: `${c?.code ?? '-'}:${l?.code ?? '-'}:${i}`,
       cells: [
-        c?.code ?? '', c ? c.visits.toLocaleString() : '',
+        c ? `${flagOf(c.code)} ${c.code}`.trim() : '', c ? c.visits.toLocaleString() : '',
         l?.code ?? '', l ? l.visits.toLocaleString() : '',
       ],
       sort: [c?.code ?? '', c?.visits ?? 0, l?.code ?? '', l?.visits ?? 0],
@@ -435,9 +441,9 @@ function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
   return (
     <DataTable
       title="지역 · 언어"
-      minWidth={240}
+      minWidth={252}
       columns={[
-        { key: 'country', label: '국가', width: 'minmax(40px,1fr)' },
+        { key: 'country', label: '국가', width: 'minmax(52px,1fr)' },
         { key: 'cv', label: '세션', width: '46px', align: 'right' as const },
         { key: 'lang', label: '언어', width: 'minmax(40px,1fr)' },
         { key: 'lv', label: '세션', width: '46px', align: 'right' as const },
