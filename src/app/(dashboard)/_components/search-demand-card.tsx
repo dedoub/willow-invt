@@ -192,6 +192,18 @@ const numCell: React.CSSProperties = {
   ...mono(10), color: t.neutrals.muted, textAlign: 'right' as const, whiteSpace: 'nowrap' as const,
 }
 
+// 표별 행수는 브라우저에 기억시킨다 — 매번 다시 맞추게 하지 않는다.
+const PAGE_SIZE_PREFIX = 'search-demand-page-size:'
+const DEFAULT_PAGE_SIZE = 10
+
+function getStoredPageSize(key: string): number {
+  if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
+  const v = localStorage.getItem(PAGE_SIZE_PREFIX + key)
+  if (!v) return DEFAULT_PAGE_SIZE
+  const n = Number(v)
+  return n >= 5 && n <= 100 ? n : DEFAULT_PAGE_SIZE
+}
+
 function DataTable({
   title, meta, hint, columns, rows, empty, minWidth,
 }: {
@@ -207,13 +219,14 @@ function DataTable({
 
   // 사용자 테이블과 동일한 페이지네이션 — 개수 입력 + 쉐브론 네비게이션.
   const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(10)
-  const [perPageInput, setPerPageInput] = useState('10')
+  const [perPage, setPerPage] = useState(() => getStoredPageSize(title))
+  const [perPageInput, setPerPageInput] = useState(() => String(getStoredPageSize(title)))
   const commitPerPage = () => {
-    const n = Math.max(5, Math.min(100, Number(perPageInput) || 10))
+    const n = Math.max(5, Math.min(100, Number(perPageInput) || DEFAULT_PAGE_SIZE))
     setPerPageInput(String(n))
     setPerPage(n)
     setPage(1)
+    localStorage.setItem(PAGE_SIZE_PREFIX + title, String(n))
   }
   // 정렬 — 사용자 테이블과 동일하게 헤더 클릭, 같은 컬럼 재클릭 시 방향 토글.
   // 기본값은 원본 순서(각 표가 이미 의미 있는 순서로 넘어온다).
@@ -636,41 +649,6 @@ function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
   )
 }
 
-// 크롤은 됐는데 색인 안 된 페이지 — 발견 문제가 아니라 콘텐츠 문제라 처방이 다르다.
-function CrawledNotIndexedCard({ data, domain }: { data: IndexStatusSummary; domain: string }) {
-  const rows = data.crawledNotIndexed
-  return (
-    <div style={panelStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
-        <div style={panelTitle}>크롤됐지만 미색인</div>
-        <div style={{ ...mono(9), color: t.neutrals.subtle }}>
-          {data.total > 0 ? `${data.buckets.crawled.toLocaleString()} / ${data.total.toLocaleString()}` : '—'}
-        </div>
-      </div>
-      {data.total === 0 ? (
-        <EmptyLine>아직 색인 검사 기록이 없습니다</EmptyLine>
-      ) : rows.length === 0 ? (
-        <EmptyLine>크롤 후 색인이 거부된 페이지가 없습니다</EmptyLine>
-      ) : (
-        <>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {rows.slice(0, 12).map(r => (
-              <a key={r.path} href={`https://${domain}${r.path}`} target="_blank" rel="noopener noreferrer"
-                style={{
-                  ...mono(9.5), padding: '2px 6px', borderRadius: t.radius.sm,
-                  background: t.neutrals.card, color: t.neutrals.muted, textDecoration: 'none',
-                  maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
-                }}>
-                {r.path}
-              </a>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
 function UnseenPagesCard({ data, domain }: { data: IndexStatusSummary; domain: string }) {
   const n = data.buckets.unseen
   return (
@@ -977,7 +955,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 {index && <IndexStatusCard data={index} />}
                 {index && <IndexGroupsCard data={index} />}
                 {index && <UnseenPagesCard data={index} domain={gsc.site.domain} />}
-                {index && <CrawledNotIndexedCard data={index} domain={gsc.site.domain} />}
                 <DataTable
                   title="검색어"
                   meta="노출순"
