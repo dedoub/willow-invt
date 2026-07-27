@@ -205,10 +205,9 @@ function getStoredPageSize(key: string): number {
 }
 
 function DataTable({
-  title, meta, hint, columns, rows, empty, minWidth,
+  title, hint, columns, rows, empty, minWidth,
 }: {
   title: string
-  meta?: React.ReactNode
   hint?: string
   columns: TableColumn[]
   rows: TableRow[]
@@ -255,9 +254,8 @@ function DataTable({
   const pageRows = sortedRows.slice((safePage - 1) * perPage, safePage * perPage)
   return (
     <div style={panelStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
+      <div style={{ marginBottom: 6 }}>
         <div style={panelTitle}>{title}</div>
-        {meta && <div style={{ ...mono(9), color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}>{meta}</div>}
       </div>
       {hint && (
         <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
@@ -458,6 +456,8 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
   const maxImp = rows.reduce((m, r) => Math.max(m, r.impressions), 0)
   const maxClick = rows.reduce((m, r) => Math.max(m, r.clicks), 0)
   const latest = rows.length ? rows[rows.length - 1] : null
+  // 바 위 데이터 라벨 — 90일은 바가 좁아 숫자가 겹치므로 30일 이하에서만
+  const showLabels = rows.length > 0 && rows.length <= 31
 
   return (
     <div style={{ ...panelStyle, minHeight: 132 }}>
@@ -484,8 +484,16 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
                 onMouseEnter={() => setHoverIdx(i)}
                 onMouseLeave={() => setHoverIdx(prev => (prev === i ? null : prev))}
                 style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}>
+                {showLabels && r.impressions > 0 && (
+                  <span style={{
+                    fontSize: 'calc(7.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+                    fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: 2,
+                    whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
+                  }}>{r.impressions}</span>
+                )}
                 <div style={{
-                  height: `${(r.impressions / maxImp) * 100}%`, background: IMPRESSION_COLOR,
+                  // 라벨이 붙는 만큼 바 최대치를 낮춰 최고점 숫자가 차트 밖으로 밀리지 않게 한다
+                  height: `${(r.impressions / maxImp) * (showLabels ? 90 : 100)}%`, background: IMPRESSION_COLOR,
                   borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease',
                 }} />
               </div>
@@ -508,7 +516,7 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
             return (
               <div style={{
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
-                bottom: `calc(${((r.impressions / maxImp) * 100).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
+                bottom: `calc(${((r.impressions / maxImp) * (showLabels ? 90 : 100)).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
                 fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
@@ -620,7 +628,6 @@ function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
   return (
     <DataTable
       title="버티컬별 색인률"
-      meta="전체순"
       minWidth={260}
       columns={[
         { key: 'label', label: '버티컬', width: 'minmax(70px,1fr)' },
@@ -952,7 +959,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 {index && <UnseenPagesCard data={index} domain={gsc.site.domain} />}
                 <DataTable
                   title="검색어"
-                  meta="노출순"
                   minWidth={330}
                   columns={[
                     { key: 'q', label: '검색어', width: 'minmax(110px,1fr)' },
