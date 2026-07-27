@@ -1171,7 +1171,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 {data.countries.length === 0 && data.languages.length === 0 ? (
                   <EmptyLine>기록 없음</EmptyLine>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,200px))', gap: 16, justifyContent: 'start' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 16 }}>
                     <div>
                       <div style={{ ...mono(9), color: t.neutrals.subtle, marginBottom: 4 }}>국가</div>
                       {data.countries.slice(0, 6).map(c => (
@@ -1192,9 +1192,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     </div>
                   </div>
                 )}
-                <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 8, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
-                  다국어 페이지를 발행한 언어와 실제 방문 언어가 어긋나면, 번역은 했지만 그 언어권 수요는 못 잡고 있다는 신호.
-                </div>
                 </div>
               </div>
 
