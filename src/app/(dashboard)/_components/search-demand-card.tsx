@@ -618,34 +618,29 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
 // 버티컬별 색인률 — 전체 평균은 판단에 안 쓰이고, 어느 클러스터가 막혔는지가 처방으로 이어진다.
 function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
   return (
-    <div style={panelStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
-        <div style={panelTitle}>버티컬별 색인률</div>
-        <div style={{ ...mono(9), color: t.neutrals.subtle }}>색인 / 전체</div>
-      </div>
-      {data.groups.length === 0 ? (
-        <EmptyLine>아직 색인 검사 기록이 없습니다</EmptyLine>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {data.groups.map(g => (
-            <div key={g.key} style={{
-              display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', alignItems: 'center', gap: 8,
-              position: 'relative', padding: '3px 5px', borderRadius: t.radius.sm, overflow: 'hidden',
-            }}>
-              <span style={{
-                position: 'absolute', left: 0, top: 0, bottom: 0,
-                width: `${g.pct}%`, background: BUCKET_COLOR.indexed, opacity: 0.14, borderRadius: t.radius.sm,
-              }} />
-              <span style={{ position: 'relative', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text }}>{g.label}</span>
-              <span style={{ position: 'relative', ...mono(9.5), color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
-                {g.indexed.toLocaleString()} / {g.total.toLocaleString()}
-                <span style={{ color: g.pct > 0 ? t.neutrals.text : t.accent.neg, marginLeft: 6, fontWeight: 600 }}>{g.pct}%</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <DataTable
+      title="버티컬별 색인률"
+      meta="전체순"
+      minWidth={260}
+      columns={[
+        { key: 'label', label: '버티컬', width: 'minmax(70px,1fr)' },
+        { key: 'indexed', label: '색인', width: '44px', align: 'right' as const },
+        { key: 'total', label: '전체', width: '44px', align: 'right' as const },
+        { key: 'pct', label: '색인률', width: '52px', align: 'right' as const },
+      ]}
+      rows={data.groups.map(g => ({
+        key: g.key,
+        cells: [
+          g.label,
+          g.indexed.toLocaleString(),
+          g.total.toLocaleString(),
+          // 0%는 막힌 클러스터라 눈에 걸리게 둔다
+          <span key="pct" style={{ color: g.pct > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{g.pct}%</span>,
+        ],
+        sort: [g.label, g.indexed, g.total, g.pct],
+      }))}
+      empty="아직 색인 검사 기록이 없습니다"
+    />
   )
 }
 
