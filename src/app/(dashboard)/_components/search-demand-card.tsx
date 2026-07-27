@@ -16,7 +16,7 @@ import { LIcon } from './linear-icons'
 import { getStoredPageSize, savePageSize } from './linear-page-size'
 import { formatCountryName } from '@/lib/country-format'
 import { useDashCols } from './cols-toggle'
-import type { SearchDemandStats, Channel } from '@/lib/umami'
+import type { SearchDemandStats, Channel, UmamiSiteKey } from '@/lib/umami'
 import type { SearchConsoleStats } from '@/lib/gsc'
 import type { IndexStatusSummary, IndexBucket } from '@/lib/gsc-index'
 
@@ -682,7 +682,7 @@ function Skeleton({ mobile }: { mobile: boolean }) {
 
 export interface SearchDemandCardProps {
   /** Umami 사이트 키 — /api/umami/search-demand?site= 와 동일 */
-  site: 'voicecards' | 'reviewnotes'
+  site: UmamiSiteKey
 }
 export function SearchDemandCard({ site }: SearchDemandCardProps) {
   const mobile = useIsMobile()

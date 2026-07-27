@@ -24,9 +24,10 @@ export interface UmamiSiteConfig {
 const SITE_DEFS: Array<Omit<UmamiSiteConfig, 'websiteId'> & { envKey: string }> = [
   { key: 'voicecards', name: 'VoiceCards', domain: 'voicecards.quest', envKey: 'UMAMI_WEBSITE_VOICECARDS' },
   { key: 'reviewnotes', name: 'ReviewNotes', domain: 'reviewnotes.app', envKey: 'UMAMI_WEBSITE_REVIEWNOTES' },
+  { key: 'valuechain', name: 'ValueChain.wiki', domain: 'valuechain.wiki', envKey: 'UMAMI_WEBSITE_VALUECHAIN' },
 ]
 
-export type UmamiSiteKey = 'voicecards' | 'reviewnotes'
+export type UmamiSiteKey = 'voicecards' | 'reviewnotes' | 'valuechain'
 
 export function getUmamiSite(key: string): UmamiSiteConfig | null {
   const def = SITE_DEFS.find(s => s.key === key)

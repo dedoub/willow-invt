@@ -117,6 +117,13 @@ const CLASSIFIERS: Record<string, Classifier> = {
     if (path.includes('/guides')) return { key: 'guides', label: '가이드' }
     return { key: 'core', label: '코어' }
   },
+  // 밸류체인은 루트에 노드 슬러그가 평평하게 깔린다(/nvidia, /tsmc …).
+  // 경로 모양으로는 더 못 쪼개므로 노드 / 분석글 / 코어 셋으로만 접는다.
+  valuechain: path => {
+    if (path.startsWith('/analysis')) return { key: 'analysis', label: '분석글' }
+    if (/^\/[a-z0-9-]+$/.test(path)) return { key: 'node', label: '노드' }
+    return { key: 'core', label: '코어' }
+  },
 }
 
 const classifierFor = (siteKey: string): Classifier =>

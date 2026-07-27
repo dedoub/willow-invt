@@ -9,6 +9,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { ValueChainSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
+import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
 import type { ValueChainStats } from '@/lib/valuechain-supabase'
 
 const SITE_URL = 'https://valuechain.wiki'
@@ -193,6 +194,13 @@ export default function ValueChainPage() {
   })
 
   return (
+    <>
+    {/* 최상단: 검색 수요 포착 (Search Console + Umami) — 보이스카드/리뷰노트와 동일 섹션.
+        노드를 몇 개 쌓았는지가 아니라, 그 노드가 검색 수요와 연결되는지를 본다. */}
+    <div style={{ marginBottom: 14 }}>
+      <SearchDemandCard site="valuechain" />
+    </div>
+
     <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: 14, alignItems: 'start' }}>
       <LCard pad={0}>
         {/* 헤더 + 현황 */}
@@ -424,6 +432,7 @@ export default function ValueChainPage() {
 
       </LCard>
     </div>
+    </>
   )
 }
 

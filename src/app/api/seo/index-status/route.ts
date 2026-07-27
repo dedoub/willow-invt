@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getIndexStatusSummary } from '@/lib/gsc-index'
+import { getGscSite } from '@/lib/gsc'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +9,7 @@ export async function GET(request: Request) {
   const site = searchParams.get('site') || ''
   const days = Math.min(180, Math.max(7, Number(searchParams.get('days') || 30)))
 
-  if (!['voicecards', 'reviewnotes'].includes(site)) {
+  if (!getGscSite(site)) {
     return NextResponse.json({ error: 'unknown_site', message: `알 수 없는 사이트: ${site}` }, { status: 400 })
   }
 

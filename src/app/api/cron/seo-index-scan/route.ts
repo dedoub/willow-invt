@@ -6,7 +6,7 @@ export const maxDuration = 300
 
 // 매일 사이트맵 전 콘텐츠의 색인 상태를 GSC URL Inspection으로 찍어 스냅샷으로 남긴다.
 // 노출·클릭 지표로는 "노출 0"의 원인(미크롤/크롤됐지만 미색인/제외)을 구분할 수 없다.
-const SITES = ['voicecards', 'reviewnotes']
+const SITES = ['voicecards', 'reviewnotes', 'valuechain']
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization')
