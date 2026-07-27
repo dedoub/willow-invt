@@ -34,7 +34,7 @@ export interface GscSiteConfig {
 const SITE_DEFS: Array<Omit<GscSiteConfig, 'property'> & { envKey: string; fallback: string }> = [
   { key: 'voicecards', name: 'VoiceCards', domain: 'voicecards.quest', envKey: 'GSC_PROPERTY_VOICECARDS', fallback: 'sc-domain:voicecards.quest' },
   { key: 'reviewnotes', name: 'ReviewNotes', domain: 'reviewnotes.app', envKey: 'GSC_PROPERTY_REVIEWNOTES', fallback: 'https://reviewnotes.app/' },
-  { key: 'valuechain', name: 'ValueChain.wiki', domain: 'valuechain.wiki', envKey: 'GSC_PROPERTY_VALUECHAIN', fallback: 'sc-domain:valuechain.wiki' },
+  { key: 'valuechain', name: 'ValueChain.wiki', domain: 'valuechain.wiki', envKey: 'GSC_PROPERTY_VALUECHAIN', fallback: 'https://valuechain.wiki/' },
 ]
 
 export function getGscSite(key: string): GscSiteConfig | null {
