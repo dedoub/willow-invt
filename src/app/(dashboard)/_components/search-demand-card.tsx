@@ -717,8 +717,11 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
     setError(null)
     setGscError(null)
 
+    // 새로고침은 서버 캐시(10~30분)를 건너뛰도록 알린다
+    const bust = refresh ? '&refresh=1' : ''
+
     // 세 소스는 독립 — 한쪽이 죽어도 나머지 섹션은 그대로 보여준다.
-    const umamiP = fetch(`/api/umami/search-demand?site=${site}&days=${period}`)
+    const umamiP = fetch(`/api/umami/search-demand?site=${site}&days=${period}${bust}`)
       .then(async res => {
         const json = await res.json()
         if (!res.ok) throw new Error(json?.message || `조회 실패 (${res.status})`)
@@ -729,7 +732,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
         setError(err instanceof Error ? err.message : String(err))
       })
 
-    const gscP = fetch(`/api/gsc/search-analytics?site=${site}&days=${period}`)
+    const gscP = fetch(`/api/gsc/search-analytics?site=${site}&days=${period}${bust}`)
       .then(async res => {
         const json = await res.json()
         if (!res.ok) throw new Error(json?.message || `조회 실패 (${res.status})`)
