@@ -13,7 +13,7 @@ import { LCard } from './linear-card'
 import { LSectionHead } from './linear-section-head'
 import { LStat } from './linear-stat'
 import { LIcon } from './linear-icons'
-import { LPageSize, getStoredPageSize, savePageSize } from './linear-page-size'
+import { getStoredPageSize, savePageSize } from './linear-page-size'
 import { formatCountryName } from '@/lib/country-format'
 import { useDashCols } from './cols-toggle'
 import type { SearchDemandStats, Channel } from '@/lib/umami'
@@ -236,7 +236,10 @@ function DataTable({
   // 사용자 테이블과 동일한 페이지네이션 — 개수 입력 + 쉐브론 네비게이션.
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(() => getStoredPageSize(title))
-  const changePerPage = (n: number) => {
+  const [perPageInput, setPerPageInput] = useState(() => String(getStoredPageSize(title)))
+  const commitPerPage = () => {
+    const n = Math.max(5, Math.min(100, Number(perPageInput) || 10))
+    setPerPageInput(String(n))
     setPerPage(n)
     setPage(1)
     savePageSize(title, n)
@@ -322,7 +325,21 @@ function DataTable({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginTop: 6, paddingTop: 6, borderTop: `1px solid ${t.neutrals.line}`,
         }}>
-          <LPageSize value={perPage} onChange={changePerPage} fontSize={10.5} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <input
+              value={perPageInput}
+              onChange={e => setPerPageInput(e.target.value.replace(/\D/g, ''))}
+              onBlur={commitPerPage}
+              onKeyDown={e => { if (e.key === 'Enter') commitPerPage() }}
+              style={{
+                width: 30, textAlign: 'center', border: 'none',
+                background: t.neutrals.card, borderRadius: t.radius.sm,
+                fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                padding: '2px 0', outline: 'none',
+              }}
+            />
+            <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle }}>개씩</span>
+          </div>
           {totalPages > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <button disabled={safePage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}
