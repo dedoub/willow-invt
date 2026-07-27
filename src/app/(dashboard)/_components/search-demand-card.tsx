@@ -45,6 +45,22 @@ function flagOf(code: string): string {
   return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65))
 }
 
+// 브라우저 언어 태그 → 한국어 언어명. ko-KR·ko 모두 '한국어'로 접는다
+// (지역 구분은 옆 국가 칼럼이 이미 하고 있어 여기서 또 나눌 이유가 없다).
+const LANG_DISPLAY = typeof Intl !== 'undefined' && 'DisplayNames' in Intl
+  ? new Intl.DisplayNames(['ko'], { type: 'language' })
+  : null
+
+function langName(code: string): string {
+  const base = code.split(/[-_]/)[0].toLowerCase()
+  if (!base) return code
+  try {
+    return LANG_DISPLAY?.of(base) ?? base
+  } catch {
+    return base
+  }
+}
+
 function fmtDuration(sec: number): string {
   if (!sec || sec < 0) return '0초'
   if (sec < 60) return `${Math.round(sec)}초`
@@ -425,17 +441,29 @@ function ChannelMixCard({ data }: { data: SearchDemandStats }) {
 
 // 지역·언어 — 국가와 브라우저 언어를 순위별로 나란히 놓는다. 둘 다 "어디 사람인가"의 다른 측면.
 function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
-  const n = Math.max(data.countries.length, data.languages.length)
+  // en-US·en-GB가 각각 '영어' 두 줄로 보이면 버그처럼 읽힌다 — 이름으로 접은 뒤 합산
+  const langs = useMemo(() => {
+    const acc = new Map<string, number>()
+    for (const l of data.languages) {
+      const name = langName(l.code)
+      acc.set(name, (acc.get(name) ?? 0) + l.visits)
+    }
+    return Array.from(acc.entries())
+      .map(([name, visits]) => ({ name, visits }))
+      .sort((a, b) => b.visits - a.visits)
+  }, [data.languages])
+
+  const n = Math.max(data.countries.length, langs.length)
   const rows: TableRow[] = Array.from({ length: n }, (_, i) => {
     const c = data.countries[i]
-    const l = data.languages[i]
+    const l = langs[i]
     return {
-      key: `${c?.code ?? '-'}:${l?.code ?? '-'}:${i}`,
+      key: `${c?.code ?? '-'}:${l?.name ?? '-'}:${i}`,
       cells: [
         c ? `${flagOf(c.code)} ${c.code}`.trim() : '', c ? c.visits.toLocaleString() : '',
-        l?.code ?? '', l ? l.visits.toLocaleString() : '',
+        l?.name ?? '', l ? l.visits.toLocaleString() : '',
       ],
-      sort: [c?.code ?? '', c?.visits ?? 0, l?.code ?? '', l?.visits ?? 0],
+      sort: [c?.code ?? '', c?.visits ?? 0, l?.name ?? '', l?.visits ?? 0],
     }
   })
   return (
@@ -445,7 +473,7 @@ function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
       columns={[
         { key: 'country', label: '국가', width: 'minmax(52px,1fr)' },
         { key: 'cv', label: '세션', width: '46px', align: 'right' as const },
-        { key: 'lang', label: '언어', width: 'minmax(40px,1fr)' },
+        { key: 'lang', label: '언어', width: 'minmax(56px,1fr)' },
         { key: 'lv', label: '세션', width: '46px', align: 'right' as const },
       ]}
       rows={rows}
