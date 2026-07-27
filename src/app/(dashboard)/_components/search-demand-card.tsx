@@ -428,9 +428,6 @@ function IdleContentCard({ data, domain }: { data: SearchDemandStats; domain: st
               </a>
             ))}
           </div>
-          <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
-            발행은 됐지만 기간 내 유입이 한 번도 없던 콘텐츠 표본입니다. 색인 여부·검색어 매칭을 먼저 확인할 대상.
-          </div>
         </>
       )}
     </div>
@@ -668,9 +665,6 @@ function CrawledNotIndexedCard({ data, domain }: { data: IndexStatusSummary; dom
               </a>
             ))}
           </div>
-          <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
-            구글이 읽고 나서 실을 가치가 없다고 판단한 페이지. 재제출로는 안 풀리고 내용 자체를 고쳐야 한다.
-          </div>
         </>
       )}
     </div>
@@ -704,9 +698,6 @@ function UnseenPagesCard({ data, domain }: { data: IndexStatusSummary; domain: s
                 {p}
               </a>
             ))}
-          </div>
-          <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
-            구글이 URL 존재 자체를 모르는 상태. 품질이 아니라 발견 문제라 사이트맵 재제출과 내부 링크로 푼다.
           </div>
         </>
       )}
@@ -1007,7 +998,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 />
                 <DataTable
                   title="놓치고 있는 검색어"
-                  hint="2페이지권(8~30위) = 순위만 올리면 잡히는 수요 / CTR 저조 = 상위인데 제목·설명이 의도에 못 답하는 경우"
                   minWidth={330}
                   columns={[
                     { key: 'q', label: '검색어', width: 'minmax(110px,1fr)' },
