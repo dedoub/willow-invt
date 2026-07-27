@@ -822,15 +822,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
     </a>
   )
 
-  const hintLine = (text: string) => (
-    <div style={{
-      fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle,
-      marginTop: -6, marginBottom: 10, wordBreak: 'keep-all' as const,
-    }}>
-      {text}
-    </div>
-  )
-
   return (
     <div style={{
       display: 'grid',
@@ -844,6 +835,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
           <LSectionHead
             eyebrow="SEARCH CONSOLE"
             title="검색 노출 → 클릭"
+            meta={gsc ? `${gsc.range.startDate} ~ ${gsc.range.endDate} · 구글 집계 ${gsc.range.lagDays}일 지연` : undefined}
             action={
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {periodToggle}
@@ -852,7 +844,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
               </div>
             }
           />
-          {gsc && hintLine(`${gsc.range.startDate} ~ ${gsc.range.endDate} · 구글 집계 ${gsc.range.lagDays}일 지연`)}
 
           {gscError && (
             <div style={{
@@ -1001,6 +992,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
           <LSectionHead
             eyebrow="UMAMI"
             title="진입 후 행동"
+            meta={data ? `최근 ${data.range.days}일 · 자기 방문 미제외` : undefined}
             action={
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {periodToggle}
@@ -1009,7 +1001,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
               </div>
             }
           />
-          {data && hintLine(`최근 ${data.range.days}일 · 자기 방문 미제외`)}
 
           {error && (
             <div style={{
