@@ -208,7 +208,7 @@ function DataTable({
   title, hint, columns, rows, empty, minWidth,
 }: {
   title: string
-  hint?: string
+  hint?: React.ReactNode
   columns: TableColumn[]
   rows: TableRow[]
   empty: React.ReactNode
@@ -533,21 +533,6 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
   )
 }
 
-// 기회 쿼리 사유 배지 — 순위 문제(2페이지권)와 문구 문제(CTR 저조)를 눈으로 갈라준다.
-const REASON_LABEL = { page_two: '2페이지권', low_ctr: 'CTR 저조' } as const
-
-function ReasonBadge({ reason }: { reason: 'low_ctr' | 'page_two' }) {
-  const tone = reason === 'page_two' ? tonePalettes.warn : tonePalettes.info
-  return (
-    <span style={{
-      ...mono(8.5), flexShrink: 0, marginLeft: 4, padding: '1px 4px', borderRadius: 3,
-      background: tone.bg, color: tone.fg,
-    }}>
-      {REASON_LABEL[reason]}
-    </span>
-  )
-}
-
 // ─── 색인 상태 ────────────────────────────────────────────────────────────────
 
 // 상태별 색: 색인됨만 브랜드색, 나머지는 원인 성격에 맞춰 경고/중립
@@ -574,52 +559,39 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
   const total = data.total
   const entries = BUCKET_ORDER.map(b => ({ bucket: b, n: data.buckets[b] })).filter(e => e.n > 0)
   return (
-    <div style={panelStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
-        <div style={panelTitle}>색인 상태</div>
-        <div style={{ ...mono(9), color: t.neutrals.subtle }}>
-          {data.latestDate ? `${data.latestDate} · ${total.toLocaleString()}쪽` : '검사 기록 없음'}
-        </div>
-      </div>
-      {total === 0 ? (
-        <EmptyLine>아직 색인 검사 기록이 없습니다<br />크론이 하루 1회 전수 검사합니다</EmptyLine>
-      ) : (
+    <DataTable
+      title="색인 상태"
+      hint={total > 0 ? (
         <>
-          <div style={{ display: 'flex', height: 8, borderRadius: 2, overflow: 'hidden', marginBottom: 8 }}>
-            {entries.map(e => (
-              <div key={e.bucket} title={`${BUCKET_LABEL_UI[e.bucket]} ${e.n}`}
-                style={{ width: `${(e.n / total) * 100}%`, background: BUCKET_COLOR[e.bucket] }} />
-            ))}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {entries.map(e => (
-              <div key={e.bucket} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 'calc(10px * var(--fz, 1))' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: t.neutrals.text, minWidth: 0 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: 1, background: BUCKET_COLOR[e.bucket], flexShrink: 0 }} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{BUCKET_LABEL_UI[e.bucket]}</span>
-                </span>
-                <span style={{ ...mono(10), color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
-                  {e.n.toLocaleString()}
-                  <span style={{ color: t.neutrals.subtle, marginLeft: 5 }}>
-                    {Math.round((e.n / total) * 1000) / 10}%
-                  </span>
-                </span>
-              </div>
-            ))}
-          </div>
-          {data.trend.length > 1 && (
-            <div style={{ ...mono(9), color: t.neutrals.subtle, lineHeight: 1.5, marginTop: 8 }}>
-              색인 추이 {data.trend.map(d => d.indexed).join(' → ')}
-              {data.changeFromPrev != null && data.changeFromPrev !== 0 && (
-                <span style={{ marginLeft: 4, fontWeight: 600, color: data.changeFromPrev > 0 ? t.accent.pos : t.accent.neg }}>
-                  ({data.changeFromPrev > 0 ? '+' : '−'}{Math.abs(data.changeFromPrev)})
-                </span>
-              )}
-            </div>
+          {data.latestDate} 검사 · {total.toLocaleString()}쪽
+          {data.trend.length > 1 && <> · 색인 추이 {data.trend.map(d => d.indexed).join(' → ')}</>}
+          {data.changeFromPrev != null && data.changeFromPrev !== 0 && (
+            <span style={{ marginLeft: 4, fontWeight: 600, color: data.changeFromPrev > 0 ? t.accent.pos : t.accent.neg }}>
+              ({data.changeFromPrev > 0 ? '+' : '−'}{Math.abs(data.changeFromPrev)})
+            </span>
           )}
         </>
-      )}
-    </div>
+      ) : undefined}
+      minWidth={260}
+      columns={[
+        { key: 'status', label: '상태', width: 'minmax(90px,1fr)' },
+        { key: 'n', label: '쪽수', width: '48px', align: 'right' as const },
+        { key: 'pct', label: '비율', width: '52px', align: 'right' as const },
+      ]}
+      rows={entries.map(e => ({
+        key: e.bucket,
+        cells: [
+          <span key="s" style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: BUCKET_COLOR[e.bucket], flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{BUCKET_LABEL_UI[e.bucket]}</span>
+          </span>,
+          e.n.toLocaleString(),
+          `${Math.round((e.n / total) * 1000) / 10}%`,
+        ],
+        sort: [BUCKET_LABEL_UI[e.bucket], e.n, e.n / total],
+      }))}
+      empty={<>아직 색인 검사 기록이 없습니다<br />크론이 하루 1회 전수 검사합니다</>}
+    />
   )
 }
 
@@ -648,40 +620,6 @@ function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
       }))}
       empty="아직 색인 검사 기록이 없습니다"
     />
-  )
-}
-
-function UnseenPagesCard({ data, domain }: { data: IndexStatusSummary; domain: string }) {
-  const n = data.buckets.unseen
-  return (
-    <div style={panelStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
-        <div style={panelTitle}>구글이 모르는 페이지</div>
-        <div style={{ ...mono(9), color: t.neutrals.subtle }}>
-          {data.total > 0 ? `${n.toLocaleString()} / ${data.total.toLocaleString()}` : '—'}
-        </div>
-      </div>
-      {data.total === 0 ? (
-        <EmptyLine>아직 색인 검사 기록이 없습니다</EmptyLine>
-      ) : n === 0 ? (
-        <EmptyLine>구글이 모든 발행 페이지를 알고 있습니다</EmptyLine>
-      ) : (
-        <>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {data.unseen.slice(0, 12).map(p => (
-              <a key={p} href={`https://${domain}${p}`} target="_blank" rel="noopener noreferrer"
-                style={{
-                  ...mono(9.5), padding: '2px 6px', borderRadius: t.radius.sm,
-                  background: t.neutrals.card, color: t.neutrals.muted, textDecoration: 'none',
-                  maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
-                }}>
-                {p}
-              </a>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
   )
 }
 
@@ -956,7 +894,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 {/* 색인 → 노출 → 클릭 순서로 읽히게 배치 */}
                 {index && <IndexStatusCard data={index} />}
                 {index && <IndexGroupsCard data={index} />}
-                {index && <UnseenPagesCard data={index} domain={gsc.site.domain} />}
                 <DataTable
                   title="검색어"
                   minWidth={330}
@@ -973,29 +910,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     sort: [q.query, q.impressions, q.clicks, q.ctr, q.position],
                   }))}
                   empty="기간 내 검색어 데이터가 없습니다"
-                />
-                <DataTable
-                  title="놓치고 있는 검색어"
-                  minWidth={330}
-                  columns={[
-                    { key: 'q', label: '검색어', width: 'minmax(110px,1fr)' },
-                    { key: 'imp', label: '노출', width: '46px', align: 'right' as const },
-                    { key: 'clk', label: '클릭', width: '40px', align: 'right' as const },
-                    { key: 'ctr', label: 'CTR', width: '46px', align: 'right' as const },
-                    { key: 'pos', label: '순위', width: '46px', align: 'right' as const },
-                  ]}
-                  rows={gsc.opportunities.map(q => ({
-                    key: q.query,
-                    cells: [
-                      <span key="q" style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.query}</span>
-                        <ReasonBadge reason={q.reason} />
-                      </span>,
-                      q.impressions.toLocaleString(), q.clicks.toLocaleString(), `${q.ctr}%`, `${q.position}위`,
-                    ],
-                    sort: [q.query, q.impressions, q.clicks, q.ctr, q.position],
-                  }))}
-                  empty="개선 여지가 큰 검색어가 아직 없습니다"
                 />
                 <DataTable
                   title="노출 상위 페이지"

@@ -257,10 +257,6 @@ export interface IndexStatusSummary {
   groups: IndexGroup[]
   /** 일별 색인 수 추이 */
   trend: Array<{ date: string; indexed: number; total: number; pct: number }>
-  /** 발견만 되고 아직 크롤 안 된 경로 — 기다리면 되는 구간 */
-  discovered: string[]
-  /** 구글이 존재 자체를 모르는 경로 — 사이트맵·내부링크부터 손볼 대상 */
-  unseen: string[]
   /** 직전 스냅샷 대비 색인 증감 */
   changeFromPrev: number | null
 }
@@ -291,7 +287,7 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
   if (rows.length === 0) {
     return {
       siteKey, domain: site?.domain ?? '', latestDate: null, total: 0,
-      buckets: { ...empty }, indexedPct: 0, groups: [], trend: [], discovered: [], unseen: [],
+      buckets: { ...empty }, indexedPct: 0, groups: [], trend: [],
       changeFromPrev: null,
     }
   }
@@ -342,14 +338,6 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
     indexedPct: latest && latest.total > 0 ? latest.pct : 0,
     groups,
     trend,
-    discovered: latestRows
-      .filter(r => bucketOf(r.coverage_state) === 'discovered')
-      .map(r => r.path)
-      .slice(0, 20),
-    unseen: latestRows
-      .filter(r => bucketOf(r.coverage_state) === 'unseen')
-      .map(r => r.path)
-      .slice(0, 20),
     changeFromPrev: prev && latest ? latest.indexed - prev.indexed : null,
   }
 }

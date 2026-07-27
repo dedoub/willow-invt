@@ -125,8 +125,6 @@ export interface SearchConsoleStats {
   previous: GscTotals          // 직전 동일 길이 기간
   daily: Array<{ date: string; clicks: number; impressions: number; ctr: number; position: number }>
   queries: GscQueryRow[]
-  /** 노출은 쌓였는데 못 잡고 있는 쿼리 — 개선 여지가 큰 순 */
-  opportunities: Array<GscQueryRow & { reason: 'low_ctr' | 'page_two' }>
   pages: GscPageRow[]
   countries: Array<{ code: string; clicks: number; impressions: number }>
   devices: Array<{ device: string; clicks: number; impressions: number }>
@@ -201,23 +199,6 @@ export async function getSearchConsoleStats(
     }))
     .sort((a, b) => b.impressions - a.impressions)
 
-  // 기회 쿼리 — 두 갈래.
-  //  page_two: 8~30위. 상위 노출은 되는데 첫 화면 밖이라 클릭이 거의 안 붙는 구간.
-  //  low_ctr : 10위 안인데 CTR이 전체 평균의 절반도 안 되는 쿼리. 제목/설명 문제일 확률이 높다.
-  const overallCtr = queries.reduce((s, q) => s + q.impressions, 0) > 0
-    ? queries.reduce((s, q) => s + q.clicks, 0) / queries.reduce((s, q) => s + q.impressions, 0) * 100
-    : 0
-  const opportunities = queries
-    .filter(q => q.impressions >= 3)
-    .map(q => {
-      if (q.position >= 8 && q.position <= 30) return { ...q, reason: 'page_two' as const }
-      if (q.position < 8 && q.ctr < overallCtr / 2) return { ...q, reason: 'low_ctr' as const }
-      return null
-    })
-    .filter((q): q is GscQueryRow & { reason: 'low_ctr' | 'page_two' } => q !== null)
-    .sort((a, b) => b.impressions - a.impressions)
-    .slice(0, 50)
-
   // 도메인 속성은 www/non-www·http/https가 각각 다른 URL로 오므로 경로 기준으로 합친다.
   // 순위는 노출 가중 평균, CTR은 합계로 재계산해야 맞다.
   const pageAcc = new Map<string, { clicks: number; impressions: number; posSum: number }>()
@@ -270,7 +251,6 @@ export async function getSearchConsoleStats(
       }))
       .sort((a, b) => a.date.localeCompare(b.date)),
     queries: queries.slice(0, 100),
-    opportunities,
     pages: pages.slice(0, 100),
     countries: countryRows.map(r => ({
       code: (r.keys?.[0] ?? '').toUpperCase(), clicks: r.clicks, impressions: r.impressions,
