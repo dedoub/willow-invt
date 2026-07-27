@@ -509,6 +509,26 @@ function IndexStatusCard({ data, domain }: { data: IndexStatusSummary; domain: s
               </div>
             ))}
           </div>
+          {data.groups.length > 1 && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ ...mono(9), letterSpacing: 0.6, textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: 4 }}>
+                버티컬별 색인률
+              </div>
+              {data.groups.map(g => (
+                <div key={g.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', alignItems: 'center', gap: 8, position: 'relative', padding: '2px 5px', borderRadius: t.radius.sm, overflow: 'hidden' }}>
+                  <span style={{
+                    position: 'absolute', left: 0, top: 0, bottom: 0,
+                    width: `${g.pct}%`, background: BUCKET_COLOR.indexed, opacity: 0.12, borderRadius: t.radius.sm,
+                  }} />
+                  <span style={{ position: 'relative', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text }}>{g.label}</span>
+                  <span style={{ position: 'relative', ...mono(9.5), color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+                    {g.indexed.toLocaleString()} / {g.total.toLocaleString()}
+                    <span style={{ color: g.pct > 0 ? t.neutrals.text : t.accent.neg, marginLeft: 5, fontWeight: 600 }}>{g.pct}%</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           {data.trend.length > 1 && (
             <div style={{ ...mono(9), color: t.neutrals.subtle, lineHeight: 1.5 }}>
               색인 추이 {data.trend.map(d => d.indexed).join(' → ')}

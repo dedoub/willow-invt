@@ -77,6 +77,51 @@ export const BUCKET_LABEL: Record<IndexBucket, string> = {
   unknown: '알 수 없음',
 }
 
+// ─── 콘텐츠 그룹 ──────────────────────────────────────────────────────────────
+
+/**
+ * 색인률은 사이트 전체 평균으로 보면 쓸모가 없다. 성경 67쪽이 통째로 안 잡히는 것과
+ * 코어 페이지 5쪽이 안 잡히는 것은 원인도 처방도 다르기 때문이다. 그래서 경로를
+ * 버티컬로 접어 그룹별 색인률을 따로 낸다.
+ */
+export interface IndexGroup {
+  key: string
+  label: string
+  total: number
+  indexed: number
+  pct: number
+}
+
+type Classifier = (path: string) => { key: string; label: string }
+
+const CLASSIFIERS: Record<string, Classifier> = {
+  voicecards: path => {
+    if (path.startsWith('/templates/')) {
+      const slug = path.slice('/templates/'.length)
+      if (slug.startsWith('memorize-surah') || slug.includes('quran') || slug.includes('juz')) {
+        return { key: 'quran', label: '코란' }
+      }
+      if (slug.startsWith('civics') || slug.includes('naturalization')) {
+        return { key: 'civics', label: '시민권' }
+      }
+      if (slug.startsWith('memorize-') || slug.includes('bible') || slug.includes('verse')) {
+        return { key: 'bible', label: '성경' }
+      }
+      return { key: 'templates', label: '기타 덱' }
+    }
+    if (path.startsWith('/methods')) return { key: 'methods', label: '학습법' }
+    return { key: 'core', label: '코어' }
+  },
+  reviewnotes: path => {
+    if (path.includes('/practice')) return { key: 'practice', label: '연습문제' }
+    if (path.includes('/guides')) return { key: 'guides', label: '가이드' }
+    return { key: 'core', label: '코어' }
+  },
+}
+
+const classifierFor = (siteKey: string): Classifier =>
+  CLASSIFIERS[siteKey] ?? (() => ({ key: 'all', label: '전체' }))
+
 // ─── 검사 ─────────────────────────────────────────────────────────────────────
 
 interface InspectionResult {
@@ -208,6 +253,8 @@ export interface IndexStatusSummary {
   total: number
   buckets: Record<IndexBucket, number>
   indexedPct: number
+  /** 버티컬별 색인률 — 전체 평균보다 이쪽이 처방으로 이어진다 */
+  groups: IndexGroup[]
   /** 일별 색인 수 추이 */
   trend: Array<{ date: string; indexed: number; total: number; pct: number }>
   /** 크롤은 됐는데 색인 안 된 경로 — 손볼 1순위 */
@@ -246,7 +293,7 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
   if (rows.length === 0) {
     return {
       siteKey, domain: site?.domain ?? '', latestDate: null, total: 0,
-      buckets: { ...empty }, indexedPct: 0, trend: [], crawledNotIndexed: [], discovered: [], unseen: [],
+      buckets: { ...empty }, indexedPct: 0, groups: [], trend: [], crawledNotIndexed: [], discovered: [], unseen: [],
       changeFromPrev: null,
     }
   }
@@ -269,6 +316,22 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
   const buckets = { ...empty }
   for (const r of latestRows) buckets[bucketOf(r.coverage_state)]++
 
+  const classify = classifierFor(siteKey)
+  const groupAcc = new Map<string, { label: string; total: number; indexed: number }>()
+  for (const r of latestRows) {
+    const { key, label } = classify(r.path)
+    const g = groupAcc.get(key) ?? { label, total: 0, indexed: 0 }
+    g.total++
+    if (r.is_indexed) g.indexed++
+    groupAcc.set(key, g)
+  }
+  const groups: IndexGroup[] = Array.from(groupAcc.entries())
+    .map(([key, g]) => ({
+      key, label: g.label, total: g.total, indexed: g.indexed,
+      pct: g.total > 0 ? Math.round((g.indexed / g.total) * 1000) / 10 : 0,
+    }))
+    .sort((a, b) => b.total - a.total)
+
   const prev = trend.length >= 2 ? trend[trend.length - 2] : null
   const latest = trend[trend.length - 1]
 
@@ -279,6 +342,7 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
     total: latestRows.length,
     buckets,
     indexedPct: latest && latest.total > 0 ? latest.pct : 0,
+    groups,
     trend,
     crawledNotIndexed: latestRows
       .filter(r => bucketOf(r.coverage_state) === 'crawled')
