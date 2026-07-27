@@ -17,10 +17,16 @@ import { canonicalPath, fetchSitemapPaths, isHtmlPath, normalizePath } from './u
 const INSPECT_API = 'https://searchconsole.googleapis.com/v1/urlInspection/index:inspect'
 const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly'
 
-/** 한 번에 검사할 URL 상한 — 쿼터(2,000/일) 대비 여유를 크게 둔다 */
-const DEFAULT_SCAN_LIMIT = 400
-/** 동시 요청 수. 분당 600건 제한이라 5면 충분히 안전하다 */
-const CONCURRENCY = 5
+/**
+ * 한 번에 검사할 URL 상한. 밸류체인이 1,394쪽이라 전수를 한 번에 담으려면 이만큼 필요하다.
+ * 쿼터는 속성당 하루 2,000건이고 사이트끼리 나눠 쓰지 않으므로 여유가 있다.
+ */
+const DEFAULT_SCAN_LIMIT = 1_400
+/**
+ * 동시 요청 수. 분당 600건 제한이라 호출당 1초를 잡아도 10이면 분당 약 500건으로 아래에 머문다.
+ * 1,400쪽을 5로 돌면 함수 제한시간(300초)을 넘긴다.
+ */
+const CONCURRENCY = 10
 
 // ─── 인증 ─────────────────────────────────────────────────────────────────────
 

@@ -16,8 +16,16 @@
       "schedule": "17 0 * * *"
     },
     {
-      "path": "/api/cron/seo-index-scan",
+      "path": "/api/cron/seo-index-scan?site=voicecards",
       "schedule": "40 21 * * *"
+    },
+    {
+      "path": "/api/cron/seo-index-scan?site=reviewnotes",
+      "schedule": "45 21 * * *"
+    },
+    {
+      "path": "/api/cron/seo-index-scan?site=valuechain",
+      "schedule": "50 21 * * *"
     },
     {
       "path": "/api/cron/indexnow",
