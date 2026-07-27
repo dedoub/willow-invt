@@ -1,12 +1,11 @@
 'use client'
 
-// 검색 수요 포착 카드 (Umami) — 보이스카드/리뷰노트 페이지 최상단 공용.
+// 검색 수요 포착 — 보이스카드/리뷰노트 페이지 최상단 공용. 두 섹션으로 나뉜다.
 //
-// 방문자 수를 보는 카드가 아니다. "발행한 페이지가 검색 수요를 실제로 잡고 있는가"를 세 층으로 본다.
-//   1) 유입 채널  — 검색이 유입의 몇 %인가
-//   2) 커버리지   — 사이트맵 발행 콘텐츠 중 유입이 붙은 비율 / 노는 콘텐츠
-//   3) 진입 후    — 검색 진입 세션의 이탈률·체류 (수요는 잡았는데 새는지)
-// 키워드 단위 수요는 Umami가 리퍼러까지만 주므로 보이지 않는다(카드 하단에 명시).
+//   1) Search Console — 색인 → 노출 → 클릭. 수요가 있는지, 그중 얼마를 잡는지.
+//   2) Umami          — 진입 후 행동. 잡은 수요가 사이트 안에서 어떻게 되는지.
+//
+// 방문자 수를 세는 카드가 아니라 "발행한 페이지가 검색 수요를 잡고 있는가"를 보는 카드다.
 
 import { useCallback, useEffect, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from './linear-tokens'
@@ -453,7 +452,8 @@ const BUCKET_LABEL_UI: Record<IndexBucket, string> = {
 }
 const BUCKET_ORDER: IndexBucket[] = ['indexed', 'crawled', 'discovered', 'unseen', 'excluded', 'unknown']
 
-function IndexStatusCard({ data, domain }: { data: IndexStatusSummary; domain: string }) {
+// 상태 분포 + 색인 추이. 색인률 자체는 상단 지표 카드에 있으니 여기서는 구성만 본다.
+function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
   const total = data.total
   const entries = BUCKET_ORDER.map(b => ({ bucket: b, n: data.buckets[b] })).filter(e => e.n > 0)
   return (
@@ -461,7 +461,7 @@ function IndexStatusCard({ data, domain }: { data: IndexStatusSummary; domain: s
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
         <div style={panelTitle}>색인 상태</div>
         <div style={{ ...mono(9), color: t.neutrals.subtle }}>
-          {data.latestDate ? `${data.latestDate} 검사 · ${total.toLocaleString()}쪽` : '검사 기록 없음'}
+          {data.latestDate ? `${data.latestDate} · ${total.toLocaleString()}쪽` : '검사 기록 없음'}
         </div>
       </div>
       {total === 0 ? (
@@ -474,44 +474,24 @@ function IndexStatusCard({ data, domain }: { data: IndexStatusSummary; domain: s
                 style={{ width: `${(e.n / total) * 100}%`, background: BUCKET_COLOR[e.bucket] }} />
             ))}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {entries.map(e => (
               <div key={e.bucket} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 'calc(10px * var(--fz, 1))' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: t.neutrals.text }}>
-                  <span style={{ width: 6, height: 6, borderRadius: 1, background: BUCKET_COLOR[e.bucket] }} />
-                  {BUCKET_LABEL_UI[e.bucket]}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: t.neutrals.text, minWidth: 0 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 1, background: BUCKET_COLOR[e.bucket], flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{BUCKET_LABEL_UI[e.bucket]}</span>
                 </span>
-                <span style={{ ...mono(10), color: t.neutrals.muted }}>
+                <span style={{ ...mono(10), color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
                   {e.n.toLocaleString()}
-                  <span style={{ color: t.neutrals.subtle, marginLeft: 4 }}>
+                  <span style={{ color: t.neutrals.subtle, marginLeft: 5 }}>
                     {Math.round((e.n / total) * 1000) / 10}%
                   </span>
                 </span>
               </div>
             ))}
           </div>
-          {data.groups.length > 1 && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ ...mono(9), letterSpacing: 0.6, textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: 4 }}>
-                버티컬별 색인률
-              </div>
-              {data.groups.map(g => (
-                <div key={g.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', alignItems: 'center', gap: 8, position: 'relative', padding: '2px 5px', borderRadius: t.radius.sm, overflow: 'hidden' }}>
-                  <span style={{
-                    position: 'absolute', left: 0, top: 0, bottom: 0,
-                    width: `${g.pct}%`, background: BUCKET_COLOR.indexed, opacity: 0.12, borderRadius: t.radius.sm,
-                  }} />
-                  <span style={{ position: 'relative', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text }}>{g.label}</span>
-                  <span style={{ position: 'relative', ...mono(9.5), color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
-                    {g.indexed.toLocaleString()} / {g.total.toLocaleString()}
-                    <span style={{ color: g.pct > 0 ? t.neutrals.text : t.accent.neg, marginLeft: 5, fontWeight: 600 }}>{g.pct}%</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
           {data.trend.length > 1 && (
-            <div style={{ ...mono(9), color: t.neutrals.subtle, lineHeight: 1.5 }}>
+            <div style={{ ...mono(9), color: t.neutrals.subtle, lineHeight: 1.5, marginTop: 8 }}>
               색인 추이 {data.trend.map(d => d.indexed).join(' → ')}
               {data.changeFromPrev != null && data.changeFromPrev !== 0 && (
                 <span style={{ marginLeft: 4, fontWeight: 600, color: data.changeFromPrev > 0 ? t.accent.pos : t.accent.neg }}>
@@ -520,25 +500,78 @@ function IndexStatusCard({ data, domain }: { data: IndexStatusSummary; domain: s
               )}
             </div>
           )}
-          {data.crawledNotIndexed.length > 0 && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ ...mono(9), letterSpacing: 0.6, textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: 4 }}>
-                크롤됐지만 미색인 — 콘텐츠 문제
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {data.crawledNotIndexed.slice(0, 8).map(r => (
-                  <a key={r.path} href={`https://${domain}${r.path}`} target="_blank" rel="noopener noreferrer"
-                    style={{
-                      ...mono(9.5), padding: '2px 6px', borderRadius: t.radius.sm,
-                      background: t.neutrals.card, color: t.neutrals.muted, textDecoration: 'none',
-                      maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
-                    }}>
-                    {r.path}
-                  </a>
-                ))}
-              </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// 버티컬별 색인률 — 전체 평균은 판단에 안 쓰이고, 어느 클러스터가 막혔는지가 처방으로 이어진다.
+function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
+  return (
+    <div style={panelStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
+        <div style={panelTitle}>버티컬별 색인률</div>
+        <div style={{ ...mono(9), color: t.neutrals.subtle }}>색인 / 전체</div>
+      </div>
+      {data.groups.length === 0 ? (
+        <EmptyLine>아직 색인 검사 기록이 없습니다</EmptyLine>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {data.groups.map(g => (
+            <div key={g.key} style={{
+              display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', alignItems: 'center', gap: 8,
+              position: 'relative', padding: '3px 5px', borderRadius: t.radius.sm, overflow: 'hidden',
+            }}>
+              <span style={{
+                position: 'absolute', left: 0, top: 0, bottom: 0,
+                width: `${g.pct}%`, background: BUCKET_COLOR.indexed, opacity: 0.14, borderRadius: t.radius.sm,
+              }} />
+              <span style={{ position: 'relative', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text }}>{g.label}</span>
+              <span style={{ position: 'relative', ...mono(9.5), color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+                {g.indexed.toLocaleString()} / {g.total.toLocaleString()}
+                <span style={{ color: g.pct > 0 ? t.neutrals.text : t.accent.neg, marginLeft: 6, fontWeight: 600 }}>{g.pct}%</span>
+              </span>
             </div>
-          )}
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// 크롤은 됐는데 색인 안 된 페이지 — 발견 문제가 아니라 콘텐츠 문제라 처방이 다르다.
+function CrawledNotIndexedCard({ data, domain }: { data: IndexStatusSummary; domain: string }) {
+  const rows = data.crawledNotIndexed
+  return (
+    <div style={panelStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
+        <div style={panelTitle}>크롤됐지만 미색인</div>
+        <div style={{ ...mono(9), color: t.neutrals.subtle }}>
+          {data.total > 0 ? `${data.buckets.crawled.toLocaleString()} / ${data.total.toLocaleString()}` : '—'}
+        </div>
+      </div>
+      {data.total === 0 ? (
+        <EmptyLine>아직 색인 검사 기록이 없습니다</EmptyLine>
+      ) : rows.length === 0 ? (
+        <EmptyLine>크롤 후 색인이 거부된 페이지가 없습니다</EmptyLine>
+      ) : (
+        <>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {rows.slice(0, 12).map(r => (
+              <a key={r.path} href={`https://${domain}${r.path}`} target="_blank" rel="noopener noreferrer"
+                style={{
+                  ...mono(9.5), padding: '2px 6px', borderRadius: t.radius.sm,
+                  background: t.neutrals.card, color: t.neutrals.muted, textDecoration: 'none',
+                  maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+                }}>
+                {r.path}
+              </a>
+            ))}
+          </div>
+          <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
+            구글이 읽고 나서 실을 가치가 없다고 판단한 페이지. 재제출로는 안 풀리고 내용 자체를 고쳐야 한다.
+          </div>
         </>
       )}
     </div>
@@ -686,9 +719,9 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
   //           (인사이트 섹션과 같은 분할).
   const sideBySide = !mobile && dashCols === 2
   const splitLayout = !mobile && dashCols === 1
-  const statCols = mobile ? 'repeat(2, 1fr)' : splitLayout ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)'
-  // 목록 패널은 폭이 좁으면 겹쳐 읽기 어려워 1열 모드에서만 2단으로 놓는다.
-  const pairCols = splitLayout ? 'repeat(2, minmax(0,1fr))' : '1fr'
+  const statCols = mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'
+  // 목록 패널: 1열 모드는 한 줄에 3개, 2열 모드는 2개, 모바일은 1개.
+  const panelCols = mobile ? '1fr' : splitLayout ? 'repeat(3, minmax(0,1fr))' : 'repeat(2, minmax(0,1fr))'
   const cov = data?.coverage
 
   const periodToggle = (
@@ -781,7 +814,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
                 gap: 8, alignItems: 'stretch',
               }}>
-                {splitLayout && <GscTrendCard daily={gsc.daily} />}
                 <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 8, alignContent: 'start' }}>
                   <LStat
                     label="노출"
@@ -845,11 +877,17 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     title="발행 콘텐츠 중 실제 클릭을 받아본 비율. 노출 비율과의 간격이 곧 '보여는 주는데 안 눌리는' 구간."
                   />
                 </div>
+                {splitLayout && <GscTrendCard daily={gsc.daily} />}
               </div>
 
               {!splitLayout && <GscTrendCard daily={gsc.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 8, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: 8, alignItems: 'stretch' }}>
+                {/* 색인 → 노출 → 클릭 순서로 읽히게 배치 */}
+                {index && <IndexStatusCard data={index} />}
+                {index && <IndexGroupsCard data={index} />}
+                {index && <UnseenPagesCard data={index} domain={gsc.site.domain} />}
+                {index && <CrawledNotIndexedCard data={index} domain={gsc.site.domain} />}
                 <DataTable
                   title="검색어"
                   meta="노출순"
@@ -890,9 +928,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                   }))}
                   empty="개선 여지가 큰 검색어가 아직 없습니다"
                 />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 8, alignItems: 'stretch' }}>
                 <DataTable
                   title="노출 상위 페이지"
                   minWidth={320}
@@ -909,45 +944,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                   }))}
                   empty="노출된 페이지가 없습니다"
                 />
-                <div style={panelStyle}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
-                    <div style={panelTitle}>검색에 안 나타나는 콘텐츠</div>
-                    <div style={{ ...mono(9), color: t.neutrals.subtle }}>
-                      {gsc.capture.sitemapContents > 0
-                        ? `${gsc.capture.invisibleCount.toLocaleString()} / ${gsc.capture.sitemapContents.toLocaleString()}`
-                        : '사이트맵 없음'}
-                    </div>
-                  </div>
-                  {gsc.capture.invisibleSample.length === 0 ? (
-                    <EmptyLine>발행 콘텐츠 전부가 검색에 노출되고 있습니다</EmptyLine>
-                  ) : (
-                    <>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {gsc.capture.invisibleSample.map(p => (
-                          <a key={p} href={`https://${gsc.site.domain}${p}`} target="_blank" rel="noopener noreferrer"
-                            style={{
-                              ...mono(9.5), padding: '2px 6px', borderRadius: t.radius.sm,
-                              background: t.neutrals.card, color: t.neutrals.muted, textDecoration: 'none',
-                              maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
-                            }}>
-                            {p}
-                          </a>
-                        ))}
-                      </div>
-                      <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
-                        노출 0 = 구글이 어떤 검색어에도 이 페이지를 내보내지 않았다는 뜻. 색인 여부를 URL 검사로 먼저 확인할 대상.
-                      </div>
-                    </>
-                  )}
-                </div>
               </div>
-
-              {index && (
-                <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 8, alignItems: 'stretch' }}>
-                  <IndexStatusCard data={index} domain={gsc.site.domain} />
-                  <UnseenPagesCard data={index} domain={gsc.site.domain} />
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -988,7 +985,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
                 gap: 8, alignItems: 'stretch',
               }}>
-                {splitLayout && <TrafficTrendCard daily={data.daily} />}
                 <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 8, alignContent: 'start' }}>
                   <LStat
                     label="검색 유입"
@@ -1038,11 +1034,12 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     title="세션당 평균 페이지뷰. 진입 후 사이트 안에서 다음 수요로 이어지는지를 본다."
                   />
                 </div>
+                {splitLayout && <TrafficTrendCard daily={data.daily} />}
               </div>
 
               {!splitLayout && <TrafficTrendCard daily={data.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 8, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: 8, alignItems: 'stretch' }}>
                 <DataTable
                   title="검색 진입 페이지"
                   minWidth={300}
@@ -1059,9 +1056,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                   empty={<>검색 진입 기록이 없습니다<br />색인 상태부터 확인 필요</>}
                 />
                 <ChannelMixCard data={data} />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 8, alignItems: 'stretch' }}>
                 <DataTable
                   title="조회 상위 페이지"
                   minWidth={300}
@@ -1078,9 +1072,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                   empty="조회 기록이 없습니다"
                 />
                 <IdleContentCard data={data} domain={data.site.domain} />
-              </div>
-
-              <div style={panelStyle}>
+                <div style={panelStyle}>
                 <div style={{ ...panelTitle, marginBottom: 6 }}>지역 · 언어</div>
                 {data.countries.length === 0 && data.languages.length === 0 ? (
                   <EmptyLine>기록 없음</EmptyLine>
@@ -1108,6 +1100,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 )}
                 <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 8, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
                   다국어 페이지를 발행한 언어와 실제 방문 언어가 어긋나면, 번역은 했지만 그 언어권 수요는 못 잡고 있다는 신호.
+                </div>
                 </div>
               </div>
 

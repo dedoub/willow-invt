@@ -7,8 +7,8 @@
  *   2) 커버리지        — 사이트맵에 발행된 페이지 중 실제 유입이 붙은 비율 (콘텐츠가 노는지)
  *   3) 진입 후 행동    — 검색 진입 세션의 이탈률/체류 (수요는 잡았는데 새는지)
  *
- * 한계(카드에도 명시): Umami는 리퍼러(google.com)까지만 보이고 검색어는 안 넘어온다.
- * 키워드 단위 수요는 Google Search Console 연동이 있어야 한다.
+ * 한계: Umami는 리퍼러(google.com)까지만 보이고 검색어는 안 넘어온다. 키워드 단위 수요는
+ * lib/gsc.ts(Search Console)가 맡는다 — 같은 화면의 위 섹션이다.
  */
 
 const UMAMI_API = 'https://api.umami.is/v1'
@@ -359,7 +359,7 @@ export async function getSearchDemandStats(
     .sort((a, b) => b.searchViews - a.searchViews)
     .slice(0, 12)
 
-  notes.push('Umami는 리퍼러까지만 전달돼 검색어(키워드) 단위 수요는 보이지 않음 — 키워드는 Search Console 연동 필요')
+  notes.push('Umami는 리퍼러까지만 전달돼 검색어는 안 보임 — 키워드 단위는 위 Search Console 섹션에서 본다')
 
   return {
     site: {
