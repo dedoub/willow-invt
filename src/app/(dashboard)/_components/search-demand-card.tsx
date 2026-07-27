@@ -82,7 +82,10 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
   const rows = daily ?? []
   const maxSessions = rows.reduce((m, r) => Math.max(m, r.sessions), 0)
   const maxPv = rows.reduce((m, r) => Math.max(m, r.pageviews), 0)
-  const barPct = (v: number) => (maxSessions > 0 ? (v / maxSessions) * 100 : 0)
+  // 바 위 합산 라벨 — 90일은 바가 좁아 숫자가 겹치므로 30일 이하에서만.
+  // 라벨이 붙는 만큼 바 최대치를 낮춰 최고점 숫자가 차트 밖으로 밀리지 않게 한다.
+  const showLabels = rows.length > 0 && rows.length <= 31
+  const barPct = (v: number) => (maxSessions > 0 ? (v / maxSessions) * (showLabels ? 90 : 100) : 0)
   const latest = rows.length ? rows[rows.length - 1] : null
 
   return (
@@ -115,6 +118,13 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
                 onMouseEnter={() => setHoverIdx(i)}
                 onMouseLeave={() => setHoverIdx(prev => (prev === i ? null : prev))}
                 style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}>
+                {showLabels && r.sessions > 0 && (
+                  <span style={{
+                    fontSize: 'calc(7.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+                    fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: 2,
+                    whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
+                  }}>{r.sessions}</span>
+                )}
                 {searchH > 0 && <div style={{ height: `${searchH}%`, background: SEARCH_COLOR, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
                 {otherH > 0 && <div style={{ height: `${otherH}%`, background: OTHER_COLOR, borderRadius: searchH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
               </div>
@@ -357,93 +367,84 @@ function DataTable({
 
 // ─── 채널 믹스 ────────────────────────────────────────────────────────────────
 
+// 채널 비중 + 그 채널을 만든 리퍼러 호스트를 한 표에 담는다.
+// 채널 행 아래 그 채널의 호스트가 붙어, 검색/AI 유입이 어디서 왔는지까지 한눈에 본다.
 function ChannelMixCard({ data }: { data: SearchDemandStats }) {
   const channels = data.channels
   const total = channels.reduce((s, c) => s + c.visits, 0)
+  const hostsOf = (ch: Channel) => data.search.referrers.filter(r => r.channel === ch).slice(0, 4)
+  const rows: TableRow[] = []
+  for (const c of channels) {
+    rows.push({
+      key: c.channel,
+      cells: [
+        <span key="c" style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <span style={{ width: 6, height: 6, borderRadius: 1, background: CHANNEL_COLOR[c.channel], flexShrink: 0 }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CHANNEL_LABEL[c.channel]}</span>
+        </span>,
+        c.visits.toLocaleString(),
+        `${c.share}%`,
+      ],
+      sort: [CHANNEL_LABEL[c.channel], c.visits, c.share],
+    })
+    for (const r of hostsOf(c.channel)) {
+      rows.push({
+        key: `${c.channel}:${r.host}`,
+        cells: [
+          <span key="h" style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, paddingLeft: 10, color: t.neutrals.muted }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.host}</span>
+          </span>,
+          r.visits.toLocaleString(),
+          '',
+        ],
+        sort: [r.host, r.visits, 0],
+      })
+    }
+  }
   return (
-    <div style={panelStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
-        <div style={panelTitle}>유입 채널</div>
-        <div style={{ ...mono(9), color: t.neutrals.subtle }}>세션 {total.toLocaleString()}</div>
-      </div>
-      {total === 0 ? <EmptyLine>아직 유입이 없습니다</EmptyLine> : (
-        <>
-          <div style={{ display: 'flex', height: 8, borderRadius: 2, overflow: 'hidden', marginBottom: 8 }}>
-            {channels.map(c => (
-              <div key={c.channel} title={`${CHANNEL_LABEL[c.channel]} ${c.share}%`}
-                style={{ width: `${c.share}%`, background: CHANNEL_COLOR[c.channel] }} />
-            ))}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 10px', marginBottom: 8 }}>
-            {channels.map(c => (
-              <span key={c.channel} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, ...mono(9.5), color: t.neutrals.muted }}>
-                <span style={{ width: 6, height: 6, borderRadius: 1, background: CHANNEL_COLOR[c.channel] }} />
-                {CHANNEL_LABEL[c.channel]} {c.visits.toLocaleString()}
-                <span style={{ color: t.neutrals.subtle }}>({c.share}%)</span>
-              </span>
-            ))}
-          </div>
-          <div style={{ ...mono(9), letterSpacing: 0.6, textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: 4 }}>
-            검색 리퍼러
-          </div>
-          {data.search.referrers.length === 0 ? (
-            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
-              검색엔진 유입 기록 없음
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {data.search.referrers.slice(0, 6).map(r => (
-                <div key={r.host} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text }}>
-                  <span style={{ whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {r.host}
-                    {r.channel === 'ai' && (
-                      <span style={{ ...mono(8.5), marginLeft: 4, padding: '1px 4px', borderRadius: 3, background: tonePalettes.brand.bg, color: tonePalettes.brand.fg }}>AI</span>
-                    )}
-                  </span>
-                  <span style={{ ...mono(10), color: t.neutrals.muted }}>{r.visits.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
+    <DataTable
+      title="유입 채널"
+      meta={total > 0 ? `세션 ${total.toLocaleString()}` : undefined}
+      minWidth={240}
+      columns={[
+        { key: 'channel', label: '채널', width: 'minmax(90px,1fr)' },
+        { key: 'visits', label: '세션', width: '48px', align: 'right' as const },
+        { key: 'share', label: '비중', width: '48px', align: 'right' as const },
+      ]}
+      rows={rows}
+      empty="아직 유입이 없습니다"
+    />
   )
 }
 
-// ─── 미포착 콘텐츠 ────────────────────────────────────────────────────────────
-
-function IdleContentCard({ data, domain }: { data: SearchDemandStats; domain: string }) {
-  const cov = data.coverage
+// 지역·언어 — 국가와 브라우저 언어를 순위별로 나란히 놓는다. 둘 다 "어디 사람인가"의 다른 측면.
+function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
+  const n = Math.max(data.countries.length, data.languages.length)
+  const rows: TableRow[] = Array.from({ length: n }, (_, i) => {
+    const c = data.countries[i]
+    const l = data.languages[i]
+    return {
+      key: `${c?.code ?? '-'}:${l?.code ?? '-'}:${i}`,
+      cells: [
+        c?.code ?? '', c ? c.visits.toLocaleString() : '',
+        l?.code ?? '', l ? l.visits.toLocaleString() : '',
+      ],
+      sort: [c?.code ?? '', c?.visits ?? 0, l?.code ?? '', l?.visits ?? 0],
+    }
+  })
   return (
-    <div style={panelStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
-        <div style={panelTitle}>유입 0 콘텐츠</div>
-        <div style={{ ...mono(9), color: t.neutrals.subtle }}>
-          {cov.sitemapContents > 0 ? `${cov.idleContents.toLocaleString()} / ${cov.sitemapContents.toLocaleString()}` : '사이트맵 없음'}
-        </div>
-      </div>
-      {cov.sitemapContents === 0 ? (
-        <EmptyLine>사이트맵을 읽지 못해 커버리지를 계산하지 못했습니다</EmptyLine>
-      ) : cov.idleSample.length === 0 ? (
-        <EmptyLine>발행 콘텐츠 전부에 유입이 있습니다</EmptyLine>
-      ) : (
-        <>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {cov.idleSample.map(p => (
-              <a key={p} href={`https://${domain}${p}`} target="_blank" rel="noopener noreferrer"
-                style={{
-                  ...mono(9.5), padding: '2px 6px', borderRadius: t.radius.sm,
-                  background: t.neutrals.card, color: t.neutrals.muted, textDecoration: 'none',
-                  maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
-                }}>
-                {p}
-              </a>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+    <DataTable
+      title="지역 · 언어"
+      minWidth={240}
+      columns={[
+        { key: 'country', label: '국가', width: 'minmax(40px,1fr)' },
+        { key: 'cv', label: '세션', width: '46px', align: 'right' as const },
+        { key: 'lang', label: '언어', width: 'minmax(40px,1fr)' },
+        { key: 'lv', label: '세션', width: '46px', align: 'right' as const },
+      ]}
+      rows={rows}
+      empty="기록 없음"
+    />
   )
 }
 
@@ -733,8 +734,8 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
   const statCols = mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'
   // 목록 패널: 1열 모드는 한 줄에 3개, 2열 모드는 2개, 모바일은 1개.
   const panelCols = mobile ? '1fr' : splitLayout ? 'repeat(3, minmax(0,1fr))' : 'repeat(2, minmax(0,1fr))'
-  // Search Console 패널은 4장뿐 — 1열 모드에서는 한 줄에 다 넣는다.
-  const gscPanelCols = splitLayout ? 'repeat(4, minmax(0,1fr))' : panelCols
+  // 두 섹션 다 패널이 4장뿐 — 1열 모드에서는 한 줄에 다 넣는다.
+  const wideCols = splitLayout ? 'repeat(4, minmax(0,1fr))' : panelCols
   const cov = data?.coverage
 
   const periodToggle = (
@@ -895,7 +896,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
 
               {!splitLayout && <GscTrendCard daily={gsc.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: gscPanelCols, gap: 8, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: 8, alignItems: 'stretch' }}>
                 {/* 색인 → 노출 → 클릭 순서로 읽히게 배치 */}
                 {index && <IndexStatusCard data={index} />}
                 {index && <IndexGroupsCard data={index} />}
@@ -1028,7 +1029,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
 
               {!splitLayout && <TrafficTrendCard daily={data.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: 8, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: 8, alignItems: 'stretch' }}>
                 <DataTable
                   title="검색 진입 페이지"
                   minWidth={300}
@@ -1062,34 +1063,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                   }))}
                   empty="조회 기록이 없습니다"
                 />
-                <IdleContentCard data={data} domain={data.site.domain} />
-                <div style={panelStyle}>
-                <div style={{ ...panelTitle, marginBottom: 6 }}>지역 · 언어</div>
-                {data.countries.length === 0 && data.languages.length === 0 ? (
-                  <EmptyLine>기록 없음</EmptyLine>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 16 }}>
-                    <div>
-                      <div style={{ ...mono(9), color: t.neutrals.subtle, marginBottom: 4 }}>국가</div>
-                      {data.countries.slice(0, 6).map(c => (
-                        <div key={c.code} style={{ display: 'flex', justifyContent: 'space-between', gap: 6, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text }}>
-                          <span>{c.code}</span>
-                          <span style={{ ...mono(10), color: t.neutrals.muted }}>{c.visits.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div>
-                      <div style={{ ...mono(9), color: t.neutrals.subtle, marginBottom: 4 }}>브라우저 언어</div>
-                      {data.languages.slice(0, 6).map(l => (
-                        <div key={l.code} style={{ display: 'flex', justifyContent: 'space-between', gap: 6, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text }}>
-                          <span>{l.code}</span>
-                          <span style={{ ...mono(10), color: t.neutrals.muted }}>{l.visits.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                </div>
+                <RegionLanguageCard data={data} />
               </div>
 
               <div style={{

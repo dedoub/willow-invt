@@ -212,8 +212,6 @@ export interface SearchDemandStats {
     pagePct: number
     contentPct: number
     searchPct: number
-    idleContents: number      // 유입 0인 콘텐츠 수
-    idleSample: string[]      // 유입 0인 콘텐츠 표본
     orphanPaths: string[]     // 사이트맵에 없는데 유입이 있는 경로 (추적 누락/노이즈 점검용)
   }
   entryPages: SearchDemandPage[]
@@ -345,8 +343,6 @@ export async function getSearchDemandStats(
   const searchTouchedInSitemap = Array.from(searchViewsByPath.keys()).filter(p => sitemapSet.has(p))
   const orphanPaths = touchedPaths.filter(p => !sitemapSet.has(p)).slice(0, 20)
 
-  const idleContents = Array.from(sitemapContentSet).filter(c => !touchedContentSet.has(c))
-
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0)
 
   const entryPages: SearchDemandPage[] = touchedPaths
@@ -394,8 +390,6 @@ export async function getSearchDemandStats(
       pagePct: pct(touchedInSitemap.length, sitemapSet.size),
       contentPct: pct(touchedContentSet.size, sitemapContentSet.size),
       searchPct: pct(searchTouchedInSitemap.length, sitemapSet.size),
-      idleContents: idleContents.length,
-      idleSample: idleContents.slice(0, 12),
       orphanPaths,
     },
     entryPages,
