@@ -183,6 +183,8 @@ export interface SearchDemandPage {
   path: string
   views: number
   searchViews: number
+  /** 마지막 조회 시각(ISO). 최근 이벤트 창 밖의 페이지는 null */
+  lastViewedAt: string | null
 }
 
 export interface SearchDemandStats {
@@ -234,6 +236,40 @@ function toDateKey(iso: string): string {
   return new Date(d.getTime() + 9 * 3600_000).toISOString().slice(0, 10)
 }
 
+interface UmamiEventRow { createdAt: string; urlPath: string }
+interface UmamiEventPage { data: UmamiEventRow[]; count: number; page: number; pageSize: number }
+
+/**
+ * 경로별 마지막 조회 시각.
+ *
+ * metrics 계열은 합계만 주고 시각을 안 준다. 원시 이벤트는 최신순으로 오므로
+ * 경로가 처음 나온 지점이 곧 그 경로의 마지막 조회다.
+ * 최근 EVENT_SCAN_MAX건만 훑기 때문에 그보다 오래된 페이지는 null이 되고,
+ * 화면에서는 값 없음으로 표시된다(틀린 시각을 지어내는 것보다 낫다).
+ */
+const EVENT_PAGE = 1_000
+const EVENT_SCAN_MAX = 5_000
+
+async function fetchLastViewedByPath(
+  base: string, range: { startAt: number; endAt: number },
+): Promise<Map<string, string>> {
+  const last = new Map<string, string>()
+  for (let page = 1; page <= EVENT_SCAN_MAX / EVENT_PAGE; page++) {
+    let res: UmamiEventPage
+    try {
+      res = await umamiFetch<UmamiEventPage>(`${base}/events`, { ...range, page, pageSize: EVENT_PAGE })
+    } catch {
+      break // 이벤트 조회가 막혀도 나머지 지표는 그대로 보여준다
+    }
+    for (const row of res.data ?? []) {
+      const path = normalizePath(row.urlPath)
+      if (!last.has(path)) last.set(path, row.createdAt)
+    }
+    if (!res.data || res.data.length < EVENT_PAGE) break
+  }
+  return last
+}
+
 export async function getSearchDemandStats(
   site: UmamiSiteConfig,
   days = 30,
@@ -243,13 +279,14 @@ export async function getSearchDemandStats(
   const base = `/websites/${site.websiteId}`
   const range = { startAt, endAt }
 
-  const [totals, referrers, urls, series, countries, languages] = await Promise.all([
+  const [totals, referrers, urls, series, countries, languages, lastViewed] = await Promise.all([
     umamiFetch<UmamiStats>(`${base}/stats`, range),
     umamiFetch<UmamiMetric[]>(`${base}/metrics`, { ...range, type: 'referrer', limit: 100 }),
     umamiFetch<UmamiMetric[]>(`${base}/metrics`, { ...range, type: 'url', limit: 500 }),
     umamiFetch<UmamiSeries>(`${base}/pageviews`, { ...range, unit: 'day', timezone: 'Asia/Seoul' }),
     umamiFetch<UmamiMetric[]>(`${base}/metrics`, { ...range, type: 'country', limit: 20 }),
     umamiFetch<UmamiMetric[]>(`${base}/metrics`, { ...range, type: 'language', limit: 20 }),
+    fetchLastViewedByPath(base, range),
   ])
 
   // 검색/AI 리퍼러만 추려 페이지·시계열·이탈률을 리퍼러별로 다시 조회한다.
@@ -347,12 +384,21 @@ export async function getSearchDemandStats(
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0)
 
   const entryPages: SearchDemandPage[] = touchedPaths
-    .map(p => ({ path: p, views: viewedByPath.get(p) ?? 0, searchViews: searchViewsByPath.get(p) ?? 0 }))
+    .map(p => ({
+      path: p,
+      views: viewedByPath.get(p) ?? 0,
+      searchViews: searchViewsByPath.get(p) ?? 0,
+      lastViewedAt: lastViewed.get(p) ?? null,
+    }))
     .sort((a, b) => b.views - a.views)
     .slice(0, 100)
 
   const searchPages: SearchDemandPage[] = Array.from(searchViewsByPath.entries())
-    .map(([path, searchViews]) => ({ path, searchViews, views: viewedByPath.get(path) ?? searchViews }))
+    .map(([path, searchViews]) => ({
+      path, searchViews,
+      views: viewedByPath.get(path) ?? searchViews,
+      lastViewedAt: lastViewed.get(path) ?? null,
+    }))
     .sort((a, b) => b.searchViews - a.searchViews)
     .slice(0, 100)
 

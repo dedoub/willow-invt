@@ -57,6 +57,19 @@ function langName(code: string): string {
   }
 }
 
+function fmtAgo(iso: string | null): string {
+  if (!iso) return '—'
+  const ms = Date.now() - new Date(iso).getTime()
+  if (!Number.isFinite(ms) || ms < 0) return '—'
+  const min = Math.floor(ms / 60_000)
+  if (min < 1) return '방금'
+  if (min < 60) return `${min}분 전`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}시간 전`
+  const day = Math.floor(hr / 24)
+  return day < 30 ? `${day}일 전` : `${Math.floor(day / 30)}개월 전`
+}
+
 function fmtDuration(sec: number): string {
   if (!sec || sec < 0) return '0초'
   if (sec < 60) return `${Math.round(sec)}초`
@@ -1079,17 +1092,23 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 <ChannelMixCard data={data} />
                 <DataTable
                   title="조회 상위 페이지"
-                  minWidth={300}
+                  minWidth={366}
                   columns={[
                     { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
                     { key: 'pv', label: '페이지뷰', width: '58px', align: 'right' as const },
                     { key: 'se', label: '검색', width: '46px', align: 'right' as const },
+                    { key: 'last', label: '마지막', width: '58px', align: 'right' as const },
                   ]}
                   rows={data.entryPages.map(p => ({
                     key: p.path,
                     href: `https://${data.site.domain}${p.path}`,
-                    cells: [p.path, p.views.toLocaleString(), p.searchViews > 0 ? p.searchViews.toLocaleString() : '—'],
-                    sort: [p.path, p.views, p.searchViews],
+                    cells: [
+                      p.path, p.views.toLocaleString(),
+                      p.searchViews > 0 ? p.searchViews.toLocaleString() : '—',
+                      fmtAgo(p.lastViewedAt),
+                    ],
+                    // 최근일수록 위로 오게 시각 자체로 정렬한다(포맷 문자열로 정렬하면 뒤엉킨다)
+                    sort: [p.path, p.views, p.searchViews, p.lastViewedAt ? new Date(p.lastViewedAt).getTime() : 0],
                   }))}
                   empty="조회 기록이 없습니다"
                 />
