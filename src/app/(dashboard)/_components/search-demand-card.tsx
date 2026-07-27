@@ -737,6 +737,15 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
   // 두 섹션 다 패널이 4장뿐 — 1열 모드에서는 한 줄에 다 넣는다.
   const wideCols = splitLayout ? 'repeat(4, minmax(0,1fr))' : panelCols
   const cov = data?.coverage
+  // GSC(노출·클릭)와 Umami(실제 진입)를 경로로 잇는다. 양쪽 다 normalizePath를 거쳐
+  // 같은 표기라 그대로 조인된다. 구글 클릭 대비 진입이 크게 모자라면 봇·차단·즉시이탈 구간.
+  const umamiSearchByPath = useMemo(() => {
+    const m = new Map<string, number>()
+    if (!data) return m
+    for (const p of data.searchPages) m.set(p.path, p.searchViews)
+    for (const p of data.entryPages) if (!m.has(p.path)) m.set(p.path, p.searchViews)
+    return m
+  }, [data])
 
   const periodToggle = (
     <div style={{ display: 'flex', gap: 2, background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
@@ -919,19 +928,28 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 />
                 <DataTable
                   title="노출 상위 페이지"
-                  minWidth={320}
+                  minWidth={366}
                   columns={[
                     { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
                     { key: 'imp', label: '노출', width: '46px', align: 'right' as const },
                     { key: 'clk', label: '클릭', width: '40px', align: 'right' as const },
+                    { key: 'in', label: '진입', width: '40px', align: 'right' as const },
                     { key: 'pos', label: '순위', width: '46px', align: 'right' as const },
                   ]}
-                  rows={gsc.pages.map(p => ({
-                    key: p.path,
-                    href: `https://${gsc.site.domain}${p.path}`,
-                    cells: [p.path, p.impressions.toLocaleString(), p.clicks.toLocaleString(), `${p.position}위`],
-                    sort: [p.path, p.impressions, p.clicks, p.position],
-                  }))}
+                  rows={gsc.pages.map(p => {
+                    // 진입은 Umami 기준 검색 유입. 데이터가 아직 없으면 비교 자체를 못 하므로 —
+                    const visits = data ? (umamiSearchByPath.get(p.path) ?? 0) : null
+                    return {
+                      key: p.path,
+                      href: `https://${gsc.site.domain}${p.path}`,
+                      cells: [
+                        p.path, p.impressions.toLocaleString(), p.clicks.toLocaleString(),
+                        visits == null ? '—' : visits.toLocaleString(),
+                        `${p.position}위`,
+                      ],
+                      sort: [p.path, p.impressions, p.clicks, visits ?? -1, p.position],
+                    }
+                  })}
                   empty="노출된 페이지가 없습니다"
                 />
               </div>

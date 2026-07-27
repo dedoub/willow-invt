@@ -355,8 +355,6 @@ export async function getSearchDemandStats(
     .sort((a, b) => b.searchViews - a.searchViews)
     .slice(0, 100)
 
-  notes.push('Umami는 리퍼러까지만 전달돼 검색어는 안 보임 — 키워드 단위는 위 Search Console 섹션에서 본다')
-
   return {
     site: {
       key: site.key, name: site.name, domain: site.domain,
