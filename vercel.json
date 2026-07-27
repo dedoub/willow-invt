@@ -1,5 +1,7 @@
 {
-  "regions": ["sin1"],
+  "regions": [
+    "sin1"
+  ],
   "crons": [
     {
       "path": "/api/cron/real-estate-sync",
@@ -12,6 +14,10 @@
     {
       "path": "/api/cron/voicecards-expire-offers",
       "schedule": "17 0 * * *"
+    },
+    {
+      "path": "/api/cron/seo-index-scan",
+      "schedule": "40 21 * * *"
     }
   ]
 }

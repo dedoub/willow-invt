@@ -16,6 +16,7 @@ import { LStat } from './linear-stat'
 import { LIcon } from './linear-icons'
 import type { SearchDemandStats, Channel } from '@/lib/umami'
 import type { SearchConsoleStats } from '@/lib/gsc'
+import type { IndexStatusSummary, IndexBucket } from '@/lib/gsc-index'
 
 // ─── 상수 ─────────────────────────────────────────────────────────────────────
 
@@ -450,6 +451,136 @@ function QueryListCard({
   )
 }
 
+// ─── 색인 상태 ────────────────────────────────────────────────────────────────
+
+// 상태별 색: 색인됨만 브랜드색, 나머지는 원인 성격에 맞춰 경고/중립
+const BUCKET_COLOR: Record<IndexBucket, string> = {
+  indexed: '#166A97',
+  crawled: '#B8781F',    // 콘텐츠 판단 문제
+  discovered: '#4A9EC9', // 대기 중
+  unseen: '#C23A3A',     // 발견 자체가 안 된 것 — 가장 기본적인 실패
+  excluded: '#9398A0',
+  unknown: '#C9CDD4',
+}
+const BUCKET_LABEL_UI: Record<IndexBucket, string> = {
+  indexed: '색인됨',
+  crawled: '크롤됐지만 미색인',
+  discovered: '발견됨 · 크롤 대기',
+  unseen: '구글이 모름',
+  excluded: '제외됨',
+  unknown: '알 수 없음',
+}
+const BUCKET_ORDER: IndexBucket[] = ['indexed', 'crawled', 'discovered', 'unseen', 'excluded', 'unknown']
+
+function IndexStatusCard({ data, domain }: { data: IndexStatusSummary; domain: string }) {
+  const total = data.total
+  const entries = BUCKET_ORDER.map(b => ({ bucket: b, n: data.buckets[b] })).filter(e => e.n > 0)
+  return (
+    <div style={panelStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
+        <div style={panelTitle}>색인 상태</div>
+        <div style={{ ...mono(9), color: t.neutrals.subtle }}>
+          {data.latestDate ? `${data.latestDate} 검사 · ${total.toLocaleString()}쪽` : '검사 기록 없음'}
+        </div>
+      </div>
+      {total === 0 ? (
+        <EmptyLine>아직 색인 검사 기록이 없습니다<br />크론이 하루 1회 전수 검사합니다</EmptyLine>
+      ) : (
+        <>
+          <div style={{ display: 'flex', height: 8, borderRadius: 2, overflow: 'hidden', marginBottom: 8 }}>
+            {entries.map(e => (
+              <div key={e.bucket} title={`${BUCKET_LABEL_UI[e.bucket]} ${e.n}`}
+                style={{ width: `${(e.n / total) * 100}%`, background: BUCKET_COLOR[e.bucket] }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8 }}>
+            {entries.map(e => (
+              <div key={e.bucket} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 'calc(10px * var(--fz, 1))' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: t.neutrals.text }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 1, background: BUCKET_COLOR[e.bucket] }} />
+                  {BUCKET_LABEL_UI[e.bucket]}
+                </span>
+                <span style={{ ...mono(10), color: t.neutrals.muted }}>
+                  {e.n.toLocaleString()}
+                  <span style={{ color: t.neutrals.subtle, marginLeft: 4 }}>
+                    {Math.round((e.n / total) * 1000) / 10}%
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+          {data.trend.length > 1 && (
+            <div style={{ ...mono(9), color: t.neutrals.subtle, lineHeight: 1.5 }}>
+              색인 추이 {data.trend.map(d => d.indexed).join(' → ')}
+              {data.changeFromPrev != null && data.changeFromPrev !== 0 && (
+                <span style={{ marginLeft: 4, fontWeight: 600, color: data.changeFromPrev > 0 ? t.accent.pos : t.accent.neg }}>
+                  ({data.changeFromPrev > 0 ? '+' : '−'}{Math.abs(data.changeFromPrev)})
+                </span>
+              )}
+            </div>
+          )}
+          {data.crawledNotIndexed.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ ...mono(9), letterSpacing: 0.6, textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: 4 }}>
+                크롤됐지만 미색인 — 콘텐츠 문제
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {data.crawledNotIndexed.slice(0, 8).map(r => (
+                  <a key={r.path} href={`https://${domain}${r.path}`} target="_blank" rel="noopener noreferrer"
+                    style={{
+                      ...mono(9.5), padding: '2px 6px', borderRadius: t.radius.sm,
+                      background: t.neutrals.card, color: t.neutrals.muted, textDecoration: 'none',
+                      maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+                    }}>
+                    {r.path}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function UnseenPagesCard({ data, domain }: { data: IndexStatusSummary; domain: string }) {
+  const n = data.buckets.unseen
+  return (
+    <div style={panelStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
+        <div style={panelTitle}>구글이 모르는 페이지</div>
+        <div style={{ ...mono(9), color: t.neutrals.subtle }}>
+          {data.total > 0 ? `${n.toLocaleString()} / ${data.total.toLocaleString()}` : '—'}
+        </div>
+      </div>
+      {data.total === 0 ? (
+        <EmptyLine>아직 색인 검사 기록이 없습니다</EmptyLine>
+      ) : n === 0 ? (
+        <EmptyLine>구글이 모든 발행 페이지를 알고 있습니다</EmptyLine>
+      ) : (
+        <>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {data.unseen.slice(0, 12).map(p => (
+              <a key={p} href={`https://${domain}${p}`} target="_blank" rel="noopener noreferrer"
+                style={{
+                  ...mono(9.5), padding: '2px 6px', borderRadius: t.radius.sm,
+                  background: t.neutrals.card, color: t.neutrals.muted, textDecoration: 'none',
+                  maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+                }}>
+                {p}
+              </a>
+            ))}
+          </div>
+          <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
+            구글이 URL 존재 자체를 모르는 상태. 품질이 아니라 발견 문제라 사이트맵 재제출과 내부 링크로 푼다.
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── 밴드 헤더 ────────────────────────────────────────────────────────────────
 
 function BandHead({ label, hint, right }: { label: string; hint?: string; right?: React.ReactNode }) {
@@ -521,6 +652,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
   const [days, setDays] = useState<Period>(30)
   const [data, setData] = useState<SearchDemandStats | null>(null)
   const [gsc, setGsc] = useState<SearchConsoleStats | null>(null)
+  const [index, setIndex] = useState<IndexStatusSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -555,7 +687,19 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
         setGscError(err instanceof Error ? err.message : String(err))
       })
 
-    await Promise.all([umamiP, gscP])
+    // 색인 상태는 크론이 적재한 스냅샷 조회 — 실패해도 나머지는 그대로 보여준다
+    const indexP = fetch(`/api/seo/index-status?site=${site}&days=30`)
+      .then(async res => {
+        const json = await res.json()
+        if (!res.ok) throw new Error(json?.message || `조회 실패 (${res.status})`)
+        setIndex(json as IndexStatusSummary)
+      })
+      .catch(err => {
+        console.error('[search-demand] index status load error:', err)
+        setIndex(null)
+      })
+
+    await Promise.all([umamiP, gscP, indexP])
     setLoading(false)
     setRefreshing(false)
   }, [site])
@@ -680,6 +824,24 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     title="노출 가중 평균 순위. 10위 안이면 첫 페이지, 11~30위면 사실상 안 보이는 자리다."
                   />
                   <LStat
+                    label="색인율"
+                    value={index && index.total > 0 ? `${index.indexedPct}%` : '—'}
+                    valueExtra={index && index.changeFromPrev ? (
+                      <span style={{
+                        ...mono(9.5), marginLeft: 5, fontWeight: 600,
+                        color: index.changeFromPrev > 0 ? t.accent.pos : t.accent.neg,
+                      }}>
+                        {index.changeFromPrev > 0 ? '+' : '−'}{Math.abs(index.changeFromPrev)}쪽
+                      </span>
+                    ) : undefined}
+                    sub={index && index.total > 0
+                      ? `${index.total.toLocaleString()}쪽 중 ${index.buckets.indexed.toLocaleString()}쪽 색인`
+                      : '검사 기록 없음'}
+                    tone={index && index.indexedPct >= 50 ? 'pos' : index && index.total > 0 ? 'warn' : 'default'}
+                    title="URL 검사 API로 매일 전수 확인한 색인 비율. 노출·클릭보다 앞단이라, 여기가 낮으면 아래 지표는 볼 필요도 없다."
+                    sparkline={index?.trend.map(d => ({ date: d.date, value: d.indexed }))}
+                  />
+                  <LStat
                     label="노출된 콘텐츠"
                     value={gsc.capture.sitemapContents > 0 ? `${gsc.capture.impressedPct}%` : '—'}
                     sub={gsc.capture.sitemapContents > 0
@@ -696,14 +858,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                       : '—'}
                     tone={gsc.capture.clickedPct > 0 ? 'default' : 'warn'}
                     title="발행 콘텐츠 중 실제 클릭을 받아본 비율. 노출 비율과의 간격이 곧 '보여는 주는데 안 눌리는' 구간."
-                  />
-                  <LStat
-                    label="노출 0 콘텐츠"
-                    value={gsc.capture.sitemapContents > 0 ? gsc.capture.invisibleCount.toLocaleString() : '—'}
-                    unit="개"
-                    sub="검색에 아예 안 나타나는 발행 콘텐츠"
-                    tone={gsc.capture.invisibleCount > 0 ? 'warn' : 'pos'}
-                    title="사이트맵에는 있는데 기간 내 노출이 0인 콘텐츠. 색인 여부(URL 검사)부터 확인할 1순위 목록."
                   />
                 </div>
 
@@ -768,6 +922,12 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     )}
                   </div>
                 </div>
+                {index && (
+                  <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(2, minmax(0,1fr))' : '1fr', gap: 8, alignItems: 'stretch' }}>
+                    <IndexStatusCard data={index} domain={gsc.site.domain} />
+                    <UnseenPagesCard data={index} domain={gsc.site.domain} />
+                  </div>
+                )}
               </>
             )}
 
