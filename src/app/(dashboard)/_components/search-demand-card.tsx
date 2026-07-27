@@ -1092,23 +1092,18 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                 <ChannelMixCard data={data} />
                 <DataTable
                   title="조회 상위 페이지"
-                  minWidth={366}
+                  minWidth={320}
                   columns={[
                     { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
                     { key: 'pv', label: '페이지뷰', width: '58px', align: 'right' as const },
-                    { key: 'se', label: '검색', width: '46px', align: 'right' as const },
                     { key: 'last', label: '마지막', width: '58px', align: 'right' as const },
                   ]}
                   rows={data.entryPages.map(p => ({
                     key: p.path,
                     href: `https://${data.site.domain}${p.path}`,
-                    cells: [
-                      p.path, p.views.toLocaleString(),
-                      p.searchViews > 0 ? p.searchViews.toLocaleString() : '—',
-                      fmtAgo(p.lastViewedAt),
-                    ],
+                    cells: [p.path, p.views.toLocaleString(), fmtAgo(p.lastViewedAt)],
                     // 최근일수록 위로 오게 시각 자체로 정렬한다(포맷 문자열로 정렬하면 뒤엉킨다)
-                    sort: [p.path, p.views, p.searchViews, p.lastViewedAt ? new Date(p.lastViewedAt).getTime() : 0],
+                    sort: [p.path, p.views, p.lastViewedAt ? new Date(p.lastViewedAt).getTime() : 0],
                   }))}
                   empty="조회 기록이 없습니다"
                 />
