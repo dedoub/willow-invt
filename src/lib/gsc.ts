@@ -16,7 +16,7 @@
  */
 
 import { GoogleAuth } from 'google-auth-library'
-import { canonicalPath, normalizePath, fetchSitemapPaths } from './umami'
+import { canonicalPath, normalizePath, fetchSitemapPaths, isHtmlPath } from './umami'
 
 const GSC_API = 'https://www.googleapis.com/webmasters/v3'
 const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly'
@@ -218,11 +218,25 @@ export async function getSearchConsoleStats(
     .sort((a, b) => b.impressions - a.impressions)
     .slice(0, 12)
 
-  const pages: GscPageRow[] = pageRows
-    .map(r => ({
-      path: normalizePath(r.keys?.[0] ?? '/'),
-      clicks: r.clicks, impressions: r.impressions,
-      ctr: pct1(r.ctr), position: round1(r.position),
+  // 도메인 속성은 www/non-www·http/https가 각각 다른 URL로 오므로 경로 기준으로 합친다.
+  // 순위는 노출 가중 평균, CTR은 합계로 재계산해야 맞다.
+  const pageAcc = new Map<string, { clicks: number; impressions: number; posSum: number }>()
+  for (const r of pageRows) {
+    const path = normalizePath(r.keys?.[0] ?? '/')
+    if (!isHtmlPath(path)) continue
+    const cur = pageAcc.get(path) ?? { clicks: 0, impressions: 0, posSum: 0 }
+    cur.clicks += r.clicks
+    cur.impressions += r.impressions
+    cur.posSum += r.position * r.impressions
+    pageAcc.set(path, cur)
+  }
+  const pages: GscPageRow[] = Array.from(pageAcc.entries())
+    .map(([path, v]) => ({
+      path,
+      clicks: v.clicks,
+      impressions: v.impressions,
+      ctr: v.impressions > 0 ? pct1(v.clicks / v.impressions) : 0,
+      position: v.impressions > 0 ? round1(v.posSum / v.impressions) : 0,
     }))
     .sort((a, b) => b.impressions - a.impressions)
 
@@ -230,7 +244,7 @@ export async function getSearchConsoleStats(
   let sitemapContents = new Set<string>()
   try {
     const paths = await fetchSitemapPaths(site.domain)
-    sitemapContents = new Set(paths.map(canonicalPath))
+    sitemapContents = new Set(paths.filter(isHtmlPath).map(canonicalPath))
   } catch { /* 사이트맵 실패는 치명적이지 않다 */ }
 
   const impressedContents = new Set(pages.filter(p => p.impressions > 0).map(p => canonicalPath(p.path)))

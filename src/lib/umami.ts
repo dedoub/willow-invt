@@ -127,6 +127,15 @@ export function canonicalPath(input: string): string {
   return p
 }
 
+// .md/.json/.txt 등은 에이전트·기계용으로 일부러 발행한 것이라 검색 노출이 없는 게 정상이다.
+// 이걸 커버리지 분모에 넣으면 "미포착"이 부풀려지므로 사람이 읽는 페이지만 센다.
+const NON_PAGE_EXT = /\.(md|json|txt|xml|svg|png|jpe?g|gif|webp|ico|css|js|pdf|zip|rss|atom)$/i
+
+/** 사람이 보는 HTML 페이지인지 (커버리지 집계 대상) */
+export function isHtmlPath(input: string): boolean {
+  return !NON_PAGE_EXT.test(normalizePath(input))
+}
+
 /** 경로의 로케일 (없으면 default) */
 export function pathLocale(input: string): string {
   const p = normalizePath(input)
@@ -316,7 +325,7 @@ export async function getSearchDemandStats(
   let sitemapPaths: string[] = []
   const notes: string[] = []
   try {
-    sitemapPaths = await fetchSitemapPaths(site.domain)
+    sitemapPaths = (await fetchSitemapPaths(site.domain)).filter(isHtmlPath)
   } catch (err) {
     notes.push(`사이트맵을 읽지 못해 커버리지는 집계에서 제외됨 (${String(err).slice(0, 80)})`)
   }
@@ -324,6 +333,7 @@ export async function getSearchDemandStats(
   const viewedByPath = new Map<string, number>()
   for (const m of urls) {
     const p = normalizePath(m.x || '/')
+    if (!isHtmlPath(p)) continue
     viewedByPath.set(p, (viewedByPath.get(p) ?? 0) + m.y)
   }
 
