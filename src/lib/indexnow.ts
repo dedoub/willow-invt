@@ -74,13 +74,20 @@ export async function submitNewUrls(site: IndexNowSite): Promise<IndexNowResult>
   base.sitemapUrls = urls.length
   if (urls.length === 0) return base
 
-  const { data, error } = await supabase
-    .from('seo_indexnow_submitted')
-    .select('url')
-    .eq('site_key', site.key)
-  if (error) return { ...base, error: `기록 조회 실패: ${error.message}` }
-
-  const known = new Set((data ?? []).map(r => r.url as string))
+  // PostgREST는 한 번에 1,000행까지만 준다. 안 끊어 읽으면 1,000번째 이후 URL이
+  // 매번 "새 URL"로 보여 같은 걸 밤마다 다시 쏘게 된다.
+  const known = new Set<string>()
+  const PAGE = 1_000
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('seo_indexnow_submitted')
+      .select('url')
+      .eq('site_key', site.key)
+      .range(from, from + PAGE - 1)
+    if (error) return { ...base, error: `기록 조회 실패: ${error.message}` }
+    for (const r of data ?? []) known.add(r.url as string)
+    if (!data || data.length < PAGE) break
+  }
   const fresh = urls.filter(u => !known.has(u))
   base.newUrls = fresh.length
   if (fresh.length === 0) return base
