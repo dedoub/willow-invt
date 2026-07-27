@@ -42,7 +42,7 @@ agg as (
     count(*) as total_events,
     bool_or(event_name = 'demo_autostarted') as demo_autostarted,
     bool_or(event_name in ('learning_started','card_viewed','card_attempted',
-      'card_learned_anonymous','tts_played','listen_session_started') and user_id is null) as demo_engaged,
+      'card_learned_anonymous','tts_played','device_tts_played','listen_session_started') and user_id is null) as demo_engaged,
     count(*) filter (where event_name = 'card_viewed' and user_id is null) as anon_cards_viewed,
     count(*) filter (where event_name = 'card_learned_anonymous') as anon_cards_learned,
     count(*) filter (where event_name = 'card_flipped_manual' and user_id is null) as anon_flips,

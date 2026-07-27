@@ -113,9 +113,12 @@ member_active30 as (
       where f.has_login and f.kdate <= d.kdate and f.kdate > d.kdate - 30) as base
   from all_dates d
 ),
+-- 일별 듣기(재생) 볼륨. 이름은 credit_daily 지만 실제 소비처는 "듣기 학습" 차트다 —
+-- 실제 크레딧 소진은 아래 credit_spend_daily(원장 기반). device_tts_played = 기기 TTS 재생
+-- (크레딧 0/프리미엄 off 상태의 듣기, 앱 1.1.110+) 이라 학습량에는 포함, 크레딧에는 미포함.
 credit_daily as (
   select kdate, count(*) as credits from base
-  where event_name in ('tts_played','voice_preview_played') group by kdate
+  where event_name in ('tts_played','voice_preview_played','device_tts_played') group by kdate
 ),
 -- 카드 앞뒤 수동 전환 (card_flipped_manual) — 말하기/듣기 없이 눈으로만 학습하는 볼륨
 flip_daily as (

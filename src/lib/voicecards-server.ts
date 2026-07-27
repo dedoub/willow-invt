@@ -921,7 +921,9 @@ export interface VoicecardsUserStats {
     bonusCredits: number     // 오퍼로 지급된 무상 보너스 크레딧 누적 (user_offers.redeemed_credits 합)
     offerStage: string | null // 타겟 오퍼 단계: sent|seen|snoozed|redeemed|dismissed|expired (없으면 null)
     offerStageAt: string | null // 현재 단계 진입 시각 (발송일/열람일/전환일 등)
-    creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played). AI 카드 생성은 사용량 적어 제외
+    creditsUsed: number      // 듣기 학습 횟수 (tts_played + voice_preview_played + device_tts_played). AI 카드 생성은 사용량 적어 제외
+    // 그중 프리미엄(Google TTS) 재생만 — 기기 TTS는 0크레딧이라 크레딧 관련 추정에는 이 값을 쓴다.
+    premiumListens: number
     creditsSpent: number     // 실사용 크레딧 = TTS 차감(tts_premium) + AI 생성(credits_used) — 크레딧 원장 기준
     // 구글연동(Drive) 완료 = users.folder_id 존재. deferred-Drive 가입 이후 시트 0이어도
     // 연동은 끝났을 수 있다(예: AI 생성 후 draft만 두고 이탈) — sheetCount로 판정하지 말 것.
@@ -1099,15 +1101,19 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const totalAttempts = Array.from(userAttemptsMap.values()).reduce((sum, n) => sum + n, 0)
 
   // 사용자별 듣기 학습 횟수 (이벤트 1건 = 1회) + 카드 뒤집기 횟수 + 실사용 크레딧
-  // 듣기: tts_played, voice_preview_played / 뒤집기: card_flipped_manual
-  // 실사용 크레딧: TTS 차감(credits_changed/tts_premium) + AI 생성(ai_generation_success/credits_used)
+  // 듣기: tts_played, voice_preview_played, device_tts_played(기기 TTS — 크레딧 0/프리미엄 off
+  //   상태의 재생, 앱 1.1.110+) / 뒤집기: card_flipped_manual
+  // premium_listen_count 는 그중 크레딧이 나갈 수 있는 재생만 — 기기 TTS를 크레딧 추정에 섞지 않는다.
+  // 실사용 크레딧: credit_transactions 원장 음수 delta 합 (이벤트 집계 아님)
   const userCreditsUsedMap = new Map<string, number>()
+  const userPremiumListensMap = new Map<string, number>()
   const userFlipsMap = new Map<string, number>()
   const userCreditsSpentMap = new Map<string, number>()
-  for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; listen_count: number; flip_count: number; credits_spent: number }>)) {
+  for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; listen_count: number; premium_listen_count: number; flip_count: number; credits_spent: number }>)) {
     const uid = row.user_id
     if (!uid || !visibleUserIds.has(uid)) continue
     userCreditsUsedMap.set(uid, Number(row.listen_count) || 0)
+    userPremiumListensMap.set(uid, Number(row.premium_listen_count) || 0)
     userFlipsMap.set(uid, Number(row.flip_count) || 0)
     userCreditsSpentMap.set(uid, Number(row.credits_spent) || 0)
   }
@@ -1217,6 +1223,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     offerStage: userOfferMap.get(u.user_id)?.stage || null,
     offerStageAt: userOfferMap.get(u.user_id)?.stageAt || null,
     creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
+    premiumListens: userPremiumListensMap.get(u.user_id) || 0,
     creditsSpent: userCreditsSpentMap.get(u.user_id) || 0,
     hasFolder: !!u.folder_id,
     sheetCount: u.sheet_ids?.length || 0,
@@ -1346,7 +1353,9 @@ export interface AnonymousEventStats {
   }>
   dailyCreditUsage: Array<{
     date: string
-    // 크레딧 사용 = AI 생성 카드 수 + tts_played 재생 횟수 (둘 다 1크레딧/건 가정)
+    // 이름과 달리 "일별 듣기 재생 횟수" (듣기 학습 차트 소스).
+    // tts_played + voice_preview_played + device_tts_played — 기기 TTS(0크레딧) 포함.
+    // 실제 크레딧 소진은 dailyCreditSpend(원장 기반)를 볼 것.
     credits: number
   }>
   // 일별 카드 앞뒤 수동 전환 (card_flipped_manual) — 활동 있는 날만 행 존재

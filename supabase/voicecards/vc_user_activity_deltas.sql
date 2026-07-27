@@ -18,10 +18,12 @@ tsa_today as (
   select t.user_id, sum(t.attempts)::bigint as attempts
   from time_series_analytics t, td where t.date = td.d group by t.user_id
 ),
+-- 듣기는 재생 엔진 무관. device_tts_played = 크레딧 0/프리미엄 off 상태에서 기기 TTS 로
+-- 이어 들은 재생(앱 1.1.110+) — 빠뜨리면 무료 헤비 리스너의 오늘 듣기가 0으로 보인다.
 listen_today as (
   select e.user_id, count(*)::bigint as listen
   from mv_real_users e, td
-  where e.event_name in ('tts_played','voice_preview_played')
+  where e.event_name in ('tts_played','voice_preview_played','device_tts_played')
     and (e.created_at at time zone 'Asia/Seoul')::date = td.d and e.user_id is not null
   group by e.user_id
 ),
@@ -74,10 +76,11 @@ learn_days as (
   where e.event_name = 'card_attempted'
     and (e.created_at at time zone 'Asia/Seoul')::date >= td.d - 6 and e.user_id is not null
 ),
+-- 기기 TTS 로만 들은 날도 활동일 (듣기 정의와 동기).
 listen_days as (
   select e.user_id, (e.created_at at time zone 'Asia/Seoul')::date as d
   from mv_real_users e, td
-  where e.event_name in ('tts_played','voice_preview_played')
+  where e.event_name in ('tts_played','voice_preview_played','device_tts_played')
     and (e.created_at at time zone 'Asia/Seoul')::date >= td.d - 6 and e.user_id is not null
 ),
 -- 뒤집기(card_flipped_manual)만 한 날도 활동일로 카운트 (2026-07-25 CEO — 활성화 정의와 동기).

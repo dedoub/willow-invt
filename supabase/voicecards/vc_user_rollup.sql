@@ -19,7 +19,7 @@ drop function if exists public.vc_user_rollup();
 create or replace function public.vc_user_rollup()
  returns table(
    user_id text,
-   listen_count bigint, flip_count bigint, credits_spent bigint,
+   listen_count bigint, premium_listen_count bigint, flip_count bigint, credits_spent bigint,
    purchased_credits bigint,
    premium_voice boolean, ai_feature boolean, banner_tap boolean, gated boolean,
    last_intent timestamptz
@@ -29,7 +29,13 @@ create or replace function public.vc_user_rollup()
 as $function$
   with ev as (
     select user_id,
-      count(*) filter (where event_name in ('tts_played','voice_preview_played'))::bigint as listen_count,
+      -- 듣기 = 재생 엔진 무관 학습량. device_tts_played 는 크레딧이 바닥나거나 프리미엄을
+      -- 끈 유저가 기기 TTS 로 계속 들은 재생 (앱 1.1.110+). 이게 빠지면 무료 헤비 리스너가
+      -- "듣기 0" 으로 보여 이탈처럼 읽힌다.
+      count(*) filter (where event_name in ('tts_played','voice_preview_played','device_tts_played'))::bigint as listen_count,
+      -- 크레딧이 실제로 나갈 수 있는 재생만. 기기 TTS 는 0크레딧이라 크레딧 관련 추정에
+      -- 듣기 합계를 그대로 쓰면 사용량이 부풀려진다.
+      count(*) filter (where event_name in ('tts_played','voice_preview_played'))::bigint as premium_listen_count,
       count(*) filter (where event_name = 'card_flipped_manual')::bigint as flip_count,
       sum(case when event_name = 'credits_changed' and properties->>'reason' = 'purchase'
             then case properties->>'product_id'
@@ -51,7 +57,7 @@ as $function$
     from mv_real_users
     where is_likely_bot = false and user_id is not null
       and event_name in (
-        'tts_played','voice_preview_played','card_flipped_manual','credits_changed',
+        'tts_played','voice_preview_played','device_tts_played','card_flipped_manual','credits_changed',
         'tts_premium_toggle_changed','voice_settings_opened',
         'ai_generation_opened','ai_generation_submitted','ai_teaser_generate_tapped',
         'credit_banner_tapped',
@@ -68,6 +74,7 @@ as $function$
   ids as (select user_id from ev union select user_id from spend)
   select i.user_id,
     coalesce(e.listen_count, 0)::bigint,
+    coalesce(e.premium_listen_count, 0)::bigint,
     coalesce(e.flip_count, 0)::bigint,
     coalesce(s.credits_spent, 0)::bigint,
     coalesce(e.purchased_credits, 0)::bigint,

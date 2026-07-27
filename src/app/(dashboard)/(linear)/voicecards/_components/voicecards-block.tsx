@@ -1269,7 +1269,7 @@ export function VoicecardsBlock({
               return (
                 <LStat
                   label="듣기 학습"
-                  title="TTS·미리듣기 재생 횟수 누적. 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
+                  title="TTS·미리듣기·기기음성 재생 횟수 누적 (재생 엔진 무관). 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
                   value={formatNumber(totalUsed)}
                   valueExtra={cardRatioExtra(totalUsed)}
                   sub={`오늘 ${formatNumber(todayUsage)}회 · 7일 ${formatNumber(last7Sum)}회`}
