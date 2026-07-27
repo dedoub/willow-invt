@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/seo-index-scan",
       "schedule": "40 21 * * *"
+    },
+    {
+      "path": "/api/cron/indexnow",
+      "schedule": "10 22 * * *"
     }
   ]
 }
