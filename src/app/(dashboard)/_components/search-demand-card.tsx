@@ -14,6 +14,7 @@ import { LCard } from './linear-card'
 import { LSectionHead } from './linear-section-head'
 import { LStat } from './linear-stat'
 import { LIcon } from './linear-icons'
+import { useDashCols } from './cols-toggle'
 import type { SearchDemandStats, Channel } from '@/lib/umami'
 import type { SearchConsoleStats } from '@/lib/gsc'
 import type { IndexStatusSummary, IndexBucket } from '@/lib/gsc-index'
@@ -159,52 +160,84 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
   )
 }
 
-// ─── 페이지 목록 (검색 진입 / 전체 진입) ──────────────────────────────────────
+// ─── 공용 테이블 (사용자 테이블과 동일 문법) ─────────────────────────────────
+// 헤더는 mono 대문자, 행은 패널(inner) 위에 카드색으로 얹고, 숫자는 tabular-nums.
+// 좁은 폭에서는 가로 스크롤 — 사용자 테이블이 쓰는 방식 그대로다.
 
-function PageListCard({
-  title, rows, valueLabel, empty, domain,
+interface TableColumn {
+  key: string
+  label: string
+  width: string
+  align?: 'left' | 'right'
+}
+
+interface TableRow {
+  key: string
+  href?: string
+  cells: React.ReactNode[]
+}
+
+const headCell: React.CSSProperties = {
+  ...mono(9), letterSpacing: 0.3, textTransform: 'uppercase' as const,
+  color: t.neutrals.subtle, whiteSpace: 'nowrap' as const, overflow: 'hidden',
+}
+const textCell: React.CSSProperties = {
+  fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text,
+  whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+}
+const numCell: React.CSSProperties = {
+  ...mono(10), color: t.neutrals.muted, textAlign: 'right' as const, whiteSpace: 'nowrap' as const,
+}
+
+function DataTable({
+  title, meta, hint, columns, rows, empty, minWidth,
 }: {
   title: string
-  rows: Array<{ path: string; primary: number; secondary?: string }>
-  valueLabel: string
+  meta?: React.ReactNode
+  hint?: string
+  columns: TableColumn[]
+  rows: TableRow[]
   empty: React.ReactNode
-  domain: string
+  minWidth?: number
 }) {
-  const max = rows.reduce((m, r) => Math.max(m, r.primary), 0)
+  const template = columns.map(c => c.width).join(' ')
   return (
     <div style={panelStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
         <div style={panelTitle}>{title}</div>
-        <div style={{ ...mono(9), color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}>{valueLabel}</div>
+        {meta && <div style={{ ...mono(9), color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}>{meta}</div>}
       </div>
+      {hint && (
+        <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
+          {hint}
+        </div>
+      )}
       {rows.length === 0 ? <EmptyLine>{empty}</EmptyLine> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {rows.map(r => (
-            <a key={r.path}
-              href={`https://${domain}${r.path}`}
-              target="_blank" rel="noopener noreferrer"
-              style={{
-                display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', alignItems: 'center', gap: 8,
-                position: 'relative', padding: '3px 5px', borderRadius: t.radius.sm,
-                textDecoration: 'none', color: 'inherit', overflow: 'hidden',
-              }}>
-              <span style={{
-                position: 'absolute', left: 0, top: 0, bottom: 0,
-                width: `${max > 0 ? (r.primary / max) * 100 : 0}%`,
-                background: SEARCH_COLOR, opacity: 0.1, borderRadius: t.radius.sm,
-              }} />
-              <span style={{
-                position: 'relative', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text,
-                whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
-              }}>
-                {r.path}
-              </span>
-              <span style={{ position: 'relative', display: 'flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' as const }}>
-                {r.secondary && <span style={{ ...mono(9), color: t.neutrals.subtle }}>{r.secondary}</span>}
-                <span style={{ ...mono(10), color: t.neutrals.text, fontWeight: 600 }}>{r.primary.toLocaleString()}</span>
-              </span>
-            </a>
-          ))}
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: minWidth ?? 300, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: template, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
+              {columns.map(c => (
+                <div key={c.key} style={{ ...headCell, textAlign: c.align === 'right' ? 'right' : 'left' }}>
+                  {c.label}
+                </div>
+              ))}
+            </div>
+            {rows.map(r => {
+              const inner = columns.map((c, i) => (
+                <div key={c.key} style={c.align === 'right' ? numCell : textCell}>{r.cells[i]}</div>
+              ))
+              const rowStyle: React.CSSProperties = {
+                display: 'grid', gridTemplateColumns: template, gap: 6, alignItems: 'center',
+                padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.card,
+                textDecoration: 'none', color: 'inherit',
+              }
+              return r.href ? (
+                <a key={r.key} href={r.href} target="_blank" rel="noopener noreferrer" style={rowStyle}>{inner}</a>
+              ) : (
+                <div key={r.key} style={rowStyle}>{inner}</div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -384,70 +417,18 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
   )
 }
 
-// ─── Search Console: 검색어 목록 ──────────────────────────────────────────────
-
+// 기회 쿼리 사유 배지 — 순위 문제(2페이지권)와 문구 문제(CTR 저조)를 눈으로 갈라준다.
 const REASON_LABEL = { page_two: '2페이지권', low_ctr: 'CTR 저조' } as const
 
-function QueryListCard({
-  title, hint, rows, empty, showReason,
-}: {
-  title: string
-  hint?: string
-  rows: Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number; reason?: 'low_ctr' | 'page_two' }>
-  empty: React.ReactNode
-  showReason?: boolean
-}) {
-  const max = rows.reduce((m, r) => Math.max(m, r.impressions), 0)
+function ReasonBadge({ reason }: { reason: 'low_ctr' | 'page_two' }) {
+  const tone = reason === 'page_two' ? tonePalettes.warn : tonePalettes.info
   return (
-    <div style={panelStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
-        <div style={panelTitle}>{title}</div>
-        <div style={{ ...mono(9), color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}>노출 · 클릭 · CTR · 순위</div>
-      </div>
-      {hint && (
-        <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
-          {hint}
-        </div>
-      )}
-      {rows.length === 0 ? <EmptyLine>{empty}</EmptyLine> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {rows.map(r => (
-            <div key={r.query + r.position} style={{
-              display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', alignItems: 'center', gap: 8,
-              position: 'relative', padding: '3px 5px', borderRadius: t.radius.sm, overflow: 'hidden',
-            }}>
-              <span style={{
-                position: 'absolute', left: 0, top: 0, bottom: 0,
-                width: `${max > 0 ? (r.impressions / max) * 100 : 0}%`,
-                background: CLICK_COLOR, opacity: 0.1, borderRadius: t.radius.sm,
-              }} />
-              <span style={{
-                position: 'relative', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text,
-                whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.query}</span>
-                {showReason && r.reason && (
-                  <span style={{
-                    ...mono(8.5), flexShrink: 0, padding: '1px 4px', borderRadius: 3,
-                    background: r.reason === 'page_two' ? tonePalettes.warn.bg : tonePalettes.info.bg,
-                    color: r.reason === 'page_two' ? tonePalettes.warn.fg : tonePalettes.info.fg,
-                  }}>
-                    {REASON_LABEL[r.reason]}
-                  </span>
-                )}
-              </span>
-              <span style={{ position: 'relative', display: 'flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' as const, ...mono(9.5) }}>
-                <span style={{ color: t.neutrals.text, fontWeight: 600 }}>{r.impressions.toLocaleString()}</span>
-                <span style={{ color: t.neutrals.muted }}>{r.clicks.toLocaleString()}</span>
-                <span style={{ color: t.neutrals.subtle }}>{r.ctr}%</span>
-                <span style={{ color: t.neutrals.subtle }}>{r.position}위</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <span style={{
+      ...mono(8.5), flexShrink: 0, marginLeft: 4, padding: '1px 4px', borderRadius: 3,
+      background: tone.bg, color: tone.fg,
+    }}>
+      {REASON_LABEL[reason]}
+    </span>
   )
 }
 
@@ -601,32 +582,6 @@ function UnseenPagesCard({ data, domain }: { data: IndexStatusSummary; domain: s
   )
 }
 
-// ─── 밴드 헤더 ────────────────────────────────────────────────────────────────
-
-function BandHead({ label, hint, right }: { label: string; hint?: string; right?: React.ReactNode }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-      gap: 8, marginTop: 4, marginBottom: 2, flexWrap: 'wrap',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
-        <span style={{
-          ...mono(10), letterSpacing: 1, textTransform: 'uppercase' as const,
-          color: t.neutrals.text, fontWeight: 600,
-        }}>
-          {label}
-        </span>
-        {hint && (
-          <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, wordBreak: 'keep-all' as const }}>
-            {hint}
-          </span>
-        )}
-      </div>
-      {right}
-    </div>
-  )
-}
-
 /** 직전 동일 기간 대비 증감 배지 */
 function Delta({ now, prev }: { now: number; prev: number }) {
   if (!prev) return null
@@ -666,9 +621,9 @@ export interface SearchDemandCardProps {
   /** Umami 사이트 키 — /api/umami/search-demand?site= 와 동일 */
   site: 'voicecards' | 'reviewnotes'
 }
-
 export function SearchDemandCard({ site }: SearchDemandCardProps) {
   const mobile = useIsMobile()
+  const dashCols = useDashCols()
   const [days, setDays] = useState<Period>(30)
   const [data, setData] = useState<SearchDemandStats | null>(null)
   const [gsc, setGsc] = useState<SearchConsoleStats | null>(null)
@@ -683,7 +638,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
     setError(null)
     setGscError(null)
 
-    // Umami(진입 후)와 GSC(노출·클릭)는 독립 — 한쪽이 죽어도 다른 쪽은 보여준다.
+    // 세 소스는 독립 — 한쪽이 죽어도 나머지 섹션은 그대로 보여준다.
     const umamiP = fetch(`/api/umami/search-demand?site=${site}&days=${period}`)
       .then(async res => {
         const json = await res.json()
@@ -726,103 +681,113 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
 
   useEffect(() => { load(days) }, [load, days])
 
-  // 이 카드는 대시보드 열 설정과 무관하게 항상 전폭으로 놓이므로, 내부 패널 배치는 뷰포트만 본다.
-  const wide = !mobile
+  // 2열 모드: 두 섹션을 좌(Search Console) / 우(Umami)로 나란히.
+  // 1열 모드: 섹션은 위아래 전폭이고, 섹션 안에서 좌 차트 · 우 지표 6장으로 쪼갠다
+  //           (인사이트 섹션과 같은 분할).
+  const sideBySide = !mobile && dashCols === 2
+  const splitLayout = !mobile && dashCols === 1
+  const statCols = mobile ? 'repeat(2, 1fr)' : splitLayout ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)'
+  // 목록 패널은 폭이 좁으면 겹쳐 읽기 어려워 1열 모드에서만 2단으로 놓는다.
+  const pairCols = splitLayout ? 'repeat(2, minmax(0,1fr))' : '1fr'
   const cov = data?.coverage
-  const listCols = wide ? 'repeat(3, minmax(0,1fr))' : '1fr'
+
+  const periodToggle = (
+    <div style={{ display: 'flex', gap: 2, background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
+      {PERIODS.map(p => (
+        <button key={p} onClick={() => setDays(p)}
+          style={{
+            ...mono(9.5), padding: '3px 7px', borderRadius: 3, border: 'none', cursor: 'pointer',
+            background: days === p ? t.neutrals.card : 'transparent',
+            color: days === p ? t.neutrals.text : t.neutrals.subtle,
+            fontWeight: days === p ? 600 : 400,
+          }}>
+          {p}일
+        </button>
+      ))}
+    </div>
+  )
+
+  const refreshBtn = (
+    <button onClick={() => load(days, true)} disabled={refreshing}
+      style={{
+        width: 28, height: 28, borderRadius: t.radius.sm, background: t.neutrals.inner,
+        border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: t.neutrals.muted, opacity: refreshing ? 0.5 : 1,
+      }}>
+      <LIcon name="refresh" size={13} stroke={1.8} />
+    </button>
+  )
+
+  const linkBtn = (href: string, label: React.ReactNode, title: string) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" title={title}
+      style={{
+        ...mono(9.5), height: 28, minWidth: 28, padding: '0 8px', borderRadius: t.radius.sm,
+        background: t.neutrals.inner, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: t.neutrals.muted, textDecoration: 'none',
+      }}>
+      {label}
+    </a>
+  )
+
+  const hintLine = (text: string) => (
+    <div style={{
+      fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle,
+      marginTop: -6, marginBottom: 10, wordBreak: 'keep-all' as const,
+    }}>
+      {text}
+    </div>
+  )
 
   return (
-    <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
-        <LSectionHead
-          eyebrow="WEB · SEARCH"
-          title="검색 수요 포착"
-          action={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ display: 'flex', gap: 2, background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
-                {PERIODS.map(p => (
-                  <button key={p} onClick={() => setDays(p)}
-                    style={{
-                      ...mono(9.5), padding: '3px 7px', borderRadius: 3, border: 'none', cursor: 'pointer',
-                      background: days === p ? t.neutrals.card : 'transparent',
-                      color: days === p ? t.neutrals.text : t.neutrals.subtle,
-                      fontWeight: days === p ? 600 : 400,
-                    }}>
-                    {p}일
-                  </button>
-                ))}
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: sideBySide ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+      gap: 14, alignItems: 'start',
+    }}>
+
+      {/* ── 섹션 1: 검색 노출 → 클릭 (Search Console) — 수요가 있는지, 그중 얼마를 잡는지 ── */}
+      <LCard pad={0}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+          <LSectionHead
+            eyebrow="SEARCH CONSOLE"
+            title="검색 노출 → 클릭"
+            action={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {periodToggle}
+                {gsc && linkBtn(gsc.site.consoleUrl, 'GSC', 'Search Console')}
+                {refreshBtn}
               </div>
-              {gsc && (
-                <a href={gsc.site.consoleUrl} target="_blank" rel="noopener noreferrer" title="Search Console"
-                  style={{
-                    ...mono(9.5), height: 28, padding: '0 8px', borderRadius: t.radius.sm,
-                    background: t.neutrals.inner, display: 'flex', alignItems: 'center',
-                    color: t.neutrals.muted, textDecoration: 'none',
-                  }}>
-                  GSC
-                </a>
-              )}
-              {data && (
-                <a href={data.site.umamiUrl} target="_blank" rel="noopener noreferrer" title="Umami"
-                  style={{
-                    width: 28, height: 28, borderRadius: t.radius.sm, background: t.neutrals.inner,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: t.neutrals.muted, textDecoration: 'none',
-                  }}>
-                  <LIcon name="trending" size={13} stroke={1.8} />
-                </a>
-              )}
-              <button onClick={() => load(days, true)} disabled={refreshing}
-                style={{
-                  width: 28, height: 28, borderRadius: t.radius.sm, background: t.neutrals.inner,
-                  border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: t.neutrals.muted, opacity: refreshing ? 0.5 : 1,
-                }}>
-                <LIcon name="refresh" size={13} stroke={1.8} />
-              </button>
+            }
+          />
+          {gsc && hintLine(`${gsc.range.startDate} ~ ${gsc.range.endDate} · 구글 집계 ${gsc.range.lagDays}일 지연`)}
+
+          {gscError && (
+            <div style={{
+              padding: '8px 12px', borderRadius: t.radius.md, marginBottom: 10,
+              background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
+              fontSize: 'calc(10.5px * var(--fz, 1))', wordBreak: 'keep-all' as const, lineHeight: 1.6,
+            }}>
+              Search Console 조회 실패 — {gscError}
             </div>
-          }
-        />
+          )}
 
-        {error && (
-          <div style={{
-            padding: '8px 12px', borderRadius: t.radius.md, marginBottom: 10,
-            background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            fontSize: 'calc(11px * var(--fz, 1))', wordBreak: 'keep-all' as const, lineHeight: 1.5,
-          }}>
-            {error}
-          </div>
-        )}
+          {loading && <Skeleton mobile={mobile} />}
 
-        {loading && <Skeleton mobile={mobile} />}
-
-        {!loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-
-            {/* ── 밴드 1: 검색 노출·클릭 (Search Console) — 수요가 있는지, 그중 얼마를 잡는지 ── */}
-            <BandHead
-              label="노출 → 클릭 · Search Console"
-              hint={gsc ? `${gsc.range.startDate} ~ ${gsc.range.endDate} · 구글 집계 ${gsc.range.lagDays}일 지연` : undefined}
-            />
-
-            {gscError && (
+          {!loading && gsc && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* 1열 모드: 좌 차트(전체 높이) · 우 지표 6장(3열). 그 외에는 지표 먼저, 차트는 아래 전폭. */}
               <div style={{
-                padding: '8px 12px', borderRadius: t.radius.md,
-                background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
-                fontSize: 'calc(10.5px * var(--fz, 1))', wordBreak: 'keep-all' as const, lineHeight: 1.6,
+                display: 'grid',
+                gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+                gap: 8, alignItems: 'stretch',
               }}>
-                Search Console 조회 실패 — {gscError}
-              </div>
-            )}
-
-            {gsc && (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+                {splitLayout && <GscTrendCard daily={gsc.daily} />}
+                <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 8, alignContent: 'start' }}>
                   <LStat
                     label="노출"
                     value={gsc.totals.impressions.toLocaleString()}
                     valueExtra={<Delta now={gsc.totals.impressions} prev={gsc.previous.impressions} />}
-                    sub="구글이 우리 페이지를 보여준 횟수 = 존재하는 수요"
+                    sub="검색 결과에 보여진 횟수"
                     title="검색 결과에 우리 페이지가 노출된 횟수. 이 숫자가 작으면 애초에 수요와 연결되는 콘텐츠가 없다는 뜻이고, 크면 수요는 있는데 클릭에서 새고 있는지 봐야 한다."
                     sparkline={gsc.daily.map(d => ({ date: d.date, value: d.impressions }))}
                   />
@@ -880,165 +845,241 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     title="발행 콘텐츠 중 실제 클릭을 받아본 비율. 노출 비율과의 간격이 곧 '보여는 주는데 안 눌리는' 구간."
                   />
                 </div>
+              </div>
 
-                <GscTrendCard daily={gsc.daily} />
+              {!splitLayout && <GscTrendCard daily={gsc.daily} />}
 
-                <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(2, minmax(0,1fr))' : '1fr', gap: 8, alignItems: 'stretch' }}>
-                  <QueryListCard
-                    title="검색어 (노출순)"
-                    rows={gsc.queries}
-                    empty="기간 내 검색어 데이터가 없습니다"
-                  />
-                  <QueryListCard
-                    title="놓치고 있는 검색어"
-                    hint="2페이지권(8~30위) = 순위만 올리면 잡히는 수요 / CTR 저조 = 상위인데 제목·설명이 의도에 못 답하는 경우"
-                    rows={gsc.opportunities}
-                    showReason
-                    empty="개선 여지가 큰 검색어가 아직 없습니다"
-                  />
-                </div>
+              <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 8, alignItems: 'stretch' }}>
+                <DataTable
+                  title="검색어"
+                  meta="노출순"
+                  minWidth={330}
+                  columns={[
+                    { key: 'q', label: '검색어', width: 'minmax(110px,1fr)' },
+                    { key: 'imp', label: '노출', width: '46px', align: 'right' as const },
+                    { key: 'clk', label: '클릭', width: '40px', align: 'right' as const },
+                    { key: 'ctr', label: 'CTR', width: '46px', align: 'right' as const },
+                    { key: 'pos', label: '순위', width: '46px', align: 'right' as const },
+                  ]}
+                  rows={gsc.queries.map(q => ({
+                    key: q.query,
+                    cells: [q.query, q.impressions.toLocaleString(), q.clicks.toLocaleString(), `${q.ctr}%`, `${q.position}위`],
+                  }))}
+                  empty="기간 내 검색어 데이터가 없습니다"
+                />
+                <DataTable
+                  title="놓치고 있는 검색어"
+                  hint="2페이지권(8~30위) = 순위만 올리면 잡히는 수요 / CTR 저조 = 상위인데 제목·설명이 의도에 못 답하는 경우"
+                  minWidth={330}
+                  columns={[
+                    { key: 'q', label: '검색어', width: 'minmax(110px,1fr)' },
+                    { key: 'imp', label: '노출', width: '46px', align: 'right' as const },
+                    { key: 'clk', label: '클릭', width: '40px', align: 'right' as const },
+                    { key: 'ctr', label: 'CTR', width: '46px', align: 'right' as const },
+                    { key: 'pos', label: '순위', width: '46px', align: 'right' as const },
+                  ]}
+                  rows={gsc.opportunities.map(q => ({
+                    key: q.query,
+                    cells: [
+                      <span key="q" style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.query}</span>
+                        <ReasonBadge reason={q.reason} />
+                      </span>,
+                      q.impressions.toLocaleString(), q.clicks.toLocaleString(), `${q.ctr}%`, `${q.position}위`,
+                    ],
+                  }))}
+                  empty="개선 여지가 큰 검색어가 아직 없습니다"
+                />
+              </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(2, minmax(0,1fr))' : '1fr', gap: 8, alignItems: 'stretch' }}>
-                  <PageListCard
-                    title="노출 상위 페이지"
-                    valueLabel="노출 · 클릭"
-                    domain={gsc.site.domain}
-                    rows={gsc.pages.map(p => ({
-                      path: p.path,
-                      primary: p.impressions,
-                      secondary: `클릭 ${p.clicks} · ${p.position}위`,
-                    }))}
-                    empty="노출된 페이지가 없습니다"
-                  />
-                  <div style={panelStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
-                      <div style={panelTitle}>검색에 안 나타나는 콘텐츠</div>
-                      <div style={{ ...mono(9), color: t.neutrals.subtle }}>
-                        {gsc.capture.sitemapContents > 0
-                          ? `${gsc.capture.invisibleCount.toLocaleString()} / ${gsc.capture.sitemapContents.toLocaleString()}`
-                          : '사이트맵 없음'}
-                      </div>
+              <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 8, alignItems: 'stretch' }}>
+                <DataTable
+                  title="노출 상위 페이지"
+                  minWidth={320}
+                  columns={[
+                    { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
+                    { key: 'imp', label: '노출', width: '46px', align: 'right' as const },
+                    { key: 'clk', label: '클릭', width: '40px', align: 'right' as const },
+                    { key: 'pos', label: '순위', width: '46px', align: 'right' as const },
+                  ]}
+                  rows={gsc.pages.map(p => ({
+                    key: p.path,
+                    href: `https://${gsc.site.domain}${p.path}`,
+                    cells: [p.path, p.impressions.toLocaleString(), p.clicks.toLocaleString(), `${p.position}위`],
+                  }))}
+                  empty="노출된 페이지가 없습니다"
+                />
+                <div style={panelStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
+                    <div style={panelTitle}>검색에 안 나타나는 콘텐츠</div>
+                    <div style={{ ...mono(9), color: t.neutrals.subtle }}>
+                      {gsc.capture.sitemapContents > 0
+                        ? `${gsc.capture.invisibleCount.toLocaleString()} / ${gsc.capture.sitemapContents.toLocaleString()}`
+                        : '사이트맵 없음'}
                     </div>
-                    {gsc.capture.invisibleSample.length === 0 ? (
-                      <EmptyLine>발행 콘텐츠 전부가 검색에 노출되고 있습니다</EmptyLine>
-                    ) : (
-                      <>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                          {gsc.capture.invisibleSample.map(p => (
-                            <a key={p} href={`https://${gsc.site.domain}${p}`} target="_blank" rel="noopener noreferrer"
-                              style={{
-                                ...mono(9.5), padding: '2px 6px', borderRadius: t.radius.sm,
-                                background: t.neutrals.card, color: t.neutrals.muted, textDecoration: 'none',
-                                maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
-                              }}>
-                              {p}
-                            </a>
-                          ))}
-                        </div>
-                        <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
-                          노출 0 = 구글이 어떤 검색어에도 이 페이지를 내보내지 않았다는 뜻. 색인 여부를 URL 검사로 먼저 확인할 대상.
-                        </div>
-                      </>
-                    )}
                   </div>
+                  {gsc.capture.invisibleSample.length === 0 ? (
+                    <EmptyLine>발행 콘텐츠 전부가 검색에 노출되고 있습니다</EmptyLine>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {gsc.capture.invisibleSample.map(p => (
+                          <a key={p} href={`https://${gsc.site.domain}${p}`} target="_blank" rel="noopener noreferrer"
+                            style={{
+                              ...mono(9.5), padding: '2px 6px', borderRadius: t.radius.sm,
+                              background: t.neutrals.card, color: t.neutrals.muted, textDecoration: 'none',
+                              maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+                            }}>
+                            {p}
+                          </a>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginTop: 6, lineHeight: 1.5, wordBreak: 'keep-all' as const }}>
+                        노출 0 = 구글이 어떤 검색어에도 이 페이지를 내보내지 않았다는 뜻. 색인 여부를 URL 검사로 먼저 확인할 대상.
+                      </div>
+                    </>
+                  )}
                 </div>
-                {index && (
-                  <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(2, minmax(0,1fr))' : '1fr', gap: 8, alignItems: 'stretch' }}>
-                    <IndexStatusCard data={index} domain={gsc.site.domain} />
-                    <UnseenPagesCard data={index} domain={gsc.site.domain} />
-                  </div>
-                )}
-              </>
-            )}
+              </div>
 
-            {/* ── 밴드 2: 진입 후 (Umami) — 잡은 수요가 사이트 안에서 어떻게 되는지 ── */}
-            <BandHead
-              label="진입 후 · Umami"
-              hint={data ? `최근 ${data.range.days}일 · 자기 방문 미제외` : undefined}
-            />
-
-            {data && (
-              <>
-            {/* 핵심 지표 */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
-              <LStat
-                label="검색 유입"
-                value={data.search.visits.toLocaleString()}
-                unit="세션"
-                sub={`전체 유입의 ${data.search.share}%`}
-                tone={data.search.share >= 30 ? 'pos' : 'default'}
-                title="검색엔진·AI 답변 리퍼러로 들어온 세션. Umami는 검색어를 받지 못하므로 리퍼러 호스트 기준이다."
-                sparkline={data.daily.map(d => ({ date: d.date, value: d.searchSessions }))}
-              />
-              <LStat
-                label="콘텐츠 커버리지"
-                value={cov && cov.sitemapContents > 0 ? `${cov.contentPct}%` : '—'}
-                sub={cov && cov.sitemapContents > 0
-                  ? `발행 ${cov.sitemapContents.toLocaleString()}개 중 ${cov.touchedContents.toLocaleString()}개에 유입`
-                  : '사이트맵 없음'}
-                tone={cov && cov.contentPct >= 50 ? 'pos' : cov && cov.contentPct < 20 ? 'warn' : 'default'}
-                title="sitemap.xml의 발행 콘텐츠(로케일 변형은 하나로 묶음) 중 기간 내 유입이 1회 이상 붙은 비율. 낮으면 만든 페이지가 수요와 연결되지 않고 있다는 뜻."
-              />
-              <LStat
-                label="검색 진입 페이지"
-                value={cov ? cov.searchTouchedPages.toLocaleString() : '—'}
-                unit="쪽"
-                sub={cov && cov.sitemapPages > 0 ? `발행 ${cov.sitemapPages.toLocaleString()}쪽 중 ${cov.searchPct}%` : '—'}
-                tone={cov && cov.searchTouchedPages > 0 ? 'default' : 'warn'}
-                title="검색·AI 리퍼러로 최소 1회 진입이 발생한 페이지 수. 이 숫자가 곧 '수요를 실제로 잡고 있는 문(門)'의 개수."
-              />
-              <LStat
-                label="검색 이탈률"
-                value={data.search.visits > 0 ? `${data.search.bounceRate}%` : '—'}
-                sub={`전체 이탈 ${data.totals.bounceRate}% · 체류 ${fmtDuration(data.search.avgSeconds)}`}
-                tone={data.search.visits > 0 && data.search.bounceRate > 70 ? 'neg' : 'default'}
-                title="검색으로 들어온 세션이 한 페이지만 보고 나간 비율. 높으면 유입은 잡았지만 페이지가 의도에 답하지 못한 것."
-              />
-              <LStat
-                label="방문자"
-                value={data.totals.visitors.toLocaleString()}
-                sub={`세션 ${data.totals.visits.toLocaleString()} · 페이지뷰 ${data.totals.pageviews.toLocaleString()}`}
-                sparkline={data.daily.map(d => ({ date: d.date, value: d.sessions }))}
-                title="기간 내 고유 방문자. 자기 방문(관리자·개발 브라우저)은 Umami에서 제외되지 않으니 초기 수치는 감안할 것."
-              />
-              <LStat
-                label="세션 깊이"
-                value={String(data.totals.viewsPerVisit)}
-                unit="쪽/세션"
-                sub={`평균 체류 ${fmtDuration(data.totals.avgSeconds)}`}
-                title="세션당 평균 페이지뷰. 진입 후 사이트 안에서 다음 수요로 이어지는지를 본다."
-              />
+              {index && (
+                <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 8, alignItems: 'stretch' }}>
+                  <IndexStatusCard data={index} domain={gsc.site.domain} />
+                  <UnseenPagesCard data={index} domain={gsc.site.domain} />
+                </div>
+              )}
             </div>
+          )}
+        </div>
+      </LCard>
 
-            {/* 일별 추이 */}
-            <TrafficTrendCard daily={data.daily} />
+      {/* ── 섹션 2: 진입 후 행동 (Umami) — 잡은 수요가 사이트 안에서 어떻게 되는지 ── */}
+      <LCard pad={0}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+          <LSectionHead
+            eyebrow="UMAMI"
+            title="진입 후 행동"
+            action={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {periodToggle}
+                {data && linkBtn(data.site.umamiUrl, <LIcon name="trending" size={13} stroke={1.8} />, 'Umami')}
+                {refreshBtn}
+              </div>
+            }
+          />
+          {data && hintLine(`최근 ${data.range.days}일 · 자기 방문 미제외`)}
 
-            {/* 진입 페이지 · 채널 · 미포착 */}
-            <div style={{ display: 'grid', gridTemplateColumns: listCols, gap: 8, alignItems: 'stretch' }}>
-              <PageListCard
-                title="검색 진입 페이지"
-                valueLabel="진입"
-                domain={data.site.domain}
-                rows={data.searchPages.map(p => ({ path: p.path, primary: p.searchViews, secondary: `총 ${p.views}` }))}
-                empty={<>검색 진입 기록이 없습니다<br />색인 상태부터 확인 필요</>}
-              />
-              <ChannelMixCard data={data} />
-              <IdleContentCard data={data} domain={data.site.domain} />
+          {error && (
+            <div style={{
+              padding: '8px 12px', borderRadius: t.radius.md, marginBottom: 10,
+              background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
+              fontSize: 'calc(11px * var(--fz, 1))', wordBreak: 'keep-all' as const, lineHeight: 1.5,
+            }}>
+              {error}
             </div>
+          )}
 
-            {/* 전체 조회 상위 (검색 외 포함) */}
-            <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(2, minmax(0,1fr))' : '1fr', gap: 8, alignItems: 'stretch' }}>
-              <PageListCard
-                title="조회 상위 페이지"
-                valueLabel="페이지뷰"
-                domain={data.site.domain}
-                rows={data.entryPages.map(p => ({
-                  path: p.path,
-                  primary: p.views,
-                  secondary: p.searchViews > 0 ? `검색 ${p.searchViews}` : undefined,
-                }))}
-                empty="조회 기록이 없습니다"
-              />
+          {loading && <Skeleton mobile={mobile} />}
+
+          {!loading && data && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+                gap: 8, alignItems: 'stretch',
+              }}>
+                {splitLayout && <TrafficTrendCard daily={data.daily} />}
+                <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 8, alignContent: 'start' }}>
+                  <LStat
+                    label="검색 유입"
+                    value={data.search.visits.toLocaleString()}
+                    unit="세션"
+                    sub={`전체 유입의 ${data.search.share}%`}
+                    tone={data.search.share >= 30 ? 'pos' : 'default'}
+                    title="검색엔진·AI 답변 리퍼러로 들어온 세션. Umami는 검색어를 받지 못하므로 리퍼러 호스트 기준이다."
+                    sparkline={data.daily.map(d => ({ date: d.date, value: d.searchSessions }))}
+                  />
+                  <LStat
+                    label="콘텐츠 커버리지"
+                    value={cov && cov.sitemapContents > 0 ? `${cov.contentPct}%` : '—'}
+                    sub={cov && cov.sitemapContents > 0
+                      ? `발행 ${cov.sitemapContents.toLocaleString()}개 중 ${cov.touchedContents.toLocaleString()}개에 유입`
+                      : '사이트맵 없음'}
+                    tone={cov && cov.contentPct >= 50 ? 'pos' : cov && cov.contentPct < 20 ? 'warn' : 'default'}
+                    title="sitemap.xml의 발행 콘텐츠(로케일 변형은 하나로 묶음) 중 기간 내 유입이 1회 이상 붙은 비율. 낮으면 만든 페이지가 수요와 연결되지 않고 있다는 뜻."
+                  />
+                  <LStat
+                    label="검색 진입 페이지"
+                    value={cov ? cov.searchTouchedPages.toLocaleString() : '—'}
+                    unit="쪽"
+                    sub={cov && cov.sitemapPages > 0 ? `발행 ${cov.sitemapPages.toLocaleString()}쪽 중 ${cov.searchPct}%` : '—'}
+                    tone={cov && cov.searchTouchedPages > 0 ? 'default' : 'warn'}
+                    title="검색·AI 리퍼러로 최소 1회 진입이 발생한 페이지 수. 이 숫자가 곧 '수요를 실제로 잡고 있는 문(門)'의 개수."
+                  />
+                  <LStat
+                    label="검색 이탈률"
+                    value={data.search.visits > 0 ? `${data.search.bounceRate}%` : '—'}
+                    sub={`전체 이탈 ${data.totals.bounceRate}% · 체류 ${fmtDuration(data.search.avgSeconds)}`}
+                    tone={data.search.visits > 0 && data.search.bounceRate > 70 ? 'neg' : 'default'}
+                    title="검색으로 들어온 세션이 한 페이지만 보고 나간 비율. 높으면 유입은 잡았지만 페이지가 의도에 답하지 못한 것."
+                  />
+                  <LStat
+                    label="방문자"
+                    value={data.totals.visitors.toLocaleString()}
+                    sub={`세션 ${data.totals.visits.toLocaleString()} · 페이지뷰 ${data.totals.pageviews.toLocaleString()}`}
+                    sparkline={data.daily.map(d => ({ date: d.date, value: d.sessions }))}
+                    title="기간 내 고유 방문자. 자기 방문(관리자·개발 브라우저)은 Umami에서 제외되지 않으니 초기 수치는 감안할 것."
+                  />
+                  <LStat
+                    label="세션 깊이"
+                    value={String(data.totals.viewsPerVisit)}
+                    unit="쪽/세션"
+                    sub={`평균 체류 ${fmtDuration(data.totals.avgSeconds)}`}
+                    title="세션당 평균 페이지뷰. 진입 후 사이트 안에서 다음 수요로 이어지는지를 본다."
+                  />
+                </div>
+              </div>
+
+              {!splitLayout && <TrafficTrendCard daily={data.daily} />}
+
+              <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 8, alignItems: 'stretch' }}>
+                <DataTable
+                  title="검색 진입 페이지"
+                  minWidth={300}
+                  columns={[
+                    { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
+                    { key: 'in', label: '진입', width: '46px', align: 'right' as const },
+                    { key: 'all', label: '전체', width: '46px', align: 'right' as const },
+                  ]}
+                  rows={data.searchPages.map(p => ({
+                    key: p.path,
+                    href: `https://${data.site.domain}${p.path}`,
+                    cells: [p.path, p.searchViews.toLocaleString(), p.views.toLocaleString()],
+                  }))}
+                  empty={<>검색 진입 기록이 없습니다<br />색인 상태부터 확인 필요</>}
+                />
+                <ChannelMixCard data={data} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 8, alignItems: 'stretch' }}>
+                <DataTable
+                  title="조회 상위 페이지"
+                  minWidth={300}
+                  columns={[
+                    { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
+                    { key: 'pv', label: '페이지뷰', width: '58px', align: 'right' as const },
+                    { key: 'se', label: '검색', width: '46px', align: 'right' as const },
+                  ]}
+                  rows={data.entryPages.map(p => ({
+                    key: p.path,
+                    href: `https://${data.site.domain}${p.path}`,
+                    cells: [p.path, p.views.toLocaleString(), p.searchViews > 0 ? p.searchViews.toLocaleString() : '—'],
+                  }))}
+                  empty="조회 기록이 없습니다"
+                />
+                <IdleContentCard data={data} domain={data.site.domain} />
+              </div>
+
               <div style={panelStyle}>
                 <div style={{ ...panelTitle, marginBottom: 6 }}>지역 · 언어</div>
                 {data.countries.length === 0 && data.languages.length === 0 ? (
@@ -1069,23 +1110,20 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                   다국어 페이지를 발행한 언어와 실제 방문 언어가 어긋나면, 번역은 했지만 그 언어권 수요는 못 잡고 있다는 신호.
                 </div>
               </div>
-            </div>
 
-            {/* 주석 */}
-            <div style={{
-              fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle,
-              lineHeight: 1.6, wordBreak: 'keep-all' as const,
-            }}>
-              {data.notes.map((n, i) => <div key={i}>· {n}</div>)}
-              {cov && cov.orphanPaths.length > 0 && (
-                <div>· 사이트맵에 없는데 유입이 잡힌 경로 {cov.orphanPaths.length}개 (예: {cov.orphanPaths.slice(0, 3).join(', ')})</div>
-              )}
+              <div style={{
+                fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle,
+                lineHeight: 1.6, wordBreak: 'keep-all' as const,
+              }}>
+                {data.notes.map((n, i) => <div key={i}>· {n}</div>)}
+                {cov && cov.orphanPaths.length > 0 && (
+                  <div>· 사이트맵에 없는데 유입이 잡힌 경로 {cov.orphanPaths.length}개 (예: {cov.orphanPaths.slice(0, 3).join(', ')})</div>
+                )}
+              </div>
             </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-    </LCard>
+          )}
+        </div>
+      </LCard>
+    </div>
   )
 }

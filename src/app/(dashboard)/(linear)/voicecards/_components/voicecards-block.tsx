@@ -654,8 +654,8 @@ export function VoicecardsBlock({
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
         <LSectionHead
-          eyebrow="INSIGHT"
-          title="인사이트"
+          eyebrow="FUNNEL"
+          title="스토어 → 설치 → 가입 → 결제"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <button
