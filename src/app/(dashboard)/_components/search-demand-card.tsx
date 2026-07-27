@@ -57,6 +57,12 @@ function langName(code: string): string {
   }
 }
 
+/** 일별 값을 기간 누적으로 바꾼다. 하루치가 한 자릿수인 구간에서는 누적선이 추세를 더 정직하게 보여준다 */
+function cumulative(daily: Array<{ date: string; value: number }>): Array<{ date: string; value: number }> {
+  let sum = 0
+  return daily.map(d => ({ date: d.date, value: (sum += d.value) }))
+}
+
 function fmtAgo(iso: string | null): string {
   if (!iso) return '—'
   const ms = Date.now() - new Date(iso).getTime()
@@ -869,7 +875,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     valueExtra={<Delta now={gsc.totals.impressions} prev={gsc.previous.impressions} />}
                     sub="검색 결과에 보여진 횟수"
                     title="검색 결과에 우리 페이지가 노출된 횟수. 이 숫자가 작으면 애초에 수요와 연결되는 콘텐츠가 없다는 뜻이고, 크면 수요는 있는데 클릭에서 새고 있는지 봐야 한다."
-                    sparkline={mobile ? undefined : gsc.daily.map(d => ({ date: d.date, value: d.impressions }))}
+                    sparkline={mobile ? undefined : cumulative(gsc.daily.map(d => ({ date: d.date, value: d.impressions })))}
                   />
                   <LStat
                     label="클릭"
@@ -878,7 +884,7 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
                     sub={`노출 대비 CTR ${gsc.totals.ctr}%`}
                     tone={gsc.totals.clicks > 0 ? 'pos' : 'default'}
                     title="검색 결과에서 실제로 눌린 횟수. 노출 대비 이 값이 곧 '수요를 잡은 비율'."
-                    sparkline={mobile ? undefined : gsc.daily.map(d => ({ date: d.date, value: d.clicks }))}
+                    sparkline={mobile ? undefined : cumulative(gsc.daily.map(d => ({ date: d.date, value: d.clicks })))}
                   />
                   <LStat
                     label="평균 게재순위"
