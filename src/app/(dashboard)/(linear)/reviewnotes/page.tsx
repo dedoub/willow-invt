@@ -72,13 +72,11 @@ export default function ReviewnotesPage() {
       <SearchDemandCard site="reviewnotes" />
     </div>
 
-    {/* 검색 다음은 답변엔진. 검색이 "결과에 뜨는가"라면 여기는 "추천되는가"를 본다 */}
-    <div style={{ marginBottom: 14 }}>
-      <GeoAnswerCard site="reviewnotes" />
-    </div>
-
+    {/* 검색 다음은 답변엔진. 검색이 "결과에 뜨는가"라면 여기는 "추천되는가"를 본다.
+        블록 그리드 안으로 넘겨서 2열 모드에서 퍼널과 나란히 서게 한다 */}
     <ReviewnotesBlock
       cols={cols}
+      geoSlot={<GeoAnswerCard site="reviewnotes" />}
       loading={rnLoading}
       stats={rnStats}
       userStats={rnUserStats}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, type ReactNode } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -162,6 +162,9 @@ export interface VoicecardsBlockProps {
   onRefresh: () => void
   refreshing: boolean
   cols: 1 | 2 // 레이아웃 열 수 (1=wide: 인사이트 분할·KPI 6/row). 단일 앱 페이지는 1 고정.
+  // AI 답변 점유 섹션. 2열 모드에서 퍼널과 나란히 놓으려고 블록 그리드 안으로 받는다.
+  // 페이지에서 위에 따로 그리면 전체 폭을 먹어 그 아래가 전부 한 칸씩 밀린다.
+  geoSlot?: ReactNode
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -499,7 +502,7 @@ function SkelUserRow() {
 export function VoicecardsBlock({
   usersLoading, eventsLoading, revenueLoading,
   stats, userStats, anonymousStats, chartData,
-  onOpenSettings, onRefresh, refreshing, cols,
+  onOpenSettings, onRefresh, refreshing, cols, geoSlot,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
   const dashCols = cols
@@ -644,14 +647,25 @@ export function VoicecardsBlock({
   }
 
 
+  // 2열 모드의 배치. DOM 순서(답변점유 → 퍼널 → 사용자)는 1열·모바일에서 그대로 읽히는
+  // 순서이고, 2열에서만 명시 배치로 좌우를 바꾼다. 퍼널 열이 두 행에 걸치므로
+  // 왼쪽에는 답변점유 아래로 사용자 열이 바로 붙는다.
+  const split = dashCols === 2 && !mobile
+  const at = (col: 1 | 2, row: string) => (split ? { gridColumn: col, gridRow: row } : undefined)
+  // 답변 점유가 없으면(다른 페이지에서 재사용) 사용자 열이 첫 행으로 올라온다
+  const usersRow = geoSlot ? '2' : '1'
+
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: (dashCols === 2 && !mobile) ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+      gridTemplateColumns: split ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
       gap: 14, alignItems: 'start',
     }}>
-    {/* 좌열: 인사이트 · 가입 후 활동 (2열모드에서 왼쪽 반폭) */}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+    {/* AI 답변 점유 — 2열에서 좌상단 반폭. 페이지가 아니라 여기서 그려야 퍼널이 옆에 선다 */}
+    {geoSlot && <div style={{ minWidth: 0, ...at(1, '1') }}>{geoSlot}</div>}
+
+    {/* 퍼널 · 가입 후 활동 (2열모드에서 오른쪽 반폭, 두 행에 걸침) */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, ...at(2, geoSlot ? '1 / span 2' : '1') }}>
     {/* 카드1: 헤더 + 인사이트 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
@@ -1321,8 +1335,8 @@ export function VoicecardsBlock({
     </LCard>
     </div>
 
-    {/* 우열: 사용자 테이블 · 비로그인 저니 (2열모드에서 오른쪽 반폭) */}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+    {/* 사용자 테이블 · 비로그인 저니 (2열모드에서 왼쪽 반폭, 답변 점유 아래) */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, ...at(1, usersRow) }}>
     {/* 카드3: 사용자 테이블 */}
     <LCard pad={0}>
       {/* 사용자 목록 (맨 아래) — userStats만 필요 */}
