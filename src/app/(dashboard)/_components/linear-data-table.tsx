@@ -77,6 +77,15 @@ const stickyCell = (bg: string): React.CSSProperties => ({
   marginLeft: -8, paddingLeft: 8,
 })
 
+const ROW_PAD_X = 16   // 행 좌우 패딩 8+8
+const COL_GAP = 6
+
+/** 'minmax(140px,1fr)' · '52px' 에서 그 컬럼이 요구하는 최소 픽셀을 뽑는다 */
+const colMinPx = (width: string): number => {
+  const m = width.match(/(\d+(?:\.\d+)?)px/)
+  return m ? Number(m[1]) : 0
+}
+
 export function DataTable({
   title, meta, columns, rows, empty, minWidth,
 }: {
@@ -89,6 +98,15 @@ export function DataTable({
   minWidth?: number
 }) {
   const template = columns.map(c => c.width).join(' ')
+
+  /**
+   * 가로 스크롤이 시작되는 폭. 손으로 준 minWidth는 컬럼 정의와 어긋나기 쉽고, 모자라면
+   * 행 그리드가 자기 상자를 넘어서 마지막 컬럼이 행 배경 밖에 그려진다. 컬럼에서 직접
+   * 계산해 그 아래로는 못 내려가게 한다. minWidth는 이제 하한을 더 올리고 싶을 때만 쓴다.
+   */
+  const contentMin = columns.reduce((sum, c) => sum + colMinPx(c.width), 0)
+    + COL_GAP * Math.max(0, columns.length - 1) + ROW_PAD_X
+  const tableMin = Math.max(minWidth ?? 0, contentMin)
 
   // 사용자 테이블과 동일한 페이지네이션 — 개수 입력 + 쉐브론 네비게이션.
   const [page, setPage] = useState(1)
@@ -139,7 +157,7 @@ export function DataTable({
       </div>
       {rows.length === 0 ? <EmptyLine>{empty}</EmptyLine> : (
         <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: minWidth ?? 300, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ minWidth: tableMin, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <div style={{ display: 'grid', gridTemplateColumns: template, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
               {columns.map((c, i) => {
                 const active = sortIdx === i
