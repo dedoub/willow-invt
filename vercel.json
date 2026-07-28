@@ -30,6 +30,30 @@
     {
       "path": "/api/cron/indexnow",
       "schedule": "10 22 * * *"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=voicecards&run=1",
+      "schedule": "0 22 * * 0"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=reviewnotes&run=1",
+      "schedule": "8 22 * * 0"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=voicecards&run=2",
+      "schedule": "16 22 * * 0"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=reviewnotes&run=2",
+      "schedule": "24 22 * * 0"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=voicecards&run=3",
+      "schedule": "32 22 * * 0"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=reviewnotes&run=3",
+      "schedule": "40 22 * * 0"
     }
   ]
 }
