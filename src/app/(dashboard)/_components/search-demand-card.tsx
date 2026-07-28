@@ -585,6 +585,10 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
   // 두 섹션 다 패널이 4장뿐 — 1열 모드에서는 한 줄에 다 넣는다.
   const wideCols = splitLayout ? 'repeat(4, minmax(0,1fr))' : panelCols
   const cov = data?.coverage
+  // 세션 카드의 헤드라인. Umami의 기간 집계(totals.visits)가 아니라 일별 계열의 합이다 —
+  // 그래야 그 옆 스파크라인(같은 계열의 누적)의 끝점과 같은 값이 된다. 두 값은 애초에
+  // 다른 지표라서(visits는 30분 이상 끊긴 방문을 따로 세고, 일별 계열은 세션을 센다) 다르다.
+  const sessionsTotal = (data?.daily ?? []).reduce((sum, d) => sum + d.sessions, 0)
   // GSC(노출·클릭)와 Umami(실제 진입)를 경로로 잇는다. 양쪽 다 normalizePath를 거쳐
   // 같은 표기라 그대로 조인된다. 구글 클릭 대비 진입이 크게 모자라면 봇·차단·즉시이탈 구간.
   const umamiSearchByPath = useMemo(() => {
@@ -863,12 +867,17 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                     tone={data.search.visits > 0 && data.search.bounceRate > 70 ? 'neg' : 'default'}
                     title="검색으로 들어온 세션이 한 페이지만 보고 나간 비율. 높으면 유입은 잡았지만 페이지가 의도에 답하지 못한 것."
                   />
+                  {/*
+                    헤드라인은 스파크라인이 쌓아 올린 그 값이어야 한다. 고유 방문자는 기간
+                    전체에서 중복을 걷어낸 수라 일별 합계와 원리상 같아질 수 없어서(30일 15명,
+                    일별 세션 합 17) 헤드라인 자리에서 뺐다. 방문자는 아래 줄에 그대로 있다.
+                  */}
                   <LStat
-                    label="방문자"
-                    value={data.totals.visitors.toLocaleString()}
-                    sub={`세션 ${data.totals.visits.toLocaleString()} · 페이지뷰 ${data.totals.pageviews.toLocaleString()}`}
+                    label="세션"
+                    value={sessionsTotal.toLocaleString()}
+                    sub={`방문자 ${data.totals.visitors.toLocaleString()} · 페이지뷰 ${data.totals.pageviews.toLocaleString()}`}
                     sparkline={mobile ? undefined : cumulative(data.daily.map(d => ({ date: d.date, value: d.sessions })))}
-                    title="기간 내 고유 방문자. 자기 방문(관리자·개발 브라우저)은 Umami에서 제외되지 않으니 초기 수치는 감안할 것."
+                    title="일별 세션의 기간 합. 방문자는 같은 사람을 한 번만 세므로 이 값보다 작다. 자기 방문(관리자·개발 브라우저)은 Umami에서 제외되지 않으니 초기 수치는 감안할 것."
                   />
                   <LStat
                     label="세션 깊이"
