@@ -194,27 +194,22 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 empty="측정된 질문이 없습니다"
               />
 
+              {/* 원인별 처방은 docs/geo-operations.md에 표로 있다. 화면에서는 어느 원인이
+                  몇 질문을 막고 있는지만 본다 */}
               <DataTable
                 title="실패 원인"
                 minWidth={220}
                 columns={[
                   { key: 'c', label: '원인', width: 'minmax(80px,1fr)' },
                   { key: 'n', label: '질문', width: '46px', align: 'right' as const },
-                  { key: 'fix', label: '처방', width: 'minmax(90px,1.4fr)' },
                 ]}
                 rows={data.causes.map(c => ({
                   key: c.cause,
                   cells: [
                     <Pill key="c" tone={CAUSE_TONE[c.cause]}>{CAUSE_LABEL[c.cause]}</Pill>,
                     String(c.questions),
-                    <span key="f" style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted }}>
-                      {c.cause === 'index' ? '색인 요청·사이트맵'
-                        : c.cause === 'authority' ? '외부 언급·백링크'
-                        : c.cause === 'content' ? '그 질문에 답하는 문단 추가'
-                        : '경쟁 페이지 대비 보강'}
-                    </span>,
                   ],
-                  sort: [c.cause, c.questions, ''],
+                  sort: [c.cause, c.questions],
                 }))}
                 empty="Top3를 놓친 질문이 없습니다"
               />
