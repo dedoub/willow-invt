@@ -51,8 +51,11 @@
 | 엔진 | 상태 | 전제 |
 |---|---|---|
 | gemini | 동작 | 아래 "Gemini 호출 경로" 참고 |
-| chatgpt | 미가동 | `OPENAI_API_KEY` 없으면 자동 건너뜀 |
+| chatgpt | 동작 | 아래 "ChatGPT 호출 경로" 참고 |
 | perplexity | 미가동 | `PERPLEXITY_API_KEY` 없으면 자동 건너뜀 |
+
+두 엔진의 실행 빈도가 다르다. **Gemini는 주 3회차, ChatGPT는 주 1회차다.**
+엔진별 표는 그대로 비교해도 되지만, 전체 합산 값은 Gemini 쪽으로 기운다(90행 대 30행).
 
 ### Gemini 호출 경로 (2026-07-28)
 
@@ -71,6 +74,41 @@
 대신 **카드 생성과 사용량을 공유**한다는 점은 알고 있어야 한다.
 
 프록시는 Gemini의 상태코드를 응답 본문에 실어 넘긴다. 호출자의 429 재시도가 그걸 보고 동작한다.
+
+### ChatGPT 호출 경로 (2026-07-28)
+
+CEO 봇이 쓰는 인증은 API 키가 아니라 **ChatGPT 구독 로그인**이다
+(`~/.codex/auth.json`의 `auth_mode: chatgpt`, `OPENAI_API_KEY: null`).
+그래서 `api.openai.com` 어댑터로는 못 쓴다. 대신 codex CLI가 같은 모델에 네이티브
+`web_search`를 붙일 수 있어서 그 CLI를 통째로 어댑터로 쓴다.
+
+```
+codex exec --json -c tools.web_search=true --skip-git-repo-check -m gpt-5.5
+```
+
+`OPENAI_API_KEY`가 생기면 HTTP 경로가 자동으로 우선한다. 어댑터 안에서 갈린다.
+
+알고 있어야 할 것 네 가지.
+
+- **프롬프트는 인자가 아니라 stdin으로 준다.** 인자로 주면 codex가 stdin도 마저 읽으려고
+  기다리는데, 셸에서는 터미널이 바로 EOF를 주지만 Node가 띄우면 파이프가 안 닫혀서
+  빈 응답이나 타임아웃으로 끝난다. 셸에서 되는데 스크립트에서 안 되면 이걸 의심할 것.
+- **codex는 grounding 배열을 안 준다.** 본문에 박힌 URL이 유일한 출처 신호다. 그래서 모든
+  질문·모든 회차에 똑같은 출력 지시문(`CODEX_SUFFIX`)을 붙인다 — 순위 목록으로, 출처 URL 포함.
+  이건 고정된 측정 조건의 일부다. 빼면 인용 신호가 통째로 사라진다.
+- **코딩 에이전트 표면이라 소비자 chatgpt.com 답변과 더 멀다.** Gemini보다도 한 단계 멀다.
+- **CEO 봇의 구독 사용량을 나눠 쓴다.** 한도를 먹으면 봇이 같이 멈춘다. 회차를 늘리기 전에
+  여유를 먼저 확인할 것.
+
+로컬 CLI라 Vercel 크론에서 못 돈다. 이 엔진만 launchd다.
+
+| 항목 | 위치 |
+|---|---|
+| launchd | `com.willow.geo-measure-chatgpt` — 매주 일요일 03:00 KST |
+| 래퍼 | `scripts/geo-measure-chatgpt.sh` (두 사이트 순차, 한쪽 실패해도 계속) |
+| 로그 | `~/Library/Logs/geo-measure-chatgpt.log` |
+
+한 사이트 30문항에 40~50분, 두 사이트면 1시간 반이다.
 
 ## 크론
 
@@ -95,7 +133,15 @@ GET /api/cron/geo-measure?site=voicecards&run=1&part=1&parts=2&secret=$CRON_SECR
 # 로컬 (레지스트리에서 질문을 읽고, 없으면 파일 세트로 폴백)
 node scripts/geo-measure.mjs voicecards gemini 1
 GEO_THROTTLE_MS=2500 node scripts/geo-measure.mjs reviewnotes gemini 1
+
+# ChatGPT(codex)는 launchd 래퍼로. 인자는 회차 번호
+bash scripts/geo-measure-chatgpt.sh 1
+
+# 스모크 테스트 — 앞 N문항만. 실측에는 쓰지 말 것(주간 값이 왜곡된다)
+GEO_LIMIT=2 node scripts/geo-measure.mjs voicecards chatgpt 1
 ```
+
+셸에서 준 환경변수가 `.env.local`보다 우선한다.
 
 ## 실패 원인 분류
 
