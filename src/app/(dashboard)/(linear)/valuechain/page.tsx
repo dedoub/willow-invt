@@ -109,11 +109,11 @@ export default function ValueChainPage() {
   const defaultDir = (key: string): 'asc' | 'desc' => (numDescKeys.has(key) ? 'desc' : 'asc')
   const onUpdateSort = (key: string) => { setUpdatePage(1); setUpdateSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: defaultDir(key) }) }
   const commitUpdatePerPage = () => {
-    const n = Math.max(5, Math.min(100, Number(updatePerPageInput) || 8))
+    const n = Math.max(1, Math.min(100, Number(updatePerPageInput) || 8))
     setUpdatePerPageInput(String(n)); setUpdatePerPage(n); setUpdatePage(1)
   }
   const commitArticlePerPage = () => {
-    const n = Math.max(5, Math.min(100, Number(articlePerPageInput) || 8))
+    const n = Math.max(1, Math.min(100, Number(articlePerPageInput) || 8))
     setArticlePerPageInput(String(n)); setArticlePerPage(n); setArticlePage(1)
   }
   const sortHead = (colKey: string, label: string, align: 'left' | 'center' | 'right', sortState: { key: string; dir: 'asc' | 'desc' }, onSort: (k: string) => void) => {
@@ -197,7 +197,13 @@ export default function ValueChainPage() {
     <>
     {/* 최상단: 검색 수요 포착 (Search Console + Umami) — 보이스카드/리뷰노트와 동일 섹션.
         노드를 몇 개 쌓았는지가 아니라, 그 노드가 검색 수요와 연결되는지를 본다. */}
-    <div style={{ marginBottom: 14 }}>
+    {/* 카드는 그리드 없이 조각 두 개만 내놓는다(다른 페이지에서 그 사이에 섹션을 끼우기 위해서).
+        여기서는 끼울 게 없으니 두 조각을 나란히 세우는 그리드만 씌운다. */}
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: mobile || cols === 1 ? '1fr' : 'minmax(0,1fr) minmax(0,1fr)',
+      gap: 14, alignItems: 'start', marginBottom: 14,
+    }}>
       <SearchDemandCard site="valuechain" />
     </div>
 

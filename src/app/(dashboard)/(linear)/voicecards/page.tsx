@@ -5,6 +5,7 @@ import { VoicecardsBlock } from './_components/voicecards-block'
 import { VoicecardsSettingsDialog } from './_components/voicecards-settings-dialog'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
+import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
 import { GeoAnswerCard } from '@/app/(dashboard)/_components/geo-answer-card'
 import { kstToday } from '@/lib/kst'
@@ -130,6 +131,7 @@ interface AnonymousEventStats {
 
 export default function VoicecardsPage() {
   const cols = useDashCols()
+  const mobile = useIsMobile()
   // 3개 파트 독립 로딩 (사용자/이벤트/매출)
   const [vcUsersLoading, setVcUsersLoading] = useState(true)
   const [vcEventsLoading, setVcEventsLoading] = useState(true)
@@ -207,16 +209,24 @@ export default function VoicecardsPage() {
 
   return (
     <>
-      {/* 최상단: 검색 수요 포착 (Umami) — 앱 지표와 별개로 웹에서 수요를 잡고 있는지 본다 */}
-      <div style={{ marginBottom: 14 }}>
-        <SearchDemandCard site="voicecards" />
-      </div>
+      {/*
+        페이지 전체가 한 그리드다. 섹션들이 여러 컴포넌트에 나뉘어 있어도 같은 줄에 서야 해서,
+        각 컴포넌트는 그리드 없이 조각만 내놓고 배치는 여기서 DOM 순서로 결정된다.
 
-      {/* 검색 다음은 답변엔진. 검색이 "결과에 뜨는가"라면 여기는 "추천되는가"를 본다.
-          블록 그리드 안으로 넘겨서 2열 모드에서 퍼널과 나란히 서게 한다 */}
+        2열에서 채워지는 순서:
+          AI 답변 점유 | 검색 노출      ← 어떻게 발견되는가
+          진입 후 행동 | 퍼널 · 가입 후 활동  ← 들어와서 무엇을 하는가
+          사용자 | 비로그인
+      */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+        gap: 14, alignItems: 'start',
+      }}>
+      <SearchDemandCard site="voicecards" leadSlot={<GeoAnswerCard site="voicecards" />} />
+
       <VoicecardsBlock
         cols={cols}
-        geoSlot={<GeoAnswerCard site="voicecards" />}
         usersLoading={vcUsersLoading}
         eventsLoading={vcEventsLoading}
         revenueLoading={vcRevenueLoading}
@@ -228,6 +238,7 @@ export default function VoicecardsPage() {
         onRefresh={() => loadVoicecards(true)}
         refreshing={vcRefreshing}
       />
+      </div>
 
       <VoicecardsSettingsDialog
         open={settingsOpen}

@@ -500,8 +500,19 @@ function Skeleton({ mobile }: { mobile: boolean }) {
 export interface SearchDemandCardProps {
   /** Umami 사이트 키 — /api/umami/search-demand?site= 와 동일 */
   site: UmamiSiteKey
+  /**
+   * 검색 노출 섹션 앞에 세울 것. AI 답변 점유가 여기 들어간다.
+   * 두 섹션이 한 컴포넌트에 묶여 있어서, 바깥에서는 그 사이나 앞에 무엇도 넣을 수 없다.
+   */
+  leadSlot?: React.ReactNode
 }
-export function SearchDemandCard({ site }: SearchDemandCardProps) {
+
+/**
+ * 이 컴포넌트는 그리드를 갖지 않고 조각 두 개(+슬롯)만 내놓는다. 페이지가 하나의 그리드를
+ * 갖고 여기 조각들과 블록 조각들을 같은 줄에 세우기 때문이다. 스스로 그리드를 가지면
+ * 두 섹션이 항상 붙어 다녀서 사이에 다른 섹션을 끼울 수 없다.
+ */
+export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
   const mobile = useIsMobile()
   const dashCols = useDashCols()
   const [days, setDays] = useState<Period>(30)
@@ -564,10 +575,9 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
 
   useEffect(() => { load(days) }, [load, days])
 
-  // 2열 모드: 두 섹션을 좌(Search Console) / 우(Umami)로 나란히.
-  // 1열 모드: 섹션은 위아래 전폭이고, 섹션 안에서 좌 차트 · 우 지표 6장으로 쪼갠다
-  //           (인사이트 섹션과 같은 분할).
-  const sideBySide = !mobile && dashCols === 2
+  // 두 섹션을 좌우로 세우는 건 페이지 그리드가 한다(여기는 조각만 내놓는다).
+  // 1열 모드에서는 섹션이 전폭이라, 섹션 안에서 좌 차트 · 우 지표 6장으로 쪼갠다
+  // (인사이트 섹션과 같은 분할).
   const splitLayout = !mobile && dashCols === 1
   const statCols = mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'
   // 목록 패널: 1열 모드는 한 줄에 3개, 2열 모드는 2개, 모바일은 1개.
@@ -624,11 +634,8 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
   )
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: sideBySide ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
-      gap: 14, alignItems: 'start',
-    }}>
+    <>
+      {leadSlot}
 
       {/* ── 섹션 1: 검색 노출 → 클릭 (Search Console) — 수요가 있는지, 그중 얼마를 잡는지 ── */}
       <LCard pad={0}>
@@ -927,6 +934,6 @@ export function SearchDemandCard({ site }: SearchDemandCardProps) {
           )}
         </div>
       </LCard>
-    </div>
+    </>
   )
 }

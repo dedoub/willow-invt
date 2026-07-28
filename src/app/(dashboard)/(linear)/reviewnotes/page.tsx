@@ -6,6 +6,7 @@ import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
+import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
 import { GeoAnswerCard } from '@/app/(dashboard)/_components/geo-answer-card'
 
@@ -13,6 +14,7 @@ import { GeoAnswerCard } from '@/app/(dashboard)/_components/geo-answer-card'
 
 export default function ReviewnotesPage() {
   const cols = useDashCols()
+  const mobile = useIsMobile()
   const [rnLoading, setRnLoading] = useState(true)
   const [rnRefreshing, setRnRefreshing] = useState(false)
   const [rnStats, setRnStats] = useState<ReviewNotesStats | null>(null)
@@ -67,16 +69,24 @@ export default function ReviewnotesPage() {
 
   return (
     <>
-    {/* 최상단: 검색 수요 포착 (Umami) — 앱 지표와 별개로 웹에서 수요를 잡고 있는지 본다 */}
-    <div style={{ marginBottom: 14 }}>
-      <SearchDemandCard site="reviewnotes" />
-    </div>
+    {/*
+      페이지 전체가 한 그리드다. 섹션들이 여러 컴포넌트에 나뉘어 있어도 같은 줄에 서야 해서,
+      각 컴포넌트는 그리드 없이 조각만 내놓고 배치는 여기서 DOM 순서로 결정된다.
 
-    {/* 검색 다음은 답변엔진. 검색이 "결과에 뜨는가"라면 여기는 "추천되는가"를 본다.
-        블록 그리드 안으로 넘겨서 2열 모드에서 퍼널과 나란히 서게 한다 */}
+      2열에서 채워지는 순서:
+        AI 답변 점유 | 검색 노출      ← 어떻게 발견되는가
+        진입 후 행동 | 퍼널 · 운영 지표  ← 들어와서 무엇을 하는가
+        사용자 |
+    */}
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+      gap: 14, alignItems: 'start',
+    }}>
+    <SearchDemandCard site="reviewnotes" leadSlot={<GeoAnswerCard site="reviewnotes" />} />
+
     <ReviewnotesBlock
       cols={cols}
-      geoSlot={<GeoAnswerCard site="reviewnotes" />}
       loading={rnLoading}
       stats={rnStats}
       userStats={rnUserStats}
@@ -86,6 +96,7 @@ export default function ReviewnotesPage() {
       refreshing={rnRefreshing}
       error={rnError}
     />
+    </div>
     </>
   )
 }

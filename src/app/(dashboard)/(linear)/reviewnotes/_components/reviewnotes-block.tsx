@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -25,9 +25,6 @@ export interface ReviewnotesBlockProps {
   refreshing: boolean
   error: string | null
   cols: 1 | 2 // 레이아웃 열 수 (1=wide). 단일 앱 페이지는 1 고정.
-  // AI 답변 점유 섹션. 2열 모드에서 퍼널과 나란히 놓으려고 블록 그리드 안으로 받는다.
-  // 페이지에서 위에 따로 그리면 전체 폭을 먹어 그 아래가 전부 한 칸씩 밀린다.
-  geoSlot?: ReactNode
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -291,7 +288,7 @@ function RnDauTrendCard({ daily, days = 42 }: {
 
 export function ReviewnotesBlock({
   loading, stats, userStats, trafficStats, contentStats,
-  onRefresh, refreshing, error, cols, geoSlot,
+  onRefresh, refreshing, error, cols,
 }: ReviewnotesBlockProps) {
   const mobile = useIsMobile()
   const dashCols = cols
@@ -302,7 +299,7 @@ export function ReviewnotesBlock({
   const [userSortDir, setUserSortDir] = useState<SortDir>('desc')
 
   const commitUserPerPage = () => {
-    const n = Math.max(5, Math.min(100, Number(userPerPageInput) || 10))
+    const n = Math.max(1, Math.min(100, Number(userPerPageInput) || 10))
     setUserPerPageInput(String(n))
     setUserPerPage(n)
     setUserPage(1)
@@ -370,23 +367,12 @@ export function ReviewnotesBlock({
     window.localStorage.setItem(USER_SORT_STORAGE_KEY, `${key}:${nextDir}`)
   }
 
-  // 2열 모드의 배치. DOM 순서(답변점유 → 퍼널 → 사용자)는 1열·모바일에서 그대로 읽히는
-  // 순서이고, 2열에서만 명시 배치로 좌우를 바꾼다. 보이스카드 블록과 같은 규칙이다.
-  const split = dashCols === 2 && !mobile
-  const at = (col: 1 | 2, row: string) => (split ? { gridColumn: col, gridRow: row } : undefined)
-  const usersRow = geoSlot ? '2' : '1'
-
+  // 그리드는 페이지가 갖는다. 여기서는 조각 두 개(퍼널열 · 사용자)만 내놓고, 페이지 그리드가
+  // DOM 순서대로 두 열에 채운다. 보이스카드 블록과 같은 규칙이다.
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: split ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
-      gap: 14, alignItems: 'start',
-    }}>
-    {/* AI 답변 점유 — 2열에서 좌상단 반폭. 페이지가 아니라 여기서 그려야 퍼널이 옆에 선다 */}
-    {geoSlot && <div style={{ minWidth: 0, ...at(1, '1') }}>{geoSlot}</div>}
-
-    {/* 퍼널 · 운영 지표 (2열모드에서 오른쪽 반폭, 두 행에 걸침) */}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, ...at(2, geoSlot ? '1 / span 2' : '1') }}>
+    <>
+    {/* 퍼널 · 운영 지표 — 두 섹션이 한 열로 붙어 다닌다 */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
     {/* 카드1: 헤더 + 인사이트 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
@@ -749,8 +735,8 @@ export function ReviewnotesBlock({
     </LCard>
     </div>
 
-    {/* 사용자 테이블 (2열모드에서 왼쪽 반폭, 답변 점유 아래) */}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, ...at(1, usersRow) }}>
+    {/* 사용자 테이블 */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
     {/* 카드3: 사용자 테이블 */}
     <LCard pad={0}>
       {loading && (
@@ -990,7 +976,7 @@ export function ReviewnotesBlock({
       )}
     </LCard>
     </div>
-    </div>
+    </>
   )
 }
 
