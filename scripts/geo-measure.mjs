@@ -36,6 +36,26 @@ const env = Object.fromEntries(
 )
 
 const SETS = JSON.parse(fs.readFileSync('scripts/geo-questions.json', 'utf8'))
+
+/**
+ * 질문은 레지스트리(geo_questions)가 단일 진실원이다. active=true인 것만 측정한다.
+ * 조회가 실패하면 파일 세트로 폴백한다 — 측정이 통째로 멈추는 것보다 낫다.
+ */
+async function loadQuestions(site) {
+  try {
+    const res = await fetch(
+      `${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/geo_questions?site=eq.${site}&active=is.true&select=question_id,question,question_group&order=priority.asc,question_id.asc`,
+      { headers: { apikey: env.SUPABASE_SECRET_KEY, Authorization: `Bearer ${env.SUPABASE_SECRET_KEY}` } },
+    )
+    if (!res.ok) throw new Error(`${res.status}`)
+    const rows = await res.json()
+    if (rows.length) return rows.map(r => ({ id: r.question_id, q: r.question, group: r.question_group }))
+    console.error(`  레지스트리에 ${site} 질문이 없어 파일 세트로 진행`)
+  } catch (e) {
+    console.error(`  레지스트리 조회 실패(${e.message}) — 파일 세트로 진행`)
+  }
+  return (SETS[site]?.questions ?? []).map(x => ({ ...x, group: x.id.split('-')[1] ?? 'etc' }))
+}
 const [siteArg, engineArg, runsArg] = process.argv.slice(2)
 const SITES = siteArg ? [siteArg] : ['voicecards', 'reviewnotes']
 const RUNS = Number(runsArg || 3)
@@ -170,7 +190,8 @@ for (const site of SITES) {
 
     const rows = []
     let mentioned = 0, top3 = 0, cited = 0, total = 0
-    for (const { id, q } of set.questions) {
+    const questions = await loadQuestions(site)
+    for (const { id, q, group } of questions) {
       for (let run = 1; run <= RUNS; run++) {
         let out
         try { out = await withRetry(() => ask(q), `${id} run${run}`) } catch (e) {
@@ -188,7 +209,7 @@ for (const site of SITES) {
 
         total++; if (m) mentioned++; if (t) top3++; if (c) cited++
         rows.push({
-          site, engine, question_id: id, question: q, run_no: run,
+          site, engine, question_id: id, question: q, question_group: group ?? null, run_no: run,
           mentioned: m, top3: t, cited: c,
           our_urls: ourUrls, competitors: comps, source_domains: out.sources.slice(0, 20),
           answer_excerpt: out.answer.slice(0, 1200),

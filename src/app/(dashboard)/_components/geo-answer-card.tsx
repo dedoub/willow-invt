@@ -16,12 +16,36 @@ import { LIcon } from './linear-icons'
 import { useDashCols } from './cols-toggle'
 import { useIsMobile } from './linear-tokens'
 import { DataTable, panelStyle, panelTitle, EmptyLine } from './linear-data-table'
-import type { GeoAnswerStats } from '@/lib/geo-answers'
+import { CAUSE_LABEL, STAGE_LABEL, type GeoAnswerStats, type GeoCause, type GeoStage } from '@/lib/geo-answers'
 
 const mono = (size: number): React.CSSProperties => ({
   fontSize: `calc(${size}px * var(--fz, 1))`, fontFamily: t.font.mono,
   fontVariantNumeric: 'tabular-nums' as const,
 })
+
+// 원인별 색: 처방이 다른 만큼 눈으로도 갈라야 한다
+const CAUSE_TONE: Record<Exclude<GeoCause, null>, { bg: string; fg: string }> = {
+  index: tonePalettes.neg,
+  authority: tonePalettes.warn,
+  content: tonePalettes.info,
+  competitor: tonePalettes.pending,
+}
+
+const STAGE_TONE: Record<GeoStage, { bg: string; fg: string }> = {
+  absent: tonePalettes.neg,
+  cited: tonePalettes.warn,
+  mentioned: tonePalettes.info,
+  recommended: tonePalettes.pos,
+}
+
+function Pill({ tone, children }: { tone: { bg: string; fg: string }; children: React.ReactNode }) {
+  return (
+    <span style={{
+      ...mono(8.5), padding: '1px 5px', borderRadius: 3, whiteSpace: 'nowrap' as const,
+      background: tone.bg, color: tone.fg,
+    }}>{children}</span>
+  )
+}
 
 /** 기준선 대비 증감(%p). 첫 측정뿐이면 표시할 게 없다 */
 function Delta({ now, base }: { now: number; base: number | null }) {
@@ -131,31 +155,119 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 sub="우리 URL이 출처로 붙은 비율"
                 title="출처 목록에 우리 도메인이 들어간 비율. 인용돼도 추천은 경쟁사일 수 있으니 단독으로 읽지 말 것."
               />
+              <LStat
+                label="AI 유입 클릭"
+                value={data.aiClicks.total.toLocaleString()}
+                sub={`최근 7일 ${data.aiClicks.last7d.toLocaleString()}`}
+                tone={data.aiClicks.last7d > 0 ? 'pos' : 'default'}
+                title="답변에 실린 링크를 사람이 눌러 들어온 횟수(크롤 로그 referral). 인용이 트래픽이 됐는지를 본다."
+              />
+              <LStat
+                label="색인된 페이지"
+                value={data.indexedPages.toLocaleString()}
+                sub="답변엔진이 인용할 수 있는 모수"
+                tone={data.indexedPages > 0 ? 'default' : 'warn'}
+                title="색인이 없으면 답변엔진이 인용할 대상 자체가 없다. 실패 원인 '색인' 판정의 근거."
+              />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: 8, alignItems: 'stretch' }}>
               <DataTable
-                title="질문별 성적"
-                minWidth={330}
+                title="질문별 현황"
+                minWidth={430}
                 columns={[
                   { key: 'q', label: '질문', width: 'minmax(140px,1fr)' },
-                  { key: 'm', label: '언급', width: '46px', align: 'right' as const },
+                  { key: 'g', label: '군', width: '52px' },
+                  { key: 's', label: '단계', width: '62px' },
+                  { key: 'cause', label: '원인', width: '68px' },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
-                  { key: 'c', label: '인용', width: '46px', align: 'right' as const },
+                  { key: 'a', label: '액션', width: '40px', align: 'right' as const },
                 ]}
                 rows={data.questions.map(q => ({
                   key: q.questionId,
                   cells: [
-                    <span key="q" title={q.question} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span key="q" title={`${q.question}\n${q.competitors.length ? '경쟁: ' + q.competitors.join(', ') : ''}`}
+                      style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {q.question}
                     </span>,
-                    `${q.mentioned}%`,
+                    <span key="g" style={{ ...mono(9), color: t.neutrals.subtle }}>{q.group ?? '—'}</span>,
+                    <Pill key="s" tone={STAGE_TONE[q.stage]}>{STAGE_LABEL[q.stage]}</Pill>,
+                    q.cause ? <Pill key="c" tone={CAUSE_TONE[q.cause]}>{CAUSE_LABEL[q.cause]}</Pill> : <span key="c" style={{ color: t.neutrals.subtle }}>—</span>,
                     <span key="t" style={{ color: q.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{q.top3}%</span>,
-                    `${q.cited}%`,
+                    q.openActions > 0 ? String(q.openActions) : '—',
                   ],
-                  sort: [q.question, q.mentioned, q.top3, q.cited],
+                  sort: [q.question, q.group ?? '', q.stage, q.cause ?? '', q.top3, q.openActions],
                 }))}
                 empty="측정된 질문이 없습니다"
+              />
+
+              <DataTable
+                title="실패 원인"
+                minWidth={220}
+                columns={[
+                  { key: 'c', label: '원인', width: 'minmax(80px,1fr)' },
+                  { key: 'n', label: '질문', width: '46px', align: 'right' as const },
+                  { key: 'fix', label: '처방', width: 'minmax(90px,1.4fr)' },
+                ]}
+                rows={data.causes.map(c => ({
+                  key: c.cause,
+                  cells: [
+                    <Pill key="c" tone={CAUSE_TONE[c.cause]}>{CAUSE_LABEL[c.cause]}</Pill>,
+                    String(c.questions),
+                    <span key="f" style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted }}>
+                      {c.cause === 'index' ? '색인 요청·사이트맵'
+                        : c.cause === 'authority' ? '외부 언급·백링크'
+                        : c.cause === 'content' ? '그 질문에 답하는 문단 추가'
+                        : '경쟁 페이지 대비 보강'}
+                    </span>,
+                  ],
+                  sort: [c.cause, c.questions, ''],
+                }))}
+                empty="Top3를 놓친 질문이 없습니다"
+              />
+
+              <DataTable
+                title="질문군별"
+                minWidth={230}
+                columns={[
+                  { key: 'g', label: '질문군', width: 'minmax(70px,1fr)' },
+                  { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
+                  { key: 'r', label: '실행', width: '44px', align: 'right' as const },
+                ]}
+                rows={data.byGroup.map(g => ({
+                  key: g.group,
+                  cells: [
+                    g.group,
+                    <span key="t" style={{ color: g.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{g.top3}%</span>,
+                    String(g.runs),
+                  ],
+                  sort: [g.group, g.top3, g.runs],
+                }))}
+                empty="질문군 데이터가 없습니다"
+              />
+
+              <DataTable
+                title="개선 액션·실험"
+                minWidth={330}
+                columns={[
+                  { key: 'title', label: '액션', width: 'minmax(120px,1fr)' },
+                  { key: 'q', label: '질문', width: '70px' },
+                  { key: 'st', label: '상태', width: '58px' },
+                  { key: 'res', label: '전→후', width: '72px', align: 'right' as const },
+                ]}
+                rows={data.actions.map(a => ({
+                  key: String(a.id),
+                  cells: [
+                    <span key="t" title={a.title} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>,
+                    <span key="q" style={{ ...mono(9), color: t.neutrals.subtle }}>{a.questionId ?? '전체'}</span>,
+                    <Pill key="s" tone={a.verdict === 'worked' ? tonePalettes.pos : a.verdict === 'worse' ? tonePalettes.neg : a.status === 'done' ? tonePalettes.neutral : tonePalettes.pending}>
+                      {a.verdict === 'worked' ? '효과' : a.verdict === 'worse' ? '악화' : a.verdict === 'no_effect' ? '무효' : a.status}
+                    </Pill>,
+                    a.baselineTop3 == null ? '—' : `${a.baselineTop3}%→${a.resultTop3 == null ? '?' : a.resultTop3 + '%'}`,
+                  ],
+                  sort: [a.title, a.questionId ?? '', a.status, a.resultTop3 ?? -1],
+                }))}
+                empty="등록된 개선 액션이 없습니다"
               />
 
               <DataTable

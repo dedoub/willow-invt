@@ -1,12 +1,44 @@
 /**
- * GEO 답변 점유 집계.
+ * GEO 답변 점유 집계 + 실패 원인 진단.
  *
- * 원본은 geo_answer_measurements (러너: scripts/geo-measure.mjs).
+ * 원본은 geo_answer_measurements (러너: scripts/geo-measure.mjs),
+ * 질문 레지스트리는 geo_questions, 개선 이력은 geo_actions.
+ *
  * 핵심 지표는 인용률이 아니라 **추천 Top3 점유율**이다. 링크만 인용되고 정작
  * 경쟁사를 추천하는 답변이 흔해서, 인용률만 보면 좋아지는 것처럼 착각한다.
+ *
+ * 운영 절차 정본: docs/geo-operations.md
  */
 
 import { supabase } from './supabase'
+
+// ─── 단계와 원인 ──────────────────────────────────────────────────────────────
+
+/** 질문 하나에서 우리가 어디까지 갔는가. 색인 5단계와 같은 문법으로 읽는다. */
+export type GeoStage = 'absent' | 'cited' | 'mentioned' | 'recommended'
+
+/**
+ * 실패 원인. 처방이 서로 완전히 다르므로 섞으면 안 된다.
+ *   index      우리 페이지가 색인조차 안 됐다 → 답변엔진이 인용할 대상이 없다
+ *   authority  색인은 됐는데 출처로 한 번도 안 잡힌다 → 신뢰도·외부 언급 문제
+ *   content    출처로는 잡히는데 추천은 안 된다 → 페이지가 그 질문에 답하지 않는다
+ *   competitor 언급까지는 되는데 특정 경쟁사가 Top3를 계속 가져간다
+ */
+export type GeoCause = 'index' | 'authority' | 'content' | 'competitor' | null
+
+export const CAUSE_LABEL: Record<Exclude<GeoCause, null>, string> = {
+  index: '색인',
+  authority: '외부 신뢰도',
+  content: '콘텐츠',
+  competitor: '경쟁사 우위',
+}
+
+export const STAGE_LABEL: Record<GeoStage, string> = {
+  absent: '미등장',
+  cited: '인용만',
+  mentioned: '언급',
+  recommended: '추천 Top3',
+}
 
 export interface GeoRates {
   runs: number
@@ -18,27 +50,51 @@ export interface GeoRates {
 export interface GeoQuestionRow {
   questionId: string
   question: string
+  group: string | null
+  priority: number
   runs: number
   mentioned: number
   top3: number
   cited: number
+  stage: GeoStage
+  cause: GeoCause
   competitors: string[]
+  /** 이 질문에 걸린 진행 중 액션 수 */
+  openActions: number
   lastMeasured: string | null
+}
+
+export interface GeoAction {
+  id: number
+  questionId: string | null
+  cause: string | null
+  actionType: string
+  title: string
+  status: string
+  shippedOn: string | null
+  baselineTop3: number | null
+  resultTop3: number | null
+  verdict: string | null
 }
 
 export interface GeoAnswerStats {
   site: string
-  /** 측정일 목록 (최신순). 첫 회차가 기준선 */
   days: string[]
   latestDay: string | null
   baselineDay: string | null
   latest: GeoRates
   baseline: GeoRates
   byEngine: Array<{ engine: string } & GeoRates>
+  byGroup: Array<{ group: string } & GeoRates>
   questions: GeoQuestionRow[]
-  /** 우리가 Top3에 못 든 답변에 등장한 경쟁 서비스 */
+  causes: Array<{ cause: Exclude<GeoCause, null>; questions: number }>
   competitors: Array<{ name: string; answers: number }>
+  actions: GeoAction[]
   daily: Array<{ date: string; top3: number; mentioned: number; cited: number }>
+  /** AI 답변에서 넘어온 클릭 (vc_crawl_log referral) */
+  aiClicks: { last7d: number; total: number }
+  /** 색인된 대표 URL 수 — index 원인 판정의 근거 */
+  indexedPages: number
 }
 
 interface Row {
@@ -46,19 +102,13 @@ interface Row {
   engine: string
   question_id: string
   question: string
+  question_group: string | null
   mentioned: boolean
   top3: boolean
   cited: boolean
   competitors: string[] | null
   measured_at: string
 }
-
-const empty = (site: string): GeoAnswerStats => ({
-  site, days: [], latestDay: null, baselineDay: null,
-  latest: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
-  baseline: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
-  byEngine: [], questions: [], competitors: [], daily: [],
-})
 
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0)
 
@@ -71,25 +121,94 @@ function rate(rows: Row[]): GeoRates {
   }
 }
 
+function stageOf(r: GeoRates): GeoStage {
+  if (r.top3 > 0) return 'recommended'
+  if (r.mentioned > 0) return 'mentioned'
+  if (r.cited > 0) return 'cited'
+  return 'absent'
+}
+
+/**
+ * 원인 판정. 순서가 중요하다 — 앞 단계가 막혀 있으면 뒤 원인은 볼 필요가 없다.
+ * indexedPages는 사이트 전체 신호라 질문 단위 판정에 그대로 쓰지 않고,
+ * "색인이 사실상 없다"는 극단만 index 원인으로 잡는다.
+ */
+function causeOf(r: GeoRates, competitors: string[], indexedPages: number): GeoCause {
+  if (r.top3 > 0) return null
+  if (indexedPages <= 1) return 'index'
+  if (r.cited === 0 && r.mentioned === 0) return 'authority'
+  if (r.cited > 0) return 'content'
+  return competitors.length > 0 ? 'competitor' : 'authority'
+}
+
+const empty = (site: string): GeoAnswerStats => ({
+  site, days: [], latestDay: null, baselineDay: null,
+  latest: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
+  baseline: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
+  byEngine: [], byGroup: [], questions: [], causes: [], competitors: [], actions: [],
+  daily: [], aiClicks: { last7d: 0, total: 0 }, indexedPages: 0,
+})
+
 export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAnswerStats> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10)
-  const { data, error } = await supabase
-    .from('geo_answer_measurements')
-    .select('measured_on, engine, question_id, question, mentioned, top3, cited, competitors, measured_at')
-    .eq('site', site)
-    .gte('measured_on', since)
-    .order('measured_at', { ascending: false })
-    .limit(5000)
-  if (error) throw new Error(`GEO 측정 조회 실패: ${error.message}`)
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
 
-  const rows = (data ?? []) as Row[]
-  if (rows.length === 0) return empty(site)
+  const [measRes, qRes, actRes, idxRes, clickRes, clickWeekRes] = await Promise.all([
+    supabase.from('geo_answer_measurements')
+      .select('measured_on, engine, question_id, question, question_group, mentioned, top3, cited, competitors, measured_at')
+      .eq('site', site).gte('measured_on', since)
+      .order('measured_at', { ascending: false }).limit(5000),
+    supabase.from('geo_questions').select('question_id, question_group, priority, active').eq('site', site),
+    supabase.from('geo_actions')
+      .select('id, question_id, cause, action_type, title, status, shipped_on, baseline_top3, result_top3, verdict')
+      .eq('site', site).order('updated_at', { ascending: false }).limit(100),
+    // 색인된 대표 URL 수 — index 원인 판정 근거
+    supabase.from('seo_index_status').select('path', { count: 'exact', head: true })
+      .eq('site_key', site).eq('is_indexed', true),
+    supabase.from('vc_crawl_log').select('id', { count: 'exact', head: true })
+      .eq('site', site).in('category', ['referral', 'referral_nav']),
+    supabase.from('vc_crawl_log').select('id', { count: 'exact', head: true })
+      .eq('site', site).in('category', ['referral', 'referral_nav']).gte('ts', weekAgo),
+  ])
+
+  if (measRes.error) throw new Error(`GEO 측정 조회 실패: ${measRes.error.message}`)
+  const rows = (measRes.data ?? []) as Row[]
+  const indexedPages = idxRes.count ?? 0
+  const aiClicks = { total: clickRes.count ?? 0, last7d: clickWeekRes.count ?? 0 }
+
+  const actions: GeoAction[] = ((actRes.data ?? []) as Array<Record<string, unknown>>).map(a => ({
+    id: Number(a.id),
+    questionId: (a.question_id as string) ?? null,
+    cause: (a.cause as string) ?? null,
+    actionType: a.action_type as string,
+    title: a.title as string,
+    status: a.status as string,
+    shippedOn: (a.shipped_on as string) ?? null,
+    baselineTop3: a.baseline_top3 == null ? null : Number(a.baseline_top3),
+    resultTop3: a.result_top3 == null ? null : Number(a.result_top3),
+    verdict: (a.verdict as string) ?? null,
+  }))
+
+  if (rows.length === 0) return { ...empty(site), actions, aiClicks, indexedPages }
+
+  const meta = new Map<string, { group: string | null; priority: number }>()
+  for (const q of (qRes.data ?? []) as Array<Record<string, unknown>>) {
+    meta.set(q.question_id as string, {
+      group: (q.question_group as string) ?? null,
+      priority: Number(q.priority ?? 3),
+    })
+  }
 
   const days_ = Array.from(new Set(rows.map(r => r.measured_on))).sort().reverse()
   const latestDay = days_[0]
   const baselineDay = days_[days_.length - 1]
-
   const latestRows = rows.filter(r => r.measured_on === latestDay)
+
+  const openByQuestion = new Map<string, number>()
+  for (const a of actions) {
+    if (!a.questionId || a.status === 'done' || a.status === 'dropped') continue
+    openByQuestion.set(a.questionId, (openByQuestion.get(a.questionId) ?? 0) + 1)
+  }
 
   // 질문별로는 최신 회차만 본다. 기간 전체를 섞으면 개선 전후가 뭉개진다.
   const byQuestion = new Map<string, Row[]>()
@@ -103,21 +222,32 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
     const r = rate(list)
     const comps = new Set<string>()
     for (const row of list) for (const c of row.competitors ?? []) comps.add(c)
+    const competitors = Array.from(comps)
+    const m = meta.get(qid)
     return {
       questionId: qid,
       question: list[0].question,
+      group: list[0].question_group ?? m?.group ?? null,
+      priority: m?.priority ?? 3,
       runs: r.runs, mentioned: r.mentioned, top3: r.top3, cited: r.cited,
-      competitors: Array.from(comps).slice(0, 6),
+      stage: stageOf(r),
+      cause: causeOf(r, competitors, indexedPages),
+      competitors: competitors.slice(0, 6),
+      openActions: openByQuestion.get(qid) ?? 0,
       lastMeasured: list[0].measured_at,
     }
-  }).sort((a, b) => a.top3 - b.top3 || b.runs - a.runs)   // 지는 질문을 위로
+  }).sort((a, b) => a.top3 - b.top3 || a.priority - b.priority)   // 지는 질문 · 우선순위 높은 순
+
+  const causeCount = new Map<Exclude<GeoCause, null>, number>()
+  for (const q of questions) if (q.cause) causeCount.set(q.cause, (causeCount.get(q.cause) ?? 0) + 1)
 
   // 우리가 Top3에 못 든 답변에서만 경쟁사를 센다. 그 자리를 누가 가져갔는지가 처방으로 이어진다.
-  const lost = latestRows.filter(r => !r.top3)
   const compCount = new Map<string, number>()
-  for (const r of lost) for (const c of r.competitors ?? []) compCount.set(c, (compCount.get(c) ?? 0) + 1)
+  for (const r of latestRows.filter(r => !r.top3)) {
+    for (const c of r.competitors ?? []) compCount.set(c, (compCount.get(c) ?? 0) + 1)
+  }
 
-  const engines = Array.from(new Set(latestRows.map(r => r.engine)))
+  const groups = Array.from(new Set(latestRows.map(r => r.question_group).filter(Boolean))) as string[]
 
   return {
     site,
@@ -126,15 +256,23 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
     baselineDay: baselineDay === latestDay ? null : baselineDay,
     latest: rate(latestRows),
     baseline: rate(rows.filter(r => r.measured_on === baselineDay)),
-    byEngine: engines.map(e => ({ engine: e, ...rate(latestRows.filter(r => r.engine === e)) })),
+    byEngine: Array.from(new Set(latestRows.map(r => r.engine)))
+      .map(e => ({ engine: e, ...rate(latestRows.filter(r => r.engine === e)) })),
+    byGroup: groups.map(g => ({ group: g, ...rate(latestRows.filter(r => r.question_group === g)) }))
+      .sort((a, b) => a.top3 - b.top3),
     questions,
+    causes: Array.from(causeCount.entries())
+      .map(([cause, n]) => ({ cause, questions: n }))
+      .sort((a, b) => b.questions - a.questions),
     competitors: Array.from(compCount.entries())
       .map(([name, answers]) => ({ name, answers }))
-      .sort((a, b) => b.answers - a.answers)
-      .slice(0, 15),
+      .sort((a, b) => b.answers - a.answers).slice(0, 15),
+    actions,
     daily: days_.slice().reverse().map(d => {
       const r = rate(rows.filter(x => x.measured_on === d))
       return { date: d, top3: r.top3, mentioned: r.mentioned, cited: r.cited }
     }),
+    aiClicks,
+    indexedPages,
   }
 }
