@@ -198,7 +198,8 @@ export async function getValueChainStats(): Promise<ValueChainStats> {
     supabase
       .from('vc_companies')
       .select('slug,name,kicker,lead,segments,updated_at,created_at, vc_edges!company_id(direction,counterparty_id,confidence,metric, vc_edge_sources(stance,metric, vc_sources(kind,published_at,lang,publisher)))'),
-    supabase.from('vc_crawl_log').select('ts,path,bot,category,referer,country').neq('category', 'attack').order('ts', { ascending: false }).limit(3000),
+    // vc_crawl_log는 2026-07-28부터 세 사이트가 공유한다. site 필터를 빼면 보이스카드·리뷰노트 크롤이 섞인다.
+    supabase.from('vc_crawl_log').select('ts,path,bot,category,referer,country').eq('site', 'valuechain').neq('category', 'attack').order('ts', { ascending: false }).limit(3000),
     supabase.from('vc_companies').select('created_at').gte('created_at', windowStartKey).limit(100000),
     supabase.from('vc_edges').select('created_at').gte('created_at', windowStartKey).limit(100000),
     supabase.from('vc_sources').select('created_at').gte('created_at', windowStartKey).limit(100000),
