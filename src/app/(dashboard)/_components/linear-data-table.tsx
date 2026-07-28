@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { t } from './linear-tokens'
 import { LIcon } from './linear-icons'
-import { getStoredPageSize, savePageSize } from './linear-page-size'
+import { getStoredPageSize, savePageSize, getStoredSort, saveSort } from './linear-page-size'
 
 // 검색 수요 카드에서 쓰던 표를 공용으로 뺐다. GEO 답변 점유 섹션도 같은 표를 쓰기 때문에,
 // 한쪽만 고쳐 두 화면이 어긋나는 걸 막는다. 스타일 토큰은 원본 그대로 옮겨왔다.
@@ -120,15 +120,24 @@ export function DataTable({
     savePageSize(title, n)
   }
   // 정렬 — 사용자 테이블과 동일하게 헤더 클릭, 같은 컬럼 재클릭 시 방향 토글.
-  // 기본값은 원본 순서(각 표가 이미 의미 있는 순서로 넘어온다).
-  const [sortIdx, setSortIdx] = useState<number | null>(null)
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  // 고른 정렬은 표별로 저장한다. 매번 같은 표를 같은 기준으로 다시 세우는 게 일이라서.
+  // 저장이 없으면 원본 순서(각 표가 이미 의미 있는 순서로 넘어온다).
+  const restored = useMemo(() => getStoredSort(title), [title])
+  const [sortIdx, setSortIdx] = useState<number | null>(() => {
+    if (!restored) return null
+    const i = columns.findIndex(c => c.key === restored.col)
+    return i >= 0 ? i : null   // 그 사이 사라진 컬럼이면 복원하지 않는다
+  })
+  const [sortDir, setSortDir] = useState<SortDir>(() => restored?.dir ?? 'desc')
   const handleSort = (i: number) => {
-    if (i === sortIdx) { setSortDir(d => (d === 'asc' ? 'desc' : 'asc')); return }
+    // 텍스트 컬럼은 오름차순, 숫자는 내림차순이 기본. 같은 컬럼을 다시 누르면 뒤집는다.
+    const nextDir: SortDir = i === sortIdx
+      ? (sortDir === 'asc' ? 'desc' : 'asc')
+      : (columns[i].align === 'right' ? 'desc' : 'asc')
+    if (i !== sortIdx) setPage(1)
     setSortIdx(i)
-    // 텍스트 컬럼은 오름차순, 숫자는 내림차순이 기본
-    setSortDir(columns[i].align === 'right' ? 'desc' : 'asc')
-    setPage(1)
+    setSortDir(nextDir)
+    saveSort(title, { col: columns[i].key, dir: nextDir })
   }
 
   const sortedRows = useMemo(() => {
