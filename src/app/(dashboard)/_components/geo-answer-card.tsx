@@ -183,8 +183,10 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 rows={data.questions.map(q => ({
                   key: q.questionId,
                   cells: [
+                    // paddingRight: 표 공통 간격 6px만으로는 말줄임표가 배지에 거의 닿는다.
+                    // 여기서만 더 띄운다 — 잘린 문장과 그 옆 배지는 붙어 있으면 한 덩어리로 읽힌다.
                     <span key="q" title={`${q.question}\n${q.competitors.length ? '경쟁: ' + q.competitors.join(', ') : ''}`}
-                      style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>
                       {q.question}
                     </span>,
                     <Pill key="s" tone={STAGE_TONE[q.stage]}>{STAGE_LABEL[q.stage]}</Pill>,
