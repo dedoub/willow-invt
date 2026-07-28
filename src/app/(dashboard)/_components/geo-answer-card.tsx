@@ -16,7 +16,7 @@ import { LIcon } from './linear-icons'
 import { useDashCols } from './cols-toggle'
 import { useIsMobile } from './linear-tokens'
 import { DataTable, panelStyle, EmptyLine } from './linear-data-table'
-import { CAUSE_LABEL, STAGE_LABEL, type GeoAnswerStats, type GeoCause, type GeoStage } from '@/lib/geo-answers'
+import { CAUSE_LABEL, STAGE_LABEL, type GeoAnswerStats, type GeoCause, type GeoStage } from '@/lib/geo-types'
 
 const mono = (size: number): React.CSSProperties => ({
   fontSize: `calc(${size}px * var(--fz, 1))`, fontFamily: t.font.mono,

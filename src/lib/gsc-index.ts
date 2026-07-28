@@ -282,6 +282,35 @@ interface StatusRow {
   is_indexed: boolean | null
 }
 
+/**
+ * 최신 스냅샷 기준 색인된 대표 URL 수.
+ *
+ * `seo_index_status`는 검사할 때마다 날짜별로 쌓이므로, 전 기간을 세면 같은 경로가
+ * 스냅샷 수만큼 중복된다(07-27 5 + 07-28 14 = 19처럼). 색인 상태 카드는 최신 날짜만
+ * 세는데 다른 화면이 전 기간을 세면서 같은 지표가 두 숫자로 갈렸다.
+ *
+ * `getIndexStatusSummary`의 `buckets.indexed`와 항상 같은 값이어야 한다 — 규칙을
+ * 고칠 때는 둘을 같이 고칠 것.
+ */
+export async function getIndexedPageCount(siteKey: string): Promise<number> {
+  const { data } = await supabase
+    .from('seo_index_status')
+    .select('checked_on')
+    .eq('site_key', siteKey)
+    .order('checked_on', { ascending: false })
+    .limit(1)
+  const latest = ((data ?? []) as Array<{ checked_on: string }>)[0]?.checked_on
+  if (!latest) return 0
+
+  const { count } = await supabase
+    .from('seo_index_status')
+    .select('path', { count: 'exact', head: true })
+    .eq('site_key', siteKey)
+    .eq('checked_on', latest)
+    .eq('is_indexed', true)
+  return count ?? 0
+}
+
 export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Promise<IndexStatusSummary> {
   const site = getGscSite(siteKey)
   const since = new Date(Date.now() - trendDays * 86_400_000).toISOString().slice(0, 10)
