@@ -44,7 +44,7 @@ function getStoredPageSize(): number {
   const v = localStorage.getItem(TRADE_PAGE_KEY)
   if (!v) return DEFAULT_PAGE_SIZE
   const n = Number(v)
-  return n >= 5 && n <= 100 ? n : DEFAULT_PAGE_SIZE
+  return n >= 1 && n <= 100 ? n : DEFAULT_PAGE_SIZE
 }
 
 type View = 'trades' | 'closed'
@@ -147,7 +147,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
   }
 
   const commitPageSize = () => {
-    const n = Math.max(5, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
+    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
     setPageSizeInput(String(n))
     setPageSize(n)
     setPage(0)

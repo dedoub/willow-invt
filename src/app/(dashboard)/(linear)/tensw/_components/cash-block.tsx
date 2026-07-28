@@ -95,7 +95,7 @@ function getStoredCashPageSize(): number {
   const v = localStorage.getItem(CASH_PAGE_SIZE_KEY)
   if (!v) return DEFAULT_CASH_PAGE_SIZE
   const n = Number(v)
-  return n >= 5 && n <= 100 ? n : DEFAULT_CASH_PAGE_SIZE
+  return n >= 1 && n <= 100 ? n : DEFAULT_CASH_PAGE_SIZE
 }
 
 export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankBalances = [], balanceHistory = [] }: CashBlockProps) {
@@ -151,7 +151,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
   const paged = displayList.slice(page * pageSize, (page + 1) * pageSize)
 
   const commitPageSize = useCallback(() => {
-    const n = Math.max(5, Math.min(100, Number(pageSizeInput) || DEFAULT_CASH_PAGE_SIZE))
+    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_CASH_PAGE_SIZE))
     setPageSizeInput(String(n))
     setPageSize(n)
     setPage(0)

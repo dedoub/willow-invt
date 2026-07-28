@@ -47,7 +47,7 @@ function getStoredTaxInvoicePageSize(): number {
   const v = localStorage.getItem(TAX_INVOICE_PAGE_SIZE_KEY)
   if (!v) return DEFAULT_TAX_INVOICE_PAGE_SIZE
   const n = Number(v)
-  return n >= 5 && n <= 100 ? n : DEFAULT_TAX_INVOICE_PAGE_SIZE
+  return n >= 1 && n <= 100 ? n : DEFAULT_TAX_INVOICE_PAGE_SIZE
 }
 
 export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockProps) {
@@ -73,7 +73,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
   const paged = invoices.slice(page * pageSize, (page + 1) * pageSize)
 
   const commitPageSize = useCallback(() => {
-    const n = Math.max(5, Math.min(100, Number(pageSizeInput) || DEFAULT_TAX_INVOICE_PAGE_SIZE))
+    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_TAX_INVOICE_PAGE_SIZE))
     setPageSizeInput(String(n))
     setPageSize(n)
     setPage(0)

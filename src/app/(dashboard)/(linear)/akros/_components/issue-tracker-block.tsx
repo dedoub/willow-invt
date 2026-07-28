@@ -44,7 +44,7 @@ const DEFAULT_PAGE_SIZE = 8
 function getStoredPageSize(): number {
   if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
   const n = Number(localStorage.getItem(PAGE_SIZE_KEY))
-  return n >= 3 && n <= 50 ? n : DEFAULT_PAGE_SIZE
+  return n >= 1 && n <= 50 ? n : DEFAULT_PAGE_SIZE
 }
 
 export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Props) {
@@ -55,7 +55,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
 
   const commitPageSize = () => {
-    const n = Math.max(3, Math.min(50, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
+    const n = Math.max(1, Math.min(50, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
     setPageSizeInput(String(n))
     setPageSize(n)
     setPage(0)

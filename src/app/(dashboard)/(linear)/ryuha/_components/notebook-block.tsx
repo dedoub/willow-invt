@@ -46,7 +46,7 @@ function getStoredPageSize(): number {
   const v = localStorage.getItem(PAGE_SIZE_KEY)
   if (!v) return DEFAULT_PAGE_SIZE
   const n = Number(v)
-  return n >= 5 && n <= 50 ? n : DEFAULT_PAGE_SIZE
+  return n >= 1 && n <= 50 ? n : DEFAULT_PAGE_SIZE
 }
 
 function fmtDate(dateStr: string): string {
@@ -230,7 +230,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
   }
 
   const commitPageSize = () => {
-    const n = Math.max(5, Math.min(50, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
+    const n = Math.max(1, Math.min(50, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
     setPageSizeInput(String(n))
     setPageSize(n)
     setPage(0)

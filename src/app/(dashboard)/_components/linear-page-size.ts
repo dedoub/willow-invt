@@ -11,7 +11,7 @@ const DEFAULT_PAGE_SIZE = 10
 export function getStoredPageSize(key: string, fallback = DEFAULT_PAGE_SIZE): number {
   if (typeof window === 'undefined') return fallback
   const n = Number(localStorage.getItem(STORAGE_PREFIX + key))
-  return n >= 5 && n <= 100 ? n : fallback
+  return n >= 1 && n <= 100 ? n : fallback
 }
 
 export function savePageSize(key: string, n: number): void {

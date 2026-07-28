@@ -50,7 +50,7 @@ function getStoredPageSize(): number {
   const v = localStorage.getItem(PAGE_SIZE_KEY)
   if (!v) return DEFAULT_PAGE_SIZE
   const n = Number(v)
-  return n >= 5 && n <= 100 ? n : DEFAULT_PAGE_SIZE
+  return n >= 1 && n <= 100 ? n : DEFAULT_PAGE_SIZE
 }
 
 function daysToMaturity(maturityDate: string | null): number | null {
@@ -93,7 +93,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
   const commitPageSize = () => {
-    const n = Math.max(5, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
+    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
     setPageSizeInput(String(n))
     setPageSize(n)
     setPage(0)
