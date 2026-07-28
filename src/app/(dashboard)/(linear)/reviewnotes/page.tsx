@@ -7,6 +7,7 @@ import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentS
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
+import { GeoAnswerCard } from '@/app/(dashboard)/_components/geo-answer-card'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,11 @@ export default function ReviewnotesPage() {
     {/* 최상단: 검색 수요 포착 (Umami) — 앱 지표와 별개로 웹에서 수요를 잡고 있는지 본다 */}
     <div style={{ marginBottom: 14 }}>
       <SearchDemandCard site="reviewnotes" />
+    </div>
+
+    {/* 검색 다음은 답변엔진. 검색이 "결과에 뜨는가"라면 여기는 "추천되는가"를 본다 */}
+    <div style={{ marginBottom: 14 }}>
+      <GeoAnswerCard site="reviewnotes" />
     </div>
 
     <ReviewnotesBlock

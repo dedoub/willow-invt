@@ -15,6 +15,9 @@
  *   node scripts/geo-measure.mjs voicecards      # 한 사이트만
  *   node scripts/geo-measure.mjs reviewnotes gemini 1
  *
+ * 무료 티어는 분당 호출 제한(RPM)이 있다. 429는 대개 일일 소진이 아니라 이 제한이므로
+ * 호출 사이에 간격을 두고, 걸리면 지수 백오프로 재시도한다.
+ *
  * 엔진별 전제:
  *   gemini      GEMINI_API_KEY + google_search grounding. 지금 유일하게 동작한다.
  *   chatgpt     OPENAI_API_KEY 필요(web_search 도구). 키 없으면 건너뛴다.
@@ -56,6 +59,23 @@ function inTop3(answer, brandRe) {
 }
 
 const hostOf = u => { try { return new URL(u).host.replace(/^www\./, '') } catch { return '' } }
+
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+/** 호출 간 최소 간격(ms). 무료 티어 RPM에 걸리지 않을 만큼만 벌린다 */
+const THROTTLE_MS = Number(env.GEO_THROTTLE_MS || 7000)
+
+/** 429·5xx는 잠깐 기다렸다 다시. 그래도 안 되면 그 회차만 포기한다 */
+async function withRetry(fn, label) {
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try { return await fn() } catch (e) {
+      const retriable = /\b(429|500|502|503|504)\b/.test(e.message)
+      if (!retriable || attempt === 4) throw e
+      const wait = 20000 * attempt
+      console.error(`  ${label} ${attempt}회차 재시도 (${Math.round(wait / 1000)}초 대기)`)
+      await sleep(wait)
+    }
+  }
+}
 
 // ─── 엔진 어댑터. { answer, sources[] }를 돌려주면 된다 ────────────────────────
 
@@ -153,7 +173,10 @@ for (const site of SITES) {
     for (const { id, q } of set.questions) {
       for (let run = 1; run <= RUNS; run++) {
         let out
-        try { out = await ask(q) } catch (e) { console.error(`  ${id} run${run} 실패: ${e.message}`); continue }
+        try { out = await withRetry(() => ask(q), `${id} run${run}`) } catch (e) {
+          console.error(`  ${id} run${run} 포기: ${e.message.slice(0, 100)}`); continue
+        }
+        await sleep(THROTTLE_MS)
         if (!out) { console.log(`${site}/${engine}: 키 없음 — 건너뜀`); run = RUNS; break }
 
         const blob = `${out.answer}\n${out.sources.join('\n')}`
