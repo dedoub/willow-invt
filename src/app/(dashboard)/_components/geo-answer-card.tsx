@@ -176,7 +176,8 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 title="질문별 현황"
                 columns={[
                   { key: 'q', label: '질문', width: 'minmax(140px,1fr)' },
-                  { key: 's', label: '단계', width: '62px' },
+                  // 가장 긴 배지 '추천 Top3'가 56px다. 더 줄이면 잘린다
+                  { key: 's', label: '단계', width: '58px' },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
                 ]}
                 rows={data.questions.map(q => ({
