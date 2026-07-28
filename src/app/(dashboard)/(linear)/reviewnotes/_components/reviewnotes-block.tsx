@@ -169,27 +169,31 @@ const rateExtra = (label: string, pct: number) => (
   </span>
 )
 
-// 일별 활동자 차트 — 보이스카드 DauTrendCard 리뷰노트판. 회원(기존 가입자)/신규(그날 가입) 2계열 + 7일 이동평균.
-// 리뷰노트는 로그인 후에만 활동이라 익명(비로그인) tier 없음. 관리자 제외는 RPC(rn_daily_active)에서.
+// 일별 활동자 차트 — 보이스카드 DauTrendCard 리뷰노트판.
+// 회원(기존 가입자)/신규(그날 가입)/비로그인 3계열 + 7일 이동평균.
+// 비로그인은 세션 수라 로그인 활동자(유저 수)와 세는 단위가 다르다. 막대는 같이 쌓되
+// 툴팁에서 구분해 적는다. 관리자·봇 제외는 RPC(rn_daily_active)에서 처리한다.
 const RN_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 function rnWithWeekday(d: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d} (${RN_WEEKDAYS[new Date(d + 'T00:00:00Z').getUTCDay()]})` : d
 }
 function RnDauTrendCard({ daily, days = 42 }: {
-  daily: Array<{ date: string; active: number; newUsers: number; member: number }>
+  daily: Array<{ date: string; active: number; newUsers: number; member: number; anon: number }>
   days?: number
 }) {
   const rows = (daily ?? []).slice(-days)
-  const max = rows.reduce((m, r) => Math.max(m, r.active), 0)
+  const totalOf = (r: { active: number; anon: number }) => r.active + r.anon
+  const max = rows.reduce((m, r) => Math.max(m, totalOf(r)), 0)
   const latest = rows.length ? rows[rows.length - 1] : null
   const MEMBER = '#3b82f6'
   const NEW = '#8b5cf6'
+  const ANON = '#10b981'
   const MA_COLOR = '#f97316'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const barPct = (v: number) => (max > 0 ? (v / max) * 100 : 0)
   const ma = rows.map((_, i) => {
     const win = rows.slice(Math.max(0, i - 6), i + 1)
-    return win.reduce((sum, r) => sum + r.active, 0) / win.length
+    return win.reduce((sum, r) => sum + totalOf(r), 0) / win.length
   })
   return (
     <div style={{
@@ -211,6 +215,9 @@ function RnDauTrendCard({ daily, days = 42 }: {
             <span style={{ width: 6, height: 6, borderRadius: 1, background: NEW }} />신규 {latest?.newUsers ?? 0}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: ANON }} />비로그인 {latest?.anon ?? 0}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
             <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
           </span>
         </div>
@@ -222,6 +229,7 @@ function RnDauTrendCard({ daily, days = 42 }: {
       ) : (
         <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: 2, position: 'relative' }}>
           {rows.map((r, i) => {
+            const anonH = barPct(r.anon)
             const newH = barPct(r.newUsers)
             const memberH = barPct(r.member)
             const dim = hoverIdx !== null && hoverIdx !== i
@@ -230,8 +238,9 @@ function RnDauTrendCard({ daily, days = 42 }: {
                 onMouseEnter={() => setHoverIdx(i)}
                 onMouseLeave={() => setHoverIdx(prev => (prev === i ? null : prev))}
                 style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}>
-                {newH > 0 && <div style={{ height: `${newH}%`, background: NEW, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
-                {memberH > 0 && <div style={{ height: `${memberH}%`, background: MEMBER, borderRadius: newH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {anonH > 0 && <div style={{ height: `${anonH}%`, background: ANON, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {newH > 0 && <div style={{ height: `${newH}%`, background: NEW, borderRadius: anonH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {memberH > 0 && <div style={{ height: `${memberH}%`, background: MEMBER, borderRadius: (anonH > 0 || newH > 0) ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
               </div>
             )
           })}
@@ -250,7 +259,7 @@ function RnDauTrendCard({ daily, days = 42 }: {
             return (
               <div style={{
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
-                bottom: `calc(${barPct(r.active).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
+                bottom: `calc(${barPct(totalOf(r)).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
                 fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
@@ -262,7 +271,10 @@ function RnDauTrendCard({ daily, days = 42 }: {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: NEW }} />신규 {r.newUsers}
                 </div>
-                <div style={{ opacity: 0.7, marginTop: 3 }}>총 {r.active} · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 1, background: ANON }} />비로그인 {r.anon}<span style={{ opacity: 0.6 }}> 세션</span>
+                </div>
+                <div style={{ opacity: 0.7, marginTop: 3 }}>로그인 {r.active}명 · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
               </div>
             )
           })()}
