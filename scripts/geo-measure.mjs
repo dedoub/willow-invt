@@ -99,7 +99,32 @@ async function withRetry(fn, label) {
 
 // ─── 엔진 어댑터. { answer, sources[] }를 돌려주면 된다 ────────────────────────
 
+/**
+ * 보이스카드 Supabase의 geo-ask 프록시. 그 프로젝트의 결제된 Gemini 키를 빌려 쓴다.
+ * 대시보드 자체 키는 무료 티어라 그라운딩 일일 한도에 바로 걸린다. 정본: src/lib/geo-runner.ts
+ */
+async function askGeminiViaVoicecards(question) {
+  const url = env.VOICECARDS_SUPABASE_URL
+  const key = env.VOICECARDS_SUPABASE_SERVICE_KEY
+  if (!url || !key) return null
+  const res = await fetch(`${url}/functions/v1/geo-ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ question }),
+  })
+  const body = await res.text()
+  if (!res.ok) {
+    // 프록시가 Gemini 상태코드를 본문에 담아 넘긴다. withRetry가 429를 알아보게 꺼내준다.
+    const upstream = body.match(/"status":\s*(\d{3})/)?.[1]
+    throw new Error(`gemini ${upstream ?? res.status} ${body.slice(0, 160)}`)
+  }
+  const j = JSON.parse(body)
+  return { answer: j.answer ?? '', sources: j.sources ?? [] }
+}
+
 async function askGemini(question) {
+  const viaProxy = await askGeminiViaVoicecards(question)
+  if (viaProxy) return viaProxy
   const key = env.GEMINI_API_KEY
   if (!key) return null
   const res = await fetch(

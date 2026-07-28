@@ -56,7 +56,36 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-async function askGemini(question: string): Promise<{ answer: string; sources: string[] }> {
+/**
+ * 보이스카드 Supabase의 geo-ask 함수를 통해 묻는다.
+ *
+ * 대시보드가 자체로 들고 있던 무료 티어 키는 그라운딩 일일 한도가 낮아 주간 측정 한 회차도
+ * 못 채운다. 보이스카드는 카드 생성에 결제된 키를 쓰고 있어서, 키를 복사해 오는 대신
+ * 그 프로젝트 안에 얇은 프록시(supabase/functions/geo-ask)를 두고 호출만 빌린다.
+ * 키가 한 곳에만 있으므로 교체·회수도 거기서 한 번만 하면 된다.
+ */
+async function askViaVoicecards(question: string): Promise<{ answer: string; sources: string[] }> {
+  const url = process.env.VOICECARDS_SUPABASE_URL
+  const key = process.env.VOICECARDS_SUPABASE_SERVICE_KEY
+  if (!url || !key) throw new Error('VOICECARDS_SUPABASE_* 없음')
+  const res = await fetch(`${url}/functions/v1/geo-ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ question }),
+    cache: 'no-store',
+  })
+  if (!res.ok) {
+    // 프록시는 Gemini 상태코드를 본문에 담아 넘긴다. withRetry가 429를 알아보게 꺼내준다.
+    const body = await res.text().catch(() => '')
+    const upstream = body.match(/"status":\s*(\d{3})/)?.[1]
+    throw new Error(`geo-ask ${upstream ?? res.status}`)
+  }
+  const j = await res.json()
+  return { answer: String(j.answer ?? ''), sources: (j.sources ?? []) as string[] }
+}
+
+/** 대시보드가 직접 들고 있는 키. 프록시를 못 쓸 때의 대비책 */
+async function askGeminiDirect(question: string): Promise<{ answer: string; sources: string[] }> {
   const key = process.env.GEMINI_API_KEY
   if (!key) throw new Error('GEMINI_API_KEY 없음')
   const res = await fetch(
@@ -77,6 +106,13 @@ async function askGemini(question: string): Promise<{ answer: string; sources: s
     .map((x: { web?: { title?: string; uri?: string } }) => x.web?.title || x.web?.uri || '')
     .filter(Boolean)
   return { answer, sources }
+}
+
+async function askGemini(question: string): Promise<{ answer: string; sources: string[] }> {
+  if (process.env.VOICECARDS_SUPABASE_URL && process.env.VOICECARDS_SUPABASE_SERVICE_KEY) {
+    return askViaVoicecards(question)
+  }
+  return askGeminiDirect(question)
 }
 
 export interface GeoRunResult {
