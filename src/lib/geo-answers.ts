@@ -50,7 +50,6 @@ export interface GeoRates {
 export interface GeoQuestionRow {
   questionId: string
   question: string
-  group: string | null
   priority: number
   runs: number
   mentioned: number
@@ -83,7 +82,6 @@ export interface GeoAnswerStats {
   latest: GeoRates
   baseline: GeoRates
   byEngine: Array<{ engine: string } & GeoRates>
-  byGroup: Array<{ group: string } & GeoRates>
   questions: GeoQuestionRow[]
   causes: Array<{ cause: Exclude<GeoCause, null>; questions: number }>
   competitors: Array<{ name: string; answers: number }>
@@ -101,7 +99,6 @@ interface Row {
   engine: string
   question_id: string
   question: string
-  question_group: string | null
   mentioned: boolean
   top3: boolean
   cited: boolean
@@ -144,7 +141,7 @@ const empty = (site: string): GeoAnswerStats => ({
   site, days: [], latestDay: null, baselineDay: null,
   latest: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
   baseline: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
-  byEngine: [], byGroup: [], questions: [], causes: [], competitors: [], actions: [],
+  byEngine: [], questions: [], causes: [], competitors: [], actions: [],
   daily: [], aiClicks: { last7d: 0, total: 0 }, indexedPages: 0,
 })
 
@@ -154,10 +151,10 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
 
   const [measRes, qRes, actRes, idxRes, clickRes, clickWeekRes] = await Promise.all([
     supabase.from('geo_answer_measurements')
-      .select('measured_on, measured_week, engine, question_id, question, question_group, mentioned, top3, cited, competitors, measured_at')
+      .select('measured_on, measured_week, engine, question_id, question, mentioned, top3, cited, competitors, measured_at')
       .eq('site', site).gte('measured_on', since)
       .order('measured_at', { ascending: false }).limit(5000),
-    supabase.from('geo_questions').select('question_id, question_group, priority, active').eq('site', site),
+    supabase.from('geo_questions').select('question_id, priority').eq('site', site),
     supabase.from('geo_actions')
       .select('id, question_id, cause, action_type, title, status, shipped_on, baseline_top3, result_top3, verdict')
       .eq('site', site).order('updated_at', { ascending: false }).limit(100),
@@ -190,12 +187,9 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
 
   if (rows.length === 0) return { ...empty(site), actions, aiClicks, indexedPages }
 
-  const meta = new Map<string, { group: string | null; priority: number }>()
+  const priorityOf = new Map<string, number>()
   for (const q of (qRes.data ?? []) as Array<Record<string, unknown>>) {
-    meta.set(q.question_id as string, {
-      group: (q.question_group as string) ?? null,
-      priority: Number(q.priority ?? 3),
-    })
+    priorityOf.set(q.question_id as string, Number(q.priority ?? 3))
   }
 
   // 한 회차가 여러 날에 걸쳐 실행되므로(무료 티어 일일 한도) 주 단위로 묶는다
@@ -218,12 +212,10 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
     const comps = new Set<string>()
     for (const row of list) for (const c of row.competitors ?? []) comps.add(c)
     const competitors = Array.from(comps)
-    const m = meta.get(qid)
     return {
       questionId: qid,
       question: list[0].question,
-      group: list[0].question_group ?? m?.group ?? null,
-      priority: m?.priority ?? 3,
+      priority: priorityOf.get(qid) ?? 3,
       runs: r.runs, mentioned: r.mentioned, top3: r.top3, cited: r.cited,
       stage: stageOf(r),
       cause: causeOf(r, competitors, indexedPages),
@@ -241,8 +233,6 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
     for (const c of r.competitors ?? []) compCount.set(c, (compCount.get(c) ?? 0) + 1)
   }
 
-  const groups = Array.from(new Set(latestRows.map(r => r.question_group).filter(Boolean))) as string[]
-
   return {
     site,
     days: days_,
@@ -252,8 +242,6 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
     baseline: rate(rows.filter(r => weekOf(r) === baselineDay)),
     byEngine: Array.from(new Set(latestRows.map(r => r.engine)))
       .map(e => ({ engine: e, ...rate(latestRows.filter(r => r.engine === e)) })),
-    byGroup: groups.map(g => ({ group: g, ...rate(latestRows.filter(r => r.question_group === g)) }))
-      .sort((a, b) => a.top3 - b.top3),
     questions,
     causes: Array.from(causeCount.entries())
       .map(([cause, n]) => ({ cause, questions: n }))
