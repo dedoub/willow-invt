@@ -29,11 +29,16 @@
 
 import fs from 'node:fs'
 
-const env = Object.fromEntries(
-  fs.readFileSync('.env.local', 'utf8').split('\n')
-    .filter(l => l.includes('=') && !l.trim().startsWith('#'))
-    .map(l => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]),
-)
+// 셸에서 준 값이 파일보다 우선한다. GEO_THROTTLE_MS 같은 일회성 조정을
+// `.env.local` 고치지 않고 앞에 붙여 쓸 수 있어야 한다.
+const env = {
+  ...Object.fromEntries(
+    fs.readFileSync('.env.local', 'utf8').split('\n')
+      .filter(l => l.includes('=') && !l.trim().startsWith('#'))
+      .map(l => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]),
+  ),
+  ...process.env,
+}
 
 const SETS = JSON.parse(fs.readFileSync('scripts/geo-questions.json', 'utf8'))
 
@@ -88,7 +93,9 @@ const THROTTLE_MS = Number(env.GEO_THROTTLE_MS || 7000)
 async function withRetry(fn, label) {
   for (let attempt = 1; attempt <= 4; attempt++) {
     try { return await fn() } catch (e) {
-      const retriable = /\b(429|500|502|503|504)\b/.test(e.message)
+      // HTTP 엔진은 상태코드로, codex는 문구로 판단한다(종료코드가 다 1이라 코드로는 못 가른다).
+      const retriable = /\b(429|500|502|503|504)\b|rate.?limit|usage limit|timed? ?out|ETIMEDOUT|SIGTERM|stream (error|disconnected)/i
+        .test(e.message)
       if (!retriable || attempt === 4) throw e
       const wait = 20000 * attempt
       console.error(`  ${label} ${attempt}회차 재시도 (${Math.round(wait / 1000)}초 대기)`)
@@ -148,9 +155,62 @@ async function askGemini(question) {
   return { answer, sources }
 }
 
+/**
+ * ChatGPT 계열을 codex CLI로 묻는다.
+ *
+ * CEO 봇이 쓰는 인증은 API 키가 아니라 ChatGPT 구독 로그인(`~/.codex/auth.json`의
+ * auth_mode=chatgpt)이라 api.openai.com 경로로는 못 쓴다. codex는 같은 모델에
+ * 네이티브 web_search를 붙일 수 있어서, 그 CLI를 통째로 어댑터로 쓴다.
+ *
+ * 두 가지를 알고 있어야 한다.
+ *   - 코딩 에이전트 표면이라 소비자 chatgpt.com 답변과 더 멀다. 추세용이다.
+ *   - 로컬 CLI라 Vercel 크론에서 못 돈다. 이 엔진은 launchd 주간 실행 전용이다.
+ *
+ * 출력 지시문은 모든 질문·모든 회차에 똑같이 붙는다. 그게 고정된 측정 조건의 일부다.
+ * 이걸 빼면 codex가 URL을 안 달아서 인용 신호가 통째로 사라진다.
+ */
+const CODEX_SUFFIX =
+  '\n\nAnswer as a user-facing recommendation: a numbered list, best first, ' +
+  'one line of reasoning each, and the source URL for each item.'
+
+async function askCodex(question) {
+  const { spawn } = await import('node:child_process')
+  // 프롬프트는 인자가 아니라 stdin으로 준다. 인자로 주면 codex가 stdin도 마저 읽으려고
+  // 기다리는데, 셸에서는 터미널이 바로 EOF를 주지만 Node가 띄우면 파이프가 안 닫혀서
+  // 빈 응답이나 타임아웃으로 끝난다.
+  const stdout = await new Promise((resolve, reject) => {
+    const child = spawn('codex', [
+      'exec', '--json', '-c', 'tools.web_search=true', '--skip-git-repo-check',
+      '-m', env.GEO_CODEX_MODEL || 'gpt-5.5',
+    ], { stdio: ['pipe', 'pipe', 'pipe'] })
+    let out = '', err = ''
+    const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('codex timed out')) }, 300_000)
+    child.stdout.on('data', d => { out += d })
+    child.stderr.on('data', d => { err += d })
+    child.on('error', e => { clearTimeout(timer); reject(new Error(`codex ${e.message}`)) })
+    child.on('close', code => {
+      clearTimeout(timer)
+      // 모델명이 안 먹으면 config의 모델을 되는 걸로 바꿔야 한다(계정별로 다르다).
+      if (code !== 0) return reject(new Error(`codex exit ${code}: ${err.slice(-160)}`))
+      resolve(out)
+    })
+    child.stdin.end(question + CODEX_SUFFIX)
+  })
+  const answer = stdout.split('\n')
+    .map(l => { try { return JSON.parse(l) } catch { return null } })
+    .filter(e => e?.type === 'item.completed' && e.item?.type === 'agent_message')
+    .map(e => e.item.text)
+    .join('\n')
+    .trim()
+  if (!answer) throw new Error('codex 빈 응답')
+  // codex는 grounding 배열을 안 준다. 본문에 박힌 URL이 유일한 출처 신호다.
+  const sources = [...answer.matchAll(/https?:\/\/[^\s)\]"'<>]+/g)].map(m => hostOf(m[0])).filter(Boolean)
+  return { answer, sources: [...new Set(sources)] }
+}
+
 async function askOpenAI(question) {
   const key = env.OPENAI_API_KEY
-  if (!key) return null
+  if (!key) return askCodex(question)
   const res = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
@@ -181,6 +241,25 @@ async function askPerplexity(question) {
 
 const ENGINES = { gemini: askGemini, chatgpt: askOpenAI, perplexity: askPerplexity }
 
+/**
+ * 엔진을 못 돌리는 이유. 못 돌리면 사유를, 돌릴 수 있으면 빈 문자열을 준다.
+ * 예전에는 'ping' 질문을 한 번 던져 살아있는지 봤는데, codex는 그 한 번이
+ * 1분 넘게 걸리고 토큰도 쓴다. 물어보지 않고 판단할 수 있는 것만 여기서 본다.
+ */
+function unavailable(engine) {
+  if (engine === 'gemini') {
+    return env.VOICECARDS_SUPABASE_SERVICE_KEY || env.GEMINI_API_KEY ? '' : '키 없음'
+  }
+  if (engine === 'chatgpt') {
+    if (env.OPENAI_API_KEY) return ''
+    // codex 폴백. CLI와 로그인이 둘 다 있어야 한다.
+    if (!fs.existsSync(`${process.env.HOME}/.codex/auth.json`)) return 'codex 로그인 없음'
+    return ''
+  }
+  if (engine === 'perplexity') return env.PERPLEXITY_API_KEY ? '' : '키 없음'
+  return ''
+}
+
 // ─── 적재 ─────────────────────────────────────────────────────────────────────
 
 async function save(rows) {
@@ -208,14 +287,16 @@ for (const site of SITES) {
   for (const engine of engines) {
     const ask = ENGINES[engine]
     if (!ask) { console.error(`알 수 없는 엔진: ${engine}`); continue }
-    if (!(await ask('ping').catch(() => null)) && !env[`${engine === 'chatgpt' ? 'OPENAI' : engine.toUpperCase()}_API_KEY`] && engine !== 'gemini') {
-      console.log(`${site}/${engine}: 키 없음 — 건너뜀`)
-      continue
-    }
+    const why = unavailable(engine)
+    if (why) { console.log(`${site}/${engine}: ${why} — 건너뜀`); continue }
 
     const rows = []
     let mentioned = 0, top3 = 0, cited = 0, total = 0
-    const questions = await loadQuestions(site)
+    // GEO_LIMIT은 스모크 테스트용이다. 실측에는 쓰지 말 것 — 앞쪽 질문만 담긴
+    // 회차가 레지스트리 전량 회차와 같은 주에 섞이면 주간 값이 왜곡된다.
+    const limit = Number(env.GEO_LIMIT || 0)
+    const questions = (await loadQuestions(site)).slice(0, limit || undefined)
+    if (limit) console.log(`  GEO_LIMIT=${limit} — 앞 ${questions.length}문항만 (스모크)`)
     for (const { id, q, group } of questions) {
       for (let run = 1; run <= RUNS; run++) {
         let out
