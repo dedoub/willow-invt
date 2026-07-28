@@ -5,8 +5,8 @@
  * 판정 규칙이 둘로 갈라지면 수동 실행과 주간 크론의 숫자가 어긋나므로,
  * 규칙을 고칠 때는 반드시 양쪽을 같이 고칠 것. 정본 설명: docs/geo-operations.md
  *
- * 함수 제한시간(300초) 안에 끝내려고 (사이트 × 회차) 단위로 쪼개 호출한다.
- * 질문 30개 x 호출당 3~5초면 여유가 있다.
+ * 무료 티어는 분당 호출 제한이 빡빡하다. 30문항을 한 번에 돌리면 대부분 429로 떨어져서
+ * (사이트 × 회차 × 파트) 단위로 쪼개고, 429는 짧게 기다렸다 다시 시도한다.
  */
 
 import { supabase } from './supabase'
@@ -45,6 +45,17 @@ function inTop3(answer: string, brandRe: RegExp): boolean {
   return brandRe.test(head)
 }
 
+/** 429·5xx는 잠깐 기다렸다 다시. 무료 티어에서 이게 없으면 대부분 실패한다 */
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try { return await fn() } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (attempt >= 3 || !/\b(429|500|502|503|504)\b/.test(msg)) throw e
+      await sleep(12_000 * attempt)
+    }
+  }
+}
+
 async function askGemini(question: string): Promise<{ answer: string; sources: string[] }> {
   const key = process.env.GEMINI_API_KEY
   if (!key) throw new Error('GEMINI_API_KEY 없음')
@@ -72,6 +83,7 @@ export interface GeoRunResult {
   site: string
   engine: string
   runNo: number
+  part: number
   asked: number
   failed: number
   mentioned: number
@@ -79,7 +91,13 @@ export interface GeoRunResult {
   cited: number
 }
 
-export async function runGeoMeasurement(site: string, runNo: number, throttleMs = 3500): Promise<GeoRunResult> {
+/**
+ * @param part 1-based 분할 번호. 질문을 parts등분해 그중 part번째만 돌린다.
+ *             한 호출이 함수 제한시간을 넘지 않게 하는 유일한 수단이다.
+ */
+export async function runGeoMeasurement(
+  site: string, runNo: number, part = 1, parts = 2, throttleMs = 7000,
+): Promise<GeoRunResult> {
   const brandRe = BRAND_RE[site]
   const domain = OUR_DOMAIN[site]
   if (!brandRe || !domain) throw new Error(`알 수 없는 사이트: ${site}`)
@@ -91,14 +109,16 @@ export async function runGeoMeasurement(site: string, runNo: number, throttleMs 
     .order('priority', { ascending: true }).order('question_id', { ascending: true })
   if (error) throw new Error(`질문 레지스트리 조회 실패: ${error.message}`)
 
-  const questions = (data ?? []) as Array<{ question_id: string; question: string; question_group: string | null }>
-  const out: GeoRunResult = { site, engine: 'gemini', runNo, asked: 0, failed: 0, mentioned: 0, top3: 0, cited: 0 }
+  const all = (data ?? []) as Array<{ question_id: string; question: string; question_group: string | null }>
+  const size = Math.ceil(all.length / parts)
+  const questions = all.slice((part - 1) * size, part * size)
+  const out: GeoRunResult = { site, engine: 'gemini', runNo, part, asked: 0, failed: 0, mentioned: 0, top3: 0, cited: 0 }
   const rows: Record<string, unknown>[] = []
 
   for (const q of questions) {
     let res: { answer: string; sources: string[] }
     try {
-      res = await askGemini(q.question)
+      res = await withRetry(() => askGemini(q.question))
     } catch {
       out.failed++
       await sleep(throttleMs)

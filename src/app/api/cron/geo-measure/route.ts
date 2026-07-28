@@ -17,10 +17,12 @@ export async function GET(request: Request) {
 
   const site = searchParams.get('site') || ''
   const runNo = Math.min(5, Math.max(1, Number(searchParams.get('run') || 1)))
+  const parts = Math.min(4, Math.max(1, Number(searchParams.get('parts') || 2)))
+  const part = Math.min(parts, Math.max(1, Number(searchParams.get('part') || 1)))
   if (!site) return NextResponse.json({ error: 'bad_request', message: 'site 필요' }, { status: 400 })
 
   try {
-    return NextResponse.json({ ok: true, result: await runGeoMeasurement(site, runNo) })
+    return NextResponse.json({ ok: true, result: await runGeoMeasurement(site, runNo, part, parts) })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[cron/geo-measure] 실패:', message)
