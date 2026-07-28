@@ -172,10 +172,6 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: 8, alignItems: 'stretch' }}>
-              {/* 질문 열은 이 표 안에서 이미 남는 폭을 전부 먹고 있다(고정 열 둘이 108px뿐).
-                  더 넓히려면 표 자체가 넓어져야 해서, 이 표만 패널 그리드를 가로지른다.
-                  30개 질문 원문을 읽는 게 이 섹션의 본체이기도 하다. */}
-              <div style={{ gridColumn: '1 / -1', minWidth: 0 }}>
               <DataTable
                 title="질문별 현황"
                 columns={[
@@ -197,7 +193,6 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 }))}
                 empty="측정된 질문이 없습니다"
               />
-              </div>
 
               {/* 원인별 처방은 docs/geo-operations.md에 표로 있다. 화면에서는 어느 원인이
                   몇 질문을 막고 있는지만 본다 */}
