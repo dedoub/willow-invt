@@ -59,8 +59,6 @@ export interface GeoQuestionRow {
   stage: GeoStage
   cause: GeoCause
   competitors: string[]
-  /** 이 질문에 걸린 진행 중 액션 수 */
-  openActions: number
   lastMeasured: string | null
 }
 
@@ -207,12 +205,6 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
   const weekOf = (r: Row) => r.measured_week ?? r.measured_on
   const latestRows = rows.filter(r => weekOf(r) === latestDay)
 
-  const openByQuestion = new Map<string, number>()
-  for (const a of actions) {
-    if (!a.questionId || a.status === 'done' || a.status === 'dropped') continue
-    openByQuestion.set(a.questionId, (openByQuestion.get(a.questionId) ?? 0) + 1)
-  }
-
   // 질문별로는 최신 회차만 본다. 기간 전체를 섞으면 개선 전후가 뭉개진다.
   const byQuestion = new Map<string, Row[]>()
   for (const r of latestRows) {
@@ -236,7 +228,6 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
       stage: stageOf(r),
       cause: causeOf(r, competitors, indexedPages),
       competitors: competitors.slice(0, 6),
-      openActions: openByQuestion.get(qid) ?? 0,
       lastMeasured: list[0].measured_at,
     }
   }).sort((a, b) => a.top3 - b.top3 || a.priority - b.priority)   // 지는 질문 · 우선순위 높은 순

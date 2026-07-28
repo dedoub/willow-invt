@@ -174,14 +174,12 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
             <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: 8, alignItems: 'stretch' }}>
               <DataTable
                 title="질문별 현황"
-                minWidth={430}
                 columns={[
                   { key: 'q', label: '질문', width: 'minmax(140px,1fr)' },
                   { key: 'g', label: '군', width: '52px' },
                   { key: 's', label: '단계', width: '62px' },
                   { key: 'cause', label: '원인', width: '68px' },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
-                  { key: 'a', label: '액션', width: '40px', align: 'right' as const },
                 ]}
                 rows={data.questions.map(q => ({
                   key: q.questionId,
@@ -194,9 +192,8 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                     <Pill key="s" tone={STAGE_TONE[q.stage]}>{STAGE_LABEL[q.stage]}</Pill>,
                     q.cause ? <Pill key="c" tone={CAUSE_TONE[q.cause]}>{CAUSE_LABEL[q.cause]}</Pill> : <span key="c" style={{ color: t.neutrals.subtle }}>—</span>,
                     <span key="t" style={{ color: q.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{q.top3}%</span>,
-                    q.openActions > 0 ? String(q.openActions) : '—',
                   ],
-                  sort: [q.question, q.group ?? '', q.stage, q.cause ?? '', q.top3, q.openActions],
+                  sort: [q.question, q.group ?? '', q.stage, q.cause ?? '', q.top3],
                 }))}
                 empty="측정된 질문이 없습니다"
               />
