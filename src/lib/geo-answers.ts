@@ -99,6 +99,7 @@ export interface GeoAnswerStats {
 
 interface Row {
   measured_on: string
+  measured_week: string
   engine: string
   question_id: string
   question: string
@@ -155,7 +156,7 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
 
   const [measRes, qRes, actRes, idxRes, clickRes, clickWeekRes] = await Promise.all([
     supabase.from('geo_answer_measurements')
-      .select('measured_on, engine, question_id, question, question_group, mentioned, top3, cited, competitors, measured_at')
+      .select('measured_on, measured_week, engine, question_id, question, question_group, mentioned, top3, cited, competitors, measured_at')
       .eq('site', site).gte('measured_on', since)
       .order('measured_at', { ascending: false }).limit(5000),
     supabase.from('geo_questions').select('question_id, question_group, priority, active').eq('site', site),
@@ -199,10 +200,12 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
     })
   }
 
-  const days_ = Array.from(new Set(rows.map(r => r.measured_on))).sort().reverse()
+  // 한 회차가 여러 날에 걸쳐 실행되므로(무료 티어 일일 한도) 주 단위로 묶는다
+  const days_ = Array.from(new Set(rows.map(r => r.measured_week ?? r.measured_on))).sort().reverse()
   const latestDay = days_[0]
   const baselineDay = days_[days_.length - 1]
-  const latestRows = rows.filter(r => r.measured_on === latestDay)
+  const weekOf = (r: Row) => r.measured_week ?? r.measured_on
+  const latestRows = rows.filter(r => weekOf(r) === latestDay)
 
   const openByQuestion = new Map<string, number>()
   for (const a of actions) {
@@ -255,7 +258,7 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
     latestDay,
     baselineDay: baselineDay === latestDay ? null : baselineDay,
     latest: rate(latestRows),
-    baseline: rate(rows.filter(r => r.measured_on === baselineDay)),
+    baseline: rate(rows.filter(r => weekOf(r) === baselineDay)),
     byEngine: Array.from(new Set(latestRows.map(r => r.engine)))
       .map(e => ({ engine: e, ...rate(latestRows.filter(r => r.engine === e)) })),
     byGroup: groups.map(g => ({ group: g, ...rate(latestRows.filter(r => r.question_group === g)) }))
@@ -269,7 +272,7 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
       .sort((a, b) => b.answers - a.answers).slice(0, 15),
     actions,
     daily: days_.slice().reverse().map(d => {
-      const r = rate(rows.filter(x => x.measured_on === d))
+      const r = rate(rows.filter(x => weekOf(x) === d))
       return { date: d, top3: r.top3, mentioned: r.mentioned, cited: r.cited }
     }),
     aiClicks,

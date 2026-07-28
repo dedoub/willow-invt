@@ -33,51 +33,51 @@
     },
     {
       "path": "/api/cron/geo-measure?site=voicecards&run=1&part=1&parts=2",
-      "schedule": "0 22 * * 0"
+      "schedule": "30 20 * * 1"
     },
     {
       "path": "/api/cron/geo-measure?site=voicecards&run=1&part=2&parts=2",
-      "schedule": "6 22 * * 0"
+      "schedule": "50 20 * * 1"
     },
     {
       "path": "/api/cron/geo-measure?site=reviewnotes&run=1&part=1&parts=2",
-      "schedule": "12 22 * * 0"
+      "schedule": "30 20 * * 2"
     },
     {
       "path": "/api/cron/geo-measure?site=reviewnotes&run=1&part=2&parts=2",
-      "schedule": "18 22 * * 0"
+      "schedule": "50 20 * * 2"
     },
     {
       "path": "/api/cron/geo-measure?site=voicecards&run=2&part=1&parts=2",
-      "schedule": "24 22 * * 0"
+      "schedule": "30 20 * * 3"
     },
     {
       "path": "/api/cron/geo-measure?site=voicecards&run=2&part=2&parts=2",
-      "schedule": "30 22 * * 0"
+      "schedule": "50 20 * * 3"
     },
     {
       "path": "/api/cron/geo-measure?site=reviewnotes&run=2&part=1&parts=2",
-      "schedule": "36 22 * * 0"
+      "schedule": "30 20 * * 4"
     },
     {
       "path": "/api/cron/geo-measure?site=reviewnotes&run=2&part=2&parts=2",
-      "schedule": "42 22 * * 0"
+      "schedule": "50 20 * * 4"
     },
     {
       "path": "/api/cron/geo-measure?site=voicecards&run=3&part=1&parts=2",
-      "schedule": "48 22 * * 0"
+      "schedule": "30 20 * * 5"
     },
     {
       "path": "/api/cron/geo-measure?site=voicecards&run=3&part=2&parts=2",
-      "schedule": "54 22 * * 0"
+      "schedule": "50 20 * * 5"
     },
     {
       "path": "/api/cron/geo-measure?site=reviewnotes&run=3&part=1&parts=2",
-      "schedule": "0 23 * * 0"
+      "schedule": "30 20 * * 6"
     },
     {
       "path": "/api/cron/geo-measure?site=reviewnotes&run=3&part=2&parts=2",
-      "schedule": "6 23 * * 0"
+      "schedule": "50 20 * * 6"
     }
   ]
 }
