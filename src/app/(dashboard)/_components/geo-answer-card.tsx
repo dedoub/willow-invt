@@ -15,7 +15,7 @@ import { LStat } from './linear-stat'
 import { LIcon } from './linear-icons'
 import { useDashCols } from './cols-toggle'
 import { useIsMobile } from './linear-tokens'
-import { DataTable, panelStyle, panelTitle, EmptyLine } from './linear-data-table'
+import { DataTable, panelStyle, EmptyLine } from './linear-data-table'
 import { CAUSE_LABEL, STAGE_LABEL, type GeoAnswerStats, type GeoCause, type GeoStage } from '@/lib/geo-answers'
 
 const mono = (size: number): React.CSSProperties => ({
@@ -227,50 +227,6 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
               />
 
               <DataTable
-                title="질문군별"
-                minWidth={230}
-                columns={[
-                  { key: 'g', label: '질문군', width: 'minmax(70px,1fr)' },
-                  { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
-                  { key: 'r', label: '실행', width: '44px', align: 'right' as const },
-                ]}
-                rows={data.byGroup.map(g => ({
-                  key: g.group,
-                  cells: [
-                    g.group,
-                    <span key="t" style={{ color: g.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{g.top3}%</span>,
-                    String(g.runs),
-                  ],
-                  sort: [g.group, g.top3, g.runs],
-                }))}
-                empty="질문군 데이터가 없습니다"
-              />
-
-              <DataTable
-                title="개선 액션·실험"
-                minWidth={330}
-                columns={[
-                  { key: 'title', label: '액션', width: 'minmax(120px,1fr)' },
-                  { key: 'q', label: '질문', width: '70px' },
-                  { key: 'st', label: '상태', width: '58px' },
-                  { key: 'res', label: '전→후', width: '72px', align: 'right' as const },
-                ]}
-                rows={data.actions.map(a => ({
-                  key: String(a.id),
-                  cells: [
-                    <span key="t" title={a.title} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>,
-                    <span key="q" style={{ ...mono(9), color: t.neutrals.subtle }}>{a.questionId ?? '전체'}</span>,
-                    <Pill key="s" tone={a.verdict === 'worked' ? tonePalettes.pos : a.verdict === 'worse' ? tonePalettes.neg : a.status === 'done' ? tonePalettes.neutral : tonePalettes.pending}>
-                      {a.verdict === 'worked' ? '효과' : a.verdict === 'worse' ? '악화' : a.verdict === 'no_effect' ? '무효' : a.status}
-                    </Pill>,
-                    a.baselineTop3 == null ? '—' : `${a.baselineTop3}%→${a.resultTop3 == null ? '?' : a.resultTop3 + '%'}`,
-                  ],
-                  sort: [a.title, a.questionId ?? '', a.status, a.resultTop3 ?? -1],
-                }))}
-                empty="등록된 개선 액션이 없습니다"
-              />
-
-              <DataTable
                 title="우리가 빠진 자리의 경쟁사"
                 minWidth={240}
                 columns={[
@@ -285,34 +241,31 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 empty="Top3를 놓친 답변에 잡힌 경쟁사가 없습니다"
               />
 
-              <div style={panelStyle}>
-                <div style={{ marginBottom: 6 }}>
-                  <div style={panelTitle}>엔진별</div>
-                </div>
-                {data.byEngine.length === 0 ? (
-                  <EmptyLine>측정 엔진이 없습니다</EmptyLine>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {data.byEngine.map(e => (
-                      <div key={e.engine} style={{
-                        display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', alignItems: 'center', gap: 8,
-                        padding: '4px 5px', borderRadius: t.radius.sm, background: t.neutrals.card,
-                      }}>
-                        <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text }}>{e.engine}</span>
-                        <span style={{ ...mono(9.5), color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
-                          Top3 <span style={{ color: e.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{e.top3}%</span>
-                          <span style={{ color: t.neutrals.subtle, marginLeft: 6 }}>{e.runs}회</span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {data.daily.length > 1 && (
-                  <div style={{ ...mono(9), color: t.neutrals.subtle, lineHeight: 1.5, marginTop: 8 }}>
-                    Top3 추이 {data.daily.map(d => `${d.top3}%`).join(' → ')}
-                  </div>
-                )}
-              </div>
+              {/* 엔진마다 우리를 보는 방식이 달라서(한쪽은 인용까지, 한쪽은 브랜드만) 세 지표를 다 편다 */}
+              <DataTable
+                title="엔진별"
+                meta={data.daily.length > 1 ? `Top3 추이 ${data.daily.map(d => `${d.top3}%`).join(' → ')}` : undefined}
+                minWidth={260}
+                columns={[
+                  { key: 'e', label: '엔진', width: 'minmax(64px,1fr)' },
+                  { key: 'm', label: '언급', width: '46px', align: 'right' as const },
+                  { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
+                  { key: 'c', label: '인용', width: '46px', align: 'right' as const },
+                  { key: 'r', label: '실행', width: '40px', align: 'right' as const },
+                ]}
+                rows={data.byEngine.map(e => ({
+                  key: e.engine,
+                  cells: [
+                    e.engine,
+                    `${e.mentioned}%`,
+                    <span key="t" style={{ color: e.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{e.top3}%</span>,
+                    `${e.cited}%`,
+                    String(e.runs),
+                  ],
+                  sort: [e.engine, e.mentioned, e.top3, e.cited, e.runs],
+                }))}
+                empty="측정 엔진이 없습니다"
+              />
             </div>
           </div>
         )}
