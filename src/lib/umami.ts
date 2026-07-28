@@ -82,8 +82,28 @@ const SOCIAL_HOSTS = [
   'discord.com', 'telegram', 'kakao',
 ]
 
-// LLM 답변에서 오는 유입(perplexity/chatgpt/claude 등)은 검색 수요의 일부로 본다 — 다만 별도 집계도 남긴다.
-const AI_HOSTS = ['perplexity.ai', 'chatgpt.com', 'chat.openai.com', 'claude.ai', 'gemini.google', 'copilot.microsoft']
+// LLM 답변에서 오는 유입은 검색 수요의 일부로 보되 별도 집계도 남긴다.
+// 목록이 낡으면 AI 유입이 'referral'로 새서 채널 비중이 틀어진다
+// (2026-07-28: notebooklm.google.com이 referral로 잡히던 걸 발견해 확장).
+const AI_HOSTS = [
+  'perplexity.ai',
+  'chatgpt.com', 'chat.openai.com', 'openai.com',
+  'claude.ai',
+  'gemini.google', 'bard.google', 'notebooklm.google',
+  'copilot.microsoft', 'bing.com/chat',
+  'grok.com', 'x.ai',
+  'deepseek.com',
+  'you.com', 'phind.com', 'poe.com', 'kagi.com',
+  'mistral.ai', 'chat.qwen', 'doubao.com', 'kimi.moonshot',
+  'clova-x.naver', 'cue.search.naver',
+]
+
+/**
+ * 답변엔진이 인용 링크에 붙이는 파라미터. 리퍼러 호스트만 보면 놓친다.
+ * ChatGPT는 utm_source=chatgpt.com을 붙여 보내는데, 앱 내 이동을 거치면
+ * 리퍼러는 우리 도메인이 되고 이 파라미터만 남는다.
+ */
+const AI_UTM_HINTS = ['chatgpt.com', 'perplexity', 'copilot', 'gemini', 'claude', 'notebooklm']
 
 export type Channel = 'search' | 'ai' | 'social' | 'referral' | 'direct'
 
@@ -91,6 +111,8 @@ export function classifyReferrer(referrer: string | null | undefined): Channel {
   const r = (referrer || '').toLowerCase().trim()
   if (!r) return 'direct'
   if (AI_HOSTS.some(h => r.includes(h))) return 'ai'
+  // utm_source=chatgpt.com 처럼 인용 링크가 남긴 흔적. 자기 도메인 리퍼러여도 AI 유입이다.
+  if (r.includes('utm_source=') && AI_UTM_HINTS.some(h => r.includes(h))) return 'ai'
   if (SEARCH_HOSTS.some(h => r.includes(h))) return 'search'
   if (SOCIAL_HOSTS.some(h => r.includes(h))) return 'social'
   return 'referral'
