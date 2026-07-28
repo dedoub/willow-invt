@@ -65,6 +65,18 @@ const numCell: React.CSSProperties = {
   ...mono(10), color: t.neutrals.muted, textAlign: 'right' as const, whiteSpace: 'nowrap' as const,
 }
 
+/**
+ * 첫 컬럼 고정. 좁은 폭에서 표가 가로로 스크롤되면 무엇에 대한 행인지 알려주는 첫 컬럼이
+ * 제일 먼저 밀려나가 남은 숫자들이 어느 행 것인지 알 수 없게 된다.
+ *
+ * 음수 마진 + 같은 크기의 패딩으로 행의 좌측 패딩(8px)까지 덮는다. 안 그러면 그 8px 틈으로
+ * 뒤 컬럼이 지나가는 게 보인다. 스크롤이 없는 폭에서는 sticky가 아무 일도 하지 않는다.
+ */
+const stickyCell = (bg: string): React.CSSProperties => ({
+  position: 'sticky', left: 0, zIndex: 1, background: bg,
+  marginLeft: -8, paddingLeft: 8,
+})
+
 export function DataTable({
   title, meta, columns, rows, empty, minWidth,
 }: {
@@ -83,7 +95,7 @@ export function DataTable({
   const [perPage, setPerPage] = useState(() => getStoredPageSize(title))
   const [perPageInput, setPerPageInput] = useState(() => String(getStoredPageSize(title)))
   const commitPerPage = () => {
-    const n = Math.max(5, Math.min(100, Number(perPageInput) || 10))
+    const n = Math.max(1, Math.min(100, Number(perPageInput) || 10))
     setPerPageInput(String(n))
     setPerPage(n)
     setPage(1)
@@ -138,6 +150,7 @@ export function DataTable({
                       display: 'flex', alignItems: 'center', gap: 2, width: '100%',
                       justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start',
                       color: active ? t.neutrals.text : t.neutrals.subtle,
+                      ...(i === 0 ? stickyCell(t.neutrals.inner) : null),
                     }}>
                     {c.label}
                     <span style={{ fontSize: '0.85em', lineHeight: 1, opacity: active ? 1 : 0 }}>
@@ -149,7 +162,10 @@ export function DataTable({
             </div>
             {pageRows.map(r => {
               const inner = columns.map((c, i) => (
-                <div key={c.key} style={c.align === 'right' ? numCell : textCell}>{r.cells[i]}</div>
+                <div key={c.key} style={{
+                  ...(c.align === 'right' ? numCell : textCell),
+                  ...(i === 0 ? stickyCell(t.neutrals.card) : null),
+                }}>{r.cells[i]}</div>
               ))
               const rowStyle: React.CSSProperties = {
                 display: 'grid', gridTemplateColumns: template, gap: 6, alignItems: 'center',
