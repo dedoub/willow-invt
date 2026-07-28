@@ -177,8 +177,8 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 columns={[
                   { key: 'q', label: '질문', width: 'minmax(140px,1fr)' },
                   { key: 's', label: '단계', width: '62px' },
-                  { key: 'cause', label: '원인', width: '68px' },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
+                  { key: 'cause', label: '원인', width: '68px' },
                 ]}
                 rows={data.questions.map(q => ({
                   key: q.questionId,
@@ -188,10 +188,10 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                       {q.question}
                     </span>,
                     <Pill key="s" tone={STAGE_TONE[q.stage]}>{STAGE_LABEL[q.stage]}</Pill>,
-                    q.cause ? <Pill key="c" tone={CAUSE_TONE[q.cause]}>{CAUSE_LABEL[q.cause]}</Pill> : <span key="c" style={{ color: t.neutrals.subtle }}>—</span>,
                     <span key="t" style={{ color: q.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{q.top3}%</span>,
+                    q.cause ? <Pill key="c" tone={CAUSE_TONE[q.cause]}>{CAUSE_LABEL[q.cause]}</Pill> : <span key="c" style={{ color: t.neutrals.subtle }}>—</span>,
                   ],
-                  sort: [q.question, q.stage, q.cause ?? '', q.top3],
+                  sort: [q.question, q.stage, q.top3, q.cause ?? ''],
                 }))}
                 empty="측정된 질문이 없습니다"
               />
