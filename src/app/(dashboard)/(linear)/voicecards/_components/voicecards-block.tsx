@@ -1593,8 +1593,7 @@ export function VoicecardsBlock({
     <div style={{ minWidth: 0 }}>
     {anonymousStats?.journeys && anonymousStats.journeys.recentAnon.length > 0 ? (
       <LCard pad={0}>
-        {/* 아래 패딩은 0 — 페이지네이션 푸터가 사용자 테이블처럼 카드 밑단을 직접 맡는다 */}
-        <div style={{ padding: `12px ${t.density.cardPad}px 0` }}>
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <JourneyTable journeys={anonymousStats.journeys} />
         </div>
       </LCard>
@@ -1760,13 +1759,13 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
         })}
       </div>
       </div>
-      {/* 페이지네이션 — 사용자 테이블과 동일 스타일. 구분선이 카드 폭을 다 쓰게
-          래퍼의 좌우 패딩만큼 음수 마진으로 빼내고, 같은 값을 패딩으로 되돌린다. */}
+      {/* 페이지네이션 — 사용자 테이블과 동일 스타일. 그쪽 푸터도 패딩 래퍼 안에 있어서
+          구분선이 좌우 14px 안쪽에서 시작하고, 카드 밑 여백은 래퍼가 맡는다. 마진을 주면
+          그 12px 위에 더 얹혀서 이 카드만 아래가 벌어진다. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: `6px ${t.density.cardPad}px`,
         borderTop: `1px solid ${t.neutrals.line}`,
-        margin: `6px -${t.density.cardPad}px 0`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input
