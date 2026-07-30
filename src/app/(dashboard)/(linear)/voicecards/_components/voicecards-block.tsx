@@ -1593,7 +1593,8 @@ export function VoicecardsBlock({
     <div style={{ minWidth: 0 }}>
     {anonymousStats?.journeys && anonymousStats.journeys.recentAnon.length > 0 ? (
       <LCard pad={0}>
-        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+        {/* 아래 패딩은 0 — 페이지네이션 푸터가 사용자 테이블처럼 카드 밑단을 직접 맡는다 */}
+        <div style={{ padding: `12px ${t.density.cardPad}px 0` }}>
           <JourneyTable journeys={anonymousStats.journeys} />
         </div>
       </LCard>
@@ -1646,7 +1647,7 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
     { label: '일수', align: 'center' },
   ]
   return (
-    <div style={{ marginTop: 12 }}>
+    <div>
       <LSectionHead eyebrow="VISITORS" title={`비로그인 · 최근 14일 · ${allRecent.length}기기`} mb={10} />
       <div style={{ overflowX: 'auto' }}>
       <div style={{ minWidth: JOURNEY_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
@@ -1759,11 +1760,13 @@ function JourneyTable({ journeys }: { journeys: NonNullable<AnonymousEventStats[
         })}
       </div>
       </div>
-      {/* 페이지네이션 — 사용자 테이블과 동일 스타일 */}
+      {/* 페이지네이션 — 사용자 테이블과 동일 스타일. 구분선이 카드 폭을 다 쓰게
+          래퍼의 좌우 패딩만큼 음수 마진으로 빼내고, 같은 값을 패딩으로 되돌린다. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 8px',
-        borderTop: `1px solid ${t.neutrals.line}`, marginTop: 6,
+        padding: `6px ${t.density.cardPad}px`,
+        borderTop: `1px solid ${t.neutrals.line}`,
+        margin: `6px -${t.density.cardPad}px 0`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input
