@@ -10,6 +10,7 @@
  */
 
 import { supabase } from './supabase'
+import { kstToday } from './kst'
 
 const BRAND_RE: Record<string, RegExp> = {
   voicecards: /voice\s*cards?|voicecards\.quest/i,
@@ -175,6 +176,9 @@ export async function runGeoMeasurement(
     if (cited) out.cited++
 
     rows.push({
+      // 날짜·시각을 명시해 넣는다. 덮어쓰기(같은 주 같은 회차 재실행)에서 DO UPDATE의
+      // SET 목록에 없는 컬럼은 그대로 남아, 언제 다시 잰 건지 알 수 없게 된다.
+      measured_on: kstToday(), measured_at: new Date().toISOString(),
       site, engine: 'gemini', question_id: q.question_id, question: q.question,
       question_group: q.question_group, run_no: runNo,
       mentioned, top3, cited,
@@ -187,7 +191,9 @@ export async function runGeoMeasurement(
   for (let i = 0; i < rows.length; i += 200) {
     const { error: insErr } = await supabase
       .from('geo_answer_measurements')
-      .upsert(rows.slice(i, i + 200), { onConflict: 'measured_on,site,engine,question_id,run_no' })
+      // 주 단위로 유일하다. 크론이 20:30 UTC(다음날 KST)에 도는 탓에 같은 주 같은 회차가
+      // 날짜만 다르게 두 번 쌓이던 걸 막는다 — 나중 실행이 앞 실행을 덮는다.
+      .upsert(rows.slice(i, i + 200), { onConflict: 'measured_week,site,engine,question_id,run_no' })
     if (insErr) console.error('[geo-runner] 저장 실패:', insErr.message)
   }
   return out

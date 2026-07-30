@@ -263,7 +263,7 @@ function unavailable(engine) {
 // ─── 적재 ─────────────────────────────────────────────────────────────────────
 
 async function save(rows) {
-  const res = await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/geo_answer_measurements?on_conflict=measured_on,site,engine,question_id,run_no`, {
+  const res = await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/geo_answer_measurements?on_conflict=measured_week,site,engine,question_id,run_no`, {
     method: 'POST',
     headers: {
       apikey: env.SUPABASE_SECRET_KEY,
@@ -315,6 +315,10 @@ for (const site of SITES) {
 
         total++; if (m) mentioned++; if (t) top3++; if (c) cited++
         rows.push({
+          // 덮어쓰기 때 DO UPDATE의 SET 목록에 없는 컬럼은 안 바뀐다 — 언제 다시 잰 건지
+          // 남으려면 날짜·시각을 명시해야 한다. measured_on은 DB 기본값과 같은 KST 날짜.
+          measured_on: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }),
+          measured_at: new Date().toISOString(),
           site, engine, question_id: id, question: q, question_group: group ?? null, run_no: run,
           mentioned: m, top3: t, cited: c,
           our_urls: ourUrls, competitors: comps, source_domains: out.sources.slice(0, 20),
