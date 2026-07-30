@@ -143,6 +143,7 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 | 2026-07-27 | 색인 추적 파이프라인 구축, 사이트맵 재제출, 내부링크 구조 수리 | 최초 스냅샷 확보 |
 | 2026-07-27 | GSC URL 검사에서 색인 요청 5건 (아래) | 전부 priority crawl queue 등록 확인 |
 | 2026-07-28 | 07-28 스냅샷 확인, 07-27 요청 5건의 상태 이동 점검 | 보이스카드 unseen 202→44, discovered 2→154, indexed 5→14(+9), crawled 변동 없음(1). 리뷰노트 indexed 9→10(+1), unseen·crawled 변동 없음 |
+| 2026-07-30 | 보이스카드 시민권 8쪽 전량 색인 요청 (아래) | 8건 모두 priority crawl queue 등록 확인 |
 
 색인 요청한 URL:
 
@@ -158,12 +159,35 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 넘어온 것이고, 발견 경로로 사이트맵과 함께 referring page `https://voicecards.quest/de/methods/active-recall`이
 잡혔다. 사이트맵이 읽히기 시작했다는 직접 증거다. `/methods`, `/en/practice`도 같은 상태였다.
 
+### 2026-07-30 시민권 8쪽
+
+시민권 버티컬은 07-28 스냅샷에서 색인률 0%(0/8)로 다섯 버티컬 중 유일하게 한 쪽도 못 올렸다.
+노출 569회는 나오는데 색인이 0이라 클릭으로 갈 길이 아예 없다. 8쪽 전량을 요청했다.
+
+| URL | 요청 시점 상태 |
+|---|---|
+| `/templates/civics` | URL is unknown to Google |
+| `/templates/civics-2025-american-government` | URL is unknown to Google |
+| `/templates/civics-2025-65-20` | Discovered |
+| `/templates/civics-2025-all` | Discovered |
+| `/templates/civics-2025-american-history` | Discovered |
+| `/templates/civics-2025-symbols-holidays` | Discovered |
+| `/templates/naturalization-reading-vocabulary` | Discovered |
+| `/templates/naturalization-writing-vocabulary` | Discovered |
+
+허브 `/templates/civics`는 사이트맵에 분명히 들어 있는데도(`sitemap.xml`에서 확인) GSC는
+"No referring sitemaps detected · Referring page: None detected"라고 답했다. 같은 시각 하위
+`civics-2025-65-20`은 사이트맵이 발견 경로로 잡혀 있었다. 사이트맵 문제가 아니라 그 URL만
+아직 안 읽힌 것으로 본다. 다음 스냅샷에서 허브가 Discovered 이상으로 올라오는지가 판정 기준이다.
+
 ## 다음 액션
 
 - [x] `/templates`, `/methods` 허브 색인 요청 (2026-07-27 완료)
 - [x] 홈 재크롤 유도 (보이스카드 `/`, 리뷰노트 `/en` 색인 요청, 2026-07-27 완료)
 - [x] 리뷰노트 `/en/practice` 허브 색인 요청 (2026-07-27 완료)
 - [ ] 07-28 스냅샷에서 요청한 5쪽의 상태 이동 확인. 허브가 색인되면 하위 페이지는 요청 없이도 따라온다
+- [x] 시민권 8쪽 색인 요청 (2026-07-30 완료)
+- [ ] 07-31 스냅샷에서 시민권 8쪽 상태 이동 확인. 특히 허브 `/templates/civics`가 unknown을 벗어나는지
 - [ ] 1주일간 unknown이 안 줄면 사이트맵 외 발견 경로(외부 링크)를 검토
 - [ ] `/faq`는 유일한 '크롤 후 미색인'. 재제출로 안 풀리므로 내용을 고치거나 방치 결정
 - [x] 템플릿 중복도 점검 (2026-07-27 완료, 중복 아님)
