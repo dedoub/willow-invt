@@ -16,7 +16,9 @@ export async function GET(request: Request) {
   }
 
   const site = searchParams.get('site') || ''
-  const runNo = Math.min(5, Math.max(1, Number(searchParams.get('run') || 1)))
+  // 크론이 쓰는 번호는 1~3(요일별 고정)이다. 4~6은 수동 실행 몫이라 여기서 굳이 막지 않되,
+  // 상한만 맞춰 둔다 — 정본 설명은 docs/geo-operations.md "회차 번호는 누가 쓰나".
+  const runNo = Math.min(6, Math.max(1, Number(searchParams.get('run') || 1)))
   const parts = Math.min(4, Math.max(1, Number(searchParams.get('parts') || 2)))
   const part = Math.min(parts, Math.max(1, Number(searchParams.get('part') || 1)))
   if (!site) return NextResponse.json({ error: 'bad_request', message: 'site 필요' }, { status: 400 })

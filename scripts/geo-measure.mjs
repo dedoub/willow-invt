@@ -14,6 +14,11 @@
  *   node scripts/geo-measure.mjs                 # 전체(사이트 x 엔진 x 질문 x N회)
  *   node scripts/geo-measure.mjs voicecards      # 한 사이트만
  *   node scripts/geo-measure.mjs reviewnotes gemini 1
+ *   node scripts/geo-measure.mjs voicecards gemini 1 --run=2   # 2회차를 다시 재서 덮어쓴다
+ *
+ * 회차 번호는 **그 주에 비어 있는 다음 번호**를 자동으로 잡는다. 크론이 요일별로 1·2·3을
+ * 쓰고 있어서(vercel.json), 수동 실행이 1부터 세면 크론이 잰 회차를 덮어버린다. 덮는 게
+ * 목적이면 --run=N 으로 번호를 직접 지정할 것.
  *
  * 무료 티어는 분당 호출 제한(RPM)이 있다. 429는 대개 일일 소진이 아니라 이 제한이므로
  * 호출 사이에 간격을 두고, 걸리면 지수 백오프로 재시도한다.
@@ -61,9 +66,47 @@ async function loadQuestions(site) {
   }
   return (SETS[site]?.questions ?? []).map(x => ({ ...x, group: x.id.split('-')[1] ?? 'etc' }))
 }
-const [siteArg, engineArg, runsArg] = process.argv.slice(2)
+const argv = process.argv.slice(2)
+const pinnedRun = Number((argv.find(a => a.startsWith('--run=')) || '').slice(6)) || null
+const [siteArg, engineArg, runsArg] = argv.filter(a => !a.startsWith('--'))
 const SITES = siteArg ? [siteArg] : ['voicecards', 'reviewnotes']
 const RUNS = Number(runsArg || 3)
+// 회차 번호 공간을 갈라 쓴다. 크론(vercel.json)은 요일별로 1·2·3을 확정적으로 쓰므로,
+// 수동 실행이 빈 번호를 앞에서부터 채우면 그 주 크론이 나중에 같은 번호를 다시 덮는다.
+// 수동분은 4부터 시작해 크론과 겹치지 않는다. 크론이 실패한 회차를 손으로 메우려면 --run=N.
+const MANUAL_MIN_RUN = 4
+const MAX_RUN = 6
+
+/** measured_week 과 같은 규칙 — KST 오늘이 속한 주의 월요일 (트리거 geo_set_measured_week) */
+function kstWeekMonday() {
+  const kst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+  const d = new Date(`${kst}T00:00:00Z`)
+  const isoDow = d.getUTCDay() === 0 ? 7 : d.getUTCDay()
+  d.setUTCDate(d.getUTCDate() - (isoDow - 1))
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * 이번 주 수동분에서 비어 있는 다음 회차 번호. 이미 4·5가 차 있으면 6을 준다.
+ * 조회가 실패하면 남의 회차를 덮는 것보다 맨 뒤에 붙는 편이 안전하다.
+ */
+async function nextRunNo(site, engine) {
+  const week = kstWeekMonday()
+  try {
+    const res = await fetch(
+      `${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/geo_answer_measurements` +
+      `?select=run_no&site=eq.${site}&engine=eq.${engine}&measured_week=eq.${week}` +
+      `&order=run_no.desc&limit=1`,
+      { headers: { apikey: env.SUPABASE_SECRET_KEY, Authorization: `Bearer ${env.SUPABASE_SECRET_KEY}` } },
+    )
+    if (!res.ok) throw new Error(`${res.status}`)
+    const rows = await res.json()
+    return Math.max(MANUAL_MIN_RUN, (rows[0]?.run_no ?? 0) + 1)
+  } catch (e) {
+    console.error(`  회차 조회 실패(${e.message}) — ${MAX_RUN}회차로 진행`)
+    return MAX_RUN
+  }
+}
 
 /** 브랜드 표기 흔들림(VoiceCards / Voice Cards / voicecards.quest)을 한 번에 잡는다 */
 const BRAND_RE = {
@@ -297,14 +340,27 @@ for (const site of SITES) {
     const limit = Number(env.GEO_LIMIT || 0)
     const questions = (await loadQuestions(site)).slice(0, limit || undefined)
     if (limit) console.log(`  GEO_LIMIT=${limit} — 앞 ${questions.length}문항만 (스모크)`)
+
+    // 회차 번호를 먼저 잡는다. --run 을 주면 그 번호부터(=덮어쓰기), 없으면 빈 다음 번호부터.
+    const startRun = pinnedRun ?? await nextRunNo(site, engine)
+    const lastRun = Math.min(startRun + RUNS - 1, MAX_RUN)
+    if (startRun > MAX_RUN) {
+      console.log(`${site}/${engine}: 이번 주 ${MAX_RUN}회차가 이미 찼다 — 건너뜀 (덮어쓰려면 --run=N)`)
+      continue
+    }
+    if (lastRun < startRun + RUNS - 1) {
+      console.log(`  ${site}/${engine}: ${MAX_RUN}회차 상한에 걸려 ${lastRun - startRun + 1}회만 돈다`)
+    }
+    console.log(`${site}/${engine}: ${startRun}~${lastRun}회차`)
+
     for (const { id, q, group } of questions) {
-      for (let run = 1; run <= RUNS; run++) {
+      for (let run = startRun; run <= lastRun; run++) {
         let out
         try { out = await withRetry(() => ask(q), `${id} run${run}`) } catch (e) {
           console.error(`  ${id} run${run} 포기: ${e.message.slice(0, 100)}`); continue
         }
         await sleep(THROTTLE_MS)
-        if (!out) { console.log(`${site}/${engine}: 키 없음 — 건너뜀`); run = RUNS; break }
+        if (!out) { console.log(`${site}/${engine}: 키 없음 — 건너뜀`); run = lastRun; break }
 
         const blob = `${out.answer}\n${out.sources.join('\n')}`
         const m = brandRe.test(blob)
