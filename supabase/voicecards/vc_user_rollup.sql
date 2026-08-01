@@ -14,12 +14,24 @@
 --   - vc_user_latest_meta: 소스가 anonymous_events. mv 로 바꾸면 3명 메타 누락(mv 필터) → 유지.
 --   - vc_user_activity_deltas: 오늘/7일 시간한정(인덱스 레인지 저렴) + aux 테이블 다수 → 유지.
 -- 반환 컬럼 변경 시 drop 후 재생성 필요 (return type 은 replace 불가).
+--
+-- 2026-07-31 재생 엔진 분리:
+--   듣기를 프리미엄/무과금(기기음성)/분류불가로 가른다. 판정은 이벤트 이름이 아니라
+--   과금 신호 properties.fractional_cost 다. device_tts_played 는 배선만 돼 있고 앱이 보낸 적이
+--   없으며(전 기간 0건), 프리미엄을 끈 뒤의 기기음성 재생도 tts_played 로 들어온다. 이름으로
+--   가르면 0크레딧 재생이 프리미엄에 섞여 사용량이 2.6배로 부풀려졌다.
+--   fractional_cost 는 1.1.90(2026-07-13)부터 붙는다. 날짜로 자르면 컷오버 이후에도 남아 있던
+--   구버전 사용자(1.1.80 은 07-15 까지 활동)가 기기음성으로 오분류되므로, "그 앱 버전이 신호를
+--   보낸 적 있는가"로 가른다. 이 조회는 idx_anon_events_cost_aware_version(indexes.sql)을 탄다 —
+--   인덱스가 없으면 호출마다 anonymous_events 전량 seq scan 이다(143ms → 12ms).
+--   listen_count = premium + free + unclassified + device_tts_played(현재 0건)
 -- ============================================================================
 drop function if exists public.vc_user_rollup();
 create or replace function public.vc_user_rollup()
  returns table(
    user_id text,
-   listen_count bigint, premium_listen_count bigint, flip_count bigint, credits_spent bigint,
+   listen_count bigint, premium_listen_count bigint, free_listen_count bigint,
+   unclassified_listen_count bigint, flip_count bigint, credits_spent bigint,
    purchased_credits bigint,
    premium_voice boolean, ai_feature boolean, banner_tap boolean, gated boolean,
    last_intent timestamptz
@@ -27,43 +39,56 @@ create or replace function public.vc_user_rollup()
  language sql
  stable
 as $function$
-  with ev as (
-    select user_id,
-      -- 듣기 = 재생 엔진 무관 학습량. device_tts_played 는 크레딧이 바닥나거나 프리미엄을
-      -- 끈 유저가 기기 TTS 로 계속 들은 재생 (앱 1.1.110+). 이게 빠지면 무료 헤비 리스너가
-      -- "듣기 0" 으로 보여 이탈처럼 읽힌다.
-      count(*) filter (where event_name in ('tts_played','voice_preview_played','device_tts_played'))::bigint as listen_count,
-      -- 크레딧이 실제로 나갈 수 있는 재생만. 기기 TTS 는 0크레딧이라 크레딧 관련 추정에
-      -- 듣기 합계를 그대로 쓰면 사용량이 부풀려진다.
-      count(*) filter (where event_name in ('tts_played','voice_preview_played'))::bigint as premium_listen_count,
-      count(*) filter (where event_name = 'card_flipped_manual')::bigint as flip_count,
-      sum(case when event_name = 'credits_changed' and properties->>'reason' = 'purchase'
-            then case properties->>'product_id'
+  with cost_aware_versions as (
+    -- 과금 신호를 보낼 줄 아는 앱 버전. 여기 없는 버전의 재생은 판정 자체가 불가능하다.
+    select distinct app_version
+    from anonymous_events
+    where properties ? 'fractional_cost' and app_version is not null
+  ),
+  ev as (
+    select m.user_id,
+      -- 듣기 = 재생 엔진 무관 학습량. 무료 헤비 리스너가 "듣기 0" 으로 보이면 이탈처럼 읽힌다.
+      count(*) filter (where m.event_name in ('tts_played','voice_preview_played','device_tts_played'))::bigint as listen_count,
+      -- 크레딧이 실제로 나갈 수 있는 재생.
+      count(*) filter (where m.event_name in ('tts_played','voice_preview_played')
+                         and m.properties ? 'fractional_cost')::bigint as premium_listen_count,
+      -- 0크레딧 재생. 과금 신호를 보낼 줄 아는 버전인데 신호가 없다 = 기기음성.
+      count(*) filter (where m.event_name in ('tts_played','voice_preview_played','device_tts_played')
+                         and not (m.properties ? 'fractional_cost')
+                         and m.app_version in (select app_version from cost_aware_versions))::bigint as free_listen_count,
+      -- 과금 신호를 보낸 적 없는 버전의 재생. 프리미엄인지 기기음성인지 알 수 없다.
+      count(*) filter (where m.event_name in ('tts_played','voice_preview_played','device_tts_played')
+                         and not (m.properties ? 'fractional_cost')
+                         and (m.app_version is null
+                              or m.app_version not in (select app_version from cost_aware_versions)))::bigint as unclassified_listen_count,
+      count(*) filter (where m.event_name = 'card_flipped_manual')::bigint as flip_count,
+      sum(case when m.event_name = 'credits_changed' and m.properties->>'reason' = 'purchase'
+            then case m.properties->>'product_id'
                    when 'com.monor.voicecards.credits.1000'  then 1000
                    when 'com.monor.voicecards.credits.5500'  then 5500
                    when 'com.monor.voicecards.credits.12000' then 12000
                    else 0 end
             else 0 end)::bigint as purchased_credits,
-      bool_or(event_name in ('voice_preview_played','tts_premium_toggle_changed','voice_settings_opened')) as premium_voice,
-      bool_or(event_name in ('ai_generation_opened','ai_generation_submitted','ai_teaser_generate_tapped')) as ai_feature,
-      bool_or(event_name = 'credit_banner_tapped') as banner_tap,
-      bool_or(event_name in ('add_sheet_opened_anonymous','add_sheet_signin_and_create_clicked','prompt_signin_clicked')) as gated,
-      max(created_at) filter (where event_name in (
+      bool_or(m.event_name in ('voice_preview_played','tts_premium_toggle_changed','voice_settings_opened')) as premium_voice,
+      bool_or(m.event_name in ('ai_generation_opened','ai_generation_submitted','ai_teaser_generate_tapped')) as ai_feature,
+      bool_or(m.event_name = 'credit_banner_tapped') as banner_tap,
+      bool_or(m.event_name in ('add_sheet_opened_anonymous','add_sheet_signin_and_create_clicked','prompt_signin_clicked')) as gated,
+      max(m.created_at) filter (where m.event_name in (
         'voice_preview_played','tts_premium_toggle_changed','voice_settings_opened',
         'ai_generation_opened','ai_generation_submitted','ai_teaser_generate_tapped',
         'credit_banner_tapped',
         'add_sheet_opened_anonymous','add_sheet_signin_and_create_clicked','prompt_signin_clicked'
       )) as last_intent
-    from mv_real_users
-    where is_likely_bot = false and user_id is not null
-      and event_name in (
+    from mv_real_users m
+    where m.is_likely_bot = false and m.user_id is not null
+      and m.event_name in (
         'tts_played','voice_preview_played','device_tts_played','card_flipped_manual','credits_changed',
         'tts_premium_toggle_changed','voice_settings_opened',
         'ai_generation_opened','ai_generation_submitted','ai_teaser_generate_tapped',
         'credit_banner_tapped',
         'add_sheet_opened_anonymous','add_sheet_signin_and_create_clicked','prompt_signin_clicked'
       )
-    group by user_id
+    group by m.user_id
   ),
   spend as (
     select user_id, coalesce(sum(-delta), 0)::bigint as credits_spent
@@ -75,6 +100,8 @@ as $function$
   select i.user_id,
     coalesce(e.listen_count, 0)::bigint,
     coalesce(e.premium_listen_count, 0)::bigint,
+    coalesce(e.free_listen_count, 0)::bigint,
+    coalesce(e.unclassified_listen_count, 0)::bigint,
     coalesce(e.flip_count, 0)::bigint,
     coalesce(s.credits_spent, 0)::bigint,
     coalesce(e.purchased_credits, 0)::bigint,
@@ -87,3 +114,6 @@ as $function$
   left join ev e using(user_id)
   left join spend s using(user_id)
 $function$;
+
+grant execute on function public.vc_user_rollup() to public;
+grant execute on function public.vc_user_rollup() to anon, authenticated, service_role;

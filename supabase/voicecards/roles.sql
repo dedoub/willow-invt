@@ -1,0 +1,17 @@
+-- 역할별 statement_timeout.
+-- apply: 원격 project juyitkynbavhllyjidhz (voice-cards) — 메인 willow-invt DB 아님.
+--
+-- 기본값은 authenticator 의 8초이고, 자기 설정이 없는 역할은 그 값을 물려받는다.
+-- 대시보드 지표 RPC(vc_event_stats 평균 3.9s · vc_user_rollup 4.4s · vc_user_latest_meta 1.7s)는
+-- 15분마다 도는 MV 리프레시와 겹치면 그 8초에 잘렸고, 호출부는 실패를 빈 값으로 받아
+-- "듣기 0" 을 5분간 캐시했다. pg_stat_statements 에서 이 쿼리들의 max_exec_time 이 전부
+-- 7.8~8.0초에 붙어 있던 게 그 증거다.
+--
+-- anon/authenticated 는 8초를 유지한다. 앱 사용자 화면은 오래 기다리느니 빨리 실패하는 편이 낫다.
+-- service_role 은 대시보드·스크립트 같은 신뢰된 백엔드만 쓰고, 호출부가 300초 예산에 5분 캐시라
+-- 초 단위 지연을 감당한다.
+--
+-- 이건 증상 완화지 원인 제거가 아니다. 진짜 비용은 RPC 마다 mv_real_users 4만 행을 다시
+-- 훑는 구조와 15분 주기 리프레시(평균 13.6초, 하루 DB 시간 수 시간)다. 그쪽을 줄이면
+-- 이 값도 되돌릴 수 있다.
+ALTER ROLE service_role SET statement_timeout = '30s';
