@@ -71,8 +71,11 @@ export interface GeoAction {
 export interface GeoAnswerStats {
   site: string
   days: string[]
+  /** 최신 회차가 속한 주(measured_week = 그 주 월요일). 측정을 실행한 날이 아니다 */
   latestDay: string | null
   baselineDay: string | null
+  /** 그 주에 마지막으로 잰 시각. 주 라벨만 보면 재측정해도 안 움직이는 것처럼 보인다 */
+  latestMeasuredAt: string | null
   latest: GeoRates
   baseline: GeoRates
   byEngine: Array<{ engine: string } & GeoRates>

@@ -47,6 +47,26 @@ function Pill({ tone, children }: { tone: { bg: string; fg: string }; children: 
   )
 }
 
+// 주 라벨 — measured_week 은 그 주 월요일이라 같은 주에 다시 재도 안 움직인다.
+// 날짜만 찍으면 "7/27 측정"으로 읽혀서 갱신이 멈춘 것처럼 보인다. 주라고 밝히고,
+// 실제로 언제 잰 값인지는 옆에 따로 적는다.
+const weekLabel = (week: string) => {
+  const [, m, d] = week.split('-')
+  const end = new Date(`${week}T00:00:00Z`)
+  end.setUTCDate(end.getUTCDate() + 6)
+  return `${Number(m)}/${Number(d)}~${end.getUTCMonth() + 1}/${end.getUTCDate()}`
+}
+
+/** 마지막 측정 시각 — KST 기준 M/D HH:mm */
+const measuredLabel = (iso: string) => {
+  const d = new Date(iso)
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d)
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? ''
+  return `${get('month')}/${get('day')} ${get('hour')}:${get('minute')}`
+}
+
 /** 기준선 대비 증감(%p). 첫 측정뿐이면 표시할 게 없다 */
 function Delta({ now, base }: { now: number; base: number | null }) {
   if (base == null) return null
@@ -95,7 +115,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
           eyebrow="AI ANSWERS"
           title="AI 답변 점유"
           meta={data?.latestDay
-            ? `${data.latestDay} 측정 · 질문 ${data.questions.length}개 · ${data.latest.runs}회 실행${hasBaseline ? ` · 기준선 ${data.baselineDay}` : ' · 기준선 회차'}`
+            ? `${weekLabel(data.latestDay)} 주${data.latestMeasuredAt ? ` · 마지막 측정 ${measuredLabel(data.latestMeasuredAt)}` : ''} · 질문 ${data.questions.length}개 · ${data.latest.runs}회 실행${hasBaseline ? ` · 기준선 ${weekLabel(data.baselineDay!)} 주` : ' · 기준선 회차'}`
             : undefined}
           action={
             <button onClick={load} disabled={loading} title="다시 조회"

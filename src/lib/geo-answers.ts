@@ -61,7 +61,7 @@ function causeOf(r: GeoRates, competitors: string[], indexedPages: number): GeoC
 }
 
 const empty = (site: string): GeoAnswerStats => ({
-  site, days: [], latestDay: null, baselineDay: null,
+  site, days: [], latestDay: null, baselineDay: null, latestMeasuredAt: null,
   latest: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
   baseline: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
   byEngine: [], questions: [], causes: [], competitors: [], actions: [],
@@ -161,6 +161,9 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
     days: days_,
     latestDay,
     baselineDay: baselineDay === latestDay ? null : baselineDay,
+    // 주 라벨(measured_week)은 같은 주에 다시 재도 안 움직인다. 언제 잰 값인지는 이쪽이 답한다.
+    latestMeasuredAt: latestRows.reduce<string | null>(
+      (max, r) => (r.measured_at && (!max || r.measured_at > max) ? r.measured_at : max), null),
     latest: rate(latestRows),
     baseline: rate(rows.filter(r => weekOf(r) === baselineDay)),
     byEngine: Array.from(new Set(latestRows.map(r => r.engine)))
