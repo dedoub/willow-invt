@@ -7,6 +7,11 @@ CREATE TABLE IF NOT EXISTS public.user_sheet_snapshots (
   date date NOT NULL,
   sheet_count integer NOT NULL DEFAULT 0,
   card_count integer, -- 자정 기준 보유 카드(user_analytics.total_cards 합) — 2026-07-13 추가
+  -- 자정 기준 누적 말하기(user_analytics.total_attempts 합) — 2026-08-02 추가.
+  -- 이전에는 time_series_analytics.date = KST 오늘 로 오늘치를 구했는데 그 date 는 **단말의
+  -- 로컬 날짜**다(같은 KST 새벽에 KR 유저는 08-02, US·PE·IN·DE 유저는 08-01). 서버의 단일
+  -- "오늘"과 맞출 수 없어 한국 밖 사용자는 KST 00~09시 내내 말하기 델타가 0이었다.
+  attempt_count integer,
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, date)
 );

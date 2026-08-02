@@ -23,18 +23,22 @@ async function main() {
   // KST 오늘 날짜 (YYYY-MM-DD)
   const kstDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
 
-  // 유저별 보유 카드 합 (user_analytics.total_cards) — 카드 '오늘 증가분' 기준선
+  // 유저별 보유 카드 합·누적 말하기 합 (user_analytics) — 카드·말하기 '오늘 증가분' 기준선.
+  // 말하기가 여기 온 이유: time_series_analytics.date 는 단말 로컬 날짜라 서버의 "오늘"과
+  // 맞출 수 없다(같은 KST 새벽에 KR 유저는 오늘, 미주 유저는 어제로 적힌다).
   const cardByUser = new Map<string, number>()
+  const attemptByUser = new Map<string, number>()
   {
-    const { data, error } = await sb.from('user_analytics').select('user_id, total_cards')
+    const { data, error } = await sb.from('user_analytics').select('user_id, total_cards, total_attempts')
     if (error) throw error
-    for (const a of (data ?? []) as Array<{ user_id: string; total_cards: number | null }>) {
+    for (const a of (data ?? []) as Array<{ user_id: string; total_cards: number | null; total_attempts: number | null }>) {
       cardByUser.set(a.user_id, (cardByUser.get(a.user_id) || 0) + (Number(a.total_cards) || 0))
+      attemptByUser.set(a.user_id, (attemptByUser.get(a.user_id) || 0) + (Number(a.total_attempts) || 0))
     }
   }
 
   // 전 유저 sheet_ids 수집 (페이지네이션)
-  const rows: Array<{ user_id: string; date: string; sheet_count: number; card_count: number }> = []
+  const rows: Array<{ user_id: string; date: string; sheet_count: number; card_count: number; attempt_count: number }> = []
   const PAGE = 1000
   let from = 0
   for (;;) {
@@ -46,7 +50,12 @@ async function main() {
     if (!data?.length) break
     for (const u of data as Array<{ user_id: string | null; sheet_ids: string[] | null }>) {
       if (!u.user_id) continue
-      rows.push({ user_id: u.user_id, date: kstDate, sheet_count: u.sheet_ids?.length || 0, card_count: cardByUser.get(u.user_id) || 0 })
+      rows.push({
+        user_id: u.user_id, date: kstDate,
+        sheet_count: u.sheet_ids?.length || 0,
+        card_count: cardByUser.get(u.user_id) || 0,
+        attempt_count: attemptByUser.get(u.user_id) || 0,
+      })
     }
     if (data.length < PAGE) break
     from += PAGE
