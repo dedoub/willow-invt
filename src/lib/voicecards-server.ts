@@ -1031,6 +1031,19 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     return lastGoodUserStats ?? empty
   }
 
+  // 듣기 핵심 RPC 실패를 빈 배열로 취급하면 실제 사용량이 모두 0으로 덮이고 그 결과가 캐시된다.
+  // 실패 시 직전 정상 스냅샷을 유지하고, 정상 스냅샷이 없는 cold start에서는 route가 500을 반환해
+  // Next 캐시의 기존 값을 오염시키지 않게 한다.
+  const criticalMetricError = rollupRes.error || activityRes.error
+  if (criticalMetricError) {
+    console.error(
+      '[VoiceCards] Critical user metric RPC failed:',
+      rollupRes.error || activityRes.error,
+      lastGoodUserStats ? '— serving last good snapshot' : ''
+    )
+    return lastGoodUserStats ?? empty
+  }
+
   const allUsers = usersRes.data || []
   const excludedUserIds = new Set(
     allUsers
