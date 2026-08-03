@@ -311,6 +311,37 @@ export async function getIndexedPageCount(siteKey: string): Promise<number> {
   return count ?? 0
 }
 
+/**
+ * 색인 수의 오늘/최근 7일 증감 — 통계 카드 보조라벨(오늘 N쪽 · 7일 N쪽)용.
+ * 오늘 = 오늘 스냅샷 − 직전 스냅샷. 7일 = 최신 스냅샷 − 7일 전(또는 그 이전 가장 가까운) 스냅샷.
+ * 색인 수 자체는 getIndexedPageCount와 같은 규칙(최신 스냅샷의 is_indexed)을 쓴다.
+ */
+export async function getIndexedPageStats(siteKey: string): Promise<{ total: number; today: number; last7d: number }> {
+  const since = new Date(Date.now() - 9 * 86_400_000).toISOString().slice(0, 10)
+  const { data } = await supabase
+    .from('seo_index_status')
+    .select('checked_on')
+    .eq('site_key', siteKey)
+    .eq('is_indexed', true)
+    .gte('checked_on', since)
+  const byDate = new Map<string, number>()
+  for (const r of (data ?? []) as Array<{ checked_on: string }>) {
+    byDate.set(r.checked_on, (byDate.get(r.checked_on) ?? 0) + 1)
+  }
+  const dates = Array.from(byDate.keys()).sort()
+  if (dates.length === 0) return { total: 0, today: 0, last7d: 0 }
+
+  const latestDate = dates[dates.length - 1]
+  const total = byDate.get(latestDate) ?? 0
+  const kstToday = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)
+  const todayIdx = dates.indexOf(kstToday)
+  const today = todayIdx > 0 ? total - (byDate.get(dates[todayIdx - 1]) ?? 0) : 0
+  const week7Cut = new Date(Date.now() + 9 * 3_600_000 - 6 * 86_400_000).toISOString().slice(0, 10)
+  const baselineDate = dates.filter(d => d < week7Cut).pop() ?? dates[0]
+  const last7d = baselineDate === latestDate ? 0 : total - (byDate.get(baselineDate) ?? 0)
+  return { total, today, last7d }
+}
+
 export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Promise<IndexStatusSummary> {
   const site = getGscSite(siteKey)
   const since = new Date(Date.now() - trendDays * 86_400_000).toISOString().slice(0, 10)

@@ -11,7 +11,7 @@
  */
 
 import { supabase } from './supabase'
-import { getIndexedPageCount } from './gsc-index'
+import { getIndexedPageStats } from './gsc-index'
 import type { GeoStage, GeoCause, GeoRates, GeoQuestionRow, GeoAction, GeoAnswerStats } from './geo-types'
 
 export type { GeoStage, GeoCause, GeoRates, GeoQuestionRow, GeoAction, GeoAnswerStats }
@@ -66,6 +66,7 @@ const empty = (site: string): GeoAnswerStats => ({
   baseline: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
   byEngine: [], questions: [], causes: [], competitors: [], actions: [],
   daily: [], aiClicks: { today: 0, last7d: 0, total: 0 }, indexedPages: 0,
+  indexedPagesDelta: { today: 0, last7d: 0 },
 })
 
 export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAnswerStats> {
@@ -85,7 +86,7 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
       .eq('site', site).order('updated_at', { ascending: false }).limit(100),
     // 색인된 대표 URL 수 — index 원인 판정 근거. 최신 스냅샷만 센다(스냅샷이 날짜별로
     // 쌓여서 전 기간을 세면 같은 경로가 중복된다). 색인 상태 카드와 같은 값이어야 한다.
-    getIndexedPageCount(site),
+    getIndexedPageStats(site),
     supabase.from('vc_crawl_log').select('id', { count: 'exact', head: true })
       .eq('site', site).in('category', ['referral', 'referral_nav']),
     supabase.from('vc_crawl_log').select('id', { count: 'exact', head: true })
@@ -96,7 +97,8 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
 
   if (measRes.error) throw new Error(`GEO 측정 조회 실패: ${measRes.error.message}`)
   const rows = (measRes.data ?? []) as Row[]
-  const indexedPages = idxRes
+  const indexedPages = idxRes.total
+  const indexedPagesDelta = { today: idxRes.today, last7d: idxRes.last7d }
   const aiClicks = { total: clickRes.count ?? 0, last7d: clickWeekRes.count ?? 0, today: clickTodayRes.count ?? 0 }
 
   const actions: GeoAction[] = ((actRes.data ?? []) as Array<Record<string, unknown>>).map(a => ({
@@ -112,7 +114,7 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
     verdict: (a.verdict as string) ?? null,
   }))
 
-  if (rows.length === 0) return { ...empty(site), actions, aiClicks, indexedPages }
+  if (rows.length === 0) return { ...empty(site), actions, aiClicks, indexedPages, indexedPagesDelta }
 
   const priorityOf = new Map<string, number>()
   for (const q of (qRes.data ?? []) as Array<Record<string, unknown>>) {
@@ -186,5 +188,6 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
     }),
     aiClicks,
     indexedPages,
+    indexedPagesDelta,
   }
 }

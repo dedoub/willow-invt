@@ -593,14 +593,25 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
   // GSC는 집계가 며칠 지연되므로 '오늘'이 0으로 나오는 게 정상이다(지연 표기는 섹션 헤드에 있다).
   const kstToday = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)
   const week7Cut = new Date(Date.now() + 9 * 3_600_000 - 6 * 86_400_000).toISOString().slice(0, 10)
-  const todayWeekSub = (series: Array<{ date: string; value: number }>) => {
+  const todayWeekSub = (series: Array<{ date: string; value: number }>, unit: string) => {
     let today = 0, week = 0
     for (const d of series) {
       if (d.date === kstToday) today += d.value
       if (d.date >= week7Cut) week += d.value
     }
-    return `오늘 ${today.toLocaleString()} · 7일 ${week.toLocaleString()}`
+    return `오늘 ${today.toLocaleString()}${unit} · 7일 ${week.toLocaleString()}${unit}`
   }
+  // 색인율은 누적 스냅샷이라 합이 아니라 증감으로 만든다: 오늘 = 오늘 스냅샷 − 직전, 7일 = 최신 − 7일 전
+  const indexDeltaSub = (() => {
+    const tr = index?.trend
+    if (!tr || tr.length === 0) return null
+    const latest = tr[tr.length - 1]
+    const todayIdx = tr.findIndex(d => d.date === kstToday)
+    const today = todayIdx > 0 ? tr[todayIdx].indexed - tr[todayIdx - 1].indexed : 0
+    const baseline = tr.filter(d => d.date < week7Cut).pop() ?? tr[0]
+    const week = baseline.date === latest.date ? 0 : latest.indexed - baseline.indexed
+    return `오늘 ${today.toLocaleString()}쪽 · 7일 ${week.toLocaleString()}쪽`
+  })()
   // GSC(노출·클릭)와 Umami(실제 진입)를 경로로 잇는다. 양쪽 다 normalizePath를 거쳐
   // 같은 표기라 그대로 조인된다. 구글 클릭 대비 진입이 크게 모자라면 봇·차단·즉시이탈 구간.
   const umamiSearchByPath = useMemo(() => {
@@ -694,7 +705,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                     label="노출"
                     value={gsc.totals.impressions.toLocaleString()}
                     valueExtra={<Delta now={gsc.totals.impressions} prev={gsc.previous.impressions} />}
-                    sub={todayWeekSub(gsc.daily.map(d => ({ date: d.date, value: d.impressions })))}
+                    sub={todayWeekSub(gsc.daily.map(d => ({ date: d.date, value: d.impressions })), '회')}
                     title="검색 결과에 우리 페이지가 노출된 횟수. 이 숫자가 작으면 애초에 수요와 연결되는 콘텐츠가 없다는 뜻이고, 크면 수요는 있는데 클릭에서 새고 있는지 봐야 한다."
                     sparkline={mobile ? undefined : cumulative(gsc.daily.map(d => ({ date: d.date, value: d.impressions })))}
                   />
@@ -702,7 +713,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                     label="클릭"
                     value={gsc.totals.clicks.toLocaleString()}
                     valueExtra={<Delta now={gsc.totals.clicks} prev={gsc.previous.clicks} />}
-                    sub={todayWeekSub(gsc.daily.map(d => ({ date: d.date, value: d.clicks })))}
+                    sub={todayWeekSub(gsc.daily.map(d => ({ date: d.date, value: d.clicks })), '회')}
                     tone={gsc.totals.clicks > 0 ? 'pos' : 'default'}
                     title="검색 결과에서 실제로 눌린 횟수. 노출 대비 이 값이 곧 '수요를 잡은 비율'."
                     sparkline={mobile ? undefined : cumulative(gsc.daily.map(d => ({ date: d.date, value: d.clicks })))}
@@ -726,9 +737,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                         {index.changeFromPrev > 0 ? '+' : '−'}{Math.abs(index.changeFromPrev)}쪽
                       </span>
                     ) : undefined}
-                    sub={index && index.total > 0
-                      ? `${index.total.toLocaleString()}쪽 중 ${index.buckets.indexed.toLocaleString()}쪽 색인`
-                      : '검사 기록 없음'}
+                    sub={indexDeltaSub ?? '검사 기록 없음'}
                     tone={index && index.indexedPct >= 50 ? 'pos' : index && index.total > 0 ? 'warn' : 'default'}
                     title="URL 검사 API로 매일 전수 확인한 색인 비율. 노출·클릭보다 앞단이라, 여기가 낮으면 아래 지표는 볼 필요도 없다."
                     sparkline={mobile ? undefined : index?.trend.map(d => ({ date: d.date, value: d.indexed }))}
@@ -850,7 +859,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                     label="검색 유입"
                     value={data.search.visits.toLocaleString()}
                     unit="세션"
-                    sub={todayWeekSub(data.daily.map(d => ({ date: d.date, value: d.searchSessions })))}
+                    sub={todayWeekSub(data.daily.map(d => ({ date: d.date, value: d.searchSessions })), '건')}
                     tone={data.search.share >= 30 ? 'pos' : 'default'}
                     title="검색엔진·AI 답변 리퍼러로 들어온 세션. Umami는 검색어를 받지 못하므로 리퍼러 호스트 기준이다."
                     sparkline={mobile ? undefined : cumulative(data.daily.map(d => ({ date: d.date, value: d.searchSessions })))}
@@ -887,7 +896,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                   <LStat
                     label="세션"
                     value={sessionsTotal.toLocaleString()}
-                    sub={todayWeekSub(data.daily.map(d => ({ date: d.date, value: d.sessions })))}
+                    sub={todayWeekSub(data.daily.map(d => ({ date: d.date, value: d.sessions })), '건')}
                     sparkline={mobile ? undefined : cumulative(data.daily.map(d => ({ date: d.date, value: d.sessions })))}
                     title="일별 세션의 기간 합. 방문자는 같은 사람을 한 번만 세므로 이 값보다 작다. 자기 방문(관리자·개발 브라우저)은 Umami에서 제외되지 않으니 초기 수치는 감안할 것."
                   />

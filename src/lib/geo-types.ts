@@ -86,6 +86,7 @@ export interface GeoAnswerStats {
   daily: Array<{ date: string; top3: number; mentioned: number; cited: number }>
   /** AI 답변에서 넘어온 클릭 (vc_crawl_log referral) */
   aiClicks: { today: number; last7d: number; total: number }
+  indexedPagesDelta: { today: number; last7d: number }
   /** 색인된 대표 URL 수 — index 원인 판정의 근거 */
   indexedPages: number
 }
