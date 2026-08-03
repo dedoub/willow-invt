@@ -178,7 +178,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
               <LStat
                 label="AI 유입 클릭"
                 value={data.aiClicks.total.toLocaleString()}
-                sub={`최근 7일 ${data.aiClicks.last7d.toLocaleString()}`}
+                sub={`오늘 ${data.aiClicks.today.toLocaleString()} · 7일 ${data.aiClicks.last7d.toLocaleString()}`}
                 tone={data.aiClicks.last7d > 0 ? 'pos' : 'default'}
                 title="답변에 실린 링크를 사람이 눌러 들어온 횟수(크롤 로그 referral). 인용이 트래픽이 됐는지를 본다."
               />

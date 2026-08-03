@@ -589,6 +589,18 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
   // 그래야 그 옆 스파크라인(같은 계열의 누적)의 끝점과 같은 값이 된다. 두 값은 애초에
   // 다른 지표라서(visits는 30분 이상 끊긴 방문을 따로 세고, 일별 계열은 세션을 센다) 다르다.
   const sessionsTotal = (data?.daily ?? []).reduce((sum, d) => sum + d.sessions, 0)
+  // 카운트 지표의 보조라벨은 퍼널 카드와 같은 '오늘 N · 7일 N' 형식으로 통일한다 (KST 날짜 기준).
+  // GSC는 집계가 며칠 지연되므로 '오늘'이 0으로 나오는 게 정상이다(지연 표기는 섹션 헤드에 있다).
+  const kstToday = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)
+  const week7Cut = new Date(Date.now() + 9 * 3_600_000 - 6 * 86_400_000).toISOString().slice(0, 10)
+  const todayWeekSub = (series: Array<{ date: string; value: number }>) => {
+    let today = 0, week = 0
+    for (const d of series) {
+      if (d.date === kstToday) today += d.value
+      if (d.date >= week7Cut) week += d.value
+    }
+    return `오늘 ${today.toLocaleString()} · 7일 ${week.toLocaleString()}`
+  }
   // GSC(노출·클릭)와 Umami(실제 진입)를 경로로 잇는다. 양쪽 다 normalizePath를 거쳐
   // 같은 표기라 그대로 조인된다. 구글 클릭 대비 진입이 크게 모자라면 봇·차단·즉시이탈 구간.
   const umamiSearchByPath = useMemo(() => {
@@ -682,7 +694,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                     label="노출"
                     value={gsc.totals.impressions.toLocaleString()}
                     valueExtra={<Delta now={gsc.totals.impressions} prev={gsc.previous.impressions} />}
-                    sub="검색 결과에 보여진 횟수"
+                    sub={todayWeekSub(gsc.daily.map(d => ({ date: d.date, value: d.impressions })))}
                     title="검색 결과에 우리 페이지가 노출된 횟수. 이 숫자가 작으면 애초에 수요와 연결되는 콘텐츠가 없다는 뜻이고, 크면 수요는 있는데 클릭에서 새고 있는지 봐야 한다."
                     sparkline={mobile ? undefined : cumulative(gsc.daily.map(d => ({ date: d.date, value: d.impressions })))}
                   />
@@ -690,7 +702,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                     label="클릭"
                     value={gsc.totals.clicks.toLocaleString()}
                     valueExtra={<Delta now={gsc.totals.clicks} prev={gsc.previous.clicks} />}
-                    sub={`노출 대비 CTR ${gsc.totals.ctr}%`}
+                    sub={todayWeekSub(gsc.daily.map(d => ({ date: d.date, value: d.clicks })))}
                     tone={gsc.totals.clicks > 0 ? 'pos' : 'default'}
                     title="검색 결과에서 실제로 눌린 횟수. 노출 대비 이 값이 곧 '수요를 잡은 비율'."
                     sparkline={mobile ? undefined : cumulative(gsc.daily.map(d => ({ date: d.date, value: d.clicks })))}
@@ -838,7 +850,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                     label="검색 유입"
                     value={data.search.visits.toLocaleString()}
                     unit="세션"
-                    sub={`전체 유입의 ${data.search.share}%`}
+                    sub={todayWeekSub(data.daily.map(d => ({ date: d.date, value: d.searchSessions })))}
                     tone={data.search.share >= 30 ? 'pos' : 'default'}
                     title="검색엔진·AI 답변 리퍼러로 들어온 세션. Umami는 검색어를 받지 못하므로 리퍼러 호스트 기준이다."
                     sparkline={mobile ? undefined : cumulative(data.daily.map(d => ({ date: d.date, value: d.searchSessions })))}
@@ -875,7 +887,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                   <LStat
                     label="세션"
                     value={sessionsTotal.toLocaleString()}
-                    sub={`방문자 ${data.totals.visitors.toLocaleString()} · 페이지뷰 ${data.totals.pageviews.toLocaleString()}`}
+                    sub={todayWeekSub(data.daily.map(d => ({ date: d.date, value: d.sessions })))}
                     sparkline={mobile ? undefined : cumulative(data.daily.map(d => ({ date: d.date, value: d.sessions })))}
                     title="일별 세션의 기간 합. 방문자는 같은 사람을 한 번만 세므로 이 값보다 작다. 자기 방문(관리자·개발 브라우저)은 Umami에서 제외되지 않으니 초기 수치는 감안할 것."
                   />

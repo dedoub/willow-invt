@@ -65,14 +65,16 @@ const empty = (site: string): GeoAnswerStats => ({
   latest: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
   baseline: { runs: 0, mentioned: 0, top3: 0, cited: 0 },
   byEngine: [], questions: [], causes: [], competitors: [], actions: [],
-  daily: [], aiClicks: { last7d: 0, total: 0 }, indexedPages: 0,
+  daily: [], aiClicks: { today: 0, last7d: 0, total: 0 }, indexedPages: 0,
 })
 
 export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAnswerStats> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10)
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
+  // 오늘 = KST 자정 이후 (대시보드 퍼널 카드와 같은 기준)
+  const kstTodayStart = new Date(`${new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)}T00:00:00+09:00`).toISOString()
 
-  const [measRes, qRes, actRes, idxRes, clickRes, clickWeekRes] = await Promise.all([
+  const [measRes, qRes, actRes, idxRes, clickRes, clickWeekRes, clickTodayRes] = await Promise.all([
     supabase.from('geo_answer_measurements')
       .select('measured_on, measured_week, engine, question_id, question, mentioned, top3, cited, competitors, measured_at')
       .eq('site', site).gte('measured_on', since)
@@ -88,12 +90,14 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
       .eq('site', site).in('category', ['referral', 'referral_nav']),
     supabase.from('vc_crawl_log').select('id', { count: 'exact', head: true })
       .eq('site', site).in('category', ['referral', 'referral_nav']).gte('ts', weekAgo),
+    supabase.from('vc_crawl_log').select('id', { count: 'exact', head: true })
+      .eq('site', site).in('category', ['referral', 'referral_nav']).gte('ts', kstTodayStart),
   ])
 
   if (measRes.error) throw new Error(`GEO 측정 조회 실패: ${measRes.error.message}`)
   const rows = (measRes.data ?? []) as Row[]
   const indexedPages = idxRes
-  const aiClicks = { total: clickRes.count ?? 0, last7d: clickWeekRes.count ?? 0 }
+  const aiClicks = { total: clickRes.count ?? 0, last7d: clickWeekRes.count ?? 0, today: clickTodayRes.count ?? 0 }
 
   const actions: GeoAction[] = ((actRes.data ?? []) as Array<Record<string, unknown>>).map(a => ({
     id: Number(a.id),
