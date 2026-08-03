@@ -105,7 +105,14 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
 
   const handleSort = (key: SortKey) => {
     if (sortBy === key) {
-      setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+      // 같은 키는 기본방향 → 반전 → 기본 정렬(1y desc)로 순환. 1y 자신은 toggle만 한다.
+      const defaultDir: SortDir = key === 'group' || key === 'name' ? 'asc' : 'desc'
+      if (key !== '1y' && sortDir !== defaultDir) {
+        setSortBy('1y')
+        setSortDir('desc')
+      } else {
+        setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+      }
     } else {
       setSortBy(key)
       // 새 키로 바꿀 때 기본: 그룹/이름은 asc, 수익률은 desc

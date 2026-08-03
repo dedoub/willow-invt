@@ -4,6 +4,8 @@
 노출·클릭 지표는 "이미 노출된 페이지"만 보여주므로, 노출 0의 원인(미발견 / 크롤 후 거부 / 제외)은
 URL Inspection API로만 갈라진다. 이 문서는 그 스냅샷의 해석과 조치 이력을 남긴다.
 
+> 수동 색인 요청의 대기열·일일 배치는 [seo-indexing-plan.md](seo-indexing-plan.md)에서 관리한다 (매일 팔로우업).
+
 ## 데이터 소스
 
 | 항목 | 위치 |
@@ -88,6 +90,30 @@ Bing 웹마스터 도구에는 세 사이트 모두 등록·사이트맵 제출�
 걸린 코어 그룹이 54.5%로 전 버티컬 중 가장 높아, 코어부터 먼저 뚫리는 중이라는 가설과 맞는다.
 리뷰노트는 색인 9→10(+1), '구글이 모름' 23으로 변동 없음, 크롤 후 미색인도 0으로 그대로다.
 
+### 2026-08-03
+
+| 사이트 | 검사 | 색인 | 색인률 | 구글이 모름 | 발견·대기 | 크롤 후 미색인 |
+|---|---|---|---|---|---|---|
+| 보이스카드 | 213 | 31 | 14.6% | 38 | 143 | 1 |
+| 리뷰노트 | 34 | 12 | 35.3% | 22 | 0 | 0 |
+
+일자별 색인 수 추이 - 보이스카드: 07-28 14 → 07-29 23 → 07-30 28 → 07-31 31 → 08-03 31.
+리뷰노트: 07-28 10 → 07-29 12 → 08-03 12. 양쪽 다 7월 말 급증 후 최근 3~5일은 정체.
+
+07-28 이후 신규 색인 (보이스카드 17쪽): 성경 4, 코란 7, 시민권 3(허브 `/templates/civics` 포함),
+학습법 2(`/methods/listening-loop`, `/methods/weak-card-triage`), 코어 1(`/audio-flashcards`).
+리뷰노트 2쪽: 가이드 2(`how-to-use-reviewnotes`, `wrong-answer-journal`).
+
+시민권 8쪽(07-30 색인 요청분) 판정: 허브 포함 3쪽 색인, 4쪽 Discovered, 1쪽만 unknown
+(`/templates/naturalization-reading-vocabulary`). 요청이 먹혔고 허브가 unknown을 벗어났다.
+
+주의해서 볼 것:
+- 보이스카드 unseen이 08-01 20 → 08-03 38로 다시 늘었는데, 08-01 대비 Discovered→unknown 후퇴 34쪽 /
+  unknown→Discovered 전진 16쪽이 동시에 잡힌다. URL Inspection 응답이 날마다 흔들리는 GSC 노이즈로 보고,
+  색인 수(단조 증가 중)를 기준 지표로 삼을 것.
+- 리뷰노트 `/en/practice` 허브는 색인됐는데 하위 연습문제 19쪽이 전부 unknown 그대로다.
+  허브 색인 → 하위 발견 경로 가설이 리뷰노트에서는 아직 작동하지 않고 있다.
+
 ## 진단 (2026-07-27)
 
 사이트맵은 정상이다. 원인은 사이트맵이 아니라 **크롤 시점**이다.
@@ -144,6 +170,9 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 | 2026-07-27 | GSC URL 검사에서 색인 요청 5건 (아래) | 전부 priority crawl queue 등록 확인 |
 | 2026-07-28 | 07-28 스냅샷 확인, 07-27 요청 5건의 상태 이동 점검 | 보이스카드 unseen 202→44, discovered 2→154, indexed 5→14(+9), crawled 변동 없음(1). 리뷰노트 indexed 9→10(+1), unseen·crawled 변동 없음 |
 | 2026-07-30 | 보이스카드 시민권 8쪽 전량 색인 요청 (아래) | 8건 모두 priority crawl queue 등록 확인 |
+| 2026-08-03 | 08-03 스냅샷 점검 | 보이스카드 색인 14→31(+17), 리뷰노트 10→12(+2). 시민권 3/8 색인(허브 포함). 최근 3~5일 색인 수 정체 |
+| 2026-08-03 | 보이스카드 8건 색인 요청 (아래) | 8건 모두 priority crawl queue 등록 확인 |
+| 2026-08-03 | 리뷰노트 연습문제 색인 요청 시작 | 3건 등록(pythagorean, quadratic-formula, linear-function) 후 4건째에서 Quota Exceeded. 잔여 16건은 내일 이후 계속 |
 
 색인 요청한 URL:
 
@@ -180,14 +209,53 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 `civics-2025-65-20`은 사이트맵이 발견 경로로 잡혀 있었다. 사이트맵 문제가 아니라 그 URL만
 아직 안 읽힌 것으로 본다. 다음 스냅샷에서 허브가 Discovered 이상으로 올라오는지가 판정 기준이다.
 
+### 2026-08-03 보이스카드 8건
+
+색인 수 정체(3일째 31)를 풀기 위해 다음 버티컬 허브와 잔여 unknown을 요청했다.
+
+| URL | 요청 시점 상태 | 의도 |
+|---|---|---|
+| `/templates/bible` | unknown | 허브. 성경 68쪽의 크롤 경로 |
+| `/templates/quran` | unknown | 허브. 코란 115쪽의 크롤 경로 |
+| `/exam-prep` | Discovered | 코어. 정체 해소 |
+| `/memorization` | Discovered | 코어. 정체 해소 |
+| `/voice-flashcard-apps` | Discovered | 코어. 정체 해소 |
+| `/templates/naturalization-reading-vocabulary` | Discovered (스냅샷은 unknown, 검사 시점에 승급됨) | 시민권 잔여 |
+| `/methods/automatization-loop` | Discovered (스냅샷은 unknown) | 학습법 잔여 |
+| `/methods/chapter-to-deck` | unknown | 학습법 잔여 |
+
+`/templates/bible`·`/templates/quran`·`/methods/chapter-to-deck`은 GSC가 "No referring sitemaps detected"라고
+답했다. 07-30의 `/templates/civics`와 같은 패턴(사이트맵에는 있는데 그 URL만 아직 안 읽힌 상태)이고,
+civics는 요청 후 색인까지 갔으므로 같은 경로를 기대한다.
+
+### 2026-08-03 리뷰노트 연습문제 (진행 중)
+
+허브 `/en/practice`가 색인된 뒤에도 하위 19쪽이 전부 unknown이라 개별 요청으로 전환했다.
+프로퍼티는 도메인이 아니라 URL-prefix(`https://reviewnotes.app/`)로 등록돼 있다.
+
+색인 요청 완료 (2026-08-03): `pythagorean`, `quadratic-formula`, `linear-function`
+
+4건째(`linear-system`)에서 Quota Exceeded. 색인 요청 할당량은 프로퍼티별이 아니라 계정 단위로 합산되는
+것으로 보인다(보이스카드 8 + 리뷰노트 3 = 11건에서 도달). 잔여 대기열(우선순위순):
+
+`linear-system` → `factor-trinomial` → `grade-4-multiplication` → `grade-4-large-numbers` →
+`grade-4-angles` → `grade-4-bar-graph` → `grade-4-rules` → `grade-4-transformations` →
+`grade-4-2-decimals` → `grade-4-2-fractions` → `grade-4-2-line-graphs` → `grade-4-2-polygons` →
+`grade-4-2-quadrilaterals` → `grade-4-2-triangles` → `grade-5-fractions` → `grade-5-number-operations`
+
+(모두 `https://reviewnotes.app/en/practice/` 하위)
+
 ## 다음 액션
 
 - [x] `/templates`, `/methods` 허브 색인 요청 (2026-07-27 완료)
 - [x] 홈 재크롤 유도 (보이스카드 `/`, 리뷰노트 `/en` 색인 요청, 2026-07-27 완료)
 - [x] 리뷰노트 `/en/practice` 허브 색인 요청 (2026-07-27 완료)
-- [ ] 07-28 스냅샷에서 요청한 5쪽의 상태 이동 확인. 허브가 색인되면 하위 페이지는 요청 없이도 따라온다
+- [x] 07-28 스냅샷에서 요청한 5쪽의 상태 이동 확인. 허브가 색인되면 하위 페이지는 요청 없이도 따라온다
 - [x] 시민권 8쪽 색인 요청 (2026-07-30 완료)
-- [ ] 07-31 스냅샷에서 시민권 8쪽 상태 이동 확인. 특히 허브 `/templates/civics`가 unknown을 벗어나는지
+- [x] 시민권 8쪽 상태 이동 확인 (2026-08-03: 허브 포함 3쪽 색인, 4쪽 Discovered, 1쪽 unknown)
+- [ ] 리뷰노트 연습문제 개별 색인 요청 계속 (3/19 완료, 잔여 16건 대기열 위 참조. 하루 10여 건 한도)
+- [x] 보이스카드 성경·코란 허브 + 코어 3쪽 + 잔여 unknown 3쪽 색인 요청 (2026-08-03 완료)
+- [ ] 08-05 전후 스냅샷에서 08-03 요청 8건의 상태 이동 확인. 특히 bible·quran 허브가 unknown을 벗어나는지
 - [ ] 1주일간 unknown이 안 줄면 사이트맵 외 발견 경로(외부 링크)를 검토
 - [ ] `/faq`는 유일한 '크롤 후 미색인'. 재제출로 안 풀리므로 내용을 고치거나 방치 결정
 - [x] 템플릿 중복도 점검 (2026-07-27 완료, 중복 아님)

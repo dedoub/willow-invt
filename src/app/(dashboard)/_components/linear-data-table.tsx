@@ -130,10 +130,14 @@ export function DataTable({
   })
   const [sortDir, setSortDir] = useState<SortDir>(() => restored?.dir ?? 'desc')
   const handleSort = (i: number) => {
-    // 텍스트 컬럼은 오름차순, 숫자는 내림차순이 기본. 같은 컬럼을 다시 누르면 뒤집는다.
-    const nextDir: SortDir = i === sortIdx
-      ? (sortDir === 'asc' ? 'desc' : 'asc')
-      : (columns[i].align === 'right' ? 'desc' : 'asc')
+    // 텍스트 컬럼은 오름차순, 숫자는 내림차순이 기본. 같은 컬럼은 기본 → 반전 → 해제(원본 순서) 순환.
+    const defaultDir: SortDir = columns[i].align === 'right' ? 'desc' : 'asc'
+    if (i === sortIdx && sortDir !== defaultDir) {
+      setSortIdx(null)
+      saveSort(title, null)
+      return
+    }
+    const nextDir: SortDir = i === sortIdx ? (sortDir === 'asc' ? 'desc' : 'asc') : defaultDir
     if (i !== sortIdx) setPage(1)
     setSortIdx(i)
     setSortDir(nextDir)

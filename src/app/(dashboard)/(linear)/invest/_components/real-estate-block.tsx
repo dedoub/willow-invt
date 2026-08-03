@@ -651,15 +651,24 @@ export function RealEstateBlock() {
   const tradePageRows = sortedTradeListings.slice(tradePage * PAGE_SIZE, (tradePage + 1) * PAGE_SIZE)
   const jeonsePageRows = sortedJeonseListings.slice(jeonsePage * PAGE_SIZE, (jeonsePage + 1) * PAGE_SIZE)
 
+  // 같은 컬럼은 asc → desc → 기본 정렬(호가(저) desc)로 순환. 기본 컬럼 자신은 toggle만 한다.
+  function nextSort(key: SortKey, curKey: SortKey, curDir: SortDir): { key: SortKey; dir: SortDir } {
+    if (curKey !== key) return { key, dir: 'asc' }
+    if (key !== 'listingMinPpp' && curDir === 'desc') return { key: 'listingMinPpp', dir: 'desc' }
+    return { key, dir: curDir === 'asc' ? 'desc' : 'asc' }
+  }
+
   function handleTradeSort(key: SortKey) {
-    if (tradeSortKey === key) setTradeSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setTradeSortKey(key); setTradeSortDir('asc') }
+    const next = nextSort(key, tradeSortKey, tradeSortDir)
+    setTradeSortKey(next.key)
+    setTradeSortDir(next.dir)
     setTradePage(0)
   }
 
   function handleJeonseSort(key: SortKey) {
-    if (jeonseSortKey === key) setJeonseSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setJeonseSortKey(key); setJeonseSortDir('asc') }
+    const next = nextSort(key, jeonseSortKey, jeonseSortDir)
+    setJeonseSortKey(next.key)
+    setJeonseSortDir(next.dir)
     setJeonsePage(0)
   }
 
