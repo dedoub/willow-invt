@@ -2669,10 +2669,7 @@ async function monitorVoicecardsPurchasesOnce() {
 
 async function monitorVoicecardsUserEvents() {
   if (!ceoChatId || !voicecardsSupabase) return
-  if (isSundayKST()) {
-    console.log('⏭️ voicecards event monitor skip (Sunday KST)')
-    return
-  }
+  // 활성화·구매 같은 운영 이벤트는 일요일 브리핑 휴무와 무관하게 실시간으로 받는다 (CEO, 2026-08-03)
 
   const events = await fetchVoicecardsEventsSince(new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString())
   if (!events.length) return
