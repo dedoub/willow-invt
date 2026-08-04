@@ -23,6 +23,7 @@ import { getAgentThread, markAgentThreadFailed, shortThreadId, upsertAgentThread
 import { isResumablePendingTask, loadPendingTasks, patchPendingTask, removePendingTask, savePendingTask } from './lib/inflight-resume'
 import { type LocalServiceDefinition, getLocalServiceContext, getLocalServiceRegistry, getLocalServiceStatus, executeLocalServiceAction } from './lib/local-services'
 import { resolveLocalProjectContext, getLocalProjectByKey } from './lib/local-projects'
+import { createMessageBatcher } from './lib/message-batcher'
 import { randomUUID } from 'node:crypto'
 import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
 
@@ -132,13 +133,26 @@ function isAllowedUser(chatId: number): boolean {
 // CEO chat_id 저장 (첫 메시지 수신 시 등록)
 let ceoChatId: number | null = null
 
-// 메시지 배칭: 연달아 오는 메시지를 합쳐서 한 번에 처리
-const messageBatchBuffer: Map<number, { messages: string[]; timer: ReturnType<typeof setTimeout>; lastMessageId: number }> = new Map()
-
 // 처리 중 메시지 취소를 위한 AbortController 관리
 const processingAbort: Map<number, AbortController> = new Map()
 // abort 시 원본 메시지 보존 — 새 메시지와 합침
 const inFlightText: Map<number, string> = new Map()
+
+// 메시지 배칭: 연달아 오는 메시지를 합쳐서 한 번에 처리.
+// 타이머·abort 레이스가 얽혀 있어 lib/message-batcher.ts로 분리해 테스트한다.
+const messageBatcher = createMessageBatcher({
+  delayMs: MESSAGE_BATCH_DELAY,
+  abortControllers: processingAbort,
+  inFlightText,
+  run: (chatId, combined, signal, lastMessageId) => handleMessage(chatId, combined, signal, lastMessageId),
+  onProgress: (chatId, opts) => updateQueuedProgress(chatId, opts),
+  persist: (chatId, combined, lastMessageId) => persistPendingMessage(chatId, combined, {
+    lastMessageId,
+    startedAt: Date.now(),
+    phase: 'queued',
+  }),
+  log: (message) => console.log(message),
+})
 
 interface ProgressMessageState {
   messageId: number
@@ -6360,7 +6374,7 @@ ${text}
     // 액션 단계에 들어가면 이전 입력을 재배칭 대상으로 남기지 않는다.
     // (새 메시지 도착 시 동일 액션이 중복 실행되는 문제 방지)
     if (actions.length > 0) {
-      inFlightText.delete(chatId)
+      messageBatcher.dropInFlight(chatId)
     }
 
     const actionResults: string[] = []
@@ -6987,10 +7001,8 @@ async function main() {
         const existingAbortForCancel = processingAbort.get(chatId)
         if (existingAbortForCancel) {
           existingAbortForCancel.abort()
-          processingAbort.delete(chatId)
-          // 배칭 버퍼도 클리어
-          const buf = messageBatchBuffer.get(chatId)
-          if (buf) { clearTimeout(buf.timer); messageBatchBuffer.delete(chatId) }
+          // 대기 중인 배치와 회수해 둔 이전 입력까지 함께 정리
+          messageBatcher.cancel(chatId)
           removePendingTask(BOT_INFLIGHT_FILE, chatId)
           await closeProgressMessage(chatId, {
             finalText: buildProgressMessage({
@@ -7018,107 +7030,9 @@ async function main() {
         messageText = `[인용된 메시지 (${replyFrom})]\n${msg.reply_to_message.text}\n\n[CEO 답장]\n${msg.text}`
       }
 
-      // 메시지 배칭: 연달아 오는 메시지를 합쳐서 한 번에 처리
-      // 처리 중에 새 메시지가 오면 기존 처리를 abort하고 합쳐서 재처리
-
-      // 기존에 처리 중인 Claude 세션이 있으면 abort + 원본 텍스트 보존
-      const existingAbort = processingAbort.get(chatId)
-      if (existingAbort) {
-        existingAbort.abort()
-        // 처리 중이던 텍스트는 inFlightText에 이미 저장되어 있음
-        console.log(`🔄 [${chatId}] 기존 처리 취소 — 새 메시지와 합침`)
-      }
-
-      const msgId = msg.message_id
-      const existing = messageBatchBuffer.get(chatId)
-      if (existing) {
-        // 추가 메시지 도착 → 버퍼에 추가하고 타이머 리셋
-        clearTimeout(existing.timer)
-        existing.messages.push(messageText)
-        existing.lastMessageId = msgId
-        await updateQueuedProgress(chatId, {
-          messageCount: existing.messages.length,
-          replyToMessageId: msgId,
-          phase: existingAbort ? 'restart' : 'merged',
-        })
-        console.log(`📦 메시지 배칭: ${existing.messages.length}개 누적 (chat ${chatId})`)
-        existing.timer = setTimeout(async () => {
-          const batch = messageBatchBuffer.get(chatId)
-          messageBatchBuffer.delete(chatId)
-          if (batch) {
-            // abort된 이전 메시지가 있으면 앞에 합침
-            const savedText = inFlightText.get(chatId)
-            inFlightText.delete(chatId)
-            const allMessages = savedText ? [savedText, ...batch.messages] : batch.messages
-            const combined = allMessages.join('\n\n')
-            console.log(`📨 배칭 완료: ${allMessages.length}개 메시지 통합 처리${savedText ? ' (이전 메시지 포함)' : ''}`)
-            persistPendingMessage(chatId, combined, {
-              lastMessageId: batch.lastMessageId,
-              startedAt: Date.now(),
-              phase: 'queued',
-            })
-            await updateQueuedProgress(chatId, {
-              messageCount: allMessages.length,
-              replyToMessageId: batch.lastMessageId,
-              phase: 'starting',
-            })
-            const ac = new AbortController()
-            processingAbort.set(chatId, ac)
-            inFlightText.set(chatId, combined) // 처리 중 텍스트 보존
-            try {
-              await handleMessage(chatId, combined, ac.signal, batch.lastMessageId)
-            } finally {
-              processingAbort.delete(chatId)
-              inFlightText.delete(chatId)
-            }
-          }
-        }, MESSAGE_BATCH_DELAY)
-      } else {
-        // 첫 메시지 → 버퍼 생성하고 디바운스 타이머 시작
-        await updateQueuedProgress(chatId, {
-          messageCount: 1,
-          replyToMessageId: msgId,
-          phase: existingAbort ? 'restart' : 'queued',
-          startedAt: Date.now(),
-        })
-        messageBatchBuffer.set(chatId, {
-          messages: [messageText],
-          lastMessageId: msgId,
-          timer: setTimeout(async () => {
-            const batch = messageBatchBuffer.get(chatId)
-            messageBatchBuffer.delete(chatId)
-            if (batch) {
-              // abort된 이전 메시지가 있으면 앞에 합침
-              const savedText = inFlightText.get(chatId)
-              inFlightText.delete(chatId)
-              const allMessages = savedText ? [savedText, ...batch.messages] : batch.messages
-              const combined = allMessages.join('\n\n')
-              if (allMessages.length > 1) {
-                console.log(`📨 배칭 완료: ${allMessages.length}개 메시지 통합 처리${savedText ? ' (이전 메시지 포함)' : ''}`)
-              }
-              persistPendingMessage(chatId, combined, {
-                lastMessageId: batch.lastMessageId,
-                startedAt: Date.now(),
-                phase: 'queued',
-              })
-              await updateQueuedProgress(chatId, {
-                messageCount: allMessages.length,
-                replyToMessageId: batch.lastMessageId,
-                phase: 'starting',
-              })
-              const ac = new AbortController()
-              processingAbort.set(chatId, ac)
-              inFlightText.set(chatId, combined) // 처리 중 텍스트 보존
-              try {
-                await handleMessage(chatId, combined, ac.signal, batch.lastMessageId)
-              } finally {
-                processingAbort.delete(chatId)
-                inFlightText.delete(chatId)
-              }
-            }
-          }, MESSAGE_BATCH_DELAY),
-        })
-      }
+      // 메시지 배칭: 연달아 오는 메시지를 합쳐서 한 번에 처리.
+      // 처리 중에 새 메시지가 오면 기존 처리를 멈추고 이전 입력까지 합쳐 재처리한다.
+      await messageBatcher.push(chatId, messageText, msg.message_id)
     }
   }
 }
