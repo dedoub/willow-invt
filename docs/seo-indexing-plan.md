@@ -32,7 +32,18 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 
 ## 대기열
 
-### 리뷰노트 (연습문제 16건, 우선)
+### 보이스카드 독일어권 (신규 클러스터, 최우선)
+
+2026-08-04 배포. 84 URL(허브2 × 7로케일 + 덱10 × 7로케일) 전부 unknown이다.
+허브부터 넣는다 — 어제 bible·quran 허브가 요청 하루 만에 색인된 패턴을 따른다.
+나머지 로케일 허브(ru·uk·pl·it·vi)와 덱 페이지는 허브 색인 후 자연 크롤을 기다린다.
+
+1. `/templates/einbuergerungstest` (EN 허브)
+2. `/templates/deutsch-a1` (EN 허브)
+3. `/de/templates/einbuergerungstest` (de 허브 — 이 클러스터의 헤드텀 언어)
+4. `/de/templates/deutsch-a1` (de 허브)
+
+### 리뷰노트 (연습문제 16건)
 
 모두 `https://reviewnotes.app/en/practice/` 하위. 허브는 색인됐는데 하위가 전부 unknown이라 개별 요청.
 
@@ -69,8 +80,9 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 | 날짜 | 배치 | 상태 |
 |---|---|---|
 | 08-03 | VC 8건(허브2·코어3·잔여3) + RN 3건(pythagorean, quadratic-formula, linear-function) | ✅ 11건 완료, 12건째 quota |
-| 08-04 | RN 대기열 1~11 (linear-system ~ grade-4-2-line-graphs) | 예정 |
-| 08-05 | RN 대기열 12~16 + 스냅샷 보고 VC/RN 잔여 unknown 선정 | 예정 |
+| 08-04 | VC 독일어권 허브 4 + RN 대기열 1~7 | ❌ 첫 요청부터 Quota Exceeded — 0건 |
+| 08-05 | VC 독일어권 허브 4 + RN 대기열 1~7 (08-04 미집행분) | 예정 |
+| 08-06 | RN 대기열 8~16 + 스냅샷 보고 잔여 선정 | 예정 |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ## 팔로우업 로그
@@ -78,3 +90,4 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 | 날짜 | 요청 | 결과 | 전일 요청분 상태 이동 |
 |---|---|---|---|
 | 08-03 | VC 8 + RN 3 | 11건 등록, quota 도달 | (첫 배치) 07-30 시민권 8건 중 3건 색인 확인 |
+| 08-04 | 0건 (VC `/templates/einbuergerungstest` 시도 → Quota Exceeded) | ❌ 할당량 미회복. 08-03 배치가 늦게 돌아 24h 창이 안 넘어간 것으로 보임 — 다음 배치는 시각을 앞당길 것 | 08-03 요청분 확인: bible·quran 허브 + RN 3건(pythagorean·quadratic-formula·linear-function) **전부 Submitted and indexed** |
