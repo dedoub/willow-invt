@@ -26,6 +26,7 @@
 --   44.232.0.0/11     AWS us-west-2
 --   52.8.0.0/13       AWS us-west-1
 --   54.144.0.0/12     AWS us-east-1
+--   64.233.160.0/19   Google Play 심사/프리런치 안드로이드 (2026-08-04 추가)
 --   66.102.0.0/20     Google
 --   66.249.0.0/16     Google crawler
 --   74.125.0.0/16     Google
@@ -37,6 +38,14 @@
 -- 사라지는 버스트가 2026-05-12부터 13회. 같은 /24인데 geo가 PH→IN→PL→US로 튄다
 -- (프록시 출구 노드라 지오 신뢰 불가). 애플 심사 대역과 같은 성격의 구글판.
 -- 심사자는 카드 생성·학습까지 실제로 돌려보기 때문에 행동만으로는 실사용자와 구분이 안 된다.
+--
+-- 64.233.160.0/19 근거: 104.132.16/20을 막은 당일(2026-08-04) 같은 성격의 안드로이드 트래픽이
+-- 64.233.172.96~108에서 또 들어왔다. 2026-06-05부터 10회, 릴리스 버전(1.1.41·42·43·47·49·71·
+-- 79·99·101·119)마다 정확히 한 번씩 수초~수분 버스트. 전부 android/US/비로그인이고 대시보드
+-- 비로그인 여정 표에 실유저처럼 잡혔다(is_likely_bot=false로 새 대역이라 트리거가 못 잡음).
+-- 1.1.119는 스토어 미배포 상태였는데 이 대역 기기가 그 버전을 돌리고 있었다 — 미배포 버전은
+-- 심사 트래픽의 강한 신호다. 06-30 버스트에선 로그인까지 했는데(lulamontgomery.32292@gmail.com)
+-- 그 계정은 기존 숫자 정규식에 이미 걸려서 유저 테이블 쪽은 손댈 게 없었다.
 
 -- ① 트리거
 create or replace function public.capture_anonymous_event_ip()
@@ -80,6 +89,7 @@ begin
       or new.ip_address <<= inet '44.232.0.0/11'
       or new.ip_address <<= inet '52.8.0.0/13'
       or new.ip_address <<= inet '54.144.0.0/12'
+      or new.ip_address <<= inet '64.233.160.0/19'
       or new.ip_address <<= inet '66.102.0.0/20'
       or new.ip_address <<= inet '66.249.0.0/16'
       or new.ip_address <<= inet '74.125.0.0/16'
@@ -95,7 +105,7 @@ $function$;
 -- ② 백필 (대역 추가 시 새 CIDR로 바꿔 실행)
 -- update anonymous_events
 -- set is_likely_bot = true
--- where ip_address <<= inet '104.132.16.0/20' and is_likely_bot is not true;
+-- where ip_address <<= inet '64.233.160.0/19' and is_likely_bot is not true;
 
 -- ③ 뷰
 create or replace view public.anonymous_events_real_users as
@@ -110,6 +120,7 @@ create or replace view public.anonymous_events_real_users as
           or ip_address <<= '44.232.0.0/11'::inet
           or ip_address <<= '52.8.0.0/13'::inet
           or ip_address <<= '54.144.0.0/12'::inet
+          or ip_address <<= '64.233.160.0/19'::inet
           or ip_address <<= '66.102.0.0/20'::inet
           or ip_address <<= '66.249.0.0/16'::inet
           or ip_address <<= '74.125.0.0/16'::inet
@@ -121,6 +132,6 @@ create or replace view public.anonymous_events_real_users as
 
 -- 검증 (셋 다 0이어야 한다)
 -- select
---   (select count(*) from anonymous_events where ip_address <<= inet '104.132.16.0/20' and is_likely_bot is not true) as trigger_leftover,
---   (select count(*) from anonymous_events_real_users where ip_address <<= inet '104.132.16.0/20') as view_leftover,
---   (select count(*) from mv_real_users where ip_address <<= inet '104.132.16.0/20') as mv_leftover;
+--   (select count(*) from anonymous_events where ip_address <<= inet '64.233.160.0/19' and is_likely_bot is not true) as trigger_leftover,
+--   (select count(*) from anonymous_events_real_users where ip_address <<= inet '64.233.160.0/19') as view_leftover,
+--   (select count(*) from mv_real_users where ip_address <<= inet '64.233.160.0/19') as mv_leftover;
