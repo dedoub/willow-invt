@@ -15,7 +15,10 @@ export async function GET(request: Request) {
   }
 
   const only = searchParams.get('site')
-  const targets = only ? INDEXNOW_SITES.filter(s => s.key === only) : INDEXNOW_SITES
+  // 명시 호출은 일시중지된 사이트도 통과시킨다. 중지한 것은 자동 제출이다.
+  const targets = only
+    ? INDEXNOW_SITES.filter(s => s.key === only)
+    : INDEXNOW_SITES.filter(s => !s.paused)
   if (targets.length === 0) {
     return NextResponse.json({ error: 'unknown_site', message: `알 수 없는 사이트: ${only}` }, { status: 400 })
   }

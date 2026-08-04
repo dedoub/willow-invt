@@ -18,12 +18,18 @@ export interface IndexNowSite {
   host: string
   /** https://<host>/<indexKey>.txt 로 접근 가능해야 한다 */
   indexKey: string
+  /**
+   * 자동 제출에서 제외. 항목을 지우지 않는 이유는 indexKey 때문이다 — 키는
+   * 호스트에 올려 둔 파일과 짝이라, 지웠다가 되살리면 값을 다시 맞춰야 한다.
+   */
+  paused?: boolean
 }
 
 export const INDEXNOW_SITES: IndexNowSite[] = [
   { key: 'voicecards', host: 'voicecards.quest', indexKey: '753d1cd9057ce620b226c0552e889eb6' },
   { key: 'reviewnotes', host: 'reviewnotes.app', indexKey: '9c11942ff47a213900b9169cae503395' },
-  { key: 'valuechain', host: 'valuechain.wiki', indexKey: 'debb10663e050e40fcaa238c9fc589b5' },
+  // 2026-08-04 프로젝트 일시중지(CEO 결정). 사이트는 살아 있고 수동 제출은 된다.
+  { key: 'valuechain', host: 'valuechain.wiki', indexKey: 'debb10663e050e40fcaa238c9fc589b5', paused: true },
 ]
 
 /** 한 번에 보낼 수 있는 상한은 10,000. 그보다 잘게 끊어 실패 반경을 줄인다 */
