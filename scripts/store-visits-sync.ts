@@ -18,6 +18,8 @@ import { GoogleAuth } from 'google-auth-library'
 import { createClient } from '@supabase/supabase-js'
 
 const LOG = '[store-visits-sync]'
+// 플레이 export 가 이 일수 이상 갱신되지 않으면 "트래픽 0" 이 아니라 "수집 정지" 로 본다.
+const PLAY_STALE_DAYS = 3
 const supabase = createClient(
   process.env.VOICECARDS_SUPABASE_URL!,
   process.env.VOICECARDS_SUPABASE_SERVICE_KEY!,
@@ -70,7 +72,7 @@ async function collectPlay(): Promise<Row[]> {
     { headers: H }
   )
   if (!listRes.ok) throw new Error(`GCS list ${listRes.status}: ${JSON.stringify((await listRes.json())?.error?.message ?? '')}`)
-  const items = ((await listRes.json()).items ?? []) as Array<{ name: string }>
+  const items = ((await listRes.json()).items ?? []) as Array<{ name: string; updated?: string }>
   // 최근 2개월치만 재파싱 (과거는 이미 확정)
   const now = new Date()
   const months: string[] = []
@@ -85,6 +87,20 @@ async function collectPlay(): Promise<Row[]> {
   // 첫 실행: 전체 히스토리 백필 (테이블이 비어 있을 때)
   const { count } = await supabase.from('store_visits').select('*', { count: 'exact', head: true }).eq('platform', 'android')
   const files = (count ?? 0) === 0 ? items.filter(o => isCountryFile(o.name)) : targets
+
+  // 신선도 감시: 플레이 export 가 멈추면 행이 안 늘 뿐 에러가 나지 않는다 →
+  // "트래픽이 0" 과 "파일이 안 온다" 가 DB 에서 똑같이 보인다. 여기서 구분해 둔다.
+  // (2026-08-04: store_performance 가 7/29 이후 갱신 정지, ratings 는 정상인 상태를 겪음)
+  const newest = targets.map(o => o.updated ?? '').filter(Boolean).sort().pop()
+  if (newest) {
+    const staleDays = Math.floor((Date.now() - Date.parse(newest)) / 86_400_000)
+    console.log(`${LOG} play: 최신 store_performance 파일 갱신 ${newest.slice(0, 10)} (${staleDays}일 전)`)
+    if (staleDays >= PLAY_STALE_DAYS) {
+      await notifyCeo(`⚠️ 플레이 스토어 통계 export 정지 의심\nstore_performance 파일이 ${staleDays}일째(${newest.slice(0, 10)}) 갱신되지 않았습니다.\n안드로이드 스토어 방문 수치는 그 이후로 "0" 이 아니라 "미상"으로 보셔야 합니다.`)
+    }
+  } else {
+    console.error(`${LOG} play: 대상 월(${months.join(', ')}) 파일이 하나도 없습니다`)
+  }
   console.log(`${LOG} play: ${files.length} file(s) to parse (backfill=${(count ?? 0) === 0})`)
 
   const byDate = new Map<string, { visitors: number; impressions: number }>()
@@ -113,6 +129,10 @@ async function collectPlay(): Promise<Row[]> {
       byDate.set(date, cur)
     }
   }
+  // 노출(impressions)은 항상 null 이다 — 버그가 아니라 플레이가 안 준다.
+  // store_performance CSV 의 컬럼은 acquisitions / visitors / conversion rate 뿐이고
+  // (traffic_source, total_* 파일도 동일) 노출 지표는 export 에 존재하지 않는다.
+  // 안드로이드 노출은 Play Console 화면에서만 볼 수 있다. (2026-08-04 전 파일 헤더 확인)
   return Array.from(byDate.entries()).map(([date, v]) => ({
     date, platform: 'android' as const, visitors: v.visitors, impressions: v.impressions || null,
   }))
