@@ -165,13 +165,8 @@ async function inspectUrl(property: string, url: string, token: string): Promise
   return json.inspectionResult?.indexStatusResult ?? null
 }
 
-/**
- * 사이트맵 경로 중 콘텐츠 단위 대표 URL 목록.
- * 로케일 변형은 하나로 묶고, 로케일 없는 기본 경로가 있으면 그걸 대표로 쓴다.
- * (모든 로케일을 검사하면 쿼터만 소모되고 판단은 같다)
- */
-export async function representativePaths(domain: string): Promise<string[]> {
-  const paths = (await fetchSitemapPaths(domain)).filter(isHtmlPath)
+/** 로케일 변형을 콘텐츠 하나당 대표 경로로 접는다. 기본 로케일이 있으면 그걸 쓴다. */
+function collapseLocales(paths: string[]): string[] {
   const byContent = new Map<string, string>()
   for (const p of paths) {
     const c = canonicalPath(p)
@@ -182,12 +177,42 @@ export async function representativePaths(domain: string): Promise<string[]> {
   return Array.from(byContent.values()).sort()
 }
 
+/**
+ * 사이트맵 경로 중 콘텐츠 단위 대표 URL 목록.
+ * (모든 로케일을 검사하면 쿼터만 소모되고 판단은 같다 — scanLocales가 꺼진 사이트 전제)
+ */
+export async function representativePaths(domain: string): Promise<string[]> {
+  return collapseLocales((await fetchSitemapPaths(domain)).filter(isHtmlPath))
+}
+
+/**
+ * 실제로 검사할 경로.
+ *
+ * scanLocales가 켜진 사이트는 로케일 변형까지 전수로 본다. "영어판이 색인됐으니
+ * 로케일도 됐을 것"이 사실이 아니어서다 — 근거는 GscSiteConfig.scanLocales 주석.
+ * 상한을 넘기면 접어서 대표만 본다. 관측 범위가 줄더라도 스캔이 통째로
+ * 실패하는 것보다는 낫다.
+ */
+async function scanPaths(
+  domain: string,
+  scanLocales: boolean,
+  limit: number,
+): Promise<{ paths: string[]; mode: 'full' | 'representative' }> {
+  const all = (await fetchSitemapPaths(domain)).filter(isHtmlPath)
+  if (scanLocales && all.length <= limit) {
+    return { paths: all.slice().sort(), mode: 'full' }
+  }
+  return { paths: collapseLocales(all).slice(0, limit), mode: 'representative' }
+}
+
 export interface ScanResult {
   siteKey: string
   checkedOn: string
   requested: number
   inspected: number
   failed: number
+  /** 'full' = 로케일 변형까지 전수, 'representative' = 콘텐츠당 대표 하나. */
+  mode: 'full' | 'representative'
   buckets: Record<IndexBucket, number>
 }
 
@@ -203,7 +228,7 @@ export async function scanSiteIndexStatus(
   const site = getGscSite(siteKey)
   if (!site) throw new Error(`알 수 없는 사이트: ${siteKey}`)
 
-  const paths = (await representativePaths(site.domain)).slice(0, limit)
+  const { paths, mode } = await scanPaths(site.domain, site.scanLocales, limit)
   const client = await getAuth().getClient()
   const token = (await client.getAccessToken()).token
   if (!token) throw new Error('서비스 계정 토큰 획득 실패')
@@ -254,7 +279,7 @@ export async function scanSiteIndexStatus(
     if (error) throw new Error(`색인 스냅샷 저장 실패: ${error.message}`)
   }
 
-  return { siteKey, checkedOn, requested: paths.length, inspected: rows.length, failed, buckets }
+  return { siteKey, checkedOn, requested: paths.length, inspected: rows.length, failed, mode, buckets }
 }
 
 // ─── 조회 ─────────────────────────────────────────────────────────────────────

@@ -29,12 +29,26 @@ export interface GscSiteConfig {
   name: string
   domain: string
   property: string   // sc-domain:example.com 또는 https://example.com/
+  /**
+   * 색인 스캔에서 로케일 변형까지 전수 검사할지.
+   *
+   * 기본은 false — 로케일 변형을 대표 하나로 접어 쿼터를 아낀다. 보이스카드만
+   * 켠 이유는 그 전제가 거기서 깨졌기 때문이다: 2026-08-04 스냅샷에서 추적
+   * 217건 중 영어 원본은 37건이 색인됐는데 로컬라이즈 URL은 2건뿐이었다.
+   * 영어판의 색인 여부가 로케일 변형의 색인 여부를 대변하지 못하고, 접는
+   * 순간 사이트맵 670건 중 450여 건이 관측 사각으로 남는다.
+   *
+   * 사이트별로 켜는 이유는 시간 예산이다. 크론은 세 사이트를 한 함수(300초)
+   * 안에서 순차 처리하고 밸류체인만 1,394쪽이라, 전수를 일괄로 켜면 타임아웃
+   * 위험이 실제로 있다. 보이스카드는 670건이라 약 45초를 더 쓴다.
+   */
+  scanLocales: boolean
 }
 
 const SITE_DEFS: Array<Omit<GscSiteConfig, 'property'> & { envKey: string; fallback: string }> = [
-  { key: 'voicecards', name: 'VoiceCards', domain: 'voicecards.quest', envKey: 'GSC_PROPERTY_VOICECARDS', fallback: 'sc-domain:voicecards.quest' },
-  { key: 'reviewnotes', name: 'ReviewNotes', domain: 'reviewnotes.app', envKey: 'GSC_PROPERTY_REVIEWNOTES', fallback: 'https://reviewnotes.app/' },
-  { key: 'valuechain', name: 'ValueChain.wiki', domain: 'valuechain.wiki', envKey: 'GSC_PROPERTY_VALUECHAIN', fallback: 'https://valuechain.wiki/' },
+  { key: 'voicecards', name: 'VoiceCards', domain: 'voicecards.quest', envKey: 'GSC_PROPERTY_VOICECARDS', fallback: 'sc-domain:voicecards.quest', scanLocales: true },
+  { key: 'reviewnotes', name: 'ReviewNotes', domain: 'reviewnotes.app', envKey: 'GSC_PROPERTY_REVIEWNOTES', fallback: 'https://reviewnotes.app/', scanLocales: false },
+  { key: 'valuechain', name: 'ValueChain.wiki', domain: 'valuechain.wiki', envKey: 'GSC_PROPERTY_VALUECHAIN', fallback: 'https://valuechain.wiki/', scanLocales: false },
 ]
 
 export function getGscSite(key: string): GscSiteConfig | null {
@@ -43,6 +57,7 @@ export function getGscSite(key: string): GscSiteConfig | null {
   return {
     key: def.key, name: def.name, domain: def.domain,
     property: process.env[def.envKey] || def.fallback,
+    scanLocales: def.scanLocales,
   }
 }
 
