@@ -600,7 +600,16 @@ const EXCLUDED_VOICECARDS_EMAIL_PATTERNS: RegExp[] = [
 // 2026-07-18 qwe.gpt22022 봇/throwaway 추가 (가입 즉시 이탈, 기존 숫자 정규식엔 안 걸림)
 // 2026-07-25 forcemajor1315 봇 추가 (가입 3초만에 이탈, 4자리+점없음이라 숫자 정규식 미포착).
 //   이벤트통계는 IP필터(54.144/12)로 이미 제외됐지만, 유저 테이블은 이 JS 이메일 목록이라 별도 추가 필요.
-const EXCLUDED_VOICECARDS_EMAILS = new Set(['dw.kim@willowinvt.com', 'qwe.gpt22022@gmail.com', 'forcemajor1315@gmail.com'])
+// 2026-08-04 gpt1mnl2022 추가 — 구글 플레이 심사 계정. 카드 생성까지 해서 실사용자처럼 보이지만
+//   (심사자가 주요 플로우를 훑기 때문), 출처가 104.132.16.0/20(Google)이고 릴리스마다 제출 당일
+//   최신 버전으로 2~8분 훑고 사라지는 버스트가 05-12부터 13회 반복됐다. 1.1.119는 이 기기가
+//   전 세계 유일 안드로이드였다. 이벤트통계는 같은 날 CIDR 추가로 제외했다(bot_ip_filter.sql).
+const EXCLUDED_VOICECARDS_EMAILS = new Set([
+  'dw.kim@willowinvt.com',
+  'qwe.gpt22022@gmail.com',
+  'forcemajor1315@gmail.com',
+  'gpt1mnl2022@gmail.com',
+])
 const EXCLUDED_VOICECARDS_USER_IDS = new Set([
   '101662172713686736923',
   '100644446554227652222',
