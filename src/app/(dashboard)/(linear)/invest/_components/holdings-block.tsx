@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useState, useMemo } from 'react'
+import { Fragment, useState, useMemo, useCallback } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -145,17 +145,18 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
   }
   const isKrw = currencyMode === 'KRW'
 
-  const holdings = useMemo((): Holding[] => {
-    const getFxRate = (date: string): number => {
-      const d = new Date(date)
-      for (let i = 0; i < 5; i++) {
-        const key = d.toISOString().slice(0, 10)
-        if (fxHistory[key]) return fxHistory[key]
-        d.setDate(d.getDate() - 1)
-      }
-      return usdKrwRate
+  // 거래일 환율 (없으면 최대 5일 소급, 그래도 없으면 현재 환율)
+  const getFxRate = useCallback((date: string): number => {
+    const d = new Date(date)
+    for (let i = 0; i < 5; i++) {
+      const key = d.toISOString().slice(0, 10)
+      if (fxHistory[key]) return fxHistory[key]
+      d.setDate(d.getDate() - 1)
     }
+    return usdKrwRate
+  }, [fxHistory, usdKrwRate])
 
+  const holdings = useMemo((): Holding[] => {
     const holdingsMap = new Map<string, { ticker: string; company_name: string; market: 'KR' | 'US'; currency: 'KRW' | 'USD'; netQty: number; totalCost: number; krwCost: number }>()
     const sorted = [...stockTrades].sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime() || a.id.localeCompare(b.id))
 
@@ -214,7 +215,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
         }
       })
       .sort((a, b) => b.currentValue - a.currentValue)
-  }, [stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory])
+  }, [stockTrades, stockQuotes, stockThemes, getFxRate])
 
   const filteredHoldings = useMemo(() => {
     if (marketFilter === 'all') return holdings
@@ -273,6 +274,46 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
     const totalPct = totalInv > 0 ? (totalPnl / totalInv) * 100 : 0
     return { krH, usH, krInv, krVal, usInv, usVal, totalInv, totalVal, totalPnl, totalPct, count: filteredHoldings.length }
   }, [filteredHoldings, usdKrwRate])
+
+  // 실현손익 누적 (KRW) — 매도 시점에 확정된 손익. 포트폴리오분석 '수익금'과 동일한 이동평균 원가 방식.
+  // 매도대금(거래일 환율 KRW) − 차감원가(그 시점 평균단가 × 매도수량). soldCost는 수익률 분모용.
+  const realized = useMemo(() => {
+    const state = new Map<string, { qty: number; krwCost: number }>()
+    const sorted = [...stockTrades].sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime() || a.id.localeCompare(b.id))
+    let kr = 0, us = 0, krSoldCost = 0, usSoldCost = 0, sellCount = 0
+
+    for (const tr of sorted) {
+      const s = state.get(tr.ticker) || { qty: 0, krwCost: 0 }
+      const isUS = tr.market === 'US'
+      const fx = isUS ? getFxRate(tr.trade_date) : 1
+
+      if (tr.trade_type === 'buy') {
+        s.qty += tr.quantity
+        s.krwCost += tr.total_amount * fx
+      } else {
+        const krwAvg = s.qty > 0 ? s.krwCost / s.qty : 0
+        const basis = krwAvg * tr.quantity
+        const pnl = tr.total_amount * fx - basis
+        if (isUS) { us += pnl; usSoldCost += basis } else { kr += pnl; krSoldCost += basis }
+        sellCount++
+        s.qty -= tr.quantity
+        s.krwCost -= basis
+        if (s.qty <= 0) { s.qty = 0; s.krwCost = 0 }
+      }
+      state.set(tr.ticker, s)
+    }
+
+    return { kr, us, total: kr + us, krSoldCost, usSoldCost, totalSoldCost: krSoldCost + usSoldCost, sellCount }
+  }, [stockTrades, getFxRate])
+
+  // 시장 필터에 맞춘 실현손익 + 총손익(미실현 + 실현). 분모 = 보유원가 + 청산원가.
+  const totals = useMemo(() => {
+    const rPnl = marketFilter === 'KR' ? realized.kr : marketFilter === 'US' ? realized.us : realized.total
+    const rCost = marketFilter === 'KR' ? realized.krSoldCost : marketFilter === 'US' ? realized.usSoldCost : realized.totalSoldCost
+    const combinedPnl = summary.totalPnl + rPnl
+    const base = summary.totalInv + rCost
+    return { rPnl, rCost, combinedPnl, combinedPct: base > 0 ? (combinedPnl / base) * 100 : 0 }
+  }, [realized, summary, marketFilter])
 
   // Theme(parent) + sub-theme 통계 — 모든 KRW 환산
   const themeStats = useMemo(() => {
@@ -452,6 +493,37 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             <div style={{ fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(summary.totalVal, 'KRW')}</div>
             <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: pnlColor(summary.totalPnl), fontVariantNumeric: 'tabular-nums' }}>
               {summary.totalPnl > 0 ? '+' : ''}{fmtAmount(summary.totalPnl, 'KRW')} ({summary.totalPnl > 0 ? '+' : ''}{summary.totalPct.toFixed(1)}%)
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 실현손익 + 총손익 — 위 카드는 보유분 미실현만 잡으므로, 청산 확정분을 여기서 더해 포트폴리오분석 '수익금'과 정의를 맞춘다 */}
+      {hasQuotes && realized.sellCount > 0 && (
+        <div style={{ padding: '0 14px 12px' }}>
+          <div style={{
+            background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px',
+            display: 'flex', flexDirection: mobile ? 'column' : 'row',
+            gap: mobile ? 4 : 12, alignItems: mobile ? 'stretch' : 'baseline',
+            fontVariantNumeric: 'tabular-nums',
+            border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>실현손익</span>
+              <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.semibold, color: pnlColor(totals.rPnl) }}>
+                {totals.rPnl > 0 ? '+' : ''}{fmtAmount(totals.rPnl, 'KRW')}
+              </span>
+              {marketFilter === 'all' && (
+                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
+                  국내 {realized.kr > 0 ? '+' : ''}{fmtAmount(realized.kr, 'KRW')} · 해외 {realized.us > 0 ? '+' : ''}{fmtAmount(realized.us, 'KRW')}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', marginLeft: mobile ? 0 : 'auto' }}>
+              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>총손익 (미실현+실현)</span>
+              <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.semibold, color: pnlColor(totals.combinedPnl) }}>
+                {totals.combinedPnl > 0 ? '+' : ''}{fmtAmount(totals.combinedPnl, 'KRW')} ({totals.combinedPnl > 0 ? '+' : ''}{totals.combinedPct.toFixed(1)}%)
+              </span>
             </div>
           </div>
         </div>
