@@ -16,7 +16,13 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 
 ## 실행 프로토콜 (어느 세션이든 동일)
 
-1. 당일 스냅샷 확인: 아래 SQL로 어제 요청분의 상태 이동 점검 (프로젝트 `axcfvieqsaphhvbkyzzv`)
+> 클로드 세션은 `seo-daily-indexing` 스킬로 진행한다. 아래 1~2단계는
+> `node scripts/seo-daily-brief.mjs` 한 줄이 대신한다 — 전일 대비 증감, 신규 색인,
+> 우선순위가 적용된 오늘 후보를 한 번에 낸다. 이 문서는 대기열과 로그(=상태)를
+> 맡고, 절차는 스킬이 맡는다.
+
+1. 당일 스냅샷 확인: 어제 요청분의 상태 이동 점검. 손으로 볼 때의 SQL
+   (프로젝트 `axcfvieqsaphhvbkyzzv`)
 
    ```sql
    select site_key, path, coverage_state, is_indexed from seo_index_status
