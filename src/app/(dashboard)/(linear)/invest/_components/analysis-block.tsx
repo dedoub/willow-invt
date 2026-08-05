@@ -7,6 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from 'recharts'
 import type { StockTradeFull, StockQuoteFull, TickerTheme } from './holdings-block'
+import { createFxLookup } from '@/lib/fx-lookup'
 
 /* ── Types ── */
 
@@ -193,13 +194,13 @@ export function AnalysisBlock({
       priceLookup.set(ticker, dateMap)
     }
 
-    // 3. Forward-filled FX
-    const fxForDate = new Map<string, number>()
-    let lastFx = usdKrwRate
-    for (const d of sortedDates) {
-      if (fxHistory[d]) lastFx = fxHistory[d]
-      fxForDate.set(d, lastFx)
-    }
+    // 3. 환율 조회 — 보유현황과 같은 함수를 쓴다.
+    //
+    // 예전엔 sortedDates(=stockHistory 1년치 거래일)에 forward-fill한 Map이었다. 그 집합에
+    // 없는 날짜는 조회가 빗나가 현재 환율로 떨어졌고, 해당하는 미국 거래일이 28개나 됐다
+    // (1년 이전 거래 + 거래일 아닌 날짜에 입력된 거래). 옛 달러 원가가 오늘 환율로 환산돼
+    // 보유현황과 총손익이 137만원 어긋났다. 자세한 건 src/lib/fx-lookup.ts.
+    const fxForDate = createFxLookup(fxHistory, usdKrwRate)
 
     // 4. Detect stock splits (trade prices vs split-adjusted Yahoo history)
     const tradesSorted = [...stockTrades].sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime() || a.id.localeCompare(b.id))
@@ -236,11 +237,11 @@ export function AnalysisBlock({
       while (qldTradeIdx < tradesSorted.length && tradesSorted[qldTradeIdx].trade_date <= date) {
         const tr = tradesSorted[qldTradeIdx]
         const isUS = tr.market === 'US'
-        const tradeFx = isUS ? (fxForDate.get(tr.trade_date) || usdKrwRate) : 1
+        const tradeFx = isUS ? fxForDate(tr.trade_date) : 1
         const krwAmount = tr.total_amount * tradeFx
         const qPrice = qldPriceOnOrAfter(tr.trade_date)
         if (qPrice && qPrice > 0) {
-          const qFx = fxForDate.get(tr.trade_date) || usdKrwRate  // QLD is USD
+          const qFx = fxForDate(tr.trade_date)  // QLD is USD
           const qSharesPerKrw = 1 / (qPrice * qFx)
           if (tr.trade_type === 'buy') {
             qldState.shares += krwAmount * qSharesPerKrw
@@ -267,7 +268,7 @@ export function AnalysisBlock({
       if (base <= 0) return null
       const px = qldPrices.get(date)
       if (!px || px <= 0) return null
-      const fx = fxForDate.get(date) || usdKrwRate
+      const fx = fxForDate(date)
       const val = qldState.shares * px * fx
       // 총수익률 = (미실현 + 실현누적) / 누적투입원가
       return Math.round((val - qldState.krwCost + qldRealizedCum) / base * 1000) / 10
@@ -298,7 +299,7 @@ export function AnalysisBlock({
           parentTheme: (stockThemes[tr.ticker] || [])[0]?.parentTheme || null,
         }
         const isUS = tr.market === 'US'
-        const tradeFx = isUS ? (fxForDate.get(tr.trade_date) || usdKrwRate) : 1
+        const tradeFx = isUS ? fxForDate(tr.trade_date) : 1
         const splitR = splitRatios.get(tr.ticker) || 1
         if (tr.trade_type === 'buy') {
           state.cost += tr.total_amount; state.krwCost += tr.total_amount * tradeFx; state.qty += tr.quantity * splitR
@@ -333,7 +334,7 @@ export function AnalysisBlock({
         const price = priceLookup.get(ticker)?.get(date)
         if (!price) { hasAll = false; continue }
         const isUS = state.market === 'US'
-        const fx = isUS ? (fxForDate.get(date) || usdKrwRate) : 1
+        const fx = isUS ? fxForDate(date) : 1
         const val = price * state.qty * fx
         const cost = isUS ? state.krwCost : state.cost
         totalVal += val; totalCost += cost

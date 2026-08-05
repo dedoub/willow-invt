@@ -1,6 +1,7 @@
 'use client'
 
-import { Fragment, useState, useMemo, useCallback } from 'react'
+import { Fragment, useState, useMemo } from 'react'
+import { createFxLookup } from '@/lib/fx-lookup'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -145,16 +146,8 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
   }
   const isKrw = currencyMode === 'KRW'
 
-  // 거래일 환율 (없으면 최대 5일 소급, 그래도 없으면 현재 환율)
-  const getFxRate = useCallback((date: string): number => {
-    const d = new Date(date)
-    for (let i = 0; i < 5; i++) {
-      const key = d.toISOString().slice(0, 10)
-      if (fxHistory[key]) return fxHistory[key]
-      d.setDate(d.getDate() - 1)
-    }
-    return usdKrwRate
-  }, [fxHistory, usdKrwRate])
+  // 거래일 환율 — 분석 블록과 반드시 같은 조회를 쓴다 (src/lib/fx-lookup.ts 주석 참고)
+  const getFxRate = useMemo(() => createFxLookup(fxHistory, usdKrwRate), [fxHistory, usdKrwRate])
 
   const holdings = useMemo((): Holding[] => {
     const holdingsMap = new Map<string, { ticker: string; company_name: string; market: 'KR' | 'US'; currency: 'KRW' | 'USD'; netQty: number; totalCost: number; krwCost: number }>()
