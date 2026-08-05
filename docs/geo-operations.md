@@ -273,6 +273,46 @@ ChatGPT를 codex로 붙이고 나서야 양쪽 30문항을 두 엔진으로 다 
 - 우리가 빠진 자리: 보이스카드는 anki 38·quizlet 23·brainscape 18·remnote 14,
   리뷰노트는 quizlet 26·notion 21·anki 19·revisely 18·quizgecko 18.
 
+### 2026-08-05 (주 `measured_week` 2026-08-03 · 측정 중)
+
+크론이 월·화에 Gemini 1회차만 채운 상태에서 수동으로 4회차를 더했다. 남은 크론(수·목·금·토의
+2·3회차)이 이 주에 계속 쌓이므로 **아래는 확정값이 아니라 중간값**이다. 주말에 다시 접어야 한다.
+
+| 사이트 | 엔진 | 행 | 언급 | 추천 Top3 | 인용 |
+|---|---|---|---|---|---|
+| voicecards | chatgpt | 30 | 23.3% | **20%** | 20% |
+| voicecards | gemini | 60 | 8.3% | 5.0% | 0% |
+| reviewnotes | gemini | 60 | 5.0% | 1.7% | 3.3% |
+
+- **보이스카드 ChatGPT가 `alt`군에서 전부 잡혔다.** 5문항 중 **5문항 Top3**, 그중 4건은 URL도
+  같이 인용됐다. 지난주 전체 Top3가 3건이었는데 이번엔 이 한 군에서만 5건이다.
+  나머지 군(`bible`·`civics`·`es`·`ja`·`method`·`pdf`·`quran` 17문항)은 전량 0으로 그대로다.
+  음성 니치에서만 잡힌다는 기존 진단이 더 뾰족해진 형태다.
+- **Gemini 인용은 여전히 0.** 지난주 90번 중 0건, 이번 주 60번 중 0건. 브랜드는 알면서 우리
+  페이지를 출처로 한 번도 안 잡는다. 회차를 더 쌓아도 안 움직이는 패턴으로 봐야 한다.
+- **리뷰노트가 처음으로 0을 벗어났다.** Gemini Top3 0% → 1.7%, 인용 0% → 3.3%. 다만 질문
+  1개짜리라 노이즈 범위다. 여기에 의미를 부여하면 지난주 1회차 과장과 같은 실수가 된다.
+- 우리가 빠진 자리: 보이스카드 anki 40·quizlet 23·brainscape 19·remnote 10 /
+  리뷰노트 quizlet 11·notion 10·anki 9·**mindgrasp 8·quizgecko 7·studyfetch 5**.
+  리뷰노트 쪽에 AI 학습도구(mindgrasp·studyfetch·gizmo)가 새로 올라왔다 — 지난주 revisely 자리다.
+
+> 리뷰노트 ChatGPT는 이 시점에 미측정이다. 아래 "측정이 조용히 날아가는 함정" 참고.
+
+### 측정이 조용히 날아가는 함정 (2026-08-05)
+
+ChatGPT 측정을 일반 백그라운드로 띄웠다가 **두 번 연속 날렸다.** 에이전트 세션의 턴이 끝날 때
+프로세스가 정리되면서 죽는데, 에러가 한 줄도 안 남는다. 러너는 전량 완료 후에 저장하므로
+중간에 죽으면 **0행**이고, 그때까지 태운 CEO 봇 구독 사용량은 회수가 안 된다.
+
+띄울 때 세션에서 분리하고 PPID를 확인할 것 (macOS엔 `setsid`가 없다):
+
+```bash
+( ( nohup bash scripts/geo-measure-chatgpt.sh 1 > ~/geo-chatgpt.log 2>&1 < /dev/null & ) & )
+ps -ax -o pid,ppid,command | grep geo-measure | grep -v grep   # PPID가 1이어야 산다
+```
+
+Gemini는 사이트당 몇 분이라 이 문제가 없다. ChatGPT만 해당한다.
+
 ## 미완
 
 - **Perplexity 미가동.** 어댑터는 준비돼 있고 `PERPLEXITY_API_KEY`만 넣으면 붙는다. 지금 숫자는
