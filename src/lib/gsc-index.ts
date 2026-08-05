@@ -23,10 +23,16 @@ const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly'
  */
 const DEFAULT_SCAN_LIMIT = 1_400
 /**
- * 동시 요청 수. 분당 600건 제한이라 호출당 1초를 잡아도 10이면 분당 약 500건으로 아래에 머문다.
- * 1,400쪽을 5로 돌면 함수 제한시간(300초)을 넘긴다.
+ * 동시 요청 수.
+ *
+ * 10으로는 부족하다는 게 2026-08-05에 드러났다. 실측 처리량이 10 워커에서 초당 1.2건이라
+ * (호출당 1초가 아니라 8초 넘게 걸린다), 보이스카드 670쪽이면 약 560초 — 함수 제한 300초를
+ * 넘겨 504로 죽었다. 아래 flush 주석 참조: 죽으면 그날 스냅샷이 통째로 비었다.
+ *
+ * 30이면 같은 실측 기준 분당 약 210건이라 GSC 분당 600건 제한 아래에 넉넉히 머물고,
+ * 670쪽을 190초 안팎에 끝낸다. 하루 쿼터는 속성당 2,000건이라 전수 검사에 영향 없다.
  */
-const CONCURRENCY = 10
+const CONCURRENCY = 30
 
 // ─── 인증 ─────────────────────────────────────────────────────────────────────
 
@@ -238,7 +244,19 @@ export async function scanSiteIndexStatus(
     indexed: 0, crawled: 0, discovered: 0, unseen: 0, excluded: 0, unknown: 0,
   }
   let failed = 0
+  let inspected = 0
   const rows: Array<Record<string, unknown>> = []
+
+  // 같은 날 재실행하면 덮어쓴다 (하루 1행/URL)
+  const flush = async (batch: Array<Record<string, unknown>>) => {
+    for (let i = 0; i < batch.length; i += 200) {
+      const chunk = batch.slice(i, i + 200)
+      const { error } = await supabase
+        .from('seo_index_status')
+        .upsert(chunk, { onConflict: 'site_key,path,checked_on' })
+      if (error) throw new Error(`색인 스냅샷 저장 실패: ${error.message}`)
+    }
+  }
 
   // 고정 크기 워커 풀 — 분당 제한을 넘지 않으면서 전수 검사를 끝낸다
   let cursor = 0
@@ -266,20 +284,18 @@ export async function scanSiteIndexStatus(
         user_canonical: r.userCanonical ?? null,
         is_indexed: bucket === 'indexed',
       })
+      inspected++
+      // 중간 저장. 예전엔 전수 검사가 끝난 뒤에 한 번에 upsert 했는데, 그러면 함수가
+      // 제한시간에 걸려 죽는 순간 그날 스냅샷이 통째로 사라진다 — 부분 결과조차 안 남아
+      // 브리프는 하루 묵은 데이터로 조용히 계속 돈다(2026-08-05 사고). 200건마다 흘려보내
+      // 다음에 또 시간이 모자라도 거기까지는 남게 한다.
+      if (rows.length >= 200) await flush(rows.splice(0, rows.length))
     }
   }
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, paths.length) }, worker))
+  if (rows.length > 0) await flush(rows)
 
-  // 같은 날 재실행하면 덮어쓴다 (하루 1행/URL)
-  for (let i = 0; i < rows.length; i += 200) {
-    const chunk = rows.slice(i, i + 200)
-    const { error } = await supabase
-      .from('seo_index_status')
-      .upsert(chunk, { onConflict: 'site_key,path,checked_on' })
-    if (error) throw new Error(`색인 스냅샷 저장 실패: ${error.message}`)
-  }
-
-  return { siteKey, checkedOn, requested: paths.length, inspected: rows.length, failed, mode, buckets }
+  return { siteKey, checkedOn, requested: paths.length, inspected, failed, mode, buckets }
 }
 
 // ─── 조회 ─────────────────────────────────────────────────────────────────────
