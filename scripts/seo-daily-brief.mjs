@@ -70,6 +70,19 @@ async function stuckSince(site) {
 
 const depth = p => p.split('/').filter(Boolean).length
 
+// 경로 앞의 로케일 세그먼트. src/lib/umami.ts의 canonicalPath와 같은 규칙이다.
+const LOCALES = new Set([
+  'ko', 'en', 'ja', 'zh', 'es', 'fr', 'de', 'pt', 'it', 'ru', 'ar', 'hi', 'id', 'vi',
+  'th', 'tr', 'pl', 'nl', 'sv', 'da', 'fi', 'no', 'cs', 'uk', 'he', 'ms', 'fa', 'ro',
+  'hu', 'el', 'bn', 'ta', 'ur', 'tl', 'sw', 'ca', 'sk', 'bg', 'hr', 'sr', 'lt', 'lv', 'et',
+])
+/** ['/es', '/templates/bible'] — 로케일 프리픽스와 그걸 뗀 콘텐츠 경로 */
+const splitLocale = p => {
+  const m = p.match(/^\/([a-z]{2})(?:-[a-zA-Z]{2})?(\/|$)/)
+  if (!m || !LOCALES.has(m[1])) return ['', p]
+  return [`/${m[1]}`, p.slice(m[0].length - (m[2] === '/' ? 1 : 0)) || '/']
+}
+
 /**
  * 허브가 색인되면 그 하위 개별 페이지는 요청하지 않는다 — 허브 크롤로 따라온다.
  * 시민권 클러스터에서 확인된 패턴이고(허브 색인 → 하위 자연 유입, 2026-07-30),
@@ -88,14 +101,22 @@ const COVERED_BY_HUB = {
   reviewnotes: [],
 }
 
-/** [남길 후보, 허브가 덮어서 제외한 건수] */
+/**
+ * [남길 후보, 허브가 덮어서 제외한 건수]
+ *
+ * 규칙은 로케일을 뗀 경로로 맞춰 보고, 덮는 허브는 **같은 로케일의 허브**로 찾는다.
+ * 규칙이 `/templates/memorize-` 모양이라 `/es/templates/memorize-surah-1`은 하나도
+ * 안 걸렸고, 로케일 하위 페이지가 허브에 덮이고도 대기열에 그대로 남았다(2026-08-05).
+ * 영어 허브가 색인됐다고 스페인어 하위가 따라오지는 않으므로 로케일별로 따로 본다.
+ */
 function dropHubCovered(site, rows, cur) {
   const rules = COVERED_BY_HUB[site] ?? []
   const covered = new Map()
   const kept = rows.filter(r => {
-    const hit = rules.find(([re]) => re.test(r.path))
+    const [prefix, content] = splitLocale(r.path)
+    const hit = rules.find(([re]) => re.test(content))
     if (!hit) return true
-    const hub = hit[1]
+    const hub = `${prefix}${hit[1]}`
     if (hub === r.path) return true            // 허브 자신은 후보다
     if (!cur.get(hub)?.is_indexed) return true // 허브가 아직이면 하위도 후보
     covered.set(hub, (covered.get(hub) ?? 0) + 1)
@@ -130,12 +151,20 @@ for (const site of SITES) {
   const stuck = await stuckSince(site)
 
   const count = (m, re) => [...m.values()].filter(r => re.test(r.coverage_state)).length
+  const isLocale = r => splitLocale(r.path)[0] !== ''
   const idx = m => [...m.values()].filter(r => r.is_indexed).length
-  const delta = prev ? idx(cur) - idx(before) : null
+  // 증감은 원본 계열로만 잰다. 전체로 재면 로케일 전수 스캔을 켠 날 관측 범위가 늘어난
+  // 것뿐인데 +41쪽으로 찍힌다(2026-08-05, 실제 신규는 5쪽). 대시보드도 같은 기준이다.
+  const baseIdx = m => [...m.values()].filter(r => r.is_indexed && !isLocale(r)).length
+  const delta = prev ? baseIdx(cur) - baseIdx(before) : null
+  const locTotal = [...cur.values()].filter(isLocale).length
 
   console.log(`\n━━ ${site}  ${today}${prev ? `  (전일 ${prev} 대비)` : ''}`)
-  console.log(`   색인 ${idx(cur)} / 추적 ${cur.size}` +
+  console.log(`   원본 색인 ${baseIdx(cur)} / 추적 ${cur.size - locTotal}` +
     (delta === null ? '' : `   ${delta >= 0 ? '+' : ''}${delta}`))
+  if (locTotal) {
+    console.log(`   로케일 색인 ${idx(cur) - baseIdx(cur)} / 추적 ${locTotal}`)
+  }
   console.log(`   unknown ${count(cur, /unknown/i)} · discovered ${count(cur, /Discovered/i)} · crawled-not-indexed ${count(cur, /Crawled/i)}`)
 
   // 어제 요청분이 실제로 넘어갔는지 — 배치가 효과 있었다는 유일한 증거다.

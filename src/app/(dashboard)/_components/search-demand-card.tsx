@@ -402,8 +402,10 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
       meta={total > 0 ? (
         <>
           {data.latestDate} · {total.toLocaleString()}쪽
-          {/* 4열 헤더에 30일치 숫자는 다 못 들어간다 — 최근 7회만 */}
-          {data.trend.length > 1 && <> · 추이 {data.trend.slice(-7).map(d => d.indexed).join(' → ')}</>}
+          {data.locale.total > 0 && <> (로케일 {data.locale.total.toLocaleString()})</>}
+          {/* 4열 헤더에 30일치 숫자는 다 못 들어간다 — 최근 7회만.
+              로케일 전수 스캔을 켠 날 계단이 생기므로 원본 계열로 그린다. */}
+          {data.trend.length > 1 && <> · 추이 {data.trend.slice(-7).map(d => d.baseIndexed).join(' → ')}</>}
           {data.changeFromPrev != null && data.changeFromPrev !== 0 && (
             <span style={{ marginLeft: 4, fontWeight: 600, color: data.changeFromPrev > 0 ? t.accent.pos : t.accent.neg }}>
               ({data.changeFromPrev > 0 ? '+' : '−'}{Math.abs(data.changeFromPrev)})
@@ -435,16 +437,23 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
 }
 
 // 버티컬별 색인률 — 전체 평균은 판단에 안 쓰이고, 어느 클러스터가 막혔는지가 처방으로 이어진다.
+// 색인/전체는 영어 원본 기준이고 로케일 변형은 따로 낸다. 원본 18%에 번역본 9%를 섞으면
+// 어느 쪽도 아닌 숫자가 나와서, 번역본을 더 낼지 원본을 고칠지 판단이 안 선다.
 function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
+  const hasLocale = data.locale.total > 0
   return (
     <DataTable
       title="버티컬별 색인률"
+      meta={hasLocale
+        ? `원본 ${data.base.indexed}/${data.base.total} (${data.base.pct}%) · 로케일 ${data.locale.indexed}/${data.locale.total} (${data.locale.pct}%)`
+        : undefined}
       minWidth={260}
       columns={[
         { key: 'label', label: '버티컬', width: 'minmax(70px,1fr)' },
         { key: 'indexed', label: '색인', width: '44px', align: 'right' as const },
         { key: 'total', label: '전체', width: '44px', align: 'right' as const },
         { key: 'pct', label: '색인률', width: '52px', align: 'right' as const },
+        ...(hasLocale ? [{ key: 'locale', label: '로케일', width: '64px', align: 'right' as const }] : []),
       ]}
       rows={data.groups.map(g => ({
         key: g.key,
@@ -454,8 +463,13 @@ function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
           g.total.toLocaleString(),
           // 0%는 막힌 클러스터라 눈에 걸리게 둔다
           <span key="pct" style={{ color: g.pct > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{g.pct}%</span>,
+          ...(hasLocale ? [
+            <span key="loc" style={{ color: t.neutrals.muted }}>
+              {g.localeTotal > 0 ? `${g.localeIndexed}/${g.localeTotal}` : '—'}
+            </span>,
+          ] : []),
         ],
-        sort: [g.label, g.indexed, g.total, g.pct],
+        sort: [g.label, g.indexed, g.total, g.pct, ...(hasLocale ? [g.localeTotal] : [])],
       }))}
       empty="아직 색인 검사 기록이 없습니다"
     />
@@ -601,15 +615,17 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
     }
     return `오늘 ${today.toLocaleString()}${unit} · 7일 ${week.toLocaleString()}${unit}`
   }
-  // 색인율은 누적 스냅샷이라 합이 아니라 증감으로 만든다: 오늘 = 오늘 스냅샷 − 직전, 7일 = 최신 − 7일 전
+  // 색인율은 누적 스냅샷이라 합이 아니라 증감으로 만든다: 오늘 = 오늘 스냅샷 − 직전, 7일 = 최신 − 7일 전.
+  // 원본(baseIndexed) 계열로 잰다 — 로케일 전수 스캔을 켠 날 관측 범위가 늘어난 것뿐인데
+  // 전체로 재면 하루 +41쪽 같은 가짜 도약이 찍힌다(2026-08-05 보이스카드, 실제 신규는 5쪽).
   const indexDeltaSub = (() => {
     const tr = index?.trend
     if (!tr || tr.length === 0) return null
     const latest = tr[tr.length - 1]
     const todayIdx = tr.findIndex(d => d.date === kstToday)
-    const today = todayIdx > 0 ? tr[todayIdx].indexed - tr[todayIdx - 1].indexed : 0
+    const today = todayIdx > 0 ? tr[todayIdx].baseIndexed - tr[todayIdx - 1].baseIndexed : 0
     const baseline = tr.filter(d => d.date < week7Cut).pop() ?? tr[0]
-    const week = baseline.date === latest.date ? 0 : latest.indexed - baseline.indexed
+    const week = baseline.date === latest.date ? 0 : latest.baseIndexed - baseline.baseIndexed
     return `오늘 ${today.toLocaleString()}쪽 · 7일 ${week.toLocaleString()}쪽`
   })()
   // GSC(노출·클릭)와 Umami(실제 진입)를 경로로 잇는다. 양쪽 다 normalizePath를 거쳐
@@ -739,8 +755,8 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                     ) : undefined}
                     sub={indexDeltaSub ?? '검사 기록 없음'}
                     tone={index && index.indexedPct >= 50 ? 'pos' : index && index.total > 0 ? 'warn' : 'default'}
-                    title="URL 검사 API로 매일 전수 확인한 색인 비율. 노출·클릭보다 앞단이라, 여기가 낮으면 아래 지표는 볼 필요도 없다."
-                    sparkline={mobile ? undefined : index?.trend.map(d => ({ date: d.date, value: d.indexed }))}
+                    title="URL 검사 API로 매일 전수 확인한 색인 비율. 영어 원본 기준이고 로케일 변형은 색인 상태 카드에서 따로 본다. 노출·클릭보다 앞단이라, 여기가 낮으면 아래 지표는 볼 필요도 없다."
+                    sparkline={mobile ? undefined : index?.trend.map(d => ({ date: d.date, value: d.baseIndexed }))}
                   />
                   <LStat
                     label="노출된 콘텐츠"

@@ -12,7 +12,7 @@
 import { GoogleAuth } from 'google-auth-library'
 import { supabase } from './supabase'
 import { getGscSite } from './gsc'
-import { canonicalPath, fetchSitemapPaths, isHtmlPath, normalizePath } from './umami'
+import { canonicalPath, fetchSitemapPaths, isHtmlPath, normalizePath, pathLocale } from './umami'
 
 const INSPECT_API = 'https://searchconsole.googleapis.com/v1/urlInspection/index:inspect'
 const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly'
@@ -99,9 +99,13 @@ export const BUCKET_LABEL: Record<IndexBucket, string> = {
 export interface IndexGroup {
   key: string
   label: string
+  /** 기본 로케일(영어 원본)만. scanLocales를 켜기 전과 정의가 같아 시계열 비교가 성립한다. */
   total: number
   indexed: number
   pct: number
+  /** 같은 버티컬의 로케일 변형. 원본과 색인률이 크게 달라 섞으면 둘 다 못 읽는다. */
+  localeTotal: number
+  localeIndexed: number
 }
 
 type Classifier = (path: string) => { key: string; label: string }
@@ -138,8 +142,21 @@ const CLASSIFIERS: Record<string, Classifier> = {
   },
 }
 
-const classifierFor = (siteKey: string): Classifier =>
-  CLASSIFIERS[siteKey] ?? (() => ({ key: 'all', label: '전체' }))
+/**
+ * 분류는 반드시 로케일을 뗀 경로로 한다.
+ *
+ * 규칙이 `/templates/...` 같은 원본 경로 모양을 보는데 로케일 변형은 `/es/templates/...`라
+ * 하나도 안 걸리고 전부 fallback('코어')으로 떨어진다. 2026-08-05 보이스카드에서 로케일
+ * 438쪽이 통째로 코어에 들어가 코어가 9쪽(89%) → 447쪽(10%)이 됐다 — 어느 클러스터가
+ * 막혔는지 보려고 만든 표가 정반대로 읽혔다.
+ */
+const classifierFor = (siteKey: string): Classifier => {
+  const base = CLASSIFIERS[siteKey] ?? (() => ({ key: 'all', label: '전체' }))
+  return path => base(canonicalPath(path))
+}
+
+/** 로케일 변형인지 (기본 로케일 = 프리픽스 없는 원본) */
+const isLocaleVariant = (path: string): boolean => pathLocale(path) !== 'default'
 
 // ─── 검사 ─────────────────────────────────────────────────────────────────────
 
@@ -300,6 +317,13 @@ export async function scanSiteIndexStatus(
 
 // ─── 조회 ─────────────────────────────────────────────────────────────────────
 
+/** 한 계열(기본 로케일 / 로케일 변형)의 색인 집계 */
+export interface IndexSlice {
+  total: number
+  indexed: number
+  pct: number
+}
+
 export interface IndexStatusSummary {
   siteKey: string
   domain: string
@@ -307,11 +331,26 @@ export interface IndexStatusSummary {
   total: number
   buckets: Record<IndexBucket, number>
   indexedPct: number
+  /**
+   * 기본 로케일(원본)만 / 로케일 변형만.
+   *
+   * 둘을 섞은 전체 평균은 처방으로 이어지지 않는다. 보이스카드 2026-08-05 기준
+   * 원본 42/227(18.5%)에 로케일 38/438(8.7%)이라, 합쳐 놓으면 12%라는 어느 쪽도
+   * 아닌 숫자가 나온다. 막힌 게 원본인지 번역본인지가 손댈 곳을 가른다.
+   */
+  base: IndexSlice
+  locale: IndexSlice
   /** 버티컬별 색인률 — 전체 평균보다 이쪽이 처방으로 이어진다 */
   groups: IndexGroup[]
-  /** 일별 색인 수 추이 */
-  trend: Array<{ date: string; indexed: number; total: number; pct: number }>
-  /** 직전 스냅샷 대비 색인 증감 */
+  /** 일별 색인 수 추이. base*는 로케일을 뺀 계열 — 스캔 범위가 바뀌어도 이어진다. */
+  trend: Array<{ date: string; indexed: number; total: number; pct: number; baseIndexed: number; baseTotal: number }>
+  /**
+   * 직전 스냅샷 대비 색인 증감 — **기본 로케일 계열 기준**.
+   *
+   * 전체로 재면 스캔 범위가 넓어진 날 정의 변경분이 진척으로 둔갑한다. 08-05에
+   * 로케일 전수 스캔을 켜자 전체는 39 → 80(+41)이 됐지만 실제로 새로 잡힌 건
+   * 원본 5쪽이었다. 나머지 36쪽은 원래 색인돼 있었는데 그동안 안 보던 것이다.
+   */
   changeFromPrev: number | null
 }
 
@@ -356,30 +395,39 @@ export async function getIndexedPageCount(siteKey: string): Promise<number> {
  * 색인 수의 오늘/최근 7일 증감 — 통계 카드 보조라벨(오늘 N쪽 · 7일 N쪽)용.
  * 오늘 = 오늘 스냅샷 − 직전 스냅샷. 7일 = 최신 스냅샷 − 7일 전(또는 그 이전 가장 가까운) 스냅샷.
  * 색인 수 자체는 getIndexedPageCount와 같은 규칙(최신 스냅샷의 is_indexed)을 쓴다.
+ *
+ * **증감만 기본 로케일 계열로 잰다.** 총계는 실제 색인된 URL 전부(로케일 포함)지만,
+ * 증감을 전체로 재면 스캔 범위가 넓어진 날이 폭증으로 찍힌다 — 08-05 보이스카드에서
+ * 전체 +41, 실제 신규는 +5였다. 같은 이유로 getIndexStatusSummary.changeFromPrev도
+ * base 계열을 쓴다. 규칙을 고칠 때는 둘을 같이 고칠 것.
  */
 export async function getIndexedPageStats(siteKey: string): Promise<{ total: number; today: number; last7d: number }> {
   const since = new Date(Date.now() - 9 * 86_400_000).toISOString().slice(0, 10)
   const { data } = await supabase
     .from('seo_index_status')
-    .select('checked_on')
+    .select('checked_on, path')
     .eq('site_key', siteKey)
     .eq('is_indexed', true)
     .gte('checked_on', since)
-  const byDate = new Map<string, number>()
-  for (const r of (data ?? []) as Array<{ checked_on: string }>) {
-    byDate.set(r.checked_on, (byDate.get(r.checked_on) ?? 0) + 1)
+  const byDate = new Map<string, { all: number; base: number }>()
+  for (const r of (data ?? []) as Array<{ checked_on: string; path: string }>) {
+    const d = byDate.get(r.checked_on) ?? { all: 0, base: 0 }
+    d.all++
+    if (!isLocaleVariant(r.path)) d.base++
+    byDate.set(r.checked_on, d)
   }
   const dates = Array.from(byDate.keys()).sort()
   if (dates.length === 0) return { total: 0, today: 0, last7d: 0 }
 
   const latestDate = dates[dates.length - 1]
-  const total = byDate.get(latestDate) ?? 0
+  const total = byDate.get(latestDate)?.all ?? 0
+  const baseTotal = byDate.get(latestDate)?.base ?? 0
   const kstToday = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)
   const todayIdx = dates.indexOf(kstToday)
-  const today = todayIdx > 0 ? total - (byDate.get(dates[todayIdx - 1]) ?? 0) : 0
+  const today = todayIdx > 0 ? baseTotal - (byDate.get(dates[todayIdx - 1])?.base ?? 0) : 0
   const week7Cut = new Date(Date.now() + 9 * 3_600_000 - 6 * 86_400_000).toISOString().slice(0, 10)
   const baselineDate = dates.filter(d => d < week7Cut).pop() ?? dates[0]
-  const last7d = baselineDate === latestDate ? 0 : total - (byDate.get(baselineDate) ?? 0)
+  const last7d = baselineDate === latestDate ? 0 : baseTotal - (byDate.get(baselineDate)?.base ?? 0)
   return { total, today, last7d }
 }
 
@@ -399,23 +447,32 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
   const empty: Record<IndexBucket, number> = { indexed: 0, crawled: 0, discovered: 0, unseen: 0, excluded: 0, unknown: 0 }
 
   if (rows.length === 0) {
+    const emptySlice: IndexSlice = { total: 0, indexed: 0, pct: 0 }
     return {
       siteKey, domain: site?.domain ?? '', latestDate: null, total: 0,
-      buckets: { ...empty }, indexedPct: 0, groups: [], trend: [],
+      buckets: { ...empty }, indexedPct: 0,
+      base: { ...emptySlice }, locale: { ...emptySlice },
+      groups: [], trend: [],
       changeFromPrev: null,
     }
   }
 
-  // 날짜별 집계 (추이)
-  const byDate = new Map<string, { indexed: number; total: number }>()
+  const pct = (indexed: number, total: number) => (total > 0 ? Math.round((indexed / total) * 1000) / 10 : 0)
+
+  // 날짜별 집계 (추이). base = 로케일을 뺀 계열
+  const byDate = new Map<string, { indexed: number; total: number; baseIndexed: number; baseTotal: number }>()
   for (const r of rows) {
-    const d = byDate.get(r.checked_on) ?? { indexed: 0, total: 0 }
+    const d = byDate.get(r.checked_on) ?? { indexed: 0, total: 0, baseIndexed: 0, baseTotal: 0 }
     d.total++
     if (r.is_indexed) d.indexed++
+    if (!isLocaleVariant(r.path)) {
+      d.baseTotal++
+      if (r.is_indexed) d.baseIndexed++
+    }
     byDate.set(r.checked_on, d)
   }
   const trend = Array.from(byDate.entries())
-    .map(([date, v]) => ({ date, indexed: v.indexed, total: v.total, pct: v.total > 0 ? Math.round((v.indexed / v.total) * 1000) / 10 : 0 }))
+    .map(([date, v]) => ({ date, indexed: v.indexed, total: v.total, pct: pct(v.indexed, v.total), baseIndexed: v.baseIndexed, baseTotal: v.baseTotal }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
   const latestDate = trend[trend.length - 1]?.date ?? null
@@ -425,23 +482,33 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
   for (const r of latestRows) buckets[bucketOf(r.coverage_state)]++
 
   const classify = classifierFor(siteKey)
-  const groupAcc = new Map<string, { label: string; total: number; indexed: number }>()
+  const groupAcc = new Map<string, { label: string; total: number; indexed: number; localeTotal: number; localeIndexed: number }>()
   for (const r of latestRows) {
     const { key, label } = classify(r.path)
-    const g = groupAcc.get(key) ?? { label, total: 0, indexed: 0 }
-    g.total++
-    if (r.is_indexed) g.indexed++
+    const g = groupAcc.get(key) ?? { label, total: 0, indexed: 0, localeTotal: 0, localeIndexed: 0 }
+    if (isLocaleVariant(r.path)) {
+      g.localeTotal++
+      if (r.is_indexed) g.localeIndexed++
+    } else {
+      g.total++
+      if (r.is_indexed) g.indexed++
+    }
     groupAcc.set(key, g)
   }
   const groups: IndexGroup[] = Array.from(groupAcc.entries())
     .map(([key, g]) => ({
-      key, label: g.label, total: g.total, indexed: g.indexed,
-      pct: g.total > 0 ? Math.round((g.indexed / g.total) * 1000) / 10 : 0,
+      key, label: g.label, total: g.total, indexed: g.indexed, pct: pct(g.indexed, g.total),
+      localeTotal: g.localeTotal, localeIndexed: g.localeIndexed,
     }))
-    .sort((a, b) => b.total - a.total)
+    .sort((a, b) => (b.total + b.localeTotal) - (a.total + a.localeTotal))
 
   const prev = trend.length >= 2 ? trend[trend.length - 2] : null
   const latest = trend[trend.length - 1]
+
+  const localeRows = latestRows.filter(r => isLocaleVariant(r.path))
+  const localeIndexed = localeRows.filter(r => r.is_indexed).length
+  const baseTotal = latestRows.length - localeRows.length
+  const baseIndexed = latestRows.filter(r => r.is_indexed).length - localeIndexed
 
   return {
     siteKey,
@@ -449,9 +516,13 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
     latestDate,
     total: latestRows.length,
     buckets,
-    indexedPct: latest && latest.total > 0 ? latest.pct : 0,
+    // 헤드라인 색인률도 원본 기준이다. 로케일을 섞으면 스캔 범위를 넓힌 날 색인률이
+    // 떨어진 것처럼 보이는데(18.0% → 12.0%), 실제로 후퇴한 건 아무것도 없다.
+    indexedPct: pct(baseIndexed, baseTotal),
+    base: { total: baseTotal, indexed: baseIndexed, pct: pct(baseIndexed, baseTotal) },
+    locale: { total: localeRows.length, indexed: localeIndexed, pct: pct(localeIndexed, localeRows.length) },
     groups,
     trend,
-    changeFromPrev: prev && latest ? latest.indexed - prev.indexed : null,
+    changeFromPrev: prev && latest ? latest.baseIndexed - prev.baseIndexed : null,
   }
 }
