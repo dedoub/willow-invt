@@ -110,10 +110,31 @@ export interface IndexGroup {
 
 type Classifier = (path: string) => { key: string; label: string }
 
+/**
+ * 덱 클러스터 — 슬러그 프리픽스가 곧 클러스터다.
+ *
+ * 새 클러스터를 내면 여기에 한 줄 추가한다. 안 하면 '기타 덱'으로 들어가는데,
+ * 그 칸은 잡동사니처럼 보여서 아무도 안 본다. 2026-08-05에 einbuergerungstest(49쪽)·
+ * deutsch-a1(35쪽)·cdl(20쪽)이 거기 묶여 있었고, 앞의 둘은 색인 0%였는데 표에서는
+ * "기타 104쪽 4%" 한 줄이라 어느 클러스터가 통째로 막힌 건지 안 보였다.
+ *
+ * `scripts/seo-daily-brief.mjs`의 COVERED_BY_HUB가 같은 클러스터 목록을 허브 기준으로
+ * 들고 있다. 새 클러스터는 두 곳 다 넣어야 색인률 표와 요청 대기열이 같은 세계를 본다.
+ */
+const VC_DECK_CLUSTERS: Array<{ prefix: string; key: string; label: string }> = [
+  { prefix: 'einbuergerungstest', key: 'einbuergerungstest', label: '독일 귀화시험' },
+  { prefix: 'deutsch-a1', key: 'deutsch-a1', label: '독일어 A1' },
+  { prefix: 'cdl', key: 'cdl', label: 'CDL 상용면허' },
+]
+
 const CLASSIFIERS: Record<string, Classifier> = {
   voicecards: path => {
     if (path.startsWith('/templates/')) {
       const slug = path.slice('/templates/'.length)
+      // 프리픽스가 정확한 클러스터를 먼저 본다. 아래 성경 규칙이 'verse' 같은 부분
+      // 문자열을 보기 때문에, 뒤에 두면 새 클러스터가 거기 걸릴 위험이 있다.
+      const deck = VC_DECK_CLUSTERS.find(c => slug === c.prefix || slug.startsWith(`${c.prefix}-`))
+      if (deck) return { key: deck.key, label: deck.label }
       if (slug.startsWith('memorize-surah') || slug.includes('quran') || slug.includes('juz')) {
         return { key: 'quran', label: '코란' }
       }
