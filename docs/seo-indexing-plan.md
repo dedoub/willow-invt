@@ -8,8 +8,9 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 - 색인 요청 할당량은 **계정 단위 하루 약 11~12건**으로 합산된다 (2026-08-03 실측:
   보이스카드 8건 + 리뷰노트 3건 = 11건째까지 성공, 12건째 Quota Exceeded).
   프로퍼티를 나눠도 늘어나지 않으므로 하루 예산을 사이트 간 배분해야 한다.
-- 우선순위 원칙: ① 허브(하위 페이지의 크롤 경로) ② unknown(구글이 모름) ③ 수요 있는 코어
-  ④ Discovered 정체가 오래된 순. '크롤 후 미색인'은 요청해도 안 풀리므로 넣지 않는다.
+- 우선순위 원칙: ① **영어 원본**(로케일 변형은 그 뒤) ② 허브(하위 페이지의 크롤 경로)
+  ③ unknown(구글이 모름) ④ 수요 있는 코어 ⑤ Discovered 정체가 오래된 순.
+  '크롤 후 미색인'은 요청해도 안 풀리므로 넣지 않는다.
 - 같은 URL 재요청은 큐 순서를 바꾸지 않는다. 요청 후 1주일간 상태 이동이 없을 때만 재검토.
 - 요청 전 반드시 당일 스냅샷(`seo_index_status`, 매일 06:40 KST 수집)으로 상태를 확인하고,
   이미 색인된 URL은 건너뛰고 대기열 다음 항목으로 채운다.
@@ -51,8 +52,11 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 
 1. `/templates/einbuergerungstest` (EN 허브)
 2. `/templates/deutsch-a1` (EN 허브)
-3. `/de/templates/einbuergerungstest` (de 허브 — 이 클러스터의 헤드텀 언어)
-4. `/de/templates/deutsch-a1` (de 허브)
+
+de 허브(`/de/templates/einbuergerungstest`, `/de/templates/deutsch-a1`)는 처음에 3·4순위로
+잡았다. 헤드텀이 독일어라 그쪽이 정본 같아 보여서였는데, EN 원본이 아직 unknown인 상태에서
+번역본을 먼저 태우면 구글이 정본을 못 잡는다. EN 허브 색인 후 hreflang으로 따라오는지
+먼저 본다 — 안 따라오면 그때 개별 요청한다.
 
 ### 리뷰노트 (연습문제 16건)
 
@@ -96,7 +100,7 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 | 08-03 | VC 8건(허브2·코어3·잔여3) + RN 3건(pythagorean, quadratic-formula, linear-function) | ✅ 11건 완료, 12건째 quota |
 | 08-04 | VC 독일어권 허브 4 + RN 대기열 1~7 | ❌ 첫 요청부터 Quota Exceeded — 0건 |
 | 08-05 | VC 5(spoken-rehearsal + CDL 허브·하위 3) + RN 6(demo, guides 1, practice 4) | ✅ 11건 완료, quota 초과 없음. 계획했던 독일어권 허브는 스냅샷 누락으로 후보에 못 올라옴 |
-| 08-06 | VC 5 + RN 6. VC는 로케일 루트(`/fr`·`/pt`·`/es`·`/it`·`/ja`) vs 독일어권 허브 4 중 택일 — 위 "복구 후 드러난 것" 참조. RN은 `grade-4-2-polygons`·`-quadrilaterals`·`-triangles`·`grade-4-angles`·`grade-4-bar-graph`·`grade-4-large-numbers` | 예정 |
+| 08-06 | VC 5: `/methods/daily-five`, `/templates/deutsch-a1`, `/templates/einbuergerungstest`, `/methods/active-recall`, `/methods/chunking-translation` · RN 6: `/en/practice/` 하위 `grade-4-2-polygons`·`-quadrilaterals`·`-triangles`·`grade-4-angles`·`grade-4-bar-graph`·`grade-4-large-numbers` | 예정. 원본 우선 결정 반영분 — 브리프가 그대로 낸다 |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ## 스냅샷 크론 중단 (2026-08-05 발견·해결, 커밋 46d9a6d)
@@ -121,15 +125,30 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 교훈: **스냅샷 행수가 갑자기 줄거나 날짜가 안 넘어가면 사이트맵 증가부터 의심할 것.**
 신규 클러스터 배포가 곧 스캔 시간 증가다.
 
-### 복구 후 드러난 것 — 08-06 배치 전 결정 필요
+### 복구 후 드러난 것 — 결정: 영어 원본 우선 (2026-08-05, 커밋 2c2ccbd)
 
-추적이 217 → 665쪽으로 넓어지자 브리프 후보가 바뀌었다. 이제 **로케일 루트**(`/fr`, `/pt`
-unknown · `/es`, `/it`, `/ja` Discovered)가 최상단이다. 브리프는 얕은 경로를 허브로 보고
-먼저 올리는데, depth 1인 로케일 루트가 depth 2인 `/templates/einbuergerungstest`를 앞선다.
+추적이 217 → 665쪽으로 넓어지자 브리프 후보가 통째로 바뀌었다. **배치 11건이 전부
+로케일 루트**(`/fr`, `/pt` unknown · `/es`, `/it`, `/ja` Discovered)로 찼다. 브리프가 얕은
+경로를 허브로 보고 먼저 올리는데, depth 1인 로케일 루트가 depth 2인
+`/templates/einbuergerungstest`를 앞섰기 때문이다.
 
-둘 다 말이 된다 — 로케일 루트가 색인 안 되면 그 아래가 통째로 안 잡히고, 독일어권은
-헤드텀 클러스터다. **08-06에 어느 쪽을 먼저 태울지 CEO 판단이 필요하다.** 자동 규칙에
-맡기면 로케일 루트가 간다.
+**영어 원본을 먼저 태우기로 했다.** 근거 셋:
+
+1. 로케일 루트 5개 중 `/es`·`/it`·`/ja`는 이미 Discovered다. 구글이 알고 있고 크롤
+   우선순위를 안 준 상태라, 재요청이 큐 순서를 바꾸지 않는다(위 규칙). 독일어권 허브는
+   전부 unknown이라 요청이 실제로 정보를 추가한다.
+2. 허브 요청 → 하루 내 색인 → 하위 자연 크롤이 bible·quran·civics·cdl에서 네 번
+   재현됐다. 로케일 루트에는 그 근거가 없다.
+3. 원본 229쪽 중 185쪽이 아직 미색인이다. 원본이 안 잡힌 상태에서 번역본을 밀면 구글이
+   정본을 못 잡는다. 원본 허브가 잡히면 hreflang으로 번역본에 길이 생긴다.
+
+규칙에 박았으므로 브리프가 자동으로 이 순서를 낸다(`rank()`의 정렬키 1번). 곁가지로
+드러난 것 둘도 같이 고쳤다.
+
+- 허브 하위가 허브와 depth가 같아 알파벳순에 끼어들었다. `deutsch-a1` 하위 덱 3건이
+  `einbuergerungstest` 허브를 배치 밖으로 밀어냈다 — 허브를 다 넣고 하위를 넣는다.
+- 로케일 루트만 내리는 중간안은 안 통한다. `/de/faq` 같은 depth 1 로케일 코어가 그
+  자리를 그대로 물려받는다. 로케일은 통째로 뒤여야 한다.
 
 수동 실행 (시크릿은 `.env.local`의 `CRON_SECRET`, 프로덕션과 동일):
 ```

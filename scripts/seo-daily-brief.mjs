@@ -126,16 +126,43 @@ function dropHubCovered(site, rows, cur) {
 }
 
 /**
- * 우선순위: ① 얕은 경로(허브 — 하위의 크롤 경로가 된다) ② unknown(구글이 아예 모름)
- * ③ Discovered 오래 묵은 순. 'Crawled - not indexed'는 요청해도 안 풀리므로 뺀다.
+ * 우선순위: ① 영어 원본 ② 허브(하위의 크롤 경로가 된다) ③ 얕은 경로
+ * ④ unknown(구글이 아예 모름) ⑤ Discovered 오래 묵은 순.
+ * 'Crawled - not indexed'는 요청해도 안 풀리므로 뺀다.
+ *
+ * 원본이 로케일보다 먼저인 게 depth·상태보다 앞선다. 로케일 트리가 추적에 들어온
+ * 2026-08-05에 이 순서가 없어서 배치 11건이 전부 로케일로 찼다 — 루트만 내려 봐도
+ * `/de/faq` 같은 depth 1 로케일 코어가 그 자리를 물려받았다. 로케일을 통째로 뒤에
+ * 두는 근거는 둘이다. 원본이 색인 안 된 채로 번역본을 밀면 구글이 정본을 못 잡고,
+ * 원본 허브가 잡히면 hreflang으로 번역본에 길이 생긴다 — 허브 색인 → 하위 자연
+ * 크롤은 bible·quran·civics·cdl에서 네 번 재현된 패턴이다. 원본 229쪽 중 185쪽이
+ * 미색인이라 로케일 436쪽은 아직 한도를 태울 자리가 아니다.
+ *
+ * depth는 로케일을 뗀 경로로 잰다. 원본에는 영향이 없고, 로케일 차례가 왔을 때
+ * `/de/templates/x`가 프리픽스 한 칸 때문에 하위 페이지 취급받는 것만 막는다.
  */
-function rank(pending, stuck) {
+function rank(site, pending, stuck) {
   const bucket = r =>
     /unknown/i.test(r.coverage_state) ? 1 : /Discovered/i.test(r.coverage_state) ? 2 : 9
+  const contentOf = r => splitLocale(r.path)[1]
+  const localeRank = r => (splitLocale(r.path)[0] === '' ? 0 : 1)
+  // 허브가 아직 색인 전이면 하위도 후보로 남지만(dropHubCovered) 허브보다는 뒤다.
+  // 허브와 하위는 depth가 같아서(둘 다 /templates/x 꼴) depth로는 안 갈리고, 알파벳순에
+  // 하위 덱이 끼어 다른 허브를 배치 밖으로 밀어냈다 — deutsch-a1 하위 3건이
+  // einbuergerungstest 허브 자리를 먹은 게 그 예다(2026-08-05). 허브를 다 넣고 나서
+  // 하위를 넣어야 허브 크롤로 따라올 기회부터 준다.
+  const rules = COVERED_BY_HUB[site] ?? []
+  const hubRank = r => {
+    const [prefix, content] = splitLocale(r.path)
+    const hit = rules.find(([re]) => re.test(content))
+    return hit && `${prefix}${hit[1]}` !== r.path ? 1 : 0
+  }
   return pending
     .filter(r => bucket(r) < 9)
     .sort((a, b) =>
-      depth(a.path) - depth(b.path) ||
+      localeRank(a) - localeRank(b) ||
+      hubRank(a) - hubRank(b) ||
+      depth(contentOf(a)) - depth(contentOf(b)) ||
       bucket(a) - bucket(b) ||
       String(stuck.get(a.path) ?? '9999').localeCompare(String(stuck.get(b.path) ?? '9999')) ||
       a.path.localeCompare(b.path))
@@ -181,7 +208,7 @@ for (const site of SITES) {
   for (const [hub, n] of covered) {
     console.log(`   ${hub} 색인됨 → 하위 ${n}건은 요청하지 않고 허브 크롤을 기다린다`)
   }
-  plans.push({ site, ranked: rank(candidates, stuck), stuck })
+  plans.push({ site, ranked: rank(site, candidates, stuck), stuck })
 }
 
 // 한도는 계정 합산이라 사이트끼리 나눠 써야 한다. 색인율이 낮은 쪽에 더 준다.
