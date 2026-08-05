@@ -84,6 +84,21 @@ const splitLocale = p => {
 }
 
 /**
+ * 기본 로케일의 프리픽스. src/lib/gsc.ts의 GscSiteConfig.defaultLocale과 같은 값을
+ * 들고 있어야 한다 — 한쪽만 고치면 브리프와 대시보드가 다른 숫자를 낸다.
+ * 리뷰노트는 원본도 `/en/`을 달아서, 프리픽스 유무로 원본을 판정하면 34쪽 전부가
+ * 로케일이 되고 원본이 0쪽으로 찍힌다.
+ */
+const DEFAULT_LOCALE = { voicecards: null, reviewnotes: 'en' }
+/** 그 사이트에서 이 경로가 로케일 변형인지 */
+const isLocaleOf = (site, p) => {
+  const prefix = splitLocale(p)[0]
+  if (prefix === '') return false
+  const base = DEFAULT_LOCALE[site] ?? null
+  return prefix !== (base ? `/${base}` : null)
+}
+
+/**
  * 허브가 색인되면 그 하위 개별 페이지는 요청하지 않는다 — 허브 크롤로 따라온다.
  * 시민권 클러스터에서 확인된 패턴이고(허브 색인 → 하위 자연 유입, 2026-07-30),
  * 한도를 하위 페이지에 태우면 정작 크롤 경로가 없는 URL이 뒤로 밀린다.
@@ -145,7 +160,7 @@ function rank(site, pending, stuck) {
   const bucket = r =>
     /unknown/i.test(r.coverage_state) ? 1 : /Discovered/i.test(r.coverage_state) ? 2 : 9
   const contentOf = r => splitLocale(r.path)[1]
-  const localeRank = r => (splitLocale(r.path)[0] === '' ? 0 : 1)
+  const localeRank = r => (isLocaleOf(site, r.path) ? 1 : 0)
   // 허브가 아직 색인 전이면 하위도 후보로 남지만(dropHubCovered) 허브보다는 뒤다.
   // 허브와 하위는 depth가 같아서(둘 다 /templates/x 꼴) depth로는 안 갈리고, 알파벳순에
   // 하위 덱이 끼어 다른 허브를 배치 밖으로 밀어냈다 — deutsch-a1 하위 3건이
@@ -178,7 +193,7 @@ for (const site of SITES) {
   const stuck = await stuckSince(site)
 
   const count = (m, re) => [...m.values()].filter(r => re.test(r.coverage_state)).length
-  const isLocale = r => splitLocale(r.path)[0] !== ''
+  const isLocale = r => isLocaleOf(site, r.path)
   const idx = m => [...m.values()].filter(r => r.is_indexed).length
   // 증감은 원본 계열로만 잰다. 전체로 재면 로케일 전수 스캔을 켠 날 관측 범위가 늘어난
   // 것뿐인데 +41쪽으로 찍힌다(2026-08-05, 실제 신규는 5쪽). 대시보드도 같은 기준이다.

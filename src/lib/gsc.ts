@@ -44,12 +44,21 @@ export interface GscSiteConfig {
    * 밸류체인은 대표만 세도 1,394쪽이라 켜 봐야 폴백된다.
    */
   scanLocales: boolean
+  /**
+   * 기본 로케일의 URL 프리픽스. 프리픽스 없이 원본을 내면 null.
+   *
+   * 색인 지표는 원본을 대표로, 로케일 변형을 병기로 낸다. "원본"을 프리픽스 유무로만
+   * 판정하면 리뷰노트처럼 기본 로케일도 프리픽스를 다는 사이트에서 원본이 0이 된다 —
+   * 34쪽 전부가 `/en/` 아래라 색인율이 0/0으로 찍혔다(2026-08-05). 사이트가 원본을
+   * 어디에 두는지는 사이트마다 다르므로 설정으로 받는다.
+   */
+  defaultLocale: string | null
 }
 
 const SITE_DEFS: Array<Omit<GscSiteConfig, 'property'> & { envKey: string; fallback: string }> = [
-  { key: 'voicecards', name: 'VoiceCards', domain: 'voicecards.quest', envKey: 'GSC_PROPERTY_VOICECARDS', fallback: 'sc-domain:voicecards.quest', scanLocales: true },
-  { key: 'reviewnotes', name: 'ReviewNotes', domain: 'reviewnotes.app', envKey: 'GSC_PROPERTY_REVIEWNOTES', fallback: 'https://reviewnotes.app/', scanLocales: false },
-  { key: 'valuechain', name: 'ValueChain.wiki', domain: 'valuechain.wiki', envKey: 'GSC_PROPERTY_VALUECHAIN', fallback: 'https://valuechain.wiki/', scanLocales: false },
+  { key: 'voicecards', name: 'VoiceCards', domain: 'voicecards.quest', envKey: 'GSC_PROPERTY_VOICECARDS', fallback: 'sc-domain:voicecards.quest', scanLocales: true, defaultLocale: null },
+  { key: 'reviewnotes', name: 'ReviewNotes', domain: 'reviewnotes.app', envKey: 'GSC_PROPERTY_REVIEWNOTES', fallback: 'https://reviewnotes.app/', scanLocales: false, defaultLocale: 'en' },
+  { key: 'valuechain', name: 'ValueChain.wiki', domain: 'valuechain.wiki', envKey: 'GSC_PROPERTY_VALUECHAIN', fallback: 'https://valuechain.wiki/', scanLocales: false, defaultLocale: null },
 ]
 
 export function getGscSite(key: string): GscSiteConfig | null {
@@ -59,6 +68,7 @@ export function getGscSite(key: string): GscSiteConfig | null {
     key: def.key, name: def.name, domain: def.domain,
     property: process.env[def.envKey] || def.fallback,
     scanLocales: def.scanLocales,
+    defaultLocale: def.defaultLocale,
   }
 }
 

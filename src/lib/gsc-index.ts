@@ -176,8 +176,19 @@ const classifierFor = (siteKey: string): Classifier => {
   return path => base(canonicalPath(path))
 }
 
-/** 로케일 변형인지 (기본 로케일 = 프리픽스 없는 원본) */
-const isLocaleVariant = (path: string): boolean => pathLocale(path) !== 'default'
+/**
+ * 로케일 변형 판정기 — 사이트마다 원본을 어디에 두는지가 달라 사이트별로 만든다.
+ *
+ * 보이스카드는 원본에 프리픽스가 없고(`/templates/x`), 리뷰노트는 원본도 `/en/`을 단다.
+ * 프리픽스 유무로만 보면 리뷰노트는 34쪽 전부가 로케일이 돼서 원본이 0/0이 된다.
+ */
+function localeVariantTest(siteKey: string): (path: string) => boolean {
+  const base = getGscSite(siteKey)?.defaultLocale ?? null
+  return path => {
+    const loc = pathLocale(path)
+    return loc !== 'default' && loc !== base
+  }
+}
 
 // ─── 검사 ─────────────────────────────────────────────────────────────────────
 
@@ -419,6 +430,7 @@ export async function getIndexedPageStats(siteKey: string): Promise<{ total: num
     .eq('site_key', siteKey)
     .eq('is_indexed', true)
     .gte('checked_on', since)
+  const isLocaleVariant = localeVariantTest(siteKey)
   const byDate = new Map<string, { all: number; base: number }>()
   for (const r of (data ?? []) as Array<{ checked_on: string; path: string }>) {
     const d = byDate.get(r.checked_on) ?? { all: 0, base: 0 }
@@ -453,6 +465,7 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
     .order('checked_on', { ascending: false })
   if (error) throw new Error(`색인 상태 조회 실패: ${error.message}`)
 
+  const isLocaleVariant = localeVariantTest(siteKey)
   const rows = (data ?? []) as StatusRow[]
   const empty: Record<IndexBucket, number> = { indexed: 0, crawled: 0, discovered: 0, unseen: 0, excluded: 0, unknown: 0 }
 
