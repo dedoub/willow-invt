@@ -38,10 +38,15 @@ export interface GscSiteConfig {
    * 영어판의 색인 여부가 로케일 변형의 색인 여부를 대변하지 못하고, 접는
    * 순간 사이트맵 670건 중 450여 건이 관측 사각으로 남는다.
    *
+   * 리뷰노트도 같은 이유로 켰다(2026-08-05). 끄고 있는 동안 34쪽만 추적했는데 GSC는
+   * 102쪽을 색인했다고 했고, 실제로 노출을 받은 57쪽이 12개 언어에 흩어져 있었다
+   * (`/en/`은 12쪽뿐). 사이트맵 442쪽 중 408쪽이 관측 밖이었다는 뜻이다.
+   *
    * 사이트별 플래그인 이유는 켤 실익이 사이트마다 다르기 때문이다. 전수 검사는
    * 상한(1,400) 안에 들어올 때만 실제로 적용되고 넘으면 접어서 대표만 본다.
    * 보이스카드는 665쪽이라 들어간다(대표 229 → 전수 665, 검사 약 44초 추가).
-   * 밸류체인은 대표만 세도 1,394쪽이라 켜 봐야 폴백된다.
+   * 리뷰노트는 442쪽(13로케일 × 33)이라 들어간다. 밸류체인은 대표만 세도
+   * 1,394쪽이라 켜 봐야 폴백된다.
    */
   scanLocales: boolean
   /**
@@ -57,7 +62,7 @@ export interface GscSiteConfig {
 
 const SITE_DEFS: Array<Omit<GscSiteConfig, 'property'> & { envKey: string; fallback: string }> = [
   { key: 'voicecards', name: 'VoiceCards', domain: 'voicecards.quest', envKey: 'GSC_PROPERTY_VOICECARDS', fallback: 'sc-domain:voicecards.quest', scanLocales: true, defaultLocale: null },
-  { key: 'reviewnotes', name: 'ReviewNotes', domain: 'reviewnotes.app', envKey: 'GSC_PROPERTY_REVIEWNOTES', fallback: 'https://reviewnotes.app/', scanLocales: false, defaultLocale: 'en' },
+  { key: 'reviewnotes', name: 'ReviewNotes', domain: 'reviewnotes.app', envKey: 'GSC_PROPERTY_REVIEWNOTES', fallback: 'https://reviewnotes.app/', scanLocales: true, defaultLocale: 'en' },
   { key: 'valuechain', name: 'ValueChain.wiki', domain: 'valuechain.wiki', envKey: 'GSC_PROPERTY_VALUECHAIN', fallback: 'https://valuechain.wiki/', scanLocales: false, defaultLocale: null },
 ]
 
