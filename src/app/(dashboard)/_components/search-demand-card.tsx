@@ -393,19 +393,23 @@ const BUCKET_LABEL_UI: Record<IndexBucket, string> = {
 const BUCKET_ORDER: IndexBucket[] = ['indexed', 'crawled', 'discovered', 'unseen', 'excluded', 'unknown']
 
 // 상태 분포 + 색인 추이. 색인률 자체는 상단 지표 카드에 있으니 여기서는 구성만 본다.
+// 쪽수·비율은 원본 기준이고 로케일은 별도 열이다 — 버티컬 표와 같은 규칙으로 읽히게.
 function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
-  const total = data.total
-  const entries = BUCKET_ORDER.map(b => ({ bucket: b, n: data.buckets[b] })).filter(e => e.n > 0)
+  const total = data.base.total
+  const hasLocale = data.locale.total > 0
+  const entries = BUCKET_ORDER
+    .map(b => ({ bucket: b, n: data.buckets[b] - data.localeBuckets[b], loc: data.localeBuckets[b] }))
+    .filter(e => e.n > 0 || e.loc > 0)
   return (
     <DataTable
       title="색인 상태"
       meta={total > 0 ? (
         <>
-          {data.latestDate} · {total.toLocaleString()}쪽
-          {data.locale.total > 0 && <> (로케일 {data.locale.total.toLocaleString()})</>}
+          {data.latestDate} · 원본 {total.toLocaleString()}쪽
+          {hasLocale && <> · 로케일 {data.locale.total.toLocaleString()}쪽</>}
           {/* 4열 헤더에 30일치 숫자는 다 못 들어간다 — 최근 7회만.
               로케일 전수 스캔을 켠 날 계단이 생기므로 원본 계열로 그린다. */}
-          {data.trend.length > 1 && <> · 추이 {data.trend.slice(-7).map(d => d.baseIndexed).join(' → ')}</>}
+          {data.trend.length > 1 && <> · 원본 색인 추이 {data.trend.slice(-7).map(d => d.baseIndexed).join(' → ')}</>}
           {data.changeFromPrev != null && data.changeFromPrev !== 0 && (
             <span style={{ marginLeft: 4, fontWeight: 600, color: data.changeFromPrev > 0 ? t.accent.pos : t.accent.neg }}>
               ({data.changeFromPrev > 0 ? '+' : '−'}{Math.abs(data.changeFromPrev)})
@@ -416,8 +420,9 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
       minWidth={260}
       columns={[
         { key: 'status', label: '상태', width: 'minmax(90px,1fr)' },
-        { key: 'n', label: '쪽수', width: '48px', align: 'right' as const },
+        { key: 'n', label: '원본', width: '48px', align: 'right' as const },
         { key: 'pct', label: '비율', width: '52px', align: 'right' as const },
+        ...(hasLocale ? [{ key: 'locale', label: '로케일', width: '56px', align: 'right' as const }] : []),
       ]}
       rows={entries.map(e => ({
         key: e.bucket,
@@ -428,8 +433,11 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
           </span>,
           e.n.toLocaleString(),
           `${Math.round((e.n / total) * 1000) / 10}%`,
+          ...(hasLocale ? [
+            <span key="loc" style={{ color: t.neutrals.muted }}>{e.loc > 0 ? e.loc.toLocaleString() : '—'}</span>,
+          ] : []),
         ],
-        sort: [BUCKET_LABEL_UI[e.bucket], e.n, e.n / total],
+        sort: [BUCKET_LABEL_UI[e.bucket], e.n, e.n / total, ...(hasLocale ? [e.loc] : [])],
       }))}
       empty={<>아직 색인 검사 기록이 없습니다<br />크론이 하루 1회 전수 검사합니다</>}
     />
@@ -743,8 +751,8 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                     title="노출 가중 평균 순위. 10위 안이면 첫 페이지, 11~30위면 사실상 안 보이는 자리다."
                   />
                   <LStat
-                    label="색인율"
-                    value={index && index.total > 0 ? `${index.indexedPct}%` : '—'}
+                    label="색인율 (원본)"
+                    value={index && index.base.total > 0 ? `${index.indexedPct}%` : '—'}
                     valueExtra={index && index.changeFromPrev ? (
                       <span style={{
                         ...mono(9.5), marginLeft: 5, fontWeight: 600,
@@ -754,8 +762,10 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
                       </span>
                     ) : undefined}
                     sub={indexDeltaSub ?? '검사 기록 없음'}
-                    tone={index && index.indexedPct >= 50 ? 'pos' : index && index.total > 0 ? 'warn' : 'default'}
-                    title="URL 검사 API로 매일 전수 확인한 색인 비율. 영어 원본 기준이고 로케일 변형은 색인 상태 카드에서 따로 본다. 노출·클릭보다 앞단이라, 여기가 낮으면 아래 지표는 볼 필요도 없다."
+                    tone={index && index.indexedPct >= 50 ? 'pos' : index && index.base.total > 0 ? 'warn' : 'default'}
+                    title={index && index.locale.total > 0
+                      ? `URL 검사 API로 매일 전수 확인한 색인 비율. 영어 원본 ${index.base.indexed}/${index.base.total}쪽 기준이고, 로케일 변형 ${index.locale.indexed}/${index.locale.total}쪽은 색인 상태 카드에서 따로 본다. 노출·클릭보다 앞단이라, 여기가 낮으면 아래 지표는 볼 필요도 없다.`
+                      : 'URL 검사 API로 매일 전수 확인한 색인 비율. 노출·클릭보다 앞단이라, 여기가 낮으면 아래 지표는 볼 필요도 없다.'}
                     sparkline={mobile ? undefined : index?.trend.map(d => ({ date: d.date, value: d.baseIndexed }))}
                   />
                   <LStat

@@ -349,15 +349,23 @@ export interface IndexStatusSummary {
   siteKey: string
   domain: string
   latestDate: string | null
+  /** 추적 중인 URL 전체 (원본 + 로케일) */
   total: number
+  /** 상태별 분포 — 전체 기준. 원본만 보려면 localeBuckets를 빼면 된다. */
   buckets: Record<IndexBucket, number>
+  localeBuckets: Record<IndexBucket, number>
+  /** 색인률 — 원본 기준. 화면의 대표 숫자는 전부 이 기준이다(아래 base 주석) */
   indexedPct: number
   /**
    * 기본 로케일(원본)만 / 로케일 변형만.
    *
-   * 둘을 섞은 전체 평균은 처방으로 이어지지 않는다. 보이스카드 2026-08-05 기준
-   * 원본 42/227(18.5%)에 로케일 38/438(8.7%)이라, 합쳐 놓으면 12%라는 어느 쪽도
-   * 아닌 숫자가 나온다. 막힌 게 원본인지 번역본인지가 손댈 곳을 가른다.
+   * **화면의 대표 숫자는 전부 base 기준이고, 로케일은 옆에 병기한다.** 둘을 섞은
+   * 평균은 처방으로 이어지지 않는다. 보이스카드 2026-08-05 기준 원본 44/229(19.2%)에
+   * 로케일 36/436(8.3%)이라, 합쳐 놓으면 12%라는 어느 쪽도 아닌 숫자가 나온다.
+   * 막힌 게 원본인지 번역본인지가 손댈 곳을 가른다.
+   *
+   * 기준을 섞으면 같은 화면이 두 숫자로 답한다 — "색인된 게 80이야 44야"라는 질문이
+   * 실제로 나왔다(2026-08-05). 새 지표를 붙일 때도 base를 대표로 쓸 것.
    */
   base: IndexSlice
   locale: IndexSlice
@@ -383,46 +391,27 @@ interface StatusRow {
   is_indexed: boolean | null
 }
 
-/**
- * 최신 스냅샷 기준 색인된 대표 URL 수.
- *
- * `seo_index_status`는 검사할 때마다 날짜별로 쌓이므로, 전 기간을 세면 같은 경로가
- * 스냅샷 수만큼 중복된다(07-27 5 + 07-28 14 = 19처럼). 색인 상태 카드는 최신 날짜만
- * 세는데 다른 화면이 전 기간을 세면서 같은 지표가 두 숫자로 갈렸다.
- *
- * `getIndexStatusSummary`의 `buckets.indexed`와 항상 같은 값이어야 한다 — 규칙을
- * 고칠 때는 둘을 같이 고칠 것.
- */
-export async function getIndexedPageCount(siteKey: string): Promise<number> {
-  const { data } = await supabase
-    .from('seo_index_status')
-    .select('checked_on')
-    .eq('site_key', siteKey)
-    .order('checked_on', { ascending: false })
-    .limit(1)
-  const latest = ((data ?? []) as Array<{ checked_on: string }>)[0]?.checked_on
-  if (!latest) return 0
-
-  const { count } = await supabase
-    .from('seo_index_status')
-    .select('path', { count: 'exact', head: true })
-    .eq('site_key', siteKey)
-    .eq('checked_on', latest)
-    .eq('is_indexed', true)
-  return count ?? 0
-}
+// 색인 수를 세는 함수는 아래 둘뿐이다: getIndexedPageStats(지표 타일용)와
+// getIndexStatusSummary(색인 카드용). 세 번째를 만들지 말 것.
+//
+// 여기 있던 getIndexedPageCount가 그 세 번째였다. 호출부가 없는데도 남아서 규칙만
+// 하나 더 들고 있었고(최신 스냅샷 전체 is_indexed = 로케일 포함), 스캔 범위가 넓어지자
+// 나머지 둘과 조용히 갈라졌다. 다시 필요해지면 getIndexedPageStats().total을 쓸 것.
 
 /**
  * 색인 수의 오늘/최근 7일 증감 — 통계 카드 보조라벨(오늘 N쪽 · 7일 N쪽)용.
  * 오늘 = 오늘 스냅샷 − 직전 스냅샷. 7일 = 최신 스냅샷 − 7일 전(또는 그 이전 가장 가까운) 스냅샷.
  * 색인 수 자체는 getIndexedPageCount와 같은 규칙(최신 스냅샷의 is_indexed)을 쓴다.
  *
- * **증감만 기본 로케일 계열로 잰다.** 총계는 실제 색인된 URL 전부(로케일 포함)지만,
- * 증감을 전체로 재면 스캔 범위가 넓어진 날이 폭증으로 찍힌다 — 08-05 보이스카드에서
- * 전체 +41, 실제 신규는 +5였다. 같은 이유로 getIndexStatusSummary.changeFromPrev도
- * base 계열을 쓴다. 규칙을 고칠 때는 둘을 같이 고칠 것.
+ * **총계·증감 모두 기본 로케일(원본) 계열로 잰다.** 화면의 대표 숫자를 base로 통일한
+ * 규칙을 따른다(IndexStatusSummary.base 주석). 이 함수의 반환값은 원래 주석대로 "대표
+ * URL 수"였는데 로케일 전수 스캔이 켜지면서 조용히 로케일까지 세고 있었다. 그래서 같은
+ * 화면이 색인율 19.2%(원본 44/229) 옆에 색인 페이지 80을 띄웠다.
+ *
+ * 증감을 전체로 재면 스캔 범위가 넓어진 날이 폭증으로도 찍힌다 — 08-05 보이스카드에서
+ * 전체 +41, 실제 신규는 +5였다. `locale`은 병기용이고 대표로 쓰지 않는다.
  */
-export async function getIndexedPageStats(siteKey: string): Promise<{ total: number; today: number; last7d: number }> {
+export async function getIndexedPageStats(siteKey: string): Promise<{ total: number; locale: number; today: number; last7d: number }> {
   const since = new Date(Date.now() - 9 * 86_400_000).toISOString().slice(0, 10)
   const { data } = await supabase
     .from('seo_index_status')
@@ -438,18 +427,18 @@ export async function getIndexedPageStats(siteKey: string): Promise<{ total: num
     byDate.set(r.checked_on, d)
   }
   const dates = Array.from(byDate.keys()).sort()
-  if (dates.length === 0) return { total: 0, today: 0, last7d: 0 }
+  if (dates.length === 0) return { total: 0, locale: 0, today: 0, last7d: 0 }
 
   const latestDate = dates[dates.length - 1]
-  const total = byDate.get(latestDate)?.all ?? 0
-  const baseTotal = byDate.get(latestDate)?.base ?? 0
+  const latest = byDate.get(latestDate) ?? { all: 0, base: 0 }
+  const total = latest.base
   const kstToday = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)
   const todayIdx = dates.indexOf(kstToday)
-  const today = todayIdx > 0 ? baseTotal - (byDate.get(dates[todayIdx - 1])?.base ?? 0) : 0
+  const today = todayIdx > 0 ? total - (byDate.get(dates[todayIdx - 1])?.base ?? 0) : 0
   const week7Cut = new Date(Date.now() + 9 * 3_600_000 - 6 * 86_400_000).toISOString().slice(0, 10)
   const baselineDate = dates.filter(d => d < week7Cut).pop() ?? dates[0]
-  const last7d = baselineDate === latestDate ? 0 : baseTotal - (byDate.get(baselineDate)?.base ?? 0)
-  return { total, today, last7d }
+  const last7d = baselineDate === latestDate ? 0 : total - (byDate.get(baselineDate)?.base ?? 0)
+  return { total, locale: latest.all - latest.base, today, last7d }
 }
 
 export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Promise<IndexStatusSummary> {
@@ -471,7 +460,7 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
     const emptySlice: IndexSlice = { total: 0, indexed: 0, pct: 0 }
     return {
       siteKey, domain: site?.domain ?? '', latestDate: null, total: 0,
-      buckets: { ...empty }, indexedPct: 0,
+      buckets: { ...empty }, localeBuckets: { ...empty }, indexedPct: 0,
       base: { ...emptySlice }, locale: { ...emptySlice },
       groups: [], trend: [],
       changeFromPrev: null,
@@ -500,7 +489,12 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
   const latestRows = rows.filter(r => r.checked_on === latestDate)
 
   const buckets = { ...empty }
-  for (const r of latestRows) buckets[bucketOf(r.coverage_state)]++
+  const localeBuckets = { ...empty }
+  for (const r of latestRows) {
+    const b = bucketOf(r.coverage_state)
+    buckets[b]++
+    if (isLocaleVariant(r.path)) localeBuckets[b]++
+  }
 
   const classify = classifierFor(siteKey)
   const groupAcc = new Map<string, { label: string; total: number; indexed: number; localeTotal: number; localeIndexed: number }>()
@@ -537,6 +531,7 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
     latestDate,
     total: latestRows.length,
     buckets,
+    localeBuckets,
     // 헤드라인 색인률도 원본 기준이다. 로케일을 섞으면 스캔 범위를 넓힌 날 색인률이
     // 떨어진 것처럼 보이는데(18.0% → 12.0%), 실제로 후퇴한 건 아무것도 없다.
     indexedPct: pct(baseIndexed, baseTotal),

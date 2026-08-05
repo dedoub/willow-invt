@@ -183,11 +183,13 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 title="답변에 실린 링크를 사람이 눌러 들어온 횟수(크롤 로그 referral). 인용이 트래픽이 됐는지를 본다."
               />
               <LStat
-                label="색인된 페이지"
+                label="색인된 페이지 (원본)"
                 value={data.indexedPages.toLocaleString()}
                 sub={`오늘 ${data.indexedPagesDelta.today.toLocaleString()}쪽 · 7일 ${data.indexedPagesDelta.last7d.toLocaleString()}쪽`}
                 tone={data.indexedPages > 0 ? 'default' : 'warn'}
-                title="색인이 없으면 답변엔진이 인용할 대상 자체가 없다. 실패 원인 '색인' 판정의 근거."
+                title={data.indexedPagesLocale > 0
+                  ? `영어 원본 기준. 로케일 변형 ${data.indexedPagesLocale.toLocaleString()}쪽이 더 색인돼 있다. 색인이 없으면 답변엔진이 인용할 대상 자체가 없다 — 실패 원인 '색인' 판정의 근거.`
+                  : "색인이 없으면 답변엔진이 인용할 대상 자체가 없다. 실패 원인 '색인' 판정의 근거."}
               />
             </div>
 

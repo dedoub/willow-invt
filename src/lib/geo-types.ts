@@ -87,6 +87,8 @@ export interface GeoAnswerStats {
   /** AI 답변에서 넘어온 클릭 (vc_crawl_log referral) */
   aiClicks: { today: number; last7d: number; total: number }
   indexedPagesDelta: { today: number; last7d: number }
-  /** 색인된 대표 URL 수 — index 원인 판정의 근거 */
+  /** 색인된 영어 원본 URL 수 — index 원인 판정의 근거. 화면 대표 숫자는 원본 기준으로 통일했다 */
   indexedPages: number
+  /** 색인된 로케일 변형 수 — 병기용. 위 숫자와 합쳐서 대표로 쓰지 않는다 */
+  indexedPagesLocale: number
 }
