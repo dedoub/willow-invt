@@ -100,7 +100,7 @@ de 허브(`/de/templates/einbuergerungstest`, `/de/templates/deutsch-a1`)는 처
 | 08-03 | VC 8건(허브2·코어3·잔여3) + RN 3건(pythagorean, quadratic-formula, linear-function) | ✅ 11건 완료, 12건째 quota |
 | 08-04 | VC 독일어권 허브 4 + RN 대기열 1~7 | ❌ 첫 요청부터 Quota Exceeded — 0건 |
 | 08-05 | VC 5(spoken-rehearsal + CDL 허브·하위 3) + RN 6(demo, guides 1, practice 4) | ✅ 11건 완료, quota 초과 없음. 계획했던 독일어권 허브는 스냅샷 누락으로 후보에 못 올라옴 |
-| 08-06 | VC 5: `/methods/daily-five`, `/templates/deutsch-a1`, `/templates/einbuergerungstest`, `/methods/active-recall`, `/methods/chunking-translation` · RN 6: `/en/practice/` 하위 `grade-4-2-polygons`·`-quadrilaterals`·`-triangles`·`grade-4-angles`·`grade-4-bar-graph`·`grade-4-large-numbers` | 예정. 원본 우선 결정 반영분 — 브리프가 그대로 낸다 |
+| 08-06 | VC 5: `/methods/chunking-translation`, `/templates/deutsch-a1`, `/templates/einbuergerungstest`, `/methods/active-recall`, `/methods/finish-date-pacing` · RN 6: `/en/practice/` 하위 `grade-4-2-polygons`·`-quadrilaterals`·`-triangles`·`grade-4-angles`·`grade-4-bar-graph`·`grade-4-large-numbers` | ✅ 11건 완료, quota 초과 없음. 12:00~12:40 KST. **사이트맵 재제출도 함께** (아래 참조) |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ## 스냅샷 크론 중단 (2026-08-05 발견·해결, 커밋 46d9a6d)
@@ -181,6 +181,51 @@ GSC 색인 페이지 리포트가 리뷰노트를 **102쪽 색인**이라고 하
 > 범위 문제**(여기), **우리가 더 크면 GSC 리포트 지연**(보이스카드 10 vs 80 — 같은 GSC의
 > 실적 리포트가 40쪽 노출을 보고했으므로 10은 성립하지 않는다).
 
+## 리뷰노트 연습문제가 구글에게 남의 사이트 중복으로 잡혔다 (2026-08-06 발견, 미해결)
+
+08-05에 요청한 연습문제 4건이 크롤은 됐는데(08-05 00:43 UTC, 요청 직후) **Duplicate without
+user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도메인도 아니다.
+
+| 우리 URL | 구글이 고른 정본 |
+|---|---|
+| `/en/practice/factor-trinomial` 외 3건 | `https://www.marcustheatres.com/` (미국 영화관 체인) |
+| `/fr/practice/grade-4-2-triangles`, `/fr/terms` | `https://www.747live.bet/` (도박 사이트) |
+
+콘텐츠 문제는 아니다. `seo-template-similarity.mjs` 실측에서 **유사도 평균 12.0%(최대 13.3%),
+고유비중 77%, 평균 780단어, 중복 title·desc 0쪽**이 나왔다. 근접 중복 기준(80%↑) 근처도 아니다.
+
+지금 서버는 self-canonical을 정상으로 내준다(일반 UA·Googlebot UA 둘 다 확인). 그런데 GSC의
+`user_canonical`은 null이다 — 크롤 시점에 못 봤다는 뜻이다. `page_fetch_state`는 SUCCESSFUL이라
+못 가져간 건 아니다.
+
+**미해결.** 가설은 크롤 시점(08-05 00:43 UTC)의 응답에 canonical이 없었다는 것인데, 리뷰노트 쪽
+배포 이력을 봐야 확정된다. 08-06 배치의 연습문제 6건이 그 검증이다 — 같은 경로 패턴에 아직
+크롤 안 된 URL들이라, 이것들도 duplicate로 가면 체계적 문제고 아니면 그날 크롤 창의 일회성이다.
+
+## 사이트맵 재읽기가 10일간 멈춰 있었다 (2026-08-06 발견·조치)
+
+08-06 배치 중 요청한 URL 대부분이 GSC 검사에서 **"No referring sitemaps detected"**로 나왔다.
+사이트맵에 분명히 있는 URL인데도 그랬다. Sitemaps 화면을 열어 보니 원인이 나왔다.
+
+| 사이트 | 사이트맵 실제 | 구글이 읽은 판 | Submitted | Last read |
+|---|---|---|---|---|
+| 보이스카드 | 670쪽 | 563쪽 | Jul 27 | **Jul 27** |
+| 리뷰노트 | 442쪽 | 429쪽 | Jul 27 | **Jul 27** |
+
+상태는 둘 다 Success다. 실패가 아니라 **재방문이 멈춘 것**이다. `lastmod`는 정상이었다 —
+리뷰노트는 442쪽 전부 08-04, 보이스카드도 08-04분이 223쪽 있다. 그런데도 안 읽었다.
+
+이 하나가 여러 증상을 설명한다. 08-04 배포한 독일어권 84 URL이 전부 unknown인 것,
+리뷰노트 로케일 307쪽이 unknown인 것, 오늘 요청분이 사이트맵과 연결 안 되는 것.
+구글이 7/27판만 들고 있으니 그 뒤에 낸 건 발견 경로 자체가 없다.
+
+**두 사이트 모두 같은 URL로 재제출했다**(08-06, Submitted가 Aug 6으로 갱신). Last read는
+구글이 실제로 다시 읽어야 바뀐다 — 그게 이 조치의 성패 지표다.
+
+> **하루 11건 요청보다 이쪽이 큰 레버다.** 수동 요청은 하루 11개, 사이트맵 재읽기는 한 번에
+> 수백 개다. 앞으로 신규 클러스터를 배포하면 **배포 후 사이트맵 Last read를 먼저 확인할 것.**
+> 거기가 막혀 있으면 개별 요청은 밑 빠진 독이다.
+
 ## 팔로우업 로그
 
 | 날짜 | 요청 | 결과 | 전일 요청분 상태 이동 |
@@ -188,4 +233,5 @@ GSC 색인 페이지 리포트가 리뷰노트를 **102쪽 색인**이라고 하
 | 08-03 | VC 8 + RN 3 | 11건 등록, quota 도달 | (첫 배치) 07-30 시민권 8건 중 3건 색인 확인 |
 | 08-04 | 0건 (VC `/templates/einbuergerungstest` 시도 → Quota Exceeded) | ❌ 할당량 미회복. 08-03 배치가 늦게 돌아 24h 창이 안 넘어간 것으로 보임 — 다음 배치는 시각을 앞당길 것 | 08-03 요청분 확인: bible·quran 허브 + RN 3건(pythagorean·quadratic-formula·linear-function) **전부 Submitted and indexed** |
 | 08-05 | VC 5: `/methods/spoken-rehearsal`, `/templates/cdl`, `/templates/cdl-air-brakes`, `/templates/cdl-combination-vehicles`, `/templates/cdl-general-knowledge` · RN 6: `/en/demo`, `/en/guides/assign-problems-without-student-accounts`, `/en/practice/factor-trinomial`, `/en/practice/grade-4-2-decimals`, `/en/practice/grade-4-2-fractions`, `/en/practice/grade-4-2-line-graphs` | ✅ 11건 전부 "Indexing requested". 09:45~10:20 KST 실행, quota 초과 없음. 요청 시점 11건 모두 GSC에서 "URL is unknown to Google" 확인 | 08-04가 0건이라 확인할 전일 요청분 없음. 브리프가 낸 신규 색인 8건(VC)·3건(RN)은 08-04 스냅샷 기준이라 위 08-04 행과 같은 사건 |
+| 08-06 | VC 5: `/methods/chunking-translation`, `/templates/deutsch-a1`, `/templates/einbuergerungstest`, `/methods/active-recall`, `/methods/finish-date-pacing` · RN 6: `/en/practice/` `grade-4-2-polygons`·`-quadrilaterals`·`-triangles`·`grade-4-angles`·`grade-4-bar-graph`·`grade-4-large-numbers` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 추가로 **두 사이트 사이트맵 재제출** | 08-05 요청분: `/en/demo`·`/en/guides/assign-problems-without-student-accounts`·`/templates/cdl`·`/methods/spoken-rehearsal` **색인 완료**. 반면 RN 연습문제 4건(`factor-trinomial`, `grade-4-2-decimals`·`-fractions`·`-line-graphs`)은 **Duplicate without user-selected canonical** — 아래 참조 |
 | 08-05 (사후) | — (스냅샷 복구 후 재확인) | 스캔 타임아웃 수정 후 08-05 스냅샷 생성: VC 665쪽(색인 80), RN 34쪽(색인 17) | **당일 요청분이 몇 시간 만에 반영**: RN `/en/demo`·`/en/guides/assign-problems-without-student-accounts` 색인 완료, VC `/templates/cdl` 허브 색인 완료(하위 3건은 이제 요청 대상에서 제외) |
