@@ -104,8 +104,18 @@ dev_day as (
   from base where event_name <> 'learning_session_ended' group by kdate, device_id
 ),
 -- 신규/회원 분리: 그 날 활동한 로그인 디바이스의 유저가 그 날 가입(users.created_at KST)했으면 신규.
+--
+-- 로그인 판정에 users 행 존재를 함께 요구한다. 이벤트의 user_id만 보면 users에 행이 없는
+-- 고아 계정이 is_new=false를 타고 조용히 '기존 회원'으로 들어간다 — 사용자 테이블은 users
+-- 기준이라 같은 날 회원 수가 6 대 5로 갈렸다(2026-08-06). 고아는 2026-05-07~23 · 앱
+-- 1.0.79/1.0.81/1.1.15 시절 가입 플로우 구멍에서 나온 17개가 전부이고 그 뒤로는 안 생기는데,
+-- 그중 하나가 82일 만에 앱을 열면 그날 수치가 튄다.
+--
+-- 그런 기기는 비로그인으로 센다. users 행도 user_analytics 행도 없으면 회원이라 부를 근거가
+-- 없고, 아예 빼면 회원+신규+비로그인 합이 활동 기기와 안 맞아 새 혼란이 생긴다.
 dev_day_flag as (
-  select d.kdate, d.device_id, d.has_login,
+  select d.kdate, d.device_id,
+    (d.has_login and u.user_id is not null) as has_login,
     (u.user_id is not null and (u.created_at at time zone 'Asia/Seoul')::date = d.kdate) as is_new
   from dev_day d left join users u on u.user_id = d.uid
 ),
