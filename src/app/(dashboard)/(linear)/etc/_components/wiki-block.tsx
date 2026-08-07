@@ -11,9 +11,12 @@ interface EtcWikiBlockProps {
   onCreate: (data: { section: 'etf-etc'; title: string; content: string; attachments?: unknown }) => Promise<void>
   onUpdate: (id: string, data: Partial<{ title: string; content: string; section: string; is_pinned: boolean; attachments: unknown }>) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  // 이메일과 나란히 놓일 때만 부모 높이를 채운다. 목록+상세 2단 레이아웃은 그대로다
+  // (아크로스가 쓰는 embedded와 달리 1단으로 접지 않는다).
+  fillHeight?: boolean
 }
 
-export function EtcWikiBlock({ notes, loading, onCreate, onUpdate, onDelete }: EtcWikiBlockProps) {
+export function EtcWikiBlock({ notes, loading, onCreate, onUpdate, onDelete, fillHeight }: EtcWikiBlockProps) {
   const etcNotes = notes.filter(n => n.section === 'etf-etc')
 
   const handleCreate = async (data: { section: WikiSection; title: string; content: string; attachments?: unknown }) => {
@@ -28,6 +31,7 @@ export function EtcWikiBlock({ notes, loading, onCreate, onUpdate, onDelete }: E
       onUpdate={onUpdate}
       onDelete={onDelete}
       hideFilter
+      fillHeight={fillHeight}
     />
   )
 }

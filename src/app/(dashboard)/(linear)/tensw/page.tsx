@@ -565,6 +565,9 @@ export default function TenswPage() {
               onCreate={handleCreateWiki}
               onUpdate={handleUpdateWiki}
               onDelete={handleDeleteWiki}
+              // 이메일과 나란히 놓일 때만. 세로로 스택되면 그리드 행이 늘어날 일이 없어
+              // 자체 계산 높이(availH)가 맞다.
+              fillHeight={!mobile && cols !== 1}
             />
             <EmailBlock
               emails={emails}

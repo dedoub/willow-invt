@@ -55,6 +55,15 @@ interface WikiListProps {
   hideFilter?: boolean
   // 좁은 임베드(예: 아크로스 1/3 칼럼) — 모바일식 마스터-디테일 + 부모 높이 채움
   embedded?: boolean
+  /**
+   * 부모 높이를 채운다. 레이아웃(2단 목록+상세)은 그대로 둔다.
+   *
+   * `embedded`와 나눠 둔 이유: 그리드에서 옆 블록을 따라 늘어나야 하는 것과, 칼럼이 좁아
+   * 1단으로 접어야 하는 것은 다른 문제다. 텐소·ETC 위키는 2fr 쪽(약 60%)이라 2단이 들어가는데
+   * `embedded`를 주면 폭과 무관하게 1단으로 접혔다. 기본 높이는 뷰포트 기준 자체 계산(availH)이라
+   * 그리드 행 높이와 무관해서, 옆 이메일 블록이 길어져도 위키만 안 따라간다.
+   */
+  fillHeight?: boolean
 }
 
 function fmtDate(dateStr: string): string {
@@ -74,10 +83,12 @@ function getSearchableWikiText(content: string): string {
   return htmlToPlainText(renderWikiHtml(content))
 }
 
-export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFilter, embedded }: WikiListProps) {
+export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFilter, embedded, fillHeight }: WikiListProps) {
   const mobile = useIsMobile()
   // 임베드 모드에선 실제 모바일이 아니어도 모바일식(리스트 → 클릭 시 상세, 리스트 감춤) 레이아웃 사용
   const compact = mobile || !!embedded
+  // 부모 높이 채우기. embedded는 이걸 항상 포함하고, fillHeight는 이것만 켠다.
+  const fill = !!embedded || !!fillHeight
   const [sectionFilter, setSectionFilter] = useState<SectionFilter>('all')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'updated' | 'created'>('updated')
@@ -208,7 +219,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   }
 
   return (
-    <LCard pad={0} style={embedded ? { height: '100%', display: 'flex', flexDirection: 'column' } : undefined}>
+    <LCard pad={0} style={fill ? { height: '100%', display: 'flex', flexDirection: 'column' } : undefined}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10, flexShrink: 0 }}>
         <LSectionHead eyebrow="WIKI" title="업무위키" action={
           <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
@@ -220,7 +231,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
       <div ref={wrapRef} style={{
         display: 'flex',
         flexDirection: compact ? 'column' : 'row',
-        ...(embedded ? { flex: 1, minHeight: 0 } : { height: compact ? 'auto' : availH }),
+        ...(fill ? { flex: 1, minHeight: 0 } : { height: compact ? 'auto' : availH }),
       }}>
         {/* ===== LEFT PANEL: list ===== */}
         {(!compact || (!selectedId && !adding)) && (
@@ -229,7 +240,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           minWidth: compact ? undefined : 280,
           display: 'flex', flexDirection: 'column',
           borderRight: compact ? 'none' : `1px solid ${t.neutrals.line}`,
-          ...(embedded ? { flex: 1, minHeight: 0 } : {}),
+          ...(fill ? { flex: 1, minHeight: 0 } : {}),
         }}>
           {/* Filter bar */}
           <div style={{ padding: '10px 12px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>

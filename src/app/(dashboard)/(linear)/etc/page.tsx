@@ -273,6 +273,7 @@ export default function EtcPage() {
                     onCreate={handleCreateWiki}
                     onUpdate={handleUpdateWiki}
                     onDelete={handleDeleteWiki}
+                    fillHeight
                   />
                 </div>
                 <div style={{ minWidth: 0 }}>
