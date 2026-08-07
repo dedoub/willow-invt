@@ -101,6 +101,7 @@ de 허브(`/de/templates/einbuergerungstest`, `/de/templates/deutsch-a1`)는 처
 | 08-04 | VC 독일어권 허브 4 + RN 대기열 1~7 | ❌ 첫 요청부터 Quota Exceeded — 0건 |
 | 08-05 | VC 5(spoken-rehearsal + CDL 허브·하위 3) + RN 6(demo, guides 1, practice 4) | ✅ 11건 완료, quota 초과 없음. 계획했던 독일어권 허브는 스냅샷 누락으로 후보에 못 올라옴 |
 | 08-06 | VC 5: `/methods/chunking-translation`, `/templates/deutsch-a1`, `/templates/einbuergerungstest`, `/methods/active-recall`, `/methods/finish-date-pacing` · RN 6: `/en/practice/` 하위 `grade-4-2-polygons`·`-quadrilaterals`·`-triangles`·`grade-4-angles`·`grade-4-bar-graph`·`grade-4-large-numbers` | ✅ 11건 완료, quota 초과 없음. 12:00~12:40 KST. **사이트맵 재제출도 함께** (아래 참조) |
+| 08-07 | VC 3: `/templates/bible-verse-memorization-kjv`, `/methods/two-way-recall`, `/methods/daily-five` · RN 8: `/en/practice/` `grade-4-multiplication`·`grade-4-transformations`·`linear-system`·`grade-4-rules`·`grade-5-fractions`·`grade-5-number-operations`·`grade-4-large-numbers` + `/en/templates/mistake-notebook` | ✅ 11건 전부 "Indexing requested", 12번째까지 quota 여유. 12:45~13:15 KST. 로케일 루트 대신 원본으로 채운 배치 |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ## 스냅샷 크론 중단 (2026-08-05 발견·해결, 커밋 46d9a6d)
@@ -180,6 +181,25 @@ GSC 색인 페이지 리포트가 리뷰노트를 **102쪽 색인**이라고 하
 > 교훈: GSC 리포트와 우리 숫자가 갈리면 방향을 먼저 볼 것. **GSC가 더 크면 우리 관측
 > 범위 문제**(여기), **우리가 더 크면 GSC 리포트 지연**(보이스카드 10 vs 80 — 같은 GSC의
 > 실적 리포트가 40쪽 노출을 보고했으므로 10은 성립하지 않는다).
+
+## GSC UI 를 자동으로 몰 때 (2026-08-07에 한 칸 버리고 배운 것)
+
+**URL 입력과 REQUEST INDEXING 클릭을 한 배치에 묶지 말 것.** 검색창 입력이 실패해도
+그다음 클릭은 그대로 나가고, 요청이 끝난 화면에서는 같은 자리가 **REQUEST AGAIN** 이다.
+08-07에 그렇게 `/methods/two-way-recall` 을 두 번 요청해 하루 한도 한 칸을 버렸다
+(재요청은 큐를 안 바꾸므로 아무 효과도 없다).
+
+지켜야 할 순서:
+
+1. 검색창에 URL 입력 → Enter
+2. **화면 상단의 검사 URL이 방금 넣은 것인지 눈으로 확인** (여기서 끊는다)
+3. 확인된 뒤에만 REQUEST INDEXING 클릭
+
+프로퍼티를 바꾼 직후와 결과 토스트가 떠 있는 동안에는 첫 클릭이 자주 먹지 않는다.
+한 번 더 클릭해서 입력하면 된다. 확인 단계가 있으면 이건 그냥 재시도로 끝난다.
+
+> 라이브 테스트("Testing if live URL can be indexed")는 날에 따라 30초에서 3분 넘게 걸린다.
+> 오래 걸린다고 취소하지 말 것 — 취소하면 요청이 등록되지 않는다.
 
 ## 리뷰노트 연습문제가 구글에게 남의 사이트 중복으로 잡혔다 (2026-08-06 발견, 미해결)
 
