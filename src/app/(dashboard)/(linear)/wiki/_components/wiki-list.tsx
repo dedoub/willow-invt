@@ -218,8 +218,16 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
     await onUpdate(selectedNote.id, { memos: (selectedNote.memos || []).filter(m => m.id !== memoId) })
   }
 
+  // embedded: height 100%로 부모를 채운다(아크로스 — 부모가 높이를 정해주는 자리).
+  // fillHeight: height를 주지 않는다. 그리드 아이템은 기본 align-self:stretch라 행 높이만큼
+  //   이미 늘어나고, 여기에 height:100%를 얹으면 행 높이가 아직 auto인 시점이라 브라우저가
+  //   auto로 풀어 availH 상한을 잃는다 → 목록 전체 길이만큼 섹션이 길어진다.
   return (
-    <LCard pad={0} style={fill ? { height: '100%', display: 'flex', flexDirection: 'column' } : undefined}>
+    <LCard pad={0} style={
+      embedded ? { height: '100%', display: 'flex', flexDirection: 'column' }
+      : fillHeight ? { display: 'flex', flexDirection: 'column' }
+      : undefined
+    }>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10, flexShrink: 0 }}>
         <LSectionHead eyebrow="WIKI" title="업무위키" action={
           <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
@@ -231,7 +239,12 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
       <div ref={wrapRef} style={{
         display: 'flex',
         flexDirection: compact ? 'column' : 'row',
-        ...(fill ? { flex: 1, minHeight: 0 } : { height: compact ? 'auto' : availH }),
+        // fillHeight: 높이를 안 준다. 목록(기본 10행)이 자연스럽게 높이를 정하고,
+        // flex:1이라 옆 블록이 더 길어 그리드 행이 늘어나면 거기까지 따라 늘어난다.
+        // availH(화면 끝까지)를 안 쓰는 게 핵심 — 세로로 긴 모니터에서 섹션이 과하게 길어졌다.
+        ...(embedded ? { flex: 1, minHeight: 0 }
+          : fillHeight ? { flex: 1, minHeight: 0 }
+          : { height: compact ? 'auto' : availH }),
       }}>
         {/* ===== LEFT PANEL: list ===== */}
         {(!compact || (!selectedId && !adding)) && (
@@ -240,7 +253,10 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           minWidth: compact ? undefined : 280,
           display: 'flex', flexDirection: 'column',
           borderRight: compact ? 'none' : `1px solid ${t.neutrals.line}`,
-          ...(fill ? { flex: 1, minHeight: 0 } : {}),
+          // flex:1은 세로 스택(compact)에서 높이를 채우라는 뜻이다. 2단 가로 배치에서 주면
+          // 주축이 가로라 42% 폭을 밀어내고 상세 패널을 좁힌다.
+          ...(fill && compact ? { flex: 1, minHeight: 0 } : {}),
+          ...(fill && !compact ? { minHeight: 0 } : {}),
         }}>
           {/* Filter bar */}
           <div style={{ padding: '10px 12px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
