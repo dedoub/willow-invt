@@ -427,7 +427,15 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
 
         {/* ===== RIGHT PANEL: detail ===== */}
         {(!compact || selectedId || adding) && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: (mobile && !embedded) ? 'visible' : 'hidden', minHeight: 0 }}>
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          overflow: (mobile && !embedded) ? 'visible' : 'hidden', minHeight: 0,
+          // fillHeight에선 섹션 높이를 왼쪽 목록(기본 10행)이 정해야 한다. 이 상세 패널은
+          // flex 교차축에서 자기 내용 높이를 컨테이너로 올려보내서, 긴 노트를 열면 섹션이
+          // 그만큼 길어졌다. overflow:hidden으로는 안 막힌다 — 내재 크기 계산엔 그대로 들어간다.
+          // contain:size가 내재 기여를 0으로 만들고, stretch로 행 높이를 받아 안에서 스크롤한다.
+          ...(fillHeight && !compact ? { contain: 'size' as const, alignSelf: 'stretch' as const } : {}),
+        }}>
           {/* 목록으로 back button (compact) */}
           {compact && (
             <button
