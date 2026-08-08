@@ -125,6 +125,7 @@ const VC_DECK_CLUSTERS: Array<{ prefix: string; key: string; label: string }> = 
   { prefix: 'einbuergerungstest', key: 'einbuergerungstest', label: '독일 귀화시험' },
   { prefix: 'deutsch-a1', key: 'deutsch-a1', label: '독일어 A1' },
   { prefix: 'cdl', key: 'cdl', label: 'CDL 상용면허' },
+  { prefix: 'spanish', key: 'spanish', label: '스페인어' },
 ]
 
 const CLASSIFIERS: Record<string, Classifier> = {
