@@ -392,7 +392,8 @@ const BUCKET_LABEL_UI: Record<IndexBucket, string> = {
 }
 const BUCKET_ORDER: IndexBucket[] = ['indexed', 'crawled', 'discovered', 'unseen', 'excluded', 'unknown']
 
-// 상태 분포 + 색인 추이. 색인률 자체는 상단 지표 카드에 있으니 여기서는 구성만 본다.
+// 상태 분포만. 색인률·추이·전일 증감은 상단 '색인율(원본)' 지표 타일이 값·스파크라인·
+// 배지로 다 들고 있어서, 여기 보조텍스트로 또 쓰면 같은 숫자가 화면에 두 번 나온다.
 // 쪽수·비율은 원본 기준이고 로케일은 별도 열이다 — 버티컬 표와 같은 규칙으로 읽히게.
 function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
   const total = data.base.total
@@ -403,20 +404,6 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
   return (
     <DataTable
       title="색인 상태"
-      meta={total > 0 ? (
-        <>
-          {data.latestDate} · 원본 {total.toLocaleString()}쪽
-          {hasLocale && <> · 로케일 {data.locale.total.toLocaleString()}쪽</>}
-          {/* 4열 헤더에 30일치 숫자는 다 못 들어간다 — 최근 7회만.
-              로케일 전수 스캔을 켠 날 계단이 생기므로 원본 계열로 그린다. */}
-          {data.trend.length > 1 && <> · 원본 색인 추이 {data.trend.slice(-7).map(d => d.baseIndexed).join(' → ')}</>}
-          {data.changeFromPrev != null && data.changeFromPrev !== 0 && (
-            <span style={{ marginLeft: 4, fontWeight: 600, color: data.changeFromPrev > 0 ? t.accent.pos : t.accent.neg }}>
-              ({data.changeFromPrev > 0 ? '+' : '−'}{Math.abs(data.changeFromPrev)})
-            </span>
-          )}
-        </>
-      ) : undefined}
       minWidth={260}
       columns={[
         { key: 'status', label: '상태', width: 'minmax(90px,1fr)' },
@@ -452,9 +439,6 @@ function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
   return (
     <DataTable
       title="버티컬별 색인률"
-      meta={hasLocale
-        ? `원본 ${data.base.indexed}/${data.base.total} (${data.base.pct}%) · 로케일 ${data.locale.indexed}/${data.locale.total} (${data.locale.pct}%)`
-        : undefined}
       minWidth={260}
       columns={[
         { key: 'label', label: '버티컬', width: 'minmax(70px,1fr)' },
