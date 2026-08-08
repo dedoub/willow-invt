@@ -12,7 +12,7 @@
 import { GoogleAuth } from 'google-auth-library'
 import { supabase } from './supabase'
 import { getGscSite } from './gsc'
-import { canonicalPath, fetchSitemapPaths, isHtmlPath, normalizePath, pathLocale } from './umami'
+import { canonicalPath, fetchSitemapPaths, isHtmlPath, LOCALES, normalizePath, pathLocale } from './umami'
 
 const INSPECT_API = 'https://searchconsole.googleapis.com/v1/urlInspection/index:inspect'
 const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly'
@@ -402,6 +402,63 @@ interface StatusRow {
   is_indexed: boolean | null
 }
 
+/** 날짜별 색인 집계 한 줄 — RPC `seo_index_trend`의 반환 모양 */
+interface TrendRow {
+  checked_on: string
+  total: number
+  indexed: number
+  base_total: number
+  base_indexed: number
+}
+
+/**
+ * 날짜별 집계는 DB에서 접는다.
+ *
+ * 예전엔 기간 전체의 원본 행을 받아 TS에서 날짜별로 세었는데, PostgREST가 응답을
+ * 1,000행에서 자른다. 보이스카드는 하루 669행이라 30일을 달라고 해도 최신 하루와
+ * 직전 하루의 임의 331행만 왔다 — 추이에 점이 둘만 찍히고 그중 하나는 부분집합이었다.
+ * 잘렸다는 신호가 없어서 조용히 틀린 그림이 나왔다. 집계를 DB에 두면 반환이 날짜 수
+ * 만큼(30행)이라 상한에 닿지 않는다.
+ *
+ * 로케일 판정 목록은 TS(umami.ts LOCALES)가 단일 진실원이라 인자로 넘긴다.
+ */
+async function fetchTrend(siteKey: string, since: string): Promise<TrendRow[]> {
+  const { data, error } = await supabase.rpc('seo_index_trend', {
+    p_site_key: siteKey,
+    p_since: since,
+    p_locales: Array.from(LOCALES),
+    p_base_locale: getGscSite(siteKey)?.defaultLocale ?? null,
+  })
+  if (error) throw new Error(`색인 추이 조회 실패: ${error.message}`)
+  return (data ?? []) as TrendRow[]
+}
+
+const PAGE_SIZE = 1000
+
+/**
+ * 한 날짜의 스냅샷 전체 행.
+ *
+ * 하루치도 1,000행을 넘을 수 있어서(밸류체인 1,394쪽) 그냥 select 하면 잘린다.
+ * 잘린 응답은 에러가 아니라 그냥 짧은 배열이라, 버킷 분포와 버티컬 표가 부분집합
+ * 위에서 계산되고도 정상처럼 보인다. range로 끝까지 넘긴다.
+ */
+async function fetchSnapshot(siteKey: string, date: string): Promise<StatusRow[]> {
+  const out: StatusRow[] = []
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('seo_index_status')
+      .select('path, checked_on, coverage_state, last_crawl_time, is_indexed')
+      .eq('site_key', siteKey)
+      .eq('checked_on', date)
+      .order('path')
+      .range(from, from + PAGE_SIZE - 1)
+    if (error) throw new Error(`색인 스냅샷 조회 실패: ${error.message}`)
+    const page = (data ?? []) as StatusRow[]
+    out.push(...page)
+    if (page.length < PAGE_SIZE) return out
+  }
+}
+
 // 색인 수를 세는 함수는 아래 둘뿐이다: getIndexedPageStats(지표 타일용)와
 // getIndexStatusSummary(색인 카드용). 세 번째를 만들지 말 것.
 //
@@ -424,52 +481,33 @@ interface StatusRow {
  */
 export async function getIndexedPageStats(siteKey: string): Promise<{ total: number; locale: number; today: number; last7d: number }> {
   const since = new Date(Date.now() - 9 * 86_400_000).toISOString().slice(0, 10)
-  const { data } = await supabase
-    .from('seo_index_status')
-    .select('checked_on, path')
-    .eq('site_key', siteKey)
-    .eq('is_indexed', true)
-    .gte('checked_on', since)
-  const isLocaleVariant = localeVariantTest(siteKey)
-  const byDate = new Map<string, { all: number; base: number }>()
-  for (const r of (data ?? []) as Array<{ checked_on: string; path: string }>) {
-    const d = byDate.get(r.checked_on) ?? { all: 0, base: 0 }
-    d.all++
-    if (!isLocaleVariant(r.path)) d.base++
-    byDate.set(r.checked_on, d)
-  }
-  const dates = Array.from(byDate.keys()).sort()
-  if (dates.length === 0) return { total: 0, locale: 0, today: 0, last7d: 0 }
+  const trend = await fetchTrend(siteKey, since)
+  if (trend.length === 0) return { total: 0, locale: 0, today: 0, last7d: 0 }
 
-  const latestDate = dates[dates.length - 1]
-  const latest = byDate.get(latestDate) ?? { all: 0, base: 0 }
-  const total = latest.base
+  const dates = trend.map(t => t.checked_on)
+  const latest = trend[trend.length - 1]
+  const total = latest.base_indexed
   const kstToday = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)
   const todayIdx = dates.indexOf(kstToday)
-  const today = todayIdx > 0 ? total - (byDate.get(dates[todayIdx - 1])?.base ?? 0) : 0
+  const today = todayIdx > 0 ? total - trend[todayIdx - 1].base_indexed : 0
   const week7Cut = new Date(Date.now() + 9 * 3_600_000 - 6 * 86_400_000).toISOString().slice(0, 10)
-  const baselineDate = dates.filter(d => d < week7Cut).pop() ?? dates[0]
-  const last7d = baselineDate === latestDate ? 0 : total - (byDate.get(baselineDate)?.base ?? 0)
-  return { total, locale: latest.all - latest.base, today, last7d }
+  let baselineIdx = 0
+  for (let i = 0; i < dates.length; i++) if (dates[i] < week7Cut) baselineIdx = i
+  const last7d = dates[baselineIdx] === latest.checked_on ? 0 : total - trend[baselineIdx].base_indexed
+  return { total, locale: latest.indexed - latest.base_indexed, today, last7d }
 }
 
 export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Promise<IndexStatusSummary> {
   const site = getGscSite(siteKey)
   const since = new Date(Date.now() - trendDays * 86_400_000).toISOString().slice(0, 10)
 
-  const { data, error } = await supabase
-    .from('seo_index_status')
-    .select('path, checked_on, coverage_state, last_crawl_time, is_indexed')
-    .eq('site_key', siteKey)
-    .gte('checked_on', since)
-    .order('checked_on', { ascending: false })
-  if (error) throw new Error(`색인 상태 조회 실패: ${error.message}`)
+  // 추이는 DB 집계로, 최신 스냅샷 상세만 행 단위로 받는다 — 둘 다 1,000행 상한을 피한다.
+  const trendRows = await fetchTrend(siteKey, since)
 
   const isLocaleVariant = localeVariantTest(siteKey)
-  const rows = (data ?? []) as StatusRow[]
   const empty: Record<IndexBucket, number> = { indexed: 0, crawled: 0, discovered: 0, unseen: 0, excluded: 0, unknown: 0 }
 
-  if (rows.length === 0) {
+  if (trendRows.length === 0) {
     const emptySlice: IndexSlice = { total: 0, indexed: 0, pct: 0 }
     return {
       siteKey, domain: site?.domain ?? '', latestDate: null, total: 0,
@@ -482,24 +520,18 @@ export async function getIndexStatusSummary(siteKey: string, trendDays = 30): Pr
 
   const pct = (indexed: number, total: number) => (total > 0 ? Math.round((indexed / total) * 1000) / 10 : 0)
 
-  // 날짜별 집계 (추이). base = 로케일을 뺀 계열
-  const byDate = new Map<string, { indexed: number; total: number; baseIndexed: number; baseTotal: number }>()
-  for (const r of rows) {
-    const d = byDate.get(r.checked_on) ?? { indexed: 0, total: 0, baseIndexed: 0, baseTotal: 0 }
-    d.total++
-    if (r.is_indexed) d.indexed++
-    if (!isLocaleVariant(r.path)) {
-      d.baseTotal++
-      if (r.is_indexed) d.baseIndexed++
-    }
-    byDate.set(r.checked_on, d)
-  }
-  const trend = Array.from(byDate.entries())
-    .map(([date, v]) => ({ date, indexed: v.indexed, total: v.total, pct: pct(v.indexed, v.total), baseIndexed: v.baseIndexed, baseTotal: v.baseTotal }))
-    .sort((a, b) => a.date.localeCompare(b.date))
+  // 날짜별 집계 (추이). base = 로케일을 뺀 계열 — RPC가 날짜 오름차순으로 준다
+  const trend = trendRows.map(r => ({
+    date: r.checked_on,
+    indexed: r.indexed,
+    total: r.total,
+    pct: pct(r.indexed, r.total),
+    baseIndexed: r.base_indexed,
+    baseTotal: r.base_total,
+  }))
 
-  const latestDate = trend[trend.length - 1]?.date ?? null
-  const latestRows = rows.filter(r => r.checked_on === latestDate)
+  const latestDate = trend[trend.length - 1].date
+  const latestRows = await fetchSnapshot(siteKey, latestDate)
 
   const buckets = { ...empty }
   const localeBuckets = { ...empty }

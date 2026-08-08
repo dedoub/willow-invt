@@ -45,23 +45,54 @@ const rest = (params) =>
     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
   }).then(r => r.json())
 
+/**
+ * PostgREST는 한 응답을 1,000행에서 자른다. `limit=20000`을 붙여도 소용없다 —
+ * 상한이 서버 쪽이라 요청 limit이 그보다 크면 그냥 무시된다. 잘려도 에러가 아니라
+ * 짧은 배열이 와서, 여기 있던 세 질의가 전부 조용히 부분 데이터로 돌고 있었다:
+ * recentDays는 하루 669행짜리 사이트에서 400행을 받아 날짜가 늘 하나뿐이라
+ * 전일 대비 비교가 매번 건너뛰어졌고, stuckSince는 2,796행 중 1,000행만 봤다.
+ * Range 헤더로 끝까지 넘긴다.
+ */
+const PAGE = 1000
+async function restAll(params) {
+  const out = []
+  for (let from = 0; ; from += PAGE) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/seo_index_status?${params}`, {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        Range: `${from}-${from + PAGE - 1}`,
+      },
+    })
+    const page = await res.json()
+    if (!Array.isArray(page)) throw new Error(`색인 조회 실패: ${JSON.stringify(page).slice(0, 200)}`)
+    out.push(...page)
+    if (page.length < PAGE) return out
+  }
+}
+
 /** 최근 스냅샷 두 개의 날짜. 하나뿐이면 비교는 건너뛴다. */
 async function recentDays(site) {
-  const rows = await rest(`site_key=eq.${site}&select=checked_on&order=checked_on.desc&limit=400`)
-  return [...new Set(rows.map(r => r.checked_on))].slice(0, 2)
+  // 날짜만 distinct로 받으면 사이트 규모와 무관하게 한 응답에 들어온다.
+  const rows = await rest(`site_key=eq.${site}&select=checked_on&order=checked_on.desc&limit=1`)
+  if (rows.length === 0) return []
+  const prev = await rest(
+    `site_key=eq.${site}&checked_on=lt.${rows[0].checked_on}&select=checked_on&order=checked_on.desc&limit=1`,
+  )
+  return prev.length > 0 ? [rows[0].checked_on, prev[0].checked_on] : [rows[0].checked_on]
 }
 
 async function snapshot(site, day) {
-  const rows = await rest(
-    `site_key=eq.${site}&checked_on=eq.${day}&select=path,coverage_state,is_indexed&limit=5000`,
+  const rows = await restAll(
+    `site_key=eq.${site}&checked_on=eq.${day}&select=path,coverage_state,is_indexed&order=path.asc`,
   )
   return new Map(rows.map(r => [r.path, r]))
 }
 
 /** Discovered 정체가 언제부터인지 — 오래 묵은 것부터 넣기 위해. */
 async function stuckSince(site) {
-  const rows = await rest(
-    `site_key=eq.${site}&coverage_state=like.Discovered*&select=path,checked_on&order=checked_on.asc&limit=20000`,
+  const rows = await restAll(
+    `site_key=eq.${site}&coverage_state=like.Discovered*&select=path,checked_on&order=checked_on.asc,path.asc`,
   )
   const first = new Map()
   for (const r of rows) if (!first.has(r.path)) first.set(r.path, r.checked_on)

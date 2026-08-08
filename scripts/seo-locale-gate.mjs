@@ -83,9 +83,27 @@ async function indexStatus() {
   const latest = await q(`site_key=eq.${siteKey}&select=checked_on&order=checked_on.desc&limit=1`)
   if (!latest.length) return { checkedOn: null, byPath: new Map() }
   const checkedOn = latest[0].checked_on
-  const rows = await q(
-    `site_key=eq.${siteKey}&checked_on=eq.${checkedOn}&select=path,is_indexed,coverage_state&limit=5000`,
-  )
+
+  // PostgREST 상한이 1,000행이라 `limit=5000`은 무시된다. 하루치가 그걸 넘는 사이트는
+  // (밸류체인 1,394쪽) 조용히 잘린 스냅샷 위에서 게이트를 판정하게 된다. Range로 넘긴다.
+  const PAGE = 1000
+  const rows = []
+  for (let from = 0; ; from += PAGE) {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/seo_index_status?site_key=eq.${siteKey}&checked_on=eq.${checkedOn}&select=path,is_indexed,coverage_state&order=path.asc`,
+      {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          Range: `${from}-${from + PAGE - 1}`,
+        },
+      },
+    )
+    const page = await res.json()
+    if (!Array.isArray(page)) throw new Error(`색인 조회 실패: ${JSON.stringify(page).slice(0, 200)}`)
+    rows.push(...page)
+    if (page.length < PAGE) break
+  }
   return { checkedOn, byPath: new Map(rows.map(r => [r.path, r])) }
 }
 

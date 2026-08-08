@@ -120,7 +120,14 @@ export function classifyReferrer(referrer: string | null | undefined): Channel {
 
 // ─── 경로 정규화 ──────────────────────────────────────────────────────────────
 
-const LOCALES = new Set([
+/**
+ * 로케일로 인정하는 2자 코드. 경로 앞 세그먼트가 여기 있어야 로케일 변형으로 친다
+ * (`/cdl/...` 같은 슬러그를 로케일로 오인하지 않기 위해).
+ *
+ * DB의 seo_index_trend RPC도 같은 판정을 하는데, 목록을 SQL에 박으면 두 곳이 갈라지므로
+ * 이 집합을 인자로 넘긴다. 여기가 단일 진실원이다.
+ */
+export const LOCALES = new Set([
   'en', 'ko', 'ja', 'zh', 'es', 'fr', 'de', 'pt', 'it', 'ru', 'ar', 'hi', 'id', 'vi',
   'th', 'tr', 'pl', 'nl', 'sv', 'da', 'fi', 'no', 'cs', 'uk', 'he', 'ms', 'fa', 'ro',
   'hu', 'el', 'bn', 'ta', 'ur', 'tl', 'sw', 'ca', 'sk', 'bg', 'hr', 'sr', 'lt', 'lv', 'et',
