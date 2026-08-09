@@ -144,6 +144,7 @@ const COVERED_BY_HUB = {
     [/^\/templates\/einbuergerungstest-/, '/templates/einbuergerungstest'],
     [/^\/templates\/deutsch-a1-/, '/templates/deutsch-a1'],
     [/^\/templates\/spanish-/, '/templates/spanish'],
+    [/^\/templates\/opic-/, '/templates/opic'],
   ],
   reviewnotes: [],
 }
