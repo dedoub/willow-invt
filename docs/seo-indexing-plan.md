@@ -27,8 +27,14 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 
    ```sql
    select site_key, path, coverage_state, is_indexed from seo_index_status
-   where checked_on = current_date and path = any(<어제 요청 경로들>);
+   where checked_on = (now() at time zone 'Asia/Seoul')::date
+     and path = any(<어제 요청 경로들>);
    ```
+
+   > `checked_on`은 **KST 날짜**로 쌓이고 Postgres `current_date`는 **UTC**다. 09:00 KST 전에
+   > `checked_on = current_date`로 조회하면 조용히 **어제 스냅샷**을 본다 — 오늘 것이
+   > 멀쩡히 있는데도 없는 것처럼 보인다. 2026-08-08 08:56 KST에 이 함정에 걸렸다.
+   > 오전에 볼 때는 위처럼 KST로 캐스팅하거나 날짜를 직접 박을 것.
 
 2. 오늘 배치 선정: 아래 대기열 최상단부터 11건. 이미 색인된 항목은 건너뜀.
 3. Claude in Chrome으로 GSC URL Inspection → 각 URL 검사 → "Request indexing" 클릭 →
@@ -58,9 +64,29 @@ de 허브(`/de/templates/einbuergerungstest`, `/de/templates/deutsch-a1`)는 처
 번역본을 먼저 태우면 구글이 정본을 못 잡는다. EN 허브 색인 후 hreflang으로 따라오는지
 먼저 본다 — 안 따라오면 그때 개별 요청한다.
 
-### 리뷰노트 (연습문제 16건)
+### 리뷰노트 (연습문제 16건) — 2026-08-08 소진
 
-모두 `https://reviewnotes.app/en/practice/` 하위. 허브는 색인됐는데 하위가 전부 unknown이라 개별 요청.
+16건 전부 요청 완료. `/en/` 원본에 **unknown이 0건**이 됐다(색인 23 / 추적 34, 나머지는
+Discovered·Duplicate). 원본 우선 규칙을 지킬 대상이 더 없으므로 리뷰노트는 **로케일로
+넘어간다**. 다음 순서:
+
+1. 로케일 허브 unknown — `/ko/demo`, `/uk/guides`, `/uk/practice` (08-08 배치)
+2. 그다음은 로케일별 색인 실적이 있는 쪽의 unknown부터. 08-08 기준 각 34쪽 중
+   색인: `zh` 10 · `ko` 9 · `ja` 9 · `es` 9 · `fr` 8 · `pt` 8 · `it` 8 · `ru` 8 · `pl`·`uk`·`de`·`vi` 7.
+   unknown 여지가 큰 쪽은 `ko` 7 · `ru` 6 · `pl`·`uk` 5.
+3. 로케일 허브가 색인되면 그 아래는 허브 크롤을 기다린다 (bible·quran에서 검증된 패턴).
+
+08-09 갱신: 로케일 허브 unknown 5건(`/pt/practice`·`/it/practice`·`/de/practice`·`/de/demo`·`/vi/demo`)
+요청 완료. 남은 depth 2 후보는 `/de/billing` 하나인데 결제 화면이라 검색 가치가 낮아 뺐다.
+사이트맵 재읽기가 돌아온 뒤로 unknown 풀이 빠르게 마르고 있으니(위 참조) 다음 배치는
+**Discovered 허브**에서 고른다.
+
+> 브리프가 낸 후보를 그대로 태우면 안 되는 경우가 있다. 08-09 브리프는
+> `/en/practice/grade-4-large-numbers`·`grade-5-number-operations`·`/en/templates/mistake-notebook`을
+> 상단에 올렸는데, 셋 다 **08-07에 요청해서 08-08에 Discovered로 이미 움직인 것**이다.
+> 브리프는 과거 요청 이력을 모른다 — 후보가 최근 배치에 있었는지 로그로 대조할 것.
+
+아래 원본 목록은 이력으로 남긴다. 모두 `https://reviewnotes.app/en/practice/` 하위.
 
 1. `linear-system`
 2. ~~`factor-trinomial`~~ (08-05 요청)
@@ -82,6 +108,26 @@ de 허브(`/de/templates/einbuergerungstest`, `/de/templates/deutsch-a1`)는 처
 이 외 08-05에 `/en/demo`, `/en/guides/assign-problems-without-student-accounts` 요청 완료.
 남은 unknown 잔여: `/en/templates/mistake-notebook`.
 
+### 보이스카드 스페인어 (신규 클러스터, 2026-08-07 발행)
+
+허브 `/templates/spanish` + 덱 3(`-daily-expressions`·`-el-la-nouns`·`-verbs-spoken`). 전부 unknown.
+하위가 3건뿐이고 리뷰노트 원본 대기열이 소진돼 슬롯 경쟁자가 없어서 **허브와 덱을 같이**
+08-08 배치에 넣었다(하위 66·114건이던 bible·quran과 다른 판단).
+
+### 보이스카드 OPIc (신규 클러스터, 2026-08-09 발행) — 08-09 소진
+
+허브 `/templates/opic` + 덱 5(`-comparison-preference-phrases-ja`·`-english-speaking-phrases-ja`·
+`-past-experience-phrases-ja`·`-problem-solution-phrases-ja`·`-role-play-phrases-ja`). 오늘 스냅샷에
+처음 잡혔고 전부 unknown이었다. 하위가 5건뿐이라 스페인어 선례대로 **허브와 덱을 같이** 넣었다.
+
+요청 시점에 6건 모두 `No referring sitemaps detected` — 보이스카드 사이트맵 Last read가
+Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조).
+
+### 보이스카드 로케일 루트
+
+unknown인 셋만 요청한다 — `/it`, `/uk`, `/zh` (08-08 배치). `/es`·`/fr`·`/ja`·`/ko`·`/pl`·`/pt`·`/ru`·`/vi`는
+이미 Discovered라 재요청이 큐 순서를 바꾸지 않는다. `/faq`는 `Crawled - not indexed`라 제외.
+
 ### 보이스카드 (리뷰노트 소진 후)
 
 08-03 요청 8건(bible·quran 허브, 코어 3, 잔여 3)의 상태 이동을 본 뒤 선정한다. 후보 순서:
@@ -102,7 +148,33 @@ de 허브(`/de/templates/einbuergerungstest`, `/de/templates/deutsch-a1`)는 처
 | 08-05 | VC 5(spoken-rehearsal + CDL 허브·하위 3) + RN 6(demo, guides 1, practice 4) | ✅ 11건 완료, quota 초과 없음. 계획했던 독일어권 허브는 스냅샷 누락으로 후보에 못 올라옴 |
 | 08-06 | VC 5: `/methods/chunking-translation`, `/templates/deutsch-a1`, `/templates/einbuergerungstest`, `/methods/active-recall`, `/methods/finish-date-pacing` · RN 6: `/en/practice/` 하위 `grade-4-2-polygons`·`-quadrilaterals`·`-triangles`·`grade-4-angles`·`grade-4-bar-graph`·`grade-4-large-numbers` | ✅ 11건 완료, quota 초과 없음. 12:00~12:40 KST. **사이트맵 재제출도 함께** (아래 참조) |
 | 08-07 | VC 3: `/templates/bible-verse-memorization-kjv`, `/methods/two-way-recall`, `/methods/daily-five` · RN 8: `/en/practice/` `grade-4-multiplication`·`grade-4-transformations`·`linear-system`·`grade-4-rules`·`grade-5-fractions`·`grade-5-number-operations`·`grade-4-large-numbers` + `/en/templates/mistake-notebook` | ✅ 11건 전부 "Indexing requested", 12번째까지 quota 여유. 12:45~13:15 KST. 로케일 루트 대신 원본으로 채운 배치 |
+| 08-08 | VC 7: `/templates/spanish`(신규 허브) + 덱 3(`-daily-expressions`·`-el-la-nouns`·`-verbs-spoken`) + 로케일 루트 3(`/it`·`/uk`·`/zh`) · RN 4: `/ko/demo`, `/uk/guides`, `/uk/practice`, `/ko/guides/assign-problems-without-student-accounts` | ✅ 11건 완료. 하루 만에 6건 색인(VC 스페인어 허브+덱 3, `/it`, RN `/ko/guides/…`) |
+| 08-09 | VC 6: `/templates/opic`(신규 허브) + 덱 5(`-comparison-preference-phrases-ja`·`-english-speaking-phrases-ja`·`-past-experience-phrases-ja`·`-problem-solution-phrases-ja`·`-role-play-phrases-ja`) · RN 5: 로케일 허브 `/pt/practice`, `/it/practice`, `/de/practice`, `/de/demo`, `/vi/demo` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 18:40~19:20 KST |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
+
+### 08-07 배치 결과 (08-08 스냅샷)
+
+11건 중 **6건이 하루 만에 색인**됐다. VC 3건은 전부 색인(`bible-verse-memorization-kjv`,
+`two-way-recall`, `daily-five`), RN은 `grade-4-rules`·`grade-4-transformations`·`grade-5-fractions`
+색인. `grade-5-number-operations`·`grade-4-large-numbers`·`mistake-notebook`은 Discovered로
+이동 후 정체(재요청 안 함 — 상태가 움직였으므로 규칙상 1주 관찰).
+
+문제 하나: `grade-4-multiplication`과 `linear-system`이 **`Duplicate without user-selected
+canonical`** 로 갔다. 색인 요청으로 안 풀리는 canonical 문제다 — 연습문제 페이지가 서로
+비슷해서 구글이 대표를 못 고른 것으로 보인다. `scripts/seo-template-similarity.mjs`로
+중복도를 실측하고 canonical/콘텐츠 차별화를 봐야 한다. 같은 패턴이 다른 `/practice/`
+하위로 번지는지 추적할 것.
+
+### 허브 크롤 대기 규칙 검증 (08-08)
+
+개별 요청 없이 허브 크롤만으로 하위가 얼마나 따라왔는지 실측했다.
+
+| 클러스터 | 하위 총 | 색인 | Discovered | unknown |
+|---|---|---|---|---|
+| `/templates/bible` | 66 | 7 | 47 | 12 |
+| `/templates/quran` | 114 | 11 | 85 | 18 |
+
+요청 **0건**으로 18건 색인·132건 발견. 하위 제외 규칙을 유지한다.
 
 ## 스냅샷 크론 중단 (2026-08-05 발견·해결, 커밋 46d9a6d)
 
@@ -255,3 +327,26 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 08-05 | VC 5: `/methods/spoken-rehearsal`, `/templates/cdl`, `/templates/cdl-air-brakes`, `/templates/cdl-combination-vehicles`, `/templates/cdl-general-knowledge` · RN 6: `/en/demo`, `/en/guides/assign-problems-without-student-accounts`, `/en/practice/factor-trinomial`, `/en/practice/grade-4-2-decimals`, `/en/practice/grade-4-2-fractions`, `/en/practice/grade-4-2-line-graphs` | ✅ 11건 전부 "Indexing requested". 09:45~10:20 KST 실행, quota 초과 없음. 요청 시점 11건 모두 GSC에서 "URL is unknown to Google" 확인 | 08-04가 0건이라 확인할 전일 요청분 없음. 브리프가 낸 신규 색인 8건(VC)·3건(RN)은 08-04 스냅샷 기준이라 위 08-04 행과 같은 사건 |
 | 08-06 | VC 5: `/methods/chunking-translation`, `/templates/deutsch-a1`, `/templates/einbuergerungstest`, `/methods/active-recall`, `/methods/finish-date-pacing` · RN 6: `/en/practice/` `grade-4-2-polygons`·`-quadrilaterals`·`-triangles`·`grade-4-angles`·`grade-4-bar-graph`·`grade-4-large-numbers` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 추가로 **두 사이트 사이트맵 재제출** | 08-05 요청분: `/en/demo`·`/en/guides/assign-problems-without-student-accounts`·`/templates/cdl`·`/methods/spoken-rehearsal` **색인 완료**. 반면 RN 연습문제 4건(`factor-trinomial`, `grade-4-2-decimals`·`-fractions`·`-line-graphs`)은 **Duplicate without user-selected canonical** — 아래 참조 |
 | 08-05 (사후) | — (스냅샷 복구 후 재확인) | 스캔 타임아웃 수정 후 08-05 스냅샷 생성: VC 665쪽(색인 80), RN 34쪽(색인 17) | **당일 요청분이 몇 시간 만에 반영**: RN `/en/demo`·`/en/guides/assign-problems-without-student-accounts` 색인 완료, VC `/templates/cdl` 허브 색인 완료(하위 3건은 이제 요청 대상에서 제외) |
+| 08-09 | VC 6(OPIc 허브+덱 5) + RN 5(로케일 허브 `/pt/practice`·`/it/practice`·`/de/practice`·`/de/demo`·`/vi/demo`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음 | 08-08 요청 11건 중 **6건 색인**: VC `/templates/spanish` 허브 + 덱 3, 로케일 루트 `/it`, RN `/ko/guides/assign-problems-without-student-accounts`. 나머지는 Discovered로 이동(VC `/uk`, RN `/ko/demo`·`/uk/guides`·`/uk/practice`), VC `/zh`만 아직 unknown |
+
+### 08-09 배치에서 드러난 것 — 사이트맵 재읽기가 사이트별로 갈렸다
+
+RN 후보를 검사해 보니 스냅샷(06:40 KST)에서 unknown이던 `/pt/practice`·`/it/practice`가 GSC
+실시간으로는 전부 **Discovered**였고, `Sitemaps`에 `https://reviewnotes.app/sitemap.xml`이 잡혔다.
+Sitemaps 화면으로 확인한 Last read가 갈린다.
+
+| 사이트 | Submitted | Last read | Discovered pages |
+|---|---|---|---|
+| 리뷰노트 | Aug 6 | **Aug 9 (당일)** | 442 |
+| 보이스카드 | Aug 6 | Aug 6 | 670 |
+
+리뷰노트는 08-06 재제출이 먹혀 재방문이 돌아왔고, 그래서 로케일 unknown이 통째로 Discovered로
+넘어갔다. 보이스카드는 재제출일 이후로 다시 안 읽혔다 — 오늘 배포한 OPIc 6건이 전부
+`No referring sitemaps detected`로 나온 이유다.
+
+따라오는 두 가지:
+
+1. **RN 대기열의 "unknown 우선" 정렬이 곧 무의미해진다.** 다음 배치부터는 unknown이 남았는지
+   먼저 보고, 없으면 Discovered 중 **허브부터**(하위 크롤 경로) 고른다.
+2. **스냅샷과 GSC 실시간이 갈리기 시작했다.** 스캔은 06:40 KST 한 번인데 사이트맵 재읽기가
+   재개되면 하루 안에도 상태가 움직인다. 요청 직전 검사 화면의 상태를 정본으로 볼 것.
