@@ -61,7 +61,12 @@ as $function$
                          and not (m.properties ? 'fractional_cost')
                          and (m.app_version is null
                               or m.app_version not in (select app_version from cost_aware_versions)))::bigint as unclassified_listen_count,
-      count(*) filter (where m.event_name = 'card_flipped_manual')::bigint as flip_count,
+      -- 뒤집기도 데모를 뺀다(2026-08-10). 카드(ownCards)는 처음부터 데모를 빼왔는데
+      -- 뒤집기는 2026-07-25에 활성화 기준으로 추가되면서 필터가 같이 안 붙었다. 그 결과
+      -- 표에 '카드 N · 데모 · 활성화 완료' 같은 모순된 조합이 나왔다 — 데모만 만진 사람이
+      -- 뒤집기 1회로 활성화가 됐기 때문. 세 축(시트·카드·뒤집기)을 같은 규칙으로 맞춘다.
+      count(*) filter (where m.event_name = 'card_flipped_manual'
+                         and coalesce(m.properties->>'sheet_id','') not like 'demo-%')::bigint as flip_count,
       sum(case when m.event_name = 'credits_changed' and m.properties->>'reason' = 'purchase'
             then case m.properties->>'product_id'
                    when 'com.monor.voicecards.credits.1000'  then 1000

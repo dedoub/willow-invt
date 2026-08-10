@@ -58,7 +58,10 @@ agg as (
       'card_learned_anonymous','tts_played','device_tts_played','listen_session_started') and user_id is null) as demo_engaged,
     count(*) filter (where event_name = 'card_viewed' and user_id is null) as anon_cards_viewed,
     count(*) filter (where event_name = 'card_learned_anonymous') as anon_cards_learned,
-    count(*) filter (where event_name = 'card_flipped_manual' and user_id is null) as anon_flips,
+    -- 데모 뒤집기 제외 (2026-08-10) — vc_user_rollup.flip_count 와 같은 규칙.
+    -- 이 값이 사용자 표의 활성화 판정에 그대로 들어가므로 로그인/비로그인이 같은 기준이어야 한다.
+    count(*) filter (where event_name = 'card_flipped_manual' and user_id is null
+                       and coalesce(properties->>'sheet_id','') not like 'demo-%') as anon_flips,
     -- 익명 상태 실사용 크레딧: TTS 차감 + AI 생성 (로그인 후 사용분 제외)
     coalesce(sum(case
       when user_id is not null then 0
