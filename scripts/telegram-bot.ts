@@ -1872,6 +1872,115 @@ async function appendToConversation(chatId: number, msg: Message) {
   })
 }
 
+function isOpenAiUsageRequest(text: string): boolean {
+  const normalized = text.toLowerCase().replace(/\s+/g, '')
+  return /(gpt|openai|오픈ai|오픈에이아이|코덱스|codex).*(사용량|한도|비용|요금|토큰|usage|limit|cost|billing)/i.test(text)
+    || /(사용량|한도|비용|요금|토큰).*(gpt|openai|오픈ai|오픈에이아이|코덱스|codex)/i.test(text)
+    || normalized.includes('gpt사용량')
+    || normalized.includes('openai비용')
+}
+
+function usd(value: number): string {
+  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function compactNumber(value: number): string {
+  return value.toLocaleString('en-US')
+}
+
+function monthStartUnix(): number {
+  const now = new Date()
+  return Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0) / 1000)
+}
+
+async function openAiAdminGet(path: string): Promise<any> {
+  const key = process.env.OPENAI_ADMIN_KEY
+  if (!key) throw new Error('OPENAI_ADMIN_KEY가 없습니다.')
+  const response = await fetch(`https://api.openai.com/v1${path}`, {
+    headers: { Authorization: `Bearer ${key}` },
+  })
+  const body = await response.text()
+  if (!response.ok) {
+    const message = body.slice(0, 500) || `${response.status} ${response.statusText}`
+    throw new Error(message)
+  }
+  return JSON.parse(body)
+}
+
+function sumOpenAiCosts(data: any): number {
+  let total = 0
+  for (const bucket of data?.data || []) {
+    for (const row of bucket.results || []) {
+      total += Number(row.amount?.value ?? row.amount ?? 0)
+    }
+  }
+  return total
+}
+
+function sumOpenAiUsage(data: any) {
+  const totals = {
+    inputTokens: 0,
+    outputTokens: 0,
+    requests: 0,
+  }
+  const byModel = new Map<string, { inputTokens: number; outputTokens: number; requests: number }>()
+
+  for (const bucket of data?.data || []) {
+    for (const row of bucket.results || []) {
+      const input = Number(row.input_tokens ?? 0)
+      const output = Number(row.output_tokens ?? 0)
+      const requests = Number(row.num_model_requests ?? row.requests ?? 0)
+      totals.inputTokens += input
+      totals.outputTokens += output
+      totals.requests += requests
+
+      const model = String(row.model || 'unknown')
+      const acc = byModel.get(model) || { inputTokens: 0, outputTokens: 0, requests: 0 }
+      acc.inputTokens += input
+      acc.outputTokens += output
+      acc.requests += requests
+      byModel.set(model, acc)
+    }
+  }
+
+  return {
+    totals,
+    models: [...byModel.entries()]
+      .sort((a, b) => (b[1].inputTokens + b[1].outputTokens) - (a[1].inputTokens + a[1].outputTokens))
+      .slice(0, 5),
+  }
+}
+
+async function buildOpenAiUsageReport(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  const dayStart = now - 24 * 60 * 60
+  const monthStart = monthStartUnix()
+  const [costDay, costMonth, usageDay, usageMonth] = await Promise.all([
+    openAiAdminGet(`/organization/costs?start_time=${dayStart}&bucket_width=1d&limit=2`),
+    openAiAdminGet(`/organization/costs?start_time=${monthStart}&bucket_width=1d&limit=31`),
+    openAiAdminGet(`/organization/usage/completions?start_time=${dayStart}&bucket_width=1d&limit=2`),
+    openAiAdminGet(`/organization/usage/completions?start_time=${monthStart}&bucket_width=1d&limit=31`),
+  ])
+
+  const dayUsage = sumOpenAiUsage(usageDay)
+  const monthUsage = sumOpenAiUsage(usageMonth)
+  const monthModels = monthUsage.models.length
+    ? monthUsage.models.map(([model, u]) => `- ${model}: ${compactNumber(u.inputTokens + u.outputTokens)} tokens · ${compactNumber(u.requests)} req`).join('\n')
+    : '- 모델별 사용량 없음'
+
+  return [
+    '📊 OpenAI 사용량',
+    '',
+    `최근 24시간: ${usd(sumOpenAiCosts(costDay))} · ${compactNumber(dayUsage.totals.inputTokens + dayUsage.totals.outputTokens)} tokens · ${compactNumber(dayUsage.totals.requests)} req`,
+    `이번 달: ${usd(sumOpenAiCosts(costMonth))} · ${compactNumber(monthUsage.totals.inputTokens + monthUsage.totals.outputTokens)} tokens · ${compactNumber(monthUsage.totals.requests)} req`,
+    '',
+    '이번 달 모델별 상위:',
+    monthModels,
+    '',
+    '참고: ChatGPT 앱의 남은 메시지 수가 아니라 OpenAI API/Admin Usage 기준입니다.',
+  ].join('\n')
+}
+
 // ============================================================
 // Proactive monitoring state
 // ============================================================
@@ -5937,6 +6046,48 @@ async function handleMessage(chatId: number, text: string, abortSignal?: AbortSi
     }
 
     await syncProgress()
+
+    if (isOpenAiUsageRequest(text)) {
+      await addProgress('OpenAI Admin Usage 조회 중', {
+        percent: 60,
+        stage: '사용량 조회',
+        current: 'OpenAI 비용과 토큰 사용량을 확인하고 있어요.',
+      })
+
+      const report = await buildOpenAiUsageReport()
+      const now = new Date().toISOString()
+      await withConversationLock(chatId, async () => {
+        const freshHistory = await getConversation(chatId)
+        freshHistory.push({ role: 'user', content: text, timestamp: now })
+        freshHistory.push({ role: 'assistant', content: report, timestamp: now })
+        await saveConversation(chatId, freshHistory)
+      })
+
+      patchPendingTask(BOT_INFLIGHT_FILE, chatId, { phase: 'response_sending' })
+      await sendMessage(chatId, report)
+      removePendingTask(BOT_INFLIGHT_FILE, chatId)
+      await closeProgressMessage(chatId, {
+        finalText: buildProgressMessage({
+          percent: 100,
+          stage: '완료',
+          current: 'OpenAI 사용량 조회를 마쳤어요.',
+          startedAt: progressStart,
+          recent: [...progressLines, 'OpenAI 사용량 응답 전송 완료'].slice(-4),
+        }),
+        lingerMs: 1200,
+      })
+      recordRuntimeEvent({
+        botKey: 'willy-bot',
+        jsonlPath: BOT_RUNTIME_JSONL_FILE,
+        source: 'openai_usage_report_sent',
+        message: `openai usage report sent to ${chatId}`,
+        details: {
+          chatId,
+          durationMs: Date.now() - progressStart,
+        },
+      })
+      return
+    }
 
     // 대시보드 + 위키 + 추적주제 + 텐소프트웍스 + 온톨로지 + 프롬프트섹션 + 속성카탈로그 + 팔로업 + 리서치 수집
     await addProgress('대시보드 · 위키 · KG · 리서치를 읽는 중', {
