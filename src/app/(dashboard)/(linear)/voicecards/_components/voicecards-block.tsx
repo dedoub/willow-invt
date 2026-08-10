@@ -69,6 +69,8 @@ interface UserStats {
     lastIntentAt: string | null
     createdAt: string
     lastActiveAt: string | null
+    // 설치일 — 이 사용자의 기기 중 가장 이른 first_seen. 뷰 이전 가입자는 null.
+    installedAt: string | null
   }>
 }
 
@@ -190,9 +192,11 @@ function formatTimeShort(dateString?: string | null): string {
   return new Date(dateString).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' })
 }
 
-// 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유). 컬럼: 닉네임·플랫폼·앱버전·언어·상태·시트·카드·말하기·듣기·크레딧·유료·가입·활동
-// 닉네임 | 플랫폼 | 앱버전 | 언어 | 구글연동 | 시트 | 카드 | 말하기 | 듣기 | 크레딧 | 유료 | 가입 | 활동
-const USER_TABLE_COLS = '64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 48px 52px 44px 48px 44px'
+// 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유).
+// 설치 | 로그인 | 활동 | 닉네임 | 플랫폼 | 앱버전 | 언어 | 국가 | 드라이브 | 활성화 | 시트 | 카드 | …
+// 설치가 맨 앞인 이유: 로그인 없이 쓰는 기기 계정이 생기면서 로그인일이 더 이상
+// 여정의 시작점이 아니다. 설치 → (구글 로그인) → (드라이브) 순으로 읽힌다.
+const USER_TABLE_COLS = '64px 64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 48px 52px 44px 48px 44px'
 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용. 컬럼 정의에서 자동 산출 —
 // 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져 마지막 열들이 회색 행 배경
 // 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
@@ -360,19 +364,20 @@ function formatCountry(country: string | null, locale?: string | null): { flag: 
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status' | 'active'
   | 'sheets' | 'cards' | 'flips' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'spent' | 'paid'
-  | 'created' | 'recent' | 'active7'
+  | 'installed' | 'created' | 'recent' | 'active7'
 type SortDir = 'asc' | 'desc'
 
 // 테이블 컬럼 정의 (헤더 라벨 + 정렬키 + 정렬, 모바일 드롭다운 라벨). 순서 = 그리드 순서.
 const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string; align: 'left' | 'center' | 'right' }> = [
-  { key: 'created',  label: '가입',   mobileLabel: '가입일',   align: 'center' },
+  { key: 'installed', label: '설치',  mobileLabel: '설치일',   align: 'center' },
+  { key: 'created',  label: '로그인', mobileLabel: '로그인일', align: 'center' },
   { key: 'recent',   label: '활동',   mobileLabel: '활동일',   align: 'center' },
   { key: 'name',     label: '닉네임', mobileLabel: '닉네임',   align: 'left' },
   { key: 'platform', label: '플랫폼', mobileLabel: '플랫폼',   align: 'center' },
   { key: 'version',  label: '앱버전', mobileLabel: '앱버전',   align: 'center' },
   { key: 'language', label: '언어',   mobileLabel: '언어',     align: 'center' },
   { key: 'country',  label: '국가',   mobileLabel: '국가',     align: 'center' },
-  { key: 'status',   label: '구글연동', mobileLabel: '구글연동', align: 'center' },
+  { key: 'status',   label: '드라이브', mobileLabel: '드라이브', align: 'center' },
   { key: 'active',   label: '활성화', mobileLabel: '활성화',   align: 'center' },
   { key: 'sheets',   label: '시트',   mobileLabel: '시트',     align: 'center' },
   { key: 'cards',    label: '카드',   mobileLabel: '카드',     align: 'center' },
@@ -595,6 +600,10 @@ export function VoicecardsBlock({
         case 'recent':   return (a.lastActiveAt ? kstDateKey(a.lastActiveAt) : '').localeCompare(b.lastActiveAt ? kstDateKey(b.lastActiveAt) : '')
         case 'active7':  return (a.activeDays7d ?? 0) - (b.activeDays7d ?? 0)
         case 'created':  return kstDateKey(a.createdAt).localeCompare(kstDateKey(b.createdAt))
+        // 설치일 없는 계정(뷰 이전 가입)은 항상 뒤로 — 빈 문자열이 오름차순에서 맨 앞에
+        // 몰리면 "가장 오래된 설치"처럼 보인다.
+        case 'installed': return (a.installedAt ? kstDateKey(a.installedAt) : '￿')
+          .localeCompare(b.installedAt ? kstDateKey(b.installedAt) : '￿')
         default:         return 0
       }
     }
@@ -906,7 +915,7 @@ export function VoicecardsBlock({
               <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
                 <LStat
                   label="스토어 방문"
-                  title="플레이·앱스토어 등록정보 방문자 누적(값 옆 = 마지막 집계일). 스토어 리포트 특성상 ~1주 지연. 퍼널: 방문→설치→로그인→연동→활성화→결제."
+                  title="플레이·앱스토어 등록정보 방문자 누적(값 옆 = 마지막 집계일). 스토어 리포트 특성상 ~1주 지연. 퍼널: 방문→설치→구글 로그인→드라이브 연동→학습 활성화→결제."
                   value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
                   valueExtra={svLast ? (
                     <span style={{
@@ -941,8 +950,8 @@ export function VoicecardsBlock({
                   dualScale
                 />
                 <LStat
-                  label="신규 로그인"
-                  title="구글 계정으로 가입한 사용자 누적. 점선 = 로그인율(설치 기기 대비)."
+                  label="구글 로그인"
+                  title="구글 계정으로 로그인한 사용자 누적. 점선 = 로그인율(설치 기기 대비). 기기 계정(로그인 없이 크레딧을 쓰는 사용자)은 여기 포함되지 않는다."
                   value={userStats.totalUsers.toLocaleString()}
                   valueExtra={(
                     <span style={{
@@ -961,8 +970,8 @@ export function VoicecardsBlock({
                   dualScale
                 />
                 <LStat
-                  label="구글 연동"
-                  title="Drive 폴더 연동까지 마친 사용자 누적. 점선 = 연동률(로그인 대비)."
+                  label="드라이브 연동"
+                  title="Drive 폴더 연동까지 마친 사용자 누적. 점선 = 연동률(구글 로그인 대비)."
                   value={linkedUsers.toLocaleString()}
                   valueExtra={(
                     <span style={{
@@ -981,8 +990,8 @@ export function VoicecardsBlock({
                   dualScale
                 />
                 <LStat
-                  label="활성화"
-                  title="첫 시트를 저장한 사용자(데모 체험 제외). 점선 = 활성화율(구글 연동 대비)."
+                  label="학습 활성화"
+                  title="첫 시트를 저장한 사용자(데모 체험 제외). 점선 = 활성화율(드라이브 연동 대비)."
                   value={signedUp.toLocaleString()}
                   valueExtra={(
                     <span style={{
@@ -1381,6 +1390,16 @@ export function VoicecardsBlock({
                   display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center',
                   padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
+                  {/* 설치 — 앱을 처음 연 날. 로그인보다 앞선다. 뷰 이전 가입자는 '—' */}
+                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                    {user.installedAt ? (
+                      <>
+                        <span>{formatDateShort(user.installedAt)}</span>
+                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.installedAt)}) {formatTimeShort(user.installedAt)}</span>
+                      </>
+                    ) : '—'}
+                  </div>
+                  {/* 로그인 — users 행이 생긴 날(구글 계정 생성) */}
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                     <span>{formatDateShort(user.createdAt)}</span>
                     <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>

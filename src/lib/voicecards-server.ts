@@ -963,6 +963,10 @@ export interface VoicecardsUserStats {
     lastIntentAt: string | null // 가장 최근 구매의도 이벤트 시각
     createdAt: string
     lastActiveAt: string | null
+    // 설치일 — 이 사용자의 기기 중 가장 이른 first_seen (vc_device_journeys).
+    // null인 경우: 뷰가 생기기 전에 가입했거나 이벤트가 정리된 오래된 계정(현재 22명).
+    // 기기 2대인 사용자(현재 4명)는 가장 이른 설치일을 쓴다.
+    installedAt: string | null
   }>
 }
 
@@ -1242,6 +1246,25 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     }
   }
 
+  // 설치일 — vc_device_journeys.first_seen_at 을 user_id 로 접는다. 기기 2대면 이른 쪽.
+  // 계정 생성일(created_at)과 다른 축이다: 설치는 앱을 처음 연 순간, 로그인은 그 뒤에 온다.
+  // best-effort — 실패해도 나머지 통계를 막지 않는다(뷰가 없거나 느릴 때 설치일만 빈다).
+  const userInstalledMap = new Map<string, string>()
+  try {
+    const { data: journeyRows } = await vc
+      .from('vc_device_journeys')
+      .select('user_id, first_seen_at')
+      .not('user_id', 'is', null)
+    for (const row of ((journeyRows || []) as Array<{ user_id: string | null; first_seen_at: string | null }>)) {
+      const uid = row.user_id
+      if (!uid || !row.first_seen_at) continue
+      const prev = userInstalledMap.get(uid)
+      if (!prev || row.first_seen_at < prev) userInstalledMap.set(uid, row.first_seen_at)
+    }
+  } catch (e) {
+    console.error('[VoiceCards] installed-at map failed (non-fatal):', e)
+  }
+
   const userList = users.map(u => ({
     id: u.user_id,
     nickname: u.nickname,
@@ -1268,6 +1291,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     flips: userFlipsMap.get(u.user_id) || 0,
     attempts: userAttemptsMap.get(u.user_id) || 0,
     createdAt: u.created_at,
+    installedAt: userInstalledMap.get(u.user_id) || null,
     cardsToday: userActivityMap.get(u.user_id)?.cardsToday || 0,
     attemptsToday: userActivityMap.get(u.user_id)?.attemptsToday || 0,
     listenToday: userActivityMap.get(u.user_id)?.listenToday || 0,

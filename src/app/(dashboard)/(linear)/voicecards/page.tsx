@@ -77,6 +77,8 @@ interface UserStats {
     lastIntentAt: string | null
     createdAt: string
     lastActiveAt: string | null
+    // 설치일 — 이 사용자의 기기 중 가장 이른 first_seen. 뷰 이전 가입자는 null.
+    installedAt: string | null
   }>
 }
 
