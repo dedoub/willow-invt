@@ -48,6 +48,8 @@ interface UserStats {
     creditsUsed: number
     creditsSpent?: number
     hasFolder: boolean
+    // 저장된 데모 덱 수 — 활성화 판정에서 sheetCount에서 뺀다.
+    demoSheetCount: number
     ownCards?: number
     sheetCount: number
     cards: number
@@ -570,7 +572,7 @@ export function VoicecardsBlock({
       hasPurchased: false, credits: 0, purchasedCredits: 0, bonusCredits: 0,
       offerStage: null, offerStageAt: null,
       creditsUsed: 0, creditsSpent: d.creditsSpent ?? 0,
-      hasFolder: false,
+      hasFolder: false, demoSheetCount: 0,   // 비로그인 기기는 시트 자체가 없다
       // 비로그인 기기의 카드는 데모 카드다 — 소유 카드가 아니므로 ownCards는 0으로 둔다.
       ownCards: 0, sheetCount: 0, cards: d.cardsViewed, flips: d.flips, attempts: 0,
       cardsToday: 0, attemptsToday: 0, listenToday: 0, flipsToday: 0, spentToday: 0,
@@ -788,8 +790,12 @@ export function VoicecardsBlock({
           // 활성화 = 전체 − 미활성
           // ownCards가 없는 응답(배포 직후 ~60s unstable_cache의 옛 payload)은 cards로
           // 강등 — undefined 비교로 전원 활성화가 되는 착시를 막는다(2026-07-11 실제 발생).
-          const isIdleUser = (u: { sheetCount: number; cards: number; ownCards?: number; flips?: number }) =>
-            u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0
+          // 데모를 '내 덱으로 복사'한 것은 자기 콘텐츠를 만든 것이 아니므로 활성화가 아니다
+          // (2026-08-10). 저장된 데모는 진짜 Drive 시트가 되어 sheetCount에 들어가는데,
+          // 카드 쪽은 이미 데모로 제외되고 있어 시트만 통과하는 비대칭이 있었다.
+          const isIdleUser = (u: { sheetCount: number; demoSheetCount?: number; cards: number; ownCards?: number; flips?: number }) =>
+            Math.max(0, u.sheetCount - (u.demoSheetCount ?? 0)) === 0
+            && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0
           const incompleteSignups = (userStats?.users ?? []).filter(isIdleUser).length
           const linkedUsers = (userStats?.users ?? []).filter(u => u.hasFolder).length
           const signedUp = userStats.totalUsers - incompleteSignups

@@ -944,6 +944,8 @@ export interface VoicecardsUserStats {
     // 구글연동(Drive) 완료 = users.folder_id 존재. deferred-Drive 가입 이후 시트 0이어도
     // 연동은 끝났을 수 있다(예: AI 생성 후 draft만 두고 이탈) — sheetCount로 판정하지 말 것.
     hasFolder: boolean
+    // 저장된 데모 덱 수 — 활성화 판정에서 sheetCount에서 뺀다.
+    demoSheetCount: number
     sheetCount: number
     cards: number
     ownCards: number // 데모 덱 제외 보유 카드 — 활성화(미활성/연동후대기) 판정 전용
@@ -1025,7 +1027,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
   const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, rollupRes, metaRes, activityRes, offersRes] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
-    vc.from('user_analytics').select('user_id, total_cards, total_attempts, sheet_id'),
+    vc.from('user_analytics').select('user_id, total_cards, total_attempts, sheet_id, sheet_name'),
     vc.from('user_analytics').select('user_id, last_updated'),
     fetchAllPaged<{ user_id: string; date: string; problems_learned: number; attempts: number }>(
       () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true })
@@ -1094,10 +1096,23 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const userAttemptsMap = new Map<string, number>()
   const userCardsMap = new Map<string, number>()
   const userOwnCardsMap = new Map<string, number>()
+  // 저장된 데모 덱 수 — 데모를 '내 덱으로 복사'하면 진짜 Drive 시트가 되어 sheet_ids에
+  // 들어가고, sheet_id의 'demo-' 접두는 사라진다. 그래서 카드는 데모로 제외되는데
+  // 시트는 제외되지 않아, 데모만 저장한 사람이 활성화로 넘어갔다(2026-08-10 4명).
+  // 판별은 이름으로 한다: 앱이 데모 덱 이름에 'Demo: ' 접두를 붙이고(demoService.ts:93)
+  // 이 접두는 로케일과 무관하게 영어로 하드코딩돼 있다.
+  const userDemoSheetsMap = new Map<string, number>()
   for (const a of analytics) {
     userAttemptsMap.set(a.user_id, (userAttemptsMap.get(a.user_id) || 0) + (Number(a.total_attempts) || 0))
     userCardsMap.set(a.user_id, (userCardsMap.get(a.user_id) || 0) + (Number(a.total_cards) || 0))
-    if (!String(a.sheet_id || '').startsWith('demo-')) {
+    const isUnsavedDemo = String(a.sheet_id || '').startsWith('demo-')
+    const isSavedDemo = String(a.sheet_name || '').startsWith('Demo: ')
+    if (isSavedDemo && !isUnsavedDemo) {
+      userDemoSheetsMap.set(a.user_id, (userDemoSheetsMap.get(a.user_id) || 0) + 1)
+    }
+    // ownCards에서 저장된 데모도 뺀다. 안 그러면 시트만 막고 카드가 그대로 통과해
+    // 활성화 판정이 바뀌지 않는다 — 실제로 데모 저장자 4명 중 3명이 이 경로로 남았다.
+    if (!isUnsavedDemo && !isSavedDemo) {
       userOwnCardsMap.set(a.user_id, (userOwnCardsMap.get(a.user_id) || 0) + (Number(a.total_cards) || 0))
     }
   }
@@ -1291,6 +1306,9 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     creditsSpent: userCreditsSpentMap.get(u.user_id) || 0,
     hasFolder: !!u.folder_id,
     sheetCount: u.sheet_ids?.length || 0,
+    // 저장된 데모 덱 수. 활성화 판정에서 sheetCount로부터 뺀다 — 데모를 저장한 것은
+    // 자기 콘텐츠를 만든 것이 아니므로 활성화로 치지 않는다(2026-08-10).
+    demoSheetCount: userDemoSheetsMap.get(u.user_id) || 0,
     cards: userCardsMap.get(u.user_id) || 0,
     ownCards: userOwnCardsMap.get(u.user_id) || 0,
     flips: userFlipsMap.get(u.user_id) || 0,
