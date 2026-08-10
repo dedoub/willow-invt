@@ -23,6 +23,8 @@ interface CombinedStats {
 
 interface UserStats {
   totalUsers: number
+  // 기기 계정(로그인 없이 크레딧을 쓰는 사용자). 병합된 계정은 제외.
+  deviceAccounts: number
   activeUsers: number
   totalSheets: number
   totalCards: number

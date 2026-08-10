@@ -15,6 +15,8 @@ import { COUNTRY_NAMES, codeToFlag, formatCountryName } from '@/lib/country-form
 
 interface UserStats {
   totalUsers: number
+  // 기기 계정(로그인 없이 크레딧을 쓰는 사용자). 병합된 계정은 제외.
+  deviceAccounts: number
   activeUsers: number
   totalSheets: number
   totalCards: number
@@ -547,7 +549,17 @@ export function VoicecardsBlock({
   const deviceRows = useMemo(() => {
     const anon = anonymousStats?.journeys?.recentAnon
     if (!anon?.length) return []
-    return anon.map(d => ({
+    // 기기 계정(device:<uuid>)은 users 행으로 이미 위에 있는데, 구글 로그인을 한 적이
+    // 없으므로 저니 뷰에서도 signed_in=false 로 잡힌다 → 같은 사람이 두 줄이 된다.
+    // 기기 uuid는 곧 계정 id의 접미사라(설계상 보장) 그 키로 걸러낸다.
+    // 오늘 실제 중복은 0건이다 — 현재 기기 계정 2개가 모두 구글 이력이 있는 기기라
+    // signed_in=true 로 빠지기 때문. 구글을 한 번도 안 쓴 기기가 생기는 순간 발생한다.
+    const deviceAccountIds = new Set(
+      (userStats?.users ?? [])
+        .filter(u => u.id.startsWith('device:'))
+        .map(u => u.id.slice('device:'.length)),
+    )
+    return anon.filter(d => !deviceAccountIds.has(d.deviceId)).map(d => ({
       id: `dev:${d.deviceId}`,
       nickname: null, email: null,
       appVersion: d.appVersion, platform: d.platform, locale: null, country: d.country,
@@ -567,7 +579,7 @@ export function VoicecardsBlock({
       lastActiveAt: d.lastSeenAt,
       installedAt: d.firstSeenAt,
     }))
-  }, [anonymousStats])
+  }, [anonymousStats, userStats])
 
   const sortedUsers = useMemo(() => {
     if (!userStats) return []
@@ -984,7 +996,9 @@ export function VoicecardsBlock({
                       <span>전환 {loginRate}%</span>
                     </span>
                   )}
-                  sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명`}
+                  sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명${
+                    userStats.deviceAccounts > 0 ? ` · 기기 계정 ${userStats.deviceAccounts.toLocaleString()}명` : ''
+                  }`}
                   tone={devices > 0 && userStats.totalUsers / devices >= 0.2 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : allUsersData}
                   sparkline2={compact ? undefined : loginRateData}

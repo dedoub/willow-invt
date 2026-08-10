@@ -899,7 +899,12 @@ export async function fetchAndCacheIosStats(date: string): Promise<IAPStats | nu
 // ============================================================
 
 export interface VoicecardsUserStats {
+  // 구글 로그인 사용자 수 — 기기 계정(device:<uuid>)은 제외한다. 퍼널의 "구글 로그인"
+  // 칸이 이 값을 쓰므로, 로그인한 적 없는 기기 계정을 섞으면 라벨이 거짓이 된다.
   totalUsers: number
+  // 기기 계정 수 — 로그인 없이 크레딧을 쓰는 사용자. 병합된 계정은 users 행이 남지만
+  // 이미 구글 계정으로 세었으므로 중복 계상하지 않는다(merged_into 있는 행 제외).
+  deviceAccounts: number
   activeUsers: number
   totalSheets: number
   totalCards: number
@@ -974,7 +979,7 @@ export interface VoicecardsUserStats {
 // 통째로 500 나는 걸 막고 직전 정상 데이터를 제공한다 (getAnonymousEventStats 와 동일 패턴).
 let lastGoodUserStats: VoicecardsUserStats | null = null
 const EMPTY_USER_STATS: VoicecardsUserStats = {
-  totalUsers: 0, activeUsers: 0, totalSheets: 0,
+  totalUsers: 0, deviceAccounts: 0, activeUsers: 0, totalSheets: 0,
   totalCards: 0, totalAttempts: 0, totalCredits: 0,
   dailyLearnActivity: [], dailyCardInventory: [], users: [],
 }
@@ -1364,8 +1369,13 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     return b.createdAt.localeCompare(a.createdAt)
   })
 
+  // 기기 계정과 구글 로그인을 가른다. 테이블은 둘 다 보여주지만(같은 사람이 로그인
+  // 전후로 두 표에 나뉘지 않게), 퍼널의 "구글 로그인" 칸은 실제로 로그인한 사람만 센다.
+  const isDeviceAccount = (uid: string) => uid.startsWith('device:')
   const result: VoicecardsUserStats = {
-    totalUsers: users.length,
+    totalUsers: users.filter(u => !isDeviceAccount(u.user_id)).length,
+    // 병합된 기기 계정(merged_into 있음)은 그 구글 계정으로 이미 세었으므로 뺀다.
+    deviceAccounts: users.filter(u => isDeviceAccount(u.user_id) && !u.merged_into).length,
     activeUsers,
     totalSheets,
     totalCards,
