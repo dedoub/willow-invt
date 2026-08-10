@@ -1449,6 +1449,7 @@ export interface AnonymousEventStats {
       platform: string | null
       appVersion: string | null
       country: string | null
+      firstSeenAt: string | null
       lastSeenAt: string
       activeDays: number
       cardsViewed: number
@@ -1498,11 +1499,12 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       voicecardsSupabase.from('vc_device_journeys').select('journey_stage, platform, app_version'),
       voicecardsSupabase
         .from('vc_device_journeys')
-        .select('device_id, journey_stage, platform, app_version, country, last_seen_at, active_days, anon_cards_viewed, anon_cards_learned, anon_flips, anon_credits_spent, add_sheet_opens, ai_gen_opens, signin_clicks')
+        .select('device_id, journey_stage, platform, app_version, country, first_seen_at, last_seen_at, active_days, anon_cards_viewed, anon_cards_learned, anon_flips, anon_credits_spent, add_sheet_opens, ai_gen_opens, signin_clicks')
         .eq('signed_in', false)
-        .gte('last_seen_at', new Date(Date.now() - 14 * 86400_000).toISOString())
+        // 전체 기간. 사용자 테이블과 한 표에 섞이므로 기간 기준이 같아야 한다
+        // (2026-08-10 병합 전에는 최근 14일 100개 제한이었다 — 별도 카드였을 때의 기준).
         .order('last_seen_at', { ascending: false })
-        .limit(100),
+        .limit(1000),
       // 출시 버전 상한 — 개발자/테스트 제외한 실사용자 로그인 iOS 최고 버전 (vc_event_stats 와 동일 RPC).
       // App Store 심사/TestFlight 빌드는 미출시라 항상 이보다 높아 제외된다. 새 버전 출시로 상한 자동 상승.
       voicecardsSupabase.rpc('vc_released_ios_ceiling'),
@@ -1537,6 +1539,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
         platform: (r.platform as string | null) ?? null,
         appVersion: (r.app_version as string | null) ?? null,
         country: (r.country as string | null) ?? null,
+        firstSeenAt: (r.first_seen_at as string | null) ?? null,
         lastSeenAt: String(r.last_seen_at),
         activeDays: Number(r.active_days) || 0,
         cardsViewed: Number(r.anon_cards_viewed) || 0,
