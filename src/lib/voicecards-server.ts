@@ -905,6 +905,8 @@ export interface VoicecardsUserStats {
   // 기기 계정 수 — 로그인 없이 크레딧을 쓰는 사용자. 병합된 계정은 users 행이 남지만
   // 이미 구글 계정으로 세었으므로 중복 계상하지 않는다(merged_into 있는 행 제외).
   deviceAccounts: number
+  // 그중 실제로 덱을 만든 수 — 퍼널 '학습 활성화'에 구글 활성화와 합산된다.
+  deviceAccountsActivated: number
   activeUsers: number
   totalSheets: number
   totalCards: number
@@ -979,7 +981,7 @@ export interface VoicecardsUserStats {
 // 통째로 500 나는 걸 막고 직전 정상 데이터를 제공한다 (getAnonymousEventStats 와 동일 패턴).
 let lastGoodUserStats: VoicecardsUserStats | null = null
 const EMPTY_USER_STATS: VoicecardsUserStats = {
-  totalUsers: 0, deviceAccounts: 0, activeUsers: 0, totalSheets: 0,
+  totalUsers: 0, deviceAccounts: 0, deviceAccountsActivated: 0, activeUsers: 0, totalSheets: 0,
   totalCards: 0, totalAttempts: 0, totalCredits: 0,
   dailyLearnActivity: [], dailyCardInventory: [], users: [],
 }
@@ -1251,6 +1253,24 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     }
   }
 
+  // 기기 계정의 "덱을 만들었다" 신호. 기기 계정의 덱은 로컬에만 있어 sheet_ids에도
+  // user_analytics에도 절대 안 남는다(LearningScreen이 'local:' id를 의도적으로 건너뛴다 —
+  // 실제 행 키가 아니라 orphan row가 되기 때문). 그래서 이 코호트는 활성화 판정의 두 소스
+  // 모두에 구조적으로 안 잡히고, 아무리 열심히 써도 영원히 미활성으로 보인다.
+  // 유일하게 남는 흔적이 이 이벤트다. 기기 계정 id = 'device:' + device_id 라 조인이 된다.
+  const deviceActivatedIds = new Set<string>()
+  try {
+    const { data: localSheetRows } = await vc
+      .from('anonymous_events')
+      .select('device_id')
+      .eq('event_name', 'pending_local_sheet_created')
+    for (const r of ((localSheetRows || []) as Array<{ device_id: string | null }>)) {
+      if (r.device_id) deviceActivatedIds.add(`device:${r.device_id}`)
+    }
+  } catch (e) {
+    console.error('[VoiceCards] device-activation map failed (non-fatal):', e)
+  }
+
   // 설치일 — vc_device_journeys.first_seen_at 을 user_id 로 접는다. 기기 2대면 이른 쪽.
   // 계정 생성일(created_at)과 다른 축이다: 설치는 앱을 처음 연 순간, 로그인은 그 뒤에 온다.
   // best-effort — 실패해도 나머지 통계를 막지 않는다(뷰가 없거나 느릴 때 설치일만 빈다).
@@ -1372,10 +1392,13 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 기기 계정과 구글 로그인을 가른다. 테이블은 둘 다 보여주지만(같은 사람이 로그인
   // 전후로 두 표에 나뉘지 않게), 퍼널의 "구글 로그인" 칸은 실제로 로그인한 사람만 센다.
   const isDeviceAccount = (uid: string) => uid.startsWith('device:')
+  const liveDeviceAccounts = users.filter(u => isDeviceAccount(u.user_id) && !u.merged_into)
   const result: VoicecardsUserStats = {
     totalUsers: users.filter(u => !isDeviceAccount(u.user_id)).length,
     // 병합된 기기 계정(merged_into 있음)은 그 구글 계정으로 이미 세었으므로 뺀다.
-    deviceAccounts: users.filter(u => isDeviceAccount(u.user_id) && !u.merged_into).length,
+    deviceAccounts: liveDeviceAccounts.length,
+    // 그중 실제로 덱을 만든 수 — 퍼널의 "학습 활성화"에 구글 활성화와 함께 더해진다.
+    deviceAccountsActivated: liveDeviceAccounts.filter(u => deviceActivatedIds.has(u.user_id)).length,
     activeUsers,
     totalSheets,
     totalCards,

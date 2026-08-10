@@ -25,6 +25,8 @@ interface UserStats {
   totalUsers: number
   // 기기 계정(로그인 없이 크레딧을 쓰는 사용자). 병합된 계정은 제외.
   deviceAccounts: number
+  // 그중 실제로 덱을 만든 수 — 퍼널 '학습 활성화'에 구글 활성화와 합산된다.
+  deviceAccountsActivated: number
   activeUsers: number
   totalSheets: number
   totalCards: number

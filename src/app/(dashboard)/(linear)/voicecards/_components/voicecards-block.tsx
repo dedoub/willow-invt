@@ -17,6 +17,8 @@ interface UserStats {
   totalUsers: number
   // 기기 계정(로그인 없이 크레딧을 쓰는 사용자). 병합된 계정은 제외.
   deviceAccounts: number
+  // 그중 실제로 덱을 만든 수 — 퍼널 '학습 활성화'에 구글 활성화와 합산된다.
+  deviceAccountsActivated: number
   activeUsers: number
   totalSheets: number
   totalCards: number
@@ -797,7 +799,13 @@ export function VoicecardsBlock({
           const googleUsers = (userStats?.users ?? []).filter(u => !u.id.startsWith('device:'))
           const incompleteSignups = googleUsers.filter(isIdleUser).length
           const linkedUsers = googleUsers.filter(u => u.hasFolder).length
-          const signedUp = userStats.totalUsers - incompleteSignups
+          // 학습 활성화 = 구글 경로 활성화 + 기기 계정 활성화.
+          // 기기 계정은 구글 로그인도 드라이브도 거치지 않고 바로 여기로 들어온다 —
+          // 덱을 만든 사람을 빼지 않기 위해서다(2026-08-10 CEO). 그래서 이 칸만은
+          // 앞 칸의 부분집합이 아니고, 전환율(연동 대비)도 구글 경로만으로 계산한다.
+          const googleActivated = userStats.totalUsers - incompleteSignups
+          const deviceActivated = userStats.deviceAccountsActivated ?? 0
+          const signedUp = googleActivated + deviceActivated
           const paidUsers = stats?.combined.totalPaidUsers ?? 0
 
           // 활성화 전환율 = 구글연동 대비 (퍼널: 기기 → 연동 → 활성화)
@@ -855,7 +863,9 @@ export function VoicecardsBlock({
           const activeRateData = allDates.map((date, i) => ({ date, value: pct(signupData[i]?.value ?? 0, linkedData[i]?.value ?? 0) }))
           const loginRate = Math.round(pct(userStats.totalUsers, devices))
           const linkedRate = Math.round(pct(linkedUsers, userStats.totalUsers))
-          const activeRate = Math.round(pct(signedUp, linkedUsers))
+          // 전환율은 구글 경로만으로 — 분모(드라이브 연동)에 기기 계정이 없으므로
+          // 분자에도 넣으면 100%를 넘는 무의미한 수가 된다.
+          const activeRate = Math.round(pct(googleActivated, linkedUsers))
 
           // 스토어 방문(퍼널 최상단) — store_visits 일별 합산. 누적 시리즈는 allDates 축으로 재샘플.
           const storeVisits = anonymousStats.storeVisits ?? []
@@ -1037,7 +1047,10 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="학습 활성화"
-                  title="첫 시트를 저장한 사용자(데모 체험 제외). 점선 = 활성화율(드라이브 연동 대비)."
+                  title={`첫 덱을 만든 사용자(데모 체험 제외). 구글 경로 ${googleActivated.toLocaleString()}명`
+                    + (deviceActivated > 0 ? ` + 기기 계정 ${deviceActivated.toLocaleString()}명` : '')
+                    + '. 기기 계정은 구글 로그인·드라이브를 거치지 않고 바로 여기로 들어오므로'
+                    + ' 이 칸만은 앞 단계의 부분집합이 아니다. 점선 = 활성화율(구글 경로만, 드라이브 연동 대비).'}
                   value={signedUp.toLocaleString()}
                   valueExtra={(
                     <span style={{
