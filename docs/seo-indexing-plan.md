@@ -344,6 +344,12 @@ Sitemaps 화면으로 확인한 Last read가 갈린다.
 넘어갔다. 보이스카드는 재제출일 이후로 다시 안 읽혔다 — 오늘 배포한 OPIc 6건이 전부
 `No referring sitemaps detected`로 나온 이유다.
 
+> 08-10: 보이스카드 사이트맵을 같은 URL로 **재제출**했다(Submitted가 Aug 10으로 갱신).
+> Last read는 아직 Aug 6이다 — 구글이 실제로 다시 읽어야 바뀌고, 그게 이 조치의 성패 지표다.
+> 우리 쪽 생성은 자동이다(`voice-cards-landing/app/sitemap.ts`, 배포마다 재생성, 현재 680 URL로
+> OPIc 6건 포함). 재읽기를 강제할 방법은 없다 — sitemap ping 엔드포인트는 2023년에 폐기됐고
+> GSC 재제출이 유일한 넛지다.
+
 따라오는 두 가지:
 
 1. **RN 대기열의 "unknown 우선" 정렬이 곧 무의미해진다.** 다음 배치부터는 unknown이 남았는지
