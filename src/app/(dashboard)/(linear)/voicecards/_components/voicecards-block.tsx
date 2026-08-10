@@ -1370,8 +1370,10 @@ export function VoicecardsBlock({
     </LCard>
     </div>
 
-    {/* 카드3: 사용자 테이블 */}
-    <div style={{ minWidth: 0 }}>
+    {/* 카드3: 사용자 테이블 — 2열 모드에서 두 열을 모두 차지한다.
+        비로그인 표를 여기 합치면서 열이 23개가 됐고, 반 폭에서는 대부분이 가로 스크롤
+        뒤로 숨는다. 옆에 짝지을 카드도 사라졌으므로 반 폭을 지킬 이유가 없다. */}
+    <div style={{ minWidth: 0, ...(cols === 2 && !mobile ? { gridColumn: '1 / -1' } : null) }}>
     <LCard pad={0}>
       {/* 사용자 목록 (맨 아래) — userStats만 필요 */}
       {usersLoading && !userStats && (

@@ -220,7 +220,7 @@ export default function VoicecardsPage() {
         2열에서 채워지는 순서:
           AI 답변 점유 | 검색 노출      ← 어떻게 발견되는가
           진입 후 행동 | 퍼널 · 가입 후 활동  ← 들어와서 무엇을 하는가
-          사용자 | 비로그인
+          사용자 (2열을 모두 차지)            ← 누가 쓰는가
       */}
       <div style={{
         display: 'grid',
