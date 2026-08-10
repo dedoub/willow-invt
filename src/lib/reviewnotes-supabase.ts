@@ -17,6 +17,30 @@ export const reviewnotesSupabase = supabaseUrl && supabaseKey
 export type SubscriptionPlan = 'FREE' | 'BASIC' | 'STANDARD' | 'PRO'
 export type UserRole = 'USER' | 'ADMIN'
 
+// 플랜별 월간 AI 크레딧 한도 — review-notes 앱 lib/ai/ai-quota.ts AI_CREDIT_LIMITS의 사본.
+// 앱에서 바꾸면 여기도 같이 바꿔야 잔여 크레딧이 맞는다.
+export const RN_AI_CREDIT_LIMITS: Record<SubscriptionPlan, number> = {
+  FREE: 10, BASIC: 100, STANDARD: 300, PRO: 900,
+}
+
+// AI 기능 키 (AiUsage.feature) → 표시 이름. 앱 lib/ai/credits.ts의 AiFeature와 같은 집합.
+export const RN_AI_FEATURE_LABELS: Record<string, string> = {
+  similarProblem: '유사문제',
+  setSelection: '세트 선별',
+  textTagSuggestion: '태그 추천',
+  imageTagSuggestion: '이미지 태그',
+  solutionGeneration: '해설 생성',
+  tagReview: '태그 정리',
+  documentExtraction: '문서 추출',
+}
+
+export interface RnAiFeatureUse { calls: number; credits: number }
+
+// 앱의 크레딧 리셋과 같은 기준(UTC 달). User.aiGenPeriod와 직접 비교한다.
+function currentAiPeriod(now = new Date()): string {
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
 export interface ReviewNotesUser {
   id: string
   name: string | null
@@ -38,6 +62,20 @@ export interface ReviewNotesUser {
   problemSetsToday?: number
   solves?: number
   solvesToday?: number
+  // AI 크레딧 (User.aiGenUsed / aiGenPeriod) — 앱과 같은 UTC 달 기준.
+  // 지난 달 이후 AI를 안 쓴 유저는 aiGenUsed가 옛 값 그대로 남아 있어(앱이 다음 호출 때
+  // 리셋한다) 기간이 다르면 0으로 본다. 앱 quotaState()의 periodChanged와 같은 규칙.
+  aiGenUsed?: number
+  aiGenPeriod?: string
+  creditsUsed?: number
+  creditLimit?: number
+  creditsRemaining?: number
+  // AI 기능 사용 내역 (AiUsage 원장, 2026-08-11 도입 — 그 이전 호출은 없음)
+  aiCallsMonth?: number
+  aiCallsTotal?: number
+  aiCreditsTotal?: number
+  aiFeaturesMonth?: Record<string, RnAiFeatureUse>
+  aiFeaturesTotal?: Record<string, RnAiFeatureUse>
   // Not fetched by getReviewNotesUsers (column-scoped) and unused by any consumer.
   emailVerified?: string | null
   lemonSqueezyCustomerId?: string | null
@@ -244,17 +282,19 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
     throw new Error('ReviewNotes Supabase not configured')
   }
 
-  const [{ data, error }, lastActiveRes, contentRes, countryRes] = await Promise.all([
+  const [{ data, error }, lastActiveRes, contentRes, countryRes, aiUsageRes] = await Promise.all([
     reviewnotesSupabase
       .from('User')
       // Only the columns consumed by getReviewNotesUserStats passes + the monor reviewnotes block.
       // (emailVerified / updatedAt / lemonSqueezyCustomerId are unused.)
-      .select('id, name, email, image, subscriptionPlan, role, storageUsed, createdAt')
+      .select('id, name, email, image, subscriptionPlan, role, storageUsed, createdAt, aiGenUsed, aiGenPeriod')
       .order('createdAt', { ascending: false }),
-    // 마지막 활동 / 유저별 콘텐츠 / 국가 — RLS로 raw 접근 불가, 집계 RPC 사용 (실패해도 목록은 유지)
+    // 마지막 활동 / 유저별 콘텐츠 / 국가 / AI 사용 — RLS로 raw 접근 불가, 집계 RPC 사용
+    // (실패해도 목록은 유지)
     reviewnotesSupabase.rpc('rn_user_last_active'),
     reviewnotesSupabase.rpc('rn_user_content'),
     reviewnotesSupabase.rpc('rn_user_country'),
+    reviewnotesSupabase.rpc('rn_user_ai_usage'),
   ])
 
   if (error) {
@@ -280,11 +320,34 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
       .filter(r => r.country)
       .map(r => [r.user_id, r.country])
   )
+  type AiUsageRow = {
+    user_id: string
+    calls_total: number; credits_total: number
+    calls_period: number; credits_period: number
+    features_period: Record<string, RnAiFeatureUse> | null
+    features_total: Record<string, RnAiFeatureUse> | null
+  }
+  const aiUsageMap = new Map<string, AiUsageRow>(
+    ((aiUsageRes.data ?? []) as AiUsageRow[]).map(r => [r.user_id, r])
+  )
+  const period = currentAiPeriod()
   return (data || []).map(u => {
     const c = contentMap.get(u.id)
+    const ai = aiUsageMap.get(u.id)
+    // 기간이 바뀌었는데 아직 AI를 안 쓴 유저는 앱이 리셋을 미뤄둔 상태 → 사용 0으로 읽는다.
+    const creditsUsed = u.aiGenPeriod === period ? (Number(u.aiGenUsed) || 0) : 0
+    const creditLimit = RN_AI_CREDIT_LIMITS[u.subscriptionPlan as SubscriptionPlan] ?? RN_AI_CREDIT_LIMITS.FREE
     return {
       ...u,
       country: countryMap.get(u.id) ?? null,
+      creditsUsed,
+      creditLimit,
+      creditsRemaining: Math.max(0, creditLimit - creditsUsed),
+      aiCallsMonth: Number(ai?.calls_period) || 0,
+      aiCallsTotal: Number(ai?.calls_total) || 0,
+      aiCreditsTotal: Number(ai?.credits_total) || 0,
+      aiFeaturesMonth: ai?.features_period ?? {},
+      aiFeaturesTotal: ai?.features_total ?? {},
       lastActiveAt: lastActiveMap.get(u.id) ?? null,
       notes: Number(c?.notes) || 0,
       notesToday: Number(c?.notes_today) || 0,

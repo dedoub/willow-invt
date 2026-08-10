@@ -8,7 +8,8 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
-import { isExcludedReviewNotesUser } from '@/lib/reviewnotes-supabase'
+import { isExcludedReviewNotesUser, RN_AI_FEATURE_LABELS } from '@/lib/reviewnotes-supabase'
+import type { RnAiFeatureUse } from '@/lib/reviewnotes-supabase'
 import { kstDateKey, kstToday, kstDaysAgo, kstWeekday, kstTime } from '@/lib/kst'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
 import { formatCountryName, codeToFlag, COUNTRY_NAMES } from '@/lib/country-format'
@@ -87,7 +88,7 @@ function formatTimeShort(dateString?: string | null): string {
   return kstTime(dateString)
 }
 
-type UserSortKey = 'created' | 'active' | 'name' | 'email' | 'country' | 'notes' | 'problems' | 'sets' | 'solves' | 'plan' | 'role' | 'storage'
+type UserSortKey = 'created' | 'active' | 'name' | 'email' | 'country' | 'notes' | 'problems' | 'sets' | 'solves' | 'plan' | 'role' | 'credits' | 'left' | 'ai' | 'storage'
 
 // 국가코드(EventLog↔PageView first-touch IP) → 국기+코드 배지. 2자리 ISO 아니면 null → '—'.
 function formatCountryBadge(country?: string | null): { flag: string; code: string; name: string } | null {
@@ -95,6 +96,25 @@ function formatCountryBadge(country?: string | null): { flag: string; code: stri
   if (!/^[A-Z]{2}$/.test(code)) return null
   return { flag: codeToFlag(code), code, name: COUNTRY_NAMES[code] || code }
 }
+// AI 기능별 사용 내역 툴팁 — 이번 달을 먼저 적고, 누적이 더 많으면 아래 줄에 덧붙인다.
+// 원장(AiUsage)은 2026-08-11부터 쌓이므로 그 이전 호출은 여기에 없다.
+function formatAiFeatureBreakdown(
+  month?: Record<string, RnAiFeatureUse>,
+  total?: Record<string, RnAiFeatureUse>,
+): string {
+  const line = (m?: Record<string, RnAiFeatureUse>) =>
+    Object.entries(m ?? {})
+      .sort((a, b) => b[1].credits - a[1].credits)
+      .map(([k, v]) => `${RN_AI_FEATURE_LABELS[k] ?? k} ${v.calls}회 (${v.credits}크레딧)`)
+      .join('\n')
+  const m = line(month)
+  const tAll = line(total)
+  if (!tAll) return 'AI 사용 기록 없음 (원장 2026-08-11 시작)'
+  return m
+    ? `이번 달\n${m}${tAll !== m ? `\n\n누적\n${tAll}` : ''}`
+    : `이번 달 사용 없음\n\n누적\n${tAll}`
+}
+
 type SortDir = 'asc' | 'desc'
 
 // 컬럼 정의 (헤더 라벨 + 정렬키 + 정렬, 모바일 드롭다운 라벨). 순서 = 그리드 순서.
@@ -111,6 +131,9 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'solves',   label: '풀이',   mobileLabel: '문제 풀이', align: 'center' },
   { key: 'plan',    label: '플랜',   mobileLabel: '플랜',   align: 'center' },
   { key: 'role',    label: '권한',   mobileLabel: '권한',   align: 'center' },
+  { key: 'credits', label: '크레딧', mobileLabel: '크레딧 사용', align: 'center' },
+  { key: 'left',    label: '잔여',   mobileLabel: '잔여 크레딧', align: 'center' },
+  { key: 'ai',      label: 'AI',     mobileLabel: 'AI 호출', align: 'center' },
   { key: 'storage', label: '용량',   mobileLabel: '용량',   align: 'center' },
 ]
 
@@ -121,8 +144,9 @@ const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key)
 const USER_SORT_STORAGE_KEY = 'reviewnotes.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 52px 40px 44px 40px 40px 60px 48px 58px'
-const USER_TABLE_MIN_WIDTH = 748 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용 (모바일 포함)
+const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 52px 40px 44px 40px 40px 60px 48px 58px 40px 44px 58px'
+// 컬럼 폭 합(808) + gap 6px×14(84) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
+const USER_TABLE_MIN_WIDTH = 908
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -331,6 +355,9 @@ export function ReviewnotesBlock({
         case 'plan':    return (PLAN_ORDER[a.subscriptionPlan] ?? 0) - (PLAN_ORDER[b.subscriptionPlan] ?? 0)
         case 'role':    return (a.role === 'ADMIN' ? 1 : 0) - (b.role === 'ADMIN' ? 1 : 0)
         case 'storage': return (a.storageUsed || 0) - (b.storageUsed || 0)
+        case 'credits': return (a.creditsUsed ?? 0) - (b.creditsUsed ?? 0)
+        case 'left':    return (a.creditsRemaining ?? 0) - (b.creditsRemaining ?? 0)
+        case 'ai':      return (a.aiCallsMonth ?? 0) - (b.aiCallsMonth ?? 0)
         case 'notes':    return (a.notes ?? 0) - (b.notes ?? 0)
         case 'problems': return (a.problems ?? 0) - (b.problems ?? 0)
         case 'sets':     return (a.problemSets ?? 0) - (b.problemSets ?? 0)
@@ -735,8 +762,12 @@ export function ReviewnotesBlock({
     </LCard>
     </div>
 
-    {/* 사용자 테이블 */}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+    {/* 사용자 테이블 — 2열 모드에서 두 열을 모두 차지한다 (보이스카드 사용자 테이블과 동일).
+        열이 많아 반 폭에서는 대부분이 가로 스크롤 뒤로 숨고, 옆에 짝지을 카드도 없다. */}
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0,
+      ...(dashCols === 2 && !mobile ? { gridColumn: '1 / -1' } : null),
+    }}>
     {/* 카드3: 사용자 테이블 */}
     <LCard pad={0}>
       {loading && (
@@ -817,6 +848,13 @@ export function ReviewnotesBlock({
               {paginatedUsers.map(user => {
                 const planTone = getTone(PLAN_TONES, user.subscriptionPlan)
                 const isAdmin = user.role === 'ADMIN'
+                const used = user.creditsUsed ?? 0
+                const limit = user.creditLimit ?? 0
+                const left = user.creditsRemaining ?? 0
+                const lowCredits = limit > 0 && left <= limit * 0.2
+                const aiMonth = user.aiCallsMonth ?? 0
+                const aiTotal = user.aiCallsTotal ?? 0
+                const aiTitle = formatAiFeatureBreakdown(user.aiFeaturesMonth, user.aiFeaturesTotal)
                 return (
                   <div key={user.id} style={{
                     display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center',
@@ -905,6 +943,34 @@ export function ReviewnotesBlock({
                         </span>
                       ) : (
                         <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                      )}
+                    </div>
+                    {/* 크레딧 — 이번 달 사용 / 플랜 한도 (앱과 같은 UTC 달 기준) */}
+                    <div
+                      title={`이번 달 AI 크레딧 ${used.toLocaleString()} / ${limit.toLocaleString()} 사용 (${user.subscriptionPlan} 플랜)`}
+                      style={{
+                        ...userNumCell, textAlign: 'center' as const,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15,
+                      }}
+                    >
+                      <span style={{ color: used > 0 ? t.neutrals.text : t.neutrals.subtle }}>{used.toLocaleString()}</span>
+                      <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>/{limit.toLocaleString()}</span>
+                    </div>
+                    {/* 잔여 — 한도 − 사용. 20% 아래로 떨어지면 주황 (소진 임박) */}
+                    <div style={{ ...userNumCell, textAlign: 'center' as const, color: lowCredits ? t.accent.warn : t.neutrals.text }}>
+                      {left.toLocaleString()}
+                    </div>
+                    {/* AI — 이번 달 호출 수 / 누적, 툴팁에 기능별 내역 (AiUsage 원장) */}
+                    <div
+                      title={aiTitle}
+                      style={{
+                        ...userNumCell, textAlign: 'center' as const,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15,
+                      }}
+                    >
+                      <span style={{ color: aiMonth > 0 ? t.neutrals.text : t.neutrals.subtle }}>{aiMonth.toLocaleString()}</span>
+                      {aiTotal > aiMonth && (
+                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>누적 {aiTotal.toLocaleString()}</span>
                       )}
                     </div>
                     {/* 용량 */}
