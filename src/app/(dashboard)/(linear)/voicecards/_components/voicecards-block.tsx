@@ -790,8 +790,13 @@ export function VoicecardsBlock({
           // 강등 — undefined 비교로 전원 활성화가 되는 착시를 막는다(2026-07-11 실제 발생).
           const isIdleUser = (u: { sheetCount: number; cards: number; ownCards?: number; flips?: number }) =>
             u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0
-          const incompleteSignups = (userStats?.users ?? []).filter(isIdleUser).length
-          const linkedUsers = (userStats?.users ?? []).filter(u => u.hasFolder).length
+          // 퍼널 3칸(구글 로그인 → 드라이브 연동 → 학습 활성화)은 모두 같은 모집단,
+          // 즉 구글 로그인 사용자 위에서 세야 한다. userStats.users에는 표에 함께 보여주려고
+          // 기기 계정도 들어 있는데(id가 'device:'), totalUsers는 그걸 빼고 세므로
+          // 여기서 안 빼면 분자만 커져 활성화가 그만큼 깎인다(2026-08-10 실제로 2 깎였다).
+          const googleUsers = (userStats?.users ?? []).filter(u => !u.id.startsWith('device:'))
+          const incompleteSignups = googleUsers.filter(isIdleUser).length
+          const linkedUsers = googleUsers.filter(u => u.hasFolder).length
           const signedUp = userStats.totalUsers - incompleteSignups
           const paidUsers = stats?.combined.totalPaidUsers ?? 0
 
@@ -802,7 +807,7 @@ export function VoicecardsBlock({
 
           // 파이 카드 '활성' 탭: 활성화(!isIdleUser) 사용자의 플랫폼/국가 분포.
           // 기기/결제 탭은 이벤트 기기 기준이지만 활성화는 계정 속성(시트 보유)이라 users로 센다.
-          const activatedUsers = (userStats?.users ?? []).filter(u => !isIdleUser(u))
+          const activatedUsers = googleUsers.filter(u => !isIdleUser(u))
           const distOf = (label: (u: (typeof activatedUsers)[number]) => string) => {
             const m = new Map<string, number>()
             for (const u of activatedUsers) m.set(label(u), (m.get(label(u)) ?? 0) + 1)
@@ -815,7 +820,7 @@ export function VoicecardsBlock({
           const cumulative = anonymousStats.cumulativeDistinct ?? []
           const devicesData = cumulative.map(d => ({ date: d.date, value: d.devices }))
 
-          const signupDates = (userStats?.users ?? [])
+          const signupDates = googleUsers
             .filter(u => !isIdleUser(u))
             .map(u => kstDateKey(u.createdAt))
             .sort()
