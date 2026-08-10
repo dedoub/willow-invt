@@ -561,7 +561,11 @@ export function VoicecardsBlock({
     )
     return anon.filter(d => !deviceAccountIds.has(d.deviceId)).map(d => ({
       id: `dev:${d.deviceId}`,
-      nickname: null, email: null,
+      // 닉네임 자리에 기기번호를 넣는다. 병합 전 비로그인 표가 쓰던 관례 그대로
+      // (uuid에서 하이픈을 뺀 앞 4자리에 #). id로 폴백을 돌리면 'dev:' 접두사 때문에
+      // '#dev:'가 나오므로 여기서 명시적으로 만든다.
+      nickname: `#${(d.deviceId || '').replace(/-/g, '').slice(0, 4) || '????'}`,
+      email: null,
       appVersion: d.appVersion, platform: d.platform, locale: null, country: d.country,
       hasPurchased: false, credits: 0, purchasedCredits: 0, bonusCredits: 0,
       offerStage: null, offerStageAt: null,
@@ -1420,7 +1424,10 @@ export function VoicecardsBlock({
             {paginatedUsers.map((user) => {
               const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
               const fallbackName = user.email || (shortId ? `#${shortId}` : 'Unknown')
-              const initial = (user.nickname?.charAt(0) || user.email?.charAt(0) || shortId.charAt(0) || '?').toUpperCase()
+              // 기기 행의 닉네임은 '#4f4d' 꼴이라 첫 글자가 전부 '#'이 된다 — 원 안이
+              // 전 행 동일해져 아무것도 구분해주지 못하므로 '#'은 건너뛴다(병합 전 표와 같은 글자).
+              const initialSrc = (user.nickname?.replace(/^#/, '') || user.email || shortId)
+              const initial = (initialSrc.charAt(0) || '?').toUpperCase()
               const titleParts = [user.appVersion ? `v${user.appVersion}` : null, user.locale].filter(Boolean).join(' · ')
               return (
                 <div key={user.id} style={{
