@@ -1085,7 +1085,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     }
   }
 
-  const activeUsers = users.filter(u =>
+  let activeUsers = users.filter(u =>
     u.sheet_ids && Array.isArray(u.sheet_ids) && u.sheet_ids.length > 0
   ).length
 
@@ -1105,7 +1105,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   const totalCredits = users.reduce((sum, u) => sum + (u.credits || 0), 0)
-  const totalSheets = users.reduce((sum, u) => sum + (Array.isArray(u.sheet_ids) ? u.sheet_ids.length : 0), 0)
+  let totalSheets = users.reduce((sum, u) => sum + (Array.isArray(u.sheet_ids) ? u.sheet_ids.length : 0), 0)
 
   // 일별 보유 카드 스냅샷 — daily_inventory_snapshots(관리자 제외 시리즈, liveCards=userStats.totalCards
   // 와 같은 모집단이라 sparkline 끝점·7일 추세가 헤더와 정합). sparkline·7일 추세용.
@@ -1131,7 +1131,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     .map(([date, v]) => ({ date, cardsLearned: v.cardsLearned, attempts: v.attempts }))
 
   // 보유 카드 합계 (user_analytics.total_cards 사용자별 합산)
-  const totalCards = Array.from(userCardsMap.values()).reduce((sum, n) => sum + n, 0)
+  let totalCards = Array.from(userCardsMap.values()).reduce((sum, n) => sum + n, 0)
   // 누적 말하기 시도 (user_analytics.total_attempts 합) — 사용자 리스트 "말하기" 합과 일치
   const totalAttempts = Array.from(userAttemptsMap.values()).reduce((sum, n) => sum + n, 0)
 
@@ -1253,34 +1253,18 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     }
   }
 
-  // 기기 계정의 "덱을 만들었다" 신호. 기기 계정의 덱은 로컬에만 있어 sheet_ids에도
-  // user_analytics에도 절대 안 남는다(LearningScreen이 'local:' id를 의도적으로 건너뛴다 —
-  // 실제 행 키가 아니라 orphan row가 되기 때문). 그래서 이 코호트는 활성화 판정의 두 소스
-  // 모두에 구조적으로 안 잡히고, 아무리 열심히 써도 영원히 미활성으로 보인다.
-  // 유일하게 남는 흔적이 이 이벤트다. 기기 계정 id = 'device:' + device_id 라 조인이 된다.
-  const deviceActivatedIds = new Set<string>()
-  try {
-    const { data: localSheetRows } = await vc
-      .from('anonymous_events')
-      .select('device_id')
-      .eq('event_name', 'pending_local_sheet_created')
-    for (const r of ((localSheetRows || []) as Array<{ device_id: string | null }>)) {
-      if (r.device_id) deviceActivatedIds.add(`device:${r.device_id}`)
-    }
-  } catch (e) {
-    console.error('[VoiceCards] device-activation map failed (non-fatal):', e)
-  }
-
-  // 설치일 — vc_device_journeys.first_seen_at 을 user_id 로 접는다. 기기 2대면 이른 쪽.
-  // 계정 생성일(created_at)과 다른 축이다: 설치는 앱을 처음 연 순간, 로그인은 그 뒤에 온다.
-  // best-effort — 실패해도 나머지 통계를 막지 않는다(뷰가 없거나 느릴 때 설치일만 빈다).
+  // 설치일과 기기 소유자를 함께 접는다. 로그인 전에 만든 로컬 덱도 같은 device_id를
+  // 유지하므로, 이후 로그인했다면 journey.user_id를 통해 구글 계정에 귀속할 수 있다.
   const userInstalledMap = new Map<string, string>()
+  const deviceOwnerMap = new Map<string, string>()
   try {
     const { data: journeyRows } = await vc
       .from('vc_device_journeys')
-      .select('user_id, first_seen_at')
-      .not('user_id', 'is', null)
-    for (const row of ((journeyRows || []) as Array<{ user_id: string | null; first_seen_at: string | null }>)) {
+      .select('device_id, user_id, first_seen_at')
+    for (const row of ((journeyRows || []) as Array<{ device_id: string | null; user_id: string | null; first_seen_at: string | null }>)) {
+      if (row.device_id) {
+        deviceOwnerMap.set(row.device_id, row.user_id || `device:${row.device_id}`)
+      }
       const uid = row.user_id
       if (!uid || !row.first_seen_at) continue
       const prev = userInstalledMap.get(uid)
@@ -1289,6 +1273,46 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   } catch (e) {
     console.error('[VoiceCards] installed-at map failed (non-fatal):', e)
   }
+
+  // 로컬 덱은 users.sheet_ids/user_analytics에 저장되지 않는다. 생성 이벤트의 card_count를
+  // 사용자별로 접어 대시보드 시트·카드 수와 활성화 집계에 포함한다.
+  type LocalAssets = { sheets: number; cards: number; sheetsToday: number; cardsToday: number }
+  const userLocalAssetsMap = new Map<string, LocalAssets>()
+  const deviceActivatedIds = new Set<string>()
+  try {
+    const { data: localSheetRows } = await vc
+      .from('anonymous_events')
+      .select('device_id, created_at, properties')
+      .eq('event_name', 'pending_local_sheet_created')
+    const todayKst = kstDateKey(new Date())
+    for (const row of ((localSheetRows || []) as Array<{ device_id: string | null; created_at: string | null; properties: { card_count?: number | string } | null }>)) {
+      if (!row.device_id) continue
+      const ownerId = deviceOwnerMap.get(row.device_id) || `device:${row.device_id}`
+      if (!visibleUserIds.has(ownerId)) continue
+      const cardCount = Math.max(0, Number(row.properties?.card_count) || 0)
+      const isToday = !!row.created_at && kstDateKey(row.created_at) === todayKst
+      const prev = userLocalAssetsMap.get(ownerId) || { sheets: 0, cards: 0, sheetsToday: 0, cardsToday: 0 }
+      userLocalAssetsMap.set(ownerId, {
+        sheets: prev.sheets + 1,
+        cards: prev.cards + cardCount,
+        sheetsToday: prev.sheetsToday + (isToday ? 1 : 0),
+        cardsToday: prev.cardsToday + (isToday ? cardCount : 0),
+      })
+      deviceActivatedIds.add(ownerId)
+    }
+  } catch (e) {
+    console.error('[VoiceCards] local-asset map failed (non-fatal):', e)
+  }
+
+  const localAssetsTotal = Array.from(userLocalAssetsMap.values()).reduce(
+    (sum, assets) => ({ sheets: sum.sheets + assets.sheets, cards: sum.cards + assets.cards }),
+    { sheets: 0, cards: 0 },
+  )
+  totalSheets += localAssetsTotal.sheets
+  totalCards += localAssetsTotal.cards
+  activeUsers = users.filter(u =>
+    (Array.isArray(u.sheet_ids) && u.sheet_ids.length > 0) || (userLocalAssetsMap.get(u.user_id)?.sheets || 0) > 0
+  ).length
 
   const userList = users.map(u => ({
     id: u.user_id,
@@ -1310,14 +1334,14 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     unclassifiedListens: userUnclassifiedListensMap.get(u.user_id) || 0,
     creditsSpent: userCreditsSpentMap.get(u.user_id) || 0,
     hasFolder: !!u.folder_id,
-    sheetCount: u.sheet_ids?.length || 0,
-    cards: userCardsMap.get(u.user_id) || 0,
-    ownCards: userOwnCardsMap.get(u.user_id) || 0,
+    sheetCount: (u.sheet_ids?.length || 0) + (userLocalAssetsMap.get(u.user_id)?.sheets || 0),
+    cards: (userCardsMap.get(u.user_id) || 0) + (userLocalAssetsMap.get(u.user_id)?.cards || 0),
+    ownCards: (userOwnCardsMap.get(u.user_id) || 0) + (userLocalAssetsMap.get(u.user_id)?.cards || 0),
     flips: userFlipsMap.get(u.user_id) || 0,
     attempts: userAttemptsMap.get(u.user_id) || 0,
     createdAt: u.created_at,
     installedAt: userInstalledMap.get(u.user_id) || null,
-    cardsToday: userActivityMap.get(u.user_id)?.cardsToday || 0,
+    cardsToday: (userActivityMap.get(u.user_id)?.cardsToday || 0) + (userLocalAssetsMap.get(u.user_id)?.cardsToday || 0),
     attemptsToday: userActivityMap.get(u.user_id)?.attemptsToday || 0,
     listenToday: userActivityMap.get(u.user_id)?.listenToday || 0,
     flipsToday: userActivityMap.get(u.user_id)?.flipsToday || 0,
@@ -1325,7 +1349,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     activeDays7d: userActivityMap.get(u.user_id)?.activeDays7d || 0,
     purchasedToday: userActivityMap.get(u.user_id)?.purchasedToday || 0,
     balanceDeltaToday: userActivityMap.get(u.user_id)?.balanceDeltaToday || 0,
-    sheetsDeltaToday: userActivityMap.get(u.user_id)?.sheetsDeltaToday || 0,
+    sheetsDeltaToday: (userActivityMap.get(u.user_id)?.sheetsDeltaToday || 0) + (userLocalAssetsMap.get(u.user_id)?.sheetsToday || 0),
     // 구매 신호 (단순화, 2026-07-09). CEO 정의: 핫리드 = 헤비 유저(TTS 많이 듣고 ·
     //   시트 많고 · 카드 많고 · 최근 연속 사용) 이면서 업그레이드 모달을 눌러본 미구매자.
     //   intentBanner = 크레딧/프리미엄(업그레이드) 배너·모달 탭. 나머지 intent 플래그는
