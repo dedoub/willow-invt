@@ -56,8 +56,6 @@ interface UserStats {
     creditsUsed: number
     creditsSpent?: number
     hasFolder: boolean
-    // 저장된 데모 덱 수 — 활성화 판정에서 sheetCount에서 뺀다.
-    demoSheetCount: number
     ownCards?: number
     sheetCount: number
     cards: number
