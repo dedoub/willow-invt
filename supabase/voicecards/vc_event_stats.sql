@@ -113,18 +113,31 @@ dev_day as (
 --
 -- 그런 기기는 비로그인으로 센다. users 행도 user_analytics 행도 없으면 회원이라 부를 근거가
 -- 없고, 아예 빼면 회원+신규+비로그인 합이 활동 기기와 안 맞아 새 혼란이 생긴다.
+--
+-- 2026-08-10: 비로그인을 다시 신규/기존으로 쪼개 4분리가 됐다. 기기 계정 도입 후
+-- "비로그인"은 더 이상 한 덩어리가 아니다 — 서버 정체성과 크레딧을 가지고 로그인 없이
+-- 정착한 재방문자와, 오늘 처음 온 사람이 같은 바에 섞여 있었다.
+-- 신규 판정은 기기 계정 생성일이 아니라 **그 기기의 첫 활동일**(dev_first.first_seen)로
+-- 한다: (a) 기기 계정이 없던 시절 데이터까지 같은 규칙으로 갈라지고, (b) 계정 행이
+-- 없는 기기(구버전·생성 실패)도 빠지지 않는다. 기기 계정 생성일은 어차피 첫 활동일과
+-- 사실상 같은 날이다(앱을 열면 바로 만들어진다).
 dev_day_flag as (
   select d.kdate, d.device_id,
     (d.has_login and u.user_id is not null) as has_login,
-    (u.user_id is not null and (u.created_at at time zone 'Asia/Seoul')::date = d.kdate) as is_new
-  from dev_day d left join users u on u.user_id = d.uid
+    (u.user_id is not null and (u.created_at at time zone 'Asia/Seoul')::date = d.kdate) as is_new,
+    (df.first_seen = d.kdate) as is_new_device
+  from dev_day d
+  left join users u on u.user_id = d.uid
+  left join dev_first df on df.device_id = d.device_id
 ),
 login_daily as (
   select kdate,
     count(*) filter (where has_login) as logged_devices,
     count(*) filter (where has_login and is_new) as new_logged_devices,
     count(*) filter (where has_login and not is_new) as member_logged_devices,
-    count(*) filter (where not has_login) as anon_devices
+    count(*) filter (where not has_login) as anon_devices,
+    count(*) filter (where not has_login and is_new_device) as new_device_devices,
+    count(*) filter (where not has_login and not is_new_device) as member_device_devices
   from dev_day_flag group by kdate
 ),
 -- 롤링 회원 MAU: 각 날짜 기준 직전 30일(당일 포함) 활동 회원(로그인) 디바이스 distinct.
@@ -225,7 +238,7 @@ select jsonb_build_object(
      'learnConversionPct',  case when total_devices>0 then round(100.0*learned_devices/total_devices)::int else 0 end,
      'signinConversionPct', case when total_devices>0 then round(100.0*signin_devices/total_devices)::int else 0 end
    ) from summary),
-  'daily', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'devices',d.devices,'appOpened',d.app_opened,'cardsLearned',d.cards_learned,'promptShown',d.prompt_shown,'signinCompleted',d.signin_completed,'loggedDevices',coalesce(l.logged_devices,0),'anonDevices',coalesce(l.anon_devices,0),'newLoggedDevices',coalesce(l.new_logged_devices,0),'memberLoggedDevices',coalesce(l.member_logged_devices,0),'memberActive30',coalesce(ma.base,0)) order by d.kdate) from daily d left join login_daily l using(kdate) left join member_active30 ma using(kdate)),'[]'::jsonb),
+  'daily', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'devices',d.devices,'appOpened',d.app_opened,'cardsLearned',d.cards_learned,'promptShown',d.prompt_shown,'signinCompleted',d.signin_completed,'loggedDevices',coalesce(l.logged_devices,0),'anonDevices',coalesce(l.anon_devices,0),'newLoggedDevices',coalesce(l.new_logged_devices,0),'memberLoggedDevices',coalesce(l.member_logged_devices,0),'newDeviceDevices',coalesce(l.new_device_devices,0),'memberDeviceDevices',coalesce(l.member_device_devices,0),'memberActive30',coalesce(ma.base,0)) order by d.kdate) from daily d left join login_daily l using(kdate) left join member_active30 ma using(kdate)),'[]'::jsonb),
   'cumulativeDistinct', coalesce((select jsonb_agg(jsonb_build_object('date',kdate,'devices',devices,'learned',learned,'signin',signin) order by kdate) from cumulative),'[]'::jsonb),
   'dailyCreditUsage', coalesce((select jsonb_agg(jsonb_build_object('date',d.kdate,'credits',coalesce(c.credits,0)) order by d.kdate) from all_dates d left join credit_daily c using(kdate)),'[]'::jsonb),
   'dailyFlips', coalesce((select jsonb_agg(jsonb_build_object('date',kdate,'flips',flips) order by kdate) from flip_daily),'[]'::jsonb),

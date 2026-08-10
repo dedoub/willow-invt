@@ -1687,12 +1687,15 @@ export function VoicecardsBlock({
 
 
 
-// 일별 활동자 추이 — 하루 한 바를 회원 로그인/신규 로그인/비로그인 3단 스택.
-// 회원(그 날 활동한 기존 가입자) 아래, 신규(그 날 가입) 가운데, 비로그인(익명) 위. 합 = daily.devices.
+// 일별 활동자 추이 — 하루 한 바를 4단 스택: 기존 로그인/신규 로그인/기존 기기/신규 기기.
+// 아래에서 위로 기존 로그인 → 신규 로그인 → 기존 기기 → 신규 기기. 합 = daily.devices.
+// 로그인(블루 계열)과 기기(그린 계열)를 색 계열로 묶어 두 경로가 한눈에 갈라지게 했다.
+// 2026-08-10 3단→4단: 기기 계정 도입 후 "비로그인"이 한 덩어리가 아니게 됐다 — 로그인 없이
+// 정착해 재방문하는 사용자와 오늘 처음 온 사람이 같은 칸에 섞여 있었다.
 // 서버 집계(vc_event_stats)를 그대로 재사용해 대시보드 정의와 일치. 봇/관리자 제외 뷰 기준.
-// newLoggedDevices가 없는 옛 캐시 payload는 회원=logged 전체로 강등.
+// 새 필드가 없는 옛 캐시 payload는 기기 신규=0, 기기 기존=비로그인 전체로 강등(기존 강등 규칙과 동형).
 function DauTrendCard({ daily, days = 42, showTotals }: {
-  daily: Array<{ date: string; devices: number; loggedDevices: number; anonDevices: number; newLoggedDevices?: number; memberLoggedDevices?: number; memberActive30?: number }>
+  daily: Array<{ date: string; devices: number; loggedDevices: number; anonDevices: number; newLoggedDevices?: number; memberLoggedDevices?: number; newDeviceDevices?: number; memberDeviceDevices?: number; memberActive30?: number }>
   days?: number
   showTotals?: boolean // 바 위 희미한 총합 — 바 폭이 충분한 와이드(1열) 모드에서만
 }) {
@@ -1702,10 +1705,15 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
   const newOf = (r: { loggedDevices: number; newLoggedDevices?: number }) => r.newLoggedDevices ?? 0
   const memberOf = (r: { loggedDevices: number; newLoggedDevices?: number; memberLoggedDevices?: number }) =>
     r.memberLoggedDevices ?? Math.max(0, r.loggedDevices - newOf(r))
-  // 플랫폼 파이차트 팔레트와 구분: 회원=블루, 신규=퍼플, 비로그인=그린
+  const devNewOf = (r: { newDeviceDevices?: number }) => r.newDeviceDevices ?? 0
+  const devMemberOf = (r: { anonDevices: number; newDeviceDevices?: number; memberDeviceDevices?: number }) =>
+    r.memberDeviceDevices ?? Math.max(0, r.anonDevices - devNewOf(r))
+  // 로그인=블루 계열(기존 진함/신규 보라), 기기=그린 계열(기존 진함/신규 연함).
+  // 같은 계열 안에서 신규가 밝은 쪽 — 위로 갈수록 '새 사람'이라 스택 방향과 읽는 방향이 맞는다.
   const MEMBER = '#3b82f6'
   const NEW = '#8b5cf6'
-  const ANON = '#10b981'
+  const DEV_MEMBER = '#10b981'
+  const DEV_NEW = '#6ee7b7'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   // 바 높이는 컨테이너 대비 % — 카드가 커지면 차트도 같이 커짐 (좌측 퍼널 열 높이에 맞춰 stretch)
   const barPct = (v: number) => (max > 0 ? (v / max) * 100 : 0)
@@ -1754,13 +1762,16 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
           fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, whiteSpace: 'nowrap' as const,
         }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
-            <span style={{ width: 6, height: 6, borderRadius: 1, background: MEMBER }} />회원 {latest ? memberOf(latest) : 0}
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: MEMBER }} />로그인·기존 {latest ? memberOf(latest) : 0}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
-            <span style={{ width: 6, height: 6, borderRadius: 1, background: NEW }} />신규 {latest ? newOf(latest) : 0}
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: NEW }} />로그인·신규 {latest ? newOf(latest) : 0}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
-            <span style={{ width: 6, height: 6, borderRadius: 1, background: ANON }} />비로그인 {latest?.anonDevices ?? 0}
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: DEV_MEMBER }} />기기·기존 {latest ? devMemberOf(latest) : 0}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: DEV_NEW }} />기기·신규 {latest ? devNewOf(latest) : 0}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
             <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
@@ -1782,7 +1793,8 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
       ) : (
         <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: 2, position: 'relative' }}>
           {rows.map((r, i) => {
-            const anonH = barPct(r.anonDevices)
+            const devNewH = barPct(devNewOf(r))
+            const devMemberH = barPct(devMemberOf(r))
             const newH = barPct(newOf(r))
             const memberH = barPct(memberOf(r))
             const dim = hoverIdx !== null && hoverIdx !== i
@@ -1800,9 +1812,10 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
                     whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
                   }}>{r.devices}</span>
                 )}
-                {anonH > 0 && <div style={{ height: `${anonH}%`, background: ANON, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
-                {newH > 0 && <div style={{ height: `${newH}%`, background: NEW, borderRadius: anonH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
-                {memberH > 0 && <div style={{ height: `${memberH}%`, background: MEMBER, borderRadius: (anonH > 0 || newH > 0) ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {devNewH > 0 && <div style={{ height: `${devNewH}%`, background: DEV_NEW, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {devMemberH > 0 && <div style={{ height: `${devMemberH}%`, background: DEV_MEMBER, borderRadius: devNewH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {newH > 0 && <div style={{ height: `${newH}%`, background: NEW, borderRadius: (devNewH > 0 || devMemberH > 0) ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {memberH > 0 && <div style={{ height: `${memberH}%`, background: MEMBER, borderRadius: (devNewH > 0 || devMemberH > 0 || newH > 0) ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
               </div>
             )
           })}
@@ -1840,13 +1853,16 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
               }}>
                 <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(r.date)}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 1, background: MEMBER }} />회원 로그인 {memberOf(r)}
+                  <span style={{ width: 7, height: 7, borderRadius: 1, background: MEMBER }} />기존 로그인 {memberOf(r)}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: NEW }} />신규 로그인 {newOf(r)}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 1, background: ANON }} />비로그인 {r.anonDevices}
+                  <span style={{ width: 7, height: 7, borderRadius: 1, background: DEV_MEMBER }} />기존 기기 {devMemberOf(r)}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 1, background: DEV_NEW }} />신규 기기 {devNewOf(r)}
                 </div>
                 {hasLoginRate && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
