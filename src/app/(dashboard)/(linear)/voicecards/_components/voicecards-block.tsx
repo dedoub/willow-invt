@@ -1749,7 +1749,7 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 4, marginBottom: 6,
+        gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3,
       }}>
         <div style={{
           fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
@@ -1759,25 +1759,29 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
         </div>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
-          fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, whiteSpace: 'nowrap' as const,
+          // 칩 6개(4버킷 + 7일평균 + 로그인율) — 모바일 폭에서 한 줄에 안 들어간다.
+          // 컨테이너 nowrap을 풀어 자연스럽게 접히게 하고, 줄바꿈은 칩 경계에서만
+          // 일어나도록 nowrap을 칩 각각으로 내렸다. flex-end라 접혀도 우측 정렬 유지.
+          flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0,
+          fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono,
         }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: MEMBER }} />로그인·기존 {latest ? memberOf(latest) : 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: NEW }} />로그인·신규 {latest ? newOf(latest) : 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: DEV_MEMBER }} />기기·기존 {latest ? devMemberOf(latest) : 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: DEV_NEW }} />기기·신규 {latest ? devNewOf(latest) : 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
           </span>
           {hasLoginRate && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }} title="회원 stickiness 7일평균: 그날 회원 로그인 / 최근 30일 활동 회원(롤링)의 7일 이동평균. 회원 DAU/MAU와 같은 척도.">
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }} title="회원 stickiness 7일평균: 그날 회원 로그인 / 최근 30일 활동 회원(롤링)의 7일 이동평균. 회원 DAU/MAU와 같은 척도.">
               <span style={{ width: 10, height: 2, borderRadius: 1, background: LOGIN_RATE_COLOR, backgroundImage: `repeating-linear-gradient(90deg, ${LOGIN_RATE_COLOR} 0 3px, transparent 3px 5px)` }} />로그인율(7일) {loginRateMA.length ? `${Math.round(loginRateMA[loginRateMA.length - 1] * 10) / 10}%` : '0%'}
             </span>
           )}
