@@ -1405,8 +1405,28 @@ export function VoicecardsBlock({
       {userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           {(() => {
-            const n = userStats.users.filter(u => u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0).length
-            return <LSectionHead eyebrow="USERS" title={`사용자${n > 0 ? ` · 미활성 ${n}` : ''}`} mb={8} />
+            // 이 표에는 모집단이 셋 섞여 있다: 구글 사용자 · 기기 계정 · 계정 없는 익명 기기.
+            // 예전 헤더는 "미활성 N" 하나만 보여줬는데, 그 N이 userStats.users(구글+기기계정)
+            // 기준이라 화면에 보이는 익명 기기 행은 세지 않으면서 퍼널의 미활성과도 값이
+            // 달랐다(93 vs 91). 어느 쪽도 표의 행 수를 설명하지 못했다.
+            // 이제 셋을 다 적고, 미활성은 퍼널과 같은 기준(구글 사용자)임을 명시한다.
+            const googleRows = userStats.users.filter(u => !u.id.startsWith('device:'))
+            const idleGoogle = googleRows.filter(u => u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0).length
+            const deviceRowCount = (userStats.users.length - googleRows.length) + deviceRows.length
+            return (
+              <LSectionHead
+                eyebrow="USERS"
+                title="사용자"
+                meta={(
+                  <span title={'구글 = 구글 로그인 사용자. 기기 = 로그인 없이 쓰는 행(기기 계정 + 계정 없는 익명 기기).\n'
+                    + '미활성은 퍼널과 같은 기준으로 구글 사용자만 센다 — 기기 행은 로컬 덱이 서버에 남지 않아 '
+                    + '구조적으로 항상 미활성이라, 섞으면 활성화율이 사용자 행동과 무관하게 떨어진다.'}>
+                    구글 {googleRows.length} · 기기 {deviceRowCount} · 미활성 {idleGoogle}
+                  </span>
+                )}
+                mb={8}
+              />
+            )
           })()}
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
