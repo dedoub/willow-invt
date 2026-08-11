@@ -70,6 +70,25 @@ function getTone(map: Record<string, { bg: string; fg: string }>, key: string) {
   return map[key] ?? tonePalettes.neutral
 }
 
+// 섹션 헤더 우측 새로고침 버튼 — 이 페이지의 섹션들이 쓰는 공통 모양.
+function RefreshButton({ onClick, busy }: { onClick: () => void; busy: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={busy}
+      title="데이터 새로고침"
+      style={{
+        width: 28, height: 28, borderRadius: t.radius.sm,
+        background: t.neutrals.inner, border: 'none', cursor: busy ? 'default' : 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: t.neutrals.muted, opacity: busy ? 0.5 : 1,
+      }}
+    >
+      <LIcon name="refresh" size={13} stroke={1.8} />
+    </button>
+  )
+}
+
 // ─── User table (VoiceCards 사용자 테이블과 동일 스타일) ─────────────────────────
 
 // 테이블 셀용 짧은 날짜 — 연월일 모두 표시 (YY.MM.DD), KST 기준
@@ -429,18 +448,7 @@ export function ReviewnotesBlock({
               >
                 <LIcon name="trending" size={13} stroke={1.8} />
               </a>
-              <button
-                onClick={onRefresh}
-                disabled={refreshing}
-                style={{
-                  width: 28, height: 28, borderRadius: t.radius.sm,
-                  background: t.neutrals.inner, border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: t.neutrals.muted, opacity: refreshing ? 0.5 : 1,
-                }}
-              >
-                <LIcon name="refresh" size={13} stroke={1.8} />
-              </button>
+              <RefreshButton onClick={onRefresh} busy={refreshing} />
             </div>
           }
         />
@@ -789,34 +797,40 @@ export function ReviewnotesBlock({
               eyebrow="USERS"
               title="사용자"
               mb={8}
-              action={mobile ? (
+              action={(
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <select
-                    value={userSort}
-                    onChange={e => handleSortChange(e.target.value as UserSortKey)}
-                    style={{
-                      padding: '3px 6px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                      fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
-                      background: t.neutrals.inner, color: t.neutrals.text,
-                    }}
-                  >
-                    {USER_COLUMNS.map(col => (
-                      <option key={col.key} value={col.key}>{col.mobileLabel}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => handleSortChange(userSort)}
-                    title="정렬 방향 전환"
-                    style={{
-                      padding: '3px 7px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                      fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
-                      background: t.neutrals.inner, color: t.neutrals.muted,
-                    }}
-                  >
-                    {userSortDir === 'asc' ? '▲' : '▼'}
-                  </button>
+                  {/* 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 함께 둔다 */}
+                  {mobile && (
+                    <>
+                      <select
+                        value={userSort}
+                        onChange={e => handleSortChange(e.target.value as UserSortKey)}
+                        style={{
+                          padding: '3px 6px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
+                          fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
+                          background: t.neutrals.inner, color: t.neutrals.text,
+                        }}
+                      >
+                        {USER_COLUMNS.map(col => (
+                          <option key={col.key} value={col.key}>{col.mobileLabel}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => handleSortChange(userSort)}
+                        title="정렬 방향 전환"
+                        style={{
+                          padding: '3px 7px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
+                          fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
+                          background: t.neutrals.inner, color: t.neutrals.muted,
+                        }}
+                      >
+                        {userSortDir === 'asc' ? '▲' : '▼'}
+                      </button>
+                    </>
+                  )}
+                  <RefreshButton onClick={onRefresh} busy={refreshing} />
                 </div>
-              ) : undefined}
+              )}
             />
             {/* PC/모바일 동일 테이블 — 모바일은 가로 스크롤 (보이스카드 사용자 테이블과 동일, 2026-07-15) */}
             <div style={{ overflowX: 'auto' }}>
