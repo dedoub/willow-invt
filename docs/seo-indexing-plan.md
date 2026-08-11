@@ -14,6 +14,10 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 - 같은 URL 재요청은 큐 순서를 바꾸지 않는다. 요청 후 1주일간 상태 이동이 없을 때만 재검토.
 - 요청 전 반드시 당일 스냅샷(`seo_index_status`, 매일 06:40 KST 수집)으로 상태를 확인하고,
   이미 색인된 URL은 건너뛰고 대기열 다음 항목으로 채운다.
+- **하루 한도를 계속 꽉 채운다 (2026-08-11 CEO 결정).** 아래 "노출은 느는데 클릭이 안 는다"에
+  적은 대로 지금 늘어나는 노출은 대부분 11위 아래로 떨어져 클릭이 안 나온다. 그래서 배치를
+  줄이고 순위 작업으로 옮기자고 제안했으나, CEO는 **색인을 계속 늘리고 판단은 나중에**로
+  정했다. 세션마다 이 트레이드오프를 다시 꺼내지 말 것 — 대기열대로 11건을 채우면 된다.
 
 ## 실행 프로토콜 (어느 세션이든 동일)
 
@@ -352,6 +356,35 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 08-05 (사후) | — (스냅샷 복구 후 재확인) | 스캔 타임아웃 수정 후 08-05 스냅샷 생성: VC 665쪽(색인 80), RN 34쪽(색인 17) | **당일 요청분이 몇 시간 만에 반영**: RN `/en/demo`·`/en/guides/assign-problems-without-student-accounts` 색인 완료, VC `/templates/cdl` 허브 색인 완료(하위 3건은 이제 요청 대상에서 제외) |
 | 08-09 | VC 6(OPIc 허브+덱 5) + RN 5(로케일 허브 `/pt/practice`·`/it/practice`·`/de/practice`·`/de/demo`·`/vi/demo`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음 | 08-08 요청 11건 중 **6건 색인**: VC `/templates/spanish` 허브 + 덱 3, 로케일 루트 `/it`, RN `/ko/guides/assign-problems-without-student-accounts`. 나머지는 Discovered로 이동(VC `/uk`, RN `/ko/demo`·`/uk/guides`·`/uk/practice`), VC `/zh`만 아직 unknown |
 | 08-11 | VC 5(로케일 카테고리 허브 `/fr/methods`·`/ru/methods`·`/es/memorization`·`/ja/audio-flashcards`·`/ko/exam-prep`) + RN 6(로케일 허브 `/es/practice`·`/es/demo`·`/it/demo`·`/zh/practice`·`/ja/practice`·`/fr/practice`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 08:50~09:40 KST | 08-10은 요청 0건이라 확인할 전일분 없음. 08-09 요청 11건 중 **RN 5건 중 4건 색인**(`/pt/practice`·`/it/practice`·`/de/practice`·`/vi/demo`), `/de/demo`는 Duplicate without user-selected canonical로 이동 |
+
+### 노출은 느는데 클릭이 안 는다 (2026-08-11 측정)
+
+보이스카드 GSC, 최근 30일 vs 직전 30일: 노출 113 → 606(5.4배), 클릭 10 → 21(2.1배).
+클릭도 늘었다. CTR이 8.8% → 3.5%로 떨어져 안 느는 것처럼 보일 뿐이다.
+
+문제는 CTR이 아니라 새 노출이 떨어지는 자리다.
+
+| 순위 구간 | 노출 | 클릭 | CTR |
+|---|---|---|---|
+| 1~3위 | 8 | 1 | 12.5% |
+| 4~10위 | 348 | 18 | 5.2% |
+| 11~20위 | 237 | 2 | 0.8% |
+| 21위+ | 82 | 0 | 0% |
+
+노출의 53%가 11위 아래다. 4~10위 348노출 중 244가 홈이고, 90일 클릭 36건 중 33건이 홈,
+그중 23건이 브랜드 쿼리 `voicecards`(2.8위·CTR 35%)다. **비브랜드 클릭은 사실상 0.**
+
+즉 색인 작업은 "구글이 우리를 모른다"는 문제를 이미 풀었고, 지금 막힌 곳은 순위다.
+제목·설명 문제가 아니라 10위 밖이라 안 눌리는 것이다.
+
+클릭을 늘리려면 손대야 할 곳(지금은 보류, 위 규칙 참조):
+
+- 11~15위라 한 페이지만 올라오면 클릭이 생기는 자리: `/audio-flashcards`(89노출 0클릭 15.8위),
+  `/voice-flashcard-apps`(13.4위), `/vs/anki`(12.9위), `/language-learning`(13.5위),
+  `/methods/active-recall`(11.8위)
+- 외부 신뢰도(백링크·언급) — 11위 아래에 머무는 주된 이유이고 사이트 안에서 못 푼다.
+  GEO 추천 Top3 16.7%도 같은 신호다.
+- 브랜드 단수형 `voicecard`가 25노출 5.4위 1클릭 — 우리 이름 검색인데 위에 다른 결과가 있다.
 
 ### 08-11에 드러난 것 — 스냅샷의 unknown/Discovered는 신뢰할 수 없다
 
