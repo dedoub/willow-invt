@@ -1022,9 +1022,9 @@ export function VoicecardsBlock({
                       <span>전환 {loginRate}%</span>
                     </span>
                   )}
-                  sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명${
-                    userStats.deviceAccounts > 0 ? ` · 기기 계정 ${userStats.deviceAccounts.toLocaleString()}명` : ''
-                  }`}
+                  // 기기 계정은 여기 적지 않는다 — 이 카드는 순수하게 구글 로그인만 보는 자리다
+                  // (2026-08-11 CEO). 기기 계정 수는 '학습 활성화' 카드에서 따로 읽는다.
+                  sub={`오늘 ${loginToday.toLocaleString()}명 · 7일 ${login7.toLocaleString()}명`}
                   tone={devices > 0 && userStats.totalUsers / devices >= 0.2 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : allUsersData}
                   sparkline2={compact ? undefined : loginRateData}

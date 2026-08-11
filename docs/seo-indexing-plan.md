@@ -125,8 +125,29 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 
 ### 보이스카드 로케일 루트
 
-unknown인 셋만 요청한다 — `/it`, `/uk`, `/zh` (08-08 배치). `/es`·`/fr`·`/ja`·`/ko`·`/pl`·`/pt`·`/ru`·`/vi`는
-이미 Discovered라 재요청이 큐 순서를 바꾸지 않는다. `/faq`는 `Crawled - not indexed`라 제외.
+`/it`, `/uk`, `/zh`는 08-08 배치에서 요청 완료. 남은 `/es`·`/fr`·`/ja`·`/ko`·`/pl`·`/pt`·`/ru`·`/vi`는
+Discovered라 후순위로 뒀었는데, **그 근거(Discovered는 요청해도 소용없다)는 08-11에 폐기했다**
+(아래 "스냅샷의 unknown/Discovered는 신뢰할 수 없다" 참조). 다만 depth 1 루트는 하위로 크롤을
+흘려보내는 힘이 카테고리 허브보다 약해서, 순서는 여전히 카테고리 허브 뒤다.
+`/faq`는 `Crawled - not indexed`라 제외.
+
+### 보이스카드 로케일 카테고리 허브 (08-11 배치, 잔여 있음)
+
+로케일별 카테고리 허브 — EN 원본(`/methods`·`/memorization`·`/audio-flashcards`·`/language-learning`
+·`/exam-prep`·`/voice-flashcard-apps`)이 전부 색인돼 있어 "영어 원본 우선" 규칙을 통과한다.
+08-11에 5건 요청(`/fr/methods`·`/ru/methods`·`/es/memorization`·`/ja/audio-flashcards`·`/ko/exam-prep`).
+
+남은 것: `/pt/memorization`, `/ru/memorization`, `/fr/audio-flashcards`, `/fr/language-learning`,
+`/ja/language-learning`, `/vi/language-learning`, `/es/voice-flashcard-apps`, `/uk/voice-flashcard-apps`.
+
+### 리뷰노트 로케일 허브 (08-11 배치, 잔여 있음)
+
+08-11에 6건 요청(`/es/practice`·`/es/demo`·`/it/demo`·`/zh/practice`·`/ja/practice`·`/fr/practice`).
+남은 것: `/ko/practice`, `/ru/practice`, `/pl/practice`, `/fr/demo`, `/ru/demo`, `/zh/demo`,
+`/pt/demo`, `/uk/demo`, `/vi/practice`, `/vi/guides`.
+
+`/privacy`·`/terms` 로케일 변형은 대부분 `Duplicate, Google chose different canonical`이라 제외 —
+요청으로 안 풀리는 canonical 문제다.
 
 ### 보이스카드 (리뷰노트 소진 후)
 
@@ -150,6 +171,8 @@ unknown인 셋만 요청한다 — `/it`, `/uk`, `/zh` (08-08 배치). `/es`·`/
 | 08-07 | VC 3: `/templates/bible-verse-memorization-kjv`, `/methods/two-way-recall`, `/methods/daily-five` · RN 8: `/en/practice/` `grade-4-multiplication`·`grade-4-transformations`·`linear-system`·`grade-4-rules`·`grade-5-fractions`·`grade-5-number-operations`·`grade-4-large-numbers` + `/en/templates/mistake-notebook` | ✅ 11건 전부 "Indexing requested", 12번째까지 quota 여유. 12:45~13:15 KST. 로케일 루트 대신 원본으로 채운 배치 |
 | 08-08 | VC 7: `/templates/spanish`(신규 허브) + 덱 3(`-daily-expressions`·`-el-la-nouns`·`-verbs-spoken`) + 로케일 루트 3(`/it`·`/uk`·`/zh`) · RN 4: `/ko/demo`, `/uk/guides`, `/uk/practice`, `/ko/guides/assign-problems-without-student-accounts` | ✅ 11건 완료. 하루 만에 6건 색인(VC 스페인어 허브+덱 3, `/it`, RN `/ko/guides/…`) |
 | 08-09 | VC 6: `/templates/opic`(신규 허브) + 덱 5(`-comparison-preference-phrases-ja`·`-english-speaking-phrases-ja`·`-past-experience-phrases-ja`·`-problem-solution-phrases-ja`·`-role-play-phrases-ja`) · RN 5: 로케일 허브 `/pt/practice`, `/it/practice`, `/de/practice`, `/de/demo`, `/vi/demo` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 18:40~19:20 KST |
+| 08-10 | — (색인 배치 없음. 보이스카드 사이트맵 재제출만) | 요청 0건 |
+| 08-11 | VC 5: 로케일 카테고리 허브 `/fr/methods`, `/ru/methods`, `/es/memorization`, `/ja/audio-flashcards`, `/ko/exam-prep` · RN 6: 로케일 허브 `/es/practice`, `/es/demo`, `/it/demo`, `/zh/practice`, `/ja/practice`, `/fr/practice` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 08:50~09:40 KST. 브리프 자동안(VC 로케일 루트 5 + RN 기요청 3건 포함)을 CEO 승인으로 교체한 배치 |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ### 08-07 배치 결과 (08-08 스냅샷)
@@ -328,6 +351,33 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 08-06 | VC 5: `/methods/chunking-translation`, `/templates/deutsch-a1`, `/templates/einbuergerungstest`, `/methods/active-recall`, `/methods/finish-date-pacing` · RN 6: `/en/practice/` `grade-4-2-polygons`·`-quadrilaterals`·`-triangles`·`grade-4-angles`·`grade-4-bar-graph`·`grade-4-large-numbers` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 추가로 **두 사이트 사이트맵 재제출** | 08-05 요청분: `/en/demo`·`/en/guides/assign-problems-without-student-accounts`·`/templates/cdl`·`/methods/spoken-rehearsal` **색인 완료**. 반면 RN 연습문제 4건(`factor-trinomial`, `grade-4-2-decimals`·`-fractions`·`-line-graphs`)은 **Duplicate without user-selected canonical** — 아래 참조 |
 | 08-05 (사후) | — (스냅샷 복구 후 재확인) | 스캔 타임아웃 수정 후 08-05 스냅샷 생성: VC 665쪽(색인 80), RN 34쪽(색인 17) | **당일 요청분이 몇 시간 만에 반영**: RN `/en/demo`·`/en/guides/assign-problems-without-student-accounts` 색인 완료, VC `/templates/cdl` 허브 색인 완료(하위 3건은 이제 요청 대상에서 제외) |
 | 08-09 | VC 6(OPIc 허브+덱 5) + RN 5(로케일 허브 `/pt/practice`·`/it/practice`·`/de/practice`·`/de/demo`·`/vi/demo`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음 | 08-08 요청 11건 중 **6건 색인**: VC `/templates/spanish` 허브 + 덱 3, 로케일 루트 `/it`, RN `/ko/guides/assign-problems-without-student-accounts`. 나머지는 Discovered로 이동(VC `/uk`, RN `/ko/demo`·`/uk/guides`·`/uk/practice`), VC `/zh`만 아직 unknown |
+| 08-11 | VC 5(로케일 카테고리 허브 `/fr/methods`·`/ru/methods`·`/es/memorization`·`/ja/audio-flashcards`·`/ko/exam-prep`) + RN 6(로케일 허브 `/es/practice`·`/es/demo`·`/it/demo`·`/zh/practice`·`/ja/practice`·`/fr/practice`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 08:50~09:40 KST | 08-10은 요청 0건이라 확인할 전일분 없음. 08-09 요청 11건 중 **RN 5건 중 4건 색인**(`/pt/practice`·`/it/practice`·`/de/practice`·`/vi/demo`), `/de/demo`는 Duplicate without user-selected canonical로 이동 |
+
+### 08-11에 드러난 것 — 스냅샷의 unknown/Discovered는 신뢰할 수 없다
+
+브리프 후보가 계획 문서 규칙과 어긋나서 파고들었더니, 스냅샷의 상태값이 매일 대량으로
+양방향 뒤집히고 있었다.
+
+| 날짜 | VC Discovered→unknown | VC unknown→Discovered | RN D→u | RN u→D |
+|---|---|---|---|---|
+| 08-08 | 116 | 64 | 34 | 47 |
+| 08-09 | 93 | 104 | 63 | 29 |
+| 08-10 | 63 | 104 | 32 | 61 |
+| 08-11 | 99 | 65 | 65 | 28 |
+
+실제 상태 변화가 아니다 — Discovered는 구글이 URL을 아는 상태라 unknown으로 되돌아갈 수
+없다. Inspection API 응답이 흔들리는 것으로 보이고, 08-06부터 매일 이 규모다. 실제로 오늘
+브리프가 unknown이라고 낸 `/fr/methods`·`/es/memorization`·`/ko/exam-prep`은 GSC 라이브에서
+전부 Discovered였다.
+
+따라오는 것:
+
+1. **브리프의 "unknown 우선" 정렬은 지금 의미가 없다.** 노이즈가 순서를 결정한다.
+   후보 선정은 깊이(허브 우선)와 요청 이력으로 하고, 상태는 요청 직전 GSC 화면만 믿는다.
+2. **"Discovered는 요청해도 소용없다"는 대기열 규칙은 실측과 어긋난다.** 08-09에 요청한 RN
+   로케일 허브 5건은 요청 시점 전부 Discovered였는데 이틀 만에 4건이 색인됐다. 재요청(같은
+   URL 두 번)이 무의미한 것이지, 처음 요청하는 Discovered URL은 효과가 있다. 대기열의
+   "로케일 루트는 Discovered라 제외" 항목은 이 근거로 폐기한다.
 
 ### 08-09 배치에서 드러난 것 — 사이트맵 재읽기가 사이트별로 갈렸다
 
