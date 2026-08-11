@@ -839,7 +839,10 @@ export function VoicecardsBlock({
           }))
           // 구글연동(Drive 폴더 보유) 누적 추이 — 폴더 생성 시각은 따로 없어 가입일로
           // 근사(대부분 가입 직후 or 첫 저장 시 승인). 추세선 용도로 충분.
-          const linkedDates = (userStats?.users ?? [])
+          // 카드 값(linkedUsers)이 googleUsers 위에서 세므로 추이도 같은 모집단으로 센다.
+          // 기기 계정은 Drive를 안 거쳐 hasFolder가 늘 false지만, 정의를 맞춰 두면 나중에
+          // 기기 계정에 폴더가 생겨도 카드와 추이가 갈리지 않는다.
+          const linkedDates = googleUsers
             .filter(u => u.hasFolder)
             .map(u => kstDateKey(u.createdAt))
             .sort()
@@ -847,9 +850,13 @@ export function VoicecardsBlock({
             date,
             value: linkedDates.filter(d => d <= date).length,
           }))
-          // 로그인(=users 계정) 누적 — 위계 항등식(로그인 = 연동 + 미연동, 활성화+미활성)이
+          // 로그인(=구글 계정) 누적 — 위계 항등식(로그인 = 연동 + 미연동, 활성화+미활성)이
           // 전부 계정 기준이므로 로그인 카드도 기기 이벤트가 아니라 users 테이블로 센다.
-          const allUserDates = (userStats?.users ?? []).map(u => kstDateKey(u.createdAt)).sort()
+          // 카드의 헤드라인은 totalUsers(기기 계정 제외)라, 여기서도 googleUsers로 세야
+          // 오늘/7일·스파크라인이 헤드라인과 같은 모집단이 된다. userStats.users를 그대로
+          // 쓰면 로그인한 적 없는 기기 계정이 "구글 로그인 오늘 N명"에 섞인다
+          // (2026-08-11: 실제 구글 1명인 날이 4명으로 표시됐다).
+          const allUserDates = googleUsers.map(u => kstDateKey(u.createdAt)).sort()
           const allUsersData = allDates.map(date => ({
             date,
             value: allUserDates.filter(d => d <= date).length,
