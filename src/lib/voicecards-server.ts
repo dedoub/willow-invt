@@ -1025,7 +1025,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, rollupRes, metaRes, activityRes, offersRes] = await Promise.all([
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, rollupRes, metaRes, activityRes, offersRes, journeysRes] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
     vc.from('user_analytics').select('user_id, total_cards, total_attempts, sheet_id'),
     vc.from('user_analytics').select('user_id, last_updated'),
@@ -1043,6 +1043,9 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     // 타겟 오퍼 — 사용자별 오퍼 행(단계 추적 + 지급된 보너스 크레딧). RLS는 anon USING(true)라
     // service 키로 전수 조회 가능. 캠페인 규모가 작아(수십 건) 전수 select로 충분.
     vc.from('user_offers').select('user_id, status, seen_at, snoozed_at, redeemed_at, redeemed_credits, expires_at, created_at'),
+    // 사용자 표와 활동 차트가 같은 실사용자 모집단을 쓰도록 기기 저니를 함께 가져온다.
+    // 이 뷰는 관리자·봇·App Store 심사 기기를 이미 제외한다.
+    vc.from('vc_device_journeys').select('device_id, user_id, first_seen_at'),
   ])
 
   if (usersRes.error) {
@@ -1065,12 +1068,30 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   const allUsers = usersRes.data || []
+  const journeyRows = (journeysRes.data || []) as Array<{
+    device_id: string | null
+    user_id: string | null
+    first_seen_at: string | null
+  }>
+  const validDeviceAccountIds = new Set(
+    journeyRows
+      .filter(row => row.device_id && (!row.user_id || row.user_id === `device:${row.device_id}`))
+      .map(row => `device:${row.device_id}`)
+  )
   const excludedUserIds = new Set(
     allUsers
       .filter(u => isExcludedVoicecardsUser(u))
       .map(u => u.user_id)
   )
-  const users = allUsers.filter(u => !excludedUserIds.has(u.user_id))
+  const users = allUsers.filter(u =>
+    !excludedUserIds.has(u.user_id) &&
+    // Google 로그인으로 병합된 기기 계정은 대상 Google 행으로 이미 표현된다.
+    // 남겨두면 같은 사람이 기기/Google 두 행으로 중복되고 당일 신규 수도 부풀려진다.
+    !(u.user_id.startsWith('device:') && u.merged_into) &&
+    // users에는 App Store 심사에서도 device:* 계정이 생긴다. 이벤트 통계는 이를 빼지만
+    // 사용자 표는 users만 읽어 남기고 있었으므로, 정상 저니에 존재하는 기기 계정만 포함한다.
+    (!u.user_id.startsWith('device:') || journeysRes.error || validDeviceAccountIds.has(u.user_id))
+  )
   // analytics: 제외 유저 + orphan(users 테이블에 없는 user_id) 모두 제거 — 유저 목록 합계와 상단 통계 일치
   const visibleUserIds = new Set(users.map(u => u.user_id))
   const analytics = (analyticsRes.data || []).filter(a => visibleUserIds.has(a.user_id))
@@ -1258,17 +1279,12 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const userInstalledMap = new Map<string, string>()
   const deviceOwnerMap = new Map<string, string>()
   try {
-    const { data: journeyRows } = await vc
-      .from('vc_device_journeys')
-      .select('device_id, user_id, first_seen_at')
-    for (const row of ((journeyRows || []) as Array<{ device_id: string | null; user_id: string | null; first_seen_at: string | null }>)) {
-      if (row.device_id) {
-        deviceOwnerMap.set(row.device_id, row.user_id || `device:${row.device_id}`)
-      }
-      const uid = row.user_id
-      if (!uid || !row.first_seen_at) continue
-      const prev = userInstalledMap.get(uid)
-      if (!prev || row.first_seen_at < prev) userInstalledMap.set(uid, row.first_seen_at)
+    for (const row of journeyRows) {
+      const ownerId = row.user_id || (row.device_id ? `device:${row.device_id}` : null)
+      if (row.device_id && ownerId) deviceOwnerMap.set(row.device_id, ownerId)
+      if (!ownerId || !row.first_seen_at) continue
+      const prev = userInstalledMap.get(ownerId)
+      if (!prev || row.first_seen_at < prev) userInstalledMap.set(ownerId, row.first_seen_at)
     }
   } catch (e) {
     console.error('[VoiceCards] installed-at map failed (non-fatal):', e)
@@ -1339,7 +1355,9 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     ownCards: (userOwnCardsMap.get(u.user_id) || 0) + (userLocalAssetsMap.get(u.user_id)?.cards || 0),
     flips: userFlipsMap.get(u.user_id) || 0,
     attempts: userAttemptsMap.get(u.user_id) || 0,
-    createdAt: u.created_at,
+    // 기기 계정 생성은 Google 로그인이 아니다. 사용자 표의 '로그인' 열은
+    // 실제 Google 계정만 표시하고, 기기 계정은 installedAt으로만 신규 시점을 보여준다.
+    createdAt: u.user_id.startsWith('device:') ? '' : u.created_at,
     installedAt: userInstalledMap.get(u.user_id) || null,
     cardsToday: (userActivityMap.get(u.user_id)?.cardsToday || 0) + (userLocalAssetsMap.get(u.user_id)?.cardsToday || 0),
     attemptsToday: userActivityMap.get(u.user_id)?.attemptsToday || 0,
