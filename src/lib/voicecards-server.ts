@@ -1050,7 +1050,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     vc.from('user_offers').select('user_id, status, seen_at, snoozed_at, redeemed_at, redeemed_credits, expires_at, created_at'),
     // 사용자 표와 활동 차트가 같은 실사용자 모집단을 쓰도록 기기 저니를 함께 가져온다.
     // 이 뷰는 관리자·봇·App Store 심사 기기를 이미 제외한다.
-    vc.from('vc_device_journeys').select('device_id, user_id, first_seen_at, last_seen_at, platform, app_version, locale, country'),
+    vc.from('vc_device_journeys').select('device_id, user_id, first_seen_at, last_seen_at, platform, app_version, locale, country, active_days_7d'),
   ])
 
   if (usersRes.error) {
@@ -1362,7 +1362,10 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     listenToday: userActivityMap.get(u.user_id)?.listenToday || 0,
     flipsToday: userActivityMap.get(u.user_id)?.flipsToday || 0,
     spentToday: userActivityMap.get(u.user_id)?.spentToday || 0,
-    activeDays7d: userActivityMap.get(u.user_id)?.activeDays7d || 0,
+    activeDays7d: Math.max(
+      userActivityMap.get(u.user_id)?.activeDays7d || 0,
+      journeyMetaMap.get(u.user_id)?.activeDays7d || 0,
+    ),
     purchasedToday: userActivityMap.get(u.user_id)?.purchasedToday || 0,
     balanceDeltaToday: userActivityMap.get(u.user_id)?.balanceDeltaToday || 0,
     sheetsDeltaToday: (userActivityMap.get(u.user_id)?.sheetsDeltaToday || 0) + (userLocalAssetsMap.get(u.user_id)?.sheetsToday || 0),
@@ -1529,6 +1532,7 @@ export interface AnonymousEventStats {
       firstSeenAt: string | null
       lastSeenAt: string
       activeDays: number
+      activeDays7d: number
       cardsViewed: number
       cardsLearned: number
       flips: number
@@ -1581,6 +1585,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       first_seen_at: string | null
       last_seen_at: string
       active_days: number | null
+      active_days_7d: number | null
       anon_cards_viewed: number | null
       anon_cards_learned: number | null
       anon_flips: number | null
@@ -1592,7 +1597,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
     }
     const fetchJourneys = () => voicecardsSupabase
       .from('vc_device_journeys')
-      .select('device_id, journey_stage, platform, app_version, country, first_seen_at, last_seen_at, active_days, anon_cards_viewed, anon_cards_learned, anon_flips, anon_credits_spent, add_sheet_opens, ai_gen_opens, signin_clicks, signed_in')
+      .select('device_id, journey_stage, platform, app_version, country, first_seen_at, last_seen_at, active_days, active_days_7d, anon_cards_viewed, anon_cards_learned, anon_flips, anon_credits_spent, add_sheet_opens, ai_gen_opens, signin_clicks, signed_in')
       .order('last_seen_at', { ascending: false })
       .limit(1000)
     const [initialJourneysRes, ceilingRes] = await Promise.all([
@@ -1649,6 +1654,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
         firstSeenAt: (r.first_seen_at as string | null) ?? null,
         lastSeenAt: String(r.last_seen_at),
         activeDays: Number(r.active_days) || 0,
+        activeDays7d: Number(r.active_days_7d) || 0,
         cardsViewed: Number(r.anon_cards_viewed) || 0,
         cardsLearned: Number(r.anon_cards_learned) || 0,
         flips: Number(r.anon_flips) || 0,

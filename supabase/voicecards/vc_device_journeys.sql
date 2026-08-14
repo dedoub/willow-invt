@@ -4,9 +4,8 @@
 --   소비처: willow 대시보드, willy-bot (예: WHERE NOT signed_in AND last_seen_at >= now()-interval '48 hours')
 -- journey_stage: opened → demo → intent(add_sheet/AI생성 진입) → signin_attempted(클릭했으나 미완료) → signed_in
 -- 제외 규칙은 vc_event_stats()와 동일 (excluded_devices + apple_ip_devices + is_likely_bot). 정본: voicecards-stats 스킬 문서.
--- 컬럼 중간 삽입이 있어 재적용 시 drop 후 재생성 필요 (2026-07-15 anon_flips, anon_credits_spent 추가)
-drop view if exists vc_device_journeys;
-create or replace view vc_device_journeys as
+-- 새 컬럼은 기존 권한을 보존하도록 SELECT 끝에만 추가한다.
+create or replace view vc_device_journeys with (security_invoker = true) as
 with excluded_devices as (
   select distinct e.device_id
   from mv_real_users e
@@ -52,6 +51,14 @@ agg as (
     min(created_at) as first_seen_at,
     max(created_at) as last_seen_at,
     count(distinct (created_at at time zone 'Asia/Seoul')::date) as active_days,
+    count(distinct (created_at at time zone 'Asia/Seoul')::date) filter (
+      where created_at >= ((((now() at time zone 'Asia/Seoul')::date - 6)::timestamp) at time zone 'Asia/Seoul')
+        and created_at < (((now() at time zone 'Asia/Seoul')::date + 1)::timestamp at time zone 'Asia/Seoul')
+        and event_name in (
+          'card_attempted','tts_played','voice_preview_played','device_tts_played','card_flipped_manual',
+          'deck_created','pending_local_sheet_created'
+        )
+    ) as active_days_7d,
     count(*) as total_events,
     bool_or(event_name = 'demo_autostarted') as demo_autostarted,
     bool_or(event_name in ('learning_started','card_viewed','card_attempted',
@@ -120,7 +127,8 @@ select
     when a.add_sheet_opens > 0 or a.ai_gen_opens > 0 then 'intent'
     when a.demo_engaged then 'demo'
     else 'opened'
-  end as journey_stage
+  end as journey_stage,
+  a.active_days_7d
 from agg a
 join latest_meta m using (device_id)
 left join users u on u.user_id = a.user_id;

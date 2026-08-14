@@ -7,6 +7,7 @@ export interface VoicecardsDeviceJourneyRow {
   app_version: string | null
   locale: string | null
   country: string | null
+  active_days_7d: number | null
 }
 
 export interface VoicecardsDeviceJourneyMeta {
@@ -17,10 +18,11 @@ export interface VoicecardsDeviceJourneyMeta {
   appVersion: string | null
   locale: string | null
   country: string | null
+  activeDays7d: number
 }
 
 // Next의 persistent unstable_cache는 배포 사이에도 남을 수 있어 응답 스키마 변경 시 키를 올린다.
-export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v2'
+export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v3'
 
 export function voicecardsJourneyOwnerId(row: Pick<VoicecardsDeviceJourneyRow, 'device_id' | 'user_id'>) {
   return row.user_id || (row.device_id ? `device:${row.device_id}` : null)
@@ -43,6 +45,7 @@ export function buildVoicecardsJourneyMetaMap(rows: VoicecardsDeviceJourneyRow[]
         appVersion: row.app_version,
         locale: row.locale,
         country: row.country,
+        activeDays7d: Number(row.active_days_7d) || 0,
       })
       continue
     }
@@ -60,6 +63,7 @@ export function buildVoicecardsJourneyMetaMap(rows: VoicecardsDeviceJourneyRow[]
       appVersion: rowIsLatest ? row.app_version || previous.appVersion : previous.appVersion,
       locale: rowIsLatest ? row.locale || previous.locale : previous.locale,
       country: rowIsLatest ? row.country || previous.country : previous.country,
+      activeDays7d: Math.max(previous.activeDays7d, Number(row.active_days_7d) || 0),
     })
   }
 

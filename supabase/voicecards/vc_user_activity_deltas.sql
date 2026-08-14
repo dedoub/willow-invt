@@ -5,10 +5,9 @@
 --     카드와 같은 방식. time_series_analytics 는 date 가 단말 로컬 날짜라 폴백으로만 쓴다(아래 주석).
 --   listen/flips/purchased: mv_real_users (이벤트 로그, 오늘 필터)
 --     flips = card_flipped_manual, purchased = credits_changed/purchase 상품매핑
---   active_days_7d 학습일: card_attempted 이벤트 KST (듣기/뒤집기와 동일 기준 — tz 이중집계 방지)
+--   active_days_7d 핵심 활동일: 학습 또는 시트·카드 생성 완료 이벤트의 KST 날짜 수
 --   spent: credit_transactions 음수 delta 합 (완전 원장, 2026-07-22; 상세는 spent_today CTE 주석)
---   반환 컬럼 변경 시 drop 후 재생성 필요 (return type replace 불가).
-drop function if exists public.vc_user_activity_deltas();
+--   반환 컬럼 변경 시에만 drop 후 재생성 필요 (return type replace 불가).
 create or replace function public.vc_user_activity_deltas()
  returns table(user_id text, cards_today bigint, attempts_today bigint, listen_today bigint, flips_today bigint, spent_today bigint, active_days_7d integer, purchased_today bigint, balance_delta_today bigint, sheets_delta_today bigint)
  language sql
@@ -32,7 +31,8 @@ event_rows as materialized (
   where e.user_id is not null
     and e.event_name in (
       'tts_played','voice_preview_played','device_tts_played',
-      'card_flipped_manual','card_attempted','credits_changed'
+      'card_flipped_manual','card_attempted','credits_changed',
+      'deck_created','pending_local_sheet_created'
     )
     and e.created_at >= ((td.d - 6)::timestamp at time zone 'Asia/Seoul')
     and e.created_at < ((td.d + 1)::timestamp at time zone 'Asia/Seoul')
@@ -48,7 +48,8 @@ event_activity as (
     )::bigint as fc,
     count(distinct e.event_date) filter (
       where e.event_name in (
-        'card_attempted','tts_played','voice_preview_played','device_tts_played','card_flipped_manual'
+        'card_attempted','tts_played','voice_preview_played','device_tts_played','card_flipped_manual',
+        'deck_created','pending_local_sheet_created'
       )
     )::int as active_days,
     coalesce(sum(case e.properties->>'product_id'

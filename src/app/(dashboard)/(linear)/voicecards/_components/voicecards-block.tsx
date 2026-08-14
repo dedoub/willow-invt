@@ -147,6 +147,7 @@ interface AnonymousEventStats {
       firstSeenAt: string | null
       lastSeenAt: string
       activeDays: number
+      activeDays7d: number
       cardsViewed: number
       cardsLearned: number
       flips: number
@@ -596,8 +597,7 @@ export function VoicecardsBlock({
       // 비로그인 기기의 카드는 데모 카드다 — 소유 카드가 아니므로 ownCards는 0으로 둔다.
       ownCards: 0, sheetCount: 0, cards: d.cardsViewed, flips: d.flips, attempts: 0,
       cardsToday: 0, attemptsToday: 0, listenToday: 0, flipsToday: 0, spentToday: 0,
-      // activeDays는 전체 기간 활동일이라 7일 지표와 다르다. 섞으면 거짓이 되므로 0.
-      activeDays7d: 0,
+      activeDays7d: d.activeDays7d,
       purchasedToday: 0, balanceDeltaToday: 0, sheetsDeltaToday: 0,
       intentPremiumVoice: false, intentAi: d.aiGenOpens > 0, intentBanner: false,
       intentGated: d.addSheetOpens > 0, hotLead: false, purchaseScore: 0, lastIntentAt: null,

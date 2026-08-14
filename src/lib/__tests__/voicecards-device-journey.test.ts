@@ -19,6 +19,7 @@ test('anonymous journey metadata is assigned to its device account', async () =>
     app_version: '1.1.132',
     locale: 'en',
     country: 'US',
+    active_days_7d: 1,
   }])
 
   assert.deepEqual(metaMap.get('device:d97a92c6-f770-4931-a88d-d1f1522e87d2'), {
@@ -29,6 +30,7 @@ test('anonymous journey metadata is assigned to its device account', async () =>
     appVersion: '1.1.132',
     locale: 'en',
     country: 'US',
+    activeDays7d: 1,
   })
 })
 
@@ -43,5 +45,5 @@ test('device account display name uses the UUID rather than the device prefix', 
 
 test('user stats cache key is versioned when the response schema changes', async () => {
   const helpers = await loadJourneyHelpers()
-  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v2')
+  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v3')
 })
