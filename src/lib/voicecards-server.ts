@@ -5,6 +5,11 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import * as jose from 'jose'
 import { kstDateKey } from '@/lib/kst'
+import {
+  buildVoicecardsJourneyMetaMap,
+  voicecardsJourneyOwnerId,
+  type VoicecardsDeviceJourneyRow,
+} from '@/lib/voicecards-device-journey'
 
 // Supabase 클라이언트 (service_role) — willow-dash credentials/cache 저장
 const supabase = createClient(
@@ -1045,7 +1050,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     vc.from('user_offers').select('user_id, status, seen_at, snoozed_at, redeemed_at, redeemed_credits, expires_at, created_at'),
     // 사용자 표와 활동 차트가 같은 실사용자 모집단을 쓰도록 기기 저니를 함께 가져온다.
     // 이 뷰는 관리자·봇·App Store 심사 기기를 이미 제외한다.
-    vc.from('vc_device_journeys').select('device_id, user_id, first_seen_at'),
+    vc.from('vc_device_journeys').select('device_id, user_id, first_seen_at, last_seen_at, platform, app_version, locale, country'),
   ])
 
   if (usersRes.error) {
@@ -1068,11 +1073,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   const allUsers = usersRes.data || []
-  const journeyRows = (journeysRes.data || []) as Array<{
-    device_id: string | null
-    user_id: string | null
-    first_seen_at: string | null
-  }>
+  const journeyRows = (journeysRes.data || []) as VoicecardsDeviceJourneyRow[]
   const validDeviceAccountIds = new Set(
     journeyRows
       .filter(row => row.device_id && (!row.user_id || row.user_id === `device:${row.device_id}`))
@@ -1274,20 +1275,17 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     }
   }
 
-  // 설치일과 기기 소유자를 함께 접는다. 로그인 전에 만든 로컬 덱도 같은 device_id를
-  // 유지하므로, 이후 로그인했다면 journey.user_id를 통해 구글 계정에 귀속할 수 있다.
-  const userInstalledMap = new Map<string, string>()
+  // 설치일·최근 활동·기기 메타데이터를 같은 소유자에 귀속한다. 비로그인 저니는
+  // user_id가 null이므로 device:<uuid> 계정으로 연결해야 사용자 행에서 정보가 사라지지 않는다.
+  const journeyMetaMap = buildVoicecardsJourneyMetaMap(journeyRows)
   const deviceOwnerMap = new Map<string, string>()
   try {
     for (const row of journeyRows) {
-      const ownerId = row.user_id || (row.device_id ? `device:${row.device_id}` : null)
+      const ownerId = voicecardsJourneyOwnerId(row)
       if (row.device_id && ownerId) deviceOwnerMap.set(row.device_id, ownerId)
-      if (!ownerId || !row.first_seen_at) continue
-      const prev = userInstalledMap.get(ownerId)
-      if (!prev || row.first_seen_at < prev) userInstalledMap.set(ownerId, row.first_seen_at)
     }
   } catch (e) {
-    console.error('[VoiceCards] installed-at map failed (non-fatal):', e)
+    console.error('[VoiceCards] device-owner map failed (non-fatal):', e)
   }
 
   // 로컬 덱은 users.sheet_ids/user_analytics에 저장되지 않는다. 생성 이벤트의 card_count를
@@ -1334,10 +1332,10 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     id: u.user_id,
     nickname: u.nickname,
     email: u.email || null,
-    appVersion: userAppVersionMap.get(u.user_id) || null,
-    platform: userPlatformMap.get(u.user_id) || null,
-    locale: userLocaleMap.get(u.user_id) || null,
-    country: userCountryMap.get(u.user_id) || null,
+    appVersion: userAppVersionMap.get(u.user_id) || journeyMetaMap.get(u.user_id)?.appVersion || null,
+    platform: userPlatformMap.get(u.user_id) || journeyMetaMap.get(u.user_id)?.platform || null,
+    locale: userLocaleMap.get(u.user_id) || journeyMetaMap.get(u.user_id)?.locale || null,
+    country: userCountryMap.get(u.user_id) || journeyMetaMap.get(u.user_id)?.country || null,
     hasPurchased: !!u.has_purchased,
     credits: u.credits || 0,
     purchasedCredits: userPurchasedMap.get(u.user_id) || 0,
@@ -1358,7 +1356,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     // 기기 계정 생성은 Google 로그인이 아니다. 사용자 표의 '로그인' 열은
     // 실제 Google 계정만 표시하고, 기기 계정은 installedAt으로만 신규 시점을 보여준다.
     createdAt: u.user_id.startsWith('device:') ? '' : u.created_at,
-    installedAt: userInstalledMap.get(u.user_id) || null,
+    installedAt: journeyMetaMap.get(u.user_id)?.firstSeenAt || null,
     cardsToday: (userActivityMap.get(u.user_id)?.cardsToday || 0) + (userLocalAssetsMap.get(u.user_id)?.cardsToday || 0),
     attemptsToday: userActivityMap.get(u.user_id)?.attemptsToday || 0,
     listenToday: userActivityMap.get(u.user_id)?.listenToday || 0,
@@ -1401,7 +1399,11 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     lastIntentAt: userIntentMap.get(u.user_id)?.lastIntent || null,
     // 학습 활동(user_analytics.last_updated)과 앱 이벤트 최근 시각 중 더 최근값
     lastActiveAt: (() => {
-      const cands = [lastActivityMap.get(u.user_id), userLastEventMap.get(u.user_id)].filter(Boolean) as string[]
+      const cands = [
+        lastActivityMap.get(u.user_id),
+        userLastEventMap.get(u.user_id),
+        journeyMetaMap.get(u.user_id)?.lastSeenAt,
+      ].filter(Boolean) as string[]
       return cands.length ? cands.reduce((a, b) => (new Date(a) >= new Date(b) ? a : b)) : null
     })(),
   }))

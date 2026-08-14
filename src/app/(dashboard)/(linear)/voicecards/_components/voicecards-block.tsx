@@ -10,6 +10,7 @@ import { getStoredPageSize, savePageSize } from '@/app/(dashboard)/_components/l
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
 import { COUNTRY_NAMES, codeToFlag, formatCountryName } from '@/lib/country-format'
+import { voicecardsDeviceDisplayName } from '@/lib/voicecards-device-journey'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -585,7 +586,7 @@ export function VoicecardsBlock({
       // 닉네임 자리에 기기번호를 넣는다. 병합 전 비로그인 표가 쓰던 관례 그대로
       // (uuid에서 하이픈을 뺀 앞 4자리에 #). id로 폴백을 돌리면 'dev:' 접두사 때문에
       // '#dev:'가 나오므로 여기서 명시적으로 만든다.
-      nickname: `#${(d.deviceId || '').replace(/-/g, '').slice(0, 4) || '????'}`,
+      nickname: voicecardsDeviceDisplayName(d.deviceId),
       email: null,
       appVersion: d.appVersion, platform: d.platform, locale: null, country: d.country,
       hasPurchased: false, credits: 0, purchasedCredits: 0, bonusCredits: 0,
@@ -1478,8 +1479,11 @@ export function VoicecardsBlock({
               })}
             </div>
             {paginatedUsers.map((user) => {
-              const shortId = (user.id || '').replace(/-/g, '').slice(0, 4)
-              const fallbackName = user.email || (shortId ? `#${shortId}` : 'Unknown')
+              const isDevice = user.id.startsWith('device:') || user.id.startsWith('dev:')
+              const shortId = isDevice
+                ? voicecardsDeviceDisplayName(user.id).slice(1)
+                : (user.id || '').replace(/-/g, '').slice(0, 4)
+              const fallbackName = user.email || (isDevice ? voicecardsDeviceDisplayName(user.id) : shortId ? `#${shortId}` : 'Unknown')
               // 기기 행의 닉네임은 '#4f4d' 꼴이라 첫 글자가 전부 '#'이 된다 — 원 안이
               // 전 행 동일해져 아무것도 구분해주지 못하므로 '#'은 건너뛴다(병합 전 표와 같은 글자).
               const initialSrc = (user.nickname?.replace(/^#/, '') || user.email || shortId)
@@ -1918,4 +1922,3 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
     </div>
   )
 }
-
