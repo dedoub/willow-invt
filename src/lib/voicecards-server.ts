@@ -1570,20 +1570,50 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
   stats.storeVisits = Array.from(svByDate.entries()).map(([date, visitors]) => ({ date, visitors }))
   // 비로그인 저니 — 실패해도 인사이트 블록 전체를 막지 않는다 (best-effort)
   try {
-    const [{ data: stageRows }, { data: anonRows }, { data: ceilingData }] = await Promise.all([
-      voicecardsSupabase.from('vc_device_journeys').select('journey_stage, platform, app_version'),
-      voicecardsSupabase
-        .from('vc_device_journeys')
-        .select('device_id, journey_stage, platform, app_version, country, first_seen_at, last_seen_at, active_days, anon_cards_viewed, anon_cards_learned, anon_flips, anon_credits_spent, add_sheet_opens, ai_gen_opens, signin_clicks')
-        .eq('signed_in', false)
-        // 전체 기간. 사용자 테이블과 한 표에 섞이므로 기간 기준이 같아야 한다
-        // (2026-08-10 병합 전에는 최근 14일 100개 제한이었다 — 별도 카드였을 때의 기준).
-        .order('last_seen_at', { ascending: false })
-        .limit(1000),
+    type JourneyRow = {
+      device_id: string
+      journey_stage: string
+      platform: string | null
+      app_version: string | null
+      country: string | null
+      first_seen_at: string | null
+      last_seen_at: string
+      active_days: number | null
+      anon_cards_viewed: number | null
+      anon_cards_learned: number | null
+      anon_flips: number | null
+      anon_credits_spent: number | null
+      add_sheet_opens: number | null
+      ai_gen_opens: number | null
+      signin_clicks: number | null
+      signed_in: boolean
+    }
+    const fetchJourneys = () => voicecardsSupabase
+      .from('vc_device_journeys')
+      .select('device_id, journey_stage, platform, app_version, country, first_seen_at, last_seen_at, active_days, anon_cards_viewed, anon_cards_learned, anon_flips, anon_credits_spent, add_sheet_opens, ai_gen_opens, signin_clicks, signed_in')
+      .order('last_seen_at', { ascending: false })
+      .limit(1000)
+    const [initialJourneysRes, ceilingRes] = await Promise.all([
+      fetchJourneys(),
       // 출시 버전 상한 — 개발자/테스트 제외한 실사용자 로그인 iOS 최고 버전 (vc_event_stats 와 동일 RPC).
       // App Store 심사/TestFlight 빌드는 미출시라 항상 이보다 높아 제외된다. 새 버전 출시로 상한 자동 상승.
       voicecardsSupabase.rpc('vc_released_ios_ceiling'),
     ])
+    let journeysRes = initialJourneysRes
+    if (journeysRes.error) {
+      console.error('[VoiceCards] vc_device_journeys fetch failed, retrying once:', journeysRes.error)
+      await new Promise(r => setTimeout(r, 700))
+      journeysRes = await fetchJourneys()
+    }
+    if (journeysRes.error || !journeysRes.data) {
+      throw journeysRes.error || new Error('vc_device_journeys returned no data')
+    }
+    const journeyRows = journeysRes.data as JourneyRow[]
+    const stageRows = journeyRows
+    // 전체 기간. 사용자 테이블과 한 표에 섞이므로 기간 기준이 같아야 한다
+    // (2026-08-10 병합 전에는 최근 14일 100개 제한이었다 — 별도 카드였을 때의 기준).
+    const anonRows = journeyRows.filter(row => !row.signed_in)
+    const ceilingData = ceilingRes.data
     // semver 비교 (문자열 비교는 1.1.9 vs 1.1.10 오류라 숫자 파트로 비교)
     const cmpVer = (a: string, b: string): number => {
       const pa = a.split('.').map(n => parseInt(n, 10) || 0)
@@ -1600,13 +1630,13 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       platform === 'ios' && !!version && !!iosCeiling && cmpVer(version, iosCeiling) > 0
     const stageOrder = ['opened', 'demo', 'intent', 'signin_attempted', 'signed_in']
     const counts = new Map<string, number>()
-    for (const r of (stageRows ?? []) as Array<{ journey_stage: string; platform: string | null; app_version: string | null }>) {
+    for (const r of stageRows) {
       if (isReviewBuild(r.platform, r.app_version)) continue
       counts.set(r.journey_stage, (counts.get(r.journey_stage) ?? 0) + 1)
     }
     stats.journeys = {
       stages: stageOrder.map(stage => ({ stage, devices: counts.get(stage) ?? 0 })),
-      recentAnon: ((anonRows ?? []) as Array<Record<string, unknown>>)
+      recentAnon: (anonRows as unknown as Array<Record<string, unknown>>)
         .filter(r => !isReviewBuild((r.platform as string | null) ?? null, (r.app_version as string | null) ?? null))
         .map(r => ({
         deviceId: String(r.device_id),
@@ -1628,6 +1658,7 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
     }
   } catch (e) {
     console.error('[VoiceCards] vc_device_journeys fetch failed (non-fatal):', e)
+    if (lastGoodAnonStats?.journeys) stats.journeys = lastGoodAnonStats.journeys
   }
   if (stats.summary.totalEvents > 0) {
     lastGoodAnonStats = stats
