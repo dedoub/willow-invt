@@ -40,3 +40,8 @@ test('device account display name uses the UUID rather than the device prefix', 
   assert.equal(displayName('device:d97a92c6-f770-4931-a88d-d1f1522e87d2'), '#d97a')
   assert.equal(displayName('dev:d97a92c6-f770-4931-a88d-d1f1522e87d2'), '#d97a')
 })
+
+test('user stats cache key is versioned when the response schema changes', async () => {
+  const helpers = await loadJourneyHelpers()
+  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v2')
+})

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { unstable_cache } from 'next/cache'
 import { getVoicecardsUserStats } from '@/lib/voicecards-server'
+import { VOICECARDS_USER_STATS_CACHE_KEY } from '@/lib/voicecards-device-journey'
 
 export const maxDuration = 300
 
@@ -14,7 +15,7 @@ const getCachedUserStats = unstable_cache(
     if (!stats?.users?.length) throw new Error('voicecards user stats empty (transient fetch failure)')
     return stats
   },
-  ['voicecards-user-stats'],
+  [VOICECARDS_USER_STATS_CACHE_KEY],
   { revalidate: 300, tags: ['voicecards-stats'] }
 )
 
