@@ -19,13 +19,22 @@ const NAV_ITEMS = [
   { key: 'ryuha',      href: '/ryuha',      label: '류하일정',    icon: 'calendar' },
 ]
 
-const CLIENTS = [
+// 앱서비스 — 직접 운영하는 자체 서비스
+const APPS = [
   { id: 'voicecards',  name: 'VoiceCards',  tag: 'MonoR Apps', dot: '#2F8F5B' },
   { id: 'reviewnotes', name: 'ReviewNotes', tag: 'MonoR Apps', dot: '#3F93C6' },
+  { id: 'valuechain',  name: 'ValueChain',  tag: 'Wiki',       dot: '#7C5CD6' },
+]
+
+// 투자회사 — 투자·지분 관계로 관리하는 회사
+const INVESTEES = [
   { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#B88A2A' },
+]
+
+// 프로젝트 — 클라이언트/파트너 단위 업무
+const CLIENTS = [
   { id: 'akros', name: '아크로스',      tag: 'Indexing',  dot: '#3F93C6' },
   { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#1F4E79' },
-  { id: 'valuechain', name: 'ValueChain', tag: 'Wiki', dot: '#7C5CD6' },
 ]
 
 const CLIENT_HREF: Record<string, string | undefined> = {
@@ -34,19 +43,21 @@ const CLIENT_HREF: Record<string, string | undefined> = {
 
 type Client = (typeof CLIENTS)[number]
 
-// 프로젝트 메뉴 순서 — 사용자가 드래그로 바꾼 순서를 localStorage에 저장(기기별).
+// 그룹별 메뉴 순서 — 사용자가 드래그로 바꾼 순서를 localStorage에 저장(기기별).
+const APP_ORDER_KEY = 'sidebar-app-order'
+const INVESTEE_ORDER_KEY = 'sidebar-investee-order'
 const PROJECT_ORDER_KEY = 'sidebar-project-order'
 
-// 저장된 id 순서로 CLIENTS 정렬. 저장에 없는 신규 항목은 뒤에 붙이고, 사라진 id는 무시.
-function orderClients(order: string[]): Client[] {
-  const byId = new Map(CLIENTS.map(c => [c.id, c]))
+// 저장된 id 순서로 정렬. 저장에 없는 신규 항목은 뒤에 붙이고, 사라진 id는 무시.
+function orderClients(items: Client[], order: string[]): Client[] {
+  const byId = new Map(items.map(c => [c.id, c]))
   const seen = new Set<string>()
   const out: Client[] = []
   for (const id of order) {
     const c = byId.get(id)
     if (c && !seen.has(id)) { out.push(c); seen.add(id) }
   }
-  for (const c of CLIENTS) if (!seen.has(c.id)) out.push(c)
+  for (const c of items) if (!seen.has(c.id)) out.push(c)
   return out
 }
 
@@ -192,6 +203,30 @@ function SortableClient({ c, isActive, onClose }: { c: Client; isActive: boolean
   )
 }
 
+// 그룹 하나의 드래그 정렬 상태 (localStorage 영속) — 앱서비스/프로젝트가 각각 사용
+function useOrderedGroup(items: Client[], storageKey: string) {
+  const [order, setOrder] = useState<string[]>(() => items.map(c => c.id))
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr)) setOrder(arr) }
+    } catch { /* 파싱 실패 시 기본 순서 유지 */ }
+  }, [storageKey])
+  const ordered = orderClients(items, order)
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const ids = ordered.map(c => c.id)
+    const from = ids.indexOf(String(active.id))
+    const to = ids.indexOf(String(over.id))
+    if (from < 0 || to < 0) return
+    const next = arrayMove(ids, from, to)
+    setOrder(next)
+    try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch { /* 저장 실패 무시 */ }
+  }
+  return { ordered, onDragEnd }
+}
+
 interface LinearSidebarProps {
   mobile?: boolean
   open?: boolean
@@ -214,27 +249,34 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
       isActive={isActiveHref(n.href)} rail={rail} onClose={onClose} />
   )
 
-  // 프로젝트 메뉴 순서 — 드래그로 변경, localStorage에 저장(기기별)
-  const [projectOrder, setProjectOrder] = useState<string[]>(() => CLIENTS.map(c => c.id))
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(PROJECT_ORDER_KEY)
-      if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr)) setProjectOrder(arr) }
-    } catch { /* 파싱 실패 시 기본 순서 유지 */ }
-  }, [])
-  const orderedClients = orderClients(projectOrder)
+  // 앱서비스/프로젝트 메뉴 순서 — 드래그로 변경, localStorage에 저장(기기별)
+  const apps = useOrderedGroup(APPS, APP_ORDER_KEY)
+  const investees = useOrderedGroup(INVESTEES, INVESTEE_ORDER_KEY)
+  const projects = useOrderedGroup(CLIENTS, PROJECT_ORDER_KEY)
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
-  const handleProjectDragEnd = (e: DragEndEvent) => {
-    const { active, over } = e
-    if (!over || active.id === over.id) return
-    const ids = orderedClients.map(c => c.id)
-    const from = ids.indexOf(String(active.id))
-    const to = ids.indexOf(String(over.id))
-    if (from < 0 || to < 0) return
-    const next = arrayMove(ids, from, to)
-    setProjectOrder(next)
-    try { localStorage.setItem(PROJECT_ORDER_KEY, JSON.stringify(next)) } catch { /* 저장 실패 무시 */ }
-  }
+
+  // 그룹 렌더 — rail(접힘)에서는 드래그 없이 아이콘만
+  const clientGroup = (label: string, group: ReturnType<typeof useOrderedGroup>) => (
+    <>
+      {!rail && <GroupLabel label={label} />}
+      {rail && <div style={{ height: 1, background: t.neutrals.line, margin: '8px 6px' }} />}
+      {rail ? (
+        group.ordered.map(c => (
+          <NavRow key={c.id} href={CLIENT_HREF[c.id]} dot={c.dot} label={c.name} tag={c.tag}
+            isActive={isActiveHref(CLIENT_HREF[c.id])} rail={rail} onClose={onClose} />
+        ))
+      ) : (
+        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={group.onDragEnd}>
+          <SortableContext items={group.ordered.map(c => c.id)} strategy={verticalListSortingStrategy}>
+            {group.ordered.map(c => (
+              <SortableClient key={c.id} c={c}
+                isActive={isActiveHref(CLIENT_HREF[c.id])} onClose={onClose} />
+            ))}
+          </SortableContext>
+        </DndContext>
+      )}
+    </>
+  )
 
   const sidebar = (
     <aside style={{
@@ -271,23 +313,9 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {!rail && <GroupLabel label="윌로우인베스트먼트" />}
         {NAV_ITEMS.map(navLink)}
 
-        {!rail && <GroupLabel label="프로젝트" />}
-        {rail && <div style={{ height: 1, background: t.neutrals.line, margin: '8px 6px' }} />}
-        {rail ? (
-          orderedClients.map(c => (
-            <NavRow key={c.id} href={CLIENT_HREF[c.id]} dot={c.dot} label={c.name} tag={c.tag}
-              isActive={isActiveHref(CLIENT_HREF[c.id])} rail={rail} onClose={onClose} />
-          ))
-        ) : (
-          <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
-            <SortableContext items={orderedClients.map(c => c.id)} strategy={verticalListSortingStrategy}>
-              {orderedClients.map(c => (
-                <SortableClient key={c.id} c={c}
-                  isActive={isActiveHref(CLIENT_HREF[c.id])} onClose={onClose} />
-              ))}
-            </SortableContext>
-          </DndContext>
-        )}
+        {clientGroup('앱서비스', apps)}
+        {clientGroup('투자회사', investees)}
+        {clientGroup('프로젝트', projects)}
 
         {isAdmin && (
           <>
