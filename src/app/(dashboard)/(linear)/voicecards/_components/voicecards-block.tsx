@@ -10,7 +10,7 @@ import { getStoredPageSize, savePageSize } from '@/app/(dashboard)/_components/l
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
 import { COUNTRY_NAMES, codeToFlag, formatCountryName } from '@/lib/country-format'
-import { voicecardsDeviceDisplayName } from '@/lib/voicecards-device-journey'
+import { voicecardsDeviceDisplayName, voicecardsLearningActivationDate } from '@/lib/voicecards-device-journey'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,6 +73,7 @@ interface UserStats {
     purchaseScore: number
     lastIntentAt: string | null
     createdAt: string
+    activatedAt?: string | null
     lastActiveAt: string | null
     // 설치일 — 이 사용자의 기기 중 가장 이른 first_seen. 뷰 이전 가입자는 null.
     installedAt: string | null
@@ -813,8 +814,9 @@ export function VoicecardsBlock({
           // 덱을 만든 사람을 빼지 않기 위해서다(2026-08-10 CEO). 그래서 이 칸만은
           // 앞 칸의 부분집합이 아니고, 전환율(연동 대비)도 구글 경로만으로 계산한다.
           const googleActivated = userStats.totalUsers - incompleteSignups
-          const deviceActivated = userStats.deviceAccountsActivated ?? 0
-          const signedUp = googleActivated + deviceActivated
+          const activatedUsers = (userStats?.users ?? []).filter(u => !!voicecardsLearningActivationDate(u))
+          const deviceActivated = activatedUsers.filter(u => u.id.startsWith('device:')).length
+          const signedUp = activatedUsers.length
           const paidUsers = stats?.combined.totalPaidUsers ?? 0
 
           // 활성화 전환율 = 구글연동 대비 (퍼널: 기기 → 연동 → 활성화)
@@ -824,7 +826,6 @@ export function VoicecardsBlock({
 
           // 파이 카드 '활성' 탭: 활성화(!isIdleUser) 사용자의 플랫폼/국가 분포.
           // 기기/결제 탭은 이벤트 기기 기준이지만 활성화는 계정 속성(시트 보유)이라 users로 센다.
-          const activatedUsers = googleUsers.filter(u => !isIdleUser(u))
           const distOf = (label: (u: (typeof activatedUsers)[number]) => string) => {
             const m = new Map<string, number>()
             for (const u of activatedUsers) m.set(label(u), (m.get(label(u)) ?? 0) + 1)
@@ -837,14 +838,24 @@ export function VoicecardsBlock({
           const cumulative = anonymousStats.cumulativeDistinct ?? []
           const devicesData = cumulative.map(d => ({ date: d.date, value: d.devices }))
 
-          const signupDates = googleUsers
-            .filter(u => !isIdleUser(u))
-            .map(u => kstDateKey(u.createdAt))
+          const googleSignupDates = googleUsers
+            .map(u => voicecardsLearningActivationDate(u))
+            .filter((date): date is string => !!date)
+            .map(kstDateKey)
+            .sort()
+          const signupDates = activatedUsers
+            .map(u => voicecardsLearningActivationDate(u))
+            .filter((date): date is string => !!date)
+            .map(kstDateKey)
             .sort()
           const allDates = cumulative.map(d => d.date)
           const signupData = allDates.map(date => ({
             date,
             value: signupDates.filter(d => d <= date).length,
+          }))
+          const googleSignupData = allDates.map(date => ({
+            date,
+            value: googleSignupDates.filter(d => d <= date).length,
           }))
           // 구글연동(Drive 폴더 보유) 누적 추이 — 폴더 생성 시각은 따로 없어 가입일로
           // 근사(대부분 가입 직후 or 첫 저장 시 승인). 추세선 용도로 충분.
@@ -876,7 +887,7 @@ export function VoicecardsBlock({
           const loginRateData = allDates.map((date, i) => ({ date, value: pct(allUsersData[i]?.value ?? 0, devicesData[i]?.value ?? 0) }))
           const linkedRateData = allDates.map((date, i) => ({ date, value: pct(linkedData[i]?.value ?? 0, allUsersData[i]?.value ?? 0) }))
           // 활성화율은 직전 단계(구글 연동) 대비 — 단계별 전환 효율 측정 (2026-07-12 CEO)
-          const activeRateData = allDates.map((date, i) => ({ date, value: pct(signupData[i]?.value ?? 0, linkedData[i]?.value ?? 0) }))
+          const activeRateData = allDates.map((date, i) => ({ date, value: pct(googleSignupData[i]?.value ?? 0, linkedData[i]?.value ?? 0) }))
           const loginRate = Math.round(pct(userStats.totalUsers, devices))
           const linkedRate = Math.round(pct(linkedUsers, userStats.totalUsers))
           // 전환율은 구글 경로만으로 — 분모(드라이브 연동)에 기기 계정이 없으므로

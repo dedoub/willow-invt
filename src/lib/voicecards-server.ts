@@ -974,6 +974,7 @@ export interface VoicecardsUserStats {
     purchaseScore: number       // 구매 가능성 점수. 헤비 TTS(듣기 볼륨) 최우선 + 프리미엄보이스 오디션/AI·배너 의도 + 최근활동. 구매자=0
     lastIntentAt: string | null // 가장 최근 구매의도 이벤트 시각
     createdAt: string
+    activatedAt: string | null // 최초 학습 활성화 시각. 기기 계정은 로컬 덱 생성 이벤트 기준.
     lastActiveAt: string | null
     // 설치일 — 이 사용자의 기기 중 가장 이른 first_seen (vc_device_journeys).
     // null인 경우: 뷰가 생기기 전에 가입했거나 이벤트가 정리된 오래된 계정(현재 22명).
@@ -1290,7 +1291,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
 
   // 로컬 덱은 users.sheet_ids/user_analytics에 저장되지 않는다. 생성 이벤트의 card_count를
   // 사용자별로 접어 대시보드 시트·카드 수와 활성화 집계에 포함한다.
-  type LocalAssets = { sheets: number; cards: number; sheetsToday: number; cardsToday: number }
+  type LocalAssets = { sheets: number; cards: number; sheetsToday: number; cardsToday: number; firstCreatedAt: string | null }
   const userLocalAssetsMap = new Map<string, LocalAssets>()
   const deviceActivatedIds = new Set<string>()
   try {
@@ -1305,12 +1306,15 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       if (!visibleUserIds.has(ownerId)) continue
       const cardCount = Math.max(0, Number(row.properties?.card_count) || 0)
       const isToday = !!row.created_at && kstDateKey(row.created_at) === todayKst
-      const prev = userLocalAssetsMap.get(ownerId) || { sheets: 0, cards: 0, sheetsToday: 0, cardsToday: 0 }
+      const prev = userLocalAssetsMap.get(ownerId) || { sheets: 0, cards: 0, sheetsToday: 0, cardsToday: 0, firstCreatedAt: null }
       userLocalAssetsMap.set(ownerId, {
         sheets: prev.sheets + 1,
         cards: prev.cards + cardCount,
         sheetsToday: prev.sheetsToday + (isToday ? 1 : 0),
         cardsToday: prev.cardsToday + (isToday ? cardCount : 0),
+        firstCreatedAt: !prev.firstCreatedAt || !!row.created_at && row.created_at < prev.firstCreatedAt
+          ? row.created_at
+          : prev.firstCreatedAt,
       })
       deviceActivatedIds.add(ownerId)
     }
@@ -1356,6 +1360,9 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     // 기기 계정 생성은 Google 로그인이 아니다. 사용자 표의 '로그인' 열은
     // 실제 Google 계정만 표시하고, 기기 계정은 installedAt으로만 신규 시점을 보여준다.
     createdAt: u.user_id.startsWith('device:') ? '' : u.created_at,
+    activatedAt: u.user_id.startsWith('device:')
+      ? userLocalAssetsMap.get(u.user_id)?.firstCreatedAt || null
+      : u.created_at,
     installedAt: journeyMetaMap.get(u.user_id)?.firstSeenAt || null,
     cardsToday: (userActivityMap.get(u.user_id)?.cardsToday || 0) + (userLocalAssetsMap.get(u.user_id)?.cardsToday || 0),
     attemptsToday: userActivityMap.get(u.user_id)?.attemptsToday || 0,

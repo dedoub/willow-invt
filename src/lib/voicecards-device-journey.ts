@@ -22,7 +22,68 @@ export interface VoicecardsDeviceJourneyMeta {
 }
 
 // Next의 persistent unstable_cache는 배포 사이에도 남을 수 있어 응답 스키마 변경 시 키를 올린다.
-export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v3'
+export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v4'
+
+export interface VoicecardsLearningActivationUser {
+  id: string
+  createdAt?: string | null
+  installedAt?: string | null
+  activatedAt?: string | null
+  sheetCount: number
+  cards: number
+  ownCards?: number
+  flips?: number
+}
+
+export function voicecardsLearningActivationDate(user: VoicecardsLearningActivationUser) {
+  const activated = user.sheetCount > 0
+    || (user.ownCards ?? user.cards) > 0
+    || (user.flips ?? 0) > 0
+  if (!activated) return null
+
+  return user.activatedAt || user.createdAt || user.installedAt || null
+}
+
+export function voicecardsLocalActivationOwnerId(
+  event: { device_id: string | null; user_id: string | null },
+  mergedDeviceOwners: ReadonlyMap<string, string>,
+) {
+  if (event.user_id) return mergedDeviceOwners.get(event.user_id) || event.user_id
+  if (!event.device_id) return null
+  const deviceAccountId = `device:${event.device_id}`
+  return mergedDeviceOwners.get(deviceAccountId) || deviceAccountId
+}
+
+export function diffVoicecardsActivationIds(
+  knownIds: string[],
+  activeIds: string[],
+  deviceBaselineInitialized: boolean,
+) {
+  const known = new Set(knownIds)
+  if (!deviceBaselineInitialized) {
+    for (const id of activeIds) {
+      if (id.startsWith('device:')) known.add(id)
+    }
+  }
+
+  const freshIds = activeIds.filter(id => !known.has(id))
+  return {
+    freshIds,
+    nextKnownIds: Array.from(new Set([...known, ...activeIds])),
+  }
+}
+
+export function expandVoicecardsKnownActivationIds(
+  knownIds: string[],
+  mergedDeviceOwners: ReadonlyMap<string, string>,
+) {
+  const expanded = new Set(knownIds)
+  for (const id of knownIds) {
+    const mergedOwner = mergedDeviceOwners.get(id)
+    if (mergedOwner) expanded.add(mergedOwner)
+  }
+  return Array.from(expanded)
+}
 
 export function voicecardsJourneyOwnerId(row: Pick<VoicecardsDeviceJourneyRow, 'device_id' | 'user_id'>) {
   return row.user_id || (row.device_id ? `device:${row.device_id}` : null)

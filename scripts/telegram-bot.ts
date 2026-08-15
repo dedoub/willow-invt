@@ -26,6 +26,7 @@ import { resolveLocalProjectContext, getLocalProjectByKey } from './lib/local-pr
 import { createMessageBatcher } from './lib/message-batcher'
 import { randomUUID } from 'node:crypto'
 import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
+import { diffVoicecardsActivationIds, expandVoicecardsKnownActivationIds, voicecardsDeviceDisplayName, voicecardsLocalActivationOwnerId } from '../src/lib/voicecards-device-journey'
 
 // ============================================================
 // Config
@@ -2342,6 +2343,7 @@ interface VoicecardsMonitorAlertState {
 interface VoicecardsEventMonitorState {
   alerts: Record<string, VoicecardsMonitorAlertState>
   activatedUserIds?: string[]
+  deviceActivationBaselineInitialized?: boolean
   processedPurchaseEventIds?: string[]
 }
 
@@ -2363,6 +2365,7 @@ interface VoicecardsUserRow {
 }
 
 function formatVoicecardsUserLabel(user: VoicecardsUserRow | undefined, userId: string | null | undefined): string {
+  if (userId?.startsWith('device:')) return voicecardsDeviceDisplayName(userId)
   if (!user) return shortVoicecardsUserId(userId)
   if (user.nickname?.trim()) return user.nickname.trim()
   if (user.email?.trim()) return user.email.trim().split('@')[0] || user.email.trim()
@@ -2380,6 +2383,7 @@ function loadVoicecardsEventMonitorState(): VoicecardsEventMonitorState {
     return {
       alerts: typeof saved?.alerts === 'object' && saved.alerts ? saved.alerts : {},
       activatedUserIds: Array.isArray(saved?.activatedUserIds) ? saved.activatedUserIds : undefined,
+      deviceActivationBaselineInitialized: saved?.deviceActivationBaselineInitialized === true,
       processedPurchaseEventIds: Array.isArray(saved?.processedPurchaseEventIds)
         ? saved.processedPurchaseEventIds.filter((value: unknown): value is string => typeof value === 'string').slice(-200)
         : undefined,
@@ -2492,13 +2496,13 @@ async function fetchVoicecardsExcludedUserIds(): Promise<Set<string>> {
   )
 }
 
-async function fetchVoicecardsActivatedUserIds(excludedUserIds: Set<string>): Promise<Set<string>> {
-  if (!voicecardsSupabase) return new Set()
-  const [users, analytics] = await Promise.all([
-    fetchAllVoicecardsRows<{ user_id: string; sheet_ids: unknown }>(async (from, to) =>
+async function fetchVoicecardsActivationSnapshot(excludedUserIds: Set<string>) {
+  if (!voicecardsSupabase) return { activatedUserIds: new Set<string>(), mergedDeviceOwners: new Map<string, string>() }
+  const [users, analytics, localActivations] = await Promise.all([
+    fetchAllVoicecardsRows<{ user_id: string; sheet_ids: unknown; merged_into: string | null }>(async (from, to) =>
       voicecardsSupabase!
         .from('users')
-        .select('user_id, sheet_ids')
+        .select('user_id, sheet_ids, merged_into')
         .range(from, to)
     ),
     fetchAllVoicecardsRows<{ user_id: string }>(async (from, to) =>
@@ -2509,18 +2513,41 @@ async function fetchVoicecardsActivatedUserIds(excludedUserIds: Set<string>): Pr
         .not('sheet_id', 'like', 'demo-%')
         .range(from, to)
     ),
+    fetchAllVoicecardsRows<{ device_id: string | null; user_id: string | null }>(async (from, to) =>
+      voicecardsSupabase!
+        .from('anonymous_events')
+        .select('device_id, user_id')
+        .eq('event_name', 'pending_local_sheet_created')
+        .eq('is_likely_bot', false)
+        .range(from, to)
+    ),
   ])
 
   const activated = new Set<string>()
-  for (const user of users) {
-    if (!excludedUserIds.has(user.user_id) && Array.isArray(user.sheet_ids) && user.sheet_ids.length > 0) {
+  const visibleUsers = users.filter(user =>
+    !excludedUserIds.has(user.user_id)
+    && !(user.user_id.startsWith('device:') && !!user.merged_into)
+  )
+  const visibleUserIds = new Set(visibleUsers.map(user => user.user_id))
+  const mergedDeviceOwners = new Map(
+    users
+      .filter(user => user.user_id.startsWith('device:') && !!user.merged_into)
+      .map(user => [user.user_id, user.merged_into!] as const),
+  )
+  for (const user of visibleUsers) {
+    if (Array.isArray(user.sheet_ids) && user.sheet_ids.length > 0) {
       activated.add(user.user_id)
     }
   }
   for (const row of analytics) {
-    if (!excludedUserIds.has(row.user_id)) activated.add(row.user_id)
+    const ownerId = mergedDeviceOwners.get(row.user_id) || row.user_id
+    if (visibleUserIds.has(ownerId)) activated.add(ownerId)
   }
-  return activated
+  for (const row of localActivations) {
+    const ownerId = voicecardsLocalActivationOwnerId(row, mergedDeviceOwners)
+    if (ownerId && visibleUserIds.has(ownerId)) activated.add(ownerId)
+  }
+  return { activatedUserIds: activated, mergedDeviceOwners }
 }
 
 async function fetchVoicecardsEventsSince(sinceIso: string): Promise<VoicecardsEventRow[]> {
@@ -2816,16 +2843,21 @@ async function monitorVoicecardsUserEvents() {
   // 활성화 완료 = 대시보드와 동일하게 자기 시트가 있거나 데모 외 자기 카드가 생긴 상태.
   // Drive 연동이나 AI draft 생성만으로는 알림하지 않는다.
   const excludedUserIds = await fetchVoicecardsExcludedUserIds()
-  const activatedUserIds = await fetchVoicecardsActivatedUserIds(excludedUserIds)
+  const { activatedUserIds, mergedDeviceOwners } = await fetchVoicecardsActivationSnapshot(excludedUserIds)
   const knownActivatedUserIds = voicecardsEventMonitorState.activatedUserIds
 
   // 최초 배포 시에는 현재 활성 사용자를 기준선으로 저장해 과거 사용자 재알림을 막는다.
   if (!knownActivatedUserIds) {
     voicecardsEventMonitorState.activatedUserIds = Array.from(activatedUserIds)
+    voicecardsEventMonitorState.deviceActivationBaselineInitialized = true
     stateChanged = true
   } else {
-    const known = new Set(knownActivatedUserIds)
-    const freshUserIds = Array.from(activatedUserIds).filter(userId => !known.has(userId))
+    const activationDiff = diffVoicecardsActivationIds(
+      expandVoicecardsKnownActivationIds(knownActivatedUserIds, mergedDeviceOwners),
+      Array.from(activatedUserIds),
+      voicecardsEventMonitorState.deviceActivationBaselineInitialized === true,
+    )
+    const freshUserIds = activationDiff.freshIds
 
     if (freshUserIds.length) {
       const activationAlertState = getVoicecardsAlertState('activated_new_user')
@@ -2852,7 +2884,11 @@ async function monitorVoicecardsUserEvents() {
       activationAlertState.lastEventAt = detectedAt
     }
 
-    voicecardsEventMonitorState.activatedUserIds = Array.from(new Set([...known, ...activatedUserIds]))
+    voicecardsEventMonitorState.activatedUserIds = activationDiff.nextKnownIds
+    if (!voicecardsEventMonitorState.deviceActivationBaselineInitialized) {
+      voicecardsEventMonitorState.deviceActivationBaselineInitialized = true
+      stateChanged = true
+    }
     if (freshUserIds.length) stateChanged = true
   }
 
