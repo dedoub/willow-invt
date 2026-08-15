@@ -31,7 +31,7 @@ const INVESTEES = [
   { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#B88A2A' },
 ]
 
-// 프로젝트 — 클라이언트/파트너 단위 업무
+// 컨설팅 — 클라이언트/파트너 단위 업무
 const CLIENTS = [
   { id: 'akros', name: '아크로스',      tag: 'Indexing',  dot: '#3F93C6' },
   { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#1F4E79' },
@@ -315,7 +315,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
 
         {clientGroup('앱서비스', apps)}
         {clientGroup('투자회사', investees)}
-        {clientGroup('프로젝트', projects)}
+        {clientGroup('컨설팅', projects)}
 
         {isAdmin && (
           <>
