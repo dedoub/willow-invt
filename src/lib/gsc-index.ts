@@ -122,6 +122,11 @@ type Classifier = (path: string) => { key: string; label: string }
  * 들고 있다. 새 클러스터는 두 곳 다 넣어야 색인률 표와 요청 대기열이 같은 세계를 본다.
  */
 const VC_DECK_CLUSTERS: Array<{ prefix: string; key: string; label: string }> = [
+  { prefix: 'english-japanese', key: 'japanese-audience', label: '일본 사용자 덱' },
+  { prefix: 'daily-english-chunks-ja', key: 'japanese-audience', label: '일본 사용자 덱' },
+  { prefix: 'instant-response-english-phrases-ja', key: 'japanese-audience', label: '일본 사용자 덱' },
+  { prefix: 'korean-kpop-fan-phrases-ja', key: 'japanese-audience', label: '일본 사용자 덱' },
+  { prefix: 'korean-travel-phrases-ja', key: 'japanese-audience', label: '일본 사용자 덱' },
   { prefix: 'einbuergerungstest', key: 'einbuergerungstest', label: '독일 귀화시험' },
   { prefix: 'deutsch-a1', key: 'deutsch-a1', label: '독일어 A1' },
   { prefix: 'cdl', key: 'cdl', label: 'CDL 상용면허' },
@@ -176,6 +181,10 @@ const CLASSIFIERS: Record<string, Classifier> = {
 const classifierFor = (siteKey: string): Classifier => {
   const base = CLASSIFIERS[siteKey] ?? (() => ({ key: 'all', label: '전체' }))
   return path => base(canonicalPath(path))
+}
+
+export function classifyIndexGroup(siteKey: string, path: string): { key: string; label: string } {
+  return classifierFor(siteKey)(path)
 }
 
 /**

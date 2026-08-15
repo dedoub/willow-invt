@@ -145,6 +145,7 @@ const COVERED_BY_HUB = {
     [/^\/templates\/deutsch-a1-/, '/templates/deutsch-a1'],
     [/^\/templates\/spanish-/, '/templates/spanish'],
     [/^\/templates\/opic-/, '/templates/opic'],
+    [/^\/templates\/(daily-english-chunks-ja|instant-response-english-phrases-ja|korean-kpop-fan-phrases-ja|korean-travel-phrases-ja)$/, '/templates/english-japanese'],
   ],
   reviewnotes: [],
 }
