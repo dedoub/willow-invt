@@ -6,8 +6,11 @@ import { cookies } from 'next/headers'
 import * as jose from 'jose'
 import { kstDateKey } from '@/lib/kst'
 import {
+  buildVoicecardsAnonymousLearningMap,
   buildVoicecardsJourneyMetaMap,
   voicecardsJourneyOwnerId,
+  type VoicecardsAnonymousLearningMetrics,
+  type VoicecardsAnonymousLearningRow,
   type VoicecardsDeviceJourneyRow,
 } from '@/lib/voicecards-device-journey'
 
@@ -1156,7 +1159,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 보유 카드 합계 (user_analytics.total_cards 사용자별 합산)
   let totalCards = Array.from(userCardsMap.values()).reduce((sum, n) => sum + n, 0)
   // 누적 말하기 시도 (user_analytics.total_attempts 합) — 사용자 리스트 "말하기" 합과 일치
-  const totalAttempts = Array.from(userAttemptsMap.values()).reduce((sum, n) => sum + n, 0)
+  let totalAttempts = Array.from(userAttemptsMap.values()).reduce((sum, n) => sum + n, 0)
 
   // 사용자별 듣기 학습 횟수 (이벤트 1건 = 1회) + 카드 뒤집기 횟수 + 실사용 크레딧
   // 듣기: tts_played, voice_preview_played, device_tts_played / 뒤집기: card_flipped_manual
@@ -1289,6 +1292,32 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     console.error('[VoiceCards] device-owner map failed (non-fatal):', e)
   }
 
+  // 비로그인 학습 이벤트는 user_id가 없어 로그인 사용자 전용 롤업에서 탈락한다.
+  // device_id로 현재 소유자에 귀속하고, 로그인으로 병합된 기기는 Google 사용자 행에 합산한다.
+  const anonymousLearningMap = new Map<string, VoicecardsAnonymousLearningMetrics>()
+  try {
+    const deviceIds = Array.from(deviceOwnerMap.keys())
+    if (deviceIds.length > 0) {
+      const anonymousLearningRows = await fetchAllPaged<VoicecardsAnonymousLearningRow>(() => vc
+        .from('anonymous_events')
+        .select('device_id, user_id, event_name, created_at, properties')
+        .is('user_id', null)
+        .in('device_id', deviceIds)
+        .in('event_name', ['card_flipped_manual', 'card_attempted', 'tts_played', 'voice_preview_played', 'device_tts_played'])
+        .order('created_at', { ascending: true }))
+      for (const [ownerId, metrics] of buildVoicecardsAnonymousLearningMap(
+        anonymousLearningRows,
+        deviceOwnerMap,
+        kstDateKey(new Date()),
+      )) {
+        if (visibleUserIds.has(ownerId)) anonymousLearningMap.set(ownerId, metrics)
+      }
+    }
+  } catch (e) {
+    console.error('[VoiceCards] anonymous learning map failed (non-fatal):', e)
+  }
+  totalAttempts += Array.from(anonymousLearningMap.values()).reduce((sum, metrics) => sum + metrics.attempts, 0)
+
   // 로컬 덱은 users.sheet_ids/user_analytics에 저장되지 않는다. 생성 이벤트의 card_count를
   // 사용자별로 접어 대시보드 시트·카드 수와 활성화 집계에 포함한다.
   type LocalAssets = { sheets: number; cards: number; sheetsToday: number; cardsToday: number; firstCreatedAt: string | null }
@@ -1346,7 +1375,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     bonusCredits: userOfferMap.get(u.user_id)?.bonus || 0,
     offerStage: userOfferMap.get(u.user_id)?.stage || null,
     offerStageAt: userOfferMap.get(u.user_id)?.stageAt || null,
-    creditsUsed: userCreditsUsedMap.get(u.user_id) || 0,
+    creditsUsed: (userCreditsUsedMap.get(u.user_id) || 0) + (anonymousLearningMap.get(u.user_id)?.listens || 0),
     premiumListens: userPremiumListensMap.get(u.user_id) || 0,
     freeListens: userFreeListensMap.get(u.user_id) || 0,
     unclassifiedListens: userUnclassifiedListensMap.get(u.user_id) || 0,
@@ -1355,8 +1384,8 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     sheetCount: (u.sheet_ids?.length || 0) + (userLocalAssetsMap.get(u.user_id)?.sheets || 0),
     cards: (userCardsMap.get(u.user_id) || 0) + (userLocalAssetsMap.get(u.user_id)?.cards || 0),
     ownCards: (userOwnCardsMap.get(u.user_id) || 0) + (userLocalAssetsMap.get(u.user_id)?.cards || 0),
-    flips: userFlipsMap.get(u.user_id) || 0,
-    attempts: userAttemptsMap.get(u.user_id) || 0,
+    flips: (userFlipsMap.get(u.user_id) || 0) + (anonymousLearningMap.get(u.user_id)?.flips || 0),
+    attempts: (userAttemptsMap.get(u.user_id) || 0) + (anonymousLearningMap.get(u.user_id)?.attempts || 0),
     // 기기 계정 생성은 Google 로그인이 아니다. 사용자 표의 '로그인' 열은
     // 실제 Google 계정만 표시하고, 기기 계정은 installedAt으로만 신규 시점을 보여준다.
     createdAt: u.user_id.startsWith('device:') ? '' : u.created_at,
@@ -1365,9 +1394,9 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       : u.created_at,
     installedAt: journeyMetaMap.get(u.user_id)?.firstSeenAt || null,
     cardsToday: (userActivityMap.get(u.user_id)?.cardsToday || 0) + (userLocalAssetsMap.get(u.user_id)?.cardsToday || 0),
-    attemptsToday: userActivityMap.get(u.user_id)?.attemptsToday || 0,
-    listenToday: userActivityMap.get(u.user_id)?.listenToday || 0,
-    flipsToday: userActivityMap.get(u.user_id)?.flipsToday || 0,
+    attemptsToday: (userActivityMap.get(u.user_id)?.attemptsToday || 0) + (anonymousLearningMap.get(u.user_id)?.attemptsToday || 0),
+    listenToday: (userActivityMap.get(u.user_id)?.listenToday || 0) + (anonymousLearningMap.get(u.user_id)?.listensToday || 0),
+    flipsToday: (userActivityMap.get(u.user_id)?.flipsToday || 0) + (anonymousLearningMap.get(u.user_id)?.flipsToday || 0),
     spentToday: userActivityMap.get(u.user_id)?.spentToday || 0,
     activeDays7d: Math.max(
       userActivityMap.get(u.user_id)?.activeDays7d || 0,

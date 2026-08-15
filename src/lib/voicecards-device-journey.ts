@@ -1,3 +1,5 @@
+import { kstDateKey } from './kst'
+
 export interface VoicecardsDeviceJourneyRow {
   device_id: string | null
   user_id: string | null
@@ -22,7 +24,69 @@ export interface VoicecardsDeviceJourneyMeta {
 }
 
 // Next의 persistent unstable_cache는 배포 사이에도 남을 수 있어 응답 스키마 변경 시 키를 올린다.
-export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v4'
+export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v5'
+
+export interface VoicecardsAnonymousLearningRow {
+  device_id: string | null
+  user_id: string | null
+  event_name: string | null
+  created_at: string | null
+  properties: Record<string, unknown> | null
+}
+
+export interface VoicecardsAnonymousLearningMetrics {
+  flips: number
+  attempts: number
+  listens: number
+  flipsToday: number
+  attemptsToday: number
+  listensToday: number
+}
+
+const VOICECARDS_LISTEN_EVENTS = new Set([
+  'tts_played',
+  'voice_preview_played',
+  'device_tts_played',
+])
+
+export function buildVoicecardsAnonymousLearningMap(
+  rows: VoicecardsAnonymousLearningRow[],
+  deviceOwners: ReadonlyMap<string, string>,
+  todayKst: string,
+) {
+  const result = new Map<string, VoicecardsAnonymousLearningMetrics>()
+
+  for (const row of rows) {
+    // user_id가 생긴 이후 이벤트는 로그인 사용자 롤업이 이미 집계한다.
+    if (row.user_id || !row.device_id || !row.event_name) continue
+    const ownerId = deviceOwners.get(row.device_id) || `device:${row.device_id}`
+    const isAttempt = row.event_name === 'card_attempted'
+    const isListen = VOICECARDS_LISTEN_EVENTS.has(row.event_name)
+    const isFlip = row.event_name === 'card_flipped_manual'
+      && !String(row.properties?.sheet_id || '').startsWith('demo-')
+    if (!isAttempt && !isListen && !isFlip) continue
+
+    const isToday = !!row.created_at && kstDateKey(row.created_at) === todayKst
+    const previous = result.get(ownerId) || {
+      flips: 0,
+      attempts: 0,
+      listens: 0,
+      flipsToday: 0,
+      attemptsToday: 0,
+      listensToday: 0,
+    }
+    result.set(ownerId, {
+      flips: previous.flips + Number(isFlip),
+      attempts: previous.attempts + Number(isAttempt),
+      listens: previous.listens + Number(isListen),
+      flipsToday: previous.flipsToday + Number(isToday && isFlip),
+      attemptsToday: previous.attemptsToday + Number(isToday && isAttempt),
+      listensToday: previous.listensToday + Number(isToday && isListen),
+    })
+  }
+
+  return result
+}
 
 export interface VoicecardsLearningActivationUser {
   id: string
@@ -61,9 +125,9 @@ export function diffVoicecardsActivationIds(
 ) {
   const known = new Set(knownIds)
   if (!deviceBaselineInitialized) {
-    for (const id of activeIds) {
-      if (id.startsWith('device:')) known.add(id)
-    }
+    // Adding local/device activation reveals historical Google owners too.
+    // Baseline the whole expanded snapshot once so migration does not alert them as new.
+    for (const id of activeIds) known.add(id)
   }
 
   const freshIds = activeIds.filter(id => !known.has(id))

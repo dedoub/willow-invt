@@ -45,7 +45,7 @@ test('device account display name uses the UUID rather than the device prefix', 
 
 test('user stats cache key is versioned when the response schema changes', async () => {
   const helpers = await loadJourneyHelpers()
-  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v4')
+  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v5')
 })
 
 test('device learning activation uses the local deck creation time', async () => {
@@ -89,7 +89,7 @@ test('local deck activation resolves to a live device account or its merged Goog
   )
 })
 
-test('device activation alert migration baselines old devices but alerts future devices', async () => {
+test('activation alert migration baselines all newly surfaced activations but alerts future ones', async () => {
   const helpers = await loadJourneyHelpers()
   assert.equal(typeof helpers.diffVoicecardsActivationIds, 'function')
 
@@ -100,11 +100,11 @@ test('device activation alert migration baselines old devices but alerts future 
   ) => { freshIds: string[]; nextKnownIds: string[] }
 
   const migrated = diff(['google-old'], ['google-old', 'google-new', 'device:old'], false)
-  assert.deepEqual(migrated.freshIds, ['google-new'])
+  assert.deepEqual(migrated.freshIds, [])
   assert.deepEqual(new Set(migrated.nextKnownIds), new Set(['google-old', 'google-new', 'device:old']))
 
-  const nextPoll = diff(migrated.nextKnownIds, [...migrated.nextKnownIds, 'device:new'], true)
-  assert.deepEqual(nextPoll.freshIds, ['device:new'])
+  const nextPoll = diff(migrated.nextKnownIds, [...migrated.nextKnownIds, 'google-next', 'device:new'], true)
+  assert.deepEqual(nextPoll.freshIds, ['google-next', 'device:new'])
 })
 
 test('a merged device activation is known under its Google owner without a duplicate alert', async () => {
@@ -124,4 +124,58 @@ test('a merged device activation is known under its Google owner without a dupli
     new Set(known),
     new Set(['device:5f509ac7-7d5f-4e70-8ff2-9777311329a8', 'google-user-id']),
   )
+})
+
+test('anonymous learning events are assigned to the device account with KST daily counts', async () => {
+  const helpers = await loadJourneyHelpers()
+  assert.equal(typeof helpers.buildVoicecardsAnonymousLearningMap, 'function')
+
+  const buildLearningMap = helpers.buildVoicecardsAnonymousLearningMap as (
+    rows: unknown[],
+    deviceOwners: Map<string, string>,
+    todayKst: string,
+  ) => Map<string, Record<string, number>>
+  const deviceId = '5f509ac7-7d5f-4e70-8ff2-9777311329a8'
+  const metrics = buildLearningMap([
+    { device_id: deviceId, user_id: null, event_name: 'card_attempted', created_at: '2026-08-14T16:10:00.000Z', properties: {} },
+    { device_id: deviceId, user_id: null, event_name: 'tts_played', created_at: '2026-08-14T16:11:00.000Z', properties: {} },
+    { device_id: deviceId, user_id: null, event_name: 'voice_preview_played', created_at: '2026-08-14T16:12:00.000Z', properties: {} },
+    { device_id: deviceId, user_id: null, event_name: 'card_flipped_manual', created_at: '2026-08-14T16:13:00.000Z', properties: { sheet_id: 'local-sheet' } },
+    { device_id: deviceId, user_id: null, event_name: 'card_flipped_manual', created_at: '2026-08-14T16:14:00.000Z', properties: { sheet_id: 'demo-en-de' } },
+  ], new Map([[deviceId, `device:${deviceId}`]]), '2026-08-15')
+
+  assert.deepEqual(metrics.get(`device:${deviceId}`), {
+    flips: 1,
+    attempts: 1,
+    listens: 2,
+    flipsToday: 1,
+    attemptsToday: 1,
+    listensToday: 2,
+  })
+})
+
+test('anonymous learning events follow a merged device to its Google owner without duplication', async () => {
+  const helpers = await loadJourneyHelpers()
+  assert.equal(typeof helpers.buildVoicecardsAnonymousLearningMap, 'function')
+
+  const buildLearningMap = helpers.buildVoicecardsAnonymousLearningMap as (
+    rows: unknown[],
+    deviceOwners: Map<string, string>,
+    todayKst: string,
+  ) => Map<string, Record<string, number>>
+  const metrics = buildLearningMap([
+    { device_id: 'device-a', user_id: null, event_name: 'device_tts_played', created_at: '2026-08-14T16:00:00.000Z', properties: {} },
+    { device_id: 'device-b', user_id: null, event_name: 'card_attempted', created_at: '2026-08-14T17:00:00.000Z', properties: {} },
+    // user_id가 있는 이벤트는 기존 로그인 사용자 롤업에서 집계하므로 여기서는 제외한다.
+    { device_id: 'device-a', user_id: 'google-user', event_name: 'card_attempted', created_at: '2026-08-14T12:00:00.000Z', properties: {} },
+  ], new Map([['device-a', 'google-user'], ['device-b', 'google-user']]), '2026-08-15')
+
+  assert.deepEqual(metrics.get('google-user'), {
+    flips: 0,
+    attempts: 1,
+    listens: 1,
+    flipsToday: 0,
+    attemptsToday: 1,
+    listensToday: 1,
+  })
 })
