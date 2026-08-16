@@ -67,12 +67,19 @@ as $function$
       -- 뒤집기 1회로 활성화가 됐기 때문. 세 축(시트·카드·뒤집기)을 같은 규칙으로 맞춘다.
       count(*) filter (where m.event_name = 'card_flipped_manual'
                          and coalesce(m.properties->>'sheet_id','') not like 'demo-%')::bigint as flip_count,
+      -- 구매 크레딧은 이벤트의 delta(실제 지급량)를 먼저 쓴다. SKU 끝 숫자와 지급량은 다르고
+      -- (1000팩 = 1,100 지급), 상품표로만 집계하면 팩 수량을 바꿀 때 과거 구매까지 소급 변한다.
+      -- 상품표는 delta 없는 옛 이벤트 폴백. 표에 없는 상품(2026-08-16 엔트리팩 $0.99/100)은
+      -- 0으로 집계돼 구매가 통째로 사라졌었다.
       sum(case when m.event_name = 'credits_changed' and m.properties->>'reason' = 'purchase'
-            then case m.properties->>'product_id'
-                   when 'com.monor.voicecards.credits.1000'  then 1000
-                   when 'com.monor.voicecards.credits.5500'  then 5500
-                   when 'com.monor.voicecards.credits.12000' then 12000
-                   else 0 end
+            then coalesce(
+                   nullif(m.properties->>'delta','')::numeric,
+                   case m.properties->>'product_id'
+                     when 'com.monor.voicecards.credits.100'   then 100
+                     when 'com.monor.voicecards.credits.1000'  then 1100
+                     when 'com.monor.voicecards.credits.5500'  then 5750
+                     when 'com.monor.voicecards.credits.12000' then 12000
+                     else 0 end)
             else 0 end)::bigint as purchased_credits,
       bool_or(m.event_name in ('voice_preview_played','tts_premium_toggle_changed','voice_settings_opened')) as premium_voice,
       bool_or(m.event_name in ('ai_generation_opened','ai_generation_submitted','ai_teaser_generate_tapped')) as ai_feature,

@@ -585,16 +585,23 @@ export async function getCachedStatsRange(
 // ============================================================
 
 // 크레딧 팩 정가 (USD, 그로스). voice-cards CREDIT_PACKAGES와 동일하게 유지.
+// 여기 없는 product_id 의 결제는 매출·판매크레딧·유료전환에서 통째로 빠진다 —
+// 2026-08-16 엔트리팩($0.99/100) 첫 결제가 이 표에 없어서 대시보드에서 사라졌다.
 const CREDIT_PRODUCT_PRICES_USD: Record<string, number> = {
+  'com.monor.voicecards.credits.100': 0.99,
   'com.monor.voicecards.credits.1000': 9.99,
   'com.monor.voicecards.credits.5500': 49.99,
   'com.monor.voicecards.credits.12000': 99.99,
 }
 
-// 상품별 판매 크레딧 수 (매출을 크레딧 볼륨으로 집계)
+// 상품별 판매 크레딧 수 (매출을 크레딧 볼륨으로 집계).
+// 이벤트에 delta(실제 지급량)가 있으면 그쪽이 먼저다. product_id 끝의 숫자는 스토어 SKU 문자열이라
+// 지급량과 다르고(1000팩 = 1,100 지급, 5500팩 = 5,750 지급), 팩 수량이 또 바뀌면 이 표로 소급 집계한
+// 과거 구매까지 값이 변한다. 이 표는 delta 없는 옛 이벤트 폴백용.
 const CREDIT_PRODUCT_CREDITS: Record<string, number> = {
-  'com.monor.voicecards.credits.1000': 1000,
-  'com.monor.voicecards.credits.5500': 5500,
+  'com.monor.voicecards.credits.100': 100,
+  'com.monor.voicecards.credits.1000': 1100,
+  'com.monor.voicecards.credits.5500': 5750,
   'com.monor.voicecards.credits.12000': 12000,
 }
 
@@ -712,8 +719,10 @@ export async function getAppDbRevenue(
     const price = CREDIT_PRODUCT_PRICES_USD[String(props.product_id)]
     if (!price) continue
     const date = kstDateKey(row.created_at) // KST 날짜
-    // 판매 크레딧: 상품 매핑 우선, 없으면 이벤트의 credits_changed 폴백
-    const credits = CREDIT_PRODUCT_CREDITS[String(props.product_id)] ?? Math.max(0, Number(props.credits_changed) || 0)
+    // 판매 크레딧: 이벤트의 delta(실제 지급량) 우선, 없으면 상품 매핑 폴백.
+    // delta 를 먼저 쓰면 보너스 수량이 바뀌어도 과거 구매는 그때 지급한 값 그대로 남는다.
+    const credits = Math.max(0, Number(props.delta) || 0) ||
+      (CREDIT_PRODUCT_CREDITS[String(props.product_id)] ?? 0)
     result.creditsByDate.set(date, (result.creditsByDate.get(date) || 0) + credits)
     result.creditsTotal += credits
     if (row.platform === 'android') {

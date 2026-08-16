@@ -52,10 +52,14 @@ event_activity as (
         'deck_created','pending_local_sheet_created'
       )
     )::int as active_days,
-    coalesce(sum(case e.properties->>'product_id'
-      when 'com.monor.voicecards.credits.1000'  then 1000
-      when 'com.monor.voicecards.credits.5500'  then 5500
-      when 'com.monor.voicecards.credits.12000' then 12000 else 0 end) filter (
+    -- 구매 크레딧: 이벤트 delta(실제 지급량) 우선, 없으면 상품표 폴백 (vc_user_rollup 과 같은 규칙).
+    coalesce(sum(coalesce(
+      nullif(e.properties->>'delta','')::numeric,
+      case e.properties->>'product_id'
+        when 'com.monor.voicecards.credits.100'   then 100
+        when 'com.monor.voicecards.credits.1000'  then 1100
+        when 'com.monor.voicecards.credits.5500'  then 5750
+        when 'com.monor.voicecards.credits.12000' then 12000 else 0 end)) filter (
         where e.event_date = td.d and e.event_name = 'credits_changed'
           and e.properties->>'reason' = 'purchase' and e.is_likely_bot = false
       ), 0)::bigint as pc
