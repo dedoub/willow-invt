@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ReviewnotesBlock } from './_components/reviewnotes-block'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
-import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
+import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-types'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'

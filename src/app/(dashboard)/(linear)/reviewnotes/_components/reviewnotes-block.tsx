@@ -8,10 +8,10 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
-import { isExcludedReviewNotesUser, RN_AI_FEATURE_LABELS } from '@/lib/reviewnotes-supabase'
-import type { RnAiFeatureUse } from '@/lib/reviewnotes-supabase'
+import { isExcludedReviewNotesUser, RN_AI_FEATURE_LABELS } from '@/lib/reviewnotes-types'
+import type { RnAiFeatureUse } from '@/lib/reviewnotes-types'
 import { kstDateKey, kstToday, kstDaysAgo, kstWeekday, kstTime } from '@/lib/kst'
-import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-supabase'
+import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-types'
 import { formatCountryName, codeToFlag, COUNTRY_NAMES } from '@/lib/country-format'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
