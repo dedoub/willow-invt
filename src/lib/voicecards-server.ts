@@ -8,6 +8,7 @@ import { kstDateKey } from '@/lib/kst'
 import {
   buildVoicecardsAnonymousLearningMap,
   buildVoicecardsJourneyMetaMap,
+  voicecardsCanonicalOwnerId,
   voicecardsJourneyOwnerId,
   type VoicecardsAnonymousLearningMetrics,
   type VoicecardsAnonymousLearningRow,
@@ -1078,6 +1079,12 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
 
   const allUsers = usersRes.data || []
   const journeyRows = (journeysRes.data || []) as VoicecardsDeviceJourneyRow[]
+  const mergedDeviceOwners = new Map<string, string>(
+    allUsers
+      .filter(u => u.user_id?.startsWith('device:') && u.merged_into)
+      .map(u => [u.user_id as string, u.merged_into as string]),
+  )
+  const canonicalOwnerId = (ownerId: string) => voicecardsCanonicalOwnerId(ownerId, mergedDeviceOwners)
   const validDeviceAccountIds = new Set(
     journeyRows
       .filter(row => row.device_id && (!row.user_id || row.user_id === `device:${row.device_id}`))
@@ -1179,14 +1186,14 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const userFlipsMap = new Map<string, number>()
   const userCreditsSpentMap = new Map<string, number>()
   for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; listen_count: number; premium_listen_count: number; free_listen_count: number; unclassified_listen_count: number; flip_count: number; credits_spent: number }>)) {
-    const uid = row.user_id
+    const uid = row.user_id ? canonicalOwnerId(row.user_id) : null
     if (!uid || !visibleUserIds.has(uid)) continue
-    userCreditsUsedMap.set(uid, Number(row.listen_count) || 0)
-    userPremiumListensMap.set(uid, Number(row.premium_listen_count) || 0)
-    userFreeListensMap.set(uid, Number(row.free_listen_count) || 0)
-    userUnclassifiedListensMap.set(uid, Number(row.unclassified_listen_count) || 0)
-    userFlipsMap.set(uid, Number(row.flip_count) || 0)
-    userCreditsSpentMap.set(uid, Number(row.credits_spent) || 0)
+    userCreditsUsedMap.set(uid, (userCreditsUsedMap.get(uid) || 0) + (Number(row.listen_count) || 0))
+    userPremiumListensMap.set(uid, (userPremiumListensMap.get(uid) || 0) + (Number(row.premium_listen_count) || 0))
+    userFreeListensMap.set(uid, (userFreeListensMap.get(uid) || 0) + (Number(row.free_listen_count) || 0))
+    userUnclassifiedListensMap.set(uid, (userUnclassifiedListensMap.get(uid) || 0) + (Number(row.unclassified_listen_count) || 0))
+    userFlipsMap.set(uid, (userFlipsMap.get(uid) || 0) + (Number(row.flip_count) || 0))
+    userCreditsSpentMap.set(uid, (userCreditsSpentMap.get(uid) || 0) + (Number(row.credits_spent) || 0))
   }
 
   // 사용자별 최근 앱 버전 + 플랫폼 + 언어 (vc_user_latest_meta RPC: user당 최신 1행)
@@ -1200,44 +1207,55 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // vc_user_latest_meta 는 mv_user_latest_meta 롤업을 읽어 빠르고 안정적(user당 최신 1행)이라 그대로 매핑
   for (const row of ((metaRes.data || []) as Array<{ user_id: string | null; app_version: string | null; platform: string | null; locale: string | null; country: string | null; last_event: string | null }>)) {
     if (!row.user_id) continue
-    if (row.app_version) userAppVersionMap.set(row.user_id, row.app_version)
-    if (row.platform) userPlatformMap.set(row.user_id, row.platform)
-    if (row.locale) userLocaleMap.set(row.user_id, row.locale)
-    if (row.country) userCountryMap.set(row.user_id, row.country)
-    if (row.last_event) userLastEventMap.set(row.user_id, row.last_event)
+    const uid = canonicalOwnerId(row.user_id)
+    const previousLastEvent = userLastEventMap.get(uid)
+    const rowIsLatest = !previousLastEvent || !!row.last_event && row.last_event >= previousLastEvent
+    if (rowIsLatest && row.app_version) userAppVersionMap.set(uid, row.app_version)
+    if (rowIsLatest && row.platform) userPlatformMap.set(uid, row.platform)
+    if (rowIsLatest && row.locale) userLocaleMap.set(uid, row.locale)
+    if (rowIsLatest && row.country) userCountryMap.set(uid, row.country)
+    if (row.last_event && rowIsLatest) userLastEventMap.set(uid, row.last_event)
   }
 
   // 사용자별 구매 크레딧 합계
   const userPurchasedMap = new Map<string, number>()
   for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; purchased_credits: number | string | null }>)) {
-    if (row.user_id) userPurchasedMap.set(row.user_id, Number(row.purchased_credits) || 0)
+    if (!row.user_id) continue
+    const uid = canonicalOwnerId(row.user_id)
+    userPurchasedMap.set(uid, (userPurchasedMap.get(uid) || 0) + (Number(row.purchased_credits) || 0))
   }
 
   // 사용자별 오늘 증가분 + 7일 활동일
   const userActivityMap = new Map<string, { cardsToday: number; attemptsToday: number; listenToday: number; flipsToday: number; spentToday: number; activeDays7d: number; purchasedToday: number; balanceDeltaToday: number; sheetsDeltaToday: number }>()
   for (const row of ((activityRes.data || []) as Array<{ user_id: string | null; cards_today: number | string | null; attempts_today: number | string | null; listen_today: number | string | null; flips_today: number | string | null; spent_today: number | string | null; active_days_7d: number | null; purchased_today: number | string | null; balance_delta_today: number | string | null; sheets_delta_today: number | string | null }>)) {
-    if (row.user_id) userActivityMap.set(row.user_id, {
-      cardsToday: Number(row.cards_today) || 0,
-      attemptsToday: Number(row.attempts_today) || 0,
-      listenToday: Number(row.listen_today) || 0,
-      flipsToday: Number(row.flips_today) || 0,
-      spentToday: Number(row.spent_today) || 0,
-      activeDays7d: Number(row.active_days_7d) || 0,
-      purchasedToday: Number(row.purchased_today) || 0,
-      balanceDeltaToday: Number(row.balance_delta_today) || 0,
-      sheetsDeltaToday: Number(row.sheets_delta_today) || 0,
+    if (!row.user_id) continue
+    const uid = canonicalOwnerId(row.user_id)
+    const previous = userActivityMap.get(uid)
+    userActivityMap.set(uid, {
+      cardsToday: (previous?.cardsToday || 0) + (Number(row.cards_today) || 0),
+      attemptsToday: (previous?.attemptsToday || 0) + (Number(row.attempts_today) || 0),
+      listenToday: (previous?.listenToday || 0) + (Number(row.listen_today) || 0),
+      flipsToday: (previous?.flipsToday || 0) + (Number(row.flips_today) || 0),
+      spentToday: (previous?.spentToday || 0) + (Number(row.spent_today) || 0),
+      activeDays7d: Math.max(previous?.activeDays7d || 0, Number(row.active_days_7d) || 0),
+      purchasedToday: (previous?.purchasedToday || 0) + (Number(row.purchased_today) || 0),
+      balanceDeltaToday: (previous?.balanceDeltaToday || 0) + (Number(row.balance_delta_today) || 0),
+      sheetsDeltaToday: (previous?.sheetsDeltaToday || 0) + (Number(row.sheets_delta_today) || 0),
     })
   }
 
   // 사용자별 구매 고려 신호
   const userIntentMap = new Map<string, { premiumVoice: boolean; ai: boolean; banner: boolean; gated: boolean; lastIntent: string | null }>()
   for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; premium_voice: boolean | null; ai_feature: boolean | null; banner_tap: boolean | null; gated: boolean | null; last_intent: string | null }>)) {
-    if (row.user_id) userIntentMap.set(row.user_id, {
-      premiumVoice: !!row.premium_voice,
-      ai: !!row.ai_feature,
-      banner: !!row.banner_tap,
-      gated: !!row.gated,
-      lastIntent: row.last_intent,
+    if (!row.user_id) continue
+    const uid = canonicalOwnerId(row.user_id)
+    const previous = userIntentMap.get(uid)
+    userIntentMap.set(uid, {
+      premiumVoice: !!row.premium_voice || !!previous?.premiumVoice,
+      ai: !!row.ai_feature || !!previous?.ai,
+      banner: !!row.banner_tap || !!previous?.banner,
+      gated: !!row.gated || !!previous?.gated,
+      lastIntent: [previous?.lastIntent, row.last_intent].filter(Boolean).sort().at(-1) || null,
     })
   }
 
@@ -1281,12 +1299,15 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
 
   // 설치일·최근 활동·기기 메타데이터를 같은 소유자에 귀속한다. 비로그인 저니는
   // user_id가 null이므로 device:<uuid> 계정으로 연결해야 사용자 행에서 정보가 사라지지 않는다.
-  const journeyMetaMap = buildVoicecardsJourneyMetaMap(journeyRows)
+  const journeyMetaMap = buildVoicecardsJourneyMetaMap(journeyRows, mergedDeviceOwners)
   const deviceOwnerMap = new Map<string, string>()
+  const localAssetOwnerMap = new Map<string, string>()
   try {
     for (const row of journeyRows) {
-      const ownerId = voicecardsJourneyOwnerId(row)
-      if (row.device_id && ownerId) deviceOwnerMap.set(row.device_id, ownerId)
+      const rawOwnerId = voicecardsJourneyOwnerId(row)
+      if (!row.device_id || !rawOwnerId) continue
+      localAssetOwnerMap.set(row.device_id, rawOwnerId)
+      deviceOwnerMap.set(row.device_id, canonicalOwnerId(rawOwnerId))
     }
   } catch (e) {
     console.error('[VoiceCards] device-owner map failed (non-fatal):', e)
@@ -1331,7 +1352,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     const todayKst = kstDateKey(new Date())
     for (const row of ((localSheetRows || []) as Array<{ device_id: string | null; created_at: string | null; properties: { card_count?: number | string } | null }>)) {
       if (!row.device_id) continue
-      const ownerId = deviceOwnerMap.get(row.device_id) || `device:${row.device_id}`
+      const ownerId = localAssetOwnerMap.get(row.device_id) || `device:${row.device_id}`
       if (!visibleUserIds.has(ownerId)) continue
       const cardCount = Math.max(0, Number(row.properties?.card_count) || 0)
       const isToday = !!row.created_at && kstDateKey(row.created_at) === todayKst

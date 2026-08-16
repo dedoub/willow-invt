@@ -34,6 +34,40 @@ test('anonymous journey metadata is assigned to its device account', async () =>
   })
 })
 
+test('a merged anonymous journey is assigned to its Google owner', async () => {
+  const helpers = await loadJourneyHelpers()
+  assert.equal(typeof helpers.buildVoicecardsJourneyMetaMap, 'function')
+
+  const buildMetaMap = helpers.buildVoicecardsJourneyMetaMap as (
+    rows: unknown[],
+    mergedOwners: ReadonlyMap<string, string>,
+  ) => Map<string, unknown>
+  const deviceId = '2bc1b06f-6672-4be5-87b8-df0a2e372f4f'
+  const metaMap = buildMetaMap([{
+    device_id: deviceId,
+    user_id: null,
+    first_seen_at: '2026-08-16T04:30:00.000Z',
+    last_seen_at: '2026-08-16T05:10:00.000Z',
+    platform: 'ios',
+    app_version: '1.1.132',
+    locale: 'en',
+    country: 'HU',
+    active_days_7d: 1,
+  }], new Map([[`device:${deviceId}`, 'google-user-id']]))
+
+  assert.equal(metaMap.has(`device:${deviceId}`), false)
+  assert.deepEqual(metaMap.get('google-user-id'), {
+    deviceId,
+    firstSeenAt: '2026-08-16T04:30:00.000Z',
+    lastSeenAt: '2026-08-16T05:10:00.000Z',
+    platform: 'ios',
+    appVersion: '1.1.132',
+    locale: 'en',
+    country: 'HU',
+    activeDays7d: 1,
+  })
+})
+
 test('device account display name uses the UUID rather than the device prefix', async () => {
   const helpers = await loadJourneyHelpers()
   assert.equal(typeof helpers.voicecardsDeviceDisplayName, 'function')
@@ -45,7 +79,7 @@ test('device account display name uses the UUID rather than the device prefix', 
 
 test('user stats cache key is versioned when the response schema changes', async () => {
   const helpers = await loadJourneyHelpers()
-  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v5')
+  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v6')
 })
 
 test('device learning activation uses the local deck creation time', async () => {
@@ -125,6 +159,7 @@ test('a merged device activation is known under its Google owner without a dupli
     new Set(['device:5f509ac7-7d5f-4e70-8ff2-9777311329a8', 'google-user-id']),
   )
 })
+
 
 test('anonymous learning events are assigned to the device account with KST daily counts', async () => {
   const helpers = await loadJourneyHelpers()

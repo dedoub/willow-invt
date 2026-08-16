@@ -24,7 +24,7 @@ export interface VoicecardsDeviceJourneyMeta {
 }
 
 // Next의 persistent unstable_cache는 배포 사이에도 남을 수 있어 응답 스키마 변경 시 키를 올린다.
-export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v5'
+export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v6'
 
 export interface VoicecardsAnonymousLearningRow {
   device_id: string | null
@@ -149,16 +149,28 @@ export function expandVoicecardsKnownActivationIds(
   return Array.from(expanded)
 }
 
+
 export function voicecardsJourneyOwnerId(row: Pick<VoicecardsDeviceJourneyRow, 'device_id' | 'user_id'>) {
   return row.user_id || (row.device_id ? `device:${row.device_id}` : null)
 }
 
-export function buildVoicecardsJourneyMetaMap(rows: VoicecardsDeviceJourneyRow[]) {
+export function voicecardsCanonicalOwnerId(
+  ownerId: string,
+  mergedDeviceOwners: ReadonlyMap<string, string>,
+) {
+  return mergedDeviceOwners.get(ownerId) || ownerId
+}
+
+export function buildVoicecardsJourneyMetaMap(
+  rows: VoicecardsDeviceJourneyRow[],
+  mergedDeviceOwners: ReadonlyMap<string, string> = new Map(),
+) {
   const result = new Map<string, VoicecardsDeviceJourneyMeta>()
 
   for (const row of rows) {
-    const ownerId = voicecardsJourneyOwnerId(row)
-    if (!ownerId || !row.device_id) continue
+    const rawOwnerId = voicecardsJourneyOwnerId(row)
+    if (!rawOwnerId || !row.device_id) continue
+    const ownerId = voicecardsCanonicalOwnerId(rawOwnerId, mergedDeviceOwners)
 
     const previous = result.get(ownerId)
     if (!previous) {
