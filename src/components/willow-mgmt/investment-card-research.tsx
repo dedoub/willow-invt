@@ -1,14 +1,14 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { ArrowRight, Pencil } from 'lucide-react'
+import { ArrowRight, History, Pencil } from 'lucide-react'
 
 export interface ResearchCardData {
   id: string
   sourceType: 'valuechain' | 'smallcap'
   ticker: string
   companyName: string
-  verdict?: 'pass_tier1' | 'pass_tier2' | 'fail'
+  verdict?: 'pass_tier1' | 'pass_tier2' | 'fail' | 'unscored'
   sectorTags?: string[]
   marketCapB?: number | null
   currentPrice?: number | null
@@ -31,17 +31,21 @@ export interface ResearchCardData {
   sentimentScore?: number | null
   sector?: string | null
   failReasons?: string[] | null
+  scoreConfidence?: 'low' | 'medium' | 'high' | null
+  evidenceSourceCount?: number
 }
 
 interface Props {
   data: ResearchCardData
   onAddToWatchlist?: () => void
   onEdit?: () => void
+  onViewHistory?: () => void
 }
 
 const verdictBadge: Record<string, { label: string; bg: string; text: string }> = {
-  pass_tier1: { label: 'T1', bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-400' },
-  pass_tier2: { label: 'T2', bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400' },
+  pass_tier1: { label: 'Research T1', bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-400' },
+  pass_tier2: { label: 'Research T2', bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400' },
+  unscored: { label: '미평가', bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-400' },
 }
 
 const sourceLabel: Record<string, string> = {
@@ -71,7 +75,7 @@ function formatMarketCap(capB?: number | null, capM?: number | null): string {
   return ''
 }
 
-export function InvestmentCardResearch({ data, onAddToWatchlist, onEdit }: Props) {
+export function InvestmentCardResearch({ data, onAddToWatchlist, onEdit, onViewHistory }: Props) {
   const badge = data.verdict ? verdictBadge[data.verdict] : null
   const srcLabel = sourceLabel[data.sourceType] || ''
 
@@ -117,6 +121,11 @@ export function InvestmentCardResearch({ data, onAddToWatchlist, onEdit }: Props
                 : 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300'
           )}>{data.compositeScore.toFixed(0)}점</span>
         )}
+        {data.scoreConfidence && (
+          <span className="text-[9px] text-slate-400">
+            신뢰도 {data.scoreConfidence} · 근거 {data.evidenceSourceCount || 0}
+          </span>
+        )}
       </div>
 
       {/* Row 3: thesis (if available) */}
@@ -145,15 +154,19 @@ export function InvestmentCardResearch({ data, onAddToWatchlist, onEdit }: Props
           {data.scanDate?.slice(5).replace('-', '/')}
           {data.source && data.source !== 'manual' && ` · ${data.source}`}
         </span>
-        {onAddToWatchlist && (
-          <button
-            onClick={onAddToWatchlist}
-            className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-emerald-600 px-1 py-0.5 rounded"
-          >
-            <span>워치리스트 추가</span>
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        )}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onViewHistory && (
+            <button onClick={onViewHistory} className="flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-blue-600 px-1 py-0.5 rounded">
+              <History className="h-3 w-3" /> 이력
+            </button>
+          )}
+          {onAddToWatchlist && (
+            <button onClick={onAddToWatchlist} className="flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-emerald-600 px-1 py-0.5 rounded">
+              <span>워치리스트 추가</span>
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

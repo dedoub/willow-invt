@@ -2,10 +2,22 @@ import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
+import YahooFinance from 'yahoo-finance2'
 import { runAgent } from './lib/agent-cli'
 import { markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
 import { ensureTickerTheme } from '../src/lib/ensure-ticker-theme'
 import { inferAxisFromSector } from '../src/lib/infer-axis'
+import {
+  classifyResearchChange,
+  deriveResearchVerdict,
+  type ResearchChange,
+  type ResearchSnapshot,
+} from '../src/lib/research-alerts'
+import {
+  calculateFactualScores,
+  calculateResearchScore,
+  type ResearchFactualMetrics,
+} from '../src/lib/research-factual-score'
 
 // 한국 종목 ticker 패턴 (6자리 숫자)
 function inferMarketFromTicker(ticker: string): 'KR' | 'US' {
@@ -30,6 +42,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SECRET_KEY!
 )
+const yahoo = new YahooFinance({ suppressNotices: ['yahooSurvey'] })
 
 const LOG_PREFIX = '[market-research]'
 
@@ -308,13 +321,9 @@ interface ResearchEntry {
   momentum_score: number | null
   insider_score: number | null
   sentiment_score: number | null
-}
-
-function deriveVerdict(compositeScore: number | null): string {
-  if (compositeScore == null) return 'pass_tier2'
-  if (compositeScore >= 65) return 'pass_tier1'
-  if (compositeScore >= 50) return 'pass_tier2'
-  return 'fail'
+  score_confidence: 'low' | 'medium' | 'high'
+  evidence_source_count: number
+  factual_metrics: ResearchFactualMetrics | null
 }
 
 async function extractResearchEntries(report: string, sourceType: 'valuechain' | 'smallcap'): Promise<ResearchEntry[]> {
@@ -419,9 +428,7 @@ ${report}`
     }
     const raw: ResearchEntry[] = JSON.parse(jsonMatch[0])
     const VALID_TREND = new Set(['watch', 'near_breakout', 'too_far'])
-    const VALID_VERDICT = new Set(['pass_tier1', 'pass_tier2', 'fail'])
     const TREND_MAP: Record<string, string> = { uptrend: 'near_breakout', sideways: 'watch', downtrend: 'too_far' }
-    const VERDICT_MAP: Record<string, string> = { watch: 'pass_tier2' }
 
     const entries = raw.filter(e => e.ticker && e.company_name).map(e => ({
       ...e,
@@ -429,7 +436,7 @@ ${report}`
         ? VALID_TREND.has(e.trend_verdict) ? e.trend_verdict : (TREND_MAP[e.trend_verdict] || null)
         : null,
       // Derive verdict from composite_score (≥65=T1, ≥50=T2, <50=fail)
-      verdict: deriveVerdict(e.composite_score),
+      verdict: deriveResearchVerdict(e.composite_score),
       sector: e.sector || null,
       track: e.track || null,
       // axis: LLM이 부여하지 않으면 sector 기반 자동 추론
@@ -441,6 +448,9 @@ ${report}`
       momentum_score: e.momentum_score ?? null,
       insider_score: e.insider_score ?? null,
       sentiment_score: e.sentiment_score ?? null,
+      score_confidence: 'low',
+      evidence_source_count: 1,
+      factual_metrics: null,
     }))
     return entries
   } catch (err) {
@@ -449,63 +459,124 @@ ${report}`
   }
 }
 
-/** Fetch market cap from Yahoo Finance for entries missing it */
-async function fillMarketCaps(entries: ResearchEntry[]): Promise<void> {
-  const missing = entries.filter(e => e.market_cap_b == null)
-  if (missing.length === 0) return
-  log(`📊 시가총액 조회: ${missing.length}개 종목 (Yahoo Finance)`)
+/** Replace AI-estimated financial/price dimensions with deterministic Yahoo data. */
+async function enrichResearchEntries(entries: ResearchEntry[]): Promise<void> {
+  log(`📊 재무·가격 교차검증: ${entries.length}개 종목 (Yahoo Finance)`)
 
   const batchSize = 5
-  for (let i = 0; i < missing.length; i += batchSize) {
-    const batch = missing.slice(i, i + batchSize)
+  for (let i = 0; i < entries.length; i += batchSize) {
+    const batch = entries.slice(i, i + batchSize)
     await Promise.all(batch.map(async (entry) => {
       try {
         const isKR = /^\d{6}$/.test(entry.ticker)
-        const symbol = isKR ? `${entry.ticker}.KS` : entry.ticker
-        const res = await fetch(
-          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
-          { headers: { 'User-Agent': 'Mozilla/5.0' } }
-        )
-        if (!res.ok) return
-        const data = await res.json()
-        const meta = data?.chart?.result?.[0]?.meta
-        if (!meta) return
+        const symbols = isKR ? [`${entry.ticker}.KS`, `${entry.ticker}.KQ`] : [entry.ticker]
+        let quote: Awaited<ReturnType<typeof yahoo.quote>> | null = null
+        let summary: Awaited<ReturnType<typeof yahoo.quoteSummary>> | null = null
 
-        // Try marketCap from chart meta, or estimate from price * sharesOutstanding
-        let mcap: number | null = null
-        if (meta.marketCap) {
-          mcap = meta.marketCap
-        } else if (meta.regularMarketPrice && meta.sharesOutstanding) {
-          mcap = meta.regularMarketPrice * meta.sharesOutstanding
+        for (const symbol of symbols) {
+          try {
+            quote = await yahoo.quote(symbol)
+            summary = await yahoo.quoteSummary(symbol, {
+              modules: ['financialData', 'summaryDetail', 'defaultKeyStatistics'],
+            })
+            if (quote?.regularMarketPrice != null) break
+          } catch {
+            quote = null
+            summary = null
+          }
         }
+        if (!quote) return
 
-        if (mcap && mcap > 0) {
-          entry.market_cap_b = Math.round(mcap / 1e9 * 10) / 10  // to billions, 1 decimal
-          if (entry.market_cap_b < 0.1) entry.market_cap_b = Math.round(mcap / 1e6) / 1000  // sub-100M: keep precision
-          log(`  ✅ ${entry.ticker}: $${entry.market_cap_b}B`)
+        const price = quote.regularMarketPrice ?? entry.current_price
+        const high = quote.fiftyTwoWeekHigh ?? entry.high_12m
+        const gapFromHighPct = price != null && high != null && high > 0
+          ? Math.round(((price / high) - 1) * 10_000) / 100
+          : entry.gap_from_high_pct
+        const financial = summary?.financialData
+        const detail = summary?.summaryDetail
+        const metrics: ResearchFactualMetrics = {
+          revenueGrowthPct: financial?.revenueGrowth != null ? financial.revenueGrowth * 100 : null,
+          profitMarginPct: financial?.profitMargins != null ? financial.profitMargins * 100 : null,
+          debtToEquity: financial?.debtToEquity ?? null,
+          trailingPE: detail?.trailingPE ?? null,
+          priceToSales: detail?.priceToSalesTrailing12Months ?? null,
+          gapFromHighPct,
+          changePct: quote.regularMarketChangePercent ?? null,
         }
+        const factual = calculateFactualScores(metrics)
+        const evidenceSourceCount = entry.source === 'cross_signal' ? 3 : 2
+        const result = calculateResearchScore({
+          scores: {
+            growth: factual.growth,
+            quality: factual.quality,
+            momentum: factual.momentum,
+            value: factual.value,
+            sentiment: entry.sentiment_score,
+            insider: entry.insider_score,
+          },
+          evidenceSourceCount,
+        })
 
-        // Also fill current_price if missing
-        if (entry.current_price == null && meta.regularMarketPrice) {
-          entry.current_price = meta.regularMarketPrice
-        }
-      } catch {
-        // silently skip
+        entry.current_price = price ?? null
+        entry.high_12m = high ?? null
+        entry.gap_from_high_pct = gapFromHighPct
+        entry.market_cap_b = quote.marketCap != null
+          ? Math.round((quote.marketCap / 1e9) * 10) / 10
+          : entry.market_cap_b
+        entry.growth_score = factual.growth
+        entry.quality_score = factual.quality
+        entry.momentum_score = factual.momentum
+        entry.value_score = factual.value
+        entry.composite_score = result.compositeScore
+        entry.verdict = result.verdict
+        entry.score_confidence = result.confidence
+        entry.evidence_source_count = evidenceSourceCount
+        entry.factual_metrics = metrics
+        log(`  ✅ ${entry.ticker}: ${result.compositeScore ?? '미평가'}점 · ${result.confidence}`)
+      } catch (error) {
+        log(`  ⚠️ ${entry.ticker}: Yahoo 교차검증 실패 (${error instanceof Error ? error.message : String(error)})`)
       }
     }))
-    // Rate limit between batches
-    if (i + batchSize < missing.length) await new Promise(r => setTimeout(r, 500))
+    if (i + batchSize < entries.length) await new Promise(r => setTimeout(r, 500))
   }
-
-  const filled = missing.filter(e => e.market_cap_b != null).length
-  log(`📊 시가총액 조회 완료: ${filled}/${missing.length}개 성공`)
 }
 
-async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valuechain' | 'smallcap' = 'smallcap'): Promise<number> {
-  if (entries.length === 0) return 0
+interface ResearchChangeEvent {
+  entry: ResearchEntry
+  change: ResearchChange
+}
+
+interface ResearchUpsertResult {
+  upserted: number
+  changes: ResearchChangeEvent[]
+}
+
+async function upsertResearchEntries(
+  entries: ResearchEntry[],
+  sourceType: 'valuechain' | 'smallcap' = 'smallcap',
+): Promise<ResearchUpsertResult> {
+  if (entries.length === 0) return { upserted: 0, changes: [] }
 
   const today = new Date().toISOString().split('T')[0]
   const now = new Date().toISOString()
+  const tickers = entries.map(entry => entry.ticker)
+  const { data: previousRows, error: previousError } = await supabase
+    .from('stock_research')
+    .select('ticker, verdict, composite_score, source')
+    .in('ticker', tickers)
+
+  if (previousError) {
+    log(`  ⚠️ 이전 리서치 상태 조회 실패: ${previousError.message}`)
+    return { upserted: 0, changes: [] }
+  }
+
+  const previousByTicker = new Map(
+    (previousRows || []).map(row => [row.ticker, row as ResearchSnapshot]),
+  )
+  const changes = entries.flatMap(entry => {
+    const change = classifyResearchChange(previousByTicker.get(entry.ticker) || null, entry)
+    return change ? [{ entry, change }] : []
+  })
 
   // ticker 단위로 단일 row 유지. 같은 ticker는 최근 스캔 결과로 덮어씀(scan_date 갱신).
   const rows = entries.map(entry => ({
@@ -534,6 +605,9 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
     momentum_score: entry.momentum_score,
     insider_score: entry.insider_score,
     sentiment_score: entry.sentiment_score,
+    score_confidence: entry.score_confidence,
+    evidence_source_count: entry.evidence_source_count,
+    factual_metrics: entry.factual_metrics,
     updated_at: now,
   }))
 
@@ -543,7 +617,31 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
 
   if (error) {
     log(`  ⚠️ UPSERT 실패: ${error.message}`)
-    return 0
+    return { upserted: 0, changes: [] }
+  }
+
+  const historyRows = entries.map(entry => {
+    const previous = previousByTicker.get(entry.ticker) || null
+    const change = changes.find(item => item.entry.ticker === entry.ticker)?.change || null
+    return {
+      ticker: entry.ticker,
+      scan_date: today,
+      scanned_at: now,
+      source_type: sourceType,
+      source: entry.source || 'market_scan',
+      previous_verdict: previous?.verdict || null,
+      current_verdict: entry.verdict,
+      previous_composite_score: previous?.composite_score ?? null,
+      current_composite_score: entry.composite_score,
+      change_kind: change?.kind || null,
+      snapshot: entry,
+    }
+  })
+  const { error: historyError } = await supabase
+    .from('stock_research_scan_history')
+    .insert(historyRows)
+  if (historyError) {
+    log(`  ⚠️ 스캔 이력 저장 실패: ${historyError.message}`)
   }
 
   for (const entry of entries) {
@@ -552,7 +650,38 @@ async function upsertResearchEntries(entries: ResearchEntry[], sourceType: 'valu
     }
   }
 
-  return entries.length
+  return { upserted: entries.length, changes }
+}
+
+const CHANGE_LABEL: Record<ResearchChange['kind'], string> = {
+  new_tier1: '신규 Research T1',
+  new_tier2: '신규 Research T2',
+  promoted_tier1: 'Research T1 승격',
+  score_jump: '점수 급상승',
+  cross_signal: '교차 신호',
+}
+
+function formatResearchChange(event: ResearchChangeEvent): string {
+  const { entry, change } = event
+  const score = entry.composite_score == null ? '미평가' : `${entry.composite_score}점`
+  const delta = change.scoreDelta != null ? ` (${change.scoreDelta >= 0 ? '+' : ''}${change.scoreDelta})` : ''
+  const highGap = entry.gap_from_high_pct != null ? ` · 고점대비 ${entry.gap_from_high_pct}%` : ''
+  return `• ${CHANGE_LABEL[change.kind]} · ${entry.ticker} ${entry.company_name} · ${score}${delta}${highGap}`
+}
+
+async function sendResearchChangeAlerts(chatId: number, changes: ResearchChangeEvent[], sourceType: 'valuechain' | 'smallcap') {
+  const immediate = changes.filter(item => item.change.immediate)
+  const newTier2 = changes
+    .filter(item => item.change.kind === 'new_tier2')
+    .sort((a, b) => (b.entry.composite_score || 0) - (a.entry.composite_score || 0))
+    .slice(0, 3)
+
+  if (immediate.length > 0) {
+    await sendTelegramMessage(chatId, `🔔 투자 리서치 중요 변화 (${immediate.length}건)\n\n${immediate.map(formatResearchChange).join('\n')}\n\n대시보드에서 확인: 투자리서치 탭`)
+  }
+  if (sourceType === 'smallcap' && newTier2.length > 0) {
+    await sendTelegramMessage(chatId, `📌 오늘의 신규 Research T2 Top ${newTier2.length}\n\n${newTier2.map(formatResearchChange).join('\n')}\n\n대시보드에서 확인: 투자리서치 탭`)
+  }
 }
 
 async function main() {
@@ -571,15 +700,7 @@ async function main() {
       const report = await runValuechainScan()
 
       if (report && report.length >= 10) {
-        const parts = report.split(/\n---SPLIT---\n/)
-        for (const part of parts) {
-          const trimmed = part.trim()
-          if (trimmed) {
-            await sendTelegramMessage(chatId, trimmed)
-            if (parts.length > 1) await new Promise(r => setTimeout(r, 1000))
-          }
-        }
-        log(`✅ 밸류체인 리포트 전송 완료`)
+        log('✅ 밸류체인 원문 리포트 생성 완료 (정시 자동 발송 생략)')
 
         // Extract and upsert to DB
         log('📊 밸류체인 리포트에서 종목 데이터 추출 중...')
@@ -587,9 +708,10 @@ async function main() {
 
         if (entries.length > 0) {
           log(`  📋 ${entries.length}개 종목 추출: ${entries.map(e => e.ticker).join(', ')}`)
-          await fillMarketCaps(entries)
-          const upserted = await upsertResearchEntries(entries, 'valuechain')
-          log(`  ✅ stock_research 테이블 ${upserted}건 적재 완료`)
+          await enrichResearchEntries(entries)
+          const result = await upsertResearchEntries(entries, 'valuechain')
+          log(`  ✅ stock_research 테이블 ${result.upserted}건 적재 완료, 중요 변화 ${result.changes.length}건`)
+          await sendResearchChangeAlerts(chatId, result.changes, 'valuechain')
         } else {
           log('  ℹ️ 밸류체인 신규 후보 종목 없음 — DB 적재 스킵')
         }
@@ -611,15 +733,7 @@ async function main() {
         return
       }
 
-      const parts = report.split(/\n---SPLIT---\n/)
-      for (const part of parts) {
-        const trimmed = part.trim()
-        if (trimmed) {
-          await sendTelegramMessage(chatId, trimmed)
-          if (parts.length > 1) await new Promise(r => setTimeout(r, 1000))
-        }
-      }
-      log(`✅ 마켓 리포트 전송 완료`)
+      log('✅ 마켓 원문 리포트 생성 완료 (정시 자동 발송 생략)')
 
       // Extract and upsert to DB
       log('📊 리포트에서 종목 데이터 추출 중...')
@@ -627,15 +741,10 @@ async function main() {
 
       if (entries.length > 0) {
         log(`  📋 ${entries.length}개 종목 추출: ${entries.map(e => e.ticker).join(', ')}`)
-        await fillMarketCaps(entries)
-        const upserted = await upsertResearchEntries(entries, 'smallcap')
-        log(`  ✅ stock_research 테이블 ${upserted}건 적재 완료`)
-
-        const dbLines = entries.map(e => {
-          const verdict = e.verdict === 'pass_tier1' ? '⭐' : e.verdict === 'pass_tier2' ? '✅' : '👀'
-          return `${verdict} ${e.ticker} (${e.company_name})${e.gap_from_high_pct != null ? ` | 고점대비 ${e.gap_from_high_pct}%` : ''}`
-        })
-        await sendTelegramMessage(chatId, `📊 리서치 DB 업데이트 (${upserted}건)\n\n${dbLines.join('\n')}\n\n대시보드에서 확인: 투자리서치 탭`)
+        await enrichResearchEntries(entries)
+        const result = await upsertResearchEntries(entries, 'smallcap')
+        log(`  ✅ stock_research 테이블 ${result.upserted}건 적재 완료, 중요 변화 ${result.changes.length}건`)
+        await sendResearchChangeAlerts(chatId, result.changes, 'smallcap')
       } else {
         log('  ℹ️ 신규 후보 종목 없음 — DB 적재 스킵')
       }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Loader2, Search, Plus, RefreshCw, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownUp, Pin } from 'lucide-react'
+import { Loader2, Search, Plus, RefreshCw, TrendingUp, AlertTriangle, ArrowUpRight, Pin } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,23 @@ interface StockResearch {
   quality_score: number | null; momentum_score: number | null
   insider_score: number | null; sentiment_score: number | null
   fail_reasons: string[] | null; change_pct: number | null
+  score_confidence: 'low' | 'medium' | 'high' | null
+  evidence_source_count: number | null
+  factual_metrics: Record<string, number | null> | null
   created_at: string; updated_at: string
+}
+
+interface ResearchHistoryItem {
+  id: string
+  scan_date: string
+  scanned_at: string
+  source_type: 'valuechain' | 'smallcap'
+  source: string | null
+  previous_verdict: string | null
+  current_verdict: string | null
+  previous_composite_score: number | null
+  current_composite_score: number | null
+  change_kind: string | null
 }
 
 interface WatchlistItem {
@@ -78,6 +94,10 @@ export function InvestmentKanban({
   const [watchlistSort, setWatchlistSort] = useState<'momentum' | 'signal'>('momentum')
   const [researchSort, setResearchSort] = useState<'recommend' | 'momentum'>('recommend')
   const [researchSourceFilter, setResearchSourceFilter] = useState<'all' | 'valuechain' | 'smallcap'>('all')
+  const [researchTierFilter, setResearchTierFilter] = useState<'all' | 'pass_tier1' | 'pass_tier2' | 'unscored'>('all')
+  const [historyTarget, setHistoryTarget] = useState<ResearchCardData | null>(null)
+  const [researchHistory, setResearchHistory] = useState<ResearchHistoryItem[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [pinTarget, setPinTarget] = useState<{ name: string; ticker: string; currency?: string } | null>(null)
   const [pinDate, setPinDate] = useState('')
   const [pinPrice, setPinPrice] = useState<number | string>('')
@@ -311,7 +331,7 @@ export function InvestmentKanban({
     return sortBySignal(a, b)
   })
 
-  // Build research column data — only pass verdicts, exclude portfolio/watchlist tickers
+  // Build the discovery pipeline, including candidates held as unscored.
   function getCompositeRank(card: ResearchCardData): number {
     return -(card.compositeScore ?? 0)  // negative for descending sort
   }
@@ -320,14 +340,14 @@ export function InvestmentKanban({
   const seenTickers = new Set<string>()
 
   for (const r of stockResearch) {
-    if (!r.verdict?.startsWith('pass')) continue
+    if (!r.verdict || (!r.verdict.startsWith('pass') && r.verdict !== 'unscored')) continue
     if (seenTickers.has(r.ticker)) continue
     if (watchlistTickers.has(r.ticker)) continue
     seenTickers.add(r.ticker)
     researchCards.push({
       id: r.id, sourceType: r.source_type, ticker: r.ticker,
       companyName: r.company_name || r.ticker,
-      verdict: r.verdict as 'pass_tier1' | 'pass_tier2' | undefined,
+      verdict: r.verdict as 'pass_tier1' | 'pass_tier2' | 'unscored',
       sectorTags: r.sector_tags, sector: r.sector,
       marketCapB: r.market_cap_b, marketCapM: r.market_cap_m,
       currentPrice: r.current_price,
@@ -341,6 +361,8 @@ export function InvestmentKanban({
       growthScore: r.growth_score, valueScore: r.value_score,
       qualityScore: r.quality_score, momentumScore: r.momentum_score,
       insiderScore: r.insider_score, sentimentScore: r.sentiment_score,
+      scoreConfidence: r.score_confidence,
+      evidenceSourceCount: r.evidence_source_count || 0,
     })
   }
 
@@ -356,9 +378,27 @@ export function InvestmentKanban({
     researchCards.sort((a, b) => getResearchMomentum(b) - getResearchMomentum(a))
   }
 
-  const filteredResearchCards = researchSourceFilter === 'all'
-    ? researchCards
-    : researchCards.filter(c => c.sourceType === researchSourceFilter)
+  const filteredResearchCards = researchCards.filter((card) => {
+    const sourceMatches = researchSourceFilter === 'all' || card.sourceType === researchSourceFilter
+    const tierMatches = researchTierFilter === 'all' || card.verdict === researchTierFilter
+    return sourceMatches && tierMatches
+  })
+
+  const openResearchHistory = async (card: ResearchCardData) => {
+    setHistoryTarget(card)
+    setResearchHistory([])
+    setIsLoadingHistory(true)
+    try {
+      const response = await fetch(`/api/willow-mgmt/stock-research/history?ticker=${encodeURIComponent(card.ticker)}`, { cache: 'no-store' })
+      if (!response.ok) return
+      const data = await response.json()
+      setResearchHistory(data.items || [])
+    } catch (error) {
+      console.error('Failed to load research history:', error)
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }
 
   // Move actions
   const handleMoveToWatchlist = async (name: string, ticker: string, sector: string, axis?: string, fromGroup?: string) => {
@@ -639,6 +679,12 @@ export function InvestmentKanban({
                 >
                   {researchSourceFilter === 'all' ? '전체' : researchSourceFilter === 'valuechain' ? '밸류체인' : '소형주'}
                 </button>
+                <button
+                  onClick={() => setResearchTierFilter(f => f === 'all' ? 'pass_tier1' : f === 'pass_tier1' ? 'pass_tier2' : f === 'pass_tier2' ? 'unscored' : 'all')}
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-500"
+                >
+                  {researchTierFilter === 'all' ? '전 등급' : researchTierFilter === 'pass_tier1' ? 'Research T1' : researchTierFilter === 'pass_tier2' ? 'Research T2' : '미평가'}
+                </button>
                 <span className="text-[10px] text-slate-400 ml-1">{filteredResearchCards.length}종목</span>
               </div>
             </div>
@@ -655,6 +701,7 @@ export function InvestmentKanban({
                       data={card}
                       onAddToWatchlist={() => handleMoveToWatchlist(card.companyName, card.ticker, card.sectorTags?.[0] || card.sector || '미분류')}
                       onEdit={() => openEditResearch(card.id)}
+                      onViewHistory={() => openResearchHistory(card)}
                     />
                   ))
                 )}
@@ -670,6 +717,45 @@ export function InvestmentKanban({
         editing={editingResearch}
         onSaved={loadStockResearch}
       />
+
+      <Dialog open={!!historyTarget} onOpenChange={(open) => !open && setHistoryTarget(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-base">{historyTarget?.ticker} 리서치 이력</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[55vh]">
+            {isLoadingHistory ? (
+              <div className="py-10 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-slate-400" /></div>
+            ) : researchHistory.length === 0 ? (
+              <p className="py-8 text-center text-xs text-slate-400">저장된 스캔 이력이 없습니다</p>
+            ) : (
+              <div className="space-y-2 pr-3">
+                {researchHistory.map((item) => {
+                  const delta = item.current_composite_score != null && item.previous_composite_score != null
+                    ? item.current_composite_score - item.previous_composite_score
+                    : null
+                  return (
+                    <div key={item.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                          {item.current_composite_score == null ? '미평가' : `${item.current_composite_score}점`}
+                          {delta != null && <span className={cn('ml-1', delta >= 0 ? 'text-emerald-600' : 'text-red-500')}>{delta >= 0 ? '+' : ''}{delta}</span>}
+                        </span>
+                        <span className="text-[10px] text-slate-400">{new Date(item.scanned_at).toLocaleString('ko-KR')}</span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-500">
+                        <span>{item.current_verdict === 'pass_tier1' ? 'Research T1' : item.current_verdict === 'pass_tier2' ? 'Research T2' : item.current_verdict === 'unscored' ? '미평가' : '탈락'}</span>
+                        <span>{item.source_type === 'valuechain' ? '밸류체인' : '시장·소셜'}</span>
+                        {item.change_kind && <span className="text-blue-600">{item.change_kind}</span>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* Pin monitoring start dialog */}
       <Dialog open={!!pinTarget} onOpenChange={(open) => !open && setPinTarget(null)}>
