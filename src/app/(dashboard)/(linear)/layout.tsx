@@ -6,6 +6,7 @@ import { Inter as InterTight } from 'next/font/google'
 import { JetBrains_Mono } from 'next/font/google'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LinearSidebar } from '@/app/(dashboard)/_components/linear-sidebar'
+import { breadcrumbFor } from '@/app/(dashboard)/_components/linear-nav'
 import { LinearHeader } from '@/app/(dashboard)/_components/linear-header'
 import { DashColsToggle } from '@/app/(dashboard)/_components/cols-toggle'
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill'
@@ -21,21 +22,6 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
   weight: ['400', '500', '600'],
 })
-
-// path → { 그룹, 페이지 } — 상단바 breadcrumb 표시용
-const PAGE_INFO: Record<string, { group: string; title: string }> = {
-  '/mgmt':       { group: '윌로우인베스트먼트', title: '사업관리' },
-  '/invest':     { group: '윌로우인베스트먼트', title: '주식투자' },
-  '/realestate': { group: '윌로우인베스트먼트', title: '부동산리서치' },
-  '/wiki':       { group: '윌로우인베스트먼트', title: '업무위키' },
-  '/ryuha':      { group: '윌로우인베스트먼트', title: '류하일정' },
-  '/akros':      { group: '프로젝트', title: '아크로스' },
-  '/etc':        { group: '프로젝트', title: 'ETC' },
-  '/tensw':      { group: '프로젝트', title: '텐소프트웍스' },
-  '/voicecards':  { group: '프로젝트', title: 'VoiceCards' },
-  '/reviewnotes': { group: '프로젝트', title: 'ReviewNotes' },
-  '/valuechain': { group: '프로젝트', title: 'ValueChain' },
-}
 
 // 1열/2열 토글을 상단바에 노출할 페이지 (바디 그리드가 있는 페이지들). wiki는 마스터-디테일이라 제외.
 const COLS_TOGGLE_PATHS = new Set([
@@ -71,7 +57,8 @@ export default function LinearRouteLayout({
   // Close menu on route change
   useEffect(() => { setMenuOpen(false) }, [pathname])
 
-  const info = PAGE_INFO[pathname] || { group: '윌로우인베스트먼트', title: '' }
+  // breadcrumb은 사이드바 메뉴 트리에서 그대로 읽는다 (linear-nav.ts 단일 진실원)
+  const info = breadcrumbFor(pathname)
 
   return (
     <div className={`${interTight.variable} ${jetbrainsMono.variable}`}>

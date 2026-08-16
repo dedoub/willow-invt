@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type ReactNode, type CSSProperties } from 'react'
 import { t } from './linear-tokens'
+import { navGroup, type NavItem } from './linear-nav'
 import { LIcon } from './linear-icons'
 import { useAuth, useIsAdmin } from '@/lib/auth-context'
 import Link from 'next/link'
@@ -10,50 +11,11 @@ import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type D
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-const NAV_ITEMS = [
-  { key: 'mgmt',       href: '/mgmt',       label: '사업관리',    icon: 'briefcase' },
-  { key: 'email',      href: '/email',      label: '이메일',      icon: 'mail' },
-  { key: 'wiki',       href: '/wiki',       label: '업무위키',    icon: 'book' },
-  { key: 'invest',     href: '/invest',     label: '주식투자',     icon: 'trending' },
-  { key: 'realestate', href: '/realestate', label: '부동산',      icon: 'building' },
-  { key: 'ryuha',      href: '/ryuha',      label: '류하일정',    icon: 'calendar' },
-]
-
-// 점 색상은 네이비 사이드바 위에서 읽히도록 밝은 톤을 쓴다(원래 색상의 라이트 변형).
-// 앱서비스 — 직접 운영하는 자체 서비스
-const APPS = [
-  { id: 'voicecards',  name: 'VoiceCards',  tag: 'MonoR Apps', dot: '#4FBE84' },
-  { id: 'reviewnotes', name: 'ReviewNotes', tag: 'MonoR Apps', dot: '#5FAFDF' },
-  { id: 'valuechain',  name: 'ValueChain',  tag: 'Wiki',       dot: '#A392EC' },
-]
-
-// 관계회사 — 투자·지분 관계로 관리하는 회사
-const INVESTEES = [
-  { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#D9A63F' },
-]
-
-// 컨설팅 — 클라이언트/파트너 단위 업무
-const CLIENTS = [
-  { id: 'akros', name: '아크로스',      tag: 'Indexing',  dot: '#5FAFDF' },
-  { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#8FB6D8' },
-]
-
-const CLIENT_HREF: Record<string, string | undefined> = {
-  akros: '/akros', etc: '/etc', tensw: '/tensw', voicecards: '/voicecards', reviewnotes: '/reviewnotes', valuechain: '/valuechain',
-}
-
-type Client = (typeof CLIENTS)[number]
-
-// 그룹별 메뉴 순서 — 사용자가 드래그로 바꾼 순서를 localStorage에 저장(기기별).
-const APP_ORDER_KEY = 'sidebar-app-order'
-const INVESTEE_ORDER_KEY = 'sidebar-investee-order'
-const PROJECT_ORDER_KEY = 'sidebar-project-order'
-
 // 저장된 id 순서로 정렬. 저장에 없는 신규 항목은 뒤에 붙이고, 사라진 id는 무시.
-function orderClients(items: Client[], order: string[]): Client[] {
+function orderItems(items: NavItem[], order: string[]): NavItem[] {
   const byId = new Map(items.map(c => [c.id, c]))
   const seen = new Set<string>()
-  const out: Client[] = []
+  const out: NavItem[] = []
   for (const id of order) {
     const c = byId.get(id)
     if (c && !seen.has(id)) { out.push(c); seen.add(id) }
@@ -61,10 +23,6 @@ function orderClients(items: Client[], order: string[]): Client[] {
   for (const c of items) if (!seen.has(c.id)) out.push(c)
   return out
 }
-
-const ADMIN_ITEMS = [
-  { key: 'users', href: '/admin/users', label: '사용자 관리', icon: 'user' },
-]
 
 function GroupLabel({ label }: { label: string }) {
   return (
@@ -184,8 +142,8 @@ function GhostIconBtn({ onClick, title, children }: { onClick?: () => void; titl
   )
 }
 
-// 드래그로 순서 변경 가능한 프로젝트 행 (확장 모드 전용). distance:8 활성화라 짧은 탭은 클릭(내비) 유지.
-function SortableClient({ c, isActive, onClose }: { c: Client; isActive: boolean; onClose?: () => void }) {
+// 드래그로 순서 변경 가능한 행 (확장 모드 전용). distance:8 활성화라 짧은 탭은 클릭(내비) 유지.
+function SortableRow({ c, isActive, onClose }: { c: NavItem; isActive: boolean; onClose?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id })
   const style: CSSProperties = {
     transform: CSS.Translate.toString(transform),
@@ -198,14 +156,14 @@ function SortableClient({ c, isActive, onClose }: { c: Client; isActive: boolean
   }
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <NavRow href={CLIENT_HREF[c.id]} dot={c.dot} label={c.name} tag={c.tag}
+      <NavRow href={c.href} dot={c.dot} label={c.label} tag={c.tag}
         isActive={isActive} rail={false} onClose={onClose} />
     </div>
   )
 }
 
-// 그룹 하나의 드래그 정렬 상태 (localStorage 영속) — 앱서비스/프로젝트가 각각 사용
-function useOrderedGroup(items: Client[], storageKey: string) {
+// 그룹 하나의 드래그 정렬 상태 (localStorage 영속) — 앱서비스/관계회사/컨설팅이 각각 사용
+function useOrderedGroup(items: NavItem[], storageKey: string) {
   const [order, setOrder] = useState<string[]>(() => items.map(c => c.id))
   useEffect(() => {
     try {
@@ -213,7 +171,7 @@ function useOrderedGroup(items: Client[], storageKey: string) {
       if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr)) setOrder(arr) }
     } catch { /* 파싱 실패 시 기본 순서 유지 */ }
   }, [storageKey])
-  const ordered = orderClients(items, order)
+  const ordered = orderItems(items, order)
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e
     if (!over || active.id === over.id) return
@@ -245,33 +203,38 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   const rail = collapsed && !mobile
 
   const isActiveHref = (href?: string) => !!href && (pathname === href || pathname.startsWith(href + '/'))
-  const navLink = (n: { key: string; href: string; label: string; icon: string }) => (
-    <NavRow key={n.key} href={n.href} icon={n.icon} label={n.label}
+  const navLink = (n: NavItem) => (
+    <NavRow key={n.id} href={n.href} icon={n.icon} label={n.label}
       isActive={isActiveHref(n.href)} rail={rail} onClose={onClose} />
   )
 
-  // 앱서비스/프로젝트 메뉴 순서 — 드래그로 변경, localStorage에 저장(기기별)
-  const apps = useOrderedGroup(APPS, APP_ORDER_KEY)
-  const investees = useOrderedGroup(INVESTEES, INVESTEE_ORDER_KEY)
-  const projects = useOrderedGroup(CLIENTS, PROJECT_ORDER_KEY)
+  // 앱서비스/관계회사/컨설팅 메뉴 순서 — 드래그로 변경, localStorage에 저장(기기별)
+  const willow = navGroup('willow')
+  const admin = navGroup('admin')
+  const apps = navGroup('apps')
+  const investees = navGroup('investees')
+  const clients = navGroup('clients')
+  const appsOrder = useOrderedGroup(apps.items, apps.orderKey!)
+  const investeesOrder = useOrderedGroup(investees.items, investees.orderKey!)
+  const clientsOrder = useOrderedGroup(clients.items, clients.orderKey!)
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   // 그룹 렌더 — rail(접힘)에서는 드래그 없이 아이콘만
-  const clientGroup = (label: string, group: ReturnType<typeof useOrderedGroup>) => (
+  const sortableGroup = (label: string, group: ReturnType<typeof useOrderedGroup>) => (
     <>
       {!rail && <GroupLabel label={label} />}
       {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
       {rail ? (
         group.ordered.map(c => (
-          <NavRow key={c.id} href={CLIENT_HREF[c.id]} dot={c.dot} label={c.name} tag={c.tag}
-            isActive={isActiveHref(CLIENT_HREF[c.id])} rail={rail} onClose={onClose} />
+          <NavRow key={c.id} href={c.href} dot={c.dot} label={c.label} tag={c.tag}
+            isActive={isActiveHref(c.href)} rail={rail} onClose={onClose} />
         ))
       ) : (
         <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={group.onDragEnd}>
           <SortableContext items={group.ordered.map(c => c.id)} strategy={verticalListSortingStrategy}>
             {group.ordered.map(c => (
-              <SortableClient key={c.id} c={c}
-                isActive={isActiveHref(CLIENT_HREF[c.id])} onClose={onClose} />
+              <SortableRow key={c.id} c={c}
+                isActive={isActiveHref(c.href)} onClose={onClose} />
             ))}
           </SortableContext>
         </DndContext>
@@ -310,18 +273,18 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '4px 8px', overflowY: 'auto', overflowX: 'hidden' }}>
-        {!rail && <GroupLabel label="윌로우인베스트먼트" />}
-        {NAV_ITEMS.map(navLink)}
+        {!rail && <GroupLabel label={willow.label} />}
+        {willow.items.map(navLink)}
 
-        {clientGroup('앱서비스', apps)}
-        {clientGroup('관계회사', investees)}
-        {clientGroup('컨설팅', projects)}
+        {sortableGroup(apps.label, appsOrder)}
+        {sortableGroup(investees.label, investeesOrder)}
+        {sortableGroup(clients.label, clientsOrder)}
 
         {isAdmin && (
           <>
-            {!rail && <GroupLabel label="관리자" />}
+            {!rail && <GroupLabel label={admin.label} />}
             {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
-            {ADMIN_ITEMS.map(navLink)}
+            {admin.items.map(navLink)}
           </>
         )}
       </nav>
