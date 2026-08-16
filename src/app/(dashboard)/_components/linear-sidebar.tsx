@@ -27,7 +27,7 @@ const APPS = [
   { id: 'valuechain',  name: 'ValueChain',  tag: 'Wiki',       dot: '#A392EC' },
 ]
 
-// 투자회사 — 투자·지분 관계로 관리하는 회사
+// 관계회사 — 투자·지분 관계로 관리하는 회사
 const INVESTEES = [
   { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#D9A63F' },
 ]
@@ -314,7 +314,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {NAV_ITEMS.map(navLink)}
 
         {clientGroup('앱서비스', apps)}
-        {clientGroup('투자회사', investees)}
+        {clientGroup('관계회사', investees)}
         {clientGroup('컨설팅', projects)}
 
         {isAdmin && (
