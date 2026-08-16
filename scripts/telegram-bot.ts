@@ -26,7 +26,7 @@ import { resolveLocalProjectContext, getLocalProjectByKey } from './lib/local-pr
 import { createMessageBatcher } from './lib/message-batcher'
 import { randomUUID } from 'node:crypto'
 import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
-import { diffVoicecardsActivationIds, expandVoicecardsKnownActivationIds, voicecardsDeviceDisplayName, voicecardsLocalActivationOwnerId } from '../src/lib/voicecards-device-journey'
+import { countVoicecardsDailyActivations, diffVoicecardsActivationIds, expandVoicecardsKnownActivationIds, voicecardsDeviceDisplayName, voicecardsLocalActivationOwnerId } from '../src/lib/voicecards-device-journey'
 
 // ============================================================
 // Config
@@ -40,8 +40,12 @@ const supabase = createClient(
 const voicecardsSupabase = process.env.VOICECARDS_SUPABASE_URL && process.env.VOICECARDS_SUPABASE_KEY
   ? createClient(process.env.VOICECARDS_SUPABASE_URL, process.env.VOICECARDS_SUPABASE_KEY)
   : null
-const reviewnotesSupabase = process.env.REVIEWNOTES_SUPABASE_URL && process.env.REVIEWNOTES_SUPABASE_KEY
-  ? createClient(process.env.REVIEWNOTES_SUPABASE_URL, process.env.REVIEWNOTES_SUPABASE_KEY)
+// 시크릿 키 우선. 리뷰노트 쪽 anon 접근(User 정책·rn_* RPC)을 잠갔으므로 퍼블리셔블 키로는
+// 더 이상 읽히지 않는다. 보는 데이터 자체는 전환 전후가 같다(User는 anon도 전수 조회였고,
+// activated_users 뷰는 RLS 없음, WebhookEvent는 비어 있음 — 전환 전 실측 확인).
+const reviewnotesKey = process.env.REVIEWNOTES_SUPABASE_SERVICE_KEY || process.env.REVIEWNOTES_SUPABASE_KEY
+const reviewnotesSupabase = process.env.REVIEWNOTES_SUPABASE_URL && reviewnotesKey
+  ? createClient(process.env.REVIEWNOTES_SUPABASE_URL, reviewnotesKey)
   : null
 
 const MAX_HISTORY = 50 // 대화 기록 최대 보관 수
@@ -59,8 +63,9 @@ const AUTO_FOLLOW_UP_SCAN_INTERVAL = 30 * 60 * 1000 // 30분마다 자동 follow
 const AUTO_FOLLOW_UP_NOTIFY_ON_CREATE = false // 후보 등록 사실은 기본적으로 조용히 처리
 const AUTO_FOLLOW_UP_ENABLE_WIKI_SIGNALS = false // 위키 신호는 기준 정교화 전까지 비활성
 const VOICECARDS_EVENT_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 앱 사용자 로그 점검
-const VOICECARDS_PURCHASE_MONITOR_INTERVAL = 60 * 1000 // 1분마다 결제 감시
+const VOICECARDS_PURCHASE_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 결제 감시
 const REVIEWNOTES_MONITOR_INTERVAL = 20 * 60 * 1000 // 20분마다 ReviewNotes 이상징후 점검
+const REVIEWNOTES_ACTIVATION_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 ReviewNotes 신규 활성화 점검
 const ENABLE_VOICECARDS_LOCAL_LOG_MONITOR = process.env.WILLY_ENABLE_VOICECARDS_LOCAL_LOG_MONITOR === '1'
 const TELEGRAM_RETRY_FALLBACK_MS = 1000
 const TELEGRAM_RETRY_CAP_MS = 3 * 60 * 1000
@@ -2427,15 +2432,6 @@ function shortVoicecardsUserId(value: string | null | undefined): string {
   return value.length > 10 ? `${value.slice(0, 6)}...${value.slice(-4)}` : value
 }
 
-function buildVoicecardsEventCounts(events: VoicecardsEventRow[]): Map<string, number> {
-  const counts = new Map<string, number>()
-  for (const event of events) {
-    const key = event.event_name || 'unknown'
-    counts.set(key, (counts.get(key) || 0) + 1)
-  }
-  return counts
-}
-
 function isVoicecardsPurchaseEvent(event: VoicecardsEventRow): boolean {
   if (event.event_name !== 'credits_changed') return false
   const delta = Number(event.properties?.delta || 0)
@@ -2497,12 +2493,16 @@ async function fetchVoicecardsExcludedUserIds(): Promise<Set<string>> {
 }
 
 async function fetchVoicecardsActivationSnapshot(excludedUserIds: Set<string>) {
-  if (!voicecardsSupabase) return { activatedUserIds: new Set<string>(), mergedDeviceOwners: new Map<string, string>() }
+  if (!voicecardsSupabase) return {
+    activatedUserIds: new Set<string>(),
+    mergedDeviceOwners: new Map<string, string>(),
+    activationDates: new Map<string, string>(),
+  }
   const [users, analytics, localActivations] = await Promise.all([
-    fetchAllVoicecardsRows<{ user_id: string; sheet_ids: unknown; merged_into: string | null }>(async (from, to) =>
+    fetchAllVoicecardsRows<{ user_id: string; sheet_ids: unknown; merged_into: string | null; created_at: string }>(async (from, to) =>
       voicecardsSupabase!
         .from('users')
-        .select('user_id, sheet_ids, merged_into')
+        .select('user_id, sheet_ids, merged_into, created_at')
         .range(from, to)
     ),
     fetchAllVoicecardsRows<{ user_id: string }>(async (from, to) =>
@@ -2513,10 +2513,10 @@ async function fetchVoicecardsActivationSnapshot(excludedUserIds: Set<string>) {
         .not('sheet_id', 'like', 'demo-%')
         .range(from, to)
     ),
-    fetchAllVoicecardsRows<{ device_id: string | null; user_id: string | null }>(async (from, to) =>
+    fetchAllVoicecardsRows<{ device_id: string | null; user_id: string | null; created_at: string }>(async (from, to) =>
       voicecardsSupabase!
         .from('anonymous_events')
-        .select('device_id, user_id')
+        .select('device_id, user_id, created_at')
         .eq('event_name', 'pending_local_sheet_created')
         .eq('is_likely_bot', false)
         .range(from, to)
@@ -2528,68 +2528,52 @@ async function fetchVoicecardsActivationSnapshot(excludedUserIds: Set<string>) {
     !excludedUserIds.has(user.user_id)
     && !(user.user_id.startsWith('device:') && !!user.merged_into)
   )
+  const visibleUserMap = new Map(visibleUsers.map(user => [user.user_id, user] as const))
   const visibleUserIds = new Set(visibleUsers.map(user => user.user_id))
   const mergedDeviceOwners = new Map(
     users
       .filter(user => user.user_id.startsWith('device:') && !!user.merged_into)
       .map(user => [user.user_id, user.merged_into!] as const),
   )
+  const activationDates = new Map<string, string>()
+  const addActivation = (ownerId: string, localCreatedAt?: string) => {
+    if (!visibleUserIds.has(ownerId)) return
+    activated.add(ownerId)
+
+    const accountCreatedAt = visibleUserMap.get(ownerId)?.created_at
+    const activatedAt = ownerId.startsWith('device:')
+      ? localCreatedAt
+      : accountCreatedAt || localCreatedAt
+    const previous = activationDates.get(ownerId)
+    if (activatedAt && (!previous || activatedAt < previous)) activationDates.set(ownerId, activatedAt)
+  }
   for (const user of visibleUsers) {
     if (Array.isArray(user.sheet_ids) && user.sheet_ids.length > 0) {
-      activated.add(user.user_id)
+      addActivation(user.user_id)
     }
   }
   for (const row of analytics) {
     const ownerId = mergedDeviceOwners.get(row.user_id) || row.user_id
-    if (visibleUserIds.has(ownerId)) activated.add(ownerId)
+    addActivation(ownerId)
   }
   for (const row of localActivations) {
     const ownerId = voicecardsLocalActivationOwnerId(row, mergedDeviceOwners)
-    if (ownerId && visibleUserIds.has(ownerId)) activated.add(ownerId)
+    if (ownerId) addActivation(ownerId, row.created_at)
   }
-  return { activatedUserIds: activated, mergedDeviceOwners }
+  return { activatedUserIds: activated, mergedDeviceOwners, activationDates }
 }
 
-async function fetchVoicecardsEventsSince(sinceIso: string): Promise<VoicecardsEventRow[]> {
-  if (!voicecardsSupabase) return []
-  const excludedUserIds = await fetchVoicecardsExcludedUserIds()
-  const rows = await fetchAllVoicecardsRows<VoicecardsEventRow>(async (from, to) =>
-    voicecardsSupabase!
-      .from('anonymous_events_real_users')
-      .select('event_name, created_at, user_id, device_id, properties')
-      .eq('is_likely_bot', false)
-      .gte('created_at', sinceIso)
-      .order('created_at', { ascending: true })
-      .range(from, to)
-  )
-  return rows.filter(row => !row.user_id || !excludedUserIds.has(row.user_id))
-}
-
-async function fetchVoicecardsRawEventsSince(sinceIso: string): Promise<VoicecardsEventRow[]> {
-  if (!voicecardsSupabase) return []
-  const excludedUserIds = await fetchVoicecardsExcludedUserIds()
-  const rows = await fetchAllVoicecardsRows<VoicecardsEventRow>(async (from, to) =>
-    voicecardsSupabase!
-      .from('anonymous_events')
-      .select('event_name, created_at, user_id, device_id, properties')
-      .gte('created_at', sinceIso)
-      .order('created_at', { ascending: true })
-      .range(from, to)
-  )
-  return rows.filter(row => !row.user_id || !excludedUserIds.has(row.user_id))
-}
-
-// Count of ALL raw events (no user/bot exclusions) since a cutoff — used to tell a
-// genuine ingestion outage apart from a natural quiet window. Returns -1 on error /
-// no client so a failed count never triggers an outage alert.
-async function fetchVoicecardsRawAllCountSince(sinceIso: string): Promise<number> {
-  if (!voicecardsSupabase) return -1
-  const { count, error } = await voicecardsSupabase
+async function fetchLatestVoicecardsAppOpenedAt(): Promise<string | null> {
+  if (!voicecardsSupabase) return null
+  const { data, error } = await voicecardsSupabase
     .from('anonymous_events')
-    .select('id', { count: 'exact', head: true })
-    .gte('created_at', sinceIso)
-  if (error) return -1
-  return count ?? 0
+    .select('created_at')
+    .eq('event_name', 'app_opened')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) return null
+  return data?.created_at || null
 }
 
 async function fetchVoicecardsPurchaseEventsSince(sinceIso: string): Promise<VoicecardsEventRow[]> {
@@ -2671,6 +2655,9 @@ async function sendVoicecardsEventAlert(message: string, details: Record<string,
 
 // 스토어에 실제 적용한 지역가만 명시하고, 미설정 국가는 USD 기준가로 표시한다.
 const VC_PRODUCT_PRICES_USD: Record<string, number> = {
+  // 엔트리팩(2026-08-16 첫 결제). IN/PH 지역가는 스토어 티어를 확인하기 전까지 두지 않고
+  // USD 기준가로 표시한다 — 없는 값을 적으면 알림이 조용히 틀린 금액을 말한다.
+  'com.monor.voicecards.credits.100': 0.99,
   'com.monor.voicecards.credits.1000': 9.99,
   'com.monor.voicecards.credits.5500': 49.99,
   'com.monor.voicecards.credits.12000': 99.99,
@@ -2821,29 +2808,12 @@ async function monitorVoicecardsUserEvents() {
   if (!ceoChatId || !voicecardsSupabase) return
   // 활성화·구매 같은 운영 이벤트는 일요일 브리핑 휴무와 무관하게 실시간으로 받는다 (CEO, 2026-08-03)
 
-  const events = await fetchVoicecardsEventsSince(new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString())
-  if (!events.length) return
-
-  const nowMs = Date.now()
-  const recentCutoffIso = new Date(nowMs - 12 * 60 * 60 * 1000).toISOString()
-  let recent12h = events.filter(event => Date.parse(event.created_at) >= nowMs - 12 * 60 * 60 * 1000)
-  if (!recent12h.length) {
-    // The real-users view can lag or return an empty window while the source table is current.
-    recent12h = await fetchVoicecardsRawEventsSince(recentCutoffIso)
-  }
-  const previous60h = events.filter(event => {
-    const ts = Date.parse(event.created_at)
-    return ts < nowMs - 12 * 60 * 60 * 1000 && ts >= nowMs - 72 * 60 * 60 * 1000
-  })
-
-  const recentCounts = buildVoicecardsEventCounts(recent12h)
-  const previousCounts = buildVoicecardsEventCounts(previous60h)
   let stateChanged = false
 
   // 활성화 완료 = 대시보드와 동일하게 자기 시트가 있거나 데모 외 자기 카드가 생긴 상태.
   // Drive 연동이나 AI draft 생성만으로는 알림하지 않는다.
   const excludedUserIds = await fetchVoicecardsExcludedUserIds()
-  const { activatedUserIds, mergedDeviceOwners } = await fetchVoicecardsActivationSnapshot(excludedUserIds)
+  const { activatedUserIds, mergedDeviceOwners, activationDates } = await fetchVoicecardsActivationSnapshot(excludedUserIds)
   const knownActivatedUserIds = voicecardsEventMonitorState.activatedUserIds
 
   // 최초 배포 시에는 현재 활성 사용자를 기준선으로 저장해 과거 사용자 재알림을 막는다.
@@ -2863,6 +2833,11 @@ async function monitorVoicecardsUserEvents() {
       const activationAlertState = getVoicecardsAlertState('activated_new_user')
       const userMap = await fetchVoicecardsUsers(freshUserIds)
       const detectedAt = new Date().toISOString()
+      const dailyCumulative = countVoicecardsDailyActivations(
+        activatedUserIds,
+        activationDates,
+        formatDate(new Date(detectedAt)),
+      )
       const activatedUsers = freshUserIds.slice(0, 5).map(userId =>
         formatVoicecardsUserLabel(userMap.get(userId), userId)
       )
@@ -2871,10 +2846,12 @@ async function monitorVoicecardsUserEvents() {
         '🎉 [VoiceCards 사용자 로그 알림]',
         `- 활성화(자기 시트·카드 생성)까지 마친 신규 사용자 ${freshUserIds.length}명`,
         activatedUsers.length ? `- 사용자: ${activatedUsers.join(', ')}` : '',
+        `- 오늘 누적 활성화: ${dailyCumulative}명`,
         `- 감지 시각: ${formatKstShort(detectedAt)}`,
       ].filter(Boolean).join('\n'), {
         issue: 'activated_new_user',
         count: freshUserIds.length,
+        dailyCumulative,
         activatedUsers,
         detectedAt,
       })
@@ -2892,68 +2869,26 @@ async function monitorVoicecardsUserEvents() {
     if (freshUserIds.length) stateChanged = true
   }
 
-  const totalRecentEvents = recent12h.length
-  const totalPreviousEvents = previous60h.length
   const inactivityState = getVoicecardsAlertState('no_recent_activity')
-  // The real-user base is small and bursty — a few heavy users generate most events
-  // in short bursts, so "0 real-user events in 12h" happens naturally overnight and is
-  // NOT an outage. Only escalate when the RAW table (all sources: anonymous, test,
-  // App Review, bots; no exclusions) is ALSO empty in the window — that is a genuine
-  // ingestion stop. The count query returns -1 on failure, which never alerts.
-  const rawAllRecentCount = totalRecentEvents === 0
-    ? await fetchVoicecardsRawAllCountSince(recentCutoffIso)
-    : -1
-  if (totalRecentEvents === 0 && rawAllRecentCount === 0 && totalPreviousEvents >= 40) {
+  // 이벤트 수집 중단 감지는 72시간 이벤트 전수 조회 대신 event_name+created_at 인덱스의
+  // 최신 app_opened 한 건만 읽는다. 운영 알림 때문에 DB I/O를 증폭시키지 않기 위함이다.
+  const latestAppOpenedAt = await fetchLatestVoicecardsAppOpenedAt()
+  const latestAppOpenedMs = Date.parse(latestAppOpenedAt || '')
+  if (Number.isFinite(latestAppOpenedMs) && Date.now() - latestAppOpenedMs >= 12 * 60 * 60 * 1000) {
     const alertHash = simpleHash('inactive')
     if (inactivityState.lastHash !== alertHash || !isCooldownActive(inactivityState.lastAlertAt, 12 * 60 * 60 * 1000)) {
       await sendVoicecardsEventAlert([
         '⚠️ [VoiceCards 사용자 로그 알림]',
-        '- 감지: 최근 12시간 동안 이벤트 수집이 0건이에요 (익명·테스트 포함 전 소스 기준).',
-        `- 이전 60시간 이벤트: ${totalPreviousEvents}건`,
+        '- 감지: 최근 12시간 동안 app_opened 이벤트가 없어요.',
+        `- 마지막 수집: ${formatKstShort(latestAppOpenedAt!)}`,
         '- 추정: 트래킹 파이프라인(수집)이 멈췄을 가능성이 높아요.',
       ].join('\n'), {
         issue: 'no_recent_activity',
-        recent12h: totalRecentEvents,
-        rawAllRecent: rawAllRecentCount,
-        previous60h: totalPreviousEvents,
+        latestAppOpenedAt,
       })
 
       inactivityState.lastHash = alertHash
       inactivityState.lastAlertAt = new Date().toISOString()
-      stateChanged = true
-    }
-  }
-
-  // 프롬프트 노출 대비 signin 0은 저의도 dismiss가 대부분이라 오탐 (2026-07-13 확인).
-  // "시도했는데 실패"만 진짜 막힘 신호: 로그인 버튼 탭 또는 파이프라인 오류 이벤트 기준.
-  const signinClicked = (recentCounts.get('prompt_signin_clicked') || 0)
-    + (recentCounts.get('add_sheet_signin_and_create_clicked') || 0)
-  const signinCompleted = recentCounts.get('signin_completed') || 0
-  const signinErrors = (recentCounts.get('signup_folder_failed') || 0)
-    + (recentCounts.get('user_row_create_failed') || 0)
-  const signinFrictionState = getVoicecardsAlertState('signin_friction')
-  if ((signinClicked >= 1 && signinCompleted === 0) || signinErrors >= 1) {
-    const priorSigninClicked = (previousCounts.get('prompt_signin_clicked') || 0)
-      + (previousCounts.get('add_sheet_signin_and_create_clicked') || 0)
-    const priorSigninCompleted = previousCounts.get('signin_completed') || 0
-    const alertHash = simpleHash(`signin-friction|${signinClicked}|${signinCompleted}|${signinErrors}|${priorSigninClicked}|${priorSigninCompleted}`)
-    if (signinFrictionState.lastHash !== alertHash || !isCooldownActive(signinFrictionState.lastAlertAt, 6 * 60 * 60 * 1000)) {
-      await sendVoicecardsEventAlert([
-        '⚠️ [VoiceCards 사용자 로그 알림]',
-        `- 감지: 최근 12시간 로그인 시도(버튼 탭) ${signinClicked}건 · signin_completed ${signinCompleted}건 · 파이프라인 오류 ${signinErrors}건`,
-        `- 비교: 이전 60시간 시도 ${priorSigninClicked} · 완료 ${priorSigninCompleted}`,
-        '- 추정: 로그인을 시도했는데 완료되지 않았거나(OAuth/폴더 생성 실패), 가입 파이프라인 오류가 발생했어요.',
-      ].join('\n'), {
-        issue: 'signin_friction',
-        signinClicked,
-        signinCompleted,
-        signinErrors,
-        priorSigninClicked,
-        priorSigninCompleted,
-      })
-
-      signinFrictionState.lastHash = alertHash
-      signinFrictionState.lastAlertAt = new Date().toISOString()
       stateChanged = true
     }
   }
@@ -2963,6 +2898,12 @@ async function monitorVoicecardsUserEvents() {
 
 interface ReviewnotesMonitorState {
   alerts: Record<string, VoicecardsMonitorAlertState>
+  activatedUserIds?: string[]
+}
+
+interface ReviewnotesActivatedUserRow {
+  user_id: string
+  first_problem_at: string
 }
 
 interface ReviewnotesPageViewRow {
@@ -3027,6 +2968,9 @@ function loadReviewnotesMonitorState(): ReviewnotesMonitorState {
     const saved = JSON.parse(raw)
     return {
       alerts: typeof saved?.alerts === 'object' && saved.alerts ? saved.alerts : {},
+      activatedUserIds: Array.isArray(saved?.activatedUserIds)
+        ? saved.activatedUserIds.filter((value: unknown): value is string => typeof value === 'string')
+        : undefined,
     }
   } catch {
     return defaultReviewnotesMonitorState()
@@ -3089,6 +3033,90 @@ async function sendReviewnotesMonitorAlert(message: string, details: Record<stri
     content: `[ReviewNotes 시스템 버그 알림]\n${message}`,
     timestamp: new Date().toISOString(),
   })
+}
+
+async function sendReviewnotesActivationAlert(message: string, details: Record<string, unknown>) {
+  if (!ceoChatId) return
+
+  recordRuntimeEvent({
+    botKey: 'willy-bot',
+    jsonlPath: BOT_RUNTIME_JSONL_FILE,
+    level: 'info',
+    source: 'reviewnotes_activation_alert',
+    message: 'reviewnotes new user activated',
+    details,
+  })
+
+  await sendMessage(ceoChatId, message)
+  await appendToConversation(ceoChatId, {
+    role: 'assistant',
+    content: `[ReviewNotes 활성 사용자 알림]\n${message}`,
+    timestamp: new Date().toISOString(),
+  })
+}
+
+async function monitorReviewnotesActivations() {
+  if (!ceoChatId || !reviewnotesSupabase) return
+
+  const { data, error } = await reviewnotesSupabase
+    .from('reviewnotes_activated_users')
+    .select('user_id, first_problem_at')
+    .order('first_problem_at', { ascending: true })
+
+  if (error) throw error
+
+  const activatedUsers = (data || []) as ReviewnotesActivatedUserRow[]
+  const activatedUserIds = activatedUsers.map(row => row.user_id)
+  const knownActivatedUserIds = reviewnotesMonitorState.activatedUserIds
+
+  // 첫 실행에서는 과거 활성 사용자를 기준값으로만 저장해 소급 알림을 막는다.
+  if (!knownActivatedUserIds) {
+    reviewnotesMonitorState.activatedUserIds = activatedUserIds
+    saveReviewnotesMonitorState()
+    return
+  }
+
+  const known = new Set(knownActivatedUserIds)
+  const freshUsers = activatedUsers.filter(row => !known.has(row.user_id))
+  if (!freshUsers.length) return
+
+  const freshUserIds = freshUsers.map(row => row.user_id)
+  const { data: userRows, error: userError } = await reviewnotesSupabase
+    .from('User')
+    .select('id, name, email, createdAt')
+    .in('id', freshUserIds)
+
+  if (userError) throw userError
+
+  const usersById = new Map((userRows || []).map(user => [user.id, user]))
+  for (const activated of freshUsers) {
+    const user = usersById.get(activated.user_id)
+    const label = user?.name?.trim() || user?.email || activated.user_id
+    const elapsedMs = user?.createdAt
+      ? Date.parse(activated.first_problem_at) - Date.parse(user.createdAt)
+      : Number.NaN
+    const elapsedMinutes = Number.isFinite(elapsedMs) ? Math.max(0, Math.round(elapsedMs / 60000)) : null
+
+    await sendReviewnotesActivationAlert([
+      '🎉 [ReviewNotes 신규 활성 사용자]',
+      `- 사용자: ${label}${user?.email && user.email !== label ? ` (${user.email})` : ''}`,
+      '- 활성화: 가입 후 첫 문제 등록 완료',
+      elapsedMinutes !== null ? `- 가입→활성화: 약 ${elapsedMinutes}분` : '',
+      `- 문제 등록: ${formatKstShort(activated.first_problem_at)}`,
+    ].filter(Boolean).join('\n'), {
+      issue: 'activated_new_user',
+      userId: activated.user_id,
+      email: user?.email || null,
+      firstProblemAt: activated.first_problem_at,
+      elapsedMinutes,
+    })
+  }
+
+  reviewnotesMonitorState.activatedUserIds = Array.from(new Set([
+    ...knownActivatedUserIds,
+    ...activatedUserIds,
+  ]))
+  saveReviewnotesMonitorState()
 }
 
 async function monitorReviewnotesSignals() {
@@ -6856,7 +6884,7 @@ async function main() {
     try { await breakingNewsCheck() } catch (err) { console.error('Breaking news error:', err) }
   }, BREAKING_CHECK_INTERVAL)
 
-  // VoiceCards 결제 감시 (1분 간격, 실시간에 가깝게)
+  // VoiceCards 결제 감시 (15분 간격)
   console.log(`💳 VoiceCards 결제 감시 활성화 (${VOICECARDS_PURCHASE_MONITOR_INTERVAL / 1000}초 간격)`)
   setInterval(async () => {
     try { await monitorVoicecardsPurchases() } catch (err) { console.error('VoiceCards purchase monitor error:', err) }
@@ -6874,6 +6902,15 @@ async function main() {
     void monitorVoicecardsUserEvents().catch(err => console.error('VoiceCards user event monitor bootstrap error:', err))
   }, 8000)
 
+  // ReviewNotes 신규 활성화 감시 (15분 간격)
+  console.log(`🎉 ReviewNotes 신규 활성화 감시 활성화 (${REVIEWNOTES_ACTIVATION_MONITOR_INTERVAL / 60000}분 간격)`)
+  setInterval(async () => {
+    try { await monitorReviewnotesActivations() } catch (err) { console.error('ReviewNotes activation monitor error:', err) }
+  }, REVIEWNOTES_ACTIVATION_MONITOR_INTERVAL)
+  setTimeout(() => {
+    void monitorReviewnotesActivations().catch(err => console.error('ReviewNotes activation monitor bootstrap error:', err))
+  }, 10000)
+
   // ReviewNotes 시스템 버그 감시 (20분 간격)
   console.log(`📝 ReviewNotes 시스템 버그 감시 활성화 (${REVIEWNOTES_MONITOR_INTERVAL / 60000}분 간격)`)
   setInterval(async () => {
@@ -6881,7 +6918,7 @@ async function main() {
   }, REVIEWNOTES_MONITOR_INTERVAL)
   setTimeout(() => {
     void monitorReviewnotesSignals().catch(err => console.error('ReviewNotes monitor bootstrap error:', err))
-  }, 10000)
+  }, 14000)
 
   if (ENABLE_VOICECARDS_LOCAL_LOG_MONITOR) {
     console.log(`🧯 VoiceCards 로컬 로그 감시 활성화 (${SERVICE_LOG_MONITOR_INTERVAL / 1000}초 간격)`)
