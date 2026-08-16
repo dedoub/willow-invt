@@ -14,6 +14,13 @@ import {
   type VoicecardsAnonymousLearningRow,
   type VoicecardsDeviceJourneyRow,
 } from '@/lib/voicecards-device-journey'
+import {
+  buildVoicecardsLocalAssetMap,
+  LOCAL_SHEET_CREATED_EVENT,
+  LOCAL_SHEET_FLUSHED_EVENT,
+  type VoicecardsLocalAssets,
+  type VoicecardsLocalSheetRow,
+} from '@/lib/voicecards-local-assets'
 
 // Supabase 클라이언트 (service_role) — willow-dash credentials/cache 저장
 const supabase = createClient(
@@ -1341,33 +1348,26 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
 
   // 로컬 덱은 users.sheet_ids/user_analytics에 저장되지 않는다. 생성 이벤트의 card_count를
   // 사용자별로 접어 대시보드 시트·카드 수와 활성화 집계에 포함한다.
-  type LocalAssets = { sheets: number; cards: number; sheetsToday: number; cardsToday: number; firstCreatedAt: string | null }
-  const userLocalAssetsMap = new Map<string, LocalAssets>()
-  const deviceActivatedIds = new Set<string>()
+  //
+  // flush 이벤트까지 함께 읽는 이유는 buildVoicecardsLocalAssetMap 참고 — 백업된
+  // 로컬 덱은 Drive 시트가 되어 sheet_ids/user_analytics가 이미 세고 있다.
+  let userLocalAssetsMap = new Map<string, VoicecardsLocalAssets>()
+  let deviceActivatedIds = new Set<string>()
   try {
     const { data: localSheetRows } = await vc
       .from('anonymous_events')
-      .select('device_id, created_at, properties')
-      .eq('event_name', 'pending_local_sheet_created')
-    const todayKst = kstDateKey(new Date())
-    for (const row of ((localSheetRows || []) as Array<{ device_id: string | null; created_at: string | null; properties: { card_count?: number | string } | null }>)) {
-      if (!row.device_id) continue
-      const ownerId = localAssetOwnerMap.get(row.device_id) || `device:${row.device_id}`
-      if (!visibleUserIds.has(ownerId)) continue
-      const cardCount = Math.max(0, Number(row.properties?.card_count) || 0)
-      const isToday = !!row.created_at && kstDateKey(row.created_at) === todayKst
-      const prev = userLocalAssetsMap.get(ownerId) || { sheets: 0, cards: 0, sheetsToday: 0, cardsToday: 0, firstCreatedAt: null }
-      userLocalAssetsMap.set(ownerId, {
-        sheets: prev.sheets + 1,
-        cards: prev.cards + cardCount,
-        sheetsToday: prev.sheetsToday + (isToday ? 1 : 0),
-        cardsToday: prev.cardsToday + (isToday ? cardCount : 0),
-        firstCreatedAt: !prev.firstCreatedAt || !!row.created_at && row.created_at < prev.firstCreatedAt
-          ? row.created_at
-          : prev.firstCreatedAt,
-      })
-      deviceActivatedIds.add(ownerId)
-    }
+      .select('device_id, created_at, event_name, properties')
+      .in('event_name', [LOCAL_SHEET_CREATED_EVENT, LOCAL_SHEET_FLUSHED_EVENT])
+    const { assets, activatedOwnerIds } = buildVoicecardsLocalAssetMap(
+      (localSheetRows || []) as VoicecardsLocalSheetRow[],
+      (deviceId) => {
+        const ownerId = localAssetOwnerMap.get(deviceId) || `device:${deviceId}`
+        return visibleUserIds.has(ownerId) ? ownerId : null
+      },
+      kstDateKey(new Date()),
+    )
+    userLocalAssetsMap = assets
+    deviceActivatedIds = activatedOwnerIds
   } catch (e) {
     console.error('[VoiceCards] local-asset map failed (non-fatal):', e)
   }
