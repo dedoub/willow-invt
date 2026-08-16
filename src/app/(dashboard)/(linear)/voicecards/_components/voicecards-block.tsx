@@ -1192,7 +1192,7 @@ export function VoicecardsBlock({
             </div>
             {/* 우측(와이드): 좌측 열 전체 높이로 stretch · 스택 모드: 아래 전폭 + 최소 높이 */}
             <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 190 }}>
-              <DauTrendCard daily={anonymousStats.daily} showTotals={splitLayout} />
+              <DauTrendCard daily={anonymousStats.daily} />
             </div>
             </div>
 
@@ -1745,10 +1745,9 @@ export function VoicecardsBlock({
 // 정착해 재방문하는 사용자와 오늘 처음 온 사람이 같은 칸에 섞여 있었다.
 // 서버 집계(vc_event_stats)를 그대로 재사용해 대시보드 정의와 일치. 봇/관리자 제외 뷰 기준.
 // 새 필드가 없는 옛 캐시 payload는 기기 신규=0, 기기 기존=비로그인 전체로 강등(기존 강등 규칙과 동형).
-function DauTrendCard({ daily, days = 42, showTotals }: {
+function DauTrendCard({ daily, days = 42 }: {
   daily: Array<{ date: string; devices: number; loggedDevices: number; anonDevices: number; newLoggedDevices?: number; memberLoggedDevices?: number; newDeviceDevices?: number; memberDeviceDevices?: number; memberActive30?: number }>
   days?: number
-  showTotals?: boolean // 바 위 희미한 총합 — 바 폭이 충분한 와이드(1열) 모드에서만
 }) {
   const rows = (daily ?? []).slice(-days)
   const max = rows.reduce((m, r) => Math.max(m, r.devices), 0)
@@ -1860,7 +1859,8 @@ function DauTrendCard({ daily, days = 42, showTotals }: {
                 onMouseLeave={() => setHoverIdx(prev => (prev === i ? null : prev))}
                 style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}
               >
-                {showTotals && r.devices > 0 && (
+                {/* 바 위 총합 — 2열 모드에서도 표시(CEO). 바가 좁아지는 만큼 글자를 줄여 옆 바와 안 부딪히게 */}
+                {r.devices > 0 && (
                   <span style={{
                     fontSize: 'calc(7.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
                     fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: 2,
