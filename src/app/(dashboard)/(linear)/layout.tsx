@@ -79,6 +79,8 @@ export default function LinearRouteLayout({
       <style dangerouslySetInnerHTML={{ __html: `
         :where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid #166A97;outline-offset:1px;}
         :where(a,button,input,select,textarea,[tabindex]):focus:not(:focus-visible){outline:none;}
+        /* 사이드바는 네이비 면이라 기본 포커스링(brand600)이 묻힌다 → 밝은 액센트로 */
+        #app-sidebar :where(a,button,[tabindex]):focus-visible{outline-color:#75B9DB;}
       ` }} />
       <div style={{
         height: '100vh', background: t.neutrals.page,

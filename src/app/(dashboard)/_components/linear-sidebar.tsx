@@ -19,22 +19,23 @@ const NAV_ITEMS = [
   { key: 'ryuha',      href: '/ryuha',      label: '류하일정',    icon: 'calendar' },
 ]
 
+// 점 색상은 네이비 사이드바 위에서 읽히도록 밝은 톤을 쓴다(원래 색상의 라이트 변형).
 // 앱서비스 — 직접 운영하는 자체 서비스
 const APPS = [
-  { id: 'voicecards',  name: 'VoiceCards',  tag: 'MonoR Apps', dot: '#2F8F5B' },
-  { id: 'reviewnotes', name: 'ReviewNotes', tag: 'MonoR Apps', dot: '#3F93C6' },
-  { id: 'valuechain',  name: 'ValueChain',  tag: 'Wiki',       dot: '#7C5CD6' },
+  { id: 'voicecards',  name: 'VoiceCards',  tag: 'MonoR Apps', dot: '#4FBE84' },
+  { id: 'reviewnotes', name: 'ReviewNotes', tag: 'MonoR Apps', dot: '#5FAFDF' },
+  { id: 'valuechain',  name: 'ValueChain',  tag: 'Wiki',       dot: '#A392EC' },
 ]
 
 // 투자회사 — 투자·지분 관계로 관리하는 회사
 const INVESTEES = [
-  { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#B88A2A' },
+  { id: 'tensw', name: '텐소프트웍스',  tag: 'Data & AI', dot: '#D9A63F' },
 ]
 
 // 컨설팅 — 클라이언트/파트너 단위 업무
 const CLIENTS = [
-  { id: 'akros', name: '아크로스',      tag: 'Indexing',  dot: '#3F93C6' },
-  { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#1F4E79' },
+  { id: 'akros', name: '아크로스',      tag: 'Indexing',  dot: '#5FAFDF' },
+  { id: 'etc',   name: 'ETC',           tag: 'ETF Platform', dot: '#8FB6D8' },
 ]
 
 const CLIENT_HREF: Record<string, string | undefined> = {
@@ -69,7 +70,7 @@ function GroupLabel({ label }: { label: string }) {
   return (
     <div style={{
       fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, letterSpacing: 0.8,
-      textTransform: 'uppercase' as const, color: t.neutrals.subtle,
+      textTransform: 'uppercase' as const, color: t.sidebar.subtle,
       padding: '12px 8px 4px',
     }}>{label}</div>
   )
@@ -128,8 +129,8 @@ function NavRow({ href, icon, label, dot, tag, isActive, rail, onClose }: {
   isActive: boolean; rail: boolean; onClose?: () => void
 }) {
   const [hover, setHover] = useState(false)
-  const bg = isActive ? t.brand[600] + '14' : hover ? t.neutrals.inner : 'transparent'
-  const color = isActive ? t.brand[700] : hover ? t.neutrals.text : t.neutrals.muted
+  const bg = isActive ? t.sidebar.active : hover ? t.sidebar.hover : 'transparent'
+  const color = isActive || hover ? t.sidebar.text : t.sidebar.muted
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const Wrapper: any = href ? Link : 'div'
   return (
@@ -149,7 +150,7 @@ function NavRow({ href, icon, label, dot, tag, isActive, rail, onClose }: {
         }}
       >
         {isActive && !rail && (
-          <span style={{ position: 'absolute', left: 0, top: 7, bottom: 7, width: 3, borderRadius: 3, background: t.brand[600] }} />
+          <span style={{ position: 'absolute', left: 0, top: 7, bottom: 7, width: 3, borderRadius: 3, background: t.sidebar.accent }} />
         )}
         {icon ? (
           <LIcon name={icon} size={rail ? 18 : 14} stroke={1.8} />
@@ -158,7 +159,7 @@ function NavRow({ href, icon, label, dot, tag, isActive, rail, onClose }: {
         ) : null}
         {!rail && <span style={{ flex: tag ? 1 : undefined }}>{label}</span>}
         {!rail && tag && (
-          <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: isActive ? t.brand[600] : t.neutrals.subtle }}>{tag}</span>
+          <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: isActive ? t.sidebar.accent : t.sidebar.subtle }}>{tag}</span>
         )}
       </Wrapper>
     </RailTip>
@@ -173,9 +174,9 @@ function GhostIconBtn({ onClick, title, children }: { onClick?: () => void; titl
       onClick={onClick} title={title} aria-label={title}
       onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
       style={{
-        background: h ? t.neutrals.inner : 'none', border: 'none', cursor: 'pointer',
+        background: h ? t.sidebar.hover : 'none', border: 'none', cursor: 'pointer',
         padding: 4, borderRadius: 5, flexShrink: 0, display: 'inline-flex', alignItems: 'center',
-        color: h ? t.neutrals.text : t.neutrals.subtle, transition: 'background .12s ease, color .12s ease',
+        color: h ? t.sidebar.text : t.sidebar.subtle, transition: 'background .12s ease, color .12s ease',
       }}
     >
       {children}
@@ -259,7 +260,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   const clientGroup = (label: string, group: ReturnType<typeof useOrderedGroup>) => (
     <>
       {!rail && <GroupLabel label={label} />}
-      {rail && <div style={{ height: 1, background: t.neutrals.line, margin: '8px 6px' }} />}
+      {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
       {rail ? (
         group.ordered.map(c => (
           <NavRow key={c.id} href={CLIENT_HREF[c.id]} dot={c.dot} label={c.name} tag={c.tag}
@@ -279,9 +280,8 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   )
 
   const sidebar = (
-    <aside style={{
-      width: rail ? 56 : mobile ? 'min(85vw, 320px)' : 232, background: t.neutrals.page,
-      borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
+    <aside id="app-sidebar" style={{
+      width: rail ? 56 : mobile ? 'min(85vw, 320px)' : 232, background: t.sidebar.bg,
       display: 'flex', flexDirection: 'column', flexShrink: 0,
       fontFamily: t.font.sans,
       height: mobile ? '100vh' : undefined,
@@ -291,7 +291,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
       <div style={{
         height: 52, padding: rail ? '0' : '0 14px', display: 'flex', alignItems: 'center',
         justifyContent: rail ? 'center' : (mobile ? 'space-between' : undefined),
-        background: t.brand[800],
+        borderBottom: `1px solid ${t.sidebar.line}`,
       }}>
         {rail ? (
           <img src="/leaf-icon.png" alt="willowinvt" style={{ height: 16, width: 16, objectFit: 'contain' }} />
@@ -320,7 +320,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {isAdmin && (
           <>
             {!rail && <GroupLabel label="관리자" />}
-            {rail && <div style={{ height: 1, background: t.neutrals.line, margin: '8px 6px' }} />}
+            {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
             {ADMIN_ITEMS.map(navLink)}
           </>
         )}
@@ -329,7 +329,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
       {/* User */}
       {user && (
         <div style={{
-          padding: rail ? '10px 0' : '10px 12px', borderTop: `1px solid ${t.neutrals.line}`,
+          padding: rail ? '10px 0' : '10px 12px', borderTop: `1px solid ${t.sidebar.line}`,
           display: 'flex', alignItems: 'center',
           justifyContent: rail ? 'center' : undefined, gap: 10,
         }}>
@@ -344,9 +344,9 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
           {!rail && (
             <>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.text }}>{user.name}</div>
+                <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.sidebar.text }}>{user.name}</div>
                 <div style={{
-                  fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle,
+                  fontSize: 'calc(10.5px * var(--fz, 1))', color: t.sidebar.subtle,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{user.email}</div>
               </div>
