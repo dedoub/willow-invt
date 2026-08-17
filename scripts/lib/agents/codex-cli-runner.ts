@@ -1,5 +1,5 @@
-import { spawn } from 'child_process'
-import { writeFileSync, readFileSync, unlinkSync } from 'fs'
+import { spawn, type ChildProcess } from 'child_process'
+import { readFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
@@ -7,6 +7,32 @@ import type { AgentOptions, AgentRunResult, AgentRunner, CodexProgress } from '.
 
 export class AgentAbortError extends Error {
   constructor() { super('agent aborted'); this.name = 'AgentAbortError' }
+}
+
+// timeoutMs를 안 넘기는 호출부(텔레그램 봇의 askClaude 등)가 있어서, 예전엔 타이머가
+// 아예 안 걸렸다. codex가 물리면 프로미스가 영영 안 풀려 자식이 그대로 남았다.
+// 무제한 대기는 이제 불가능하다. 30분 주기인 봇의 자율 점검이 겹치지 않게 10분으로 잡는다.
+export const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000
+// SIGTERM을 무시하는 codex가 실제로 있었다(MCP 전송이 죽은 채 물린 경우). 유예 후 SIGKILL.
+export const KILL_GRACE_MS = 5_000
+
+export function resolveTimeoutMs(timeoutMs?: number): number {
+  return typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0
+    ? timeoutMs
+    : DEFAULT_TIMEOUT_MS
+}
+
+// codex는 MCP 서버들을 자식으로 띄운다. detached로 띄워 자기 프로세스 그룹의 리더가 되게
+// 했으므로, 음수 pid로 신호를 보내면 그 자식들까지 한 번에 정리된다.
+function killTree(proc: ChildProcess, signal: NodeJS.Signals): void {
+  const pid = proc.pid
+  if (pid === undefined) return
+  if (proc.exitCode !== null || proc.signalCode !== null) return
+  try {
+    process.kill(-pid, signal)
+  } catch {
+    try { proc.kill(signal) } catch { /* 이미 죽었다 */ }
+  }
 }
 
 function cleanEnv(): NodeJS.ProcessEnv {
@@ -69,12 +95,25 @@ export const codexCliRunner: AgentRunner = {
         cwd: opts?.cwd || process.cwd(),
         env: cleanEnv(),
         stdio: ['pipe', 'pipe', 'pipe'],
+        detached: true, // 프로세스 그룹 리더로 만들어 MCP 자식까지 함께 죽일 수 있게 한다
       })
+
+      let killTimer: NodeJS.Timeout | null = null
+      const stopKillTimer = () => {
+        if (killTimer) { clearTimeout(killTimer); killTimer = null }
+      }
+      // SIGTERM 한 번으로 끝내지 않는다. 유예 후 SIGKILL까지 확실히 올라간다.
+      const terminateTree = () => {
+        killTree(proc, 'SIGTERM')
+        stopKillTimer()
+        killTimer = setTimeout(() => killTree(proc, 'SIGKILL'), KILL_GRACE_MS)
+        killTimer.unref?.()
+      }
 
       let aborted = false
       const onAbort = () => {
         aborted = true
-        try { proc.kill('SIGTERM') } catch { /* ignore */ }
+        terminateTree()
       }
       opts?.signal?.addEventListener('abort', onAbort, { once: true })
       const cleanupAbort = () => opts?.signal?.removeEventListener('abort', onAbort)
@@ -101,44 +140,69 @@ export const codexCliRunner: AgentRunner = {
         proc.stdout.on('data', () => { /* ignore */ })
       }
 
-      const timer = opts?.timeoutMs
-        ? setTimeout(() => { proc.kill('SIGTERM'); reject(new Error('codex timeout')) }, opts.timeoutMs)
-        : null
+      let timer: NodeJS.Timeout | null = null
+      let settled = false
+      const removeOutFile = () => { try { unlinkSync(outFile) } catch { /* 없으면 그만 */ } }
+      const settle = () => {
+        settled = true
+        if (timer) { clearTimeout(timer); timer = null }
+        cleanupAbort()
+      }
+      const fail = (err: Error) => {
+        if (settled) return
+        settle()
+        reject(err)
+      }
+      const succeed = (result: AgentRunResult) => {
+        if (settled) return
+        settle()
+        resolve(result)
+      }
+
+      // 타임아웃은 이제 선택이 아니다 — 안 넘기면 기본값이 걸린다.
+      timer = setTimeout(() => {
+        terminateTree()
+        fail(new Error('codex timeout'))
+      }, resolveTimeoutMs(opts?.timeoutMs))
 
       proc.on('close', (code) => {
-        if (timer) clearTimeout(timer)
-        cleanupAbort()
+        stopKillTimer()
+        // 타임아웃으로 이미 거절했더라도 임시 파일은 여기서 치운다.
+        if (settled) { removeOutFile(); return }
         if (aborted) {
-          try { unlinkSync(outFile) } catch { /* ignore */ }
-          reject(new AgentAbortError())
+          removeOutFile()
+          fail(new AgentAbortError())
           return
         }
         if (code === 0) {
           try {
             const result = readFileSync(outFile, 'utf-8').trim()
-            try { unlinkSync(outFile) } catch { /* ignore */ }
-            resolve({
+            removeOutFile()
+            succeed({
               text: result,
               backend: 'codex-cli',
               threadId: null,
               usage: null,
             })
           } catch (e) {
-            reject(new Error(`codex output read failed: ${(e as Error).message}\n${stderr}`))
+            removeOutFile()
+            fail(new Error(`codex output read failed: ${(e as Error).message}\n${stderr}`))
           }
         } else {
-          try { unlinkSync(outFile) } catch { /* ignore */ }
-          reject(new Error(`codex exited ${code}: ${stderr}`))
+          removeOutFile()
+          fail(new Error(`codex exited ${code}: ${stderr}`))
         }
       })
 
       proc.on('error', (err) => {
-        if (timer) clearTimeout(timer)
-        cleanupAbort()
-        try { unlinkSync(outFile) } catch { /* ignore */ }
-        reject(new Error(`Failed to spawn codex: ${err.message}`))
+        stopKillTimer()
+        removeOutFile()
+        fail(new Error(`Failed to spawn codex: ${err.message}`))
       })
 
+      // 프롬프트를 다 넘기기 전에 codex가 죽으면 EPIPE가 난다. 봇을 죽이지 않게 삼킨다
+      // (실제 실패 사유는 close/error 핸들러가 stderr와 함께 보고한다).
+      proc.stdin.on('error', () => { /* ignore */ })
       proc.stdin.write(prompt)
       proc.stdin.end()
     })
