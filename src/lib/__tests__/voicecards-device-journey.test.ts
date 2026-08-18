@@ -79,7 +79,7 @@ test('device account display name uses the UUID rather than the device prefix', 
 
 test('user stats cache key is versioned when the response schema changes', async () => {
   const helpers = await loadJourneyHelpers()
-  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v6')
+  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v7')
 })
 
 test('device learning activation uses the local deck creation time', async () => {
@@ -160,6 +160,79 @@ test('a merged device activation is known under its Google owner without a dupli
   )
 })
 
+test('daily activation total counts the deduplicated active owners on the KST date', async () => {
+  const helpers = await loadJourneyHelpers()
+  assert.equal(typeof helpers.countVoicecardsDailyActivations, 'function')
+
+  const countDaily = helpers.countVoicecardsDailyActivations as (
+    activeIds: Iterable<string>,
+    activationDates: ReadonlyMap<string, string>,
+    dateKey: string,
+  ) => number
+  const activationDates = new Map([
+    ['google-today', '2026-08-14T16:00:00.000Z'],
+    ['device:today', '2026-08-15T02:00:00.000Z'],
+    ['google-yesterday', '2026-08-14T14:59:59.000Z'],
+  ])
+
+  assert.equal(
+    countDaily(new Set(['google-today', 'device:today', 'google-yesterday']), activationDates, '2026-08-15'),
+    2,
+  )
+})
+
+test('activation date prefers first qualifying activity over an older signup date', async () => {
+  const helpers = await loadJourneyHelpers()
+  assert.equal(typeof helpers.voicecardsActivationDateFromEvidence, 'function')
+
+  const activationDate = helpers.voicecardsActivationDateFromEvidence as (
+    accountCreatedAt: string | null,
+    evidenceDates: Iterable<string>,
+  ) => string | null
+
+  assert.equal(
+    activationDate(
+      '2026-08-08T22:21:17.024Z',
+      ['2026-08-18T00:04:35.397Z', '2026-08-17T23:57:21.013Z'],
+    ),
+    '2026-08-17T23:57:21.013Z',
+  )
+})
+
+test('analytics activation dates use the first non-demo card creation per owner', async () => {
+  const helpers = await loadJourneyHelpers()
+  assert.equal(typeof helpers.buildVoicecardsAnalyticsActivationDateMap, 'function')
+
+  const buildActivationDates = helpers.buildVoicecardsAnalyticsActivationDateMap as (
+    rows: Array<Record<string, unknown>>,
+    ownerId: (userId: string) => string,
+  ) => Map<string, string>
+  const activationDates = buildActivationDates([
+    {
+      user_id: 'google-user',
+      total_cards: 100,
+      sheet_id: 'demo-en-de',
+      created_at: '2026-08-09T00:00:00.000Z',
+    },
+    {
+      user_id: 'device:merged',
+      total_cards: 4,
+      sheet_id: 'medical-cards',
+      created_at: '2026-08-18T00:04:35.397Z',
+    },
+    {
+      user_id: 'google-user',
+      total_cards: 5,
+      sheet_id: 'daily-5',
+      created_at: '2026-08-17T23:57:21.013Z',
+    },
+  ], userId => userId === 'device:merged' ? 'google-user' : userId)
+
+  assert.deepEqual(
+    Array.from(activationDates.entries()),
+    [['google-user', '2026-08-17T23:57:21.013Z']],
+  )
+})
 
 test('anonymous learning events are assigned to the device account with KST daily counts', async () => {
   const helpers = await loadJourneyHelpers()

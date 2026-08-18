@@ -6,8 +6,10 @@ import { cookies } from 'next/headers'
 import * as jose from 'jose'
 import { kstDateKey } from '@/lib/kst'
 import {
+  buildVoicecardsAnalyticsActivationDateMap,
   buildVoicecardsAnonymousLearningMap,
   buildVoicecardsJourneyMetaMap,
+  voicecardsActivationDateFromEvidence,
   voicecardsCanonicalOwnerId,
   voicecardsJourneyOwnerId,
   type VoicecardsAnonymousLearningMetrics,
@@ -1053,7 +1055,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
   const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, rollupRes, metaRes, activityRes, offersRes, journeysRes] = await Promise.all([
     vc.from('users').select('*').order('created_at', { ascending: false }),
-    vc.from('user_analytics').select('user_id, total_cards, total_attempts, sheet_id'),
+    vc.from('user_analytics').select('user_id, total_cards, total_attempts, sheet_id, created_at'),
     vc.from('user_analytics').select('user_id, last_updated'),
     fetchAllPaged<{ user_id: string; date: string; problems_learned: number; attempts: number }>(
       () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true })
@@ -1123,6 +1125,10 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // analytics: 제외 유저 + orphan(users 테이블에 없는 user_id) 모두 제거 — 유저 목록 합계와 상단 통계 일치
   const visibleUserIds = new Set(users.map(u => u.user_id))
   const analytics = (analyticsRes.data || []).filter(a => visibleUserIds.has(a.user_id))
+  const analyticsActivationDateMap = buildVoicecardsAnalyticsActivationDateMap(
+    analytics,
+    canonicalOwnerId,
+  )
 
   // 유저별 마지막 활동일 계산 (제외/orphan 필터링)
   const lastActivityMap = new Map<string, string>()
@@ -1419,9 +1425,13 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     // 기기 계정 생성은 Google 로그인이 아니다. 사용자 표의 '로그인' 열은
     // 실제 Google 계정만 표시하고, 기기 계정은 installedAt으로만 신규 시점을 보여준다.
     createdAt: u.user_id.startsWith('device:') ? '' : u.created_at,
-    activatedAt: u.user_id.startsWith('device:')
-      ? userLocalAssetsMap.get(u.user_id)?.firstCreatedAt || null
-      : u.created_at,
+    activatedAt: voicecardsActivationDateFromEvidence(
+      u.user_id.startsWith('device:') ? null : u.created_at,
+      [
+        analyticsActivationDateMap.get(u.user_id),
+        userLocalAssetsMap.get(u.user_id)?.firstCreatedAt,
+      ].filter((value): value is string => !!value),
+    ),
     installedAt: journeyMetaMap.get(u.user_id)?.firstSeenAt || null,
     cardsToday: (userActivityMap.get(u.user_id)?.cardsToday || 0) + (userLocalAssetsMap.get(u.user_id)?.cardsToday || 0),
     attemptsToday: (userActivityMap.get(u.user_id)?.attemptsToday || 0) + (anonymousLearningMap.get(u.user_id)?.attemptsToday || 0),

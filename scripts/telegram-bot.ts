@@ -26,7 +26,7 @@ import { resolveLocalProjectContext, getLocalProjectByKey } from './lib/local-pr
 import { createMessageBatcher } from './lib/message-batcher'
 import { randomUUID } from 'node:crypto'
 import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
-import { countVoicecardsDailyActivations, diffVoicecardsActivationIds, expandVoicecardsKnownActivationIds, voicecardsDeviceDisplayName, voicecardsLocalActivationOwnerId } from '../src/lib/voicecards-device-journey'
+import { countVoicecardsDailyActivations, diffVoicecardsActivationIds, expandVoicecardsKnownActivationIds, voicecardsActivationDateFromEvidence, voicecardsDeviceDisplayName, voicecardsLocalActivationOwnerId } from '../src/lib/voicecards-device-journey'
 
 // ============================================================
 // Config
@@ -2505,10 +2505,10 @@ async function fetchVoicecardsActivationSnapshot(excludedUserIds: Set<string>) {
         .select('user_id, sheet_ids, merged_into, created_at')
         .range(from, to)
     ),
-    fetchAllVoicecardsRows<{ user_id: string }>(async (from, to) =>
+    fetchAllVoicecardsRows<{ user_id: string; created_at: string }>(async (from, to) =>
       voicecardsSupabase!
         .from('user_analytics')
-        .select('user_id')
+        .select('user_id, created_at')
         .gt('total_cards', 0)
         .not('sheet_id', 'like', 'demo-%')
         .range(from, to)
@@ -2536,29 +2536,39 @@ async function fetchVoicecardsActivationSnapshot(excludedUserIds: Set<string>) {
       .map(user => [user.user_id, user.merged_into!] as const),
   )
   const activationDates = new Map<string, string>()
-  const addActivation = (ownerId: string, localCreatedAt?: string) => {
+  const activationEvidenceDates = new Map<string, string[]>()
+  const addActivation = (ownerId: string, evidenceCreatedAt?: string) => {
     if (!visibleUserIds.has(ownerId)) return
     activated.add(ownerId)
-
-    const accountCreatedAt = visibleUserMap.get(ownerId)?.created_at
-    const activatedAt = ownerId.startsWith('device:')
-      ? localCreatedAt
-      : accountCreatedAt || localCreatedAt
-    const previous = activationDates.get(ownerId)
-    if (activatedAt && (!previous || activatedAt < previous)) activationDates.set(ownerId, activatedAt)
+    if (evidenceCreatedAt) {
+      activationEvidenceDates.set(ownerId, [
+        ...(activationEvidenceDates.get(ownerId) || []),
+        evidenceCreatedAt,
+      ])
+    }
+  }
+  for (const row of analytics) {
+    const ownerId = mergedDeviceOwners.get(row.user_id) || row.user_id
+    addActivation(ownerId, row.created_at)
+  }
+  for (const row of localActivations) {
+    const ownerId = voicecardsLocalActivationOwnerId(row, mergedDeviceOwners)
+    if (ownerId) addActivation(ownerId, row.created_at)
   }
   for (const user of visibleUsers) {
     if (Array.isArray(user.sheet_ids) && user.sheet_ids.length > 0) {
       addActivation(user.user_id)
     }
   }
-  for (const row of analytics) {
-    const ownerId = mergedDeviceOwners.get(row.user_id) || row.user_id
-    addActivation(ownerId)
-  }
-  for (const row of localActivations) {
-    const ownerId = voicecardsLocalActivationOwnerId(row, mergedDeviceOwners)
-    if (ownerId) addActivation(ownerId, row.created_at)
+  for (const ownerId of activated) {
+    const accountCreatedAt = ownerId.startsWith('device:')
+      ? null
+      : visibleUserMap.get(ownerId)?.created_at || null
+    const activatedAt = voicecardsActivationDateFromEvidence(
+      accountCreatedAt,
+      activationEvidenceDates.get(ownerId) || [],
+    )
+    if (activatedAt) activationDates.set(ownerId, activatedAt)
   }
   return { activatedUserIds: activated, mergedDeviceOwners, activationDates }
 }

@@ -24,7 +24,7 @@ export interface VoicecardsDeviceJourneyMeta {
 }
 
 // Next의 persistent unstable_cache는 배포 사이에도 남을 수 있어 응답 스키마 변경 시 키를 올린다.
-export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v6'
+export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v7'
 
 export interface VoicecardsAnonymousLearningRow {
   device_id: string | null
@@ -149,6 +149,59 @@ export function expandVoicecardsKnownActivationIds(
   return Array.from(expanded)
 }
 
+export function countVoicecardsDailyActivations(
+  activeIds: Iterable<string>,
+  activationDates: ReadonlyMap<string, string>,
+  dateKey: string,
+) {
+  let count = 0
+  for (const id of activeIds) {
+    const activatedAt = activationDates.get(id)
+    if (activatedAt && kstDateKey(activatedAt) === dateKey) count += 1
+  }
+  return count
+}
+
+export function voicecardsActivationDateFromEvidence(
+  accountCreatedAt: string | null,
+  evidenceDates: Iterable<string>,
+) {
+  let earliest: string | null = null
+  let earliestMs = Number.POSITIVE_INFINITY
+
+  for (const value of evidenceDates) {
+    const valueMs = Date.parse(value)
+    if (!Number.isFinite(valueMs) || valueMs >= earliestMs) continue
+    earliest = value
+    earliestMs = valueMs
+  }
+
+  return earliest || accountCreatedAt
+}
+
+export function buildVoicecardsAnalyticsActivationDateMap(
+  rows: Array<{
+    user_id: string
+    total_cards: number | null
+    sheet_id: string | null
+    created_at: string | null
+  }>,
+  ownerId: (userId: string) => string = userId => userId,
+) {
+  const result = new Map<string, string>()
+
+  for (const row of rows) {
+    if ((Number(row.total_cards) || 0) <= 0) continue
+    if (String(row.sheet_id || '').startsWith('demo-')) continue
+    if (!row.created_at || !Number.isFinite(Date.parse(row.created_at))) continue
+
+    const owner = ownerId(row.user_id)
+    const previous = result.get(owner)
+    if (!previous || row.created_at < previous) result.set(owner, row.created_at)
+  }
+
+  return result
+}
 
 export function voicecardsJourneyOwnerId(row: Pick<VoicecardsDeviceJourneyRow, 'device_id' | 'user_id'>) {
   return row.user_id || (row.device_id ? `device:${row.device_id}` : null)
