@@ -19,6 +19,9 @@ npx tsx scripts/tensw-codef-sync.ts --days 14 || echo "  bank sync failed"
 # 홈택스 세금계산서 매출·매입 — 최근 90일 재조회 (발행일은 홈택스 작성일자 기준)
 npx tsx scripts/tensw-codef-tax-sync.ts --days 90 --purchase --promote || echo "  tax sync failed"
 
+# 법인카드 승인내역 — 자동이체 매입의 결제 근거
+npx tsx scripts/tensw-codef-card-sync.ts --days 90 || echo "  card sync failed"
+
 # 결제 대사 — 매출은 입금, 매입은 출금과 대조해 수금완료·지급완료 처리
 npx tsx scripts/tensw-reconcile-payments.ts || echo "  reconcile failed"
 

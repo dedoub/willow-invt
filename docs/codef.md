@@ -9,15 +9,18 @@
 |------|------|
 | `src/lib/codef/client.ts` | OAuth 토큰 캐시, 요청/응답 URI 인코딩 처리, 비밀번호 RSA 암호화 |
 | `src/lib/codef/bank.ts` | 기업 보유계좌·수시입출 거래내역 래퍼, 기관코드, 텐소 계좌 매핑 |
+| `src/lib/codef/card.ts` | 법인 보유카드·승인내역 래퍼, 카드사 코드 |
 | `src/lib/codef/hometax.ts` | 홈택스 전자세금계산서 목록 래퍼, 인증서 자격 구성, 3개월 분할 |
 | `scripts/codef-register-account.ts` | 커넥티드 아이디 발급/조회 (`npm run codef:register`) |
 | `scripts/tensw-codef-sync.ts` | 거래내역 → 스테이징 적재 (`npm run tensw:bank:sync`) |
 | `scripts/tensw-codef-tax-sync.ts` | 세금계산서 → 스테이징 + 매출 연결 (`npm run tensw:tax:sync`) |
+| `scripts/tensw-codef-card-sync.ts` | 카드 승인내역 적재 (`npm run tensw:card:sync`) |
 | `scripts/tensw-reconcile-payments.ts` | 계산서 ↔ 은행 입금 대사 (`npm run tensw:reconcile`) |
 | `scripts/codef-encrypt-password.ts` | 비밀번호 RSA 암호화 (`npm run codef:encrypt`) |
 | `scripts/codef-smoke.ts` | 토큰·연결 확인 |
 | `tensw_codef_transactions` | 은행 원본 거래 스테이징 |
 | `tensw_codef_tax_invoices` | 홈택스 세금계산서 스테이징 |
+| `tensw_codef_card_approvals` | 법인카드 승인내역 원본 |
 
 ## 엔드포인트
 
@@ -27,6 +30,8 @@
 - 기업 보유계좌 `POST /v1/kr/bank/b/account/account-list`
 - 기업 수시입출 거래내역 `POST /v1/kr/bank/b/account/transaction-list`
 - 전자세금계산서 목록 `POST /v1/kr/public/nt/tax-invoice/check-list` (기관코드 고정 `0002`)
+- 법인 보유카드 `POST /v1/kr/card/b/account/card-list`, 승인내역 `POST /v1/kr/card/b/account/approval-list`
+  (우리카드 `0309`, `memberStoreInfoType='3'` 이어야 가맹점 사업자번호·부가세가 온다)
 
 요청 바디는 JSON을 `encodeURIComponent` 한 문자열로 보내고, 응답 바디도 URI 인코딩되어 오므로
 `+`를 공백으로 바꾼 뒤 디코딩해야 한다. 클라이언트가 이미 처리한다.
@@ -102,7 +107,7 @@ launchd로 매일 08:00에 최근 14일을 다시 훑는다. 은행이 늦게 �
 |---|---|
 | Label | `com.willow.tensw-bank-sync` |
 | plist | `scripts/com.willow.tensw-bank-sync.plist` → `~/Library/LaunchAgents/` |
-| 실행 | `scripts/run-tensw-bank-sync.sh` — 은행 14일 → 홈택스 90일 → 수금 대사 (drive-launcher 경유) |
+| 실행 | `scripts/run-tensw-bank-sync.sh` — 은행 14일 → 홈택스 90일 → 카드 90일 → 결제 대사 |
 | 로그 | `~/logs/tensw-bank-sync/launchd.log` |
 
 ```
@@ -164,6 +169,23 @@ launchctl start com.willow.tensw-bank-sync # 즉시 1회 실행
 엉뚱한 달 출금이 붙는다. **어중간하게 맞추느니 미매칭으로 남긴다.**
 
 **일부 수금·지급도 완료로 처리하되 부족액을 `notes`에 남긴다.** 한 입출금은 한 계산서에만 쓴다.
+
+## 자동이체 거래처
+
+한전·KT·구글클라우드는 계산서와 결제가 1:1이 아니다. 실측한 어긋남:
+
+| 거래처 | 계산서 | 실제 결제 | 이유 |
+|---|---|---|---|
+| 한국전력공사 | 151,066 | 카드 109,850 · 393,050 / 은행 자동이체 | 계량기별 청구 vs 합산 결제, 카드·은행 혼재 |
+| 주식회사 케이티 | 70,382 | 142,650 | 회선별 청구 vs 요금제 합산 승인 |
+| 구글클라우드 | 실사용액 | 10만·50만·100만 | 선불 충전 방식 |
+
+**구글클라우드는 사업자번호부터 다르다.** 계산서 `103-86-01049`, 카드 가맹점 `411-86-01799`.
+그래서 사업자번호만으로는 못 붙이고 상호로도 본다.
+
+이 거래처들은 `AUTO_DEBIT_VENDORS` 목록에 두고 지급완료로 처리하되, 카드 승인과 은행 출금 양쪽에서
+찾은 근거를 `notes` 에 남긴다. 금액은 맞추지 않는다. 합산 매칭 대상에서도 뺀다 — 억지로 붙이면
+2월분과 4월분 전기요금 계산서가 6월 출금에 엮인다. 새 거래처가 늘면 목록에 추가한다.
 
 계약예정·발행예정 행은 CEO가 계약서 기준으로 직접 관리하므로 대사 대상에서 빠진다.
 홈택스 발행이 확인된 계산서(`tensw_codef_tax_invoices.status='promoted'`)만 본다.

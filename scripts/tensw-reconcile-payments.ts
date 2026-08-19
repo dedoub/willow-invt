@@ -40,12 +40,19 @@ const MIN_RATIO = 0.9
 const NAME_MATCH_WINDOW = 60
 
 /**
- * 법인카드 자동이체로 결제되는 거래처.
+ * 법인카드로 결제되는 거래처.
  * 은행에는 카드 대금 합계만 찍히므로 계산서별로 대응하는 출금이 아예 없다.
  * 미지급으로 남겨두면 실제로 밀린 돈처럼 보여 오해를 부른다.
+ *
+ * 카드 승인내역이 있어도 계산서와 1:1로는 안 붙는다. 실측 결과:
+ *   한전  계산서 151,066 / 승인 109,850·393,050  — 계량기별 계산서 vs 합산 승인
+ *   KT    계산서 70,382  / 승인 142,650          — 회선별 계산서 vs 요금제 합산 승인
+ *   구글  선불 충전(10만·50만·100만 라운드 금액) vs 실사용액 계산서
+ * 그래서 승인내역은 "이 거래처가 카드로 결제된다"는 근거로만 쓰고 금액은 맞추지 않는다.
+ *
  * 새 거래처가 늘면 여기에 추가한다.
  */
-const CARD_AUTO_DEBIT = ['한국전력공사', '주식회사 케이티', '구글클라우드 코리아 유한회사']
+const AUTO_DEBIT_VENDORS = ['한국전력공사', '주식회사 케이티', '구글클라우드 코리아 유한회사']
 /** 이체수수료 허용 오차. 법인 이체는 건당 500원 정도가 붙어 합계와 정확히 안 맞는다. */
 const FEE_TOLERANCE = 1000
 /** 발행일 기준 입금 탐색 창 (일). 선입금도 있어 앞뒤로 연다. */
@@ -68,8 +75,8 @@ function normalize(name: string): string {
     .toLowerCase()
 }
 
-function isCardVendor(name: string): boolean {
-  return CARD_AUTO_DEBIT.some(v => normalize(v) === normalize(name))
+function isAutoDebitVendor(name: string): boolean {
+  return AUTO_DEBIT_VENDORS.some(v => normalize(v) === normalize(name))
 }
 
 function nameMatches(counterparty: string, depositLabel: string): boolean {
@@ -112,7 +119,7 @@ async function main() {
 
   const { data: invoices, error: invErr } = await sb
     .from('tensw_mgmt_sales')
-    .select('id, invoice_type, issue_date, counterparty, supply_amount, total_amount, payment_status, paid_amount, paid_at, bank_ref, notes')
+    .select('id, invoice_type, issue_date, counterparty, business_number, supply_amount, total_amount, payment_status, paid_amount, paid_at, bank_ref, notes')
     .in('id', issuedIds)
     .order('issue_date')
   if (invErr) { console.error(invErr.message); process.exit(1) }
@@ -277,9 +284,9 @@ async function main() {
       const b = openInvoices[j]
       if (combinedIds.has(b.id as string)) continue
       if (a.counterparty !== b.counterparty || a.invoice_type !== b.invoice_type) continue
-      // 카드 자동이체 거래처는 대응 출금 자체가 없다. 합산으로 억지로 붙이면
+      // 자동이체 거래처는 계산서와 결제가 1:1이 아니다. 합산으로 억지로 붙이면
       // 2월분과 4월분 계산서가 6월 전기요금 출금에 엮이는 식으로 틀어진다.
-      if (isCardVendor(a.counterparty)) continue
+      if (isAutoDebitVendor(a.counterparty)) continue
       // 서로 90일 안의 청구분만 묶는다. 무제한으로 열면 조합이 폭발한다.
       const gapDays = Math.abs(new Date(a.issue_date).getTime() - new Date(b.issue_date).getTime()) / 86400000
       if (gapDays > 90) continue
@@ -328,22 +335,57 @@ async function main() {
 
   // 3차 패스 — 카드 자동이체.
   // 대응하는 출금이 없는 게 정상이므로 지급완료로 두되 근거를 남긴다.
+  // 카드 승인내역에서 거래처별 근거를 미리 모아 둔다. 사업자번호가 다르게 등록된
+  // 가맹점도 있어(구글클라우드: 계산서 103-86-01049 vs 카드 411-86-01799) 이름으로도 본다.
+  const { data: approvals } = await sb
+    .from('tensw_codef_card_approvals')
+    .select('store_name, store_corp_no, card_no, used_date, amount')
+
+  /**
+   * 결제 근거를 카드 승인과 은행 출금 양쪽에서 찾는다.
+   * 한전은 2월만 카드고 나머지는 은행 자동이체라 한쪽만 보면 사실을 잘못 적게 된다.
+   */
+  function paymentEvidence(counterparty: string, bizNo: string | null): string | null {
+    const digits = (bizNo ?? '').replace(/\D/g, '')
+    const cardHits = (approvals ?? []).filter(
+      a =>
+        (digits && a.store_corp_no === digits) ||
+        (a.store_name && nameMatches(counterparty, a.store_name as string))
+    )
+    const bankHits = withdrawals.filter(w => nameMatches(counterparty, w.label))
+
+    const parts: string[] = []
+    if (cardHits.length) {
+      const cards = [...new Set(cardHits.map(h => h.card_no as string))]
+      const total = cardHits.reduce((sum, h) => sum + Number(h.amount), 0)
+      parts.push(`카드 승인 ${cardHits.length}건 ${Math.round(total).toLocaleString()}원 (${cards.join(', ')})`)
+    }
+    if (bankHits.length) {
+      const total = bankHits.reduce((sum, h) => sum + h.amount, 0)
+      parts.push(`은행 자동이체 ${bankHits.length}건 ${Math.round(total).toLocaleString()}원`)
+    }
+    return parts.length ? parts.join(' · ') : null
+  }
+
   let carded = 0
   const cardIds = new Set<string>()
   for (const inv of openInvoices) {
     if (combinedIds.has(inv.id as string)) continue
     if (inv.invoice_type !== 'purchase') continue
-    if (!isCardVendor(inv.counterparty)) continue
+    if (!isAutoDebitVendor(inv.counterparty)) continue
 
     cardIds.add(inv.id as string)
-    const line = '카드 자동이체 — 법인카드로 결제되어 계산서별 은행 출금 없음'
+    const evidence = paymentEvidence(inv.counterparty as string, inv.business_number as string | null)
+    const line = evidence
+      ? `자동이체 결제 — ${evidence}. 계산서가 계량기·회선·충전 단위로 쪼개져 결제와 1:1 대응하지 않음`
+      : '자동이체 추정 — 결제 근거를 카드 승인·은행 출금 어디서도 찾지 못함'
     if (!DRY) {
       await sb
         .from('tensw_mgmt_sales')
         .update({
           payment_status: 'paid',
           paid_amount: Number(inv.total_amount),
-          bank_ref: '카드 자동이체',
+          bank_ref: evidence ? '자동이체 (근거 확인)' : '자동이체 (추정)',
           notes: [inv.notes, line].filter(Boolean).join('\n'),
           updated_at: new Date().toISOString(),
         })
@@ -351,12 +393,12 @@ async function main() {
     }
     carded++
   }
-  if (carded) console.log(`  ⊙ 카드 자동이체 ${carded}건 지급완료 처리`)
+  if (carded) console.log(`  ⊙ 자동이체 ${carded}건 지급완료 처리`)
 
   const stillOpen = openInvoices.filter(
     inv => !combinedIds.has(inv.id as string) && !cardIds.has(inv.id as string)
   )
-  console.log(`\n[reconcile] 신규 완료 ${settled}건, 결제정보 보완 ${backfilled}건, 일부 결제 ${partial}건, 합산 결제 ${combined}건, 카드 자동이체 ${carded}건, 미매칭 ${stillOpen.length}건`)
+  console.log(`\n[reconcile] 신규 완료 ${settled}건, 결제정보 보완 ${backfilled}건, 일부 결제 ${partial}건, 합산 결제 ${combined}건, 자동이체 ${carded}건, 미매칭 ${stillOpen.length}건`)
   for (const inv of stillOpen) {
     const kind = inv.invoice_type === 'purchase' ? '[매입]' : '[매출]'
     console.log(`  - ${kind} ${inv.issue_date} ${inv.counterparty} ${Number(inv.total_amount).toLocaleString()} — 매칭 ${inv.invoice_type === 'purchase' ? '출금' : '입금'} 없음`)
