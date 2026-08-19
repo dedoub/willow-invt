@@ -49,7 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '관계회사',
     orderKey: 'sidebar-investee-order',
     items: [
-      { id: 'tensw', href: '/tensw', label: '텐소프트웍스', tag: 'Data & AI', dot: '#D9A63F' },
+      { id: 'tensw', href: '/tensw', label: '텐소프트웍스', tag: 'AI Search', dot: '#D9A63F' },
     ],
   },
   {

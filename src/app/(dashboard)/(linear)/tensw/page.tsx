@@ -565,9 +565,10 @@ export default function TenswPage() {
               onCreate={handleCreateWiki}
               onUpdate={handleUpdateWiki}
               onDelete={handleDeleteWiki}
-              // 이메일과 나란히 놓일 때만. 세로로 스택되면 그리드 행이 늘어날 일이 없어
-              // 자체 계산 높이(availH)가 맞다.
-              fillHeight={!mobile && cols !== 1}
+              // 1열이든 2열이든 목록(기본 10행)이 높이를 정한다. availH(뷰포트 하단까지)는
+              // 이 블록이 페이지 아래쪽에 있을 때 top이 이미 화면 밖이라 최소값 360으로
+              // 눌려서, 1열 모드에서만 섹션이 짧아졌다.
+              fillHeight={!mobile}
             />
             <EmailBlock
               emails={emails}
