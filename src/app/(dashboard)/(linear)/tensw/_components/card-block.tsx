@@ -10,9 +10,10 @@ import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LTableHead, LTableRow, LTableEmpty, LTableBadge, LTableAmount, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCardApproval, TenswCardBilling } from '@/types/tensw-mgmt'
 
+// 구분 배지가 늘 1열이다. 다른 표들과 배지 열 위치를 맞춘다.
 const COLUMNS: LColumn<TenswCardApproval>[] = [
-  { key: 'date', label: '날짜', width: '46px', sortValue: a => a.used_date, sortFirst: 'desc' },
   { key: 'category', label: '구분', width: '72px', sortValue: a => classify(a.store_name, a.store_type).label },
+  { key: 'date', label: '날짜', width: '46px', sortValue: a => a.used_date, sortFirst: 'desc' },
   { key: 'store', label: '가맹점', width: 'minmax(0,1.6fr)', sortValue: a => a.store_name ?? '' },
   { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right', sortValue: a => a.krw, sortFirst: 'desc' },
 ]
@@ -280,28 +281,24 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
             value={`${periodTotal.toLocaleString()}원`}
             tone="neg"
             sub={basis === 'billing' ? '청구월 기준 결제액' : '사용월 기준 승인액'}
-            // 기준을 바꾸면 이 타일의 숫자만 바뀐다. 별도 줄로 빼면 무엇을 바꾸는 스위치인지 안 보인다.
-            subExtra={
-              <div style={{ display: 'inline-flex', marginTop: 6, background: t.neutrals.card, borderRadius: 4, padding: 1 }}>
-                {([['billing', '명세서'], ['approval', '승인']] as const).map(([key, label]) => {
-                  const active = basis === key
-                  return (
+            // 기준을 바꾸면 이 타일의 숫자만 바뀐다. 라벨 옆에 붙여야 무엇을 바꾸는 스위치인지 보인다.
+            labelExtra={
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginLeft: 2 }}>
+                {([['billing', '명세서'], ['approval', '승인']] as const).map(([key, label], i) => (
+                  <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    {i > 0 && <span style={{ color: t.neutrals.line }}>·</span>}
                     <button
-                      key={key}
                       onClick={() => changeBasis(key)}
                       style={{
-                        border: 'none', cursor: 'pointer',
-                        padding: '2px 7px', borderRadius: 3,
-                        fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans,
-                        fontWeight: active ? t.weight.medium : t.weight.regular,
-                        background: active ? t.neutrals.inner : 'transparent',
-                        color: active ? t.neutrals.text : t.neutrals.subtle,
-                        transition: 'background .12s',
+                        border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',
+                        fontSize: 'inherit', fontFamily: 'inherit', letterSpacing: 'inherit',
+                        color: basis === key ? t.neutrals.text : t.neutrals.subtle,
+                        fontWeight: basis === key ? 600 : 400,
                       }}
                     >{label}</button>
-                  )
-                })}
-              </div>
+                  </span>
+                ))}
+              </span>
             }
           />
           {[0, 1, 2].map(i => {
@@ -373,10 +370,10 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
           const cat = classify(a.store_name, a.store_type)
           return (
             <LTableRow key={a.id} columns={COLUMNS} mobile={mobile}>
+              <LTableBadge tone={CATEGORY_TONES[cat.key]}>{cat.label}</LTableBadge>
               <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
                 {a.used_date.slice(5)}
               </span>
-              <LTableBadge tone={CATEGORY_TONES[cat.key]}>{cat.label}</LTableBadge>
               <span style={{
                 fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 textDecoration: isCancel ? 'line-through' : undefined,

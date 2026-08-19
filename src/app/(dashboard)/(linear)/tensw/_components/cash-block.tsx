@@ -87,9 +87,11 @@ function navigatePeriod(base: Date, dir: -1 | 1, mode: PeriodMode): Date {
 
 const MODE_LABELS: Record<PeriodMode, string> = { month: '월간', quarter: '분기', year: '연간' }
 
+// 구분 배지가 늘 1열이다. 네 표를 나란히 볼 때 배지 열이 같은 자리에 있어야
+// 무슨 종류의 행인지가 먼저 읽힌다.
 const COLUMNS: LColumn<TenswCashItem>[] = [
-  { key: 'date', label: '날짜', width: '52px', sortValue: i => i.payment_date || i.issue_date || '', sortFirst: 'desc' },
   { key: 'type', label: '구분', width: '48px', sortValue: i => TYPE_LABELS[i.type] ?? i.type },
+  { key: 'date', label: '날짜', width: '52px', sortValue: i => i.payment_date || i.issue_date || '', sortFirst: 'desc' },
   { key: 'counterparty', label: '거래처', width: 'minmax(0,1.2fr)', sortValue: i => i.counterparty ?? '' },
   { key: 'description', label: '적요', width: 'minmax(0,1.5fr)', sortValue: i => i.description ?? '' },
   { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right', sortValue: i => i.amount, sortFirst: 'desc' },
@@ -414,10 +416,10 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
             : item.amount >= 0
           return (
             <LTableRow key={item.id} columns={COLUMNS} mobile={mobile} onClick={() => onSelect(item)}>
+              <LTableBadge tone={typeTone}>{TYPE_LABELS[item.type]}</LTableBadge>
               <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
                 {(item.payment_date || item.issue_date || '').slice(5)}
               </span>
-              <LTableBadge tone={typeTone}>{TYPE_LABELS[item.type]}</LTableBadge>
               <span style={mobile ? {
                 fontWeight: 500, display: '-webkit-box', WebkitBoxOrient: 'vertical' as const,
                 WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'break-word' as const, lineHeight: 1.35,

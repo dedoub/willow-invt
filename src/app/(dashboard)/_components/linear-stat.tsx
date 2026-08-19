@@ -8,6 +8,8 @@ export interface SparkPoint { date: string; value: number }
 
 interface LStatProps {
   label: string
+  /** 라벨 줄 오른쪽에 붙는 작은 컨트롤. 이 타일의 숫자만 바꾸는 스위치를 둘 때 쓴다. */
+  labelExtra?: React.ReactNode
   value: string
   valueExtra?: React.ReactNode
   unit?: string
@@ -143,7 +145,7 @@ function Sparkline({
   )
 }
 
-export function LStat({ label, value, valueExtra, unit, sub, subExtra, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, sparkFormat2, spark2Domain, dualScale, title, wrap }: LStatProps & { wrap?: boolean }) {
+export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtra, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, sparkFormat2, spark2Domain, dualScale, title, wrap }: LStatProps & { wrap?: boolean }) {
   const [showTip, setShowTip] = useState(false)
   const color = tone === 'pos' ? t.accent.pos
     : tone === 'neg' ? t.accent.neg
@@ -200,6 +202,7 @@ export function LStat({ label, value, valueExtra, unit, sub, subExtra, tone = 'd
             }}>
             {label}
             {title && <Info size={10} strokeWidth={2} style={{ flexShrink: 0, opacity: 0.75 }} aria-label="지표 설명" />}
+            {labelExtra}
           </div>
           <div style={{
             fontSize: 'calc(13px * var(--fz, 1))', fontWeight: 600, letterSpacing: -0.3,
