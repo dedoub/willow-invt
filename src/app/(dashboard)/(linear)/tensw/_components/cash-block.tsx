@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableRow, LTableEmpty, LTableBadge, LTableAmount, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableEmpty, LTableBadge, LTableAmount, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 
 interface BankBalance {
@@ -87,12 +87,12 @@ function navigatePeriod(base: Date, dir: -1 | 1, mode: PeriodMode): Date {
 
 const MODE_LABELS: Record<PeriodMode, string> = { month: '월간', quarter: '분기', year: '연간' }
 
-const COLUMNS: LColumn[] = [
-  { key: 'date', label: '날짜', width: '52px' },
-  { key: 'type', label: '구분', width: '48px' },
-  { key: 'counterparty', label: '거래처', width: 'minmax(0,1.2fr)' },
-  { key: 'description', label: '적요', width: 'minmax(0,1.5fr)' },
-  { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right' },
+const COLUMNS: LColumn<TenswCashItem>[] = [
+  { key: 'date', label: '날짜', width: '52px', sortValue: i => i.payment_date || i.issue_date || '', sortFirst: 'desc' },
+  { key: 'type', label: '구분', width: '48px', sortValue: i => TYPE_LABELS[i.type] ?? i.type },
+  { key: 'counterparty', label: '거래처', width: 'minmax(0,1.2fr)', sortValue: i => i.counterparty ?? '' },
+  { key: 'description', label: '적요', width: 'minmax(0,1.5fr)', sortValue: i => i.description ?? '' },
+  { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right', sortValue: i => i.amount, sortFirst: 'desc' },
 ]
 
 const CASH_PAGE_SIZE_KEY = 'tensw-cash-page-size'
@@ -116,6 +116,7 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredCashPageSize()))
   const [sortAsc, setSortAsc] = useState(false)
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswCashItem>('tensw-cash', COLUMNS)
 
   const [rangeStart, rangeEnd] = useMemo(() => getDateRange(baseDate, periodMode), [baseDate, periodMode])
   const periodLabel = useMemo(() => getPeriodLabel(baseDate, periodMode), [baseDate, periodMode])
@@ -153,8 +154,10 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
     })
   }, [periodFiltered, typeFilter, searchQuery, sortAsc])
 
-  const totalPages = Math.max(1, Math.ceil(displayList.length / pageSize))
-  const paged = displayList.slice(page * pageSize, (page + 1) * pageSize)
+  // 헤더 정렬이 걸리면 그게 우선, 없으면 블록 기본 정렬(날짜)을 그대로 쓴다.
+  const sortedList = useMemo(() => sortApply(displayList), [displayList, sortApply])
+  const totalPages = Math.max(1, Math.ceil(sortedList.length / pageSize))
+  const paged = sortedList.slice(page * pageSize, (page + 1) * pageSize)
 
   const commitPageSize = useCallback(() => {
     const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_CASH_PAGE_SIZE))
@@ -399,7 +402,7 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
 
       {/* Transactions */}
       <div style={{ padding: '0 16px 16px' }}>
-        <LTableHead columns={COLUMNS} mobile={mobile} />
+        <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 거래 내역이 없습니다</LTableEmpty>}
         {paged.map((item) => {
           const typeTone = TYPE_TONES[item.type]
@@ -471,7 +474,7 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
             <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
-              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, displayList.length)} / {displayList.length}
+              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sortedList.length)} / {sortedList.length}
             </span>
             <button
               disabled={page >= totalPages - 1}

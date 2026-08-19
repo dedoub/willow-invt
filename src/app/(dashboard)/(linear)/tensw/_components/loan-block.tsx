@@ -6,7 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
-import { LTableHead, LTableRow, LTableEmpty, LTableBadge, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableEmpty, LTableBadge, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswLoan } from '@/types/tensw-mgmt'
 
 interface LoanBlockProps {
@@ -26,11 +26,11 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'closed', label: '상환완료' },
 ]
 
-const COLUMNS: LColumn[] = [
-  { key: 'status', label: '상태', width: '60px' },
-  { key: 'bank', label: '금융기관', width: 'minmax(0,1fr)' },
-  { key: 'principal', label: '원금', width: 'minmax(0,120px)', align: 'right' },
-  { key: 'rate', label: '이율', width: '52px', align: 'right' },
+const COLUMNS: LColumn<TenswLoan>[] = [
+  { key: 'status', label: '상태', width: '60px', sortValue: l => l.status },
+  { key: 'bank', label: '금융기관', width: 'minmax(0,1fr)', sortValue: l => l.bank },
+  { key: 'principal', label: '원금', width: 'minmax(0,120px)', align: 'right', sortValue: l => l.principal, sortFirst: 'desc' },
+  { key: 'rate', label: '이율', width: '52px', align: 'right', sortValue: l => l.interest_rate ?? null, sortFirst: 'desc' },
   { key: 'chevron', label: '', width: '14px' },
 ]
 
@@ -74,6 +74,7 @@ function daysToMaturity(maturityDate: string | null): number | null {
 export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
   const mobile = useIsMobile()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswLoan>('tensw-loan', COLUMNS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
@@ -100,7 +101,8 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
   }, [loans, statusFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
+  const sorted = useMemo(() => sortApply(filtered), [filtered, sortApply])
+  const paged = sorted.slice(page * pageSize, (page + 1) * pageSize)
 
   const commitPageSize = () => {
     const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
@@ -172,7 +174,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
 
       {/* Loan rows */}
       <div style={{ padding: '0 16px 4px' }}>
-        <LTableHead columns={COLUMNS} mobile={mobile} />
+        <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>차입금 데이터가 없습니다</LTableEmpty>}
         {paged.map((loan) => {
           const statusTone = STATUS_TONES[loan.status] ?? tonePalettes.neutral

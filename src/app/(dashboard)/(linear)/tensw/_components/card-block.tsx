@@ -7,14 +7,14 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableRow, LTableEmpty, LTableBadge, LTableAmount, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableEmpty, LTableBadge, LTableAmount, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCardApproval, TenswCardBilling } from '@/types/tensw-mgmt'
 
-const COLUMNS: LColumn[] = [
-  { key: 'date', label: '날짜', width: '46px' },
-  { key: 'category', label: '구분', width: '72px' },
-  { key: 'store', label: '가맹점', width: 'minmax(0,1.6fr)' },
-  { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right' },
+const COLUMNS: LColumn<TenswCardApproval>[] = [
+  { key: 'date', label: '날짜', width: '46px', sortValue: a => a.used_date, sortFirst: 'desc' },
+  { key: 'category', label: '구분', width: '72px', sortValue: a => classify(a.store_name, a.store_type).label },
+  { key: 'store', label: '가맹점', width: 'minmax(0,1.6fr)', sortValue: a => a.store_name ?? '' },
+  { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right', sortValue: a => a.krw, sortFirst: 'desc' },
 ]
 
 const DEFAULT_PAGE_SIZE = 8
@@ -155,6 +155,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
   const [category, setCategory] = useState<string>('all')
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswCardApproval>('tensw-card', COLUMNS)
 
   const commitPageSize = () => {
     const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
@@ -228,8 +229,9 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
     return rows
   }, [periodApprovals, search, category])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
+  const sorted = useMemo(() => sortApply(filtered), [filtered, sortApply])
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const paged = sorted.slice(page * pageSize, (page + 1) * pageSize)
 
   const eyebrow = `CARD · ${MODE_LABELS[periodMode]} · ${basis === 'billing' ? '명세서' : '승인'}`
 
@@ -363,7 +365,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
 
       {/* 승인내역 */}
       <div style={{ padding: '0 16px 16px' }}>
-        <LTableHead columns={COLUMNS} mobile={mobile} />
+        <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 승인내역이 없습니다</LTableEmpty>}
         {paged.map(a => {
           const isCancel = a.cancel_yn === '1' || a.cancel_yn === '2'

@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { t } from './linear-tokens'
+import { getStoredSort, saveSort } from './linear-page-size'
 
 /**
  * 섹션 안에 들어가는 목록 표의 공용 뼈대.
@@ -16,60 +18,140 @@ import { t } from './linear-tokens'
  *   <LTableHead columns={COLS} />
  *   {rows.map(r => <LTableRow key={r.id} columns={COLS} onClick={...}>...</LTableRow>)}
  */
-export interface LColumn {
+export interface LColumn<T = never> {
   key: string
   label: string
   /** grid-template-columns 값. '52px' · '1.6fr' · 'minmax(80px,1fr)' */
   width: string
-  align?: 'left' | 'right'
+  align?: 'left' | 'center' | 'right'
   /** 모바일에서 숨길 컬럼 */
   hideMobile?: boolean
+  /**
+   * 정렬용 원값. 주면 그 컬럼 머리가 눌린다.
+   * 포맷된 문자열로 정렬하면 "1,000" < "9" 가 되므로 반드시 원값을 준다.
+   */
+  sortValue?: (row: T) => string | number | null | undefined
+  /**
+   * 첫 클릭 방향. 보이스카드 사용자 표와 같은 규칙 — 이름·구분 같은 텍스트는 오름차순,
+   * 금액·날짜는 큰 값/최신이 궁금하므로 내림차순이 먼저다.
+   */
+  sortFirst?: SortDir
 }
 
-const GAP = 8
+export type SortDir = 'asc' | 'desc'
+export interface TableSort { key: string; dir: SortDir }
 
-export function templateOf(columns: LColumn[], mobile = false): string {
+// 보이스카드 사용자 표와 같은 간격·글자. 두 페이지를 오가며 봐도 같은 표로 읽힌다.
+const GAP = 6
+
+/**
+ * 표 정렬 상태. 같은 머리를 다시 누르면 오름차순 → 내림차순 → 해제로 돈다.
+ * 해제하면 블록이 원래 쓰던 정렬(대개 최신순)로 돌아간다. 정렬을 걸었다가
+ * 되돌릴 방법이 없으면 화면을 새로고침하는 수밖에 없어서 3단계로 돈다.
+ */
+export function useTableSort<T>(storageKey: string, columns: LColumn<T>[]) {
+  const [sort, setSort] = useState<TableSort | null>(() => {
+    const stored = getStoredSort(storageKey)
+    // 그 사이 사라진 컬럼이면 복원하지 않는다
+    return stored && columns.some(c => c.key === stored.col) ? { key: stored.col, dir: stored.dir } : null
+  })
+
+  const toggle = (key: string) => {
+    setSort(cur => {
+      const first = columns.find(c => c.key === key)?.sortFirst ?? 'asc'
+      const next: TableSort | null =
+        !cur || cur.key !== key ? { key, dir: first }
+          : cur.dir === first ? { key, dir: first === 'asc' ? 'desc' : 'asc' }
+            : null
+      saveSort(storageKey, next ? { col: next.key, dir: next.dir } : null)
+      return next
+    })
+  }
+
+  /** 정렬이 없으면 원본 순서를 그대로 돌려준다. */
+  const apply = (rows: T[]): T[] => {
+    if (!sort) return rows
+    const col = columns.find(c => c.key === sort.key)
+    if (!col?.sortValue) return rows
+    const pick = col.sortValue
+    const dir = sort.dir === 'asc' ? 1 : -1
+    return [...rows].sort((a, b) => {
+      const va = pick(a)
+      const vb = pick(b)
+      // 빈 값은 방향과 무관하게 항상 뒤로. 위로 올라오면 목록 첫 화면이 빈칸으로 채워진다.
+      if (va == null && vb == null) return 0
+      if (va == null) return 1
+      if (vb == null) return -1
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir
+      return String(va).localeCompare(String(vb), 'ko') * dir
+    })
+  }
+
+  return { sort, toggle, apply }
+}
+
+export function templateOf(columns: LColumn<never>[], mobile = false): string {
   return columns.filter(c => !(mobile && c.hideMobile)).map(c => c.width).join(' ')
 }
 
-export function visibleColumns(columns: LColumn[], mobile = false): LColumn[] {
+export function visibleColumns(columns: LColumn<never>[], mobile = false): LColumn<never>[] {
   return columns.filter(c => !(mobile && c.hideMobile))
 }
 
 /** 표 머리. 라벨은 스탯 카드 라벨과 같은 시각 언어(모노·대문자·subtle)를 쓴다. */
-export function LTableHead({ columns, mobile = false }: { columns: LColumn[]; mobile?: boolean }) {
-  const cols = visibleColumns(columns, mobile)
+export function LTableHead<T>({
+  columns, mobile = false, sort, onSort,
+}: {
+  columns: LColumn<T>[]
+  mobile?: boolean
+  sort?: TableSort | null
+  onSort?: (key: string) => void
+}) {
+  const cols = visibleColumns(columns as LColumn<never>[], mobile)
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: templateOf(columns, mobile),
+      gridTemplateColumns: templateOf(columns as LColumn<never>[], mobile),
       gap: GAP,
       padding: '0 0 6px',
       alignItems: 'center',
     }}>
-      {cols.map(c => (
-        <span
-          key={c.key}
-          style={{
-            fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono,
-            letterSpacing: 0.8, textTransform: 'uppercase',
-            color: t.neutrals.subtle,
-            textAlign: c.align === 'right' ? 'right' : 'left',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}
-        >
-          {c.label}
-        </span>
-      ))}
+      {cols.map(c => {
+        const sortable = !!(onSort && (c as LColumn<T>).sortValue)
+        const active = sort?.key === c.key
+        return (
+          <span
+            key={c.key}
+            onClick={sortable ? () => onSort!(c.key) : undefined}
+            style={{
+              fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono,
+              letterSpacing: 0.3, textTransform: 'uppercase',
+              color: active ? t.neutrals.text : t.neutrals.subtle,
+              display: 'flex', alignItems: 'center', gap: 2,
+              justifyContent: c.align === 'right' ? 'flex-end' : c.align === 'center' ? 'center' : 'flex-start',
+              whiteSpace: 'nowrap', overflow: 'hidden',
+              cursor: sortable ? 'pointer' : undefined,
+              userSelect: 'none',
+            }}
+          >
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
+            {active && (
+              <span style={{ fontSize: '0.85em', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>
+                {sort!.dir === 'asc' ? '▲' : '▼'}
+              </span>
+            )}
+          </span>
+        )
+      })}
     </div>
   )
 }
 
 /** 표 한 행. 셀은 columns 순서 그대로 children 으로 넘긴다. */
-export function LTableRow({
+export function LTableRow<T>({
   columns, mobile = false, onClick, children,
 }: {
-  columns: LColumn[]
+  columns: LColumn<T>[]
   mobile?: boolean
   onClick?: () => void
   children: React.ReactNode
@@ -79,7 +161,7 @@ export function LTableRow({
       onClick={onClick}
       style={{
         display: 'grid',
-        gridTemplateColumns: templateOf(columns, mobile),
+        gridTemplateColumns: templateOf(columns as LColumn<never>[], mobile),
         gap: GAP,
         padding: '10px 0',
         alignItems: 'center',

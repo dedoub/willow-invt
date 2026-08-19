@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableRow, LTableEmpty, LTableBadge, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableEmpty, LTableBadge, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -37,11 +37,11 @@ const FILTERS: Record<Mode, { value: StatusFilter; label: string }[]> = {
   ],
 }
 
-const COLUMNS: LColumn[] = [
-  { key: 'status', label: '상태', width: '68px' },
-  { key: 'date', label: '발행일', width: '46px' },
-  { key: 'counterparty', label: '거래처', width: 'minmax(0,1fr)' },
-  { key: 'amount', label: '합계', width: 'minmax(0,110px)', align: 'right' },
+const COLUMNS: LColumn<TenswTaxInvoice>[] = [
+  { key: 'status', label: '상태', width: '68px', sortValue: inv => inv.payment_status },
+  { key: 'date', label: '발행일', width: '46px', sortValue: inv => inv.issue_date, sortFirst: 'desc' },
+  { key: 'counterparty', label: '거래처', width: 'minmax(0,1fr)', sortValue: inv => inv.counterparty },
+  { key: 'amount', label: '합계', width: 'minmax(0,110px)', align: 'right', sortValue: inv => inv.total_amount, sortFirst: 'desc' },
   { key: 'chevron', label: '', width: '14px' },
 ]
 
@@ -89,6 +89,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [sortAsc, setSortAsc] = useState(false)
   const [search, setSearch] = useState('')
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswTaxInvoice>('tensw-sales', COLUMNS)
 
   const statusFilters = FILTERS[mode]
   const statusLabels = LABELS[mode]
@@ -118,11 +119,13 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
     return rows
   }, [yearFiltered, statusFilter, search])
 
+  // 헤더 정렬이 걸리면 그게 우선, 없으면 블록 기본 정렬(발행일)을 그대로 쓴다.
   const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) =>
+    const base = [...filtered].sort((a, b) =>
       sortAsc ? a.issue_date.localeCompare(b.issue_date) : b.issue_date.localeCompare(a.issue_date)
     )
-  }, [filtered, sortAsc])
+    return sortApply(base)
+  }, [filtered, sortAsc, sortApply])
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
@@ -280,7 +283,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
 
       {/* Invoice rows */}
       <div style={{ padding: '0 16px 4px' }}>
-        <LTableHead columns={COLUMNS} mobile={mobile} />
+        <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 연도 세금계산서가 없습니다</LTableEmpty>}
         {paged.map(inv => {
           const tone = STATUS_TONES[inv.payment_status] ?? tonePalettes.neutral
