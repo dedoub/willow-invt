@@ -18,6 +18,99 @@ const PAGE_SIZE_KEY = 'tensw-card-page-size'
 //   approval = 승인내역. 사용월 기준. 할부도 승인 시점에 전액 잡히고 취소분은 뺀다.
 // 두 값이 다른 건 정상이다. 무엇을 보고 싶은지에 따라 고른다.
 type Basis = 'billing' | 'approval'
+type PeriodMode = 'month' | 'quarter' | 'year'
+
+const MODE_LABELS: Record<PeriodMode, string> = { month: '월간', quarter: '분기', year: '연간' }
+
+// 현금관리와 같은 기간 규칙을 쓴다. 두 섹션을 나란히 보며 같은 달을 비교하게 된다.
+function getDateRange(base: Date, mode: PeriodMode): [string, string] {
+  const y = base.getFullYear()
+  const m = base.getMonth()
+  if (mode === 'month') {
+    const last = new Date(y, m + 1, 0).getDate()
+    return [
+      `${y}-${String(m + 1).padStart(2, '0')}-01`,
+      `${y}-${String(m + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`,
+    ]
+  }
+  if (mode === 'quarter') {
+    const qStart = Math.floor(m / 3) * 3
+    const endMonth = qStart + 3
+    const last = new Date(y, endMonth, 0).getDate()
+    return [
+      `${y}-${String(qStart + 1).padStart(2, '0')}-01`,
+      `${y}-${String(endMonth).padStart(2, '0')}-${String(last).padStart(2, '0')}`,
+    ]
+  }
+  return [`${y}-01-01`, `${y}-12-31`]
+}
+
+function getPeriodLabel(base: Date, mode: PeriodMode): string {
+  const y = base.getFullYear()
+  const m = base.getMonth()
+  if (mode === 'month') return `${y}년 ${m + 1}월`
+  if (mode === 'quarter') return `${y}년 ${Math.floor(m / 3) + 1}분기`
+  return `${y}년`
+}
+
+function navigatePeriod(base: Date, dir: -1 | 1, mode: PeriodMode): Date {
+  const d = new Date(base)
+  if (mode === 'month') d.setMonth(d.getMonth() + dir)
+  else if (mode === 'quarter') d.setMonth(d.getMonth() + dir * 3)
+  else d.setFullYear(d.getFullYear() + dir)
+  return d
+}
+
+/**
+ * 가맹점을 지출 항목으로 분류한다.
+ * 카드사가 주는 store_type은 해외 승인에 아예 없고("인터넷P/G" 같은 값도 결제수단일 뿐 용도가 아님),
+ * 실제로 뭘 샀는지는 가맹점명에 있다. 그래서 이름을 먼저 보고 타입은 보조로 쓴다.
+ * 순서가 중요하다 — 위에서부터 먼저 걸린 항목으로 확정한다.
+ */
+const CATEGORIES: Array<{ key: string; label: string; test: (name: string, type: string) => boolean }> = [
+  {
+    key: 'ai',
+    label: 'AI·클라우드',
+    test: n => /ANTHROPIC|CLAUDE|OPENAI|CHATGPT|GEMINI|구글클라우드|GOOGLE|VERCEL|SUPABASE|VOYAGE|CLOUDINARY|AWS|AMAZON|GITHUB|NOTION|FIGMA|SLACK|CURSOR|REPLICATE|HUGGING|OPENROUTER|PERPLEXITY|MIDJOURNEY|ELEVENLABS|CLOUDFLARE|NETLIFY|HEROKU|DIGITALOCEAN|JETBRAINS|ATLASSIAN|닷네임|가비아|카페24/i.test(n),
+  },
+  {
+    key: 'outsourcing',
+    label: '외주·인력',
+    test: n => /위시켓|UPWORK|REFERO|크몽|프리랜서|FREELANC|TOPTAL/i.test(n),
+  },
+  {
+    key: 'utility',
+    label: '통신·공과금',
+    test: (n, ty) => /ＫＴ|KT통신|KT유선|한국전력|전기요금|SKT|LG유플|도시가스|수도요금/i.test(n) || /이동통신요금|통신 기기/.test(ty),
+  },
+  {
+    key: 'meal',
+    label: '식대·마트',
+    test: (n, ty) => /우아한형제들|배달의민족|웰스토리|쿠팡|이마트|홈플러스|롯데쇼핑|신세계|스타벅스/i.test(n) || /일반한식|대형할인점|편 의 점|서양음식|중국음식|제과점|커피/.test(ty),
+  },
+  {
+    key: 'car',
+    label: '차량·교통',
+    test: (n, ty) => /도로공사|타이어|하이패스|주차|렌터카|SK에너지|GS칼텍스|현대오일|에스오일|S-oil/i.test(n) || /주\s*유\s*소|자동차|고속도로|통행료/.test(ty),
+  },
+  {
+    key: 'finance',
+    label: '보험·수수료',
+    test: (n, ty) => /보증보험|보증기금|화재해상|금융결제원|손해보험|생명보험/i.test(n) || /손해 보험|생명 보험/.test(ty),
+  },
+]
+
+function classify(storeName: string | null, storeType: string | null): { key: string; label: string } {
+  const n = storeName ?? ''
+  const ty = storeType ?? ''
+  const hit = CATEGORIES.find(c => c.test(n, ty))
+  return hit ? { key: hit.key, label: hit.label } : { key: 'etc', label: '기타' }
+}
+
+/** 명세서는 청구년월(YYYYMM)이라 기간 비교용으로 'YYYY-MM' 으로 바꾼다. */
+function billingMonthKey(billingMonth: string): string {
+  return `${billingMonth.slice(0, 4)}-${billingMonth.slice(4, 6)}`
+}
 
 function getStoredPageSize(): number {
   if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
@@ -37,99 +130,123 @@ interface CardBlockProps {
 export function CardBlock({ approvals, billing, year, onYearChange, style }: CardBlockProps) {
   const mobile = useIsMobile()
   const [basis, setBasis] = useState<Basis>('billing')
-  const [month, setMonth] = useState<string | null>(null) // 'YYYY-MM' 선택 시 그 달만
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
+  const [baseDate, setBaseDate] = useState(new Date())
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
-  const [pageSize] = useState(getStoredPageSize)
+  const [pageSize, setPageSize] = useState(getStoredPageSize)
+  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
+  const [category, setCategory] = useState<string>('all')
 
-  // 취소·거절 건은 사용액에서 뺀다.
-  const live = useMemo(() => approvals.filter(a => a.cancel_yn !== '1' && a.cancel_yn !== '3'), [approvals])
+  const commitPageSize = () => {
+    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
+    setPageSizeInput(String(n))
+    setPageSize(n)
+    setPage(0)
+    localStorage.setItem(PAGE_SIZE_KEY, String(n))
+  }
 
-  const monthly = useMemo(() => {
-    const map = new Map<string, number>()
-    for (let m = 1; m <= 12; m++) map.set(`${year}-${String(m).padStart(2, '0')}`, 0)
+  const [rangeStart, rangeEnd] = useMemo(() => getDateRange(baseDate, periodMode), [baseDate, periodMode])
+  const periodLabel = useMemo(() => getPeriodLabel(baseDate, periodMode), [baseDate, periodMode])
 
-    if (basis === 'billing') {
-      for (const b of billing) {
-        const key = `${b.billing_month.slice(0, 4)}-${b.billing_month.slice(4, 6)}`
-        if (map.has(key)) map.set(key, (map.get(key) ?? 0) + b.total_amount)
-      }
-    } else {
-      for (const a of live) {
-        const key = a.used_date.slice(0, 7)
-        if (map.has(key)) map.set(key, (map.get(key) ?? 0) + a.krw)
-      }
+  // 기간을 넘기면 부모가 그 해 데이터를 다시 가져오게 한다.
+  const navigate = (dir: -1 | 1) => {
+    const next = navigatePeriod(baseDate, dir, periodMode)
+    setBaseDate(next)
+    setPage(0)
+    if (next.getFullYear() !== year) onYearChange(next.getFullYear())
+  }
+
+  const changeMode = (m: PeriodMode) => { setPeriodMode(m); setPage(0) }
+  const changeBasis = (b: Basis) => { setBasis(b); setPage(0) }
+
+  // 선택 기간 안의 승인·명세서
+  const periodApprovals = useMemo(
+    () => approvals.filter(a => a.used_date >= rangeStart && a.used_date <= rangeEnd),
+    [approvals, rangeStart, rangeEnd]
+  )
+  const periodLive = useMemo(
+    () => periodApprovals.filter(a => a.cancel_yn !== '1' && a.cancel_yn !== '3'),
+    [periodApprovals]
+  )
+
+  // 항목별 합계. 명세서에는 가맹점이 없어 분류는 승인내역으로만 낸다.
+  const byCategory = useMemo(() => {
+    const map = new Map<string, { label: string; amount: number; count: number }>()
+    for (const a of periodLive) {
+      const c = classify(a.store_name, a.store_type)
+      const cur = map.get(c.key) ?? { label: c.label, amount: 0, count: 0 }
+      cur.amount += a.krw
+      cur.count += 1
+      map.set(c.key, cur)
     }
-    return [...map.entries()].map(([key, amount]) => ({ key, amount }))
-  }, [basis, billing, live, year])
+    return [...map.entries()]
+      .map(([key, v]) => ({ key, ...v }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [periodLive])
+  const periodBilling = useMemo(
+    () => billing.filter(b => {
+      const key = billingMonthKey(b.billing_month)
+      return key >= rangeStart.slice(0, 7) && key <= rangeEnd.slice(0, 7)
+    }),
+    [billing, rangeStart, rangeEnd]
+  )
 
-  const maxMonthly = Math.max(1, ...monthly.map(m => m.amount))
-  const yearTotal = monthly.reduce((s, m) => s + m.amount, 0)
-  const activeMonths = monthly.filter(m => m.amount > 0).length
-  const avgMonthly = activeMonths ? Math.round(yearTotal / activeMonths) : 0
+  // KPI는 선택 기간 기준. 기준(명세서/승인)에 따라 소스가 다르다.
+  const periodTotal = basis === 'billing'
+    ? periodBilling.reduce((s, b) => s + b.total_amount, 0)
+    : periodLive.reduce((s, a) => s + a.krw, 0)
 
-  // 가맹점 집계는 승인내역으로만 낼 수 있다. 명세서에는 가맹점이 없다.
-  const topStore = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const a of live) {
-      const name = a.store_name || '미상'
-      map.set(name, (map.get(name) ?? 0) + a.krw)
-    }
-    return [...map.entries()].sort((a, b) => b[1] - a[1])[0]
-  }, [live])
+  // 항목 비중은 승인 합계로 나눈다. 분류는 가맹점이 있어야 가능한데 명세서에는 가맹점이 없어서,
+  // 명세서 합계로 나누면 항목들을 다 더해도 100%가 안 나온다.
+  const categoryBase = periodLive.reduce((s, a) => s + a.krw, 0)
 
-  const cancelled = approvals.filter(a => a.cancel_yn === '1' || a.cancel_yn === '2')
-  const cancelTotal = cancelled.reduce((s, a) => s + (a.cancel_amount ?? a.krw), 0)
 
   const filtered = useMemo(() => {
-    let rows = approvals
-    if (month) rows = rows.filter(a => a.used_date.startsWith(month))
+    let rows = periodApprovals
+    if (category !== 'all') rows = rows.filter(a => classify(a.store_name, a.store_type).key === category)
     const q = search.trim().toLowerCase()
     if (q) rows = rows.filter(a => (a.store_name ?? '').toLowerCase().includes(q))
     return rows
-  }, [approvals, month, search])
+  }, [periodApprovals, search, category])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
-  const setBasisAndReset = (b: Basis) => { setBasis(b); setPage(0) }
-  const pickMonth = (key: string) => {
-    setMonth(prev => (prev === key ? null : key))
-    setPage(0)
-  }
-
   const basisLabel = basis === 'billing' ? '이용명세서 기준 · 청구월' : '승인내역 기준 · 사용월'
+  const eyebrow = `CARD · ${MODE_LABELS[periodMode]} · ${basis === 'billing' ? '명세서' : '승인'}`
 
   return (
     <LCard pad={0} style={style}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead
-          eyebrow={`CARD · ${basis === 'billing' ? '명세서' : '승인'}`}
+          eyebrow={eyebrow}
           title="카드승인내역"
           action={
             <LSegmented
-              value={basis}
-              onChange={setBasisAndReset}
+              value={periodMode}
+              onChange={changeMode}
               options={[
-                { value: 'billing', label: '명세서' },
-                { value: 'approval', label: '승인' },
+                { value: 'month', label: MODE_LABELS.month },
+                { value: 'quarter', label: MODE_LABELS.quarter },
+                { value: 'year', label: MODE_LABELS.year },
               ]}
             />
           }
         />
 
-        {/* Year navigation */}
+        {/* Period navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
-          <button onClick={() => { onYearChange(year - 1); setMonth(null); setPage(0) }} style={{
+          <button onClick={() => navigate(-1)} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
             padding: 4, borderRadius: 4, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
-            {year}년
+          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+            {periodLabel}
           </span>
-          <button onClick={() => { onYearChange(year + 1); setMonth(null); setPage(0) }} style={{
+          <button onClick={() => navigate(1)} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
             padding: 4, borderRadius: 4, color: t.neutrals.muted,
           }}>
@@ -137,48 +254,52 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
           </button>
         </div>
 
-        {/* KPI */}
+        {/* KPI — 기간 합계 + 금액 큰 항목 3개 */}
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
-          <LStat label="연간 합계" value={`${yearTotal.toLocaleString()}원`} tone="neg" sub={basisLabel} />
-          <LStat label="월 평균" value={`${avgMonthly.toLocaleString()}원`} sub={`${activeMonths}개월 기준`} />
-          <LStat label={basis === 'billing' ? '결제 건수' : '승인 건수'} value={`${live.length.toLocaleString()}건`} sub={cancelled.length ? `취소 ${cancelled.length}건 ${cancelTotal.toLocaleString()}원` : undefined} />
-          <LStat label="최다 가맹점" value={topStore ? topStore[0] : '-'} sub={topStore ? `${Math.round(topStore[1]).toLocaleString()}원` : undefined} />
+          <LStat label={`${MODE_LABELS[periodMode]} 합계`} value={`${periodTotal.toLocaleString()}원`} tone="neg" sub={basisLabel} />
+          {[0, 1, 2].map(i => {
+            const c = byCategory[i]
+            return (
+              <LStat
+                key={i}
+                label={c ? c.label : '-'}
+                value={c ? `${Math.round(c.amount).toLocaleString()}원` : '-'}
+                sub={c ? `${c.count}건 · 승인 대비 ${categoryBase ? Math.round((c.amount / categoryBase) * 100) : 0}%` : undefined}
+              />
+            )
+          })}
         </div>
 
-        {/* 월별 사용액 — 막대를 눌러 그 달 승인내역만 본다 */}
-        <div style={{ marginTop: 12 }}>
-          <div style={{
-            display: 'flex', alignItems: 'flex-end', gap: mobile ? 3 : 5, height: 72,
-          }}>
-            {monthly.map(m => {
-              const selected = month === m.key
-              const h = Math.max(2, Math.round((m.amount / maxMonthly) * 56))
-              return (
-                <button
-                  key={m.key}
-                  onClick={() => pickMonth(m.key)}
-                  title={`${m.key} ${m.amount.toLocaleString()}원`}
-                  style={{
-                    flex: 1, border: 'none', background: 'transparent', cursor: 'pointer',
-                    padding: 0, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'flex-end', gap: 4, height: '100%',
-                  }}
-                >
-                  <span style={{
-                    width: '100%', height: h, borderRadius: 3,
-                    background: selected ? t.brand[600] : m.amount > 0 ? t.brand[200] : t.neutrals.line,
-                    transition: 'background .12s',
-                  }} />
-                  <span style={{
-                    fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono,
-                    color: selected ? t.brand[700] : t.neutrals.subtle,
-                  }}>
-                    {Number(m.key.slice(5))}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+        {/* 기준 토글 — 명세서(청구월) vs 승인(사용월) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+          <LSegmented
+            value={basis}
+            onChange={changeBasis}
+            options={[
+              { value: 'billing', label: '명세서' },
+              { value: 'approval', label: '승인' },
+            ]}
+          />
+          <span style={{ fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>
+            {basis === 'billing' ? '청구월 기준 결제액' : '사용월 기준 승인액'}
+          </span>
+        </div>
+
+        {/* 항목 필터 */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 10 }}>
+          {[{ key: 'all', label: '전체' }, ...byCategory].map(c => {
+            const active = category === c.key
+            return (
+              <button key={c.key} onClick={() => { setCategory(c.key); setPage(0) }} style={{
+                border: 'none', cursor: 'pointer',
+                padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
+                fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
+                background: active ? t.brand[100] : t.neutrals.inner,
+                color: active ? t.brand[700] : t.neutrals.muted,
+                transition: 'all .12s',
+              }}>{c.label}</button>
+            )
+          })}
         </div>
 
         {/* Search */}
@@ -189,7 +310,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
           <input
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(0) }}
-            placeholder={month ? `${month} 가맹점 검색` : '가맹점 검색'}
+            placeholder="가맹점 검색"
             style={{
               width: '100%', boxSizing: 'border-box',
               padding: '7px 10px 7px 30px', fontSize: 'calc(12px * var(--fz, 1))',
@@ -198,8 +319,8 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
               borderRadius: t.radius.sm, outline: 'none',
             }}
           />
-          {(search || month) && (
-            <button onClick={() => { setSearch(''); setMonth(null); setPage(0) }} style={{
+          {search && (
+            <button onClick={() => { setSearch(''); setPage(0) }} style={{
               position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
               background: 'transparent', border: 'none', cursor: 'pointer',
               padding: 2, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
@@ -214,7 +335,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
       <div style={{ padding: '0 16px 16px' }}>
         {paged.length === 0 && (
           <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
-            승인내역이 없습니다
+해당 기간 승인내역이 없습니다
           </div>
         )}
         {paged.map(a => {
@@ -239,8 +360,8 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
                 {a.store_name || '미상'}
               </span>
               {!mobile && (
-                <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle }}>
-                  {a.card_no.slice(-4)}
+                <span style={{ fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {classify(a.store_name, a.store_type).label}
                   {a.home_foreign_type === '2' ? ' · 해외' : ''}
                   {installment ? ` · ${a.installment_month}개월` : ''}
                 </span>
@@ -261,37 +382,54 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
-          {filtered.length.toLocaleString()}건
-          {month ? ` · ${month}` : ''}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button
-            disabled={page === 0}
-            onClick={() => setPage(p => Math.max(0, p - 1))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            value={pageSizeInput}
+            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
+            onBlur={commitPageSize}
+            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
             style={{
-              background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
-              cursor: page === 0 ? 'default' : 'pointer',
-              color: page === 0 ? t.neutrals.line : t.neutrals.muted, display: 'flex',
+              width: 32, textAlign: 'center',
+              border: 'none', background: t.neutrals.inner,
+              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
+              fontFamily: t.font.mono, color: t.neutrals.muted,
+              padding: '2px 0', outline: 'none',
             }}
-          >
-            <LIcon name="chevronLeft" size={13} stroke={2} />
-          </button>
-          <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
-            {page + 1} / {totalPages}
-          </span>
-          <button
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-            style={{
-              background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
-              cursor: page >= totalPages - 1 ? 'default' : 'pointer',
-              color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted, display: 'flex',
-            }}
-          >
-            <LIcon name="chevronRight" size={13} stroke={2} />
-          </button>
+          />
+          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
         </div>
+
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              disabled={page === 0}
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              style={{
+                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                cursor: page === 0 ? 'default' : 'pointer',
+                color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page === 0 ? 0.4 : 1, display: 'flex',
+              }}
+            >
+              <LIcon name="chevronLeft" size={13} stroke={2} />
+            </button>
+            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
+            </span>
+            <button
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              style={{
+                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+                color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page >= totalPages - 1 ? 0.4 : 1, display: 'flex',
+              }}
+            >
+              <LIcon name="chevronRight" size={13} stroke={2} />
+            </button>
+          </div>
+        )}
       </div>
     </LCard>
   )

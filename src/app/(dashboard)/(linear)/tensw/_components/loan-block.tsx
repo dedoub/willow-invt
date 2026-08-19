@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -63,6 +63,7 @@ function daysToMaturity(maturityDate: string | null): number | null {
 }
 
 export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
+  const mobile = useIsMobile()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
@@ -128,7 +129,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
         />
 
         {/* Summary KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
           <LStat label="총 원금" value={`${totalPrincipal.toLocaleString()}원`} tone="info" />
           <LStat label="평균 이율" value={avgRate > 0 ? `${avgRate.toFixed(2)}%` : '-'} tone="default" />
           <LStat label="월 이자" value={totalMonthlyInterest > 0 ? `${totalMonthlyInterest.toLocaleString()}원` : '-'} tone="warn" />
