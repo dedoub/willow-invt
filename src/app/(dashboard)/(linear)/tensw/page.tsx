@@ -519,10 +519,10 @@ export default function TenswPage() {
             onSelectSchedule={setSelectedSchedule}
           />
 
-          {/* Cash (1.5fr) + Sales+Loans (1fr) */}
+          {/* Cash (1fr) + Sales+Loans (1fr) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'),
+            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
             gap: 14,
             overflow: 'hidden',
           }}>
