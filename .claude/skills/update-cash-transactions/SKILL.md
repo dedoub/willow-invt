@@ -111,9 +111,37 @@ description: 은행계좌내역 파일을 받아 각사별 현금관리 테이�
 거래 입력 후 **`tensw_mgmt_bank_balances` / `willow_mgmt_bank_balances`** 의 계좌별 `balance`·`balance_date`를 파일 최신 거래의 "거래후 잔액"으로 UPDATE.
 - 외화 계좌는 USD 잔액 그대로 (대시보드가 usdRate로 환산 표시).
 
+## 입력 소스
+
+거래내역은 두 경로로 들어온다. 둘 다 이후 Step 2~6은 동일하다.
+
+### A. CODEF API (텐소프트웍스, 권장)
+`npm run tensw:bank:sync` 이 은행 원본을 `tensw_codef_transactions` 스테이징에 적재한다.
+분류 대상은 `status='new'` 인 행:
+
+```sql
+select id, account_label, tr_date, tr_time, amount_in, amount_out, balance_after, desc1, desc2, desc3
+from tensw_codef_transactions where status = 'new' order by tr_date, tr_time;
+```
+
+컬럼 매핑: `amount_in`>0 → 입금, `amount_out`>0 → 출금, `desc1`=보낸분/받는분,
+`desc3`=적요, `balance_after`=거래후 잔액, `tr_time`=거래시각.
+`tensw_mgmt_cash` INSERT 후 스테이징 행을 반드시 마감한다:
+
+```sql
+update tensw_codef_transactions set status='classified', cash_id='<새 cash id>' where id='<staging id>';
+-- 자사간 이체 등 넣지 않는 건
+update tensw_codef_transactions set status='ignored' where id='<staging id>';
+```
+
+중복은 `fingerprint` 유니크 인덱스가 막으므로 같은 기간을 다시 동기화해도 안전하다.
+설정·주의사항은 `docs/codef.md`.
+
+### B. Excel/CSV 파일 (윌로우, 외화계좌, CODEF 미연동 계좌)
+
 ## Workflow
 
-### Step 1: 파일 파싱
+### Step 1: 파일 파싱 (소스 B)
 1. CEO가 Excel 파일 전달 (텔레그램 → `scripts/logs/tmp/`)
 2. Node.js로 Excel 파싱 (xlsx 라이브러리)
 3. 은행별 컬럼 매핑:
