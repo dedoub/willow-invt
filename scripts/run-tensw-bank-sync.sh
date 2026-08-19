@@ -20,7 +20,7 @@ npx tsx scripts/tensw-codef-sync.ts --days 14 || echo "  bank sync failed"
 npx tsx scripts/tensw-codef-tax-sync.ts --days 90 --purchase --promote || echo "  tax sync failed"
 
 # 법인카드 승인내역 — 자동이체 매입의 결제 근거
-npx tsx scripts/tensw-codef-card-sync.ts --days 90 || echo "  card sync failed"
+npx tsx scripts/tensw-codef-card-sync.ts --days 90 --billing || echo "  card sync failed"
 
 # 결제 대사 — 매출은 입금, 매입은 출금과 대조해 수금완료·지급완료 처리
 npx tsx scripts/tensw-reconcile-payments.ts || echo "  reconcile failed"

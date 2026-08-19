@@ -12,6 +12,7 @@ import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
 import { SalesBlock } from './_components/sales-block'
 import { LoanBlock } from './_components/loan-block'
+import { CardBlock } from './_components/card-block'
 import { TenswWikiBlock } from './_components/wiki-block'
 
 // Dialogs
@@ -27,7 +28,7 @@ import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_c
 import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/compose-email-dialog'
 
 // Types
-import { TenswMgmtSchedule, TenswMgmtClient, TenswCashItem, TenswTaxInvoice, TenswLoan } from '@/types/tensw-mgmt'
+import { TenswMgmtSchedule, TenswMgmtClient, TenswCashItem, TenswTaxInvoice, TenswLoan, TenswCardApproval, TenswCardBilling } from '@/types/tensw-mgmt'
 import { WikiNote } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-note-row'
 
 type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
@@ -44,6 +45,9 @@ export default function TenswPage() {
   const [clients, setClients] = useState<TenswMgmtClient[]>([])
   const [cashItems, setCashItems] = useState<TenswCashItem[]>([])
   const [invoices, setInvoices] = useState<TenswTaxInvoice[]>([])
+  const [cardApprovals, setCardApprovals] = useState<TenswCardApproval[]>([])
+  const [cardBilling, setCardBilling] = useState<TenswCardBilling[]>([])
+  const [cardYear, setCardYear] = useState(new Date().getFullYear())
   const [loans, setLoans] = useState<TenswLoan[]>([])
   const [wikiNotes, setWikiNotes] = useState<WikiNote[]>([])
   const [wikiLoading, setWikiLoading] = useState(true)
@@ -179,6 +183,20 @@ export default function TenswPage() {
   }, [loadWiki, fetchEmails])
 
   useEffect(() => { loadData() }, [loadData])
+
+  // 카드 내역은 연도를 따로 넘기며 보므로 loadData와 분리해 연도별로 가져온다.
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/tensw-mgmt/cards?year=${cardYear}`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled || !data) return
+        setCardApprovals(data.approvals || [])
+        setCardBilling(data.billing || [])
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [cardYear])
   useAgentRefresh(['tensw_mgmt'], loadData)
 
   const reloadClients = useCallback(async () => {
@@ -450,24 +468,33 @@ export default function TenswPage() {
             gap: 14,
             overflow: 'hidden',
           }}>
-            <CashBlock
-              items={cashItems}
-              onAdd={() => { setEditingCash(null); setCashDialogOpen(true) }}
-              onSelect={(item) => { setEditingCash(item); setCashDialogOpen(true) }}
-              bankBalances={bankBalances}
-              balanceHistory={balanceHistory}
-            />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
-              <SalesBlock
-                invoices={invoices}
-                onEdit={(inv) => { setEditingSales(inv); setSalesDialogOpen(true) }}
-                onDelete={handleDeleteSales}
+              <CashBlock
+                items={cashItems}
+                onAdd={() => { setEditingCash(null); setCashDialogOpen(true) }}
+                onSelect={(item) => { setEditingCash(item); setCashDialogOpen(true) }}
+                bankBalances={bankBalances}
+                balanceHistory={balanceHistory}
               />
               <LoanBlock
                 loans={loans}
                 onAdd={() => { setEditingLoan(null); setLoanDialogOpen(true) }}
                 onEdit={(loan) => { setEditingLoan(loan); setLoanDialogOpen(true) }}
                 onDelete={handleDeleteLoan}
+                style={{ height: 'fit-content' }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+              <SalesBlock
+                invoices={invoices}
+                onEdit={(inv) => { setEditingSales(inv); setSalesDialogOpen(true) }}
+                onDelete={handleDeleteSales}
+              />
+              <CardBlock
+                approvals={cardApprovals}
+                billing={cardBilling}
+                year={cardYear}
+                onYearChange={setCardYear}
                 style={{ height: 'fit-content' }}
               />
             </div>

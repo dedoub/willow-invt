@@ -21,6 +21,7 @@
 | `tensw_codef_transactions` | 은행 원본 거래 스테이징 |
 | `tensw_codef_tax_invoices` | 홈택스 세금계산서 스테이징 |
 | `tensw_codef_card_approvals` | 법인카드 승인내역 원본 |
+| `tensw_codef_card_billing` | 법인카드 이용명세서(청구내역) |
 
 ## 엔드포인트
 
@@ -32,6 +33,23 @@
 - 전자세금계산서 목록 `POST /v1/kr/public/nt/tax-invoice/check-list` (기관코드 고정 `0002`)
 - 법인 보유카드 `POST /v1/kr/card/b/account/card-list`, 승인내역 `POST /v1/kr/card/b/account/approval-list`
   (우리카드 `0309`, `memberStoreInfoType='3'` 이어야 가맹점 사업자번호·부가세가 온다)
+- 이용명세서 `POST /v1/kr/card/b/account/billing-list` (`startDate`=청구년월 YYYYMM)
+
+## 카드 사용액 두 기준
+
+화면(카드승인내역 섹션)은 명세서와 승인 두 축을 토글로 보여준다. 숫자가 다른 게 정상이다.
+
+| 기준 | 축 | 내용 |
+|---|---|---|
+| 이용명세서 | 청구월(=결제월) | 할부·연회비·해외이용이 반영된 실제 결제액. 202603 명세서 9,802,131원은 은행의 2026-03-05 "2월 이용대금" 출금과 일치한다 |
+| 승인내역 | 사용월 | 그 달에 실제로 쓴 금액. 할부도 승인 시점에 전액. 취소·거절분은 제외 |
+
+**해외 승인은 `amount`가 외화다.** `resKRWAmt`를 `krw_amount`에 따로 담아 합산은 원화로 한다.
+안 그러면 ANTHROPIC 승인이 200달러가 아니라 200원으로 잡혀 최다 가맹점 순위가 뒤집힌다.
+
+**명세서는 결제계좌 단위로 나뉜다.** 우리카드는 청구내역에 카드번호를 요구하는데, 응답은 그 카드가
+속한 그룹의 명세서다. 카드 한 장만 조회하면 절반만 온다(실측: 202608이 2,996,843 / 6,547,716
+두 그룹). 보유카드를 다 돌고 fingerprint로 중복을 거른다.
 
 요청 바디는 JSON을 `encodeURIComponent` 한 문자열로 보내고, 응답 바디도 URI 인코딩되어 오므로
 `+`를 공백으로 바꾼 뒤 디코딩해야 한다. 클라이언트가 이미 처리한다.

@@ -121,3 +121,52 @@ export function splitByMonths(startDate: string, endDate: string, months: number
   }
   return out
 }
+
+export interface CardBilling {
+  resCardNo?: string
+  resPaymentDueDate: string // YYYYMMDD 결제일
+  resTotalAmount: string // 총 결제금액
+  resBillType?: string
+  resPaymentAccount?: string // 은행명 계좌번호
+  resFullAmt?: string // 일시불
+  resInstallmentAmt?: string // 할부
+  resAmountOutstanding?: string // 전월 미결제
+  resLateFee?: string
+  resCashService?: string
+  resAnnualFee?: string
+  resPreWithdrawal?: string
+  resOverseasUse?: string
+  resDomesticUse?: string
+  resWithdrawalDueDate?: string
+  resDepartmentCode?: string
+  resDepartmentName?: string
+}
+
+/**
+ * 법인 청구내역(이용명세서).
+ * startDate는 청구년월(YYYYMM)이며 한 번에 한 달치만 온다.
+ * 승인내역이 "언제 썼나"라면 이건 "언제 얼마가 청구됐나"다. 월별 사용액은 이쪽이 정본이다.
+ */
+export async function listCardBilling(params: {
+  connectedId: string
+  organization: string
+  /** 청구년월 YYYYMM. 미입력 시 최근 명세서. */
+  billingMonth?: string
+  cardNo?: string
+}): Promise<CardBilling[]> {
+  const body: Record<string, unknown> = {
+    connectedId: params.connectedId,
+    organization: params.organization,
+    inquiryType: params.cardNo ? '0' : '1',
+    memberStoreInfoType: '0',
+  }
+  if (params.billingMonth) body.startDate = params.billingMonth
+  if (params.cardNo) body.cardNo = params.cardNo
+
+  const res = await codefRequest<CardBilling[] | CardBilling>('/v1/kr/card/b/account/billing-list', body, {
+    // 해당 월 명세서가 없으면 조회 결과 없음으로 떨어진다.
+    allowCodes: ['CF-03999'],
+  })
+  if (!res.data) return []
+  return Array.isArray(res.data) ? res.data : [res.data]
+}
