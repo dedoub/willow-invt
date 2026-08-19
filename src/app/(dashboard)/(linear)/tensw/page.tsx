@@ -471,14 +471,12 @@ export default function TenswPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
               <CashBlock
                 items={cashItems}
-                onAdd={() => { setEditingCash(null); setCashDialogOpen(true) }}
                 onSelect={(item) => { setEditingCash(item); setCashDialogOpen(true) }}
                 bankBalances={bankBalances}
                 balanceHistory={balanceHistory}
               />
               <LoanBlock
                 loans={loans}
-                onAdd={() => { setEditingLoan(null); setLoanDialogOpen(true) }}
                 onEdit={(loan) => { setEditingLoan(loan); setLoanDialogOpen(true) }}
                 onDelete={handleDeleteLoan}
                 style={{ height: 'fit-content' }}

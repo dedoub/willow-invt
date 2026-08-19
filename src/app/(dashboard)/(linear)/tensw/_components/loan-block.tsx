@@ -6,12 +6,11 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
-import { LTableHead, LTableRow, LTableEmpty, LTableBadge, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableBody, LTableEmpty, LTableBadge, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswLoan } from '@/types/tensw-mgmt'
 
 interface LoanBlockProps {
   loans: TenswLoan[]
-  onAdd: () => void
   onEdit: (loan: TenswLoan) => void
   onDelete: (id: string) => Promise<void>
   style?: React.CSSProperties
@@ -26,11 +25,20 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'closed', label: '상환완료' },
 ]
 
+/** 월간 예상 이자 — 원금 × 이율 ÷ 12. 상환 스케줄이 아니라 잔액 기준 어림값이다. */
+function monthlyInterest(loan: TenswLoan): number | null {
+  if (loan.interest_rate == null || !loan.principal) return null
+  return Math.round((loan.principal * loan.interest_rate) / 100 / 12)
+}
+
 const COLUMNS: LColumn<TenswLoan>[] = [
   { key: 'status', label: '상태', width: '60px', sortValue: l => l.status },
   { key: 'bank', label: '금융기관', width: 'minmax(0,1fr)', sortValue: l => l.bank },
-  { key: 'principal', label: '원금', width: 'minmax(0,120px)', align: 'right', sortValue: l => l.principal, sortFirst: 'desc' },
+  { key: 'loanDate', label: '실행일', width: '58px', sortValue: l => l.loan_date ?? null, sortFirst: 'desc' },
+  { key: 'maturity', label: '만기일', width: '58px', sortValue: l => l.maturity_date ?? null, sortFirst: 'desc' },
   { key: 'rate', label: '이율', width: '52px', align: 'right', sortValue: l => l.interest_rate ?? null, sortFirst: 'desc' },
+  { key: 'monthly', label: '월 이자', width: 'minmax(0,90px)', align: 'right', sortValue: l => monthlyInterest(l), sortFirst: 'desc' },
+  { key: 'principal', label: '원금', width: 'minmax(0,120px)', align: 'right', sortValue: l => l.principal, sortFirst: 'desc' },
   { key: 'chevron', label: '', width: '14px' },
 ]
 
@@ -71,7 +79,7 @@ function daysToMaturity(maturityDate: string | null): number | null {
   return Math.ceil(diff / (1000 * 60 * 60 * 24))
 }
 
-export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
+export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
   const mobile = useIsMobile()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswLoan>('tensw-loan', COLUMNS)
@@ -124,19 +132,6 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
         <LSectionHead
           eyebrow="LOANS"
           title="차입금관리"
-          action={
-            <button
-              onClick={onAdd}
-              style={{
-                width: 24, height: 24, borderRadius: t.radius.sm, border: 'none',
-                background: t.neutrals.inner, color: t.neutrals.muted,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0, flexShrink: 0,
-              }}
-            >
-              <LIcon name="plus" size={12} stroke={2.5} />
-            </button>
-          }
         />
 
         {/* Summary KPIs */}
@@ -176,6 +171,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
       <div style={{ padding: '0 16px 4px' }}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>차입금 데이터가 없습니다</LTableEmpty>}
+        <LTableBody columns={COLUMNS} mobile={mobile}>
         {paged.map((loan) => {
           const statusTone = STATUS_TONES[loan.status] ?? tonePalettes.neutral
           const expanded = expandedId === loan.id
@@ -200,16 +196,34 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
                   )}
                 </span>
                 <span style={{
-                  fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500,
-                  color: t.neutrals.text, whiteSpace: 'nowrap', textAlign: 'right',
+                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
+                  color: t.neutrals.muted, whiteSpace: 'nowrap',
                 }}>
-                  {loan.principal.toLocaleString()}
+                  {loan.loan_date ? loan.loan_date.slice(2) : '-'}
+                </span>
+                <span style={{
+                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
+                  color: maturityWarning ? t.accent.neg : t.neutrals.muted, whiteSpace: 'nowrap',
+                }}>
+                  {loan.maturity_date ? loan.maturity_date.slice(2) : '-'}
                 </span>
                 <span style={{
                   fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
                   color: t.neutrals.muted, whiteSpace: 'nowrap', textAlign: 'right',
                 }}>
                   {loan.interest_rate != null ? `${loan.interest_rate}%` : '-'}
+                </span>
+                <span style={{
+                  fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono,
+                  color: t.accent.warn, whiteSpace: 'nowrap', textAlign: 'right',
+                }}>
+                  {monthlyInterest(loan)?.toLocaleString() ?? '-'}
+                </span>
+                <span style={{
+                  fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500,
+                  color: t.neutrals.text, whiteSpace: 'nowrap', textAlign: 'right',
+                }}>
+                  {loan.principal.toLocaleString()}
                 </span>
                 <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
                   <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
@@ -295,6 +309,7 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
             </div>
           )
         })}
+        </LTableBody>
       </div>
 
       {/* Pagination */}

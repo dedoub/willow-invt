@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableRow, LTableEmpty, LTableBadge, LTableAmount, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 
 interface BankBalance {
@@ -19,7 +19,6 @@ interface BankBalance {
 
 interface CashBlockProps {
   items: TenswCashItem[]
-  onAdd: () => void
   onSelect: (item: TenswCashItem) => void
   bankBalances?: BankBalance[]
   balanceHistory?: Array<{ date: string; account: string; balance: number }>
@@ -108,7 +107,7 @@ function getStoredCashPageSize(): number {
   return n >= 1 && n <= 100 ? n : DEFAULT_CASH_PAGE_SIZE
 }
 
-export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHistory = [] }: CashBlockProps) {
+export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory = [] }: CashBlockProps) {
   const mobile = useIsMobile()
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
@@ -117,8 +116,10 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredCashPageSize()))
-  const [sortAsc, setSortAsc] = useState(false)
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswCashItem>('tensw-cash', COLUMNS)
+  // 은행별 잔고 타일을 누르면 그 은행의 계좌별 내역을 띄운다. 타일은 은행 합계만 보여줘서
+  // 어느 계좌에 얼마가 있는지는 여기 아니면 볼 곳이 없다.
+  const [balanceModal, setBalanceModal] = useState<string | null>(null)
 
   const [rangeStart, rangeEnd] = useMemo(() => getDateRange(baseDate, periodMode), [baseDate, periodMode])
   const periodLabel = useMemo(() => getPeriodLabel(baseDate, periodMode), [baseDate, periodMode])
@@ -152,9 +153,10 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
     return [...list].sort((a, b) => {
       const da = a.payment_date || a.issue_date || ''
       const db = b.payment_date || b.issue_date || ''
-      return sortAsc ? da.localeCompare(db) : db.localeCompare(da)
+      // 기본은 최신순. 다른 정렬은 표 머리를 눌러 건다.
+      return db.localeCompare(da)
     })
-  }, [periodFiltered, typeFilter, searchQuery, sortAsc])
+  }, [periodFiltered, typeFilter, searchQuery])
 
   // 헤더 정렬이 걸리면 그게 우선, 없으면 블록 기본 정렬(날짜)을 그대로 쓴다.
   const sortedList = useMemo(() => sortApply(displayList), [displayList, sortApply])
@@ -320,20 +322,17 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
           <LStat label="부채" value={`${liability.toLocaleString()}원`} tone="warn" />
           <LStat label="대체" value={`${transfer.toLocaleString()}원`} tone={transfer >= 0 ? 'pos' : 'neg'} />
           <LStat label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} />
-          <LStat label="우리은행" value={`${periodEndBalance.woori.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
-          <LStat label="신한은행" value={`${periodEndBalance.shinhan.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
+          <div onClick={() => setBalanceModal('우리')} style={{ cursor: 'pointer' }}>
+            <LStat label="우리은행" value={`${periodEndBalance.woori.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
+          </div>
+          <div onClick={() => setBalanceModal('신한')} style={{ cursor: 'pointer' }}>
+            <LStat label="신한은행" value={`${periodEndBalance.shinhan.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
+          </div>
           <LStat label="총 잔고" value={`${periodEndBalance.total.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} sparkline={mobile ? undefined : totalBalanceSpark} sparkFormat={(v) => `${v.toLocaleString()}원`} />
         </div>
 
-        {/* Type filter chips + add button (모바일에선 줄을 분리) */}
-        <div style={{
-          display: 'flex',
-          alignItems: mobile ? 'stretch' : 'center',
-          justifyContent: 'space-between',
-          flexDirection: mobile ? 'column' : 'row',
-          gap: mobile ? 8 : 0,
-          marginTop: 12,
-        }}>
+        {/* Type filter chips */}
+        <div style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' as const }}>
             {TYPE_FILTERS.map(f => {
               const active = typeFilter === f.value
@@ -348,28 +347,6 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
                 }}>{f.label}</button>
               )
             })}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: mobile ? 'flex-end' : undefined }}>
-            <button
-              onClick={() => { setSortAsc(v => !v); setPage(0) }}
-              style={{
-                border: 'none', cursor: 'pointer', background: t.neutrals.inner,
-                borderRadius: t.radius.sm, padding: '0 8px', height: 28,
-                display: 'flex', alignItems: 'center', gap: 3,
-                color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono,
-              }}
-            >
-              <LIcon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={11} stroke={2} />
-              날짜
-            </button>
-          <button onClick={onAdd} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm, border: 'none',
-            background: t.neutrals.inner, color: t.neutrals.muted,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 0, flexShrink: 0,
-          }}>
-            <LIcon name="plus" size={13} stroke={2.5} />
-          </button>
           </div>
         </div>
 
@@ -406,6 +383,7 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
       <div style={{ padding: '0 16px 16px' }}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 거래 내역이 없습니다</LTableEmpty>}
+        <LTableBody columns={COLUMNS} mobile={mobile}>
         {paged.map((item) => {
           const typeTone = TYPE_TONES[item.type]
           // 윌로우 현금관리와 동일한 규칙:
@@ -436,7 +414,16 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
             </LTableRow>
           )
         })}
+        </LTableBody>
       </div>
+
+      {balanceModal && (
+        <BankBalanceModal
+          bank={balanceModal}
+          balances={bankBalances.filter(b => (b.account_number ?? b.bank_name).includes(balanceModal))}
+          onClose={() => setBalanceModal(null)}
+        />
+      )}
 
       {/* Pagination */}
       <div style={{
@@ -495,5 +482,94 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
         )}
       </div>
     </LCard>
+  )
+}
+
+/** 은행별 계좌 잔고. 타일이 보여주는 합계가 어떤 계좌들로 이뤄졌는지 펼쳐 보여준다. */
+function BankBalanceModal({
+  bank, balances, onClose,
+}: { bank: string; balances: BankBalance[]; onClose: () => void }) {
+  const total = balances.reduce((sum, b) => sum + Number(b.balance), 0)
+  const sorted = [...balances].sort((a, b) => Number(b.balance) - Number(a.balance))
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 60,
+        background: 'rgba(0,0,0,0.35)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: t.neutrals.card, borderRadius: t.radius.md,
+          width: '100%', maxWidth: 420, maxHeight: '80vh', overflowY: 'auto',
+          padding: 16, boxSizing: 'border-box',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <div style={{
+              fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+              textTransform: 'uppercase', color: t.neutrals.subtle, marginBottom: 2,
+            }}>
+              BALANCE
+            </div>
+            <div style={{ fontSize: 'calc(14px * var(--fz, 1))', fontWeight: 600 }}>{bank}은행 계좌별 잔고</div>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            padding: 4, color: t.neutrals.muted, display: 'flex',
+          }}>
+            <LIcon name="x" size={14} stroke={2} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {sorted.length === 0 && (
+            <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
+              등록된 계좌가 없습니다
+            </div>
+          )}
+          {sorted.map(b => (
+            <div key={b.account_number ?? b.bank_name} style={{
+              display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto',
+              gap: 8, alignItems: 'center',
+              padding: '7px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+            }}>
+              <span style={{ minWidth: 0, fontSize: 'calc(12px * var(--fz, 1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {b.account_number ?? b.bank_name}
+                {b.balance_date && (
+                  <span style={{ marginLeft: 6, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                    {b.balance_date}
+                  </span>
+                )}
+              </span>
+              <span style={{
+                fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500,
+                fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+              }}>
+                {Number(b.balance).toLocaleString()}원
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginTop: 12, paddingTop: 10, borderTop: `1px solid ${t.neutrals.line}`,
+        }}>
+          <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>합계</span>
+          <span style={{
+            fontSize: 'calc(13px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            {total.toLocaleString()}원
+          </span>
+        </div>
+      </div>
+    </div>
   )
 }

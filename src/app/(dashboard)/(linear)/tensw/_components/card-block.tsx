@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableRow, LTableEmpty, LTableBadge, LTableAmount, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCardApproval, TenswCardBilling } from '@/types/tensw-mgmt'
 
 // 구분 배지가 늘 1열이다. 다른 표들과 배지 열 위치를 맞춘다.
@@ -364,6 +364,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
       <div style={{ padding: '0 16px 16px' }}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 승인내역이 없습니다</LTableEmpty>}
+        <LTableBody columns={COLUMNS} mobile={mobile}>
         {paged.map(a => {
           const isCancel = a.cancel_yn === '1' || a.cancel_yn === '2'
           const installment = a.payment_type === '2' && a.installment_month
@@ -392,6 +393,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
             </LTableRow>
           )
         })}
+        </LTableBody>
       </div>
 
       {/* Pagination */}

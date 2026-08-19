@@ -41,8 +41,11 @@ export interface LColumn<T = never> {
 export type SortDir = 'asc' | 'desc'
 export interface TableSort { key: string; dir: SortDir }
 
-// 보이스카드 사용자 표와 같은 간격·글자. 두 페이지를 오가며 봐도 같은 표로 읽힌다.
+// 보이스카드 사용자 표와 같은 간격·글자·색. 두 페이지를 오가며 봐도 같은 표로 읽힌다.
+// 행은 선으로 나누지 않고 채운 카드로 띄운다 — 선이 없으니 가로 스크롤에서 잘려도 덜 지저분하다.
 const GAP = 6
+const ROW_GAP = 2
+const ROW_PAD_X = 8
 
 /**
  * 표 정렬 상태. 같은 머리를 다시 누르면 오름차순 → 내림차순 → 해제로 돈다.
@@ -113,7 +116,7 @@ export function LTableHead<T>({
       display: 'grid',
       gridTemplateColumns: templateOf(columns as LColumn<never>[], mobile),
       gap: GAP,
-      padding: '0 0 6px',
+      padding: `0 ${ROW_PAD_X}px 5px`,
       alignItems: 'center',
     }}>
       {cols.map(c => {
@@ -163,14 +166,40 @@ export function LTableRow<T>({
         display: 'grid',
         gridTemplateColumns: templateOf(columns as LColumn<never>[], mobile),
         gap: GAP,
-        padding: '10px 0',
+        padding: `5px ${ROW_PAD_X}px`,
         alignItems: 'center',
-        borderTop: `1px solid ${t.neutrals.line}`,
+        background: t.neutrals.inner,
+        borderRadius: t.radius.sm,
         fontSize: 'calc(12px * var(--fz, 1))',
         cursor: onClick ? 'pointer' : undefined,
       }}
     >
       {children}
+    </div>
+  )
+}
+
+/**
+ * 표 본문. 행 사이를 선이 아니라 2px 틈으로 띄운다.
+ * minWidth를 컬럼 정의에서 계산해 좁은 폭에서는 가로로 스크롤한다 — 하드코딩하면
+ * 열을 하나 추가할 때마다 마지막 열이 행 배경 밖으로 삐져나온다.
+ */
+export function LTableBody({ columns, mobile = false, children }: {
+  columns: LColumn<never>[] | LColumn<unknown>[]
+  mobile?: boolean
+  children: React.ReactNode
+}) {
+  const cols = visibleColumns(columns as LColumn<never>[], mobile)
+  const minPx = cols.reduce((sum, c) => {
+    const m = c.width.match(/minmax\((\d+)px/) || c.width.match(/^(\d+)px$/)
+    return sum + (m ? Number(m[1]) : 0)
+  }, 0) + GAP * Math.max(0, cols.length - 1) + ROW_PAD_X * 2
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <div style={{ minWidth: minPx, display: 'flex', flexDirection: 'column', gap: ROW_GAP }}>
+        {children}
+      </div>
     </div>
   )
 }
@@ -181,7 +210,6 @@ export function LTableEmpty({ children }: { children: React.ReactNode }) {
     <div style={{
       padding: '16px 0', textAlign: 'center',
       fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
-      borderTop: `1px solid ${t.neutrals.line}`,
     }}>
       {children}
     </div>

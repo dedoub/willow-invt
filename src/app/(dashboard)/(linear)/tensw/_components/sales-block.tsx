@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableRow, LTableEmpty, LTableBadge, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableBody, LTableEmpty, LTableBadge, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -41,6 +41,7 @@ const COLUMNS: LColumn<TenswTaxInvoice>[] = [
   { key: 'status', label: '상태', width: '68px', sortValue: inv => inv.payment_status },
   { key: 'date', label: '발행일', width: '46px', sortValue: inv => inv.issue_date, sortFirst: 'desc' },
   { key: 'counterparty', label: '거래처', width: 'minmax(0,1fr)', sortValue: inv => inv.counterparty },
+  { key: 'detail', label: '상세', width: 'minmax(0,1.2fr)', hideMobile: true, sortValue: inv => inv.notes ?? '' },
   { key: 'amount', label: '합계', width: 'minmax(0,110px)', align: 'right', sortValue: inv => inv.total_amount, sortFirst: 'desc' },
   { key: 'chevron', label: '', width: '14px' },
 ]
@@ -87,7 +88,6 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [sortAsc, setSortAsc] = useState(false)
   const [search, setSearch] = useState('')
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswTaxInvoice>('tensw-sales', COLUMNS)
 
@@ -119,13 +119,11 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
     return rows
   }, [yearFiltered, statusFilter, search])
 
-  // 헤더 정렬이 걸리면 그게 우선, 없으면 블록 기본 정렬(발행일)을 그대로 쓴다.
+  // 헤더 정렬이 걸리면 그게 우선, 없으면 기본은 최신 발행일순.
   const sorted = useMemo(() => {
-    const base = [...filtered].sort((a, b) =>
-      sortAsc ? a.issue_date.localeCompare(b.issue_date) : b.issue_date.localeCompare(a.issue_date)
-    )
+    const base = [...filtered].sort((a, b) => b.issue_date.localeCompare(a.issue_date))
     return sortApply(base)
-  }, [filtered, sortAsc, sortApply])
+  }, [filtered, sortApply])
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
@@ -237,19 +235,6 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
               }}>{f.label}</button>
             )
           })}
-          <div style={{ flex: 1 }} />
-          <button
-            onClick={() => { setSortAsc(v => !v); setPage(0) }}
-            style={{
-              border: 'none', cursor: 'pointer', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, padding: '3px 6px',
-              display: 'flex', alignItems: 'center', gap: 2,
-              color: t.neutrals.muted, fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
-            }}
-          >
-            <LIcon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={10} stroke={2} />
-            날짜
-          </button>
         </div>
 
         {/* Search */}
@@ -285,6 +270,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
       <div style={{ padding: '0 16px 4px' }}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 연도 세금계산서가 없습니다</LTableEmpty>}
+        <LTableBody columns={COLUMNS} mobile={mobile}>
         {paged.map(inv => {
           const tone = STATUS_TONES[inv.payment_status] ?? tonePalettes.neutral
           const expanded = expandedId === inv.id
@@ -296,12 +282,14 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                 <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
                   {inv.issue_date.slice(5)}
                 </span>
-                <span style={{ minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  <span style={{ fontWeight: 500 }}>{inv.counterparty}</span>
-                  {inv.notes && (
-                    <span style={{ color: t.neutrals.muted, fontWeight: 400 }}> · {inv.notes}</span>
-                  )}
+                <span style={{ minWidth: 0, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {inv.counterparty}
                 </span>
+                {!mobile && (
+                  <span style={{ minWidth: 0, color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {inv.notes ?? ''}
+                  </span>
+                )}
                 <span style={{
                   fontWeight: 500, fontVariantNumeric: 'tabular-nums', textAlign: 'right',
                   color: t.neutrals.text, whiteSpace: 'nowrap', fontSize: 'calc(11px * var(--fz, 1))',
@@ -406,6 +394,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
             </div>
           )
         })}
+        </LTableBody>
       </div>
 
       {/* Pagination */}
