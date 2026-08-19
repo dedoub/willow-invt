@@ -6,6 +6,8 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LTableHead, LTableRow, LTableEmpty, LTableBadge, LTableAmount, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 
 interface BankBalance {
@@ -84,6 +86,14 @@ function navigatePeriod(base: Date, dir: -1 | 1, mode: PeriodMode): Date {
 }
 
 const MODE_LABELS: Record<PeriodMode, string> = { month: '월간', quarter: '분기', year: '연간' }
+
+const COLUMNS: LColumn[] = [
+  { key: 'date', label: '날짜', width: '52px' },
+  { key: 'type', label: '구분', width: '48px' },
+  { key: 'counterparty', label: '거래처', width: 'minmax(0,1.2fr)' },
+  { key: 'description', label: '적요', width: 'minmax(0,1.5fr)' },
+  { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right' },
+]
 
 const CASH_PAGE_SIZE_KEY = 'tensw-cash-page-size'
 const DEFAULT_CASH_PAGE_SIZE = 15
@@ -265,20 +275,15 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         {/* Header: eyebrow+title left, period mode toggle right */}
         <LSectionHead eyebrow={eyebrowLabel} title="현금관리" action={
-          <div style={{
-            display: 'inline-flex', background: t.neutrals.inner,
-            borderRadius: t.radius.sm, padding: 2,
-          }}>
-            {(['month', 'quarter', 'year'] as const).map((m) => (
-              <button key={m} onClick={() => setPeriodMode(m)} style={{
-                border: 'none',
-                background: periodMode === m ? t.neutrals.card : 'transparent',
-                padding: '4px 10px', fontSize: 'calc(11.5px * var(--fz, 1))', borderRadius: 4, cursor: 'pointer',
-                fontWeight: periodMode === m ? 500 : 400, color: t.neutrals.text,
-                fontFamily: t.font.sans,
-              }}>{MODE_LABELS[m]}</button>
-            ))}
-          </div>
+          <LSegmented
+            value={periodMode}
+            onChange={setPeriodMode}
+            options={[
+              { value: 'month', label: MODE_LABELS.month },
+              { value: 'quarter', label: MODE_LABELS.quarter },
+              { value: 'year', label: MODE_LABELS.year },
+            ]}
+          />
         } />
 
         {/* Navigation — centered */}
@@ -394,11 +399,8 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
 
       {/* Transactions */}
       <div style={{ padding: '0 16px 16px' }}>
-        {paged.length === 0 && (
-          <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
-            해당 기간 거래 내역이 없습니다
-          </div>
-        )}
+        <LTableHead columns={COLUMNS} mobile={mobile} />
+        {paged.length === 0 && <LTableEmpty>해당 기간 거래 내역이 없습니다</LTableEmpty>}
         {paged.map((item) => {
           const typeTone = TYPE_TONES[item.type]
           // 윌로우 현금관리와 동일한 규칙:
@@ -408,22 +410,11 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
             : item.type === 'expense' ? item.amount < 0
             : item.amount >= 0
           return (
-            <div key={item.id} onClick={() => onSelect(item)} style={{
-              display: 'grid', gridTemplateColumns: '52px 48px 1.2fr 1.5fr 1fr',
-              gap: 8, padding: '10px 0', alignItems: 'center',
-              borderTop: `1px solid ${t.neutrals.line}`,
-              fontSize: 'calc(12px * var(--fz, 1))', cursor: 'pointer',
-            }}>
+            <LTableRow key={item.id} columns={COLUMNS} mobile={mobile} onClick={() => onSelect(item)}>
               <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
                 {(item.payment_date || item.issue_date || '').slice(5)}
               </span>
-              <span style={{
-                display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-                fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
-                background: typeTone.bg, color: typeTone.fg,
-              }}>
-                {TYPE_LABELS[item.type]}
-              </span>
+              <LTableBadge tone={typeTone}>{TYPE_LABELS[item.type]}</LTableBadge>
               <span style={mobile ? {
                 fontWeight: 500, display: '-webkit-box', WebkitBoxOrient: 'vertical' as const,
                 WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'break-word' as const, lineHeight: 1.35,
@@ -436,13 +427,8 @@ export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHi
               } : { color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {item.description}
               </span>
-              <span style={{
-                textAlign: 'right', fontWeight: 500, fontVariantNumeric: 'tabular-nums',
-                color: isIncome ? t.accent.pos : t.accent.neg,
-              }}>
-                {isIncome ? '+' : '-'}{Math.abs(item.amount).toLocaleString()}
-              </span>
-            </div>
+              <LTableAmount value={item.amount} positive={isIncome} />
+            </LTableRow>
           )
         })}
       </div>

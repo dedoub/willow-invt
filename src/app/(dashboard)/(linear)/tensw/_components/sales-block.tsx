@@ -7,6 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LTableHead, LTableRow, LTableEmpty, LTableBadge, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -35,6 +36,14 @@ const FILTERS: Record<Mode, { value: StatusFilter; label: string }[]> = {
     { value: 'paid', label: '지급완료' },
   ],
 }
+
+const COLUMNS: LColumn[] = [
+  { key: 'status', label: '상태', width: '68px' },
+  { key: 'date', label: '발행일', width: '46px' },
+  { key: 'counterparty', label: '거래처', width: 'minmax(0,1fr)' },
+  { key: 'amount', label: '합계', width: 'minmax(0,110px)', align: 'right' },
+  { key: 'chevron', label: '', width: '14px' },
+]
 
 const STATUS_TONES: Record<string, { bg: string; fg: string }> = {
   planned:   tonePalettes.neutral,
@@ -79,6 +88,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [sortAsc, setSortAsc] = useState(false)
+  const [search, setSearch] = useState('')
 
   const statusFilters = FILTERS[mode]
   const statusLabels = LABELS[mode]
@@ -94,11 +104,19 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
     return scoped.filter(inv => inv.issue_date?.startsWith(String(year)))
   }, [scoped, year])
 
-  // Filter by payment_status
+  // Filter by payment_status + 검색(거래처·품목·메모)
   const filtered = useMemo(() => {
-    if (statusFilter === 'all') return yearFiltered
-    return yearFiltered.filter(inv => inv.payment_status === statusFilter)
-  }, [yearFiltered, statusFilter])
+    let rows = yearFiltered
+    if (statusFilter !== 'all') rows = rows.filter(inv => inv.payment_status === statusFilter)
+    const q = search.trim().toLowerCase()
+    if (q) {
+      rows = rows.filter(inv => {
+        const items = (inv.items ?? []).map(it => it.description ?? '').join(' ')
+        return `${inv.counterparty} ${items} ${inv.notes ?? ''}`.toLowerCase().includes(q)
+      })
+    }
+    return rows
+  }, [yearFiltered, statusFilter, search])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) =>
@@ -230,76 +248,72 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
             날짜
           </button>
         </div>
+
+        {/* Search */}
+        <div style={{ position: 'relative', marginTop: 10 }}>
+          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+            <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+          </div>
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(0) }}
+            placeholder="거래처 · 품목 · 메모 검색"
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              padding: '7px 10px 7px 30px', fontSize: 'calc(12px * var(--fz, 1))',
+              fontFamily: t.font.sans, color: t.neutrals.text,
+              background: t.neutrals.inner, border: 'none',
+              borderRadius: t.radius.sm, outline: 'none',
+            }}
+          />
+          {search && (
+            <button onClick={() => { setSearch(''); setPage(0) }} style={{
+              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              padding: 2, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+            }}>
+              <LIcon name="x" size={12} stroke={2} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Invoice rows */}
-      <div style={{ padding: '0 0 4px' }}>
-        {paged.length === 0 && (
-          <div style={{
-            padding: '20px 16px', textAlign: 'center',
-            fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
-          }}>
-            해당 연도 세금계산서가 없습니다
-          </div>
-        )}
+      <div style={{ padding: '0 16px 4px' }}>
+        <LTableHead columns={COLUMNS} mobile={mobile} />
+        {paged.length === 0 && <LTableEmpty>해당 연도 세금계산서가 없습니다</LTableEmpty>}
         {paged.map(inv => {
           const tone = STATUS_TONES[inv.payment_status] ?? tonePalettes.neutral
-          const dateSlice = inv.issue_date.slice(5)
           const expanded = expandedId === inv.id
 
           return (
-            <div key={inv.id} style={{ borderTop: `1px solid ${t.neutrals.line}` }}>
-              {/* Compact row */}
-              <div
-                style={{
-                  padding: '10px 16px', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 8,
-                }}
-                onClick={() => setExpandedId(expanded ? null : inv.id)}
-              >
-                {/* Status badge */}
-                <span style={{
-                  display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-                  fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
-                  background: tone.bg, color: tone.fg, flexShrink: 0,
-                }}>
-                  {statusLabels[inv.payment_status] ?? inv.payment_status}
+            <div key={inv.id}>
+              <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setExpandedId(expanded ? null : inv.id)}>
+                <LTableBadge tone={tone}>{statusLabels[inv.payment_status] ?? inv.payment_status}</LTableBadge>
+                <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
+                  {inv.issue_date.slice(5)}
                 </span>
-
-                {/* Date */}
-                <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))', flexShrink: 0 }}>
-                  {dateSlice}
-                </span>
-
-                {/* Counterparty + notes */}
-                <span style={{
-                  flex: 1, minWidth: 0, fontSize: 'calc(12px * var(--fz, 1))',
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>
+                <span style={{ minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   <span style={{ fontWeight: 500 }}>{inv.counterparty}</span>
                   {inv.notes && (
                     <span style={{ color: t.neutrals.muted, fontWeight: 400 }}> · {inv.notes}</span>
                   )}
                 </span>
-
-                {/* Total amount */}
                 <span style={{
-                  fontWeight: 500, fontVariantNumeric: 'tabular-nums',
+                  fontWeight: 500, fontVariantNumeric: 'tabular-nums', textAlign: 'right',
                   color: t.neutrals.text, whiteSpace: 'nowrap', fontSize: 'calc(11px * var(--fz, 1))',
-                  fontFamily: t.font.mono, flexShrink: 0,
+                  fontFamily: t.font.mono,
                 }}>
-                  {inv.total_amount.toLocaleString()}원
+                  {inv.total_amount.toLocaleString()}
                 </span>
-
-                {/* Expand chevron */}
-                <span style={{ color: t.neutrals.subtle, flexShrink: 0 }}>
+                <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
                   <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
                 </span>
-              </div>
+              </LTableRow>
 
               {/* Expanded detail */}
               {expanded && (
-                <div style={{ padding: '0 16px 12px' }}>
+                <div style={{ padding: '0 0 12px' }}>
                   <div style={{
                     background: t.neutrals.inner, borderRadius: t.radius.md,
                     padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,

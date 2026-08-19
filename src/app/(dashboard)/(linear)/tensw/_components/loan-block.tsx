@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { LTableHead, LTableRow, LTableEmpty, LTableBadge, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswLoan } from '@/types/tensw-mgmt'
 
 interface LoanBlockProps {
@@ -23,6 +24,14 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'active', label: '실행중' },
   { value: 'pending', label: '대기' },
   { value: 'closed', label: '상환완료' },
+]
+
+const COLUMNS: LColumn[] = [
+  { key: 'status', label: '상태', width: '60px' },
+  { key: 'bank', label: '금융기관', width: 'minmax(0,1fr)' },
+  { key: 'principal', label: '원금', width: 'minmax(0,120px)', align: 'right' },
+  { key: 'rate', label: '이율', width: '52px', align: 'right' },
+  { key: 'chevron', label: '', width: '14px' },
 ]
 
 const STATUS_TONES: Record<string, { bg: string; fg: string }> = {
@@ -162,15 +171,9 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
       </div>
 
       {/* Loan rows */}
-      <div style={{ padding: '0 0 4px' }}>
-        {paged.length === 0 && (
-          <div style={{
-            padding: '20px 16px', textAlign: 'center',
-            fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
-          }}>
-            차입금 데이터가 없습니다
-          </div>
-        )}
+      <div style={{ padding: '0 16px 4px' }}>
+        <LTableHead columns={COLUMNS} mobile={mobile} />
+        {paged.length === 0 && <LTableEmpty>차입금 데이터가 없습니다</LTableEmpty>}
         {paged.map((loan) => {
           const statusTone = STATUS_TONES[loan.status] ?? tonePalettes.neutral
           const expanded = expandedId === loan.id
@@ -178,63 +181,42 @@ export function LoanBlock({ loans, onAdd, onEdit, style }: LoanBlockProps) {
           const maturityWarning = maturityDays != null && maturityDays >= 0 && maturityDays <= 90
 
           return (
-            <div key={loan.id} style={{ borderTop: `1px solid ${t.neutrals.line}` }}>
-              {/* Compact row */}
-              <div
-                style={{
-                  padding: '10px 16px', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 8,
-                }}
-                onClick={() => setExpandedId(expanded ? null : loan.id)}
-              >
-                {/* Status badge */}
-                <span style={{
-                  display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-                  fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
-                  background: statusTone.bg, color: statusTone.fg,
-                  flexShrink: 0,
-                }}>
-                  {STATUS_LABELS[loan.status] ?? loan.status}
-                </span>
-
-                {/* Bank name */}
-                <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.text, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div key={loan.id}>
+              <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setExpandedId(expanded ? null : loan.id)}>
+                <LTableBadge tone={statusTone}>{STATUS_LABELS[loan.status] ?? loan.status}</LTableBadge>
+                <span style={{ fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {loan.bank}
+                  {maturityWarning && (
+                    <span style={{
+                      marginLeft: 6, fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                      padding: '1px 5px', borderRadius: t.radius.sm,
+                      background: tonePalettes.danger.bg, color: tonePalettes.danger.fg,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      D-{maturityDays}
+                    </span>
+                  )}
                 </span>
-
-                {/* Principal */}
-                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap' }}>
-                  {loan.principal.toLocaleString()}원
+                <span style={{
+                  fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500,
+                  color: t.neutrals.text, whiteSpace: 'nowrap', textAlign: 'right',
+                }}>
+                  {loan.principal.toLocaleString()}
                 </span>
-
-                {/* Rate */}
-                {loan.interest_rate != null && (
-                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>
-                    {loan.interest_rate}%
-                  </span>
-                )}
-
-                {/* Maturity warning */}
-                {maturityWarning && (
-                  <span style={{
-                    fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                    padding: '1px 5px', borderRadius: t.radius.sm,
-                    background: tonePalettes.danger.bg, color: tonePalettes.danger.fg,
-                    whiteSpace: 'nowrap',
-                  }}>
-                    D-{maturityDays}
-                  </span>
-                )}
-
-                {/* Expand chevron */}
-                <span style={{ color: t.neutrals.subtle, flexShrink: 0 }}>
+                <span style={{
+                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
+                  color: t.neutrals.muted, whiteSpace: 'nowrap', textAlign: 'right',
+                }}>
+                  {loan.interest_rate != null ? `${loan.interest_rate}%` : '-'}
+                </span>
+                <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
                   <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
                 </span>
-              </div>
+              </LTableRow>
 
               {/* Expanded detail */}
               {expanded && (
-                <div style={{ padding: '0 16px 12px' }}>
+                <div style={{ padding: '0 0 12px' }}>
                   <div style={{
                     background: t.neutrals.inner, borderRadius: t.radius.md,
                     padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,

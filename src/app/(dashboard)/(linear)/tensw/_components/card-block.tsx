@@ -1,13 +1,21 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LTableHead, LTableRow, LTableEmpty, LTableBadge, LTableAmount, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCardApproval, TenswCardBilling } from '@/types/tensw-mgmt'
+
+const COLUMNS: LColumn[] = [
+  { key: 'date', label: '날짜', width: '46px' },
+  { key: 'category', label: '구분', width: '72px' },
+  { key: 'store', label: '가맹점', width: 'minmax(0,1.6fr)' },
+  { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right' },
+]
 
 const DEFAULT_PAGE_SIZE = 8
 const PAGE_SIZE_KEY = 'tensw-card-page-size'
@@ -67,6 +75,16 @@ function navigatePeriod(base: Date, dir: -1 | 1, mode: PeriodMode): Date {
  * 실제로 뭘 샀는지는 가맹점명에 있다. 그래서 이름을 먼저 보고 타입은 보조로 쓴다.
  * 순서가 중요하다 — 위에서부터 먼저 걸린 항목으로 확정한다.
  */
+const CATEGORY_TONES: Record<string, { bg: string; fg: string }> = {
+  ai: tonePalettes.brand,
+  outsourcing: tonePalettes.progress,
+  utility: tonePalettes.warn,
+  meal: tonePalettes.done,
+  car: tonePalettes.pending,
+  finance: tonePalettes.danger,
+  etc: tonePalettes.neutral,
+}
+
 const CATEGORIES: Array<{ key: string; label: string; test: (name: string, type: string) => boolean }> = [
   {
     key: 'ai',
@@ -213,7 +231,6 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
-  const basisLabel = basis === 'billing' ? '이용명세서 기준 · 청구월' : '승인내역 기준 · 사용월'
   const eyebrow = `CARD · ${MODE_LABELS[periodMode]} · ${basis === 'billing' ? '명세서' : '승인'}`
 
   return (
@@ -256,7 +273,35 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
 
         {/* KPI — 기간 합계 + 금액 큰 항목 3개 */}
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
-          <LStat label={`${MODE_LABELS[periodMode]} 합계`} value={`${periodTotal.toLocaleString()}원`} tone="neg" sub={basisLabel} />
+          <LStat
+            label={`${MODE_LABELS[periodMode]} 합계`}
+            value={`${periodTotal.toLocaleString()}원`}
+            tone="neg"
+            sub={basis === 'billing' ? '청구월 기준 결제액' : '사용월 기준 승인액'}
+            // 기준을 바꾸면 이 타일의 숫자만 바뀐다. 별도 줄로 빼면 무엇을 바꾸는 스위치인지 안 보인다.
+            subExtra={
+              <div style={{ display: 'inline-flex', marginTop: 6, background: t.neutrals.card, borderRadius: 4, padding: 1 }}>
+                {([['billing', '명세서'], ['approval', '승인']] as const).map(([key, label]) => {
+                  const active = basis === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => changeBasis(key)}
+                      style={{
+                        border: 'none', cursor: 'pointer',
+                        padding: '2px 7px', borderRadius: 3,
+                        fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans,
+                        fontWeight: active ? t.weight.medium : t.weight.regular,
+                        background: active ? t.neutrals.inner : 'transparent',
+                        color: active ? t.neutrals.text : t.neutrals.subtle,
+                        transition: 'background .12s',
+                      }}
+                    >{label}</button>
+                  )
+                })}
+              </div>
+            }
+          />
           {[0, 1, 2].map(i => {
             const c = byCategory[i]
             return (
@@ -268,21 +313,6 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
               />
             )
           })}
-        </div>
-
-        {/* 기준 토글 — 명세서(청구월) vs 승인(사용월) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
-          <LSegmented
-            value={basis}
-            onChange={changeBasis}
-            options={[
-              { value: 'billing', label: '명세서' },
-              { value: 'approval', label: '승인' },
-            ]}
-          />
-          <span style={{ fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>
-            {basis === 'billing' ? '청구월 기준 결제액' : '사용월 기준 승인액'}
-          </span>
         </div>
 
         {/* 항목 필터 */}
@@ -333,46 +363,34 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
 
       {/* 승인내역 */}
       <div style={{ padding: '0 16px 16px' }}>
-        {paged.length === 0 && (
-          <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
-해당 기간 승인내역이 없습니다
-          </div>
-        )}
+        <LTableHead columns={COLUMNS} mobile={mobile} />
+        {paged.length === 0 && <LTableEmpty>해당 기간 승인내역이 없습니다</LTableEmpty>}
         {paged.map(a => {
           const isCancel = a.cancel_yn === '1' || a.cancel_yn === '2'
           const installment = a.payment_type === '2' && a.installment_month
+          const cat = classify(a.store_name, a.store_type)
           return (
-            <div key={a.id} style={{
-              display: 'grid',
-              gridTemplateColumns: mobile ? '46px 1fr 1fr' : '46px 1.6fr 90px 1fr',
-              gap: 8, padding: '10px 0', alignItems: 'center',
-              borderTop: `1px solid ${t.neutrals.line}`,
-              fontSize: 'calc(12px * var(--fz, 1))',
-            }}>
+            <LTableRow key={a.id} columns={COLUMNS} mobile={mobile}>
               <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
                 {a.used_date.slice(5)}
               </span>
+              <LTableBadge tone={CATEGORY_TONES[cat.key]}>{cat.label}</LTableBadge>
               <span style={{
                 fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 textDecoration: isCancel ? 'line-through' : undefined,
                 color: isCancel ? t.neutrals.subtle : undefined,
               }}>
                 {a.store_name || '미상'}
+                {(a.home_foreign_type === '2' || installment) && (
+                  <span style={{ marginLeft: 6, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontWeight: 400 }}>
+                    {a.home_foreign_type === '2' ? '해외' : ''}
+                    {a.home_foreign_type === '2' && installment ? ' · ' : ''}
+                    {installment ? `${a.installment_month}개월` : ''}
+                  </span>
+                )}
               </span>
-              {!mobile && (
-                <span style={{ fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {classify(a.store_name, a.store_type).label}
-                  {a.home_foreign_type === '2' ? ' · 해외' : ''}
-                  {installment ? ` · ${a.installment_month}개월` : ''}
-                </span>
-              )}
-              <span style={{
-                textAlign: 'right', fontWeight: 500, fontVariantNumeric: 'tabular-nums',
-                color: isCancel ? t.neutrals.subtle : t.accent.neg,
-              }}>
-                {isCancel ? '' : '-'}{Math.round(a.krw).toLocaleString()}
-              </span>
-            </div>
+              <LTableAmount value={a.krw} muted={isCancel} strike={isCancel} />
+            </LTableRow>
           )
         })}
       </div>
