@@ -980,7 +980,7 @@ export function registerTenswMgmtTools(server: McpServer) {
     description: '[텐소프트웍스 > 매출관리] 세금계산서 목록을 조회합니다',
     inputSchema: z.object({
       year: z.number().optional().describe('연도 필터 (예: 2026)'),
-      payment_status: z.enum(['scheduled', 'planned', 'pending', 'paid']).optional().describe('수금상태 (scheduled=계약확정, planned=계약예정(가안), pending=미수금, paid=수금완료)'),
+      payment_status: z.enum(['scheduled', 'planned', 'pending', 'paid']).optional().describe('수금상태 (scheduled=발행예정, planned=계약예정(가안), pending=미수금, paid=수금완료)'),
       counterparty: z.string().optional().describe('거래처명 (부분 일치)'),
     }),
   }, async ({ year, payment_status, counterparty }, { authInfo }) => {
@@ -1031,7 +1031,7 @@ export function registerTenswMgmtTools(server: McpServer) {
         tax_amount: z.number().optional().describe('세액'),
       })).optional().describe('품목 목록'),
       expected_payment_date: z.string().optional().describe('입금예정일 (YYYY-MM-DD)'),
-      payment_status: z.enum(['scheduled', 'planned', 'pending', 'paid']).optional().describe('수금상태 (기본: scheduled=계약확정. 계약 미체결 가안은 planned)'),
+      payment_status: z.enum(['scheduled', 'planned', 'pending', 'paid']).optional().describe('수금상태 (기본: scheduled=발행예정. 계약 미체결 가안은 planned)'),
       notes: z.string().optional().describe('비고'),
     }),
   }, async (input, { authInfo }) => {
