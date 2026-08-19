@@ -22,7 +22,6 @@ import { SalesDialog, TenswSalesFormData } from './_components/sales-dialog'
 import { LoanDialog, TenswLoanFormData } from './_components/loan-dialog'
 
 // Shared components
-import { ParsePreviewDialog, ParsedTransaction } from '@/app/(dashboard)/(linear)/mgmt/_components/parse-preview-dialog'
 import { EmailBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/email-block'
 import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_components/email-detail-dialog'
 import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/compose-email-dialog'
@@ -61,7 +60,6 @@ export default function TenswPage() {
 
   // Sales dialog state
   const [salesDialogOpen, setSalesDialogOpen] = useState(false)
-  const [salesDialogType, setSalesDialogType] = useState<'sales' | 'purchase'>('sales')
   const [editingSales, setEditingSales] = useState<TenswTaxInvoice | null>(null)
 
   // Loan dialog state
@@ -69,12 +67,6 @@ export default function TenswPage() {
   const [editingLoan, setEditingLoan] = useState<TenswLoan | null>(null)
 
   // Parse preview state
-  const [parsing, setParsing] = useState(false)
-  const [parsePreviewOpen, setParsePreviewOpen] = useState(false)
-  const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([])
-  const [parsedBankName, setParsedBankName] = useState<string | null>(null)
-  const [parsedAccountInfo, setParsedAccountInfo] = useState<string | null>(null)
-  const [parsedBalance, setParsedBalance] = useState<{ balance: number; date: string | null } | null>(null)
   const [bankBalances, setBankBalances] = useState<Array<{ bank_name: string; account_number: string | null; balance: number; balance_date: string | null }>>([])
   const [balanceHistory, setBalanceHistory] = useState<Array<{ date: string; account: string; balance: number }>>([])
 
@@ -293,76 +285,6 @@ export default function TenswPage() {
     }
   }
 
-  // ── File parse handlers ───────────────────────────────────────────────────
-
-  const handleFileUpload = async (file: File) => {
-    setParsing(true)
-    try {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await fetch('/api/tensw-mgmt/invoices/parse', { method: 'POST', body: form })
-      if (!res.ok) throw new Error('Parse failed')
-      const data = await res.json()
-      const txs: ParsedTransaction[] = (data.transactions || []).map((tx: Omit<ParsedTransaction, '_selected'>) => ({ ...tx, _selected: true }))
-      setParsedTransactions(txs)
-      setParsedBankName(data.bankName || null)
-      setParsedAccountInfo(data.accountInfo || null)
-      if (data.closingBalance != null) {
-        setParsedBalance({ balance: data.closingBalance, date: data.balanceDate || null })
-      } else {
-        setParsedBalance(null)
-      }
-      setParsePreviewOpen(true)
-    } catch (err) {
-      console.error('File parse error:', err)
-    } finally {
-      setParsing(false)
-    }
-  }
-
-  const handleConfirmParsed = async (txs: ParsedTransaction[]) => {
-    const acctLabel = parsedBankName
-      ? parsedAccountInfo
-        ? `${parsedBankName} (${parsedAccountInfo})`
-        : parsedBankName
-      : null
-    for (const tx of txs) {
-      await fetch('/api/tensw-mgmt/invoices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: tx.type,
-          counterparty: tx.counterparty,
-          description: tx.description || null,
-          amount: tx.amount,
-          payment_date: tx.date || null,
-          account_number: acctLabel,
-          balance_after: tx.balance_after ?? null,
-          transaction_time: tx.time ?? null,
-        }),
-      })
-    }
-    if (parsedBalance && parsedBankName) {
-      await fetch('/api/tensw-mgmt/bank-balances', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bank_name: parsedBankName,
-          account_number: parsedAccountInfo || '',
-          balance: parsedBalance.balance,
-          balance_date: parsedBalance.date,
-        }),
-      })
-    }
-    setParsePreviewOpen(false)
-    setParsedTransactions([])
-    setParsedBalance(null)
-    setParsedAccountInfo(null)
-    loadData()
-  }
-
-  // ── Sales handlers ────────────────────────────────────────────────────────
-
   const handleSaveSales = async (data: TenswSalesFormData) => {
     const isEdit = !!data.id
     const parseCurrency = (v: string) => Number(v.replace(/,/g, '')) || 0
@@ -532,18 +454,14 @@ export default function TenswPage() {
               items={cashItems}
               onAdd={() => { setEditingCash(null); setCashDialogOpen(true) }}
               onSelect={(item) => { setEditingCash(item); setCashDialogOpen(true) }}
-              onFileUpload={handleFileUpload}
-              parsing={parsing}
               bankBalances={bankBalances}
               balanceHistory={balanceHistory}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
               <SalesBlock
                 invoices={invoices}
-                onAdd={(invoiceType) => { setEditingSales(null); setSalesDialogType(invoiceType); setSalesDialogOpen(true) }}
                 onEdit={(inv) => { setEditingSales(inv); setSalesDialogOpen(true) }}
                 onDelete={handleDeleteSales}
-                onRefresh={loadData}
               />
               <LoanBlock
                 loans={loans}
@@ -605,13 +523,7 @@ export default function TenswPage() {
         />
 
         {/* Parse preview dialog */}
-        <ParsePreviewDialog
-          open={parsePreviewOpen}
-          transactions={parsedTransactions}
-          bankName={parsedBankName}
-          onClose={() => { setParsePreviewOpen(false); setParsedTransactions([]) }}
-          onConfirm={handleConfirmParsed}
-        />
+
 
         {/* Cash dialog */}
         <CashDialog
@@ -624,7 +536,6 @@ export default function TenswPage() {
 
         {/* Sales dialog */}
         <SalesDialog
-          invoiceType={salesDialogType}
           open={salesDialogOpen}
           editInvoice={editingSales}
           onClose={() => { setSalesDialogOpen(false); setEditingSales(null) }}

@@ -38,6 +38,14 @@ const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY!
 const MIN_RATIO = 0.9
 /** 상호 매칭은 발행일 이후 이 기간 안에서만 본다. */
 const NAME_MATCH_WINDOW = 60
+
+/**
+ * 법인카드 자동이체로 결제되는 거래처.
+ * 은행에는 카드 대금 합계만 찍히므로 계산서별로 대응하는 출금이 아예 없다.
+ * 미지급으로 남겨두면 실제로 밀린 돈처럼 보여 오해를 부른다.
+ * 새 거래처가 늘면 여기에 추가한다.
+ */
+const CARD_AUTO_DEBIT = ['한국전력공사', '주식회사 케이티', '구글클라우드 코리아 유한회사']
 /** 이체수수료 허용 오차. 법인 이체는 건당 500원 정도가 붙어 합계와 정확히 안 맞는다. */
 const FEE_TOLERANCE = 1000
 /** 발행일 기준 입금 탐색 창 (일). 선입금도 있어 앞뒤로 연다. */
@@ -55,9 +63,13 @@ interface Deposit {
 /** 상호 표기 흔들림을 흡수한다. "(주) 이맥스시스템" ↔ "(주)이맥스시스" */
 function normalize(name: string): string {
   return name
-    .replace(/\(주\)|주식회사|㈜/g, '')
+    .replace(/[（(]주[)）]|주식회사|유한회사|사단법인|㈜/g, '')
     .replace(/[\s\-_.·]/g, '')
     .toLowerCase()
+}
+
+function isCardVendor(name: string): boolean {
+  return CARD_AUTO_DEBIT.some(v => normalize(v) === normalize(name))
 }
 
 function nameMatches(counterparty: string, depositLabel: string): boolean {
@@ -265,9 +277,12 @@ async function main() {
       const b = openInvoices[j]
       if (combinedIds.has(b.id as string)) continue
       if (a.counterparty !== b.counterparty || a.invoice_type !== b.invoice_type) continue
-      // 같은 달 청구분만 묶는다. 이 조건이 없으면 서로 다른 달 계산서 합이 우연히
-      // 어떤 출금과 비슷해지는 조합이 대량으로 생긴다.
-      if (a.issue_date.slice(0, 7) !== b.issue_date.slice(0, 7)) continue
+      // 카드 자동이체 거래처는 대응 출금 자체가 없다. 합산으로 억지로 붙이면
+      // 2월분과 4월분 계산서가 6월 전기요금 출금에 엮이는 식으로 틀어진다.
+      if (isCardVendor(a.counterparty)) continue
+      // 서로 90일 안의 청구분만 묶는다. 무제한으로 열면 조합이 폭발한다.
+      const gapDays = Math.abs(new Date(a.issue_date).getTime() - new Date(b.issue_date).getTime()) / 86400000
+      if (gapDays > 90) continue
 
       const sum = Number(a.total_amount) + Number(b.total_amount)
       const pool2 = a.invoice_type === 'purchase' ? withdrawals : deposits
@@ -278,8 +293,10 @@ async function main() {
           !used.has(key(d)) &&
           d.date >= addDays(first, -3) &&
           d.date <= addDays(last, WINDOW_AFTER) &&
-          // 합산은 정확히 일치할 때만 인정한다. 오차를 허용하면 조합이 폭발해 아무거나 붙는다.
-          d.amount === sum
+          // 적요에 거래처가 찍혀 있어야 한다. 이 조건이 진짜 안전장치다.
+          // 금액만 보면 한전 계산서 두 장 합이 엉뚱한 출금과 맞아떨어지는 조합이 쏟아진다.
+          nameMatches(a.counterparty, d.label) &&
+          (d.amount === sum || (d.amount > sum && d.amount - sum <= FEE_TOLERANCE))
       )
       if (!match) continue
 
@@ -309,8 +326,37 @@ async function main() {
     }
   }
 
-  const stillOpen = openInvoices.filter(inv => !combinedIds.has(inv.id as string))
-  console.log(`\n[reconcile] 신규 완료 ${settled}건, 결제정보 보완 ${backfilled}건, 일부 결제 ${partial}건, 합산 결제 ${combined}건, 미매칭 ${stillOpen.length}건`)
+  // 3차 패스 — 카드 자동이체.
+  // 대응하는 출금이 없는 게 정상이므로 지급완료로 두되 근거를 남긴다.
+  let carded = 0
+  const cardIds = new Set<string>()
+  for (const inv of openInvoices) {
+    if (combinedIds.has(inv.id as string)) continue
+    if (inv.invoice_type !== 'purchase') continue
+    if (!isCardVendor(inv.counterparty)) continue
+
+    cardIds.add(inv.id as string)
+    const line = '카드 자동이체 — 법인카드로 결제되어 계산서별 은행 출금 없음'
+    if (!DRY) {
+      await sb
+        .from('tensw_mgmt_sales')
+        .update({
+          payment_status: 'paid',
+          paid_amount: Number(inv.total_amount),
+          bank_ref: '카드 자동이체',
+          notes: [inv.notes, line].filter(Boolean).join('\n'),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', inv.id as string)
+    }
+    carded++
+  }
+  if (carded) console.log(`  ⊙ 카드 자동이체 ${carded}건 지급완료 처리`)
+
+  const stillOpen = openInvoices.filter(
+    inv => !combinedIds.has(inv.id as string) && !cardIds.has(inv.id as string)
+  )
+  console.log(`\n[reconcile] 신규 완료 ${settled}건, 결제정보 보완 ${backfilled}건, 일부 결제 ${partial}건, 합산 결제 ${combined}건, 카드 자동이체 ${carded}건, 미매칭 ${stillOpen.length}건`)
   for (const inv of stillOpen) {
     const kind = inv.invoice_type === 'purchase' ? '[매입]' : '[매출]'
     console.log(`  - ${kind} ${inv.issue_date} ${inv.counterparty} ${Number(inv.total_amount).toLocaleString()} — 매칭 ${inv.invoice_type === 'purchase' ? '출금' : '입금'} 없음`)

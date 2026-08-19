@@ -19,6 +19,7 @@
  *       인터넷뱅킹 ID/PW로 계정 등록
  *
  *   --connected-id <id>  : 이미 있는 connectedId에 기관 추가 (/v1/account/add)
+ *   --card               : 카드사 계정으로 등록 (businessType=CD). 기본은 은행(BK).
  *   --password-stdin     : 비밀번호를 프롬프트 대신 stdin에서 읽는다.
  *                          대화형 입력이 안 되는 셸에서 사용:
  *                            printf '%s' '비번' | npm run codef:register -- --password-stdin ...
@@ -31,6 +32,7 @@ import * as fs from 'fs'
 import * as readline from 'readline'
 import { codefRequest, codefService, encryptPassword } from '../src/lib/codef/client'
 import { listConnectedIds, listConnectedIdAccounts, BANK_ORG } from '../src/lib/codef/bank'
+import { CARD_ORG } from '../src/lib/codef/card'
 
 dotenv.config({ path: path.join(__dirname, '..', '.env.local') })
 
@@ -97,7 +99,8 @@ async function main() {
     for (const id of ids) {
       const accounts = await listConnectedIdAccounts(id)
       const orgNames = accounts.map(a => {
-        const name = Object.entries(BANK_ORG).find(([, code]) => code === a.organization)?.[0]
+        const table = a.businessType === 'CD' ? CARD_ORG : BANK_ORG
+        const name = Object.entries(table).find(([, code]) => code === a.organization)?.[0]
         return `${a.organization}${name ? `(${name})` : ''}/${a.businessType}/${a.clientType}`
       })
       console.log(`- ${id}: ${orgNames.join(', ') || '등록된 기관 없음'}`)
@@ -110,14 +113,14 @@ async function main() {
     .map(o => o.trim())
     .filter(Boolean)
   if (!organizations.length) {
-    console.error('--org <기관코드> 가 필요합니다. (우리 0020, 신한 0088, 여러 개는 쉼표로 구분)')
+    console.error('--org <기관코드> 가 필요합니다. (은행: 우리 0020, 신한 0088 / 카드: 우리 0309, 여러 개는 쉼표로 구분)')
     process.exit(1)
   }
 
   // 기관마다 별도 항목이지만 인증수단은 같으므로 비밀번호는 한 번만 입력받는다.
   const account: Record<string, string> = {
     countryCode: 'KR',
-    businessType: 'BK',
+    businessType: flag('card') ? 'CD' : 'BK',
     clientType: 'B', // 법인
   }
 
@@ -156,9 +159,10 @@ async function main() {
   const body: Record<string, unknown> = { accountList }
   if (existing) body.connectedId = existing
 
+  const table = flag('card') ? CARD_ORG : BANK_ORG
   const orgLabel = organizations
     .map(code => {
-      const name = Object.entries(BANK_ORG).find(([, c]) => c === code)?.[0]
+      const name = Object.entries(table).find(([, c]) => c === code)?.[0]
       return name ? `${code}(${name})` : code
     })
     .join(', ')

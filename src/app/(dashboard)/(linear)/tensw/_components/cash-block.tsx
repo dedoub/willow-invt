@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -19,8 +19,6 @@ interface CashBlockProps {
   items: TenswCashItem[]
   onAdd: () => void
   onSelect: (item: TenswCashItem) => void
-  onFileUpload: (file: File) => void
-  parsing?: boolean
   bankBalances?: BankBalance[]
   balanceHistory?: Array<{ date: string; account: string; balance: number }>
 }
@@ -98,7 +96,7 @@ function getStoredCashPageSize(): number {
   return n >= 1 && n <= 100 ? n : DEFAULT_CASH_PAGE_SIZE
 }
 
-export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankBalances = [], balanceHistory = [] }: CashBlockProps) {
+export function CashBlock({ items, onAdd, onSelect, bankBalances = [], balanceHistory = [] }: CashBlockProps) {
   const mobile = useIsMobile()
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
@@ -107,9 +105,7 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(String(getStoredCashPageSize()))
-  const [dragOver, setDragOver] = useState(false)
   const [sortAsc, setSortAsc] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [rangeStart, rangeEnd] = useMemo(() => getDateRange(baseDate, periodMode), [baseDate, periodMode])
   const periodLabel = useMemo(() => getPeriodLabel(baseDate, periodMode), [baseDate, periodMode])
@@ -393,48 +389,6 @@ export function CashBlock({ items, onAdd, onSelect, onFileUpload, parsing, bankB
               <LIcon name="x" size={12} stroke={2} />
             </button>
           )}
-        </div>
-      </div>
-
-      {/* Drop zone */}
-      <input
-        ref={fileInputRef} type="file" accept=".xlsx,.csv,.xls"
-        style={{ display: 'none' }}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFileUpload(f); e.target.value = '' }}
-      />
-      <div
-        onClick={() => !parsing && fileInputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault(); setDragOver(false)
-          const f = e.dataTransfer.files?.[0]
-          if (f && !parsing) onFileUpload(f)
-        }}
-        style={{
-          margin: '0 16px 12px', padding: '12px 16px',
-          border: `1.5px dashed ${dragOver ? t.brand[600] : t.neutrals.line}`,
-          background: dragOver ? t.brand[50] : 'transparent',
-          borderRadius: t.radius.md, cursor: parsing ? 'wait' : 'pointer',
-          display: 'flex', alignItems: 'center', gap: 12,
-          transition: 'all .15s', opacity: parsing ? 0.6 : 1,
-        }}
-      >
-        <div style={{
-          width: 32, height: 32, borderRadius: 8,
-          background: t.brand[50], color: t.brand[700],
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <LIcon name="file" size={16} stroke={1.8} />
-        </div>
-        <div>
-          <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: 500 }}>
-            {parsing ? 'Gemini가 파싱 중...' : '은행 엑셀 파일을 드래그하거나 클릭'}
-          </div>
-          <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 2 }}>
-            {parsing ? '잠시만 기다려주세요' : 'AI가 파싱해서 테이블에 반영합니다 · .xlsx .csv'}
-          </div>
         </div>
       </div>
 

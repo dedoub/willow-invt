@@ -62,17 +62,14 @@ function getStoredPageSize(): number {
 
 interface SalesBlockProps {
   invoices: TenswTaxInvoice[]
-  /** 현재 열려 있는 탭을 넘겨 매입 탭에서 추가하면 매입 계산서로 만들어지게 한다. */
-  onAdd: (invoiceType: 'sales' | 'purchase') => void
   onEdit: (inv: TenswTaxInvoice) => void
   onDelete: (id: string) => Promise<void>
-  onRefresh: () => void
   style?: React.CSSProperties
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesBlockProps) {
+export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
   const mobile = useIsMobile()
   const [mode, setMode] = useState<Mode>('sales')
   const [year, setYear] = useState(new Date().getFullYear())
@@ -151,38 +148,16 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
           eyebrow="TAX INVOICES"
           title={mode === 'purchase' ? '매입관리' : '매출관리'}
           action={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button onClick={onRefresh} style={{
-                width: 24, height: 24, borderRadius: t.radius.sm, border: 'none',
-                background: t.neutrals.inner, color: t.neutrals.muted,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0, flexShrink: 0,
-              }}>
-                <LIcon name="refresh" size={12} stroke={2} />
-              </button>
-              <button onClick={() => onAdd(mode)} style={{
-                width: 24, height: 24, borderRadius: t.radius.sm, border: 'none',
-                background: t.neutrals.inner, color: t.neutrals.muted,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0, flexShrink: 0,
-              }}>
-                <LIcon name="plus" size={12} stroke={2.5} />
-              </button>
-            </div>
+            <LSegmented
+              value={mode}
+              onChange={handleModeChange}
+              options={[
+                { value: 'sales', label: '매출' },
+                { value: 'purchase', label: '매입' },
+              ]}
+            />
           }
         />
-
-        {/* 매출/매입 탭 */}
-        <div style={{ marginBottom: 10 }}>
-          <LSegmented
-            value={mode}
-            onChange={handleModeChange}
-            options={[
-              { value: 'sales', label: '매출' },
-              { value: 'purchase', label: '매입' },
-            ]}
-          />
-        </div>
 
         {/* Year navigation */}
         <div style={{

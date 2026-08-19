@@ -25,7 +25,8 @@
     "tensw:bank:sync": "npx tsx scripts/tensw-codef-sync.ts",
     "tensw:tax:sync": "npx tsx scripts/tensw-codef-tax-sync.ts",
     "codef:encrypt": "npx tsx scripts/codef-encrypt-password.ts",
-    "tensw:reconcile": "npx tsx scripts/tensw-reconcile-payments.ts"
+    "tensw:reconcile": "npx tsx scripts/tensw-reconcile-payments.ts",
+    "tensw:card:sync": "npx tsx scripts/tensw-codef-card-sync.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
