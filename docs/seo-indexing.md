@@ -173,6 +173,13 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 | 2026-08-03 | 08-03 스냅샷 점검 | 보이스카드 색인 14→31(+17), 리뷰노트 10→12(+2). 시민권 3/8 색인(허브 포함). 최근 3~5일 색인 수 정체 |
 | 2026-08-03 | 보이스카드 8건 색인 요청 (아래) | 8건 모두 priority crawl queue 등록 확인 |
 | 2026-08-03 | 리뷰노트 연습문제 색인 요청 시작 | 3건 등록(pythagorean, quadratic-formula, linear-function) 후 4건째에서 Quota Exceeded. 잔여 16건은 내일 이후 계속 |
+| 2026-08-12 | 보이스카드 일본 사용자용 신규 허브·덱 5건과 리뷰노트 로케일 허브 5건 색인 요청 | 10건 priority crawl queue 등록 확인. 11번째 `/ru/demo`에서 Quota Exceeded |
+| 2026-08-13 | 리뷰노트 `/ru/demo` 색인 요청 재시도 | 첫 요청부터 Quota Exceeded. 성공 0건, 실패 URL `https://reviewnotes.app/ru/demo` |
+| 2026-08-14 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. VC `/templates/korean-kpop-fan-phrases-ja`·`/templates/korean-travel-phrases-ja`는 08-12 이력과 중복 재요청 |
+| 2026-08-15 | 보이스카드 7건과 리뷰노트 4건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. VC `/vi/language-learning`은 GSC 제출 오류로 실패 |
+| 2026-08-16 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. RN은 최근 요청 URL을 제외하고 대체 후보로 실행 |
+| 2026-08-17 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. VC `/es/language-learning`, `/it/audio-flashcards`는 자동화 타임아웃으로 성공 확인 실패 후 예비 후보로 대체 |
+| 2026-08-18 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 08-17 요청분 중 VC `/de/methods`·`/it/language-learning`, RN `/de/practice/factor-trinomial` 색인 확인 |
 
 색인 요청한 URL:
 

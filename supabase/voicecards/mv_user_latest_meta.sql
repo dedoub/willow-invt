@@ -5,8 +5,8 @@
 -- 배경: vc_user_latest_meta() 가 anonymous_events(9.4만행)를 distinct-on 2회 스캔(~2.2s)해
 --   경합 시 스파이크 → 사용자 테이블의 플랫폼/앱버전/언어/국가 4열이 자주 빈칸 캐시됐다.
 --   이 결과를 미리 계산해 저장하고 함수는 읽기만(~0.065ms). 정의는 기존 라이브 쿼리와 동일
---   (anonymous_events 기준) → 결과 완전 동일, ≤15분 staleness (메타는 거의 안 바뀌어 무방).
--- 리프레시: cron 잡 3 이 refresh_vc_mvs() 로 mv_real_users 다음에 CONCURRENTLY 갱신(15분).
+--   (anonymous_events 기준) → 결과 완전 동일, ≤1시간 staleness (분석 대시보드에는 충분).
+-- 리프레시: cron 잡 3 이 refresh_vc_mvs() 로 mv_real_users 다음에 매시 CONCURRENTLY 갱신.
 -- 재적용(정의 변경) 시 함수가 참조하므로 drop 전 vc_user_latest_meta() 를 라이브 정의로 되돌릴 것.
 -- ============================================================================
 create materialized view if not exists public.mv_user_latest_meta as
@@ -39,5 +39,9 @@ begin
 end
 $function$;
 
--- 기존 cron 잡 3(mv_real_users 단독 리프레시)을 위 함수 호출로 교체 (15분 주기 유지)
-select cron.alter_job(3, command => 'SELECT public.refresh_vc_mvs();');
+-- 대시보드 분석 데이터는 매시 정각 갱신한다. 활성화·결제 실시간 알림은 이 MV를 사용하지 않는다.
+select cron.alter_job(
+  3,
+  schedule => '0 * * * *',
+  command => 'SELECT public.refresh_vc_mvs();'
+);

@@ -7,9 +7,9 @@
 -- 2026-07-06: platforms/locales 옆에 country 분포(countries/signinCountries/payingCountries) 추가.
 --   country 는 IP 백필(scripts/voicecards-country-backfill.ts). 미백필/미상은 'unknown'.
 -- 주의: base CTE 를 MATERIALIZED 로 바꾸면 오히려 느려짐(회귀) → 인라인 유지.
--- 소스는 mv_real_users(materialized, 15분 리프레시) — 라이브 뷰 anonymous_events_real_users 를
+-- 소스는 mv_real_users(materialized, 1시간 리프레시) — 라이브 뷰 anonymous_events_real_users 를
 --   매 호출마다 dedup/canonical 재계산하던 것이 데이터 증가로 ~5.7s 까지 회귀 → MV 스냅샷으로 전환(2026-07-22).
---   ≤15분 staleness 는 분석용으로 무방(대시보드도 60초 캐시). vc_user_* RPC 들과 동일 패턴.
+--   ≤1시간 staleness 는 분석용으로 무방하다. vc_user_* RPC 들과 동일 패턴.
 -- ============================================================================
 CREATE OR REPLACE FUNCTION public.vc_event_stats()
  RETURNS jsonb

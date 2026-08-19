@@ -8,6 +8,17 @@ import { existsSync, writeFileSync, readFileSync, unlinkSync, mkdirSync } from '
 import { join } from 'path'
 import { markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
 import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
+import {
+  buildChunkedTranslationPrompt,
+  detectChunkedTranslationRequest,
+  filterDuplicateRows,
+  formatChunkedTranslationError,
+  getGoogleServiceAccountEmail,
+  parseChunkedTranslationJson,
+  RinaChunkedTranslationSheets,
+  summarizeChunkedTranslationResult,
+  verifyAppendedRows,
+} from './lib/ryuha-chunked-translation'
 
 // ============================================================
 // Config
@@ -884,6 +895,130 @@ function parseResponse(text: string): { messages: string[]; buttons?: { text: st
 }
 
 // ============================================================
+// Chunked translation → Rina VoiceCards Google Sheet
+// ============================================================
+async function handleChunkedTranslationMessage(
+  chatId: number,
+  userText: string,
+  opts: {
+    abortSignal?: AbortSignal
+    addProgress: (line: string, opts?: { percent?: number; stage?: string; current?: string; meta?: string[] }) => Promise<void>
+  }
+): Promise<{ handled: boolean; ok: boolean }> {
+  const request = detectChunkedTranslationRequest(userText)
+  if (!request) return { handled: false, ok: false }
+
+  const startedAt = Date.now()
+  try {
+    await opts.addProgress('청킹 번역 전용 흐름으로 처리', {
+      percent: 34,
+      stage: '청킹 번역',
+      current: '영국식 영어 문장으로 새로 만들 준비를 하고 있어.',
+    })
+
+    const prompt = buildChunkedTranslationPrompt(request.sourceText)
+    await opts.addProgress('영국식 영어 재작성 요청', {
+      percent: 48,
+      stage: '문장 생성',
+      current: '기본 표현 1개와 변형 2개를 만들고 있어.',
+    })
+
+    const responseTurn = await runRinaTurn(prompt, {
+      noTools: true,
+      signal: opts.abortSignal,
+    })
+    if (opts.abortSignal?.aborted) return { handled: true, ok: false }
+
+    const generatedRows = parseChunkedTranslationJson(responseTurn.text)
+    await opts.addProgress(`생성 완료: 영어 ${generatedRows.english.length}개`, {
+      percent: 68,
+      stage: '시트 확인',
+      current: 'Google Sheet 구조와 기존 행을 다시 읽고 있어.',
+      meta: [`백엔드 ${responseTurn.backend}`],
+    })
+
+    const store = new RinaChunkedTranslationSheets()
+    const sheetTitles = await store.ensureSheets()
+    const beforeRows = await store.readAllRows(sheetTitles)
+    const rowsToAppend = filterDuplicateRows(generatedRows, beforeRows)
+    const englishSkipped = generatedRows.english.length - rowsToAppend.english.length
+
+    await opts.addProgress(`중복 제외 후 추가 대상: 영어 ${rowsToAppend.english.length}개`, {
+      percent: 78,
+      stage: '시트 저장',
+      current: '영어 시트에 행을 추가하고 있어.',
+    })
+
+    await store.appendRows(sheetTitles, rowsToAppend)
+
+    await opts.addProgress('저장 후 영어 시트 재조회', {
+      percent: 88,
+      stage: '검증',
+      current: '추가된 행이 실제로 들어갔는지 확인하고 있어.',
+    })
+    const afterRows = await store.readAllRows(sheetTitles)
+    const verified = verifyAppendedRows(rowsToAppend, afterRows)
+    const summary = summarizeChunkedTranslationResult({
+      englishAdded: rowsToAppend.english.length,
+      englishSkipped,
+      verified,
+    })
+
+    await sendMessage(chatId, summary)
+    await withConversationLock(chatId, async () => {
+      const history = await getConversation(chatId)
+      const now = new Date().toISOString()
+      history.push({ role: 'user', content: userText, timestamp: now })
+      history.push({ role: 'assistant', content: summary, timestamp: now })
+      await saveConversation(chatId, history)
+    })
+
+    recordRuntimeEvent({
+      botKey: 'rina-bot',
+      jsonlPath: BOT_RUNTIME_JSONL_FILE,
+      source: 'chunked_translation_completed',
+      message: `chunked translation handled for ${chatId}`,
+      details: {
+        chatId,
+        durationMs: Date.now() - startedAt,
+        sourcePreview: request.sourceText.slice(0, 240),
+        sheetTitles,
+        generated: {
+          english: generatedRows.english.length,
+        },
+        added: {
+          english: rowsToAppend.english.length,
+        },
+        skipped: {
+          english: englishSkipped,
+        },
+        verified,
+      },
+    })
+  } catch (err) {
+    if (opts.abortSignal?.aborted || err instanceof AgentAbortError) return { handled: true, ok: false }
+    const summary = formatChunkedTranslationError(err, getGoogleServiceAccountEmail())
+    await sendMessage(chatId, summary)
+    recordRuntimeEvent({
+      botKey: 'rina-bot',
+      jsonlPath: BOT_RUNTIME_JSONL_FILE,
+      level: 'error',
+      source: 'chunked_translation_error',
+      message: `chunked translation failed for ${chatId}`,
+      details: {
+        chatId,
+        durationMs: Date.now() - startedAt,
+        sourcePreview: request.sourceText.slice(0, 240),
+        error: err instanceof Error ? { message: err.message, stack: err.stack } : err,
+      },
+    })
+    return { handled: true, ok: false }
+  }
+
+  return { handled: true, ok: true }
+}
+
+// ============================================================
 // Message handler
 // ============================================================
 async function handleMessage(chatId: number, userText: string, abortSignal?: AbortSignal, lastMessageId?: number) {
@@ -943,6 +1078,27 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
     }
 
     await syncProgress()
+
+    const chunkedTranslationResult = await handleChunkedTranslationMessage(chatId, userText, {
+      abortSignal,
+      addProgress,
+    })
+    if (chunkedTranslationResult.handled) {
+      await closeProgressMessage(chatId, {
+        finalText: buildProgressMessage({
+          percent: 100,
+          stage: chunkedTranslationResult.ok ? '완료' : '오류',
+          current: chunkedTranslationResult.ok
+            ? '청킹 번역 저장과 재조회 검증까지 끝났어.'
+            : '청킹 번역 처리 중 문제가 생겨서 멈췄어.',
+          startedAt: progressStart,
+          recent: [...progressLines, chunkedTranslationResult.ok ? '영어 시트 검증 완료' : '시트 저장/검증 실패'].slice(-4),
+        }),
+        lingerMs: 1200,
+      })
+      return
+    }
+
     await addProgress('일정 · 숙제 · 진도 · 최근 대화를 읽는 중', {
       percent: 28,
       stage: '컨텍스트 로드',

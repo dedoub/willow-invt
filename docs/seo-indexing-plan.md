@@ -82,8 +82,8 @@ Discovered·Duplicate). 원본 우선 규칙을 지킬 대상이 더 없으므�
 
 08-09 갱신: 로케일 허브 unknown 5건(`/pt/practice`·`/it/practice`·`/de/practice`·`/de/demo`·`/vi/demo`)
 요청 완료. 남은 depth 2 후보는 `/de/billing` 하나인데 결제 화면이라 검색 가치가 낮아 뺐다.
-사이트맵 재읽기가 돌아온 뒤로 unknown 풀이 빠르게 마르고 있으니(위 참조) 다음 배치는
-**Discovered 허브**에서 고른다.
+사이트맵 재읽기가 돌아온 뒤로 unknown 풀이 빠르게 말랐고, 08-16에는 최근 요청 URL을 제외하고
+남은 `/de/billing`도 한도 채우기용 대체 후보로 요청했다. 다음 배치는 **Discovered 허브·가이드**에서 고른다.
 
 > 브리프가 낸 후보를 그대로 태우면 안 되는 경우가 있다. 08-09 브리프는
 > `/en/practice/grade-4-large-numbers`·`grade-5-number-operations`·`/en/templates/mistake-notebook`을
@@ -129,10 +129,11 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 
 ### 보이스카드 로케일 루트
 
-`/it`, `/uk`, `/zh`는 08-08 배치에서 요청 완료. 남은 `/es`·`/fr`·`/ja`·`/ko`·`/pl`·`/pt`·`/ru`·`/vi`는
-Discovered라 후순위로 뒀었는데, **그 근거(Discovered는 요청해도 소용없다)는 08-11에 폐기했다**
-(아래 "스냅샷의 unknown/Discovered는 신뢰할 수 없다" 참조). 다만 depth 1 루트는 하위로 크롤을
-흘려보내는 힘이 카테고리 허브보다 약해서, 순서는 여전히 카테고리 허브 뒤다.
+`/it`, `/uk`, `/zh`는 08-08 배치에서 요청 완료. `/ru`·`/vi`·`/pl`은 08-15 배치에서 요청 완료.
+`/uk`·`/zh`는 1주 관찰 뒤 08-16에 재요청했고, 남은 `/fr`·`/pt`도 08-16 배치에서 요청 완료.
+`/fr`·`/pt`는 Discovered라 후순위로 뒀었는데, **그 근거(Discovered는 요청해도 소용없다)는
+08-11에 폐기했다**(아래 "스냅샷의 unknown/Discovered는 신뢰할 수 없다" 참조). 다만 depth 1
+루트는 하위로 크롤을 흘려보내는 힘이 카테고리 허브보다 약해서, 순서는 여전히 카테고리 허브 뒤다.
 `/faq`는 `Crawled - not indexed`라 제외.
 
 ### 보이스카드 로케일 카테고리 허브 (08-11 배치, 잔여 있음)
@@ -141,14 +142,27 @@ Discovered라 후순위로 뒀었는데, **그 근거(Discovered는 요청해도
 ·`/exam-prep`·`/voice-flashcard-apps`)이 전부 색인돼 있어 "영어 원본 우선" 규칙을 통과한다.
 08-11에 5건 요청(`/fr/methods`·`/ru/methods`·`/es/memorization`·`/ja/audio-flashcards`·`/ko/exam-prep`).
 
-남은 것: `/pt/memorization`, `/ru/memorization`, `/fr/audio-flashcards`, `/fr/language-learning`,
-`/ja/language-learning`, `/vi/language-learning`, `/es/voice-flashcard-apps`, `/uk/voice-flashcard-apps`.
+08-15에 `/fr/audio-flashcards`, `/fr/language-learning`, `/ru/memorization`,
+`/es/voice-flashcard-apps` 요청 완료. `/vi/language-learning`은 GSC 제출 오류
+(`We had a problem submitting your indexing request`)로 실패했다.
+08-16에 브리프 후보 `/de/memorization` 요청 완료.
+08-17에 `/de/methods`, `/it/language-learning`, `/ja/language-learning`, `/ja/memorization`,
+`/ko/voice-flashcard-apps` 요청 완료. `/es/language-learning`, `/it/audio-flashcards`는
+자동화 타임아웃으로 성공 확인을 못 해 실패/미확인으로 남기고 예비 후보로 슬롯을 채웠다.
+남은 것: `/vi/language-learning`, `/uk/voice-flashcard-apps`.
 
-### 리뷰노트 로케일 허브 (08-11 배치, 잔여 있음)
+### 리뷰노트 로케일 허브 (08-15 소진)
 
 08-11에 6건 요청(`/es/practice`·`/es/demo`·`/it/demo`·`/zh/practice`·`/ja/practice`·`/fr/practice`).
-남은 것: `/ko/practice`, `/ru/practice`, `/pl/practice`, `/fr/demo`, `/ru/demo`, `/zh/demo`,
-`/pt/demo`, `/uk/demo`, `/vi/practice`, `/vi/guides`.
+08-15에 남은 4건(`/zh/demo`, `/uk/demo`, `/vi/practice`, `/vi/guides`) 요청 완료.
+08-16에는 브리프 후보에 08-12·08-14 최근 요청 URL이 섞여 있어 제외하고,
+잔여 로케일 가이드·템플릿·연습문제 6건(`/de/billing`, `/de/guides/how-to-use-reviewnotes`,
+`/es/guides/assign-problems-without-student-accounts`, `/it/guides/wrong-answer-journal`,
+`/it/templates/mistake-notebook`, `/de/practice/grade-4-2-decimals`)을 요청했다.
+08-17에는 브리프 후보 중 08-12·08-14 최근 요청 URL과 `/terms` canonical 후보를 제외하고,
+독일어 연습문제 unknown 6건(`/de/practice/factor-trinomial`, `/de/practice/grade-4-2-polygons`,
+`/de/practice/grade-4-angles`, `/de/practice/grade-4-bar-graph`,
+`/de/practice/grade-4-large-numbers`, `/de/practice/grade-4-multiplication`)을 요청했다.
 
 `/privacy`·`/terms` 로케일 변형은 대부분 `Duplicate, Google chose different canonical`이라 제외 —
 요청으로 안 풀리는 canonical 문제다.
@@ -177,6 +191,13 @@ Discovered라 후순위로 뒀었는데, **그 근거(Discovered는 요청해도
 | 08-09 | VC 6: `/templates/opic`(신규 허브) + 덱 5(`-comparison-preference-phrases-ja`·`-english-speaking-phrases-ja`·`-past-experience-phrases-ja`·`-problem-solution-phrases-ja`·`-role-play-phrases-ja`) · RN 5: 로케일 허브 `/pt/practice`, `/it/practice`, `/de/practice`, `/de/demo`, `/vi/demo` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 18:40~19:20 KST |
 | 08-10 | — (색인 배치 없음. 보이스카드 사이트맵 재제출만) | 요청 0건 |
 | 08-11 | VC 5: 로케일 카테고리 허브 `/fr/methods`, `/ru/methods`, `/es/memorization`, `/ja/audio-flashcards`, `/ko/exam-prep` · RN 6: 로케일 허브 `/es/practice`, `/es/demo`, `/it/demo`, `/zh/practice`, `/ja/practice`, `/fr/practice` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 08:50~09:40 KST. 브리프 자동안(VC 로케일 루트 5 + RN 기요청 3건 포함)을 CEO 승인으로 교체한 배치 |
+| 08-12 | VC 5: 신규 일본 사용자 허브 `/templates/english-japanese` + 덱 4(`daily-english-chunks-ja`, `instant-response-english-phrases-ja`, `korean-travel-phrases-ja`, `korean-kpop-fan-phrases-ja`) · RN 5: `/ko/practice`, `/pl/practice`, `/pt/demo`, `/ru/practice`, `/fr/demo` | ✅ 10건 "Indexing requested". 11번째 RN `/ru/demo`에서 Quota Exceeded. 신규 VC 배포가 자동 반영되지 않아 프로덕션 수동 배포 후 5 URL의 200·사이트맵 포함을 검증하고 요청 |
+| 08-13 | RN `/ru/demo` 1건 시도 (프로퍼티 `https://reviewnotes.app/`) | ❌ 첫 요청부터 Quota Exceeded — 성공 0건, 실패 URL `https://reviewnotes.app/ru/demo`. 17:00 KST. VC/RN 잔여 큐는 소진하지 않음 |
+| 08-14 | VC 5: `/templates/korean-kpop-fan-phrases-ja`, `/templates/korean-travel-phrases-ja`, 로케일 루트 `/ko`, `/es`, `/ja` · RN 6: `/en/practice/grade-4-large-numbers`, `/en/practice/grade-5-number-operations`, `/en/templates/mistake-notebook`, `/pt/demo`, `/uk/guides`, `/uk/practice` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:05~17:16 KST. VC 덱 2건은 08-12 이력과 중복 재요청 |
+| 08-15 | VC 7: 로케일 루트 `/ru`, `/vi`, `/pl` + 로케일 카테고리 허브 `/fr/audio-flashcards`, `/fr/language-learning`, `/ru/memorization`, `/es/voice-flashcard-apps` · RN 4: 로케일 허브 `/vi/practice`, `/zh/demo`, `/uk/demo`, `/vi/guides` | ✅ 11건 "Indexing requested", quota 초과 없음. 17:18 KST 전후. VC `/vi/language-learning`은 GSC 제출 오류로 실패해 성공 건수에서 제외 |
+| 08-16 | VC 5: 로케일 루트 `/uk`, `/zh`, `/pt`, `/fr` + 로케일 카테고리 허브 `/de/memorization` · RN 6: `/de/billing`, `/de/guides/how-to-use-reviewnotes`, `/es/guides/assign-problems-without-student-accounts`, `/it/guides/wrong-answer-journal`, `/it/templates/mistake-notebook`, `/de/practice/grade-4-2-decimals` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. RN은 브리프 후보 중 08-12·08-14 최근 요청 URL을 제외하고 대체 후보로 채움 |
+| 08-17 | VC 5: `/de/methods`, `/it/language-learning`, `/ja/language-learning`, `/ja/memorization`, `/ko/voice-flashcard-apps` · RN 6: `/de/practice/factor-trinomial`, `/de/practice/grade-4-2-polygons`, `/de/practice/grade-4-angles`, `/de/practice/grade-4-bar-graph`, `/de/practice/grade-4-large-numbers`, `/de/practice/grade-4-multiplication` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:20 KST 전후. VC `/es/language-learning`, `/it/audio-flashcards`는 자동화 타임아웃으로 성공 확인 실패, 예비 후보로 대체 |
+| 08-18 | VC 5: `/templates/korean-daily-life-ja`, `/templates/korean-japanese`, `/templates/korean-social-chat-ja`, `/templates/korean-work-school-ja`, `/fr/exam-prep` · RN 6: `/en/practice/grade-5-number-operations`, `/en/practice/grade-4-large-numbers`, `/en/templates/mistake-notebook`, `/pl/practice`, `/fr/demo`, `/ru/practice` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:05~17:13 KST. 오늘 스냅샷에서 08-17 요청분 VC 2건·RN 1건 색인 확인 후 신규 후보로 실행 |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ### 08-07 배치 결과 (08-08 스냅샷)
@@ -356,6 +377,12 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 08-05 (사후) | — (스냅샷 복구 후 재확인) | 스캔 타임아웃 수정 후 08-05 스냅샷 생성: VC 665쪽(색인 80), RN 34쪽(색인 17) | **당일 요청분이 몇 시간 만에 반영**: RN `/en/demo`·`/en/guides/assign-problems-without-student-accounts` 색인 완료, VC `/templates/cdl` 허브 색인 완료(하위 3건은 이제 요청 대상에서 제외) |
 | 08-09 | VC 6(OPIc 허브+덱 5) + RN 5(로케일 허브 `/pt/practice`·`/it/practice`·`/de/practice`·`/de/demo`·`/vi/demo`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음 | 08-08 요청 11건 중 **6건 색인**: VC `/templates/spanish` 허브 + 덱 3, 로케일 루트 `/it`, RN `/ko/guides/assign-problems-without-student-accounts`. 나머지는 Discovered로 이동(VC `/uk`, RN `/ko/demo`·`/uk/guides`·`/uk/practice`), VC `/zh`만 아직 unknown |
 | 08-11 | VC 5(로케일 카테고리 허브 `/fr/methods`·`/ru/methods`·`/es/memorization`·`/ja/audio-flashcards`·`/ko/exam-prep`) + RN 6(로케일 허브 `/es/practice`·`/es/demo`·`/it/demo`·`/zh/practice`·`/ja/practice`·`/fr/practice`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 08:50~09:40 KST | 08-10은 요청 0건이라 확인할 전일분 없음. 08-09 요청 11건 중 **RN 5건 중 4건 색인**(`/pt/practice`·`/it/practice`·`/de/practice`·`/vi/demo`), `/de/demo`는 Duplicate without user-selected canonical로 이동 |
+| 08-13 | RN `/ru/demo` 1건 시도 | ❌ 첫 요청부터 Quota Exceeded. 성공 URL 없음, 실패 URL `https://reviewnotes.app/ru/demo` | 08-12 요청분 중 VC `/templates/english-japanese`·`/templates/daily-english-chunks-ja`, RN `/ko/practice` 색인 확인. 08-12의 11번째 실패 URL `/ru/demo`부터 재시도했으나 quota 미회복 |
+| 08-14 | VC 5(`/templates/korean-kpop-fan-phrases-ja`·`/templates/korean-travel-phrases-ja`·`/ko`·`/es`·`/ja`) + RN 6(`/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`·`/en/templates/mistake-notebook`·`/pt/demo`·`/uk/guides`·`/uk/practice`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:05~17:16 KST | 08-14 스냅샷 신규 색인: VC `/pt/memorization`·`/templates/instant-response-english-phrases-ja` 외, RN `/ru/demo` 외. `/ru/demo`은 색인 확인으로 큐에서 제거. VC 일본 덱 2건은 08-12 성공 이력과 중복 재요청됨 |
+| 08-15 | VC 7(`/ru`·`/vi`·`/pl`·`/fr/audio-flashcards`·`/fr/language-learning`·`/ru/memorization`·`/es/voice-flashcard-apps`) + RN 4(`/vi/practice`·`/zh/demo`·`/uk/demo`·`/vi/guides`) | ✅ 11건 "Indexing requested", quota 초과 없음. VC `/vi/language-learning`은 GSC 제출 오류로 실패해 성공 건수에서 제외 | 08-15 스냅샷에서 08-14 요청분 일부 색인 확인 후 잔여 로케일 루트·허브로 실행 |
+| 08-16 | VC 5(`/uk`·`/zh`·`/pt`·`/fr`·`/de/memorization`) + RN 6(`/de/billing`·`/de/guides/how-to-use-reviewnotes`·`/es/guides/assign-problems-without-student-accounts`·`/it/guides/wrong-answer-journal`·`/it/templates/mistake-notebook`·`/de/practice/grade-4-2-decimals`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음 | 08-15 요청분 신규 색인: VC `/es/voice-flashcard-apps`·`/fr/audio-flashcards`·`/fr/language-learning`·`/pl`·`/ru`·`/ru/memorization`·`/vi`, RN `/uk/demo`·`/vi/guides`·`/vi/practice`·`/zh/demo`. RN 브리프 후보의 최근 요청 URL은 제외하고 대체 후보로 실행 |
+| 08-17 | VC 5(`/de/methods`·`/it/language-learning`·`/ja/language-learning`·`/ja/memorization`·`/ko/voice-flashcard-apps`) + RN 6(`/de/practice/factor-trinomial`·`/de/practice/grade-4-2-polygons`·`/de/practice/grade-4-angles`·`/de/practice/grade-4-bar-graph`·`/de/practice/grade-4-large-numbers`·`/de/practice/grade-4-multiplication`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:20 KST 전후 | 08-16 요청분 중 VC `/de/memorization`, RN `/de/guides/how-to-use-reviewnotes`·`/es/guides/assign-problems-without-student-accounts`·`/it/guides/wrong-answer-journal`·`/it/templates/mistake-notebook` 색인 확인 |
+| 08-18 | VC 5(`/templates/korean-daily-life-ja`·`/templates/korean-japanese`·`/templates/korean-social-chat-ja`·`/templates/korean-work-school-ja`·`/fr/exam-prep`) + RN 6(`/en/practice/grade-5-number-operations`·`/en/practice/grade-4-large-numbers`·`/en/templates/mistake-notebook`·`/pl/practice`·`/fr/demo`·`/ru/practice`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:05~17:13 KST | 08-18 스냅샷 신규 색인: VC `/de/methods`·`/it/language-learning`, RN `/de/practice/factor-trinomial`. 브리프 후보 11건을 최근 요청 URL·색인 URL과 대조 후 그대로 실행 |
 
 ### 노출은 느는데 클릭이 안 는다 (2026-08-11 측정)
 
