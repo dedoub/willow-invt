@@ -13,23 +13,28 @@ import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 const DEFAULT_PAGE_SIZE = 8
 const PAGE_SIZE_KEY = 'tensw-sales-page-size'
 
-type StatusFilter = 'all' | 'scheduled' | 'pending' | 'paid'
+// 계산서 발행 전 단계는 계약 상태로 갈린다.
+//   scheduled = 계약 확정 (체결된 계약에서 나올 매출)
+//   planned   = 계약 예정 (가안·전망, 계약 미체결)
+type StatusFilter = 'all' | 'scheduled' | 'planned' | 'pending' | 'paid'
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: '전체' },
-  { value: 'scheduled', label: '예정' },
+  { value: 'scheduled', label: '계약확정' },
+  { value: 'planned', label: '계약예정' },
   { value: 'pending', label: '계산서발행' },
   { value: 'paid', label: '수금완료' },
 ]
 
 const STATUS_TONES: Record<string, { bg: string; fg: string }> = {
   scheduled: tonePalettes.info,
+  planned:   tonePalettes.neutral,
   pending:   tonePalettes.pending,
   paid:      tonePalettes.done,
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  scheduled: '예정', pending: '계산서발행', paid: '수금완료',
+  scheduled: '계약확정', planned: '계약예정', pending: '계산서발행', paid: '수금완료',
 }
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
@@ -106,6 +111,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
     yearFiltered.filter(i => i.payment_status === 'pending').reduce((s, i) => s + (i.paid_amount || 0), 0)
   const pendingTotal = yearFiltered.filter(i => i.payment_status === 'pending').reduce((s, i) => s + (i.total_amount - (i.paid_amount || 0)), 0)
   const scheduledTotal = yearFiltered.filter(i => i.payment_status === 'scheduled').reduce((s, i) => s + i.total_amount, 0)
+  const plannedTotal = yearFiltered.filter(i => i.payment_status === 'planned').reduce((s, i) => s + i.total_amount, 0)
 
   return (
     <LCard pad={0} style={style}>
@@ -158,14 +164,15 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
         </div>
 
         {/* Summary stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
           <LStat label="수금완료" value={`${paidTotal.toLocaleString()}원`} tone="pos" />
           <LStat label="미수금" value={`${pendingTotal.toLocaleString()}원`} tone={pendingTotal > 0 ? 'warn' : 'default'} />
-          <LStat label="예정매출" value={`${scheduledTotal.toLocaleString()}원`} tone="default" />
+          <LStat label="계약확정" value={`${scheduledTotal.toLocaleString()}원`} tone="info" title="계약이 체결돼 발행이 예정된 매출" />
+          <LStat label="계약예정" value={`${plannedTotal.toLocaleString()}원`} tone="default" title="계약 미체결 가안·전망 매출" />
         </div>
 
         {/* Status filter chips + sort toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
           {STATUS_FILTERS.map(f => {
             const active = statusFilter === f.value
             return (

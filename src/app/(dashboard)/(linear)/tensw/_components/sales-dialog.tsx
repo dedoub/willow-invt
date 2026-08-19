@@ -38,7 +38,8 @@ interface SalesDialogProps {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PAYMENT_STATUS_OPTIONS = [
-  { key: 'scheduled', label: '예정' },
+  { key: 'scheduled', label: '계약확정' },
+  { key: 'planned', label: '계약예정' },
   { key: 'pending', label: '계산서발행' },
   { key: 'paid', label: '수금완료' },
 ]
