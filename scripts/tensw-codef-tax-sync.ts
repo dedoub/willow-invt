@@ -284,6 +284,83 @@ async function main() {
 
   console.log(`[tax-sync] 기존 연결 ${linked}건 (발행일 정정 ${dateFixed}건), 신규 입력 ${inserted}건, 제외 ${skipped.length}건`)
   for (const msg of skipped) console.log(`  - ${msg}`)
+
+  await enrichLinked(sb)
+}
+
+/** 사업자번호 10자리를 3-2-5 로 끊는다. */
+function formatBizNo(v?: string | null): string | null {
+  if (!v) return null
+  const d = v.replace(/\D/g, '')
+  return d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}` : v
+}
+
+/**
+ * 발행이 확인된 계산서의 상세 정보를 홈택스 값으로 맞춘다.
+ * 홈택스가 정본이므로 상호·사업자번호·대표자는 덮어쓴다. 품목은 사람이 쪼개 적은 경우가 있어
+ * (유지보수 + 클라우드 엔지니어링처럼) 비어 있을 때만 대표품목으로 채운다.
+ */
+async function enrichLinked(sb: ReturnType<typeof createClient>) {
+  const { data: rows, error } = await sb
+    .from('tensw_codef_tax_invoices')
+    .select('sales_id, contractor_reg_number, contractor_company, contractor_name, rep_items, approval_no, invoice_kind, issue_form, receipt_or_charge, issue_date, send_date')
+    .eq('status', 'promoted')
+    .eq('transe_type', 'sales')
+    .not('sales_id', 'is', null)
+  if (error) { console.error(error.message); return }
+
+  let touched = 0
+  const changes: string[] = []
+
+  for (const t of rows ?? []) {
+    const { data: inv } = await sb
+      .from('tensw_mgmt_sales')
+      .select('id, counterparty, business_number, representative, items, notes, payment_status')
+      .eq('id', t.sales_id as string)
+      .single()
+    if (!inv) continue
+    if (!['pending', 'paid'].includes(inv.payment_status as string)) continue
+
+    const patch: Record<string, unknown> = {}
+    const bizNo = formatBizNo(t.contractor_reg_number as string | null)
+
+    if (t.contractor_company && inv.counterparty !== t.contractor_company) {
+      patch.counterparty = t.contractor_company
+      changes.push(`  ~ 상호 "${inv.counterparty}" → "${t.contractor_company}"`)
+    }
+    if (bizNo && inv.business_number !== bizNo) {
+      patch.business_number = bizNo
+      changes.push(`  ~ ${t.contractor_company} 사업자번호 ${inv.business_number ?? '(없음)'} → ${bizNo}`)
+    }
+    if (t.contractor_name && inv.representative !== t.contractor_name) {
+      patch.representative = t.contractor_name
+      changes.push(`  ~ ${t.contractor_company} 대표자 ${inv.representative ?? '(없음)'} → ${t.contractor_name}`)
+    }
+
+    const items = (inv.items as unknown[]) ?? []
+    if (!items.length && t.rep_items) {
+      patch.items = [{ description: t.rep_items }]
+    }
+
+    // 승인번호·발급 정보는 메모에 한 줄로 남긴다. 이미 있으면 건드리지 않는다.
+    const approval = t.approval_no as string | null
+    const notes = (inv.notes as string | null) ?? ''
+    if (approval && !notes.includes(approval)) {
+      const line = `홈택스 ${t.invoice_kind ?? ''} ${t.receipt_or_charge ?? ''} · ${t.issue_form ?? ''} · 승인 ${approval} · 발급 ${t.issue_date ?? '-'} · 전송 ${t.send_date ?? '-'}`
+        .replace(/\s+/g, ' ')
+        .trim()
+      patch.notes = notes ? `${notes}\n${line}` : line
+    }
+
+    if (!Object.keys(patch).length) continue
+    patch.updated_at = new Date().toISOString()
+    const { error: upErr } = await sb.from('tensw_mgmt_sales').update(patch).eq('id', inv.id as string)
+    if (upErr) { console.error(`  ✗ ${inv.counterparty}: ${upErr.message}`); continue }
+    touched++
+  }
+
+  for (const c of changes) console.log(c)
+  console.log(`[tax-sync] 상세정보 보완 ${touched}건`)
 }
 
 
