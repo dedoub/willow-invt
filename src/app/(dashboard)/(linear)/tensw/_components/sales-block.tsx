@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -13,18 +14,27 @@ import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 const DEFAULT_PAGE_SIZE = 8
 const PAGE_SIZE_KEY = 'tensw-sales-page-size'
 
-// 계산서 발행 전 단계는 계약 상태로 갈린다. 확실해지는 순서대로 planned → scheduled.
-//   planned   = 계약 예정 (가안·전망, 계약 미체결)
-//   scheduled = 발행 예정 (계약 체결 완료, 계산서 발행만 남음)
+// 매출과 매입은 같은 테이블(invoice_type)에 있고 화면만 탭으로 갈린다.
+// 상태값(payment_status)도 공유하되 읽히는 말이 달라 라벨만 다르게 붙인다.
+//   매출: planned 계약예정 → scheduled 발행예정 → pending 계산서발행 → paid 수금완료
+//   매입: pending 계산서수취 → paid 지급완료 (매입에는 계약 단계가 없다)
+type Mode = 'sales' | 'purchase'
 type StatusFilter = 'all' | 'scheduled' | 'planned' | 'pending' | 'paid'
 
-const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: '전체' },
-  { value: 'planned', label: '계약예정' },
-  { value: 'scheduled', label: '발행예정' },
-  { value: 'pending', label: '계산서발행' },
-  { value: 'paid', label: '수금완료' },
-]
+const FILTERS: Record<Mode, { value: StatusFilter; label: string }[]> = {
+  sales: [
+    { value: 'all', label: '전체' },
+    { value: 'planned', label: '계약예정' },
+    { value: 'scheduled', label: '발행예정' },
+    { value: 'pending', label: '계산서발행' },
+    { value: 'paid', label: '수금완료' },
+  ],
+  purchase: [
+    { value: 'all', label: '전체' },
+    { value: 'pending', label: '계산서수취' },
+    { value: 'paid', label: '지급완료' },
+  ],
+}
 
 const STATUS_TONES: Record<string, { bg: string; fg: string }> = {
   planned:   tonePalettes.neutral,
@@ -33,8 +43,9 @@ const STATUS_TONES: Record<string, { bg: string; fg: string }> = {
   paid:      tonePalettes.done,
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  planned: '계약예정', scheduled: '발행예정', pending: '계산서발행', paid: '수금완료',
+const LABELS: Record<Mode, Record<string, string>> = {
+  sales:    { planned: '계약예정', scheduled: '발행예정', pending: '계산서발행', paid: '수금완료' },
+  purchase: { pending: '계산서수취', paid: '지급완료' },
 }
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
@@ -51,7 +62,8 @@ function getStoredPageSize(): number {
 
 interface SalesBlockProps {
   invoices: TenswTaxInvoice[]
-  onAdd: () => void
+  /** 현재 열려 있는 탭을 넘겨 매입 탭에서 추가하면 매입 계산서로 만들어지게 한다. */
+  onAdd: (invoiceType: 'sales' | 'purchase') => void
   onEdit: (inv: TenswTaxInvoice) => void
   onDelete: (id: string) => Promise<void>
   onRefresh: () => void
@@ -62,6 +74,7 @@ interface SalesBlockProps {
 
 export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesBlockProps) {
   const mobile = useIsMobile()
+  const [mode, setMode] = useState<Mode>('sales')
   const [year, setYear] = useState(new Date().getFullYear())
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [page, setPage] = useState(0)
@@ -70,10 +83,19 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [sortAsc, setSortAsc] = useState(false)
 
+  const statusFilters = FILTERS[mode]
+  const statusLabels = LABELS[mode]
+
+  // 매출/매입 분리. invoice_type이 비어 있는 과거 행은 매출로 본다.
+  const scoped = useMemo(
+    () => invoices.filter(inv => (inv.invoice_type === 'purchase' ? 'purchase' : 'sales') === mode),
+    [invoices, mode]
+  )
+
   // Filter by year
   const yearFiltered = useMemo(() => {
-    return invoices.filter(inv => inv.issue_date?.startsWith(String(year)))
-  }, [invoices, year])
+    return scoped.filter(inv => inv.issue_date?.startsWith(String(year)))
+  }, [scoped, year])
 
   // Filter by payment_status
   const filtered = useMemo(() => {
@@ -104,8 +126,16 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
     setPage(0)
   }
 
+  const handleModeChange = (m: Mode) => {
+    setMode(m)
+    setStatusFilter('all')
+    setPage(0)
+    setExpandedId(null)
+  }
+
   // Summary stats (부가세 포함 = total_amount 기준). 부분수금(paid_amount)을 반영해
   // 수금완료 = 완납 총액 + 미완납 건의 수금액, 미수금 = 미완납 건의 잔액(총액 − 수금액).
+  // 매입도 같은 계산을 쓰되 지급완료/미지급으로 읽는다.
   const paidTotal =
     yearFiltered.filter(i => i.payment_status === 'paid').reduce((s, i) => s + i.total_amount, 0) +
     yearFiltered.filter(i => i.payment_status === 'pending').reduce((s, i) => s + (i.paid_amount || 0), 0)
@@ -119,7 +149,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead
           eyebrow="TAX INVOICES"
-          title="매출관리"
+          title={mode === 'purchase' ? '매입관리' : '매출관리'}
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <button onClick={onRefresh} style={{
@@ -130,7 +160,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
               }}>
                 <LIcon name="refresh" size={12} stroke={2} />
               </button>
-              <button onClick={onAdd} style={{
+              <button onClick={() => onAdd(mode)} style={{
                 width: 24, height: 24, borderRadius: t.radius.sm, border: 'none',
                 background: t.neutrals.inner, color: t.neutrals.muted,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -141,6 +171,18 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
             </div>
           }
         />
+
+        {/* 매출/매입 탭 */}
+        <div style={{ marginBottom: 10 }}>
+          <LSegmented
+            value={mode}
+            onChange={handleModeChange}
+            options={[
+              { value: 'sales', label: '매출' },
+              { value: 'purchase', label: '매입' },
+            ]}
+          />
+        </div>
 
         {/* Year navigation */}
         <div style={{
@@ -164,16 +206,29 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
         </div>
 
         {/* Summary stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-          <LStat label="수금완료" value={`${paidTotal.toLocaleString()}원`} tone="pos" />
-          <LStat label="미수금" value={`${pendingTotal.toLocaleString()}원`} tone={pendingTotal > 0 ? 'warn' : 'default'} />
-          <LStat label="계약예정" value={`${plannedTotal.toLocaleString()}원`} tone="default" title="계약 미체결 가안·전망 매출" />
-          <LStat label="발행예정" value={`${scheduledTotal.toLocaleString()}원`} tone="info" title="계약이 체결돼 계산서 발행만 남은 매출" />
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: mode === 'purchase' ? 'repeat(2, 1fr)' : (mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)'),
+          gap: 8, marginBottom: 12,
+        }}>
+          {mode === 'sales' ? (
+            <>
+              <LStat label="수금완료" value={`${paidTotal.toLocaleString()}원`} tone="pos" />
+              <LStat label="미수금" value={`${pendingTotal.toLocaleString()}원`} tone={pendingTotal > 0 ? 'warn' : 'default'} />
+              <LStat label="계약예정" value={`${plannedTotal.toLocaleString()}원`} tone="default" title="계약 미체결 가안·전망 매출" />
+              <LStat label="발행예정" value={`${scheduledTotal.toLocaleString()}원`} tone="info" title="계약이 체결돼 계산서 발행만 남은 매출" />
+            </>
+          ) : (
+            <>
+              <LStat label="지급완료" value={`${paidTotal.toLocaleString()}원`} tone="pos" />
+              <LStat label="미지급" value={`${pendingTotal.toLocaleString()}원`} tone={pendingTotal > 0 ? 'warn' : 'default'} title="계산서는 받았으나 아직 지급하지 않은 금액" />
+            </>
+          )}
         </div>
 
         {/* Status filter chips + sort toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-          {STATUS_FILTERS.map(f => {
+          {statusFilters.map(f => {
             const active = statusFilter === f.value
             return (
               <button key={f.value} onClick={() => handleFilterChange(f.value)} style={{
@@ -233,7 +288,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                   fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
                   background: tone.bg, color: tone.fg, flexShrink: 0,
                 }}>
-                  {STATUS_LABELS[inv.payment_status] ?? inv.payment_status}
+                  {statusLabels[inv.payment_status] ?? inv.payment_status}
                 </span>
 
                 {/* Date */}
@@ -282,7 +337,7 @@ export function SalesBlock({ invoices, onAdd, onEdit, onRefresh, style }: SalesB
                     <DetailRow label="공급가액" value={`${inv.supply_amount.toLocaleString()}원`} mono />
                     <DetailRow label="세액" value={`${inv.tax_amount.toLocaleString()}원`} mono />
                     <DetailRow label="합계" value={`${inv.total_amount.toLocaleString()}원`} mono />
-                    <DetailRow label="수금상태" value={STATUS_LABELS[inv.payment_status] || inv.payment_status} />
+                    <DetailRow label={mode === 'purchase' ? '지급상태' : '수금상태'} value={statusLabels[inv.payment_status] || inv.payment_status} />
                     <DetailRow label="입금예정일" value={inv.expected_payment_date || '-'} mono />
                     {inv.paid_amount != null && (
                       <DetailRow label="수금액" value={`${inv.paid_amount.toLocaleString()}원`} mono />

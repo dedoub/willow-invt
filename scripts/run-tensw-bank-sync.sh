@@ -16,10 +16,10 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] tensw sync start"
 # 은행 거래내역 — 최근 14일 재조회
 npx tsx scripts/tensw-codef-sync.ts --days 14 || echo "  bank sync failed"
 
-# 홈택스 세금계산서 — 최근 90일 재조회 후 기존 매출 행과 연결 (발행일은 홈택스 작성일자 기준)
-npx tsx scripts/tensw-codef-tax-sync.ts --days 90 --promote || echo "  tax sync failed"
+# 홈택스 세금계산서 매출·매입 — 최근 90일 재조회 (발행일은 홈택스 작성일자 기준)
+npx tsx scripts/tensw-codef-tax-sync.ts --days 90 --purchase --promote || echo "  tax sync failed"
 
-# 수금 대사 — 발행된 계산서를 은행 입금과 대조해 수금완료 처리
+# 결제 대사 — 매출은 입금, 매입은 출금과 대조해 수금완료·지급완료 처리
 npx tsx scripts/tensw-reconcile-payments.ts || echo "  reconcile failed"
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] tensw sync done"

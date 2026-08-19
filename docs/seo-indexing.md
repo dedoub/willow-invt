@@ -180,6 +180,7 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 | 2026-08-16 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. RN은 최근 요청 URL을 제외하고 대체 후보로 실행 |
 | 2026-08-17 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. VC `/es/language-learning`, `/it/audio-flashcards`는 자동화 타임아웃으로 성공 확인 실패 후 예비 후보로 대체 |
 | 2026-08-18 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 08-17 요청분 중 VC `/de/methods`·`/it/language-learning`, RN `/de/practice/factor-trinomial` 색인 확인 |
+| 2026-08-19 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 브리프의 최근 요청 3건과 canonical 후보를 제외하고 신규 후보로 교체 |
 
 색인 요청한 URL:
 

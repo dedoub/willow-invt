@@ -157,13 +157,14 @@ async function main() {
     return
   }
 
-  // 매출분만 처리한다. 홈택스 작성일자와 수기 입력 발행일이 며칠씩 어긋나는 경우가 많아
+  // 홈택스 작성일자와 수기 입력 발행일이 며칠씩 어긋나는 경우가 많아
   // 이름이 아니라 (합계금액 + 발행일 ±10일)로 기존 행을 찾아 연결한다. 못 찾은 것만 새로 넣는다.
+  // 매입은 수기로 관리하던 이력이 없어 사실상 전부 신규 입력이 된다.
   const { data: pending, error: pendErr } = await sb
     .from('tensw_codef_tax_invoices')
     .select('*')
     .eq('status', 'new')
-    .eq('transe_type', 'sales')
+    .in('transe_type', kinds.map(k => (k.transeType === '01' ? 'sales' : 'purchase')))
     .order('reporting_date')
   if (pendErr) { console.error(pendErr.message); return }
 
@@ -173,37 +174,84 @@ async function main() {
   const skipped: string[] = []
 
   const rows = pending ?? []
+
+  // 매출은 공급받는자, 매입은 공급자가 거래처다.
+  const party = (r: (typeof rows)[number]) =>
+    r.transe_type === 'purchase'
+      ? { company: r.supplier_company as string | null, regNo: r.supplier_reg_number as string | null, name: null as string | null }
+      : { company: r.contractor_company as string | null, regNo: r.contractor_reg_number as string | null, name: r.contractor_name as string | null }
+
   const label = (r: (typeof rows)[number]) =>
-    `${r.reporting_date} ${r.contractor_company ?? ''} ${Number(r.total_amount).toLocaleString()}`
+    `${r.reporting_date} ${party(r).company ?? party(r).regNo ?? ''} ${Number(r.total_amount).toLocaleString()}`
 
   // 취소(마이너스) 계산서와 그 원발행분을 먼저 짝지어 둘 다 제외한다.
   // 수정세금계산서는 취소 후 재발행되므로, 재발행분만 매출로 남으면 된다.
   const cancelled = new Set<string>()
+  const needsReview = new Set<string>()
   for (const neg of rows.filter(r => Number(r.total_amount) < 0)) {
-    cancelled.add(neg.id)
-    const origin = rows.find(
+    const candidates = rows.filter(
       r =>
         !cancelled.has(r.id) &&
         Number(r.total_amount) === -Number(neg.total_amount) &&
-        r.contractor_reg_number === neg.contractor_reg_number &&
+        r.transe_type === neg.transe_type &&
+        party(r).regNo === party(neg).regNo &&
         r.reporting_date <= neg.reporting_date
     )
+    // 같은 거래처에 같은 금액이 여러 건 있을 수 있다(임차료 vs 라이선스 선금).
+    // 품목까지 같아야 같은 건으로 본다. 품목이 다르면 짐작하지 않고 사람에게 넘긴다.
+    const origin =
+      candidates.find(r => r.rep_items === neg.rep_items) ??
+      candidates.find(r => r.reporting_date === neg.reporting_date)
+
     if (origin) {
+      cancelled.add(neg.id)
       cancelled.add(origin.id)
       skipped.push(`${label(origin)} → ${neg.reporting_date} 취소 (원발행분·취소분 모두 제외)`)
     } else {
-      skipped.push(`${label(neg)} (취소분 — 원발행분 못 찾음)`)
+      needsReview.add(neg.id)
+      skipped.push(`${label(neg)} (취소분 — 짝이 될 원발행분을 못 찾음, 확인 필요)`)
     }
   }
   if (cancelled.size) {
-    await sb
-      .from('tensw_codef_tax_invoices')
-      .update({ status: 'ignored' })
-      .in('id', [...cancelled])
+    await sb.from('tensw_codef_tax_invoices').update({ status: 'ignored' }).in('id', [...cancelled])
+  }
+  if (needsReview.size) {
+    await sb.from('tensw_codef_tax_invoices').update({ status: 'review' }).in('id', [...needsReview])
   }
 
   for (const row of rows) {
-    if (cancelled.has(row.id)) continue
+    if (cancelled.has(row.id) || needsReview.has(row.id)) continue
+
+    const isPurchase = row.transe_type === 'purchase'
+    const p = party(row)
+
+    // 매입은 수기 이력이 없어 매칭할 대상이 없다. 스테이징 fingerprint가 중복을 막는다.
+    if (isPurchase) {
+      const { data: created, error } = await sb
+        .from('tensw_mgmt_sales')
+        .insert({
+          invoice_type: 'purchase',
+          issue_date: row.reporting_date,
+          counterparty: p.company || p.regNo || '미상',
+          business_number: formatBizNo(p.regNo),
+          representative: null,
+          supply_amount: row.supply_amount,
+          tax_amount: row.tax_amount,
+          total_amount: row.total_amount,
+          items: row.rep_items ? [{ description: row.rep_items }] : [],
+          payment_status: 'pending', // 계산서수취
+          notes: `홈택스 매입 자동수집 (승인번호 ${row.approval_no ?? '-'})`,
+        })
+        .select('id')
+        .single()
+      if (error) { console.error(`  ✗ ${label(row)}: ${error.message}`); continue }
+      await sb
+        .from('tensw_codef_tax_invoices')
+        .update({ status: 'promoted', sales_id: created.id })
+        .eq('id', row.id)
+      inserted++
+      continue
+    }
 
     const from = new Date(row.reporting_date)
     from.setDate(from.getDate() - 10)
@@ -261,9 +309,9 @@ async function main() {
       .insert({
         invoice_type: 'sales',
         issue_date: row.reporting_date,
-        counterparty: row.contractor_company || row.contractor_reg_number || '미상',
-        business_number: row.contractor_reg_number,
-        representative: row.contractor_name,
+        counterparty: p.company || p.regNo || '미상',
+        business_number: formatBizNo(p.regNo),
+        representative: p.name,
         supply_amount: row.supply_amount,
         tax_amount: row.tax_amount,
         total_amount: row.total_amount,
@@ -303,9 +351,8 @@ function formatBizNo(v?: string | null): string | null {
 async function enrichLinked(sb: ReturnType<typeof createClient>) {
   const { data: rows, error } = await sb
     .from('tensw_codef_tax_invoices')
-    .select('sales_id, contractor_reg_number, contractor_company, contractor_name, rep_items, approval_no, invoice_kind, issue_form, receipt_or_charge, issue_date, send_date')
+    .select('sales_id, transe_type, supplier_reg_number, supplier_company, contractor_reg_number, contractor_company, contractor_name, rep_items, approval_no, invoice_kind, issue_form, receipt_or_charge, issue_date, send_date')
     .eq('status', 'promoted')
-    .eq('transe_type', 'sales')
     .not('sales_id', 'is', null)
   if (error) { console.error(error.message); return }
 
@@ -322,19 +369,23 @@ async function enrichLinked(sb: ReturnType<typeof createClient>) {
     if (!['pending', 'paid'].includes(inv.payment_status as string)) continue
 
     const patch: Record<string, unknown> = {}
-    const bizNo = formatBizNo(t.contractor_reg_number as string | null)
+    const purchase = t.transe_type === 'purchase'
+    const company = (purchase ? t.supplier_company : t.contractor_company) as string | null
+    const regNo = (purchase ? t.supplier_reg_number : t.contractor_reg_number) as string | null
+    const repName = (purchase ? null : t.contractor_name) as string | null
+    const bizNo = formatBizNo(regNo)
 
-    if (t.contractor_company && inv.counterparty !== t.contractor_company) {
-      patch.counterparty = t.contractor_company
-      changes.push(`  ~ 상호 "${inv.counterparty}" → "${t.contractor_company}"`)
+    if (company && inv.counterparty !== company) {
+      patch.counterparty = company
+      changes.push(`  ~ 상호 "${inv.counterparty}" → "${company}"`)
     }
     if (bizNo && inv.business_number !== bizNo) {
       patch.business_number = bizNo
-      changes.push(`  ~ ${t.contractor_company} 사업자번호 ${inv.business_number ?? '(없음)'} → ${bizNo}`)
+      changes.push(`  ~ ${company ?? bizNo} 사업자번호 ${inv.business_number ?? '(없음)'} → ${bizNo}`)
     }
-    if (t.contractor_name && inv.representative !== t.contractor_name) {
-      patch.representative = t.contractor_name
-      changes.push(`  ~ ${t.contractor_company} 대표자 ${inv.representative ?? '(없음)'} → ${t.contractor_name}`)
+    if (repName && inv.representative !== repName) {
+      patch.representative = repName
+      changes.push(`  ~ ${company} 대표자 ${inv.representative ?? '(없음)'} → ${repName}`)
     }
 
     const items = (inv.items as unknown[]) ?? []
@@ -346,7 +397,7 @@ async function enrichLinked(sb: ReturnType<typeof createClient>) {
     const approval = t.approval_no as string | null
     const notes = (inv.notes as string | null) ?? ''
     if (approval && !notes.includes(approval)) {
-      const line = `홈택스 ${t.invoice_kind ?? ''} ${t.receipt_or_charge ?? ''} · ${t.issue_form ?? ''} · 승인 ${approval} · 발급 ${t.issue_date ?? '-'} · 전송 ${t.send_date ?? '-'}`
+      const line = `홈택스 ${purchase ? '매입' : '매출'} ${t.invoice_kind ?? ''} ${t.receipt_or_charge ?? ''} · ${t.issue_form ?? ''} · 승인 ${approval} · 발급 ${t.issue_date ?? '-'} · 전송 ${t.send_date ?? '-'}`
         .replace(/\s+/g, ' ')
         .trim()
       patch.notes = notes ? `${notes}\n${line}` : line

@@ -15,6 +15,7 @@ export interface SalesItemFormData {
 
 export interface TenswSalesFormData {
   id?: string
+  invoice_type?: 'sales' | 'purchase'
   issue_date: string
   counterparty: string
   business_number: string
@@ -29,6 +30,8 @@ export interface TenswSalesFormData {
 
 interface SalesDialogProps {
   open: boolean
+  /** 새로 만들 때의 계산서 종류. 수정 시에는 기존 행의 값을 따른다. */
+  invoiceType?: 'sales' | 'purchase'
   editInvoice: TenswTaxInvoice | null
   onClose: () => void
   onSave: (data: TenswSalesFormData) => Promise<void>
@@ -37,12 +40,19 @@ interface SalesDialogProps {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const PAYMENT_STATUS_OPTIONS = [
-  { key: 'planned', label: '계약예정' },
-  { key: 'scheduled', label: '발행예정' },
-  { key: 'pending', label: '계산서발행' },
-  { key: 'paid', label: '수금완료' },
-]
+// 매입에는 계약 단계가 없다. 계산서를 받았거나, 지급했거나 둘 중 하나다.
+const PAYMENT_STATUS_OPTIONS_BY_TYPE = {
+  sales: [
+    { key: 'planned', label: '계약예정' },
+    { key: 'scheduled', label: '발행예정' },
+    { key: 'pending', label: '계산서발행' },
+    { key: 'paid', label: '수금완료' },
+  ],
+  purchase: [
+    { key: 'pending', label: '계산서수취' },
+    { key: 'paid', label: '지급완료' },
+  ],
+} as const
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,8 +68,9 @@ function emptyItem(): SalesItemFormData {
   return { description: '', amount: '' }
 }
 
-function emptyForm(): TenswSalesFormData {
+function emptyForm(invoiceType: 'sales' | 'purchase' = 'sales'): TenswSalesFormData {
   return {
+    invoice_type: invoiceType,
     issue_date: '',
     counterparty: '',
     business_number: '',
@@ -76,6 +87,7 @@ function emptyForm(): TenswSalesFormData {
 function fromInvoice(inv: TenswTaxInvoice): TenswSalesFormData {
   return {
     id: inv.id,
+    invoice_type: inv.invoice_type === 'purchase' ? 'purchase' : 'sales',
     issue_date: inv.issue_date,
     counterparty: inv.counterparty,
     business_number: inv.business_number || '',
@@ -94,8 +106,10 @@ function fromInvoice(inv: TenswTaxInvoice): TenswSalesFormData {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: SalesDialogProps) {
+export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose, onSave, onDelete }: SalesDialogProps) {
   const isEdit = !!editInvoice
+  const kind = editInvoice ? (editInvoice.invoice_type === 'purchase' ? 'purchase' : 'sales') : invoiceType
+  const purchase = kind === 'purchase'
   const [form, setForm] = useState<TenswSalesFormData>(emptyForm())
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -105,9 +119,9 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
     if (editInvoice) {
       setForm(fromInvoice(editInvoice))
     } else {
-      setForm(emptyForm())
+      setForm(emptyForm(invoiceType))
     }
-  }, [open, editInvoice])
+  }, [open, editInvoice, invoiceType])
 
   if (!open) return null
 
@@ -178,7 +192,7 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
               TAX INVOICE
             </div>
             <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              {isEdit ? '세금계산서 수정' : '세금계산서 추가'}
+              {`${purchase ? '매입' : '매출'}계산서 ${isEdit ? '수정' : '추가'}`}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -264,10 +278,10 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
             </div>
           </div>
 
-          {/* 입금예정일 + 수금상태 */}
+          {/* 결제예정일 + 결제상태 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <Label>입금예정일</Label>
+              <Label>{purchase ? '지급예정일' : '입금예정일'}</Label>
               <input
                 type="date"
                 value={form.expected_payment_date}
@@ -276,9 +290,9 @@ export function SalesDialog({ open, editInvoice, onClose, onSave, onDelete }: Sa
               />
             </div>
             <div>
-              <Label>수금상태</Label>
+              <Label>{purchase ? '지급상태' : '수금상태'}</Label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {PAYMENT_STATUS_OPTIONS.map(s => (
+                {PAYMENT_STATUS_OPTIONS_BY_TYPE[kind].map(s => (
                   <ChipBtn
                     key={s.key}
                     active={form.payment_status === s.key}

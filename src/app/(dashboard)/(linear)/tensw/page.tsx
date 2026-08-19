@@ -61,6 +61,7 @@ export default function TenswPage() {
 
   // Sales dialog state
   const [salesDialogOpen, setSalesDialogOpen] = useState(false)
+  const [salesDialogType, setSalesDialogType] = useState<'sales' | 'purchase'>('sales')
   const [editingSales, setEditingSales] = useState<TenswTaxInvoice | null>(null)
 
   // Loan dialog state
@@ -378,6 +379,7 @@ export default function TenswPage() {
         }
       })
     const body: Record<string, unknown> = {
+      invoice_type: data.invoice_type || 'sales',
       issue_date: data.issue_date || null,
       counterparty: data.counterparty,
       business_number: data.business_number || null,
@@ -538,7 +540,7 @@ export default function TenswPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
               <SalesBlock
                 invoices={invoices}
-                onAdd={() => { setEditingSales(null); setSalesDialogOpen(true) }}
+                onAdd={(invoiceType) => { setEditingSales(null); setSalesDialogType(invoiceType); setSalesDialogOpen(true) }}
                 onEdit={(inv) => { setEditingSales(inv); setSalesDialogOpen(true) }}
                 onDelete={handleDeleteSales}
                 onRefresh={loadData}
@@ -622,6 +624,7 @@ export default function TenswPage() {
 
         {/* Sales dialog */}
         <SalesDialog
+          invoiceType={salesDialogType}
           open={salesDialogOpen}
           editInvoice={editingSales}
           onClose={() => { setSalesDialogOpen(false); setEditingSales(null) }}
