@@ -19,7 +19,7 @@ import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
 import crypto from 'node:crypto'
-import { codefService } from '../src/lib/codef/client'
+import { codefService, isQuotaExhausted } from '../src/lib/codef/client'
 import { hometaxCertFromEnv, listTaxInvoices, splitQuarterly, type TaxInvoiceRow, type TranseType } from '../src/lib/codef/hometax'
 
 dotenv.config({ path: path.join(__dirname, '..', '.env.local') })
@@ -94,6 +94,7 @@ async function main() {
       try {
         list = await listTaxInvoices({ cert, transeType: kind.transeType, ...chunk })
       } catch (err) {
+        if (isQuotaExhausted()) { console.error(`  ⚠ [${'tax-sync'}] 일일 호출 한도 초과 — 이후 조회를 건너뜁니다.`); break }
         console.error(`  ✗ ${kind.label} ${chunk.startDate}~${chunk.endDate}: ${err instanceof Error ? err.message : err}`)
         continue
       }

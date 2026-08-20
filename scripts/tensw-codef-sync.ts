@@ -21,7 +21,7 @@ import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
 import crypto from 'node:crypto'
-import { codefService } from '../src/lib/codef/client'
+import { codefService, isQuotaExhausted } from '../src/lib/codef/client'
 import {
   TENSW_ACCOUNTS,
   listCorporateAccounts,
@@ -149,6 +149,8 @@ async function main() {
       })
     } catch (err) {
       console.error(`  ✗ ${acct.label}: ${err instanceof Error ? err.message : err}`)
+      // 한도에 걸렸으면 남은 계좌도 전부 같은 오류다. 로그만 더럽히니 여기서 멈춘다.
+      if (isQuotaExhausted()) { console.error('  ⚠ 일일 호출 한도 초과 — 남은 계좌 조회를 건너뜁니다.'); break }
       continue
     }
 

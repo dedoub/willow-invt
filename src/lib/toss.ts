@@ -217,6 +217,18 @@ export async function getHoldings(): Promise<TossHoldings> {
   return tossGet<TossHoldings>('/api/v1/holdings', { account: true })
 }
 
+export interface TossBuyingPower {
+  currency: 'KRW' | 'USD'
+  cashBuyingPower: string
+}
+
+export async function getBuyingPower(currency: 'KRW' | 'USD'): Promise<TossBuyingPower> {
+  return tossGet<TossBuyingPower>(
+    `/api/v1/buying-power?currency=${encodeURIComponent(currency)}`,
+    { account: true },
+  )
+}
+
 // ---- Order history ----
 
 export interface TossOrder {

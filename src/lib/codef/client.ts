@@ -60,6 +60,24 @@ function credentials(service: CodefService): { clientId: string; clientSecret: s
 
 const tokenCache = new Map<CodefService, { token: string; expiresAt: number }>()
 
+/**
+ * 일일 한도(CF-00012)를 한 번 만나면 그 뒤 호출은 전부 같은 오류로 돌아온다.
+ * 그대로 두면 명세서 32건처럼 실패 로그만 잔뜩 쌓이므로, 한도를 본 순간부터는
+ * 네트워크를 타지 않고 바로 막는다. 프로세스가 끝나면 초기화된다.
+ */
+let quotaExhausted = false
+
+export class CodefQuotaError extends Error {
+  constructor(readonly path: string) {
+    super('[codef] 일일 호출 한도(CF-00012)에 걸려 이후 요청을 중단합니다.')
+    this.name = 'CodefQuotaError'
+  }
+}
+
+export function isQuotaExhausted(): boolean {
+  return quotaExhausted
+}
+
 async function getAccessToken(service: CodefService, force = false): Promise<string> {
   const cached = tokenCache.get(service)
   if (!force && cached && cached.expiresAt > Date.now()) return cached.token
@@ -100,6 +118,7 @@ export async function codefRequest<T = unknown>(
   opts: { service?: CodefService; allowCodes?: string[] } = {}
 ): Promise<CodefResponse<T>> {
   const service = opts.service ?? codefService()
+  if (quotaExhausted) throw new CodefQuotaError(path)
   const url = HOSTS[service] + path
 
   const call = async (token: string) => {
@@ -124,6 +143,10 @@ export async function codefRequest<T = unknown>(
   }
 
   const parsed = JSON.parse(out.text) as CodefResponse<T>
+  if (parsed.result.code === 'CF-00012') {
+    quotaExhausted = true
+    throw new CodefQuotaError(path)
+  }
   const ok = parsed.result.code === 'CF-00000' || (opts.allowCodes ?? []).includes(parsed.result.code)
   if (!ok) throw new CodefError(parsed.result, path)
   return parsed

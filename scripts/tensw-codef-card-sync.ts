@@ -19,7 +19,7 @@ import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
 import crypto from 'node:crypto'
-import { codefService } from '../src/lib/codef/client'
+import { codefService, isQuotaExhausted } from '../src/lib/codef/client'
 import {
   TENSW_CARD_ORGS,
   CARD_ORG,
@@ -126,6 +126,7 @@ async function main() {
       try {
         list = await listCardApprovals({ connectedId: CONNECTED_ID, organization, ...chunk })
       } catch (err) {
+        if (isQuotaExhausted()) { console.error(`  ⚠ [${'card-sync'}] 일일 호출 한도 초과 — 이후 조회를 건너뜁니다.`); break }
         console.error(`  ✗ ${organization} ${chunk.startDate}~${chunk.endDate}: ${err instanceof Error ? err.message : err}`)
         continue
       }
@@ -219,13 +220,24 @@ async function syncBilling(sb: ReturnType<typeof createClient>, startDate: strin
   // 결제계좌 단위 명세서라서, 계좌가 여럿이면 카드를 다 돌아야 전체가 모인다.
   // (실제로 202608이 2,996,843과 6,547,716 두 그룹으로 나뉘었다.)
   // 같은 명세서가 중복 조회돼도 fingerprint가 걸러낸다.
-  const months = billingMonths(startDate, endDate)
-  console.log(`  명세서 대상: 카드 ${cardNos.length}장 × ${months.length}개월 = ${cardNos.length * months.length}회 호출`)
+  // 명세서는 확정되면 안 바뀐다. 매일 과거 몇 달을 다시 긁을 이유가 없어 기본은 최근 2개월만 본다.
+  // (--billing-months 로 늘릴 수 있다. 과거분 백필은 그때만 한다.)
+  const allMonths = billingMonths(startDate, endDate)
+  const keep = Number(arg('billing-months') ?? 2)
+  const months = allMonths.slice(-Math.max(1, keep))
+  if (months.length < allMonths.length) {
+    console.log(`  명세서: 최근 ${months.length}개월만 조회 (전체 ${allMonths.length}개월, --billing-months 로 조정)`)
+  }
 
   let total = 0
   for (const organization of TENSW_CARD_ORGS) {
     for (const billingMonth of months) {
+      // 카드마다 물어도 응답은 그 카드가 속한 결제그룹의 명세서다. 그룹이 둘뿐인데 8장을
+      // 다 돌면 6번은 이미 본 명세서를 다시 받는다. 새 명세서가 두 장 연속 안 나오면 멈춘다.
+      const seen = new Set<string>()
+      let repeats = 0
       for (const cardNo of cardNos) {
+        if (repeats >= 2) break
       let list
       try {
         list = await listCardBilling({ connectedId: CONNECTED_ID!, organization, billingMonth, cardNo })
@@ -257,6 +269,10 @@ async function syncBilling(sb: ReturnType<typeof createClient>, startDate: strin
           .update([organization, billingMonth, b.resCardNo || cardNo, b.resDepartmentCode ?? '', b.resTotalAmount ?? ''].join('|'))
           .digest('hex'),
       }))
+
+      const fresh = rows.filter(r => !seen.has(r.fingerprint))
+      rows.forEach(r => seen.add(r.fingerprint))
+      repeats = fresh.length ? 0 : repeats + 1
 
       const sum = rows.reduce((s, r) => s + r.total_amount, 0)
       if (DRY) {

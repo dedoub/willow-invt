@@ -26,3 +26,6 @@ npx tsx scripts/tensw-codef-card-sync.ts --days 90 --billing || echo "  card syn
 npx tsx scripts/tensw-reconcile-payments.ts || echo "  reconcile failed"
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] tensw sync done"
+
+# 실패가 있으면 CEO에게 알린다. 조용히 실패하면 며칠이 지나도 모른다.
+npx tsx scripts/tensw-sync-notify.ts "$HOME/logs/tensw-bank-sync/launchd.log" || true
