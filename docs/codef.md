@@ -160,6 +160,39 @@ launchctl start com.willow.tensw-bank-sync # 즉시 1회 실행
 한도(CF-00012)를 한 번 만나면 그 뒤 호출은 네트워크를 타지 않고 즉시 중단된다.
 안 그러면 실패 로그만 수십 줄 쌓인다.
 
+### 정식버전 전환 체크리스트
+
+정식버전은 clientId/clientSecret이 데모와 별개다. **커넥티드 아이디는 클라이언트에 묶여 있어
+데모에서 발급받은 `8b8ooxCsAjKaza7tG6vBEe` 는 정식에서 안 통한다.** 계정 등록을 다시 해야 한다.
+
+1. 키관리에서 정식버전 키를 받아 `.env.local` 에 넣는다.
+   ```
+   CODEF_PROD_CLIENT_ID=...
+   CODEF_PROD_CLIENT_SECRET=...
+   CODEF_SERVICE=api
+   ```
+   `CODEF_PUBLIC_KEY` 는 계정 공통이라 그대로 쓴다.
+
+2. 은행·카드 계정을 다시 등록한다. 인증서와 비밀번호는 그대로다.
+   ```
+   printf '%s' '<인증서 비밀번호>' | npm run codef:register -- --cert --password-stdin --org 0020,0088 \
+     --der "<signCert.der>" --key "<signPri.key>"
+   printf '%s' '<인증서 비밀번호>' | npm run codef:register -- --cert --card --password-stdin --org 0309 \
+     --connected-id <새 connectedId> --der "<signCert.der>" --key "<signPri.key>"
+   ```
+
+3. 새 connectedId를 `TENSW_CODEF_CONNECTED_ID` 에 넣고 `npm run codef:register -- --list` 로 확인한다.
+
+4. 홈택스는 connectedId를 안 쓰므로 인증서 경로·암호문 그대로 동작한다.
+
+5. 일일 한도가 풀리므로 과거분 백필을 이때 한 번에 돌린다.
+   ```
+   npm run tensw:bank:sync -- --from 20260101
+   npm run tensw:tax:sync -- --from 20260101 --purchase --promote
+   npm run tensw:card:sync -- --from 20260101 --billing --billing-months 12
+   npm run tensw:reconcile
+   ```
+
 ### 실패 알림
 
 `tensw-sync-notify.ts` 가 실행 로그에서 실패를 찾아 CEO 텔레그램으로 보낸다. 성공하면 조용하다.
