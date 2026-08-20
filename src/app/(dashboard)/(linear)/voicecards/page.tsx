@@ -5,7 +5,7 @@ import { VoicecardsBlock } from './_components/voicecards-block'
 import { VoicecardsSettingsDialog } from './_components/voicecards-settings-dialog'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
-import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
 import { GeoAnswerCard } from '@/app/(dashboard)/_components/geo-answer-card'
 import { kstToday } from '@/lib/kst'
@@ -231,7 +231,7 @@ export default function VoicecardsPage() {
       <div style={{
         display: 'grid',
         gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
-        gap: 14, alignItems: 'start',
+        gap: t.density.blockGap, alignItems: 'start',
       }}>
       <SearchDemandCard site="voicecards" leadSlot={<GeoAnswerCard site="voicecards" />} />
 

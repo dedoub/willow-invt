@@ -89,7 +89,13 @@ export default function LinearRouteLayout({
             sidebarOpen={sidebarOpen}
             actions={!mobile && COLS_TOGGLE_PATHS.has(pathname) ? <DashColsToggle /> : undefined}
           />
-          <main style={{ flex: 1, overflow: 'auto', padding: mobile ? '16px 12px 24px' : '16px 20px 24px' }}>
+          <main style={{
+            flex: 1,
+            overflow: 'auto',
+            padding: mobile
+              ? `${t.density.pagePadY}px 12px ${t.density.pagePadBottom}px`
+              : `${t.density.pagePadY}px ${t.density.pagePadX}px ${t.density.pagePadBottom}px`,
+          }}>
             {children}
           </main>
         </div>

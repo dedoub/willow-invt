@@ -202,12 +202,12 @@ export default function ValueChainPage() {
     <div style={{
       display: 'grid',
       gridTemplateColumns: mobile || cols === 1 ? '1fr' : 'minmax(0,1fr) minmax(0,1fr)',
-      gap: 14, alignItems: 'start', marginBottom: 14,
+      gap: t.density.blockGap, alignItems: 'start', marginBottom: t.density.blockGap,
     }}>
       <SearchDemandCard site="valuechain" />
     </div>
 
-    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: 14, alignItems: 'start' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap, alignItems: 'start' }}>
       <LCard pad={0}>
         {/* 헤더 + 현황 */}
         <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>

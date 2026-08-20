@@ -6,7 +6,7 @@ import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-types'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
-import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
 import { GeoAnswerCard } from '@/app/(dashboard)/_components/geo-answer-card'
 
@@ -81,7 +81,7 @@ export default function ReviewnotesPage() {
     <div style={{
       display: 'grid',
       gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
-      gap: 14, alignItems: 'start',
+      gap: t.density.blockGap, alignItems: 'start',
     }}>
     <SearchDemandCard site="reviewnotes" leadSlot={<GeoAnswerCard site="reviewnotes" />} />
 

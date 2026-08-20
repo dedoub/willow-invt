@@ -80,7 +80,7 @@ export function TextbookBlock({
 
       {/* Subject filter */}
       {subjects.length > 0 && (
-        <div style={{ padding: '0 14px 10px', display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapMd}px`, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
           <button onClick={() => setSubjectFilter('all')} style={{
             padding: '4px 10px', borderRadius: t.radius.pill,
             border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans,

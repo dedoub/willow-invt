@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { TenswSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 
@@ -451,7 +451,7 @@ export default function TenswPage() {
     <>
       {loadPhase === 0 ? <TenswSkeleton /> : (
         <>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {/* Schedule (full width) */}
           <ScheduleBlock
             schedules={schedules}
@@ -465,10 +465,10 @@ export default function TenswPage() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
-            gap: 14,
+            gap: t.density.blockGap,
             overflow: 'hidden',
           }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
               <CashBlock
                 items={cashItems}
                 onSelect={(item) => { setEditingCash(item); setCashDialogOpen(true) }}
@@ -482,7 +482,7 @@ export default function TenswPage() {
                 style={{ height: 'fit-content' }}
               />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
               <SalesBlock
                 invoices={invoices}
                 onEdit={(inv) => { setEditingSales(inv); setSalesDialogOpen(true) }}
@@ -502,7 +502,7 @@ export default function TenswPage() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'),
-            gap: 14,
+            gap: t.density.blockGap,
           }}>
             <TenswWikiBlock
               notes={wikiNotes}

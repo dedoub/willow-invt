@@ -56,10 +56,10 @@ Willow 대시보드는 작은 차이가 많이 보이는 조밀한 운영 UI다.
 
 | 용도 | 기준 |
 |---|---|
-| Header | 52px height, 20px horizontal padding |
+| Header | 48px height, 20px horizontal padding |
 | Page body | 16px top, 20px sides, 24px bottom |
-| Block gap | 14px |
-| LCard padding | 14px |
+| Block gap | 12px |
+| LCard padding | 16px |
 | Inner panel | 8px 10px padding |
 | KPI grid | 8px gap |
 | Table | 6px column gap, 2px row gap, 8px row side padding |
@@ -153,9 +153,9 @@ Do not align table cells with independent flex widths. Define columns once and s
 ### Standard Page
 
 ```tsx
-<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
   <LCard>...</LCard>
-  <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+  <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
     <LCard>...</LCard>
     <LCard>...</LCard>
   </div>

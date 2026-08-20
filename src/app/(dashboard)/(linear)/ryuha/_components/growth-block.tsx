@@ -153,7 +153,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
 
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
         {/* Chart */}
         <LCard>
           <LSectionHead eyebrow="GROWTH" title="성장기록" action={

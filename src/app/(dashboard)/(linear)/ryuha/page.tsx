@@ -331,7 +331,7 @@ export default function RyuhaPage() {
   return (
     <>
       {loading ? <RyuhaSkeleton /> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {/* Calendar */}
           <CalendarBlock
             schedules={schedules}
@@ -364,7 +364,7 @@ export default function RyuhaPage() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
-            gap: 14,
+            gap: t.density.blockGap,
           }}>
             <TextbookBlock
               subjects={subjects}

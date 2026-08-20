@@ -115,7 +115,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
       {/* 다가오는 마감 스트립 (줄바꿈, 글자 안 잘림) */}
       {deadlines.length > 0 && (
         <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 14px 18px',
+          display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm, padding: `0 ${t.density.cardPad}px ${t.density.cardPad + 2}px`,
         }}>
           {deadlines.map(d => {
             const n = dday(d.due_date)
@@ -148,7 +148,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
       )}
 
       {/* 상태 필터 */}
-      <div style={{ display: 'flex', gap: 5, padding: '0 14px 8px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 5, padding: `0 ${t.density.cardPad}px ${t.density.panelPadY}px`, flexWrap: 'wrap' }}>
         {FILTERS.map(f => {
           const active = filter === f.key
           return (

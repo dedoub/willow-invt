@@ -699,7 +699,7 @@ export function RealEstateBlock() {
         <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
           <LSectionHead eyebrow="REAL ESTATE" title="부동산 리서치" />
         </div>
-        <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           <div style={{ display: 'flex', gap: 6 }}>
             <Bone w={50} h={22} r={t.radius.pill} />
             <Bone w={50} h={22} r={t.radius.pill} />
@@ -778,7 +778,7 @@ export function RealEstateBlock() {
         />
       </div>
 
-      <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         {/* Filter bar */}
         <div style={{
           display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8,

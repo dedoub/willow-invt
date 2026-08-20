@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { EmailBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/email-block'
 import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_components/email-detail-dialog'
@@ -139,7 +139,7 @@ export default function EmailPage() {
       <div style={{
         display: 'grid',
         gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
-        gap: 14,
+        gap: t.density.blockGap,
         alignItems: 'start',
       }}>
         <div style={{ minWidth: 0 }}>

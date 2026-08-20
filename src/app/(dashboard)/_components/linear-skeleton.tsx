@@ -44,7 +44,7 @@ export function MgmtSkeleton() {
   const mobile = useIsMobile()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Schedule card */}
       <CardSkel pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
@@ -64,7 +64,7 @@ export function MgmtSkeleton() {
       </CardSkel>
 
       {/* Cash + Email (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: t.density.blockGap }}>
         {/* Cash */}
         <CardSkel pad={0}>
           <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
@@ -109,7 +109,7 @@ export function MgmtSkeleton() {
 export function InvestHoldingsSkeleton() {
   const mobile = useIsMobile()
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
       <CardSkel pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
           <Bone w={80} h={8} />
@@ -121,7 +121,7 @@ export function InvestHoldingsSkeleton() {
           ))}
         </div>
       </CardSkel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
           <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
             <Bone w={80} h={8} />
@@ -151,11 +151,11 @@ export function InvestSkeleton() {
   const mobile = useIsMobile()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Signal bar: 5 stat boxes (2-col on mobile) */}
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
         {Array.from({ length: 5 }).map((_, i) => (
-          <Bone key={i} h={52} r={t.radius.sm} />
+          <Bone key={i} h={t.density.statH} r={t.radius.sm} />
         ))}
       </div>
 
@@ -184,7 +184,7 @@ export function InvestSkeleton() {
       </CardSkel>
 
       {/* Holdings + Analysis/TradeLog (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
           <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
             <Bone w={80} h={8} />
@@ -196,7 +196,7 @@ export function InvestSkeleton() {
             ))}
           </div>
         </CardSkel>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           <CardSkel pad={0}>
             <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
               <Bone w={80} h={8} />
@@ -229,7 +229,7 @@ export function InvestSkeleton() {
         {/* KPI row */}
         <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
           {Array.from({ length: 5 }).map((_, i) => (
-            <Bone key={i} h={52} r={t.radius.sm} />
+            <Bone key={i} h={t.density.statH} r={t.radius.sm} />
           ))}
         </div>
         {/* Chart + Table grid */}
@@ -253,7 +253,7 @@ export function RyuhaSkeleton() {
   const mobile = useIsMobile()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Calendar */}
       <CardSkel pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
@@ -295,7 +295,7 @@ export function RyuhaSkeleton() {
       </CardSkel>
 
       {/* Growth (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
         <CardSkel>
           <Bone w={80} h={8} />
           <Bone h={120} style={{ marginTop: 10 }} r={t.radius.sm} />
@@ -314,7 +314,7 @@ export function RyuhaSkeleton() {
       </div>
 
       {/* Textbook + Progress (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
           <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
             <Bone w={80} h={8} />
@@ -343,13 +343,13 @@ export function AkrosSkeleton() {
   const mobile = useIsMobile()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* AUM + Products (left) + Tax Invoices (right, spans 2 rows) */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
         gridTemplateRows: mobile ? 'auto auto auto' : 'auto 1fr',
-        gap: 14,
+        gap: t.density.blockGap,
       }}>
         <div style={mobile ? {} : { gridColumn: 1, gridRow: 1 }}>
           <CardSkel>
@@ -391,7 +391,7 @@ export function AkrosSkeleton() {
       </div>
 
       {/* Wiki + Email (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '2fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '2fr 1fr', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
           <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: mobile ? undefined : 300 }}>
             <div style={{
@@ -439,13 +439,13 @@ export function EtcSkeleton() {
   const mobile = useIsMobile()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Stats (left) + Invoices (right, spans 2 rows) + Products (left bottom) */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: mobile ? '1fr' : '2fr 1fr',
         gridTemplateRows: mobile ? 'auto auto auto' : 'auto 1fr',
-        gap: 14,
+        gap: t.density.blockGap,
       }}>
         <div style={mobile ? {} : { gridColumn: 1, gridRow: 1 }}>
           <CardSkel>
@@ -486,7 +486,7 @@ export function EtcSkeleton() {
         </div>
       </div>
       {/* Wiki + Email (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '2fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '2fr 1fr', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
           <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: mobile ? undefined : 300 }}>
             <div style={{
@@ -541,7 +541,7 @@ export function TenswSkeleton() {
   const mobile = useIsMobile()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Projects */}
       <CardSkel pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
@@ -572,8 +572,8 @@ export function TenswSkeleton() {
         </div>
       </CardSkel>
       {/* Cash+Sales + Loans (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: 14 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: t.density.blockGap }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           <CardSkel pad={0}>
             <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
               <Bone w={80} h={8} />
@@ -615,7 +615,7 @@ export function TenswSkeleton() {
         </CardSkel>
       </div>
       {/* Wiki + Email (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
           <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: mobile ? undefined : 300 }}>
             <div style={{
@@ -670,7 +670,7 @@ export function ValueChainSkeleton() {
   const mobile = useIsMobile()
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14, alignItems: 'start' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap, alignItems: 'start' }}>
       <CardSkel pad={0}>
         {/* 헤더 + 인사이트 */}
         <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>

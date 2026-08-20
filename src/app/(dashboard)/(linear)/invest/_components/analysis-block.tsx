@@ -622,7 +622,7 @@ export function AnalysisBlock({
         } />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 14px 14px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
         <div style={{
           display: chartColumns === 2 ? 'grid' : 'flex',
           gridTemplateColumns: chartColumns === 2 ? 'repeat(2, minmax(0, 1fr))' : undefined,

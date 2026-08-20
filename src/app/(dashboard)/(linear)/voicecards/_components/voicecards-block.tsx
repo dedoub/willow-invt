@@ -721,7 +721,7 @@ export function VoicecardsBlock({
   return (
     <>
     {/* 퍼널 · 가입 후 활동 — 두 섹션이 한 열로 붙어 다닌다 */}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
     {/* 카드1: 헤더 + 인사이트 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>

@@ -252,7 +252,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
     }}>
       {/* Logo */}
       <div style={{
-        height: 52, padding: rail ? '0' : '0 14px', display: 'flex', alignItems: 'center',
+        height: t.density.headerH, padding: rail ? '0' : `0 ${t.density.cardPad}px`, display: 'flex', alignItems: 'center',
         justifyContent: rail ? 'center' : (mobile ? 'space-between' : undefined),
         borderBottom: `1px solid ${t.sidebar.line}`,
       }}>

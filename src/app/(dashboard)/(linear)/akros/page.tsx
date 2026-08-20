@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { AkrosSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { fetchAllTimeSeriesData, fetchAkrosProducts, fetchYearLaunches } from '@/lib/etf-client'
@@ -124,7 +124,7 @@ export default function AkrosPage() {
     <>
       {loadPhase === 0 ? <AkrosSkeleton /> : (
         <>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {singleCol ? (
             /* 단일열(모바일·1열 토글): 운용현황 > 상품관리 > 이슈트래킹 > 세금계산서 > 업무위키 */
             <>
@@ -147,7 +147,7 @@ export default function AkrosPage() {
                 display: 'grid',
                 gridTemplateColumns: '2fr 1fr',
                 gridTemplateRows: 'auto 1fr',
-                gap: 14,
+                gap: t.density.blockGap,
               }}>
                 <div style={{ minWidth: 0, gridColumn: 1, gridRow: 1 }}>
                   <AumBlock timeSeries={timeSeries} productCount={products.length} yearLaunches={yearLaunches} />
@@ -164,7 +164,7 @@ export default function AkrosPage() {
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '2fr 1fr',
-                gap: 14,
+                gap: t.density.blockGap,
                 alignItems: 'stretch',
               }}>
                 <div style={{ minWidth: 0 }}>

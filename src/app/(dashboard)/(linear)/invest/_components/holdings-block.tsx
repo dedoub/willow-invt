@@ -451,7 +451,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
 
       {/* Summary cards */}
       {hasQuotes && (
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8, padding: '0 14px 12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
           {/* KR */}
           <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
             <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 2 }}>국내 {summary.krH.length}종목</div>
@@ -493,7 +493,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
 
       {/* 실현손익 + 총손익 — 위 카드는 보유분 미실현만 잡으므로, 청산 확정분을 여기서 더해 포트폴리오분석 '수익금'과 정의를 맞춘다 */}
       {hasQuotes && realized.sellCount > 0 && (
-        <div style={{ padding: '0 14px 12px' }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
           <div style={{
             background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px',
             display: 'flex', flexDirection: mobile ? 'column' : 'row',
@@ -524,7 +524,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
 
       {/* Theme/sub-theme summary table */}
       {hasQuotes && themeStats.parents.length > 0 && (
-        <div style={{ padding: '0 14px 12px' }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
           <div style={{
             background: t.neutrals.inner, borderRadius: t.radius.md, overflow: 'hidden',
             border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
@@ -596,7 +596,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       )}
 
       {/* Theme groups */}
-      <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         {themeGroups.map(({ theme, items }) => {
           const tc = THEME_COLORS[theme] || THEME_COLORS['미분류']
           const groupValKrw = items.reduce((s, h) => s + (h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue), 0)

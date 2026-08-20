@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { EtcSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { fetchETFDisplayData, fetchETFProducts, fetchHistoricalData, deleteETFProduct } from '@/lib/etf-client'
@@ -188,7 +188,7 @@ export default function EtcPage() {
     <>
       {loadPhase === 0 ? <EtcSkeleton /> : (
         <>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {singleCol ? (
             /* 단일열(모바일·1열 토글): 운용현황 > 상품관리 > 업무위키 > 인보이스 > 이메일 */
             <>
@@ -232,7 +232,7 @@ export default function EtcPage() {
                 display: 'grid',
                 gridTemplateColumns: '2fr 1fr',
                 gridTemplateRows: 'auto 1fr',
-                gap: 14,
+                gap: t.density.blockGap,
               }}>
                 <div style={{ minWidth: 0, gridColumn: 1, gridRow: 1 }}>
                   <StatsBlock etfs={etfs} historicalData={historicalData} />
@@ -264,7 +264,7 @@ export default function EtcPage() {
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '2fr 1fr',
-                gap: 14,
+                gap: t.density.blockGap,
               }}>
                 <div style={{ minWidth: 0 }}>
                   <EtcWikiBlock

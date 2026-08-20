@@ -388,14 +388,14 @@ export default function MgmtPage() {
       <>
 
       {/* 3 blocks */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         <ScheduleBlock
           schedules={schedules}
           onAddSchedule={handleAddSchedule}
           onToggleComplete={handleToggleComplete}
           onSelectSchedule={setSelectedSchedule}
         />
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'), gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'), gap: t.density.blockGap }}>
           <CashBlock
             invoices={invoices}
             onAddInvoice={() => { setEditingInvoice(null); setInvoiceDialogOpen(true) }}

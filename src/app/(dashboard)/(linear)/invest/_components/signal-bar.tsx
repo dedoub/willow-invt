@@ -31,11 +31,11 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
         <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
           <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" action={actions} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 14px 14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} style={{
               background: t.neutrals.inner, borderRadius: t.radius.sm,
-              padding: '8px 10px', height: 52,
+              padding: '8px 10px', height: t.density.statH,
             }} />
           ))}
         </div>
@@ -54,7 +54,7 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" action={actions} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 14px 14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
         <LStat label="평가액 (세후)" value={totalValue || '-'} tone="default" />
         <LStat label="누적수익률" value={`${retPct > 0 ? '+' : ''}${retPct.toFixed(1)}%`} tone={retTone} sub={gainSub} />
         <LStat label="추매+돌파" value={String(buyBreakoutTickers.length)} tone={buyBreakoutTickers.length > 0 ? 'pos' : 'default'} sub={join(buyBreakoutTickers)} wrap />

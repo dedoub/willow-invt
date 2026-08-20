@@ -418,7 +418,7 @@ export function ReviewnotesBlock({
   return (
     <>
     {/* 퍼널 · 운영 지표 — 두 섹션이 한 열로 붙어 다닌다 */}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
     {/* 카드1: 헤더 + 인사이트 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
@@ -773,7 +773,7 @@ export function ReviewnotesBlock({
     {/* 사용자 테이블 — 2열 모드에서 두 열을 모두 차지한다 (보이스카드 사용자 테이블과 동일).
         열이 많아 반 폭에서는 대부분이 가로 스크롤 뒤로 숨고, 옆에 짝지을 카드도 없다. */}
     <div style={{
-      display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0,
+      display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0,
       ...(dashCols === 2 && !mobile ? { gridColumn: '1 / -1' } : null),
     }}>
     {/* 카드3: 사용자 테이블 */}
@@ -1070,7 +1070,7 @@ function SkeletonRow({ count }: { count: number }) {
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count}, 1fr)`, gap: 8 }}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} style={{
-          height: 52, borderRadius: t.radius.sm, background: t.neutrals.inner,
+          height: t.density.statH, borderRadius: t.radius.sm, background: t.neutrals.inner,
           animation: 'pulse 1.5s ease-in-out infinite',
         }} />
       ))}

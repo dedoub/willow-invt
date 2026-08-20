@@ -623,7 +623,7 @@ function MemoDialog({ date, content: initialContent, onSave, onClose }: {
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 14,
+          marginBottom: t.density.blockGap,
         }}>
           <h3 style={{
             margin: 0, fontSize: 'calc(14px * var(--fz, 1))', fontWeight: 600,
