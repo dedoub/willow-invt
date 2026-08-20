@@ -220,10 +220,10 @@ async function syncBilling(sb: ReturnType<typeof createClient>, startDate: strin
   // 결제계좌 단위 명세서라서, 계좌가 여럿이면 카드를 다 돌아야 전체가 모인다.
   // (실제로 202608이 2,996,843과 6,547,716 두 그룹으로 나뉘었다.)
   // 같은 명세서가 중복 조회돼도 fingerprint가 걸러낸다.
-  // 명세서는 확정되면 안 바뀐다. 매일 과거 몇 달을 다시 긁을 이유가 없어 기본은 최근 2개월만 본다.
+  // 명세서는 확정되면 안 바뀐다. 매일 과거 달을 다시 긁을 이유가 없어 기본은 최근 1개월만 본다.
   // (--billing-months 로 늘릴 수 있다. 과거분 백필은 그때만 한다.)
   const allMonths = billingMonths(startDate, endDate)
-  const keep = Number(arg('billing-months') ?? 2)
+  const keep = Number(arg('billing-months') ?? 1)
   const months = allMonths.slice(-Math.max(1, keep))
   if (months.length < allMonths.length) {
     console.log(`  명세서: 최근 ${months.length}개월만 조회 (전체 ${allMonths.length}개월, --billing-months 로 조정)`)
