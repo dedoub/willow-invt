@@ -5,6 +5,7 @@ import { t, eventTones, tonePalettes, readableOn, useIsMobile } from '@/app/(das
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { WillowMgmtSchedule } from '@/types/willow-mgmt'
 
 interface ScheduleBlockProps {
@@ -306,20 +307,14 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
   return (
     <LCard>
       <LSectionHead eyebrow={eyebrow} title="일정" action={
-        <div style={{
-          display: 'inline-flex', background: t.neutrals.inner,
-          borderRadius: t.radius.sm, padding: 2,
-        }}>
-          {(['week', 'month'] as const).map((v) => (
-            <button key={v} onClick={() => updateViewMode(v)} style={{
-              border: 'none',
-              background: viewMode === v ? t.neutrals.card : 'transparent',
-              padding: '4px 10px', fontSize: 'calc(11.5px * var(--fz, 1))', borderRadius: 4, cursor: 'pointer',
-              fontWeight: viewMode === v ? 500 : 400, color: t.neutrals.text,
-              fontFamily: t.font.sans,
-            }}>{v === 'week' ? '주' : '월'}</button>
-          ))}
-        </div>
+        <LSegmented
+          value={viewMode}
+          onChange={updateViewMode}
+          options={[
+            { value: 'week', label: '주' },
+            { value: 'month', label: '월' },
+          ]}
+        />
       } />
 
       {/* Navigation */}

@@ -63,6 +63,8 @@ export const t = {
     controlPadXSm: 10,
     controlPadXMd: 14,
     controlPadXLg: 18,
+    segmentedMinWSm: 34,
+    segmentedMinWMd: 44,
     cardPad: 16,
     statH: 52,
     panelPadY: 8,

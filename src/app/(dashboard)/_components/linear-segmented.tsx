@@ -31,6 +31,7 @@ export function LSegmented<V extends string>({ options, value, onChange, size = 
   const height = size === 'sm' ? t.density.controlHSm : t.density.controlHMd
   const padX = compact ? t.density.kpiGap : t.density.controlPadXSm
   const fontSize = size === 'sm' ? t.type.badge : t.type.tableBody
+  const minWidth = size === 'sm' ? t.density.segmentedMinWSm : t.density.segmentedMinWMd
 
   return (
     <div style={{
@@ -49,6 +50,7 @@ export function LSegmented<V extends string>({ options, value, onChange, size = 
             style={{
               border: 'none', cursor: 'pointer',
               height: height - t.density.tableRowGap * 2,
+              minWidth,
               padding: `0 ${padX}px`, fontSize, borderRadius: t.radius.sm,
               fontFamily: t.font.sans,
               fontWeight: active ? t.weight.medium : t.weight.regular,

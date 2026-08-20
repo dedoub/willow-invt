@@ -609,16 +609,7 @@ export function AnalysisBlock({
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" action={
-          <div style={{ display: 'inline-flex', background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
-            {viewModes.map(m => (
-              <button key={m.value} onClick={() => setViewMode(m.value)} style={{
-                border: 'none', background: viewMode === m.value ? t.neutrals.card : 'transparent',
-                padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: 4, cursor: 'pointer',
-                fontWeight: viewMode === m.value ? t.weight.medium : t.weight.regular,
-                color: t.neutrals.text, fontFamily: t.font.sans,
-              }}>{m.label}</button>
-            ))}
-          </div>
+          <LSegmented value={viewMode} onChange={setViewMode} options={viewModes} />
         } />
       </div>
 
@@ -680,17 +671,15 @@ export function AnalysisBlock({
                   })()}
                 </div>
                 {isValue && (
-                  <div style={{ display: 'inline-flex', background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
-                    {(['linear', 'log'] as ValueScale[]).map(s => (
-                      <button key={s} onClick={() => handleScaleChange(s)} style={{
-                        border: 'none', background: valueScale === s ? t.neutrals.card : 'transparent',
-                        padding: '2px 8px', fontSize: 'calc(10px * var(--fz, 1))', borderRadius: 3, cursor: 'pointer',
-                        fontFamily: t.font.sans,
-                        fontWeight: valueScale === s ? t.weight.medium : t.weight.regular,
-                        color: t.neutrals.text,
-                      }}>{s === 'linear' ? '일반' : '로그'}</button>
-                    ))}
-                  </div>
+                  <LSegmented
+                    compact
+                    value={valueScale}
+                    onChange={handleScaleChange}
+                    options={[
+                      { value: 'linear', label: '일반' },
+                      { value: 'log', label: '로그' },
+                    ]}
+                  />
                 )}
               </div>
               <ResponsiveContainer width={chartColumns === 2 ? 400 : '100%'} height={160}>

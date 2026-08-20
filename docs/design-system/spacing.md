@@ -11,6 +11,7 @@ linear 대시보드는 `t.density`를 먼저 사용한다.
 | 작은 컨트롤 높이 | `t.density.controlHSm` | 28 |
 | 중간 컨트롤 높이 | `t.density.controlHMd` | 34 |
 | 큰 컨트롤 높이 | `t.density.controlHLg` | 40 |
+| 세그먼트 최소 폭 | `t.density.segmentedMinWSm` / `segmentedMinWMd` | 34 / 44 |
 | 카드 패딩 | `t.density.cardPad` | 16 |
 | KPI/skeleton 높이 | `t.density.statH` | 52 |
 | 내부 패널 패딩 | `t.density.panelPadY` / `panelPadX` | 8 / 10 |
@@ -38,6 +39,7 @@ linear 대시보드에서는 새 숫자를 만들기 전에 아래 계약을 먼
 | KPI 그리드 | gap 8px, `LStat` 내부 텍스트와 스파크라인 gap 10px |
 | 표 | 헤더/행 같은 grid 정의, 컬럼 gap 6px, 행 gap 2px, 행 좌우 8px |
 | 버튼/필터 | 작은 컨트롤 28px, 중간 34px, 큰 40px |
+| 탭/세그먼트 | `LSegmented` 사용. 한 글자 탭도 최소 34px 폭을 유지 |
 | 반경 | 행/버튼/배지 4px, 헤더 버튼 6px, 카드 8px, chip은 pill |
 | 제목 크기 | 섹션 15px, 패널 9.5px mono, 표 헤더 9px mono |
 

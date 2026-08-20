@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 
 interface Invoice {
   id: string
@@ -281,20 +282,15 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         {/* Header: eyebrow+title left, period mode toggle right */}
         <LSectionHead eyebrow={eyebrowLabel} title="현금관리" action={
-          <div style={{
-            display: 'inline-flex', background: t.neutrals.inner,
-            borderRadius: t.radius.sm, padding: 2,
-          }}>
-            {(['month', 'quarter', 'year'] as const).map((m) => (
-              <button key={m} onClick={() => setPeriodMode(m)} style={{
-                border: 'none',
-                background: periodMode === m ? t.neutrals.card : 'transparent',
-                padding: '4px 10px', fontSize: 'calc(11.5px * var(--fz, 1))', borderRadius: 4, cursor: 'pointer',
-                fontWeight: periodMode === m ? 500 : 400, color: t.neutrals.text,
-                fontFamily: t.font.sans,
-              }}>{MODE_LABELS[m]}</button>
-            ))}
-          </div>
+          <LSegmented
+            value={periodMode}
+            onChange={setPeriodMode}
+            options={[
+              { value: 'month', label: MODE_LABELS.month },
+              { value: 'quarter', label: MODE_LABELS.quarter },
+              { value: 'year', label: MODE_LABELS.year },
+            ]}
+          />
         } />
 
         {/* Navigation — centered */}
