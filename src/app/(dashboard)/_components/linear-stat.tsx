@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Info } from 'lucide-react'
 import { t } from './linear-tokens'
+import { LIcon } from './linear-icons'
 
 export interface SparkPoint { date: string; value: number }
 
@@ -120,21 +120,21 @@ function Sparkline({
         <div style={{
           position: 'absolute',
           left: Math.max(0, Math.min(w - 70, xy[hover].x - 35)),
-          bottom: h + 6,
+          bottom: h + t.density.gapSm,
           background: t.neutrals.text, color: t.neutrals.card,
-          fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans,
-          padding: '3px 6px', borderRadius: t.radius.sm,
+          fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.sans,
+          padding: `3px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
           whiteSpace: 'nowrap', pointerEvents: 'none',
           zIndex: 10, lineHeight: 1.3,
         }}>
           <div style={{ fontFamily: t.font.mono, opacity: 0.7, fontSize: 'calc(8.5px * var(--fz, 1))' }}>{withWeekday(data[hover].date)}</div>
-          <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
             {data2 && data2[hover] != null && <span style={{ display: 'inline-block', width: 7, height: 2, borderRadius: 1, background: color, flexShrink: 0 }} />}
             {fmt(data[hover].value)}
           </div>
           {/* 점선(보조 시리즈) 값도 함께 표시 */}
           {data2 && data2[hover] != null && (
-            <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <span style={{ display: 'inline-block', width: 7, height: 2, borderRadius: 1, background: color2 ?? t.accent.warn, flexShrink: 0, backgroundImage: 'none' }} />
               {(format2 ?? ((v: number) => v.toLocaleString()))(data2[hover].value)}
             </div>
@@ -167,18 +167,18 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
     <div
       style={{
         background: t.neutrals.inner, borderRadius: t.radius.sm,
-        padding: '8px 10px', position: 'relative',
+        padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, position: 'relative',
         minWidth: 0,
       }}
     >
       {/* 지표 정의 툴팁 — 스파크라인 hover 툴팁과 동일한 시각 언어(반전 배경), 지연 없음 */}
       {title && showTip && (
         <div style={{
-          position: 'absolute', left: 0, bottom: 'calc(100% + 6px)',
+          position: 'absolute', left: 0, bottom: `calc(100% + ${t.density.gapSm}px)`,
           minWidth: 200, maxWidth: 280,
           background: t.neutrals.text, color: t.neutrals.card,
-          fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans,
-          padding: '6px 8px', borderRadius: t.radius.sm,
+          fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.sans,
+          padding: `${t.density.gapSm}px ${t.density.kpiGap}px`, borderRadius: t.radius.sm,
           pointerEvents: 'none', zIndex: 30, lineHeight: 1.5,
           wordBreak: 'keep-all', whiteSpace: 'normal',
         }}>
@@ -186,7 +186,7 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
         </div>
       )}
       {/* 2열 배치: 텍스트(좌, 내용 폭 유지) + sparkline(우측 끝, 카드 너비 최대 50%·높이 80%) — akros/etc 스탯 카드 참조 */}
-      <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: t.density.gapMd }}>
         <div style={hasSpark
           ? { minWidth: 0, flexShrink: 0, maxWidth: 'calc(100% - 40px)' } // 텍스트 우선: 자연 폭 유지, 스파크라인이 남는 폭만
           : { minWidth: 0, flex: 1 }}>
@@ -194,32 +194,32 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
             onMouseEnter={title ? () => setShowTip(true) : undefined}
             onMouseLeave={title ? () => setShowTip(false) : undefined}
             style={{
-              fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+              fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
               textTransform: 'uppercase' as const, color: t.neutrals.subtle,
-              marginBottom: 2, display: 'flex', alignItems: 'center', gap: 3,
+              marginBottom: t.density.tableRowGap, display: 'flex', alignItems: 'center', gap: 3,
               whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
               cursor: title ? 'help' : undefined,
             }}>
             {label}
-            {title && <Info size={10} strokeWidth={2} style={{ flexShrink: 0, opacity: 0.75 }} aria-label="지표 설명" />}
+            {title && <LIcon name="info" size={10} stroke={2} className="shrink-0 opacity-75" />}
             {labelExtra}
           </div>
           <div style={{
-            fontSize: 'calc(13px * var(--fz, 1))', fontWeight: 600, letterSpacing: -0.3,
+            fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: 600, letterSpacing: -0.3,
             fontVariantNumeric: 'tabular-nums' as const,
             whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
             color,
           }}>
             {value}
-            {unit && <span style={{ fontSize: 'calc(11px * var(--fz, 1))', marginLeft: 3, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
+            {unit && <span style={{ fontSize: `calc(${t.type.badge}px * var(--fz, 1))`, marginLeft: 3, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
             {valueExtra}
           </div>
           {sub && (
             <div style={wrap ? {
-              fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 4,
+              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.muted, marginTop: t.density.gapXs,
               wordBreak: 'break-word' as const, lineHeight: 1.4,
             } : {
-              fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 4,
+              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.muted, marginTop: t.density.gapXs,
               whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{sub}</div>
           )}

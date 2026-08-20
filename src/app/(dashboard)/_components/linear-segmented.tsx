@@ -28,14 +28,14 @@ interface Props<V extends string> {
 }
 
 export function LSegmented<V extends string>({ options, value, onChange, size = 'sm', compact }: Props<V>) {
-  const padY = size === 'sm' ? 4 : 5
-  const padX = compact ? 8 : 10
-  const fontSize = size === 'sm' ? 11 : 12
+  const height = size === 'sm' ? t.density.controlHSm : t.density.controlHMd
+  const padX = compact ? t.density.kpiGap : t.density.controlPadXSm
+  const fontSize = size === 'sm' ? t.type.badge : t.type.tableBody
 
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center',
-      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2,
+      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: t.density.tableRowGap,
     }}>
       {options.map((opt, idx) => {
         if ('divider' in opt && opt.divider) {
@@ -48,7 +48,8 @@ export function LSegmented<V extends string>({ options, value, onChange, size = 
             onClick={() => onChange(opt.value)}
             style={{
               border: 'none', cursor: 'pointer',
-              padding: `${padY}px ${padX}px`, fontSize, borderRadius: 4,
+              height: height - t.density.tableRowGap * 2,
+              padding: `0 ${padX}px`, fontSize, borderRadius: t.radius.sm,
               fontFamily: t.font.sans,
               fontWeight: active ? t.weight.medium : t.weight.regular,
               background: active ? t.neutrals.card : 'transparent',

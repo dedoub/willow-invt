@@ -1,5 +1,36 @@
 # 타이포그래피
 
+## 공식 폰트
+
+linear 대시보드는 `linear-tokens.ts`의 폰트 토큰을 사용한다.
+
+| 용도 | Token |
+|------|-------|
+| 일반 UI | `t.font.sans` |
+| 숫자, 축약 라벨, 표 헤더 | `t.font.mono` |
+
+`t.font.sans`는 Inter Tight 기반이며 한글/Windows 폴백과 국기 폴리필 폰트를 포함한다.
+`t.font.mono`는 JetBrains Mono 기반이며 숫자 정렬과 표 헤더에 사용한다.
+
+## linear 크기 위계
+
+| 용도 | 크기 |
+|------|------|
+| 상단 breadcrumb | 12px |
+| 섹션 제목 | 15px, semibold |
+| 섹션 meta | 9.5px |
+| KPI label | 9.5px mono uppercase |
+| KPI value | 13px, semibold, tabular nums |
+| 표 헤더 | 9px mono uppercase |
+| 표 셀 | 10-12px |
+| 배지 | 10-11px |
+| 버튼 | 12-14px |
+
+숫자에는 `fontVariantNumeric: 'tabular-nums'`를 우선 적용한다.
+KPI label과 표 헤더는 대문자/mono를 허용하지만, 일반 본문과 버튼에는 과한 uppercase를 쓰지 않는다.
+
+---
+
 ## 기본 크기
 
 | 용도 | 클래스 |

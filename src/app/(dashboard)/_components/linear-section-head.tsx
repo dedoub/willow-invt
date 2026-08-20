@@ -16,7 +16,7 @@ interface LSectionHeadProps {
 export function LSectionHead({ eyebrow, title, meta, action, mb }: LSectionHeadProps) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8,
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: t.density.kpiGap,
       marginBottom: mb ?? t.density.gapMd,
     }}>
       {/* 좁은 화면에서 보조 정보가 길어지면 제목 아래로 흘러야 우측 액션과 안 겹친다 */}
@@ -25,18 +25,18 @@ export function LSectionHead({ eyebrow, title, meta, action, mb }: LSectionHeadP
           <div style={{
             fontSize: 'calc(10.5px * var(--fz, 1))', fontWeight: t.weight.semibold, letterSpacing: 1.2,
             textTransform: 'uppercase' as const, color: t.neutrals.subtle,
-            marginBottom: 4, fontFamily: t.font.mono,
+            marginBottom: t.density.gapXs, fontFamily: t.font.mono,
           }}>{eyebrow}</div>
         )}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, flexWrap: 'wrap' }}>
           <div style={{
-            fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold,
+            fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
             fontFamily: t.font.sans, color: t.neutrals.text,
             letterSpacing: -0.2, lineHeight: 1.2,
           }}>{title}</div>
           {meta && (
             <div style={{
-              fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle,
+              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
               lineHeight: 1.4, wordBreak: 'keep-all' as const,
             }}>{meta}</div>
           )}

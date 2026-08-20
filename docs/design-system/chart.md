@@ -1,5 +1,28 @@
 # 차트 (Chart)
 
+## 대시보드 차트 원칙
+
+linear 대시보드에서는 차트를 장식용 카드로 만들지 않는다. 차트는 KPI의 변화, 분포, 이상 신호를 빠르게 판단하게 해야 한다.
+
+| 용도 | 우선 컴포넌트 |
+|------|---------------|
+| KPI 추세 | `LStat`의 `sparkline` |
+| 작은 분포 | `DistributionPie` |
+| 복합 시계열/막대 | Recharts 직접 사용 |
+| 로딩 | `Bone`, `ChartSkeleton` |
+
+## 색상
+
+- 긍정/상승: `t.accent.pos`
+- 부정/하락: `t.accent.neg`
+- 주의/보조: `t.accent.warn`
+- 주요 정보: `t.brand[600]`
+- 기타/잔여: `t.neutrals.subtle` 또는 `#94a3b8`
+
+기존 `CHART_COLORS` 팔레트는 레거시 recharts 예시로 유지한다. 신규 linear 화면에서는 토큰 색을 먼저 사용한다.
+
+---
+
 ## Import
 
 ```tsx

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useSyncExternalStore } from 'react'
 import { usePathname } from 'next/navigation'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 
@@ -15,11 +15,11 @@ function ColsButton({ cols, onToggle }: { cols: 1 | 2; onToggle: () => void }) {
       title={cols === 2 ? '한 줄에 1개로 보기' : '한 줄에 2개로 보기'}
       aria-label="바디 레이아웃 열 전환"
       style={{
-        height: 28, padding: '0 10px', borderRadius: 6,
+        height: t.density.controlH, padding: `0 ${t.density.controlPadXSm}px`, borderRadius: t.radius.md,
         background: t.neutrals.inner, color: t.neutrals.text,
         border: 'none', cursor: 'pointer',
         fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.regular,
-        display: 'inline-flex', alignItems: 'center', gap: 6,
+        display: 'inline-flex', alignItems: 'center', gap: t.density.gapSm,
         fontFamily: t.font.sans,
       }}
     >
@@ -53,14 +53,14 @@ function makeColsToggle(key: string) {
   }
 
   function useCols(): 1 | 2 {
-    const [cols, setCols] = useState<1 | 2>(2)
-    useEffect(() => {
-      setCols(read())
-      const h = (e: Event) => setCols((e as CustomEvent).detail as 1 | 2)
-      window.addEventListener(evt, h)
-      return () => window.removeEventListener(evt, h)
-    }, [])
-    return cols
+    return useSyncExternalStore(
+      (notify) => {
+        window.addEventListener(evt, notify)
+        return () => window.removeEventListener(evt, notify)
+      },
+      read,
+      () => 2
+    )
   }
 
   function Toggle() {
@@ -96,15 +96,15 @@ function readDashCols(pathname: string): 1 | 2 {
 // 페이지 그리드/헤더 버튼 공용 — 현재 경로의 값을 구독
 export function useDashCols(): 1 | 2 {
   const pathname = usePathname()
-  const [cols, setCols] = useState<1 | 2>(2)
-  useEffect(() => {
-    setCols(readDashCols(pathname))
-    const evt = dashEvt(pathname)
-    const h = (e: Event) => setCols((e as CustomEvent).detail as 1 | 2)
-    window.addEventListener(evt, h)
-    return () => window.removeEventListener(evt, h)
-  }, [pathname])
-  return cols
+  return useSyncExternalStore(
+    (notify) => {
+      const evt = dashEvt(pathname)
+      window.addEventListener(evt, notify)
+      return () => window.removeEventListener(evt, notify)
+    },
+    () => readDashCols(pathname),
+    () => 2
+  )
 }
 
 // 상단바 토글 버튼 — 현재 경로 키에 저장

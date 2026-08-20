@@ -17,10 +17,10 @@ interface LBtnProps {
 }
 
 const sizes = {
-  xs: { h: 28, px: 10, fs: 12 }, // 검색창(padding 4px + input 자연 높이 ≈ 28px)과 동일
-  sm: { h: 28, px: 10, fs: 12 },
-  md: { h: 34, px: 14, fs: 13 },
-  lg: { h: 40, px: 18, fs: 14 },
+  xs: { h: t.density.controlHSm, px: t.density.controlPadXSm, fs: 12 }, // 검색창(padding 4px + input 자연 높이 ≈ 28px)과 동일
+  sm: { h: t.density.controlHSm, px: t.density.controlPadXSm, fs: 12 },
+  md: { h: t.density.controlHMd, px: t.density.controlPadXMd, fs: t.type.body },
+  lg: { h: t.density.controlHLg, px: t.density.controlPadXLg, fs: 14 },
 }
 
 const variants = {
@@ -36,7 +36,7 @@ export function LBtn({ variant = 'primary', size = 'md', children, icon, onClick
   const v = variants[variant]
   return (
     <button onClick={onClick} disabled={disabled} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
+      display: 'inline-flex', alignItems: 'center', gap: t.density.gapSm,
       height: s.h, padding: `0 ${s.px}px`, fontSize: `calc(${s.fs}px * var(--fz, 1))`,
       background: v.bg, color: v.fg,
       fontWeight: t.weight.regular, fontFamily: t.font.sans,

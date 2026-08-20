@@ -1,5 +1,32 @@
 # 공통 UI 패턴
 
+## 공식 대시보드 패턴
+
+신규 `/(dashboard)/(linear)` 화면은 아래 패턴을 우선 사용한다.
+
+| 패턴 | 구성 |
+|------|------|
+| 페이지 | `LinearHeader` + `LinearSidebar` + main padding |
+| 블록 | `LCard` + `LSectionHead` |
+| KPI row | grid + `LStat` |
+| 분석 표 | `DataTable` |
+| 운영 목록 | `LTableHead` + `LTableBody` + `LTableRow` |
+| 상태 배지 | `LBadge` 또는 `LTableBadge` |
+| 모드 전환 | `LSegmented` |
+| 카테고리 필터 | `LFilterChip` |
+| 분포 | `DistributionPie` |
+| 로딩 | `Bone` 또는 페이지별 skeleton |
+
+## 컴포넌트 선택 규칙
+
+1. `LCard`는 top-level block에만 쓴다. 카드 안의 반복 행은 `t.neutrals.inner` 배경으로 구분한다.
+2. `LSectionHead`는 블록당 한 번 쓴다. 액션은 우측 `action` 슬롯에 둔다.
+3. KPI는 직접 div로 만들지 않고 `LStat`로 통일한다.
+4. 표의 컬럼 폭은 한 곳에서 정의하고 header와 row가 공유한다.
+5. 빈 상태는 같은 자리에 같은 톤으로 말한다. 큰 그림 아이콘보다 짧은 텍스트를 우선한다.
+
+---
+
 ## 로딩 스피너
 
 ```tsx

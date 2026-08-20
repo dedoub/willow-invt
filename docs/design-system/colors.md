@@ -1,5 +1,54 @@
 # 색상 시스템
 
+## 공식 토큰
+
+`/(dashboard)/(linear)` 화면은 Tailwind 색상 class보다 `src/app/(dashboard)/_components/linear-tokens.ts`의 토큰을 우선한다.
+
+| 용도 | Token | 값 |
+|------|-------|----|
+| 페이지 | `t.neutrals.page` | `#FAFAFA` |
+| 카드 | `t.neutrals.card` | `#FFFFFF` |
+| 내부 패널/행 | `t.neutrals.inner` | `#F6F6F7` |
+| 구조선 | `t.neutrals.line` | `rgba(15,15,20,0.07)` |
+| 본문 | `t.neutrals.text` | `#0E0F12` |
+| 보조 | `t.neutrals.muted` | `#5B5E66` |
+| 약한 라벨 | `t.neutrals.subtle` | `#9398A0` |
+| 브랜드 액션 | `t.brand[600]` | `#166A97` |
+| 긍정 | `t.accent.pos` | `#107A52` |
+| 부정 | `t.accent.neg` | `#C23A3A` |
+| 주의 | `t.accent.warn` | `#B8781F` |
+
+## 색상 역할
+
+| 역할 | 색상 |
+|------|------|
+| 주요 액션/정보 강조 | `brand` |
+| 성공, 증가, 긍정 판단 | `pos`, `done` |
+| 실패, 감소, 위험 | `neg`, `danger` |
+| 주의, 대기, 확인 필요 | `warn`, `pending` |
+| 중립 상태 | `neutral` |
+
+색상은 의미가 있을 때만 쓴다. 블록을 장식하거나 카드마다 다른 분위기를 내기 위해 색을 추가하지 않는다.
+
+## Tone Palette
+
+`LBadge`, `LFilterChip`, 표 내부 상태 배지는 먼저 `tonePalettes`에 매핑한다.
+
+| Tone | 용도 |
+|------|------|
+| `neutral` | 기본, 기타, 비활성 |
+| `pending` | 대기 |
+| `progress` | 진행 |
+| `done` | 완료 |
+| `brand` | 브랜드 정보 |
+| `warn` | 주의 |
+| `danger` | 위험/삭제 |
+| `info` | 정보 |
+| `pos` | 긍정 수치 |
+| `neg` | 부정 수치 |
+
+---
+
 ## 배경색 계층
 
 | 계층 | Light Mode | Dark Mode |

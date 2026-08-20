@@ -29,18 +29,18 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
   }
   return (
     <header style={{
-      height: 52, padding: '0 20px',
+      height: t.density.headerH, padding: `0 ${t.density.pagePadX}px`,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       background: t.neutrals.page,
       borderBottom: `1px solid ${t.neutrals.line}`,
       flexShrink: 0, fontFamily: t.font.sans,
     }}>
       {/* Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(12px * var(--fz, 1))', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, fontSize: 'calc(12px * var(--fz, 1))', minWidth: 0 }}>
         {mobile && onMenuToggle && (
           <button onClick={onMenuToggle} style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-            color: t.neutrals.muted, marginRight: 4,
+            background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
+            color: t.neutrals.muted, marginRight: t.density.gapXs,
           }}>
             <LIcon name="menu" size={18} stroke={1.8} />
           </button>
@@ -51,8 +51,8 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
             title={sidebarOpen ? '메뉴 접기' : '메뉴 펼치기'}
             aria-label={sidebarOpen ? '메뉴 접기' : '메뉴 펼치기'}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-              color: t.neutrals.muted, marginRight: 4,
+              background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
+              color: t.neutrals.muted, marginRight: t.density.gapXs,
               display: 'inline-flex', alignItems: 'center',
             }}
           >
@@ -68,14 +68,14 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
         <span style={{ color: t.neutrals.text, fontWeight: 500 }}>{title}</span>
         {subtitle && (
           <>
-            <span style={{ margin: '0 6px', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</span>
+            <span style={{ margin: `0 ${t.density.gapSm}px`, color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>-</span>
             <span style={{ color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 400 }}>{subtitle}</span>
           </>
         )}
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap }}>
         {actions}
         <button
           onClick={handleRefresh}
@@ -84,7 +84,7 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
           title="데이터 새로고침"
           aria-label="데이터 새로고침"
           style={{
-            height: 28, width: 28, borderRadius: 6,
+            height: t.density.controlH, width: t.density.controlH, borderRadius: t.radius.md,
             background: refreshHover ? t.brand[50] : t.neutrals.inner,
             color: refreshHover ? t.brand[700] : t.neutrals.muted,
             border: 'none', cursor: 'pointer',
@@ -102,11 +102,11 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
         </button>
         {onAgentToggle && !mobile && (
           <button onClick={onAgentToggle} style={{
-            height: 28, padding: '0 10px', borderRadius: 6,
+            height: t.density.controlH, padding: `0 ${t.density.controlPadXSm}px`, borderRadius: t.radius.md,
             background: agentOpen ? t.brand[800] : t.neutrals.inner,
             color: agentOpen ? '#fff' : t.neutrals.text,
             border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.regular,
-            display: 'inline-flex', alignItems: 'center', gap: 5,
+            display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs + 1,
             fontFamily: t.font.sans,
           }}>
             <span style={{ fontSize: 'calc(12px * var(--fz, 1))' }}>✦</span>

@@ -4,7 +4,9 @@
 
 | 문서 | 설명 |
 |------|------|
-| [principles.md](./principles.md) | 디자인 원칙 (border/shadow 금지) |
+| [current-elements.md](./current-elements.md) | 현재 코드에서 실제 사용 중인 UI 요소 인벤토리 |
+| [dashboard-system.md](./dashboard-system.md) | Willow 운영 대시보드 공식 시스템 |
+| [principles.md](./principles.md) | 디자인 원칙, linear 우선순위, 표면 구분 규칙 |
 | [colors.md](./colors.md) | 색상 시스템, 상태/우선순위/활동 색상 |
 | [spacing.md](./spacing.md) | 간격 시스템 |
 | [typography.md](./typography.md) | 타이포그래피 |
@@ -28,11 +30,13 @@
 
 ## 핵심 원칙
 
-> **테두리(border)와 그림자(shadow)를 사용하지 않고, 색상(color)으로 컴포넌트를 구분한다**
+> **운영 대시보드는 `linear-tokens`와 `linear-*` 컴포넌트를 우선 사용한다. 표면 구분은 색상 계층으로 하고, 구조선은 필요한 경계에만 제한한다.**
 
 ```
-❌ border, shadow, ring, outline
-✅ 배경색 차이로 계층 표현
+❌ 신규 dashboard UI에서 별도 카드/버튼/표 시스템 생성
+❌ gradient, glass, shadow를 운영 화면에 복사
+✅ linear-tokens, LCard, LSectionHead, LStat, LBtn, LTable/DataTable 재사용
+✅ 배경색 계층으로 정보 위계 표현
 ```
 
 ---
@@ -94,3 +98,5 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 - 상세 디자인 문서: `.claude/design-system.md`
 - 템플릿 파일: `.claude/templates/`
 - UI 가이드 페이지: `/admin/ui-guide`
+- 현재 사용 요소: `docs/design-system/current-elements.md`
+- 공식 대시보드 시스템: `docs/design-system/dashboard-system.md`

@@ -1,8 +1,34 @@
 # Willow Dashboard 디자인 시스템
 
-## 제1 원칙 (최우선)
+## 현재 공식 시스템 (최우선)
 
-> **테두리(border)와 그림자(shadow)를 사용하지 않고, 색상(color)으로 컴포넌트를 구분한다**
+> **운영 대시보드는 `linear-tokens`와 `linear-*` 컴포넌트를 단일 기준으로 사용한다**
+
+신규 `/(dashboard)/(linear)` UI는 먼저 아래 문서를 확인한다.
+
+1. `docs/design-system/current-elements.md`
+2. `docs/design-system/dashboard-system.md`
+
+공식 축:
+
+- `LCard`
+- `LSectionHead`
+- `LStat`
+- `LBtn`
+- `LBadge`
+- `LSegmented`
+- `LFilterChip`
+- `DataTable`
+- `LTable*`
+- `Bone`
+
+`@/components/ui/*` 기반 shadcn 규칙은 레거시 화면, 인증 화면, 특수 폼 기반 컴포넌트에 유지한다. 신규 linear 대시보드 화면에 확산하지 않는다.
+
+---
+
+## 표면 원칙
+
+> **표면 구분은 색상 계층으로 하고, 선과 그림자는 최소화한다**
 
 ### 금지 패턴
 ```
@@ -10,6 +36,7 @@
 ❌ shadow-md / shadow-lg
 ❌ ring-1 ring-gray-200
 ❌ outline outline-gray-200
+❌ 신규 dashboard UI의 gradient/glass/shadow 카드
 ```
 
 > **참고:** `globals.css`의 base layer에서 모든 요소의 기본 border가 제거되어 있음
@@ -25,15 +52,20 @@
 
 ### 올바른 패턴
 ```
-✅ 페이지 배경: bg-muted/30 (layout-wrapper에서 적용)
-✅ 카드 배경: bg-slate-100 dark:bg-slate-800
-✅ 내부 영역: bg-white dark:bg-slate-700 또는 bg-slate-200 dark:bg-slate-700
-✅ 상태별 색상: bg-{color}-50/100 dark:bg-{color}-900/30
+✅ 페이지 배경: t.neutrals.page
+✅ 카드 배경: t.neutrals.card
+✅ 내부 영역: t.neutrals.inner
+✅ 구조선: t.neutrals.line
+✅ 상태별 색상: tonePalettes 또는 t.accent
 ```
+
+구조선은 필요한 경계에만 쓴다. 예: 상단바 하단, 표 푸터, 편집기 툴바.
 
 ---
 
-## 컴포넌트 사용 규칙
+## 레거시 shadcn 컴포넌트 사용 규칙
+
+이하 규칙은 기존 `@/components/ui/*` 기반 화면에 적용한다. linear 대시보드는 `docs/design-system/dashboard-system.md`를 우선한다.
 
 ### 1. 카드 (Card)
 

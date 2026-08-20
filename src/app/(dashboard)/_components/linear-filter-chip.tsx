@@ -25,10 +25,10 @@ type Props<V extends string> = {
  * 카테고리 색을 살리고 싶을 땐 옵션에 `tone: { bg, fg }`를 넣는다.
  */
 export function LFilterChip<V extends string>(props: Props<V>) {
-  const { options, onChange, size = 'sm', gap = 5 } = props
-  const padX = size === 'sm' ? 10 : 12
-  const padY = size === 'sm' ? 4 : 5
-  const fontSize = size === 'sm' ? 11 : 12
+  const { options, onChange, size = 'sm', gap = t.density.gapXs + 1 } = props
+  const height = size === 'sm' ? t.density.controlHSm : t.density.controlHMd
+  const padX = size === 'sm' ? t.density.controlPadXSm : 12
+  const fontSize = size === 'sm' ? t.type.badge : t.type.tableBody
   const isActive = (v: V) => props.multi ? props.value.includes(v) : props.value === v
 
   return (
@@ -43,7 +43,7 @@ export function LFilterChip<V extends string>(props: Props<V>) {
             onClick={() => onChange(opt.value)}
             style={{
               border: 'none', cursor: 'pointer',
-              padding: `${padY}px ${padX}px`, fontSize, borderRadius: t.radius.pill,
+              height, padding: `0 ${padX}px`, fontSize, borderRadius: t.radius.pill,
               fontFamily: t.font.sans,
               fontWeight: active ? t.weight.medium : t.weight.regular,
               background: active ? activeBg : t.neutrals.inner,

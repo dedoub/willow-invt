@@ -127,12 +127,23 @@ Willow Dashboard는 자체 MCP 서버를 내장하고 있으며, Claude Desktop 
 > **모든 UI 작업 시 디자인 시스템을 엄격하게 준수해야 합니다.**
 
 **작업 전 필수 확인:**
-1. `.claude/design-system.md` 문서 확인
-2. `.claude/templates/` 디렉토리의 관련 템플릿 참조
-3. `/admin/ui-guide` 페이지에서 컴포넌트 스타일 확인
+1. `docs/design-system/current-elements.md`에서 현재 사용 요소 확인
+2. `docs/design-system/dashboard-system.md`에서 공식 대시보드 시스템 확인
+3. `.claude/design-system.md` 문서 확인
+4. `.claude/templates/` 디렉토리의 관련 템플릿 참조
+5. `/admin/ui-guide` 페이지에서 컴포넌트 스타일 확인
+
+**linear 대시보드 우선순위:**
+- `/(dashboard)/(linear)` 신규 UI는 `linear-tokens`와 `linear-*` 컴포넌트를 우선 사용
+- 공식 축: `LCard`, `LSectionHead`, `LStat`, `LBtn`, `LBadge`, `LSegmented`, `LFilterChip`, `DataTable`, `LTable*`, `Bone`
+- shadcn `@/components/ui/*`는 레거시, 인증, 특수 폼 기반 컴포넌트로 분류하고 신규 linear 화면에 확산하지 않음
 
 **준수 체크리스트:**
-- [ ] border, shadow, ring, outline 사용 금지 (색상으로 구분)
+- [ ] linear 화면에서는 현재 사용 요소 인벤토리의 공식 컴포넌트로 먼저 매핑
+- [ ] height, padding, gap, radius, font-size는 `linear-tokens`의 `t.density`, `t.radius`, `t.type`에서 먼저 선택
+- [ ] 신규 dashboard UI에서 별도 카드/버튼/표 시스템 생성 금지
+- [ ] gradient, glass, shadow를 운영 화면에 복사 금지
+- [ ] 구조선은 `t.neutrals.line`으로 필요한 경계에만 사용
 - [ ] 배지 스타일 통일 (상태: `rounded-full`, 우선순위: `rounded`)
 - [ ] 색상 헬퍼 함수 사용 (getStatusColor, getPriorityColor 등)
 - [ ] CardHeader `pb-2`, CardContent `pt-0 space-y-3` 패턴 준수
@@ -142,12 +153,19 @@ Willow Dashboard는 자체 MCP 서버를 내장하고 있으며, Claude Desktop 
 
 ---
 
-### 🚨 제1 원칙: 색상으로 구분
-**테두리(border)와 그림자(shadow)를 사용하지 않고, 색상(color)으로 컴포넌트를 구분한다**
+### 🚨 제1 원칙: 현재 시스템 우선
+**운영 대시보드는 `linear-tokens`와 `linear-*` 컴포넌트를 단일 기준으로 사용한다**
+
+신규 `/(dashboard)/(linear)` UI는 `docs/design-system/current-elements.md`와 `docs/design-system/dashboard-system.md`를 먼저 따른다.
+아래 Tailwind/shadcn 규칙은 레거시 화면과 `@/components/ui/*` 기반 화면에 적용한다.
+
+### 🚨 제2 원칙: 색상으로 구분
+**표면 구분은 색상 계층으로 하고, 선과 그림자는 최소화한다**
 
 ```
 ❌ 피해야 할 패턴: border, shadow, ring, outline
 ✅ 사용할 패턴: 배경색 차이로 계층 표현
+✅ linear 구조선 예외: t.neutrals.line
 ```
 
 ### 배경색 계층

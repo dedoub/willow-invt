@@ -15,12 +15,12 @@ const mono = (size: number): React.CSSProperties => ({
 
 export const panelStyle: React.CSSProperties = {
   background: t.neutrals.inner, borderRadius: t.radius.sm,
-  padding: '8px 10px', height: '100%', boxSizing: 'border-box',
+  padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, height: '100%', boxSizing: 'border-box',
   display: 'flex', flexDirection: 'column', minWidth: 0,
 }
 
 export const panelTitle: React.CSSProperties = {
-  ...mono(9.5), letterSpacing: 0.8, textTransform: 'uppercase' as const,
+  ...mono(t.type.panelTitle), letterSpacing: 0.8, textTransform: 'uppercase' as const,
   color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
 }
 
@@ -28,8 +28,8 @@ export function EmptyLine({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       flex: 1, minHeight: 60, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, textAlign: 'center' as const,
-      wordBreak: 'keep-all' as const, lineHeight: 1.5, padding: '0 4px',
+      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, textAlign: 'center' as const,
+      wordBreak: 'keep-all' as const, lineHeight: 1.5, padding: `0 ${t.density.gapXs}px`,
     }}>
       {children}
     </div>
@@ -54,15 +54,15 @@ export interface TableRow {
 }
 
 const headCell: React.CSSProperties = {
-  ...mono(9), letterSpacing: 0.3, textTransform: 'uppercase' as const,
+  ...mono(t.type.tableHead), letterSpacing: 0.3, textTransform: 'uppercase' as const,
   color: t.neutrals.subtle, whiteSpace: 'nowrap' as const, overflow: 'hidden',
 }
 const textCell: React.CSSProperties = {
-  fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.text,
+  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.text,
   whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
 }
 const numCell: React.CSSProperties = {
-  ...mono(10), color: t.neutrals.muted, textAlign: 'right' as const, whiteSpace: 'nowrap' as const,
+  ...mono(t.type.tableCell), color: t.neutrals.muted, textAlign: 'right' as const, whiteSpace: 'nowrap' as const,
 }
 
 /**
@@ -74,11 +74,11 @@ const numCell: React.CSSProperties = {
  */
 const stickyCell = (bg: string): React.CSSProperties => ({
   position: 'sticky', left: 0, zIndex: 1, background: bg,
-  marginLeft: -8, paddingLeft: 8,
+  marginLeft: -t.density.tableRowPadX, paddingLeft: t.density.tableRowPadX,
 })
 
-const ROW_PAD_X = 16   // 행 좌우 패딩 8+8
-const COL_GAP = 6
+const ROW_PAD_X = t.density.tableRowPadX * 2
+const COL_GAP = t.density.tableColGap
 
 /** 'minmax(140px,1fr)' · '52px' 에서 그 컬럼이 요구하는 최소 픽셀을 뽑는다 */
 const colMinPx = (width: string): number => {
@@ -161,7 +161,7 @@ export function DataTable({
     <div style={panelStyle}>
       <div style={{
         display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-        gap: 6, marginBottom: 6, flexWrap: 'wrap' as const,
+        gap: t.density.gapSm, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const,
       }}>
         <div style={panelTitle}>{title}</div>
         {meta && (
@@ -170,15 +170,15 @@ export function DataTable({
       </div>
       {rows.length === 0 ? <EmptyLine>{empty}</EmptyLine> : (
         <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: tableMin, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: template, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
+          <div style={{ minWidth: tableMin, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
+            <div style={{ display: 'grid', gridTemplateColumns: template, gap: COL_GAP, alignItems: 'center', padding: `0 ${t.density.tableRowPadX}px 5px` }}>
               {columns.map((c, i) => {
                 const active = sortIdx === i
                 return (
                   <button key={c.key} onClick={() => handleSort(i)} title={`${c.label} 기준 정렬`}
                     style={{
                       ...headCell, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
-                      display: 'flex', alignItems: 'center', gap: 2, width: '100%',
+                      display: 'flex', alignItems: 'center', gap: t.density.tableRowGap, width: '100%',
                       justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start',
                       color: active ? t.neutrals.text : t.neutrals.subtle,
                       ...(i === 0 ? stickyCell(t.neutrals.inner) : null),
@@ -199,8 +199,8 @@ export function DataTable({
                 }}>{r.cells[i]}</div>
               ))
               const rowStyle: React.CSSProperties = {
-                display: 'grid', gridTemplateColumns: template, gap: 6, alignItems: 'center',
-                padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.card,
+                display: 'grid', gridTemplateColumns: template, gap: COL_GAP, alignItems: 'center',
+                padding: `5px ${t.density.tableRowPadX}px`, borderRadius: t.radius.sm, background: t.neutrals.card,
                 textDecoration: 'none', color: 'inherit',
               }
               return r.href ? (
@@ -215,9 +215,9 @@ export function DataTable({
       {sortedRows.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginTop: 6, paddingTop: 6, borderTop: `1px solid ${t.neutrals.line}`,
+          marginTop: t.density.gapSm, paddingTop: t.density.gapSm, borderTop: `1px solid ${t.neutrals.line}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
             <input
               value={perPageInput}
               onChange={e => setPerPageInput(e.target.value.replace(/\D/g, ''))}
@@ -226,17 +226,17 @@ export function DataTable({
               style={{
                 width: 30, textAlign: 'center', border: 'none',
                 background: t.neutrals.card, borderRadius: t.radius.sm,
-                fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
                 padding: '2px 0', outline: 'none',
               }}
             />
-            <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle }}>개씩</span>
+            <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>개씩</span>
           </div>
           {totalPages > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <button disabled={safePage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}
                 style={{
-                  background: 'transparent', border: 'none', padding: 3, borderRadius: 4,
+                  background: 'transparent', border: 'none', padding: 3, borderRadius: t.radius.sm,
                   cursor: safePage === 1 ? 'default' : 'pointer',
                   color: safePage === 1 ? t.neutrals.line : t.neutrals.muted,
                   opacity: safePage === 1 ? 0.4 : 1,
@@ -248,7 +248,7 @@ export function DataTable({
               </span>
               <button disabled={safePage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 style={{
-                  background: 'transparent', border: 'none', padding: 3, borderRadius: 4,
+                  background: 'transparent', border: 'none', padding: 3, borderRadius: t.radius.sm,
                   cursor: safePage >= totalPages ? 'default' : 'pointer',
                   color: safePage >= totalPages ? t.neutrals.line : t.neutrals.muted,
                   opacity: safePage >= totalPages ? 0.4 : 1,

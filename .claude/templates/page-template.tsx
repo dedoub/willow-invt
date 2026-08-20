@@ -1,78 +1,96 @@
 /**
- * 페이지 템플릿
+ * Linear dashboard page template
  *
- * 사용법:
- * 1. 이 파일을 복사하여 새 페이지 생성
- * 2. PageName, pageIcon, pageTitle, pageDescription 수정
- * 3. 필요한 섹션 추가
+ * 신규 `src/app/(dashboard)/(linear)` 화면은 이 템플릿을 기본으로 사용한다.
+ * 레거시 shadcn 화면은 개별 컴포넌트 템플릿을 참고하되, 새 linear 화면에 확산하지 않는다.
  */
 
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import {
-  // 페이지 아이콘 (변경 필요)
-  BookOpen,
-  // 기타 필요한 아이콘
-  Plus,
-  RefreshCw,
-} from 'lucide-react'
+import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LTableBody, LTableEmpty, LTableHead, LTableRow, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useState } from 'react'
+
+type Mode = 'overview' | 'alerts'
+
+interface Row {
+  id: string
+  name: string
+  status: string
+  count: number
+}
+
+const columns: LColumn<Row>[] = [
+  { key: 'name', label: '이름', width: 'minmax(140px,1fr)' },
+  { key: 'status', label: '상태', width: '72px' },
+  { key: 'count', label: '개수', width: '56px', align: 'right' },
+]
 
 export default function PageName() {
+  const mobile = useIsMobile()
+  const [mode, setMode] = useState<Mode>('overview')
+  const rows: Row[] = []
+
   return (
-    <div className="space-y-8">
-      {/* 페이지 헤더 */}
-      <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-purple-100 dark:bg-purple-900 p-2">
-          <BookOpen className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">페이지 제목</h1>
-          <p className="text-sm text-muted-foreground">페이지 설명</p>
-        </div>
-      </div>
-
-      {/* 통계 카드 섹션 (선택적) */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-slate-100 dark:bg-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">통계 1</CardTitle>
-            <div className="rounded-lg bg-white/50 dark:bg-white/10 p-2">
-              <BookOpen className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <LCard>
+        <LSectionHead
+          title="페이지 제목"
+          meta="KST 기준"
+          action={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <LSegmented
+                value={mode}
+                onChange={setMode}
+                options={[
+                  { value: 'overview', label: '요약' },
+                  { value: 'alerts', label: '알림' },
+                ]}
+              />
+              <LBtn size="sm" icon={<LIcon name="refresh" size={13} stroke={1.8} />}>
+                새로고침
+              </LBtn>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">123</div>
-            <p className="text-xs text-muted-foreground">부가 설명</p>
-          </CardContent>
-        </Card>
-      </div>
+          }
+        />
 
-      {/* 메인 콘텐츠 카드 */}
-      <Card className="bg-slate-100 dark:bg-slate-800">
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
-          <div>
-            <CardTitle className="text-lg">섹션 제목</CardTitle>
-            <CardDescription className="text-sm mt-0.5">섹션 설명</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="flex items-center justify-center gap-2 rounded-lg bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer">
-              <RefreshCw className="h-4 w-4" />
-            </button>
-            <Button>
-              <Plus className="h-4 w-4 mr-1" />
-              추가
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0 space-y-3">
-          {/* 콘텐츠 영역 */}
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            여기에 콘텐츠를 추가하세요.
-          </p>
-        </CardContent>
-      </Card>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+          gap: 8,
+        }}>
+          <LStat label="ACTIVE" value="0" sub="현재 활성" tone="info" />
+          <LStat label="PENDING" value="0" sub="확인 필요" tone="warn" />
+          <LStat label="DONE" value="0" sub="완료" tone="pos" />
+          <LStat label="FAILED" value="0" sub="실패" tone="neg" />
+        </div>
+      </LCard>
+
+      <LCard>
+        <LSectionHead title="운영 목록" />
+        <LTableHead columns={columns} mobile={mobile} />
+        <LTableBody columns={columns} mobile={mobile}>
+          {rows.length === 0 ? (
+            <LTableEmpty>데이터가 없습니다</LTableEmpty>
+          ) : rows.map(row => (
+            <LTableRow key={row.id} columns={columns} mobile={mobile}>
+              <span style={{ color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {row.name}
+              </span>
+              <span style={{ color: t.neutrals.muted }}>{row.status}</span>
+              <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {row.count.toLocaleString()}
+              </span>
+            </LTableRow>
+          ))}
+        </LTableBody>
+      </LCard>
     </div>
   )
 }

@@ -43,9 +43,9 @@ export interface TableSort { key: string; dir: SortDir }
 
 // 보이스카드 사용자 표와 같은 간격·글자·색. 두 페이지를 오가며 봐도 같은 표로 읽힌다.
 // 행은 선으로 나누지 않고 채운 카드로 띄운다 — 선이 없으니 가로 스크롤에서 잘려도 덜 지저분하다.
-const GAP = 6
-const ROW_GAP = 2
-const ROW_PAD_X = 8
+const GAP = t.density.tableColGap
+const ROW_GAP = t.density.tableRowGap
+const ROW_PAD_X = t.density.tableRowPadX
 
 /**
  * 표 정렬 상태. 같은 머리를 다시 누르면 오름차순 → 내림차순 → 해제로 돈다.
@@ -127,7 +127,7 @@ export function LTableHead<T>({
             key={c.key}
             onClick={sortable ? () => onSort!(c.key) : undefined}
             style={{
-              fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono,
+              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
               letterSpacing: 0.3, textTransform: 'uppercase',
               color: active ? t.neutrals.text : t.neutrals.subtle,
               display: 'flex', alignItems: 'center', gap: 2,
@@ -170,7 +170,7 @@ export function LTableRow<T>({
         alignItems: 'center',
         background: t.neutrals.inner,
         borderRadius: t.radius.sm,
-        fontSize: 'calc(12px * var(--fz, 1))',
+        fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
         cursor: onClick ? 'pointer' : undefined,
       }}
     >
@@ -208,8 +208,8 @@ export function LTableBody({ columns, mobile = false, children }: {
 export function LTableEmpty({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      padding: '16px 0', textAlign: 'center',
-      fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
+      padding: `${t.density.gapLg}px 0`, textAlign: 'center',
+      fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
     }}>
       {children}
     </div>
@@ -221,7 +221,7 @@ export function LTableBadge({ tone, children }: { tone: { bg: string; fg: string
   return (
     <span style={{
       display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-      fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
+      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, textAlign: 'center',
       background: tone.bg, color: tone.fg,
       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
     }}>
