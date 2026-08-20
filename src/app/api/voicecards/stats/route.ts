@@ -10,8 +10,8 @@ export const maxDuration = 300
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-// 매출/차트 집계(getCombinedStats)는 연간 anonymous_events 를 스캔해 ~2.2s. 캐시가 없어 매
-// 자동 새로고침마다 재계산되던 것을 300초 캐싱으로 전환 (분석 지표라 5분 staleness 무방, 2026-07-22).
+// 매출/차트 집계(getCombinedStats)는 연간 anonymous_events 를 읽는다.
+// Disk IO 예산 보호를 위해 운영 분석 캐시를 5분→1시간으로 조정 (2026-08-20).
 // ⚠️ appRevenue.*ByDate 는 Map 이라 unstable_cache(JSON)에서 살아남지 못한다 → chartData 생성을
 //    캐시 함수 '안'에서 끝내 배열로 반환. 캐시-히트 시 stats.appRevenue Map 은 비지만 클라이언트는
 //    chartData(배열)로 자체 집계하므로 무관.
@@ -51,7 +51,7 @@ const getCachedStatsPayload = unstable_cache(
     return { stats, chartData }
   },
   ['voicecards-combined-stats'],
-  { revalidate: 300, tags: ['voicecards-stats'] }
+  { revalidate: 3600, tags: ['voicecards-stats'] }
 )
 
 // GET: 매출/차트 통계 (사용자 통계는 /users, 익명 이벤트는 /events 사용)
@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     // 날짜 범위 파라미터 (기본: 올해 1/1 ~ 오늘, KST 기준)
     const endDate = searchParams.get('endDate') || kstToday()
     const startDate = searchParams.get('startDate') || `${kstToday().slice(0, 4)}-01-01`
-    // 연결 상태(가벼움, 매요청) + 통합 통계(300초 캐시)를 병렬 조회
+    // 연결 상태(가벼움, 매요청) + 통합 통계(1시간 캐시)를 병렬 조회
     const [connectionStatus, { stats, chartData }] = await Promise.all([
       getConnectionStatus(),
       getCachedStatsPayload(startDate, endDate),

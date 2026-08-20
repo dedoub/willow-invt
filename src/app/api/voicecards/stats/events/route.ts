@@ -4,8 +4,8 @@ import { getAnonymousEventStats } from '@/lib/voicecards-server'
 
 export const maxDuration = 300
 
-// anonymous_events 집계(vc_event_stats ~4.6s) — 300초 캐싱. 자동 새로고침이 매번 재계산을
-// 물지 않도록 60초→300초 (분석 지표라 5분 staleness 무방, 2026-07-22).
+// anonymous_events 집계(vc_event_stats)는 운영 분석 지표라 실시간성이 필요하지 않다.
+// Disk IO 예산 보호를 위해 5분→1시간 캐싱 (2026-08-20).
 // 일시 실패(null)를 캐싱하면 그동안 '다시 시도'까지 전부 실패 — throw로 캐시를 막는다.
 const getCachedAnonStats = unstable_cache(
   async () => {
@@ -14,7 +14,7 @@ const getCachedAnonStats = unstable_cache(
     return stats
   },
   ['voicecards-anon-stats'],
-  { revalidate: 300, tags: ['voicecards-stats'] }
+  { revalidate: 3600, tags: ['voicecards-stats'] }
 )
 
 export async function GET() {
