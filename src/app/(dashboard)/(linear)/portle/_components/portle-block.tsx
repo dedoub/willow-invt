@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
-import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import type { PortleStats, PortleUserRow } from '@/lib/portle-types'
 import { PORTLE_KIND_LABELS } from '@/lib/portle-types'
 import { kstDateKey, kstWeekday, kstTime } from '@/lib/kst'
@@ -46,25 +45,6 @@ const rateExtra = (label: string, pct: number) => (
     {label} {pct}%
   </span>
 )
-
-// 섹션 헤더 우측 새로고침 버튼 — 이 페이지의 섹션들이 쓰는 공통 모양.
-function RefreshButton({ onClick, busy }: { onClick: () => void; busy: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={busy}
-      title="데이터 새로고침"
-      style={{
-        width: 28, height: 28, borderRadius: t.radius.sm,
-        background: t.neutrals.inner, border: 'none', cursor: busy ? 'default' : 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: t.neutrals.muted, opacity: busy ? 0.5 : 1,
-      }}
-    >
-      <LIcon name="refresh" size={13} stroke={1.8} />
-    </button>
-  )
-}
 
 // ─── 일별 AI 호출 차트 (리뷰노트 DauTrendCard 포틀판) ─────────────────────────────
 // 성공/빈응답/실패 3계열 스택 + 7일 이동평균. Echo News 안정성 문제가 핵심 관찰 대상이라
@@ -310,17 +290,8 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
         <LSectionHead
           eyebrow="FUNNEL"
           title="스토어 → 설치 → 로그인 → 활성화 → 구독"
-          action={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{
-                fontSize: 'calc(9px * var(--fz, 1))', padding: '2px 6px', borderRadius: t.radius.sm,
-                background: t.neutrals.inner, color: t.neutrals.muted, fontWeight: 500, whiteSpace: 'nowrap' as const,
-              }}>
-                서버 AI 로그 기준 · 원장은 기기/Drive
-              </span>
-              <RefreshButton onClick={onRefresh} busy={refreshing} />
-            </div>
-          }
+          note="서버 AI 로그 기준 · 원장은 기기/Drive"
+          action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
         />
 
         {error && (
@@ -616,40 +587,31 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
             title="사용자"
             meta={`${sortedUsers.length}명 · AI 호출 기준`}
             mb={8}
-            action={(
+            action={mobile ? (
+              // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
+              // 새로고침은 블록 첫 섹션(퍼널)에 하나만 — 중복 버튼 정리 (2026-08-21).
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                {/* 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 함께 둔다 */}
-                {mobile && (
-                  <>
-                    <select
-                      value={userSort}
-                      onChange={e => handleSortChange(e.target.value as UserSortKey)}
-                      style={{
-                        padding: '3px 6px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                        fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
-                        background: t.neutrals.inner, color: t.neutrals.text,
-                      }}
-                    >
-                      {USER_COLUMNS.map(col => (
-                        <option key={col.key} value={col.key}>{col.mobileLabel}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => handleSortChange(userSort)}
-                      title="정렬 방향 전환"
-                      style={{
-                        padding: '3px 7px', borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
-                        fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
-                        background: t.neutrals.inner, color: t.neutrals.muted,
-                      }}
-                    >
-                      {userSortDir === 'asc' ? '▲' : '▼'}
-                    </button>
-                  </>
-                )}
-                <RefreshButton onClick={onRefresh} busy={refreshing} />
+                <select
+                  value={userSort}
+                  onChange={e => handleSortChange(e.target.value as UserSortKey)}
+                  style={{
+                    height: t.density.controlHSm, padding: '0 6px', borderRadius: t.radius.sm,
+                    border: 'none', cursor: 'pointer',
+                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
+                    background: t.neutrals.inner, color: t.neutrals.text,
+                  }}
+                >
+                  {USER_COLUMNS.map(col => (
+                    <option key={col.key} value={col.key}>{col.mobileLabel}</option>
+                  ))}
+                </select>
+                <LHeadBtn
+                  label={userSortDir === 'asc' ? '▲' : '▼'}
+                  title="정렬 방향 전환"
+                  onClick={() => handleSortChange(userSort)}
+                />
               </div>
-            )}
+            ) : undefined}
           />
           {/* PC/모바일 동일 테이블 — 모바일은 가로 스크롤 (보이스카드와 동일) */}
           <div style={{ overflowX: 'auto' }}>

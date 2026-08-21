@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth, useIsAdmin } from '@/lib/auth-context'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
@@ -200,16 +200,7 @@ export default function UsersPage() {
           <LSectionHead
             eyebrow="ADMIN"
             title="사용자 관리"
-            action={
-              <button
-                onClick={loadUsers}
-                disabled={refreshing}
-                style={{ ...iconBtn({ width: 28, height: 28, opacity: refreshing ? 0.5 : 1 }) }}
-                title="새로고침"
-              >
-                <LIcon name="refresh" size={13} stroke={1.8} />
-              </button>
-            }
+            action={<LHeadBtn icon="refresh" title="새로고침" onClick={loadUsers} busy={refreshing} />}
           />
 
           <div style={{

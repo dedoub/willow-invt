@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { ValueChainSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
@@ -85,11 +85,6 @@ export default function ValueChainPage() {
     fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
     fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 10,
     whiteSpace: 'nowrap',
-  }
-  const iconBtn: React.CSSProperties = {
-    width: 28, height: 28, borderRadius: t.radius.sm, background: t.neutrals.inner,
-    border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: t.neutrals.muted, textDecoration: 'none',
   }
   // 업데이트 테이블 — 위키 /roadmap 노드 현황과 동일 항목:
   // 최초 | 수정 | 노드 | 신뢰도 | 증명·파급 | 사업구조 | 매출 | 비용 | 투자 | 리서치 | 파급 | 출처 | 교차검증 | 인용퍼널 4
@@ -215,14 +210,10 @@ export default function ValueChainPage() {
             eyebrow="WIKI"
             title="ValueChain"
             action={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <a href={SITE_URL} target="_blank" rel="noreferrer" style={iconBtn}>
-                  <LIcon name="trending" size={13} stroke={1.8} />
-                </a>
-                <button onClick={() => load(true)} style={iconBtn}>
-                  <LIcon name="refresh" size={13} stroke={1.8} />
-                </button>
-              </div>
+              <>
+                <LHeadBtn icon="trending" title="valuechain.wiki" href={SITE_URL} />
+                <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={() => load(true)} />
+              </>
             }
           />
 

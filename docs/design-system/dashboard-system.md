@@ -112,6 +112,34 @@ Use once per block. `eyebrow` is allowed only when a block needs a stable catego
 <LSectionHead title="사용자 활성화" meta="KST 기준" />
 ```
 
+The header row wraps: when the action is wider than the remaining space, it drops below the title (right-aligned) instead of squeezing it. Do not add `whiteSpace: nowrap` containers inside `action` expecting them to shrink.
+
+- `meta`: values that must always be visible (period, counts). Wraps under the title on narrow screens.
+- `note`: supplementary explanation chip (data source, aggregation caveat). Hidden on mobile — never put must-see info here.
+
+```tsx
+<LSectionHead
+  title="방문 → 가입 → 결제"
+  note="집계 시작 26.07.15 · 봇 제외"
+  action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+/>
+```
+
+### LHeadBtn
+
+The only button primitive for section-header actions: refresh, settings, external links, short labeled actions. 28px square (`t.density.controlHSm`), grows with `label`. `href` renders an external `<a>` (new tab). Never re-implement a local RefreshButton/iconBtn/linkBtn.
+
+```tsx
+<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />
+<LHeadBtn icon="settings" title="지표 설정" onClick={openSettings} />
+<LHeadBtn label="GSC" title="Search Console" href={consoleUrl} />
+```
+
+Header action policy:
+- One refresh button per data-loading block, in its first section head only. Secondary section heads (user tables, sub-sections) do not repeat it.
+- Icon-only buttons must set `title`.
+- Long informational text goes to `note` (or `title` tooltip), never as a nowrap chip inside `action`.
+
 ### LStat
 
 Use for all KPI values. Values use `toLocaleString()` or domain formatter before passing in. Use `tone` only when direction matters.

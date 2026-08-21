@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { kstToday } from '@/lib/kst'
@@ -100,15 +100,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
         <LSectionHead
           eyebrow="ISSUE TRACKING"
           title="이메일 이슈 트래킹"
-          action={
-            <button onClick={onRefresh} title="새로고침" style={{
-              width: 28, height: 28, borderRadius: t.radius.sm, background: t.neutrals.inner,
-              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: t.neutrals.muted,
-            }}>
-              <LIcon name="refresh" size={13} stroke={1.8} />
-            </button>
-          }
+          action={<LHeadBtn icon="refresh" title="새로고침" onClick={onRefresh} />}
         />
       </div>
 

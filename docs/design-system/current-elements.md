@@ -35,7 +35,8 @@
 ### Layout
 
 - `LCard`: 기본 블록 컨테이너
-- `LSectionHead`: 섹션 제목, 보조 메타, 우측 액션
+- `LSectionHead`: 섹션 제목, 보조 메타(`meta`), 정보 칩(`note`, 모바일 숨김), 우측 액션. 액션이 넓으면 아랫줄로 줄바꿈
+- `LHeadBtn`: 섹션 헤더 우측 컨트롤의 단일 프리미티브 (28px 정사각, 아이콘/라벨/외부링크/busy). 헤더에 로컬 버튼 복제 금지
 - 직접 grid/flex layout: 페이지 조립용. 토큰의 `t.density`를 우선 사용
 
 ### Data Display

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { getStoredPageSize, savePageSize } from '@/app/(dashboard)/_components/linear-page-size'
@@ -407,25 +407,6 @@ function withWeekday(d: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d} (${WEEKDAYS_KO[new Date(d + 'T00:00:00Z').getUTCDay()]})` : d
 }
 
-// 섹션 헤더 우측 새로고침 버튼 — 이 페이지의 섹션들이 쓰는 공통 모양.
-function RefreshButton({ onClick, busy }: { onClick: () => void; busy: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={busy}
-      title="데이터 새로고침"
-      style={{
-        width: 28, height: 28, borderRadius: t.radius.sm,
-        background: t.neutrals.inner, border: 'none', cursor: busy ? 'default' : 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: t.neutrals.muted, opacity: busy ? 0.5 : 1,
-      }}
-    >
-      <LIcon name="refresh" size={13} stroke={1.8} />
-    </button>
-  )
-}
-
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 
 function SkelBar({ width, height = 12, style }: { width: number | string; height?: number; style?: React.CSSProperties }) {
@@ -729,20 +710,10 @@ export function VoicecardsBlock({
           eyebrow="FUNNEL"
           title="스토어 → 설치 → 가입 → 결제"
           action={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button
-                onClick={onOpenSettings}
-                style={{
-                  width: 28, height: 28, borderRadius: t.radius.sm,
-                  background: t.neutrals.inner, border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: t.neutrals.muted,
-                }}
-              >
-                <LIcon name="settings" size={13} stroke={1.8} />
-              </button>
-              <RefreshButton onClick={onRefresh} busy={refreshing} />
-            </div>
+            <>
+              <LHeadBtn icon="settings" title="지표 설정" onClick={onOpenSettings} />
+              <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />
+            </>
           }
         />
 
@@ -1451,7 +1422,6 @@ export function VoicecardsBlock({
                     구글 {googleRows.length} · 기기 {deviceRowCount} · 미활성 {idleGoogle}
                   </span>
                 )}
-                action={<RefreshButton onClick={onRefresh} busy={refreshing} />}
                 mb={8}
               />
             )

@@ -10,9 +10,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from './linear-tokens'
 import { LCard } from './linear-card'
-import { LSectionHead } from './linear-section-head'
+import { LSectionHead, LHeadBtn } from './linear-section-head'
 import { LStat } from './linear-stat'
-import { LIcon } from './linear-icons'
 import { DataTable, type TableRow, panelStyle, panelTitle, EmptyLine } from './linear-data-table'
 import { formatCountryName } from '@/lib/country-format'
 import { useDashCols } from './cols-toggle'
@@ -646,28 +645,6 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
     </div>
   )
 
-  const refreshBtn = (
-    <button onClick={() => load(days, true)} disabled={refreshing}
-      style={{
-        width: 28, height: 28, borderRadius: t.radius.sm, background: t.neutrals.inner,
-        border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: t.neutrals.muted, opacity: refreshing ? 0.5 : 1,
-      }}>
-      <LIcon name="refresh" size={13} stroke={1.8} />
-    </button>
-  )
-
-  const linkBtn = (href: string, label: React.ReactNode, title: string) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" title={title}
-      style={{
-        ...mono(9.5), height: 28, minWidth: 28, padding: '0 8px', borderRadius: t.radius.sm,
-        background: t.neutrals.inner, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: t.neutrals.muted, textDecoration: 'none',
-      }}>
-      {label}
-    </a>
-  )
-
   return (
     <>
       {leadSlot}
@@ -680,11 +657,11 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
             title="검색 노출 → 클릭"
             meta={gsc ? `${gsc.range.startDate} ~ ${gsc.range.endDate} · 구글 집계 ${gsc.range.lagDays}일 지연` : undefined}
             action={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <>
                 {periodToggle}
-                {gsc && linkBtn(gsc.site.consoleUrl, 'GSC', 'Search Console')}
-                {refreshBtn}
-              </div>
+                {gsc && <LHeadBtn label="GSC" title="Search Console" href={gsc.site.consoleUrl} />}
+                <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={() => load(days, true)} busy={refreshing} />
+              </>
             }
           />
 
@@ -836,13 +813,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
             eyebrow="UMAMI"
             title="진입 후 행동"
             meta={data ? `최근 ${data.range.days}일 · 자기 방문 미제외` : undefined}
-            action={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {periodToggle}
-                {data && linkBtn(data.site.umamiUrl, <LIcon name="trending" size={13} stroke={1.8} />, 'Umami')}
-                {refreshBtn}
-              </div>
-            }
+            action={data ? <LHeadBtn icon="trending" title="Umami" href={data.site.umamiUrl} /> : undefined}
           />
 
           {error && (

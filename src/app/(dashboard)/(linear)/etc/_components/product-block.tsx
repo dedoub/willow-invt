@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import type { ETFDisplayData } from '@/lib/etf-types'
@@ -77,9 +77,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
             <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
               {etfs.length}개
             </span>
-            <button onClick={onRefresh} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: t.neutrals.subtle }}>
-              <LIcon name="refresh" size={13} />
-            </button>
+            <LHeadBtn icon="refresh" title="새로고침" onClick={onRefresh} />
             <LBtn size="sm" icon={<LIcon name="plus" size={14} color={t.neutrals.text} />} onClick={onAdd}>추가</LBtn>
           </div>
         } />

@@ -10,9 +10,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { t, tonePalettes } from './linear-tokens'
 import { LCard } from './linear-card'
-import { LSectionHead } from './linear-section-head'
+import { LSectionHead, LHeadBtn } from './linear-section-head'
 import { LStat } from './linear-stat'
-import { LIcon } from './linear-icons'
 import { useDashCols } from './cols-toggle'
 import { useIsMobile } from './linear-tokens'
 import { DataTable, panelStyle, EmptyLine } from './linear-data-table'
@@ -117,18 +116,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
           meta={data?.latestDay
             ? `${weekLabel(data.latestDay)} 주${data.latestMeasuredAt ? ` · 마지막 측정 ${measuredLabel(data.latestMeasuredAt)}` : ''} · 질문 ${data.questions.length}개 · ${data.latest.runs}회 실행${hasBaseline ? ` · 기준선 ${weekLabel(data.baselineDay!)} 주` : ' · 기준선 회차'}`
             : undefined}
-          action={
-            <button onClick={load} disabled={loading} title="다시 조회"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                background: t.neutrals.inner, color: t.neutrals.muted, border: 'none',
-                borderRadius: t.radius.md, padding: '5px 10px',
-                fontSize: 'calc(12px * var(--fz, 1))', cursor: loading ? 'default' : 'pointer',
-                fontFamily: t.font.sans, opacity: loading ? 0.5 : 1,
-              }}>
-              <LIcon name="refresh" size={13} stroke={1.8} />
-            </button>
-          }
+          action={<LHeadBtn icon="refresh" title="다시 조회" onClick={load} busy={loading} />}
         />
 
         {error && (
