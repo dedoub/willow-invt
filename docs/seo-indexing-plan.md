@@ -2,12 +2,15 @@
 
 GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하는 운영 문서.
 현황·진단·해석은 [seo-indexing.md](seo-indexing.md)에, 이 문서는 "오늘 뭘 요청하나"만 다룬다.
+2026-08-20부터 VoiceCards·ReviewNotes에 Portle(`portle.quest`)을 같은 계정 한도 안에 포함한다.
 
 ## 규칙
 
 - 색인 요청 할당량은 **계정 단위 하루 약 11~12건**으로 합산된다 (2026-08-03 실측:
   보이스카드 8건 + 리뷰노트 3건 = 11건째까지 성공, 12건째 Quota Exceeded).
   프로퍼티를 나눠도 늘어나지 않으므로 하루 예산을 사이트 간 배분해야 한다.
+  기본 배분은 세 사이트 기준 VoiceCards 4건 / ReviewNotes 4건 / Portle 3건이고,
+  유효 후보가 부족한 사이트의 몫은 다음 후보가 있는 사이트가 채운다.
 - 우선순위 원칙: ① **영어 원본**(로케일 변형은 그 뒤) ② 허브(하위 페이지의 크롤 경로)
   ③ unknown(구글이 모름) ④ 수요 있는 코어 ⑤ Discovered 정체가 오래된 순.
   '크롤 후 미색인'은 요청해도 안 풀리므로 넣지 않는다.
@@ -43,11 +46,62 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 2. 오늘 배치 선정: 아래 대기열 최상단부터 11건. 이미 색인된 항목은 건너뜀.
 3. Claude in Chrome으로 GSC URL Inspection → 각 URL 검사 → "Request indexing" 클릭 →
    "Indexing requested" 확인. 프로퍼티: 보이스카드 `sc-domain:voicecards.quest`,
-   리뷰노트 `https://reviewnotes.app/` (URL-prefix. 도메인 프로퍼티 아님).
+   리뷰노트 `https://reviewnotes.app/` (URL-prefix. 도메인 프로퍼티 아님),
+   Portle `sc-domain:portle.quest`.
    Quota Exceeded가 뜨면 그날은 중단.
 4. 이 문서의 로그 표와 대기열 갱신, seo-indexing.md 조치 이력에 한 줄 추가.
+5. 완료 보고는 아래 순서로만 쓴다. 해석·후보·계획 문장은 넣지 않고, 실제 성공/실패 수치와
+   실제 요청·추적 URL만 출력한다.
+
+   ```text
+   전체 결과
+   - 대상: VoiceCards n건, ReviewNotes n건, Portle n건
+   - 성공: n건
+   - 실패: n건
+   - quota: 없음 | Quota Exceeded, 막힌 URL <url>
+
+   서비스별 요청 URL
+   - VoiceCards: <url>, <url>
+   - ReviewNotes: <url>, <url>
+   - Portle: <url>, <url>
+
+   이전 요청 추적
+   - 신규 색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>
+   - 미색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>
+
+   이상 여부
+   - 없음 | <수치와 URL만 포함한 이상 항목>
+   ```
 
 ## 대기열
+
+### Portle 초기 대기열 (2026-08-20 추가)
+
+확인 결과:
+- 공개 도메인: `https://portle.quest`
+- robots: `Sitemap: https://portle.quest/sitemap.xml`
+- sitemap: 21 URL 중 사람이 보는 HTML 20쪽(`llms.txt` 제외)
+- GSC 서비스 계정 상태: 2026-08-20 KST 조회 기준 `sc-domain:portle.quest`가 아직 속성 목록에 없음.
+  `voicecards.quest`, `reviewnotes.app`, `valuechain.wiki`만 접근 가능하다.
+- `seo_index_status` 상태: `site_key='portle'` 행 0건. Search Console 속성 권한을 붙인 뒤
+  `/api/cron/seo-index-scan?site=portle`을 1회 실행해야 첫 스냅샷이 생긴다.
+
+초기 요청 순서(스냅샷 생성 후 이미 색인된 항목은 건너뜀):
+
+1. `/` (EN 루트)
+2. `/guides` (EN 허브)
+3. `/faq` (EN 코어)
+4. `/guides/google-sheets-investment-ledger`
+5. `/guides/tax-country-portfolio-tracking`
+6. `/guides/duplicate-missing-trade-checks`
+7. `/ko`
+8. `/ja`
+9. `/ko/guides`
+10. `/ja/guides`
+
+`/privacy`·`/terms`는 검색 가치가 낮고 canonical/정책성 페이지라 초기 배치 후순위다.
+Portle 권한이 붙기 전에는 GSC URL Inspection에서 요청 단계까지 갈 수 없으므로, 후보만 준비하고
+완료로 보고하지 않는다.
 
 ### 보이스카드 독일어권 (신규 클러스터, 최우선)
 
@@ -149,6 +203,8 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 08-17에 `/de/methods`, `/it/language-learning`, `/ja/language-learning`, `/ja/memorization`,
 `/ko/voice-flashcard-apps` 요청 완료. `/es/language-learning`, `/it/audio-flashcards`는
 자동화 타임아웃으로 성공 확인을 못 해 실패/미확인으로 남기고 예비 후보로 슬롯을 채웠다.
+08-20에 `/de/privacy`, `/es/methods`, `/fr/voice-flashcard-apps`, `/it/faq`,
+`/ja/voice-flashcard-apps` 요청 완료.
 남은 것: `/vi/language-learning`, `/uk/voice-flashcard-apps`.
 
 ### 리뷰노트 로케일 허브 (08-15 소진)
@@ -163,6 +219,11 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 독일어 연습문제 unknown 6건(`/de/practice/factor-trinomial`, `/de/practice/grade-4-2-polygons`,
 `/de/practice/grade-4-angles`, `/de/practice/grade-4-bar-graph`,
 `/de/practice/grade-4-large-numbers`, `/de/practice/grade-4-multiplication`)을 요청했다.
+08-20에는 브리프 후보 중 08-18·08-19 최근 요청 URL과 `/es/terms` canonical 후보,
+08-17 독일어 최근 요청분을 제외하고 6건(`/de/practice/grade-4-2-line-graphs`,
+`/de/practice/grade-4-2-quadrilaterals`, `/es/practice/grade-4-rules`,
+`/es/practice/linear-function`, `/es/practice/quadratic-formula`,
+`/fr/practice/grade-4-bar-graph`)을 요청했다.
 
 `/privacy`·`/terms` 로케일 변형은 대부분 `Duplicate, Google chose different canonical`이라 제외 —
 요청으로 안 풀리는 canonical 문제다.
@@ -199,6 +260,8 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 | 08-17 | VC 5: `/de/methods`, `/it/language-learning`, `/ja/language-learning`, `/ja/memorization`, `/ko/voice-flashcard-apps` · RN 6: `/de/practice/factor-trinomial`, `/de/practice/grade-4-2-polygons`, `/de/practice/grade-4-angles`, `/de/practice/grade-4-bar-graph`, `/de/practice/grade-4-large-numbers`, `/de/practice/grade-4-multiplication` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:20 KST 전후. VC `/es/language-learning`, `/it/audio-flashcards`는 자동화 타임아웃으로 성공 확인 실패, 예비 후보로 대체 |
 | 08-18 | VC 5: `/templates/korean-daily-life-ja`, `/templates/korean-japanese`, `/templates/korean-social-chat-ja`, `/templates/korean-work-school-ja`, `/fr/exam-prep` · RN 6: `/en/practice/grade-5-number-operations`, `/en/practice/grade-4-large-numbers`, `/en/templates/mistake-notebook`, `/pl/practice`, `/fr/demo`, `/ru/practice` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:05~17:13 KST. 오늘 스냅샷에서 08-17 요청분 VC 2건·RN 1건 색인 확인 후 신규 후보로 실행 |
 | 08-19 | VC 5: `/es/audio-flashcards`, `/it/memorization`, `/ko/methods`, `/ru/voice-flashcard-apps`, `/vi/faq` · RN 6: `/es/guides/how-to-use-reviewnotes`, `/es/practice/grade-4-2-decimals`, `/es/practice/grade-4-transformations`, `/es/practice/grade-5-number-operations`, `/es/practice/linear-system`, `/fr/guides/how-to-use-reviewnotes` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:22~17:31 KST. 브리프에 다시 포함된 08-18 요청 3건과 canonical 후보 `/es/terms`, 최근 요청 독일어 연습문제를 제외하고 신규 후보로 교체 |
+| 08-20 | VC 5: `/es/methods`, `/de/privacy`, `/fr/voice-flashcard-apps`, `/it/faq`, `/ja/voice-flashcard-apps` · RN 6: `/de/practice/grade-4-2-line-graphs`, `/de/practice/grade-4-2-quadrilaterals`, `/es/practice/grade-4-rules`, `/es/practice/linear-function`, `/es/practice/quadratic-formula`, `/fr/practice/grade-4-bar-graph` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:10~17:15 KST. 08-20 스냅샷에서 08-19 요청분 VC 4건·RN 3건 색인 확인 후 최근 요청·canonical 후보를 제외하고 신규 후보로 실행 |
+| 08-20 | Portle 프로토콜 추가 | ✅ 코드·문서 반영. `portle.quest` sitemap 21 URL(HTML 20쪽)·robots 확인. `seo_index_status`는 portle 0행, GSC 서비스 계정에는 `sc-domain:portle.quest` 미등록이라 실제 URL Inspection 요청은 권한 추가 후 진행 |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ### 08-07 배치 결과 (08-08 스냅샷)
@@ -385,6 +448,8 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 08-17 | VC 5(`/de/methods`·`/it/language-learning`·`/ja/language-learning`·`/ja/memorization`·`/ko/voice-flashcard-apps`) + RN 6(`/de/practice/factor-trinomial`·`/de/practice/grade-4-2-polygons`·`/de/practice/grade-4-angles`·`/de/practice/grade-4-bar-graph`·`/de/practice/grade-4-large-numbers`·`/de/practice/grade-4-multiplication`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:20 KST 전후 | 08-16 요청분 중 VC `/de/memorization`, RN `/de/guides/how-to-use-reviewnotes`·`/es/guides/assign-problems-without-student-accounts`·`/it/guides/wrong-answer-journal`·`/it/templates/mistake-notebook` 색인 확인 |
 | 08-18 | VC 5(`/templates/korean-daily-life-ja`·`/templates/korean-japanese`·`/templates/korean-social-chat-ja`·`/templates/korean-work-school-ja`·`/fr/exam-prep`) + RN 6(`/en/practice/grade-5-number-operations`·`/en/practice/grade-4-large-numbers`·`/en/templates/mistake-notebook`·`/pl/practice`·`/fr/demo`·`/ru/practice`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:05~17:13 KST | 08-18 스냅샷 신규 색인: VC `/de/methods`·`/it/language-learning`, RN `/de/practice/factor-trinomial`. 브리프 후보 11건을 최근 요청 URL·색인 URL과 대조 후 그대로 실행 |
 | 08-19 | VC 5(`/es/audio-flashcards`·`/it/memorization`·`/ko/methods`·`/ru/voice-flashcard-apps`·`/vi/faq`) + RN 6(`/es/guides/how-to-use-reviewnotes`·`/es/practice/grade-4-2-decimals`·`/es/practice/grade-4-transformations`·`/es/practice/grade-5-number-operations`·`/es/practice/linear-system`·`/fr/guides/how-to-use-reviewnotes`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:22~17:31 KST | 08-19 스냅샷 신규 색인: VC `/fr/exam-prep`·일본어 덱 4건 외, RN `/fr/demo`·`/fr/practice`·`/pl/practice`·`/ru/practice`. 최근 요청·canonical 후보를 제외하고 신규 후보로 실행 |
+| 08-20 | Portle 프로토콜 추가 | ✅ 코드·문서 반영, 색인 요청 0건 | `portle.quest` sitemap/robots 확인, HTML 대상 20쪽. GSC 서비스 계정에 Portle 속성이 없어 `scanSiteIndexStatus('portle', 1)`은 `PERMISSION_DENIED`; Search Console 권한 추가 후 첫 스냅샷 필요 |
+| 08-20 | VC 5(`/es/methods`·`/de/privacy`·`/fr/voice-flashcard-apps`·`/it/faq`·`/ja/voice-flashcard-apps`) + RN 6(`/de/practice/grade-4-2-line-graphs`·`/de/practice/grade-4-2-quadrilaterals`·`/es/practice/grade-4-rules`·`/es/practice/linear-function`·`/es/practice/quadratic-formula`·`/fr/practice/grade-4-bar-graph`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:10~17:15 KST | 08-20 스냅샷 신규 색인: VC `/es/audio-flashcards`·`/it/memorization`·`/ko/methods`·`/ru/voice-flashcard-apps`, RN `/es/practice/grade-4-2-decimals`·`/es/practice/grade-4-transformations`·`/es/practice/linear-system`. 브리프 후보 중 08-18·08-19 최근 요청 URL, RN `/es/terms` canonical 후보, 08-17 독일어 최근 요청분을 제외하고 대체 후보로 실행 |
 
 ### 노출은 느는데 클릭이 안 는다 (2026-08-11 측정)
 

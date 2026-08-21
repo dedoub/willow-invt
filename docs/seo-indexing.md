@@ -1,6 +1,6 @@
 # 색인 추적 (SEO Indexing)
 
-보이스카드/리뷰노트 발행 페이지가 구글에 실제로 색인되는지 추적하는 문서.
+보이스카드/리뷰노트/Portle 발행 페이지가 구글에 실제로 색인되는지 추적하는 문서.
 노출·클릭 지표는 "이미 노출된 페이지"만 보여주므로, 노출 0의 원인(미발견 / 크롤 후 거부 / 제외)은
 URL Inspection API로만 갈라진다. 이 문서는 그 스냅샷의 해석과 조치 이력을 남긴다.
 
@@ -13,11 +13,30 @@ URL Inspection API로만 갈라진다. 이 문서는 그 스냅샷의 해석과 
 | 스냅샷 테이블 | `seo_index_status` (willow-dash-tensw-todo, `axcfvieqsaphhvbkyzzv`) |
 | 수집 크론 | `/api/cron/seo-index-scan`, 매일 21:40 UTC (06:40 KST) |
 | 수집 코드 | `src/lib/gsc-index.ts` (`scanSiteIndexStatus`, `getIndexStatusSummary`) |
-| 화면 | 보이스카드/리뷰노트 페이지 상단 "검색 노출 → 클릭" 섹션의 색인 상태·버티컬별 색인률 카드 |
-| 수동 실행 | `GET /api/cron/seo-index-scan?secret=$CRON_SECRET[&site=voicecards]` |
+| 화면 | 보이스카드/리뷰노트/Portle 대상 "검색 노출 → 클릭" 섹션의 색인 상태·버티컬별 색인률 카드 |
+| 수동 실행 | `GET /api/cron/seo-index-scan?secret=$CRON_SECRET[&site=voicecards|reviewnotes|portle]` |
 
-검사 대상은 사이트맵의 콘텐츠 대표 URL이다. 로케일 변형(`/de/faq`, `/es/faq` 등)은 기본 경로 하나로
-접어서 검사한다. 그래서 사이트맵 URL 수(보이스카드 566)와 검사 수(210)가 다르다.
+검사 대상은 사이트맵의 콘텐츠 대표 URL이다. VoiceCards·ReviewNotes·Portle은 로케일 변형까지
+전수 검사한다. 사람이 읽는 페이지가 아닌 `.txt`·`.xml` 등은 커버리지 분모에서 제외한다.
+Portle은 2026-08-20 기준 sitemap 21 URL 중 `llms.txt`를 제외한 HTML 20쪽이 대상이다.
+
+### Portle GSC 연결 상태 (2026-08-20)
+
+`portle.quest`의 공개 SEO 표면은 확인됐다.
+
+| 항목 | 값 |
+|---|---|
+| 도메인 | `portle.quest` |
+| GSC 속성 | `sc-domain:portle.quest` |
+| sitemap | `https://portle.quest/sitemap.xml` |
+| robots | `Sitemap: https://portle.quest/sitemap.xml` |
+| sitemap HTML 대상 | 20쪽 |
+| `seo_index_status` | `site_key='portle'` 행 0건 |
+
+GSC 서비스 계정 속성 목록에는 아직 Portle이 없다. 2026-08-20 조회 기준 접근 가능 속성은
+`sc-domain:voicecards.quest`, `https://reviewnotes.app/`, `https://valuechain.wiki/`뿐이다.
+Search Console에서 `sc-domain:portle.quest`에 같은 서비스 계정을 추가한 뒤
+`GET /api/cron/seo-index-scan?site=portle`을 실행해야 첫 스냅샷이 기록된다.
 
 ## IndexNow (구글 외 엔진)
 
@@ -181,6 +200,8 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 | 2026-08-17 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. VC `/es/language-learning`, `/it/audio-flashcards`는 자동화 타임아웃으로 성공 확인 실패 후 예비 후보로 대체 |
 | 2026-08-18 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 08-17 요청분 중 VC `/de/methods`·`/it/language-learning`, RN `/de/practice/factor-trinomial` 색인 확인 |
 | 2026-08-19 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 브리프의 최근 요청 3건과 canonical 후보를 제외하고 신규 후보로 교체 |
+| 2026-08-20 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 08-19 요청분 중 VC `/es/audio-flashcards`·`/it/memorization`·`/ko/methods`·`/ru/voice-flashcard-apps`, RN `/es/practice/grade-4-2-decimals`·`/es/practice/grade-4-transformations`·`/es/practice/linear-system` 색인 확인 |
+| 2026-08-20 | Portle을 데일리 SEO 색인 프로토콜에 추가 | `portle.quest` sitemap/robots 확인, HTML 대상 20쪽. 코드·문서에는 `site_key='portle'`, GSC 속성 `sc-domain:portle.quest` 반영. GSC 서비스 계정에 Portle 속성이 없어 실제 스냅샷은 권한 추가 후 가능 |
 
 색인 요청한 URL:
 

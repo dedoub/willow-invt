@@ -1,5 +1,5 @@
 #!/usr/bin/env -S npx tsx
-// VoiceCards + ReviewNotes GSC 수동 색인 요청을 매일 워크스테이션 Codex에 맡긴다.
+// VoiceCards + ReviewNotes + Portle GSC 수동 색인 요청을 매일 워크스테이션 Codex에 맡긴다.
 // 실제 요청은 GSC UI가 필요하므로 이 스크립트는 ws_commands에 하루 한 번만 등록한다.
 
 import { readFileSync } from 'node:fs'
@@ -78,15 +78,33 @@ async function main() {
 
   // 일요일에도 작업은 실행하되 sunday_no_message 정책에 따라 텔레그램 결과 전송은 생략한다.
   const sourceChatId = weekday === 'Sun' ? null : defaultChatId
-  const instruction = `docs/seo-indexing-plan.md의 실행 프로토콜에 따라 오늘(${date}, KST) VoiceCards와 ReviewNotes GSC 색인 요청 배치를 실제로 실행하세요.
+  const instruction = `docs/seo-indexing-plan.md의 실행 프로토콜에 따라 오늘(${date}, KST) VoiceCards, ReviewNotes, Portle GSC 색인 요청 배치를 실제로 실행하세요.
 
 필수 절차:
 1. 당일 seo_index_status 최신 스냅샷과 docs/seo-indexing-plan.md 최근 요청 로그를 먼저 확인하세요.
-2. 최근 요청 URL과 이미 색인된 URL을 제외하고 대기열에서 후보를 다시 고르세요. 기본 배분은 VoiceCards 5건, ReviewNotes 6건이지만 유효 후보와 남은 쿼터에 맞게 조정하세요.
+2. 최근 요청 URL과 이미 색인된 URL을 제외하고 대기열에서 후보를 다시 고르세요. 기본 배분은 VoiceCards 4건, ReviewNotes 4건, Portle 3건이지만 유효 후보와 남은 쿼터에 맞게 조정하세요.
 3. GSC URL Inspection 화면에서 각 URL을 검사하고 Request indexing을 실제 클릭해 성공 메시지를 확인하세요. 스냅샷만 만들고 완료했다고 보고하면 안 됩니다.
 4. 계정 합산 rolling 24시간 쿼터를 지키세요. Quota Exceeded가 나오면 즉시 중단하고 성공 건수와 막힌 URL을 정확히 기록하세요. 같은 날 재시도하지 마세요.
 5. docs/seo-indexing-plan.md 실행 로그·대기열과 docs/seo-indexing.md 조치 이력을 실제 결과와 동일하게 갱신하세요.
-6. 성공/쿼터/문서 갱신 결과만 간결하게 보고하세요. 후보 준비만으로 완료라고 표현하지 마세요.`
+6. 완료 보고는 아래 순서와 항목명으로만 출력하세요. 실제 수치와 실제 URL만 쓰고, 후보 준비만으로 완료라고 표현하지 마세요.
+
+전체 결과
+- 대상: VoiceCards n건, ReviewNotes n건, Portle n건
+- 성공: n건
+- 실패: n건
+- quota: 없음 | Quota Exceeded, 막힌 URL <url>
+
+서비스별 요청 URL
+- VoiceCards: <url>, <url>
+- ReviewNotes: <url>, <url>
+- Portle: <url>, <url>
+
+이전 요청 추적
+- 신규 색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>
+- 미색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>
+
+이상 여부
+- 없음 | <수치와 URL만 포함한 이상 항목>`
 
   if (process.env.SEO_INDEX_DISPATCH_DRY_RUN === '1') {
     console.log(`GSC 색인 스케줄 점검: ${date} 등록 가능${sourceChatId ? '' : ' (일요일 무알림)'}`)

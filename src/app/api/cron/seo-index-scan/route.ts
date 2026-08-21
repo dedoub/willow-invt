@@ -13,7 +13,10 @@ export const maxDuration = 300
 // 그대로 살아 있고 gsc.ts의 사이트 정의도 남겨 뒀으니, 재개는 이 배열에 키를
 // 되돌리고 vercel.json 크론을 복구하면 된다. `?site=valuechain`으로 수동
 // 일회 실행은 지금도 된다 — 중지한 것은 자동 실행이지 기능이 아니다.
-const SCHEDULED_SITES = ['voicecards', 'reviewnotes']
+//
+// Portle은 2026-08-20 데일리 SEO 프로토콜에 추가했다. Search Console에
+// `sc-domain:portle.quest` 권한이 서비스 계정으로 붙어 있어야 실제 스냅샷이 저장된다.
+const SCHEDULED_SITES = ['voicecards', 'reviewnotes', 'portle']
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization')

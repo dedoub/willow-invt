@@ -10,7 +10,7 @@
  * 자동화 경로가 없다. 이 스크립트는 "무엇을 넣을지"까지만 정한다.
  *
  * 사용법:
- *   node scripts/seo-daily-brief.mjs            # 두 사이트 (기본 11건 배분)
+ *   node scripts/seo-daily-brief.mjs            # 세 사이트 (기본 11건 배분)
  *   node scripts/seo-daily-brief.mjs --budget 8
  *   node scripts/seo-daily-brief.mjs voicecards
  */
@@ -31,7 +31,7 @@ const flagIdx = argv.indexOf('--budget')
 // 계정 합산 한도다. 프로퍼티를 나눠도 늘지 않는다(2026-08-03 실측: 11건째까지 성공).
 const BUDGET = flagIdx >= 0 ? Number(argv[flagIdx + 1]) : 11
 const only = argv.find(a => !a.startsWith('--') && a !== String(BUDGET))
-const SITES = only ? [only] : ['voicecards', 'reviewnotes']
+const SITES = only ? [only] : ['voicecards', 'reviewnotes', 'portle']
 
 const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = env.SUPABASE_SECRET_KEY
@@ -120,7 +120,7 @@ const splitLocale = p => {
  * 리뷰노트는 원본도 `/en/`을 달아서, 프리픽스 유무로 원본을 판정하면 34쪽 전부가
  * 로케일이 되고 원본이 0쪽으로 찍힌다.
  */
-const DEFAULT_LOCALE = { voicecards: null, reviewnotes: 'en' }
+const DEFAULT_LOCALE = { voicecards: null, reviewnotes: 'en', portle: null }
 /** 그 사이트에서 이 경로가 로케일 변형인지 */
 const isLocaleOf = (site, p) => {
   const prefix = splitLocale(p)[0]
@@ -148,6 +148,7 @@ const COVERED_BY_HUB = {
     [/^\/templates\/(daily-english-chunks-ja|instant-response-english-phrases-ja|korean-kpop-fan-phrases-ja|korean-travel-phrases-ja)$/, '/templates/english-japanese'],
   ],
   reviewnotes: [],
+  portle: [],
 }
 
 /**
@@ -260,14 +261,31 @@ for (const site of SITES) {
   plans.push({ site, ranked: rank(site, candidates, stuck), stuck })
 }
 
-// 한도는 계정 합산이라 사이트끼리 나눠 써야 한다. 색인율이 낮은 쪽에 더 준다.
+// 한도는 계정 합산이라 사이트끼리 나눠 써야 한다. 기본은 균등 배분이고,
+// 후보가 모자란 사이트의 잔여분은 다음 사이트가 채운다.
 console.log(`\n━━ 오늘 배치 (한도 ${BUDGET}건, 계정 합산)`)
-if (plans.length === 2) {
-  const share = Math.max(1, Math.round(BUDGET / 2))
-  plans[0].take = BUDGET - share
-  plans[1].take = share
-} else if (plans.length === 1) {
+if (plans.length === 1) {
   plans[0].take = BUDGET
+} else if (plans.length > 1) {
+  const base = Math.floor(BUDGET / plans.length)
+  let remaining = BUDGET
+  plans.forEach((p, i) => {
+    const desired = base + (i < BUDGET % plans.length ? 1 : 0)
+    p.take = Math.min(desired, p.ranked.length)
+    remaining -= p.take
+  })
+  while (remaining > 0) {
+    let moved = false
+    for (const p of plans) {
+      if (p.take < p.ranked.length) {
+        p.take++
+        remaining--
+        moved = true
+        if (remaining === 0) break
+      }
+    }
+    if (!moved) break
+  }
 }
 for (const p of plans) {
   console.log(`\n  ${p.site} — ${Math.min(p.take, p.ranked.length)}건`)
@@ -281,6 +299,25 @@ for (const p of plans) {
 
 console.log(`
 요청은 GSC UI에서만 된다 — URL Inspection → Request indexing → "Indexing requested" 확인.
-프로퍼티: 보이스카드 sc-domain:voicecards.quest · 리뷰노트 https://reviewnotes.app/ (URL-prefix)
+프로퍼티: 보이스카드 sc-domain:voicecards.quest · 리뷰노트 https://reviewnotes.app/ (URL-prefix) · Portle sc-domain:portle.quest
 Quota Exceeded가 뜨면 그날은 중단하고 실행 시각을 앞당긴다.
-끝나면 docs/seo-indexing-plan.md 의 로그·대기열을 갱신한다.`)
+끝나면 docs/seo-indexing-plan.md 의 로그·대기열을 갱신한다.
+
+완료 보고 형식:
+전체 결과
+- 대상: VoiceCards n건, ReviewNotes n건, Portle n건
+- 성공: n건
+- 실패: n건
+- quota: 없음 | Quota Exceeded, 막힌 URL <url>
+
+서비스별 요청 URL
+- VoiceCards: <url>, <url>
+- ReviewNotes: <url>, <url>
+- Portle: <url>, <url>
+
+이전 요청 추적
+- 신규 색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>
+- 미색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>
+
+이상 여부
+- 없음 | <수치와 URL만 포함한 이상 항목>`)
