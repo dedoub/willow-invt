@@ -122,6 +122,7 @@ export function LHeadBtn({ icon, label, title, onClick, href, busy }: LHeadBtnPr
     borderRadius: t.radius.sm, background: t.neutrals.inner, border: 'none',
     color: t.neutrals.muted, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1,
     fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
+    fontWeight: t.weight.regular,
     textDecoration: 'none', whiteSpace: 'nowrap' as const,
   }
   const inner = (

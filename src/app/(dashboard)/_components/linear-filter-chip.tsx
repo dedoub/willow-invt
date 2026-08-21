@@ -43,7 +43,7 @@ export function LFilterChip<V extends string>(props: Props<V>) {
             onClick={() => onChange(opt.value)}
             style={{
               border: 'none', cursor: 'pointer',
-              height, padding: `0 ${padX}px`, fontSize, borderRadius: t.radius.pill,
+              height, padding: `0 ${padX}px`, fontSize: `calc(${fontSize}px * var(--fz, 1))`, borderRadius: t.radius.pill,
               fontFamily: t.font.sans,
               fontWeight: active ? t.weight.medium : t.weight.regular,
               background: active ? activeBg : t.neutrals.inner,

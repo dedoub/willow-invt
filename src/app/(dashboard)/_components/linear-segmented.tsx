@@ -51,7 +51,7 @@ export function LSegmented<V extends string>({ options, value, onChange, size = 
               border: 'none', cursor: 'pointer',
               height: height - t.density.tableRowGap * 2,
               minWidth,
-              padding: `0 ${padX}px`, fontSize, borderRadius: t.radius.sm,
+              padding: `0 ${padX}px`, fontSize: `calc(${fontSize}px * var(--fz, 1))`, borderRadius: t.radius.sm,
               fontFamily: t.font.sans,
               fontWeight: active ? t.weight.medium : t.weight.regular,
               background: active ? t.neutrals.card : 'transparent',
