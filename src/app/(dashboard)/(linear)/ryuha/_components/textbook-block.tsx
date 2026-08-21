@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { RyuhaSubject, RyuhaTextbook, RyuhaChapter } from '@/types/ryuha'
 
@@ -55,26 +55,10 @@ export function TextbookBlock({
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
         <LSectionHead eyebrow="TEXTBOOKS" title="교재관리" tools={
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button onClick={onManageSubjects} style={{
-              padding: '4px 10px', borderRadius: t.radius.sm,
-              background: t.neutrals.inner, border: 'none',
-              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
-              color: t.neutrals.muted, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 3,
-            }}>
-              <LIcon name="settings" size={11} stroke={2} /> 과목
-            </button>
-            <button onClick={onAddTextbook} style={{
-              padding: '4px 10px', borderRadius: t.radius.sm,
-              background: t.neutrals.inner, border: 'none',
-              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
-              color: t.neutrals.muted, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 3,
-            }}>
-              <LIcon name="plus" size={11} stroke={2} /> 교재
-            </button>
-          </div>
+          <>
+            <LHeadBtn icon="settings" label="과목" title="과목 관리" onClick={onManageSubjects} />
+            <LHeadBtn icon="plus" label="교재" title="교재 추가" onClick={onAddTextbook} />
+          </>
         } />
       </div>
 

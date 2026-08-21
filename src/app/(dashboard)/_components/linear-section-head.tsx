@@ -126,7 +126,8 @@ export function LHeadBtn({ icon, label, title, onClick, href, busy }: LHeadBtnPr
   }
   const inner = (
     <>
-      {icon && <LIcon name={icon} size={13} stroke={1.8} />}
+      {/* busy면 아이콘을 스피너로 교체 (globals.css .spin) — 동기화류 버튼의 진행 표시 */}
+      {icon && <LIcon name={busy ? 'loader' : icon} size={13} stroke={1.8} className={busy ? 'spin' : undefined} />}
       {label}
     </>
   )

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FullEmail } from './email-detail-dialog'
 
@@ -48,31 +48,6 @@ function timeAgo(dateStr: string): string {
   return `${days}일`
 }
 
-function ActionBtn({ icon, label, onClick, spinning, disabled }: {
-  icon: string; label: string; onClick: () => void; spinning?: boolean; disabled?: boolean
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled || spinning}
-      title={label}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 4,
-        padding: '4px 10px', borderRadius: t.radius.sm,
-        background: t.neutrals.inner, border: 'none',
-        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.regular,
-        color: disabled ? t.neutrals.subtle : t.neutrals.text,
-        cursor: disabled ? 'default' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <LIcon name={spinning ? 'loader' : icon} size={11} stroke={2}
-        className={spinning ? 'spin' : undefined} />
-      {label}
-    </button>
-  )
-}
 
 const EMAIL_PAGE_KEY = 'email-page-size'
 const DEFAULT_PAGE_SIZE = 25
@@ -153,8 +128,8 @@ export function EmailBlock({
           </span>
         } title={title} tools={connected ? (
           <div style={{ display: 'flex', gap: 4 }}>
-            <ActionBtn icon="refresh" label="동기화" onClick={onSync} spinning={isSyncing} />
-            <ActionBtn icon="send" label="이메일 작성" onClick={onCompose} />
+            <LHeadBtn icon="refresh" label="동기화" title="이메일 동기화" onClick={onSync} busy={isSyncing} />
+            <LHeadBtn icon="send" label="이메일 작성" title="이메일 작성" onClick={onCompose} />
           </div>
         ) : undefined} />
       </div>

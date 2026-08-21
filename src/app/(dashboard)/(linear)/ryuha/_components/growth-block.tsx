@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { RyuhaBodyRecord } from '@/types/ryuha'
 
@@ -157,14 +157,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
         {/* Chart */}
         <LCard>
           <LSectionHead eyebrow="GROWTH" title="성장기록" action={
-            <button onClick={() => openDialog()} style={{
-              padding: '4px 10px', borderRadius: t.radius.sm,
-              background: t.neutrals.inner, border: 'none',
-              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, cursor: 'pointer', color: t.neutrals.muted,
-              display: 'flex', alignItems: 'center', gap: 3,
-            }}>
-              <LIcon name="plus" size={11} stroke={2} /> 기록
-            </button>
+            <LHeadBtn icon="plus" label="기록" title="측정 기록 추가" onClick={() => openDialog()} />
           } />
           <SvgLineChart records={records} />
         </LCard>
