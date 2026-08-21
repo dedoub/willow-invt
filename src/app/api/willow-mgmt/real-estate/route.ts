@@ -701,11 +701,20 @@ export async function GET(request: Request) {
         }
       })
 
-      // 4. 단지별 호가 추이 — 날짜별 최저 호가 평당가(평형 밴드 평균). '호가 추이' 차트용.
-      //    dateListings(밴드별 최저가로 이미 dedup됨)를 단지 단위로 접는다.
-      const presentComplexes = complexNames.filter(n => (data || []).some(r => r.complex_name === n))
+      // 4. 호가 추이 — 날짜별 최저 호가 평당가(평형 밴드 평균). '호가 추이' 차트용.
+      //    실거래가 추이(trades)와 같은 규칙: 단지 선택이 없으면 '전체' 한 선으로 합치고,
+      //    특정 단지를 골랐을 때만 단지별 라인. dateListings(밴드별 최저가 dedup)를 접는다.
+      const listingAggregate = complexIds.length === 0
+      const presentComplexes = listingAggregate
+        ? ['전체']
+        : complexNames.filter(n => (data || []).some(r => r.complex_name === n))
       const complexTrend = dates.map(d => {
         const row: Record<string, string | number | null> = { date: d }
+        if (listingAggregate) {
+          const vals = Object.values(dateListings[d] || {})
+          row['전체'] = vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : null
+          return row
+        }
         const perComplex: Record<string, { sum: number; cnt: number }> = {}
         for (const [key, minPpp] of Object.entries(dateListings[d] || {})) {
           const name = key.split('|')[0]
