@@ -1095,7 +1095,26 @@ export function RealEstateBlock() {
             </div>
             )}
 
-            {/* 합산 시가총액 추이 — 실거래 vs 최저호가, 단지 총면적 가중 */}
+            {/* 매도 호가 vs 실거래가 */}
+            {loadingListingsTrade ? <TableSkeleton /> : (
+            <div style={innerCard}>
+              <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
+                매도 호가 vs 실거래가
+              </div>
+              <ListingTable
+                rows={tradePageRows}
+                sortKey={tradeSortKey}
+                sortDir={tradeSortDir}
+                page={tradePage}
+                pageCount={tradePageCount}
+                onSort={handleTradeSort}
+                onPageChange={setTradePage}
+                tradeType="매매"
+              />
+            </div>
+            )}
+
+            {/* 합산 시가총액 추이 — 실거래 vs 최저호가, 평형별 세대수 가중 */}
             {loadingMarketCap ? <ChartSkeleton /> : (
             <div style={innerCard}>
               <ChartHeader title="합산 시가총액 추이" />
@@ -1115,25 +1134,6 @@ export function RealEstateBlock() {
                   </span>
                 </div>
               )}
-            </div>
-            )}
-
-            {/* 매도 호가 vs 실거래가 */}
-            {loadingListingsTrade ? <TableSkeleton /> : (
-            <div style={innerCard}>
-              <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
-                매도 호가 vs 실거래가
-              </div>
-              <ListingTable
-                rows={tradePageRows}
-                sortKey={tradeSortKey}
-                sortDir={tradeSortDir}
-                page={tradePage}
-                pageCount={tradePageCount}
-                onSort={handleTradeSort}
-                onPageChange={setTradePage}
-                tradeType="매매"
-              />
             </div>
             )}
           </div>
