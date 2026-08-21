@@ -112,9 +112,14 @@ Use once per block. `eyebrow` is allowed only when a block needs a stable catego
 <LSectionHead title="사용자 활성화" meta="KST 기준" />
 ```
 
-The header row wraps: when the action is wider than the remaining space, it drops below the title (right-aligned) instead of squeezing it. Do not add `whiteSpace: nowrap` containers inside `action` expecting them to shrink.
+Responsive behavior is built in — call sites do not handle it:
 
-- `meta`: values that must always be visible (period, counts). Wraps under the title on narrow screens.
+- Desktop: when the action is wider than the remaining space, it drops below the title (right-aligned) instead of squeezing it.
+- Mobile: title and action always share the first line; `meta` moves to its own full-width line below the header. Wide action content wraps inside its own box.
+
+Do not add `whiteSpace: nowrap` containers inside `action` expecting them to shrink.
+
+- `meta`: values that must always be visible (period, counts). Next to the title on desktop, own line below on mobile.
 - `note`: supplementary explanation chip (data source, aggregation caveat). Hidden on mobile — never put must-see info here.
 
 ```tsx

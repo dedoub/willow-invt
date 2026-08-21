@@ -22,52 +22,55 @@ interface LSectionHeadProps {
 export function LSectionHead({ eyebrow, title, meta, note, action, mb }: LSectionHeadProps) {
   const mobile = useIsMobile()
   const showNote = !!note && !mobile
+  const metaStyle: React.CSSProperties = {
+    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
+    lineHeight: 1.4, wordBreak: 'keep-all' as const,
+  }
   return (
-    <div style={{
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: t.density.kpiGap,
-      // 액션이 넓으면 제목을 짓누르는 대신 아랫줄로 내려간다 — 모바일 깨짐 방지의 핵심.
-      flexWrap: 'wrap',
-      marginBottom: mb ?? t.density.gapMd,
-    }}>
-      {/* 좁은 화면에서 보조 정보가 길어지면 제목 아래로 흘러야 우측 액션과 안 겹친다 */}
-      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-        {eyebrow && (
-          <div style={{
-            fontSize: 'calc(10.5px * var(--fz, 1))', fontWeight: t.weight.semibold, letterSpacing: 1.2,
-            textTransform: 'uppercase' as const, color: t.neutrals.subtle,
-            marginBottom: t.density.gapXs, fontFamily: t.font.mono,
-          }}>{eyebrow}</div>
-        )}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, flexWrap: 'wrap' }}>
-          <div style={{
-            fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
-            fontFamily: t.font.sans, color: t.neutrals.text,
-            letterSpacing: -0.2, lineHeight: 1.2,
-          }}>{title}</div>
-          {meta && (
+    <div style={{ marginBottom: mb ?? t.density.gapMd }}>
+      <div style={{
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: t.density.kpiGap,
+        // 모바일: 제목과 우측 버튼은 항상 같은 줄 — meta는 아랫줄로 빠지므로(아래) 제목이 액션과
+        //   자리를 다투지 않고, 넓은 액션(칩 묶음 등)은 자기 박스 안에서 줄바꿈한다(minWidth 0).
+        // 데스크톱: 액션이 넓으면 제목을 짓누르는 대신 아랫줄로 내려간다.
+        flexWrap: mobile ? 'nowrap' : 'wrap',
+      }}>
+        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+          {eyebrow && (
             <div style={{
-              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
-              lineHeight: 1.4, wordBreak: 'keep-all' as const,
-            }}>{meta}</div>
+              fontSize: 'calc(10.5px * var(--fz, 1))', fontWeight: t.weight.semibold, letterSpacing: 1.2,
+              textTransform: 'uppercase' as const, color: t.neutrals.subtle,
+              marginBottom: t.density.gapXs, fontFamily: t.font.mono,
+            }}>{eyebrow}</div>
           )}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, flexWrap: 'wrap' }}>
+            <div style={{
+              fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+              fontFamily: t.font.sans, color: t.neutrals.text,
+              letterSpacing: -0.2, lineHeight: 1.2,
+            }}>{title}</div>
+            {meta && !mobile && <div style={metaStyle}>{meta}</div>}
+          </div>
         </div>
+        {(action || showNote) && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap',
+            justifyContent: 'flex-end', marginLeft: 'auto', maxWidth: '100%', minWidth: 0,
+          }}>
+            {showNote && (
+              <span style={{
+                fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 500, whiteSpace: 'nowrap' as const,
+                padding: '2px 6px', borderRadius: t.radius.sm,
+                background: t.neutrals.inner, color: t.neutrals.muted,
+                maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>{note}</span>
+            )}
+            {action}
+          </div>
+        )}
       </div>
-      {(action || showNote) && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap',
-          justifyContent: 'flex-end', marginLeft: 'auto', maxWidth: '100%', minWidth: 0,
-        }}>
-          {showNote && (
-            <span style={{
-              fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 500, whiteSpace: 'nowrap' as const,
-              padding: '2px 6px', borderRadius: t.radius.sm,
-              background: t.neutrals.inner, color: t.neutrals.muted,
-              maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>{note}</span>
-          )}
-          {action}
-        </div>
-      )}
+      {/* 모바일 meta — 제목 옆이 아니라 헤더 아랫줄 전체 폭으로 */}
+      {meta && mobile && <div style={{ ...metaStyle, marginTop: 3 }}>{meta}</div>}
     </div>
   )
 }
