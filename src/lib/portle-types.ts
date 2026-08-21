@@ -48,6 +48,8 @@ export interface PortleUserRow {
   firstAt: string
   lastAt: string
   activeDays: number
+  // 두 번째 활동일의 첫 기록 시각 — 퍼널 '재사용' 단계의 전환 시점. 활동일 1일이면 null.
+  repeatAt: string | null
   calls: number
   success: number
   empty: number
@@ -59,7 +61,15 @@ export interface PortleUserRow {
   entitlement: PortleEntitlement | null
 }
 
+// 랜딩(portle.quest) 트래픽 — Umami. 퍼널 최상단. 미설정/실패 시 null (카드는 '수집 대기').
+export interface PortleLandingStats {
+  visitors: number  // 기간 내 고유 방문자
+  visits: number    // 기간 내 세션 수
+  daily: Array<{ date: string; visits: number }>  // KST 일별 세션
+}
+
 export interface PortleStats {
+  landing: PortleLandingStats | null
   totals: {
     subjects: number
     subjectsToday: number

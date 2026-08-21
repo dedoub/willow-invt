@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
 import type {
   PortleStats, PortleDailyUsage, PortleKindStats, PortleUserRow, PortleEntitlement,
+  PortleLandingStats,
 } from '@/lib/portle-types'
 
 export * from '@/lib/portle-types'
@@ -53,6 +54,46 @@ async function fetchAllAiUsage(): Promise<AiUsageRow[]> {
   return rows
 }
 
+// 랜딩(portle.quest) 트래픽 — 퍼널 최상단. umami.ts의 getSearchDemandStats는 리퍼러별
+// 다중 호출로 무겁기 때문에, 여기서는 stats + 일별 세션 2콜만 가볍게 읽는다.
+interface UmamiSeriesResp { pageviews: Array<{ x: string; y: number }>; sessions: Array<{ x: string; y: number }> }
+
+async function fetchLandingTraffic(startDate: string): Promise<PortleLandingStats | null> {
+  const apiKey = process.env.UMAMI_API_KEY
+  const websiteId = process.env.UMAMI_WEBSITE_PORTLE
+  if (!apiKey || !websiteId) return null
+  const endAt = Date.now()
+  const startAt = new Date(`${startDate}T00:00:00+09:00`).getTime()
+  const get = async <T,>(path: string, extra = ''): Promise<T> => {
+    const res = await fetch(
+      `https://api.umami.is/v1/websites/${websiteId}${path}?startAt=${startAt}&endAt=${endAt}${extra}`,
+      { headers: { 'x-umami-api-key': apiKey, Accept: 'application/json' }, cache: 'no-store' },
+    )
+    if (!res.ok) throw new Error(`Umami ${res.status}`)
+    return res.json() as Promise<T>
+  }
+  try {
+    const [stats, series] = await Promise.all([
+      get<{ visitors: number; visits: number }>('/stats'),
+      get<UmamiSeriesResp>('/pageviews', '&unit=day&timezone=Asia/Seoul'),
+    ])
+    // Umami는 UTC 타임스탬프를 주지만 timezone=Asia/Seoul로 버킷팅된 값이라 +9h로 KST 날짜 환산 (umami.ts와 동일)
+    const byDay = new Map<string, number>()
+    for (const s of series.sessions ?? []) {
+      const key = new Date(new Date(s.x).getTime() + 9 * 3600_000).toISOString().slice(0, 10)
+      byDay.set(key, (byDay.get(key) ?? 0) + s.y)
+    }
+    return {
+      visitors: stats.visitors,
+      visits: stats.visits,
+      daily: Array.from(byDay, ([date, visits]) => ({ date, visits })).sort((a, b) => a.date.localeCompare(b.date)),
+    }
+  } catch (err) {
+    console.warn('Portle landing traffic fetch failed:', err)
+    return null // 랜딩 트래픽이 없어도 나머지 통계는 그대로 보여준다
+  }
+}
+
 function subjectType(subject: string): PortleUserRow['type'] {
   if (subject.startsWith('google:')) return 'google'
   if (subject.startsWith('device:')) return 'device'
@@ -62,10 +103,11 @@ function subjectType(subject: string): PortleUserRow['type'] {
 export async function getPortleStats(): Promise<PortleStats> {
   if (!portleSupabase) throw new Error('Portle Supabase 미설정 (PORTLE_SUPABASE_URL / PORTLE_SUPABASE_SECRET_KEY)')
 
-  const [usage, entitlementsRes, shortCodesRes] = await Promise.all([
+  const [usage, entitlementsRes, shortCodesRes, landing] = await Promise.all([
     fetchAllAiUsage(),
     portleSupabase.from('portle_entitlements').select('subject, store, product_id, expires_at, updated_at'),
     portleSupabase.from('portle_short_codes').select('owner_sub'),
+    fetchLandingTraffic(kstDaysAgo(59)), // 최근 60일 — 앱 출시(2026-08-07)를 여유 있게 덮는다
   ])
   if (entitlementsRes.error) throw new Error(`portle_entitlements 조회 실패: ${entitlementsRes.error.message}`)
   if (shortCodesRes.error) throw new Error(`portle_short_codes 조회 실패: ${shortCodesRes.error.message}`)
@@ -145,7 +187,7 @@ export async function getPortleStats(): Promise<PortleStats> {
     if (!u) {
       u = {
         subject, type: subjectType(subject),
-        firstAt: row.created_at, lastAt: row.created_at, activeDays: 0,
+        firstAt: row.created_at, lastAt: row.created_at, activeDays: 0, repeatAt: null,
         calls: 0, success: 0, empty: 0, failure: 0, byKind: {},
         inputTokens: 0, outputTokens: 0,
         sharedSheets: sheetsByOwner.get(subject) ?? 0,
@@ -160,7 +202,10 @@ export async function getPortleStats(): Promise<PortleStats> {
     u.byKind[kind] = (u.byKind[kind] ?? 0) + 1
     u.inputTokens += inTok
     u.outputTokens += outTok
+    const prevDays = u.daySet.size
     u.daySet.add(day)
+    // 두 번째 활동일 진입 시각 = 재사용 전환 시점 (오름차순 순회라 최초 기록이 잡힌다)
+    if (prevDays === 1 && u.daySet.size === 2) u.repeatAt = row.created_at
   }
 
   // 빈 날짜 채우기 — 첫 기록일부터 오늘까지 연속 시계열 (차트가 실제 기간을 반영하도록)
@@ -180,6 +225,7 @@ export async function getPortleStats(): Promise<PortleStats> {
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0)
 
   return {
+    landing,
     totals: {
       subjects: users.size,
       subjectsToday: subjectsTodaySet.size,

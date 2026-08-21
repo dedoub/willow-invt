@@ -308,8 +308,8 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
         <LSectionHead
-          eyebrow="PORTLE"
-          title="AI 사용 · 안정성"
+          eyebrow="FUNNEL"
+          title="방문 → AI 사용 → 로그인 → 구독"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{
@@ -347,25 +347,137 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
 
         {!loading && stats && (() => {
           const totals = stats.totals
-          // 일별 사용자 수 스파크라인 + 누적 호출 스파크라인
-          const dailySubjects = stats.daily.map(d => ({ date: d.date, value: d.subjects }))
+          // 퍼널: 랜딩 방문(Umami) → AI 사용자 → 구글 로그인 / 재사용 → 구독.
+          // 원장이 기기/Drive에 있어 '설치'는 서버에서 안 보인다 — AI 첫 호출이 서버에서
+          // 보이는 첫 발자국이므로 그 시점을 설치+활성화의 프록시로 쓴다 (보이스카드 문법).
+          const axis = stats.daily.map(d => d.date)
+          const today = axis.length ? axis[axis.length - 1] : ''
+          const sevenAgo = axis.length >= 7 ? axis[axis.length - 7] : (axis[0] ?? '')
+          const cumOf = (dates: string[]) => {
+            const sorted = [...dates].sort()
+            return axis.map(date => ({ date, value: sorted.filter(d => d <= date).length }))
+          }
+          const countToday = (dates: string[]) => dates.filter(d => d === today).length
+          const count7 = (dates: string[]) => dates.filter(d => d >= sevenAgo).length
+
+          const aiDates = stats.users.map(u => kstDateKey(u.firstAt))
+          const googleDates = stats.users.filter(u => u.type === 'google').map(u => kstDateKey(u.firstAt))
+          const repeatDates = stats.users.filter(u => u.repeatAt).map(u => kstDateKey(u.repeatAt as string))
+          const aiCum = cumOf(aiDates)
+          const googleCum = cumOf(googleDates)
+          const repeatCum = cumOf(repeatDates)
+
+          // 랜딩 방문 — 축 시작 전 유입은 베이스라인으로 깔고 누적 (리뷰노트 문법)
+          const lv = stats.landing
+          const visitsByDay = new Map((lv?.daily ?? []).map(d => [d.date, d.visits]))
+          let vRun = axis.length ? (lv?.daily ?? []).filter(d => d.date < axis[0]).reduce((s, d) => s + d.visits, 0) : 0
+          const visitsCum = axis.map(date => ({ date, value: (vRun += visitsByDay.get(date) ?? 0) }))
+          const visitsToday = visitsByDay.get(today) ?? 0
+          const visits7 = (lv?.daily ?? []).filter(d => d.date >= sevenAgo).reduce((s, d) => s + d.visits, 0)
+
+          // 단계별 전환율 — 직전 단계 대비 (보이스카드와 동일). 방문 수집 전엔 전환을 적지 않는다.
+          const aiConv = lv && lv.visitors > 0 ? Math.min(100, rate(totals.subjects, lv.visitors)) : null
+          const loginConv = rate(googleDates.length, totals.subjects)
+          const repeatConv = rate(repeatDates.length, totals.subjects)
+          const subConv = rate(totals.activeEntitlements, totals.subjects)
+          // 점선 = 전환율 추이 (dualScale 우측 축, 0~100 고정)
+          const rateSeries = (num: Array<{ value: number }>, den: Array<{ value: number }>) =>
+            axis.map((date, i) => ({ date, value: den[i].value > 0 ? Math.round((num[i].value / den[i].value) * 1000) / 10 : 0 }))
+          const loginRateData = rateSeries(googleCum, aiCum)
+          const repeatRateData = rateSeries(repeatCum, aiCum)
+
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
+            {/* 좌: 퍼널 6카드(3×2) · 우: 일별 AI 호출 전체높이 (1열 모드 전용, 보이스카드와 동일) */}
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+              <LStat
+                label="랜딩 방문"
+                title="portle.quest 랜딩 방문자 (Umami, 최근 60일 고유 방문자). 퍼널: 방문 → AI 사용 → 구글 로그인 → 구독. 스파크라인은 세션 누적."
+                value={lv ? lv.visitors.toLocaleString() : '—'}
+                sub={lv ? `오늘 ${visitsToday.toLocaleString()} · 7일 ${visits7.toLocaleString()} 세션` : '수집 대기 (Umami)'}
+                tone="info"
+                sparkline={mobile || !lv || lv.visits === 0 ? undefined : visitsCum}
+              />
+              <LStat
+                label="AI 사용자"
+                title="AI를 한 번이라도 호출한 subject 누적 (google 로그인 + device 기기). 원장이 기기/Drive에 있어 설치는 서버에서 안 보이므로, AI 첫 호출을 설치+활성화 프록시로 본다. 전환 = 랜딩 방문 대비 (방문 수집 전엔 미표시)."
+                value={totals.subjects.toLocaleString()}
+                valueExtra={aiConv !== null ? rateExtra('전환', aiConv) : undefined}
+                sub={`오늘 ${countToday(aiDates).toLocaleString()}명 · 7일 ${count7(aiDates).toLocaleString()}명`}
+                tone="info"
+                sparkline={mobile ? undefined : aiCum}
+              />
+              <LStat
+                label="구글 로그인"
+                title="구글 계정으로 AI를 호출한 사용자 누적. 기기 사용자도 정상 경로다 (VoiceCards와 동일 관점). 점선 = 로그인율(AI 사용자 대비)."
+                value={googleDates.length.toLocaleString()}
+                valueExtra={rateExtra('전환', loginConv)}
+                sub={`오늘 ${countToday(googleDates).toLocaleString()}명 · 7일 ${count7(googleDates).toLocaleString()}명`}
+                tone={loginConv >= 20 ? 'pos' : 'warn'}
+                sparkline={mobile ? undefined : googleCum}
+                sparkline2={mobile ? undefined : loginRateData}
+                sparkFormat2={(v) => `${v}%`}
+                spark2Domain={[0, 100]}
+                dualScale
+              />
+              <LStat
+                label="재사용 (2일+)"
+                title="서로 다른 2일 이상 AI를 쓴 사용자 누적 — 첫 사용 후 다시 돌아온 잔존 신호. 전환 시점 = 두 번째 활동일. 점선 = 재사용률(AI 사용자 대비)."
+                value={repeatDates.length.toLocaleString()}
+                valueExtra={rateExtra('전환', repeatConv)}
+                sub={`오늘 ${countToday(repeatDates).toLocaleString()}명 · 7일 ${count7(repeatDates).toLocaleString()}명`}
+                tone={repeatConv >= 30 ? 'pos' : 'warn'}
+                sparkline={mobile ? undefined : repeatCum}
+                sparkline2={mobile ? undefined : repeatRateData}
+                sparkFormat2={(v) => `${v}%`}
+                spark2Domain={[0, 100]}
+                dualScale
+              />
+              <LStat
+                label="구독"
+                title="portle_entitlements 중 만료 전 구독 (Apple/Google IAP). 결제율 = 구독 ÷ AI 사용자."
+                value={totals.activeEntitlements.toLocaleString()}
+                valueExtra={rateExtra('결제', subConv)}
+                sub="스토어 IAP 기준"
+                tone={totals.activeEntitlements > 0 ? 'pos' : 'default'}
+              />
+              <LStat
+                label="공유 시트"
+                title="단축코드로 공유된 원장 시트 수 (portle_short_codes) — 사용자가 만든 유입 루프."
+                value={totals.sharedSheets.toLocaleString()}
+                sub="단축코드 발급 기준"
+              />
+            </div>
+            {/* 일별 AI 호출 — 1열 모드는 우측 전체높이, 그 외(2열·모바일) 타일 아래 전체폭 */}
+            <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 190 }}>
+              <PortleAiTrendCard daily={stats.daily} />
+            </div>
+            </div>
+          )
+        })()}
+      </div>
+    </LCard>
+
+    {/* 카드2: AI 안정성 · 기능별 — 호출량/성공률/토큰 + kind별 분해 */}
+    <LCard pad={0}>
+      <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+        <LSectionHead eyebrow="AI" title="AI 안정성 · 기능별" mb={10} />
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{ height: 36, borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' }} />
+            ))}
+          </div>
+        )}
+        {!loading && stats && (() => {
+          const totals = stats.totals
           let run = 0
           const cumCalls = stats.daily.map(d => ({ date: d.date, value: (run += d.success + d.empty + d.failure) }))
           const todayRow = stats.daily.length ? stats.daily[stats.daily.length - 1] : null
           const todayCalls = todayRow ? todayRow.success + todayRow.empty + todayRow.failure : 0
           const todayRate = todayCalls > 0 && todayRow ? rate(todayRow.success, todayCalls) : null
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
-            {/* 좌: 지표 카드(3×2) · 우: 일별 AI 호출 전체높이 (1열 모드 전용, 보이스카드와 동일) */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
-              <LStat
-                label="AI 사용자"
-                title="AI를 한 번이라도 호출한 subject 누적 (google 로그인 + device 기기). 원장이 기기에 있어 서버에서 보이는 사용자는 이 축이 전부다."
-                value={totals.subjects.toLocaleString()}
-                sub={`오늘 ${totals.subjectsToday.toLocaleString()}명 · 7일 ${totals.subjects7d.toLocaleString()}명`}
-                tone="info"
-                sparkline={mobile ? undefined : dailySubjects}
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
               <LStat
                 label="AI 호출"
                 title="portle_ai_usage 누적 호출 수 (에코 뉴스 · 거래 입력 · 규칙 번역). 스파크라인은 누적."
@@ -387,41 +499,9 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 value={formatTokens(totals.inputTokens + totals.outputTokens)}
                 sub={`입력 ${formatTokens(totals.inputTokens)} · 출력 ${formatTokens(totals.outputTokens)}`}
               />
-              <LStat
-                label="활성 구독"
-                title="portle_entitlements 중 만료 전 구독 (Apple/Google IAP)."
-                value={totals.activeEntitlements.toLocaleString()}
-                sub="스토어 IAP 기준"
-                tone={totals.activeEntitlements > 0 ? 'pos' : 'default'}
-              />
-              <LStat
-                label="공유 시트"
-                title="단축코드로 공유된 원장 시트 수 (portle_short_codes)."
-                value={totals.sharedSheets.toLocaleString()}
-                sub="단축코드 발급 기준"
-              />
-            </div>
-            {/* 일별 AI 호출 — 1열 모드는 우측 전체높이, 그 외(2열·모바일) 타일 아래 전체폭 */}
-            <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 190 }}>
-              <PortleAiTrendCard daily={stats.daily} />
-            </div>
             </div>
           )
         })()}
-      </div>
-    </LCard>
-
-    {/* 카드2: 기능별 AI 사용 */}
-    <LCard pad={0}>
-      <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-        <LSectionHead eyebrow="FEATURES" title="기능별 AI 사용" mb={10} />
-        {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {[0, 1, 2].map(i => (
-              <div key={i} style={{ height: 36, borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' }} />
-            ))}
-          </div>
-        )}
         {!loading && stats && (
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 560, display: 'flex', flexDirection: 'column', gap: 2 }}>
