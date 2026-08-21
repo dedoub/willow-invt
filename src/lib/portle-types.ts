@@ -61,15 +61,20 @@ export interface PortleUserRow {
   entitlement: PortleEntitlement | null
 }
 
-// 랜딩(portle.quest) 트래픽 — Umami. 퍼널 최상단. 미설정/실패 시 null (카드는 '수집 대기').
-export interface PortleLandingStats {
-  visitors: number  // 기간 내 고유 방문자
-  visits: number    // 기간 내 세션 수
-  daily: Array<{ date: string; visits: number }>  // KST 일별 세션
+// 앱 퍼널 단계별 전환 시점 — 각 배열은 해당 단계에 처음 도달한 기기/사용자의 KST 날짜키(정렬됨).
+// 값은 portle_app_events(앱 텔레메트리)에서 오고, 수집 전 단계는 빈 배열 → 카드는 '수집 대기'.
+// signins만 예외: 이벤트가 없으면 AI 사용 로그의 google: subject 첫 사용일로 폴백.
+export interface PortleAppFunnel {
+  installs: string[]          // app_opened 기기 첫 발생일
+  signins: string[]           // signin_completed (폴백: google subject 첫 AI 사용일)
+  driveLinks: string[]        // drive_linked
+  sheetActivations: string[]  // sheet_activated
 }
 
 export interface PortleStats {
-  landing: PortleLandingStats | null
+  // 스토어 등록정보 방문 (portle_store_visits, 일별 플랫폼 합산) — 퍼널 최상단. 수집 전엔 빈 배열.
+  storeVisits: Array<{ date: string; visitors: number }>
+  funnel: PortleAppFunnel
   totals: {
     subjects: number
     subjectsToday: number

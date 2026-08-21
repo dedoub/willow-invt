@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
 import type {
   PortleStats, PortleDailyUsage, PortleKindStats, PortleUserRow, PortleEntitlement,
-  PortleLandingStats,
+  PortleAppFunnel,
 } from '@/lib/portle-types'
 
 export * from '@/lib/portle-types'
@@ -54,43 +54,42 @@ async function fetchAllAiUsage(): Promise<AiUsageRow[]> {
   return rows
 }
 
-// 랜딩(portle.quest) 트래픽 — 퍼널 최상단. umami.ts의 getSearchDemandStats는 리퍼러별
-// 다중 호출로 무겁기 때문에, 여기서는 stats + 일별 세션 2콜만 가볍게 읽는다.
-interface UmamiSeriesResp { pageviews: Array<{ x: string; y: number }>; sessions: Array<{ x: string; y: number }> }
+// 앱 퍼널 이벤트 — 이벤트별 기기 첫 발생일(KST) 목록. 테이블이 비어 있으면 전부 빈 배열.
+// 행 수가 커지면 RPC 집계로 옮긴다 (현재는 수집 시작 전이라 전량 페이지 조회로 충분).
+const FUNNEL_EVENTS = ['app_opened', 'signin_completed', 'drive_linked', 'sheet_activated'] as const
 
-async function fetchLandingTraffic(startDate: string): Promise<PortleLandingStats | null> {
-  const apiKey = process.env.UMAMI_API_KEY
-  const websiteId = process.env.UMAMI_WEBSITE_PORTLE
-  if (!apiKey || !websiteId) return null
-  const endAt = Date.now()
-  const startAt = new Date(`${startDate}T00:00:00+09:00`).getTime()
-  const get = async <T,>(path: string, extra = ''): Promise<T> => {
-    const res = await fetch(
-      `https://api.umami.is/v1/websites/${websiteId}${path}?startAt=${startAt}&endAt=${endAt}${extra}`,
-      { headers: { 'x-umami-api-key': apiKey, Accept: 'application/json' }, cache: 'no-store' },
-    )
-    if (!res.ok) throw new Error(`Umami ${res.status}`)
-    return res.json() as Promise<T>
+async function fetchAppFunnel(): Promise<Omit<PortleAppFunnel, 'signins'> & { signins: string[] }> {
+  const empty = { installs: [], signins: [], driveLinks: [], sheetActivations: [] }
+  if (!portleSupabase) return empty
+  // 이벤트별 (기기, 첫 발생) — 오름차순 스캔이라 처음 본 조합이 곧 첫 발생
+  const firstAt = new Map<string, string>() // `${event}\n${device}` → date
+  for (let from = 0; from < MAX_ROWS; from += PAGE) {
+    const { data, error } = await portleSupabase
+      .from('portle_app_events')
+      .select('created_at, device_id, event')
+      .in('event', [...FUNNEL_EVENTS])
+      .order('created_at', { ascending: true })
+      .range(from, from + PAGE - 1)
+    if (error) {
+      console.warn('portle_app_events 조회 실패:', error.message)
+      return empty
+    }
+    for (const row of data ?? []) {
+      const key = `${row.event}\n${row.device_id}`
+      if (!firstAt.has(key)) firstAt.set(key, kstDateKey(row.created_at))
+    }
+    if (!data || data.length < PAGE) break
   }
-  try {
-    const [stats, series] = await Promise.all([
-      get<{ visitors: number; visits: number }>('/stats'),
-      get<UmamiSeriesResp>('/pageviews', '&unit=day&timezone=Asia/Seoul'),
-    ])
-    // Umami는 UTC 타임스탬프를 주지만 timezone=Asia/Seoul로 버킷팅된 값이라 +9h로 KST 날짜 환산 (umami.ts와 동일)
-    const byDay = new Map<string, number>()
-    for (const s of series.sessions ?? []) {
-      const key = new Date(new Date(s.x).getTime() + 9 * 3600_000).toISOString().slice(0, 10)
-      byDay.set(key, (byDay.get(key) ?? 0) + s.y)
-    }
-    return {
-      visitors: stats.visitors,
-      visits: stats.visits,
-      daily: Array.from(byDay, ([date, visits]) => ({ date, visits })).sort((a, b) => a.date.localeCompare(b.date)),
-    }
-  } catch (err) {
-    console.warn('Portle landing traffic fetch failed:', err)
-    return null // 랜딩 트래픽이 없어도 나머지 통계는 그대로 보여준다
+  const datesOf = (event: string) =>
+    Array.from(firstAt.entries())
+      .filter(([k]) => k.startsWith(`${event}\n`))
+      .map(([, d]) => d)
+      .sort()
+  return {
+    installs: datesOf('app_opened'),
+    signins: datesOf('signin_completed'),
+    driveLinks: datesOf('drive_linked'),
+    sheetActivations: datesOf('sheet_activated'),
   }
 }
 
@@ -103,14 +102,22 @@ function subjectType(subject: string): PortleUserRow['type'] {
 export async function getPortleStats(): Promise<PortleStats> {
   if (!portleSupabase) throw new Error('Portle Supabase 미설정 (PORTLE_SUPABASE_URL / PORTLE_SUPABASE_SECRET_KEY)')
 
-  const [usage, entitlementsRes, shortCodesRes, landing] = await Promise.all([
+  const [usage, entitlementsRes, shortCodesRes, storeVisitsRes, appFunnel] = await Promise.all([
     fetchAllAiUsage(),
     portleSupabase.from('portle_entitlements').select('subject, store, product_id, expires_at, updated_at'),
     portleSupabase.from('portle_short_codes').select('owner_sub'),
-    fetchLandingTraffic(kstDaysAgo(59)), // 최근 60일 — 앱 출시(2026-08-07)를 여유 있게 덮는다
+    portleSupabase.from('portle_store_visits').select('date, visitors').order('date', { ascending: true }),
+    fetchAppFunnel(),
   ])
   if (entitlementsRes.error) throw new Error(`portle_entitlements 조회 실패: ${entitlementsRes.error.message}`)
   if (shortCodesRes.error) throw new Error(`portle_short_codes 조회 실패: ${shortCodesRes.error.message}`)
+
+  // 스토어 방문 — 일별 플랫폼 합산 (voicecards-server와 동일 문법)
+  const svByDate = new Map<string, number>()
+  for (const r of (storeVisitsRes.data ?? []) as Array<{ date: string; visitors: number }>) {
+    svByDate.set(r.date, (svByDate.get(r.date) ?? 0) + (Number(r.visitors) || 0))
+  }
+  const storeVisits = Array.from(svByDate.entries()).map(([date, visitors]) => ({ date, visitors }))
 
   const now = Date.now()
   const entitlements = new Map<string, PortleEntitlement>()
@@ -224,8 +231,18 @@ export async function getPortleStats(): Promise<PortleStats> {
 
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0)
 
+  // 로그인 폴백 — signin 이벤트 수집 전에는 AI 사용 로그에 잡힌 google: subject의 첫 사용일로 근사.
+  // 이벤트가 쌓이기 시작하면 그쪽(기기 기준)이 정본이 된다.
+  if (appFunnel.signins.length === 0) {
+    appFunnel.signins = Array.from(users.values())
+      .filter(u => u.type === 'google')
+      .map(u => kstDateKey(u.firstAt))
+      .sort()
+  }
+
   return {
-    landing,
+    storeVisits,
+    funnel: appFunnel,
     totals: {
       subjects: users.size,
       subjectsToday: subjectsTodaySet.size,

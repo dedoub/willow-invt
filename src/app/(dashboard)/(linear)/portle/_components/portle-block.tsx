@@ -309,7 +309,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
       <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
         <LSectionHead
           eyebrow="FUNNEL"
-          title="방문 → AI 사용 → 로그인 → 구독"
+          title="스토어 → 설치 → 로그인 → 활성화 → 구독"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{
@@ -347,9 +347,9 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
 
         {!loading && stats && (() => {
           const totals = stats.totals
-          // 퍼널: 랜딩 방문(Umami) → AI 사용자 → 구글 로그인 / 재사용 → 구독.
-          // 원장이 기기/Drive에 있어 '설치'는 서버에서 안 보인다 — AI 첫 호출이 서버에서
-          // 보이는 첫 발자국이므로 그 시점을 설치+활성화의 프록시로 쓴다 (보이스카드 문법).
+          // 퍼널: 스토어 방문 → 설치 기기 → 구글 로그인 → 드라이브 연동 → 시트 활성화 → 구독 가입.
+          // 보이스카드와 동일 단계. 스토어 방문은 portle_store_visits(스토어 리포트 수집 잡),
+          // 설치/로그인/연동/활성화는 portle_app_events(앱 텔레메트리) — 수집 전 단계는 '수집 대기'.
           const axis = stats.daily.map(d => d.date)
           const today = axis.length ? axis[axis.length - 1] : ''
           const sevenAgo = axis.length >= 7 ? axis[axis.length - 7] : (axis[0] ?? '')
@@ -359,93 +359,118 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           }
           const countToday = (dates: string[]) => dates.filter(d => d === today).length
           const count7 = (dates: string[]) => dates.filter(d => d >= sevenAgo).length
+          const todaySub = (dates: string[]) =>
+            `오늘 ${countToday(dates).toLocaleString()}명 · 7일 ${count7(dates).toLocaleString()}명`
 
-          const aiDates = stats.users.map(u => kstDateKey(u.firstAt))
-          const googleDates = stats.users.filter(u => u.type === 'google').map(u => kstDateKey(u.firstAt))
-          const repeatDates = stats.users.filter(u => u.repeatAt).map(u => kstDateKey(u.repeatAt as string))
-          const aiCum = cumOf(aiDates)
-          const googleCum = cumOf(googleDates)
-          const repeatCum = cumOf(repeatDates)
+          // 스토어 방문 — 일별 합산을 축으로 재샘플해 누적 (보이스카드 storeVisitsData 문법)
+          const sv = stats.storeVisits
+          const svTotal = sv.reduce((sum, r) => sum + r.visitors, 0)
+          const svLast = sv[sv.length - 1]
+          // 스토어 리포트는 ~1주 지연 → '7일'은 마지막 데이터일 기준 최근 7일
+          const sv7From = svLast ? new Date(new Date(svLast.date + 'T00:00:00Z').getTime() - 6 * 86400000).toISOString().slice(0, 10) : ''
+          const sv7 = sv.filter(r => r.date >= sv7From).reduce((sum, r) => sum + r.visitors, 0)
+          let svCum = 0, svIdx = 0
+          const storeVisitsData = axis.map(date => {
+            while (svIdx < sv.length && sv[svIdx].date <= date) { svCum += sv[svIdx].visitors; svIdx++ }
+            return { date, value: svCum }
+          })
 
-          // 랜딩 방문 — 축 시작 전 유입은 베이스라인으로 깔고 누적 (리뷰노트 문법)
-          const lv = stats.landing
-          const visitsByDay = new Map((lv?.daily ?? []).map(d => [d.date, d.visits]))
-          let vRun = axis.length ? (lv?.daily ?? []).filter(d => d.date < axis[0]).reduce((s, d) => s + d.visits, 0) : 0
-          const visitsCum = axis.map(date => ({ date, value: (vRun += visitsByDay.get(date) ?? 0) }))
-          const visitsToday = visitsByDay.get(today) ?? 0
-          const visits7 = (lv?.daily ?? []).filter(d => d.date >= sevenAgo).reduce((s, d) => s + d.visits, 0)
+          const { installs, signins, driveLinks, sheetActivations } = stats.funnel
+          const installsCum = cumOf(installs)
+          const signinsCum = cumOf(signins)
+          const driveCum = cumOf(driveLinks)
+          const sheetCum = cumOf(sheetActivations)
 
-          // 단계별 전환율 — 직전 단계 대비 (보이스카드와 동일). 방문 수집 전엔 전환을 적지 않는다.
-          const aiConv = lv && lv.visitors > 0 ? Math.min(100, rate(totals.subjects, lv.visitors)) : null
-          const loginConv = rate(googleDates.length, totals.subjects)
-          const repeatConv = rate(repeatDates.length, totals.subjects)
-          const subConv = rate(totals.activeEntitlements, totals.subjects)
-          // 점선 = 전환율 추이 (dualScale 우측 축, 0~100 고정)
+          // 단계별 전환율 — 직전 단계 대비. 앞 단계가 수집 전(0)이면 전환을 적지 않는다.
+          const conv = (n: number, d: number): number | null => (d > 0 ? Math.min(100, rate(n, d)) : null)
+          const installConv = conv(installs.length, svTotal)
+          const loginConv = conv(signins.length, installs.length)
+          const driveConv = conv(driveLinks.length, signins.length)
+          const sheetConv = conv(sheetActivations.length, driveLinks.length)
+          const subConv = conv(totals.activeEntitlements, sheetActivations.length)
+          // 점선 = 전환율 추이 (dualScale 우측 축, 0~100 고정) — 분모 단계가 수집돼야 그린다
           const rateSeries = (num: Array<{ value: number }>, den: Array<{ value: number }>) =>
             axis.map((date, i) => ({ date, value: den[i].value > 0 ? Math.round((num[i].value / den[i].value) * 1000) / 10 : 0 }))
-          const loginRateData = rateSeries(googleCum, aiCum)
-          const repeatRateData = rateSeries(repeatCum, aiCum)
+          const loginRateData = installs.length > 0 ? rateSeries(signinsCum, installsCum) : undefined
+          const driveRateData = signins.length > 0 ? rateSeries(driveCum, signinsCum) : undefined
+          const sheetRateData = driveLinks.length > 0 ? rateSeries(sheetCum, driveCum) : undefined
+
+          const PENDING_STORE = '수집 대기 (스토어 리포트)'
+          const PENDING_APP = '수집 대기 (앱 이벤트)'
 
           return (
             <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
             {/* 좌: 퍼널 6카드(3×2) · 우: 일별 AI 호출 전체높이 (1열 모드 전용, 보이스카드와 동일) */}
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
               <LStat
-                label="랜딩 방문"
-                title="portle.quest 랜딩 방문자 (Umami, 최근 60일 고유 방문자). 퍼널: 방문 → AI 사용 → 구글 로그인 → 구독. 스파크라인은 세션 누적."
-                value={lv ? lv.visitors.toLocaleString() : '—'}
-                sub={lv ? `오늘 ${visitsToday.toLocaleString()} · 7일 ${visits7.toLocaleString()} 세션` : '수집 대기 (Umami)'}
+                label="스토어 방문"
+                title="플레이·앱스토어 등록정보 방문자 누적 (portle_store_visits). 스토어 리포트 특성상 ~1주 지연. 퍼널: 방문 → 설치 → 구글 로그인 → 드라이브 연동 → 시트 활성화 → 구독."
+                value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
+                valueExtra={svLast ? (
+                  <span style={{
+                    fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                    fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                  }}>
+                    {svLast.date.slice(5)} 기준
+                  </span>
+                ) : undefined}
+                sub={svTotal > 0 ? `최근 ${(svLast?.visitors ?? 0).toLocaleString()}명 · 7일 ${sv7.toLocaleString()}명` : PENDING_STORE}
                 tone="info"
-                sparkline={mobile || !lv || lv.visits === 0 ? undefined : visitsCum}
+                sparkline={mobile || svTotal === 0 ? undefined : storeVisitsData}
               />
               <LStat
-                label="AI 사용자"
-                title="AI를 한 번이라도 호출한 subject 누적 (google 로그인 + device 기기). 원장이 기기/Drive에 있어 설치는 서버에서 안 보이므로, AI 첫 호출을 설치+활성화 프록시로 본다. 전환 = 랜딩 방문 대비 (방문 수집 전엔 미표시)."
-                value={totals.subjects.toLocaleString()}
-                valueExtra={aiConv !== null ? rateExtra('전환', aiConv) : undefined}
-                sub={`오늘 ${countToday(aiDates).toLocaleString()}명 · 7일 ${count7(aiDates).toLocaleString()}명`}
+                label="설치 기기"
+                title="앱을 설치해 실행까지 온 고유 기기 누적 (portle_app_events: app_opened). 전환 = 스토어 방문 대비."
+                value={installs.length > 0 ? installs.length.toLocaleString() : '—'}
+                valueExtra={installConv !== null ? rateExtra('전환', installConv) : undefined}
+                sub={installs.length > 0 ? todaySub(installs) : PENDING_APP}
                 tone="info"
-                sparkline={mobile ? undefined : aiCum}
+                sparkline={mobile || installs.length === 0 ? undefined : installsCum}
               />
               <LStat
                 label="구글 로그인"
-                title="구글 계정으로 AI를 호출한 사용자 누적. 기기 사용자도 정상 경로다 (VoiceCards와 동일 관점). 점선 = 로그인율(AI 사용자 대비)."
-                value={googleDates.length.toLocaleString()}
-                valueExtra={rateExtra('전환', loginConv)}
-                sub={`오늘 ${countToday(googleDates).toLocaleString()}명 · 7일 ${count7(googleDates).toLocaleString()}명`}
-                tone={loginConv >= 20 ? 'pos' : 'warn'}
-                sparkline={mobile ? undefined : googleCum}
+                title="구글 계정으로 로그인한 사용자 누적. 앱 이벤트(signin_completed) 수집 전에는 AI 사용 로그의 google 계정 첫 사용일로 근사. 전환 = 설치 기기 대비. 점선 = 로그인율 추이."
+                value={signins.length.toLocaleString()}
+                valueExtra={loginConv !== null ? rateExtra('전환', loginConv) : undefined}
+                sub={todaySub(signins)}
+                tone={signins.length > 0 ? 'pos' : 'default'}
+                sparkline={mobile || signins.length === 0 ? undefined : signinsCum}
                 sparkline2={mobile ? undefined : loginRateData}
                 sparkFormat2={(v) => `${v}%`}
                 spark2Domain={[0, 100]}
                 dualScale
               />
               <LStat
-                label="재사용 (2일+)"
-                title="서로 다른 2일 이상 AI를 쓴 사용자 누적 — 첫 사용 후 다시 돌아온 잔존 신호. 전환 시점 = 두 번째 활동일. 점선 = 재사용률(AI 사용자 대비)."
-                value={repeatDates.length.toLocaleString()}
-                valueExtra={rateExtra('전환', repeatConv)}
-                sub={`오늘 ${countToday(repeatDates).toLocaleString()}명 · 7일 ${count7(repeatDates).toLocaleString()}명`}
-                tone={repeatConv >= 30 ? 'pos' : 'warn'}
-                sparkline={mobile ? undefined : repeatCum}
-                sparkline2={mobile ? undefined : repeatRateData}
+                label="드라이브 연동"
+                title="Google Drive 연동(원장 저장소)까지 마친 기기 누적 (portle_app_events: drive_linked). 전환 = 구글 로그인 대비."
+                value={driveLinks.length > 0 ? driveLinks.length.toLocaleString() : '—'}
+                valueExtra={driveConv !== null ? rateExtra('전환', driveConv) : undefined}
+                sub={driveLinks.length > 0 ? todaySub(driveLinks) : PENDING_APP}
+                sparkline={mobile || driveLinks.length === 0 ? undefined : driveCum}
+                sparkline2={mobile ? undefined : driveRateData}
                 sparkFormat2={(v) => `${v}%`}
                 spark2Domain={[0, 100]}
                 dualScale
               />
               <LStat
-                label="구독"
-                title="portle_entitlements 중 만료 전 구독 (Apple/Google IAP). 결제율 = 구독 ÷ AI 사용자."
-                value={totals.activeEntitlements.toLocaleString()}
-                valueExtra={rateExtra('결제', subConv)}
-                sub="스토어 IAP 기준"
-                tone={totals.activeEntitlements > 0 ? 'pos' : 'default'}
+                label="시트 활성화"
+                title="원장 시트를 만들어 실제 기록을 시작한 기기 누적 (portle_app_events: sheet_activated). 전환 = 드라이브 연동 대비."
+                value={sheetActivations.length > 0 ? sheetActivations.length.toLocaleString() : '—'}
+                valueExtra={sheetConv !== null ? rateExtra('전환', sheetConv) : undefined}
+                sub={sheetActivations.length > 0 ? todaySub(sheetActivations) : PENDING_APP}
+                sparkline={mobile || sheetActivations.length === 0 ? undefined : sheetCum}
+                sparkline2={mobile ? undefined : sheetRateData}
+                sparkFormat2={(v) => `${v}%`}
+                spark2Domain={[0, 100]}
+                dualScale
               />
               <LStat
-                label="공유 시트"
-                title="단축코드로 공유된 원장 시트 수 (portle_short_codes) — 사용자가 만든 유입 루프."
-                value={totals.sharedSheets.toLocaleString()}
-                sub="단축코드 발급 기준"
+                label="구독 가입"
+                title="portle_entitlements 중 만료 전 구독 (Apple/Google IAP). 결제율 = 구독 ÷ 시트 활성화 (활성화 수집 전엔 미표시)."
+                value={totals.activeEntitlements.toLocaleString()}
+                valueExtra={subConv !== null ? rateExtra('결제', subConv) : undefined}
+                sub="스토어 IAP 기준"
+                tone={totals.activeEntitlements > 0 ? 'pos' : 'default'}
               />
             </div>
             {/* 일별 AI 호출 — 1열 모드는 우측 전체높이, 그 외(2열·모바일) 타일 아래 전체폭 */}
@@ -477,7 +502,14 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           const todayCalls = todayRow ? todayRow.success + todayRow.empty + todayRow.failure : 0
           const todayRate = todayCalls > 0 && todayRow ? rate(todayRow.success, todayCalls) : null
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8, marginBottom: 10 }}>
+              <LStat
+                label="AI 사용자"
+                title="AI를 한 번이라도 호출한 subject 누적 (google 로그인 + device 기기 — 기기 사용자도 정상 경로)."
+                value={totals.subjects.toLocaleString()}
+                sub={`오늘 ${totals.subjectsToday.toLocaleString()}명 · 7일 ${totals.subjects7d.toLocaleString()}명`}
+                tone="info"
+              />
               <LStat
                 label="AI 호출"
                 title="portle_ai_usage 누적 호출 수 (에코 뉴스 · 거래 입력 · 규칙 번역). 스파크라인은 누적."
@@ -498,6 +530,12 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 title="AI 호출 입력+출력 토큰 누적."
                 value={formatTokens(totals.inputTokens + totals.outputTokens)}
                 sub={`입력 ${formatTokens(totals.inputTokens)} · 출력 ${formatTokens(totals.outputTokens)}`}
+              />
+              <LStat
+                label="공유 시트"
+                title="단축코드로 공유된 원장 시트 수 (portle_short_codes) — 사용자가 만든 유입 루프."
+                value={totals.sharedSheets.toLocaleString()}
+                sub="단축코드 발급 기준"
               />
             </div>
           )
