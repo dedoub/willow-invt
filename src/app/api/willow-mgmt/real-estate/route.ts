@@ -821,6 +821,126 @@ export async function GET(request: Request) {
       return NextResponse.json({ trend })
     }
 
+    if (type === 'market-cap') {
+      // 시가총액: 평형별 세대수 × 공급면적(평) × 평당가 (re_complex_pyeongs 기반).
+      // 면적이 상수라 단지 하나의 곡선은 평당가 추이와 같다 — 이 차트의 의미는
+      // 대형 단지·대형 평형에 가중치가 실린 "합산" 가치 흐름.
+      // 평형 필터(areaRange)는 다른 차트처럼 밴드 단위로 그대로 적용된다.
+      const bandFilter = areaRange === '20' ? 20 : areaRange === '30' ? 30 : areaRange === '40' ? 40 : areaRange === '50' ? 50 : areaRange === '60+' ? 60 : null
+      function getBandM(py: number): number { return py < 30 ? 20 : py < 40 ? 30 : py < 50 ? 40 : py < 60 ? 50 : 60 }
+
+      const { data: pyeongRows } = await supabase
+        .from('re_complex_pyeongs')
+        .select('complex_name, supply_sqm, household_count')
+        .in('complex_name', complexNames)
+        .gt('household_count', 0)
+
+      // 밴드별 총 공급면적(평): "complex|band" → 평
+      const bandPy: Record<string, number> = {}
+      for (const p of pyeongRows || []) {
+        const supply = Number(p.supply_sqm)
+        if (!(supply > 0)) continue
+        const py = supply / 3.3058
+        if (py < 20) continue
+        const band = getBandM(py)
+        if (bandFilter && band !== bandFilter) continue
+        const key = `${p.complex_name}|${band}`
+        bandPy[key] = (bandPy[key] || 0) + py * Number(p.household_count)
+      }
+      const capKeys = Object.keys(bandPy)
+      if (capKeys.length === 0) return NextResponse.json({ trend: [], complexCount: 0, unit: '조원' })
+
+      // 일별 최저호가 평당가 (complex|band 단위)
+      let summaryQuery = supabase
+        .from('re_listing_daily_summary')
+        .select('snapshot_date, complex_name, area_band, min_ppp')
+        .eq('trade_type', '매매')
+        .in('complex_name', complexNames)
+        .order('snapshot_date', { ascending: true })
+      if (bandFilter) summaryQuery = summaryQuery.eq('area_band', bandFilter)
+      else summaryQuery = summaryQuery.gte('area_band', 20)
+      const summaryData = await fetchAll(summaryQuery)
+
+      const dateSet = new Set<string>()
+      const bandMin: Record<string, Record<string, number>> = {} // date → "complex|band" → min_ppp
+      for (const row of summaryData || []) {
+        dateSet.add(row.snapshot_date)
+        if (!bandMin[row.snapshot_date]) bandMin[row.snapshot_date] = {}
+        const key = `${row.complex_name}|${row.area_band}`
+        const prev = bandMin[row.snapshot_date][key]
+        if (prev === undefined || row.min_ppp < prev) bandMin[row.snapshot_date][key] = row.min_ppp
+      }
+      const dates = [...dateSet].sort()
+      if (dates.length === 0) return NextResponse.json({ trend: [], complexCount: 0, unit: '조원' })
+
+      // 실거래: 각 날짜의 직전 1개월 창 평균 평당가 (complex|band 단위)
+      const areaMapping = await getAreaMapping()
+      const tradeCutoff = subtractCalendarMonth(dates[0])
+      const actuals = await fetchAll(
+        supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date')
+          .gte('deal_date', tradeCutoff).eq('cancel_yn', 'N').in('complex_name', complexNames)
+      )
+      const tradeEntries = (actuals || []).map(t => {
+        const sqm = Number(t.area_sqm)
+        if (sqm <= 0) return null
+        const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
+        if (supplyPy < 20 || !matchesSupplyArea(supplyPy)) return null
+        const ppp = Number(t.deal_amount) / supplyPy
+        if (ppp <= 0) return null
+        return { key: `${t.complex_name}|${getBandM(supplyPy)}`, ppp, dealDate: t.deal_date }
+      }).filter((e): e is { key: string; ppp: number; dealDate: string } => e !== null)
+
+      // 두 라인이 같은 (단지×밴드) 집합을 합산해야 비교 가능하다 — 값이 없는
+      // 날은 직전 값을 유지(forward-fill)하고, 둘 다 값이 있는 키만 합산한다.
+      const listingPpp: Record<string, number> = {}
+      const actualPpp: Record<string, number> = {}
+      const rawTrend: { date: string; actualValue: number; listingValue: number; keys: string[] }[] = []
+
+      for (const d of dates) {
+        for (const [key, minPpp] of Object.entries(bandMin[d] || {})) listingPpp[key] = minPpp
+
+        const windowStart = subtractCalendarMonth(d)
+        const windowPpps: Record<string, number[]> = {}
+        for (const e of tradeEntries) {
+          if (e.dealDate >= windowStart && e.dealDate <= d) {
+            if (!windowPpps[e.key]) windowPpps[e.key] = []
+            windowPpps[e.key].push(e.ppp)
+          }
+        }
+        for (const [key, ppps] of Object.entries(windowPpps)) {
+          const actual = getFilteredActualAverage(ppps, listingPpp[key] ?? null)
+          if (actual) actualPpp[key] = actual.avg
+        }
+
+        let actualSum = 0, listingSum = 0
+        const included: string[] = []
+        for (const key of capKeys) {
+          const a = actualPpp[key]
+          const l = listingPpp[key]
+          if (a === undefined || l === undefined) continue
+          actualSum += a * bandPy[key]
+          listingSum += l * bandPy[key]
+          included.push(key)
+        }
+        if (included.length > 0) rawTrend.push({ date: d, actualValue: actualSum, listingValue: listingSum, keys: included })
+      }
+
+      // 포함 (단지×밴드) 수가 늘어나는 초기 구간은 합계가 계단식으로 튄다 —
+      // 커버리지가 최대에 도달한 시점부터만 그린다.
+      const maxCnt = rawTrend.reduce((m, r) => Math.max(m, r.keys.length), 0)
+      const covered = rawTrend.filter(r => r.keys.length === maxCnt)
+      const complexCount = covered.length > 0
+        ? new Set(covered[covered.length - 1].keys.map(k => k.split('|')[0])).size
+        : 0
+      const trend = covered.map(r => ({
+        date: r.date,
+        actualValue: Math.round((r.actualValue / 1e8) * 100) / 100, // 만원 → 조원
+        listingValue: Math.round((r.listingValue / 1e8) * 100) / 100,
+      }))
+
+      return NextResponse.json({ trend, complexCount, unit: '조원' })
+    }
+
     return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })

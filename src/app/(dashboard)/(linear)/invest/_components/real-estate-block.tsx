@@ -77,6 +77,17 @@ interface ReJeonseRatio {
   ratio: number | null
 }
 
+interface ReMarketCapPoint {
+  date: string
+  actualValue: number // 조원
+  listingValue: number // 조원
+}
+
+interface ReMarketCap {
+  trend: ReMarketCapPoint[]
+  complexCount: number
+}
+
 /* ── Constants ── */
 
 const ALL_DISTRICTS = ['강남구', '서초구', '송파구'] as const
@@ -255,6 +266,44 @@ function ListingPriceChart({ data, complexes, height = 200 }: {
             strokeWidth={1.5} dot={false} connectNulls
           />
         ))}
+      </ComposedChart>
+    </ResponsiveContainer>
+  )
+}
+
+// 합산 시가총액 추이 — 평형별 세대수 × 공급면적(평) × 평당가를 (단지×평형밴드)로 합산.
+// 실거래(1개월 창 평균)와 최저호가 두 라인을 절대금액(조원)으로 비교한다.
+function MarketCapChart({ data, height = 200 }: { data: ReMarketCapPoint[]; height?: number }) {
+  if (!data.length) return <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
+        <XAxis
+          dataKey="date" tickFormatter={fmtDate}
+          tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
+          axisLine={false} tickLine={false} interval="preserveStartEnd"
+        />
+        {/* 합산 가치도 좁은 범위에서 움직인다 — 데이터 범위에 맞춘다 */}
+        <YAxis
+          domain={['auto', 'auto']}
+          tickFormatter={(v: number) => `${v.toFixed(1)}조`}
+          tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
+          axisLine={false} tickLine={false} width={44}
+        />
+        <Tooltip
+          contentStyle={tooltipStyle}
+          labelFormatter={(v) => String(v)}
+          formatter={(value, name) => [`${Number(value).toFixed(2)}조원`, name]}
+        />
+        <Line
+          type="monotone" dataKey="actualValue" name="실거래 기준"
+          stroke="#6366f1" strokeWidth={1.5} dot={false} connectNulls
+        />
+        <Line
+          type="monotone" dataKey="listingValue" name="최저호가 기준"
+          stroke="#f97316" strokeWidth={1.5} dot={false} connectNulls
+        />
       </ComposedChart>
     </ResponsiveContainer>
   )
@@ -462,6 +511,7 @@ export function RealEstateBlock() {
   const [reJeonseRatio, setReJeonseRatio] = useState<ReJeonseRatio[]>([])
   const [reListingTrend, setReListingTrend] = useState<ReTrend | null>(null)
   const [reListingTrendJeonse, setReListingTrendJeonse] = useState<ReTrend | null>(null)
+  const [reMarketCap, setReMarketCap] = useState<ReMarketCap | null>(null)
 
   /* ── Per-section loading flags ── */
   const [loadingSummary, setLoadingSummary] = useState(true)
@@ -472,6 +522,7 @@ export function RealEstateBlock() {
   const [loadingTrendTrade, setLoadingTrendTrade] = useState(true)
   const [loadingTrendJeonse, setLoadingTrendJeonse] = useState(true)
   const [loadingJeonseRatio, setLoadingJeonseRatio] = useState(true)
+  const [loadingMarketCap, setLoadingMarketCap] = useState(true)
 
   /* ── Table sort/page state ── */
   const [tradeSortKey, setTradeSortKey] = useState<SortKey>('listingMinPpp')
@@ -507,6 +558,7 @@ export function RealEstateBlock() {
     setLoadingTrendTrade(true)
     setLoadingTrendJeonse(true)
     setLoadingJeonseRatio(true)
+    setLoadingMarketCap(true)
 
     const stale = () => loadGenRef.current !== gen
 
@@ -565,6 +617,12 @@ export function RealEstateBlock() {
       setReJeonseRatio(d.trend || [])
       setLoadingJeonseRatio(false)
     }).catch(() => { if (!stale()) setLoadingJeonseRatio(false) })
+
+    fetch(`${base}?type=market-cap&${baseParams}`).then(r => r.json()).then(d => {
+      if (stale()) return
+      setReMarketCap(d.trend ? d : null)
+      setLoadingMarketCap(false)
+    }).catch(() => { if (!stale()) setLoadingMarketCap(false) })
   }, [baseParams])
 
   useEffect(() => {
@@ -1034,6 +1092,29 @@ export function RealEstateBlock() {
             <div style={innerCard}>
               <ChartHeader title="매매 괴리율 추이" />
               <GapChart data={reListingTrend?.trend || []} />
+            </div>
+            )}
+
+            {/* 합산 시가총액 추이 — 실거래 vs 최저호가, 단지 총면적 가중 */}
+            {loadingMarketCap ? <ChartSkeleton /> : (
+            <div style={innerCard}>
+              <ChartHeader title="합산 시가총액 추이" />
+              <MarketCapChart data={reMarketCap?.trend || []} />
+              {(reMarketCap?.trend?.length ?? 0) > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 8px', marginTop: 4 }}>
+                  <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
+                    실거래 기준
+                  </span>
+                  <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
+                    최저호가 기준
+                  </span>
+                  <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle, marginLeft: 'auto' }}>
+                    {reMarketCap?.complexCount}개 단지 · 평형별 세대수 × 공급면적
+                  </span>
+                </div>
+              )}
             </div>
             )}
 
