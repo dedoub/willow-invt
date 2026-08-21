@@ -75,6 +75,7 @@ async function fetchAppFunnel(): Promise<Omit<PortleAppFunnel, 'signins'> & { si
       return empty
     }
     for (const row of data ?? []) {
+      if (isTestPeriod(row.created_at)) continue // 출시 전 = 로컬 테스트
       const key = `${row.event}\n${row.device_id}`
       if (!firstAt.has(key)) firstAt.set(key, kstDateKey(row.created_at))
     }
@@ -97,6 +98,23 @@ function subjectType(subject: string): PortleUserRow['type'] {
   if (subject.startsWith('google:')) return 'google'
   if (subject.startsWith('device:')) return 'device'
   return 'other'
+}
+
+// ── 관리자·테스트 제외 (voicecards-server의 EXCLUDED_* 와 같은 역할) ──────────────
+// 관리자(CEO) subject — AI 사용·구독·공유코드 전부 통계에서 뺀다.
+const EXCLUDED_PORTLE_SUBJECTS = new Set(['google:100644446554227652222'])
+// 스토어 출시(1.0.0) 전 데이터는 전부 로컬 테스트 트래픽:
+// 8/20 device subject 41개(호출 1건씩), 8/21~8/22 02:18 KST 앱 이벤트 기기 340여 개 모두
+// 시뮬레이터/자동화 테스트(밀리초 간격 버스트). 이 시각 이전은 통째로 제외한다.
+// 출시 후 로컬 테스트는 관리자 계정으로 로그인해서 하거나 EXCLUDED_PORTLE_SUBJECTS 에 추가할 것.
+const PORTLE_TEST_CUTOFF_MS = Date.parse('2026-08-22T03:00:00+09:00')
+
+function isTestPeriod(createdAt: string): boolean {
+  return new Date(createdAt).getTime() < PORTLE_TEST_CUTOFF_MS
+}
+
+function isExcludedUsage(subject: string, createdAt: string): boolean {
+  return EXCLUDED_PORTLE_SUBJECTS.has(subject) || isTestPeriod(createdAt)
 }
 
 export async function getPortleStats(): Promise<PortleStats> {
@@ -122,6 +140,7 @@ export async function getPortleStats(): Promise<PortleStats> {
   const now = Date.now()
   const entitlements = new Map<string, PortleEntitlement>()
   for (const e of entitlementsRes.data ?? []) {
+    if (EXCLUDED_PORTLE_SUBJECTS.has(e.subject)) continue
     entitlements.set(e.subject, {
       subject: e.subject, store: e.store, productId: e.product_id,
       expiresAt: e.expires_at, updatedAt: e.updated_at,
@@ -129,10 +148,14 @@ export async function getPortleStats(): Promise<PortleStats> {
     })
   }
 
+  // owner_sub는 subject에서 접두사를 뗀 bare id — 제외 판정 시 google: 접두사를 붙여 비교한다.
   const sheetsByOwner = new Map<string, number>()
+  let sharedSheetsCount = 0
   for (const s of shortCodesRes.data ?? []) {
     if (!s.owner_sub) continue
+    if (EXCLUDED_PORTLE_SUBJECTS.has(s.owner_sub) || EXCLUDED_PORTLE_SUBJECTS.has(`google:${s.owner_sub}`)) continue
     sheetsByOwner.set(s.owner_sub, (sheetsByOwner.get(s.owner_sub) ?? 0) + 1)
+    sharedSheetsCount++
   }
 
   const today = kstToday()
@@ -151,6 +174,7 @@ export async function getPortleStats(): Promise<PortleStats> {
 
   for (const row of usage) {
     const subject = row.subject || 'unknown'
+    if (isExcludedUsage(subject, row.created_at)) continue
     const kind = row.kind || 'unknown'
     const outcome = row.outcome || 'failure'
     const day = kstDateKey(row.created_at)
@@ -252,7 +276,7 @@ export async function getPortleStats(): Promise<PortleStats> {
       successRate7d: pct(success7d, total7d),
       inputTokens, outputTokens,
       activeEntitlements: Array.from(entitlements.values()).filter(e => e.active).length,
-      sharedSheets: (shortCodesRes.data ?? []).length,
+      sharedSheets: sharedSheetsCount,
     },
     daily: dailyOut,
     byKind: Array.from(byKind.values())
