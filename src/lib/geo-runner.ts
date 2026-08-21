@@ -16,12 +16,14 @@ const BRAND_RE: Record<string, RegExp> = {
   voicecards: /voice\s*cards?|voicecards\.quest/i,
   reviewnotes: /review\s*notes?|reviewnotes\.app/i,
   valuechain: /value\s*chain(\.wiki)?/i,
+  portle: /\bportle\b|portle\.quest/i,
 }
 
 const OUR_DOMAIN: Record<string, string> = {
   voicecards: 'voicecards.quest',
   reviewnotes: 'reviewnotes.app',
   valuechain: 'valuechain.wiki',
+  portle: 'portle.quest',
 }
 
 /** 경쟁사 목록은 질문 세트와 함께 관리한다. 여기서는 답변에 등장했는지만 본다 */
@@ -31,6 +33,9 @@ const COMPETITORS: Record<string, string[]> = {
   reviewnotes: ['quizlet', 'anki', 'notion', 'knowt', 'gizmo', 'revisely', 'studyfetch', 'quizgecko', 'conker',
     'mindgrasp', 'turbolearn', 'monic', 'wisdolia', 'kahoot', 'khan academy', 'ixl'],
   valuechain: [],
+  portle: ['sharesight', 'getquin', 'delta', 'snowball analytics', 'kubera', 'stock events', 'portfolio performance',
+    'ghostfolio', 'wealthfolio', 'tiller', 'wisesheets', 'empower', 'personal capital', 'simply wall st',
+    'yahoo finance', 'google finance'],
 }
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))

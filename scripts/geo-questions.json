@@ -1,5 +1,5 @@
 {
-  "_doc": "GEO 측정용 비브랜드 질문 세트. 질문 문구는 다듬어도 id는 절대 바꾸지 말 것 — id가 주간 추세를 잇는 키다. 브랜드명(VoiceCards/ReviewNotes)은 넣지 않는다. 넣는 순간 '우리를 아는 사람의 질문'이 되어 GEO 측정이 아니게 된다.",
+  "_doc": "GEO 측정용 비브랜드 질문 세트. 질문 문구는 다듬어도 id는 절대 바꾸지 말 것 — id가 주간 추세를 잇는 키다. 브랜드명(VoiceCards/ReviewNotes/Portle)은 넣지 않는다. 넣는 순간 '우리를 아는 사람의 질문'이 되어 GEO 측정이 아니게 된다.",
   "voicecards": {
     "our_domains": ["voicecards.quest"],
     "competitors": ["anki", "quizlet", "brainscape", "memrise", "supermemo", "remnote", "mochi", "audioflash", "audio-flashcards", "mintdeck", "flashcardify", "studley", "speechling", "duolingo", "tarteel", "quranly", "iqra"],
@@ -70,6 +70,42 @@
       { "id": "rn-es-02", "q": "¿Cómo hago un repaso espaciado antes de un examen?" },
       { "id": "rn-vi-01", "q": "Ứng dụng nào giúp quản lý sổ ghi lỗi sai khi học?" },
       { "id": "rn-pt-01", "q": "Qual app transforma minhas anotações em questões de prova?" }
+    ]
+  },
+  "portle": {
+    "our_domains": ["portle.quest"],
+    "competitors": ["sharesight", "getquin", "delta", "snowball analytics", "kubera", "stock events", "portfolio performance", "ghostfolio", "wealthfolio", "tiller", "wisesheets", "empower", "personal capital", "simply wall st", "yahoo finance", "google finance"],
+    "questions": [
+      { "id": "pt-sheet-01", "q": "How do I track my stock portfolio in Google Sheets?" },
+      { "id": "pt-sheet-02", "q": "What is the best Google Sheets template for tracking investments?" },
+      { "id": "pt-sheet-03", "q": "Is there an app that syncs with a Google Sheets portfolio tracker?" },
+      { "id": "pt-sheet-04", "q": "How can I see my Google Sheets stock portfolio on my phone?" },
+      { "id": "pt-sheet-05", "q": "Can I use a spreadsheet as the source of truth for my investment portfolio?" },
+      { "id": "pt-alt-01", "q": "What are the best alternatives to portfolio tracker apps that lock my data in?" },
+      { "id": "pt-alt-02", "q": "Is there a portfolio tracking app where I keep my own data in a spreadsheet?" },
+      { "id": "pt-alt-03", "q": "What is a good portfolio tracker that doesn't require linking my brokerage account?" },
+      { "id": "pt-ledger-01", "q": "How do I keep an investment ledger of all my trades?" },
+      { "id": "pt-ledger-02", "q": "What is the best way to record buys, sells, dividends, and fees in one place?" },
+      { "id": "pt-ledger-03", "q": "How should a long-term investor keep records of every trade?" },
+      { "id": "pt-import-01", "q": "How do I import broker CSV exports into Google Sheets?" },
+      { "id": "pt-import-02", "q": "What is the best way to map brokerage transaction exports into a spreadsheet?" },
+      { "id": "pt-import-03", "q": "How can I consolidate trades from multiple brokers into one spreadsheet?" },
+      { "id": "pt-check-01", "q": "How do I find duplicate or missing trades in my portfolio records?" },
+      { "id": "pt-check-02", "q": "How can I reconcile my spreadsheet portfolio with my broker statements?" },
+      { "id": "pt-check-03", "q": "Why don't my portfolio tracker numbers match my brokerage account, and how do I audit the difference?" },
+      { "id": "pt-rules-01", "q": "What app helps me check whether I'm following my own investing rules?" },
+      { "id": "pt-rules-02", "q": "How do I monitor target allocation weights and rebalancing drift for my portfolio?" },
+      { "id": "pt-rules-03", "q": "How can I enforce cash limits and position size rules in my investing?" },
+      { "id": "pt-review-01", "q": "How can I review what my portfolio looked like during past drawdowns?" },
+      { "id": "pt-review-02", "q": "Is there a tool that shows when my portfolio was in a similar state before?" },
+      { "id": "pt-review-03", "q": "How do I review my past investment decisions to improve my process?" },
+      { "id": "pt-tax-01", "q": "What is the best app for tracking a portfolio across multiple currencies and tax countries?" },
+      { "id": "pt-tax-02", "q": "How do I track realized gains for taxes in a spreadsheet?" },
+      { "id": "pt-tax-03", "q": "What portfolio tracker works well for investors outside the US?" },
+      { "id": "pt-ko-01", "q": "구글 시트로 주식 포트폴리오를 관리하는 좋은 방법이 있을까?" },
+      { "id": "pt-ko-02", "q": "매매일지를 스프레드시트로 기록하고 앱에서 볼 수 있는 방법 있어?" },
+      { "id": "pt-ko-03", "q": "증권사 거래내역을 구글 시트에 정리해서 관리하려면 어떻게 해?" },
+      { "id": "pt-ja-01", "q": "グーグルスプレッドシートで株式ポートフォリオを管理するおすすめの方法は？" }
     ]
   }
 }

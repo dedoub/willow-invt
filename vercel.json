@@ -74,6 +74,30 @@
     {
       "path": "/api/cron/geo-measure?site=reviewnotes&run=3&part=2&parts=2",
       "schedule": "50 20 * * 6"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=portle&run=1&part=1&parts=2",
+      "schedule": "10 21 * * 1"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=portle&run=1&part=2&parts=2",
+      "schedule": "30 21 * * 1"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=portle&run=2&part=1&parts=2",
+      "schedule": "10 21 * * 3"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=portle&run=2&part=2&parts=2",
+      "schedule": "30 21 * * 3"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=portle&run=3&part=1&parts=2",
+      "schedule": "10 21 * * 5"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=portle&run=3&part=2&parts=2",
+      "schedule": "30 21 * * 5"
     }
   ]
 }

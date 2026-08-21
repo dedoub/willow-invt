@@ -69,7 +69,7 @@ async function loadQuestions(site) {
 const argv = process.argv.slice(2)
 const pinnedRun = Number((argv.find(a => a.startsWith('--run=')) || '').slice(6)) || null
 const [siteArg, engineArg, runsArg] = argv.filter(a => !a.startsWith('--'))
-const SITES = siteArg ? [siteArg] : ['voicecards', 'reviewnotes']
+const SITES = siteArg ? [siteArg] : ['voicecards', 'reviewnotes', 'portle']
 const RUNS = Number(runsArg || 3)
 // 회차 번호 공간을 갈라 쓴다. 크론(vercel.json)은 요일별로 1·2·3을 확정적으로 쓰므로,
 // 수동 실행이 빈 번호를 앞에서부터 채우면 그 주 크론이 나중에 같은 번호를 다시 덮는다.
@@ -112,6 +112,7 @@ async function nextRunNo(site, engine) {
 const BRAND_RE = {
   voicecards: /voice\s*cards?|voicecards\.quest/i,
   reviewnotes: /review\s*notes?|reviewnotes\.app/i,
+  portle: /\bportle\b|portle\.quest/i,
 }
 
 /**
