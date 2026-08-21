@@ -233,7 +233,9 @@ function ListingPriceChart({ data, complexes, height = 200 }: {
           tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
           axisLine={false} tickLine={false} interval="preserveStartEnd"
         />
+        {/* 호가는 좁은 범위에서 움직인다 — 0부터 그리면 평평해 보여서 데이터 범위에 맞춘다 */}
         <YAxis
+          domain={['auto', 'auto']}
           tickFormatter={(v: number) => `${Math.round(v).toLocaleString()}`}
           tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
           axisLine={false} tickLine={false} width={50}
