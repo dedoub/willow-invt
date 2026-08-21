@@ -242,7 +242,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, style }: Car
         <LSectionHead
           eyebrow={eyebrow}
           title="카드승인내역"
-          action={
+          tools={
             <LSegmented
               value={periodMode}
               onChange={changeMode}

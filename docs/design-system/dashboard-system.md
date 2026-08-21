@@ -114,14 +114,21 @@ Use once per block. `eyebrow` is allowed only when a block needs a stable catego
 
 Responsive behavior is built in — call sites do not handle it:
 
-- Desktop: when the action is wider than the remaining space, it drops below the title (right-aligned) instead of squeezing it.
-- Mobile: title and action always share the first line; `meta` moves to its own full-width line below the header. Wide action content wraps inside its own box.
-- The title is single-line and truncates with an ellipsis when it overflows (full text via tooltip). Never relies on multi-line titles.
+- Title + `action` always share the first line, on every screen. `action` never shrinks; the title truncates with an ellipsis when it overflows (full text via tooltip).
+- `tools` (wide controls) sit left of `action` on desktop and drop to their own right-aligned line below the header on mobile.
+- `meta` sits next to the title on desktop and moves to its own full-width line below on mobile.
+- `note` chip is hidden on mobile.
 
-Do not add `whiteSpace: nowrap` containers inside `action` expecting them to shrink.
+Slot decision table:
 
-- `meta`: values that must always be visible (period, counts). Next to the title on desktop, own line below on mobile.
-- `note`: supplementary explanation chip (data source, aggregation caveat). Hidden on mobile — never put must-see info here.
+| Slot | Contents | Placement |
+|---|---|---|
+| `action` | small pinned controls — LHeadBtn refresh/settings/links, count spans, one small toggle | always title line, right |
+| `tools` | width-hungry controls — LSegmented, selects, search inputs, filter chips, labeled button groups | desktop: inline left of action · mobile: own line below |
+| `meta` | must-see values (period, counts) | desktop: beside title · mobile: line below |
+| `note` | supplementary explanation chip | desktop only |
+
+All control text (buttons, segmented, selects, search inputs, filter chips) uses one token: `t.type.control`. Never hardcode 10/10.5/11/11.5/12px on a control.
 
 ```tsx
 <LSectionHead

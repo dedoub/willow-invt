@@ -35,7 +35,7 @@
 ### Layout
 
 - `LCard`: 기본 블록 컨테이너
-- `LSectionHead`: 섹션 제목, 보조 메타(`meta`), 정보 칩(`note`, 모바일 숨김), 우측 액션. 액션이 넓으면 아랫줄로 줄바꿈
+- `LSectionHead`: 섹션 제목 + 보조 메타(`meta`) + 정보 칩(`note`) + 고정 액션(`action`) + 보조 컨트롤(`tools`). 제목·액션은 항상 첫 줄 고정, tools/meta는 모바일에서 아랫줄. 컨트롤 폰트는 `t.type.control` 단일 토큰
 - `LHeadBtn`: 섹션 헤더 우측 컨트롤의 단일 프리미티브 (28px 정사각, 아이콘/라벨/외부링크/busy). 헤더에 로컬 버튼 복제 금지
 - 직접 grid/flex layout: 페이지 조립용. 토큰의 `t.density`를 우선 사용
 

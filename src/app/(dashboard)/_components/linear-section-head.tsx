@@ -14,12 +14,21 @@ interface LSectionHeadProps {
    * 모바일에서는 숨긴다 — 꼭 보여야 하는 정보면 note가 아니라 meta로 넣을 것.
    */
   note?: ReactNode
+  /**
+   * 기본 컨트롤 — 새로고침·설정·외부링크 같은 작은 LHeadBtn 묶음.
+   * 항상 제목과 같은 줄 우측에 고정된다. 부피 큰 컨트롤은 tools로.
+   */
   action?: ReactNode
+  /**
+   * 보조 컨트롤 — 세그먼트·셀렉트·검색창·필터칩처럼 폭을 먹는 것들.
+   * 데스크톱은 액션 왼쪽에 서고(넘치면 내부 줄바꿈), 모바일은 통째로 아랫줄로 내려간다.
+   */
+  tools?: ReactNode
   /** 하단 여백 override. 미지정 시 기본값(t.density.gapMd). */
   mb?: number
 }
 
-export function LSectionHead({ eyebrow, title, meta, note, action, mb }: LSectionHeadProps) {
+export function LSectionHead({ eyebrow, title, meta, note, action, tools, mb }: LSectionHeadProps) {
   const mobile = useIsMobile()
   const showNote = !!note && !mobile
   const metaStyle: React.CSSProperties = {
@@ -28,12 +37,11 @@ export function LSectionHead({ eyebrow, title, meta, note, action, mb }: LSectio
   }
   return (
     <div style={{ marginBottom: mb ?? t.density.gapMd }}>
+      {/* 1행: 제목 + 기본 컨트롤(action) — 어떤 화면에서도 이 줄은 깨지지 않는다.
+          제목은 넘치면 줄임표, action은 flexShrink 0. tools는 데스크톱만 이 줄에 합류. */}
       <div style={{
         display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: t.density.kpiGap,
-        // 모바일: 제목과 우측 버튼은 항상 같은 줄 — meta는 아랫줄로 빠지므로(아래) 제목이 액션과
-        //   자리를 다투지 않고, 넓은 액션(칩 묶음 등)은 자기 박스 안에서 줄바꿈한다(minWidth 0).
-        // 데스크톱: 액션이 넓으면 제목을 짓누르는 대신 아랫줄로 내려간다.
-        flexWrap: mobile ? 'nowrap' : 'wrap',
+        flexWrap: 'nowrap',
       }}>
         <div style={{ flex: '1 1 auto', minWidth: 0 }}>
           {eyebrow && (
@@ -55,7 +63,7 @@ export function LSectionHead({ eyebrow, title, meta, note, action, mb }: LSectio
             {meta && !mobile && <div style={metaStyle}>{meta}</div>}
           </div>
         </div>
-        {(action || showNote) && (
+        {(action || showNote || (tools && !mobile)) && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap',
             justifyContent: 'flex-end', marginLeft: 'auto', maxWidth: '100%', minWidth: 0,
@@ -68,10 +76,18 @@ export function LSectionHead({ eyebrow, title, meta, note, action, mb }: LSectio
                 maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{note}</span>
             )}
-            {action}
+            {!mobile && tools}
+            {action && <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexShrink: 0 }}>{action}</div>}
           </div>
         )}
       </div>
+      {/* 모바일 tools — 버튼이 많으면 첫 줄을 다투는 대신 통째로 아랫줄 우측 정렬 */}
+      {tools && mobile && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap',
+          justifyContent: 'flex-end', marginTop: 6,
+        }}>{tools}</div>
+      )}
       {/* 모바일 meta — 제목 옆이 아니라 헤더 아랫줄 전체 폭으로 */}
       {meta && mobile && <div style={{ ...metaStyle, marginTop: 3 }}>{meta}</div>}
     </div>
@@ -87,7 +103,7 @@ export function LSectionHead({ eyebrow, title, meta, note, action, mb }: LSectio
 interface LHeadBtnProps {
   /** LIcon 이름. label만 있는 버튼(예: 'GSC')은 생략 가능. */
   icon?: string
-  /** 짧은 텍스트 라벨(mono 9.5px). 아이콘 없이 쓸 수도 있다. */
+  /** 짧은 텍스트 라벨(t.type.control). 아이콘 없이 쓸 수도 있다. */
   label?: ReactNode
   /** 툴팁 겸 접근성 라벨 — 아이콘만 있는 버튼에는 반드시 넣을 것 */
   title?: string
@@ -105,7 +121,7 @@ export function LHeadBtn({ icon, label, title, onClick, href, busy }: LHeadBtnPr
     padding: label ? '0 8px' : 0, boxSizing: 'border-box',
     borderRadius: t.radius.sm, background: t.neutrals.inner, border: 'none',
     color: t.neutrals.muted, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1,
-    fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.3,
+    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
     textDecoration: 'none', whiteSpace: 'nowrap' as const,
   }
   const inner = (

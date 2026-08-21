@@ -166,7 +166,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
         <LSectionHead
           eyebrow="TAX INVOICES"
           title={mode === 'purchase' ? '매입관리' : '매출관리'}
-          action={
+          tools={
             <LSegmented
               value={mode}
               onChange={handleModeChange}

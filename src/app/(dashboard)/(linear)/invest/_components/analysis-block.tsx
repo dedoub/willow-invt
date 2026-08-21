@@ -608,7 +608,7 @@ export function AnalysisBlock({
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
-        <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" action={
+        <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" tools={
           <LSegmented value={viewMode} onChange={setViewMode} options={viewModes} />
         } />
       </div>

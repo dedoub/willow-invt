@@ -181,7 +181,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
-        <LSectionHead eyebrow="TRADES" title="매매기록" action={
+        <LSectionHead eyebrow="TRADES" title="매매기록" tools={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <LSegmented
               options={[
@@ -203,7 +203,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
                 placeholder={view === 'trades' ? '티커·종목명·증권사·메모' : '티커·종목명'}
                 style={{
                   border: 'none', background: 'transparent', outline: 'none',
-                  fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text, fontFamily: t.font.sans,
+                  fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.text, fontFamily: t.font.sans,
                   width: '100%',
                 }}
               />

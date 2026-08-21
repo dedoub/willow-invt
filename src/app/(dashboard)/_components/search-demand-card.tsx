@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from './linear-tokens'
 import { LCard } from './linear-card'
 import { LSectionHead, LHeadBtn } from './linear-section-head'
+import { LSegmented } from './linear-segmented'
 import { LStat } from './linear-stat'
 import { DataTable, type TableRow, panelStyle, panelTitle, EmptyLine } from './linear-data-table'
 import { formatCountryName } from '@/lib/country-format'
@@ -629,20 +630,14 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
     return m
   }, [data])
 
+  // 기간 토글 — 시스템 표준 세그먼트 (컨트롤 폰트 통일, 2026-08-21)
   const periodToggle = (
-    <div style={{ display: 'flex', gap: 2, background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 2 }}>
-      {PERIODS.map(p => (
-        <button key={p} onClick={() => setDays(p)}
-          style={{
-            ...mono(9.5), padding: '3px 7px', borderRadius: 3, border: 'none', cursor: 'pointer',
-            background: days === p ? t.neutrals.card : 'transparent',
-            color: days === p ? t.neutrals.text : t.neutrals.subtle,
-            fontWeight: days === p ? 600 : 400,
-          }}>
-          {p}일
-        </button>
-      ))}
-    </div>
+    <LSegmented
+      size="sm"
+      options={PERIODS.map(p => ({ value: String(p), label: `${p}일` }))}
+      value={String(days)}
+      onChange={v => setDays(Number(v) as Period)}
+    />
   )
 
   return (
@@ -656,9 +651,9 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
             eyebrow="SEARCH CONSOLE"
             title="검색 노출 → 클릭"
             meta={gsc ? `${gsc.range.startDate} ~ ${gsc.range.endDate} · 구글 집계 ${gsc.range.lagDays}일 지연` : undefined}
+            tools={periodToggle}
             action={
               <>
-                {periodToggle}
                 {gsc && <LHeadBtn label="GSC" title="Search Console" href={gsc.site.consoleUrl} />}
                 <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={() => load(days, true)} busy={refreshing} />
               </>

@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
@@ -112,7 +112,6 @@ function getStoredCashPageSize(): number {
 
 export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUpload, parsing, bankBalances = [], usdRate = 0, balanceHistory = [] }: CashBlockProps) {
   const mobile = useIsMobile()
-  const [dragOver, setDragOver] = useState(false)
   const [sortAsc, setSortAsc] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
@@ -281,7 +280,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         {/* Header: eyebrow+title left, period mode toggle right */}
-        <LSectionHead eyebrow={eyebrowLabel} title="현금관리" action={
+        <LSectionHead eyebrow={eyebrowLabel} title="현금관리" tools={
           <LSegmented
             value={periodMode}
             onChange={setPeriodMode}
@@ -291,6 +290,8 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
               { value: 'year', label: MODE_LABELS.year },
             ]}
           />
+        } action={
+          <LHeadBtn icon="file" title="은행 엑셀 업로드 (.xlsx .csv) — AI가 파싱해 반영" onClick={() => !parsing && fileInputRef.current?.click()} busy={parsing} />
         } />
 
         {/* Navigation — centered */}
@@ -403,47 +404,12 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
         </div>
       </div>
 
-      {/* Drop zone */}
+      {/* 파일 업로드 — 드롭존은 제거(2026-08-21 CEO), 헤더의 업로드 버튼이 이 hidden input을 연다 */}
       <input
         ref={fileInputRef} type="file" accept=".xlsx,.csv,.xls"
         style={{ display: 'none' }}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onFileUpload(f); e.target.value = '' }}
       />
-      <div
-        onClick={() => !parsing && fileInputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault(); setDragOver(false)
-          const f = e.dataTransfer.files?.[0]
-          if (f && !parsing) onFileUpload(f)
-        }}
-        style={{
-          margin: '0 16px 12px', padding: '12px 16px',
-          border: `1.5px dashed ${dragOver ? t.brand[600] : t.neutrals.line}`,
-          background: dragOver ? t.brand[50] : 'transparent',
-          borderRadius: t.radius.md, cursor: parsing ? 'wait' : 'pointer',
-          display: 'flex', alignItems: 'center', gap: 12,
-          transition: 'all .15s', opacity: parsing ? 0.6 : 1,
-        }}
-      >
-        <div style={{
-          width: 32, height: 32, borderRadius: 8,
-          background: t.brand[50], color: t.brand[700],
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <LIcon name="file" size={16} stroke={1.8} />
-        </div>
-        <div>
-          <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: 500 }}>
-            {parsing ? 'Gemini가 파싱 중...' : '은행 엑셀 파일을 드래그하거나 클릭'}
-          </div>
-          <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, marginTop: 2 }}>
-            {parsing ? '잠시만 기다려주세요' : 'AI가 파싱해서 테이블에 반영합니다 · .xlsx .csv'}
-          </div>
-        </div>
-      </div>
 
       {/* Transactions */}
       <div style={{ padding: '0 16px 16px' }}>

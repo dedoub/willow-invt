@@ -54,11 +54,11 @@ export function DailyMemo({ memos, selectedDate, onSave }: DailyMemoProps) {
     <LCard>
       <LSectionHead eyebrow="MEMO" title={`${dateLabel} 메모`} action={
         saving ? (
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>저장중...</span>
+          <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>저장중...</span>
         ) : content !== lastSaved.current ? (
           <button onClick={() => save(content)} style={{
             padding: '3px 8px', borderRadius: t.radius.sm,
-            background: t.brand[100], border: 'none', fontSize: 'calc(10px * var(--fz, 1))',
+            background: t.brand[100], border: 'none', fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
             color: t.brand[700], cursor: 'pointer', fontFamily: t.font.mono,
           }}>저장</button>
         ) : null

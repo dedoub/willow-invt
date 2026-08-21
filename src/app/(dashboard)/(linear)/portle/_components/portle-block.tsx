@@ -587,7 +587,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
             title="사용자"
             meta={`${sortedUsers.length}명 · AI 호출 기준`}
             mb={8}
-            action={mobile ? (
+            tools={mobile ? (
               // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
               // 새로고침은 블록 첫 섹션(퍼널)에 하나만 — 중복 버튼 정리 (2026-08-21).
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -597,7 +597,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   style={{
                     height: t.density.controlHSm, padding: '0 6px', borderRadius: t.radius.sm,
                     border: 'none', cursor: 'pointer',
-                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.sans,
+                    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
                     background: t.neutrals.inner, color: t.neutrals.text,
                   }}
                 >

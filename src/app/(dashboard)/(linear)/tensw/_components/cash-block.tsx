@@ -281,7 +281,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
         {/* Header: eyebrow+title left, period mode toggle right */}
-        <LSectionHead eyebrow={eyebrowLabel} title="현금관리" action={
+        <LSectionHead eyebrow={eyebrowLabel} title="현금관리" tools={
           <LSegmented
             value={periodMode}
             onChange={setPeriodMode}

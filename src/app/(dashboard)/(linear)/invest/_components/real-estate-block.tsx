@@ -809,7 +809,7 @@ export function RealEstateBlock() {
         <LSectionHead
           eyebrow="REAL ESTATE"
           title="부동산 리서치"
-          action={
+          tools={
             <LFilterChip
               multi
               options={ALL_DISTRICTS.map(d => ({ value: d, label: d.replace('구', '') }))}

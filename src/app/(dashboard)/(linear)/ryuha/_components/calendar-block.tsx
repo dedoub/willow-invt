@@ -371,7 +371,7 @@ export function CalendarBlock({
 
   return (
     <LCard>
-      <LSectionHead eyebrow={eyebrow} title="일정" action={
+      <LSectionHead eyebrow={eyebrow} title="일정" tools={
         <LSegmented
           value={viewMode}
           onChange={updateViewMode}

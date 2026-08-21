@@ -17,8 +17,8 @@ interface LBtnProps {
 }
 
 const sizes = {
-  xs: { h: t.density.controlHSm, px: t.density.controlPadXSm, fs: 12 }, // 검색창(padding 4px + input 자연 높이 ≈ 28px)과 동일
-  sm: { h: t.density.controlHSm, px: t.density.controlPadXSm, fs: 12 },
+  xs: { h: t.density.controlHSm, px: t.density.controlPadXSm, fs: t.type.control },
+  sm: { h: t.density.controlHSm, px: t.density.controlPadXSm, fs: t.type.control },
   md: { h: t.density.controlHMd, px: t.density.controlPadXMd, fs: t.type.body },
   lg: { h: t.density.controlHLg, px: t.density.controlPadXLg, fs: 14 },
 }

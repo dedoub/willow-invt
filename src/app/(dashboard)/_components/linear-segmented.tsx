@@ -30,7 +30,7 @@ interface Props<V extends string> {
 export function LSegmented<V extends string>({ options, value, onChange, size = 'sm', compact }: Props<V>) {
   const height = size === 'sm' ? t.density.controlHSm : t.density.controlHMd
   const padX = compact ? t.density.kpiGap : t.density.controlPadXSm
-  const fontSize = size === 'sm' ? t.type.badge : t.type.tableBody
+  const fontSize = size === 'sm' ? t.type.control : t.type.tableBody
   const minWidth = size === 'sm' ? t.density.segmentedMinWSm : t.density.segmentedMinWMd
 
   return (

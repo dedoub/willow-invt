@@ -572,7 +572,7 @@ export function PortfolioKanban({
           <button
             onClick={() => setSortBy1m(v => { localStorage.setItem('kanban-sort-1m', v ? '0' : '1'); return !v })}
             style={{
-              fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
+              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
               padding: '3px 8px', borderRadius: t.radius.sm, border: 'none',
               background: sortBy1m ? t.brand[600] : t.neutrals.inner,
               color: sortBy1m ? '#fff' : t.neutrals.muted,

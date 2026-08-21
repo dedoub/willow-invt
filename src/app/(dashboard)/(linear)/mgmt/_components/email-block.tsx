@@ -60,7 +60,7 @@ function ActionBtn({ icon, label, onClick, spinning, disabled }: {
         display: 'flex', alignItems: 'center', gap: 4,
         padding: '4px 10px', borderRadius: t.radius.sm,
         background: t.neutrals.inner, border: 'none',
-        fontSize: 'calc(11.5px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: t.weight.regular,
+        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.regular,
         color: disabled ? t.neutrals.subtle : t.neutrals.text,
         cursor: disabled ? 'default' : 'pointer',
         opacity: disabled ? 0.5 : 1,
@@ -151,7 +151,7 @@ export function EmailBlock({
               {connected ? '연결됨' : '미연결'}
             </span>
           </span>
-        } title={title} action={connected ? (
+        } title={title} tools={connected ? (
           <div style={{ display: 'flex', gap: 4 }}>
             <ActionBtn icon="refresh" label="동기화" onClick={onSync} spinning={isSyncing} />
             <ActionBtn icon="send" label="이메일 작성" onClick={onCompose} />

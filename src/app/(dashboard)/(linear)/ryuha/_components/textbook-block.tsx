@@ -54,12 +54,12 @@ export function TextbookBlock({
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
-        <LSectionHead eyebrow="TEXTBOOKS" title="교재관리" action={
+        <LSectionHead eyebrow="TEXTBOOKS" title="교재관리" tools={
           <div style={{ display: 'flex', gap: 4 }}>
             <button onClick={onManageSubjects} style={{
               padding: '4px 10px', borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none',
-              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: t.weight.medium,
+              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
               color: t.neutrals.muted, cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 3,
             }}>
@@ -68,7 +68,7 @@ export function TextbookBlock({
             <button onClick={onAddTextbook} style={{
               padding: '4px 10px', borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none',
-              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: t.weight.medium,
+              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
               color: t.neutrals.muted, cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 3,
             }}>

@@ -29,7 +29,7 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
     return (
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
-          <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" action={actions} />
+          <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" tools={actions} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: cols, gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           {Array.from({ length: 6 }).map((_, i) => (
@@ -52,7 +52,7 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
-        <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" action={actions} />
+        <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" tools={actions} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: cols, gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
         <LStat label="평가액 (세후)" value={totalValue || '-'} tone="default" />

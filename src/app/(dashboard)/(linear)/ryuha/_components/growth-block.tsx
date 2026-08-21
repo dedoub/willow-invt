@@ -160,7 +160,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
             <button onClick={() => openDialog()} style={{
               padding: '4px 10px', borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none',
-              fontSize: 'calc(11px * var(--fz, 1))', cursor: 'pointer', color: t.neutrals.muted,
+              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, cursor: 'pointer', color: t.neutrals.muted,
               display: 'flex', alignItems: 'center', gap: 3,
             }}>
               <LIcon name="plus" size={11} stroke={2} /> 기록
