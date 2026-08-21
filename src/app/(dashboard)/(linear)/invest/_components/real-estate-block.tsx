@@ -66,6 +66,9 @@ interface ReTrendPoint {
 
 interface ReTrend {
   trend: ReTrendPoint[]
+  // 단지별 호가 추이 — 날짜별 최저 호가 평당가(평형 밴드 평균). row = { date, [단지명]: 만원/평 }
+  complexTrend?: Array<Record<string, string | number | null>>
+  complexes?: string[]
   tradeType: string
 }
 
@@ -204,6 +207,45 @@ function PriceChart({ data, complexes, height = 200 }: {
         {complexes.map((c, i) => (
           <Line
             key={c.name} yAxisId="left" type="monotone" dataKey={c.name} name={c.name}
+            stroke={COMPLEX_COLORS[i % COMPLEX_COLORS.length]}
+            strokeWidth={1.5} dot={false} connectNulls
+          />
+        ))}
+      </ComposedChart>
+    </ResponsiveContainer>
+  )
+}
+
+// 호가 추이 — 단지별 최저 호가 평당가 라인. PriceChart와 같은 문법이지만 일별(date) 축이고
+// 스냅샷엔 건수 개념이 없어 막대(거래량)가 없다.
+function ListingPriceChart({ data, complexes, height = 200 }: {
+  data: Record<string, string | number | null>[]
+  complexes: string[]
+  height?: number
+}) {
+  if (!data.length) return <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
+        <XAxis
+          dataKey="date" tickFormatter={fmtDate}
+          tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
+          axisLine={false} tickLine={false} interval="preserveStartEnd"
+        />
+        <YAxis
+          tickFormatter={(v: number) => `${Math.round(v).toLocaleString()}`}
+          tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
+          axisLine={false} tickLine={false} width={50}
+        />
+        <Tooltip
+          contentStyle={tooltipStyle}
+          labelFormatter={(v) => String(v)}
+          formatter={(value, name) => [`${Math.round(Number(value)).toLocaleString()} 만/평`, name]}
+        />
+        {complexes.map((name, i) => (
+          <Line
+            key={name} type="monotone" dataKey={name} name={name}
             stroke={COMPLEX_COLORS[i % COMPLEX_COLORS.length]}
             strokeWidth={1.5} dot={false} connectNulls
           />
@@ -964,6 +1006,24 @@ export function RealEstateBlock() {
             </div>
             )}
 
+            {/* 매도 호가 추이 — 실거래가와 같은 단지 라인, 최저 호가 기준 */}
+            {loadingTrendTrade ? <ChartSkeleton /> : (
+            <div style={innerCard}>
+              <ChartHeader title="매도 호가 추이" />
+              <ListingPriceChart data={reListingTrend?.complexTrend || []} complexes={reListingTrend?.complexes || []} />
+              {(reListingTrend?.complexes?.length ?? 0) > 1 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 4 }}>
+                  {reListingTrend?.complexes?.map((name, i) => (
+                    <span key={name} style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            )}
+
             {/* 매매 괴리율 추이 */}
             {loadingTrendTrade ? <ChartSkeleton /> : (
             <div style={innerCard}>
@@ -1005,6 +1065,24 @@ export function RealEstateBlock() {
                     <span key={c.name} style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
                       {c.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            )}
+
+            {/* 전세 호가 추이 — 실거래가와 같은 단지 라인, 최저 호가 기준 */}
+            {loadingTrendJeonse ? <ChartSkeleton /> : (
+            <div style={innerCard}>
+              <ChartHeader title="전세 호가 추이" />
+              <ListingPriceChart data={reListingTrendJeonse?.complexTrend || []} complexes={reListingTrendJeonse?.complexes || []} />
+              {(reListingTrendJeonse?.complexes?.length ?? 0) > 1 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 4 }}>
+                  {reListingTrendJeonse?.complexes?.map((name, i) => (
+                    <span key={name} style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
+                      {name}
                     </span>
                   ))}
                 </div>

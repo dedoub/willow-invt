@@ -701,7 +701,27 @@ export async function GET(request: Request) {
         }
       })
 
-      return NextResponse.json({ trend, tradeType })
+      // 4. 단지별 호가 추이 — 날짜별 최저 호가 평당가(평형 밴드 평균). '호가 추이' 차트용.
+      //    dateListings(밴드별 최저가로 이미 dedup됨)를 단지 단위로 접는다.
+      const presentComplexes = complexNames.filter(n => (data || []).some(r => r.complex_name === n))
+      const complexTrend = dates.map(d => {
+        const row: Record<string, string | number | null> = { date: d }
+        const perComplex: Record<string, { sum: number; cnt: number }> = {}
+        for (const [key, minPpp] of Object.entries(dateListings[d] || {})) {
+          const name = key.split('|')[0]
+          const cur = perComplex[name] ?? { sum: 0, cnt: 0 }
+          cur.sum += minPpp
+          cur.cnt++
+          perComplex[name] = cur
+        }
+        for (const name of presentComplexes) {
+          const v = perComplex[name]
+          row[name] = v ? Math.round(v.sum / v.cnt) : null
+        }
+        return row
+      })
+
+      return NextResponse.json({ trend, complexTrend, complexes: presentComplexes, tradeType })
     }
 
     if (type === 'jeonse-ratio') {
