@@ -181,8 +181,11 @@ function PriceChart({ data, complexes, height = 200 }: {
           tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
           axisLine={false} tickLine={false} interval="preserveStartEnd"
         />
+        {/* 가격축은 데이터 범위에 맞춘다 (호가 차트와 동일) — 0부터 그리면 변동이 안 보인다.
+            건수 막대(right)는 0 기준 유지. */}
         <YAxis
           yAxisId="left"
+          domain={['auto', 'auto']}
           tickFormatter={(v: number) => `${Math.round(v).toLocaleString()}`}
           tick={{ fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
           axisLine={false} tickLine={false} width={50}
