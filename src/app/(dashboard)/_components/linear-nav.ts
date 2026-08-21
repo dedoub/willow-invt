@@ -40,7 +40,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'voicecards',  href: '/voicecards',  label: 'VoiceCards',  tag: 'MonoR Apps', dot: '#4FBE84' },
       { id: 'reviewnotes', href: '/reviewnotes', label: 'ReviewNotes', tag: 'MonoR Apps', dot: '#5FAFDF' },
-      { id: 'portle',      href: '/portle',      label: 'Portle',      tag: 'MonoR Apps', dot: '#E8927C' },
+      { id: 'portle',      href: '/portle',      label: 'Portle',      tag: 'Investing Ledger', dot: '#E8927C' },
       { id: 'valuechain',  href: '/valuechain',  label: 'ValueChain',  tag: 'Wiki',       dot: '#A392EC' },
     ],
   },
