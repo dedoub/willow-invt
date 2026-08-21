@@ -44,10 +44,13 @@ export function LSectionHead({ eyebrow, title, meta, note, action, mb }: LSectio
             }}>{eyebrow}</div>
           )}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, flexWrap: 'wrap' }}>
-            <div style={{
+            {/* 제목은 한 줄 고정 — 넘치면 줄임표(…). 전체 텍스트는 툴팁으로 */}
+            <div title={title} style={{
               fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
               fontFamily: t.font.sans, color: t.neutrals.text,
               letterSpacing: -0.2, lineHeight: 1.2,
+              minWidth: 0, maxWidth: '100%', whiteSpace: 'nowrap' as const,
+              overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{title}</div>
             {meta && !mobile && <div style={metaStyle}>{meta}</div>}
           </div>

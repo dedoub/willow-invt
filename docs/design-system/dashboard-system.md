@@ -116,6 +116,7 @@ Responsive behavior is built in — call sites do not handle it:
 
 - Desktop: when the action is wider than the remaining space, it drops below the title (right-aligned) instead of squeezing it.
 - Mobile: title and action always share the first line; `meta` moves to its own full-width line below the header. Wide action content wraps inside its own box.
+- The title is single-line and truncates with an ellipsis when it overflows (full text via tooltip). Never relies on multi-line titles.
 
 Do not add `whiteSpace: nowrap` containers inside `action` expecting them to shrink.
 
