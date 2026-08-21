@@ -891,10 +891,11 @@ export async function GET(request: Request) {
       }).filter((e): e is { key: string; ppp: number; dealDate: string } => e !== null)
 
       // 두 라인이 같은 (단지×밴드) 집합을 합산해야 비교 가능하다 — 값이 없는
-      // 날은 직전 값을 유지(forward-fill)하고, 둘 다 값이 있는 키만 합산한다.
+      // 날은 직전 값을 유지(forward-fill)하고, 날짜별 스냅샷을 기록해 둔다.
       const listingPpp: Record<string, number> = {}
       const actualPpp: Record<string, number> = {}
-      const rawTrend: { date: string; actualValue: number; listingValue: number; keys: string[] }[] = []
+      const perDateListing: Record<string, number>[] = []
+      const perDateActual: Record<string, number>[] = []
 
       for (const d of dates) {
         for (const [key, minPpp] of Object.entries(bandMin[d] || {})) listingPpp[key] = minPpp
@@ -912,32 +913,43 @@ export async function GET(request: Request) {
           if (actual) actualPpp[key] = actual.avg
         }
 
-        let actualSum = 0, listingSum = 0
-        const included: string[] = []
-        for (const key of capKeys) {
-          const a = actualPpp[key]
-          const l = listingPpp[key]
-          if (a === undefined || l === undefined) continue
-          actualSum += a * bandPy[key]
-          listingSum += l * bandPy[key]
-          included.push(key)
-        }
-        if (included.length > 0) rawTrend.push({ date: d, actualValue: actualSum, listingValue: listingSum, keys: included })
+        perDateListing.push({ ...listingPpp })
+        perDateActual.push({ ...actualPpp })
       }
 
-      // 포함 (단지×밴드) 수가 늘어나는 초기 구간은 합계가 계단식으로 튄다 —
-      // 커버리지가 최대에 도달한 시점부터만 그린다.
-      const maxCnt = rawTrend.reduce((m, r) => Math.max(m, r.keys.length), 0)
-      const covered = rawTrend.filter(r => r.keys.length === maxCnt)
-      const complexCount = covered.length > 0
-        ? new Set(covered[covered.length - 1].keys.map(k => k.split('|')[0])).size
-        : 0
-      const trend = covered.map(r => ({
-        date: r.date,
-        actualValue: Math.round((r.actualValue / 1e8) * 100) / 100, // 만원 → 조원
-        listingValue: Math.round((r.listingValue / 1e8) * 100) / 100,
-      }))
+      // 호가 추이 차트와 같은 전체 스냅샷 기간을 그린다. 관측이 늦게 시작된
+      // 키는 첫 관측값으로 앞구간을 채워(backfill) 합산 집합을 기간 내내
+      // 동일하게 유지한다 — 합계가 커버리지 증가로 계단식 튀는 것을 방지.
+      const lastListing = perDateListing[perDateListing.length - 1]
+      const lastActual = perDateActual[perDateActual.length - 1]
+      const includedKeys = capKeys.filter(k => lastListing[k] !== undefined && lastActual[k] !== undefined)
+      if (includedKeys.length === 0) return NextResponse.json({ trend: [], complexCount: 0, unit: '조원' })
 
+      const firstListing: Record<string, number> = {}
+      const firstActual: Record<string, number> = {}
+      for (const key of includedKeys) {
+        for (const snap of perDateListing) {
+          if (snap[key] !== undefined) { firstListing[key] = snap[key]; break }
+        }
+        for (const snap of perDateActual) {
+          if (snap[key] !== undefined) { firstActual[key] = snap[key]; break }
+        }
+      }
+
+      const trend = dates.map((d, i) => {
+        let actualSum = 0, listingSum = 0
+        for (const key of includedKeys) {
+          actualSum += (perDateActual[i][key] ?? firstActual[key]) * bandPy[key]
+          listingSum += (perDateListing[i][key] ?? firstListing[key]) * bandPy[key]
+        }
+        return {
+          date: d,
+          actualValue: Math.round((actualSum / 1e8) * 100) / 100, // 만원 → 조원
+          listingValue: Math.round((listingSum / 1e8) * 100) / 100,
+        }
+      })
+
+      const complexCount = new Set(includedKeys.map(k => k.split('|')[0])).size
       return NextResponse.json({ trend, complexCount, unit: '조원' })
     }
 
