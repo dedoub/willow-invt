@@ -79,7 +79,7 @@ function Delta({ now, base }: { now: number; base: number | null }) {
   )
 }
 
-export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | 'valuechain' }) {
+export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | 'valuechain' | 'portle' }) {
   const mobile = useIsMobile()
   const dashCols = useDashCols()
   const [data, setData] = useState<GeoAnswerStats | null>(null)
