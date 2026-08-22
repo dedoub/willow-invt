@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
@@ -35,17 +35,6 @@ function formatCurrency(value: number): string {
     style: 'currency', currency: 'USD',
     minimumFractionDigits: 0, maximumFractionDigits: 0,
   }).format(value / 100)
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('ko-KR', {
-    timeZone: 'Asia/Seoul', year: 'numeric', month: 'short', day: 'numeric',
-  })
-}
-
-function formatPct(value: number): string {
-  if (value === 0) return '±0%'
-  return value > 0 ? `+${value}%` : `${value}%`
 }
 
 function formatBytes(bytes: number): string {
@@ -319,8 +308,20 @@ export function ReviewnotesBlock({
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
   const [userPerPageInput, setUserPerPageInput] = useState('10')
-  const [userSort, setUserSort] = useState<UserSortKey>('created')
-  const [userSortDir, setUserSortDir] = useState<SortDir>('desc')
+  const initialUserSort = (): { key: UserSortKey; dir: SortDir } => {
+    if (typeof window === 'undefined') return { key: 'created', dir: 'desc' }
+    const stored = window.localStorage.getItem(USER_SORT_STORAGE_KEY)
+    if (!stored) return { key: 'created', dir: 'desc' }
+    const [key, dir] = stored.split(':')
+    if (!USER_SORT_KEY_SET.has(key as UserSortKey)) return { key: 'created', dir: 'desc' }
+    const sortKey = key as UserSortKey
+    return {
+      key: sortKey,
+      dir: dir === 'asc' ? 'asc' : dir === 'desc' ? 'desc' : defaultSortDir(sortKey),
+    }
+  }
+  const [userSort, setUserSort] = useState<UserSortKey>(() => initialUserSort().key)
+  const [userSortDir, setUserSortDir] = useState<SortDir>(() => initialUserSort().dir)
 
   const commitUserPerPage = () => {
     const n = Math.max(1, Math.min(100, Number(userPerPageInput) || 10))
@@ -328,17 +329,6 @@ export function ReviewnotesBlock({
     setUserPerPage(n)
     setUserPage(1)
   }
-
-  // 마운트 시 localStorage에서 정렬 상태 복원. 형식: "key:dir"
-  useEffect(() => {
-    const stored = window.localStorage.getItem(USER_SORT_STORAGE_KEY)
-    if (!stored) return
-    const [key, dir] = stored.split(':')
-    if (USER_SORT_KEY_SET.has(key as UserSortKey)) {
-      setUserSort(key as UserSortKey)
-      setUserSortDir(dir === 'asc' ? 'asc' : dir === 'desc' ? 'desc' : defaultSortDir(key as UserSortKey))
-    }
-  }, [])
 
   const sortedUsers = useMemo(() => {
     if (!userStats) return []
@@ -646,7 +636,12 @@ export function ReviewnotesBlock({
     <LCard pad={0}>
       {loading && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <LSectionHead eyebrow="CONTENT" title="콘텐츠 사용량" mb={10} />
+          <LSectionHead
+            eyebrow="CONTENT"
+            title="콘텐츠 사용량"
+            mb={10}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+          />
           <SkeletonRow count={mobile ? 2 : (dashCols === 2 ? 3 : 5)} />
         </div>
       )}
@@ -688,7 +683,12 @@ export function ReviewnotesBlock({
         })()
         return (
           <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-            <LSectionHead eyebrow="CONTENT" title="콘텐츠 사용량" mb={10} />
+            <LSectionHead
+              eyebrow="CONTENT"
+              title="콘텐츠 사용량"
+              mb={10}
+              action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+            />
             {/* 콘텐츠·학습 카운트 (2026-07-16 CEO): 노트/문제/문제 세트/풀이/용량 5카드.
                 와이드(1열) 모드 한 줄, 2열 모드 3+2, 모바일 2열. MRR·가입·유료는 인사이트 퍼널로 이동. */}
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
@@ -763,7 +763,6 @@ export function ReviewnotesBlock({
               mb={8}
               tools={mobile ? (
                 // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
-                // 새로고침은 블록 첫 섹션(퍼널)에 하나만 — 중복 버튼 정리 (2026-08-21).
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <select
                     value={userSort}
@@ -786,6 +785,7 @@ export function ReviewnotesBlock({
                   />
                 </div>
               ) : undefined}
+              action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
             />
             {/* PC/모바일 동일 테이블 — 모바일은 가로 스크롤 (보이스카드 사용자 테이블과 동일, 2026-07-15) */}
             <div style={{ overflowX: 'auto' }}>

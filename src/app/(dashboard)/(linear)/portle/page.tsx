@@ -73,7 +73,7 @@ export default function PortlePage() {
       gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
       gap: t.density.blockGap, alignItems: 'start',
     }}>
-    <SearchDemandCard site="portle" leadSlot={<GeoAnswerCard site="portle" />} />
+    <SearchDemandCard site="portle" showGscLink={false} leadSlot={<GeoAnswerCard site="portle" />} />
 
     <PortleBlock
       cols={cols}

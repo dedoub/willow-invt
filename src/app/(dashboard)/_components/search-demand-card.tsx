@@ -506,6 +506,8 @@ function Skeleton({ mobile }: { mobile: boolean }) {
 export interface SearchDemandCardProps {
   /** Umami 사이트 키 — /api/umami/search-demand?site= 와 동일 */
   site: UmamiSiteKey
+  /** Search Console 외부 링크 버튼 표시 여부 */
+  showGscLink?: boolean
   /**
    * 검색 노출 섹션 앞에 세울 것. AI 답변 점유가 여기 들어간다.
    * 두 섹션이 한 컴포넌트에 묶여 있어서, 바깥에서는 그 사이나 앞에 무엇도 넣을 수 없다.
@@ -518,7 +520,7 @@ export interface SearchDemandCardProps {
  * 갖고 여기 조각들과 블록 조각들을 같은 줄에 세우기 때문이다. 스스로 그리드를 가지면
  * 두 섹션이 항상 붙어 다녀서 사이에 다른 섹션을 끼울 수 없다.
  */
-export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
+export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchDemandCardProps) {
   const mobile = useIsMobile()
   const dashCols = useDashCols()
   const [days, setDays] = useState<Period>(30)
@@ -579,7 +581,10 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
     setRefreshing(false)
   }, [site])
 
-  useEffect(() => { load(days) }, [load, days])
+  useEffect(() => {
+    const id = window.setTimeout(() => { void load(days) }, 0)
+    return () => window.clearTimeout(id)
+  }, [load, days])
 
   // 두 섹션을 좌우로 세우는 건 페이지 그리드가 한다(여기는 조각만 내놓는다).
   // 1열 모드에서는 섹션이 전폭이라, 섹션 안에서 좌 차트 · 우 지표 6장으로 쪼갠다
@@ -597,8 +602,14 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
   const sessionsTotal = (data?.daily ?? []).reduce((sum, d) => sum + d.sessions, 0)
   // 카운트 지표의 보조라벨은 퍼널 카드와 같은 '오늘 N · 7일 N' 형식으로 통일한다 (KST 날짜 기준).
   // GSC는 집계가 며칠 지연되므로 '오늘'이 0으로 나오는 게 정상이다(지연 표기는 섹션 헤드에 있다).
-  const kstToday = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)
-  const week7Cut = new Date(Date.now() + 9 * 3_600_000 - 6 * 86_400_000).toISOString().slice(0, 10)
+  const [dateKeys] = useState(() => {
+    const now = Date.now()
+    return {
+      kstToday: new Date(now + 9 * 3_600_000).toISOString().slice(0, 10),
+      week7Cut: new Date(now + 9 * 3_600_000 - 6 * 86_400_000).toISOString().slice(0, 10),
+    }
+  })
+  const { kstToday, week7Cut } = dateKeys
   const todayWeekSub = (series: Array<{ date: string; value: number }>, unit: string) => {
     let today = 0, week = 0
     for (const d of series) {
@@ -654,7 +665,7 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
             tools={periodToggle}
             action={
               <>
-                {gsc && <LHeadBtn label="GSC" title="Search Console" href={gsc.site.consoleUrl} />}
+                {showGscLink && gsc && <LHeadBtn label="GSC" title="Search Console" href={gsc.site.consoleUrl} />}
                 <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={() => load(days, true)} busy={refreshing} />
               </>
             }
@@ -808,7 +819,12 @@ export function SearchDemandCard({ site, leadSlot }: SearchDemandCardProps) {
             eyebrow="UMAMI"
             title="진입 후 행동"
             meta={data ? `최근 ${data.range.days}일 · 자기 방문 미제외` : undefined}
-            action={data ? <LHeadBtn icon="trending" title="Umami" href={data.site.umamiUrl} /> : undefined}
+            action={
+              <>
+                {data && <LHeadBtn icon="trending" title="Umami" href={data.site.umamiUrl} />}
+                <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={() => load(days, true)} busy={refreshing} />
+              </>
+            }
           />
 
           {error && (

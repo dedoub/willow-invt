@@ -83,7 +83,7 @@ export default function ReviewnotesPage() {
       gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
       gap: t.density.blockGap, alignItems: 'start',
     }}>
-    <SearchDemandCard site="reviewnotes" leadSlot={<GeoAnswerCard site="reviewnotes" />} />
+    <SearchDemandCard site="reviewnotes" showGscLink={false} leadSlot={<GeoAnswerCard site="reviewnotes" />} />
 
     <ReviewnotesBlock
       cols={cols}

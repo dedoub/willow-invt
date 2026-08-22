@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { VoicecardsBlock } from './_components/voicecards-block'
-import { VoicecardsSettingsDialog } from './_components/voicecards-settings-dialog'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
@@ -148,7 +147,6 @@ export default function VoicecardsPage() {
   const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
   const [vcAnonStats, setVcAnonStats] = useState<AnonymousEventStats | null>(null)
   const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>>([])
-  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const loadVoicecards = useCallback(async (refresh = false) => {
     if (refresh) setVcRefreshing(true)
@@ -233,7 +231,7 @@ export default function VoicecardsPage() {
         gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
         gap: t.density.blockGap, alignItems: 'start',
       }}>
-      <SearchDemandCard site="voicecards" leadSlot={<GeoAnswerCard site="voicecards" />} />
+      <SearchDemandCard site="voicecards" showGscLink={false} leadSlot={<GeoAnswerCard site="voicecards" />} />
 
       <VoicecardsBlock
         cols={cols}
@@ -244,17 +242,10 @@ export default function VoicecardsPage() {
         userStats={vcUserStats}
         anonymousStats={vcAnonStats}
         chartData={vcChartData}
-        onOpenSettings={() => setSettingsOpen(true)}
         onRefresh={() => loadVoicecards(true)}
         refreshing={vcRefreshing}
       />
       </div>
-
-      <VoicecardsSettingsDialog
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        onSave={() => loadVoicecards(true)}
-      />
     </>
   )
 }

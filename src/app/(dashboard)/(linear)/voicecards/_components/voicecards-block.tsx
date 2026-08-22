@@ -168,7 +168,6 @@ export interface VoicecardsBlockProps {
   userStats: UserStats | null
   anonymousStats: AnonymousEventStats | null
   chartData?: Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>
-  onOpenSettings: () => void
   onRefresh: () => void
   refreshing: boolean
   cols: 1 | 2 // 레이아웃 열 수 (1=wide: 인사이트 분할·KPI 6/row). 단일 앱 페이지는 1 고정.
@@ -502,7 +501,7 @@ function SkelUserRow() {
 export function VoicecardsBlock({
   usersLoading, eventsLoading, revenueLoading,
   stats, userStats, anonymousStats, chartData,
-  onOpenSettings, onRefresh, refreshing, cols,
+  onRefresh, refreshing, cols,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
   const dashCols = cols
@@ -534,8 +533,6 @@ export function VoicecardsBlock({
       const parsed = JSON.parse(stored) as SortCrit[]
       if (Array.isArray(parsed) && parsed.length &&
           parsed.every(s => USER_SORT_KEY_SET.has(s.key) && (s.dir === 'asc' || s.dir === 'desc'))) {
-        // 하이드레이션 안전을 위해 마운트 후 1회 복원(서버엔 localStorage 없음) — 의도된 동기 setState
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUserSorts(parsed)
         return
       }
@@ -710,10 +707,7 @@ export function VoicecardsBlock({
           eyebrow="FUNNEL"
           title="스토어 → 설치 → 가입 → 결제"
           action={
-            <>
-              <LHeadBtn icon="settings" title="지표 설정" onClick={onOpenSettings} />
-              <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />
-            </>
+            <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />
           }
         />
 
@@ -935,8 +929,6 @@ export function VoicecardsBlock({
             }
             return String(Math.round(v))
           }
-          const fmtCr = (v: number) => `${fmtK(v)} cr`
-
           // 누적 기기/데모 학습/가입 완료 — 오늘 / 최근 7일 신규 (모두 KST 기준, cumulativeDistinct 델타)
           const yesterdayKey = kstDaysAgo(1)
           const dayBefore7Key = kstDaysAgo(7)
@@ -1178,7 +1170,12 @@ export function VoicecardsBlock({
       {/* 가입 후 활동 · 매출 동인 — userStats 필요 (뒤집기/듣기 카드는 anonymousStats) */}
       {usersLoading && !userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <LSectionHead eyebrow="ENGAGEMENT" title="가입 후 활동 · 매출 동인" mb={10} />
+          <LSectionHead
+            eyebrow="ENGAGEMENT"
+            title="가입 후 활동 · 매출 동인"
+            mb={10}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+          />
           {/* 6카드: 와이드(1열) 모드 한 줄, 2열 모드 3+3 (인사이트 6카드와 동일 규칙), 모바일 2×3 */}
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
             {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
@@ -1187,7 +1184,12 @@ export function VoicecardsBlock({
       )}
       {userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <LSectionHead eyebrow="ENGAGEMENT" title="가입 후 활동 · 매출 동인" mb={10} />
+          <LSectionHead
+            eyebrow="ENGAGEMENT"
+            title="가입 후 활동 · 매출 동인"
+            mb={10}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+          />
 
           {(() => {
             // 날짜 기준 — KST 기준 오늘 / 최근 7일 컷오프 계산
@@ -1195,7 +1197,6 @@ export function VoicecardsBlock({
               const date = typeof d === 'string' ? new Date(d) : d
               return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
             }
-            const todayStr = toKst(new Date())
             const sevenDaysAgo = new Date()
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6) // 오늘 포함 7일
             const sevenDaysAgoStr = toKst(sevenDaysAgo)
@@ -1423,6 +1424,7 @@ export function VoicecardsBlock({
                   </span>
                 )}
                 mb={8}
+                action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
               />
             )
           })()}

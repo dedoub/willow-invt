@@ -45,7 +45,10 @@ export default function LinearRouteLayout({
   // 첫 렌더에는 width 트랜지션을 끄고, 마운트 후 사용자 토글부터 애니메이션
   const [sidebarReady, setSidebarReady] = useState(false)
 
-  useEffect(() => { setSidebarReady(true) }, [])
+  useEffect(() => {
+    const id = window.setTimeout(() => setSidebarReady(true), 0)
+    return () => window.clearTimeout(id)
+  }, [])
 
   // Windows/테슬라 등 국기 이모지 미지원 브라우저에 Twemoji 국기 폰트 주입 (지원 브라우저엔 no-op).
   // 폰트는 자체 호스팅(/fonts) — CDN 차단/불안정한 인카 브라우저(테슬라)에서도 동일 오리진으로 안정 로드.
@@ -56,7 +59,10 @@ export default function LinearRouteLayout({
   }, [sidebarOpen])
 
   // Close menu on route change
-  useEffect(() => { setMenuOpen(false) }, [pathname])
+  useEffect(() => {
+    const id = window.setTimeout(() => setMenuOpen(false), 0)
+    return () => window.clearTimeout(id)
+  }, [pathname])
 
   // breadcrumb은 사이드바 메뉴 트리에서 그대로 읽는다 (linear-nav.ts 단일 진실원)
   const info = breadcrumbFor(pathname)
@@ -96,7 +102,7 @@ export default function LinearRouteLayout({
           />
           <main style={{
             flex: 1,
-            overflow: 'auto',
+            overflow: mobile && menuOpen ? 'hidden' : 'auto',
             padding: mobile
               ? `${t.density.pagePadY}px 12px ${t.density.pagePadBottom}px`
               : `${t.density.pagePadY}px ${t.density.pagePadX}px ${t.density.pagePadBottom}px`,

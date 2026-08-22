@@ -457,7 +457,12 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
     {/* 카드2: AI 안정성 · 기능별 — 호출량/성공률/토큰 + kind별 분해 */}
     <LCard pad={0}>
       <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-        <LSectionHead eyebrow="AI" title="AI 안정성 · 기능별" mb={10} />
+        <LSectionHead
+          eyebrow="AI"
+          title="AI 안정성 · 기능별"
+          mb={10}
+          action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+        />
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {[0, 1, 2].map(i => (
@@ -572,7 +577,12 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
     <LCard pad={0}>
       {loading && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <LSectionHead eyebrow="USERS" title="사용자" mb={8} />
+          <LSectionHead
+            eyebrow="USERS"
+            title="사용자"
+            mb={8}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+          />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {[0, 1, 2, 3, 4, 5].map(i => (
               <div key={i} style={{ height: 40, borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' }} />
@@ -589,7 +599,6 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
             mb={8}
             tools={mobile ? (
               // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
-              // 새로고침은 블록 첫 섹션(퍼널)에 하나만 — 중복 버튼 정리 (2026-08-21).
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <select
                   value={userSort}
@@ -612,6 +621,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 />
               </div>
             ) : undefined}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
           />
           {/* PC/모바일 동일 테이블 — 모바일은 가로 스크롤 (보이스카드와 동일) */}
           <div style={{ overflowX: 'auto' }}>
