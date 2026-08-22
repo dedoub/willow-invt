@@ -43,6 +43,7 @@ function stripHtml(html: string): string {
     .replace(/<\/(p|div|li|h\d)>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/<[^>]+>/g, '') // 엔티티로 이스케이프돼 있던 강조 태그(<b> 등)까지 제거
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
