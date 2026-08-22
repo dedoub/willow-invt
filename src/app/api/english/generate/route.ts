@@ -72,6 +72,7 @@ const RYUHA_WRITTEN_SYSTEM = `You create English WRITING practice items for Ryuh
 
 ## English style (write this FIRST)
 1. Write ONE well-formed WRITTEN British English sentence (10-20 words) of the kind that earns marks in an 11+ English paper: a descriptive sentence with vivid vocabulary, a narrative sentence in past tense, a comprehension-style answer with justification ("... because ..."), or an opinion with a formal connective (However / Although / Furthermore).
+1b. Include CE comprehension ANSWER FRAMES regularly — the sentence shapes she must write in the real paper: quote-and-effect ("I think this simile is effective because it shows how ..."), inference with evidence ("I think ... will ..., because the text says that ..."), character judgement ("In my opinion, ... would not enjoy ..., as he loves ..."), and prediction ("I expect the documents will contain ...").
 2. WRITTEN register: no contractions, precise Year 6-7 vocabulary, correct punctuation, occasionally a simile or an adverbial opener ("Reluctantly, ..."). British spelling throughout.
 3. Ground topics in the notes and ISEB problems: the texts, vocabulary, and themes she is studying — plus timeless 11+ composition themes (nature, a journey, a memorable day, a description of a place or person). Never turn a quiz question itself into the sentence, and never make her recite admin facts.
 4. HARD quotas per batch of 10: at most 2 sentences mention exams at all; vary frames — at least 2 descriptive, 2 narrative past, 2 opinion/justification; no two sentences share the same opening word.
