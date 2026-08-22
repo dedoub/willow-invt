@@ -204,67 +204,76 @@ export default function EnglishPage() {
   const sparkReview = stats?.daily.map(d => ({ date: d.date, value: d.review })) ?? []
 
   return (
-    {/* keep-all: 한글이 어절 중간에서 줄바꿈되지 않게 (LSectionHead meta와 같은 규칙) */}
-    <div style={{ maxWidth: 860, margin: '0 auto', wordBreak: 'keep-all' }}>
-      <LSectionHead
-        title="영작 연습"
-        meta="업무위키·이메일 소재 · 미국식 구어체"
-        note="한글 청킹(영어어순)을 보고 영어로 쓰면 AI가 즉시 채점 · 합격 80점"
-        tools={
-          <LSegmented<Mode>
-            value={mode}
-            onChange={setMode}
-            options={[
-              { value: 'new_heavy', label: '신규 위주' },
-              { value: 'balanced', label: '균형' },
-              { value: 'review_heavy', label: '복습 위주' },
-            ]}
+    // keep-all: 한글이 어절 중간에서 줄바꿈되지 않게 (LSectionHead meta와 같은 규칙)
+    <div style={{
+      maxWidth: 860, margin: '0 auto', wordBreak: 'keep-all',
+      display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
+    }}>
+      {/* 섹션 카드 — 다른 페이지 위계와 동일: 카드 안에 헤더(eyebrow)+지표 */}
+      <LCard pad={0}>
+        <div style={{ padding: t.density.cardPad }}>
+          <LSectionHead
+            eyebrow="COMPOSITION"
+            title="영작 연습"
+            meta="업무위키·이메일 소재 · 미국식 구어체"
+            note="한글 청킹(영어어순)을 보고 영어로 쓰면 AI가 즉시 채점 · 합격 80점"
+            tools={
+              <LSegmented<Mode>
+                value={mode}
+                onChange={setMode}
+                options={[
+                  { value: 'new_heavy', label: '신규 위주' },
+                  { value: 'balanced', label: '균형' },
+                  { value: 'review_heavy', label: '복습 위주' },
+                ]}
+              />
+            }
+            action={<LHeadBtn icon="sparkles" label="문제 생성" title="위키·이메일에서 새 문제 50개 생성" onClick={() => { autoRefillBlockedRef.current = false; generate() }} busy={generating} />}
           />
-        }
-        action={<LHeadBtn icon="sparkles" label="문제 생성" title="위키·이메일에서 새 문제 50개 생성" onClick={() => { autoRefillBlockedRef.current = false; generate() }} busy={generating} />}
-      />
 
-      {/* 지표 — 오늘 학습량 / 누적 문장 / 정답률 / 남은 문제 */}
-      <div style={{
-        display: 'grid', gap: t.density.kpiGap, marginBottom: t.density.blockGap,
-        gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(4, minmax(0,1fr))',
-      }}>
-        <LStat
-          label="오늘 학습"
-          value={stats ? String(stats.today.fresh + stats.today.review) : '–'}
-          unit="/ 100"
-          tone={stats && stats.today.fresh + stats.today.review >= 100 ? 'pos' : 'default'}
-          sub={stats ? `신규 ${stats.today.fresh} · 복습 ${stats.today.review}` : ''}
-          sparkline={sparkTotal}
-          sparkline2={sparkReview}
-          title="오늘 채점받은 문장 수 (KST) — 목표 하루 100문장. 스파크라인: 최근 7일 (점선=복습)"
-        />
-        <LStat
-          label="누적 학습 문장"
-          value={stats ? String(stats.attemptedItems) : '–'}
-          unit="문장"
-          sub={stats ? `문제은행 ${stats.totalItems}` : ''}
-          title="한 번이라도 채점받은 고유 문장 수"
-        />
-        <LStat
-          label="정답률"
-          value={stats ? `${stats.accuracy}` : '–'}
-          unit="%"
-          tone={stats ? (stats.accuracy >= 90 ? 'pos' : stats.accuracy >= 70 ? 'default' : 'neg') : 'default'}
-          sub="마지막 시도 기준"
-          title="문장별 마지막 시도가 합격(80점 이상)인 비율 — 복습으로 100%에 수렴시키는 게 목표"
-        />
-        <LStat
-          label="남은 문제"
-          value={stats ? String(stats.freshRemaining) : '–'}
-          unit="신규"
-          sub={stats ? `복습 대기 ${stats.reviewRemaining}` : ''}
-          title="아직 안 푼 신규 문장 / 마지막 시도가 불합격이라 복습이 필요한 문장"
-        />
-      </div>
+          {/* 지표 — 오늘 학습량 / 누적 문장 / 정답률 / 남은 문제 */}
+          <div style={{
+            display: 'grid', gap: t.density.kpiGap,
+            gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(4, minmax(0,1fr))',
+          }}>
+            <LStat
+              label="오늘 학습"
+              value={stats ? String(stats.today.fresh + stats.today.review) : '–'}
+              unit="/ 100"
+              tone={stats && stats.today.fresh + stats.today.review >= 100 ? 'pos' : 'default'}
+              sub={stats ? `신규 ${stats.today.fresh} · 복습 ${stats.today.review}` : ''}
+              sparkline={sparkTotal}
+              sparkline2={sparkReview}
+              title="오늘 채점받은 문장 수 (KST) — 목표 하루 100문장. 스파크라인: 최근 7일 (점선=복습)"
+            />
+            <LStat
+              label="누적 학습 문장"
+              value={stats ? String(stats.attemptedItems) : '–'}
+              unit="문장"
+              sub={stats ? `문제은행 ${stats.totalItems}` : ''}
+              title="한 번이라도 채점받은 고유 문장 수"
+            />
+            <LStat
+              label="정답률"
+              value={stats ? `${stats.accuracy}` : '–'}
+              unit="%"
+              tone={stats ? (stats.accuracy >= 90 ? 'pos' : stats.accuracy >= 70 ? 'default' : 'neg') : 'default'}
+              sub="마지막 시도 기준"
+              title="문장별 마지막 시도가 합격(80점 이상)인 비율 — 복습으로 100%에 수렴시키는 게 목표"
+            />
+            <LStat
+              label="남은 문제"
+              value={stats ? String(stats.freshRemaining) : '–'}
+              unit="신규"
+              sub={stats ? `복습 대기 ${stats.reviewRemaining}` : ''}
+              title="아직 안 푼 신규 문장 / 마지막 시도가 불합격이라 복습이 필요한 문장"
+            />
+          </div>
+        </div>
+      </LCard>
 
       {error && (
-        <LCard style={{ marginBottom: t.density.blockGap }}>
+        <LCard>
           <span style={{ fontSize: 'calc(13px * var(--fz, 1))', color: t.accent.neg }}>{error}</span>
         </LCard>
       )}
@@ -299,7 +308,7 @@ export default function EnglishPage() {
       ) : (
         <>
           {/* 문제 카드 */}
-          <LCard style={{ marginBottom: t.density.blockGap }}>
+          <LCard>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.gapMd }}>
               <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center' }}>
                 <LBadge tone={current.is_review ? 'warn' : 'brand'} pill>
