@@ -16,6 +16,10 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] tensw sync start"
 # 은행 거래내역 — 최근 14일 재조회
 npx tsx scripts/tensw-codef-sync.ts --days 14 || echo "  bank sync failed"
 
+# 자동 분류 — 확실한 거래(자사이체·세금계산서 매칭·고정 패턴)는 현금관리에 바로 반영,
+# 회계 판단이 필요한 건은 보류하고 ⚠ 로그 → 아래 notify가 텔레그램으로 알린다.
+npx tsx scripts/tensw-auto-classify.ts || echo "  auto-classify failed"
+
 # 홈택스 세금계산서 매출·매입 — 최근 90일 재조회 (발행일은 홈택스 작성일자 기준)
 npx tsx scripts/tensw-codef-tax-sync.ts --days 90 --purchase --promote || echo "  tax sync failed"
 
