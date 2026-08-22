@@ -135,8 +135,9 @@ export default function EnglishPage() {
     setResult(null)
     setVcState('idle')
     setIdx(i => i + 1)
-    setTimeout(() => taRef.current?.focus(), 0)
-  }, [])
+    // 모바일은 자동 포커스 금지 — 키보드가 멋대로 올라오지 않게, 직접 탭할 때만 연다
+    if (!mobile) setTimeout(() => taRef.current?.focus(), 0)
+  }, [mobile])
 
   // 현재 문장을 보이스카드 영어 덱에 청크 행으로 추가 (류하봇 청킹번역과 같은 시트 경로)
   const toVoiceCards = useCallback(async () => {
