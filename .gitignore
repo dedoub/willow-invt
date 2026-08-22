@@ -68,3 +68,4 @@ doc/
 .apdisk
 __MACOSX
 credentials/
+prod.env

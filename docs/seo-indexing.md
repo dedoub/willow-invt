@@ -18,9 +18,9 @@ URL Inspection API로만 갈라진다. 이 문서는 그 스냅샷의 해석과 
 
 검사 대상은 사이트맵의 콘텐츠 대표 URL이다. VoiceCards·ReviewNotes·Portle은 로케일 변형까지
 전수 검사한다. 사람이 읽는 페이지가 아닌 `.txt`·`.xml` 등은 커버리지 분모에서 제외한다.
-Portle은 2026-08-20 기준 sitemap 21 URL 중 `llms.txt`를 제외한 HTML 20쪽이 대상이다.
+Portle은 2026-08-21 기준 sitemap의 HTML 23쪽이 대상이다.
 
-### Portle GSC 연결 상태 (2026-08-20)
+### Portle GSC 연결 상태 (2026-08-21)
 
 `portle.quest`의 공개 SEO 표면은 확인됐다.
 
@@ -30,13 +30,12 @@ Portle은 2026-08-20 기준 sitemap 21 URL 중 `llms.txt`를 제외한 HTML 20�
 | GSC 속성 | `sc-domain:portle.quest` |
 | sitemap | `https://portle.quest/sitemap.xml` |
 | robots | `Sitemap: https://portle.quest/sitemap.xml` |
-| sitemap HTML 대상 | 20쪽 |
-| `seo_index_status` | `site_key='portle'` 행 0건 |
+| sitemap HTML 대상 | 23쪽 |
+| `seo_index_status` | 2026-08-21 스냅샷 생성. 검사 23쪽, 색인 4쪽, Discovered 12쪽, unknown 7쪽 |
 
-GSC 서비스 계정 속성 목록에는 아직 Portle이 없다. 2026-08-20 조회 기준 접근 가능 속성은
-`sc-domain:voicecards.quest`, `https://reviewnotes.app/`, `https://valuechain.wiki/`뿐이다.
-Search Console에서 `sc-domain:portle.quest`에 같은 서비스 계정을 추가한 뒤
-`GET /api/cron/seo-index-scan?site=portle`을 실행해야 첫 스냅샷이 기록된다.
+GSC 서비스 계정과 Chrome UI 모두 `sc-domain:portle.quest` 접근 가능하다. 2026-08-21에
+`GET /api/cron/seo-index-scan?site=portle`로 첫 스냅샷을 생성했고, 같은 날 URL Inspection에서
+`/guides`, `/faq`, `/guides/google-sheets-investment-ledger` 색인 요청까지 확인했다.
 
 ## IndexNow (구글 외 엔진)
 
@@ -202,6 +201,7 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 | 2026-08-19 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 브리프의 최근 요청 3건과 canonical 후보를 제외하고 신규 후보로 교체 |
 | 2026-08-20 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 08-19 요청분 중 VC `/es/audio-flashcards`·`/it/memorization`·`/ko/methods`·`/ru/voice-flashcard-apps`, RN `/es/practice/grade-4-2-decimals`·`/es/practice/grade-4-transformations`·`/es/practice/linear-system` 색인 확인 |
 | 2026-08-20 | Portle을 데일리 SEO 색인 프로토콜에 추가 | `portle.quest` sitemap/robots 확인, HTML 대상 20쪽. 코드·문서에는 `site_key='portle'`, GSC 속성 `sc-domain:portle.quest` 반영. GSC 서비스 계정에 Portle 속성이 없어 실제 스냅샷은 권한 추가 후 가능 |
+| 2026-08-21 | 보이스카드 4건, 리뷰노트 4건, Portle 3건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 08-20 요청분 VC 5건·RN 6건 전부 색인 확인. Portle은 첫 스냅샷 생성 후 첫 3건 요청 |
 
 색인 요청한 URL:
 

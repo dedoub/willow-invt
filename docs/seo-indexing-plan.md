@@ -80,18 +80,17 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 확인 결과:
 - 공개 도메인: `https://portle.quest`
 - robots: `Sitemap: https://portle.quest/sitemap.xml`
-- sitemap: 21 URL 중 사람이 보는 HTML 20쪽(`llms.txt` 제외)
-- GSC 서비스 계정 상태: 2026-08-20 KST 조회 기준 `sc-domain:portle.quest`가 아직 속성 목록에 없음.
-  `voicecards.quest`, `reviewnotes.app`, `valuechain.wiki`만 접근 가능하다.
-- `seo_index_status` 상태: `site_key='portle'` 행 0건. Search Console 속성 권한을 붙인 뒤
-  `/api/cron/seo-index-scan?site=portle`을 1회 실행해야 첫 스냅샷이 생긴다.
+- sitemap: 2026-08-21 기준 사람이 보는 HTML 23쪽
+- GSC 서비스 계정 상태: 2026-08-21 KST 기준 `sc-domain:portle.quest` 접근 가능.
+- `seo_index_status` 상태: 2026-08-21 KST 첫 스냅샷 생성. HTML 23쪽 검사, 색인 4쪽,
+  Discovered 12쪽, unknown 7쪽.
 
 초기 요청 순서(스냅샷 생성 후 이미 색인된 항목은 건너뜀):
 
 1. `/` (EN 루트)
-2. `/guides` (EN 허브)
-3. `/faq` (EN 코어)
-4. `/guides/google-sheets-investment-ledger`
+2. ~~`/guides` (EN 허브)~~ (08-21 요청)
+3. ~~`/faq` (EN 코어)~~ (08-21 요청)
+4. ~~`/guides/google-sheets-investment-ledger`~~ (08-21 요청)
 5. `/guides/tax-country-portfolio-tracking`
 6. `/guides/duplicate-missing-trade-checks`
 7. `/ko`
@@ -100,8 +99,7 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 10. `/ja/guides`
 
 `/privacy`·`/terms`는 검색 가치가 낮고 canonical/정책성 페이지라 초기 배치 후순위다.
-Portle 권한이 붙기 전에는 GSC URL Inspection에서 요청 단계까지 갈 수 없으므로, 후보만 준비하고
-완료로 보고하지 않는다.
+Portle 권한은 08-21에 붙었고 GSC URL Inspection 요청까지 검증됐다.
 
 ### 보이스카드 독일어권 (신규 클러스터, 최우선)
 
@@ -262,6 +260,7 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 | 08-19 | VC 5: `/es/audio-flashcards`, `/it/memorization`, `/ko/methods`, `/ru/voice-flashcard-apps`, `/vi/faq` · RN 6: `/es/guides/how-to-use-reviewnotes`, `/es/practice/grade-4-2-decimals`, `/es/practice/grade-4-transformations`, `/es/practice/grade-5-number-operations`, `/es/practice/linear-system`, `/fr/guides/how-to-use-reviewnotes` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:22~17:31 KST. 브리프에 다시 포함된 08-18 요청 3건과 canonical 후보 `/es/terms`, 최근 요청 독일어 연습문제를 제외하고 신규 후보로 교체 |
 | 08-20 | VC 5: `/es/methods`, `/de/privacy`, `/fr/voice-flashcard-apps`, `/it/faq`, `/ja/voice-flashcard-apps` · RN 6: `/de/practice/grade-4-2-line-graphs`, `/de/practice/grade-4-2-quadrilaterals`, `/es/practice/grade-4-rules`, `/es/practice/linear-function`, `/es/practice/quadratic-formula`, `/fr/practice/grade-4-bar-graph` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:10~17:15 KST. 08-20 스냅샷에서 08-19 요청분 VC 4건·RN 3건 색인 확인 후 최근 요청·canonical 후보를 제외하고 신규 후보로 실행 |
 | 08-20 | Portle 프로토콜 추가 | ✅ 코드·문서 반영. `portle.quest` sitemap 21 URL(HTML 20쪽)·robots 확인. `seo_index_status`는 portle 0행, GSC 서비스 계정에는 `sc-domain:portle.quest` 미등록이라 실제 URL Inspection 요청은 권한 추가 후 진행 |
+| 08-21 | VC 4: `/es/language-learning`, `/ja/faq`, `/ja/privacy`, `/ko/audio-flashcards` · RN 4: `/de/practice/pythagorean`, `/es/practice/grade-5-fractions`, `/fr/practice/grade-4-2-decimals`, `/fr/practice/grade-4-angles` · Portle 3: `/guides`, `/faq`, `/guides/google-sheets-investment-ledger` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:05~17:16 KST. Portle 08-21 첫 스냅샷 생성 후 초기 큐 3건 요청. 08-20 요청분 VC 5건·RN 6건 전부 색인 확인 |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ### 08-07 배치 결과 (08-08 스냅샷)
@@ -450,6 +449,7 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 08-19 | VC 5(`/es/audio-flashcards`·`/it/memorization`·`/ko/methods`·`/ru/voice-flashcard-apps`·`/vi/faq`) + RN 6(`/es/guides/how-to-use-reviewnotes`·`/es/practice/grade-4-2-decimals`·`/es/practice/grade-4-transformations`·`/es/practice/grade-5-number-operations`·`/es/practice/linear-system`·`/fr/guides/how-to-use-reviewnotes`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:22~17:31 KST | 08-19 스냅샷 신규 색인: VC `/fr/exam-prep`·일본어 덱 4건 외, RN `/fr/demo`·`/fr/practice`·`/pl/practice`·`/ru/practice`. 최근 요청·canonical 후보를 제외하고 신규 후보로 실행 |
 | 08-20 | Portle 프로토콜 추가 | ✅ 코드·문서 반영, 색인 요청 0건 | `portle.quest` sitemap/robots 확인, HTML 대상 20쪽. GSC 서비스 계정에 Portle 속성이 없어 `scanSiteIndexStatus('portle', 1)`은 `PERMISSION_DENIED`; Search Console 권한 추가 후 첫 스냅샷 필요 |
 | 08-20 | VC 5(`/es/methods`·`/de/privacy`·`/fr/voice-flashcard-apps`·`/it/faq`·`/ja/voice-flashcard-apps`) + RN 6(`/de/practice/grade-4-2-line-graphs`·`/de/practice/grade-4-2-quadrilaterals`·`/es/practice/grade-4-rules`·`/es/practice/linear-function`·`/es/practice/quadratic-formula`·`/fr/practice/grade-4-bar-graph`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:10~17:15 KST | 08-20 스냅샷 신규 색인: VC `/es/audio-flashcards`·`/it/memorization`·`/ko/methods`·`/ru/voice-flashcard-apps`, RN `/es/practice/grade-4-2-decimals`·`/es/practice/grade-4-transformations`·`/es/practice/linear-system`. 브리프 후보 중 08-18·08-19 최근 요청 URL, RN `/es/terms` canonical 후보, 08-17 독일어 최근 요청분을 제외하고 대체 후보로 실행 |
+| 08-21 | VC 4(`/es/language-learning`·`/ja/faq`·`/ja/privacy`·`/ko/audio-flashcards`) + RN 4(`/de/practice/pythagorean`·`/es/practice/grade-5-fractions`·`/fr/practice/grade-4-2-decimals`·`/fr/practice/grade-4-angles`) + Portle 3(`/guides`·`/faq`·`/guides/google-sheets-investment-ledger`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:05~17:16 KST | 08-21 스냅샷에서 08-20 요청분 VC 5건(`/de/privacy`·`/es/methods`·`/fr/voice-flashcard-apps`·`/it/faq`·`/ja/voice-flashcard-apps`)과 RN 6건(`/de/practice/grade-4-2-line-graphs`·`/de/practice/grade-4-2-quadrilaterals`·`/es/practice/grade-4-rules`·`/es/practice/linear-function`·`/es/practice/quadratic-formula`·`/fr/practice/grade-4-bar-graph`) 전부 색인 확인. Portle은 첫 요청이라 전일 요청 추적 없음 |
 
 ### 노출은 느는데 클릭이 안 는다 (2026-08-11 측정)
 
