@@ -1,9 +1,7 @@
-// 영작 연습 공용 — OpenRouter 호출 + 타입.
-// /api/chat과 같은 OpenRouter 경로를 쓰되, 여기는 툴 없이 단발 JSON 응답만 필요해 얇게 유지한다.
-
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-// 채점은 속도가 1순위 — flash 계열 고정 (chat 라우트와 동일 모델, 폴백 안정성 검증됨)
-const MODEL = 'google/gemini-2.5-flash'
+// 영작 연습 공용 — 보이스카드 프로젝트의 Gemini 키를 프록시로 빌려 쓴다 (CEO 지시, 2026-08-22).
+// geo-ask와 같은 철학: 키는 보이스카드 엣지 시크릿에 두고, llm-json 엣지 함수로 호출만 빌린다.
+// (윌로우 자체 GEMINI_API_KEY는 무료 티어(flash 20회/일)라 이 기능에 못 쓴다.)
+// 채점은 속도가 1순위 — flash + thinking off는 프록시 쪽에 고정돼 있다.
 
 export interface EnglishItem {
   id: string
@@ -23,32 +21,18 @@ export interface GradeFeedback {
 }
 
 export async function llmJson(system: string, user: string, maxTokens = 4000): Promise<unknown> {
-  const key = process.env.OPENROUTER_API_KEY
-  if (!key) throw new Error('OPENROUTER_API_KEY not set')
-  const res = await fetch(OPENROUTER_URL, {
+  const url = process.env.VOICECARDS_SUPABASE_URL
+  const key = process.env.VOICECARDS_SUPABASE_SERVICE_KEY
+  if (!url || !key) throw new Error('VOICECARDS_SUPABASE_URL / SERVICE_KEY not set')
+  const res = await fetch(`${url}/functions/v1/llm-json`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${key}`,
-      'HTTP-Referer': 'https://willow.vercel.app',
-      'X-Title': 'Willow English Practice',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.4,
-      max_tokens: maxTokens,
-      response_format: { type: 'json_object' },
-    }),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ system, user, maxOutputTokens: maxTokens }),
   })
   const text = await res.text()
-  if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${text.slice(0, 300)}`)
-  const json = JSON.parse(text) as { choices?: { message?: { content?: string } }[] }
-  const content = json.choices?.[0]?.message?.content
-  if (!content) throw new Error('OpenRouter: empty response')
+  if (!res.ok) throw new Error(`llm-json proxy ${res.status}: ${text.slice(0, 300)}`)
+  const content = (JSON.parse(text) as { text?: string }).text
+  if (!content) throw new Error('llm-json proxy: empty response')
   // 모델이 코드펜스로 감싸는 경우 방어
   const stripped = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '')
   return JSON.parse(stripped)
