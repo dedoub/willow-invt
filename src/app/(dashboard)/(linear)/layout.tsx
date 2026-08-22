@@ -95,11 +95,23 @@ export default function LinearRouteLayout({
             onSidebarToggle={() => setSidebarOpen(v => !v)}
             sidebarOpen={sidebarOpen}
             actions={
-              pathname === '/english' ? <EnglishProfileToggle />
+              pathname === '/english' && !mobile ? <EnglishProfileToggle />
                 : !mobile && COLS_TOGGLE_PATHS.has(pathname) ? <DashColsToggle />
                 : undefined
             }
           />
+          {pathname === '/english' && mobile && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              padding: `${t.density.gapSm}px 12px`,
+              background: t.neutrals.page,
+              borderBottom: `1px solid ${t.neutrals.line}`,
+              flexShrink: 0,
+            }}>
+              <EnglishProfileToggle />
+            </div>
+          )}
           <main style={{
             flex: 1,
             overflow: mobile && menuOpen ? 'hidden' : 'auto',

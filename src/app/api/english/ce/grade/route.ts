@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { llmJson } from '@/lib/english'
 import { fetchCeProblems, fetchS3Object } from '@/lib/english-ce'
+import { normaliseCompositionGrade, type RawCompositionPoint } from '@/lib/english-ce-grading'
+import { getAuthUser } from '@/lib/auth'
 
 export const maxDuration = 60
 
@@ -21,14 +23,22 @@ Return JSON only:
 points: 2-4 items covering how the marks break down. Notes in simple Korean a child understands.`
 
 const COMPOSITION_SYSTEM = `You are a CE 11+ English examiner marking a composition (essay/descriptive writing) by an 11-year-old Korean girl.
-The attached image(s) show the printed task. The marking guidance is given in the text — content marks and SPaG (spelling, punctuation, grammar) marks as stated (usually 25 + 10).
-British English conventions apply — never mark British spellings (learnt, colour, organise) as errors or 'correct' them to American forms.
-Judge: does the writing answer the task and include every element the task demands; is the argument/description coherent; vocabulary and sentence variety; then SPaG. An 11+ level is expected, not adult writing.
+The text contains the ReviewNotes solution in Korean, including 문제 이해 and 답안 구성, followed by an example answer and explanation.
+Use that solution as the task-specific guide and assess exactly three levels, from large structure to small structure:
+1. paragraph_structure (문단 구성): whether the whole piece has purposeful paragraphs in a logical order and covers the task.
+2. paragraph_sentence_structure (문단 내 문장 구성): whether each paragraph's sentences have clear roles, develop one idea, connect logically, and follow the plan.
+3. sentence_quality (개별 문장의 완성도): whether individual sentences are complete, precise, varied, and accurate in vocabulary, spelling, punctuation, and grammar.
+For a 35-mark composition use 10 + 15 + 10 possible marks in that order. For another maximum, scale the three possible marks proportionally and make them sum exactly to maxScore.
+The plan is guidance, not a script. Do not require the exact wording of the example answer or the exact sentence count when the pupil achieves the same purpose with a coherent alternative structure. Do not reward copied phrases by themselves when the writing does not fulfil the task.
+British English conventions apply. Never mark British spellings (learnt, colour, organise) as errors or correct them to American forms. An 11+ level is expected, not adult writing.
 Return JSON only:
-{"score": int, "maxScore": int, "points": [{"earned": int, "possible": int, "note": "내용 점수 근거 (한국어)"}, {"earned": int, "possible": int, "note": "맞춤법·구두점·문법 점수 근거 (한국어)"}], "comment": "격려 + 가장 효과 큰 개선 2-3가지, 한국어", "corrections": [{"before": "학생 문장", "after": "고친 문장", "why": "짧은 한국어"}]}
-corrections: up to 3 of the most instructive fixes.`
+{"score": int, "maxScore": int, "points": [{"level": "paragraph_structure", "earned": int, "possible": int, "note": "구체적인 한국어 근거", "nextPractice": "바로 할 연습 한 가지"}, {"level": "paragraph_sentence_structure", "earned": int, "possible": int, "note": "구체적인 한국어 근거", "nextPractice": "바로 할 연습 한 가지"}, {"level": "sentence_quality", "earned": int, "possible": int, "note": "구체적인 한국어 근거", "nextPractice": "바로 할 연습 한 가지"}], "comment": "세 단계 중 먼저 고칠 한 가지를 알려주는 짧은 한국어", "corrections": [{"before": "학생 문장", "after": "고친 문장", "why": "짧은 한국어"}]}
+Return exactly three points in that order. Possible marks must sum to maxScore and earned marks must sum to score. Refer to concrete requirements from the plan. Keep every note and nextPractice under 70 Korean characters. Return no more than two corrections.`
 
 export async function POST(req: NextRequest) {
+  if (!(await getAuthUser())) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
   const body = await req.json() as { problemId?: string; answer?: string; imageBase64?: string }
   const { problemId, answer, imageBase64 } = body
   if (!problemId || (!answer?.trim() && !imageBase64)) {
@@ -51,30 +61,40 @@ export async function POST(req: NextRequest) {
     }
     const answerText = imageBase64 ? transcript : answer!.trim()
 
-    // 2단계: 지문·문항 이미지와 마크스킴으로 채점
+    // 2단계: 독해만 지문 이미지를 붙인다. 작문은 상세 풀이 텍스트로 빠르게 채점한다.
     const images: string[] = []
-    for (const key of problem.imageKeys.slice(0, 4)) {
-      try { images.push((await fetchS3Object(key)).buf.toString('base64')) } catch { /* 지문 일부 누락은 허용 */ }
+    if (problem.kind === 'comprehension') {
+      for (const key of problem.imageKeys.slice(0, 4)) {
+        try { images.push((await fetchS3Object(key)).buf.toString('base64')) } catch { /* 지문 일부 누락은 허용 */ }
+      }
     }
     const system = problem.kind === 'composition' ? COMPOSITION_SYSTEM : COMPREHENSION_SYSTEM
-    const user = `## OFFICIAL MARK SCHEME / GUIDANCE
+    const user = `## REVIEWNOTES PROBLEM SOLUTION AND WRITING PLAN
 ${problem.schemeText}
+
+## MAX SCORE
+${problem.maxScore}
 
 ## PUPIL'S ANSWER
 ${answerText}`
 
-    const raw = await llmJson(system, user, 2500, images) as {
+    const raw = await llmJson(system, user, 1400, problem.kind === 'comprehension' ? images : undefined) as {
       score?: number; maxScore?: number
-      points?: { earned: number; possible: number; note: string }[]
+      points?: { level?: string; earned: number; possible: number; note: string; nextPractice?: string }[]
       comment?: string
       corrections?: { before: string; after: string; why: string }[]
     }
     const maxScore = problem.maxScore
-    const score = Math.max(0, Math.min(maxScore, Math.round(Number(raw.score ?? 0))))
+    const rawPoints = Array.isArray(raw.points) ? raw.points : []
+    const compositionGrade = problem.kind === 'composition'
+      ? normaliseCompositionGrade(Number(raw.score ?? 0), maxScore, rawPoints as RawCompositionPoint[])
+      : null
+    const score = compositionGrade?.score
+      ?? Math.max(0, Math.min(maxScore, Math.round(Number(raw.score ?? 0))))
     const feedback = {
-      points: Array.isArray(raw.points) ? raw.points.slice(0, 5) : [],
+      points: compositionGrade?.points ?? rawPoints.slice(0, 5),
       comment: String(raw.comment ?? ''),
-      corrections: Array.isArray(raw.corrections) ? raw.corrections.slice(0, 3) : undefined,
+      corrections: Array.isArray(raw.corrections) ? raw.corrections.slice(0, problem.kind === 'composition' ? 2 : 3) : undefined,
       transcript: imageBase64 ? transcript : undefined,
     }
 

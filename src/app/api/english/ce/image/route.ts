@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchS3Object } from '@/lib/english-ce'
+import { getAuthUser } from '@/lib/auth'
 
 export const maxDuration = 15
 
-// CE 기출 스캔 이미지 프록시 — ReviewNotes S3에서 읽어 그대로 서빙.
-// 키는 queue 응답에만 들어있는 불투명 식별자라 사실상 capability URL이다.
+// CE 기출 스캔 이미지 프록시 — ReviewNotes S3에서 읽어 인증된 사용자에게 서빙.
 export async function GET(req: NextRequest) {
+  if (!(await getAuthUser())) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
   const key = req.nextUrl.searchParams.get('key') ?? ''
   if (!key.startsWith('images/')) return NextResponse.json({ error: 'invalid key' }, { status: 400 })
   try {
@@ -13,7 +16,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(new Uint8Array(buf), {
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400, immutable',
+        'Cache-Control': 'private, max-age=86400, immutable',
       },
     })
   } catch {

@@ -520,17 +520,18 @@ export interface DrawPadHandle {
 
 type Stroke = { x: number; y: number }[]
 
-const PAD_H_KEY = 'english-pad-h'
+const DEFAULT_PAD_H_KEY = 'english-pad-h'
 const PAD_H_MIN = 160
 const PAD_H_MAX = 1200
 
-const DrawPad = forwardRef<DrawPadHandle, {
+export const DrawPad = forwardRef<DrawPadHandle, {
   disabled?: boolean
   height: number
+  storageKey?: string
   /** pen: 그리기, eraser: 스친 획을 통째로 지우는 개체 지우개 */
   tool?: 'pen' | 'eraser'
   onInkChange?: (hasInk: boolean) => void
-}>(function DrawPad({ disabled, height, tool = 'pen', onInkChange }, ref) {
+}>(function DrawPad({ disabled, height, storageKey = DEFAULT_PAD_H_KEY, tool = 'pen', onInkChange }, ref) {
   const wrapRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const strokesRef = useRef<Stroke[]>([])
@@ -538,7 +539,7 @@ const DrawPad = forwardRef<DrawPadHandle, {
   // 높이 — 긴 답(작문)을 쓸 수 있게 드래그로 조절, 기기별 localStorage 기억
   const [padH, setPadH] = useState<number>(() => {
     if (typeof window === 'undefined') return height
-    const v = Number(localStorage.getItem(PAD_H_KEY))
+    const v = Number(localStorage.getItem(storageKey))
     return v >= PAD_H_MIN && v <= PAD_H_MAX ? v : height
   })
   const gripStart = useRef<{ y: number; h: number } | null>(null)
@@ -674,7 +675,7 @@ const DrawPad = forwardRef<DrawPadHandle, {
           if (!gripStart.current) return
           const next = Math.max(PAD_H_MIN, Math.min(PAD_H_MAX, Math.round(gripStart.current.h + e.clientY - gripStart.current.y)))
           setPadH(next)
-          try { localStorage.setItem(PAD_H_KEY, String(next)) } catch { /* noop */ }
+          try { localStorage.setItem(storageKey, String(next)) } catch { /* noop */ }
         }}
         onPointerUp={() => { gripStart.current = null }}
         onPointerCancel={() => { gripStart.current = null }}

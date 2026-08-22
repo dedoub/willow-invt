@@ -4,6 +4,7 @@
 // 나: 미국식 비즈니스(위키/이메일 소재, 100/일) · 류하: 영국식 ISEB 인터뷰 대비(류하 노트+ISEB 문항, 20/일)
 import { useEnglishProfile } from '@/app/(dashboard)/_components/english-profile'
 import { PracticeView, PracticeViewProps } from './_components/practice-view'
+import { CeCompositionView } from './_components/ce-composition-view'
 
 const CONFIGS: Record<'ceo' | 'ryuha' | 'ryuha_written', PracticeViewProps> = {
   ceo: {
@@ -37,6 +38,7 @@ const CONFIGS: Record<'ceo' | 'ryuha' | 'ryuha_written', PracticeViewProps> = {
 
 export default function EnglishPage() {
   const profile = useEnglishProfile()
+  if (profile === 'ryuha_ce') return <CeCompositionView key={profile} />
   // key로 완전 리마운트 — 프로필 전환 시 큐/입력/결과 상태가 섞이지 않게
   return <PracticeView key={profile} {...CONFIGS[profile]} />
 }
