@@ -79,6 +79,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
   const [vcState, setVcState] = useState<'idle' | 'sending' | 'done'>('idle')
   // 류하는 영문 키보드가 서툴러 펜슬 손글씨가 기본. CEO는 타이핑 고정.
   const [inputMode, setInputMode] = useState<'type' | 'draw'>(profile === 'ceo' ? 'type' : 'draw')
+  const [tool, setTool] = useState<'pen' | 'eraser'>('pen')
   const [hasInk, setHasInk] = useState(false)
   const padRef = useRef<DrawPadHandle | null>(null)
   const taRef = useRef<HTMLTextAreaElement | null>(null)
@@ -161,6 +162,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
     setVcState('idle')
     padRef.current?.clear()
     setHasInk(false)
+    setTool('pen')
     setIdx(i => i + 1)
     // 모바일은 자동 포커스 금지 — 키보드가 멋대로 올라오지 않게, 직접 탭할 때만 연다
     if (!mobile) setTimeout(() => taRef.current?.focus(), 0)
@@ -387,7 +389,15 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
                   ]}
                 />
                 {inputMode === 'draw' && !result && (
-                  <div style={{ display: 'flex', gap: t.density.gapSm }}>
+                  <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <LSegmented<'pen' | 'eraser'>
+                      value={tool}
+                      onChange={setTool}
+                      options={[
+                        { value: 'pen', label: '펜' },
+                        { value: 'eraser', label: '지우개' },
+                      ]}
+                    />
                     <LBtn size="sm" variant="secondary" onClick={() => { padRef.current?.undo(); setHasInk(!padRef.current?.isEmpty()) }}>한 획 취소</LBtn>
                     <LBtn size="sm" variant="secondary" onClick={() => { padRef.current?.clear(); setHasInk(false) }}>전체 지우기</LBtn>
                   </div>
@@ -400,6 +410,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
                 ref={padRef}
                 disabled={!!result || grading}
                 height={mobile ? 220 : 260}
+                tool={tool}
                 onInkChange={setHasInk}
               />
             ) : (
@@ -512,8 +523,10 @@ type Stroke = { x: number; y: number }[]
 const DrawPad = forwardRef<DrawPadHandle, {
   disabled?: boolean
   height: number
+  /** pen: 그리기, eraser: 스친 획을 통째로 지우는 개체 지우개 */
+  tool?: 'pen' | 'eraser'
   onInkChange?: (hasInk: boolean) => void
-}>(function DrawPad({ disabled, height, onInkChange }, ref) {
+}>(function DrawPad({ disabled, height, tool = 'pen', onInkChange }, ref) {
   const wrapRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const strokesRef = useRef<Stroke[]>([])
@@ -587,6 +600,19 @@ const DrawPad = forwardRef<DrawPadHandle, {
     return { x: e.clientX - rect.left, y: e.clientY - rect.top }
   }
 
+  // 개체 지우개 — 커서 반경 안에 점이 있는 획을 통째로 제거
+  const eraseAt = (p: { x: number; y: number }) => {
+    const R = 12
+    const before = strokesRef.current.length
+    strokesRef.current = strokesRef.current.filter(
+      stroke => !stroke.some(q => (q.x - p.x) ** 2 + (q.y - p.y) ** 2 <= R * R),
+    )
+    if (strokesRef.current.length !== before) {
+      redraw()
+      onInkChange?.(strokesRef.current.length > 0)
+    }
+  }
+
   return (
     <div
       ref={wrapRef}
@@ -605,10 +631,12 @@ const DrawPad = forwardRef<DrawPadHandle, {
           if (disabled) return
           e.currentTarget.setPointerCapture(e.pointerId)
           drawingRef.current = true
+          if (tool === 'eraser') { eraseAt(pointFrom(e)); return }
           strokesRef.current.push([pointFrom(e)])
         }}
         onPointerMove={(e) => {
           if (!drawingRef.current || disabled) return
+          if (tool === 'eraser') { eraseAt(pointFrom(e)); return }
           const stroke = strokesRef.current[strokesRef.current.length - 1]
           stroke.push(pointFrom(e))
           redraw()
