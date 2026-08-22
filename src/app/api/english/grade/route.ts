@@ -49,10 +49,16 @@ Return JSON only:
 {"score": int, "corrected": "minimal fix of the learner's own sentence (keep their words where possible)", "natural": "the most natural spoken American version", "points": [{"type":"grammar|word|natural|good","note":"짧은 한국어 코멘트"}]}
 points: 1-3 items, most important first. If the answer is already great, one "good" point. Notes in Korean, each under 60 chars.`
 
-  const user = `한글: ${item.korean_full}
+  // 손글씨(전사) 시에는 참고 답안을 프롬프트에서 뺀다 — 낙서를 참고 답안으로 "읽은 척"하는
+  // 전사 오염(커닝)을 막기 위해. 채점은 한글 원문 기준으로 충분하다.
+  const user = imageBase64
+    ? `한글: ${item.korean_full}
+청킹: ${(item.korean_chunks as string[]).join(' / ')}
+학습자 답안: (첨부된 손글씨 이미지)`
+    : `한글: ${item.korean_full}
 청킹: ${(item.korean_chunks as string[]).join(' / ')}
 참고 답안: ${item.reference_english}
-학습자 답안: ${imageBase64 ? '(첨부된 손글씨 이미지)' : answer!.trim()}`
+학습자 답안: ${answer!.trim()}`
 
   try {
     const raw = await llmJson(
