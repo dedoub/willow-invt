@@ -520,6 +520,10 @@ export interface DrawPadHandle {
 
 type Stroke = { x: number; y: number }[]
 
+const PAD_H_KEY = 'english-pad-h'
+const PAD_H_MIN = 160
+const PAD_H_MAX = 1200
+
 const DrawPad = forwardRef<DrawPadHandle, {
   disabled?: boolean
   height: number
@@ -531,6 +535,13 @@ const DrawPad = forwardRef<DrawPadHandle, {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const strokesRef = useRef<Stroke[]>([])
   const drawingRef = useRef(false)
+  // 높이 — 긴 답(작문)을 쓸 수 있게 드래그로 조절, 기기별 localStorage 기억
+  const [padH, setPadH] = useState<number>(() => {
+    if (typeof window === 'undefined') return height
+    const v = Number(localStorage.getItem(PAD_H_KEY))
+    return v >= PAD_H_MIN && v <= PAD_H_MAX ? v : height
+  })
+  const gripStart = useRef<{ y: number; h: number } | null>(null)
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current
@@ -561,16 +572,16 @@ const DrawPad = forwardRef<DrawPadHandle, {
     const size = () => {
       const dpr = window.devicePixelRatio || 1
       canvas.width = wrap.clientWidth * dpr
-      canvas.height = height * dpr
+      canvas.height = padH * dpr
       canvas.style.width = '100%'
-      canvas.style.height = `${height}px`
+      canvas.style.height = `${padH}px`
       redraw()
     }
     size()
     const ro = new ResizeObserver(size)
     ro.observe(wrap)
     return () => ro.disconnect()
-  }, [height, redraw])
+  }, [padH, redraw])
 
   useImperativeHandle(ref, () => ({
     getImage: () => {
@@ -620,7 +631,7 @@ const DrawPad = forwardRef<DrawPadHandle, {
         borderRadius: t.radius.md, overflow: 'hidden',
         background: t.neutrals.inner,
         // 공책 줄 — 아이가 baseline에 맞춰 쓰도록
-        backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${height / 4 - 1}px, ${t.neutrals.line} ${height / 4 - 1}px, ${t.neutrals.line} ${height / 4}px)`,
+        backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent 56px, ${t.neutrals.line} 56px, ${t.neutrals.line} 57px)`,
         opacity: disabled ? 0.55 : 1,
       }}
     >
@@ -648,6 +659,28 @@ const DrawPad = forwardRef<DrawPadHandle, {
         }}
         onPointerCancel={() => { drawingRef.current = false }}
       />
+      {/* 높이 조절 그립 — 드래그로 160~1200px, 기기별 기억 */}
+      <div
+        title="드래그해서 높이 조절"
+        style={{
+          height: 18, display: 'grid', placeItems: 'center', cursor: 'ns-resize',
+          touchAction: 'none', borderTop: `1px solid ${t.neutrals.line}`, background: t.neutrals.card,
+        }}
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId)
+          gripStart.current = { y: e.clientY, h: padH }
+        }}
+        onPointerMove={(e) => {
+          if (!gripStart.current) return
+          const next = Math.max(PAD_H_MIN, Math.min(PAD_H_MAX, Math.round(gripStart.current.h + e.clientY - gripStart.current.y)))
+          setPadH(next)
+          try { localStorage.setItem(PAD_H_KEY, String(next)) } catch { /* noop */ }
+        }}
+        onPointerUp={() => { gripStart.current = null }}
+        onPointerCancel={() => { gripStart.current = null }}
+      >
+        <span style={{ width: 38, height: 4, borderRadius: 999, background: t.neutrals.line }} />
+      </div>
     </div>
   )
 })
