@@ -182,11 +182,11 @@ export default function EnglishPage() {
     }
   }, [loadQueue, mode])
 
-  // 신규 문장이 바닥나면(10개 이하) 백그라운드로 50개 자동 충전.
+  // 신규 문장이 바닥나면(20개 이하 — 하루 100문장 페이스 기준 큐 하나 분량) 백그라운드로 50개 자동 충전.
   // 풀 게 아예 없을 때는 충전 완료 후 큐도 자동 리로드.
   useEffect(() => {
     if (loading || !stats) return
-    if (stats.freshRemaining <= 10 && !generatingRef.current && !autoRefillBlockedRef.current) {
+    if (stats.freshRemaining <= 20 && !generatingRef.current && !autoRefillBlockedRef.current) {
       generate({ silent: true, reloadIfEmpty: queue.length === 0 || idx >= queue.length })
     }
   }, [loading, stats, queue.length, idx, generate])
@@ -230,11 +230,12 @@ export default function EnglishPage() {
         <LStat
           label="오늘 학습"
           value={stats ? String(stats.today.fresh + stats.today.review) : '–'}
-          unit="문장"
+          unit="/ 100"
+          tone={stats && stats.today.fresh + stats.today.review >= 100 ? 'pos' : 'default'}
           sub={stats ? `신규 ${stats.today.fresh} · 복습 ${stats.today.review}` : ''}
           sparkline={sparkTotal}
           sparkline2={sparkReview}
-          title="오늘 채점받은 문장 수 (KST). 스파크라인: 최근 7일 (점선=복습)"
+          title="오늘 채점받은 문장 수 (KST) — 목표 하루 100문장. 스파크라인: 최근 7일 (점선=복습)"
         />
         <LStat
           label="누적 학습 문장"

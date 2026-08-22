@@ -5,13 +5,14 @@ import { getServiceSupabase } from '@/lib/supabase'
 // 복습 대상 = "마지막 시도가 불합격"인 문장. 정답률도 문장별 마지막 시도 기준 —
 // 목표는 누적 학습 문장을 늘리면서 마지막 시도 기준 정답률을 100%에 가깝게 유지하는 것.
 
+// 하루 100문장 페이스 기준 — 큐 한 번에 20문장 (5큐 = 100)
 export type PracticeMode = 'new_heavy' | 'balanced' | 'review_heavy'
 const RATIO: Record<PracticeMode, { fresh: number; review: number }> = {
-  new_heavy: { fresh: 8, review: 2 },
-  balanced: { fresh: 5, review: 5 },
-  review_heavy: { fresh: 2, review: 8 },
+  new_heavy: { fresh: 16, review: 4 },
+  balanced: { fresh: 10, review: 10 },
+  review_heavy: { fresh: 4, review: 16 },
 }
-const QUEUE_SIZE = 10
+const QUEUE_SIZE = 20
 
 // KST 날짜 문자열 (YYYY-MM-DD)
 function kstDate(iso: string): string {

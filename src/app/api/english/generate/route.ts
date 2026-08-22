@@ -15,19 +15,20 @@ export async function POST(req: NextRequest) {
 
   // 소재: 최근 위키 노트(제목+본문 앞부분) + 최근 이메일 분석 요약
   const [wikiRes, emailRes, recentRes] = await Promise.all([
+    // 소재 풀을 넓게 가져와 회차마다 랜덤 샘플 — 최신 노트에만 편중되면 하루 100문장 페이스에서 소재가 금방 겹친다
     supabase.from('work_wiki')
       .select('title, content, section')
       .order('updated_at', { ascending: false })
-      .limit(40),
+      .limit(200),
     supabase.from('email_analysis')
       .select('label, analysis_data')
       .order('generated_at', { ascending: false })
       .limit(4),
-    // 중복 방지 — 최근 만든 문제의 영어 문장 목록
+    // 중복 방지 — 최근 만든 문제의 영어 문장 목록 (하루 100문장 페이스면 금방 쌓여서 넓게 잡는다)
     supabase.from('english_practice_items')
       .select('reference_english')
       .order('created_at', { ascending: false })
-      .limit(120),
+      .limit(300),
   ])
 
   const wikiNotes = (wikiRes.data ?? [])
