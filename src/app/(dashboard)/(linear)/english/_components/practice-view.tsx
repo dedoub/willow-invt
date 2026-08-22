@@ -377,8 +377,8 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
               전체 문장: {current.korean_full}
             </div>
 
-            {/* 입력 방식 — 류하 프로필은 펜슬 손글씨가 기본, 키보드로 전환 가능. 아빠는 타이핑 고정 */}
-            {profile !== 'ceo' && (
+            {/* 입력 방식 — 모든 프로필에서 손글씨/키보드 전환 가능. 기본값: 류하=손글씨, 아빠=키보드 */}
+            {(
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: t.density.gapSm }}>
                 <LSegmented<'draw' | 'type'>
                   value={inputMode}
