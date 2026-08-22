@@ -225,7 +225,7 @@ export default function EnglishPage() {
       {/* 지표 — 오늘 학습량 / 누적 문장 / 정답률 / 남은 문제 */}
       <div style={{
         display: 'grid', gap: t.density.kpiGap, marginBottom: t.density.blockGap,
-        gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+        gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(4, minmax(0,1fr))',
       }}>
         <LStat
           label="오늘 학습"
@@ -263,23 +263,23 @@ export default function EnglishPage() {
 
       {error && (
         <LCard style={{ marginBottom: t.density.blockGap }}>
-          <span style={{ fontSize: t.type.body, color: t.accent.neg }}>{error}</span>
+          <span style={{ fontSize: 'calc(13px * var(--fz, 1))', color: t.accent.neg }}>{error}</span>
         </LCard>
       )}
 
       {loading ? (
         <LCard>
-          <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.subtle, fontSize: t.type.body }}>
+          <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.subtle, fontSize: 'calc(13px * var(--fz, 1))' }}>
             문제 불러오는 중…
           </div>
         </LCard>
       ) : !current ? (
         <LCard>
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
-            <div style={{ fontSize: t.type.sectionTitle, fontWeight: t.weight.semibold, marginBottom: t.density.gapSm }}>
+            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, marginBottom: t.density.gapSm }}>
               {queue.length > 0 ? '이번 큐 완료 🎉' : '풀 문제가 없습니다'}
             </div>
-            <div style={{ fontSize: t.type.body, color: t.neutrals.muted, marginBottom: t.density.gapLg }}>
+            <div style={{ fontSize: 'calc(13px * var(--fz, 1))', color: t.neutrals.muted, marginBottom: t.density.gapLg }}>
               {queue.length > 0
                 ? `${queue.length}문장 학습했습니다. 새 큐를 받아 계속하세요.`
                 : generating
@@ -305,7 +305,7 @@ export default function EnglishPage() {
                 </LBadge>
                 {current.topic && <LBadge tone="neutral">{current.topic}</LBadge>}
               </div>
-              <span style={{ fontSize: t.type.helper, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+              <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                 {idx + 1} / {queue.length}
               </span>
             </div>
@@ -318,17 +318,17 @@ export default function EnglishPage() {
               {current.korean_chunks.map((chunk, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'baseline', gap: t.density.gapMd,
-                  padding: '3px 0', fontSize: 15, lineHeight: 1.5,
+                  padding: '3px 0', fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.5,
                 }}>
                   <span style={{
-                    fontSize: t.type.helper, color: t.neutrals.subtle, fontFamily: t.font.mono,
+                    fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono,
                     minWidth: 14, textAlign: 'right',
                   }}>{i + 1}</span>
                   <span>{chunk}</span>
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: t.type.helper, color: t.neutrals.subtle, marginBottom: t.density.gapMd }}>
+            <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: t.density.gapMd }}>
               전체 문장: {current.korean_full}
             </div>
 
@@ -337,25 +337,30 @@ export default function EnglishPage() {
               value={answer}
               onChange={e => setAnswer(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="영어로 써보세요… (⌘+Enter 채점)"
+              placeholder={mobile ? '영어로 써보세요…' : '영어로 써보세요… (⌘+Enter 채점)'}
               rows={3}
               disabled={!!result || grading}
-              autoFocus
+              autoFocus={!mobile}
               style={{
                 width: '100%', boxSizing: 'border-box', resize: 'vertical',
                 background: result ? t.neutrals.page : t.neutrals.inner,
                 border: 'none', borderRadius: t.radius.md,
-                padding: `${t.density.gapMd}px ${t.density.gapLg}px`,
-                fontSize: 15, lineHeight: 1.5, fontFamily: t.font.sans, color: t.neutrals.text,
+                padding: `${t.density.gapMd}px ${mobile ? t.density.gapMd : t.density.gapLg}px`,
+                // 16px 미만이면 iOS Safari가 포커스 시 강제 줌 — 16 고정
+                fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.5, fontFamily: t.font.sans, color: t.neutrals.text,
               }}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: t.density.gapMd }}>
               {!result ? (
-                <LBtn variant="brand" onClick={grade} disabled={!answer.trim() || grading}>
-                  {grading ? '채점 중…' : '채점 (⌘↵)'}
+                <LBtn variant="brand" onClick={grade} disabled={!answer.trim() || grading}
+                  style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                  {grading ? '채점 중…' : mobile ? '채점' : '채점 (⌘↵)'}
                 </LBtn>
               ) : (
-                <LBtn variant="brand" onClick={next}>다음 문제 (⌘↵)</LBtn>
+                <LBtn variant="brand" onClick={next}
+                  style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                  {mobile ? '다음 문제' : '다음 문제 (⌘↵)'}
+                </LBtn>
               )}
             </div>
           </LCard>
@@ -363,9 +368,10 @@ export default function EnglishPage() {
           {/* 채점 결과 */}
           {result && (
             <LCard>
-              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, marginBottom: t.density.gapMd }}>
+              {/* 좁은 화면에서 배지+버튼이 넘치면 버튼이 다음 줄로 내려간다 */}
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: t.density.gapMd, marginBottom: t.density.gapMd }}>
                 <span style={{
-                  fontSize: 26, fontWeight: t.weight.bold, fontFamily: t.font.mono,
+                  fontSize: 'calc(22px * var(--fz, 1))', fontWeight: t.weight.bold, fontFamily: t.font.mono,
                   color: result.passed ? t.accent.pos : t.accent.neg,
                 }}>{result.score}</span>
                 <LBadge tone={result.passed ? 'pos' : 'neg'} pill>{result.passed ? '합격' : '재도전 대상'}</LBadge>
@@ -380,7 +386,7 @@ export default function EnglishPage() {
                 {result.points.map((p, i) => (
                   <div key={i} style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'baseline' }}>
                     <LBadge tone={POINT_TONE[p.type] ?? 'neutral'}>{POINT_LABEL[p.type] ?? p.type}</LBadge>
-                    <span style={{ fontSize: t.type.body, lineHeight: 1.5 }}>{p.note}</span>
+                    <span style={{ fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.5 }}>{p.note}</span>
                   </div>
                 ))}
               </div>
@@ -405,11 +411,11 @@ function ResultLine({ label, text, highlight }: { label: string; text: string; h
       borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.gapLg}px`,
     }}>
       <div style={{
-        fontSize: t.type.tableHead, fontWeight: t.weight.semibold, letterSpacing: 0.8,
+        fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.semibold, letterSpacing: 0.8,
         textTransform: 'uppercase', color: t.neutrals.subtle, fontFamily: t.font.mono,
         marginBottom: 2,
       }}>{label}</div>
-      <div style={{ fontSize: 15, lineHeight: 1.55 }}>{text}</div>
+      <div style={{ fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.55 }}>{text}</div>
     </div>
   )
 }
