@@ -1,53 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
-import { llmJson } from '@/lib/english'
+import { llmJson, asProfile } from '@/lib/english'
 
 export const maxDuration = 120
 
 const BATCH = 10
 const MAX_COUNT = 50
 
-// 업무위키·이메일 분석에서 소재를 뽑아 미국식 구어체 영작 문제를 배치 생성해 문제은행에 저장.
-// count(기본 10, 최대 50)만큼 10개 단위로 나눠 생성 — 회차마다 중복 방지 목록을 누적한다.
-export async function POST(req: NextRequest) {
-  const count = Math.min(MAX_COUNT, Math.max(BATCH, Number((await req.json().catch(() => ({}))).count ?? BATCH)))
-  const supabase = getServiceSupabase()
+// 청킹 규칙 — 두 프로필 공통 (보이스카드 청킹 스킬 방법론)
+const CHUNKING_RULES = `## Chunking (the core of the exercise)
+- AFTER the English sentence is final, split IT (the English) into real spoken breath units, in order — the phrases you'd say in one breath with one intonation contour. Avoid 1-2 word chunks; merge them into a neighbor (a natural sentence-final standalone is the only exception). A 5-6 word chunk is fine if it's said in one breath. Joining the "en" chunks in order must reproduce the reference sentence exactly.
+- For each English chunk, write the "ko" Korean phrase that means exactly that chunk — same subject/verb/negation/tense scope, nothing borrowed from adjacent chunks. Target 3-4 어절, but matching the en chunk's exact meaning beats the word count. Because chunks follow the ENGLISH sentence order, the Korean verb phrase lands early (with the English verb), not at the end.
+- korean_full: the natural Korean full sentence (normal Korean word order).`
 
-  // 소재: 최근 위키 노트(제목+본문 앞부분) + 최근 이메일 분석 요약
-  const [wikiRes, emailRes, recentRes] = await Promise.all([
-    // 소재 풀을 넓게 가져와 회차마다 랜덤 샘플 — 최신 노트에만 편중되면 하루 100문장 페이스에서 소재가 금방 겹친다
-    supabase.from('work_wiki')
-      .select('title, content, section')
-      .order('updated_at', { ascending: false })
-      .limit(200),
-    supabase.from('email_analysis')
-      .select('label, analysis_data')
-      .order('generated_at', { ascending: false })
-      .limit(4),
-    // 중복 방지 — 최근 만든 문제의 영어 문장 목록 (하루 100문장 페이스면 금방 쌓여서 넓게 잡는다)
-    supabase.from('english_practice_items')
-      .select('reference_english')
-      .order('created_at', { ascending: false })
-      .limit(300),
-  ])
+const OUTPUT_SPEC = `Do NOT reuse or closely paraphrase any sentence in the "already used" list, and never output the example sentence above as an item.
+Return JSON: {"items":[{"korean_full":"...","reference_english":"...","chunks":[{"en":"...","ko":"..."}],"topic":"..."}]} with exactly 10 items.`
 
-  const wikiNotes = (wikiRes.data ?? [])
-  const emailText = (emailRes.data ?? [])
-    .map(e => `- ${e.label}: ${JSON.stringify(e.analysis_data).slice(0, 400)}`)
-    .join('\n')
-  const existing = (recentRes.data ?? []).map(r => r.reference_english)
-
-  const system = `You create English composition practice items for a Korean CEO of a small investment/software company.
+const CEO_SYSTEM = `You create English composition practice items for a Korean CEO of a small investment/software company.
 He wants to practice spoken American business English he would actually say in daily work — meetings, emails read aloud, quick updates, requests, small talk about his projects.
 
 ## English style (write this FIRST)
 1. Write ONE natural spoken American English sentence (10-22 words), first person, grounded in the provided work context. Tone: clear, polished, direct, confident — what you'd actually say out loud in a New York business conversation, not written/translated prose. Contractions OK. Natural discourse markers OK when they fit ("I mean", "But the truth is", "From the outside").
 2. Do NOT mirror Korean sentence structure. Capture the speaker's intent and rewrite it in the American English order of thought.
 
-## Chunking (the core of the exercise)
-3. AFTER the English sentence is final, split IT (the English) into real spoken breath units, in order — the phrases you'd say in one breath with one intonation contour ("But the truth is," / "he's been at this" / "for 15-plus years"). Avoid 1-2 word chunks; merge them into a neighbor (a natural sentence-final standalone is the only exception). A 5-6 word chunk is fine if it's said in one breath. Joining the "en" chunks in order must reproduce the reference sentence exactly.
-4. For each English chunk, write the "ko" Korean phrase that means exactly that chunk — same subject/verb/negation/tense scope, nothing borrowed from adjacent chunks. Target 3-4 어절, but matching the en chunk's exact meaning beats the word count. Because chunks follow the ENGLISH sentence order, the Korean verb phrase lands early (with the English verb), not at the end.
-5. korean_full: the natural Korean full sentence (normal Korean word order). All Korean is 구어체 존댓말 ("~해요/~거예요"), never written style ("~합니다/~됩니다").
+${CHUNKING_RULES}
+- All Korean is 구어체 존댓말 ("~해요/~거예요"), never written style ("~합니다/~됩니다").
 
 Example:
 reference_english: "I sent the invoice to Akros yesterday, and I'll check the payment next week."
@@ -58,10 +35,76 @@ chunks: [
   {"en": "and I'll check the payment", "ko": "그리고 확인할 거예요, 수금을"},
   {"en": "next week.", "ko": "다음 주에요."}
 ]
-6. topic: 2-4 word Korean label of the subject matter.
+- topic: 2-4 word Korean label of the subject matter.
 
-Do NOT reuse or closely paraphrase any sentence in the "already used" list, and never output the example sentence above as an item.
-Return JSON: {"items":[{"korean_full":"...","reference_english":"...","chunks":[{"en":"...","ko":"..."}],"topic":"..."}]} with exactly 10 items.`
+${OUTPUT_SPEC}`
+
+const RYUHA_SYSTEM = `You create English speaking-practice items for Ryuha, an 11-year-old Korean girl preparing for UK senior school entrance (Wycombe Abbey 11+, ISEB Pre-Tests) — especially the school INTERVIEW and everyday conversation at a British school.
+
+## English style (write this FIRST)
+1. Write ONE natural spoken BRITISH English sentence (8-18 words), first person, that Ryuha herself would actually SAY in an interview or at school: introducing herself, her hobbies and favourite books, her school life in Korea, her family, why she wants to join the school, what she is curious about, how she practises and learns. Warm, confident, polite, age-appropriate — a bright Year 6 pupil's voice, never corporate or bookish.
+2. British spelling and vocabulary (favourite, colour, maths, brilliant, quite, lovely). Contractions OK.
+3. Use the provided notes ONLY as background context for topics (which schools, what she is preparing, her study methods). Administrative facts (deadlines, portals, fees) are her parents' business — never make her recite them.
+4. Do NOT mirror Korean sentence structure. Write the English thought first.
+
+${CHUNKING_RULES}
+- All Korean is natural spoken 해요체 (아이가 실제로 말하듯: "~이에요/~거든요/~하고 싶어요"), never 문어체.
+
+Example:
+reference_english: "My favourite subject is maths because I really enjoy solving tricky problems."
+korean_full: "제가 제일 좋아하는 과목은 수학이에요, 어려운 문제 푸는 게 정말 재미있거든요."
+chunks: [
+  {"en": "My favourite subject is maths", "ko": "제가 제일 좋아하는 과목은 수학이에요,"},
+  {"en": "because I really enjoy", "ko": "왜냐하면 정말 재미있거든요,"},
+  {"en": "solving tricky problems.", "ko": "어려운 문제 푸는 게요."}
+]
+- topic: 2-4 word Korean label (예: "자기소개", "취미", "지원 동기").
+
+${OUTPUT_SPEC}`
+
+// 소재를 뽑아 구어체 영작 문제를 배치 생성해 문제은행에 저장.
+// count(기본 10, 최대 50)만큼 10개 단위로 나눠 생성 — 회차마다 중복 방지 목록을 누적한다.
+// profile: ceo(미국식 비즈니스, 위키+이메일 소재) / ryuha(영국식 ISEB 인터뷰, 류하 노트 소재)
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({})) as { count?: number; profile?: string }
+  const count = Math.min(MAX_COUNT, Math.max(BATCH, Number(body.count ?? BATCH)))
+  const profile = asProfile(body.profile)
+  const supabase = getServiceSupabase()
+
+  // 소재 풀을 넓게 가져와 회차마다 랜덤 샘플 — 최신 노트에만 편중되면 소재가 금방 겹친다
+  const sourceQuery = profile === 'ryuha'
+    ? supabase.from('ryuha_notes')
+        .select('title, content, category')
+        .in('category', ['진학', '학습법', '학교', '학습계획'])
+        .order('updated_at', { ascending: false })
+        .limit(100)
+    : supabase.from('work_wiki')
+        .select('title, content, section')
+        .order('updated_at', { ascending: false })
+        .limit(200)
+
+  const [sourceRes, emailRes, recentRes] = await Promise.all([
+    sourceQuery,
+    profile === 'ceo'
+      ? supabase.from('email_analysis')
+          .select('label, analysis_data')
+          .order('generated_at', { ascending: false })
+          .limit(4)
+      : Promise.resolve({ data: [] as { label: string; analysis_data: unknown }[] }),
+    // 중복 방지 — 최근 만든 문제의 영어 문장 목록
+    supabase.from('english_practice_items')
+      .select('reference_english')
+      .eq('profile', profile)
+      .order('created_at', { ascending: false })
+      .limit(300),
+  ])
+
+  const notes = (sourceRes.data ?? []) as { title: string; content: string | null; section?: string; category?: string }[]
+  const emailText = (emailRes.data ?? [])
+    .map(e => `- ${e.label}: ${JSON.stringify(e.analysis_data).slice(0, 400)}`)
+    .join('\n')
+  const existing = (recentRes.data ?? []).map(r => r.reference_english)
+  const system = profile === 'ryuha' ? RYUHA_SYSTEM : CEO_SYSTEM
 
   interface GenChunk { en: string; ko: string }
   interface GenItem { korean_full: string; reference_english: string; chunks: GenChunk[]; topic?: string }
@@ -71,18 +114,18 @@ Return JSON: {"items":[{"korean_full":"...","reference_english":"...","chunks":[
 
   try {
     for (let done = 0; done < count; done += BATCH) {
-      // 회차마다 다른 소재가 섞이도록 위키 노트를 셔플해 일부만 사용
-      const shuffled = [...wikiNotes].sort(() => Math.random() - 0.5).slice(0, 8)
-      const wikiText = shuffled
-        .map(n => `- [${n.section}] ${n.title}: ${String(n.content ?? '').slice(0, 300)}`)
+      // 회차마다 다른 소재가 섞이도록 노트를 셔플해 일부만 사용
+      const shuffled = [...notes].sort(() => Math.random() - 0.5).slice(0, 8)
+      const noteText = shuffled
+        .map(n => `- [${n.section ?? n.category}] ${n.title}: ${String(n.content ?? '').slice(0, 300)}`)
         .join('\n')
 
-      const user = `## Work wiki notes (source material)
-${wikiText || '(none)'}
-
+      const user = `## Notes (source material for topics)
+${noteText || '(none)'}
+${profile === 'ceo' ? `
 ## Recent email analysis (source material)
 ${emailText || '(none)'}
-
+` : ''}
 ## Already used (avoid duplicates)
 ${existing.join('\n') || '(none)'}`
 
@@ -106,7 +149,8 @@ ${existing.join('\n') || '(none)'}`
         english_chunks: it.chunks.map(c => c.en),
         reference_english: it.reference_english,
         topic: it.topic ?? null,
-        source_type: 'wiki',
+        source_type: profile === 'ryuha' ? 'ryuha_notes' : 'wiki',
+        profile,
       }))
       const { error } = await supabase.from('english_practice_items').insert(rows)
       if (error) { lastError = error.message; continue }

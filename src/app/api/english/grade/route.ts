@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
-import { llmJson, GradeFeedback } from '@/lib/english'
+import { llmJson, GradeFeedback, asProfile } from '@/lib/english'
 
 export const maxDuration = 30
 
@@ -8,8 +8,9 @@ const PASS_SCORE = 80
 
 // 실시간 채점 — 속도 1순위라 단발 호출 + 짧은 프롬프트 + JSON 강제.
 export async function POST(req: NextRequest) {
-  const body = await req.json() as { itemId?: string; answer?: string; isReview?: boolean }
+  const body = await req.json() as { itemId?: string; answer?: string; isReview?: boolean; profile?: string }
   const { itemId, answer, isReview } = body
+  const profile = asProfile(body.profile)
   if (!itemId || !answer?.trim()) {
     return NextResponse.json({ error: 'itemId and answer required' }, { status: 400 })
   }
@@ -22,7 +23,13 @@ export async function POST(req: NextRequest) {
     .single()
   if (itemErr || !item) return NextResponse.json({ error: 'item not found' }, { status: 404 })
 
-  const system = `You grade a Korean speaker's English composition against a Korean prompt. Register: spoken American business English.
+  const system = profile === 'ryuha'
+    ? `You grade an 11-year-old Korean girl's spoken English answer against a Korean prompt. Register: natural spoken BRITISH English, age-appropriate (UK school interview / school life).
+Score 0-100: meaning accuracy 50, grammar 30, natural spoken phrasing 20. Different-but-natural wording that keeps the meaning is NOT penalized — the reference is one possible answer, not the only one. Use British spelling in corrections (favourite, colour, maths).
+Return JSON only:
+{"score": int, "corrected": "minimal fix of the learner's own sentence (keep her words where possible)", "natural": "the most natural spoken British version a Year 6 pupil would say", "points": [{"type":"grammar|word|natural|good","note":"짧은 한국어 코멘트"}]}
+points: 1-3 items, most important first. If the answer is already great, one "good" point. Notes in Korean a child understands easily, encouraging tone, each under 60 chars.`
+    : `You grade a Korean speaker's English composition against a Korean prompt. Register: spoken American business English.
 Score 0-100: meaning accuracy 50, grammar 30, natural spoken phrasing 20. Different-but-natural wording that keeps the meaning is NOT penalized — the reference is one possible answer, not the only one.
 Return JSON only:
 {"score": int, "corrected": "minimal fix of the learner's own sentence (keep their words where possible)", "natural": "the most natural spoken American version", "points": [{"type":"grammar|word|natural|good","note":"짧은 한국어 코멘트"}]}
@@ -51,6 +58,7 @@ points: 1-3 items, most important first. If the answer is already great, one "go
       passed,
       is_review: !!isReview,
       feedback,
+      profile,
     })
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
 

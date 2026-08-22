@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
+import { asProfile } from '@/lib/english'
 
 // 모드별 출제 큐 + 통계.
 // 복습 대상 = "마지막 시도가 불합격"인 문장. 정답률도 문장별 마지막 시도 기준 —
@@ -21,15 +22,18 @@ function kstDate(iso: string): string {
 
 export async function GET(req: NextRequest) {
   const mode = (req.nextUrl.searchParams.get('mode') ?? 'balanced') as PracticeMode
+  const profile = asProfile(req.nextUrl.searchParams.get('profile'))
   const ratio = RATIO[mode] ?? RATIO.balanced
   const supabase = getServiceSupabase()
 
   const [itemsRes, attemptsRes] = await Promise.all([
     supabase.from('english_practice_items')
       .select('id, korean_full, korean_chunks, reference_english, topic, source_type, created_at')
+      .eq('profile', profile)
       .order('created_at', { ascending: true }),
     supabase.from('english_practice_attempts')
       .select('item_id, passed, score, is_review, created_at')
+      .eq('profile', profile)
       .order('created_at', { ascending: true }),
   ])
   if (itemsRes.error) return NextResponse.json({ error: itemsRes.error.message }, { status: 500 })
