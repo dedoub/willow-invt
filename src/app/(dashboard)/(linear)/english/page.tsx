@@ -62,7 +62,11 @@ export default function EnglishPage() {
   const [result, setResult] = useState<GradeResult | null>(null)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [vcState, setVcState] = useState<'idle' | 'sending' | 'done'>('idle')
   const taRef = useRef<HTMLTextAreaElement | null>(null)
+  const generatingRef = useRef(false)
+  // 자동 충전이 실패했을 때 무한 재시도 방지 — 수동 생성 버튼을 누르면 해제
+  const autoRefillBlockedRef = useRef(false)
 
   const loadQueue = useCallback(async (m: Mode) => {
     setLoading(true)
@@ -129,26 +133,63 @@ export default function EnglishPage() {
   const next = useCallback(() => {
     setAnswer('')
     setResult(null)
+    setVcState('idle')
     setIdx(i => i + 1)
     setTimeout(() => taRef.current?.focus(), 0)
   }, [])
 
-  const generate = useCallback(async () => {
-    if (generating) return
-    setGenerating(true)
-    setError(null)
+  // 현재 문장을 보이스카드 영어 덱에 청크 행으로 추가 (류하봇 청킹번역과 같은 시트 경로)
+  const toVoiceCards = useCallback(async () => {
+    if (!current || vcState !== 'idle') return
+    setVcState('sending')
     try {
-      const res = await fetch('/api/english/generate', { method: 'POST' })
+      const res = await fetch('/api/english/to-voicecards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: current.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? `voicecards ${res.status}`)
+      setVcState('done')
+    } catch (e) {
+      setVcState('idle')
+      setError(e instanceof Error ? e.message : '보이스카드 추가 실패')
+    }
+  }, [current, vcState])
+
+  const generate = useCallback(async (opts?: { silent?: boolean; reloadIfEmpty?: boolean }) => {
+    if (generatingRef.current) return
+    generatingRef.current = true
+    setGenerating(true)
+    if (!opts?.silent) setError(null)
+    try {
+      const res = await fetch('/api/english/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: 50 }),
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `generate ${res.status}`)
       // 문제은행이 늘었으니 남은 문제 수만 즉시 반영
       setStats(prev => prev ? { ...prev, totalItems: prev.totalItems + data.created, freshRemaining: prev.freshRemaining + data.created } : prev)
+      if (opts?.reloadIfEmpty) loadQueue(mode)
     } catch (e) {
-      setError(e instanceof Error ? e.message : '문제 생성 실패')
+      if (opts?.silent) autoRefillBlockedRef.current = true
+      else setError(e instanceof Error ? e.message : '문제 생성 실패')
     } finally {
+      generatingRef.current = false
       setGenerating(false)
     }
-  }, [generating])
+  }, [loadQueue, mode])
+
+  // 신규 문장이 바닥나면(10개 이하) 백그라운드로 50개 자동 충전.
+  // 풀 게 아예 없을 때는 충전 완료 후 큐도 자동 리로드.
+  useEffect(() => {
+    if (loading || !stats) return
+    if (stats.freshRemaining <= 10 && !generatingRef.current && !autoRefillBlockedRef.current) {
+      generate({ silent: true, reloadIfEmpty: queue.length === 0 || idx >= queue.length })
+    }
+  }, [loading, stats, queue.length, idx, generate])
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -178,7 +219,7 @@ export default function EnglishPage() {
             ]}
           />
         }
-        action={<LHeadBtn icon="sparkles" label="문제 생성" title="위키·이메일에서 새 문제 10개 생성" onClick={generate} busy={generating} />}
+        action={<LHeadBtn icon="sparkles" label="문제 생성" title="위키·이메일에서 새 문제 50개 생성" onClick={() => { autoRefillBlockedRef.current = false; generate() }} busy={generating} />}
       />
 
       {/* 지표 — 오늘 학습량 / 누적 문장 / 정답률 / 남은 문제 */}
@@ -240,11 +281,15 @@ export default function EnglishPage() {
             <div style={{ fontSize: t.type.body, color: t.neutrals.muted, marginBottom: t.density.gapLg }}>
               {queue.length > 0
                 ? `${queue.length}문장 학습했습니다. 새 큐를 받아 계속하세요.`
-                : '문제 생성 버튼으로 위키·이메일에서 새 문장을 만드세요.'}
+                : generating
+                  ? '신규 문장 50개를 자동 생성하는 중입니다… 끝나면 큐가 자동으로 열립니다.'
+                  : '문제 생성 버튼으로 위키·이메일에서 새 문장 50개를 만드세요.'}
             </div>
             <div style={{ display: 'flex', gap: t.density.gapSm, justifyContent: 'center' }}>
               <LBtn variant="brand" onClick={() => loadQueue(mode)}>새 큐 받기</LBtn>
-              {queue.length === 0 && <LBtn onClick={generate} disabled={generating}>{generating ? '생성 중…' : '문제 생성'}</LBtn>}
+              {queue.length === 0 && !generating && (
+                <LBtn onClick={() => { autoRefillBlockedRef.current = false; generate({ reloadIfEmpty: true }) }}>문제 생성</LBtn>
+              )}
             </div>
           </div>
         </LCard>
@@ -323,6 +368,11 @@ export default function EnglishPage() {
                   color: result.passed ? t.accent.pos : t.accent.neg,
                 }}>{result.score}</span>
                 <LBadge tone={result.passed ? 'pos' : 'neg'} pill>{result.passed ? '합격' : '재도전 대상'}</LBadge>
+                <div style={{ marginLeft: 'auto' }}>
+                  <LBtn size="sm" onClick={toVoiceCards} disabled={vcState !== 'idle'}>
+                    {vcState === 'done' ? '보이스카드 담김 ✓' : vcState === 'sending' ? '담는 중…' : '보이스카드 담기'}
+                  </LBtn>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gap: t.density.gapSm, marginBottom: t.density.gapMd }}>
