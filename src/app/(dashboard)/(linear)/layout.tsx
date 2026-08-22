@@ -9,6 +9,7 @@ import { LinearSidebar } from '@/app/(dashboard)/_components/linear-sidebar'
 import { breadcrumbFor } from '@/app/(dashboard)/_components/linear-nav'
 import { LinearHeader } from '@/app/(dashboard)/_components/linear-header'
 import { DashColsToggle } from '@/app/(dashboard)/_components/cols-toggle'
+import { EnglishProfileToggle } from '@/app/(dashboard)/_components/english-profile'
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill'
 
 const interTight = InterTight({
@@ -87,7 +88,11 @@ export default function LinearRouteLayout({
             onMenuToggle={() => setMenuOpen(v => !v)}
             onSidebarToggle={() => setSidebarOpen(v => !v)}
             sidebarOpen={sidebarOpen}
-            actions={!mobile && COLS_TOGGLE_PATHS.has(pathname) ? <DashColsToggle /> : undefined}
+            actions={
+              pathname === '/english' ? <EnglishProfileToggle />
+                : !mobile && COLS_TOGGLE_PATHS.has(pathname) ? <DashColsToggle />
+                : undefined
+            }
           />
           <main style={{
             flex: 1,

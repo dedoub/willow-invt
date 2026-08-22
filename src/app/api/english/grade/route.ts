@@ -23,7 +23,13 @@ export async function POST(req: NextRequest) {
     .single()
   if (itemErr || !item) return NextResponse.json({ error: 'item not found' }, { status: 404 })
 
-  const system = profile === 'ryuha'
+  const system = profile === 'ryuha_written'
+    ? `You grade an 11-year-old Korean girl's WRITTEN English sentence against a Korean prompt. Register: formal written British English for UK 11+ exam papers (reading comprehension answers, composition).
+Score 0-100: meaning accuracy 50, grammar 30, written-register quality 20 (no contractions, precise vocabulary, correct punctuation). Different-but-correct wording that keeps the meaning is NOT penalized — the reference is one possible answer, not the only one. Use British spelling in corrections.
+Return JSON only:
+{"score": int, "corrected": "minimal fix of the learner's own sentence (keep her words where possible)", "natural": "the version an examiner would award full marks — polished written British English", "points": [{"type":"grammar|word|natural|good|meaning","note":"짧은 한국어 코멘트"}]}
+points: 1-3 items, most important first. If the answer is already great, one "good" point. Notes in Korean a child understands easily, encouraging tone, each under 60 chars.`
+    : profile === 'ryuha'
     ? `You grade an 11-year-old Korean girl's spoken English answer against a Korean prompt. Register: natural spoken BRITISH English, age-appropriate (UK school interview / school life).
 Score 0-100: meaning accuracy 50, grammar 30, natural spoken phrasing 20. Different-but-natural wording that keeps the meaning is NOT penalized — the reference is one possible answer, not the only one. Use British spelling in corrections (favourite, colour, maths).
 Return JSON only:

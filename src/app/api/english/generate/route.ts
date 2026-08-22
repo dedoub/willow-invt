@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
+import { reviewnotesSupabase } from '@/lib/reviewnotes-supabase'
 import { llmJson, asProfile } from '@/lib/english'
 
 export const maxDuration = 120
@@ -45,7 +46,12 @@ const RYUHA_SYSTEM = `You create English speaking-practice items for Ryuha, an 1
 1. Write ONE natural spoken BRITISH English sentence (8-18 words), first person, that Ryuha herself would actually SAY in an interview or at school: introducing herself, her hobbies and favourite books, her school life in Korea, her family, why she wants to join the school, what she is curious about, how she practises and learns. Warm, confident, polite, age-appropriate — a bright Year 6 pupil's voice, never corporate or bookish.
 2. British spelling and vocabulary (favourite, colour, maths, brilliant, quite, lovely). Contractions OK.
 3. Use the provided notes ONLY as background context for topics (which schools, what she is preparing, her study methods). Administrative facts (deadlines, portals, fees) are her parents' business — never make her recite them.
-4. Do NOT mirror Korean sentence structure. Write the English thought first.
+4. The "ISEB practice problems" section shows what she is actually studying right now. Use it two ways: sentences where she TALKS ABOUT those topics ("I've been practising fraction problems this week"), and sentences that naturally USE the English vocabulary from the problems in her own speech. Never turn a quiz question itself into the sentence.
+5. HARD quotas for each batch of 10 — check before returning:
+   - At most 3 sentences may contain "ISEB" or "Pre-Tests" at all, and no two sentences may share the same opening ("I'm practising...") or the same ending phrase.
+   - At least 4 sentences are personal interview answers with NO exam mention: who she is, family, hobbies, favourite books, feelings, why this school, questions she'd ask the interviewer.
+   - Vary tenses and frames: past ("Last week I..."), feelings ("I find ... tricky but fun"), comparisons, opinions, little stories.
+6. Do NOT mirror Korean sentence structure. Write the English thought first.
 
 ${CHUNKING_RULES}
 - All Korean is natural spoken 해요체 (아이가 실제로 말하듯: "~이에요/~거든요/~하고 싶어요"), never 문어체.
@@ -62,6 +68,30 @@ chunks: [
 
 ${OUTPUT_SPEC}`
 
+const RYUHA_WRITTEN_SYSTEM = `You create English WRITING practice items for Ryuha, an 11-year-old Korean girl preparing for UK senior school entrance written exams (Wycombe Abbey 11+ written papers, ISEB English) — reading comprehension answers and composition.
+
+## English style (write this FIRST)
+1. Write ONE well-formed WRITTEN British English sentence (10-20 words) of the kind that earns marks in an 11+ English paper: a descriptive sentence with vivid vocabulary, a narrative sentence in past tense, a comprehension-style answer with justification ("... because ..."), or an opinion with a formal connective (However / Although / Furthermore).
+2. WRITTEN register: no contractions, precise Year 6-7 vocabulary, correct punctuation, occasionally a simile or an adverbial opener ("Reluctantly, ..."). British spelling throughout.
+3. Ground topics in the notes and ISEB problems: the texts, vocabulary, and themes she is studying — plus timeless 11+ composition themes (nature, a journey, a memorable day, a description of a place or person). Never turn a quiz question itself into the sentence, and never make her recite admin facts.
+4. HARD quotas per batch of 10: at most 2 sentences mention exams at all; vary frames — at least 2 descriptive, 2 narrative past, 2 opinion/justification; no two sentences share the same opening word.
+5. Do NOT mirror Korean sentence structure. Write the English thought first.
+
+${CHUNKING_RULES}
+- All Korean is 문어체 ("~했다/~이다/~것이다") — 시험 답안을 쓰듯, not spoken style.
+
+Example:
+reference_english: "Although the rain fell heavily, the children continued their journey across the windswept moor."
+korean_full: "비가 세차게 내렸지만, 아이들은 바람이 몰아치는 황무지를 가로지르는 여정을 계속했다."
+chunks: [
+  {"en": "Although the rain fell heavily,", "ko": "비록 비가 세차게 내렸지만,"},
+  {"en": "the children continued their journey", "ko": "아이들은 여정을 계속했다,"},
+  {"en": "across the windswept moor.", "ko": "바람이 몰아치는 황무지를 가로질러."}
+]
+- topic: 2-4 word Korean label (예: "묘사문", "서사문", "독해 답안").
+
+${OUTPUT_SPEC}`
+
 // 소재를 뽑아 구어체 영작 문제를 배치 생성해 문제은행에 저장.
 // count(기본 10, 최대 50)만큼 10개 단위로 나눠 생성 — 회차마다 중복 방지 목록을 누적한다.
 // profile: ceo(미국식 비즈니스, 위키+이메일 소재) / ryuha(영국식 ISEB 인터뷰, 류하 노트 소재)
@@ -72,7 +102,7 @@ export async function POST(req: NextRequest) {
   const supabase = getServiceSupabase()
 
   // 소재 풀을 넓게 가져와 회차마다 랜덤 샘플 — 최신 노트에만 편중되면 소재가 금방 겹친다
-  const sourceQuery = profile === 'ryuha'
+  const sourceQuery = profile !== 'ceo'
     ? supabase.from('ryuha_notes')
         .select('title, content, category')
         .in('category', ['진학', '학습법', '학교', '학습계획'])
@@ -100,11 +130,38 @@ export async function POST(req: NextRequest) {
   ])
 
   const notes = (sourceRes.data ?? []) as { title: string; content: string | null; section?: string; category?: string }[]
+
+  // 류하 추가 소재 — ReviewNotes의 ISEB English/Maths 노트 문항 (지금 실제로 공부하는 내용)
+  let isebProblems: { note: string; question: string; answer: string }[] = []
+  if (profile !== 'ceo' && reviewnotesSupabase) {
+    const { data: rnNotes } = await reviewnotesSupabase
+      .from('Note')
+      .select('id, title')
+      .or('title.ilike.%ISEB%English%,title.ilike.%ISEB%Math%')
+    const noteIds = (rnNotes ?? []).map(n => n.id)
+    const titleById = new Map((rnNotes ?? []).map(n => [n.id, n.title as string]))
+    if (noteIds.length > 0) {
+      // 문항이 수천 개라 임의 오프셋 페이지를 뽑아 회차마다 다른 문항이 섞이게 한다
+      const { count } = await reviewnotesSupabase
+        .from('Problem').select('id', { count: 'exact', head: true }).in('noteId', noteIds)
+      const offset = Math.max(0, Math.floor(Math.random() * Math.max(1, (count ?? 0) - 300)))
+      const { data: probs } = await reviewnotesSupabase
+        .from('Problem')
+        .select('noteId, question, answer')
+        .in('noteId', noteIds)
+        .range(offset, offset + 299)
+      isebProblems = (probs ?? []).map(p => ({
+        note: titleById.get(p.noteId) ?? 'ISEB',
+        question: String(p.question ?? '').slice(0, 160),
+        answer: String(p.answer ?? '').slice(0, 60),
+      }))
+    }
+  }
   const emailText = (emailRes.data ?? [])
     .map(e => `- ${e.label}: ${JSON.stringify(e.analysis_data).slice(0, 400)}`)
     .join('\n')
   const existing = (recentRes.data ?? []).map(r => r.reference_english)
-  const system = profile === 'ryuha' ? RYUHA_SYSTEM : CEO_SYSTEM
+  const system = profile === 'ryuha' ? RYUHA_SYSTEM : profile === 'ryuha_written' ? RYUHA_WRITTEN_SYSTEM : CEO_SYSTEM
 
   interface GenChunk { en: string; ko: string }
   interface GenItem { korean_full: string; reference_english: string; chunks: GenChunk[]; topic?: string }
@@ -120,12 +177,21 @@ export async function POST(req: NextRequest) {
         .map(n => `- [${n.section ?? n.category}] ${n.title}: ${String(n.content ?? '').slice(0, 300)}`)
         .join('\n')
 
+      // 회차마다 ISEB 문항도 새로 샘플
+      const probSample = [...isebProblems].sort(() => Math.random() - 0.5).slice(0, 12)
+      const probText = probSample
+        .map(p => `- [${p.note}] Q: ${p.question}${p.answer ? ` / A: ${p.answer}` : ''}`)
+        .join('\n')
+
       const user = `## Notes (source material for topics)
 ${noteText || '(none)'}
 ${profile === 'ceo' ? `
 ## Recent email analysis (source material)
 ${emailText || '(none)'}
-` : ''}
+` : `
+## ISEB practice problems she is studying (topics/vocabulary source)
+${probText || '(none)'}
+`}
 ## Already used (avoid duplicates)
 ${existing.join('\n') || '(none)'}`
 
@@ -149,7 +215,7 @@ ${existing.join('\n') || '(none)'}`
         english_chunks: it.chunks.map(c => c.en),
         reference_english: it.reference_english,
         topic: it.topic ?? null,
-        source_type: profile === 'ryuha' ? 'ryuha_notes' : 'wiki',
+        source_type: profile === 'ceo' ? 'wiki' : 'ryuha_notes',
         profile,
       }))
       const { error } = await supabase.from('english_practice_items').insert(rows)
