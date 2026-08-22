@@ -204,7 +204,8 @@ export default function EnglishPage() {
   const sparkReview = stats?.daily.map(d => ({ date: d.date, value: d.review })) ?? []
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto' }}>
+    {/* keep-all: 한글이 어절 중간에서 줄바꿈되지 않게 (LSectionHead meta와 같은 규칙) */}
+    <div style={{ maxWidth: 860, margin: '0 auto', wordBreak: 'keep-all' }}>
       <LSectionHead
         title="영작 연습"
         meta="업무위키·이메일 소재 · 미국식 구어체"
