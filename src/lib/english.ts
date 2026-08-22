@@ -38,14 +38,14 @@ export interface GradeFeedback {
   points: { type: 'grammar' | 'word' | 'natural' | 'good'; note: string }[]
 }
 
-export async function llmJson(system: string, user: string, maxTokens = 4000): Promise<unknown> {
+export async function llmJson(system: string, user: string, maxTokens = 4000, imageBase64?: string): Promise<unknown> {
   const url = process.env.VOICECARDS_SUPABASE_URL
   const key = process.env.VOICECARDS_SUPABASE_SERVICE_KEY
   if (!url || !key) throw new Error('VOICECARDS_SUPABASE_URL / SERVICE_KEY not set')
   const res = await fetch(`${url}/functions/v1/llm-json`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ system, user, maxOutputTokens: maxTokens }),
+    body: JSON.stringify({ system, user, maxOutputTokens: maxTokens, ...(imageBase64 ? { imageBase64 } : {}) }),
   })
   const text = await res.text()
   if (!res.ok) throw new Error(`llm-json proxy ${res.status}: ${text.slice(0, 300)}`)

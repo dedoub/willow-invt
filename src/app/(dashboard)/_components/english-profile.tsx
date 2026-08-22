@@ -38,7 +38,7 @@ export function EnglishProfileToggle() {
         window.dispatchEvent(new CustomEvent(EVT, { detail: v }))
       }}
       options={[
-        { value: 'ceo', label: '나' },
+        { value: 'ceo', label: '아빠' },
         { value: 'ryuha', label: '류하 구어' },
         { value: 'ryuha_written', label: '류하 문어' },
       ]}

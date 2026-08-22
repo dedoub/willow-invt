@@ -3,7 +3,7 @@
 // 영작 연습 — 업무위키/이메일 소재의 한글 청킹(영어어순) 문제를 보고 영어로 쓰면 AI가 즉시 채점.
 // 목표: 누적 학습 문장을 늘리고, 마지막 시도 기준 정답률을 100%에 가깝게.
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
@@ -53,6 +53,8 @@ interface GradeResult {
   natural: string
   reference: string
   points: { type: string; note: string }[]
+  /** 손글씨 채점일 때 — 모델이 읽어낸 문장 */
+  transcript?: string
 }
 
 const POINT_TONE: Record<string, 'danger' | 'warn' | 'info' | 'pos'> = {
@@ -75,6 +77,10 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [vcState, setVcState] = useState<'idle' | 'sending' | 'done'>('idle')
+  // 류하는 영문 키보드가 서툴러 펜슬 손글씨가 기본. CEO는 타이핑 고정.
+  const [inputMode, setInputMode] = useState<'type' | 'draw'>(profile === 'ceo' ? 'type' : 'draw')
+  const [hasInk, setHasInk] = useState(false)
+  const padRef = useRef<DrawPadHandle | null>(null)
   const taRef = useRef<HTMLTextAreaElement | null>(null)
   const generatingRef = useRef(false)
   // 자동 충전이 실패했을 때 무한 재시도 방지 — 수동 생성 버튼을 누르면 해제
@@ -104,14 +110,21 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
   const current = queue[idx] ?? null
 
   const grade = useCallback(async () => {
-    if (!current || !answer.trim() || grading || result) return
+    if (!current || grading || result) return
+    const drawing = inputMode === 'draw'
+    const imageBase64 = drawing ? padRef.current?.getImage() : undefined
+    if (drawing ? !imageBase64 : !answer.trim()) return
     setGrading(true)
     setError(null)
     try {
       const res = await fetch('/api/english/grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: current.id, answer, isReview: current.is_review, profile }),
+        body: JSON.stringify(
+          drawing
+            ? { itemId: current.id, imageBase64, isReview: current.is_review, profile }
+            : { itemId: current.id, answer, isReview: current.is_review, profile },
+        ),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `grade ${res.status}`)
@@ -140,12 +153,14 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
     } finally {
       setGrading(false)
     }
-  }, [current, answer, grading, result, profile])
+  }, [current, answer, grading, result, profile, inputMode])
 
   const next = useCallback(() => {
     setAnswer('')
     setResult(null)
     setVcState('idle')
+    padRef.current?.clear()
+    setHasInk(false)
     setIdx(i => i + 1)
     // 모바일은 자동 포커스 금지 — 키보드가 멋대로 올라오지 않게, 직접 탭할 때만 연다
     if (!mobile) setTimeout(() => taRef.current?.focus(), 0)
@@ -228,7 +243,6 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
             eyebrow={eyebrow}
             title={title}
             meta={meta}
-            note={note}
             tools={
               <LSegmented<Mode>
                 value={mode}
@@ -242,6 +256,12 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
             }
             action={<LHeadBtn icon="sparkles" label="문제 생성" title={`${sourceLabel}에서 새 문제 50개 생성`} onClick={() => { autoRefillBlockedRef.current = false; generate() }} busy={generating} />}
           />
+
+          {/* 안내문 — 탭(모드) 줄과 분리해 헤더 아래 한 줄로 (3개 프로필 공통 위치) */}
+          <div style={{
+            fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle,
+            lineHeight: 1.5, marginBottom: t.density.gapMd,
+          }}>{note}</div>
 
           {/* 지표 — 오늘 학습량 / 누적 문장 / 정답률 / 남은 문제 */}
           <div style={{
@@ -355,29 +375,59 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
               전체 문장: {current.korean_full}
             </div>
 
-            <textarea
-              ref={taRef}
-              value={answer}
-              onChange={e => setAnswer(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder={mobile ? '영어로 써보세요…' : '영어로 써보세요… (⌘+Enter 채점)'}
-              rows={3}
-              disabled={!!result || grading}
-              autoFocus={!mobile}
-              style={{
-                width: '100%', boxSizing: 'border-box', resize: 'vertical',
-                background: result ? t.neutrals.page : t.neutrals.inner,
-                border: 'none', borderRadius: t.radius.md,
-                padding: `${t.density.gapMd}px ${mobile ? t.density.gapMd : t.density.gapLg}px`,
-                // 16px 미만이면 iOS Safari가 포커스 시 강제 줌 — 16 고정
-                fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.5, fontFamily: t.font.sans, color: t.neutrals.text,
-              }}
-            />
+            {/* 입력 방식 — 류하 프로필은 펜슬 손글씨가 기본, 키보드로 전환 가능. 아빠는 타이핑 고정 */}
+            {profile !== 'ceo' && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: t.density.gapSm }}>
+                <LSegmented<'draw' | 'type'>
+                  value={inputMode}
+                  onChange={(v) => { setInputMode(v); setError(null) }}
+                  options={[
+                    { value: 'draw', label: '✏️ 손글씨' },
+                    { value: 'type', label: '키보드' },
+                  ]}
+                />
+                {inputMode === 'draw' && !result && (
+                  <div style={{ display: 'flex', gap: t.density.gapSm }}>
+                    <LBtn size="sm" variant="secondary" onClick={() => { padRef.current?.undo(); setHasInk(!padRef.current?.isEmpty()) }}>한 획 취소</LBtn>
+                    <LBtn size="sm" variant="secondary" onClick={() => { padRef.current?.clear(); setHasInk(false) }}>전체 지우기</LBtn>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {inputMode === 'draw' ? (
+              <DrawPad
+                ref={padRef}
+                disabled={!!result || grading}
+                height={mobile ? 220 : 260}
+                onInkChange={setHasInk}
+              />
+            ) : (
+              <textarea
+                ref={taRef}
+                value={answer}
+                onChange={e => setAnswer(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder={mobile ? '영어로 써보세요…' : '영어로 써보세요… (⌘+Enter 채점)'}
+                rows={3}
+                disabled={!!result || grading}
+                autoFocus={!mobile}
+                style={{
+                  width: '100%', boxSizing: 'border-box', resize: 'vertical',
+                  background: result ? t.neutrals.page : t.neutrals.inner,
+                  border: 'none', borderRadius: t.radius.md,
+                  padding: `${t.density.gapMd}px ${mobile ? t.density.gapMd : t.density.gapLg}px`,
+                  // 16px 미만이면 iOS Safari가 포커스 시 강제 줌 — 16 고정
+                  fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.5, fontFamily: t.font.sans, color: t.neutrals.text,
+                }}
+              />
+            )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: t.density.gapMd }}>
               {!result ? (
-                <LBtn variant="brand" onClick={grade} disabled={!answer.trim() || grading}
+                <LBtn variant="brand" onClick={grade}
+                  disabled={(inputMode === 'draw' ? !hasInk : !answer.trim()) || grading}
                   style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                  {grading ? '채점 중…' : mobile ? '채점' : '채점 (⌘↵)'}
+                  {grading ? '채점 중…' : inputMode === 'draw' || mobile ? '채점' : '채점 (⌘↵)'}
                 </LBtn>
               ) : (
                 <LBtn variant="brand" onClick={next}
@@ -415,6 +465,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
               </div>
 
               <div style={{ display: 'grid', gap: t.density.gapSm }}>
+                {result.transcript && <ResultLine label="인식된 손글씨" text={result.transcript} />}
                 <ResultLine label="내 문장 다듬기" text={result.corrected} />
                 <ResultLine label="네이티브 버전" text={result.natural} highlight />
               </div>
@@ -442,3 +493,133 @@ function ResultLine({ label, text, highlight }: { label: string; text: string; h
     </div>
   )
 }
+
+
+// ─── 손글씨 패드 (펜슬/터치) ─────────────────────────────────────────────
+// 류하가 영문 키보드 대신 펜슬로 답을 쓴다. 획 단위 undo, 전체 clear,
+// 채점 시 흰 배경 PNG(base64)로 내보내 Gemini 비전이 전사+채점한다.
+
+export interface DrawPadHandle {
+  /** 흰 배경 PNG base64 (data: 프리픽스 제외). 빈 패드면 null */
+  getImage: () => string | null
+  clear: () => void
+  undo: () => void
+  isEmpty: () => boolean
+}
+
+type Stroke = { x: number; y: number }[]
+
+const DrawPad = forwardRef<DrawPadHandle, {
+  disabled?: boolean
+  height: number
+  onInkChange?: (hasInk: boolean) => void
+}>(function DrawPad({ disabled, height, onInkChange }, ref) {
+  const wrapRef = useRef<HTMLDivElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const strokesRef = useRef<Stroke[]>([])
+  const drawingRef = useRef(false)
+
+  const redraw = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    const dpr = window.devicePixelRatio || 1
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.strokeStyle = t.neutrals.text
+    ctx.lineWidth = 2.5
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    for (const stroke of strokesRef.current) {
+      if (stroke.length < 2) continue
+      ctx.beginPath()
+      ctx.moveTo(stroke[0].x, stroke[0].y)
+      for (let i = 1; i < stroke.length; i++) ctx.lineTo(stroke[i].x, stroke[i].y)
+      ctx.stroke()
+    }
+  }, [])
+
+  // 캔버스 실측 크기 세팅 (dpr 반영) — 리사이즈 시 기존 획 유지한 채 재도장
+  useEffect(() => {
+    const wrap = wrapRef.current
+    const canvas = canvasRef.current
+    if (!wrap || !canvas) return
+    const size = () => {
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = wrap.clientWidth * dpr
+      canvas.height = height * dpr
+      canvas.style.width = '100%'
+      canvas.style.height = `${height}px`
+      redraw()
+    }
+    size()
+    const ro = new ResizeObserver(size)
+    ro.observe(wrap)
+    return () => ro.disconnect()
+  }, [height, redraw])
+
+  useImperativeHandle(ref, () => ({
+    getImage: () => {
+      const canvas = canvasRef.current
+      if (!canvas || strokesRef.current.length === 0) return null
+      // 흰 배경 합성 — 투명 PNG는 모델이 읽기 어렵다
+      const out = document.createElement('canvas')
+      out.width = canvas.width
+      out.height = canvas.height
+      const ctx = out.getContext('2d')!
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, out.width, out.height)
+      ctx.drawImage(canvas, 0, 0)
+      return out.toDataURL('image/png').split(',')[1]
+    },
+    clear: () => { strokesRef.current = []; redraw(); onInkChange?.(false) },
+    undo: () => {
+      strokesRef.current.pop()
+      redraw()
+      onInkChange?.(strokesRef.current.length > 0)
+    },
+    isEmpty: () => strokesRef.current.length === 0,
+  }), [redraw, onInkChange])
+
+  const pointFrom = (e: React.PointerEvent) => {
+    const rect = canvasRef.current!.getBoundingClientRect()
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+  }
+
+  return (
+    <div
+      ref={wrapRef}
+      style={{
+        borderRadius: t.radius.md, overflow: 'hidden',
+        background: t.neutrals.inner,
+        // 공책 줄 — 아이가 baseline에 맞춰 쓰도록
+        backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${height / 4 - 1}px, ${t.neutrals.line} ${height / 4 - 1}px, ${t.neutrals.line} ${height / 4}px)`,
+        opacity: disabled ? 0.55 : 1,
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{ display: 'block', touchAction: 'none', cursor: disabled ? 'default' : 'crosshair' }}
+        onPointerDown={(e) => {
+          if (disabled) return
+          e.currentTarget.setPointerCapture(e.pointerId)
+          drawingRef.current = true
+          strokesRef.current.push([pointFrom(e)])
+        }}
+        onPointerMove={(e) => {
+          if (!drawingRef.current || disabled) return
+          const stroke = strokesRef.current[strokesRef.current.length - 1]
+          stroke.push(pointFrom(e))
+          redraw()
+        }}
+        onPointerUp={() => {
+          if (!drawingRef.current) return
+          drawingRef.current = false
+          onInkChange?.(strokesRef.current.length > 0)
+        }}
+        onPointerCancel={() => { drawingRef.current = false }}
+      />
+    </div>
+  )
+})

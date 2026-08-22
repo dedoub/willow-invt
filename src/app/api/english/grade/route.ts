@@ -6,13 +6,21 @@ export const maxDuration = 30
 
 const PASS_SCORE = 80
 
+// 손글씨(펜슬) 답안일 때 시스템 프롬프트 앞에 붙는 전사 지시
+const HANDWRITING_PREFIX = `The learner wrote the answer BY HAND — a photo/canvas image of the handwriting is attached.
+FIRST transcribe the handwritten English exactly as written (do not silently fix spelling or grammar while transcribing; unreadable parts become "?"). Put it in "transcript".
+THEN grade that transcript as the learner's answer. If the writing is completely unreadable, return {"transcript":"", "score":0, ...} with a point explaining 글씨를 읽지 못했다고.
+
+`
+
 // 실시간 채점 — 속도 1순위라 단발 호출 + 짧은 프롬프트 + JSON 강제.
+// answer(타이핑) 또는 imageBase64(손글씨 캔버스 PNG) 중 하나를 받는다.
 export async function POST(req: NextRequest) {
-  const body = await req.json() as { itemId?: string; answer?: string; isReview?: boolean; profile?: string }
-  const { itemId, answer, isReview } = body
+  const body = await req.json() as { itemId?: string; answer?: string; imageBase64?: string; isReview?: boolean; profile?: string }
+  const { itemId, answer, imageBase64, isReview } = body
   const profile = asProfile(body.profile)
-  if (!itemId || !answer?.trim()) {
-    return NextResponse.json({ error: 'itemId and answer required' }, { status: 400 })
+  if (!itemId || (!answer?.trim() && !imageBase64)) {
+    return NextResponse.json({ error: 'itemId and answer (or imageBase64) required' }, { status: 400 })
   }
 
   const supabase = getServiceSupabase()
@@ -44,10 +52,17 @@ points: 1-3 items, most important first. If the answer is already great, one "go
   const user = `한글: ${item.korean_full}
 청킹: ${(item.korean_chunks as string[]).join(' / ')}
 참고 답안: ${item.reference_english}
-학습자 답안: ${answer.trim()}`
+학습자 답안: ${imageBase64 ? '(첨부된 손글씨 이미지)' : answer!.trim()}`
 
   try {
-    const raw = await llmJson(system, user, 1000) as Partial<GradeFeedback>
+    const raw = await llmJson(
+      imageBase64 ? HANDWRITING_PREFIX + system : system,
+      user, 1200, imageBase64,
+    ) as Partial<GradeFeedback> & { transcript?: string }
+    const transcript = typeof raw.transcript === 'string' ? raw.transcript.trim() : ''
+    if (imageBase64 && !transcript) {
+      return NextResponse.json({ error: '글씨를 읽지 못했어요. 조금 더 크게 써주세요.' }, { status: 422 })
+    }
     const score = Math.max(0, Math.min(100, Math.round(Number(raw.score ?? 0))))
     const feedback: GradeFeedback = {
       score,
@@ -59,7 +74,7 @@ points: 1-3 items, most important first. If the answer is already great, one "go
 
     const { error: insErr } = await supabase.from('english_practice_attempts').insert({
       item_id: itemId,
-      user_answer: answer.trim(),
+      user_answer: imageBase64 ? transcript : answer!.trim(),
       score,
       passed,
       is_review: !!isReview,
@@ -68,7 +83,7 @@ points: 1-3 items, most important first. If the answer is already great, one "go
     })
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
 
-    return NextResponse.json({ ...feedback, passed, reference: item.reference_english })
+    return NextResponse.json({ ...feedback, passed, reference: item.reference_english, ...(imageBase64 ? { transcript } : {}) })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'grade failed' }, { status: 500 })
   }
