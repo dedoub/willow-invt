@@ -262,7 +262,7 @@ async function main() {
 
     const { data: candidates } = await sb
       .from('tensw_mgmt_sales')
-      .select('id, issue_date, counterparty, total_amount')
+      .select('id, issue_date, counterparty, total_amount, payment_status')
       .eq('total_amount', row.total_amount)
       .gte('issue_date', iso(from))
       .lte('issue_date', iso(to))
@@ -286,14 +286,24 @@ async function main() {
         .update({ status: 'promoted', sales_id: free[0].id })
         .eq('id', row.id)
       linked++
+      const patch: Record<string, unknown> = {}
       // 홈택스 작성일자가 정본이다. 기록 발행일이 다르면 항상 홈택스 기준으로 맞춘다.
       if (free[0].issue_date !== row.reporting_date) {
-        await sb
-          .from('tensw_mgmt_sales')
-          .update({ issue_date: row.reporting_date, updated_at: new Date().toISOString() })
-          .eq('id', free[0].id)
+        patch.issue_date = row.reporting_date
         dateFixed++
         console.log(`  ~ ${label(row)}: 발행일 ${free[0].issue_date} → ${row.reporting_date} (홈택스 작성일자 기준)`)
+      }
+      // 홈택스에 잡혔다 = 실제 발행됐다. 계약예정/발행예정으로 남아 있으면
+      // 계산서발행(pending)으로 올린다. 수금완료(paid)는 건드리지 않는다.
+      if (['planned', 'scheduled'].includes(free[0].payment_status as string)) {
+        patch.payment_status = 'pending'
+        console.log(`  ~ ${label(row)}: 상태 ${free[0].payment_status} → pending (발행 확인)`)
+      }
+      if (Object.keys(patch).length) {
+        await sb
+          .from('tensw_mgmt_sales')
+          .update({ ...patch, updated_at: new Date().toISOString() })
+          .eq('id', free[0].id)
       }
       continue
     }
