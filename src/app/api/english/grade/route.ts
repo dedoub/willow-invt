@@ -6,12 +6,14 @@ export const maxDuration = 30
 
 const PASS_SCORE = 80
 
-// 손글씨(펜슬) 답안일 때 시스템 프롬프트 앞에 붙는 전사 지시
-const HANDWRITING_PREFIX = `The learner wrote the answer BY HAND — a photo/canvas image of the handwriting is attached.
-FIRST transcribe the handwritten English exactly as written (do not silently fix spelling or grammar while transcribing; unreadable parts become "?"). Put it in "transcript".
-THEN grade that transcript as the learner's answer. If the writing is completely unreadable, return {"transcript":"", "score":0, ...} with a point explaining 글씨를 읽지 못했다고.
-
-`
+// 손글씨 전사 전용 시스템 프롬프트 — 이미지 외 어떤 맥락도 주지 않는다.
+// (한글 원문·참고 답안이 프롬프트에 있으면 모델이 낙서를 그 번역으로 "읽은 척" 조작한다.
+//  실측으로 확인된 커닝이라, 전사를 맥락 제로의 별도 호출로 분리해 구조적으로 차단.)
+const TRANSCRIBE_SYSTEM = `You are a strict OCR for handwritten English on a canvas image.
+Return JSON only: {"transcript": string}
+Rules:
+- Transcribe EXACTLY the letters/words written, including spelling and grammar mistakes. Never correct, complete, or guess.
+- If the strokes do not form legible English words (random scribbles, shapes, drawings), return {"transcript": ""}.`
 
 // 실시간 채점 — 속도 1순위라 단발 호출 + 짧은 프롬프트 + JSON 강제.
 // answer(타이핑) 또는 imageBase64(손글씨 캔버스 PNG) 중 하나를 받는다.
@@ -31,6 +33,21 @@ export async function POST(req: NextRequest) {
     .single()
   if (itemErr || !item) return NextResponse.json({ error: 'item not found' }, { status: 404 })
 
+  // 1단계(손글씨만): 맥락 없는 전사 — 여기서 나온 텍스트만 2단계 채점에 들어간다
+  let transcript = ''
+  if (imageBase64) {
+    try {
+      const t = await llmJson(TRANSCRIBE_SYSTEM, 'Transcribe the handwriting in the attached image.', 400, imageBase64) as { transcript?: string }
+      transcript = String(t.transcript ?? '').trim()
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : 'transcribe failed' }, { status: 500 })
+    }
+    if (!transcript) {
+      return NextResponse.json({ error: '글씨를 읽지 못했어요. 조금 더 또렷하게 써주세요.' }, { status: 422 })
+    }
+  }
+  const effectiveAnswer = imageBase64 ? transcript : answer!.trim()
+
   const system = profile === 'ryuha_written'
     ? `You grade an 11-year-old Korean girl's WRITTEN English sentence against a Korean prompt. Register: formal written British English for UK 11+ exam papers (reading comprehension answers, composition).
 Score 0-100: meaning accuracy 50, grammar 30, written-register quality 20 (no contractions, precise vocabulary, correct punctuation). Different-but-correct wording that keeps the meaning is NOT penalized — the reference is one possible answer, not the only one. Use British spelling in corrections.
@@ -49,26 +66,14 @@ Return JSON only:
 {"score": int, "corrected": "minimal fix of the learner's own sentence (keep their words where possible)", "natural": "the most natural spoken American version", "points": [{"type":"grammar|word|natural|good","note":"짧은 한국어 코멘트"}]}
 points: 1-3 items, most important first. If the answer is already great, one "good" point. Notes in Korean, each under 60 chars.`
 
-  // 손글씨(전사) 시에는 참고 답안을 프롬프트에서 뺀다 — 낙서를 참고 답안으로 "읽은 척"하는
-  // 전사 오염(커닝)을 막기 위해. 채점은 한글 원문 기준으로 충분하다.
-  const user = imageBase64
-    ? `한글: ${item.korean_full}
-청킹: ${(item.korean_chunks as string[]).join(' / ')}
-학습자 답안: (첨부된 손글씨 이미지)`
-    : `한글: ${item.korean_full}
+  const user = `한글: ${item.korean_full}
 청킹: ${(item.korean_chunks as string[]).join(' / ')}
 참고 답안: ${item.reference_english}
-학습자 답안: ${answer!.trim()}`
+학습자 답안: ${effectiveAnswer}`
 
   try {
-    const raw = await llmJson(
-      imageBase64 ? HANDWRITING_PREFIX + system : system,
-      user, 1200, imageBase64,
-    ) as Partial<GradeFeedback> & { transcript?: string }
-    const transcript = typeof raw.transcript === 'string' ? raw.transcript.trim() : ''
-    if (imageBase64 && !transcript) {
-      return NextResponse.json({ error: '글씨를 읽지 못했어요. 조금 더 크게 써주세요.' }, { status: 422 })
-    }
+    // 2단계: 전사(또는 타이핑) 텍스트를 일반 채점 — 이미지는 다시 주지 않는다
+    const raw = await llmJson(system, user, 1000) as Partial<GradeFeedback>
     const score = Math.max(0, Math.min(100, Math.round(Number(raw.score ?? 0))))
     const feedback: GradeFeedback = {
       score,
@@ -80,7 +85,7 @@ points: 1-3 items, most important first. If the answer is already great, one "go
 
     const { error: insErr } = await supabase.from('english_practice_attempts').insert({
       item_id: itemId,
-      user_answer: imageBase64 ? transcript : answer!.trim(),
+      user_answer: effectiveAnswer,
       score,
       passed,
       is_review: !!isReview,
