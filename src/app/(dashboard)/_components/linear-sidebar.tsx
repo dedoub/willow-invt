@@ -211,10 +211,12 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   // 앱서비스/관계회사/컨설팅 메뉴 순서 — 드래그로 변경, localStorage에 저장(기기별)
   const willow = navGroup('willow')
   const admin = navGroup('admin')
-  const apps = navGroup('apps')
+  const appsFinance = navGroup('apps-finance')
+  const appsEdu = navGroup('apps-edu')
   const investees = navGroup('investees')
   const clients = navGroup('clients')
-  const appsOrder = useOrderedGroup(apps.items, apps.orderKey!)
+  const appsFinanceOrder = useOrderedGroup(appsFinance.items, appsFinance.orderKey!)
+  const appsEduOrder = useOrderedGroup(appsEdu.items, appsEdu.orderKey!)
   const investeesOrder = useOrderedGroup(investees.items, investees.orderKey!)
   const clientsOrder = useOrderedGroup(clients.items, clients.orderKey!)
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
@@ -276,7 +278,8 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {!rail && <GroupLabel label={willow.label} />}
         {willow.items.map(navLink)}
 
-        {sortableGroup(apps.label, appsOrder)}
+        {sortableGroup(appsFinance.label, appsFinanceOrder)}
+        {sortableGroup(appsEdu.label, appsEduOrder)}
         {sortableGroup(investees.label, investeesOrder)}
         {sortableGroup(clients.label, clientsOrder)}
 

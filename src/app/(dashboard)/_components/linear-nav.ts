@@ -34,15 +34,23 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    // 앱서비스 — 직접 운영하는 자체 서비스
-    key: 'apps',
-    label: '앱서비스',
-    orderKey: 'sidebar-app-order',
+    // 앱서비스(금융) — 직접 운영하는 자체 서비스 중 금융 도메인
+    key: 'apps-finance',
+    label: '앱서비스 - 금융',
+    orderKey: 'sidebar-app-finance-order',
     items: [
-      { id: 'voicecards',  href: '/voicecards',  label: 'VoiceCards',  tag: 'MonoR Apps', dot: '#4FBE84' },
-      { id: 'reviewnotes', href: '/reviewnotes', label: 'ReviewNotes', tag: 'MonoR Apps', dot: '#5FAFDF' },
-      { id: 'portle',      href: '/portle',      label: 'Portle',      tag: 'Investing Ledger', dot: '#E8927C' },
-      { id: 'valuechain',  href: '/valuechain',  label: 'ValueChain',  tag: 'Wiki',       dot: '#A392EC' },
+      { id: 'portle',     href: '/portle',     label: 'Portle',     tag: 'Calculator', dot: '#E8927C' },
+      { id: 'valuechain', href: '/valuechain', label: 'ValueChain', tag: 'Wiki',             dot: '#A392EC' },
+    ],
+  },
+  {
+    // 앱서비스(교육) — 직접 운영하는 자체 서비스 중 교육 도메인
+    key: 'apps-edu',
+    label: '앱서비스 - 교육',
+    orderKey: 'sidebar-app-edu-order',
+    items: [
+      { id: 'voicecards',  href: '/voicecards',  label: 'VoiceCards',  tag: 'Flashcards', dot: '#4FBE84' },
+      { id: 'reviewnotes', href: '/reviewnotes', label: 'ReviewNotes', tag: 'Notes',      dot: '#5FAFDF' },
     ],
   },
   {
