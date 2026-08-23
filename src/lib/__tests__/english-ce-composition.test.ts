@@ -55,15 +55,16 @@ test('the CE queue exposes the latest ReviewNotes solution for composition guida
   assert.match(source, /solution:\s*p\.schemeText/)
 })
 
-test('CE solution and grading APIs require an authenticated user', async () => {
-  const [queue, grade] = await Promise.all([
+test('CE APIs use the same dashboard access boundary as the existing English APIs', async () => {
+  const [queue, grade, image] = await Promise.all([
     readFile(`${ROOT}/src/app/api/english/ce/queue/route.ts`, 'utf8'),
     readFile(`${ROOT}/src/app/api/english/ce/grade/route.ts`, 'utf8'),
+    readFile(`${ROOT}/src/app/api/english/ce/image/route.ts`, 'utf8'),
   ])
 
-  for (const source of [queue, grade]) {
-    assert.match(source, /getAuthUser/)
-    assert.match(source, /status:\s*401/)
+  for (const source of [queue, grade, image]) {
+    assert.doesNotMatch(source, /getAuthUser/)
+    assert.doesNotMatch(source, /status:\s*401/)
   }
 })
 

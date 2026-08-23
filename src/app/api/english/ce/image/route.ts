@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchS3Object } from '@/lib/english-ce'
-import { getAuthUser } from '@/lib/auth'
 
 export const maxDuration = 15
 
-// CE 기출 스캔 이미지 프록시 — ReviewNotes S3에서 읽어 인증된 사용자에게 서빙.
+// CE 기출 스캔 이미지 프록시 — ReviewNotes S3에서 읽어 그대로 서빙.
 export async function GET(req: NextRequest) {
-  if (!(await getAuthUser())) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  }
   const key = req.nextUrl.searchParams.get('key') ?? ''
   if (!key.startsWith('images/')) return NextResponse.json({ error: 'invalid key' }, { status: 400 })
   try {

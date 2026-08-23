@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { fetchCeProblems } from '@/lib/english-ce'
-import { getAuthUser } from '@/lib/auth'
 
 export const maxDuration = 30
 
 // CE 기출 출제 큐. 작문은 ReviewNotes 풀이를 먼저 읽고 계획한 뒤 쓰는 학습 흐름이다.
 export async function GET(req: NextRequest) {
-  if (!(await getAuthUser())) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  }
   const kind = req.nextUrl.searchParams.get('kind') === 'composition' ? 'composition' : 'comprehension'
   try {
     const [problems, attemptsRes] = await Promise.all([

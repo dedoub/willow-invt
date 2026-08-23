@@ -3,7 +3,6 @@ import { getServiceSupabase } from '@/lib/supabase'
 import { llmJson } from '@/lib/english'
 import { fetchCeProblems, fetchS3Object } from '@/lib/english-ce'
 import { normaliseCompositionGrade, type RawCompositionPoint } from '@/lib/english-ce-grading'
-import { getAuthUser } from '@/lib/auth'
 
 export const maxDuration = 60
 
@@ -36,9 +35,6 @@ Return JSON only:
 Return exactly three points in that order. Possible marks must sum to maxScore and earned marks must sum to score. Refer to concrete requirements from the plan. Keep every note and nextPractice under 70 Korean characters. Return no more than two corrections.`
 
 export async function POST(req: NextRequest) {
-  if (!(await getAuthUser())) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  }
   const body = await req.json() as { problemId?: string; answer?: string; imageBase64?: string }
   const { problemId, answer, imageBase64 } = body
   if (!problemId || (!answer?.trim() && !imageBase64)) {
