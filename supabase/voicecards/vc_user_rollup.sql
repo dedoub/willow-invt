@@ -8,7 +8,7 @@
 --   같은 테이블·같은 predicate(is_likely_bot=false, user_id not null)에 event_name FILTER만
 --   달랐으므로 1회 스캔 + FILTER 집계로 합침. mv_real_users_event_created 인덱스(bitmap)를 타 ~50ms.
 -- 검증(2026-07-23): 기존 3 RPC 합집합과 유저별·필드별 완전 동일 (115행, mismatch 0).
---   credits_spent 는 credit_transactions 완전 원장 음수 delta 합. (이벤트 집계 대비 AI 채점 차감
+--   credits_spent 는 credit_transactions 완전 원장 net (음수 delta 합 − 환불). (이벤트 집계 대비 AI 채점 차감
 --     누락 + 분수 TTS 과대집계를 해소 — 잔액에서 실제 빠진 모든 차감을 담는 원장이라 정확.)
 -- 유지 대상(합치지 않음):
 --   - vc_user_latest_meta: 소스가 anonymous_events. mv 로 바꾸면 3명 메타 누락(mv 필터) → 유지.
@@ -103,9 +103,19 @@ as $function$
     group by m.user_id
   ),
   spend as (
-    select user_id, coalesce(sum(-delta), 0)::bigint as credits_spent
+    -- 환불(tts_refund·ai_refund·ai_grading_refund)은 차감을 되돌린 것이므로 실사용에서 뺀다.
+    -- 음수 delta 만 세면 gross 가 되어, 환불이 일어난 사용자는 실제보다 많이 쓴 것으로 보인다
+    -- (2026-08-24 juyearrr: 표시 119, 실제 순소진 99). 1.1.142 의 이어듣기 미재생 선합성분
+    -- 자동 환급이 배포되면 이 왜곡이 상시화되므로 net 으로 바꾼다.
+    -- greatest(0, …): 1크레딧 미만 TTS 차감은 tts_debt 에만 쌓여 원장 행이 없으므로,
+    -- 대응 차감 행 없이 환불만 있는 사용자가 음수로 내려가지 않게 막는다.
+    select user_id,
+      greatest(0, coalesce(sum(case when delta < 0 then -delta
+                                    when reason in ('tts_refund','ai_refund','ai_grading_refund') then -delta
+                                    else 0 end), 0))::bigint as credits_spent
     from credit_transactions
-    where delta < 0 and user_id is not null
+    where user_id is not null
+      and (delta < 0 or reason in ('tts_refund','ai_refund','ai_grading_refund'))
     group by user_id
   ),
   ids as (select user_id from ev union select user_id from spend)

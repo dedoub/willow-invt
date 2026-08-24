@@ -6,7 +6,7 @@
 --   listen/flips/purchased: mv_real_users (이벤트 로그, 오늘 필터)
 --     flips = card_flipped_manual, purchased = credits_changed/purchase 상품매핑
 --   active_days_7d 핵심 활동일: 학습 또는 시트·카드 생성 완료 이벤트의 KST 날짜 수
---   spent: credit_transactions 음수 delta 합 (완전 원장, 2026-07-22; 상세는 spent_today CTE 주석)
+--   spent: credit_transactions net (음수 delta 합 − 환불) (완전 원장, 2026-07-22; 상세는 spent_today CTE 주석)
 --   반환 컬럼 변경 시에만 drop 후 재생성 필요 (return type replace 불가).
 create or replace function public.vc_user_activity_deltas()
  returns table(user_id text, cards_today bigint, attempts_today bigint, listen_today bigint, flips_today bigint, spent_today bigint, active_days_7d integer, purchased_today bigint, balance_delta_today bigint, sheets_delta_today bigint)
@@ -69,7 +69,10 @@ event_activity as (
 -- 오늘 실사용과 잔액 변동도 원장을 한 번만 읽어 함께 계산한다.
 credit_today as (
   select c.user_id,
-    coalesce(sum(-c.delta) filter (where c.delta < 0), 0)::bigint as sc,
+    -- 환불은 차감을 되돌린 것이라 실사용에서 뺀다(vc_user_rollup.credits_spent 와 같은 규칙).
+    greatest(0, coalesce(sum(case when c.delta < 0 then -c.delta
+                                  when c.reason in ('tts_refund','ai_refund','ai_grading_refund') then -c.delta
+                                  else 0 end), 0))::bigint as sc,
     sum(c.delta)::bigint as bd
   from credit_transactions c, td
   where c.user_id is not null
