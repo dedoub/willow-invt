@@ -56,7 +56,9 @@ const COMPANIES = Object.freeze({
         bankName: '신한은행',
         source: 'shinhan-local-chrome',
         organization: '0088',
-        expectedAccounts: 1,
+        // 전체계좌 조회의 모든 표를 읽기 시작하면서 외화·정기 계좌가 함께 잡힐 수
+        // 있어 수를 고정하지 않는다. 우리은행은 배치가 확인돼 있어 8개를 지킨다.
+        expectedAccounts: null,
         accountsFile: 'latest-shinhan-accounts.json',
         transactionsFile: 'latest-shinhan-transactions.json',
       }),
