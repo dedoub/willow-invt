@@ -52,8 +52,7 @@ function argumentValue(name) {
 
 const SITE_ID = argumentValue('--site')
 const DRY_RUN = process.argv.includes('--dry-run')
-const BUSINESS_NUMBER = process.env.FINANCE_BUSINESS_NUMBER
-  || (IDENTITY.company === 'tensw' ? '8288800992' : '2058801897')
+const BUSINESS_NUMBER = IDENTITY.businessNumber
 
 function hostOf(url) {
   return new URL(url).host

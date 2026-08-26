@@ -7,22 +7,119 @@ const execFileAsync = promisify(execFile)
 export const KEYCHAIN_SERVICE = 'willow.tensw.hometax.certificate'
 export const KEYCHAIN_ACCOUNT = 'tensoftworks'
 
+// Everything that differs between the two companies lives here, so a collector
+// or importer only has to ask which company it is running for.
+//
+// 텐소프트웍스 signs with the TradeSign 범용(법인) key and banks with 우리·신한;
+// 윌로우인베스트먼트 signs with the SignKorea BizBank key and banks with 신한
+// alone, carrying its spend on KB카드. Both file the same national taxes, local
+// taxes and social insurance, so those three sites are shared.
+//
+// The staging tables carry the CODEF name only for 텐소프트웍스, where they were
+// created while that vendor was still in use. 윌로우 was wired up after CODEF was
+// retired (2026-08-25), so its tables are named for what they hold.
+const COMPANIES = Object.freeze({
+  tensw: Object.freeze({
+    company: 'tensw',
+    label: '텐소프트웍스',
+    keychainService: 'willow.tensw.hometax.certificate',
+    keychainAccount: 'tensoftworks',
+    certificateOwnerKeyword: '텐소',
+    businessNumber: '8288800992',
+    tables: Object.freeze({
+      cash: 'tensw_mgmt_cash',
+      bankBalances: 'tensw_mgmt_bank_balances',
+      transactions: 'tensw_codef_transactions',
+      taxInvoices: 'tensw_codef_tax_invoices',
+      cardApprovals: 'tensw_codef_card_approvals',
+      cardBilling: 'tensw_codef_card_billing',
+    }),
+    banks: Object.freeze([
+      Object.freeze({
+        bankName: '우리은행',
+        source: 'woori-local-chrome',
+        organization: '0020',
+        expectedAccounts: 8,
+        accountsFile: 'latest-woori-accounts.json',
+        transactionsFile: 'latest-woori-transactions.json',
+      }),
+      Object.freeze({
+        bankName: '신한은행',
+        source: 'shinhan-local-chrome',
+        organization: '0088',
+        expectedAccounts: 1,
+        accountsFile: 'latest-shinhan-accounts.json',
+        transactionsFile: 'latest-shinhan-transactions.json',
+      }),
+    ]),
+    card: Object.freeze({
+      site: 'woori-card',
+      cardName: '우리카드',
+      organization: '0309',
+      approvalsFile: 'latest-woori-card-approvals.json',
+      statementFile: 'latest-woori-card-statement.json',
+    }),
+  }),
+
+  willow: Object.freeze({
+    company: 'willow',
+    label: '윌로우인베스트먼트',
+    keychainService: 'willow.willow.hometax.certificate',
+    keychainAccount: 'willow-investments',
+    certificateOwnerKeyword: '윌로우',
+    businessNumber: '2058801897',
+    tables: Object.freeze({
+      cash: 'willow_mgmt_cash',
+      bankBalances: 'willow_mgmt_bank_balances',
+      transactions: 'willow_finance_transactions',
+      taxInvoices: 'willow_finance_tax_invoices',
+      cardApprovals: 'willow_finance_card_approvals',
+      cardBilling: 'willow_finance_card_billing',
+    }),
+    banks: Object.freeze([
+      Object.freeze({
+        bankName: '신한은행',
+        source: 'shinhan-local-chrome',
+        organization: '0088',
+        // Left open until a real collection shows how the 외화 account renders in
+        // the grid; 텐소 keeps its count because that grid is known.
+        expectedAccounts: null,
+        accountsFile: 'latest-shinhan-accounts.json',
+        transactionsFile: 'latest-shinhan-transactions.json',
+      }),
+    ]),
+    card: Object.freeze({
+      site: 'kb-card',
+      cardName: 'KB카드',
+      organization: '0301',
+      approvalsFile: 'latest-kb-card-approvals.json',
+      statementFile: 'latest-kb-card-statement.json',
+    }),
+  }),
+})
+
+export function financeCompanies() {
+  return Object.keys(COMPANIES)
+}
+
 export function financeIdentity(env = process.env) {
-  const company = env.FINANCE_COMPANY === 'willow' ? 'willow' : 'tensw'
-  if (company === 'willow') {
-    return {
-      company,
-      keychainService: env.FINANCE_KEYCHAIN_SERVICE || 'willow.willow.hometax.certificate',
-      keychainAccount: env.FINANCE_KEYCHAIN_ACCOUNT || 'willow-investments',
-      certificateOwnerKeyword: env.FINANCE_CERT_OWNER || '윌로우',
-    }
-  }
+  const requested = env.FINANCE_COMPANY ?? 'tensw'
+  const base = COMPANIES[requested]
+  if (!base) throw new Error(`등록되지 않은 회사예요: ${requested}`)
   return {
-    company,
-    keychainService: env.FINANCE_KEYCHAIN_SERVICE || KEYCHAIN_SERVICE,
-    keychainAccount: env.FINANCE_KEYCHAIN_ACCOUNT || KEYCHAIN_ACCOUNT,
-    certificateOwnerKeyword: env.FINANCE_CERT_OWNER || '텐소',
+    ...base,
+    keychainService: env.FINANCE_KEYCHAIN_SERVICE || base.keychainService,
+    keychainAccount: env.FINANCE_KEYCHAIN_ACCOUNT || base.keychainAccount,
+    certificateOwnerKeyword: env.FINANCE_CERT_OWNER || base.certificateOwnerKeyword,
+    businessNumber: env.FINANCE_BUSINESS_NUMBER || base.businessNumber,
   }
+}
+
+/** 회사를 인자로 고르는 적재 스크립트용 — 환경변수를 거치지 않는다. */
+export function financeCompany(company) {
+  const base = COMPANIES[company]
+  if (!base) throw new Error(`등록되지 않은 회사예요: ${company}`)
+  return base
 }
 
 export function keychainArgs(env = process.env) {
@@ -283,9 +380,9 @@ function sanitizeError(error) {
     .slice(0, 500)
 }
 
-export function failureMessage(stage, error) {
+export function failureMessage(stage, error, company = financeIdentity().label) {
   return [
-    '[텐소 재무 로컬 수집 실패]',
+    `[${company} 재무 로컬 수집 실패]`,
     `단계: ${stage}`,
     `원인: ${sanitizeError(error)}`,
   ].join('\n')

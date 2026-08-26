@@ -1,19 +1,27 @@
 #!/usr/bin/env node
+// Loads the 홈택스 전자세금계산서 artifact into the company's staging table.
+//
+//   node scripts/import-local-tax-invoices.mjs --company tensw [--dry]
 
 import fs from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
 import { localTaxInvoiceRow } from './lib/daily-finance-sync.mjs'
+import { financeCompany } from './lib/tensw-local-finance.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const HOME = process.env.HOME || '/Users/dongwookkim'
-const INPUT = path.join(HOME, 'logs', 'tensw-local-finance', 'latest-tax-invoices.json')
 const DRY_RUN = process.argv.includes('--dry')
 
 dotenv.config({ path: path.join(ROOT, '.env.local'), quiet: true })
+
+function argument(name) {
+  const index = process.argv.indexOf(`--${name}`)
+  return index >= 0 ? process.argv[index + 1] : null
+}
 
 function client() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -23,7 +31,11 @@ function client() {
 }
 
 async function run() {
-  const payload = JSON.parse(await fs.readFile(INPUT, 'utf8'))
+  const company = argument('company') ?? 'tensw'
+  const config = financeCompany(company)
+  const input = path.join(os.homedir(), 'logs', `${company}-local-finance`, 'latest-tax-invoices.json')
+
+  const payload = JSON.parse(await fs.readFile(input, 'utf8'))
   const invoices = [...(payload.sales ?? []), ...(payload.purchases ?? [])]
   const rows = invoices.map(localTaxInvoiceRow)
 
@@ -33,17 +45,17 @@ async function run() {
   }
 
   if (DRY_RUN) {
-    console.log(`[local-tax-import] dry run: invoices=${rows.length}`)
+    console.log(`[local-tax-import] dry run: company=${company}, invoices=${rows.length}`)
     return
   }
 
   const { data, error } = await client()
-    .from('tensw_codef_tax_invoices')
+    .from(config.tables.taxInvoices)
     .upsert(rows, { onConflict: 'fingerprint', ignoreDuplicates: true })
     .select('id')
   if (error) throw error
 
-  console.log(`[local-tax-import] invoices=${rows.length}, newly_inserted=${data?.length ?? 0}`)
+  console.log(`[local-tax-import] company=${company}, invoices=${rows.length}, newly_inserted=${data?.length ?? 0}`)
 }
 
 run().catch(error => {

@@ -56,18 +56,40 @@ test('keychainArgs uses a fixed service and account without exposing a secret', 
 test('financeIdentity separates Willow and Tensoftworks Keychain credentials', async () => {
   const { financeIdentity } = await loadSubject()
 
-  assert.deepEqual(financeIdentity({ FINANCE_COMPANY: 'willow' }), {
-    company: 'willow',
-    keychainService: 'willow.willow.hometax.certificate',
-    keychainAccount: 'willow-investments',
-    certificateOwnerKeyword: '윌로우',
-  })
-  assert.deepEqual(financeIdentity({ FINANCE_COMPANY: 'tensw' }), {
-    company: 'tensw',
-    keychainService: 'willow.tensw.hometax.certificate',
-    keychainAccount: 'tensoftworks',
-    certificateOwnerKeyword: '텐소',
-  })
+  const willow = financeIdentity({ FINANCE_COMPANY: 'willow' })
+  assert.equal(willow.keychainService, 'willow.willow.hometax.certificate')
+  assert.equal(willow.keychainAccount, 'willow-investments')
+  assert.equal(willow.certificateOwnerKeyword, '윌로우')
+  assert.equal(willow.businessNumber, '2058801897')
+
+  const tensw = financeIdentity({ FINANCE_COMPANY: 'tensw' })
+  assert.equal(tensw.keychainService, 'willow.tensw.hometax.certificate')
+  assert.equal(tensw.keychainAccount, 'tensoftworks')
+  assert.equal(tensw.certificateOwnerKeyword, '텐소')
+  assert.equal(tensw.businessNumber, '8288800992')
+})
+
+test('financeIdentity defaults to Tensoftworks and refuses an unknown company', async () => {
+  const { financeIdentity } = await loadSubject()
+
+  assert.equal(financeIdentity({}).company, 'tensw')
+  // A typo must not silently write one company's data into the other's tables.
+  assert.throws(() => financeIdentity({ FINANCE_COMPANY: 'wilow' }), /등록되지 않은 회사/)
+})
+
+test('each company stages into its own tables and banks', async () => {
+  const { financeCompany } = await loadSubject()
+
+  const willow = financeCompany('willow')
+  const tensw = financeCompany('tensw')
+  const shared = Object.keys(willow.tables)
+    .filter(key => willow.tables[key] === tensw.tables[key])
+  assert.deepEqual(shared, [])
+
+  assert.deepEqual(tensw.banks.map(bank => bank.bankName), ['우리은행', '신한은행'])
+  assert.deepEqual(willow.banks.map(bank => bank.bankName), ['신한은행'])
+  assert.equal(tensw.card.cardName, '우리카드')
+  assert.equal(willow.card.cardName, 'KB카드')
 })
 
 test('failureMessage includes the stage and sanitized error only', async () => {
@@ -76,7 +98,11 @@ test('failureMessage includes the stage and sanitized error only', async () => {
   assert.equal(typeof failureMessage, 'function')
   assert.equal(
     failureMessage('certificate-login', new Error('password=secret123\nfailed')),
-    '[텐소 재무 로컬 수집 실패]\n단계: certificate-login\n원인: password=[REDACTED] failed',
+    '[텐소프트웍스 재무 로컬 수집 실패]\n단계: certificate-login\n원인: password=[REDACTED] failed',
+  )
+  assert.equal(
+    failureMessage('certificate-login', new Error('boom'), '윌로우인베스트먼트'),
+    '[윌로우인베스트먼트 재무 로컬 수집 실패]\n단계: certificate-login\n원인: boom',
   )
 })
 

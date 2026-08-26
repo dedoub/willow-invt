@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+// Collects 홈택스 전자세금계산서 매출·매입 for the company named by
+// FINANCE_COMPANY, into the JSON scripts/import-local-tax-invoices.mjs reads.
+//
+//   FINANCE_COMPANY=willow node scripts/collect-hometax-tax-invoices.mjs --collect
+//
+// --probe signs in and reports what it sees without writing an artifact.
 
 import fs from 'node:fs/promises'
 import path from 'node:path'

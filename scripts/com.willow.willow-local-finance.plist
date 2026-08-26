@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.willow.tensw-local-finance</string>
+  <string>com.willow.willow-local-finance</string>
   <!-- 인증서 로그인이 마우스·화면을 점유하므로 CEO가 쓰지 않는 새벽에 돈다.
        두 회사가 같은 Chrome과 같은 포인터를 쓰므로 시간을 겹치지 않게 띄운다. -->
   <key>ProgramArguments</key>
@@ -11,7 +11,7 @@
     <string>/bin/bash</string>
     <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
     <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-local-finance.sh</string>
-    <string>tensw</string>
+    <string>willow</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/Users/dongwookkim</string>
@@ -20,12 +20,12 @@
     <key>Hour</key>
     <integer>4</integer>
     <key>Minute</key>
-    <integer>0</integer>
+    <integer>40</integer>
   </dict>
   <key>StandardOutPath</key>
-  <string>/Users/dongwookkim/logs/tensw-local-finance/launchd.log</string>
+  <string>/Users/dongwookkim/logs/willow-local-finance/launchd.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/dongwookkim/logs/tensw-local-finance/launchd.log</string>
+  <string>/Users/dongwookkim/logs/willow-local-finance/launchd.log</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>HOME</key>
