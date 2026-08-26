@@ -75,3 +75,42 @@ export function wooriCardStatement(rows, headerText, collectedAt) {
     billed_amount: monthly.total,
   }
 }
+
+/**
+ * 적재용 행. 우리카드 명세서는 청구년월을 따로 주지 않고 결제일만 주므로,
+ * 결제일이 속한 달을 청구년월로 삼는다 — 2026-09-07 결제분은 202609다.
+ */
+export function wooriBillingRow(statement) {
+  const paymentDate = statement.payment_date ?? statement.statement_date
+  if (!paymentDate) throw new Error('우리카드 명세서에 결제일이 없어요.')
+  const billingMonth = paymentDate.slice(0, 7).replace('-', '')
+
+  const lineTotal = label => statement.lines.find(line => line.label === label)?.total ?? null
+
+  return {
+    organization: statement.organization,
+    billing_month: billingMonth,
+    card_no: statement.card_no,
+    payment_due_date: paymentDate,
+    total_amount: statement.billed_amount,
+    // 명세서가 청구내역을 항목별로 나눠 주므로 그대로 옮긴다.
+    full_amount: lineTotal('일시불'),
+    installment_amount: lineTotal('할부'),
+    overseas_use: lineTotal('해외이용'),
+    annual_fee: lineTotal('연회비'),
+    amount_outstanding: lineTotal('전월미결제금액'),
+    cash_service: lineTotal('국외단기카드대출'),
+    payment_account: statement.settlement_account,
+    raw: {
+      source: 'woori-local-chrome',
+      collected_at: statement.collected_at,
+      statement_date: statement.statement_date,
+      period_start: statement.period_start,
+      period_end: statement.period_end,
+      monthly_principal: statement.monthly_principal,
+      monthly_fee: statement.monthly_fee,
+      lines: statement.lines,
+    },
+    fingerprint: statement.organization + '|' + billingMonth + '|' + statement.billed_amount,
+  }
+}

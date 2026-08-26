@@ -57,7 +57,15 @@ type Decision =
   | { kind: 'cash'; type: string; counterparty: string; description: string; amount: number; reason: string }
   | { kind: 'hold'; reason: string }
 
-type Pattern = { re: RegExp; counterparty: string; description: string }
+type Pattern = {
+  re: RegExp
+  counterparty: string
+  description: string
+  /** 기본은 expense. 대여·환전처럼 손익이 아닌 건 따로 적는다. */
+  type?: string
+  /** 기본은 출금. 입금으로만 오는 건(구글 수입 등)은 'in' 으로 막아 둔다. */
+  direction?: 'in' | 'out'
+}
 
 /** 어느 회사든 같은 뜻인 출금 패턴. */
 const SHARED_EXPENSE_PATTERNS: Pattern[] = [
@@ -106,10 +114,20 @@ const COMPANIES = {
     invoiceStatuses: ['new', 'promoted', 'linked'],
     // 윌로우는 계좌가 신한 한 곳이라 자사 계좌간 이체가 없다.
     transferPattern: null as RegExp | null,
+    // 아래 분류는 모두 기존 장부에 이미 쌓인 처리를 그대로 따른 것이다.
     patterns: [
       { re: /KB카드|국민카드|KB국민카드/, counterparty: 'KB카드', description: '법인카드 대금 결제' },
       { re: /신한카드/, counterparty: '신한카드', description: '법인카드 대금 결제' },
       { re: /발급수수료|타행수수료|송금수수료|제증명수수료/, counterparty: '은행수수료', description: '은행 수수료' },
+      // 은행은 서울특별시를 '서울특징'으로 줄여 찍는다. 지방소득세가 이렇게 온다.
+      { re: /서울특별시|서울특징/, counterparty: '지방세', description: '지방세 (서울시)' },
+      // 대여금 상환과 급여는 같은 이름으로 오므로 적요로 가른다.
+      { re: /김동욱대여|대여상환/, counterparty: '김동욱', description: '대여금 상환', type: 'liability' },
+      { re: /김동욱급여/, counterparty: '김동욱', description: '김동욱 미지급급여 지급 (지급시점 비용인식)' },
+      { re: /세무법인/, counterparty: '세무법인 형운', description: '기장수수료' },
+      // 환전은 손익이 아니다. USD 계좌 쪽 출금은 거래내역을 못 받아 와 손으로 남는다.
+      { re: /외화환전/, counterparty: '외화환전', description: '외화환전 입금(원화)', type: 'exchange', direction: 'in' },
+      { re: /KR-GOOGLE/, counterparty: 'Google', description: '구글 수입 (KR-GOOGLE)', type: 'revenue', direction: 'in' },
       ...SHARED_EXPENSE_PATTERNS,
     ] as Pattern[],
   },
@@ -159,11 +177,18 @@ function classify(r: StagingRow, invoices: Parameters<typeof matchInvoice>[0]): 
   const byInvoice = matchInvoice(invoices, r)
   if (byInvoice) return byInvoice
 
-  if (r.amount_out > 0) {
-    for (const p of EXPENSE_PATTERNS) {
-      if (p.re.test(t)) {
-        return { kind: 'cash', type: 'expense', counterparty: p.counterparty, description: p.description, amount: r.amount_out, reason: `고정 패턴 (${p.counterparty})` }
-      }
+  for (const p of EXPENSE_PATTERNS) {
+    const direction = p.direction ?? 'out'
+    const amount = direction === 'in' ? r.amount_in : r.amount_out
+    if (amount <= 0) continue
+    if (!p.re.test(t)) continue
+    return {
+      kind: 'cash',
+      type: p.type ?? 'expense',
+      counterparty: p.counterparty,
+      description: p.description,
+      amount,
+      reason: `고정 패턴 (${p.counterparty})`,
     }
   }
 

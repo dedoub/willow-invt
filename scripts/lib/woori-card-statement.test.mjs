@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   WOORI_CARD_ORGANIZATION,
+  wooriBillingRow,
   dottedToIso,
   resolvePaymentDate,
   statementAmount,
@@ -74,4 +75,21 @@ test('wooriCardStatement reports the billed total and keeps the breakdown', () =
 test('wooriCardStatement refuses a page it could not read', () => {
   assert.throws(() => wooriCardStatement(ROWS, '내용 없음', '2026-08-26T00:00:00.000Z'), /작성일/)
   assert.throws(() => wooriCardStatement([['일시불', '0', '0', '0']], HEADER, '2026-08-26T00:00:00.000Z'), /당월계/)
+})
+
+test('wooriBillingRow는 결제일이 속한 달을 청구년월로 삼는다', () => {
+  const statement = wooriCardStatement(ROWS, HEADER, '2026-08-26T00:00:00.000Z')
+  const row = wooriBillingRow(statement)
+
+  // 2026-09-07 결제분은 202609 청구다 — 명세서 작성일(2026-08-16)이 아니다.
+  assert.equal(row.billing_month, '202609')
+  assert.equal(row.payment_due_date, '2026-09-07')
+  assert.equal(row.total_amount, 2_846_420)
+  assert.equal(row.overseas_use, 2_846_420)
+  assert.equal(row.full_amount, 0)
+  assert.equal(row.amount_outstanding, 0)
+  assert.equal(row.payment_account, '[우리은행] 10054034*****')
+  assert.equal(row.raw.monthly_fee, 8_422)
+  // 같은 청구는 같은 지문이어야 다시 넣어도 늘지 않는다.
+  assert.equal(wooriBillingRow(statement).fingerprint, row.fingerprint)
 })

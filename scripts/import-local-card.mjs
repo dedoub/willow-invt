@@ -16,6 +16,7 @@ import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
 import { financeCompany } from './lib/tensw-local-finance.mjs'
 import { mapWooriCardApproval, validateWooriCardPayload } from './lib/woori-card-local.mjs'
+import { wooriBillingRow } from './lib/woori-card-statement.mjs'
 import { mapKbCardApproval, validateKbCardPayload } from './lib/kb-card-local.mjs'
 import { kbBillingRow } from './lib/kb-card-statement.mjs'
 
@@ -25,7 +26,7 @@ const DRY_RUN = process.argv.includes('--dry')
 dotenv.config({ path: path.join(ROOT, '.env.local'), quiet: true })
 
 const MAPPERS = {
-  'woori-card': { map: mapWooriCardApproval, validate: validateWooriCardPayload },
+  'woori-card': { map: mapWooriCardApproval, validate: validateWooriCardPayload, billing: wooriBillingRow },
   'kb-card': { map: mapKbCardApproval, validate: validateKbCardPayload, billing: kbBillingRow },
 }
 
@@ -51,15 +52,17 @@ async function importBilling(sb, company, config) {
   const statement = await fs.readFile(input, 'utf8').then(JSON.parse).catch(() => null)
   if (!statement) return
 
+  // 카드사마다 명세서 JSON 모양이 달라, 로그는 원본이 아니라 매핑된 행을 읽는다.
+  const row = mapper.billing(statement)
   const { data, error } = await sb
     .from(config.tables.cardBilling)
-    .upsert(mapper.billing(statement), { onConflict: 'fingerprint' })
+    .upsert(row, { onConflict: 'fingerprint' })
     .select('id')
   if (error) throw error
 
   console.log(
-    `[local-card-import] billing ${statement.billing_month}: `
-    + `${Number(statement.total_amount).toLocaleString()}원 (rows=${data?.length ?? 0})`,
+    `[local-card-import] billing ${row.billing_month}: `
+    + `${Number(row.total_amount).toLocaleString()}원 결제일 ${row.payment_due_date} (rows=${data?.length ?? 0})`,
   )
 }
 
