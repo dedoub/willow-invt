@@ -42,6 +42,7 @@ for script in \
   login-native-cert.mjs \
   login-nhis-si4n.mjs \
   woori-card-certificate-login.mjs \
+  login-kb-card.mjs \
   select-abc-input-source.swift \
   ocr-region.swift
 do
@@ -50,7 +51,9 @@ done
 
 for lib in \
   tensw-local-finance.mjs daily-finance-sync.mjs tax-obligation-matcher.mjs \
-  woori-card-local.mjs woori-card-statement.mjs kb-card-local.mjs \
+  woori-card-local.mjs woori-card-statement.mjs \
+  kb-card-local.mjs kb-card-statement.mjs kb-card-keypad.mjs \
+  finance-session.mjs \
   cert-dialog.mjs cert-sites.mjs desktop.mjs \
   shinhan-bank.mjs wetax.mjs nhis.mjs \
   hometax-session.mjs hometax-national-tax.mjs
@@ -145,6 +148,36 @@ run_willow() {
     && run_step "세금 지급 매칭" $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs" \
     && run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company willow
 }
+
+# --sync-only: 런타임 동기화까지만 하고 수집은 돌리지 않는다. 스크립트가 빠졌는지
+# 새벽까지 기다리지 않고 확인하려고 둔다.
+if [ "${2:-}" = "--sync-only" ]; then
+  missing=0
+  for required in \
+    "$RUNTIME/scripts/collect-hometax-tax-invoices.mjs" \
+    "$RUNTIME/scripts/import-local-bank.mjs" \
+    "$RUNTIME/scripts/lib/tensw-local-finance.mjs" \
+    "$RUNTIME/scripts/lib/finance-session.mjs"
+  do
+    [ -f "$required" ] || { echo "빠짐: $required" >&2; missing=1; }
+  done
+  if [ "$COMPANY" = "willow" ]; then
+    for required in \
+      "$RUNTIME/scripts/login-kb-card.mjs" \
+      "$RUNTIME/scripts/collect-kb-card.mjs" \
+      "$RUNTIME/scripts/collect-kb-card-statement.mjs" \
+      "$RUNTIME/scripts/lib/kb-card-keypad.mjs" \
+      "$RUNTIME/scripts/lib/kb-card-local.mjs" \
+      "$RUNTIME/scripts/lib/kb-card-statement.mjs"
+    do
+      [ -f "$required" ] || { echo "빠짐: $required" >&2; missing=1; }
+    done
+  fi
+  # import 는 DB를 건드리지 않는 dry 로만 확인한다.
+  $NODE "$RUNTIME/scripts/import-local-bank.mjs" --company "$COMPANY" --dry || missing=1
+  [ $missing -eq 0 ] && echo "$COMPANY 런타임 동기화 정상" || exit 1
+  exit 0
+fi
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance start" >> "$LOG_FILE"
 if [ "$COMPANY" = "tensw" ]; then run_tensw; else run_willow; fi
