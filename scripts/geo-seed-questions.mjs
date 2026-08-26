@@ -21,7 +21,7 @@ const groupOf = id => id.split('-')[1] ?? 'etc'
 /** 로케일은 id에 언어 코드가 박힌 경우만 표시하고 나머지는 영어로 본다 */
 const localeOf = id => {
   const g = groupOf(id)
-  return ['ko', 'ja', 'es', 'vi', 'pt'].includes(g) ? g : 'en'
+  return ['ko', 'ja', 'es', 'vi', 'pt', 'de', 'zh'].includes(g) ? g : 'en'
 }
 
 const rows = []

@@ -59,7 +59,7 @@
 
 | 번호 | 주인 | 언제 |
 |---|---|---|
-| 1·2·3 | Vercel 크론 (`vercel.json`) | 요일 고정. voicecards 월·수·금, reviewnotes 화·목·토 (20:30 UTC), portle 월·수·금 (21:10 UTC) |
+| 1·2·3 | Vercel 크론 (`vercel.json`) | 요일 고정. voicecards 월·수·금, reviewnotes 화·목·토 (20:30 UTC), portle 월·수·금, scripta 화·목·토 (21:10 UTC) |
 | 4·5·6 | 수동 `scripts/geo-measure.mjs` | 실행할 때 그 주에 빈 번호를 자동으로 잡는다 |
 
 수동 실행이 1부터 세면, 그 주 크론이 나중에 같은 번호를 덮어써서 여러 번 재고도 장부에는
@@ -140,18 +140,20 @@ codex exec --json -c tools.web_search=true --skip-git-repo-check -m gpt-5.5
 
 ## 크론
 
-주 3회차 × 3제품 × 2파트 = 18개 항목. 한 호출에 30문항을 다 돌리면 함수 제한시간에 걸려서
-파트로 쪼개고, 요일로 흩어 하루치 한도를 나눠 쓴다.
+주 3회차 × 4제품 × 2파트 = 24개 항목. 한 호출에 30문항을 다 돌리면 함수 제한시간에 걸려서
+파트로 쪼개고, 요일로 흩어 하루치 한도를 나눠 쓴다. 20:30대는 voicecards·reviewnotes,
+21:10대는 portle·scripta가 쓴다 — 같은 시각에 두 사이트가 겹치지 않게 요일로 갈랐다.
 
 | 요일(UTC) | 대상 |
 |---|---|
 | 월 20:30 / 20:50 | voicecards 1회차 (part 1 / 2) |
 | 월 21:10 / 21:30 | portle 1회차 (part 1 / 2) |
-| 화 | reviewnotes 1회차 |
+| 화 20:30 / 20:50 | reviewnotes 1회차 |
+| 화 21:10 / 21:30 | scripta 1회차 |
 | 수 | voicecards 2회차, portle 2회차 |
-| 목 | reviewnotes 2회차 |
+| 목 | reviewnotes 2회차, scripta 2회차 |
 | 금 | voicecards 3회차, portle 3회차 |
-| 토 | reviewnotes 3회차 |
+| 토 | reviewnotes 3회차, scripta 3회차 |
 
 수동 실행:
 

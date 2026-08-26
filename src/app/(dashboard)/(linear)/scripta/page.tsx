@@ -8,6 +8,7 @@ import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
+import { GeoAnswerCard } from '@/app/(dashboard)/_components/geo-answer-card'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ export default function ScriptaPage() {
       각 컴포넌트는 그리드 없이 조각만 내놓고 배치는 여기서 DOM 순서로 결정된다.
 
       2열에서 채워지는 순서:
-        검색 노출 | 퍼널 · 학습 구조
+        AI 답변 점유 · 검색 노출 | 퍼널 · 학습 구조
         사용자 (2열을 모두 차지)
     */}
     <div style={{
@@ -76,7 +77,7 @@ export default function ScriptaPage() {
       gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
       gap: t.density.blockGap, alignItems: 'start',
     }}>
-    <SearchDemandCard site="scripta" showGscLink={false} />
+    <SearchDemandCard site="scripta" showGscLink={false} leadSlot={<GeoAnswerCard site="scripta" />} />
 
     <ScriptaBlock
       cols={cols}

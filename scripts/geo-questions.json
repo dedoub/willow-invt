@@ -1,5 +1,5 @@
 {
-  "_doc": "GEO 측정용 비브랜드 질문 세트. 질문 문구는 다듬어도 id는 절대 바꾸지 말 것 — id가 주간 추세를 잇는 키다. 브랜드명(VoiceCards/ReviewNotes/Portle)은 넣지 않는다. 넣는 순간 '우리를 아는 사람의 질문'이 되어 GEO 측정이 아니게 된다.",
+  "_doc": "GEO 측정용 비브랜드 질문 세트. 질문 문구는 다듬어도 id는 절대 바꾸지 말 것 — id가 주간 추세를 잇는 키다. 브랜드명(VoiceCards/ReviewNotes/Portle/Scripta)은 넣지 않는다. 넣는 순간 '우리를 아는 사람의 질문'이 되어 GEO 측정이 아니게 된다.",
   "voicecards": {
     "our_domains": ["voicecards.quest"],
     "competitors": ["anki", "quizlet", "brainscape", "memrise", "supermemo", "remnote", "mochi", "audioflash", "audio-flashcards", "mintdeck", "flashcardify", "studley", "speechling", "duolingo", "tarteel", "quranly", "iqra"],
@@ -106,6 +106,42 @@
       { "id": "pt-ko-02", "q": "매매일지를 스프레드시트로 기록하고 앱에서 볼 수 있는 방법 있어?" },
       { "id": "pt-ko-03", "q": "증권사 거래내역을 구글 시트에 정리해서 관리하려면 어떻게 해?" },
       { "id": "pt-ja-01", "q": "グーグルスプレッドシートで株式ポートフォリオを管理するおすすめの方法は？" }
+    ]
+  },
+  "scripta": {
+    "our_domains": ["scripta.quest"],
+    "competitors": ["grammarly", "quillbot", "languagetool", "write & improve", "deepl write", "prowritingaid", "wordtune", "duolingo", "busuu", "italki", "hinative", "lang-8", "journaly", "lingq", "clozemaster", "anki", "writing9", "preply", "engoo", "chatgpt"],
+    "questions": [
+      { "id": "sc-write-01", "q": "How can I get better at writing in a foreign language?" },
+      { "id": "sc-write-02", "q": "What is the best way to practice writing English every day?" },
+      { "id": "sc-write-03", "q": "How do I stop translating from my native language when I write?" },
+      { "id": "sc-write-04", "q": "What app helps me practice writing, not just speaking, in a new language?" },
+      { "id": "sc-model-01", "q": "Is copying and rewriting good essays an effective way to learn writing?" },
+      { "id": "sc-model-02", "q": "How do I memorize useful sentence patterns for writing?" },
+      { "id": "sc-model-03", "q": "What is the best method to learn writing from a model text?" },
+      { "id": "sc-model-04", "q": "How can I practice reproducing a text I read from memory?" },
+      { "id": "sc-fb-01", "q": "What tool gives feedback on my writing in a foreign language?" },
+      { "id": "sc-fb-02", "q": "Is there an app that scores my writing and tells me what to fix?" },
+      { "id": "sc-fb-03", "q": "How can I get my essays corrected without a tutor?" },
+      { "id": "sc-essay-01", "q": "How should I practice writing for the IELTS writing section?" },
+      { "id": "sc-essay-02", "q": "What is a good daily routine to prepare for an academic writing exam?" },
+      { "id": "sc-essay-03", "q": "How do I learn to structure paragraphs in an English essay?" },
+      { "id": "sc-email-01", "q": "How do I learn to write professional emails in English?" },
+      { "id": "sc-email-02", "q": "What is the best way to practice business writing in a second language?" },
+      { "id": "sc-email-03", "q": "How can I sound natural in English work emails?" },
+      { "id": "sc-recall-01", "q": "Does back-translation practice actually help you learn to write in a language?" },
+      { "id": "sc-recall-02", "q": "How do I practice writing sentences from meaning cues instead of word-for-word translation?" },
+      { "id": "sc-recall-03", "q": "Is chunk-based practice better than word-by-word translation for writing?" },
+      { "id": "sc-ko-01", "q": "영어 글쓰기 실력 늘리는 방법 알려줘" },
+      { "id": "sc-ko-02", "q": "영작 연습할 수 있는 앱 추천해줘" },
+      { "id": "sc-ko-03", "q": "영어 이메일 잘 쓰는 법 알려줘" },
+      { "id": "sc-ko-04", "q": "좋은 영어 문장을 통째로 익혀서 쓰는 훈련은 어떻게 해?" },
+      { "id": "sc-ko-05", "q": "AI가 영작문 첨삭해주는 서비스 있어?" },
+      { "id": "sc-ko-06", "q": "영어로 자기소개서 쓰는 연습 어떻게 하면 좋아?" },
+      { "id": "sc-ja-01", "q": "英語のライティングを練習できるアプリのおすすめは？" },
+      { "id": "sc-ja-02", "q": "英作文を添削してくれるAIサービスはありますか？" },
+      { "id": "sc-de-01", "q": "Wie kann ich mein Schreiben auf Englisch systematisch verbessern?" },
+      { "id": "sc-zh-01", "q": "有哪些可以练习英文写作并获得批改的应用？" }
     ]
   }
 }

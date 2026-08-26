@@ -98,6 +98,30 @@
     {
       "path": "/api/cron/geo-measure?site=portle&run=3&part=2&parts=2",
       "schedule": "30 21 * * 5"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=scripta&run=1&part=1&parts=2",
+      "schedule": "10 21 * * 2"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=scripta&run=1&part=2&parts=2",
+      "schedule": "30 21 * * 2"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=scripta&run=2&part=1&parts=2",
+      "schedule": "10 21 * * 4"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=scripta&run=2&part=2&parts=2",
+      "schedule": "30 21 * * 4"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=scripta&run=3&part=1&parts=2",
+      "schedule": "10 21 * * 6"
+    },
+    {
+      "path": "/api/cron/geo-measure?site=scripta&run=3&part=2&parts=2",
+      "schedule": "30 21 * * 6"
     }
   ]
 }

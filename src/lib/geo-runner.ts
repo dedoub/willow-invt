@@ -17,6 +17,8 @@ const BRAND_RE: Record<string, RegExp> = {
   reviewnotes: /review\s*notes?|reviewnotes\.app/i,
   valuechain: /value\s*chain(\.wiki)?/i,
   portle: /\bportle\b|portle\.quest/i,
+  // 라틴어 낱말로도 쓰이는 단어라 단어 경계를 건다
+  scripta: /\bscripta\b|scripta\.quest/i,
 }
 
 const OUR_DOMAIN: Record<string, string> = {
@@ -24,6 +26,7 @@ const OUR_DOMAIN: Record<string, string> = {
   reviewnotes: 'reviewnotes.app',
   valuechain: 'valuechain.wiki',
   portle: 'portle.quest',
+  scripta: 'scripta.quest',
 }
 
 /** 경쟁사 목록은 질문 세트와 함께 관리한다. 여기서는 답변에 등장했는지만 본다 */
@@ -36,6 +39,10 @@ const COMPETITORS: Record<string, string[]> = {
   portle: ['sharesight', 'getquin', 'delta', 'snowball analytics', 'kubera', 'stock events', 'portfolio performance',
     'ghostfolio', 'wealthfolio', 'tiller', 'wisesheets', 'empower', 'personal capital', 'simply wall st',
     'yahoo finance', 'google finance'],
+  // 외국어 글쓰기 질문에 답변엔진이 실제로 권하는 것들 — 문법교정기·언어학습앱·튜터 마켓이 섞인다
+  scripta: ['grammarly', 'quillbot', 'languagetool', 'write & improve', 'deepl write', 'prowritingaid',
+    'wordtune', 'duolingo', 'busuu', 'italki', 'hinative', 'lang-8', 'journaly', 'lingq',
+    'clozemaster', 'anki', 'writing9', 'preply', 'engoo', 'chatgpt'],
 }
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
