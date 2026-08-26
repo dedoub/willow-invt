@@ -14,6 +14,7 @@ import { SalesBlock } from './_components/sales-block'
 import { LoanBlock } from './_components/loan-block'
 import { CardBlock } from './_components/card-block'
 import { TenswWikiBlock } from './_components/wiki-block'
+import { TaxManagementBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/tax-management-block'
 
 // Dialogs
 import { ScheduleAddDialog, TenswScheduleFormData } from './_components/schedule-add-dialog'
@@ -30,6 +31,7 @@ import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/
 // Types
 import { TenswMgmtSchedule, TenswMgmtClient, TenswCashItem, TenswTaxInvoice, TenswLoan, TenswCardApproval, TenswCardBilling } from '@/types/tensw-mgmt'
 import { WikiNote } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-note-row'
+import type { FinanceTaxObligation } from '@/types/finance-tax'
 
 type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
@@ -49,6 +51,7 @@ export default function TenswPage() {
   const [cardBilling, setCardBilling] = useState<TenswCardBilling[]>([])
   const [cardYear, setCardYear] = useState(new Date().getFullYear())
   const [loans, setLoans] = useState<TenswLoan[]>([])
+  const [taxObligations, setTaxObligations] = useState<FinanceTaxObligation[]>([])
   const [wikiNotes, setWikiNotes] = useState<WikiNote[]>([])
   const [wikiLoading, setWikiLoading] = useState(true)
 
@@ -133,7 +136,7 @@ export default function TenswPage() {
   const loadData = useCallback(async () => {
     // 재로드 시 phase 유지 — 달력/사용자 상태 보존 (useState 기본값으로 초기 스켈레톤은 표시됨)
     try {
-      const [projectsRes, schedulesRes, clientsRes, cashRes, salesRes, loansRes, balancesRes, historyRes] =
+      const [projectsRes, schedulesRes, clientsRes, cashRes, salesRes, loansRes, balancesRes, historyRes, taxesRes] =
         await Promise.all([
           fetch('/api/tensoftworks'),
           fetch('/api/tensw-mgmt/schedules'),
@@ -143,6 +146,7 @@ export default function TenswPage() {
           fetch('/api/tensw-mgmt/loans'),
           fetch('/api/tensw-mgmt/bank-balances'),
           fetch('/api/tensw-mgmt/balance-history?start_date=2026-01-01'),
+          fetch('/api/finance/tax-obligations?company=tensw'),
         ])
 
       if (projectsRes.ok) {
@@ -167,6 +171,10 @@ export default function TenswPage() {
       if (historyRes.ok) {
         const hist = await historyRes.json()
         if (Array.isArray(hist)) setBalanceHistory(hist)
+      }
+      if (taxesRes.ok) {
+        const data = await taxesRes.json()
+        setTaxObligations(data.obligations || [])
       }
 
       // Phase 1: DB + wiki done → show UI (emails still loading)
@@ -488,6 +496,7 @@ export default function TenswPage() {
                 onEdit={(inv) => { setEditingSales(inv); setSalesDialogOpen(true) }}
                 onDelete={handleDeleteSales}
               />
+              <TaxManagementBlock obligations={taxObligations} />
               <CardBlock
                 approvals={cardApprovals}
                 billing={cardBilling}

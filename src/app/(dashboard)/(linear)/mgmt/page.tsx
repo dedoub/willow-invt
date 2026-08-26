@@ -6,6 +6,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
+import { TaxManagementBlock } from './_components/tax-management-block'
 import { EmailBlock } from './_components/email-block'
 import { AddScheduleDialog, ScheduleFormData } from './_components/add-schedule-dialog'
 import { AddInvoiceDialog, InvoiceFormData } from './_components/add-invoice-dialog'
@@ -16,6 +17,7 @@ import { EmailDetailDialog, FullEmail } from './_components/email-detail-dialog'
 import { ComposeEmailDialog } from './_components/compose-email-dialog'
 import { MgmtSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { WillowMgmtSchedule, WillowMgmtClient } from '@/types/willow-mgmt'
+import type { FinanceTaxObligation } from '@/types/finance-tax'
 
 interface Invoice {
   id: string
@@ -37,6 +39,7 @@ export default function MgmtPage() {
   const [schedules, setSchedules] = useState<WillowMgmtSchedule[]>([])
   const [clients, setClients] = useState<WillowMgmtClient[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [taxObligations, setTaxObligations] = useState<FinanceTaxObligation[]>([])
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
   const [scheduleDialogDate, setScheduleDialogDate] = useState('')
   const [editingSchedule, setEditingSchedule] = useState<WillowMgmtSchedule | null>(null)
@@ -77,13 +80,14 @@ export default function MgmtPage() {
     // 초기 마운트는 useState(0) 기본값으로 스켈레톤 표시.
     // 저장/수정 후 재로드 시에는 phase를 유지해서 자식 컴포넌트(달력 등) 언마운트 방지.
     try {
-      const [clientsRes, schedulesRes, invoicesRes, balancesRes, historyRes, fxRes] = await Promise.all([
+      const [clientsRes, schedulesRes, invoicesRes, balancesRes, historyRes, fxRes, taxesRes] = await Promise.all([
         fetch('/api/willow-mgmt/clients'),
         fetch('/api/willow-mgmt/schedules'),
         fetch('/api/willow-mgmt/invoices'),
         fetch('/api/willow-mgmt/bank-balances'),
         fetch('/api/willow-mgmt/balance-history?start_date=2026-01-01'),
         fetch('/api/willow-mgmt/fx-history').catch(() => null),
+        fetch('/api/finance/tax-obligations?company=willow'),
       ])
       if (clientsRes.ok) setClients(await clientsRes.json())
       if (schedulesRes.ok) setSchedules(await schedulesRes.json())
@@ -95,6 +99,10 @@ export default function MgmtPage() {
       if (historyRes.ok) {
         const hist = await historyRes.json()
         if (Array.isArray(hist)) setBalanceHistory(hist)
+      }
+      if (taxesRes.ok) {
+        const data = await taxesRes.json()
+        setTaxObligations(data.obligations || [])
       }
 
       // Latest USD/KRW rate (fetched in parallel above)
@@ -396,16 +404,19 @@ export default function MgmtPage() {
           onSelectSchedule={setSelectedSchedule}
         />
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'), gap: t.density.blockGap }}>
-          <CashBlock
-            invoices={invoices}
-            onAddInvoice={() => { setEditingInvoice(null); setInvoiceDialogOpen(true) }}
-            onSelectInvoice={setSelectedInvoice}
-            onFileUpload={handleFileUpload}
-            parsing={parsing}
-            bankBalances={bankBalances}
-            usdRate={usdRate}
-            balanceHistory={balanceHistory}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
+            <CashBlock
+              invoices={invoices}
+              onAddInvoice={() => { setEditingInvoice(null); setInvoiceDialogOpen(true) }}
+              onSelectInvoice={setSelectedInvoice}
+              onFileUpload={handleFileUpload}
+              parsing={parsing}
+              bankBalances={bankBalances}
+              usdRate={usdRate}
+              balanceHistory={balanceHistory}
+            />
+            <TaxManagementBlock obligations={taxObligations} />
+          </div>
           <EmailBlock
             emails={emails}
             connected={gmailConnected}
