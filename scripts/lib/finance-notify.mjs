@@ -113,9 +113,34 @@ export function summaryLines(artifacts, config, now = new Date()) {
 }
 
 /**
+ * 오늘 새로 들어온 건수를 줄로 만든다.
+ *
+ * 산출물 숫자는 조회 기간 전체(카드 30일치 등)라 매일 비슷하게 나온다. 어제와
+ * 무엇이 달라졌는지는 이쪽이 말해 준다. 0건이면 굳이 적지 않는다.
+ */
+export function dailyLines(daily) {
+  if (!daily) return []
+  const parts = []
+  const add = (label, value) => {
+    if (Number(value ?? 0) > 0) parts.push(`${label} ${formatCount(value)}건`)
+  }
+  add('계좌 거래내역', daily.transactions)
+  add('카드 승인내역', daily.cardApprovals)
+  add('세금계산서', daily.taxInvoices)
+  add('세금 고지', daily.taxObligations)
+  add('현금관리 반영', daily.cash)
+
+  const lines = []
+  lines.push(parts.length > 0 ? parts.join(' · ') : '새로 들어온 내역 없음')
+  // 판단 대기는 0이 아니면 사람이 손을 대야 하는 신호라 따로 세운다.
+  if (Number(daily.pending ?? 0) > 0) lines.push(`판단 대기 ${formatCount(daily.pending)}건`)
+  return lines
+}
+
+/**
  * 보낼 메시지 전문. 실패면 어느 단계에서 멈췄는지가 가장 중요한 정보라 맨 앞에 둔다.
  */
-export function notifyMessage({ company, label, status, step, artifacts, config, now = new Date(), logFile }) {
+export function notifyMessage({ company, label, status, step, artifacts, config, now = new Date(), logFile, daily }) {
   const { lines, stale, missing } = summaryLines(artifacts, config, now)
   const head = status === 'ok'
     ? `✅ ${label} 재무 자동화 완료`
@@ -124,8 +149,16 @@ export function notifyMessage({ company, label, status, step, artifacts, config,
   const body = [head]
   if (status !== 'ok') body.push(`멈춘 단계: ${step || '(알 수 없음)'}`)
 
+  const added = dailyLines(daily)
+  if (added.length > 0) {
+    body.push('')
+    body.push('[오늘 추가]')
+    body.push(...added.map(line => `· ${line}`))
+  }
+
   if (lines.length > 0) {
     body.push('')
+    body.push('[누적]')
     body.push(...lines.map(line => `· ${line}`))
   } else if (status === 'ok') {
     body.push('')

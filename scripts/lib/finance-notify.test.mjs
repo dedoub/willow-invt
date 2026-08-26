@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { isFresh, notifyMessage, summaryLines } from './finance-notify.mjs'
+import { dailyLines, isFresh, notifyMessage, summaryLines } from './finance-notify.mjs'
 import { financeCompany } from './tensw-local-finance.mjs'
 
 const NOW = new Date('2026-08-26T20:40:00+09:00')
@@ -113,4 +113,43 @@ test('단계 이름이 없어도 실패 사실은 알린다', () => {
     artifacts: {}, config: WILLOW, now: NOW,
   })
   assert.match(message, /멈춘 단계: \(알 수 없음\)/)
+})
+
+test('오늘 추가는 0건인 항목을 적지 않는다', () => {
+  assert.deepEqual(
+    dailyLines({ transactions: 3, cardApprovals: 12, taxInvoices: 0, taxObligations: 0, cash: 3, pending: 0 }),
+    ['계좌 거래내역 3건 · 카드 승인내역 12건 · 현금관리 반영 3건'],
+  )
+})
+
+test('아무것도 안 들어온 날도 그렇다고 말한다', () => {
+  // 줄이 통째로 사라지면 정상인지 못 돈 건지 알 수 없다.
+  assert.deepEqual(dailyLines({ transactions: 0, cardApprovals: 0, cash: 0 }), ['새로 들어온 내역 없음'])
+})
+
+test('판단 대기는 사람이 손댈 신호라 따로 세운다', () => {
+  assert.deepEqual(
+    dailyLines({ transactions: 2, pending: 5 }),
+    ['계좌 거래내역 2건', '판단 대기 5건'],
+  )
+})
+
+test('세는 데 실패해도 알림은 나간다', () => {
+  const message = notifyMessage({
+    company: 'willow', label: '윌로우인베스트먼트', status: 'ok',
+    artifacts: willowArtifacts(), config: WILLOW, now: NOW, daily: null,
+  })
+  assert.ok(!message.includes('[오늘 추가]'))
+  assert.ok(message.includes('[누적]'))
+})
+
+test('오늘 추가가 누적보다 먼저 온다 — 어제와 뭐가 달라졌는지가 먼저다', () => {
+  const message = notifyMessage({
+    company: 'willow', label: '윌로우인베스트먼트', status: 'ok',
+    artifacts: willowArtifacts(), config: WILLOW, now: NOW,
+    daily: { transactions: 3, cardApprovals: 12, pending: 1 },
+  })
+  assert.ok(message.indexOf('[오늘 추가]') < message.indexOf('[누적]'))
+  assert.match(message, /· 계좌 거래내역 3건 · 카드 승인내역 12건/)
+  assert.match(message, /· 판단 대기 1건/)
 })

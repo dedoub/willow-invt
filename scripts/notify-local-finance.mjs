@@ -34,6 +34,41 @@ async function ceoChatId(url, key) {
   return rows[0]?.chat_id ?? null
 }
 
+/** 오늘 0시(현지) 이후. 러너가 새벽에 도니 하루 경계는 로컬 기준이 맞다. */
+function startOfToday(now = new Date()) {
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  return start.toISOString()
+}
+
+async function countRows(url, key, table, filters) {
+  const query = new URLSearchParams({ select: 'id', ...filters }).toString()
+  const response = await fetch(`${url}/rest/v1/${table}?${query}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: 'count=exact', Range: '0-0' },
+  })
+  if (!response.ok) return null
+  const range = response.headers.get('content-range') ?? ''
+  const total = Number(range.split('/')[1])
+  return Number.isFinite(total) ? total : null
+}
+
+/**
+ * 오늘 새로 들어온 건수. 산출물 숫자는 조회 기간 전체라 매일 비슷하게 나오므로,
+ * 어제와 무엇이 달라졌는지는 적재 시각으로 센다.
+ */
+async function dailyCounts(url, key, company, config) {
+  const since = startOfToday()
+  const [transactions, cardApprovals, taxInvoices, taxObligations, cash, pending] = await Promise.all([
+    countRows(url, key, config.tables.transactions, { 'synced_at': `gte.${since}` }),
+    countRows(url, key, config.tables.cardApprovals, { 'synced_at': `gte.${since}` }),
+    countRows(url, key, config.tables.taxInvoices, { 'synced_at': `gte.${since}` }),
+    countRows(url, key, 'finance_tax_obligations', { company: `eq.${company}`, 'collected_at': `gte.${since}` }),
+    countRows(url, key, config.tables.cash, { 'created_at': `gte.${since}` }),
+    countRows(url, key, config.tables.transactions, { status: 'eq.new' }),
+  ])
+  return { transactions, cardApprovals, taxInvoices, taxObligations, cash, pending }
+}
+
 async function run() {
   const company = argument('company') ?? 'tensw'
   const status = argument('status') ?? 'ok'
@@ -57,6 +92,14 @@ async function run() {
       .catch(() => null)
   }
 
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SECRET_KEY
+  if (!url || !key) throw new Error('Supabase 환경변수가 없어요.')
+
+  // 세는 데 실패해도 알림 자체는 나가야 한다.
+  const daily = await dailyCounts(url, key, company, config).catch(() => null)
+
   const message = notifyMessage({
     company,
     label: config.label,
@@ -64,6 +107,7 @@ async function run() {
     step: argument('step'),
     artifacts,
     config,
+    daily,
     logFile: path.join(artifactDir, 'launchd.log'),
   })
 
@@ -72,10 +116,7 @@ async function run() {
     return
   }
 
-  const token = process.env.TELEGRAM_BOT_TOKEN
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SECRET_KEY
-  if (!token || !url || !key) throw new Error('텔레그램·Supabase 환경변수가 없어요.')
+  if (!token) throw new Error('텔레그램 환경변수가 없어요.')
 
   const chatId = await ceoChatId(url, key)
   if (!chatId) throw new Error('CEO 봇 대화가 없어 보낼 곳을 찾지 못했어요.')
