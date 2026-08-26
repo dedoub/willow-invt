@@ -102,8 +102,16 @@ async function readBank(artifactDir, bank) {
   if (bank.expectedAccounts === null ? collected === 0 : collected !== bank.expectedAccounts) {
     throw new Error(`${bank.bankName} 계좌 수 검증이 통과하지 않았어요: ${collected}개`)
   }
-  if (transactionPayload.account_count !== collected) {
-    throw new Error(`${bank.bankName} 거래내역 계좌 수가 잔액 조회와 달라요.`)
+  // 거래내역은 조회 가능한 계좌 몫만 온다 — 신한 외화 계좌처럼 잔액만 보이는
+  // 계좌가 있어서, 두 수가 같아야 한다고 보면 안 된다. 대신 넘어온 거래가 모두
+  // 아는 계좌의 것인지를 본다.
+  const known = new Set(accountPayload.accounts.map(account => account.account))
+  const unknown = transactionPayload.transactions.find(row => !known.has(row.account))
+  if (unknown) {
+    throw new Error(`${bank.bankName} 거래내역에 모르는 계좌가 있어요: ${unknown.account}`)
+  }
+  if (transactionPayload.account_count < 1) {
+    throw new Error(`${bank.bankName} 거래내역을 가져오지 못했어요.`)
   }
   if (transactionPayload.transactions.some(row => row.organization !== bank.organization)) {
     throw new Error(`${bank.bankName} 기관코드 검증이 통과하지 않았어요.`)

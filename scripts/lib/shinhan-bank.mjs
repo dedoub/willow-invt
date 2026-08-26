@@ -59,7 +59,10 @@ export function shinhanTransactionFromCells(cells, account) {
   }
 }
 
-const ACCOUNT_COLUMNS = Object.freeze({
+// 전체계좌 조회는 상품군마다 표를 따로 그린다. 첫 표만 읽으면 그 아래 외화·정기·
+// 대출 계좌가 통째로 빠지므로, 표마다 어떤 계좌인지와 칸 배치를 함께 적어 둔다.
+// 잔액이 소수로 찍히는 외화는 통화 칸이 하나 더 있어 배치가 밀린다.
+const KRW_COLUMNS = Object.freeze({
   productName: 1,
   accountNumber: 2,
   nickname: 4,
@@ -67,26 +70,104 @@ const ACCOUNT_COLUMNS = Object.freeze({
   availableBalance: 6,
 })
 
-export function shinhanAccountFromCells(cells) {
-  const accountDisplay = String(cells[ACCOUNT_COLUMNS.accountNumber] ?? '').trim()
+const FOREIGN_COLUMNS = Object.freeze({
+  productName: 1,
+  accountNumber: 2,
+  nickname: 4,
+  currency: 5,
+  balance: 6,
+})
+
+export const SHINHAN_ACCOUNT_GRIDS = Object.freeze([
+  Object.freeze({
+    grid: 'gridlist1',
+    label: '자유입출예금',
+    accountType: 'deposit',
+    columns: KRW_COLUMNS,
+    transactable: true,
+  }),
+  Object.freeze({
+    grid: 'gridlist5',
+    label: '외화예금',
+    accountType: 'foreign',
+    columns: FOREIGN_COLUMNS,
+    // 외화 계좌는 계좌별거래내역 화면의 목록에 뜨지 않아 잔액만 가져온다.
+    transactable: false,
+  }),
+])
+
+/** 아직 배치를 확인하지 않은 표. 내역이 생기면 조용히 빠지지 않도록 이름을 남긴다. */
+export const SHINHAN_UNMAPPED_GRIDS = Object.freeze({
+  gridlist2: '정기예금/적금',
+  gridlist3: '신탁',
+  gridlist4: '펀드',
+  gridlist6: '퇴직연금',
+  gridlist7: '대출',
+})
+
+function decimalAmount(value) {
+  const text = String(value ?? '').replaceAll(',', '').trim()
+  const parsed = Number(text)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+export function shinhanAccountFromCells(cells, spec = SHINHAN_ACCOUNT_GRIDS[0]) {
+  const columns = spec.columns
+  const accountDisplay = String(cells[columns.accountNumber] ?? '').trim()
   const account = accountDigits(accountDisplay)
   if (account.length < 10) return null
 
+  const currency = columns.currency
+    ? String(cells[columns.currency] ?? '').trim().toUpperCase() || 'KRW'
+    : 'KRW'
+
   return {
-    account_type: 'deposit',
+    account_type: spec.accountType,
     account,
     account_display: accountDisplay,
-    account_label: `신한 ${accountDisplay}`,
-    product_name: String(cells[ACCOUNT_COLUMNS.productName] ?? '').trim() || null,
-    balance: amount(cells[ACCOUNT_COLUMNS.balance]),
-    available_balance: amount(cells[ACCOUNT_COLUMNS.availableBalance]),
+    // 원화 계좌는 지금 쓰는 표기를 그대로 두고, 외화만 통화를 붙여 구분한다.
+    account_label: currency === 'KRW' ? `신한 ${accountDisplay}` : `신한 ${accountDisplay} (${currency})`,
+    product_name: String(cells[columns.productName] ?? '').trim() || null,
+    currency,
+    // 외화 잔액은 4.62처럼 소수로 온다.
+    balance: currency === 'KRW' ? amount(cells[columns.balance]) : decimalAmount(cells[columns.balance]),
+    available_balance: columns.availableBalance != null
+      ? amount(cells[columns.availableBalance])
+      : null,
+    transactable: spec.transactable,
     suspended: false,
   }
 }
 
-export function shinhanAccountsPayload(rows, collectedAt) {
-  const accounts = rows.map(shinhanAccountFromCells).filter(Boolean)
+/**
+ * @param {Array<{grid: string, rows: string[][]}>} grids 화면에서 읽은 표들
+ */
+export function shinhanAccountsPayload(grids, collectedAt) {
+  // 예전처럼 표 하나만 넘어오면 자유입출예금으로 본다.
+  const normalized = Array.isArray(grids) && grids.length > 0 && Array.isArray(grids[0])
+    ? [{ grid: 'gridlist1', rows: grids }]
+    : grids
+
+  const accounts = []
+  const skipped = []
+  for (const { grid, rows } of normalized) {
+    const spec = SHINHAN_ACCOUNT_GRIDS.find(item => item.grid === grid)
+    if (!spec) {
+      if (rows.some(row => row.some(cell => String(cell ?? '').trim()))) {
+        skipped.push(SHINHAN_UNMAPPED_GRIDS[grid] ?? grid)
+      }
+      continue
+    }
+    for (const row of rows) {
+      const account = shinhanAccountFromCells(row, spec)
+      if (account) accounts.push(account)
+    }
+  }
+
   if (accounts.length === 0) throw new Error('신한은행 계좌 목록을 읽지 못했어요.')
+  if (skipped.length > 0) {
+    throw new Error(`신한은행에서 아직 읽지 못하는 계좌가 생겼어요: ${skipped.join(', ')}`)
+  }
   return { collected_at: collectedAt, accounts }
 }
 

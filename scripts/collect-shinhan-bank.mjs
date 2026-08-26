@@ -147,8 +147,15 @@ async function openMenu(item) {
     await sleep(2_000)
   }
 
-  const point = await clickPageElement(selector, { host: HOST })
+  // 패널이 막 열린 뒤의 첫 클릭은 삼켜질 때가 있다. 눌러 보고 패널이 그대로면
+  // 같은 자리를 한 번 더 누른다 — 메뉴를 다시 여는 것보다 이쪽이 잘 먹는다.
+  let point = await clickPageElement(selector, { host: HOST })
   log(`menu ${item}: clicked at ${point.x},${point.y}`)
+  await sleep(3_000)
+  if (await menuEntryVisible(selector)) {
+    point = await clickPageElement(selector, { host: HOST })
+    log(`menu ${item}: clicked again at ${point.x},${point.y}`)
+  }
   await sleep(9_000)
 }
 
@@ -178,11 +185,35 @@ async function readGridOnce(selector) {
   return JSON.parse(output)
 }
 
+// 전체계좌 조회는 상품군마다 표를 그린다. 자유입출예금만 읽으면 그 아래 외화
+// 계좌가 통째로 빠지므로 화면의 표를 전부 가져와 라이브러리에 넘긴다.
 async function collectAccounts() {
-  await openMenu('전체계좌 조회')
-  const rows = await readGrid('[id$="_grd_gridlist1_body_table"]')
-  const payload = shinhanAccountsPayload(rows, new Date().toISOString())
-  log(`accounts: ${payload.accounts.length}`)
+  await openMenuVerified('전체계좌 조회', '[id$="_grd_gridlist1_body_table"]')
+
+  const output = await pageScript(`(() => {
+    const visible = element => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const grids = [...document.querySelectorAll('table[id$=_body_table]')].filter(visible)
+      .map(table => {
+        const match = table.id.match(/gridlist\\d+/);
+        if (!match) return null;
+        return {
+          grid: match[0],
+          rows: [...table.querySelectorAll('tbody tr')]
+            .map(row => [...row.querySelectorAll('td')]
+              .map(cell => cell.innerText.trim().replace(/\\s+/g, ' '))),
+        };
+      })
+      .filter(Boolean);
+    return JSON.stringify(grids);
+  })()`)
+
+  const payload = shinhanAccountsPayload(JSON.parse(output), new Date().toISOString())
+  for (const account of payload.accounts) {
+    log(`account ${account.account_label}: ${account.balance.toLocaleString()} ${account.currency}`)
+  }
   return payload
 }
 
@@ -213,15 +244,45 @@ async function queryTransactions(start, end) {
   await sleep(9_000)
 }
 
+// 첫 화면이 열리고 나면 메가메뉴 위치가 밀려 클릭이 헛돌 때가 있다. DOM 은 여전히
+// 보인다고 답하므로, 목표 화면이 실제로 떴는지로 확인하고 다시 연다.
+async function openMenuVerified(item, marker, attempts = 3) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    await openMenu(item)
+    const deadline = Date.now() + 15_000
+    while (Date.now() < deadline) {
+      const found = await pageScript(`(() => {
+        const element = document.querySelector(${JSON.stringify(marker)});
+        if (!element) return 'no';
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 ? 'yes' : 'no';
+      })()`).catch(() => 'no')
+      if (found === 'yes') return
+      await sleep(2_000)
+    }
+    log(`menu ${item}: 화면이 바뀌지 않아 다시 열어요 (${attempt}/${attempts})`)
+    // 열려 있다고 오인하지 않도록 패널을 닫고 다시 시작한다.
+    await pageScript(`(() => {
+      const top = document.querySelector(${JSON.stringify(TOP_MENU)});
+      if (top) top.click();
+      return 'closed';
+    })()`).catch(() => {})
+    await sleep(2_500)
+  }
+  throw new Error(`신한은행 "${item}" 화면을 열지 못했어요.`)
+}
+
 async function collectTransactions(accounts) {
-  await openMenu('계좌별거래내역')
+  await openMenuVerified('계좌별거래내역', '[id$="_grd_gridList_body_table"]')
   const { start, end } = collectionWindow(new Date(), DAYS)
   await queryTransactions(start, end)
 
   const rows = await readGrid('[id$="_grd_gridList_body_table"]')
-  // The screen queries the account already selected in its dropdown, which is
-  // the only 입출금 account this company holds.
-  const entries = [{ account: accounts[0].account, rows }]
+  // 이 화면은 드롭다운에 이미 잡힌 계좌를 조회한다. 외화 계좌는 여기 목록에
+  // 뜨지 않으므로 거래내역은 입출금 계좌 몫만 가져온다.
+  const transactable = accounts.filter(account => account.transactable !== false)
+  if (transactable.length === 0) throw new Error('신한은행 거래내역을 볼 계좌가 없어요.')
+  const entries = [{ account: transactable[0].account, rows }]
   const payload = shinhanTransactionsPayload(entries, {
     collectedAt: new Date().toISOString(),
     startDate: isoDate(start),
