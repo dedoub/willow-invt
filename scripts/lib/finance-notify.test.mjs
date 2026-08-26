@@ -53,20 +53,35 @@ test('summaryLines는 수집기가 남긴 파일만 세고 오래된 건 따로 
   assert.ok(lines.some(line => line.includes('국세 0건 · 미납 없음')))
   assert.ok(lines.some(line => line.includes('4대보험 2건 · 미납 1건 517,680원')))
   assert.deepEqual(stale, [])
+  assert.deepEqual(summaryLines(willowArtifacts(), WILLOW, NOW).missing, [])
 })
 
-test('오래된 파일은 숫자로 세지 않고 갱신되지 않았다고 알린다', () => {
+test('오래된 파일은 숫자로 세지 않고 이름을 대서 알린다', () => {
   const artifacts = willowArtifacts({
     'latest-kb-card-approvals.json': { collected_at: OLD, raw_count: 999, net_krw_amount: 1 },
   })
   const { lines, stale } = summaryLines(artifacts, WILLOW, NOW)
 
   assert.ok(!lines.some(line => line.includes('999')))
-  assert.deepEqual(stale, ['latest-kb-card-approvals.json'])
+  // 파일 이름이 아니라 사람이 읽는 이름이어야 어디를 볼지 안다.
+  assert.deepEqual(stale, ['KB카드 승인내역'])
   assert.match(notifyMessage({
     company: 'willow', label: '윌로우인베스트먼트', status: 'ok',
     artifacts, config: WILLOW, now: NOW,
-  }), /오늘 갱신되지 않은 항목 1개/)
+  }), /오늘 못 가져온 항목: KB카드 승인내역/)
+})
+
+test('아예 없는 파일도 이름을 대서 알린다 — 조용히 빠지면 정상처럼 보인다', () => {
+  const artifacts = willowArtifacts()
+  delete artifacts['latest-shinhan-accounts.json']
+  delete artifacts['latest-shinhan-transactions.json']
+
+  const { missing } = summaryLines(artifacts, WILLOW, NOW)
+  assert.deepEqual(missing, ['신한은행 계좌', '신한은행 거래내역'])
+  assert.match(notifyMessage({
+    company: 'willow', label: '윌로우인베스트먼트', status: 'ok',
+    artifacts, config: WILLOW, now: NOW,
+  }), /오늘 못 가져온 항목: 신한은행 계좌, 신한은행 거래내역/)
 })
 
 test('성공 알림은 무엇을 몇 건 가져왔는지 함께 보낸다', () => {

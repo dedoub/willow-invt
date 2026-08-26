@@ -18,6 +18,23 @@ export function isFresh(collectedAt, now, hours = 12) {
   return now.getTime() - stamp <= hours * 3_600_000
 }
 
+/** 파일 이름 대신 사람이 읽는 이름으로 알린다. */
+export function artifactLabels(config) {
+  const labels = {
+    'latest-tax-invoices.json': '세금계산서',
+    'latest-hometax-national-tax.json': '국세',
+    'latest-wetax-obligations.json': '지방세',
+    'latest-nhis-obligations.json': '4대보험',
+    [config.card.approvalsFile]: `${config.card.cardName} 승인내역`,
+    [config.card.statementFile]: `${config.card.cardName} 명세서`,
+  }
+  for (const bank of config.banks) {
+    labels[bank.accountsFile] = `${bank.bankName} 계좌`
+    labels[bank.transactionsFile] = `${bank.bankName} 거래내역`
+  }
+  return labels
+}
+
 /**
  * 수집 결과를 한 줄씩으로 요약한다.
  *
@@ -27,12 +44,17 @@ export function isFresh(collectedAt, now, hours = 12) {
 export function summaryLines(artifacts, config, now = new Date()) {
   const lines = []
   const stale = []
+  const missing = []
+  const labels = artifactLabels(config)
 
   const take = (name) => {
     const payload = artifacts[name]
-    if (!payload) return null
+    if (!payload) {
+      missing.push(labels[name] ?? name)
+      return null
+    }
     if (!isFresh(payload.collected_at, now)) {
-      stale.push(name)
+      stale.push(labels[name] ?? name)
       return null
     }
     return payload
@@ -86,14 +108,15 @@ export function summaryLines(artifacts, config, now = new Date()) {
       : `${label} ${formatCount(items.length)}건 · 미납 없음`)
   }
 
-  return { lines, stale }
+  // 같은 항목이 두 번 들어가지 않게 정리한다.
+  return { lines, stale: [...new Set(stale)], missing: [...new Set(missing)] }
 }
 
 /**
  * 보낼 메시지 전문. 실패면 어느 단계에서 멈췄는지가 가장 중요한 정보라 맨 앞에 둔다.
  */
 export function notifyMessage({ company, label, status, step, artifacts, config, now = new Date(), logFile }) {
-  const { lines, stale } = summaryLines(artifacts, config, now)
+  const { lines, stale, missing } = summaryLines(artifacts, config, now)
   const head = status === 'ok'
     ? `✅ ${label} 재무 자동화 완료`
     : `⚠️ ${label} 재무 자동화 실패`
@@ -109,10 +132,12 @@ export function notifyMessage({ company, label, status, step, artifacts, config,
     body.push('· 가져온 내용을 확인하지 못했어요. 로그를 봐야 해요.')
   }
 
-  // 오래된 파일을 오늘 수집분처럼 세면 문제가 없는 것처럼 보인다.
-  if (stale.length > 0) {
+  // 오래된 파일을 오늘 수집분처럼 세면 문제가 없는 것처럼 보인다. 무엇이 빠졌는지
+  // 이름을 대야 어디를 봐야 할지 알 수 있다.
+  const notCollected = [...stale, ...missing]
+  if (notCollected.length > 0) {
     body.push('')
-    body.push(`오늘 갱신되지 않은 항목 ${stale.length}개가 있어요.`)
+    body.push(`오늘 못 가져온 항목: ${notCollected.join(', ')}`)
   }
 
   if (status !== 'ok' && logFile) {
