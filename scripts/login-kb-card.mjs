@@ -409,6 +409,10 @@ async function rejectionError(reason) {
 
 async function run() {
   await fs.mkdir(LOG_DIR, { recursive: true })
+  // 키패드는 시스템 입력원을 따라간다. 한글이 켜져 있으면 타일마다 자모가 들어가
+  // 길이만 맞고 암호는 틀린다. 키패드가 뜬 뒤에 바꾸면 키 윈도우를 잃으므로
+  // 화면을 열기 전에 돌려 둔다.
+  await selectEnglishInputSource()
   await openLoginPage()
   if (await isLoggedIn()) {
     log('reused existing session')
@@ -429,10 +433,6 @@ async function run() {
 
   await focusPasswordField()
   await clearPasswordField()
-
-  // 키패드는 시스템 입력원을 따라간다. 한글이 켜져 있으면 타일마다 자모가 들어가
-  // 길이만 맞고 암호는 틀린다. 우리카드가 그렇게 거부당했다.
-  await selectEnglishInputSource()
 
   const password = await readCertificatePassword()
   await enterPassword(password)

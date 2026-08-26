@@ -28,7 +28,13 @@ const CARD_URL = 'https://pc.wooricard.com/dcpc/yh2/bcv/bcv04/apvhisinq/H2BCV204
 const KEYCHAIN_SERVICE = 'willow.tensw.hometax.certificate'
 const KEYCHAIN_ACCOUNT = 'tensoftworks'
 const LOG_DIR = path.join(os.homedir(), 'logs', 'tensw-local-finance')
-const FORCE_LOGIN = process.argv.includes('--force-login')
+// --force-login picks the login tab when an authenticated one is also open. It
+// has to stop applying the moment the password is committed: a successful login
+// retitles that tab, the filter then matches nothing, and the outcome check reads
+// the empty answer as "not logged in yet" — three real logins in a row were
+// reported as discarded entries this way.
+let requireLoginTab = process.argv.includes('--force-login')
+const FORCE_LOGIN = requireLoginTab
 // Enters the password and captures the masked field without clicking 확인, so a
 // verification run costs zero of the five certificate attempts.
 const DRY_RUN = process.argv.includes('--dry-run')
@@ -44,7 +50,7 @@ async function appleScript(source) {
 }
 
 function cardTabScript(body, missing = 'missing') {
-  const titleFilter = FORCE_LOGIN ? ' and (title of chromeTab) contains "기업로그인"' : ''
+  const titleFilter = requireLoginTab ? ' and (title of chromeTab) contains "기업로그인"' : ''
   return `tell application "Google Chrome"
   repeat with chromeWindow in windows
     repeat with chromeTab in tabs of chromeWindow
@@ -274,12 +280,6 @@ async function typeCertificatePassword({ dryRun = false } = {}) {
   // click that opened it, and any extra tile press — backspace or an inert decoy
   // alike — leaves it in a state where the commit key discards the whole entry.
 
-  // The keypad follows the system input source: with 한글 active every tile
-  // enters a jamo instead of the letter printed on it, so the field fills to the
-  // right length and the certificate rejects it. That is what happened on
-  // 2026-08-27 — the run that worked the day before had ABC selected.
-  await selectEnglishInputSource()
-
   const password = await keychainPassword()
   const expected = [...password].length
 
@@ -354,6 +354,7 @@ async function typeCertificatePassword({ dryRun = false } = {}) {
   // outcomes look different: a rejected password lands the masked characters in
   // the field and raises the module's alert, while an accepted one leaves the
   // field empty, closes the dialog, and takes a while to land on the next page.
+  requireLoginTab = false
   await pressCommit(shift(KEYPAD_ENTER, offset))
   return { dryRun: false }
 }
@@ -399,6 +400,13 @@ async function certificateOutcome() {
 
 async function run() {
   await fs.mkdir(LOG_DIR, { recursive: true })
+  // The keypad follows the system input source: with 한글 active every tile
+  // enters the jamo printed under the letter, so the field fills to the right
+  // length and the certificate rejects it — 2026-08-27's failure, against a
+  // 2026-08-26 success that had ABC selected. It is switched here, before the
+  // keypad exists, because changing it later costs the keypad its key window
+  // and the commit key then throws the entry away.
+  await selectEnglishInputSource()
   const modalOpen = process.argv.includes('--modal-open')
   const state = await ensureCardTab()
   if (!FORCE_LOGIN && state.url.includes('H2BCV204S01.do') && state.title.includes('이용내역')) {
