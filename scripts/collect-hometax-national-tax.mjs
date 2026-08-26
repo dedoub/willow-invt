@@ -70,8 +70,21 @@ async function openLedger(page) {
       return
     }
   }
-  const title = await page.title()
-  throw new Error(`홈택스 납부할 세액 화면이 열리지 않았어요. 현재 화면: ${title}`)
+  // 제목만으로는 아무것도 알 수 없었다 — 실패할 때마다 빈 문자열이 나온다.
+  // 어느 주소에 무엇이 그려져 있었는지를 남겨야 다음 날 원인을 볼 수 있다.
+  const title = await page.title().catch(() => '')
+  const url = page.url()
+  const heading = await page
+    .evaluate(() => (document.body?.innerText ?? '').replace(/\s+/g, ' ').trim().slice(0, 160))
+    .catch(() => '')
+  const evidence = path.join(ARTIFACT_DIR, `hometax-national-tax-missing-${Date.now()}.png`)
+  await fs.mkdir(ARTIFACT_DIR, { recursive: true }).catch(() => {})
+  await page.screenshot({ path: evidence, fullPage: false }).catch(() => {})
+  await fs.chmod(evidence, 0o600).catch(() => {})
+  throw new Error(
+    `홈택스 납부할 세액 화면이 열리지 않았어요. 주소=${url}, 제목=${title || '(없음)'}, `
+    + `본문=${heading || '(없음)'}, 증거=${evidence}`,
+  )
 }
 
 async function readLedger(page) {
