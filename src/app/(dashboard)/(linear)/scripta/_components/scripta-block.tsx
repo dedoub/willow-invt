@@ -12,6 +12,7 @@ import {
   SC_LEVEL_LABELS, SC_CREDIT_REASON_LABELS, SC_LANGUAGE_LABELS, isExcludedScriptaUser,
 } from '@/lib/scripta-types'
 import type { ScriptaStats, ScriptaUser, ScMetric } from '@/lib/scripta-types'
+import type { ScriptaSalesStats } from '@/lib/lemonsqueezy'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,8 @@ export interface ScriptaBlockProps {
   loading: boolean
   stats: ScriptaStats | null
   users: ScriptaUser[]
+  /** LemonSqueezy — Scripta Credits 상품 매출 (스토어는 리뷰노트와 공유) */
+  sales: ScriptaSalesStats | null
   onRefresh: () => void
   refreshing: boolean
   error: string | null
@@ -38,6 +41,14 @@ function formatWeekdayShort(dateString?: string | null): string {
 }
 function formatTimeShort(dateString?: string | null): string {
   return kstTime(dateString)
+}
+
+// LemonSqueezy 금액은 USD 센트 단위로 온다
+function formatUsd(cents: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(cents / 100)
 }
 
 // 전환율 계산 + 값 뒤 주황 보조라벨 (리뷰노트·보이스카드 퍼널 문법)
@@ -276,7 +287,7 @@ const NumCell = ({ value, muted }: { value: number; muted?: boolean }) => (
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ScriptaBlock({
-  loading, stats, users, onRefresh, refreshing, error, cols,
+  loading, stats, users, sales, onRefresh, refreshing, error, cols,
 }: ScriptaBlockProps) {
   const mobile = useIsMobile()
   const dashCols = cols
@@ -374,6 +385,7 @@ export function ScriptaBlock({
           action={
             <>
               <LHeadBtn icon="pencil" title="Scripta 앱" href="https://scripta.quest" />
+              <LHeadBtn icon="trending" title="LemonSqueezy" href="https://app.lemonsqueezy.com/products" />
               <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />
             </>
           }
@@ -491,17 +503,29 @@ export function ScriptaBlock({
               }
               sparkline={mobile ? undefined : cumOf(spent, win)}
             />
+            {/* 결제 — 정본은 LemonSqueezy 주문이다. 크레딧 팩 단건 결제라 MRR이 아니라 누적 매출을 본다.
+                앱이 크레딧을 실제로 넣었는지는 원장(purchased)으로 대조한다 — 둘이 벌어지면 웹훅 문제다. */}
             <LStat
-              label="크레딧 구매"
-              title="결제로 유입된 크레딧. LemonSqueezy 웹훅(scripta_payment_events) 연동 전이라 지금은 0이다."
-              value={stats.credits.purchased.toLocaleString()}
-              sub={`결제 이벤트 ${stats.payments.events.toLocaleString()}건`}
+              label="결제"
+              title="LemonSqueezy 'Scripta Credits' 상품 누적 매출(결제 완료분). 스토어는 리뷰노트와 공유하고 상품으로 가른다."
+              value={sales ? formatUsd(sales.revenueUsd) : '—'}
+              valueExtra={sales && sales.paidOrders > 0 ? (
+                <span style={{
+                  fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                  fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                }}>
+                  {sales.paidOrders.toLocaleString()}건
+                </span>
+              ) : undefined}
+              sub={sales ? `이번 달 ${formatUsd(sales.monthRevenueUsd)} · ${sales.monthOrders}건` : '결제 데이터 없음'}
               subExtra={
                 <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
-                  관리자 지급 {stats.credits.granted.toLocaleString()}
+                  구매자 {sales ? sales.buyers.toLocaleString() : 0}명 · 원장 유입 {stats.credits.purchased.toLocaleString()}
                 </span>
               }
-              tone={stats.credits.purchased > 0 ? 'pos' : 'default'}
+              tone={sales && sales.revenueUsd > 0 ? 'pos' : 'default'}
+              sparkline={mobile ? undefined : cumOf((sales?.daily ?? []).map(d => ({ date: d.date, n: Math.round(d.revenueUsd / 100) })), win)}
+              sparkFormat={(v) => `$${v.toLocaleString()}`}
             />
           </div>
           {/* 연습 단위 / 크레딧 사용처 / 목표 언어 — 리뷰노트의 유입경로·국가·기기 자리 */}

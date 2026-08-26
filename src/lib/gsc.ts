@@ -65,6 +65,7 @@ const SITE_DEFS: Array<Omit<GscSiteConfig, 'property'> & { envKey: string; fallb
   { key: 'reviewnotes', name: 'ReviewNotes', domain: 'reviewnotes.app', envKey: 'GSC_PROPERTY_REVIEWNOTES', fallback: 'https://reviewnotes.app/', scanLocales: true, defaultLocale: 'en' },
   { key: 'portle', name: 'Portle', domain: 'portle.quest', envKey: 'GSC_PROPERTY_PORTLE', fallback: 'sc-domain:portle.quest', scanLocales: true, defaultLocale: null },
   { key: 'valuechain', name: 'ValueChain.wiki', domain: 'valuechain.wiki', envKey: 'GSC_PROPERTY_VALUECHAIN', fallback: 'https://valuechain.wiki/', scanLocales: false, defaultLocale: null },
+  { key: 'scripta', name: 'Scripta', domain: 'scripta.quest', envKey: 'GSC_PROPERTY_SCRIPTA', fallback: 'sc-domain:scripta.quest', scanLocales: true, defaultLocale: null },
 ]
 
 export function getGscSite(key: string): GscSiteConfig | null {

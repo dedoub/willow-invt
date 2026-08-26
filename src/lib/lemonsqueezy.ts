@@ -234,6 +234,68 @@ export async function getProducts(storeId?: string): Promise<LemonSqueezyRespons
 }
 
 // 통계 계산
+// ─── Scripta ──────────────────────────────────────────────────────────────────
+// Scripta는 리뷰노트와 같은 스토어(Willow Investments, 237969)를 쓰고 상품만 다르다.
+// 그래서 매출은 store 필터가 아니라 상품 필터로 가른다. 구독이 아니라 크레딧 팩
+// 단건 결제라 MRR이 아니라 누적 매출·구매 건수를 본다.
+const SCRIPTA_PRODUCT_ID = Number(process.env.LEMONSQUEEZY_PRODUCT_SCRIPTA || 1310231)
+
+export interface ScriptaSalesStats {
+  productId: number
+  /** 결제 완료 건수 (환불 제외) */
+  paidOrders: number
+  refundedOrders: number
+  /** 결제 완료 매출 (USD 센트) */
+  revenueUsd: number
+  monthRevenueUsd: number
+  monthOrders: number
+  /** 구매한 고객 수 (이메일 기준 distinct) */
+  buyers: number
+  /** 팩별 판매 — 변형(40/440/2,300/4,800 크레딧) 단위 */
+  byVariant: Array<{ variant: string; orders: number; revenueUsd: number }>
+  /** 일별 매출 (KST) — 스파크라인용 */
+  daily: Array<{ date: string; orders: number; revenueUsd: number }>
+}
+
+export async function getScriptaSalesStats(): Promise<ScriptaSalesStats> {
+  const storeId = process.env.LEMONSQUEEZY_STORE_ID
+  // LS 주문 API에는 상품 필터가 없어 스토어 주문을 받아 여기서 가른다.
+  // 한 스토어에 리뷰노트 주문도 같이 쌓이므로 페이지를 넉넉히 받아둔다.
+  const ordersRes = await getOrders(storeId, 1, 100)
+  const all = ordersRes.data || []
+  const orders = all.filter(o => o.attributes.first_order_item?.product_id === SCRIPTA_PRODUCT_ID)
+
+  const monthStartKst = kstMonthStart()
+  const paid = orders.filter(o => o.attributes.status === 'paid')
+  const monthPaid = paid.filter(o => kstDateKey(o.attributes.created_at) >= monthStartKst)
+
+  const byVariant = new Map<string, { variant: string; orders: number; revenueUsd: number }>()
+  const daily = new Map<string, { date: string; orders: number; revenueUsd: number }>()
+  for (const o of paid) {
+    const variant = o.attributes.first_order_item?.variant_name || '기본'
+    const v = byVariant.get(variant) ?? { variant, orders: 0, revenueUsd: 0 }
+    v.orders++; v.revenueUsd += o.attributes.total_usd
+    byVariant.set(variant, v)
+
+    const day = kstDateKey(o.attributes.created_at)
+    const d = daily.get(day) ?? { date: day, orders: 0, revenueUsd: 0 }
+    d.orders++; d.revenueUsd += o.attributes.total_usd
+    daily.set(day, d)
+  }
+
+  return {
+    productId: SCRIPTA_PRODUCT_ID,
+    paidOrders: paid.length,
+    refundedOrders: orders.filter(o => o.attributes.status === 'refunded' || o.attributes.refunded).length,
+    revenueUsd: paid.reduce((sum, o) => sum + o.attributes.total_usd, 0),
+    monthRevenueUsd: monthPaid.reduce((sum, o) => sum + o.attributes.total_usd, 0),
+    monthOrders: monthPaid.length,
+    buyers: new Set(paid.map(o => o.attributes.user_email)).size,
+    byVariant: Array.from(byVariant.values()).sort((a, b) => b.revenueUsd - a.revenueUsd),
+    daily: Array.from(daily.values()).sort((a, b) => a.date.localeCompare(b.date)),
+  }
+}
+
 export interface ReviewNotesStats {
   // 매출
   totalRevenue: number

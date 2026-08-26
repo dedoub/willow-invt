@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ScriptaBlock } from './_components/scripta-block'
 import type { ScriptaStats, ScriptaUser } from '@/lib/scripta-types'
+import type { ScriptaSalesStats } from '@/lib/lemonsqueezy'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -16,6 +18,7 @@ export default function ScriptaPage() {
   const [scRefreshing, setScRefreshing] = useState(false)
   const [scStats, setScStats] = useState<ScriptaStats | null>(null)
   const [scUsers, setScUsers] = useState<ScriptaUser[]>([])
+  const [scSales, setScSales] = useState<ScriptaSalesStats | null>(null)
   const [scError, setScError] = useState<string | null>(null)
 
   const loadScripta = useCallback(async (refresh = false) => {
@@ -28,6 +31,7 @@ export default function ScriptaPage() {
       if (!res.ok || !data.success) throw new Error(data.message || 'Failed to fetch')
       setScStats(data.stats)
       setScUsers(data.users || [])
+      setScSales(data.sales || null)
     } catch (err) {
       console.error('Scripta load error:', err)
       setScError(String(err))
@@ -64,7 +68,7 @@ export default function ScriptaPage() {
       각 컴포넌트는 그리드 없이 조각만 내놓고 배치는 여기서 DOM 순서로 결정된다.
 
       2열에서 채워지는 순서:
-        퍼널 · 학습 구조 | (검색·AI 답변 카드 자리 — GSC 속성 붙으면 여기)
+        검색 노출 | 퍼널 · 학습 구조
         사용자 (2열을 모두 차지)
     */}
     <div style={{
@@ -72,11 +76,14 @@ export default function ScriptaPage() {
       gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
       gap: t.density.blockGap, alignItems: 'start',
     }}>
+    <SearchDemandCard site="scripta" showGscLink={false} />
+
     <ScriptaBlock
       cols={cols}
       loading={scLoading}
       stats={scStats}
       users={scUsers}
+      sales={scSales}
       onRefresh={() => loadScripta(true)}
       refreshing={scRefreshing}
       error={scError}
