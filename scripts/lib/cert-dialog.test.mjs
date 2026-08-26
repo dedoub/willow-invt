@@ -139,16 +139,24 @@ test('maskedLengthMatches rejects a short or unreadable field', () => {
   assert.equal(maskedLengthMatches(8, Number.NaN), false)
 })
 
-test('every registered site declares a known mechanism and a URL', () => {
+test('every registered site declares a URL, and a mechanism once it is ready', () => {
   for (const site of Object.values(CERT_SITES)) {
-    assert.ok(CERT_MECHANISMS.includes(site.mechanism), `${site.id}: ${site.mechanism}`)
     assert.match(site.url, /^https:\/\//)
     assert.equal(site.id, Object.keys(CERT_SITES).find(key => CERT_SITES[key] === site))
+    if (site.ready) {
+      assert.ok(CERT_MECHANISMS.includes(site.mechanism), `${site.id}: ${site.mechanism}`)
+      continue
+    }
+    // A site whose dialog has not been observed must say so rather than carry a
+    // guessed mechanism — guessing is how a certificate gets locked out.
+    assert.equal(site.mechanism, null, `${site.id} is not ready but names a mechanism`)
+    assert.ok(site.reason, `${site.id} must say why it is not ready`)
   }
 })
 
 test('a site naming its native process also names the window to look for', () => {
   for (const site of Object.values(CERT_SITES)) {
+    if (!site.ready) continue
     if (site.mechanism === 'browser-dom' || site.mechanism === 'inpage-type') continue
     if (!site.process) {
       // Only the pre-OCR 우리은행 decoder may skip it, and it says so.
@@ -181,7 +189,9 @@ test('certSiteRegistry reports readiness for the pipeline coverage check', () =>
 })
 
 test('certSite rejects an unknown site instead of returning undefined', () => {
-  assert.throws(() => certSite('kb-card'), /등록되지 않은/)
+  assert.throws(() => certSite('hana-card'), /등록되지 않은/)
+  // kb-card is registered but not driveable yet; it still resolves.
+  assert.equal(certSite('kb-card').ready, false)
 })
 
 test('splitBusinessNumber splits the number the way the portal asks for it', () => {
