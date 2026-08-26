@@ -181,17 +181,20 @@ test('every registered site declares a URL, and a mechanism once it is ready', (
       assert.ok(CERT_MECHANISMS.includes(site.mechanism), `${site.id}: ${site.mechanism}`)
       continue
     }
-    // A site whose dialog has not been observed must say so rather than carry a
-    // guessed mechanism — guessing is how a certificate gets locked out.
-    assert.equal(site.mechanism, null, `${site.id} is not ready but names a mechanism`)
+    // A site that is not ready must say why. Its mechanism may still be known —
+    // the dialog can be solved while something outside it blocks the sign-in.
     assert.ok(site.reason, `${site.id} must say why it is not ready`)
+    if (site.mechanism !== null) {
+      assert.ok(CERT_MECHANISMS.includes(site.mechanism), `${site.id}: ${site.mechanism}`)
+    }
   }
 })
 
 test('a site naming its native process also names the window to look for', () => {
   for (const site of Object.values(CERT_SITES)) {
     if (!site.ready) continue
-    if (site.mechanism === 'browser-dom' || site.mechanism === 'inpage-type') continue
+    // 페이지 안에 그려지는 창은 네이티브 프로세스가 없다.
+    if (site.mechanism.startsWith('inpage-') || site.mechanism === 'browser-dom') continue
     if (!site.process) {
       // Only the pre-OCR 우리은행 decoder may skip it, and it says so.
       assert.equal(site.legacy, true, `${site.id} must declare a process or be legacy`)
@@ -224,7 +227,6 @@ test('certSiteRegistry reports readiness for the pipeline coverage check', () =>
 
 test('certSite rejects an unknown site instead of returning undefined', () => {
   assert.throws(() => certSite('hana-card'), /등록되지 않은/)
-  // kb-card is registered but not driveable yet; it still resolves.
   assert.equal(certSite('kb-card').ready, false)
 })
 

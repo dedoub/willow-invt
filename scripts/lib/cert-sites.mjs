@@ -6,6 +6,8 @@
 //   browser-dom   the dialog is part of the page and Playwright may drive it
 //   inpage-type   the dialog is part of the page but the module only trusts the
 //                 default browser, and its password box only takes keystrokes
+//   inpage-keypad the dialog is part of the page, but its password box is fed
+//                 by an on-screen keypad the module draws
 //   native-type   an opaque native window, but typed keystrokes reach the field
 //   native-keypad an opaque native window that forces its own on-screen keypad
 //
@@ -18,7 +20,9 @@
 // certificate row by the owner keyword in the company registry. 신한은행 is
 // 텐소's second bank and 윌로우's only one.
 
-export const CERT_MECHANISMS = Object.freeze(['browser-dom', 'inpage-type', 'native-type', 'native-keypad'])
+export const CERT_MECHANISMS = Object.freeze([
+  'browser-dom', 'inpage-type', 'inpage-keypad', 'native-type', 'native-keypad',
+])
 
 export const CERT_SITES = Object.freeze({
   hometax: Object.freeze({
@@ -111,10 +115,10 @@ export const CERT_SITES = Object.freeze({
   'kb-card': Object.freeze({
     id: 'kb-card',
     label: 'KB국민카드 기업',
-    // Not probed yet: WIZVERA Delfino is a launcher that loads the signing
-    // module, and which window ends up owning the password box is exactly the
-    // thing that has to be observed rather than assumed.
-    mechanism: null,
+    // Probed 2026-08-26. Delfino G4 draws its dialog in a same-origin iframe,
+    // so the structure is read from the DOM, but the password box is fed by its
+    // own on-screen keypad — typing and pasting both leave it empty.
+    mechanism: 'inpage-keypad',
     url: 'https://biz.kbcard.com/CXERCZZC0001.cms',
     module: 'WIZVERA Delfino',
     // 공동인증서 tab, then 로그인; the button runs
@@ -129,11 +133,21 @@ export const CERT_SITES = Object.freeze({
       idField: '기업인터넷서비스로그인ID',
       passwordField: 'loginPwdBiz',
     }),
+    dialogFrame: 'delfino',
+    selectors: Object.freeze({
+      storage: '.localDiskButton',
+      password: 'input[name=selectDialogPasswordInput]',
+      keypad: '#keyboardDialogBody img',
+      confirm: '.okButton',
+      cancel: '.cancelButton',
+    }),
+    runner: 'scripts/login-kb-card.mjs',
+    // The driver works: it picks the certificate, clicks the password in on the
+    // keypad and verifies eleven characters. KB still refuses the sign-in
+    // because the 사업자용 공동인증서 has to be registered to the account once,
+    // and that registration needs a KB 기업 웹회원 login we do not have.
     ready: false,
-    // KB requires the 사업자용 공동인증서 to be registered on the site once before
-    // certificate login works at all, and that registration needs an ID/PW
-    // session we do not hold.
-    reason: '공동인증서 사전등록 필요 · Delfino 인증창 미확인',
+    reason: '공동인증서 사전등록 필요 (KB 기업 웹회원 계정)',
   }),
 
   nhis: Object.freeze({
