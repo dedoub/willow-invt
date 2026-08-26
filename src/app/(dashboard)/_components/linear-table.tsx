@@ -38,6 +38,9 @@ export interface LColumn<T = never> {
   sortFirst?: SortDir
 }
 
+/** 표 안의 날짜·숫자는 본문보다 한 단계 작은 모노로 맞춘다. */
+const TABLE_NUMERIC_SIZE = 11
+
 export type SortDir = 'asc' | 'desc'
 export interface TableSort { key: string; dir: SortDir }
 
@@ -231,12 +234,45 @@ export function LTableBadge({ tone, children }: { tone: { bg: string; fg: string
 }
 
 /** 금액 셀. 부호와 색을 한 곳에서 정한다. */
+/**
+ * 표 안의 날짜. 표마다 슬라이스 폭과 글자 크기가 달라 같은 화면에서 다른 표로
+ * 읽히던 것을 한곳으로 모은다. 기본은 월-일이고 연도는 툴팁으로 남긴다.
+ */
+export function LTableDate({ value, showYear }: { value?: string | null; showYear?: boolean }) {
+  const text = String(value ?? '')
+  return (
+    <span
+      title={text || undefined}
+      style={{
+        fontFamily: t.font.mono, color: t.neutrals.muted,
+        fontSize: `calc(${TABLE_NUMERIC_SIZE}px * var(--fz, 1))`, whiteSpace: 'nowrap',
+      }}
+    >
+      {text ? (showYear ? text : text.slice(5)) : '-'}
+    </span>
+  )
+}
+
+/** 부호 없이 값만 읽는 숫자 칸. 부호와 색이 필요하면 LTableAmount를 쓴다. */
+export function LTableNumber({ value, align = 'right' }: { value: number; align?: 'left' | 'right' }) {
+  return (
+    <span style={{
+      textAlign: align, fontWeight: 500, fontFamily: t.font.mono,
+      fontVariantNumeric: 'tabular-nums', color: t.neutrals.text,
+      fontSize: `calc(${TABLE_NUMERIC_SIZE}px * var(--fz, 1))`, whiteSpace: 'nowrap',
+    }}>
+      {Math.round(value).toLocaleString()}
+    </span>
+  )
+}
+
 export function LTableAmount({
   value, positive, muted, strike,
 }: { value: number; positive?: boolean; muted?: boolean; strike?: boolean }) {
   return (
     <span style={{
       textAlign: 'right', fontWeight: 500, fontVariantNumeric: 'tabular-nums',
+      fontFamily: t.font.mono, fontSize: `calc(${TABLE_NUMERIC_SIZE}px * var(--fz, 1))`,
       color: muted ? t.neutrals.subtle : positive ? t.accent.pos : t.accent.neg,
       textDecoration: strike ? 'line-through' : undefined,
       whiteSpace: 'nowrap',

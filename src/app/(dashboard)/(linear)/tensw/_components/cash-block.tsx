@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LTableDate, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 
 interface BankBalance {
@@ -91,10 +91,21 @@ const MODE_LABELS: Record<PeriodMode, string> = { month: '월간', quarter: '분
 const COLUMNS: LColumn<TenswCashItem>[] = [
   { key: 'type', label: '구분', width: '48px', sortValue: i => TYPE_LABELS[i.type] ?? i.type },
   { key: 'date', label: '날짜', width: '52px', sortValue: i => i.payment_date || i.issue_date || '', sortFirst: 'desc' },
+  { key: 'account', label: '계좌', width: 'minmax(0,84px)', hideMobile: true, sortValue: i => i.account_number ?? '' },
   { key: 'counterparty', label: '거래처', width: 'minmax(0,1.2fr)', sortValue: i => i.counterparty ?? '' },
   { key: 'description', label: '적요', width: 'minmax(0,1.5fr)', sortValue: i => i.description ?? '' },
   { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right', sortValue: i => i.amount, sortFirst: 'desc' },
 ]
+
+// "우리 1005-403-461450" 전체는 열을 다 먹는다. 은행과 끝 번호만 남기고 전체는
+// 툴팁으로 보여준다.
+function shortAccount(account: string | null): string {
+  if (!account) return '-'
+  const [bank, ...rest] = account.trim().split(/\s+/)
+  const digits = rest.join('')
+  const tail = digits.split('-').pop() ?? ''
+  return tail ? `${bank} ${tail}` : bank
+}
 
 const CASH_PAGE_SIZE_KEY = 'tensw-cash-page-size'
 const DEFAULT_CASH_PAGE_SIZE = 15
@@ -395,9 +406,19 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
           return (
             <LTableRow key={item.id} columns={COLUMNS} mobile={mobile} onClick={() => onSelect(item)}>
               <LTableBadge tone={typeTone}>{TYPE_LABELS[item.type]}</LTableBadge>
-              <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
-                {(item.payment_date || item.issue_date || '').slice(5)}
-              </span>
+              <LTableDate value={item.payment_date || item.issue_date} />
+              {!mobile && (
+                <span
+                  title={item.account_number ?? ''}
+                  style={{
+                    minWidth: 0, color: t.neutrals.subtle, fontFamily: t.font.mono,
+                    fontSize: 'calc(10px * var(--fz, 1))', whiteSpace: 'nowrap',
+                    overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}
+                >
+                  {shortAccount(item.account_number)}
+                </span>
+              )}
               <span style={mobile ? {
                 fontWeight: 500, display: '-webkit-box', WebkitBoxOrient: 'vertical' as const,
                 WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'break-word' as const, lineHeight: 1.35,

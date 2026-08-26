@@ -6,11 +6,27 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LTableBadge, LTableBody, LTableEmpty, LTableHead, LTableRow, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
-import type { FinanceTaxObligation, TaxObligationSource } from '@/types/finance-tax'
+import type { FinanceTaxObligation, TaxObligationSource, TaxObligationStatus } from '@/types/finance-tax'
 
 type SourceFilter = 'all' | TaxObligationSource
+
+type StatusFilter = 'all' | TaxObligationStatus
+
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: '전체' },
+  { value: 'unpaid', label: '납부예정' },
+  { value: 'paid', label: '납부완료' },
+  { value: 'overdue', label: '연체' },
+]
+
+const SOURCE_FILTERS: { value: SourceFilter; label: string }[] = [
+  { value: 'all', label: '전체' },
+  { value: 'hometax', label: '홈택스' },
+  { value: 'wetax', label: '위택스' },
+  { value: 'nhis', label: '4대보험' },
+]
 
 const DEFAULT_PAGE_SIZE = 8
 const PAGE_SIZE_KEY = 'finance-tax-page-size'
@@ -35,7 +51,7 @@ const COLUMNS: LColumn<FinanceTaxObligation>[] = [
   { key: 'amount', label: '금액', width: 'minmax(80px,110px)', align: 'right' },
 ]
 
-const STATUS_LABELS = { unpaid: '미납', paid: '납부완료', overdue: '연체', cancelled: '취소' }
+const STATUS_LABELS = { unpaid: '납부예정', paid: '납부완료', overdue: '연체', cancelled: '취소' }
 
 // Notices are filed under the year they fall due; the taxable period stands in
 // when a notice carries no due date.
@@ -47,6 +63,8 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
   const mobile = useIsMobile()
   const [source, setSource] = useState<SourceFilter>('all')
   const [year, setYear] = useState(new Date().getFullYear())
+  const [status, setStatus] = useState<StatusFilter>('all')
+  const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(storedPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(() => String(storedPageSize()))
@@ -56,12 +74,17 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
     [obligations, year],
   )
 
-  const rows = useMemo(
-    () => yearScoped
-      .filter(item => source === 'all' || item.source === source)
-      .sort((a, b) => (b.due_date || '').localeCompare(a.due_date || '')),
-    [yearScoped, source],
-  )
+  const rows = useMemo(() => {
+    let list = source === 'all' ? yearScoped : yearScoped.filter(item => item.source === source)
+    if (status !== 'all') list = list.filter(item => item.status === status)
+    const query = search.trim().toLowerCase()
+    if (query) {
+      list = list.filter(item =>
+        `${item.title} ${item.agency} ${item.notice_number ?? ''} ${item.period_label ?? ''}`
+          .toLowerCase().includes(query))
+    }
+    return [...list].sort((a, b) => (b.due_date || '').localeCompare(a.due_date || ''))
+  }, [yearScoped, source, status, search])
 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   // A reload can shrink the list under the page being viewed; clamping keeps the
@@ -83,7 +106,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
   }
 
   // The three figures split the ledger rather than overlap: an overdue notice is
-  // counted under 연체 only, so 미납 + 연체 is what still has to be paid.
+  // counted under 연체 only, so 납부예정 + 연체 is what still has to be paid.
   const unpaid = yearScoped.filter(item => item.status === 'unpaid')
   const overdue = yearScoped.filter(item => item.status === 'overdue')
   const paid = yearScoped.filter(item => item.status === 'paid')
@@ -99,12 +122,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
             <LSegmented
               value={source}
               onChange={handleSourceChange}
-              options={[
-                { value: 'all', label: '전체' },
-                { value: 'hometax', label: '홈택스' },
-                { value: 'wetax', label: '위택스' },
-                { value: 'nhis', label: '4대보험' },
-              ]}
+              options={SOURCE_FILTERS}
             />
           }
         />
@@ -130,13 +148,58 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3,1fr)', gap: t.density.kpiGap }}>
-          <LStat label="미납" value={`${unpaid.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`} tone={unpaid.length ? 'warn' : 'default'} sub={`${unpaid.length.toLocaleString()}건`} />
-          <LStat label="연체" value={`${overdue.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`} tone={overdue.length ? 'neg' : 'default'} sub={`${overdue.length.toLocaleString()}건`} />
+          <LStat label="납부예정" value={`${unpaid.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`} tone={unpaid.length ? 'warn' : 'default'} sub={`${unpaid.length.toLocaleString()}건`} />
           <LStat label="납부완료" value={`${paid.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`} tone="pos" sub={`${paid.length.toLocaleString()}건`} />
+          <LStat label="연체" value={`${overdue.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`} tone={overdue.length ? 'neg' : 'default'} sub={`${overdue.length.toLocaleString()}건`} />
+        </div>
+
+        {/* Status filter — 현금관리·매출관리와 같은 자리에서 같은 모양으로 고른다. */}
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 12 }}>
+          {STATUS_FILTERS.map(filter => {
+            const active = status === filter.value
+            return (
+              <button key={filter.value} onClick={() => { setStatus(filter.value); setPage(0) }} style={{
+                border: 'none', cursor: 'pointer',
+                padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
+                fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
+                background: active ? t.brand[100] : t.neutrals.inner,
+                color: active ? t.brand[700] : t.neutrals.muted,
+                transition: 'all .12s',
+              }}>{filter.label}</button>
+            )
+          })}
+        </div>
+
+        {/* Search */}
+        <div style={{ position: 'relative', marginTop: 10 }}>
+          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+            <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+          </div>
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(0) }}
+            placeholder="세목 · 기관 · 전자납부번호 검색"
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              padding: '7px 10px 7px 30px', fontSize: 'calc(12px * var(--fz, 1))',
+              fontFamily: t.font.sans, color: t.neutrals.text,
+              background: t.neutrals.inner, border: 'none',
+              borderRadius: t.radius.sm, outline: 'none',
+            }}
+          />
+          {search && (
+            <button onClick={() => { setSearch(''); setPage(0) }} style={{
+              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              padding: 2, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+            }}>
+              <LIcon name="x" size={12} stroke={2} />
+            </button>
+          )}
         </div>
       </div>
 
-      <div style={{ padding: '0 16px 12px' }}>
+      <div style={{ padding: '0 16px 4px' }}>
         <LTableHead columns={COLUMNS} mobile={mobile} />
         {rows.length === 0 && <LTableEmpty>{year}년에 수집된 세금·4대보험 고지가 없습니다</LTableEmpty>}
         <LTableBody columns={COLUMNS} mobile={mobile}>
@@ -152,13 +215,11 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
               <LTableRow key={item.id} columns={COLUMNS} mobile={mobile}>
                 <LTableBadge tone={tone}>{STATUS_LABELS[item.status]}</LTableBadge>
                 <span style={{ color: t.neutrals.muted }}>{SOURCES[item.source]}</span>
-                <span style={{ color: t.neutrals.muted, fontFamily: t.font.mono, whiteSpace: 'nowrap' }}>{item.due_date || '-'}</span>
+                <LTableDate value={item.due_date} />
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={`${item.agency} · ${item.title}`}>
                   {item.title}
                 </span>
-                <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                  {item.amount.toLocaleString()}
-                </span>
+                <LTableNumber value={item.amount} />
               </LTableRow>
             )
           })}

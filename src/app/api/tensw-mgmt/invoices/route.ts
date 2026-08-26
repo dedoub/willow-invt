@@ -28,7 +28,9 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from('tensw_mgmt_cash')
-    .select('id, type, counterparty, description, amount, issue_date, payment_date')
+    // account_number 없이는 표에서 어느 계좌 내역인지 알 수 없다 — 계좌가 여럿이라
+    // 한 표에 섞여 나온다.
+    .select('id, type, counterparty, description, amount, issue_date, payment_date, account_number')
     .order('created_at', { ascending: false })
 
   if (type) {
