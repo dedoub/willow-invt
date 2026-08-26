@@ -41,6 +41,7 @@ import {
   ocrScreenshot,
   openChromeTab,
   positionChromeWindow,
+  selectEnglishInputSource,
   sleep,
 } from './lib/desktop.mjs'
 
@@ -428,6 +429,10 @@ async function run() {
 
   await focusPasswordField()
   await clearPasswordField()
+
+  // 키패드는 시스템 입력원을 따라간다. 한글이 켜져 있으면 타일마다 자모가 들어가
+  // 길이만 맞고 암호는 틀린다. 우리카드가 그렇게 거부당했다.
+  await selectEnglishInputSource()
 
   const password = await readCertificatePassword()
   await enterPassword(password)

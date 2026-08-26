@@ -15,7 +15,9 @@ import { countMaskGlyphs, maskedLengthMatches } from './lib/cert-dialog.mjs'
 import {
   blockingCertLock, certLockMessage, certLockPath, clearCertLock, recordCertRejection,
 } from './lib/cert-attempt-lock.mjs'
-import { captureScreen, clickSettled, nativeWindows, ocrScreenshot } from './lib/desktop.mjs'
+import {
+  captureScreen, clickSettled, nativeWindows, ocrScreenshot, selectEnglishInputSource,
+} from './lib/desktop.mjs'
 import { buttonPoint, windowRect } from './lib/cert-dialog.mjs'
 
 const execFileAsync = promisify(execFile)
@@ -272,6 +274,12 @@ async function typeCertificatePassword({ dryRun = false } = {}) {
   // click that opened it, and any extra tile press — backspace or an inert decoy
   // alike — leaves it in a state where the commit key discards the whole entry.
 
+  // The keypad follows the system input source: with 한글 active every tile
+  // enters a jamo instead of the letter printed on it, so the field fills to the
+  // right length and the certificate rejects it. That is what happened on
+  // 2026-08-27 — the run that worked the day before had ABC selected.
+  await selectEnglishInputSource()
+
   const password = await keychainPassword()
   const expected = [...password].length
 
@@ -283,7 +291,11 @@ async function typeCertificatePassword({ dryRun = false } = {}) {
     if (attempt > 1) {
       // Start over with a fresh keypad rather than backspacing the old entry
       // away: backspace leaves the keypad in a state where the commit key throws
-      // the whole thing out.
+      // the whole thing out. Closing alone does not empty the field, though —
+      // the next attempt then lands on top of the last one and the count climbs
+      // 9, 19, 29 instead of settling on 10 — so the entry is cleared first.
+      await click(...Object.values(shift(KEYPAD_CLEAR, offset)), 40)
+      await sleep(400)
       await click(...Object.values(shift(KEYPAD_CLOSE, offset)))
       await sleep(800)
       await clickSettled(PASSWORD_FIELD.x, PASSWORD_FIELD.y)
