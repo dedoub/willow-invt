@@ -12,6 +12,9 @@ import {
   parseWooriCardTabState,
 } from './lib/woori-card-local.mjs'
 import { countMaskGlyphs, maskedLengthMatches } from './lib/cert-dialog.mjs'
+import {
+  blockingCertLock, certLockMessage, certLockPath, clearCertLock, recordCertRejection,
+} from './lib/cert-attempt-lock.mjs'
 import { captureScreen, clickSettled, nativeWindows, ocrScreenshot } from './lib/desktop.mjs'
 import { buttonPoint, windowRect } from './lib/cert-dialog.mjs'
 
@@ -27,6 +30,7 @@ const FORCE_LOGIN = process.argv.includes('--force-login')
 // Enters the password and captures the masked field without clicking 확인, so a
 // verification run costs zero of the five certificate attempts.
 const DRY_RUN = process.argv.includes('--dry-run')
+const CERT_LOCK = certLockPath('tensw', 'woori-card')
 
 function appleScriptLiteral(value) {
   return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`
@@ -387,8 +391,14 @@ async function run() {
   const state = await ensureCardTab()
   if (!FORCE_LOGIN && state.url.includes('H2BCV204S01.do') && state.title.includes('이용내역')) {
     console.log('[woori-card-login] already authenticated')
+    await clearCertLock(CERT_LOCK)
     return
   }
+
+  // 이미 거부된 적이 있으면 새벽 실행이 남은 시도를 태우게 두지 않는다.
+  // --dry-run 은 확인 버튼을 누르지 않으니 잠금과 무관하게 돌 수 있다.
+  const blocked = DRY_RUN ? null : await blockingCertLock(CERT_LOCK)
+  if (blocked) throw new Error(certLockMessage('우리카드', blocked, CERT_LOCK))
 
   if (!modalOpen) await openCertificateDialog()
   await dismissModuleAlert()
@@ -424,6 +434,7 @@ async function run() {
     const outcome = await certificateOutcome()
     if (outcome === 'logged-in') {
       await waitForCardScreen()
+      await clearCertLock(CERT_LOCK)
       console.log('[woori-card-login] success')
       return
     }
@@ -431,7 +442,10 @@ async function run() {
       const evidence = path.join(LOG_DIR, `cert-rejected-woori-card-${Date.now()}.png`)
       await execFileAsync('/usr/sbin/screencapture', ['-x', evidence]).catch(() => {})
       await fs.chmod(evidence, 0o600).catch(() => {})
-      throw new Error(`우리카드가 인증서 암호를 거부했어요. 자동 재시도하지 않아요. 증거=${evidence}`)
+      const lock = await recordCertRejection(CERT_LOCK, { reason: `증거=${evidence}` })
+      throw new Error(
+        `우리카드가 인증서 암호를 거부했어요 (누적 ${lock.rejections}회). 자동 재시도하지 않아요. 증거=${evidence}`,
+      )
     }
     // The keypad threw the entry away without submitting it, so retrying here
     // spends nothing.

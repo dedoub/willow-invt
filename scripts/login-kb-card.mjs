@@ -29,6 +29,9 @@ import { PAGE_TEXT_SCRIPT, SESSION_STATE, sessionState } from './lib/finance-ses
 import { findOcrText, textCenter, windowRect } from './lib/cert-dialog.mjs'
 import { decodeKeypadLayout, KEYPAD_CONTROLS, KEYPAD_SIZE, toScreenPoint } from './lib/kb-card-keypad.mjs'
 import {
+  blockingCertLock, certLockMessage, certLockPath, clearCertLock, recordCertRejection,
+} from './lib/cert-attempt-lock.mjs'
+import {
   activateProcess,
   captureScreen,
   chromeJavascript,
@@ -49,9 +52,23 @@ const HOST = new URL(SITE.url).host
 const LOG_DIR = path.join(os.homedir(), 'logs', `${IDENTITY.company}-local-finance`)
 const SCRATCH = path.join(os.tmpdir(), 'willow-kb-keypad')
 const DRY_RUN = process.argv.includes('--dry-run')
+const CERT_LOCK = certLockPath(IDENTITY.company, 'kb-card')
 
 function log(message) {
   console.log(`[kb-card-login] ${message}`)
+}
+
+/** 실패 화면을 남긴다. 인증서 화면이 찍히므로 소유자만 읽게 잠근다. */
+async function captureEvidence(reason) {
+  const file = path.join(LOG_DIR, `kb-card-${reason}-${Date.now()}.png`)
+  try {
+    await fs.mkdir(LOG_DIR, { recursive: true })
+    await execFileAsync('/usr/sbin/screencapture', ['-x', file])
+    await fs.chmod(file, 0o600).catch(() => {})
+    return file
+  } catch {
+    return null
+  }
 }
 
 async function pageScript(javascript) {
@@ -201,17 +218,23 @@ async function focusPasswordField() {
   await clickSettled(box.x + Math.round(box.w / 2), box.y + Math.round(box.h / 2))
 
   const deadline = Date.now() + 20_000
+  let seen = '0x0'
   while (Date.now() < deadline) {
     await sleep(1_000)
-    const size = await pageScript(inDialog(`
+    seen = await pageScript(inDialog(`
       const image = doc.querySelector('#keyboardDialogBody img.lowerKeyboard');
       if (!image) return '0x0';
       const box = image.getBoundingClientRect();
       return Math.round(box.width) + 'x' + Math.round(box.height);
     `)).catch(() => '0x0')
-    if (size === `${KEYPAD_SIZE.width}x${KEYPAD_SIZE.height}`) return
+    if (seen === `${KEYPAD_SIZE.width}x${KEYPAD_SIZE.height}`) return
   }
-  throw new Error('KB카드 보안 키패드가 열리지 않았어요.')
+  // 새벽에 혼자 도는 단계라, 무엇이 떠 있었는지 남기지 않으면 다음 날 아무것도
+  // 알아낼 수 없다. 0x0 이면 키패드가 아예 없었고, 다른 값이면 배열이 바뀐 것이다.
+  const evidence = await captureEvidence('keypad-missing')
+  throw new Error(
+    `KB카드 보안 키패드가 열리지 않았어요: 마지막 크기=${seen}, 기대=${KEYPAD_SIZE.width}x${KEYPAD_SIZE.height}${evidence ? `, 증거=${evidence}` : ''}`,
+  )
 }
 
 // Reading the keypad means pulling its data URI out of the DOM and converting
@@ -374,13 +397,28 @@ async function cancelDialog() {
   `)).catch(() => {})
 }
 
+/** 거부는 다섯 번 중 한 번을 태운 것이라, 세어 두고 화면도 남긴다. */
+async function rejectionError(reason) {
+  const evidence = await captureEvidence('rejected')
+  const lock = await recordCertRejection(CERT_LOCK, { reason: evidence ? `증거=${evidence}` : reason })
+  return new Error(
+    `KB카드가 로그인을 거부했어요 (누적 ${lock.rejections}회): ${reason}${evidence ? `, 증거=${evidence}` : ''}`,
+  )
+}
+
 async function run() {
   await fs.mkdir(LOG_DIR, { recursive: true })
   await openLoginPage()
   if (await isLoggedIn()) {
     log('reused existing session')
+    await clearCertLock(CERT_LOCK)
     return
   }
+
+  // 이미 거부된 적이 있으면 새벽 실행이 남은 시도를 태우게 두지 않는다.
+  // --dry-run 은 확인을 누르지 않으니 잠금과 무관하게 돌 수 있다.
+  const blocked = DRY_RUN ? null : await blockingCertLock(CERT_LOCK)
+  if (blocked) throw new Error(certLockMessage('KB카드', blocked, CERT_LOCK))
 
   await closeStaleDialog()
   await openCertificateDialog()
@@ -434,17 +472,18 @@ async function run() {
   // the page can be asked anything.
   await sleep(4_000)
   const rejection = await readAndDismissAlert()
-  if (rejection) throw new Error(`KB카드가 로그인을 거부했어요: ${rejection}`)
+  if (rejection) throw await rejectionError(rejection)
 
   const deadline = Date.now() + 60_000
   while (Date.now() < deadline) {
     await sleep(3_000)
     if (await isLoggedIn()) {
+      await clearCertLock(CERT_LOCK)
       log('logged in')
       return
     }
     const late = await readAndDismissAlert()
-    if (late) throw new Error(`KB카드가 로그인을 거부했어요: ${late}`)
+    if (late) throw await rejectionError(late)
   }
   throw new Error('KB카드 로그인 상태를 확인하지 못했어요.')
 }

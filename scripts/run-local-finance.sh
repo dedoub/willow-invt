@@ -56,7 +56,7 @@ for lib in \
   woori-card-local.mjs woori-card-statement.mjs \
   kb-card-local.mjs kb-card-statement.mjs kb-card-keypad.mjs \
   finance-session.mjs finance-notify.mjs akros-invoice-sync.mjs \
-  cert-dialog.mjs cert-sites.mjs desktop.mjs \
+  cert-dialog.mjs cert-sites.mjs cert-attempt-lock.mjs desktop.mjs \
   shinhan-bank.mjs wetax.mjs nhis.mjs \
   hometax-session.mjs hometax-national-tax.mjs
 do
@@ -106,6 +106,7 @@ export FINANCE_OCR_HELPER="$RUNTIME/bin/ocr-region"
 
 # 실패 알림에 어느 단계에서 멈췄는지 담으려고 마지막 단계 이름을 남긴다.
 STEP_FILE="$RUNTIME/last-step"
+FAILED_STEPS=""
 run_step() {
   local name="$1"; shift
   printf '%s' "$name" > "$STEP_FILE"
@@ -113,46 +114,101 @@ run_step() {
   "$@" >> "$LOG_FILE" 2>&1
 }
 
+# 한 묶음이 막혀도 나머지 묶음은 계속 돈다. 카드 인증서 하나가 거부되면 위택스·
+# 4대보험·자동 분류까지 통째로 건너뛰던 구조라, 하루치 재무가 통째로 비었다.
+# 묶음 안에서는 앞 단계 산출물을 뒤가 쓰므로 여전히 && 로 묶는다.
+group() {
+  local name="$1"; shift
+  if "$@"; then return 0; fi
+  local stopped
+  stopped="$(cat "$STEP_FILE" 2>/dev/null)"
+  [ -n "$stopped" ] || stopped="$name"
+  FAILED_STEPS="${FAILED_STEPS:+$FAILED_STEPS, }$stopped"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] $stopped 실패, 다음 묶음으로 계속" >> "$LOG_FILE"
+  return 1
+}
+
 # 국세·지방세·4대보험은 회사 공통 원장으로 들어가므로 --company 로 구분한다.
-collect_shared_taxes() {
+# 세 곳은 서로 다른 사이트라 하나가 막혀도 나머지는 받을 수 있다.
+collect_wetax() {
   run_step "위택스 수집" $NODE "$RUNTIME/scripts/collect-wetax.mjs" \
     && run_step "지방세 적재" $NODE "$RUNTIME/scripts/import-finance-tax-obligations.mjs" \
-        --company "$COMPANY" --source wetax --input "$LOG_DIR/latest-wetax-obligations.json" \
-    && run_step "4대보험 수집" $NODE "$RUNTIME/scripts/collect-nhis.mjs" \
+        --company "$COMPANY" --source wetax --input "$LOG_DIR/latest-wetax-obligations.json"
+}
+
+collect_nhis() {
+  run_step "4대보험 수집" $NODE "$RUNTIME/scripts/collect-nhis.mjs" \
     && run_step "4대보험 적재" $NODE "$RUNTIME/scripts/import-finance-tax-obligations.mjs" \
-        --company "$COMPANY" --source nhis --input "$LOG_DIR/latest-nhis-obligations.json" \
-    && run_step "국세 수집" $NODE "$RUNTIME/scripts/collect-hometax-national-tax.mjs" \
+        --company "$COMPANY" --source nhis --input "$LOG_DIR/latest-nhis-obligations.json"
+}
+
+collect_national_tax() {
+  run_step "국세 수집" $NODE "$RUNTIME/scripts/collect-hometax-national-tax.mjs" \
     && run_step "국세 적재" $NODE "$RUNTIME/scripts/import-finance-tax-obligations.mjs" \
         --company "$COMPANY" --source hometax --input "$LOG_DIR/latest-hometax-national-tax.json"
 }
 
-run_tensw() {
+collect_shared_taxes() {
+  group "위택스" collect_wetax
+  group "4대보험" collect_nhis
+  group "국세" collect_national_tax
+}
+
+tensw_tax_invoices() {
   run_step "홈택스 세금계산서 수집" $NODE "$RUNTIME/scripts/collect-hometax-tax-invoices.mjs" --collect \
-    && run_step "세금계산서 적재" $NODE "$RUNTIME/scripts/import-local-tax-invoices.mjs" --company tensw \
-    && run_step "우리카드 로그인" $NODE "$RUNTIME/scripts/woori-card-certificate-login.mjs" \
+    && run_step "세금계산서 적재" $NODE "$RUNTIME/scripts/import-local-tax-invoices.mjs" --company tensw
+}
+
+# 카드는 로그인 세션 하나로 승인내역과 명세서를 함께 가져온다.
+tensw_card() {
+  run_step "우리카드 로그인" $NODE "$RUNTIME/scripts/woori-card-certificate-login.mjs" \
     && run_step "우리카드 승인내역 수집" $NODE "$RUNTIME/scripts/collect-woori-card-default-chrome.mjs" \
-    && run_step "신한은행 수집" $NODE "$RUNTIME/scripts/collect-shinhan-bank.mjs" \
-    && run_step "은행 적재" $NODE "$RUNTIME/scripts/import-local-bank.mjs" --company tensw \
-    && collect_shared_taxes \
     && run_step "우리카드 명세서 수집" $NODE "$RUNTIME/scripts/collect-woori-card-statement.mjs" \
-    && run_step "카드 적재" $NODE "$RUNTIME/scripts/import-local-card.mjs" --company tensw \
-    && run_step "세금 지급 매칭" $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs" \
-    && run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company tensw \
-    && run_step "수금 대사" npx tsx "$ROOT/scripts/tensw-reconcile-payments.ts"
+    && run_step "카드 적재" $NODE "$RUNTIME/scripts/import-local-card.mjs" --company tensw
+}
+
+tensw_bank() {
+  run_step "신한은행 수집" $NODE "$RUNTIME/scripts/collect-shinhan-bank.mjs" \
+    && run_step "은행 적재" $NODE "$RUNTIME/scripts/import-local-bank.mjs" --company tensw
+}
+
+run_tensw() {
+  group "세금계산서" tensw_tax_invoices
+  group "우리카드" tensw_card
+  group "신한은행" tensw_bank
+  collect_shared_taxes
+  group "세금 지급 매칭" run_step "세금 지급 매칭" \
+    $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs"
+  group "자동 분류" run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company tensw
+  group "수금 대사" run_step "수금 대사" npx tsx "$ROOT/scripts/tensw-reconcile-payments.ts"
+}
+
+willow_tax_invoices() {
+  run_step "홈택스 세금계산서 수집" $NODE "$RUNTIME/scripts/collect-hometax-tax-invoices.mjs" --collect \
+    && run_step "세금계산서 적재" $NODE "$RUNTIME/scripts/import-local-tax-invoices.mjs" --company willow
+}
+
+willow_bank() {
+  run_step "신한은행 수집" $NODE "$RUNTIME/scripts/collect-shinhan-bank.mjs" \
+    && run_step "은행 적재" $NODE "$RUNTIME/scripts/import-local-bank.mjs" --company willow
+}
+
+willow_card() {
+  run_step "KB카드 승인내역 수집" $NODE "$RUNTIME/scripts/collect-kb-card.mjs" \
+    && run_step "KB카드 명세서 수집" $NODE "$RUNTIME/scripts/collect-kb-card-statement.mjs" \
+    && run_step "카드 적재" $NODE "$RUNTIME/scripts/import-local-card.mjs" --company willow
 }
 
 run_willow() {
-  run_step "홈택스 세금계산서 수집" $NODE "$RUNTIME/scripts/collect-hometax-tax-invoices.mjs" --collect \
-    && run_step "세금계산서 적재" $NODE "$RUNTIME/scripts/import-local-tax-invoices.mjs" --company willow \
-    && run_step "신한은행 수집" $NODE "$RUNTIME/scripts/collect-shinhan-bank.mjs" \
-    && run_step "은행 적재" $NODE "$RUNTIME/scripts/import-local-bank.mjs" --company willow \
-    && run_step "KB카드 승인내역 수집" $NODE "$RUNTIME/scripts/collect-kb-card.mjs" \
-    && run_step "KB카드 명세서 수집" $NODE "$RUNTIME/scripts/collect-kb-card-statement.mjs" \
-    && run_step "카드 적재" $NODE "$RUNTIME/scripts/import-local-card.mjs" --company willow \
-    && collect_shared_taxes \
-    && run_step "세금 지급 매칭" $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs" \
-    && run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company willow \
-    && run_step "아크로스 인보이스 반영" $NODE "$RUNTIME/scripts/sync-akros-invoices.mjs"
+  group "세금계산서" willow_tax_invoices
+  group "신한은행" willow_bank
+  group "KB카드" willow_card
+  collect_shared_taxes
+  group "세금 지급 매칭" run_step "세금 지급 매칭" \
+    $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs"
+  group "자동 분류" run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company willow
+  group "아크로스 인보이스 반영" run_step "아크로스 인보이스 반영" \
+    $NODE "$RUNTIME/scripts/sync-akros-invoices.mjs"
 }
 
 # --sync-only: 런타임 동기화까지만 하고 수집은 돌리지 않는다. 스크립트가 빠졌는지
@@ -192,16 +248,16 @@ export TELEGRAM_BOT_TOKEN="$(env_value TELEGRAM_BOT_TOKEN)"
 echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance start" >> "$LOG_FILE"
 rm -f "$STEP_FILE"
 if [ "$COMPANY" = "tensw" ]; then run_tensw; else run_willow; fi
-STATUS=$?
 
 # 성공이든 실패든 CEO 봇으로 알린다. 조용히 실패하면 며칠이 지나도 모른다.
-if [ $STATUS -eq 0 ]; then
+# 이제 한 묶음이 막혀도 나머지는 도니, 실패한 묶음을 모아서 알린다.
+if [ -z "$FAILED_STEPS" ]; then
   echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance success" >> "$LOG_FILE"
   $NODE "$RUNTIME/scripts/notify-local-finance.mjs" --company "$COMPANY" --status ok >> "$LOG_FILE" 2>&1
   exit 0
 fi
 
-echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance failed" >> "$LOG_FILE"
+echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance failed: $FAILED_STEPS" >> "$LOG_FILE"
 $NODE "$RUNTIME/scripts/notify-local-finance.mjs" \
-  --company "$COMPANY" --status fail --step "$(cat "$STEP_FILE" 2>/dev/null)" >> "$LOG_FILE" 2>&1
+  --company "$COMPANY" --status fail --step "$FAILED_STEPS" >> "$LOG_FILE" 2>&1
 exit 1

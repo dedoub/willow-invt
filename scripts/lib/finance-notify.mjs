@@ -168,7 +168,8 @@ export function dailyLines(daily) {
 }
 
 /**
- * 보낼 메시지 전문. 실패면 어느 단계에서 멈췄는지가 가장 중요한 정보라 맨 앞에 둔다.
+ * 보낼 메시지 전문. 실패면 어느 단계가 막혔는지가 가장 중요한 정보라 맨 앞에 둔다.
+ * 러너가 막힌 묶음을 건너뛰고 나머지를 계속 돌리므로 단계는 여럿일 수 있다.
  */
 export function notifyMessage({ company, label, status, step, artifacts, config, now = new Date(), logFile, daily, outstanding }) {
   const { stale, missing } = collectionGaps(artifacts, config, now)
@@ -177,7 +178,10 @@ export function notifyMessage({ company, label, status, step, artifacts, config,
     : `⚠️ ${label} 재무 자동화 실패`
 
   const body = [head]
-  if (status !== 'ok') body.push(`멈춘 단계: ${step || '(알 수 없음)'}`)
+  if (status !== 'ok') {
+    body.push(`막힌 단계: ${step || '(알 수 없음)'}`)
+    body.push('나머지 단계는 이어서 돌았어요.')
+  }
 
   const added = dailyLines(daily)
   if (added.length > 0) {

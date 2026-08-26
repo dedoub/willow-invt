@@ -86,7 +86,7 @@ test('성공 알림은 오늘 추가와 현재 상태를 함께 보낸다', () =
   })
 
   assert.match(message, /^✅ 윌로우인베스트먼트 재무 자동화 완료/)
-  assert.ok(!message.includes('멈춘 단계'))
+  assert.ok(!message.includes('막힌 단계'))
   assert.ok(message.includes('· 카드 청구 8,803,242원 (2026-08-27 결제)'))
 })
 
@@ -98,7 +98,7 @@ test('실패 알림은 어느 단계에서 멈췄는지를 맨 앞에 둔다', (
   })
 
   assert.match(message, /^⚠️ 텐소프트웍스 재무 자동화 실패/)
-  assert.match(message, /멈춘 단계: 신한은행 수집/)
+  assert.match(message, /막힌 단계: 신한은행 수집/)
   assert.ok(message.includes('launchd.log'))
 })
 
@@ -107,7 +107,7 @@ test('단계 이름이 없어도 실패 사실은 알린다', () => {
     company: 'willow', label: '윌로우인베스트먼트', status: 'fail',
     artifacts: {}, config: WILLOW, now: NOW,
   })
-  assert.match(message, /멈춘 단계: \(알 수 없음\)/)
+  assert.match(message, /막힌 단계: \(알 수 없음\)/)
 })
 
 test('오늘 추가는 0건인 항목을 적지 않는다', () => {
