@@ -39,6 +39,7 @@ for script in \
   import-local-tax-invoices.mjs \
   import-finance-tax-obligations.mjs \
   match-finance-tax-obligations.mjs \
+  notify-local-finance.mjs \
   login-native-cert.mjs \
   login-nhis-si4n.mjs \
   woori-card-certificate-login.mjs \
@@ -53,7 +54,7 @@ for lib in \
   tensw-local-finance.mjs daily-finance-sync.mjs tax-obligation-matcher.mjs \
   woori-card-local.mjs woori-card-statement.mjs \
   kb-card-local.mjs kb-card-statement.mjs kb-card-keypad.mjs \
-  finance-session.mjs \
+  finance-session.mjs finance-notify.mjs \
   cert-dialog.mjs cert-sites.mjs desktop.mjs \
   shinhan-bank.mjs wetax.mjs nhis.mjs \
   hometax-session.mjs hometax-national-tax.mjs
@@ -102,8 +103,11 @@ export SUPABASE_SECRET_KEY="$(env_value SUPABASE_SECRET_KEY)"
 export FINANCE_INPUT_SOURCE_HELPER="$RUNTIME/bin/select-abc-input-source"
 export FINANCE_OCR_HELPER="$RUNTIME/bin/ocr-region"
 
+# 실패 알림에 어느 단계에서 멈췄는지 담으려고 마지막 단계 이름을 남긴다.
+STEP_FILE="$RUNTIME/last-step"
 run_step() {
   local name="$1"; shift
+  printf '%s' "$name" > "$STEP_FILE"
   echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] $name" >> "$LOG_FILE"
   "$@" >> "$LOG_FILE" 2>&1
 }
@@ -179,23 +183,21 @@ if [ "${2:-}" = "--sync-only" ]; then
   exit 0
 fi
 
+export TELEGRAM_BOT_TOKEN="$(env_value TELEGRAM_BOT_TOKEN)"
+
 echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance start" >> "$LOG_FILE"
+rm -f "$STEP_FILE"
 if [ "$COMPANY" = "tensw" ]; then run_tensw; else run_willow; fi
 STATUS=$?
 
+# 성공이든 실패든 CEO 봇으로 알린다. 조용히 실패하면 며칠이 지나도 모른다.
 if [ $STATUS -eq 0 ]; then
   echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance success" >> "$LOG_FILE"
+  $NODE "$RUNTIME/scripts/notify-local-finance.mjs" --company "$COMPANY" --status ok >> "$LOG_FILE" 2>&1
   exit 0
 fi
-echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance failed" >> "$LOG_FILE"
 
-BOT_TOKEN="$(env_value TELEGRAM_BOT_TOKEN)"
-CHAT_ID="$(curl -fsS "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/telegram_conversations?bot_type=eq.ceo&select=chat_id&order=updated_at.desc&limit=1" \
-  -H "apikey: $SUPABASE_SECRET_KEY" -H "Authorization: Bearer $SUPABASE_SECRET_KEY" | jq -r '.[0].chat_id // empty')"
-if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
-  curl -fsS "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
-    --data-urlencode "chat_id=$CHAT_ID" \
-    --data-urlencode "text=$COMPANY_LABEL 로컬 재무 자동화가 실패했어요. 윌리가 $LOG_FILE 에서 수집·적재·매칭 로그를 확인해야 해요." \
-    >/dev/null 2>&1 || true
-fi
+echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance failed" >> "$LOG_FILE"
+$NODE "$RUNTIME/scripts/notify-local-finance.mjs" \
+  --company "$COMPANY" --status fail --step "$(cat "$STEP_FILE" 2>/dev/null)" >> "$LOG_FILE" 2>&1
 exit 1

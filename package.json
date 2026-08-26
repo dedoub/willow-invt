@@ -28,7 +28,7 @@
     "willow:local:probe": "FINANCE_COMPANY=willow node scripts/collect-hometax-tax-invoices.mjs --probe",
     "willow:local:collect": "FINANCE_COMPANY=willow node scripts/collect-hometax-tax-invoices.mjs --collect",
     "finance:tax:match": "node scripts/match-finance-tax-obligations.mjs",
-    "finance:test": "node --test scripts/lib/cert-dialog.test.mjs scripts/lib/shinhan-bank.test.mjs scripts/lib/hometax-national-tax.test.mjs scripts/lib/nhis.test.mjs scripts/lib/wetax.test.mjs scripts/lib/daily-finance-sync.test.mjs scripts/lib/tax-obligation-matcher.test.mjs scripts/lib/tensw-local-finance.test.mjs scripts/lib/finance-session.test.mjs scripts/lib/kb-card-keypad.test.mjs scripts/lib/kb-card-local.test.mjs scripts/lib/kb-card-statement.test.mjs scripts/lib/woori-card-local.test.mjs scripts/lib/woori-card-statement.test.mjs"
+    "finance:test": "node --test scripts/lib/cert-dialog.test.mjs scripts/lib/shinhan-bank.test.mjs scripts/lib/hometax-national-tax.test.mjs scripts/lib/nhis.test.mjs scripts/lib/wetax.test.mjs scripts/lib/daily-finance-sync.test.mjs scripts/lib/tax-obligation-matcher.test.mjs scripts/lib/tensw-local-finance.test.mjs scripts/lib/finance-session.test.mjs scripts/lib/finance-notify.test.mjs scripts/lib/kb-card-keypad.test.mjs scripts/lib/kb-card-local.test.mjs scripts/lib/kb-card-statement.test.mjs scripts/lib/woori-card-local.test.mjs scripts/lib/woori-card-statement.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

@@ -11,7 +11,7 @@
  *   - 매출 세금계산서와 금액이 맞는 입금 → revenue
  *   - 반복 고정 패턴(카드대금·리스료·대출·4대보험·세금·공과금 등) → expense
  * 그 외(대여금·급여·처음 보는 거래처 등 회계 판단이 필요한 건)는 'new'로 남기고
- * ⚠ 로그를 남긴다 → tensw-sync-notify 가 텔레그램으로 CEO에게 알린다.
+ * ⚠ 로그를 남긴다 → 러너가 실행 끝에 CEO 봇으로 결과를 함께 알린다.
  *
  *   npx tsx scripts/local-finance-classify.ts --company tensw
  *   npx tsx scripts/local-finance-classify.ts --company willow --dry
@@ -284,7 +284,7 @@ async function main() {
 
   console.log(`\n[classify:${COMPANY}] 자동 반영 ${inserted}건, 제외 ${ignored}건, 보류 ${held.length}건${DRY ? ' (dry)' : ''}`)
   if (held.length) {
-    // ⚠ 는 tensw-sync-notify 가 잡아 텔레그램으로 CEO에게 보낸다.
+    // ⚠ 는 로그에 남아 사람이 update-cash-transactions 로 처리한다.
     console.log(`  ⚠ 분류 판단 필요 ${held.length}건 — update-cash-transactions 로 처리하세요:`)
     for (const h of held) console.log(`    · ${h}`)
   }
