@@ -63,7 +63,9 @@ const AUTO_FOLLOW_UP_SCAN_INTERVAL = 30 * 60 * 1000 // 30분마다 자동 follow
 const AUTO_FOLLOW_UP_NOTIFY_ON_CREATE = false // 후보 등록 사실은 기본적으로 조용히 처리
 const AUTO_FOLLOW_UP_ENABLE_WIKI_SIGNALS = false // 위키 신호는 기준 정교화 전까지 비활성
 const VOICECARDS_EVENT_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 앱 사용자 로그 점검
-const VOICECARDS_PURCHASE_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 결제 감시
+// 결제 알림은 이 폴링 하나로만 나간다. DB 트리거 직송(voice-cards 027)은
+// 같은 결제를 두 번 알려서 076에서 내렸다. 즉시성은 주기를 줄여 메운다.
+const VOICECARDS_PURCHASE_MONITOR_INTERVAL = 5 * 60 * 1000 // 5분마다 결제 감시
 const REVIEWNOTES_MONITOR_INTERVAL = 20 * 60 * 1000 // 20분마다 ReviewNotes 이상징후 점검
 const REVIEWNOTES_ACTIVATION_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 ReviewNotes 신규 활성화 점검
 const ENABLE_VOICECARDS_LOCAL_LOG_MONITOR = process.env.WILLY_ENABLE_VOICECARDS_LOCAL_LOG_MONITOR === '1'
