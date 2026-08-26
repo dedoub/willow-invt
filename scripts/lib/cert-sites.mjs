@@ -142,12 +142,11 @@ export const CERT_SITES = Object.freeze({
       cancel: '.cancelButton',
     }),
     runner: 'scripts/login-kb-card.mjs',
-    // The driver works: it picks the certificate, clicks the password in on the
-    // keypad and verifies eleven characters. KB still refuses the sign-in
-    // because the 사업자용 공동인증서 has to be registered to the account once,
-    // and that registration needs a KB 기업 웹회원 login we do not have.
-    ready: false,
-    reason: '공동인증서 사전등록 필요 (KB 기업 웹회원 계정)',
+    // The keypad holds what was clicked until its own Enter commits it; without
+    // that press 확인 submits an empty password and KB bounces back to the login
+    // page with no message at all.
+    commitKey: 'enter',
+    ready: true,
   }),
 
   nhis: Object.freeze({

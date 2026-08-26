@@ -227,7 +227,7 @@ test('certSiteRegistry reports readiness for the pipeline coverage check', () =>
 
 test('certSite rejects an unknown site instead of returning undefined', () => {
   assert.throws(() => certSite('hana-card'), /등록되지 않은/)
-  assert.equal(certSite('kb-card').ready, false)
+  assert.equal(certSite('kb-card').ready, true)
 })
 
 test('splitBusinessNumber splits the number the way the portal asks for it', () => {

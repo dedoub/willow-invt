@@ -25,6 +25,8 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { financeIdentity, readCertificatePassword } from './lib/tensw-local-finance.mjs'
 import { certSite } from './lib/cert-sites.mjs'
+import { PAGE_TEXT_SCRIPT, SESSION_STATE, sessionState } from './lib/finance-session.mjs'
+import { findOcrText, textCenter, windowRect } from './lib/cert-dialog.mjs'
 import { decodeKeypadLayout, KEYPAD_CONTROLS, KEYPAD_SIZE, toScreenPoint } from './lib/kb-card-keypad.mjs'
 import {
   activateProcess,
@@ -32,6 +34,8 @@ import {
   chromeJavascript,
   chromeTabState,
   clickSettled,
+  nativeWindows,
+  ocrScreenshot,
   openChromeTab,
   positionChromeWindow,
   sleep,
@@ -79,11 +83,11 @@ function inDialog(body) {
   })()`
 }
 
+// 로그인 페이지에도 '로그아웃' 문구가 섞여 있어, 로그인한 주체가 이 회사인지로
+// 판단한다.
 async function isLoggedIn() {
-  const result = await pageScript(
-    `(() => document.body.innerText.includes('로그아웃') ? 'yes' : 'no')()`,
-  ).catch(() => 'no')
-  return result === 'yes'
+  const text = await pageScript(PAGE_TEXT_SCRIPT).catch(() => '')
+  return sessionState(text, IDENTITY.company) === SESSION_STATE.ours
 }
 
 // KB raises a JavaScript alert when the Delfino plugin has not been allowed for
@@ -93,6 +97,12 @@ async function openLoginPage() {
   const existing = await chromeTabState(HOST)
   if (!existing.url) {
     await openChromeTab(SITE.url, HOST)
+    await sleep(9_000)
+  } else if (!existing.url.includes('CXERCZZC0001')) {
+    // A failed run can leave the tab on KB's standalone login page, which lays
+    // its form out differently. There is no session to lose while signed out,
+    // so the tab is put back on the screen this driver knows.
+    await pageScript(`(() => { location.href = ${JSON.stringify(SITE.url)}; return 'go'; })()`)
     await sleep(9_000)
   }
   await positionChromeWindow(HOST)
@@ -145,9 +155,24 @@ async function openCertificateDialog() {
 }
 
 async function selectCertificate() {
-  const result = await pageScript(inDialog(`
+  // The dialog can open on the 브라우저 tab, which lists nothing. Switching to
+  // 로컬디스크 reads the NPKI folder, and the list fills a moment later.
+  await pageScript(inDialog(`
     const disk = doc.querySelector('.localDiskButton');
     if (disk) disk.click();
+    return 'switched';
+  `))
+  const deadline = Date.now() + 20_000
+  while (Date.now() < deadline) {
+    await sleep(1_000)
+    const listed = await pageScript(inDialog(`
+      return String([...doc.querySelectorAll('tr')]
+        .filter(row => /범용|인증서/.test(row.innerText || '')).length);
+    `)).catch(() => '0')
+    if (Number(listed) > 0) break
+  }
+
+  const result = await pageScript(inDialog(`
     const rows = [...doc.querySelectorAll('tr')]
       .filter(row => (row.innerText || '').includes(${JSON.stringify(IDENTITY.certificateOwnerKeyword)}));
     if (rows.length === 0) return 'no-row';
@@ -314,6 +339,33 @@ async function maskedLength() {
   return clusters
 }
 
+// A Chrome-owned window whose name carries the host is the page's own alert.
+// Its text is read by OCR because the DOM cannot be reached while it is up.
+async function readAndDismissAlert() {
+  const alertWindow = (await nativeWindows('Google Chrome'))
+    .find(window => window.name.includes('kbcard.com'))
+  if (!alertWindow) return null
+
+  const shot = `${SCRATCH}-alert.png`
+  const items = await ocrScreenshot(await captureScreen(shot))
+  const within = windowRect(alertWindow)
+  const message = items
+    .filter(item => item.x >= within.x && item.x <= within.x + within.w
+      && item.y >= within.y && item.y <= within.y + within.h)
+    .map(item => item.text.trim())
+    .filter(text => text && text !== '확인' && !text.includes('kbcard.com'))
+    .join(' ')
+    .slice(0, 300)
+
+  const button = findOcrText(items, '확인', { within })
+  if (button) {
+    const point = textCenter(button)
+    await clickSettled(point.x, point.y)
+    await sleep(1_500)
+  }
+  return message || '(내용을 읽지 못했어요)'
+}
+
 async function cancelDialog() {
   await pageScript(inDialog(`
     const cancel = doc.querySelector('.cancelButton');
@@ -356,14 +408,33 @@ async function run() {
     return
   }
 
-  // Clicking 확인 spends one of the attempts before lockout, so it is clicked
-  // exactly once and never retried on failure.
-  await pageScript(inDialog(`
-    const ok = doc.querySelector('.okButton');
-    if (!ok) return 'no-ok';
-    ok.click();
-    return 'submitted';
-  `))
+  // The keypad holds what was clicked until its own Enter commits it to the
+  // field. Without that press the box looks filled and 확인 submits nothing,
+  // which is what KB was rejecting.
+  const { origin } = await readKeypad()
+  await clickKeypad(KEYPAD_CONTROLS.enter, origin)
+  await sleep(2_500)
+
+  // Enter may commit and submit in one go; 확인 is only needed if the dialog is
+  // still standing. Clicking it twice would spend two of the attempts.
+  const stillOpen = await pageScript(inDialog(`
+    return doc.querySelector('.okButton') ? 'open' : 'closed';
+  `)).catch(() => 'closed')
+  if (stillOpen === 'open') {
+    await pageScript(inDialog(`
+      const ok = doc.querySelector('.okButton');
+      if (!ok) return 'no-ok';
+      ok.click();
+      return 'submitted';
+    `))
+  }
+
+  // KB answers a rejected certificate with a JavaScript alert, and an open alert
+  // blocks every Apple Event — so the alert has to be read and dismissed before
+  // the page can be asked anything.
+  await sleep(4_000)
+  const rejection = await readAndDismissAlert()
+  if (rejection) throw new Error(`KB카드가 로그인을 거부했어요: ${rejection}`)
 
   const deadline = Date.now() + 60_000
   while (Date.now() < deadline) {
@@ -372,6 +443,8 @@ async function run() {
       log('logged in')
       return
     }
+    const late = await readAndDismissAlert()
+    if (late) throw new Error(`KB카드가 로그인을 거부했어요: ${late}`)
   }
   throw new Error('KB카드 로그인 상태를 확인하지 못했어요.')
 }
