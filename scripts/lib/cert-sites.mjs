@@ -1,7 +1,7 @@
-// One entry per site the Tensoftworks certificate logs into. The mechanism is
-// not a guess: each was probed on 2026-08-25 by opening the real certificate
-// dialog and observing which process owns the window and whether synthetic
-// keystrokes reach the password field.
+// One entry per site a company certificate logs into. The mechanism is not a
+// guess: each was probed by opening the real certificate dialog and observing
+// which process owns the window and whether synthetic keystrokes reach the
+// password field (2026-08-25 for the six 텐소프트웍스 sites).
 //
 //   browser-dom   the dialog is part of the page and Playwright may drive it
 //   inpage-type   the dialog is part of the page but the module only trusts the
@@ -9,8 +9,14 @@
 //   native-type   an opaque native window, but typed keystrokes reach the field
 //   native-keypad an opaque native window that forces its own on-screen keypad
 //
-// The certificate itself is one TradeSign 범용(법인) key shared by every site:
-//   ~/Library/Preferences/NPKI/TradeSign/User/cn=주식회사 텐소프트웍스_0001729044/
+// Each company signs every one of its sites with a single key, found under
+// ~/Library/Preferences/NPKI by certificateImportPaths:
+//   텐소프트웍스  TradeSign 범용(법인)
+//   윌로우인베스트먼트  SignKorea BizBank(법인)
+//
+// 홈택스 · 위택스 · 사회보험 are shared by both companies; the driver picks the
+// certificate row by the owner keyword in the company registry. 신한은행 is
+// 텐소's second bank and 윌로우's only one.
 
 export const CERT_MECHANISMS = Object.freeze(['browser-dom', 'inpage-type', 'native-type', 'native-keypad'])
 
@@ -95,6 +101,34 @@ export const CERT_SITES = Object.freeze({
     cancel: '취소',
     loggedOutMarker: '로그인',
     ready: true,
+  }),
+
+  'kb-card': Object.freeze({
+    id: 'kb-card',
+    label: 'KB국민카드 기업',
+    // Not probed yet: WIZVERA Delfino is a launcher that loads the signing
+    // module, and which window ends up owning the password box is exactly the
+    // thing that has to be observed rather than assumed.
+    mechanism: null,
+    url: 'https://biz.kbcard.com/CXERCZZC0001.cms',
+    module: 'WIZVERA Delfino',
+    // 공동인증서 tab, then 로그인; the button runs
+    // Delfino.setModule(DelfinoConfig.module); doCertLoginA().
+    certTrigger: '공동인증서',
+    form: Object.freeze({
+      id: 'login',
+      action: '/CXORMPIC0001.cms',
+      // doCertLoginA fills these from the Delfino callback.
+      signature: 'PKCS7',
+      vidRandom: 'VID_RANDOM',
+      idField: '기업인터넷서비스로그인ID',
+      passwordField: 'loginPwdBiz',
+    }),
+    ready: false,
+    // KB requires the 사업자용 공동인증서 to be registered on the site once before
+    // certificate login works at all, and that registration needs an ID/PW
+    // session we do not hold.
+    reason: '공동인증서 사전등록 필요 · Delfino 인증창 미확인',
   }),
 
   nhis: Object.freeze({

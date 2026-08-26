@@ -92,6 +92,21 @@ test('each company stages into its own tables and banks', async () => {
   assert.equal(willow.card.cardName, 'KB카드')
 })
 
+test('certificateDirectories picks the company folder out of the NPKI tree', async () => {
+  const { certificateDirectories } = await loadSubject()
+
+  const tree = [
+    { name: 'cn=주식회사 텐소프트웍스_0001729044,ou=KTNET,o=TradeSign,c=KR', path: '/npki/tradesign/tensw' },
+    { name: 'cn=윌로우인베스트먼트((BizBank)0088,ou=BizBank,o=SignKorea,c=KR', path: '/npki/signkorea/willow' },
+  ]
+
+  assert.deepEqual(certificateDirectories(tree, '텐소'), ['/npki/tradesign/tensw'])
+  assert.deepEqual(certificateDirectories(tree, '윌로우'), ['/npki/signkorea/willow'])
+  // 인증서 주체명에는 공백이 들어가므로 공백을 지운 뒤 비교한다.
+  assert.deepEqual(certificateDirectories(tree, '주식회사 텐소프트웍스'), ['/npki/tradesign/tensw'])
+  assert.deepEqual(certificateDirectories(tree, '아크로스'), [])
+})
+
 test('failureMessage includes the stage and sanitized error only', async () => {
   const { failureMessage } = await loadSubject()
 
@@ -133,14 +148,34 @@ test('isHometaxReadyUrl waits for the WebSquare main route', async () => {
   )
 })
 
-test('certificateImportPaths returns the certificate pair without a password', async () => {
+test('certificateImportPaths reads the NPKI folder, falling back to the configured pair', async () => {
   const { certificateImportPaths } = await loadSubject()
+  const fs = await import('node:fs')
+  const os = await import('node:os')
+  const path = await import('node:path')
 
+  // A home with a real NPKI tree resolves the company's own certificate.
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'npki-'))
+  const dir = path.join(home, 'Library/Preferences/NPKI/TradeSign/User', 'cn=주식회사 텐소프트웍스_0001')
+  fs.mkdirSync(dir, { recursive: true })
+  assert.deepEqual(certificateImportPaths({ HOME: home, FINANCE_COMPANY: 'tensw' }), [
+    path.join(dir, 'signCert.der'),
+    path.join(dir, 'signPri.key'),
+  ])
+
+  // A home without one falls back to the pair CODEF left in the environment.
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'npki-empty-'))
+  fs.mkdirSync(path.join(empty, 'Library/Preferences/NPKI'), { recursive: true })
   assert.deepEqual(certificateImportPaths({
+    HOME: empty,
     CODEF_HOMETAX_CERT_DER: '/secure/signCert.der',
     CODEF_HOMETAX_CERT_KEY: '/secure/signPri.key',
   }), ['/secure/signCert.der', '/secure/signPri.key'])
-  assert.throws(() => certificateImportPaths({}), /인증서 파일 경로/)
+
+  assert.throws(() => certificateImportPaths({ HOME: empty }), /인증서 파일을 NPKI 폴더에서 찾지 못했어요/)
+
+  fs.rmSync(home, { recursive: true, force: true })
+  fs.rmSync(empty, { recursive: true, force: true })
 })
 
 test('taxInvoiceFromCells maps a sales invoice to the staging shape', async () => {

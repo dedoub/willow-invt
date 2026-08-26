@@ -1,5 +1,8 @@
 import { execFile } from 'node:child_process'
 import crypto from 'node:crypto'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
@@ -195,10 +198,55 @@ export function isHometaxReadyUrl(value) {
   }
 }
 
+// NPKI stores one directory per certificate, named after its subject, under a
+// folder per issuer. Finding the company's directory by its name survives a
+// reissue — the CN carries a serial that changes every year — and keeps the two
+// companies' keys apart without spelling either path out.
+export function certificateDirectories(root, ownerKeyword) {
+  const wanted = String(ownerKeyword).replaceAll(' ', '')
+  return root
+    .filter(entry => entry.name.replaceAll(' ', '').includes(wanted))
+    .map(entry => entry.path)
+}
+
+function npkiUserDirectories(home) {
+  const seen = new Map()
+  for (const issuer of fs.readdirSync(path.join(home, 'Library/Preferences/NPKI'), { withFileTypes: true })) {
+    if (!issuer.isDirectory()) continue
+    // The folder is spelled User on some issuers and USER on others. macOS is
+    // case-insensitive, so both spellings resolve to one directory and the real
+    // path is what tells two certificates apart.
+    for (const name of ['User', 'USER']) {
+      const dir = path.join(home, 'Library/Preferences/NPKI', issuer.name, name)
+      if (!fs.existsSync(dir)) continue
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue
+        // realpath keeps the spelling it was handed, so the key is case-folded.
+        const resolved = path.join(dir, entry.name)
+        const key = resolved.toLowerCase()
+        if (!seen.has(key)) seen.set(key, { name: entry.name, path: resolved })
+      }
+    }
+  }
+  return [...seen.values()]
+}
+
 export function certificateImportPaths(env = process.env) {
+  const identity = financeIdentity(env)
+  const home = env.HOME || os.homedir()
+
+  const matches = certificateDirectories(npkiUserDirectories(home), identity.certificateOwnerKeyword)
+  if (matches.length === 1) {
+    return [path.join(matches[0], 'signCert.der'), path.join(matches[0], 'signPri.key')]
+  }
+  if (matches.length > 1) {
+    throw new Error(`${identity.label} 인증서 폴더가 여러 개예요. 오래된 인증서를 정리해 주세요.`)
+  }
+
+  // 텐소프트웍스는 CODEF 시절 지정한 경로가 아직 .env.local 에 남아 있다.
   const paths = [env.CODEF_HOMETAX_CERT_DER, env.CODEF_HOMETAX_CERT_KEY]
   if (paths.some(value => !value)) {
-    throw new Error('홈택스 인증서 파일 경로가 설정되지 않았어요.')
+    throw new Error(`${identity.label} 인증서 파일을 NPKI 폴더에서 찾지 못했어요.`)
   }
   return paths
 }
