@@ -16,6 +16,7 @@ import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
 import { financeCompany } from './lib/tensw-local-finance.mjs'
 import { mapWooriCardApproval, validateWooriCardPayload } from './lib/woori-card-local.mjs'
+import { mapKbCardApproval, validateKbCardPayload } from './lib/kb-card-local.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DRY_RUN = process.argv.includes('--dry')
@@ -24,6 +25,7 @@ dotenv.config({ path: path.join(ROOT, '.env.local'), quiet: true })
 
 const MAPPERS = {
   'woori-card': { map: mapWooriCardApproval, validate: validateWooriCardPayload },
+  'kb-card': { map: mapKbCardApproval, validate: validateKbCardPayload },
 }
 
 function argument(name) {
