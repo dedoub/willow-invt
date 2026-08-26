@@ -5,6 +5,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LTableScroll } from '@/app/(dashboard)/_components/linear-table'
 import { RyuhaBodyRecord } from '@/types/ryuha'
 
 interface GrowthBlockProps {
@@ -171,7 +172,8 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               </span>
             } />
           </div>
-          {/* Header */}
+          {/* Header — 본문과 함께 가로 스크롤시켜야 좁은 화면에서 열이 어긋나지 않는다 */}
+          <LTableScroll minWidth={420}>
           <div style={{
             display: 'grid', gridTemplateColumns: '80px 60px 60px 1fr',
             gap: 8, padding: '6px 14px', fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.semibold,
@@ -179,7 +181,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
           }}>
             <span>날짜</span><span>키</span><span>몸무게</span><span>메모</span>
           </div>
-          <div style={{ maxHeight: 200, overflow: 'auto' }}>
+          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
             {sorted.slice(0, 20).map(r => (
               <div key={r.id} onClick={() => openDialog(r)} style={{
                 display: 'grid', gridTemplateColumns: '80px 60px 60px 1fr',
@@ -202,6 +204,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               </div>
             ))}
           </div>
+          </LTableScroll>
         </LCard>
       </div>
 

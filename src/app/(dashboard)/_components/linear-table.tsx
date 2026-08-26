@@ -187,22 +187,42 @@ export function LTableRow<T>({
  * minWidth를 컬럼 정의에서 계산해 좁은 폭에서는 가로로 스크롤한다 — 하드코딩하면
  * 열을 하나 추가할 때마다 마지막 열이 행 배경 밖으로 삐져나온다.
  */
+/** 컬럼 정의에서 표가 찌그러지지 않는 최소 폭을 구한다. */
+export function tableMinWidth(columns: LColumn<never>[] | LColumn<unknown>[], mobile = false): number {
+  const cols = visibleColumns(columns as LColumn<never>[], mobile)
+  return cols.reduce((sum, c) => {
+    const m = c.width.match(/minmax\((\d+)px/) || c.width.match(/^(\d+)px$/)
+    return sum + (m ? Number(m[1]) : 0)
+  }, 0) + GAP * Math.max(0, cols.length - 1) + ROW_PAD_X * 2
+}
+
+/**
+ * 표 머리와 본문을 하나의 가로 스크롤 안에 함께 둔다. 본문만 스크롤하면 좁은
+ * 화면에서 머리와 열이 어긋나 표가 깨져 보인다.
+ */
+export function LTableScroll({ columns, mobile = false, minWidth, children }: {
+  /** LColumn 기반 표. 직접 짠 grid 표는 대신 minWidth를 넘긴다. */
+  columns?: LColumn<never>[] | LColumn<unknown>[]
+  mobile?: boolean
+  minWidth?: number
+  children: React.ReactNode
+}) {
+  const min = minWidth ?? (columns ? tableMinWidth(columns, mobile) : 0)
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <div style={{ minWidth: min }}>{children}</div>
+    </div>
+  )
+}
+
 export function LTableBody({ columns, mobile = false, children }: {
   columns: LColumn<never>[] | LColumn<unknown>[]
   mobile?: boolean
   children: React.ReactNode
 }) {
-  const cols = visibleColumns(columns as LColumn<never>[], mobile)
-  const minPx = cols.reduce((sum, c) => {
-    const m = c.width.match(/minmax\((\d+)px/) || c.width.match(/^(\d+)px$/)
-    return sum + (m ? Number(m[1]) : 0)
-  }, 0) + GAP * Math.max(0, cols.length - 1) + ROW_PAD_X * 2
-
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <div style={{ minWidth: minPx, display: 'flex', flexDirection: 'column', gap: ROW_GAP }}>
-        {children}
-      </div>
+    <div style={{ minWidth: tableMinWidth(columns, mobile), display: 'flex', flexDirection: 'column', gap: ROW_GAP }}>
+      {children}
     </div>
   )
 }
@@ -238,32 +258,53 @@ export function LTableBadge({ tone, children }: { tone: { bg: string; fg: string
  * 표 안의 날짜. 표마다 슬라이스 폭과 글자 크기가 달라 같은 화면에서 다른 표로
  * 읽히던 것을 한곳으로 모은다. 기본은 월-일이고 연도는 툴팁으로 남긴다.
  */
-export function LTableDate({ value, showYear }: { value?: string | null; showYear?: boolean }) {
-  const text = String(value ?? '')
+/**
+ * 표 안 모노 칸의 공통 껍데기. 날짜·숫자·비율이 서로 다른 크기로 찍히던 것을
+ * 여기 하나로 모은다.
+ */
+export function LTableMono({ children, align = 'left', tone, strong }: {
+  children: React.ReactNode
+  align?: 'left' | 'right'
+  tone?: 'muted' | 'text' | 'warn' | 'neg'
+  strong?: boolean
+}) {
+  const color = tone === 'text' ? t.neutrals.text
+    : tone === 'warn' ? t.accent.warn
+      : tone === 'neg' ? t.accent.neg
+        : t.neutrals.muted
   return (
-    <span
-      title={text || undefined}
-      style={{
-        fontFamily: t.font.mono, color: t.neutrals.muted,
-        fontSize: `calc(${TABLE_NUMERIC_SIZE}px * var(--fz, 1))`, whiteSpace: 'nowrap',
-      }}
-    >
-      {text ? (showYear ? text : text.slice(5)) : '-'}
+    <span style={{
+      textAlign: align, fontFamily: t.font.mono, color,
+      fontWeight: strong ? 500 : undefined,
+      fontVariantNumeric: 'tabular-nums',
+      fontSize: `calc(${TABLE_NUMERIC_SIZE}px * var(--fz, 1))`, whiteSpace: 'nowrap',
+    }}>
+      {children}
     </span>
   )
 }
 
+/** 'md'는 월-일, 'ymd'는 두 자리 연도까지. 원본 전체는 툴팁으로 남는다. */
+export function LTableDate({ value, format = 'md', tone }: {
+  value?: string | null
+  format?: 'md' | 'ymd' | 'full'
+  tone?: 'muted' | 'neg'
+}) {
+  const text = String(value ?? '')
+  const shown = !text ? '-'
+    : format === 'full' ? text
+      : format === 'ymd' ? text.slice(2)
+        : text.slice(5)
+  return <LTableMono tone={tone}><span title={text || undefined}>{shown}</span></LTableMono>
+}
+
 /** 부호 없이 값만 읽는 숫자 칸. 부호와 색이 필요하면 LTableAmount를 쓴다. */
-export function LTableNumber({ value, align = 'right' }: { value: number; align?: 'left' | 'right' }) {
-  return (
-    <span style={{
-      textAlign: align, fontWeight: 500, fontFamily: t.font.mono,
-      fontVariantNumeric: 'tabular-nums', color: t.neutrals.text,
-      fontSize: `calc(${TABLE_NUMERIC_SIZE}px * var(--fz, 1))`, whiteSpace: 'nowrap',
-    }}>
-      {Math.round(value).toLocaleString()}
-    </span>
-  )
+export function LTableNumber({ value, align = 'right', tone = 'text' }: {
+  value: number
+  align?: 'left' | 'right'
+  tone?: 'muted' | 'text' | 'warn' | 'neg'
+}) {
+  return <LTableMono align={align} tone={tone} strong>{Math.round(value).toLocaleString()}</LTableMono>
 }
 
 export function LTableAmount({

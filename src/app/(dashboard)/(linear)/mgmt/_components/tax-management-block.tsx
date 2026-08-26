@@ -6,7 +6,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableScroll, LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import type { FinanceTaxObligation, TaxObligationSource, TaxObligationStatus } from '@/types/finance-tax'
 
@@ -200,6 +200,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
       </div>
 
       <div style={{ padding: '0 16px 4px' }}>
+        <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} />
         {rows.length === 0 && <LTableEmpty>{year}년에 수집된 세금·4대보험 고지가 없습니다</LTableEmpty>}
         <LTableBody columns={COLUMNS} mobile={mobile}>
@@ -224,6 +225,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
             )
           })}
         </LTableBody>
+        </LTableScroll>
       </div>
 
       {/* Pagination */}

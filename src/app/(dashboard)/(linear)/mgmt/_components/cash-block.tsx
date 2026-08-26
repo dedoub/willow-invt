@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { LTableScroll } from '@/app/(dashboard)/_components/linear-table'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
@@ -413,6 +414,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
 
       {/* Transactions */}
       <div style={{ padding: '0 16px 16px' }}>
+        <LTableScroll minWidth={520}>
         {paged.length === 0 && (
           <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
             해당 기간 거래 내역이 없습니다
@@ -463,6 +465,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
             </div>
           )
         })}
+        </LTableScroll>
       </div>
 
       {/* Pagination */}

@@ -6,7 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
-import { LTableHead, LTableRow, LTableBody, LTableEmpty, LTableBadge, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableDate, LTableMono, LTableNumber, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswLoan } from '@/types/tensw-mgmt'
 
 interface LoanBlockProps {
@@ -169,6 +169,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
 
       {/* Loan rows */}
       <div style={{ padding: '0 16px 4px' }}>
+        <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>차입금 데이터가 없습니다</LTableEmpty>}
         <LTableBody columns={COLUMNS} mobile={mobile}>
@@ -195,36 +196,15 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                     </span>
                   )}
                 </span>
-                <span style={{
-                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
-                  color: t.neutrals.muted, whiteSpace: 'nowrap',
-                }}>
-                  {loan.loan_date ? loan.loan_date.slice(2) : '-'}
-                </span>
-                <span style={{
-                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
-                  color: maturityWarning ? t.accent.neg : t.neutrals.muted, whiteSpace: 'nowrap',
-                }}>
-                  {loan.maturity_date ? loan.maturity_date.slice(2) : '-'}
-                </span>
-                <span style={{
-                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
-                  color: t.neutrals.muted, whiteSpace: 'nowrap', textAlign: 'right',
-                }}>
+                <LTableDate value={loan.loan_date} format="ymd" />
+                <LTableDate value={loan.maturity_date} format="ymd" tone={maturityWarning ? 'neg' : 'muted'} />
+                <LTableMono align="right">
                   {loan.interest_rate != null ? `${loan.interest_rate}%` : '-'}
-                </span>
-                <span style={{
-                  fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono,
-                  color: t.accent.warn, whiteSpace: 'nowrap', textAlign: 'right',
-                }}>
+                </LTableMono>
+                <LTableMono align="right" tone="warn">
                   {monthlyInterest(loan)?.toLocaleString() ?? '-'}
-                </span>
-                <span style={{
-                  fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500,
-                  color: t.neutrals.text, whiteSpace: 'nowrap', textAlign: 'right',
-                }}>
-                  {loan.principal.toLocaleString()}
-                </span>
+                </LTableMono>
+                <LTableNumber value={loan.principal} />
                 <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
                   <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
                 </span>
@@ -310,6 +290,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
           )
         })}
         </LTableBody>
+        </LTableScroll>
       </div>
 
       {/* Pagination */}

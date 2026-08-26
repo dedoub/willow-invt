@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LTableScroll } from '@/app/(dashboard)/_components/linear-table'
 
 export interface ParsedTransaction {
   date: string
@@ -112,6 +113,7 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
 
         {/* Table */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
+          <LTableScroll minWidth={480}>
           {/* Table header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '28px 72px 44px 1fr 1.2fr auto',
@@ -166,6 +168,7 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
               </div>
             )
           })}
+          </LTableScroll>
         </div>
 
         {/* Footer */}

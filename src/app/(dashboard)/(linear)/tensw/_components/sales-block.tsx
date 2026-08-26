@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableRow, LTableBody, LTableEmpty, LTableBadge, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableDate, LTableNumber, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -268,6 +268,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
 
       {/* Invoice rows */}
       <div style={{ padding: '0 16px 4px' }}>
+        <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 연도 세금계산서가 없습니다</LTableEmpty>}
         <LTableBody columns={COLUMNS} mobile={mobile}>
@@ -279,9 +280,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
             <div key={inv.id}>
               <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setExpandedId(expanded ? null : inv.id)}>
                 <LTableBadge tone={tone}>{statusLabels[inv.payment_status] ?? inv.payment_status}</LTableBadge>
-                <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
-                  {inv.issue_date.slice(5)}
-                </span>
+                <LTableDate value={inv.issue_date} />
                 <span style={{ minWidth: 0, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {inv.counterparty}
                 </span>
@@ -290,13 +289,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                     {inv.notes ?? ''}
                   </span>
                 )}
-                <span style={{
-                  fontWeight: 500, fontVariantNumeric: 'tabular-nums', textAlign: 'right',
-                  color: t.neutrals.text, whiteSpace: 'nowrap', fontSize: 'calc(11px * var(--fz, 1))',
-                  fontFamily: t.font.mono,
-                }}>
-                  {inv.total_amount.toLocaleString()}
-                </span>
+                <LTableNumber value={inv.total_amount} />
                 <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
                   <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
                 </span>
@@ -395,6 +388,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
           )
         })}
         </LTableBody>
+        </LTableScroll>
       </div>
 
       {/* Pagination */}

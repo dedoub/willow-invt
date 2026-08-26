@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LTableDate, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LTableDate, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 
 interface BankBalance {
@@ -392,6 +392,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
 
       {/* Transactions */}
       <div style={{ padding: '0 16px 16px' }}>
+        <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 거래 내역이 없습니다</LTableEmpty>}
         <LTableBody columns={COLUMNS} mobile={mobile}>
@@ -436,6 +437,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
           )
         })}
         </LTableBody>
+        </LTableScroll>
       </div>
 
       {balanceModal && (
