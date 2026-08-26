@@ -94,7 +94,9 @@ if /opt/homebrew/bin/node "$RUNTIME/scripts/tensw-local-finance-poc.mjs" --colle
     && /opt/homebrew/bin/node "$RUNTIME/scripts/import-finance-tax-obligations.mjs" --company tensw --source hometax --input "$LOG_DIR/latest-hometax-national-tax.json" >> "$LOG_FILE" 2>&1 \
     && /opt/homebrew/bin/node "$RUNTIME/scripts/collect-woori-card-statement.mjs" >> "$LOG_FILE" 2>&1 \
     && /opt/homebrew/bin/node "$RUNTIME/scripts/import-tensw-local-card.mjs" >> "$LOG_FILE" 2>&1 \
-    && /opt/homebrew/bin/node "$RUNTIME/scripts/match-finance-tax-obligations.mjs" >> "$LOG_FILE" 2>&1; then
+    && /opt/homebrew/bin/node "$RUNTIME/scripts/match-finance-tax-obligations.mjs" >> "$LOG_FILE" 2>&1 \
+    && npx tsx "$ROOT/scripts/tensw-auto-classify.ts" >> "$LOG_FILE" 2>&1 \
+    && npx tsx "$ROOT/scripts/tensw-reconcile-payments.ts" >> "$LOG_FILE" 2>&1; then
     echo "$(date '+%Y-%m-%d %H:%M:%S') tensw local finance success" >> "$LOG_FILE"
     exit 0
   fi
