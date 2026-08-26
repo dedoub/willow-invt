@@ -54,23 +54,32 @@ export function buttonPoint(items, label, options = {}) {
   return textCenter(requireOcrText(items, label, options))
 }
 
-// The certificate list shows one row per certificate. Rows are matched by owner
-// so a reordered or newly imported certificate cannot silently select another
+// The certificate list shows one row per certificate. Rows are matched so a
+// reordered or newly imported certificate cannot silently select another
 // company's key.
-export function certificateRowPoint(items, ownerKeyword, options = {}) {
-  const owner = normalizeOcrText(ownerKeyword)
+//
+// More than one keyword is accepted because no single one survives every
+// dialog: 신한 truncates the owner name to "윌로우인베스...", Vision reads 윌 as 월,
+// and 위택스 prints the name in full. The issuing CA (SignKorea vs TradeSign) is
+// ASCII and never truncated, so it carries the match where the name cannot.
+export function certificateRowPoint(items, keywords, options = {}) {
+  const wanted = (Array.isArray(keywords) ? keywords : [keywords]).map(normalizeOcrText)
+  const label = (Array.isArray(keywords) ? keywords : [keywords]).join(' / ')
   const rows = items
     .filter(item => withinRect(item, options.within))
-    .filter(item => normalizeOcrText(item.text).includes(owner))
+    .filter(item => wanted.some(keyword => normalizeOcrText(item.text).includes(keyword)))
 
   if (rows.length === 0) {
-    throw new Error(`인증서 목록에서 "${ownerKeyword}" 인증서를 찾지 못했어요.`)
+    throw new Error(`인증서 목록에서 "${label}" 인증서를 찾지 못했어요.`)
   }
-  if (rows.length > 1) {
-    throw new Error(`"${ownerKeyword}" 인증서가 ${rows.length}건 보여서 어느 것인지 확정하지 못했어요.`)
+  // Several OCR fragments can land on one row — the name and the CA are separate
+  // items — so rows on the same line are one row, not an ambiguity.
+  const lines = [...new Map(rows.map(row => [Math.round(row.y / 6), row])).values()]
+  if (lines.length > 1) {
+    throw new Error(`"${label}" 인증서가 ${lines.length}건 보여서 어느 것인지 확정하지 못했어요.`)
   }
 
-  const row = rows[0]
+  const row = lines[0]
   return { x: Math.round(row.x + row.w / 2), y: Math.round(row.y + row.h / 2) }
 }
 
@@ -99,8 +108,18 @@ export function clickPlan(point, { windowIsKey }) {
   return windowIsKey ? [point] : [point, point]
 }
 
-export function maskedLengthMatches(expected, actual) {
-  return Number.isInteger(actual) && actual === expected
+/**
+ * 입력된 마스크 점 개수가 기대한 비밀번호 길이와 맞는지 본다.
+ *
+ * 일부 인증창은 칸 폭만큼만 점을 그리고 나머지는 넘겨버린다(신한 INISAFE 는 10개).
+ * 그런 칸에서는 그 이상을 눈으로 확인할 방법이 없으므로, 칸이 가득 찬 경우에 한해
+ * 통과시킨다. 모자란 입력은 여전히 막힌다 — 짧은 비밀번호를 제출하면 인증서가
+ * 잠기는 횟수를 한 번 쓰기 때문이다.
+ */
+export function maskedLengthMatches(expected, actual, capacity = null) {
+  if (!Number.isInteger(actual)) return false
+  if (actual === expected) return true
+  return Number.isInteger(capacity) && expected > capacity && actual === capacity
 }
 
 // Counts the masking glyphs in a password field. A typed keystroke can be

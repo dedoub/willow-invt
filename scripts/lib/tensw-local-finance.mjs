@@ -28,7 +28,13 @@ const COMPANIES = Object.freeze({
     keychainService: 'willow.tensw.hometax.certificate',
     keychainAccount: 'tensoftworks',
     certificateOwnerKeyword: '텐소',
+    // 인증서 목록에서 이 회사 줄을 고르는 후보. 발급기관은 ASCII라 OCR이 안정적이고
+    // 잘리지도 않아, 이름이 안 읽힐 때 이쪽이 매칭을 받는다.
+    certificateRowKeywords: Object.freeze(['텐소', 'TradeSign']),
     businessNumber: '8288800992',
+    // 로그인한 화면이 이 회사임을 알아보는 표시. 공용 포털에서 남의 세션을
+    // 물고 수집하는 사고를 막는다.
+    sessionMarkers: Object.freeze(['텐소프트웍스', 'Ten Softworks']),
     tables: Object.freeze({
       cash: 'tensw_mgmt_cash',
       bankBalances: 'tensw_mgmt_bank_balances',
@@ -69,8 +75,12 @@ const COMPANIES = Object.freeze({
     label: '윌로우인베스트먼트',
     keychainService: 'willow.willow.hometax.certificate',
     keychainAccount: 'willow-investments',
-    certificateOwnerKeyword: '윌로우',
+    // OCR reads 윌 as 월 in the certificate list, so the row is matched on a part
+    // of the name that survives it. It still matches the DOM text on 홈택스.
+    certificateOwnerKeyword: '인베스트먼트',
+    certificateRowKeywords: Object.freeze(['인베스트', 'SignKorea']),
     businessNumber: '2058801897',
+    sessionMarkers: Object.freeze(['윌로우인베스트먼트', '월로우인베스트먼트']),
     tables: Object.freeze({
       cash: 'willow_mgmt_cash',
       bankBalances: 'willow_mgmt_bank_balances',

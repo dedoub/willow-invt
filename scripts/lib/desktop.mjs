@@ -133,6 +133,30 @@ end tell`, { trim: false }).catch(() => '')
   return parseNativeWindows(output)
 }
 
+// screencapture reads the main display only, so a dialog the module opened on a
+// second monitor is invisible to OCR — the window is found by name but every
+// control lookup inside it fails. Dragging it back on screen costs nothing when
+// it is already there.
+export async function ensureOnMainDisplay(processName, windowName) {
+  const find = async () => (await nativeWindows(processName)).find(window => window.name === windowName)
+  const window = await find()
+  if (!window) return null
+
+  const onScreen = window.x >= 0 && window.y >= 0
+    && window.x + window.w <= LOGICAL_WIDTH
+    && window.y + window.h <= LOGICAL_HEIGHT
+  if (onScreen) return window
+
+  const x = Math.max(0, Math.round((LOGICAL_WIDTH - window.w) / 2))
+  const y = Math.max(0, Math.round((LOGICAL_HEIGHT - window.h) / 3))
+  await appleScript(
+    `tell application "System Events" to tell process ${appleScriptLiteral(processName)}`
+    + ` to set position of window ${appleScriptLiteral(windowName)} to {${x}, ${y}}`,
+  ).catch(() => {})
+  await sleep(400)
+  return await find()
+}
+
 export async function waitForNativeWindow(processName, windowName, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {

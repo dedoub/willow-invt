@@ -17,6 +17,7 @@ import { promisify } from 'node:util'
 import { certSite } from './lib/cert-sites.mjs'
 import { financeIdentity } from './lib/tensw-local-finance.mjs'
 import { isEmptyResultRow, wetaxObligationsPayload } from './lib/wetax.mjs'
+import { LOGOUT_SCRIPT, PAGE_TEXT_SCRIPT, SESSION_STATE, sessionState } from './lib/finance-session.mjs'
 import {
   chromeJavascript,
   chromeTabState,
@@ -43,10 +44,14 @@ async function pageScript(javascript) {
   return output
 }
 
+// 로그인 여부가 아니라 "누구로" 로그인됐는지를 본다.
+async function currentSessionState() {
+  const text = await pageScript(PAGE_TEXT_SCRIPT).catch(() => '')
+  return sessionState(text, IDENTITY.company)
+}
+
 async function isLoggedIn() {
-  const result = await pageScript(`(() => document.body.innerText.includes('로그아웃') ? 'yes' : 'no')()`)
-    .catch(() => 'no')
-  return result === 'yes'
+  return await currentSessionState() === SESSION_STATE.ours
 }
 
 async function ensureLogin() {
@@ -57,9 +62,18 @@ async function ensureLogin() {
   }
   await positionChromeWindow(HOST)
   await sleep(2_000)
-  if (await isLoggedIn()) {
+
+  const state = await currentSessionState()
+  if (state === SESSION_STATE.ours) {
     log('reused existing session')
     return
+  }
+  if (state === SESSION_STATE.other) {
+    log('다른 회사 세션이 열려 있어 로그아웃해요.')
+    await pageScript(LOGOUT_SCRIPT).catch(() => {})
+    await sleep(6_000)
+    await openChromeTab(SITE.url, HOST)
+    await sleep(6_000)
   }
 
   await execFileAsync('/opt/homebrew/bin/node', [path.join(ROOT, 'scripts', 'login-native-cert.mjs'), '--site', 'wetax'], {

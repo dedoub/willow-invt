@@ -65,6 +65,28 @@ test('anchoredPoint resolves the unreadable password field from its label', () =
   )
 })
 
+test('certificateRowPoint accepts several keywords and treats one line as one row', () => {
+  // 신한 truncates the name and Vision reads 윌 as 월, so the CA carries the match.
+  const within = { x: 759, y: 90, w: 402, h: 541 }
+  const rows = [
+    { text: '월로우인베스...', x: 780, y: 320, w: 90, h: 12 },
+    { text: 'SignKorea CA4', x: 880, y: 320, w: 80, h: 12 },
+    { text: '주식회사 텐소...', x: 780, y: 346, w: 90, h: 12 },
+    { text: 'TradeSignCA4', x: 880, y: 346, w: 80, h: 12 },
+  ]
+
+  const willow = certificateRowPoint(rows, ['인베스트', 'SignKorea'], { within })
+  assert.equal(willow.y, 326)
+  const tensw = certificateRowPoint(rows, ['텐소', 'TradeSign'], { within })
+  assert.equal(tensw.y, 352)
+
+  // 두 회사 인증서가 같은 CA라면 확정할 수 없으므로 그대로 실패해야 한다.
+  assert.throws(
+    () => certificateRowPoint(rows, ['CA'], { within }),
+    /어느 것인지 확정하지 못했어요/,
+  )
+})
+
 test('certificateRowPoint selects the row by owner, not by position', () => {
   const within = windowRect(CARD_WINDOW)
   const point = certificateRowPoint(CARD_DIALOG, '텐소', { within })
@@ -137,6 +159,18 @@ test('maskedLengthMatches rejects a short or unreadable field', () => {
   assert.equal(maskedLengthMatches(8, 8), true)
   assert.equal(maskedLengthMatches(8, 7), false)
   assert.equal(maskedLengthMatches(8, Number.NaN), false)
+})
+
+test('a field that fills up passes only at its exact capacity', () => {
+  // 신한 draws ten dots at most (2026-08-26 측정), 윌로우 비밀번호는 11자다.
+  assert.equal(maskedLengthMatches(11, 10, 10), true)
+  // 모자란 입력은 칸이 가득 차지 않았으므로 그대로 막는다.
+  assert.equal(maskedLengthMatches(11, 9, 10), false)
+  // 칸에 다 들어가는 길이라면 정확히 맞아야 한다.
+  assert.equal(maskedLengthMatches(10, 9, 10), false)
+  assert.equal(maskedLengthMatches(10, 10, 10), true)
+  // 용량이 선언되지 않은 창은 예전처럼 엄격하게 본다.
+  assert.equal(maskedLengthMatches(11, 10), false)
 })
 
 test('every registered site declares a URL, and a mechanism once it is ready', () => {

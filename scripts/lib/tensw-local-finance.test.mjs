@@ -59,7 +59,9 @@ test('financeIdentity separates Willow and Tensoftworks Keychain credentials', a
   const willow = financeIdentity({ FINANCE_COMPANY: 'willow' })
   assert.equal(willow.keychainService, 'willow.willow.hometax.certificate')
   assert.equal(willow.keychainAccount, 'willow-investments')
-  assert.equal(willow.certificateOwnerKeyword, '윌로우')
+  // OCR misreads 윌 as 월, so the keyword avoids that syllable.
+  assert.equal(willow.certificateOwnerKeyword, '인베스트먼트')
+  assert.ok('윌로우인베스트먼트((BizBank)0088'.includes(willow.certificateOwnerKeyword))
   assert.equal(willow.businessNumber, '2058801897')
 
   const tensw = financeIdentity({ FINANCE_COMPANY: 'tensw' })
@@ -101,7 +103,7 @@ test('certificateDirectories picks the company folder out of the NPKI tree', asy
   ]
 
   assert.deepEqual(certificateDirectories(tree, '텐소'), ['/npki/tradesign/tensw'])
-  assert.deepEqual(certificateDirectories(tree, '윌로우'), ['/npki/signkorea/willow'])
+  assert.deepEqual(certificateDirectories(tree, '인베스트먼트'), ['/npki/signkorea/willow'])
   // 인증서 주체명에는 공백이 들어가므로 공백을 지운 뒤 비교한다.
   assert.deepEqual(certificateDirectories(tree, '주식회사 텐소프트웍스'), ['/npki/tradesign/tensw'])
   assert.deepEqual(certificateDirectories(tree, '아크로스'), [])

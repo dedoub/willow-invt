@@ -60,6 +60,11 @@ export const CERT_SITES = Object.freeze({
     // the masking dots are counted in a band measured inside the field box.
     passwordField: { anchor: '인증서 암호', dx: 142, dy: 10 },
     maskRect: { dx: -60, dy: -7, w: 125, h: 14 },
+    // The box is ~125pt wide and draws one dot per ~12.5pt, so it fills at ten
+    // and anything past that is not drawn. Measured 2026-08-26: 5→5, 8→8,
+    // 10→10, 11→10, 16→10. 텐소's password is ten characters and verifies
+    // exactly; 윌로우's is eleven and can only be checked up to the tenth.
+    maskCapacity: 10,
     confirm: '확인',
     cancel: '취소',
     loggedOutMarker: '기업인터넷뱅킹',

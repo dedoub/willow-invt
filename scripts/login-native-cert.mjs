@@ -31,6 +31,7 @@ import {
   chromeTabState,
   click,
   clickSettled,
+  ensureOnMainDisplay,
   nativeWindows,
   ocrScreenshot,
   openChromeTab,
@@ -63,7 +64,11 @@ function log(message) {
 }
 
 async function readDialog(site) {
-  const window = await waitForNativeWindow(site.process, site.window, 30_000)
+  await waitForNativeWindow(site.process, site.window, 30_000)
+  // The module may have opened it on a second monitor, where screencapture
+  // cannot see it and every control lookup fails.
+  const window = await ensureOnMainDisplay(site.process, site.window)
+  if (!window) throw new Error(`${site.label} 인증서 창을 찾지 못했어요.`)
   // The window exists before it has painted its contents, and OCR of a blank
   // dialog finds none of the controls.
   await sleep(1_500)
@@ -76,7 +81,7 @@ async function readDialog(site) {
 // every later click is a real press.
 async function focusDialog(site) {
   await activateProcess(site.process)
-  const [window] = await nativeWindows(site.process)
+  const window = await ensureOnMainDisplay(site.process, site.window)
   if (!window) throw new Error(`${site.label} 인증서 창을 찾지 못했어요.`)
   await clickSettled(window.x + Math.round(window.w / 2), window.y + 12)
   await sleep(250)
@@ -170,7 +175,7 @@ async function dismissModuleAlert(site) {
 // old entry, so any leftover is closed before starting.
 async function closeStaleDialog(site) {
   await dismissModuleAlert(site)
-  const stale = (await nativeWindows(site.process)).find(window => window.name === site.window)
+  const stale = await ensureOnMainDisplay(site.process, site.window)
   if (!stale) return
   const items = await ocrScreenshot(await captureScreen(SCRATCH))
   const point = buttonPoint(items, site.cancel, { within: windowRect(stale) })
@@ -216,9 +221,15 @@ async function enterPassword(site, dialog) {
   await sleep(800)
 
   const refreshed = await readDialog(site)
-  const row = certificateRowPoint(refreshed.items, IDENTITY.certificateOwnerKeyword, { within: refreshed.within })
+  const row = certificateRowPoint(refreshed.items, IDENTITY.certificateRowKeywords, { within: refreshed.within })
   await clickSettled(row.x, row.y)
   await sleep(500)
+
+  // Moving the window onto the main display can leave the module without key
+  // focus, and Cmd+V then pastes into whatever is frontmost instead — the field
+  // looks focused but stays empty.
+  await activateProcess(site.process)
+  await sleep(300)
 
   const field = anchoredPoint(refreshed.items, site.passwordField, { within: refreshed.within })
   await clickSettled(field.x, field.y)
@@ -235,11 +246,14 @@ async function enterPassword(site, dialog) {
   const rect = maskRect(field, site.maskRect)
   const rgb = await captureLogicalRgb(SCRATCH)
   const masked = countMaskGlyphs(rgb, rect)
-  if (!maskedLengthMatches([...password].length, masked)) {
+  const expected = [...password].length
+  if (!maskedLengthMatches(expected, masked, site.maskCapacity)) {
     await clearField(password.length)
-    throw new Error(`입력된 비밀번호 길이가 달라 제출하지 않았어요: expected=${[...password].length}, actual=${masked}`)
+    throw new Error(`입력된 비밀번호 길이가 달라 제출하지 않았어요: expected=${expected}, actual=${masked}`)
   }
-  log(`password mask validated: length=${masked}`)
+  log(masked === expected
+    ? `password mask validated: length=${masked}`
+    : `password mask saturated at ${masked}; 칸이 가득 차 ${expected}자를 다 확인하지는 못했어요.`)
   return { refreshed, password }
 }
 

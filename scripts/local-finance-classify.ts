@@ -82,6 +82,8 @@ const COMPANIES = {
     cash: 'tensw_mgmt_cash',
     balances: 'tensw_mgmt_bank_balances',
     invoices: 'tensw_codef_tax_invoices',
+    // 매출관리 화면에서 사람이 확인해 승격한 계산서만 대조한다 — 취소·검토중을 뺀다.
+    invoiceStatuses: ['promoted', 'linked'],
     transferPattern: /운영비이체/,
     patterns: [
       { re: /우리카드/, counterparty: '우리카드', description: '법인카드 대금 결제' },
@@ -99,6 +101,9 @@ const COMPANIES = {
     cash: 'willow_mgmt_cash',
     balances: 'willow_mgmt_bank_balances',
     invoices: 'willow_finance_tax_invoices',
+    // 윌로우는 매출관리 화면이 없어 승격 단계 자체가 없다. 수집분은 홈택스에서
+    // 그대로 온 정본이므로 'new' 도 대조 대상에 넣는다.
+    invoiceStatuses: ['new', 'promoted', 'linked'],
     // 윌로우는 계좌가 신한 한 곳이라 자사 계좌간 이체가 없다.
     transferPattern: null as RegExp | null,
     patterns: [
@@ -187,7 +192,7 @@ async function main() {
     .from(CONFIG.invoices)
     .select('transe_type, issue_date, supplier_company, contractor_company, total_amount, rep_items, status')
     .gte('issue_date', since)
-    .in('status', ['promoted', 'linked'])
+    .in('status', CONFIG.invoiceStatuses)
   if (invErr) throw new Error(`세금계산서 조회 실패: ${invErr.message}`)
   const invoices = (invData ?? []).map(v => ({ ...v, total_amount: Number(v.total_amount) }))
 
