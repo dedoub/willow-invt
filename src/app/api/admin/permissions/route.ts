@@ -13,6 +13,7 @@ export const AVAILABLE_PAGES = [
   { path: '/tensw',      section: 'tenSoftworks', name: '텐소프트웍스' },
   { path: '/voicecards',  section: 'monoRApps',    name: 'VoiceCards' },
   { path: '/reviewnotes', section: 'monoRApps',    name: 'ReviewNotes' },
+  { path: '/scripta',     section: 'monoRApps',    name: 'Scripta' },
   { path: '/ryuha',      section: 'others',       name: '류하일정' },
 ]
 
