@@ -36,80 +36,110 @@ export function artifactLabels(config) {
 }
 
 /**
- * 수집 결과를 한 줄씩으로 요약한다.
+ * 어느 수집 단계가 오늘 결과를 내놓지 못했는지 가린다.
  *
- * @param {object} artifacts 파일 이름 → 파싱한 JSON (없으면 null)
- * @param {object} config 회사 레지스트리 항목
+ * 숫자는 여기서 만들지 않는다. 잔액·미납·미수는 오늘 수집이 돌았는지와 무관한
+ * 현재 상태라, 파일이 아니라 DB 에서 읽는다.
  */
-export function summaryLines(artifacts, config, now = new Date()) {
-  const lines = []
+export function collectionGaps(artifacts, config, now = new Date()) {
+  const labels = artifactLabels(config)
   const stale = []
   const missing = []
-  const labels = artifactLabels(config)
 
-  const take = (name) => {
+  for (const [name, label] of Object.entries(labels)) {
     const payload = artifacts[name]
-    if (!payload) {
-      missing.push(labels[name] ?? name)
-      return null
+    if (!payload) missing.push(label)
+    else if (!isFresh(payload.collected_at, now)) stale.push(label)
+  }
+  return { stale: [...new Set(stale)], missing: [...new Set(missing)] }
+}
+
+/** 원화는 반올림, 외화는 소수 그대로. 4.62 를 5로 적으면 잔액이 아니다. */
+export function formatMoney(amount, currency = 'KRW') {
+  return currency === 'KRW'
+    ? `${formatCount(Math.round(Number(amount ?? 0)))}원`
+    : `${Number(amount ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency}`
+}
+
+/** 잔액이 이보다 적은 계좌는 이름을 대지 않고 합계에만 넣는다. */
+const NAMEABLE_BALANCE = { KRW: 1_000_000, default: 0.01 }
+const MAX_NAMED_ACCOUNTS = 3
+
+/**
+ * 통화별로 합계를 내고, 돈이 실제로 들어 있는 계좌만 이름을 댄다.
+ * 텐소프트웍스는 계좌가 9개인데 대부분 0원이라, 전부 적으면 알림이 잔액 목록이
+ * 되어 정작 봐야 할 미납·미수가 묻힌다.
+ */
+export function balanceLines(balances) {
+  const byCurrency = new Map()
+  for (const account of balances) {
+    const currency = account.currency ?? 'KRW'
+    if (!byCurrency.has(currency)) byCurrency.set(currency, [])
+    byCurrency.get(currency).push(account)
+  }
+
+  // 통화 표기가 라벨에 이미 붙어 있으면 금액에서 또 읽히지 않게 뗀다.
+  const shortLabel = label => String(label ?? '').replace(/\s*\([A-Z]{3}\)\s*$/, '').trim()
+
+  const lines = []
+  // 원화가 본 계좌이므로 먼저 적는다.
+  const currencies = [...byCurrency.keys()].sort((a, b) => (a === 'KRW' ? -1 : b === 'KRW' ? 1 : 0))
+  for (const currency of currencies) {
+    const accounts = byCurrency.get(currency)
+    const total = accounts.reduce((sum, account) => sum + Number(account.balance ?? 0), 0)
+
+    // 계좌가 하나면 합계와 계좌가 같은 숫자다. 두 번 적지 않는다.
+    if (accounts.length === 1) {
+      lines.push(`잔액 ${shortLabel(accounts[0].label)} ${formatMoney(total, currency)}`)
+      continue
     }
-    if (!isFresh(payload.collected_at, now)) {
-      stale.push(labels[name] ?? name)
-      return null
+
+    const threshold = NAMEABLE_BALANCE[currency] ?? NAMEABLE_BALANCE.default
+    const named = accounts
+      .filter(account => Number(account.balance ?? 0) >= threshold)
+      .sort((a, b) => Number(b.balance) - Number(a.balance))
+      .slice(0, MAX_NAMED_ACCOUNTS)
+
+    if (named.length === 0) {
+      lines.push(`잔액 ${formatMoney(total, currency)}`)
+      continue
     }
-    return payload
+    const detail = named
+      .map(account => `${shortLabel(account.label)} ${formatMoney(account.balance, currency)}`)
+      .join(' · ')
+    const rest = accounts.length - named.length
+    lines.push(`잔액 ${formatMoney(total, currency)} (${detail}${rest > 0 ? ` 외 ${rest}개` : ''})`)
+  }
+  return lines
+}
+
+/**
+ * 지금 남아 있는 것만 적는다 — 잔액, 나갈 돈(카드 청구·세금 미납), 받을 돈(미수).
+ * 몇 건 수집했는지는 [오늘 추가]가 말하므로 여기서 다시 세지 않는다.
+ */
+export function outstandingLines(outstanding) {
+  if (!outstanding) return []
+  const lines = []
+
+  lines.push(...balanceLines(outstanding.balances ?? []))
+
+  const billing = outstanding.cardBilling
+  if (billing && Number(billing.amount) > 0) {
+    lines.push(`카드 청구 ${formatMoney(billing.amount)}${billing.dueDate ? ` (${billing.dueDate} 결제)` : ''}`)
   }
 
-  const invoices = take('latest-tax-invoices.json')
-  if (invoices) {
-    const sales = invoices.sales?.length ?? 0
-    const purchases = invoices.purchases?.length ?? 0
-    lines.push(`세금계산서 매출 ${formatCount(sales)}건 · 매입 ${formatCount(purchases)}건`)
+  const tax = outstanding.taxUnpaid
+  if (tax && Number(tax.count) > 0) {
+    const detail = (tax.bySource ?? []).map(item => `${item.label} ${formatCount(item.count)}`).join(' · ')
+    lines.push(`세금 미납 ${formatMoney(tax.amount)}${detail ? ` (${detail})` : ''}`)
   }
 
-  for (const bank of config.banks) {
-    const accounts = take(bank.accountsFile)
-    const transactions = take(bank.transactionsFile)
-    if (!accounts && !transactions) continue
-    const balance = (accounts?.accounts ?? [])
-      .filter(account => (account.currency ?? 'KRW') === 'KRW')
-      .reduce((sum, account) => sum + Number(account.balance ?? 0), 0)
-    lines.push(
-      `${bank.bankName} 계좌 ${formatCount(accounts?.accounts?.length)}개 · `
-      + `거래 ${formatCount(transactions?.transactions?.length)}건 · 잔액 ${formatCount(Math.round(balance))}원`,
-    )
+  const receivable = outstanding.receivable
+  if (receivable && Number(receivable.count) > 0) {
+    lines.push(`매출 미수 ${formatMoney(receivable.amount, receivable.currency)} (${formatCount(receivable.count)}건)`)
   }
 
-  const approvals = take(config.card.approvalsFile)
-  if (approvals) {
-    lines.push(
-      `${config.card.cardName} 승인 ${formatCount(approvals.raw_count ?? approvals.rows?.length)}건 · `
-      + `순액 ${formatCount(approvals.net_krw_amount)}원`,
-    )
-  }
-  const statement = take(config.card.statementFile)
-  if (statement) {
-    const billed = statement.billed_amount ?? statement.total_amount
-    lines.push(`${config.card.cardName} 청구 ${formatCount(billed)}원 (결제일 ${statement.payment_date ?? statement.payment_due_date ?? '-'})`)
-  }
-
-  for (const [name, label] of [
-    ['latest-hometax-national-tax.json', '국세'],
-    ['latest-wetax-obligations.json', '지방세'],
-    ['latest-nhis-obligations.json', '4대보험'],
-  ]) {
-    const payload = take(name)
-    if (!payload) continue
-    const items = payload.obligations ?? []
-    const unpaid = items.filter(item => item.status === 'unpaid')
-    const unpaidTotal = unpaid.reduce((sum, item) => sum + Number(item.amount ?? 0), 0)
-    lines.push(unpaid.length > 0
-      ? `${label} ${formatCount(items.length)}건 · 미납 ${formatCount(unpaid.length)}건 ${formatCount(unpaidTotal)}원`
-      : `${label} ${formatCount(items.length)}건 · 미납 없음`)
-  }
-
-  // 같은 항목이 두 번 들어가지 않게 정리한다.
-  return { lines, stale: [...new Set(stale)], missing: [...new Set(missing)] }
+  return lines
 }
 
 /**
@@ -140,8 +170,8 @@ export function dailyLines(daily) {
 /**
  * 보낼 메시지 전문. 실패면 어느 단계에서 멈췄는지가 가장 중요한 정보라 맨 앞에 둔다.
  */
-export function notifyMessage({ company, label, status, step, artifacts, config, now = new Date(), logFile, daily }) {
-  const { lines, stale, missing } = summaryLines(artifacts, config, now)
+export function notifyMessage({ company, label, status, step, artifacts, config, now = new Date(), logFile, daily, outstanding }) {
+  const { stale, missing } = collectionGaps(artifacts, config, now)
   const head = status === 'ok'
     ? `✅ ${label} 재무 자동화 완료`
     : `⚠️ ${label} 재무 자동화 실패`
@@ -156,13 +186,11 @@ export function notifyMessage({ company, label, status, step, artifacts, config,
     body.push(...added.map(line => `· ${line}`))
   }
 
-  if (lines.length > 0) {
+  const standing = outstandingLines(outstanding)
+  if (standing.length > 0) {
     body.push('')
-    body.push('[누적]')
-    body.push(...lines.map(line => `· ${line}`))
-  } else if (status === 'ok') {
-    body.push('')
-    body.push('· 가져온 내용을 확인하지 못했어요. 로그를 봐야 해요.')
+    body.push('[현재]')
+    body.push(...standing.map(line => `· ${line}`))
   }
 
   // 오래된 파일을 오늘 수집분처럼 세면 문제가 없는 것처럼 보인다. 무엇이 빠졌는지

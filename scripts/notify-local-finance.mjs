@@ -41,6 +41,15 @@ function startOfToday(now = new Date()) {
   return start.toISOString()
 }
 
+async function selectRows(url, key, table, filters) {
+  const query = new URLSearchParams(filters).toString()
+  const response = await fetch(`${url}/rest/v1/${table}?${query}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+  })
+  if (!response.ok) return []
+  return response.json()
+}
+
 async function countRows(url, key, table, filters) {
   const query = new URLSearchParams({ select: 'id', ...filters }).toString()
   const response = await fetch(`${url}/rest/v1/${table}?${query}`, {
@@ -67,6 +76,85 @@ async function dailyCounts(url, key, company, config) {
     countRows(url, key, config.tables.transactions, { status: 'eq.new' }),
   ])
   return { transactions, cardApprovals, taxInvoices, taxObligations, cash, pending }
+}
+
+/**
+ * 지금 남아 있는 것. 오늘 수집이 돌았는지와 무관한 값이라 산출물 파일이 아니라
+ * DB 에서 읽는다 — 수집이 실패한 날에도 잔액과 미납은 그대로 알려야 한다.
+ */
+async function outstandingState(url, key, company, config) {
+  const [balances, billing, unpaid] = await Promise.all([
+    selectRows(url, key, config.tables.bankBalances, {
+      select: 'bank_name,account_number,balance,balance_date',
+    }),
+    selectRows(url, key, config.tables.cardBilling, {
+      select: 'billing_month,payment_due_date,total_amount',
+      order: 'billing_month.desc',
+      limit: '1',
+    }),
+    selectRows(url, key, 'finance_tax_obligations', {
+      select: 'source,amount',
+      company: `eq.${company}`,
+      status: 'eq.unpaid',
+    }),
+  ])
+
+  const SOURCE_LABEL = { hometax: '국세', wetax: '지방세', nhis: '4대보험' }
+  const bySource = []
+  for (const row of unpaid) {
+    const label = SOURCE_LABEL[row.source] ?? row.source
+    const found = bySource.find(item => item.label === label)
+    if (found) found.count += 1
+    else bySource.push({ label, count: 1 })
+  }
+
+  return {
+    balances: balances.map(row => ({
+      // 계좌 라벨에 통화가 붙어 있으면 그걸로 통화를 가린다.
+      label: row.account_number ?? row.bank_name,
+      balance: Number(row.balance ?? 0),
+      currency: /\(([A-Z]{3})\)/.exec(row.account_number ?? '')?.[1] ?? 'KRW',
+    })),
+    cardBilling: billing[0]
+      ? { amount: Number(billing[0].total_amount), dueDate: billing[0].payment_due_date }
+      : null,
+    taxUnpaid: {
+      count: unpaid.length,
+      amount: unpaid.reduce((sum, row) => sum + Number(row.amount ?? 0), 0),
+      bySource,
+    },
+    receivable: await receivableState(url, key, company, config),
+  }
+}
+
+/**
+ * 받을 돈. 회사마다 어디에 적히는지가 달라 따로 읽는다.
+ *   텐소프트웍스 — 매출관리에서 사람이 수금상태를 관리한다(부분수금 포함).
+ *   윌로우      — 국내 계산서는 수금상태를 따로 관리하지 않아, 해외 인보이스만 센다.
+ */
+async function receivableState(url, key, company) {
+  if (company === 'tensw') {
+    const rows = await selectRows(url, key, 'tensw_mgmt_sales', {
+      select: 'total_amount,paid_amount,payment_status,invoice_type',
+      payment_status: 'eq.pending',
+    })
+    const sales = rows.filter(row => (row.invoice_type ?? 'sales') !== 'purchase')
+    return {
+      count: sales.length,
+      amount: sales.reduce((sum, row) => sum + (Number(row.total_amount) - Number(row.paid_amount ?? 0)), 0),
+      currency: 'KRW',
+    }
+  }
+
+  const rows = await selectRows(url, key, 'willow_invoices', {
+    select: 'total_amount,currency,status',
+    status: 'neq.paid',
+  })
+  return {
+    count: rows.length,
+    amount: rows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0),
+    currency: rows[0]?.currency ?? 'USD',
+  }
 }
 
 async function run() {
@@ -99,6 +187,7 @@ async function run() {
 
   // 세는 데 실패해도 알림 자체는 나가야 한다.
   const daily = await dailyCounts(url, key, company, config).catch(() => null)
+  const outstanding = await outstandingState(url, key, company, config).catch(() => null)
 
   const message = notifyMessage({
     company,
@@ -108,6 +197,7 @@ async function run() {
     artifacts,
     config,
     daily,
+    outstanding,
     logFile: path.join(artifactDir, 'launchd.log'),
   })
 

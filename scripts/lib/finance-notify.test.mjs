@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { dailyLines, isFresh, notifyMessage, summaryLines } from './finance-notify.mjs'
+import {
+  balanceLines, collectionGaps, dailyLines, isFresh, notifyMessage, outstandingLines,
+} from './finance-notify.mjs'
 import { financeCompany } from './tensw-local-finance.mjs'
 
 const NOW = new Date('2026-08-26T20:40:00+09:00')
@@ -42,27 +44,18 @@ test('isFresh는 지난 실행에 남은 파일을 오늘 것으로 세지 않�
   assert.equal(isFresh('어제', NOW), false)
 })
 
-test('summaryLines는 수집기가 남긴 파일만 세고 오래된 건 따로 표시한다', () => {
-  const { lines, stale } = summaryLines(willowArtifacts(), WILLOW, NOW)
-
-  assert.ok(lines.some(line => line.includes('세금계산서 매출 1건 · 매입 0건')))
-  // 외화 잔액은 원화 합계에 섞지 않는다.
-  assert.ok(lines.some(line => line.includes('신한은행 계좌 2개 · 거래 10건 · 잔액 5,055,096원')))
-  assert.ok(lines.some(line => line.includes('KB카드 승인 170건 · 순액 7,077,778원')))
-  assert.ok(lines.some(line => line.includes('KB카드 청구 8,803,242원 (결제일 2026-08-27)')))
-  assert.ok(lines.some(line => line.includes('국세 0건 · 미납 없음')))
-  assert.ok(lines.some(line => line.includes('4대보험 2건 · 미납 1건 517,680원')))
-  assert.deepEqual(stale, [])
-  assert.deepEqual(summaryLines(willowArtifacts(), WILLOW, NOW).missing, [])
+test('오늘 결과를 낸 단계는 빠짐으로 잡히지 않는다', () => {
+  const gaps = collectionGaps(willowArtifacts(), WILLOW, NOW)
+  assert.deepEqual(gaps.stale, [])
+  assert.deepEqual(gaps.missing, [])
 })
 
-test('오래된 파일은 숫자로 세지 않고 이름을 대서 알린다', () => {
+test('오래된 파일은 이름을 대서 알린다', () => {
   const artifacts = willowArtifacts({
     'latest-kb-card-approvals.json': { collected_at: OLD, raw_count: 999, net_krw_amount: 1 },
   })
-  const { lines, stale } = summaryLines(artifacts, WILLOW, NOW)
+  const { stale } = collectionGaps(artifacts, WILLOW, NOW)
 
-  assert.ok(!lines.some(line => line.includes('999')))
   // 파일 이름이 아니라 사람이 읽는 이름이어야 어디를 볼지 안다.
   assert.deepEqual(stale, ['KB카드 승인내역'])
   assert.match(notifyMessage({
@@ -76,7 +69,7 @@ test('아예 없는 파일도 이름을 대서 알린다 — 조용히 빠지면
   delete artifacts['latest-shinhan-accounts.json']
   delete artifacts['latest-shinhan-transactions.json']
 
-  const { missing } = summaryLines(artifacts, WILLOW, NOW)
+  const { missing } = collectionGaps(artifacts, WILLOW, NOW)
   assert.deepEqual(missing, ['신한은행 계좌', '신한은행 거래내역'])
   assert.match(notifyMessage({
     company: 'willow', label: '윌로우인베스트먼트', status: 'ok',
@@ -84,15 +77,17 @@ test('아예 없는 파일도 이름을 대서 알린다 — 조용히 빠지면
   }), /오늘 못 가져온 항목: 신한은행 계좌, 신한은행 거래내역/)
 })
 
-test('성공 알림은 무엇을 몇 건 가져왔는지 함께 보낸다', () => {
+test('성공 알림은 오늘 추가와 현재 상태를 함께 보낸다', () => {
   const message = notifyMessage({
     company: 'willow', label: '윌로우인베스트먼트', status: 'ok',
     artifacts: willowArtifacts(), config: WILLOW, now: NOW,
+    daily: { transactions: 10 },
+    outstanding: { cardBilling: { amount: 8_803_242, dueDate: '2026-08-27' } },
   })
 
   assert.match(message, /^✅ 윌로우인베스트먼트 재무 자동화 완료/)
   assert.ok(!message.includes('멈춘 단계'))
-  assert.ok(message.includes('· KB카드 청구 8,803,242원'))
+  assert.ok(message.includes('· 카드 청구 8,803,242원 (2026-08-27 결제)'))
 })
 
 test('실패 알림은 어느 단계에서 멈췄는지를 맨 앞에 둔다', () => {
@@ -140,7 +135,6 @@ test('세는 데 실패해도 알림은 나간다', () => {
     artifacts: willowArtifacts(), config: WILLOW, now: NOW, daily: null,
   })
   assert.ok(!message.includes('[오늘 추가]'))
-  assert.ok(message.includes('[누적]'))
 })
 
 test('오늘 추가가 누적보다 먼저 온다 — 어제와 뭐가 달라졌는지가 먼저다', () => {
@@ -148,8 +142,70 @@ test('오늘 추가가 누적보다 먼저 온다 — 어제와 뭐가 달라졌
     company: 'willow', label: '윌로우인베스트먼트', status: 'ok',
     artifacts: willowArtifacts(), config: WILLOW, now: NOW,
     daily: { transactions: 3, cardApprovals: 12, pending: 1 },
+    outstanding: { taxUnpaid: { count: 1, amount: 62_500, bySource: [{ label: '지방세', count: 1 }] } },
   })
-  assert.ok(message.indexOf('[오늘 추가]') < message.indexOf('[누적]'))
+  assert.ok(message.indexOf('[오늘 추가]') < message.indexOf('[현재]'))
   assert.match(message, /· 계좌 거래내역 3건 · 카드 승인내역 12건/)
   assert.match(message, /· 판단 대기 1건/)
+})
+
+test('잔액은 통화별 합계로 적고 돈이 든 계좌만 이름을 댄다', () => {
+  // 텐소는 계좌가 9개인데 대부분 0원이다. 전부 적으면 미납·미수가 묻힌다.
+  const lines = balanceLines([
+    { label: '우리 1005-704-524272', balance: 20, currency: 'KRW' },
+    { label: '우리 1005-204-474909', balance: 0, currency: 'KRW' },
+    { label: '신한 140-013-150883', balance: 46_374_940, currency: 'KRW' },
+    { label: '우리 1005-903-636048', balance: 21_037_862, currency: 'KRW' },
+    { label: '우리 1005-403-461450', balance: 8_281_398, currency: 'KRW' },
+  ])
+
+  assert.equal(lines.length, 1)
+  assert.match(lines[0], /^잔액 75,694,220원 \(/)
+  assert.match(lines[0], /신한 140-013-150883 46,374,940원/)
+  assert.match(lines[0], /외 2개\)$/)
+})
+
+test('계좌가 하나면 합계를 두 번 적지 않는다', () => {
+  assert.deepEqual(
+    balanceLines([{ label: '신한 140-013-427476', balance: 5_055_096, currency: 'KRW' }]),
+    ['잔액 신한 140-013-427476 5,055,096원'],
+  )
+})
+
+test('외화는 소수를 살리고 라벨의 통화 표기는 지운다', () => {
+  assert.deepEqual(
+    balanceLines([{ label: '신한 180-011-030723 (USD)', balance: 4.62, currency: 'USD' }]),
+    ['잔액 신한 180-011-030723 4.62 USD'],
+  )
+})
+
+test('원화를 먼저 적는다 — 본 계좌가 앞에 와야 한다', () => {
+  const lines = balanceLines([
+    { label: '신한 (USD)', balance: 4.62, currency: 'USD' },
+    { label: '신한 140', balance: 5_055_096, currency: 'KRW' },
+  ])
+  assert.match(lines[0], /5,055,096원/)
+  assert.match(lines[1], /USD/)
+})
+
+test('현재 상태는 남아 있는 것만 적는다', () => {
+  const lines = outstandingLines({
+    balances: [{ label: '신한 140', balance: 5_055_096, currency: 'KRW' }],
+    cardBilling: { amount: 8_803_242, dueDate: '2026-08-27' },
+    taxUnpaid: { count: 4, amount: 1_253_620, bySource: [{ label: '지방세', count: 1 }, { label: '4대보험', count: 3 }] },
+    receivable: { count: 0, amount: 0, currency: 'KRW' },
+  })
+
+  assert.deepEqual(lines, [
+    '잔액 신한 140 5,055,096원',
+    '카드 청구 8,803,242원 (2026-08-27 결제)',
+    '세금 미납 1,253,620원 (지방세 1 · 4대보험 3)',
+  ])
+  // 0건인 미수는 적지 않는다.
+  assert.ok(!lines.some(line => line.includes('미수')))
+})
+
+test('미수는 통화를 지켜 적는다 — 윌로우는 해외 인보이스가 USD다', () => {
+  const lines = outstandingLines({ receivable: { count: 2, amount: 7_401.21, currency: 'USD' } })
+  assert.deepEqual(lines, ['매출 미수 7,401.21 USD (2건)'])
 })
