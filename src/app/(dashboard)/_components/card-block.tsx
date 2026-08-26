@@ -8,10 +8,10 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
-import { TenswCardApproval, TenswCardBilling } from '@/types/tensw-mgmt'
+import { CardApproval, CardBilling } from '@/types/finance-card'
 
 // 구분 배지가 늘 1열이다. 다른 표들과 배지 열 위치를 맞춘다.
-const COLUMNS: LColumn<TenswCardApproval>[] = [
+const COLUMNS: LColumn<CardApproval>[] = [
   { key: 'category', label: '구분', width: '72px', sortValue: a => classify(a.store_name, a.store_type).label },
   { key: 'date', label: '날짜', width: '46px', sortValue: a => a.used_date, sortFirst: 'desc' },
   { key: 'store', label: '가맹점', width: 'minmax(0,1.6fr)', sortValue: a => a.store_name ?? '' },
@@ -19,7 +19,8 @@ const COLUMNS: LColumn<TenswCardApproval>[] = [
 ]
 
 const DEFAULT_PAGE_SIZE = 8
-const PAGE_SIZE_KEY = 'tensw-card-page-size'
+// 두 회사가 같은 화면을 쓰므로 행수·정렬 기억은 회사별로 나눈다.
+const pageSizeKeyFor = (storageKey: string) => `${storageKey}-page-size`
 
 // 사용액은 두 기준이 있고 숫자가 다르다. 축도 다르다.
 //   billing  = 이용명세서. 청구월(=결제월) 기준. 할부·연회비·해외이용이 반영된 실제 결제액.
@@ -131,39 +132,41 @@ function billingMonthKey(billingMonth: string): string {
   return `${billingMonth.slice(0, 4)}-${billingMonth.slice(4, 6)}`
 }
 
-function getStoredPageSize(): number {
+function getStoredPageSize(storageKey: string): number {
   if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
-  const v = localStorage.getItem(PAGE_SIZE_KEY)
+  const v = localStorage.getItem(pageSizeKeyFor(storageKey))
   const n = Number(v)
   return n >= 1 && n <= 100 ? n : DEFAULT_PAGE_SIZE
 }
 
 interface CardBlockProps {
-  approvals: TenswCardApproval[]
-  billing: TenswCardBilling[]
+  approvals: CardApproval[]
+  billing: CardBilling[]
   year: number
   onYearChange: (year: number) => void
+  /** 회사별로 행수·정렬 기억을 나눈다. */
+  storageKey?: string
   style?: React.CSSProperties
 }
 
-export function CardBlock({ approvals, billing, year, onYearChange, style }: CardBlockProps) {
+export function CardBlock({ approvals, billing, year, onYearChange, storageKey = 'tensw-card', style }: CardBlockProps) {
   const mobile = useIsMobile()
   const [basis, setBasis] = useState<Basis>('billing')
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
+  const [pageSize, setPageSize] = useState(() => getStoredPageSize(storageKey))
+  const [pageSizeInput, setPageSizeInput] = useState(() => String(getStoredPageSize(storageKey)))
   const [category, setCategory] = useState<string>('all')
-  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswCardApproval>('tensw-card', COLUMNS)
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<CardApproval>(storageKey, COLUMNS)
 
   const commitPageSize = () => {
     const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
     setPageSizeInput(String(n))
     setPageSize(n)
     setPage(0)
-    localStorage.setItem(PAGE_SIZE_KEY, String(n))
+    localStorage.setItem(pageSizeKeyFor(storageKey), String(n))
   }
 
   const [rangeStart, rangeEnd] = useMemo(() => getDateRange(baseDate, periodMode), [baseDate, periodMode])

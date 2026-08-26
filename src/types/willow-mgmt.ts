@@ -79,3 +79,41 @@ export interface WillowMgmtTask {
   order_index: number
   created_at: string
 }
+
+/** 홈택스에서 수집한 전자세금계산서. 윌로우는 수금상태를 사람이 관리하는 매출관리
+ *  테이블이 없어 이 수집분이 그대로 정본이다. */
+export interface WillowTaxInvoice {
+  id: string
+  transe_type: 'sales' | 'purchase'
+  reporting_date: string
+  issue_date: string | null
+  supplier_company: string | null
+  supplier_reg_number: string | null
+  contractor_company: string | null
+  contractor_reg_number: string | null
+  rep_items: string | null
+  supply_amount: number
+  tax_amount: number
+  total_amount: number
+  invoice_kind: string | null
+  receipt_or_charge: string | null
+  approval_no: string | null
+  /** 매출이면 공급받는자, 매입이면 공급자. API에서 채워 준다. */
+  counterparty: string | null
+  counterparty_reg_number: string | null
+}
+
+/** ETC(Exchange Traded Concepts)에 발행하는 해외 인보이스. /etc 페이지에서 만들고
+ *  경영관리 매출관리에서 국내 세금계산서와 함께 본다. */
+export interface WillowInvoice {
+  id: string
+  invoice_no: string
+  invoice_date: string
+  bill_to_company: string
+  attention: string | null
+  line_items: Array<{ description: string; amount: number }> | null
+  total_amount: number
+  currency: string
+  status: string
+  paid_at: string | null
+}

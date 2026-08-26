@@ -138,33 +138,5 @@ export interface TenswLoan {
   updated_at: string
 }
 
-export interface TenswCardApproval {
-  id: string
-  used_date: string
-  used_time: string | null
-  card_no: string
-  store_name: string | null
-  store_type: string | null
-  store_corp_no: string | null
-  amount: number
-  /** 원화 환산 금액. 국내 건은 amount와 같다. 합산은 반드시 이 값으로 한다. */
-  krw: number
-  home_foreign_type: string | null
-  vat: number | null
-  payment_type: string | null
-  installment_month: string | null
-  cancel_yn: string | null
-  cancel_amount: number | null
-}
-
-export interface TenswCardBilling {
-  billing_month: string
-  payment_due_date: string | null
-  total_amount: number
-  domestic_use: number | null
-  overseas_use: number | null
-  full_amount: number | null
-  installment_amount: number | null
-  annual_fee: number | null
-  payment_account: string | null
-}
+// 카드 타입은 윌로우와 공용이라 finance-card.ts 로 옮겼다. 기존 import 를 위해 남긴다.
+export type { CardApproval as TenswCardApproval, CardBilling as TenswCardBilling } from './finance-card'

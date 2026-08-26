@@ -39,6 +39,36 @@ test('a local deck backed up to Drive is not counted a second time', () => {
   assert.equal(assets.get(OWNER)?.cardsToday, 0)
 })
 
+test('duplicate local creation telemetry is counted as one deck', () => {
+  const { assets } = buildVoicecardsLocalAssetMap(
+    [
+      {
+        device_id: DEVICE,
+        created_at: '2026-08-23T01:13:16.273Z',
+        event_name: LOCAL_SHEET_CREATED_EVENT,
+        properties: { card_count: 2 },
+      },
+      {
+        device_id: DEVICE,
+        created_at: '2026-08-23T01:13:17.295Z',
+        event_name: LOCAL_SHEET_CREATED_EVENT,
+        properties: { card_count: 2 },
+      },
+      {
+        device_id: DEVICE,
+        created_at: '2026-08-23T01:13:22.255Z',
+        event_name: LOCAL_SHEET_FLUSHED_EVENT,
+        properties: null,
+      },
+    ],
+    ownerOf,
+    '2026-08-23',
+  )
+
+  assert.equal(assets.get(OWNER)?.sheets, 0)
+  assert.equal(assets.get(OWNER)?.cards, 0)
+})
+
 test('a local deck that was never backed up is still counted', () => {
   const { assets } = buildVoicecardsLocalAssetMap(
     [{

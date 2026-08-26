@@ -12,7 +12,7 @@ import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
 import { SalesBlock } from './_components/sales-block'
 import { LoanBlock } from './_components/loan-block'
-import { CardBlock } from './_components/card-block'
+import { CardBlock } from '@/app/(dashboard)/_components/card-block'
 import { TenswWikiBlock } from './_components/wiki-block'
 import { TaxManagementBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/tax-management-block'
 

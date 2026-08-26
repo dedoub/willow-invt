@@ -7,6 +7,8 @@ import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
 import { TaxManagementBlock } from './_components/tax-management-block'
+import { SalesBlock } from './_components/sales-block'
+import { CardBlock } from '@/app/(dashboard)/_components/card-block'
 import { EmailBlock } from './_components/email-block'
 import { AddScheduleDialog, ScheduleFormData } from './_components/add-schedule-dialog'
 import { AddInvoiceDialog, InvoiceFormData } from './_components/add-invoice-dialog'
@@ -16,7 +18,8 @@ import { ScheduleDetailDialog } from './_components/schedule-detail-dialog'
 import { EmailDetailDialog, FullEmail } from './_components/email-detail-dialog'
 import { ComposeEmailDialog } from './_components/compose-email-dialog'
 import { MgmtSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
-import { WillowMgmtSchedule, WillowMgmtClient } from '@/types/willow-mgmt'
+import { WillowMgmtSchedule, WillowMgmtClient, WillowTaxInvoice, WillowInvoice } from '@/types/willow-mgmt'
+import type { CardApproval, CardBilling } from '@/types/finance-card'
 import type { FinanceTaxObligation } from '@/types/finance-tax'
 
 interface Invoice {
@@ -40,6 +43,11 @@ export default function MgmtPage() {
   const [clients, setClients] = useState<WillowMgmtClient[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [taxObligations, setTaxObligations] = useState<FinanceTaxObligation[]>([])
+  const [taxInvoices, setTaxInvoices] = useState<WillowTaxInvoice[]>([])
+  const [etcInvoices, setEtcInvoices] = useState<WillowInvoice[]>([])
+  const [cardApprovals, setCardApprovals] = useState<CardApproval[]>([])
+  const [cardBilling, setCardBilling] = useState<CardBilling[]>([])
+  const [cardYear, setCardYear] = useState(new Date().getFullYear())
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
   const [scheduleDialogDate, setScheduleDialogDate] = useState('')
   const [editingSchedule, setEditingSchedule] = useState<WillowMgmtSchedule | null>(null)
@@ -80,7 +88,7 @@ export default function MgmtPage() {
     // 초기 마운트는 useState(0) 기본값으로 스켈레톤 표시.
     // 저장/수정 후 재로드 시에는 phase를 유지해서 자식 컴포넌트(달력 등) 언마운트 방지.
     try {
-      const [clientsRes, schedulesRes, invoicesRes, balancesRes, historyRes, fxRes, taxesRes] = await Promise.all([
+      const [clientsRes, schedulesRes, invoicesRes, balancesRes, historyRes, fxRes, taxesRes, taxInvoicesRes, etcInvoicesRes] = await Promise.all([
         fetch('/api/willow-mgmt/clients'),
         fetch('/api/willow-mgmt/schedules'),
         fetch('/api/willow-mgmt/invoices'),
@@ -88,6 +96,8 @@ export default function MgmtPage() {
         fetch('/api/willow-mgmt/balance-history?start_date=2026-01-01'),
         fetch('/api/willow-mgmt/fx-history').catch(() => null),
         fetch('/api/finance/tax-obligations?company=willow'),
+        fetch('/api/willow-mgmt/tax-invoices'),
+        fetch('/api/invoices?limit=200'),
       ])
       if (clientsRes.ok) setClients(await clientsRes.json())
       if (schedulesRes.ok) setSchedules(await schedulesRes.json())
@@ -103,6 +113,14 @@ export default function MgmtPage() {
       if (taxesRes.ok) {
         const data = await taxesRes.json()
         setTaxObligations(data.obligations || [])
+      }
+      if (taxInvoicesRes.ok) {
+        const data = await taxInvoicesRes.json()
+        setTaxInvoices(data.invoices || [])
+      }
+      if (etcInvoicesRes.ok) {
+        const data = await etcInvoicesRes.json()
+        setEtcInvoices(data.invoices || [])
       }
 
       // Latest USD/KRW rate (fetched in parallel above)
@@ -192,6 +210,20 @@ export default function MgmtPage() {
   }
 
   useEffect(() => { loadData() }, [loadData])
+  // 카드 내역은 연도를 따로 넘기며 보므로 loadData와 분리해 연도별로 가져온다.
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/willow-mgmt/cards?year=${cardYear}`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled || !data) return
+        setCardApprovals(data.approvals || [])
+        setCardBilling(data.billing || [])
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [cardYear])
+
   useAgentRefresh(['willow_mgmt'], loadData)
 
   // ── Schedule handlers ──
@@ -395,7 +427,7 @@ export default function MgmtPage() {
       {loadPhase === 0 ? <MgmtSkeleton /> : (
       <>
 
-      {/* 3 blocks */}
+      {/* 일정 · 현금/매출 · 세금/카드 · 이메일 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         <ScheduleBlock
           schedules={schedules}
@@ -403,6 +435,7 @@ export default function MgmtPage() {
           onToggleComplete={handleToggleComplete}
           onSelectSchedule={setSelectedSchedule}
         />
+        {/* 왼쪽은 돈이 드나든 기록(현금·매출), 오른쪽은 나갈 돈(세금·카드). */}
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'), gap: t.density.blockGap }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
             <CashBlock
@@ -415,17 +448,28 @@ export default function MgmtPage() {
               usdRate={usdRate}
               balanceHistory={balanceHistory}
             />
-            <TaxManagementBlock obligations={taxObligations} />
+            <SalesBlock invoices={taxInvoices} etcInvoices={etcInvoices} usdRate={usdRate} />
           </div>
-          <EmailBlock
-            emails={emails}
-            connected={gmailConnected}
-            onSelectEmail={setSelectedEmail}
-            onSync={handleSyncEmails}
-            onCompose={handleCompose}
-            isSyncing={isSyncing}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
+            <TaxManagementBlock obligations={taxObligations} />
+            <CardBlock
+              approvals={cardApprovals}
+              billing={cardBilling}
+              year={cardYear}
+              onYearChange={setCardYear}
+              storageKey="willow-card"
+            />
+          </div>
         </div>
+
+        <EmailBlock
+          emails={emails}
+          connected={gmailConnected}
+          onSelectEmail={setSelectedEmail}
+          onSync={handleSyncEmails}
+          onCompose={handleCompose}
+          isSyncing={isSyncing}
+        />
       </div>
 
       {/* Schedule dialogs */}

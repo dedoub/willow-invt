@@ -33,6 +33,7 @@ export interface VoicecardsLocalAssets {
 
 export const LOCAL_SHEET_CREATED_EVENT = 'pending_local_sheet_created'
 export const LOCAL_SHEET_FLUSHED_EVENT = 'pending_local_sheet_flushed'
+const DUPLICATE_CREATION_WINDOW_MS = 2_000
 
 function ascendingByCreatedAt(a: VoicecardsLocalSheetRow, b: VoicecardsLocalSheetRow): number {
   return (a.created_at || '').localeCompare(b.created_at || '')
@@ -73,10 +74,17 @@ export function buildVoicecardsLocalAssetMap(
     if (!ownerId) continue
 
     created.sort(ascendingByCreatedAt)
-    const stillLocalFrom = Math.min(flushedByDevice.get(deviceId) || 0, created.length)
+    const uniqueCreated = created.filter((row, index) => {
+      const previous = created[index - 1]
+      if (!previous?.created_at || !row.created_at) return true
+      const elapsedMs = new Date(row.created_at).getTime() - new Date(previous.created_at).getTime()
+      return elapsedMs > DUPLICATE_CREATION_WINDOW_MS
+        || Number(row.properties?.card_count) !== Number(previous.properties?.card_count)
+    })
+    const stillLocalFrom = Math.min(flushedByDevice.get(deviceId) || 0, uniqueCreated.length)
 
-    for (let i = 0; i < created.length; i++) {
-      const row = created[i]
+    for (let i = 0; i < uniqueCreated.length; i++) {
+      const row = uniqueCreated[i]
       // 활성화는 백업 여부와 무관하다 — flush된 덱도 "덱을 만든 시점"을 남긴다.
       activatedOwnerIds.add(ownerId)
       const prev = assets.get(ownerId) || {
