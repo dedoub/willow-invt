@@ -112,8 +112,11 @@ const COMPANIES = {
     // 윌로우는 매출관리 화면이 없어 승격 단계 자체가 없다. 수집분은 홈택스에서
     // 그대로 온 정본이므로 'new' 도 대조 대상에 넣는다.
     invoiceStatuses: ['new', 'promoted', 'linked'],
-    // 윌로우는 계좌가 신한 한 곳이라 자사 계좌간 이체가 없다.
-    transferPattern: null as RegExp | null,
+    // 외화환전은 USD 계좌와 원화 계좌 사이의 내부 이동이다. 은행에는 원화 입금만
+    // 찍히고 USD 출금액은 환율에 따라 달라져 알 수 없는데, 장부는 두 줄을 짝지어
+    // 기록하므로 반쪽만 자동으로 넣으면 손으로 넣은 짝과 겹친다. 그래서 텐소의
+    // 자사 계좌간 이체와 같이 제외하고 환전 기록은 사람이 남긴다.
+    transferPattern: /외화환전/ as RegExp | null,
     // 아래 분류는 모두 기존 장부에 이미 쌓인 처리를 그대로 따른 것이다.
     patterns: [
       { re: /KB카드|국민카드|KB국민카드/, counterparty: 'KB카드', description: '법인카드 대금 결제' },
@@ -125,8 +128,6 @@ const COMPANIES = {
       { re: /김동욱대여|대여상환/, counterparty: '김동욱', description: '대여금 상환', type: 'liability' },
       { re: /김동욱급여/, counterparty: '김동욱', description: '김동욱 미지급급여 지급 (지급시점 비용인식)' },
       { re: /세무법인/, counterparty: '세무법인 형운', description: '기장수수료' },
-      // 환전은 손익이 아니다. USD 계좌 쪽 출금은 거래내역을 못 받아 와 손으로 남는다.
-      { re: /외화환전/, counterparty: '외화환전', description: '외화환전 입금(원화)', type: 'exchange', direction: 'in' },
       { re: /KR-GOOGLE/, counterparty: 'Google', description: '구글 수입 (KR-GOOGLE)', type: 'revenue', direction: 'in' },
       ...SHARED_EXPENSE_PATTERNS,
     ] as Pattern[],
