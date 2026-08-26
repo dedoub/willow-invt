@@ -40,6 +40,12 @@ const supabase = createClient(
 const voicecardsSupabase = process.env.VOICECARDS_SUPABASE_URL && process.env.VOICECARDS_SUPABASE_KEY
   ? createClient(process.env.VOICECARDS_SUPABASE_URL, process.env.VOICECARDS_SUPABASE_KEY)
   : null
+// store_revenue 는 RLS 가 켜져 있고 읽기 정책이 하나도 없다. anon 키로 조회하면 에러 없이
+// 빈 배열이 와서 "정산 없음"으로 조용히 잘못 보고한다(2026-08-26 실측). 매출 테이블에
+// anon 정책을 여는 대신 여기서만 시크릿 키를 쓴다.
+const voicecardsAdminSupabase = process.env.VOICECARDS_SUPABASE_URL && process.env.VOICECARDS_SUPABASE_SERVICE_KEY
+  ? createClient(process.env.VOICECARDS_SUPABASE_URL, process.env.VOICECARDS_SUPABASE_SERVICE_KEY)
+  : null
 // 시크릿 키 우선. 리뷰노트 쪽 anon 접근(User 정책·rn_* RPC)을 잠갔으므로 퍼블리셔블 키로는
 // 더 이상 읽히지 않는다. 보는 데이터 자체는 전환 전후가 같다(User는 anon도 전수 조회였고,
 // activated_users 뷰는 RLS 없음, WebhookEvent는 비어 있음 — 전환 전 실측 확인).
@@ -2717,6 +2723,152 @@ function vcPurchaseCountryLabel(country: string | null | undefined): string {
   return VC_COUNTRY_LABELS[countryCode] || countryCode || '국가 미확인'
 }
 
+// ── 월간 누적 매출 ───────────────────────────────────────────────────────────
+// 결제 알림과 정산 확정 알림이 같은 블록을 쓴다. 같은 달 매출이 두 메시지에서 다르게
+// 보이면 어느 쪽이 맞는지 되물어야 하므로 계산은 여기 한 곳에만 둔다.
+//
+// 두 숫자를 따로 적는 이유: 결제 이벤트는 즉시 잡히지만 정가이고(스토어 수수료·환율
+// 반영 전), 스토어 정산은 실수령이지만 1~2일 늦고 지금은 iOS만 들어온다. 둘을 하나로
+// 합치면 어느 쪽도 아닌 값이 된다.
+
+interface VoicecardsStoreRevenueRow {
+  date: string
+  platform: string
+  product_id: string
+  currency: string
+  units: number
+  proceeds: number
+  proceeds_currency: string | null
+  created_at: string
+}
+
+const VC_FX_CACHE_TTL_MS = 12 * 60 * 60 * 1000
+let vcFxCache: { fetchedAt: number; rates: Record<string, number> } | null = null
+
+// USD 1당 해당 통화량. 못 받아오면 null을 돌려 환산을 포기한다 — 임의 환율로 채우면
+// 알림이 조용히 틀린 금액을 말한다.
+async function fetchVoicecardsUsdFxRates(currencies: string[]): Promise<Record<string, number> | null> {
+  const wanted = Array.from(new Set(
+    currencies.map(code => code?.trim().toUpperCase()).filter((code): code is string => !!code && code !== 'USD')
+  ))
+  if (!wanted.length) return {}
+
+  const cached = vcFxCache
+  if (cached && Date.now() - cached.fetchedAt < VC_FX_CACHE_TTL_MS && wanted.every(code => code in cached.rates)) {
+    return cached.rates
+  }
+
+  try {
+    // .app 도메인은 .dev 로 301 한다. 리다이렉트 추적에 기대지 않고 최종 주소를 쓴다.
+    const res = await fetch(`https://api.frankfurter.dev/v1/latest?from=USD&to=${wanted.join(',')}`)
+    if (!res.ok) return null
+    const json = await res.json() as { rates?: Record<string, number> }
+    if (!json.rates) return null
+    const rates = { ...(cached?.rates || {}), ...json.rates }
+    vcFxCache = { fetchedAt: Date.now(), rates }
+    return rates
+  } catch {
+    return null
+  }
+}
+
+// KST 기준 이번 달 경계. 결제 이벤트는 timestamptz라 UTC 시각으로, 스토어 리포트는
+// date 컬럼이라 날짜 문자열로 자른다.
+function vcCurrentMonthWindow(now = new Date()): { startIso: string; startDate: string; label: string } {
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000)
+  const year = kstNow.getUTCFullYear()
+  const month = kstNow.getUTCMonth()
+  const startIso = new Date(Date.UTC(year, month, 1) - 9 * 60 * 60 * 1000).toISOString()
+  const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`
+  return { startIso, startDate, label: `${month + 1}/1~${month + 1}/${kstNow.getUTCDate()}` }
+}
+
+function vcPurchaseUsdAmount(productId: string, country: string | null | undefined): number | null {
+  const countryCode = country?.trim().toUpperCase() || ''
+  const localUsd = VC_PRODUCT_PRICES_LOCAL_USD[countryCode]?.[productId]
+  if (localUsd) return localUsd
+  return VC_PRODUCT_PRICES_USD[productId] ?? null
+}
+
+// 읽지 못한 것과 정산이 없는 것은 다르다. 앞의 것을 빈 배열로 돌려주면 알림이
+// "정산 없음"이라고 조용히 잘못 말한다 — 실제로 그렇게 한 번 나갔다.
+async function fetchVoicecardsStoreRevenueSince(
+  column: 'date' | 'created_at',
+  since: string
+): Promise<VoicecardsStoreRevenueRow[] | null> {
+  if (!voicecardsAdminSupabase) return null
+  const { data, error } = await voicecardsAdminSupabase
+    .from('store_revenue')
+    .select('date, platform, product_id, currency, units, proceeds, proceeds_currency, created_at')
+    .gte(column, since)
+    .order('created_at', { ascending: true })
+  if (error) {
+    console.error('VoiceCards store_revenue 조회 실패:', error.message)
+    return null
+  }
+  return (data || []) as VoicecardsStoreRevenueRow[]
+}
+
+// 통화가 섞인 실수령액을 USD 한 줄로 만든다. 환산 못한 통화는 숨기지 않고 원통화로 남긴다.
+async function vcFormatProceeds(rows: VoicecardsStoreRevenueRow[]): Promise<string> {
+  const byCurrency = new Map<string, number>()
+  for (const row of rows) {
+    const code = (row.proceeds_currency || row.currency || 'USD').trim().toUpperCase()
+    byCurrency.set(code, (byCurrency.get(code) || 0) + (Number(row.proceeds) || 0))
+  }
+  if (!byCurrency.size) return '$0.00'
+
+  const rates = await fetchVoicecardsUsdFxRates(Array.from(byCurrency.keys()))
+  let usdTotal = 0
+  const unconverted: string[] = []
+  for (const [code, amount] of byCurrency) {
+    if (code === 'USD') { usdTotal += amount; continue }
+    const rate = rates?.[code]
+    if (rate && rate > 0) usdTotal += amount / rate
+    else unconverted.push(`${code} ${amount.toLocaleString('en-US')}`)
+  }
+
+  const usdPart = usdTotal > 0 ? `$${usdTotal.toFixed(2)}` : ''
+  if (!unconverted.length) return usdPart || '$0.00'
+  return [usdPart, ...unconverted].filter(Boolean).join(' + ')
+}
+
+async function buildVoicecardsMonthlyRevenueLines(): Promise<string[]> {
+  const { startIso, startDate, label } = vcCurrentMonthWindow()
+  const [purchaseEvents, revenueRows] = await Promise.all([
+    fetchVoicecardsPurchaseEventsSince(startIso),
+    fetchVoicecardsStoreRevenueSince('date', startDate),
+  ])
+
+  const userCountryMap = await fetchVoicecardsUserCountries(
+    Array.from(new Set(purchaseEvents.map(event => event.user_id).filter(Boolean) as string[]))
+  )
+  let listUsd = 0
+  let unpricedCount = 0
+  for (const event of purchaseEvents) {
+    const productId = typeof event.properties?.product_id === 'string' ? event.properties.product_id : ''
+    const country = event.country || (event.user_id ? userCountryMap.get(event.user_id) : null)
+    const usd = vcPurchaseUsdAmount(productId, country)
+    if (usd === null) unpricedCount += 1
+    else listUsd += usd
+  }
+
+  const lines = [`📊 이번 달 누적 (${label} KST)`]
+  lines.push(
+    `- 결제 ${purchaseEvents.length}건 · 정가 기준 $${listUsd.toFixed(2)}`
+    + (unpricedCount ? ` (가격 미확인 ${unpricedCount}건 제외)` : '')
+  )
+  if (revenueRows === null) {
+    lines.push('- 정산 확정: 조회 실패 (store_revenue 읽기 권한·연결 확인 필요)')
+  } else if (revenueRows.length) {
+    const platforms = Array.from(new Set(revenueRows.map(row => row.platform === 'ios' ? 'iOS' : 'Android')))
+    lines.push(`- 정산 확정 ${await vcFormatProceeds(revenueRows)} · 실수령 (${platforms.join('·')} ${revenueRows.length}건, 1~2일 지연)`)
+  } else {
+    lines.push('- 정산 확정 없음 (스토어 리포트 1~2일 지연)')
+  }
+  return lines
+}
+
 let voicecardsPurchaseMonitorRunning = false
 
 async function monitorVoicecardsPurchases() {
@@ -2786,14 +2938,17 @@ async function monitorVoicecardsPurchasesOnce() {
   ))
   if (purchaseAlertState.lastHash === alertHash) return
 
-  await sendVoicecardsEventAlert([
+  const monthlyLines = await buildVoicecardsMonthlyRevenueLines()
+  const alertBody = [
     '💳 [VoiceCards 결제 알림]',
     `- 감지: 새 결제 ${relevantEvents.length}건`,
     ...purchaseLines,
     relevantEvents.length > purchaseLines.length ? `- 외 ${relevantEvents.length - purchaseLines.length}건` : '',
     relevantEvents.length > 1 && totalCreditsAdded > 0 ? `- 충전 크레딧 합계: +${totalCreditsAdded.toLocaleString('en-US')}` : '',
     latestAt ? `- 최신 결제: ${formatKstShort(latestAt)}` : '',
-  ].filter(Boolean).join('\n'), {
+  ].filter(Boolean).join('\n')
+
+  await sendVoicecardsEventAlert(`${alertBody}\n\n${monthlyLines.join('\n')}`, {
     issue: 'purchase',
     count: relevantEvents.length,
     purchaseUserIds,
@@ -2813,6 +2968,76 @@ async function monitorVoicecardsPurchasesOnce() {
     ...(voicecardsEventMonitorState.processedPurchaseEventIds || []),
     ...relevantEvents.map(event => event.id).filter((id): id is string => !!id),
   ].slice(-200)
+  saveVoicecardsEventMonitorState()
+}
+
+// 스토어 정산 확정 알림. store-revenue-sync 가 직접 텔레그램을 쏘던 것을 여기로 옮겼다 —
+// 결제·정산이 각자 다른 코드에서 나가면 형식도 월 누적도 따로 놀고, 그쪽 메시지는
+// CEO 대화 맥락에 들어가지 않아 되물을 수도 없었다.
+let voicecardsStoreRevenueMonitorRunning = false
+
+async function monitorVoicecardsStoreRevenue() {
+  if (voicecardsStoreRevenueMonitorRunning) return
+  voicecardsStoreRevenueMonitorRunning = true
+  try {
+    await monitorVoicecardsStoreRevenueOnce()
+  } finally {
+    voicecardsStoreRevenueMonitorRunning = false
+  }
+}
+
+async function monitorVoicecardsStoreRevenueOnce() {
+  if (!ceoChatId || !voicecardsSupabase) return
+
+  const alertState = getVoicecardsAlertState('store_revenue')
+  // 첫 실행에 과거 정산을 몰아서 알리지 않도록 부팅 조회 범위를 자른다.
+  const sinceIso = alertState.lastEventAt
+    || new Date(Date.now() - VOICECARDS_PURCHASE_BOOT_LOOKBACK_MS).toISOString()
+
+  const fetched = await fetchVoicecardsStoreRevenueSince('created_at', sinceIso)
+  if (!fetched) return
+  // 문자열 비교는 쓰지 않는다. Postgres 는 '2026-08-26 00:10:33+00' 처럼 공백으로 주고
+  // 우리가 넣은 경계는 ISO 의 'T' 라, 같은 날짜에서 공백(0x20) < 'T'(0x54) 가 되어
+  // 그날 늦게 들어온 정산이 통째로 빠진다.
+  const sinceMs = Date.parse(sinceIso)
+  const rows = fetched.filter(row => {
+    const createdMs = Date.parse(row.created_at)
+    return Number.isFinite(createdMs) && Number.isFinite(sinceMs) ? createdMs > sinceMs : true
+  })
+  if (!rows.length) return
+
+  const alertHash = simpleHash(JSON.stringify(
+    rows.map(row => [row.date, row.platform, row.product_id, row.currency, row.proceeds])
+  ))
+  if (alertState.lastHash === alertHash) return
+
+  const detailLines = rows.slice(0, 8).map(row => {
+    const platform = row.platform === 'ios' ? 'iOS' : 'Android'
+    const proceeds = `${Number(row.proceeds).toLocaleString('en-US')}${row.proceeds_currency ? ` ${row.proceeds_currency}` : ''}`
+    return `- ${row.date} ${platform} · ${row.product_id} × ${row.units} · 결제 ${row.currency} → 실수령 ${proceeds}`
+  })
+  const monthlyLines = await buildVoicecardsMonthlyRevenueLines()
+  const body = [
+    '💵 [VoiceCards 정산 확정]',
+    `- 신규 확정 ${rows.length}건 (실제 수령액)`,
+    ...detailLines,
+    rows.length > detailLines.length ? `- 외 ${rows.length - detailLines.length}건` : '',
+  ].filter(Boolean).join('\n')
+
+  await sendVoicecardsEventAlert(`${body}\n\n${monthlyLines.join('\n')}`, {
+    issue: 'store_revenue',
+    count: rows.length,
+    platforms: Array.from(new Set(rows.map(row => row.platform))),
+    since: sinceIso,
+  })
+
+  alertState.lastHash = alertHash
+  alertState.lastAlertAt = new Date().toISOString()
+  // 다음 조회 경계는 ISO 로 정규화해 둔다 — 형식이 섞이면 위 비교가 또 미묘해진다.
+  const latestMs = Math.max(...rows.map(row => Date.parse(row.created_at)).filter(Number.isFinite))
+  alertState.lastEventAt = Number.isFinite(latestMs)
+    ? new Date(latestMs).toISOString()
+    : rows[rows.length - 1].created_at
   saveVoicecardsEventMonitorState()
 }
 
@@ -6896,13 +7121,15 @@ async function main() {
     try { await breakingNewsCheck() } catch (err) { console.error('Breaking news error:', err) }
   }, BREAKING_CHECK_INTERVAL)
 
-  // VoiceCards 결제 감시 (15분 간격)
-  console.log(`💳 VoiceCards 결제 감시 활성화 (${VOICECARDS_PURCHASE_MONITOR_INTERVAL / 1000}초 간격)`)
+  // VoiceCards 결제·정산 감시 (같은 주기로 함께 돈다 — 매출 알림 출구는 이 하나뿐이다)
+  console.log(`💳 VoiceCards 결제·정산 감시 활성화 (${VOICECARDS_PURCHASE_MONITOR_INTERVAL / 1000}초 간격)`)
   setInterval(async () => {
     try { await monitorVoicecardsPurchases() } catch (err) { console.error('VoiceCards purchase monitor error:', err) }
+    try { await monitorVoicecardsStoreRevenue() } catch (err) { console.error('VoiceCards store revenue monitor error:', err) }
   }, VOICECARDS_PURCHASE_MONITOR_INTERVAL)
   setTimeout(() => {
     void monitorVoicecardsPurchases().catch(err => console.error('VoiceCards purchase monitor bootstrap error:', err))
+    void monitorVoicecardsStoreRevenue().catch(err => console.error('VoiceCards store revenue monitor bootstrap error:', err))
   }, 5000)
 
   // VoiceCards 사용자 이벤트 감시 (15분 간격)
