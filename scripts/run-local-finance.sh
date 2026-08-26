@@ -39,6 +39,7 @@ for script in \
   import-local-tax-invoices.mjs \
   import-finance-tax-obligations.mjs \
   match-finance-tax-obligations.mjs \
+  sync-akros-invoices.mjs \
   notify-local-finance.mjs \
   login-native-cert.mjs \
   login-nhis-si4n.mjs \
@@ -54,7 +55,7 @@ for lib in \
   tensw-local-finance.mjs daily-finance-sync.mjs tax-obligation-matcher.mjs \
   woori-card-local.mjs woori-card-statement.mjs \
   kb-card-local.mjs kb-card-statement.mjs kb-card-keypad.mjs \
-  finance-session.mjs finance-notify.mjs \
+  finance-session.mjs finance-notify.mjs akros-invoice-sync.mjs \
   cert-dialog.mjs cert-sites.mjs desktop.mjs \
   shinhan-bank.mjs wetax.mjs nhis.mjs \
   hometax-session.mjs hometax-national-tax.mjs
@@ -150,7 +151,8 @@ run_willow() {
     && run_step "카드 적재" $NODE "$RUNTIME/scripts/import-local-card.mjs" --company willow \
     && collect_shared_taxes \
     && run_step "세금 지급 매칭" $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs" \
-    && run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company willow
+    && run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company willow \
+    && run_step "아크로스 인보이스 반영" $NODE "$RUNTIME/scripts/sync-akros-invoices.mjs"
 }
 
 # --sync-only: 런타임 동기화까지만 하고 수집은 돌리지 않는다. 스크립트가 빠졌는지
@@ -172,7 +174,9 @@ if [ "${2:-}" = "--sync-only" ]; then
       "$RUNTIME/scripts/collect-kb-card-statement.mjs" \
       "$RUNTIME/scripts/lib/kb-card-keypad.mjs" \
       "$RUNTIME/scripts/lib/kb-card-local.mjs" \
-      "$RUNTIME/scripts/lib/kb-card-statement.mjs"
+      "$RUNTIME/scripts/lib/kb-card-statement.mjs" \
+      "$RUNTIME/scripts/sync-akros-invoices.mjs" \
+      "$RUNTIME/scripts/lib/akros-invoice-sync.mjs"
     do
       [ -f "$required" ] || { echo "빠짐: $required" >&2; missing=1; }
     done
