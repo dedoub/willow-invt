@@ -114,6 +114,29 @@ run_step() {
   "$@" >> "$LOG_FILE" 2>&1
 }
 
+# 수집 단계는 매번 Chrome 을 내렸다 올리고 시작한다. 한 화면이 남긴 상태가
+# 다음 화면을 막는 일이 잦았다 — 위택스는 살아 있는 세션 위에 다시 로그인하려다
+# 인증서 창을 못 띄웠고, KB카드는 이어받은 세션에서 승인내역 화면이 열리지 않았다.
+# 세션 쿠키까지 함께 사라지므로 매 단계가 같은 자리에서 출발한다.
+restart_chrome() {
+  /usr/bin/osascript -e 'tell application "Google Chrome" to quit' >/dev/null 2>&1
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    /usr/bin/pgrep -x 'Google Chrome' >/dev/null || break
+    sleep 1
+  done
+  # 정상 종료를 기다렸는데도 남아 있으면 내린다. 남은 창이 다음 단계를 막는다.
+  /usr/bin/pgrep -x 'Google Chrome' >/dev/null && /usr/bin/pkill -x 'Google Chrome'
+  sleep 2
+  /usr/bin/open -a 'Google Chrome'
+  sleep 6
+}
+
+# 브라우저를 쓰는 단계. DB 만 만지는 적재·분류는 run_step 그대로 둔다.
+run_browser_step() {
+  restart_chrome
+  run_step "$@"
+}
+
 # 한 묶음이 막혀도 나머지 묶음은 계속 돈다. 카드 인증서 하나가 거부되면 위택스·
 # 4대보험·자동 분류까지 통째로 건너뛰던 구조라, 하루치 재무가 통째로 비었다.
 # 묶음 안에서는 앞 단계 산출물을 뒤가 쓰므로 여전히 && 로 묶는다.
@@ -131,19 +154,19 @@ group() {
 # 국세·지방세·4대보험은 회사 공통 원장으로 들어가므로 --company 로 구분한다.
 # 세 곳은 서로 다른 사이트라 하나가 막혀도 나머지는 받을 수 있다.
 collect_wetax() {
-  run_step "위택스 수집" $NODE "$RUNTIME/scripts/collect-wetax.mjs" \
+  run_browser_step "위택스 수집" $NODE "$RUNTIME/scripts/collect-wetax.mjs" \
     && run_step "지방세 적재" $NODE "$RUNTIME/scripts/import-finance-tax-obligations.mjs" \
         --company "$COMPANY" --source wetax --input "$LOG_DIR/latest-wetax-obligations.json"
 }
 
 collect_nhis() {
-  run_step "4대보험 수집" $NODE "$RUNTIME/scripts/collect-nhis.mjs" \
+  run_browser_step "4대보험 수집" $NODE "$RUNTIME/scripts/collect-nhis.mjs" \
     && run_step "4대보험 적재" $NODE "$RUNTIME/scripts/import-finance-tax-obligations.mjs" \
         --company "$COMPANY" --source nhis --input "$LOG_DIR/latest-nhis-obligations.json"
 }
 
 collect_national_tax() {
-  run_step "국세 수집" $NODE "$RUNTIME/scripts/collect-hometax-national-tax.mjs" \
+  run_browser_step "국세 수집" $NODE "$RUNTIME/scripts/collect-hometax-national-tax.mjs" \
     && run_step "국세 적재" $NODE "$RUNTIME/scripts/import-finance-tax-obligations.mjs" \
         --company "$COMPANY" --source hometax --input "$LOG_DIR/latest-hometax-national-tax.json"
 }
@@ -155,20 +178,22 @@ collect_shared_taxes() {
 }
 
 tensw_tax_invoices() {
-  run_step "홈택스 세금계산서 수집" $NODE "$RUNTIME/scripts/collect-hometax-tax-invoices.mjs" --collect \
+  run_browser_step "홈택스 세금계산서 수집" $NODE "$RUNTIME/scripts/collect-hometax-tax-invoices.mjs" --collect \
     && run_step "세금계산서 적재" $NODE "$RUNTIME/scripts/import-local-tax-invoices.mjs" --company tensw
 }
 
-# 카드는 로그인 세션 하나로 승인내역과 명세서를 함께 가져온다.
+# 카드는 로그인 세션 하나로 승인내역과 명세서를 함께 가져온다. 그래서 Chrome 은
+# 로그인 앞에서만 내렸다 올린다 — 사이에서 껐다 켜면 방금 받은 세션이 사라져
+# 뒤 단계가 아예 돌 수 없다.
 tensw_card() {
-  run_step "우리카드 로그인" $NODE "$RUNTIME/scripts/woori-card-certificate-login.mjs" \
+  run_browser_step "우리카드 로그인" $NODE "$RUNTIME/scripts/woori-card-certificate-login.mjs" \
     && run_step "우리카드 승인내역 수집" $NODE "$RUNTIME/scripts/collect-woori-card-default-chrome.mjs" \
     && run_step "우리카드 명세서 수집" $NODE "$RUNTIME/scripts/collect-woori-card-statement.mjs" \
     && run_step "카드 적재" $NODE "$RUNTIME/scripts/import-local-card.mjs" --company tensw
 }
 
 tensw_bank() {
-  run_step "신한은행 수집" $NODE "$RUNTIME/scripts/collect-shinhan-bank.mjs" \
+  run_browser_step "신한은행 수집" $NODE "$RUNTIME/scripts/collect-shinhan-bank.mjs" \
     && run_step "은행 적재" $NODE "$RUNTIME/scripts/import-local-bank.mjs" --company tensw
 }
 
@@ -184,17 +209,18 @@ run_tensw() {
 }
 
 willow_tax_invoices() {
-  run_step "홈택스 세금계산서 수집" $NODE "$RUNTIME/scripts/collect-hometax-tax-invoices.mjs" --collect \
+  run_browser_step "홈택스 세금계산서 수집" $NODE "$RUNTIME/scripts/collect-hometax-tax-invoices.mjs" --collect \
     && run_step "세금계산서 적재" $NODE "$RUNTIME/scripts/import-local-tax-invoices.mjs" --company willow
 }
 
 willow_bank() {
-  run_step "신한은행 수집" $NODE "$RUNTIME/scripts/collect-shinhan-bank.mjs" \
+  run_browser_step "신한은행 수집" $NODE "$RUNTIME/scripts/collect-shinhan-bank.mjs" \
     && run_step "은행 적재" $NODE "$RUNTIME/scripts/import-local-bank.mjs" --company willow
 }
 
+# 승인내역 수집기가 로그인까지 하고, 명세서는 그 세션을 이어 쓴다.
 willow_card() {
-  run_step "KB카드 승인내역 수집" $NODE "$RUNTIME/scripts/collect-kb-card.mjs" \
+  run_browser_step "KB카드 승인내역 수집" $NODE "$RUNTIME/scripts/collect-kb-card.mjs" \
     && run_step "KB카드 명세서 수집" $NODE "$RUNTIME/scripts/collect-kb-card-statement.mjs" \
     && run_step "카드 적재" $NODE "$RUNTIME/scripts/import-local-card.mjs" --company willow
 }

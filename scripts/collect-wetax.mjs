@@ -44,6 +44,40 @@ async function pageScript(javascript) {
   return output
 }
 
+// 위택스 메인은 안내 배너를 레이어로 띄운다. 두 장이 겹쳐 뜨는 날도 있고, 그
+// 위에서는 아래 화면을 누를 수도 본문을 제대로 읽을 수도 없다. "오늘 하루
+// 그만보기"까지 체크하고 닫아 하루치 실행 내내 다시 뜨지 않게 한다.
+const DISMISS_POPUPS_SCRIPT = `(() => {
+  const visible = element => {
+    const box = element.getBoundingClientRect();
+    return box.width > 0 && box.height > 0;
+  };
+  let closed = 0;
+  for (const foot of document.querySelectorAll('.popup-foot')) {
+    const button = foot.querySelector('button.close-btn, .close-btn');
+    if (!button || !visible(button)) continue;
+    const today = foot.querySelector('input[type=checkbox]');
+    if (today && !today.checked) today.click();
+    button.click();
+    closed += 1;
+  }
+  for (const button of document.querySelectorAll('.btn-close-modal, .btn-close-checking')) {
+    if (!visible(button)) continue;
+    button.click();
+    closed += 1;
+  }
+  return String(closed);
+})()`
+
+async function dismissPopups() {
+  const closed = Number(await pageScript(DISMISS_POPUPS_SCRIPT).catch(() => '0'))
+  if (closed > 0) {
+    log(`안내 팝업 ${closed}개를 닫았어요.`)
+    await sleep(1_000)
+  }
+  return closed
+}
+
 // 로그인 여부가 아니라 "누구로" 로그인됐는지를 본다.
 async function currentSessionState() {
   const text = await pageScript(PAGE_TEXT_SCRIPT).catch(() => '')
@@ -54,6 +88,24 @@ async function isLoggedIn() {
   return await currentSessionState() === SESSION_STATE.ours
 }
 
+/** 누군가 로그인은 되어 있는지. 주인이 누구인지와는 별개다. */
+async function someoneSignedIn() {
+  const text = await pageScript(PAGE_TEXT_SCRIPT).catch(() => '')
+  return /로그아웃/.test(text)
+}
+
+// 위택스 메인에는 로그인한 사업자 이름이 어디에도 찍히지 않는다. 그래서 메인만
+// 보고는 "누구로 로그인했는지"를 알 수 없고, 살아 있는 세션 위에서도 로그아웃으로
+// 판정해 인증서 창을 다시 열려다 멈췄다. 납부대상 화면은 이름을 찍으므로 세션
+// 주인은 거기서 읽는다 — 다른 회사 세션으로 남의 지방세를 긁는 일은 그대로 막힌다.
+async function sessionStateOnLedger() {
+  await pageScript(`(() => { location.href = ${JSON.stringify(OUTSTANDING_URL)}; return 'navigating'; })()`)
+    .catch(() => {})
+  await sleep(6_000)
+  await dismissPopups()
+  return currentSessionState()
+}
+
 async function ensureLogin() {
   const existing = await chromeTabState(HOST)
   if (!existing.url) {
@@ -62,8 +114,9 @@ async function ensureLogin() {
   }
   await positionChromeWindow(HOST)
   await sleep(2_000)
+  await dismissPopups()
 
-  const state = await currentSessionState()
+  const state = await sessionStateOnLedger()
   if (state === SESSION_STATE.ours) {
     log('reused existing session')
     return
@@ -81,12 +134,21 @@ async function ensureLogin() {
     maxBuffer: 4 * 1024 * 1024,
   })
 
+  // 먼저 로그인 자체가 끝나기를 기다린다. 주인 확인은 화면을 옮겨야 하므로,
+  // 3초마다 옮기지 않고 로그인이 끝난 뒤 한 번만 옮긴다.
   const deadline = Date.now() + 45_000
   while (Date.now() < deadline) {
     await sleep(3_000)
-    if (await isLoggedIn()) {
+    await dismissPopups()
+    if (!await someoneSignedIn()) continue
+
+    const owner = await sessionStateOnLedger()
+    if (owner === SESSION_STATE.ours) {
       log('logged in')
       return
+    }
+    if (owner === SESSION_STATE.other) {
+      throw new Error('위택스에 다른 회사로 로그인됐어요. 이 회사 자료를 긁지 않아요.')
     }
   }
   throw new Error('위택스 로그인 상태를 확인하지 못했어요.')
@@ -101,6 +163,7 @@ async function openScreen(url) {
     const state = await chromeTabState(HOST)
     if (state.url.includes(new URL(url).pathname)) {
       await sleep(3_000)
+      await dismissPopups()
       return
     }
   }
