@@ -14,8 +14,8 @@ import { CardApproval, CardBilling } from '@/types/finance-card'
 const COLUMNS: LColumn<CardApproval>[] = [
   { key: 'category', label: '구분', width: '72px', sortValue: a => classify(a.store_name, a.store_type).label },
   { key: 'date', label: '날짜', width: '46px', sortValue: a => a.used_date, sortFirst: 'desc' },
-  { key: 'store', label: '가맹점', width: 'minmax(0,1.6fr)', sortValue: a => a.store_name ?? '' },
-  { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right', sortValue: a => a.krw, sortFirst: 'desc' },
+  { key: 'store', label: '가맹점', width: 'minmax(130px,1.6fr)', sortValue: a => a.store_name ?? '' },
+  { key: 'amount', label: '금액', width: 'minmax(96px,1fr)', align: 'right', sortValue: a => a.krw, sortFirst: 'desc' },
 ]
 
 const DEFAULT_PAGE_SIZE = 8

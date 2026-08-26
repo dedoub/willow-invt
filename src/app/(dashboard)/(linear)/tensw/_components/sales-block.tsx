@@ -40,9 +40,9 @@ const FILTERS: Record<Mode, { value: StatusFilter; label: string }[]> = {
 const COLUMNS: LColumn<TenswTaxInvoice>[] = [
   { key: 'status', label: '상태', width: '68px', sortValue: inv => inv.payment_status },
   { key: 'date', label: '발행일', width: '46px', sortValue: inv => inv.issue_date, sortFirst: 'desc' },
-  { key: 'counterparty', label: '거래처', width: 'minmax(0,1fr)', sortValue: inv => inv.counterparty },
-  { key: 'detail', label: '상세', width: 'minmax(0,1.2fr)', hideMobile: true, sortValue: inv => inv.notes ?? '' },
-  { key: 'amount', label: '합계', width: 'minmax(0,110px)', align: 'right', sortValue: inv => inv.total_amount, sortFirst: 'desc' },
+  { key: 'counterparty', label: '거래처', width: 'minmax(110px,1fr)', sortValue: inv => inv.counterparty },
+  { key: 'detail', label: '상세', width: 'minmax(130px,1.2fr)', hideMobile: true, sortValue: inv => inv.notes ?? '' },
+  { key: 'amount', label: '합계', width: 'minmax(100px,110px)', align: 'right', sortValue: inv => inv.total_amount, sortFirst: 'desc' },
   { key: 'chevron', label: '', width: '14px' },
 ]
 

@@ -215,7 +215,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
             return (
               <LTableRow key={item.id} columns={COLUMNS} mobile={mobile}>
                 <LTableBadge tone={tone}>{STATUS_LABELS[item.status]}</LTableBadge>
-                <span style={{ color: t.neutrals.muted }}>{SOURCES[item.source]}</span>
+                <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{SOURCES[item.source]}</span>
                 <LTableDate value={item.due_date} />
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={`${item.agency} · ${item.title}`}>
                   {item.title}

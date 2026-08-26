@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { LTableScroll } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LTableDate, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
@@ -100,6 +100,20 @@ function navigatePeriod(base: Date, dir: -1 | 1, mode: PeriodMode): Date {
 
 const MODE_LABELS: Record<PeriodMode, string> = { month: '월간', quarter: '분기', year: '연간' }
 
+// 텐소프트웍스 현금관리와 같은 열 구성·같은 순서. 구분 배지가 늘 1열이라 두 회사 표를
+// 오가며 봐도 무슨 종류의 행인지가 같은 자리에서 먼저 읽힌다. 계좌 열은 텐소에만 있다 —
+// 윌로우 현금 행에는 계좌번호가 실려오지 않는다.
+//
+// 폭은 전부 px 하한을 갖는다. minmax(0,...) 로 두면 좁은 화면에서 열이 0까지 줄어들어
+// LTableScroll 이 잡을 최소 폭이 사라지고, 가로로 넘기는 대신 표가 찌그러진다.
+const COLUMNS: LColumn<Invoice>[] = [
+  { key: 'type', label: '구분', width: '48px', sortValue: i => TYPE_LABELS[i.type] ?? i.type },
+  { key: 'date', label: '날짜', width: '52px', sortValue: i => i.payment_date || i.issue_date || '', sortFirst: 'desc' },
+  { key: 'counterparty', label: '거래처', width: 'minmax(110px,1.2fr)', sortValue: i => i.counterparty ?? '' },
+  { key: 'description', label: '적요', width: 'minmax(130px,1.5fr)', sortValue: i => i.description ?? '' },
+  { key: 'amount', label: '금액', width: 'minmax(96px,1fr)', align: 'right', sortValue: i => i.amount, sortFirst: 'desc' },
+]
+
 const CASH_PAGE_SIZE_KEY = 'willow-cash-page-size'
 const DEFAULT_CASH_PAGE_SIZE = 15
 
@@ -113,8 +127,8 @@ function getStoredCashPageSize(): number {
 
 export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUpload, parsing, bankBalances = [], usdRate = 0, balanceHistory = [] }: CashBlockProps) {
   const mobile = useIsMobile()
-  const [sortAsc, setSortAsc] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<Invoice>('willow-cash', COLUMNS)
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
@@ -152,15 +166,17 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
         (i.description || '').toLowerCase().includes(q)
       )
     }
+    // 기본은 최신순. 그 위에 표 머리 정렬을 얹는다.
     return [...list].sort((a, b) => {
       const da = a.payment_date || a.issue_date || ''
       const db = b.payment_date || b.issue_date || ''
-      return sortAsc ? da.localeCompare(db) : db.localeCompare(da)
+      return db.localeCompare(da)
     })
-  }, [periodFiltered, typeFilter, searchQuery, sortAsc])
+  }, [periodFiltered, typeFilter, searchQuery])
 
-  const totalPages = Math.max(1, Math.ceil(displayList.length / pageSize))
-  const paged = displayList.slice(page * pageSize, (page + 1) * pageSize)
+  const sortedList = useMemo(() => sortApply(displayList), [displayList, sortApply])
+  const totalPages = Math.max(1, Math.ceil(sortedList.length / pageSize))
+  const paged = sortedList.slice(page * pageSize, (page + 1) * pageSize)
 
   const commitPageSize = useCallback(() => {
     const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_CASH_PAGE_SIZE))
@@ -354,18 +370,6 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
             })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: mobile ? 'flex-end' : undefined }}>
-            <button
-              onClick={() => { setSortAsc(v => !v); setPage(0) }}
-              style={{
-                border: 'none', cursor: 'pointer', background: t.neutrals.inner,
-                borderRadius: t.radius.sm, padding: '0 8px', height: 28,
-                display: 'flex', alignItems: 'center', gap: 3,
-                color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono,
-              }}
-            >
-              <LIcon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={11} stroke={2} />
-              날짜
-            </button>
             <button onClick={onAddInvoice} style={{
               width: 28, height: 28, borderRadius: t.radius.sm, border: 'none',
               background: t.neutrals.inner, color: t.neutrals.muted,
@@ -414,12 +418,10 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
 
       {/* Transactions */}
       <div style={{ padding: '0 16px 16px' }}>
-        <LTableScroll minWidth={520}>
-        {paged.length === 0 && (
-          <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
-            해당 기간 거래 내역이 없습니다
-          </div>
-        )}
+        <LTableScroll columns={COLUMNS} mobile={mobile}>
+        <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
+        {paged.length === 0 && <LTableEmpty>해당 기간 거래 내역이 없습니다</LTableEmpty>}
+        <LTableBody columns={COLUMNS} mobile={mobile}>
         {paged.map((v) => {
           const typeTone = TYPE_TONES[v.type]
           // expense: 양수=지출(−로 표시), 음수=환급(+로 표시 — 비용 감소)
@@ -428,43 +430,20 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
             : v.type === 'expense' ? v.amount < 0
             : v.amount >= 0
           return (
-            <div key={v.id} onClick={() => onSelectInvoice(v)} style={{
-              display: 'grid', gridTemplateColumns: '52px 48px 1.2fr 1.5fr 1fr',
-              gap: 8, padding: '10px 0', alignItems: 'center',
-              borderTop: `1px solid ${t.neutrals.line}`,
-              fontSize: 'calc(12px * var(--fz, 1))', cursor: 'pointer',
-            }}>
-              <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
-                {(v.payment_date || v.issue_date || '').slice(5)}
-              </span>
-              <span style={{
-                display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-                fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
-                background: typeTone.bg, color: typeTone.fg,
-              }}>
-                {TYPE_LABELS[v.type]}
-              </span>
-              <span style={mobile ? {
-                fontWeight: 500, display: '-webkit-box', WebkitBoxOrient: 'vertical' as const,
-                WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'break-word' as const, lineHeight: 1.35,
-              } : { fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <LTableRow key={v.id} columns={COLUMNS} mobile={mobile} onClick={() => onSelectInvoice(v)}>
+              <LTableBadge tone={typeTone}>{TYPE_LABELS[v.type]}</LTableBadge>
+              <LTableDate value={v.payment_date || v.issue_date} />
+              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {v.counterparty}
               </span>
-              <span style={mobile ? {
-                color: t.neutrals.muted, display: '-webkit-box', WebkitBoxOrient: 'vertical' as const,
-                WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'break-word' as const, lineHeight: 1.35,
-              } : { color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {v.description}
               </span>
-              <span style={{
-                textAlign: 'right', fontWeight: 500, fontVariantNumeric: 'tabular-nums',
-                color: isPositive ? t.accent.pos : t.accent.neg,
-              }}>
-                {isPositive ? '+' : '-'}{Math.abs(v.amount).toLocaleString()}
-              </span>
-            </div>
+              <LTableAmount value={v.amount} positive={isPositive} />
+            </LTableRow>
           )
         })}
+        </LTableBody>
         </LTableScroll>
       </div>
 
@@ -506,7 +485,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
             <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
-              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, displayList.length)} / {displayList.length}
+              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sortedList.length)} / {sortedList.length}
             </span>
             <button
               disabled={page >= totalPages - 1}

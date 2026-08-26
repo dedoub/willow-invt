@@ -33,12 +33,12 @@ function monthlyInterest(loan: TenswLoan): number | null {
 
 const COLUMNS: LColumn<TenswLoan>[] = [
   { key: 'status', label: '상태', width: '60px', sortValue: l => l.status },
-  { key: 'bank', label: '금융기관', width: 'minmax(0,1fr)', sortValue: l => l.bank },
+  { key: 'bank', label: '금융기관', width: 'minmax(100px,1fr)', sortValue: l => l.bank },
   { key: 'loanDate', label: '실행일', width: '70px', sortValue: l => l.loan_date ?? null, sortFirst: 'desc' },
   { key: 'maturity', label: '만기일', width: '70px', sortValue: l => l.maturity_date ?? null, sortFirst: 'desc' },
   { key: 'rate', label: '이율', width: '52px', align: 'right', sortValue: l => l.interest_rate ?? null, sortFirst: 'desc' },
-  { key: 'monthly', label: '월 이자', width: 'minmax(0,90px)', align: 'right', sortValue: l => monthlyInterest(l), sortFirst: 'desc' },
-  { key: 'principal', label: '원금', width: 'minmax(0,120px)', align: 'right', sortValue: l => l.principal, sortFirst: 'desc' },
+  { key: 'monthly', label: '월 이자', width: 'minmax(84px,90px)', align: 'right', sortValue: l => monthlyInterest(l), sortFirst: 'desc' },
+  { key: 'principal', label: '원금', width: 'minmax(100px,120px)', align: 'right', sortValue: l => l.principal, sortFirst: 'desc' },
   { key: 'chevron', label: '', width: '14px' },
 ]
 

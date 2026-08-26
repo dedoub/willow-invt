@@ -47,9 +47,9 @@ type Mode = 'sales' | 'purchase'
 const COLUMNS: LColumn<SalesRow>[] = [
   { key: 'source', label: '구분', width: '64px', sortValue: row => row.source },
   { key: 'date', label: '작성일', width: '70px', sortValue: row => row.date, sortFirst: 'desc' },
-  { key: 'counterparty', label: '거래처', width: 'minmax(0,1fr)', sortValue: row => row.counterparty },
-  { key: 'detail', label: '품목', width: 'minmax(0,1fr)', hideMobile: true, sortValue: row => row.detail },
-  { key: 'amount', label: '합계', width: 'minmax(0,120px)', align: 'right', sortValue: row => row.krw, sortFirst: 'desc' },
+  { key: 'counterparty', label: '거래처', width: 'minmax(110px,1fr)', sortValue: row => row.counterparty },
+  { key: 'detail', label: '품목', width: 'minmax(130px,1fr)', hideMobile: true, sortValue: row => row.detail },
+  { key: 'amount', label: '합계', width: 'minmax(100px,120px)', align: 'right', sortValue: row => row.krw, sortFirst: 'desc' },
   { key: 'chevron', label: '', width: '14px' },
 ]
 

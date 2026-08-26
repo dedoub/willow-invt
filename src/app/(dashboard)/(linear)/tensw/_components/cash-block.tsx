@@ -91,10 +91,10 @@ const MODE_LABELS: Record<PeriodMode, string> = { month: '월간', quarter: '분
 const COLUMNS: LColumn<TenswCashItem>[] = [
   { key: 'type', label: '구분', width: '48px', sortValue: i => TYPE_LABELS[i.type] ?? i.type },
   { key: 'date', label: '날짜', width: '52px', sortValue: i => i.payment_date || i.issue_date || '', sortFirst: 'desc' },
-  { key: 'account', label: '계좌', width: 'minmax(0,84px)', hideMobile: true, sortValue: i => i.account_number ?? '' },
-  { key: 'counterparty', label: '거래처', width: 'minmax(0,1.2fr)', sortValue: i => i.counterparty ?? '' },
-  { key: 'description', label: '적요', width: 'minmax(0,1.5fr)', sortValue: i => i.description ?? '' },
-  { key: 'amount', label: '금액', width: 'minmax(0,1fr)', align: 'right', sortValue: i => i.amount, sortFirst: 'desc' },
+  { key: 'account', label: '계좌', width: '84px', hideMobile: true, sortValue: i => i.account_number ?? '' },
+  { key: 'counterparty', label: '거래처', width: 'minmax(110px,1.2fr)', sortValue: i => i.counterparty ?? '' },
+  { key: 'description', label: '적요', width: 'minmax(130px,1.5fr)', sortValue: i => i.description ?? '' },
+  { key: 'amount', label: '금액', width: 'minmax(96px,1fr)', align: 'right', sortValue: i => i.amount, sortFirst: 'desc' },
 ]
 
 // "우리 1005-403-461450" 전체는 열을 다 먹는다. 은행과 끝 번호만 남기고 전체는
@@ -420,16 +420,10 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
                   {shortAccount(item.account_number)}
                 </span>
               )}
-              <span style={mobile ? {
-                fontWeight: 500, display: '-webkit-box', WebkitBoxOrient: 'vertical' as const,
-                WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'break-word' as const, lineHeight: 1.35,
-              } : { fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {item.counterparty}
               </span>
-              <span style={mobile ? {
-                color: t.neutrals.muted, display: '-webkit-box', WebkitBoxOrient: 'vertical' as const,
-                WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'break-word' as const, lineHeight: 1.35,
-              } : { color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {item.description}
               </span>
               <LTableAmount value={item.amount} positive={isIncome} />
