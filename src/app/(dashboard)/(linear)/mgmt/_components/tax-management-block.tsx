@@ -37,18 +37,30 @@ const COLUMNS: LColumn<FinanceTaxObligation>[] = [
 
 const STATUS_LABELS = { unpaid: '미납', paid: '납부완료', overdue: '연체', cancelled: '취소' }
 
+// Notices are filed under the year they fall due; the taxable period stands in
+// when a notice carries no due date.
+function obligationYear(item: FinanceTaxObligation): string | null {
+  return item.due_date?.slice(0, 4) ?? item.period_label?.slice(0, 4) ?? null
+}
+
 export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObligation[] }) {
   const mobile = useIsMobile()
   const [source, setSource] = useState<SourceFilter>('all')
+  const [year, setYear] = useState(new Date().getFullYear())
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(storedPageSize)
   const [pageSizeInput, setPageSizeInput] = useState(() => String(storedPageSize()))
 
+  const yearScoped = useMemo(
+    () => obligations.filter(item => obligationYear(item) === String(year)),
+    [obligations, year],
+  )
+
   const rows = useMemo(
-    () => obligations
+    () => yearScoped
       .filter(item => source === 'all' || item.source === source)
       .sort((a, b) => (b.due_date || '').localeCompare(a.due_date || '')),
-    [obligations, source],
+    [yearScoped, source],
   )
 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
@@ -72,9 +84,9 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
 
   // The three figures split the ledger rather than overlap: an overdue notice is
   // counted under 연체 only, so 미납 + 연체 is what still has to be paid.
-  const unpaid = obligations.filter(item => item.status === 'unpaid')
-  const overdue = obligations.filter(item => item.status === 'overdue')
-  const paid = obligations.filter(item => item.status === 'paid')
+  const unpaid = yearScoped.filter(item => item.status === 'unpaid')
+  const overdue = yearScoped.filter(item => item.status === 'overdue')
+  const paid = yearScoped.filter(item => item.status === 'paid')
 
   return (
     <LCard pad={0}>
@@ -96,6 +108,27 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
             />
           }
         />
+        {/* Year navigation */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10,
+        }}>
+          <button onClick={() => { setYear(current => current - 1); setPage(0) }} style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+          }}>
+            <LIcon name="chevronLeft" size={14} stroke={2} />
+          </button>
+          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
+            {year}년
+          </span>
+          <button onClick={() => { setYear(current => current + 1); setPage(0) }} style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+          }}>
+            <LIcon name="chevronRight" size={14} stroke={2} />
+          </button>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3,1fr)', gap: t.density.kpiGap }}>
           <LStat label="미납" value={`${unpaid.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`} tone={unpaid.length ? 'warn' : 'default'} sub={`${unpaid.length.toLocaleString()}건`} />
           <LStat label="연체" value={`${overdue.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`} tone={overdue.length ? 'neg' : 'default'} sub={`${overdue.length.toLocaleString()}건`} />
@@ -105,7 +138,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
 
       <div style={{ padding: '0 16px 12px' }}>
         <LTableHead columns={COLUMNS} mobile={mobile} />
-        {rows.length === 0 && <LTableEmpty>수집된 세금·4대보험 고지가 없습니다</LTableEmpty>}
+        {rows.length === 0 && <LTableEmpty>{year}년에 수집된 세금·4대보험 고지가 없습니다</LTableEmpty>}
         <LTableBody columns={COLUMNS} mobile={mobile}>
           {paged.map(item => {
             const tone = item.status === 'paid'
