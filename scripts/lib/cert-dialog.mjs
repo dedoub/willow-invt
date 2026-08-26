@@ -62,6 +62,27 @@ export function buttonPoint(items, label, options = {}) {
 // dialog: 신한 truncates the owner name to "윌로우인베스...", Vision reads 윌 as 월,
 // and 위택스 prints the name in full. The issuing CA (SignKorea vs TradeSign) is
 // ASCII and never truncated, so it carries the match where the name cannot.
+/**
+ * 같은 줄에 놓인 OCR 조각을 한 줄로 묶는다. 줄 간격(30px 안팎)보다 글자 높이가
+ * 훨씬 작으므로, 글자 높이만큼 떨어진 것까지를 같은 줄로 본다.
+ *
+ * 한 줄의 대표는 원래 순서에서 마지막 조각이다 — 클릭 지점이 지금까지와 같아야
+ * 이미 도는 화면이 흔들리지 않는다.
+ */
+export function groupOcrLines(items) {
+  const tolerance = Math.max(6, ...items.map(item => item.h ?? 0))
+  const ordered = [...items].sort((left, right) => left.y - right.y)
+  const groups = []
+  for (const item of ordered) {
+    const last = groups.at(-1)
+    if (last && item.y - last.y <= tolerance) last.members.push(item)
+    else groups.push({ y: item.y, members: [item] })
+  }
+  // 대표는 입력 순서 기준 마지막 조각.
+  return groups.map(group => group.members
+    .reduce((latest, member) => (items.indexOf(member) > items.indexOf(latest) ? member : latest)))
+}
+
 export function certificateRowPoint(items, keywords, options = {}) {
   const wanted = (Array.isArray(keywords) ? keywords : [keywords]).map(normalizeOcrText)
   const label = (Array.isArray(keywords) ? keywords : [keywords]).join(' / ')
@@ -73,8 +94,12 @@ export function certificateRowPoint(items, keywords, options = {}) {
     throw new Error(`인증서 목록에서 "${label}" 인증서를 찾지 못했어요.`)
   }
   // Several OCR fragments can land on one row — the name and the CA are separate
-  // items — so rows on the same line are one row, not an ambiguity.
-  const lines = [...new Map(rows.map(row => [Math.round(row.y / 6), row])).values()]
+  // items — so rows on the same line are one row, not an ambiguity. They are
+  // grouped by how far apart they actually sit, not by rounding y into fixed
+  // buckets: two fragments of one row differ by a few pixels, and a bucket edge
+  // running between them split 신한's single 텐소프트웍스 row into two and stopped
+  // the collection outright.
+  const lines = groupOcrLines(rows)
   if (lines.length > 1) {
     throw new Error(`"${label}" 인증서가 ${lines.length}건 보여서 어느 것인지 확정하지 못했어요.`)
   }

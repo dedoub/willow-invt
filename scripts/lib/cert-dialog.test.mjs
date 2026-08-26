@@ -235,3 +235,23 @@ test('splitBusinessNumber splits the number the way the portal asks for it', () 
   assert.deepEqual(splitBusinessNumber('8288800992'), ['828', '88', '00992'])
   assert.throws(() => splitBusinessNumber('82888'), /10자리/)
 })
+
+test('한 줄의 조각이 몇 픽셀 어긋나도 두 건으로 세지 않는다', () => {
+  // 신한 인증서창에서 실제로 났던 모양: 이름과 CA 가 같은 줄인데 y 가 몇 픽셀
+  // 다르다. 고정 버킷으로 나누면 경계에 걸려 한 줄이 두 건이 됐다.
+  const within = { x: 759, y: 90, w: 402, h: 541 }
+  const rows = [
+    { text: '주식회사 텐소...', x: 780, y: 346, w: 90, h: 12 },
+    { text: 'TradeSignCA4', x: 880, y: 349, w: 80, h: 12 },
+  ]
+  assert.equal(certificateRowPoint(rows, ['텐소', 'TradeSign'], { within }).y, 355)
+})
+
+test('줄 간격만큼 떨어진 두 건은 그대로 두 건이다', () => {
+  const within = { x: 759, y: 90, w: 402, h: 541 }
+  const rows = [
+    { text: '주식회사 텐소프트웍스 2028-05-19', x: 748, y: 567, w: 296, h: 17 },
+    { text: '주식회사 텐소프트웍스 2029-05-19', x: 748, y: 597, w: 296, h: 17 },
+  ]
+  assert.throws(() => certificateRowPoint(rows, '텐소', { within }), /확정하지 못했어요/)
+})
