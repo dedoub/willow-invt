@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.willow.tensw-national-tax</string>
+  <!-- 홈택스는 23:30~06:59 사이 납부할세액 화면을 닫아 둔다. 새벽 4시 배치에서는
+       매일 블록페이지만 받았으므로 국세만 떼어 서비스가 열린 뒤에 돈다.
+       두 회사가 같은 Chrome 과 같은 포인터를 쓰므로 시간을 겹치지 않게 띄운다. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
+    <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-local-finance.sh</string>
+    <string>tensw</string>
+    <string>--only</string>
+    <string>national-tax,match</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/dongwookkim</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>7</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/dongwookkim/logs/tensw-local-finance/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/dongwookkim/logs/tensw-local-finance/launchd.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/dongwookkim</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

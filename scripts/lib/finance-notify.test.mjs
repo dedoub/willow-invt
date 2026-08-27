@@ -50,6 +50,30 @@ test('오늘 결과를 낸 단계는 빠짐으로 잡히지 않는다', () => {
   assert.deepEqual(gaps.missing, [])
 })
 
+test('국세는 07시에 따로 도니 어제 07시 파일을 오래됐다고 하지 않는다', () => {
+  // 새벽 4시 알림이 보는 국세 파일은 늘 전날 07시 것이다. 12시간 기준으로 재면
+  // 매일 "국세 오래됨"이 떠서 진짜 실패가 묻힌다.
+  const yesterdaySeven = '2026-08-25T22:00:00.000Z' // 2026-08-26 07:00 KST
+  const twoDaysOld = '2026-08-24T22:00:00.000Z'
+  const morning = new Date('2026-08-27T04:00:00+09:00')
+
+  assert.deepEqual(collectionGaps(willowArtifacts({
+    'latest-hometax-national-tax.json': { collected_at: yesterdaySeven, obligations: [] },
+    'latest-tax-invoices.json': { collected_at: '2026-08-26T19:00:00.000Z', sales: [{}], purchases: [] },
+    'latest-shinhan-accounts.json': { collected_at: '2026-08-26T19:00:00.000Z', accounts: [] },
+    'latest-shinhan-transactions.json': { collected_at: '2026-08-26T19:00:00.000Z', transactions: [] },
+    'latest-kb-card-approvals.json': { collected_at: '2026-08-26T19:00:00.000Z', raw_count: 1, net_krw_amount: 1 },
+    'latest-kb-card-statement.json': { collected_at: '2026-08-26T19:00:00.000Z', billed_amount: 1, payment_date: '2026-08-27' },
+    'latest-wetax-obligations.json': { collected_at: '2026-08-26T19:00:00.000Z', obligations: [] },
+    'latest-nhis-obligations.json': { collected_at: '2026-08-26T19:00:00.000Z', obligations: [] },
+  }), WILLOW, morning).stale, [])
+
+  // 그렇다고 이틀 치를 봐주지는 않는다. 07시 잡이 통째로 멈춘 건 알아야 한다.
+  assert.deepEqual(collectionGaps(willowArtifacts({
+    'latest-hometax-national-tax.json': { collected_at: twoDaysOld, obligations: [] },
+  }), WILLOW, NOW).stale, ['국세'])
+})
+
 test('오래된 파일은 이름을 대서 알린다', () => {
   const artifacts = willowArtifacts({
     'latest-kb-card-approvals.json': { collected_at: OLD, raw_count: 999, net_krw_amount: 1 },

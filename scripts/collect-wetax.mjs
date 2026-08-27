@@ -78,16 +78,6 @@ async function dismissPopups() {
   return closed
 }
 
-// 로그인 여부가 아니라 "누구로" 로그인됐는지를 본다.
-async function currentSessionState() {
-  const text = await pageScript(PAGE_TEXT_SCRIPT).catch(() => '')
-  return sessionState(text, IDENTITY.company)
-}
-
-async function isLoggedIn() {
-  return await currentSessionState() === SESSION_STATE.ours
-}
-
 /** 누군가 로그인은 되어 있는지. 주인이 누구인지와는 별개다. */
 async function someoneSignedIn() {
   const text = await pageScript(PAGE_TEXT_SCRIPT).catch(() => '')
@@ -98,12 +88,29 @@ async function someoneSignedIn() {
 // 보고는 "누구로 로그인했는지"를 알 수 없고, 살아 있는 세션 위에서도 로그아웃으로
 // 판정해 인증서 창을 다시 열려다 멈췄다. 납부대상 화면은 이름을 찍으므로 세션
 // 주인은 거기서 읽는다 — 다른 회사 세션으로 남의 지방세를 긁는 일은 그대로 막힌다.
+// 주인을 못 읽은 채 멈추면 화면에 무엇이 떠 있었는지가 유일한 단서다. 마지막으로
+// 읽은 주소와 본문을 들고 있다가 실패할 때 함께 남긴다.
+let lastLedger = { url: '', text: '' }
+
 async function sessionStateOnLedger() {
   await pageScript(`(() => { location.href = ${JSON.stringify(OUTSTANDING_URL)}; return 'navigating'; })()`)
     .catch(() => {})
   await sleep(6_000)
   await dismissPopups()
-  return currentSessionState()
+  const text = await pageScript(PAGE_TEXT_SCRIPT).catch(() => '')
+  lastLedger = { url: (await chromeTabState(HOST)).url, text: String(text) }
+  return sessionState(text, IDENTITY.company)
+}
+
+async function ledgerEvidence() {
+  const file = path.join(ARTIFACT_DIR, `wetax-owner-unknown-${Date.now()}.png`)
+  await execFileAsync('/usr/sbin/screencapture', ['-x', file]).catch(() => {})
+  await fs.chmod(file, 0o600).catch(() => {})
+  return [
+    `주소=${lastLedger.url || '(없음)'}`,
+    `본문=${lastLedger.text.slice(0, 300) || '(없음)'}`,
+    `증거=${file}`,
+  ].join(', ')
 }
 
 async function ensureLogin() {
@@ -143,15 +150,23 @@ async function ensureLogin() {
     if (!await someoneSignedIn()) continue
 
     const owner = await sessionStateOnLedger()
+    if (owner === SESSION_STATE.other) {
+      throw new Error('위택스에 다른 회사로 로그인됐어요. 이 회사 자료를 긁지 않아요.')
+    }
     if (owner === SESSION_STATE.ours) {
       log('logged in')
       return
     }
-    if (owner === SESSION_STATE.other) {
-      throw new Error('위택스에 다른 회사로 로그인됐어요. 이 회사 자료를 긁지 않아요.')
+    // 납부대상 화면이 상호를 한 글자도 찍지 않는 날이 있다 — 텐소프트웍스는
+    // 본문에도 HTML 에도 없어서 45초를 채우고 실패했다. 방금 이 회사 인증서로
+    // 로그인한 뒤라 주인은 우리이고, 남의 이름이 찍혔다면 위에서 이미 멈춘다.
+    // 그래서 여기서는 로그인된 납부대상 화면인지만 확인하고 넘어간다.
+    if (/로그아웃/.test(lastLedger.text)) {
+      log('logged in (화면에 상호 표기가 없어 인증서 로그인 결과로 확인했어요)')
+      return
     }
   }
-  throw new Error('위택스 로그인 상태를 확인하지 못했어요.')
+  throw new Error(`위택스 로그인 상태를 확인하지 못했어요. ${await ledgerEvidence()}`)
 }
 
 // Every screen has its own address, so navigation needs no menu clicking.

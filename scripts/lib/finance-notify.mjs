@@ -36,6 +36,13 @@ export function artifactLabels(config) {
 }
 
 /**
+ * 소스마다 도는 시각이 다르다. 국세는 홈택스가 23:30~06:59 서비스를 닫아 새벽
+ * 배치에서는 받을 수 없어 07시에 따로 돈다. 그래서 04시 알림이 보는 파일은 늘
+ * 21시간 전 것이고, 12시간 기준으로는 매일 "오래됨"이 뜬다.
+ */
+const FRESH_HOURS = { 'latest-hometax-national-tax.json': 30 }
+
+/**
  * 어느 수집 단계가 오늘 결과를 내놓지 못했는지 가린다.
  *
  * 숫자는 여기서 만들지 않는다. 잔액·미납·미수는 오늘 수집이 돌았는지와 무관한
@@ -49,7 +56,7 @@ export function collectionGaps(artifacts, config, now = new Date()) {
   for (const [name, label] of Object.entries(labels)) {
     const payload = artifacts[name]
     if (!payload) missing.push(label)
-    else if (!isFresh(payload.collected_at, now)) stale.push(label)
+    else if (!isFresh(payload.collected_at, now, FRESH_HOURS[name])) stale.push(label)
   }
   return { stale: [...new Set(stale)], missing: [...new Set(missing)] }
 }

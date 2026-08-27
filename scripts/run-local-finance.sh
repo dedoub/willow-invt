@@ -171,10 +171,12 @@ collect_national_tax() {
         --company "$COMPANY" --source hometax --input "$LOG_DIR/latest-hometax-national-tax.json"
 }
 
+# 국세는 여기 없다. 홈택스가 23:30~06:59 사이 납부할세액 화면을 닫아 두어 새벽
+# 배치에서는 매일 블록페이지만 받았다. 07시에 도는 별도 잡(com.willow.*-national-tax)
+# 이 `--only national-tax,match` 로 받아 온다.
 collect_shared_taxes() {
   group "위택스" collect_wetax
   group "4대보험" collect_nhis
-  group "국세" collect_national_tax
 }
 
 tensw_tax_invoices() {
@@ -237,6 +239,46 @@ run_willow() {
     $NODE "$RUNTIME/scripts/sync-akros-invoices.mjs"
 }
 
+# --only <묶음[,묶음...]>: 지정한 묶음만 돈다. 국세처럼 다른 시각에 도는 잡이 쓰고,
+# 새벽에 막힌 묶음을 사람이 그날 안에 다시 돌릴 때도 쓴다.
+#
+#   scripts/run-local-finance.sh tensw --only national-tax,match
+#   scripts/run-local-finance.sh tensw --only card,wetax
+run_only() {
+  local requested name
+  IFS=',' read -r -a requested <<< "$1"
+  for name in "${requested[@]}"; do
+    case "$name" in
+      tax-invoices)
+        if [ "$COMPANY" = tensw ]; then group "세금계산서" tensw_tax_invoices
+        else group "세금계산서" willow_tax_invoices; fi ;;
+      bank)
+        if [ "$COMPANY" = tensw ]; then group "신한은행" tensw_bank
+        else group "신한은행" willow_bank; fi ;;
+      card)
+        if [ "$COMPANY" = tensw ]; then group "우리카드" tensw_card
+        else group "KB카드" willow_card; fi ;;
+      wetax) group "위택스" collect_wetax ;;
+      nhis) group "4대보험" collect_nhis ;;
+      national-tax) group "국세" collect_national_tax ;;
+      match) group "세금 지급 매칭" run_step "세금 지급 매칭" \
+        $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs" ;;
+      classify) group "자동 분류" run_step "자동 분류" \
+        npx tsx "$ROOT/scripts/local-finance-classify.ts" --company "$COMPANY" ;;
+      *)
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] 알 수 없는 묶음이에요: $name" >> "$LOG_FILE"
+        FAILED_STEPS="${FAILED_STEPS:+$FAILED_STEPS, }알 수 없는 묶음 $name" ;;
+    esac
+  done
+}
+
+ONLY=""
+[ "${2:-}" = "--only" ] && ONLY="${3:-}"
+if [ "${2:-}" = "--only" ] && [ -z "$ONLY" ]; then
+  echo "--only 뒤에 돌릴 묶음을 적어 주세요." >&2
+  exit 2
+fi
+
 # --sync-only: 런타임 동기화까지만 하고 수집은 돌리지 않는다. 스크립트가 빠졌는지
 # 새벽까지 기다리지 않고 확인하려고 둔다.
 if [ "${2:-}" = "--sync-only" ]; then
@@ -271,14 +313,19 @@ fi
 
 export TELEGRAM_BOT_TOKEN="$(env_value TELEGRAM_BOT_TOKEN)"
 
-echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance start" >> "$LOG_FILE"
+echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance start${ONLY:+ (only: $ONLY)}" >> "$LOG_FILE"
 rm -f "$STEP_FILE"
-if [ "$COMPANY" = "tensw" ]; then run_tensw; else run_willow; fi
+if [ -n "$ONLY" ]; then run_only "$ONLY"
+elif [ "$COMPANY" = "tensw" ]; then run_tensw
+else run_willow; fi
 
 # 성공이든 실패든 CEO 봇으로 알린다. 조용히 실패하면 며칠이 지나도 모른다.
 # 이제 한 묶음이 막혀도 나머지는 도니, 실패한 묶음을 모아서 알린다.
 if [ -z "$FAILED_STEPS" ]; then
-  echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance success" >> "$LOG_FILE"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance success${ONLY:+ (only: $ONLY)}" >> "$LOG_FILE"
+  # 묶음 하나만 돈 실행은 일일 요약을 다시 보내지 않는다. 07시 국세 잡이 성공할
+  # 때마다 새벽 알림과 같은 내용이 한 번 더 가면 정작 실패 알림이 묻힌다.
+  [ -n "$ONLY" ] && exit 0
   $NODE "$RUNTIME/scripts/notify-local-finance.mjs" --company "$COMPANY" --status ok >> "$LOG_FILE" 2>&1
   exit 0
 fi
