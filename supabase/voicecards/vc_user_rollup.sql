@@ -25,6 +25,11 @@
 --   보낸 적 있는가"로 가른다. 이 조회는 idx_anon_events_cost_aware_version(indexes.sql)을 탄다 —
 --   인덱스가 없으면 호출마다 anonymous_events 전량 seq scan 이다(143ms → 12ms).
 --   listen_count = premium + free + unclassified + device_tts_played(현재 0건)
+--
+-- 2026-08-27 백그라운드 재생 종료:
+--   사용자 표에 마지막 백그라운드 재생 종료 시각을 붙이려고 listen_session_ended 를 같은
+--   스캔에 얹었다. 별도 RPC 로 빼면 mv_real_users(10만행)를 한 번 더 훑게 되는데, 이 함수가
+--   3 RPC 를 합친 이유가 바로 그 동시 스캔 경합이었다.
 -- ============================================================================
 drop function if exists public.vc_user_rollup();
 create or replace function public.vc_user_rollup()
@@ -34,7 +39,8 @@ create or replace function public.vc_user_rollup()
    unclassified_listen_count bigint, flip_count bigint, credits_spent bigint,
    purchased_credits bigint,
    premium_voice boolean, ai_feature boolean, banner_tap boolean, gated boolean,
-   last_intent timestamptz
+   last_intent timestamptz,
+   last_listen_end timestamptz
  )
  language sql
  stable
@@ -90,7 +96,10 @@ as $function$
         'ai_generation_opened','ai_generation_submitted','ai_teaser_generate_tapped',
         'credit_banner_tapped',
         'add_sheet_opened_anonymous','add_sheet_signin_and_create_clicked','prompt_signin_clicked'
-      )) as last_intent
+      )) as last_intent,
+      -- 백그라운드 재생(듣기)이 마지막으로 끝난 시각. 듣기는 RNTP 백그라운드 플레이어가 돌린다 —
+      -- 세션 종료 이벤트가 그 재생이 실제로 멈춘 지점이다(user_paused·credits_depleted 등).
+      max(m.created_at) filter (where m.event_name = 'listen_session_ended') as last_listen_end
     from mv_real_users m
     where m.is_likely_bot = false and m.user_id is not null
       and m.event_name in (
@@ -98,7 +107,8 @@ as $function$
         'tts_premium_toggle_changed','voice_settings_opened',
         'ai_generation_opened','ai_generation_submitted','ai_teaser_generate_tapped',
         'credit_banner_tapped',
-        'add_sheet_opened_anonymous','add_sheet_signin_and_create_clicked','prompt_signin_clicked'
+        'add_sheet_opened_anonymous','add_sheet_signin_and_create_clicked','prompt_signin_clicked',
+        'listen_session_ended'
       )
     group by m.user_id
   ),
@@ -131,7 +141,8 @@ as $function$
     coalesce(e.ai_feature, false),
     coalesce(e.banner_tap, false),
     coalesce(e.gated, false),
-    e.last_intent
+    e.last_intent,
+    e.last_listen_end
   from ids i
   left join ev e using(user_id)
   left join spend s using(user_id)

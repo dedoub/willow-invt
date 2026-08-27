@@ -78,6 +78,7 @@ interface UserStats {
     hotLead: boolean
     purchaseScore: number
     lastIntentAt: string | null
+    lastListenEndAt: string | null
     createdAt: string
     activatedAt?: string | null
     lastActiveAt: string | null

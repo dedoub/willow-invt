@@ -72,6 +72,8 @@ interface UserStats {
     hotLead: boolean
     purchaseScore: number
     lastIntentAt: string | null
+    // 마지막 백그라운드 재생(듣기) 종료 시각 — listen_session_ended. 안 들었으면 null.
+    lastListenEndAt: string | null
     createdAt: string
     activatedAt?: string | null
     lastActiveAt: string | null
@@ -200,10 +202,10 @@ function formatTimeShort(dateString?: string | null): string {
 }
 
 // 데스크톱 사용자 테이블 — 컬럼 정렬(헤더/행 공유).
-// 설치 | 로그인 | 활동 | 닉네임 | 플랫폼 | 앱버전 | 언어 | 국가 | 드라이브 | 활성화 | 시트 | 카드 | …
+// 설치 | 로그인 | 활동 | 닉네임 | 플랫폼 | 앱버전 | 언어 | 국가 | 드라이브 | 활성화 | 덱 | 카드 | …
 // 설치가 맨 앞인 이유: 로그인 없이 쓰는 기기 계정이 생기면서 로그인일이 더 이상
 // 여정의 시작점이 아니다. 설치 → (구글 로그인) → (드라이브) 순으로 읽힌다.
-const USER_TABLE_COLS = '64px 64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 48px 52px 44px 48px 44px'
+const USER_TABLE_COLS = '64px 64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 64px 48px 52px 44px 48px 44px'
 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용. 컬럼 정의에서 자동 산출 —
 // 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져 마지막 열들이 회색 행 배경
 // 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
@@ -360,7 +362,7 @@ function formatCountry(country: string | null, locale?: string | null): { flag: 
 
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status' | 'active'
-  | 'sheets' | 'cards' | 'flips' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'spent' | 'paid'
+  | 'sheets' | 'cards' | 'flips' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'spent' | 'paid' | 'listenEnd'
   | 'installed' | 'created' | 'recent' | 'active7'
 type SortDir = 'asc' | 'desc'
 
@@ -376,7 +378,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'country',  label: '국가',   mobileLabel: '국가',     align: 'center' },
   { key: 'status',   label: '드라이브', mobileLabel: '드라이브', align: 'center' },
   { key: 'active',   label: '활성화', mobileLabel: '활성화',   align: 'center' },
-  { key: 'sheets',   label: '시트',   mobileLabel: '시트',     align: 'center' },
+  { key: 'sheets',   label: '덱',     mobileLabel: '덱',       align: 'center' },
   { key: 'cards',    label: '카드',   mobileLabel: '카드',     align: 'center' },
   { key: 'flips',    label: '뒤집기', mobileLabel: '뒤집기',   align: 'center' },
   { key: 'attempts', label: '말하기', mobileLabel: '말하기',   align: 'center' },
@@ -384,6 +386,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'intent',   label: '구매신호', mobileLabel: '구매신호', align: 'center' },
   { key: 'offer',    label: '오퍼',   mobileLabel: '오퍼단계', align: 'center' },
   { key: 'paid',     label: '유료',   mobileLabel: '유료결제', align: 'center' },
+  { key: 'listenEnd', label: '재생종료', mobileLabel: '백그라운드 재생 종료', align: 'center' },
   { key: 'purchased', label: '구매', mobileLabel: '구매 크레딧', align: 'center' },
   { key: 'bonus',    label: '보너스', mobileLabel: '보너스 크레딧', align: 'center' },
   { key: 'spent',    label: '사용', mobileLabel: '사용 크레딧', align: 'center' },
@@ -580,6 +583,8 @@ export function VoicecardsBlock({
       purchasedToday: 0, balanceDeltaToday: 0, sheetsDeltaToday: 0,
       intentPremiumVoice: false, intentAi: d.aiGenOpens > 0, intentBanner: false,
       intentGated: d.addSheetOpens > 0, hotLead: false, purchaseScore: 0, lastIntentAt: null,
+      // 듣기 세션은 로그인 계정 기준으로만 집계한다(vc_user_rollup은 user_id로 묶는다)
+      lastListenEndAt: null,
       createdAt: '',                 // 로그인한 적 없음
       lastActiveAt: d.lastSeenAt,
       installedAt: d.firstSeenAt,
@@ -633,6 +638,8 @@ export function VoicecardsBlock({
         case 'bonus':    return (a.bonusCredits ?? 0) - (b.bonusCredits ?? 0)
         case 'spent':    return (a.creditsSpent ?? 0) - (b.creditsSpent ?? 0)
         case 'paid':     return Number(!!a.hasPurchased) - Number(!!b.hasPurchased)
+        // 한 번도 안 들은 사용자는 항상 뒤로 (빈 문자열이 어떤 ISO 시각보다 작다)
+        case 'listenEnd': return (a.lastListenEndAt ?? '').localeCompare(b.lastListenEndAt ?? '')
         // 날짜로 표시되는 컬럼은 날짜(YYYY-MM-DD) 단위로 비교 → 같은 날끼리는 동점이 되어
         // 다음 우선순위(예: 듣기 내림차순)가 그 안에서 적용됨.
         case 'recent':   return (a.lastActiveAt ? kstDateKey(a.lastActiveAt) : '').localeCompare(b.lastActiveAt ? kstDateKey(b.lastActiveAt) : '')
@@ -1621,6 +1628,18 @@ export function VoicecardsBlock({
                     }}>
                       {user.hasPurchased ? '유료' : '무료'}
                     </span>
+                  </div>
+                  {/* 백그라운드 재생 종료 — 마지막 듣기 세션이 끝난 시각(listen_session_ended).
+                      집계는 시간당 갱신되는 mv_real_users를 읽어 최신 세션은 한 텀 늦게 반영된다. */}
+                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                    {user.lastListenEndAt ? (
+                      <>
+                        <span>{formatDateShort(user.lastListenEndAt)}</span>
+                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastListenEndAt)}) {formatTimeShort(user.lastListenEndAt)}</span>
+                      </>
+                    ) : (
+                      <span style={{ color: t.neutrals.subtle, textAlign: 'center' as const }}>—</span>
+                    )}
                   </div>
                   <NumDeltaCell total={user.purchasedCredits} delta={user.purchasedToday} />
                   <NumDeltaCell total={user.bonusCredits} delta={0} />

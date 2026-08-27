@@ -995,6 +995,9 @@ export interface VoicecardsUserStats {
     hotLead: boolean            // 상대 기준: 최근 7일 활성 미구매자 중 purchaseScore 상위 30%
     purchaseScore: number       // 구매 가능성 점수. 헤비 TTS(듣기 볼륨) 최우선 + 프리미엄보이스 오디션/AI·배너 의도 + 최근활동. 구매자=0
     lastIntentAt: string | null // 가장 최근 구매의도 이벤트 시각
+    // 마지막 백그라운드 재생(듣기) 종료 시각 — listen_session_ended. 듣기는 RNTP 백그라운드
+    // 플레이어가 돌리므로 이 이벤트가 그 재생이 실제로 멈춘 지점이다. 한 번도 안 들었으면 null.
+    lastListenEndAt: string | null
     createdAt: string
     activatedAt: string | null // 최초 학습 활성화 시각. 기기 계정은 로컬 덱 생성 이벤트 기준.
     lastActiveAt: string | null
@@ -1267,8 +1270,8 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   // 사용자별 구매 고려 신호
-  const userIntentMap = new Map<string, { premiumVoice: boolean; ai: boolean; banner: boolean; gated: boolean; lastIntent: string | null }>()
-  for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; premium_voice: boolean | null; ai_feature: boolean | null; banner_tap: boolean | null; gated: boolean | null; last_intent: string | null }>)) {
+  const userIntentMap = new Map<string, { premiumVoice: boolean; ai: boolean; banner: boolean; gated: boolean; lastIntent: string | null; lastListenEnd: string | null }>()
+  for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; premium_voice: boolean | null; ai_feature: boolean | null; banner_tap: boolean | null; gated: boolean | null; last_intent: string | null; last_listen_end: string | null }>)) {
     if (!row.user_id) continue
     const uid = canonicalOwnerId(row.user_id)
     const previous = userIntentMap.get(uid)
@@ -1278,6 +1281,8 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       banner: !!row.banner_tap || !!previous?.banner,
       gated: !!row.gated || !!previous?.gated,
       lastIntent: [previous?.lastIntent, row.last_intent].filter(Boolean).sort().at(-1) || null,
+      // 기기 계정이 하나로 합쳐질 수 있어(canonicalOwnerId) 더 최근 값을 남긴다
+      lastListenEnd: [previous?.lastListenEnd, row.last_listen_end].filter(Boolean).sort().at(-1) || null,
     })
   }
 
@@ -1476,6 +1481,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       return Math.round(listen + sheets * 5 + Math.min(cards, 300) * 0.2 + streak * 8 + clickedUpgrade + premiumCurious + aiCurious + urgency)
     })(),
     lastIntentAt: userIntentMap.get(u.user_id)?.lastIntent || null,
+    lastListenEndAt: userIntentMap.get(u.user_id)?.lastListenEnd || null,
     // 학습 활동(user_analytics.last_updated)과 앱 이벤트 최근 시각 중 더 최근값
     lastActiveAt: (() => {
       const cands = [
