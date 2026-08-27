@@ -261,10 +261,10 @@ as $$
 $$;
 
 -- 3) 실행 권한 — 이메일이 나오는 집계라 anon/authenticated에는 절대 열지 않는다.
-revoke all on function public.sc__metric(date[])   from public;
-revoke all on function public.sc__admin_ids()     from public;
-revoke all on function public.sc_dashboard_stats() from public;
-revoke all on function public.sc_users()           from public;
+revoke all on function public.sc__metric(date[])   from public, anon, authenticated;
+revoke all on function public.sc__admin_ids()     from public, anon, authenticated;
+revoke all on function public.sc_dashboard_stats() from public, anon, authenticated;
+revoke all on function public.sc_users()           from public, anon, authenticated;
 grant execute on function public.sc__metric(date[])   to service_role;
 grant execute on function public.sc__admin_ids()     to service_role;
 grant execute on function public.sc_dashboard_stats() to service_role;
