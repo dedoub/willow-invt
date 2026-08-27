@@ -7,7 +7,7 @@ import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-sec
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import type { PortleStats, PortleUserRow } from '@/lib/portle-types'
 import { PORTLE_KIND_LABELS } from '@/lib/portle-types'
-import { kstDateKey, kstWeekday, kstTime } from '@/lib/kst'
+import { kstDateKey, kstToday, kstWeekday, kstTime } from '@/lib/kst'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -321,7 +321,27 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           // 퍼널: 스토어 방문 → 설치 기기 → 구글 로그인 → 드라이브 연동 → 시트 활성화 → 구독 가입.
           // 보이스카드와 동일 단계. 스토어 방문은 portle_store_visits(스토어 리포트 수집 잡),
           // 설치/로그인/연동/활성화는 portle_app_events(앱 텔레메트리) — 수집 전 단계는 '수집 대기'.
-          const axis = stats.daily.map(d => d.date)
+          // 퍼널 축은 AI 사용일이 아니라 "이 퍼널에 무슨 일이든 있었던 기간"이어야 한다.
+          // stats.daily(AI 호출)만 쓰면 AI를 아무도 안 쓴 날부터 축이 끊겨, 그 뒤에 들어온
+          // 설치·로그인·활성화가 스파크라인에서 사라진다 — 카드 숫자는 57인데 선은 47에서
+          // 나흘 전에 멈춰 있었다 (2026-08-27). 모든 계열의 날짜를 합쳐 오늘까지 채운다.
+          const axis = (() => {
+            const marks = [
+              ...stats.daily.map(d => d.date),
+              ...stats.storeVisits.map(v => v.date),
+              ...stats.funnel.installs, ...stats.funnel.signins,
+              ...stats.funnel.driveLinks, ...stats.funnel.sheetActivations,
+            ].filter(Boolean).sort()
+            const todayKst = kstToday()
+            if (marks.length === 0) return [todayKst]
+            const out: string[] = []
+            for (let d = new Date(`${marks[0]}T00:00:00+09:00`); ; d.setDate(d.getDate() + 1)) {
+              const key = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+              out.push(key)
+              if (key >= todayKst) break
+            }
+            return out
+          })()
           const today = axis.length ? axis[axis.length - 1] : ''
           const sevenAgo = axis.length >= 7 ? axis[axis.length - 7] : (axis[0] ?? '')
           const cumOf = (dates: string[]) => {
@@ -353,7 +373,10 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           const sheetCum = cumOf(sheetActivations)
 
           // 단계별 전환율 — 직전 단계 대비. 앞 단계가 수집 전(0)이면 전환을 적지 않는다.
-          const conv = (n: number, d: number): number | null => (d > 0 ? Math.min(100, rate(n, d)) : null)
+          // 뒤 단계가 앞 단계보다 크면(=앞 단계 이벤트가 덜 걷힌 상태) 100%로 눌러 적지 않는다.
+          // 지금 drive_linked 는 1건인데 sheet_activated 는 57건이라, 그대로 두면 "전환 100%"라는
+          // 거짓이 나온다. 계측이 메워지기 전까지는 비워 두는 편이 정직하다.
+          const conv = (n: number, d: number): number | null => (d > 0 && n <= d ? rate(n, d) : null)
           const installConv = conv(installs.length, svTotal)
           const loginConv = conv(signins.length, installs.length)
           const driveConv = conv(driveLinks.length, signins.length)
