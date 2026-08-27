@@ -13,6 +13,7 @@ import { readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runAgent } from './lib/agent-cli'
+import { clip, formatFailureReport, formatSuccessReport, timeoutForSource } from './lib/dispatch-report'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -38,7 +39,6 @@ const TG = env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN
 if (!URL || !KEY) { console.error('크레덴셜 없음(.env.local)'); process.exit(0) }
 
 const H = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' }
-const CMD_TIMEOUT_MS = 15 * 60 * 1000 // 명령당 codex 상한 15분
 
 async function rest(pathAndQuery: string, init: RequestInit = {}): Promise<any> {
   const res = await fetch(`${URL}/rest/v1/${pathAndQuery}`, { ...init, headers: { ...H, ...(init.headers || {}) } })
@@ -108,18 +108,20 @@ async function runOne(cmd: any) {
         history.map((h, i) => `${i + 1}. 지시: ${h.instruction}\n   결과: ${short(h.result, 300)}`).join('\n') +
         `\n\n# 현재 지시 (${turn}번째)\n`
       : ''
+    // 상한은 작업 종류를 따라간다. GSC 색인처럼 브라우저를 직접 모는 배치는 15분에 안 끝난다.
+    const timeoutMs = timeoutForSource(cmd.source)
     const out = await runAgent(contextPrefix + cmd.instruction, {
       backend: 'codex',
       cwd: cmd.cwd,
-      timeoutMs: CMD_TIMEOUT_MS,
+      timeoutMs,
     } as any)
     appendHistory(cmd.project, { instruction: cmd.instruction, result: short(out, 600), at: new Date().toISOString() })
     await rest(`ws_commands?id=eq.${cmd.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: 'done', result: short(out, 4000), finished_at: new Date().toISOString() }),
+      body: JSON.stringify({ status: 'done', result: clip(out, 4000), finished_at: new Date().toISOString() }),
     })
     console.log(`✅ ${label} (대화 ${turn}번째)`)
-    await tgReport(cmd.source_chat_id, `✅ [${cmd.project}] 완료 (대화 ${turn}번째)\n${short(cmd.instruction, 80)}\n\n${short(out, 500)}`)
+    await tgReport(cmd.source_chat_id, formatSuccessReport(cmd, out, { turn, finishedAt: new Date().toISOString() }))
   } catch (e) {
     const msg = (e as Error).message
     await rest(`ws_commands?id=eq.${cmd.id}`, {
@@ -127,7 +129,10 @@ async function runOne(cmd: any) {
       body: JSON.stringify({ status: 'failed', error: short(msg, 2000), finished_at: new Date().toISOString() }),
     })
     console.error(`❌ ${label}: ${msg}`)
-    await tgReport(cmd.source_chat_id, `❌ [${cmd.project}] 막힘\n${short(cmd.instruction, 80)}\n\n${short(msg, 400)}`)
+    await tgReport(cmd.source_chat_id, formatFailureReport(cmd, msg, {
+      timeoutMs: timeoutForSource(cmd.source),
+      finishedAt: new Date().toISOString(),
+    }))
   }
 }
 
@@ -175,7 +180,7 @@ async function processBridge(): Promise<number> {
         const reply = await runAgent(
           `다른 에이전트 '${from}'가 워크스테이션 브리지로 이렇게 물었습니다:\n"${msg.body}"\n\n` +
           `윌로우인베스트먼트 CEO의 비서 '윌리'로서 답하세요. 필요하면 willow-dashboard MCP 도구로 실제 데이터를 확인하세요. 답변 본문만 간결히 출력하세요.`,
-          { backend: 'codex', cwd: ROOT, timeoutMs: CMD_TIMEOUT_MS } as any
+          { backend: 'codex', cwd: ROOT, timeoutMs: timeoutForSource('bridge') } as any
         )
         await rest('ws_thread_events', {
           method: 'POST',
