@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
+// 로그인 쿠키를 읽으므로 요청마다 실행돼야 한다. 이 줄이 없으면 Next 가 빌드 때 한 번
+// 실행해 응답을 굳혀 버리고, 그때는 쿠키가 없어 401 이 통째로 캐시된다 (2026-08-27 투자 페이지).
+export const dynamic = 'force-dynamic'
+
 export interface WillowInvoice {
   id: string
   type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer' | 'exchange'

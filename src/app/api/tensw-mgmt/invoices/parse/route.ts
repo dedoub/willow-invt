@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import * as XLSX from 'xlsx'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
+
+// 로그인 쿠키를 읽으므로 요청마다 실행돼야 한다. 이 줄이 없으면 Next 가 빌드 때 한 번
+// 실행해 응답을 굳혀 버리고, 그때는 쿠키가 없어 401 이 통째로 캐시된다 (2026-08-27 투자 페이지).
+export const dynamic = 'force-dynamic'
 
 interface ParsedTransaction {
   date: string
@@ -13,6 +18,9 @@ interface ParsedTransaction {
 }
 
 export async function POST(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 })

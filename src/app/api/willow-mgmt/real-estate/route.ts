@@ -3,6 +3,10 @@ import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { kstToday } from '@/lib/kst'
 import { getServiceSupabase } from '@/lib/supabase'
 
+// 로그인 쿠키를 읽으므로 요청마다 실행돼야 한다. 이 줄이 없으면 Next 가 빌드 때 한 번
+// 실행해 응답을 굳혀 버리고, 그때는 쿠키가 없어 401 이 통째로 캐시된다 (2026-08-27 투자 페이지).
+export const dynamic = 'force-dynamic'
+
 // A single reported transaction can make an incomplete current month look like
 // a market-wide price move. Keep the volume bar, but wait for a minimally useful
 // aggregate sample before drawing the current-month price point.

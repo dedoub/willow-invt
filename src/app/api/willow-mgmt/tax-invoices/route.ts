@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
+// 로그인 쿠키를 읽으므로 요청마다 실행돼야 한다. 이 줄이 없으면 Next 가 빌드 때 한 번
+// 실행해 응답을 굳혀 버리고, 그때는 쿠키가 없어 401 이 통째로 캐시된다 (2026-08-27 투자 페이지).
+export const dynamic = 'force-dynamic'
+
 // 홈택스에서 수집한 전자세금계산서. 윌로우는 텐소프트웍스와 달리 수금상태를 사람이
 // 관리하는 매출관리 테이블이 없어, 수집분이 그대로 정본이다.
 export async function GET(request: Request) {

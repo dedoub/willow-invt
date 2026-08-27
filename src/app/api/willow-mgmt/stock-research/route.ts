@@ -4,6 +4,10 @@ import { getServiceSupabase } from '@/lib/supabase'
 import { ensureTickerTheme } from '@/lib/ensure-ticker-theme'
 import { inferAxisFromSector } from '@/lib/infer-axis'
 
+// 로그인 쿠키를 읽으므로 요청마다 실행돼야 한다. 이 줄이 없으면 Next 가 빌드 때 한 번
+// 실행해 응답을 굳혀 버리고, 그때는 쿠키가 없어 401 이 통째로 캐시된다 (2026-08-27 투자 페이지).
+export const dynamic = 'force-dynamic'
+
 // GET - List all research entries
 export async function GET(request: Request) {
   const denied = await denyUnlessDashboardAccess(request)
