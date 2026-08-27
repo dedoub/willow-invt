@@ -545,11 +545,6 @@ export function ReviewnotesBlock({
               value={sales ? sales.buyers.toLocaleString() : '—'}
               valueExtra={sales && sales.buyers > 0 ? rateExtra('전환', rate(sales.buyers, activatedTotal)) : undefined}
               sub={sales ? `구매 ${sales.paidOrders.toLocaleString()}건 · 이번 달 ${sales.monthOrders.toLocaleString()}건` : '결제 데이터 없음'}
-              subExtra={
-                <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
-                  가입 지급 100크레딧
-                </span>
-              }
               tone={sales && sales.buyers > 0 ? 'pos' : 'default'}
               sparkline={mobile ? undefined : cumBuyers}
             />
