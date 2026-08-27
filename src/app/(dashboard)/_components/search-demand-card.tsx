@@ -641,7 +641,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
     return m
   }, [data])
 
-  // 기간 토글 — 시스템 표준 세그먼트 (컨트롤 폰트 통일, 2026-08-21)
+  // 기간 토글 — 시스템 표준 세그먼트. 모바일에서도 제목 줄에 그대로 둔다(toolsInline).
   const periodToggle = (
     <LSegmented
       size="sm"
@@ -663,6 +663,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
             title="검색 노출 → 클릭"
             meta={gsc ? `${gsc.range.startDate} ~ ${gsc.range.endDate} · 구글 집계 ${gsc.range.lagDays}일 지연` : undefined}
             tools={periodToggle}
+            toolsInline
             action={
               <>
                 {showGscLink && gsc && <LHeadBtn label="GSC" title="Search Console" href={gsc.site.consoleUrl} />}

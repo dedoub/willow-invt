@@ -66,7 +66,7 @@ async function fetchAppFunnel(): Promise<Omit<PortleAppFunnel, 'signins'> & { si
   for (let from = 0; from < MAX_ROWS; from += PAGE) {
     const { data, error } = await portleSupabase
       .from('portle_app_events')
-      .select('created_at, device_id, event')
+      .select('created_at, device_id, event, platform')
       .in('event', [...FUNNEL_EVENTS])
       .order('created_at', { ascending: true })
       .range(from, from + PAGE - 1)
@@ -75,7 +75,7 @@ async function fetchAppFunnel(): Promise<Omit<PortleAppFunnel, 'signins'> & { si
       return empty
     }
     for (const row of data ?? []) {
-      if (isTestPeriod(row.created_at)) continue // 출시 전 = 로컬 테스트
+      if (isInternalEvent(row.platform, row.created_at)) continue // 우리 손으로 만든 트래픽
       const key = `${row.event}\n${row.device_id}`
       if (!firstAt.has(key)) firstAt.set(key, kstDateKey(row.created_at))
     }
@@ -102,15 +102,34 @@ function subjectType(subject: string): PortleUserRow['type'] {
 
 // ── 관리자·테스트 제외 (voicecards-server의 EXCLUDED_* 와 같은 역할) ──────────────
 // 관리자(CEO) subject — AI 사용·구독·공유코드 전부 통계에서 뺀다.
-const EXCLUDED_PORTLE_SUBJECTS = new Set(['google:100644446554227652222'])
+// device:mt56... 는 CEO가 8/23 로컬에서 샘플 호출로 확인한 기기다.
+const EXCLUDED_PORTLE_SUBJECTS = new Set([
+  'google:100644446554227652222',
+  'device:mt56m2l2wr2nezngiiq03sen',
+])
 // 스토어 출시(1.0.0) 전 데이터는 전부 로컬 테스트 트래픽:
 // 8/20 device subject 41개(호출 1건씩), 8/21~8/22 02:18 KST 앱 이벤트 기기 340여 개 모두
 // 시뮬레이터/자동화 테스트(밀리초 간격 버스트). 이 시각 이전은 통째로 제외한다.
 // 출시 후 로컬 테스트는 관리자 계정으로 로그인해서 하거나 EXCLUDED_PORTLE_SUBJECTS 에 추가할 것.
 const PORTLE_TEST_CUTOFF_MS = Date.parse('2026-08-22T03:00:00+09:00')
 
+// iOS는 아직 App Store 심사 중이라 밖에서 설치할 경로가 없다 — 지금 들어오는 ios 앱 이벤트는
+// 전부 우리 시뮬레이터다. 실제로 8/22 이후 ios 기기 279개 중 278개가 수명 10초 미만이었고
+// (실행할 때마다 기기 id가 새로 생긴다), 같은 초에 signin_completed 가 10번씩 찍혔다.
+// 심사가 끝나면 승인일을 여기에 적는다. 그때부터 ios 이벤트가 퍼널에 들어온다.
+const PORTLE_IOS_RELEASE_MS: number | null = null
+
 function isTestPeriod(createdAt: string): boolean {
   return new Date(createdAt).getTime() < PORTLE_TEST_CUTOFF_MS
+}
+
+/** 앱 이벤트가 우리(로컬 테스트·심사 전 iOS) 것인가 */
+function isInternalEvent(platform: string | null, createdAt: string): boolean {
+  if (isTestPeriod(createdAt)) return true
+  if (platform === 'ios') {
+    return PORTLE_IOS_RELEASE_MS === null || new Date(createdAt).getTime() < PORTLE_IOS_RELEASE_MS
+  }
+  return false
 }
 
 function isExcludedUsage(subject: string, createdAt: string): boolean {

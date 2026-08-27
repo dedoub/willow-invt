@@ -66,14 +66,24 @@ function Sparkline({
   const s2 = domain2
     ? { mn: domain2[0], range: (domain2[1] - domain2[0]) || 1 }
     : dualScale && data2 && data2.length ? scaleOf(data2) : shared
-  const project = (arr: SparkPoint[], s: { mn: number; range: number }) => {
+  // 좌표는 언제나 상자 안이다. svg는 선 끝이 잘리지 않게 overflow: visible로 두는데,
+  // 값이 축을 벗어나면 그 선이 카드를 넘어 페이지를 가로질러 그려진다 — 포틀 시트 활성화에서
+  // 분모 단계가 덜 걷혀 전환율이 5700%로 잡히자 점선이 화면 전체를 세로로 덮었다(2026-08-27).
+  // 고정 도메인(domain2) 시리즈는 도메인 끝(0~h)에, 나머지는 선 굵기만큼의 여유까지 눌러 담는다.
+  const PAD = 3
+  const project = (arr: SparkPoint[], s: { mn: number; range: number }, toDomain = false) => {
     const step = arr.length > 1 ? w / (arr.length - 1) : 0
-    return arr.map((d, i) => ({ x: i * step, y: h - ((d.value - s.mn) / s.range) * h }))
+    const lo = toDomain ? 0 : -PAD
+    const hi = toDomain ? h : h + PAD
+    return arr.map((d, i) => {
+      const y = h - ((d.value - s.mn) / s.range) * h
+      return { x: i * step, y: Math.min(hi, Math.max(lo, Number.isFinite(y) ? y : h)) }
+    })
   }
   const xy = project(data, s1)
   const points = xy.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
   const lastX = xy[xy.length - 1].x, lastY = xy[xy.length - 1].y
-  const xy2 = data2 && data2.length > 1 ? project(data2, s2) : null
+  const xy2 = data2 && data2.length > 1 ? project(data2, s2, !!domain2) : null
   const points2 = xy2 ? xy2.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') : null
 
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {

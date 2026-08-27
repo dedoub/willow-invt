@@ -385,9 +385,11 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           // 점선 = 전환율 추이 (dualScale 우측 축, 0~100 고정) — 분모 단계가 수집돼야 그린다
           const rateSeries = (num: Array<{ value: number }>, den: Array<{ value: number }>) =>
             axis.map((date, i) => ({ date, value: den[i].value > 0 ? Math.round((num[i].value / den[i].value) * 1000) / 10 : 0 }))
-          const loginRateData = installs.length > 0 ? rateSeries(signinsCum, installsCum) : undefined
-          const driveRateData = signins.length > 0 ? rateSeries(driveCum, signinsCum) : undefined
-          const sheetRateData = driveLinks.length > 0 ? rateSeries(sheetCum, driveCum) : undefined
+          // 전환율 숫자를 못 적는 단계(분모가 덜 걷혀 뒤 단계가 더 큰 경우)는 점선도 그리지 않는다.
+          // 드라이브 연동 1건 대비 시트 활성화 57건이던 구간에서 5700% 점선이 카드 밖으로 튀었다.
+          const loginRateData = loginConv !== null ? rateSeries(signinsCum, installsCum) : undefined
+          const driveRateData = driveConv !== null ? rateSeries(driveCum, signinsCum) : undefined
+          const sheetRateData = sheetConv !== null ? rateSeries(sheetCum, driveCum) : undefined
 
           const PENDING_STORE = '수집 대기 (스토어 리포트)'
           const PENDING_APP = '수집 대기 (앱 이벤트)'

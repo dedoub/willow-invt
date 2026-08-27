@@ -24,13 +24,19 @@ interface LSectionHeadProps {
    * 데스크톱은 액션 왼쪽에 서고(넘치면 내부 줄바꿈), 모바일은 통째로 아랫줄로 내려간다.
    */
   tools?: ReactNode
+  /**
+   * tools를 모바일에서도 제목 줄에 그대로 둔다 — 기간 토글처럼 폭이 좁고 위치가 고정돼야 하는 것.
+   * 이때 tools는 줄어들지 않고 제목이 대신 줄임표로 밀린다.
+   */
+  toolsInline?: boolean
   /** 하단 여백 override. 미지정 시 기본값(t.density.gapMd). */
   mb?: number
 }
 
-export function LSectionHead({ eyebrow, title, meta, note, action, tools, mb }: LSectionHeadProps) {
+export function LSectionHead({ eyebrow, title, meta, note, action, tools, toolsInline, mb }: LSectionHeadProps) {
   const mobile = useIsMobile()
   const showNote = !!note && !mobile
+  const inlineTools = !!tools && (!mobile || !!toolsInline)
   const metaStyle: React.CSSProperties = {
     fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
     lineHeight: 1.4, wordBreak: 'keep-all' as const,
@@ -38,7 +44,8 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, mb }: 
   return (
     <div style={{ marginBottom: mb ?? t.density.gapMd }}>
       {/* 1행: 제목 + 기본 컨트롤(action) — 어떤 화면에서도 이 줄은 깨지지 않는다.
-          제목은 넘치면 줄임표, action은 flexShrink 0. tools는 데스크톱만 이 줄에 합류. */}
+          제목은 넘치면 줄임표, action은 flexShrink 0.
+          tools는 데스크톱에서 이 줄에 합류하고, toolsInline이면 모바일에서도 남는다. */}
       <div style={{
         display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: t.density.kpiGap,
         flexWrap: 'nowrap',
@@ -63,10 +70,12 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, mb }: 
             {meta && !mobile && <div style={metaStyle}>{meta}</div>}
           </div>
         </div>
-        {(action || showNote || (tools && !mobile)) && (
+        {(action || showNote || inlineTools) && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap',
+            display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+            flexWrap: toolsInline ? 'nowrap' : 'wrap',
             justifyContent: 'flex-end', marginLeft: 'auto', maxWidth: '100%', minWidth: 0,
+            ...(toolsInline ? { flexShrink: 0 } : null),
           }}>
             {showNote && (
               <span style={{
@@ -76,13 +85,13 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, mb }: 
                 maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{note}</span>
             )}
-            {!mobile && tools}
+            {inlineTools && (toolsInline ? <div style={{ flexShrink: 0 }}>{tools}</div> : tools)}
             {action && <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexShrink: 0 }}>{action}</div>}
           </div>
         )}
       </div>
       {/* 모바일 tools — 버튼이 많으면 첫 줄을 다투는 대신 통째로 아랫줄 우측 정렬 */}
-      {tools && mobile && (
+      {tools && mobile && !toolsInline && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap',
           justifyContent: 'flex-end', marginTop: 6,
