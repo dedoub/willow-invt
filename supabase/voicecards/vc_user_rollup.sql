@@ -25,6 +25,10 @@
 --   보낸 적 있는가"로 가른다. 이 조회는 idx_anon_events_cost_aware_version(indexes.sql)을 탄다 —
 --   인덱스가 없으면 호출마다 anonymous_events 전량 seq scan 이다(143ms → 12ms).
 --   listen_count = premium + free + unclassified + device_tts_played(현재 0건)
+--
+-- 2026-08-27 마지막 구매일:
+--   사용자 표의 '구매일' 열. 스캔에 이미 들어와 있는 credits_changed 행에서 max 만 더 뽑는다 —
+--   구매 크레딧과 같은 소스라 두 열이 어긋날 수 없다.
 -- ============================================================================
 drop function if exists public.vc_user_rollup();
 create or replace function public.vc_user_rollup()
@@ -34,7 +38,8 @@ create or replace function public.vc_user_rollup()
    unclassified_listen_count bigint, flip_count bigint, credits_spent bigint,
    purchased_credits bigint,
    premium_voice boolean, ai_feature boolean, banner_tap boolean, gated boolean,
-   last_intent timestamptz
+   last_intent timestamptz,
+   last_purchase timestamptz
  )
  language sql
  stable
@@ -90,7 +95,11 @@ as $function$
         'ai_generation_opened','ai_generation_submitted','ai_teaser_generate_tapped',
         'credit_banner_tapped',
         'add_sheet_opened_anonymous','add_sheet_signin_and_create_clicked','prompt_signin_clicked'
-      )) as last_intent
+      )) as last_intent,
+      -- 마지막 구매 시각. 구매 크레딧과 같은 행(credits_changed/reason=purchase)에서 뽑아
+      -- 두 열이 어긋나지 않게 한다. purchase_receipts 는 6명분뿐이라 여기서 쓰지 않는다.
+      max(m.created_at) filter (where m.event_name = 'credits_changed'
+                                  and m.properties->>'reason' = 'purchase') as last_purchase
     from mv_real_users m
     where m.is_likely_bot = false and m.user_id is not null
       and m.event_name in (
@@ -131,7 +140,8 @@ as $function$
     coalesce(e.ai_feature, false),
     coalesce(e.banner_tap, false),
     coalesce(e.gated, false),
-    e.last_intent
+    e.last_intent,
+    e.last_purchase
   from ids i
   left join ev e using(user_id)
   left join spend s using(user_id)

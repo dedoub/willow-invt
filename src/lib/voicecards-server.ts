@@ -995,6 +995,8 @@ export interface VoicecardsUserStats {
     hotLead: boolean            // 상대 기준: 최근 7일 활성 미구매자 중 purchaseScore 상위 30%
     purchaseScore: number       // 구매 가능성 점수. 헤비 TTS(듣기 볼륨) 최우선 + 프리미엄보이스 오디션/AI·배너 의도 + 최근활동. 구매자=0
     lastIntentAt: string | null // 가장 최근 구매의도 이벤트 시각
+    // 마지막 구매 시각 — 구매 크레딧과 같은 원본(credits_changed/reason=purchase)이라 두 열이 어긋나지 않는다
+    lastPurchaseAt: string | null
     // 백그라운드 재생 보장 만료 시각 (users.unlimited_until) — 2026-08-25 도입된 기간권.
     // 크레딧 팩을 사면 구매 시점부터 확정된 기간 동안 백그라운드 듣기가 열린다($9.99=4개월).
     // 기간권이 여는 권한은 이것 하나뿐이고, 자동 갱신이 없어 만료되면 그냥 닫힌다.
@@ -1274,8 +1276,8 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   // 사용자별 구매 고려 신호
-  const userIntentMap = new Map<string, { premiumVoice: boolean; ai: boolean; banner: boolean; gated: boolean; lastIntent: string | null }>()
-  for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; premium_voice: boolean | null; ai_feature: boolean | null; banner_tap: boolean | null; gated: boolean | null; last_intent: string | null }>)) {
+  const userIntentMap = new Map<string, { premiumVoice: boolean; ai: boolean; banner: boolean; gated: boolean; lastIntent: string | null; lastPurchase: string | null }>()
+  for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; premium_voice: boolean | null; ai_feature: boolean | null; banner_tap: boolean | null; gated: boolean | null; last_intent: string | null; last_purchase: string | null }>)) {
     if (!row.user_id) continue
     const uid = canonicalOwnerId(row.user_id)
     const previous = userIntentMap.get(uid)
@@ -1285,6 +1287,8 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       banner: !!row.banner_tap || !!previous?.banner,
       gated: !!row.gated || !!previous?.gated,
       lastIntent: [previous?.lastIntent, row.last_intent].filter(Boolean).sort().at(-1) || null,
+      // 기기 계정이 하나로 합쳐질 수 있어(canonicalOwnerId) 더 최근 구매를 남긴다
+      lastPurchase: [previous?.lastPurchase, row.last_purchase].filter(Boolean).sort().at(-1) || null,
     })
   }
 
@@ -1483,6 +1487,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       return Math.round(listen + sheets * 5 + Math.min(cards, 300) * 0.2 + streak * 8 + clickedUpgrade + premiumCurious + aiCurious + urgency)
     })(),
     lastIntentAt: userIntentMap.get(u.user_id)?.lastIntent || null,
+    lastPurchaseAt: userIntentMap.get(u.user_id)?.lastPurchase || null,
     // 기간권 만료 — users 행에 이미 실려 온다(select '*'). 만료돼도 값은 남아 지난 기간을 읽을 수 있다.
     unlimitedUntil: u.unlimited_until || null,
     unlimitedDaysLeft: (() => {

@@ -72,6 +72,7 @@ interface UserStats {
     hotLead: boolean
     purchaseScore: number
     lastIntentAt: string | null
+    lastPurchaseAt: string | null // 마지막 구매 시각. 산 적 없으면 null
     // 백그라운드 재생 보장 만료 (users.unlimited_until) — 기간권. 산 적 없으면 null.
     unlimitedUntil: string | null
     unlimitedDaysLeft?: number // 남은 일수(서버 확정). 만료·미보유는 0
@@ -206,7 +207,7 @@ function formatTimeShort(dateString?: string | null): string {
 // 설치 | 로그인 | 활동 | 닉네임 | 플랫폼 | 앱버전 | 언어 | 국가 | 드라이브 | 활성화 | 덱 | 카드 | …
 // 설치가 맨 앞인 이유: 로그인 없이 쓰는 기기 계정이 생기면서 로그인일이 더 이상
 // 여정의 시작점이 아니다. 설치 → (구글 로그인) → (드라이브) 순으로 읽힌다.
-const USER_TABLE_COLS = '64px 64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 64px 48px 52px 44px 48px 44px'
+const USER_TABLE_COLS = '64px 64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 64px 64px 48px 52px 44px 48px 44px'
 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용. 컬럼 정의에서 자동 산출 —
 // 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져 마지막 열들이 회색 행 배경
 // 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
@@ -386,7 +387,7 @@ function formatCountry(country: string | null, locale?: string | null): { flag: 
 
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status' | 'active'
-  | 'sheets' | 'cards' | 'flips' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'spent' | 'paid' | 'guarantee'
+  | 'sheets' | 'cards' | 'flips' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'spent' | 'paid' | 'lastPurchase' | 'guarantee'
   | 'installed' | 'created' | 'recent' | 'active7'
 type SortDir = 'asc' | 'desc'
 
@@ -410,6 +411,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'intent',   label: '구매신호', mobileLabel: '구매신호', align: 'center' },
   { key: 'offer',    label: '오퍼',   mobileLabel: '오퍼단계', align: 'center' },
   { key: 'paid',     label: '유료',   mobileLabel: '유료결제', align: 'center' },
+  { key: 'lastPurchase', label: '구매일', mobileLabel: '마지막 구매일', align: 'center' },
   { key: 'guarantee', label: '보장종료', mobileLabel: '백그라운드 재생 보장 종료', align: 'center' },
   { key: 'purchased', label: '구매', mobileLabel: '구매 크레딧', align: 'center' },
   { key: 'bonus',    label: '보너스', mobileLabel: '보너스 크레딧', align: 'center' },
@@ -607,7 +609,8 @@ export function VoicecardsBlock({
       purchasedToday: 0, balanceDeltaToday: 0, sheetsDeltaToday: 0,
       intentPremiumVoice: false, intentAi: d.aiGenOpens > 0, intentBanner: false,
       intentGated: d.addSheetOpens > 0, hotLead: false, purchaseScore: 0, lastIntentAt: null,
-      // 기간권은 계정에 붙는다 — 비로그인 기기에는 존재할 수 없다
+      // 구매·기간권은 계정에 붙는다 — 비로그인 기기에는 존재할 수 없다
+      lastPurchaseAt: null,
       unlimitedUntil: null, unlimitedDaysLeft: 0,
       createdAt: '',                 // 로그인한 적 없음
       lastActiveAt: d.lastSeenAt,
@@ -662,7 +665,8 @@ export function VoicecardsBlock({
         case 'bonus':    return (a.bonusCredits ?? 0) - (b.bonusCredits ?? 0)
         case 'spent':    return (a.creditsSpent ?? 0) - (b.creditsSpent ?? 0)
         case 'paid':     return Number(!!a.hasPurchased) - Number(!!b.hasPurchased)
-        // 기간권을 산 적 없는 사용자는 항상 뒤로 (빈 문자열이 어떤 ISO 시각보다 작다)
+        // 구매·기간권이 없는 사용자는 항상 뒤로 (빈 문자열이 어떤 ISO 시각보다 작다)
+        case 'lastPurchase': return (a.lastPurchaseAt ?? '').localeCompare(b.lastPurchaseAt ?? '')
         case 'guarantee': return (a.unlimitedUntil ?? '').localeCompare(b.unlimitedUntil ?? '')
         // 날짜로 표시되는 컬럼은 날짜(YYYY-MM-DD) 단위로 비교 → 같은 날끼리는 동점이 되어
         // 다음 우선순위(예: 듣기 내림차순)가 그 안에서 적용됨.
@@ -1656,6 +1660,18 @@ export function VoicecardsBlock({
                   {/* 백그라운드 재생 보장 종료 — 기간권(users.unlimited_until). 크레딧 잔액과 별개로
                       이 날짜까지는 화면을 꺼도 듣기가 돈다. 자동 갱신이 없어 지나면 그냥 닫힌다.
                       살아 있으면 남은 일수를, 지났으면 흐리게 종료일을 적는다. */}
+                  {/* 마지막 구매일 — 구매 이벤트 기준. 보장종료 바로 앞에 두어 "언제 사서 언제까지"가
+                      한 줄에서 읽히게 한다. */}
+                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                    {user.lastPurchaseAt ? (
+                      <>
+                        <span>{formatDateShort(user.lastPurchaseAt)}</span>
+                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastPurchaseAt)}) {formatTimeShort(user.lastPurchaseAt)}</span>
+                      </>
+                    ) : (
+                      <span style={{ color: t.neutrals.subtle, textAlign: 'center' as const }}>—</span>
+                    )}
+                  </div>
                   <GuaranteeCell until={user.unlimitedUntil} daysLeft={user.unlimitedDaysLeft} />
                   <NumDeltaCell total={user.purchasedCredits} delta={user.purchasedToday} />
                   <NumDeltaCell total={user.bonusCredits} delta={0} />
