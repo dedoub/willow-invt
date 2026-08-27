@@ -39,12 +39,14 @@ export const SC_LANGUAGE_LABELS: Record<string, string> = {
   fr: '프랑스어', es: '스페인어', it: '이탈리아어', pt: '포르투갈어', ru: '러시아어',
 }
 
-// 통계 제외 계정 — 실사용자 유입 전이라 지금은 비워 둔다(CEO 계정도 통계에 포함).
-// 외부 가입이 붙기 시작하면 여기에 운영 계정 이메일을 넣어 리뷰노트와 같은 규칙으로 뺀다.
-export const SC_EXCLUDED_EMAILS: string[] = []
+// 통계 제외 계정 (2026-08-27 CEO) — 운영 계정은 모든 집계에서 뺀다.
+// 사용자 테이블에는 그대로 두고(관리자 배지) 숫자에서만 빠진다 — 리뷰노트와 같은 규칙.
+// SQL 쪽 동일 목록: supabase/scripta/sc_dashboard.sql 의 sc__admin_ids() — 두 곳이 항상 일치해야 함.
+export const SC_EXCLUDED_EMAILS: string[] = ['dwkim.august@gmail.com', 'lactea82@gmail.com']
 
-export function isExcludedScriptaUser(u: { email?: string | null }): boolean {
-  return !!u.email && SC_EXCLUDED_EMAILS.includes(u.email)
+export function isExcludedScriptaUser(u: { email?: string | null; isAdmin?: boolean }): boolean {
+  if (u.isAdmin) return true
+  return !!u.email && SC_EXCLUDED_EMAILS.includes(u.email.toLowerCase())
 }
 
 export interface ScriptaUser {
@@ -69,6 +71,8 @@ export interface ScriptaUser {
   spent: number
   /** AI 채점 요청 수 (scripta_ai_grade_requests) */
   aiCalls: number
+  /** 통계 제외 계정 여부 — sc__admin_ids() 판정 결과 */
+  isAdmin: boolean
 }
 
 export interface ScriptaStats {

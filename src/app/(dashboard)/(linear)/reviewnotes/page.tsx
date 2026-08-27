@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { ReviewnotesBlock } from './_components/reviewnotes-block'
-import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
+import type { CreditSalesStats } from '@/lib/lemonsqueezy'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-types'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
@@ -17,7 +17,7 @@ export default function ReviewnotesPage() {
   const mobile = useIsMobile()
   const [rnLoading, setRnLoading] = useState(true)
   const [rnRefreshing, setRnRefreshing] = useState(false)
-  const [rnStats, setRnStats] = useState<ReviewNotesStats | null>(null)
+  const [rnSales, setRnSales] = useState<CreditSalesStats | null>(null)
   const [rnUserStats, setRnUserStats] = useState<ReviewNotesUserStats | null>(null)
   const [rnTrafficStats, setRnTrafficStats] = useState<ReviewNotesTrafficStats | null>(null)
   const [rnContentStats, setRnContentStats] = useState<ReviewNotesContentStats | null>(null)
@@ -34,7 +34,7 @@ export default function ReviewnotesPage() {
         throw new Error(errData.message || 'Failed to fetch')
       }
       const data = await res.json()
-      setRnStats(data.stats)
+      setRnSales(data.sales || null)
       setRnUserStats(data.userStats || null)
       setRnTrafficStats(data.trafficStats || null)
       setRnContentStats(data.contentStats || null)
@@ -88,7 +88,7 @@ export default function ReviewnotesPage() {
     <ReviewnotesBlock
       cols={cols}
       loading={rnLoading}
-      stats={rnStats}
+      sales={rnSales}
       userStats={rnUserStats}
       trafficStats={rnTrafficStats}
       contentStats={rnContentStats}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ScriptaBlock } from './_components/scripta-block'
 import type { ScriptaStats, ScriptaUser } from '@/lib/scripta-types'
-import type { ScriptaSalesStats } from '@/lib/lemonsqueezy'
+import type { CreditSalesStats } from '@/lib/lemonsqueezy'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
@@ -19,7 +19,7 @@ export default function ScriptaPage() {
   const [scRefreshing, setScRefreshing] = useState(false)
   const [scStats, setScStats] = useState<ScriptaStats | null>(null)
   const [scUsers, setScUsers] = useState<ScriptaUser[]>([])
-  const [scSales, setScSales] = useState<ScriptaSalesStats | null>(null)
+  const [scSales, setScSales] = useState<CreditSalesStats | null>(null)
   const [scError, setScError] = useState<string | null>(null)
 
   const loadScripta = useCallback(async (refresh = false) => {

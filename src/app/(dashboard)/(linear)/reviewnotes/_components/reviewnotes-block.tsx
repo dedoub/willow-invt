@@ -7,7 +7,7 @@ import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-sec
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
-import type { ReviewNotesStats } from '@/lib/lemonsqueezy'
+import type { CreditSalesStats } from '@/lib/lemonsqueezy'
 import { isExcludedReviewNotesUser, RN_AI_FEATURE_LABELS } from '@/lib/reviewnotes-types'
 import type { RnAiFeatureUse } from '@/lib/reviewnotes-types'
 import { kstDateKey, kstToday, kstDaysAgo, kstWeekday, kstTime } from '@/lib/kst'
@@ -18,7 +18,7 @@ import { formatCountryName, codeToFlag, COUNTRY_NAMES } from '@/lib/country-form
 
 export interface ReviewnotesBlockProps {
   loading: boolean
-  stats: ReviewNotesStats | null
+  sales: CreditSalesStats | null
   userStats: ReviewNotesUserStats | null
   trafficStats: ReviewNotesTrafficStats | null
   contentStats: ReviewNotesContentStats | null
@@ -44,21 +44,6 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}GB`
 }
 
-const PLAN_ORDER: Record<string, number> = {
-  PRO: 4, STANDARD: 3, BASIC: 2, FREE: 1,
-}
-
-const PLAN_TONES: Record<string, { bg: string; fg: string }> = {
-  FREE:     { bg: t.neutrals.inner, fg: t.neutrals.muted },
-  BASIC:    tonePalettes.info,
-  STANDARD: { bg: '#EDE9FE', fg: '#7C3AED' },
-  PRO:      tonePalettes.pos,
-}
-
-function getTone(map: Record<string, { bg: string; fg: string }>, key: string) {
-  return map[key] ?? tonePalettes.neutral
-}
-
 // ─── User table (VoiceCards 사용자 테이블과 동일 스타일) ─────────────────────────
 
 // 테이블 셀용 짧은 날짜 — 연월일 모두 표시 (YY.MM.DD), KST 기준
@@ -77,7 +62,7 @@ function formatTimeShort(dateString?: string | null): string {
   return kstTime(dateString)
 }
 
-type UserSortKey = 'created' | 'active' | 'name' | 'email' | 'country' | 'notes' | 'problems' | 'sets' | 'solves' | 'plan' | 'role' | 'credits' | 'left' | 'ai' | 'storage'
+type UserSortKey = 'created' | 'active' | 'name' | 'email' | 'country' | 'notes' | 'problems' | 'sets' | 'solves' | 'balance' | 'spent' | 'role' | 'ai' | 'storage'
 
 // 국가코드(EventLog↔PageView first-touch IP) → 국기+코드 배지. 2자리 ISO 아니면 null → '—'.
 function formatCountryBadge(country?: string | null): { flag: string; code: string; name: string } | null {
@@ -118,10 +103,9 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'problems', label: '문제',   mobileLabel: '문제',   align: 'center' },
   { key: 'sets',     label: '세트',   mobileLabel: '문제 세트', align: 'center' },
   { key: 'solves',   label: '풀이',   mobileLabel: '문제 풀이', align: 'center' },
-  { key: 'plan',    label: '플랜',   mobileLabel: '플랜',   align: 'center' },
+  { key: 'balance', label: '잔액',   mobileLabel: '크레딧 잔액', align: 'center' },
+  { key: 'spent',   label: '사용',   mobileLabel: '크레딧 사용', align: 'center' },
   { key: 'role',    label: '권한',   mobileLabel: '권한',   align: 'center' },
-  { key: 'credits', label: '크레딧', mobileLabel: '크레딧 사용', align: 'center' },
-  { key: 'left',    label: '잔여',   mobileLabel: '잔여 크레딧', align: 'center' },
   { key: 'ai',      label: 'AI',     mobileLabel: 'AI 호출', align: 'center' },
   { key: 'storage', label: '용량',   mobileLabel: '용량',   align: 'center' },
 ]
@@ -133,9 +117,9 @@ const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key)
 const USER_SORT_STORAGE_KEY = 'reviewnotes.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 52px 40px 44px 40px 40px 60px 48px 58px 40px 44px 58px'
-// 컬럼 폭 합(808) + gap 6px×14(84) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
-const USER_TABLE_MIN_WIDTH = 908
+const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 52px 40px 44px 40px 40px 52px 48px 48px 44px 58px'
+// 컬럼 폭 합(768) + gap 6px×13(78) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
+const USER_TABLE_MIN_WIDTH = 862
 const userHeadCell: React.CSSProperties = {
   fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -300,7 +284,7 @@ function RnDauTrendCard({ daily, days = 42 }: {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ReviewnotesBlock({
-  loading, stats, userStats, trafficStats, contentStats,
+  loading, sales, userStats, trafficStats, contentStats,
   onRefresh, refreshing, error, cols,
 }: ReviewnotesBlockProps) {
   const mobile = useIsMobile()
@@ -342,11 +326,10 @@ export function ReviewnotesBlock({
         case 'email':   return a.email.localeCompare(b.email)
         // 국가 미상(null)은 최대 문자로 치환 → 오름차순에서 실제 국가 뒤로 밀림
         case 'country': return (a.country || '￿').localeCompare(b.country || '￿')
-        case 'plan':    return (PLAN_ORDER[a.subscriptionPlan] ?? 0) - (PLAN_ORDER[b.subscriptionPlan] ?? 0)
         case 'role':    return (a.role === 'ADMIN' ? 1 : 0) - (b.role === 'ADMIN' ? 1 : 0)
         case 'storage': return (a.storageUsed || 0) - (b.storageUsed || 0)
-        case 'credits': return (a.creditsUsed ?? 0) - (b.creditsUsed ?? 0)
-        case 'left':    return (a.creditsRemaining ?? 0) - (b.creditsRemaining ?? 0)
+        case 'balance': return (a.creditBalance ?? 0) - (b.creditBalance ?? 0)
+        case 'spent':   return (a.aiCreditsTotal ?? 0) - (b.aiCreditsTotal ?? 0)
         case 'ai':      return (a.aiCallsMonth ?? 0) - (b.aiCallsMonth ?? 0)
         case 'notes':    return (a.notes ?? 0) - (b.notes ?? 0)
         case 'problems': return (a.problems ?? 0) - (b.problems ?? 0)
@@ -491,27 +474,22 @@ export function ReviewnotesBlock({
             }
             let runAct = actBaseline
             const cumActivated = daily.map(d => ({ date: d.date, value: (runAct += actByDay.get(d.date) ?? 0) }))
-            // 유료 사용자 누적 — 전환 시점(구독 생성일, 수동 부여는 가입일 폴백) 기준, 활성화와 동일한 베이스라인 방식
-            const paidTimeline = trafficStats.paidTimeline ?? []
-            const paidByDay = new Map<string, number>()
-            let paidBaseline = 0
-            for (const p of paidTimeline) {
-              const k = kstKey(p.paidAt)
-              if (k < trackStartKey) paidBaseline++
-              else paidByDay.set(k, (paidByDay.get(k) ?? 0) + 1)
+            // 구매자·매출 누적 — LemonSqueezy 주문 기준(첫 구매일에 한 번). 활성화와 같은 베이스라인 방식.
+            const salesDaily = sales?.daily ?? []
+            const buyersByDay = new Map<string, number>()
+            const revenueByDay = new Map<string, number>()
+            for (const d of salesDaily) {
+              buyersByDay.set(d.date, (buyersByDay.get(d.date) ?? 0) + d.orders)
+              revenueByDay.set(d.date, (revenueByDay.get(d.date) ?? 0) + d.revenueUsd)
             }
-            let runPaid = paidBaseline
-            const cumPaid = daily.map(d => ({ date: d.date, value: (runPaid += paidByDay.get(d.date) ?? 0) }))
-            // MRR 스파크라인 — 일별 스냅샷(달러)을 윈도우 전체로 전개 (각 날짜 = 그날 이전 최신 스냅샷 값).
-            // 스냅샷 이전 구간은 첫 스냅샷 값으로 채움 — 구독이 없던 기간이라 $0 채움은 실제와 일치.
-            const mrrHist = trafficStats.mrrHistory ?? []
-            const mrrSpark = mrrHist.length > 0
-              ? daily.map(d => {
-                  let v = mrrHist[0].mrr
-                  for (const h of mrrHist) { if (h.date <= d.date) v = h.mrr; else break }
-                  return { date: d.date, value: Math.round(v / 100) }
-                })
-              : []
+            let runBuyers = 0
+            const cumBuyers = salesDaily.length
+              ? daily.map(d => ({ date: d.date, value: (runBuyers += buyersByDay.get(d.date) ?? 0) }))
+              : undefined
+            let runRevenue = 0
+            const revenueSpark = salesDaily.length
+              ? daily.map(d => ({ date: d.date, value: Math.round((runRevenue += revenueByDay.get(d.date) ?? 0) / 100) }))
+              : undefined
 
             const splitLayout = !mobile && dashCols === 1
             return (
@@ -559,22 +537,42 @@ export function ReviewnotesBlock({
               tone={users.length > 0 && activatedTotal / users.length >= 0.5 ? 'pos' : 'warn'}
               sparkline={mobile ? undefined : cumActivated}
             />
+            {/* 구독을 접고 크레딧 팩으로 갔다(2026-08-24). 유료 사용자 = 플랜 보유자가 아니라
+                실제로 팩을 산 사람이고, MRR이라는 숫자는 더 이상 존재하지 않는다. */}
             <LStat
-              label="유료 사용자"
-              title="현재 유료 플랜(BASIC/STANDARD/PRO) 사용자. 전환 = 유료 ÷ 활성화. 스파크라인은 전환 시점(구독 생성일, 수동 부여는 가입일) 누적."
-              value={users.filter(u => u.subscriptionPlan !== 'FREE').length.toLocaleString()}
-              valueExtra={rateExtra('전환', rate(users.filter(u => u.subscriptionPlan !== 'FREE').length, activatedTotal))}
-              sub={userStats ? `B ${userStats.basicUsers} · S ${userStats.standardUsers} · P ${userStats.proUsers}` : undefined}
-              tone={users.some(u => u.subscriptionPlan !== 'FREE') ? 'pos' : 'default'}
-              sparkline={mobile ? undefined : cumPaid}
+              label="크레딧 구매자"
+              title="'ReviewNotes Credits' 팩을 실제로 결제한 사람 (LemonSqueezy 주문, 이메일 기준). 전환 = 구매자 ÷ 활성화."
+              value={sales ? sales.buyers.toLocaleString() : '—'}
+              valueExtra={sales && sales.buyers > 0 ? rateExtra('전환', rate(sales.buyers, activatedTotal)) : undefined}
+              sub={sales ? `구매 ${sales.paidOrders.toLocaleString()}건 · 이번 달 ${sales.monthOrders.toLocaleString()}건` : '결제 데이터 없음'}
+              subExtra={
+                <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                  가입 지급 100크레딧
+                </span>
+              }
+              tone={sales && sales.buyers > 0 ? 'pos' : 'default'}
+              sparkline={mobile ? undefined : cumBuyers}
             />
             <LStat
-              label="MRR"
-              title="월간 반복 매출 (LemonSqueezy 활성 구독 기준). 스파크라인은 일별 MRR 스냅샷(2026-07-16부터 축적, 그 이전 무구독 구간은 $0)."
-              value={stats ? formatCurrency(stats.mrr) : '—'}
-              sub={stats ? `활성 구독 ${stats.activeSubscriptions}건` : '월간 반복 매출'}
+              label="결제"
+              title="크레딧 팩 누적 매출(결제 완료분). 스토어는 Scripta와 공유하고 상품으로 가른다. 구독이 아니라 단건 결제라 MRR은 없다."
+              value={sales ? formatCurrency(sales.revenueUsd) : '—'}
+              valueExtra={sales && sales.paidOrders > 0 ? (
+                <span style={{
+                  fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                  fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                }}>
+                  {sales.paidOrders.toLocaleString()}건
+                </span>
+              ) : undefined}
+              sub={sales ? `이번 달 ${formatCurrency(sales.monthRevenueUsd)}` : '누적 매출'}
+              subExtra={sales && sales.refundedOrders > 0 ? (
+                <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                  환불 {sales.refundedOrders.toLocaleString()}건
+                </span>
+              ) : undefined}
               tone="info"
-              sparkline={mobile ? undefined : (mrrSpark.length > 1 ? mrrSpark : undefined)}
+              sparkline={mobile ? undefined : revenueSpark}
               sparkFormat={(v) => `$${v.toLocaleString()}`}
             />
           </div>
@@ -645,8 +643,8 @@ export function ReviewnotesBlock({
           <SkeletonRow count={mobile ? 2 : (dashCols === 2 ? 3 : 5)} />
         </div>
       )}
-      {/* 운영 지표 (임시 이름) — 매출 + 가입 통합 4카드, 옛 '인사이트' 섹션 (2026-07-15 아래로 이동) */}
-      {!loading && stats && userStats && (() => {
+      {/* 콘텐츠·학습 카운트 — 결제 지표는 위 퍼널로 갔다 */}
+      {!loading && userStats && (() => {
         // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생. 통계는 관리자 제외 (2026-07-16 CEO)
         const realUsers = userStats.users.filter(u => !isExcludedReviewNotesUser(u))
         const toKst = (iso: string) => kstDateKey(iso) // UTC naive → KST 날짜키 (Z 명시 파싱)
@@ -815,12 +813,11 @@ export function ReviewnotesBlock({
                 })}
               </div>
               {paginatedUsers.map(user => {
-                const planTone = getTone(PLAN_TONES, user.subscriptionPlan)
                 const isAdmin = user.role === 'ADMIN'
-                const used = user.creditsUsed ?? 0
-                const limit = user.creditLimit ?? 0
-                const left = user.creditsRemaining ?? 0
-                const lowCredits = limit > 0 && left <= limit * 0.2
+                const balance = user.creditBalance ?? 0
+                const spent = user.aiCreditsTotal ?? 0
+                // 잔액이 20 아래로 떨어지면 주황 — 소진 임박(가입 지급 100의 20%)
+                const lowCredits = balance > 0 && balance < 20
                 const aiMonth = user.aiCallsMonth ?? 0
                 const aiTotal = user.aiCallsTotal ?? 0
                 const aiTitle = formatAiFeatureBreakdown(user.aiFeaturesMonth, user.aiFeaturesTotal)
@@ -890,15 +887,13 @@ export function ReviewnotesBlock({
                     <NumDeltaCell total={user.problems ?? 0} delta={user.problemsToday ?? 0} />
                     <NumDeltaCell total={user.problemSets ?? 0} delta={user.problemSetsToday ?? 0} />
                     <NumDeltaCell total={user.solves ?? 0} delta={user.solvesToday ?? 0} />
-                    {/* 플랜 */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
-                      <span style={{
-                        fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                        padding: '1px 4px', borderRadius: 3, lineHeight: 1.4,
-                        background: planTone.bg, color: planTone.fg,
-                      }}>
-                        {user.subscriptionPlan}
-                      </span>
+                    {/* 크레딧 잔액 — 가입 지급 100에서 쓴 만큼 줄고 팩을 사면 는다 */}
+                    <div style={{ ...userNumCell, textAlign: 'center' as const, color: lowCredits ? t.accent.warn : t.neutrals.text }}>
+                      {balance.toLocaleString()}
+                    </div>
+                    {/* 누적 사용 — AiUsage 원장 (2026-08-11 이전 호출은 없다) */}
+                    <div style={{ ...userNumCell, textAlign: 'center' as const, color: spent > 0 ? t.neutrals.text : t.neutrals.subtle }}>
+                      {spent.toLocaleString()}
                     </div>
                     {/* 권한 */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
@@ -913,21 +908,6 @@ export function ReviewnotesBlock({
                       ) : (
                         <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                       )}
-                    </div>
-                    {/* 크레딧 — 이번 달 사용 / 플랜 한도 (앱과 같은 UTC 달 기준) */}
-                    <div
-                      title={`이번 달 AI 크레딧 ${used.toLocaleString()} / ${limit.toLocaleString()} 사용 (${user.subscriptionPlan} 플랜)`}
-                      style={{
-                        ...userNumCell, textAlign: 'center' as const,
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15,
-                      }}
-                    >
-                      <span style={{ color: used > 0 ? t.neutrals.text : t.neutrals.subtle }}>{used.toLocaleString()}</span>
-                      <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>/{limit.toLocaleString()}</span>
-                    </div>
-                    {/* 잔여 — 한도 − 사용. 20% 아래로 떨어지면 주황 (소진 임박) */}
-                    <div style={{ ...userNumCell, textAlign: 'center' as const, color: lowCredits ? t.accent.warn : t.neutrals.text }}>
-                      {left.toLocaleString()}
                     </div>
                     {/* AI — 이번 달 호출 수 / 누적, 툴팁에 기능별 내역 (AiUsage 원장) */}
                     <div

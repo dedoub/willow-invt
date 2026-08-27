@@ -4,10 +4,10 @@ import 'server-only'
 
 import { createClient } from '@supabase/supabase-js'
 import { kstDateKey, kstMonthStart, kstDaysAgo } from '@/lib/kst'
-import { isExcludedReviewNotesUser, RN_AI_CREDIT_LIMITS } from '@/lib/reviewnotes-types'
+import { isExcludedReviewNotesUser } from '@/lib/reviewnotes-types'
 import type {
   ReviewNotesUser, ReviewNotesUserStats, ReviewNotesTrafficStats,
-  ReviewNotesContentStats, RnAiFeatureUse, SubscriptionPlan,
+  ReviewNotesContentStats, RnAiFeatureUse,
 } from '@/lib/reviewnotes-types'
 
 // 기존 소비처(서버 라우트)가 한 곳에서 계속 가져올 수 있게 재수출
@@ -26,11 +26,6 @@ if (!supabaseUrl || !supabaseKey) {
 export const reviewnotesSupabase = supabaseUrl && supabaseKey
   ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
   : null
-
-// 앱의 크레딧 리셋과 같은 기준(UTC 달). User.aiGenPeriod와 직접 비교한다.
-function currentAiPeriod(now = new Date()): string {
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
-}
 
 function pctChange(current: number, previous: number): number {
   if (previous === 0) return current > 0 ? 100 : 0
@@ -158,8 +153,9 @@ export async function getReviewNotesContentStats(): Promise<ReviewNotesContentSt
   return data as ReviewNotesContentStats
 }
 
-// MRR 스냅샷 기록 — LemonSqueezy에서 계산한 오늘 MRR을 리뷰노트 DB에 남겨 히스토리 축적.
-// 리뷰노트 쪽에 크론이 없어 대시보드 로드가 기록 트리거 (하루 1행 upsert, 실패 무시).
+// MRR 스냅샷 기록 — 구독을 접은 뒤로는 호출하지 않는다(2026-08-24 이후 값이 늘 0이라
+// 0을 계속 쌓으면 옛 구간의 진짜 기록까지 0선에 묻힌다). rn_mrr_snapshots의 과거 43행은
+// 구독 시절의 기록이라 지우지 않고 남겨 둔다. 구독형으로 돌아가면 이 호출만 되살리면 된다.
 export async function recordReviewNotesMrr(mrr: number, activeSubs: number): Promise<void> {
   if (!reviewnotesSupabase) return
   const { error } = await reviewnotesSupabase.rpc('rn_record_mrr', { p_mrr: Math.round(mrr), p_subs: activeSubs })
@@ -177,7 +173,7 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
       .from('User')
       // Only the columns consumed by getReviewNotesUserStats passes + the monor reviewnotes block.
       // (emailVerified / updatedAt / lemonSqueezyCustomerId are unused.)
-      .select('id, name, email, image, subscriptionPlan, role, storageUsed, createdAt, aiGenUsed, aiGenPeriod')
+      .select('id, name, email, image, subscriptionPlan, role, storageUsed, createdAt, aiCreditBalance')
       .order('createdAt', { ascending: false }),
     // 마지막 활동 / 유저별 콘텐츠 / 국가 / AI 사용 — RLS로 raw 접근 불가, 집계 RPC 사용
     // (실패해도 목록은 유지)
@@ -220,19 +216,13 @@ export async function getReviewNotesUsers(): Promise<ReviewNotesUser[]> {
   const aiUsageMap = new Map<string, AiUsageRow>(
     ((aiUsageRes.data ?? []) as AiUsageRow[]).map(r => [r.user_id, r])
   )
-  const period = currentAiPeriod()
   return (data || []).map(u => {
     const c = contentMap.get(u.id)
     const ai = aiUsageMap.get(u.id)
-    // 기간이 바뀌었는데 아직 AI를 안 쓴 유저는 앱이 리셋을 미뤄둔 상태 → 사용 0으로 읽는다.
-    const creditsUsed = u.aiGenPeriod === period ? (Number(u.aiGenUsed) || 0) : 0
-    const creditLimit = RN_AI_CREDIT_LIMITS[u.subscriptionPlan as SubscriptionPlan] ?? RN_AI_CREDIT_LIMITS.FREE
     return {
       ...u,
       country: countryMap.get(u.id) ?? null,
-      creditsUsed,
-      creditLimit,
-      creditsRemaining: Math.max(0, creditLimit - creditsUsed),
+      creditBalance: Number(u.aiCreditBalance) || 0,
       aiCallsMonth: Number(ai?.calls_period) || 0,
       aiCallsTotal: Number(ai?.calls_total) || 0,
       aiCreditsTotal: Number(ai?.credits_total) || 0,

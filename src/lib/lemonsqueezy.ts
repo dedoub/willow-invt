@@ -234,13 +234,17 @@ export async function getProducts(storeId?: string): Promise<LemonSqueezyRespons
 }
 
 // 통계 계산
-// ─── Scripta ──────────────────────────────────────────────────────────────────
-// Scripta는 리뷰노트와 같은 스토어(Willow Investments, 237969)를 쓰고 상품만 다르다.
-// 그래서 매출은 store 필터가 아니라 상품 필터로 가른다. 구독이 아니라 크레딧 팩
-// 단건 결제라 MRR이 아니라 누적 매출·구매 건수를 본다.
+// ─── 크레딧 팩 매출 ────────────────────────────────────────────────────────────
+// 리뷰노트와 Scripta는 한 스토어(Willow Investments, 237969)를 쓰고 상품만 다르다.
+// 그래서 매출은 store 필터가 아니라 상품 필터로 가른다.
+//
+// 둘 다 구독을 접고 크레딧 팩 단건 결제로 갔다(리뷰노트 2026-08-24). 단건 결제에는
+// MRR이라는 숫자가 없다 — 구독자 0명에 플랜 컬럼만 남은 계정으로 월 매출을 지어내면
+// 그게 곧 거짓말이 된다. 그래서 누적 매출·구매 건수·구매자 수만 센다.
+const REVIEWNOTES_PRODUCT_ID = Number(process.env.LEMONSQUEEZY_PRODUCT_REVIEWNOTES || 1311143)
 const SCRIPTA_PRODUCT_ID = Number(process.env.LEMONSQUEEZY_PRODUCT_SCRIPTA || 1310231)
 
-export interface ScriptaSalesStats {
+export interface CreditSalesStats {
   productId: number
   /** 결제 완료 건수 (환불 제외) */
   paidOrders: number
@@ -257,13 +261,13 @@ export interface ScriptaSalesStats {
   daily: Array<{ date: string; orders: number; revenueUsd: number }>
 }
 
-export async function getScriptaSalesStats(): Promise<ScriptaSalesStats> {
+export async function getCreditSalesStats(productId: number): Promise<CreditSalesStats> {
   const storeId = process.env.LEMONSQUEEZY_STORE_ID
   // LS 주문 API에는 상품 필터가 없어 스토어 주문을 받아 여기서 가른다.
-  // 한 스토어에 리뷰노트 주문도 같이 쌓이므로 페이지를 넉넉히 받아둔다.
+  // 한 스토어에 두 제품 주문이 같이 쌓이므로 페이지를 넉넉히 받아둔다.
   const ordersRes = await getOrders(storeId, 1, 100)
   const all = ordersRes.data || []
-  const orders = all.filter(o => o.attributes.first_order_item?.product_id === SCRIPTA_PRODUCT_ID)
+  const orders = all.filter(o => o.attributes.first_order_item?.product_id === productId)
 
   const monthStartKst = kstMonthStart()
   const paid = orders.filter(o => o.attributes.status === 'paid')
@@ -284,7 +288,7 @@ export async function getScriptaSalesStats(): Promise<ScriptaSalesStats> {
   }
 
   return {
-    productId: SCRIPTA_PRODUCT_ID,
+    productId,
     paidOrders: paid.length,
     refundedOrders: orders.filter(o => o.attributes.status === 'refunded' || o.attributes.refunded).length,
     revenueUsd: paid.reduce((sum, o) => sum + o.attributes.total_usd, 0),
@@ -296,87 +300,8 @@ export async function getScriptaSalesStats(): Promise<ScriptaSalesStats> {
   }
 }
 
-export interface ReviewNotesStats {
-  // 매출
-  totalRevenue: number
-  totalRevenueUSD: number
-  monthlyRevenue: number
-  monthlyRevenueUSD: number
+/** 'Scripta Credits' 상품 매출 */
+export const getScriptaSalesStats = () => getCreditSalesStats(SCRIPTA_PRODUCT_ID)
+/** 'ReviewNotes Credits' 상품 매출 — 구독을 접은 뒤 리뷰노트에서 돈이 오가는 유일한 경로다 */
+export const getReviewNotesSalesStats = () => getCreditSalesStats(REVIEWNOTES_PRODUCT_ID)
 
-  // 구독
-  activeSubscriptions: number
-  cancelledSubscriptions: number
-  trialSubscriptions: number
-
-  // 고객
-  totalCustomers: number
-  newCustomersThisMonth: number
-
-  // MRR
-  mrr: number
-
-  // 주문
-  totalOrders: number
-  ordersThisMonth: number
-  refundedOrders: number
-}
-
-export async function getReviewNotesStats(): Promise<ReviewNotesStats> {
-  const storeId = process.env.LEMONSQUEEZY_STORE_ID
-
-  // 병렬로 데이터 조회
-  const [ordersRes, subscriptionsRes, customersRes] = await Promise.all([
-    getOrders(storeId, 1, 100),
-    getSubscriptions(storeId, 1, 100),
-    getCustomers(storeId, 1, 100),
-  ])
-
-  const orders = ordersRes.data || []
-  const subscriptions = subscriptionsRes.data || []
-  const customers = customersRes.data || []
-
-  // 이번 달 시작일 (KST 기준)
-  const monthStartKst = kstMonthStart()
-
-  // 매출 계산
-  const paidOrders = orders.filter(o => o.attributes.status === 'paid')
-  const totalRevenue = paidOrders.reduce((sum, o) => sum + o.attributes.total, 0)
-  const totalRevenueUSD = paidOrders.reduce((sum, o) => sum + o.attributes.total_usd, 0)
-
-  const monthlyOrders = paidOrders.filter(o => kstDateKey(o.attributes.created_at) >= monthStartKst)
-  const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + o.attributes.total, 0)
-  const monthlyRevenueUSD = monthlyOrders.reduce((sum, o) => sum + o.attributes.total_usd, 0)
-
-  // 구독 상태
-  const activeSubscriptions = subscriptions.filter(s => s.attributes.status === 'active').length
-  const cancelledSubscriptions = subscriptions.filter(s => s.attributes.status === 'cancelled').length
-  const trialSubscriptions = subscriptions.filter(s => s.attributes.status === 'on_trial').length
-
-  // 고객 통계
-  const totalCustomers = customers.length
-  const newCustomersThisMonth = customers.filter(c => kstDateKey(c.attributes.created_at) >= monthStartKst).length
-
-  // MRR 계산 (활성 고객의 MRR 합계)
-  const mrr = customers.reduce((sum, c) => sum + (c.attributes.mrr || 0), 0)
-
-  // 주문 통계
-  const totalOrders = orders.length
-  const ordersThisMonth = orders.filter(o => kstDateKey(o.attributes.created_at) >= monthStartKst).length
-  const refundedOrders = orders.filter(o => o.attributes.refunded).length
-
-  return {
-    totalRevenue,
-    totalRevenueUSD,
-    monthlyRevenue,
-    monthlyRevenueUSD,
-    activeSubscriptions,
-    cancelledSubscriptions,
-    trialSubscriptions,
-    totalCustomers,
-    newCustomersThisMonth,
-    mrr,
-    totalOrders,
-    ordersThisMonth,
-    refundedOrders,
-  }
-}

@@ -40,6 +40,7 @@ interface ScUserRow {
   balance: number | string | null
   spent: number | string | null
   ai_calls: number
+  is_admin: boolean
 }
 
 const num = (v: unknown): number => Number(v) || 0
@@ -75,6 +76,7 @@ export async function getScriptaStats(): Promise<ScriptaPayload> {
     balance: num(r.balance),
     spent: num(r.spent),
     aiCalls: num(r.ai_calls),
+    isAdmin: !!r.is_admin,
   }))
 
   return { stats, users, fetchedAt: new Date().toISOString() }

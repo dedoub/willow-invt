@@ -12,7 +12,7 @@ import {
   SC_LEVEL_LABELS, SC_CREDIT_REASON_LABELS, SC_LANGUAGE_LABELS, isExcludedScriptaUser,
 } from '@/lib/scripta-types'
 import type { ScriptaStats, ScriptaUser, ScMetric } from '@/lib/scripta-types'
-import type { ScriptaSalesStats } from '@/lib/lemonsqueezy'
+import type { CreditSalesStats } from '@/lib/lemonsqueezy'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,7 +21,7 @@ export interface ScriptaBlockProps {
   stats: ScriptaStats | null
   users: ScriptaUser[]
   /** LemonSqueezy — Scripta Credits 상품 매출 (스토어는 리뷰노트와 공유) */
-  sales: ScriptaSalesStats | null
+  sales: CreditSalesStats | null
   onRefresh: () => void
   refreshing: boolean
   error: string | null
@@ -366,6 +366,7 @@ export function ScriptaBlock({
   }
 
   const splitLayout = !mobile && dashCols === 1
+  const excludedCount = users.filter(isExcludedScriptaUser).length
 
   // 그리드는 페이지가 갖는다. 여기서는 조각 두 개(퍼널열 · 사용자)만 내놓고, 페이지 그리드가
   // DOM 순서대로 두 열에 채운다. 리뷰노트 블록과 같은 규칙이다.
@@ -642,6 +643,7 @@ export function ScriptaBlock({
           <LSectionHead
             eyebrow="USERS"
             title="사용자"
+            meta={excludedCount > 0 ? `운영 계정 ${excludedCount}명은 통계에서 제외` : undefined}
             mb={8}
             tools={mobile ? (
               // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
@@ -748,6 +750,16 @@ export function ScriptaBlock({
                     }}>
                       {user.name || 'Unknown'}
                     </span>
+                    {/* 통계에서 빠진 운영 계정 — 테이블에는 남기되 숫자와 섞이지 않음을 표시 */}
+                    {isExcludedScriptaUser(user) && (
+                      <span title="통계 제외 계정" style={{
+                        fontSize: 'calc(8px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                        padding: '1px 3px', borderRadius: 3, lineHeight: 1.4, flexShrink: 0,
+                        background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
+                      }}>
+                        ADMIN
+                      </span>
+                    )}
                   </div>
                   {/* 이메일 */}
                   <div style={userTextCell} title={user.email}>{user.email}</div>

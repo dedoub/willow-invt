@@ -8,11 +8,9 @@
 export type SubscriptionPlan = 'FREE' | 'BASIC' | 'STANDARD' | 'PRO'
 export type UserRole = 'USER' | 'ADMIN'
 
-// 플랜별 월간 AI 크레딧 한도 — review-notes 앱 lib/ai/ai-quota.ts AI_CREDIT_LIMITS의 사본.
-// 앱에서 바꾸면 여기도 같이 바꿔야 잔여 크레딧이 맞는다.
-export const RN_AI_CREDIT_LIMITS: Record<SubscriptionPlan, number> = {
-  FREE: 10, BASIC: 100, STANDARD: 300, PRO: 900,
-}
+// 플랜별 월 한도는 2026-08-24에 없어졌다. 리뷰노트는 구독을 접고 크레딧 잔액으로 갔다 —
+// 가입 시 100을 받고(User.aiCreditBalance 기본값) 떨어지면 팩을 산다. 앱 lib/ai/ai-quota.ts는
+// 이제 기능별 요율만 갖는다. subscriptionPlan 컬럼은 남아 있지만 아무것도 주지 않는다.
 
 // AI 기능 키 (AiUsage.feature) → 표시 이름. 앱 lib/ai/credits.ts의 AiFeature와 같은 집합.
 export const RN_AI_FEATURE_LABELS: Record<string, string> = {
@@ -55,14 +53,9 @@ export interface ReviewNotesUser {
   problemSetsToday?: number
   solves?: number
   solvesToday?: number
-  // AI 크레딧 (User.aiGenUsed / aiGenPeriod) — 앱과 같은 UTC 달 기준.
-  // 지난 달 이후 AI를 안 쓴 유저는 aiGenUsed가 옛 값 그대로 남아 있어(앱이 다음 호출 때
-  // 리셋한다) 기간이 다르면 0으로 본다. 앱 quotaState()의 periodChanged와 같은 규칙.
-  aiGenUsed?: number
-  aiGenPeriod?: string
-  creditsUsed?: number
-  creditLimit?: number
-  creditsRemaining?: number
+  // AI 크레딧 잔액 (User.aiCreditBalance) — 가입 지급 100에서 쓴 만큼 줄고 팩을 사면 는다.
+  // aiGenUsed/aiGenPeriod는 월 한도 시절의 컬럼이라 앱이 더 이상 쓰지 않는다(값이 고여 있다).
+  creditBalance?: number
   // AI 기능 사용 내역 (AiUsage 원장, 2026-08-11 도입 — 그 이전 호출은 없음)
   aiCallsMonth?: number
   aiCallsTotal?: number
