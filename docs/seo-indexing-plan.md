@@ -2,17 +2,22 @@
 
 GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하는 운영 문서.
 현황·진단·해석은 [seo-indexing.md](seo-indexing.md)에, 이 문서는 "오늘 뭘 요청하나"만 다룬다.
-2026-08-20부터 VoiceCards·ReviewNotes에 Portle(`portle.quest`)을 같은 계정 한도 안에 포함한다.
+2026-08-20부터 Portle(`portle.quest`), 2026-08-27부터 Scripta(`scripta.quest`)를
+VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 
 ## 규칙
 
 - 색인 요청 할당량은 **계정 단위 하루 약 11~12건**으로 합산된다 (2026-08-03 실측:
   보이스카드 8건 + 리뷰노트 3건 = 11건째까지 성공, 12건째 Quota Exceeded).
   프로퍼티를 나눠도 늘어나지 않으므로 하루 예산을 사이트 간 배분해야 한다.
-  기본 배분은 세 사이트 기준 VoiceCards 4건 / ReviewNotes 4건 / Portle 3건이고,
+  기본 배분은 네 사이트 기준 VoiceCards 3건 / ReviewNotes 3건 / Portle 3건 / Scripta 2건이고,
   유효 후보가 부족한 사이트의 몫은 다음 후보가 있는 사이트가 채운다.
-- 우선순위 원칙: ① **영어 원본**(로케일 변형은 그 뒤) ② 허브(하위 페이지의 크롤 경로)
-  ③ unknown(구글이 모름) ④ 수요 있는 코어 ⑤ Discovered 정체가 오래된 순.
+- rolling 24시간 쿼터 회복 여유를 확보하기 위해 배치 간격은 **25시간**으로 둔다.
+  launchd는 매시간 15분에 확인하고 상태 파일의 `nextRunAt`이 지난 경우에만 실행한다.
+  첫 적용 실행은 2026-08-27 18:15 KST이며 이후 19:15, 20:15처럼 매번 1시간씩 늦어진다.
+- 제외 원칙: `/privacy`·`/terms` 같은 법적·정책 페이지는 클릭·유입 가치가 낮으므로 수동 색인 요청 후보에서 제외한다.
+- 우선순위 원칙: ① **영어 원본**(로케일 변형은 그 뒤) ② 루트·기능·가격·가이드·콘텐츠 핵심 페이지 ③ 허브(하위 페이지의 크롤 경로)
+  ④ unknown(구글이 모름) ⑤ 수요 있는 코어 ⑥ Discovered 정체가 오래된 순.
   '크롤 후 미색인'은 요청해도 안 풀리므로 넣지 않는다.
 - 같은 URL 재요청은 큐 순서를 바꾸지 않는다. 요청 후 1주일간 상태 이동이 없을 때만 재검토.
 - 요청 전 반드시 당일 스냅샷(`seo_index_status`, 매일 06:40 KST 수집)으로 상태를 확인하고,
@@ -47,7 +52,7 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 3. Claude in Chrome으로 GSC URL Inspection → 각 URL 검사 → "Request indexing" 클릭 →
    "Indexing requested" 확인. 프로퍼티: 보이스카드 `sc-domain:voicecards.quest`,
    리뷰노트 `https://reviewnotes.app/` (URL-prefix. 도메인 프로퍼티 아님),
-   Portle `sc-domain:portle.quest`.
+   Portle `sc-domain:portle.quest`, Scripta `sc-domain:scripta.quest`.
    Quota Exceeded가 뜨면 그날은 중단.
 4. 이 문서의 로그 표와 대기열 갱신, seo-indexing.md 조치 이력에 한 줄 추가.
 5. 완료 보고는 아래 순서로만 쓴다. 해석·후보·계획 문장은 넣지 않고, 실제 성공/실패 수치와
@@ -55,7 +60,7 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 
    ```text
    전체 결과
-   - 대상: VoiceCards n건, ReviewNotes n건, Portle n건
+   - 대상: VoiceCards n건, ReviewNotes n건, Portle n건, Scripta n건
    - 성공: n건
    - 실패: n건
    - quota: 없음 | Quota Exceeded, 막힌 URL <url>
@@ -64,16 +69,27 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
    - VoiceCards: <url>, <url>
    - ReviewNotes: <url>, <url>
    - Portle: <url>, <url>
+   - Scripta: <url>, <url>
 
    이전 요청 추적
-   - 신규 색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>
-   - 미색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>
+   - 신규 색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>, Scripta n건 <url>
+   - 미색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>, Scripta n건 <url>
 
    이상 여부
    - 없음 | <수치와 URL만 포함한 이상 항목>
    ```
 
 ## 대기열
+
+### Scripta 초기 대기열 (2026-08-27 추가)
+
+- 공개 도메인: `https://scripta.quest`
+- GSC 속성: `sc-domain:scripta.quest`
+- sitemap: `https://scripta.quest/sitemap.xml`
+- 기본 원본: `/en` 프리픽스, 13개 언어 변형 전수 추적
+- 2026-08-27 첫 스냅샷: 52쪽 검사, 실패 0, 색인 5, unknown 47.
+- 첫 배치(08-27): ~~`/en/pricing`~~·~~`/de`~~ 요청 완료. `/en/privacy`·`/en/terms`는 수동 요청에서 제외한다.
+- 다음 후보: `/ko`·`/ja`·`/es`·`/fr`·`/it` 등 미색인 로케일 루트 → 각 로케일 `/pricing`. `/privacy`·`/terms`는 계속 제외.
 
 ### Portle 초기 대기열 (2026-08-20 추가)
 
@@ -82,8 +98,8 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 - robots: `Sitemap: https://portle.quest/sitemap.xml`
 - sitemap: 2026-08-21 기준 사람이 보는 HTML 23쪽
 - GSC 서비스 계정 상태: 2026-08-21 KST 기준 `sc-domain:portle.quest` 접근 가능.
-- `seo_index_status` 상태: 2026-08-21 KST 첫 스냅샷 생성. HTML 23쪽 검사, 색인 4쪽,
-  Discovered 12쪽, unknown 7쪽.
+- `seo_index_status` 상태: 2026-08-26 KST 스냅샷 생성. HTML 35쪽 검사, 색인 17쪽,
+  Discovered 15쪽, unknown 3쪽.
 
 초기 요청 순서(스냅샷 생성 후 이미 색인된 항목은 건너뜀):
 
@@ -91,14 +107,19 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 2. ~~`/guides` (EN 허브)~~ (08-21 요청)
 3. ~~`/faq` (EN 코어)~~ (08-21 요청)
 4. ~~`/guides/google-sheets-investment-ledger`~~ (08-21 요청)
-5. `/guides/tax-country-portfolio-tracking`
-6. `/guides/duplicate-missing-trade-checks`
+5. ~~`/guides/tax-country-portfolio-tracking`~~ (08-23 요청)
+6. ~~`/guides/duplicate-missing-trade-checks`~~ (08-22 요청)
 7. `/ko`
 8. `/ja`
 9. `/ko/guides`
 10. `/ja/guides`
 
-`/privacy`·`/terms`는 검색 가치가 낮고 canonical/정책성 페이지라 초기 배치 후순위다.
+`/privacy`·`/terms`는 검색 가치가 낮고 canonical/정책성 페이지라 2026-08-27부터 수동 요청 후보에서 제외한다.
+08-22 요청은 과거 실행 기록으로만 유지한다.
+08-23에 신규 EN 가이드 `/guides/stock-sale-tax-estimate`·`/guides/long-term-investing-rules` 요청 완료.
+08-25에 신규 EN 가이드 `/guides/canada-stock-sale-tax-estimate`·
+`/guides/australia-stock-sale-tax-estimate`·`/guides/currency-impact-on-investment-return` 요청 완료.
+08-27에 `/guides/duplicate-missing-trade-checks`(Discovered 재요청)·`/ja/faq`·`/ko/faq` 요청 완료.
 Portle 권한은 08-21에 붙었고 GSC URL Inspection 요청까지 검증됐다.
 
 ### 보이스카드 독일어권 (신규 클러스터, 최우선)
@@ -261,6 +282,11 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 | 08-20 | VC 5: `/es/methods`, `/de/privacy`, `/fr/voice-flashcard-apps`, `/it/faq`, `/ja/voice-flashcard-apps` · RN 6: `/de/practice/grade-4-2-line-graphs`, `/de/practice/grade-4-2-quadrilaterals`, `/es/practice/grade-4-rules`, `/es/practice/linear-function`, `/es/practice/quadratic-formula`, `/fr/practice/grade-4-bar-graph` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:10~17:15 KST. 08-20 스냅샷에서 08-19 요청분 VC 4건·RN 3건 색인 확인 후 최근 요청·canonical 후보를 제외하고 신규 후보로 실행 |
 | 08-20 | Portle 프로토콜 추가 | ✅ 코드·문서 반영. `portle.quest` sitemap 21 URL(HTML 20쪽)·robots 확인. `seo_index_status`는 portle 0행, GSC 서비스 계정에는 `sc-domain:portle.quest` 미등록이라 실제 URL Inspection 요청은 권한 추가 후 진행 |
 | 08-21 | VC 4: `/es/language-learning`, `/ja/faq`, `/ja/privacy`, `/ko/audio-flashcards` · RN 4: `/de/practice/pythagorean`, `/es/practice/grade-5-fractions`, `/fr/practice/grade-4-2-decimals`, `/fr/practice/grade-4-angles` · Portle 3: `/guides`, `/faq`, `/guides/google-sheets-investment-ledger` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:05~17:16 KST. Portle 08-21 첫 스냅샷 생성 후 초기 큐 3건 요청. 08-20 요청분 VC 5건·RN 6건 전부 색인 확인 |
+| 08-22 | VC 4: `/ko/memorization`, `/uk/audio-flashcards`, `/uk/memorization`, `/vi/exam-prep` · RN 4: `/en/practice/grade-4-large-numbers`, `/en/templates/mistake-notebook`, `/en/practice/grade-5-number-operations`, `/es/terms` · Portle 3: `/terms`, `/privacy`, `/guides/duplicate-missing-trade-checks` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:10 KST 전후. Portle 08-22 스냅샷을 수동 생성한 뒤 3사이트 후보로 실행. 08-21 요청분 VC 4건·RN 3건·Portle 3건 색인 확인, RN `/de/practice/pythagorean`은 Crawled - currently not indexed |
+| 08-23 | VC 4: `/fr/privacy`, `/pl/faq`, `/pl/voice-flashcard-apps`, `/pt/language-learning` · RN 4: `/de/practice/linear-system`, `/de/templates/mistake-notebook`, `/es/practice/factor-trinomial`, `/es/practice/grade-4-2-triangles` · Portle 3: `/guides/tax-country-portfolio-tracking`, `/guides/stock-sale-tax-estimate`, `/guides/long-term-investing-rules` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:10~17:17 KST. Portle 08-23 스냅샷을 수동 생성하고, 브리프의 08-22 요청 URL을 제외해 대체 후보로 실행. 08-22 요청분 VC 1건·RN 0건·Portle 1건 색인 확인 |
+| 08-25 | VC 4: `/it/privacy`, `/ko/faq`, `/pl/memorization`, `/pt/faq` · RN 4: `/de/practice/grade-4-rules`, `/es/practice/grade-4-2-line-graphs`, `/es/practice/grade-4-multiplication`, `/fr/practice/grade-4-large-numbers` · Portle 3: `/guides/canada-stock-sale-tax-estimate`, `/guides/australia-stock-sale-tax-estimate`, `/guides/currency-impact-on-investment-return` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:19 KST. Portle 08-25 스냅샷을 수동 생성하고 최근 요청 URL을 제외해 신규 후보로 실행. 08-23 요청분 VC 4건·RN 3건·Portle 3건 색인 확인, RN `/de/templates/mistake-notebook`은 08-25 스냅샷에서 누락 |
+| 08-26 | VC `/fr/memorization` 1건 시도 · RN 0 · Portle 0 | ❌ 첫 요청부터 Quota Exceeded — 성공 0건. 17:09 KST. 같은 날 재시도하지 않고 대기열 유지. 08-26 스냅샷에서 08-25 요청분 VC 3건·RN 1건·Portle 3건 색인 확인 |
+| 08-27 | VC 3: `/fr/memorization`·`/it/voice-flashcard-apps`·`/ja/memorization` · RN 3: `/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`·`/de/practice/grade-4-bar-graph` · Portle 3: `/guides/duplicate-missing-trade-checks`·`/ja/faq`·`/ko/faq` · Scripta 2: `/en/pricing`·`/de` | ✅ 11건 전부 요청 완료, quota 초과 없음. 18:15~18:32 KST. Scripta 첫 배치. 디스패처 상한 15분에 codex가 잘려 보고·문서 갱신만 사라졌다 — 10건은 실행 로그의 `Indexing requested` 확인분이고, 마지막 `/de`는 18:32 크롤(아침 스냅샷 unknown → Crawled)로 확인해 재요청하지 않았다. 상한은 60분으로 올렸다. Scripta 08-27 첫 스냅샷(52쪽, 색인 5)에서 `/en/pricing`·`/de`를 골랐고 `/privacy`·`/terms`는 제외 |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ### 08-07 배치 결과 (08-08 스냅샷)
@@ -384,6 +410,21 @@ GSC 색인 페이지 리포트가 리뷰노트를 **102쪽 색인**이라고 하
 > 라이브 테스트("Testing if live URL can be indexed")는 날에 따라 30초에서 3분 넘게 걸린다.
 > 오래 걸린다고 취소하지 말 것 — 취소하면 요청이 등록되지 않는다.
 
+### 배치가 디스패처 상한에 잘린다 (2026-08-27)
+
+이 배치는 URL 한 건에 1~3분이 걸린다(라이브 검사 대기 때문). 그런데 워크스테이션
+디스패처(`scripts/ws-dispatcher.ts`)의 codex 상한은 15분이었다. 사이트가 셋일 때는
+14분에 끝나 겨우 통과했고, 08-27에 Scripta가 넷째로 붙자 **10건을 실제로 요청해 놓은
+상태에서 codex가 잘렸다.** 요청 자체는 GSC에 남았는데 보고와 문서 갱신만 사라져서,
+CEO에게는 "codex timeout" 다섯 글자만 갔다.
+
+- 상한은 `scripts/lib/dispatch-report.ts`의 `SOURCE_TIMEOUT_MS`에서 작업별로 잡는다.
+  `scheduled:gsc-indexing`은 60분.
+- **잘린 뒤에는 다시 돌리기 전에 실제 요청분부터 센다.** codex 세션 로그
+  (`~/.codex/sessions/<날짜>/rollout-*.jsonl`)에 URL별 `Indexing requested` 결과가 남는다.
+  로그가 애매하면 GSC에서 그 URL의 **마지막 크롤 시각**을 본다 — 배치 직후 크롤이면
+  요청이 나간 것이다. 그냥 재요청하면 쿼터만 태운다.
+
 ## 리뷰노트 연습문제가 구글에게 남의 사이트 중복으로 잡혔다 (2026-08-06 발견, 미해결)
 
 08-05에 요청한 연습문제 4건이 크롤은 됐는데(08-05 00:43 UTC, 요청 직후) **Duplicate without
@@ -450,6 +491,11 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 08-20 | Portle 프로토콜 추가 | ✅ 코드·문서 반영, 색인 요청 0건 | `portle.quest` sitemap/robots 확인, HTML 대상 20쪽. GSC 서비스 계정에 Portle 속성이 없어 `scanSiteIndexStatus('portle', 1)`은 `PERMISSION_DENIED`; Search Console 권한 추가 후 첫 스냅샷 필요 |
 | 08-20 | VC 5(`/es/methods`·`/de/privacy`·`/fr/voice-flashcard-apps`·`/it/faq`·`/ja/voice-flashcard-apps`) + RN 6(`/de/practice/grade-4-2-line-graphs`·`/de/practice/grade-4-2-quadrilaterals`·`/es/practice/grade-4-rules`·`/es/practice/linear-function`·`/es/practice/quadratic-formula`·`/fr/practice/grade-4-bar-graph`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:10~17:15 KST | 08-20 스냅샷 신규 색인: VC `/es/audio-flashcards`·`/it/memorization`·`/ko/methods`·`/ru/voice-flashcard-apps`, RN `/es/practice/grade-4-2-decimals`·`/es/practice/grade-4-transformations`·`/es/practice/linear-system`. 브리프 후보 중 08-18·08-19 최근 요청 URL, RN `/es/terms` canonical 후보, 08-17 독일어 최근 요청분을 제외하고 대체 후보로 실행 |
 | 08-21 | VC 4(`/es/language-learning`·`/ja/faq`·`/ja/privacy`·`/ko/audio-flashcards`) + RN 4(`/de/practice/pythagorean`·`/es/practice/grade-5-fractions`·`/fr/practice/grade-4-2-decimals`·`/fr/practice/grade-4-angles`) + Portle 3(`/guides`·`/faq`·`/guides/google-sheets-investment-ledger`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:05~17:16 KST | 08-21 스냅샷에서 08-20 요청분 VC 5건(`/de/privacy`·`/es/methods`·`/fr/voice-flashcard-apps`·`/it/faq`·`/ja/voice-flashcard-apps`)과 RN 6건(`/de/practice/grade-4-2-line-graphs`·`/de/practice/grade-4-2-quadrilaterals`·`/es/practice/grade-4-rules`·`/es/practice/linear-function`·`/es/practice/quadratic-formula`·`/fr/practice/grade-4-bar-graph`) 전부 색인 확인. Portle은 첫 요청이라 전일 요청 추적 없음 |
+| 08-22 | VC 4(`/ko/memorization`·`/uk/audio-flashcards`·`/uk/memorization`·`/vi/exam-prep`) + RN 4(`/en/practice/grade-4-large-numbers`·`/en/templates/mistake-notebook`·`/en/practice/grade-5-number-operations`·`/es/terms`) + Portle 3(`/terms`·`/privacy`·`/guides/duplicate-missing-trade-checks`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:10 KST 전후 | 08-22 스냅샷에서 08-21 요청분 VC 4건(`/es/language-learning`·`/ja/faq`·`/ja/privacy`·`/ko/audio-flashcards`), RN 3건(`/es/practice/grade-5-fractions`·`/fr/practice/grade-4-2-decimals`·`/fr/practice/grade-4-angles`), Portle 3건(`/guides`·`/faq`·`/guides/google-sheets-investment-ledger`) 색인 확인. RN `/de/practice/pythagorean`은 Crawled - currently not indexed |
+| 08-23 | VC 4(`/fr/privacy`·`/pl/faq`·`/pl/voice-flashcard-apps`·`/pt/language-learning`) + RN 4(`/de/practice/linear-system`·`/de/templates/mistake-notebook`·`/es/practice/factor-trinomial`·`/es/practice/grade-4-2-triangles`) + Portle 3(`/guides/tax-country-portfolio-tracking`·`/guides/stock-sale-tax-estimate`·`/guides/long-term-investing-rules`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:10~17:17 KST | 08-23 스냅샷에서 08-22 요청분 VC `/ko/memorization`, Portle `/terms` 색인 확인. 미색인: VC `/uk/audio-flashcards`·`/uk/memorization`·`/vi/exam-prep`; RN `/en/practice/grade-4-large-numbers`·`/en/templates/mistake-notebook`·`/en/practice/grade-5-number-operations`·`/es/terms`; Portle `/privacy`·`/guides/duplicate-missing-trade-checks` |
+| 08-25 | VC 4(`/it/privacy`·`/ko/faq`·`/pl/memorization`·`/pt/faq`) + RN 4(`/de/practice/grade-4-rules`·`/es/practice/grade-4-2-line-graphs`·`/es/practice/grade-4-multiplication`·`/fr/practice/grade-4-large-numbers`) + Portle 3(`/guides/canada-stock-sale-tax-estimate`·`/guides/australia-stock-sale-tax-estimate`·`/guides/currency-impact-on-investment-return`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:19 KST | 08-25 스냅샷에서 08-23 요청분 신규 색인: VC 4건(`/fr/privacy`·`/pl/faq`·`/pl/voice-flashcard-apps`·`/pt/language-learning`), RN 3건(`/de/practice/linear-system`·`/es/practice/factor-trinomial`·`/es/practice/grade-4-2-triangles`), Portle 3건(`/guides/tax-country-portfolio-tracking`·`/guides/stock-sale-tax-estimate`·`/guides/long-term-investing-rules`). 미색인: RN `/de/templates/mistake-notebook` 1건(08-25 스냅샷 누락, 08-23 최종 상태 unknown) |
+| 08-26 | VC `/fr/memorization` 1건 시도 · RN 0 · Portle 0 | ❌ 첫 요청에서 Quota Exceeded. 성공 URL 없음, 막힌 URL `https://voicecards.quest/fr/memorization`. 17:09 KST. 같은 날 재시도하지 않음 | 08-26 스냅샷 신규 색인: VC 3건(`/it/privacy`·`/ko/faq`·`/pl/memorization`), RN 1건(`/de/practice/grade-4-rules`), Portle 3건(`/guides/canada-stock-sale-tax-estimate`·`/guides/australia-stock-sale-tax-estimate`·`/guides/currency-impact-on-investment-return`). 미색인: VC `/pt/faq`; RN `/es/practice/grade-4-2-line-graphs`·`/es/practice/grade-4-multiplication`·`/fr/practice/grade-4-large-numbers`; Portle 0건 |
+| 08-27 | VC 3(`/fr/memorization`·`/it/voice-flashcard-apps`·`/ja/memorization`) + RN 3(`/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`·`/de/practice/grade-4-bar-graph`) + Portle 3(`/guides/duplicate-missing-trade-checks`·`/ja/faq`·`/ko/faq`) + Scripta 2(`/en/pricing`·`/de`) | ✅ 11건 전부 요청 완료, quota 초과 없음. 18:15~18:32 KST. Scripta 첫 배치. 디스패처 상한 15분에 codex가 잘려 보고·문서 갱신만 사라졌다 — 10건은 실행 로그의 `Indexing requested` 확인분이고, 마지막 `/de`는 18:32 크롤(아침 스냅샷 unknown → Crawled)로 확인해 재요청하지 않았다. 상한은 60분으로 올렸다 | 08-26은 성공 0건이라 추적할 전일 요청분이 없다. 08-25 요청분 잔여 4건은 08-27 스냅샷에서도 미색인: VC `/pt/faq`(Crawled - currently not indexed), RN `/es/practice/grade-4-2-line-graphs`·`/es/practice/grade-4-multiplication`(Duplicate without user-selected canonical)·`/fr/practice/grade-4-large-numbers`(Discovered) |
 
 ### 노출은 느는데 클릭이 안 는다 (2026-08-11 측정)
 

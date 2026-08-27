@@ -1,6 +1,6 @@
 # 색인 추적 (SEO Indexing)
 
-보이스카드/리뷰노트/Portle 발행 페이지가 구글에 실제로 색인되는지 추적하는 문서.
+보이스카드/리뷰노트/Portle/Scripta 발행 페이지가 구글에 실제로 색인되는지 추적하는 문서.
 노출·클릭 지표는 "이미 노출된 페이지"만 보여주므로, 노출 0의 원인(미발견 / 크롤 후 거부 / 제외)은
 URL Inspection API로만 갈라진다. 이 문서는 그 스냅샷의 해석과 조치 이력을 남긴다.
 
@@ -11,14 +11,21 @@ URL Inspection API로만 갈라진다. 이 문서는 그 스냅샷의 해석과 
 | 항목 | 위치 |
 |---|---|
 | 스냅샷 테이블 | `seo_index_status` (willow-dash-tensw-todo, `axcfvieqsaphhvbkyzzv`) |
-| 수집 크론 | `/api/cron/seo-index-scan`, 매일 21:40 UTC (06:40 KST) |
+| 수집 크론 | `/api/cron/seo-index-scan`, 사이트별 매일 21:40~21:55 UTC (06:40~06:55 KST) |
 | 수집 코드 | `src/lib/gsc-index.ts` (`scanSiteIndexStatus`, `getIndexStatusSummary`) |
-| 화면 | 보이스카드/리뷰노트/Portle 대상 "검색 노출 → 클릭" 섹션의 색인 상태·버티컬별 색인률 카드 |
-| 수동 실행 | `GET /api/cron/seo-index-scan?secret=$CRON_SECRET[&site=voicecards|reviewnotes|portle]` |
+| 화면 | 보이스카드/리뷰노트/Portle/Scripta 대상 "검색 노출 → 클릭" 섹션의 색인 상태·버티컬별 색인률 카드 |
+| 수동 실행 | `GET /api/cron/seo-index-scan?secret=$CRON_SECRET[&site=voicecards|reviewnotes|portle|scripta]` |
 
-검사 대상은 사이트맵의 콘텐츠 대표 URL이다. VoiceCards·ReviewNotes·Portle은 로케일 변형까지
+검사 대상은 사이트맵의 콘텐츠 대표 URL이다. VoiceCards·ReviewNotes·Portle·Scripta는 로케일 변형까지
 전수 검사한다. 사람이 읽는 페이지가 아닌 `.txt`·`.xml` 등은 커버리지 분모에서 제외한다.
 Portle은 2026-08-21 기준 sitemap의 HTML 23쪽이 대상이다.
+
+### Scripta GSC 연결 상태 (2026-08-27)
+
+`scripta.quest`는 sitemap과 robots가 정상 응답하며 기본 원본은 `/en`이다. GSC 속성은
+`sc-domain:scripta.quest`를 사용하고, 2026-08-27부터 데일리 스냅샷과 수동 색인 요청 배치에 포함한다.
+공유 요청 한도 11건 중 기본 2건을 배정하고, 전체 배치는 rolling quota 회복을 위해 25시간 간격으로 실행한다.
+첫 스냅샷은 52쪽을 전수 검사해 실패 0건, 색인 5건, unknown 47건으로 저장됐다.
 
 ### Portle GSC 연결 상태 (2026-08-21)
 
@@ -202,6 +209,11 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 | 2026-08-20 | 보이스카드 5건과 리뷰노트 6건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 08-19 요청분 중 VC `/es/audio-flashcards`·`/it/memorization`·`/ko/methods`·`/ru/voice-flashcard-apps`, RN `/es/practice/grade-4-2-decimals`·`/es/practice/grade-4-transformations`·`/es/practice/linear-system` 색인 확인 |
 | 2026-08-20 | Portle을 데일리 SEO 색인 프로토콜에 추가 | `portle.quest` sitemap/robots 확인, HTML 대상 20쪽. 코드·문서에는 `site_key='portle'`, GSC 속성 `sc-domain:portle.quest` 반영. GSC 서비스 계정에 Portle 속성이 없어 실제 스냅샷은 권한 추가 후 가능 |
 | 2026-08-21 | 보이스카드 4건, 리뷰노트 4건, Portle 3건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 08-20 요청분 VC 5건·RN 6건 전부 색인 확인. Portle은 첫 스냅샷 생성 후 첫 3건 요청 |
+| 2026-08-22 | 보이스카드 4건, 리뷰노트 4건, Portle 3건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. Portle 08-22 스냅샷 수동 생성 후 실행. 08-21 요청분 VC 4건·RN 3건·Portle 3건 색인 확인, RN `/de/practice/pythagorean`은 Crawled - currently not indexed |
+| 2026-08-23 | 보이스카드 4건, 리뷰노트 4건, Portle 3건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. Portle 08-23 스냅샷 수동 생성 후 최근 요청 URL을 제외해 실행. 08-22 요청분 VC `/ko/memorization`, Portle `/terms` 색인 확인. RN 신규 색인 0건 |
+| 2026-08-25 | 보이스카드 4건, 리뷰노트 4건, Portle 3건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. Portle 08-25 스냅샷 수동 생성 후 최근 요청 URL을 제외해 실행. 08-23 요청분 VC 4건·RN 3건·Portle 3건 색인 확인. RN `/de/templates/mistake-notebook`은 08-25 스냅샷에서 누락(08-23 최종 상태 unknown) |
+| 2026-08-26 | 보이스카드 `/fr/memorization` 색인 요청 시도 | 첫 요청부터 Quota Exceeded. 성공 0건, 막힌 URL `https://voicecards.quest/fr/memorization`; 같은 날 재시도 중단. 08-25 요청분 신규 색인 VC 3건·RN 1건·Portle 3건, 미색인 VC 1건·RN 3건·Portle 0건 |
+| 2026-08-27 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 18:15~18:32 KST. Scripta 첫 배치(`/en/pricing`·`/de`). 디스패처가 15분 상한에 잘려 codex는 보고를 못 냈고, 10건 성공은 실행 로그로, `/de`는 18:32 크롤(스냅샷 시점 unknown → Crawled)로 확인. 08-25 요청분 잔여 4건은 여전히 미색인(VC `/pt/faq` Crawled, RN 3건 Duplicate·Discovered) |
 
 색인 요청한 URL:
 
