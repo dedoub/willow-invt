@@ -72,8 +72,9 @@ interface UserStats {
     hotLead: boolean
     purchaseScore: number
     lastIntentAt: string | null
-    // 마지막 백그라운드 재생(듣기) 종료 시각 — listen_session_ended. 안 들었으면 null.
-    lastListenEndAt: string | null
+    // 백그라운드 재생 보장 만료 (users.unlimited_until) — 기간권. 산 적 없으면 null.
+    unlimitedUntil: string | null
+    unlimitedDaysLeft?: number // 남은 일수(서버 확정). 만료·미보유는 0
     createdAt: string
     activatedAt?: string | null
     lastActiveAt: string | null
@@ -306,6 +307,29 @@ const OFFER_STAGE_STYLE: Record<string, { label: string; fg: string; bg: string;
   dismissed:{ label: '닫음',  fg: '#6B7280', bg: '#F3F4F6', title: '배너 X — 영구 닫음' },
   expired:  { label: '만료',  fg: '#9CA3AF', bg: '#F9FAFB', title: '만료됨 (미전환)' },
 }
+// 백그라운드 재생 보장(기간권) 셀. 남은 기간이 있는 사람과 지나간 사람은 읽는 방식이 다르다 —
+// 살아 있으면 "언제까지"가, 끝났으면 "언제 끝났는지"가 다음 행동을 정한다.
+function GuaranteeCell({ until, daysLeft = 0 }: { until?: string | null; daysLeft?: number }) {
+  if (!until) {
+    return <div style={{ ...userDateCell, textAlign: 'center' as const, color: t.neutrals.subtle }}>—</div>
+  }
+  // 남은 일수는 서버가 확정해 보낸다(렌더 중 Date.now() 금지 — react-hooks/purity).
+  const active = daysLeft > 0
+  return (
+    <div
+      title={active ? `기간권 ${daysLeft}일 남음 (${formatDateShort(until)} 만료)` : `기간권 만료 (${formatDateShort(until)})`}
+      style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}
+    >
+      <span style={{ color: active ? '#166534' : t.neutrals.subtle, fontWeight: active ? 600 : 400 }}>
+        {formatDateShort(until)}
+      </span>
+      <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>
+        {active ? `${daysLeft}일 남음` : '만료'}
+      </span>
+    </div>
+  )
+}
+
 function OfferStageCell({ stage, at }: { stage: string | null; at: string | null }) {
   if (!stage || !OFFER_STAGE_STYLE[stage]) {
     return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</div>
@@ -362,7 +386,7 @@ function formatCountry(country: string | null, locale?: string | null): { flag: 
 
 type UserSortKey =
   | 'name' | 'platform' | 'version' | 'language' | 'country' | 'status' | 'active'
-  | 'sheets' | 'cards' | 'flips' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'spent' | 'paid' | 'listenEnd'
+  | 'sheets' | 'cards' | 'flips' | 'attempts' | 'listen' | 'intent' | 'offer' | 'credits' | 'purchased' | 'bonus' | 'spent' | 'paid' | 'guarantee'
   | 'installed' | 'created' | 'recent' | 'active7'
 type SortDir = 'asc' | 'desc'
 
@@ -386,7 +410,7 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'intent',   label: '구매신호', mobileLabel: '구매신호', align: 'center' },
   { key: 'offer',    label: '오퍼',   mobileLabel: '오퍼단계', align: 'center' },
   { key: 'paid',     label: '유료',   mobileLabel: '유료결제', align: 'center' },
-  { key: 'listenEnd', label: '재생종료', mobileLabel: '백그라운드 재생 종료', align: 'center' },
+  { key: 'guarantee', label: '보장종료', mobileLabel: '백그라운드 재생 보장 종료', align: 'center' },
   { key: 'purchased', label: '구매', mobileLabel: '구매 크레딧', align: 'center' },
   { key: 'bonus',    label: '보너스', mobileLabel: '보너스 크레딧', align: 'center' },
   { key: 'spent',    label: '사용', mobileLabel: '사용 크레딧', align: 'center' },
@@ -583,8 +607,8 @@ export function VoicecardsBlock({
       purchasedToday: 0, balanceDeltaToday: 0, sheetsDeltaToday: 0,
       intentPremiumVoice: false, intentAi: d.aiGenOpens > 0, intentBanner: false,
       intentGated: d.addSheetOpens > 0, hotLead: false, purchaseScore: 0, lastIntentAt: null,
-      // 듣기 세션은 로그인 계정 기준으로만 집계한다(vc_user_rollup은 user_id로 묶는다)
-      lastListenEndAt: null,
+      // 기간권은 계정에 붙는다 — 비로그인 기기에는 존재할 수 없다
+      unlimitedUntil: null, unlimitedDaysLeft: 0,
       createdAt: '',                 // 로그인한 적 없음
       lastActiveAt: d.lastSeenAt,
       installedAt: d.firstSeenAt,
@@ -638,8 +662,8 @@ export function VoicecardsBlock({
         case 'bonus':    return (a.bonusCredits ?? 0) - (b.bonusCredits ?? 0)
         case 'spent':    return (a.creditsSpent ?? 0) - (b.creditsSpent ?? 0)
         case 'paid':     return Number(!!a.hasPurchased) - Number(!!b.hasPurchased)
-        // 한 번도 안 들은 사용자는 항상 뒤로 (빈 문자열이 어떤 ISO 시각보다 작다)
-        case 'listenEnd': return (a.lastListenEndAt ?? '').localeCompare(b.lastListenEndAt ?? '')
+        // 기간권을 산 적 없는 사용자는 항상 뒤로 (빈 문자열이 어떤 ISO 시각보다 작다)
+        case 'guarantee': return (a.unlimitedUntil ?? '').localeCompare(b.unlimitedUntil ?? '')
         // 날짜로 표시되는 컬럼은 날짜(YYYY-MM-DD) 단위로 비교 → 같은 날끼리는 동점이 되어
         // 다음 우선순위(예: 듣기 내림차순)가 그 안에서 적용됨.
         case 'recent':   return (a.lastActiveAt ? kstDateKey(a.lastActiveAt) : '').localeCompare(b.lastActiveAt ? kstDateKey(b.lastActiveAt) : '')
@@ -1274,7 +1298,7 @@ export function VoicecardsBlock({
             return (
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
             <LStat
-              label="보유 시트"
+              label="보유 덱"
               value={formatNumber(userStats.totalSheets)}
               sub={`오늘 ${formatNumber(todaySheets)}개 · 7일 ${formatNumber(last7Sheets)}개`}
               sparkline={compact ? undefined : (sheetTrajectory.length > 1 ? sheetTrajectory : undefined)}
@@ -1629,18 +1653,10 @@ export function VoicecardsBlock({
                       {user.hasPurchased ? '유료' : '무료'}
                     </span>
                   </div>
-                  {/* 백그라운드 재생 종료 — 마지막 듣기 세션이 끝난 시각(listen_session_ended).
-                      집계는 시간당 갱신되는 mv_real_users를 읽어 최신 세션은 한 텀 늦게 반영된다. */}
-                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                    {user.lastListenEndAt ? (
-                      <>
-                        <span>{formatDateShort(user.lastListenEndAt)}</span>
-                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastListenEndAt)}) {formatTimeShort(user.lastListenEndAt)}</span>
-                      </>
-                    ) : (
-                      <span style={{ color: t.neutrals.subtle, textAlign: 'center' as const }}>—</span>
-                    )}
-                  </div>
+                  {/* 백그라운드 재생 보장 종료 — 기간권(users.unlimited_until). 크레딧 잔액과 별개로
+                      이 날짜까지는 화면을 꺼도 듣기가 돈다. 자동 갱신이 없어 지나면 그냥 닫힌다.
+                      살아 있으면 남은 일수를, 지났으면 흐리게 종료일을 적는다. */}
+                  <GuaranteeCell until={user.unlimitedUntil} daysLeft={user.unlimitedDaysLeft} />
                   <NumDeltaCell total={user.purchasedCredits} delta={user.purchasedToday} />
                   <NumDeltaCell total={user.bonusCredits} delta={0} />
                   <NumDeltaCell total={user.creditsSpent ?? 0} delta={user.spentToday ?? 0} />
