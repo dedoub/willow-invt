@@ -28,6 +28,7 @@ for script in \
   collect-hometax-tax-invoices.mjs \
   collect-hometax-national-tax.mjs \
   collect-shinhan-bank.mjs \
+  collect-woori-bank.mjs \
   collect-wetax.mjs \
   collect-nhis.mjs \
   collect-woori-card-default-chrome.mjs \
@@ -57,13 +58,15 @@ for lib in \
   kb-card-local.mjs kb-card-statement.mjs kb-card-keypad.mjs \
   finance-session.mjs finance-notify.mjs akros-invoice-sync.mjs \
   cert-dialog.mjs cert-sites.mjs cert-attempt-lock.mjs desktop.mjs \
-  shinhan-bank.mjs wetax.mjs nhis.mjs \
+  shinhan-bank.mjs wetax.mjs nhis.mjs secure-keypad.mjs \
   hometax-session.mjs hometax-national-tax.mjs
 do
   [ -f "$ROOT/scripts/lib/$lib" ] && cp "$ROOT/scripts/lib/$lib" "$RUNTIME/scripts/lib/"
 done
 
-for package in playwright playwright-core dotenv tslib ws iceberg-js; do
+# sharp 는 보안키패드 스크린샷을 읽는다. detect-libc·semver 는 sharp 가 부르는 것들이라
+# 함께 옮기지 않으면 런타임에서만 MODULE_NOT_FOUND 로 넘어진다.
+for package in playwright playwright-core dotenv tslib ws iceberg-js sharp @img detect-libc semver; do
   if [ ! -d "$RUNTIME/node_modules/$package" ]; then
     cp -R "$ROOT/node_modules/$package" "$RUNTIME/node_modules/"
   fi
@@ -194,6 +197,12 @@ tensw_card() {
     && run_step "카드 적재" $NODE "$RUNTIME/scripts/import-local-card.mjs" --company tensw
 }
 
+# 우리은행은 수집만 하고 적재는 신한 묶음에 맡긴다. 적재기가 두 은행 파일을 함께
+# 읽으므로, 여기서 막혀도 신한은 제 시각에 들어가야 한다.
+tensw_woori_bank() {
+  run_browser_step "우리은행 수집" $NODE "$RUNTIME/scripts/collect-woori-bank.mjs"
+}
+
 tensw_bank() {
   run_browser_step "신한은행 수집" $NODE "$RUNTIME/scripts/collect-shinhan-bank.mjs" \
     && run_step "은행 적재" $NODE "$RUNTIME/scripts/import-local-bank.mjs" --company tensw
@@ -202,6 +211,7 @@ tensw_bank() {
 run_tensw() {
   group "세금계산서" tensw_tax_invoices
   group "우리카드" tensw_card
+  group "우리은행" tensw_woori_bank
   group "신한은행" tensw_bank
   collect_shared_taxes
   group "세금 지급 매칭" run_step "세금 지급 매칭" \
@@ -243,7 +253,7 @@ run_willow() {
 # 새벽에 막힌 묶음을 사람이 그날 안에 다시 돌릴 때도 쓴다.
 #
 #   scripts/run-local-finance.sh tensw --only national-tax,match
-#   scripts/run-local-finance.sh tensw --only card,wetax
+#   scripts/run-local-finance.sh tensw --only woori-bank,bank
 run_only() {
   local requested name
   IFS=',' read -r -a requested <<< "$1"
@@ -255,6 +265,7 @@ run_only() {
       bank)
         if [ "$COMPANY" = tensw ]; then group "신한은행" tensw_bank
         else group "신한은행" willow_bank; fi ;;
+      woori-bank) group "우리은행" tensw_woori_bank ;;
       card)
         if [ "$COMPANY" = tensw ]; then group "우리카드" tensw_card
         else group "KB카드" willow_card; fi ;;
