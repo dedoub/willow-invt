@@ -215,6 +215,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   const appsEdu = navGroup('apps-edu')
   const investees = navGroup('investees')
   const clients = navGroup('clients')
+  const inquiries = navGroup('inquiries')
   const appsFinanceOrder = useOrderedGroup(appsFinance.items, appsFinance.orderKey!)
   const appsEduOrder = useOrderedGroup(appsEdu.items, appsEdu.orderKey!)
   const investeesOrder = useOrderedGroup(investees.items, investees.orderKey!)
@@ -282,6 +283,14 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {sortableGroup(appsEdu.label, appsEduOrder)}
         {sortableGroup(investees.label, investeesOrder)}
         {sortableGroup(clients.label, clientsOrder)}
+
+        {/* 고객문의 — 네 앱을 가로지르는 화면이라 앱 그룹 바로 뒤에 선다. 관리자만. */}
+        {isAdmin && (
+          <>
+            {!rail && <GroupLabel label={inquiries.label} />}
+            {inquiries.items.map(navLink)}
+          </>
+        )}
 
         {isAdmin && (
           <>

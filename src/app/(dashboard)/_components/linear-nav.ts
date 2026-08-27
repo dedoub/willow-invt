@@ -74,6 +74,17 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    // 앱 문의 — 네 앱의 앱 안 1:1 문의를 한 화면에서 읽는다. 자체 관리자 화면이
+    // 없는 보이스카드·포틀은 여기가 유일한 답변 창구다. 고객 문의 본문이 걸린
+    // 자리라 관리자에게만 보인다(화면도 서버에서 따로 잠근다).
+    key: 'inquiries',
+    label: '고객문의',
+    adminOnly: true,
+    items: [
+      { id: 'inquiries', href: '/inquiries', label: '문의함', icon: 'message' },
+    ],
+  },
+  {
     key: 'admin',
     label: '관리자',
     adminOnly: true,
