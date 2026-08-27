@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { kstToday } from '@/lib/kst'
 import { getServiceSupabase } from '@/lib/supabase'
 
@@ -122,6 +123,11 @@ function getSupplyPyeong(areaMapping: Record<string, AreaMapping>, complexName: 
 
 // GET - Real estate data queries
 export async function GET(request: Request) {
+  // 부동산 리서치 자료는 공개 대상이 아니다. 로그인한 대시보드나 CRON_SECRET 를 든
+  // 스케줄러만 읽는다 (알림 스크립트가 화면과 같은 숫자를 쓰려고 이 API를 부른다).
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type') || 'summary'
   const districts = searchParams.get('districts')?.split(',') || []
