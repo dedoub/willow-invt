@@ -1,6 +1,8 @@
 // LemonSqueezy API 유틸리티
 // https://docs.lemonsqueezy.com/api
 import { kstDateKey, kstMonthStart } from '@/lib/kst'
+import { RN_EXCLUDED_EMAILS } from '@/lib/reviewnotes-types'
+import { SC_EXCLUDED_EMAILS } from '@/lib/scripta-types'
 
 const LEMONSQUEEZY_API_URL = 'https://api.lemonsqueezy.com/v1'
 
@@ -261,13 +263,20 @@ export interface CreditSalesStats {
   daily: Array<{ date: string; orders: number; revenueUsd: number }>
 }
 
-export async function getCreditSalesStats(productId: number): Promise<CreditSalesStats> {
+export async function getCreditSalesStats(
+  productId: number,
+  excludeEmails: string[] = [],
+): Promise<CreditSalesStats> {
   const storeId = process.env.LEMONSQUEEZY_STORE_ID
   // LS 주문 API에는 상품 필터가 없어 스토어 주문을 받아 여기서 가른다.
   // 한 스토어에 두 제품 주문이 같이 쌓이므로 페이지를 넉넉히 받아둔다.
   const ordersRes = await getOrders(storeId, 1, 100)
   const all = ordersRes.data || []
-  const orders = all.filter(o => o.attributes.first_order_item?.product_id === productId)
+  // 운영 계정의 테스트 결제는 매출이 아니다 — 다른 집계와 같은 기준으로 뺀다.
+  const excluded = new Set(excludeEmails.map(e => e.toLowerCase()))
+  const orders = all.filter(o =>
+    o.attributes.first_order_item?.product_id === productId
+    && !excluded.has((o.attributes.user_email || '').toLowerCase()))
 
   const monthStartKst = kstMonthStart()
   const paid = orders.filter(o => o.attributes.status === 'paid')
@@ -300,8 +309,8 @@ export async function getCreditSalesStats(productId: number): Promise<CreditSale
   }
 }
 
-/** 'Scripta Credits' 상품 매출 */
-export const getScriptaSalesStats = () => getCreditSalesStats(SCRIPTA_PRODUCT_ID)
+/** 'Scripta Credits' 상품 매출 (운영 계정 제외) */
+export const getScriptaSalesStats = () => getCreditSalesStats(SCRIPTA_PRODUCT_ID, SC_EXCLUDED_EMAILS)
 /** 'ReviewNotes Credits' 상품 매출 — 구독을 접은 뒤 리뷰노트에서 돈이 오가는 유일한 경로다 */
-export const getReviewNotesSalesStats = () => getCreditSalesStats(REVIEWNOTES_PRODUCT_ID)
+export const getReviewNotesSalesStats = () => getCreditSalesStats(REVIEWNOTES_PRODUCT_ID, RN_EXCLUDED_EMAILS)
 

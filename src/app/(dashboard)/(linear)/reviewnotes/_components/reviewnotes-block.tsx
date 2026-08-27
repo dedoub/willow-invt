@@ -351,6 +351,8 @@ export function ReviewnotesBlock({
   }, [userStats, userSort, userSortDir])
 
   const totalUsers = sortedUsers.length
+  // 표에는 남기고 숫자에서만 빠지는 계정 수. 표의 30과 카드의 27이 왜 다른지 여기서 설명된다.
+  const excludedCount = (userStats?.users ?? []).filter(isExcludedReviewNotesUser).length
   const totalUserPages = Math.max(1, Math.ceil(totalUsers / userPerPage))
   const safeUserPage = Math.min(userPage, totalUserPages)
   const paginatedUsers = sortedUsers.slice(
@@ -753,6 +755,7 @@ export function ReviewnotesBlock({
             <LSectionHead
               eyebrow="USERS"
               title="사용자"
+              meta={excludedCount > 0 ? `운영 계정 ${excludedCount}명은 통계에서 제외` : undefined}
               mb={8}
               tools={mobile ? (
                 // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
@@ -809,6 +812,7 @@ export function ReviewnotesBlock({
               </div>
               {paginatedUsers.map(user => {
                 const isAdmin = user.role === 'ADMIN'
+                const excluded = isExcludedReviewNotesUser(user)
                 const balance = user.creditBalance ?? 0
                 const spent = user.aiCreditsTotal ?? 0
                 // 잔액이 20 아래로 떨어지면 주황 — 소진 임박(가입 지급 100의 20%)
@@ -890,15 +894,19 @@ export function ReviewnotesBlock({
                     <div style={{ ...userNumCell, textAlign: 'center' as const, color: spent > 0 ? t.neutrals.text : t.neutrals.subtle }}>
                       {spent.toLocaleString()}
                     </div>
-                    {/* 권한 */}
+                    {/* 권한 — 통계에서 빠지는 계정을 한눈에. PG Reviewer 는 role 이 USER 라
+                        관리자 배지가 안 붙는데도 집계에서는 빠진다. 그 자리를 '제외'로 메운다. */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
-                      {isAdmin ? (
-                        <span style={{
-                          fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
-                          padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
-                          background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
-                        }}>
-                          Admin
+                      {isAdmin || excluded ? (
+                        <span
+                          title={isAdmin ? '관리자 — 통계 제외' : '스토어 심사용 계정 — 통계 제외'}
+                          style={{
+                            fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                            padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
+                            background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
+                          }}
+                        >
+                          {isAdmin ? 'Admin' : '제외'}
                         </span>
                       ) : (
                         <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>

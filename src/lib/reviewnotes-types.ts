@@ -32,6 +32,15 @@ export function isExcludedReviewNotesUser(u: { role?: string | null; email?: str
   return u.role === 'ADMIN' || u.email === 'test@reviewnotes.app'
 }
 
+// 결제(LemonSqueezy) 쪽 제외 목록. 주문에는 role이 없고 이메일만 있어 위 규칙을 이메일로 편다.
+// 운영 계정이 테스트 결제를 하면 매출·구매자에 섞이므로 여기서 걷어낸다.
+// 계정이 늘면 위 규칙(DB role)과 여기를 같이 고칠 것.
+export const RN_EXCLUDED_EMAILS: string[] = [
+  'dwkim.august@gmail.com',
+  'monorapps@gmail.com',
+  'test@reviewnotes.app',
+]
+
 export interface ReviewNotesUser {
   id: string
   name: string | null
