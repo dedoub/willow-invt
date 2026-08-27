@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   try {
     const supabase = getServiceSupabase()
     const { searchParams } = new URL(request.url)
@@ -27,6 +31,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   try {
     const supabase = getServiceSupabase()
     const body = await request.json()
@@ -46,6 +53,9 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   try {
     const supabase = getServiceSupabase()
     const body = await request.json()
@@ -67,6 +77,9 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   try {
     const supabase = getServiceSupabase()
     const { searchParams } = new URL(request.url)

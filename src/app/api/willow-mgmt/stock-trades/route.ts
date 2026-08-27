@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 export interface StockTrade {
@@ -19,6 +20,9 @@ export interface StockTrade {
 
 // GET - List all stock trades
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const market = searchParams.get('market')
   const trade_type = searchParams.get('trade_type')
@@ -55,6 +59,9 @@ export async function GET(request: Request) {
 
 // POST - Create a new stock trade
 export async function POST(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { ticker, company_name, market, trade_date, trade_type, quantity, price, total_amount, currency, broker, memo } = body
 
@@ -94,6 +101,9 @@ export async function POST(request: Request) {
 
 // PUT - Update a stock trade
 export async function PUT(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { id, ...updates } = body
 
@@ -119,6 +129,9 @@ export async function PUT(request: Request) {
 
 // DELETE - Delete a stock trade
 export async function DELETE(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 

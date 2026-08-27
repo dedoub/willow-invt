@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 import { getPrices, getStocks, getPrevClose, getExchangeRate } from '@/lib/toss'
 import { FX_SNAPSHOT_KEY } from '@/lib/toss-prices'
@@ -48,6 +49,9 @@ async function fetchYahooQuote(yahooSymbol: string): Promise<QuoteResult | null>
 
 // GET - 토스증권 기준 현재가/시총/변동률 + DB 테마 매핑 조회
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const tickersParam = searchParams.get('tickers') // "005930,000660,VRT,CIEN,KRW=X"
   const marketsParam = searchParams.get('markets')

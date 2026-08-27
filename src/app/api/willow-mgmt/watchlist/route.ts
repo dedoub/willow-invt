@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 import { ensureTickerTheme } from '@/lib/ensure-ticker-theme'
 import { inferAxisFromSector } from '@/lib/infer-axis'
@@ -7,7 +8,10 @@ export const dynamic = 'force-dynamic'
 
 const TABLE = 'stock_watchlist'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   try {
     const db = getServiceSupabase()
     const { data, error } = await db.from(TABLE).select('*').order('created_at')
@@ -37,6 +41,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   try {
     const body = await request.json()
     const { action, name, ticker, sector, axis, fromGroup, toGroup, monitorDate, monitorPrice } = body

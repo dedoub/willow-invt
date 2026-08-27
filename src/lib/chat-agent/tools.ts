@@ -118,6 +118,20 @@ const ALLOWED_TABLES: Record<string, string> = {
 // Tool Definitions (Gemini Function Calling format)
 // ============================================================
 
+
+// 대시보드 API를 서버에서 부를 때 쓰는 통로. 이 라우트들은 2026-08-27부터 로그인 쿠키나
+// CRON_SECRET 을 요구하는데, 챗 에이전트는 서버에서 부르므로 쿠키가 없다.
+function internalApiUrl(path: string): string {
+  const base = process.env.NEXT_PUBLIC_BASE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+  return `${base}${path}`
+}
+
+function internalApiHeaders(): Record<string, string> {
+  const secret = process.env.CRON_SECRET
+  return secret ? { Authorization: `Bearer ${secret}` } : {}
+}
+
 export const agentTools = [
   {
     name: 'list_tables',
@@ -1685,7 +1699,7 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       if (args.market) params.push(`market=${args.market}`)
       if (args.trade_type) params.push(`trade_type=${args.trade_type}`)
       if (params.length > 0) url += `?${params.join('&')}`
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}${url}`)
+      const res = await fetch(internalApiUrl(url), { headers: internalApiHeaders() })
       if (!res.ok) return { error: `API error: ${res.status}` }
       return await res.json()
     }
@@ -1768,7 +1782,9 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       const markets = (args.markets as string) || ''
       if (!tickers) return { error: 'tickers 필수' }
       const qBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-      const res = await fetch(`${qBaseUrl}/api/willow-mgmt/stock-quotes?tickers=${encodeURIComponent(tickers)}&markets=${encodeURIComponent(markets)}`)
+      const res = await fetch(
+        internalApiUrl(`/api/willow-mgmt/stock-quotes?tickers=${encodeURIComponent(tickers)}&markets=${encodeURIComponent(markets)}`),
+        { headers: internalApiHeaders() })
       if (!res.ok) return { error: `시세 조회 실패: ${res.status}` }
       const data = await res.json()
       return { prices: data.prices || {}, count: Object.keys(data.prices || {}).length }
@@ -1786,7 +1802,9 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       const psBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
       let usdKrwRate = 1430
       try {
-        const fxRes = await fetch(`${psBaseUrl}/api/willow-mgmt/stock-quotes?tickers=KRW%3DX&markets=US`)
+        const fxRes = await fetch(
+          internalApiUrl('/api/willow-mgmt/stock-quotes?tickers=KRW%3DX&markets=US'),
+          { headers: internalApiHeaders() })
         if (fxRes.ok) {
           const fxData = await fxRes.json()
           const r = fxData.prices?.['KRW=X']?.price
@@ -1816,7 +1834,9 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
 
       const psTickers = activeHoldings.map(h => h.ticker)
       const psMarkets = activeHoldings.map(h => h.market)
-      const quotesRes = await fetch(`${psBaseUrl}/api/willow-mgmt/stock-quotes?tickers=${encodeURIComponent(psTickers.join(','))}&markets=${encodeURIComponent(psMarkets.join(','))}`)
+      const quotesRes = await fetch(
+        internalApiUrl(`/api/willow-mgmt/stock-quotes?tickers=${encodeURIComponent(psTickers.join(','))}&markets=${encodeURIComponent(psMarkets.join(','))}`),
+        { headers: internalApiHeaders() })
       const quotesData = quotesRes.ok ? await quotesRes.json() : { prices: {} }
       const prices = quotesData.prices || {}
 

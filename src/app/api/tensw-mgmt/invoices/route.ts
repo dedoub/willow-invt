@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 export interface TenswInvoice {
@@ -20,6 +21,9 @@ export interface TenswInvoice {
 
 // GET - List all invoices
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type') // 'revenue' | 'expense' | null (all)
   const status = searchParams.get('status') // 'issued' | 'completed' | null (all)
@@ -57,6 +61,9 @@ export async function GET(request: Request) {
 
 // POST - Create a new invoice
 export async function POST(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { type, counterparty, description, amount, issue_date, payment_date, status, attachments, notes, account_number, balance_after, transaction_time } = body
 
@@ -97,6 +104,9 @@ export async function POST(request: Request) {
 
 // PUT - Update an invoice
 export async function PUT(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { id, ...updates } = body
 
@@ -122,6 +132,9 @@ export async function PUT(request: Request) {
 
 // DELETE - Delete an invoice
 export async function DELETE(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 

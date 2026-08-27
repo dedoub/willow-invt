@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -122,6 +123,9 @@ function calcSignal(price: number, high52w: number | null): { signal: 'new_high'
 }
 
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   try {
     const { searchParams } = new URL(request.url)
     const extraTickers = searchParams.get('extra')

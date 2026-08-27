@@ -137,8 +137,11 @@ async function fetchQuoteMap(tickers: string[], markets: string[]) {
   if (tickers.length === 0) return {}
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
     || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+  // 이 API는 로그인 쿠키나 CRON_SECRET 을 요구한다(2026-08-27 재무 API 잠금). 스크립트는 후자다.
+  const secret = process.env.CRON_SECRET
   const res = await fetch(
-    `${baseUrl}/api/willow-mgmt/stock-quotes?tickers=${encodeURIComponent(tickers.join(','))}&markets=${encodeURIComponent(markets.join(','))}`
+    `${baseUrl}/api/willow-mgmt/stock-quotes?tickers=${encodeURIComponent(tickers.join(','))}&markets=${encodeURIComponent(markets.join(','))}`,
+    { headers: secret ? { Authorization: `Bearer ${secret}` } : {} }
   )
   if (!res.ok) {
     throw new Error(`시세 조회 실패: ${res.status}`)

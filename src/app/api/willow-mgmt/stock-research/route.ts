@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 import { ensureTickerTheme } from '@/lib/ensure-ticker-theme'
 import { inferAxisFromSector } from '@/lib/infer-axis'
 
 // GET - List all research entries
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const verdict = searchParams.get('verdict')
   const sourceType = searchParams.get('source_type') // valuechain | smallcap
@@ -72,6 +76,9 @@ export async function GET(request: Request) {
 
 // POST - Create a new research entry
 export async function POST(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const {
     ticker, company_name, scan_date, source, market_cap_b, current_price,
@@ -141,6 +148,9 @@ export async function POST(request: Request) {
 
 // PUT - Update a research entry
 export async function PUT(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { id, ...updates } = body
 
@@ -166,6 +176,9 @@ export async function PUT(request: Request) {
 
 // PATCH - Update thesis/value_chain for a research entry
 export async function PATCH(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { id, structural_thesis, value_chain_position } = body
 
@@ -193,6 +206,9 @@ export async function PATCH(request: Request) {
 
 // DELETE - Delete a research entry
 export async function DELETE(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 

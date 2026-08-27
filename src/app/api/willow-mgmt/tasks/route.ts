@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 // GET - Get tasks for a schedule
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const scheduleId = searchParams.get('scheduleId')
 
@@ -29,6 +33,9 @@ export async function GET(request: Request) {
 
 // POST - Create a task
 export async function POST(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { schedule_id, content, deadline, order_index = 0 } = body
 
@@ -56,6 +63,9 @@ export async function POST(request: Request) {
 
 // PUT - Update a task
 export async function PUT(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { id, ...updates } = body
 
@@ -86,6 +96,9 @@ export async function PUT(request: Request) {
 
 // DELETE - Delete a task
 export async function DELETE(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 

@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { tenswGetBalanceHistory } from '@/lib/tensw-mgmt/queries'
 
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const startDate = searchParams.get('start_date') || undefined
   const endDate = searchParams.get('end_date') || undefined

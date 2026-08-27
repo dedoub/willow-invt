@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 // GET - List all tax invoices
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const supabase = getServiceSupabase()
 
   const { data, error } = await supabase
@@ -26,6 +30,9 @@ export async function GET() {
 
 // POST - Create a new tax invoice
 export async function POST(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const {
     invoice_type, issue_date, counterparty, business_number, representative,
@@ -71,6 +78,9 @@ export async function POST(request: Request) {
 
 // PUT - Update a tax invoice
 export async function PUT(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { id, ...updates } = body
 
@@ -96,6 +106,9 @@ export async function PUT(request: Request) {
 
 // DELETE - Delete a tax invoice
 export async function DELETE(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 

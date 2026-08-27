@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 export const maxDuration = 60
@@ -19,7 +20,10 @@ export interface SectorRotationEtf {
   returns: Record<'1m' | '3m' | '6m' | '1y', number | null>
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const supabase = getServiceSupabase()
   // PostgREST의 기본 1000-row cap을 우회하려면 페이지네이션 필요.
   // 1y 비교에 필요한 만큼만 cutoff date로 좁히고, 페이지로 모두 가져옴.

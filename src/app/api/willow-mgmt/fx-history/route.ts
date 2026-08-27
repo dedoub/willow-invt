@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 
 // GET - Fetch historical KRW/USD exchange rates from Yahoo Finance
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   try {
     const res = await fetch(
       'https://query1.finance.yahoo.com/v8/finance/chart/KRW%3DX?interval=1d&range=2y',

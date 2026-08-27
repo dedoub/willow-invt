@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 // 홈택스에서 수집한 전자세금계산서. 윌로우는 텐소프트웍스와 달리 수금상태를 사람이
 // 관리하는 매출관리 테이블이 없어, 수집분이 그대로 정본이다.
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const year = searchParams.get('year')
 

@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 const COMPANIES = new Set(['tensw', 'willow'])
 
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const company = new URL(request.url).searchParams.get('company')
   if (!company || !COMPANIES.has(company)) {
     return NextResponse.json({ error: 'company must be tensw or willow' }, { status: 400 })

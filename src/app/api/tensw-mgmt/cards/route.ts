@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 // 카드 승인내역 + 이용명세서. 화면에서 연도 단위로 훑으므로 기간을 받는다.
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const year = searchParams.get('year') || String(new Date().getFullYear())
   const from = `${year}-01-01`

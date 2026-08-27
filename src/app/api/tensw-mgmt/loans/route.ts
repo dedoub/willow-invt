@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 // GET - List all loans
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const supabase = getServiceSupabase()
 
   const { data, error } = await supabase
@@ -27,6 +31,9 @@ export async function GET() {
 
 // POST - Create a new loan
 export async function POST(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { bank, account_number, loan_type, principal, interest_rate, monthly_interest_avg, annual_interest_2025, loan_date, maturity_date, last_extension_date, next_interest_date, interest_payment_day, repayment_type, status, memo, attachments } = body
 
@@ -71,6 +78,9 @@ export async function POST(request: Request) {
 
 // PUT - Update a loan
 export async function PUT(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const body = await request.json()
   const { id, ...updates } = body
 
@@ -96,6 +106,9 @@ export async function PUT(request: Request) {
 
 // DELETE - Delete a loan
 export async function DELETE(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 import { runTossSync } from '@/lib/toss-sync'
 import { TossError } from '@/lib/toss'
@@ -12,6 +13,9 @@ export const dynamic = 'force-dynamic'
 // 서버리스에서는 실패한다. 운영 동기화는 허용 IP에서 도는 launchd 스크립트
 // (scripts/toss-sync.ts)가 담당하고, 이 라우트는 로컬 개발/수동 실행용이다.
 export async function POST(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   let confirm = false
   try {
     const body = await request.json().catch(() => ({}))

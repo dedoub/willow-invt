@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
 
 // GET - Fetch historical daily closes for multiple tickers.
@@ -58,6 +59,9 @@ async function fetchFromYahoo(yahooSymbol: string, range: string): Promise<{ dat
 }
 
 export async function GET(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
   const { searchParams } = new URL(request.url)
   const tickersParam = searchParams.get('tickers')
   const marketsParam = searchParams.get('markets')
