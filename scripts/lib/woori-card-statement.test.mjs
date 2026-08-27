@@ -92,4 +92,10 @@ test('wooriBillingRow는 결제일이 속한 달을 청구년월로 삼는다', 
   assert.equal(row.raw.monthly_fee, 8_422)
   // 같은 청구는 같은 지문이어야 다시 넣어도 늘지 않는다.
   assert.equal(wooriBillingRow(statement).fingerprint, row.fingerprint)
+  // 금액이 정정돼도 같은 달이면 같은 행이다. 지문에 금액이 있던 시절엔 카드
+  // 재발급이나 재수집이 같은 달에 두 번째 청구 행을 만들었다.
+  assert.equal(
+    wooriBillingRow({ ...statement, billed_amount: 3_000_000 }).fingerprint,
+    row.fingerprint,
+  )
 })

@@ -74,6 +74,9 @@ const SHARED_EXPENSE_PATTERNS: Pattern[] = [
   { re: /고용보험|산재보험|근로복지공단/, counterparty: '근로복지공단', description: '4대보험 (고용·산재)' },
   { re: /국세|I-지로|인터넷지로/, counterparty: '국세', description: '국세 납부' },
   { re: /지방세|위택스/, counterparty: '지방세', description: '지방세 납부' },
+  // 지방세를 지로로 내면 은행에는 자치단체 세입계좌 이름만 찍힌다 — 양사 주민세
+  // 사업소분이 '지로 서울시세입금'으로 들어와 매번 보류로 남았다.
+  { re: /[시군구도]세입금/, counterparty: '지방세', description: '지방세 (지로 세입금)' },
 ]
 
 /**

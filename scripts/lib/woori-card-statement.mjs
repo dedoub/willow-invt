@@ -111,6 +111,9 @@ export function wooriBillingRow(statement) {
       monthly_fee: statement.monthly_fee,
       lines: statement.lines,
     },
-    fingerprint: statement.organization + '|' + billingMonth + '|' + statement.billed_amount,
+    // 청구는 카드번호와 무관하게 한 달에 하나다. 금액을 지문에 넣었더니 카드가
+    // 재발급돼 번호가 바뀐 달에 같은 청구가 두 행으로 남았다 — 202608 이 그랬다.
+    // 달만 보면 금액이 정정돼도 같은 행을 고쳐 쓴다.
+    fingerprint: statement.organization + '|' + billingMonth,
   }
 }

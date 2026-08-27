@@ -44,7 +44,7 @@ export function statementLineFromCells(cells) {
 export function billingFingerprint(row) {
   return crypto
     .createHash('sha1')
-    .update([row.organization, row.billing_month, row.department_name ?? '', row.total_amount].join('|'))
+    .update([row.organization, row.billing_month, row.department_name ?? ''].join('|'))
     .digest('hex')
 }
 
