@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { kstToday } from '@/lib/kst'
 import { getServiceSupabase } from '@/lib/supabase'
 
 // A single reported transaction can make an incomplete current month look like
@@ -598,7 +599,17 @@ export async function GET(request: Request) {
         .filter(r => r.listingCount > 0)
         .sort((a, b) => a.complexName.localeCompare(b.complexName, 'ko') || a.areaBand - b.areaBand)
 
-      return NextResponse.json({ listings: rows, tradeType })
+      // 기준일과 며칠 밀렸는지를 같이 실어 보낸다. 화면이 "언제 자료인지"를 말할 수 있어야
+      // 수집이 멈춘 걸 눈으로 알아챈다 (2026-08-21~27 호가 수집 중단 때 못 알아챘다).
+      const snapshotStaleDays = latestSnapshotDate
+        ? Math.max(0, Math.round(
+            (Date.parse(`${kstToday()}T00:00:00+09:00`) - Date.parse(`${latestSnapshotDate}T00:00:00+09:00`)) / 86400000))
+        : 0
+      return NextResponse.json({
+        listings: rows, tradeType,
+        snapshotDate: latestSnapshotDate ?? null,
+        snapshotStaleDays,
+      })
     }
 
     if (type === 'listing-trend') {

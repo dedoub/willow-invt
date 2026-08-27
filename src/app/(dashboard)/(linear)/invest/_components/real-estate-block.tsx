@@ -489,6 +489,27 @@ function TableSkeleton() {
 
 /* ── Component ── */
 
+// 호가 기준일. 하루만 밀려도 눈에 걸리게 색을 준다 — 수집기가 조용히 죽어도
+// 화면이 그 사실을 말하게 하려는 것이다. 이틀 이상 밀리면 주황.
+// 며칠 밀렸는지는 서버가 세어 보낸다(렌더 중 오늘 날짜를 읽으면 리렌더마다 흔들린다).
+function ListingFreshness({ date, staleDays }: { date: string | null; staleDays: number }) {
+  if (!date) return null
+  const stale = staleDays >= 2
+  return (
+    <span
+      title={stale ? `호가 수집이 ${staleDays}일째 멈춰 있어요` : '네이버 호가 스냅샷 기준일'}
+      style={{
+        fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
+        color: stale ? t.accent.warn : t.neutrals.subtle,
+        fontWeight: stale ? 600 : 400,
+      }}
+    >
+      호가 {date.slice(5).replace('-', '.')}
+      {stale ? ` · ${staleDays}일 정체` : ''}
+    </span>
+  )
+}
+
 export function RealEstateBlock() {
   const mobile = useIsMobile()
   const cols = useDashCols()
@@ -507,6 +528,9 @@ export function RealEstateBlock() {
   const [reTrades, setReTrades] = useState<ReTradeData | null>(null)
   const [reRentals, setReRentals] = useState<ReTradeData | null>(null)
   const [reListingsTrade, setReListingsTrade] = useState<ReListingRow[]>([])
+  // 호가 스냅샷 기준일. 매일 도는 수집이 멈추면 이 날짜가 그대로 멈춘다.
+  const [listingSnapshotDate, setListingSnapshotDate] = useState<string | null>(null)
+  const [listingStaleDays, setListingStaleDays] = useState(0)
   const [reListingsJeonse, setReListingsJeonse] = useState<ReListingRow[]>([])
   const [reJeonseRatio, setReJeonseRatio] = useState<ReJeonseRatio[]>([])
   const [reListingTrend, setReListingTrend] = useState<ReTrend | null>(null)
@@ -591,6 +615,8 @@ export function RealEstateBlock() {
     fetch(`${base}?type=listings&tradeType=매매&${baseParams}`).then(r => r.json()).then(d => {
       if (stale()) return
       setReListingsTrade(d.listings || [])
+      setListingSnapshotDate(d.snapshotDate ?? null)
+      setListingStaleDays(Number(d.snapshotStaleDays) || 0)
       setLoadingListingsTrade(false)
     }).catch(() => { if (!stale()) setLoadingListingsTrade(false) })
 
@@ -872,6 +898,7 @@ export function RealEstateBlock() {
         <LSectionHead
           eyebrow="REAL ESTATE"
           title="부동산 리서치"
+          meta={<ListingFreshness date={listingSnapshotDate} staleDays={listingStaleDays} />}
           tools={
             <LFilterChip
               multi
