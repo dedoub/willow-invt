@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.willow.credit-rate-audit</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
+    <string>--cwd</string>
+    <string>/Volumes/PRO-G40/app-dev/willow-invt</string>
+    <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-credit-rate-audit.sh</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/dongwookkim</string>
+  <!-- 월요일 09:23. 정각을 피한다 — 온 세상의 잡이 :00 에 몰린다. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key>
+    <integer>1</integer>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>23</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/dongwookkim/logs/credit-rate-audit/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/dongwookkim/logs/credit-rate-audit/launchd.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/dongwookkim</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>
