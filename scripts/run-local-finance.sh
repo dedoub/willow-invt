@@ -52,7 +52,7 @@ for script in \
   match-finance-tax-obligations.mjs \
   sync-akros-invoices.mjs \
   notify-local-finance.mjs \
-  close-cert-dialogs.sh \
+  close-cert-dialogs.mjs \
   login-native-cert.mjs \
   login-nhis-si4n.mjs \
   woori-card-certificate-login.mjs \
@@ -135,9 +135,9 @@ run_step() {
 # 인증서 모듈 창은 Chrome 것이 아니라 별도 프로세스 것이라, Chrome 을 내렸다 올려도
 # 화면에 그대로 남아 다음 단계를 막는다. 08-29 에 신한은행 인증서선택 창이 남아
 # 재실행 자체를 막았다. 확인은 절대 누르지 않는다 — 확인은 제출이고 제출은 인증서
-# 오류 횟수를 태운다(자세한 규칙은 close-cert-dialogs.sh).
+# 오류 횟수를 태운다(자세한 규칙은 close-cert-dialogs.mjs).
 close_cert_dialogs() {
-  bash "$RUNTIME/scripts/close-cert-dialogs.sh" >> "$LOG_FILE" 2>&1
+  $NODE "$RUNTIME/scripts/close-cert-dialogs.mjs" >> "$LOG_FILE" 2>&1
 }
 
 restart_chrome() {

@@ -69,7 +69,7 @@ scripts/run-local-finance.sh tensw --retry
 
 ### 인증서 창 정리
 
-인증서 모듈 창은 Chrome 소유가 아니라 별도 프로세스(`INISAFECrossWebEXSvc` 등) 것이라 Chrome을 껐다 켜도 남아 다음 단계를 막는다. `scripts/close-cert-dialogs.sh` 가 Chrome 재시작 직전과 묶음 실패 직후에 돈다.
+인증서 모듈 창은 Chrome 소유가 아니라 별도 프로세스(`INISAFECrossWebEXSvc` 등) 것이라 Chrome을 껐다 켜도 남아 다음 단계를 막는다. `scripts/close-cert-dialogs.mjs` 가 Chrome 재시작 직전과 묶음 실패 직후에 돈다.
 
 > **확인 버튼은 절대 누르지 않는다.** 확인은 제출이고, 제출은 인증서 5회 오류 카운터를 태운다(5회면 인증서가 잠겨 홈택스까지 멈춘다). 취소가 있으면 취소만 누르고, 단추가 확인 하나뿐인 창(오류 알림)만 눌러 치운다.
 
