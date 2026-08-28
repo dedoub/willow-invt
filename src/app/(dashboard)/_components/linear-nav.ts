@@ -9,9 +9,14 @@ export interface NavItem {
   icon?: string   // 아이콘 메뉴(윌로우/관리자)
   dot?: string    // 서비스 색. 네이비 면 위에서 읽히는 라이트 톤.
   /**
-   * 서비스 로고 파일. 있으면 이 색으로 실루엣을 찍고, 없으면 이름 첫 글자를
-   * 같은 색으로 쓴다. 14px 자리라 정사각 단색 마크만 넣는다 — 리뷰노트 로고는
-   * 가로로 긴 두 색 워드마크라 이 크기에서 뭉개져 글자를 쓴다.
+   * 서비스 로고 파일. 있으면 그 실루엣을, 없으면 이름 첫 글자를 흰색으로 찍는다.
+   * 각 서비스의 앱아이콘·파비콘에서 배경이 비치는 판을 가져온다 — 배경이 꽉 찬
+   * 판(포틀 앱아이콘, 보이스카드 스토어 아트)은 실루엣이 네모가 되어 못 쓴다.
+   * 밸류체인 파비콘이 그런 경우라 글자로 둔다.
+   *
+   * 출처: 포틀 랜딩 mark.png · 리뷰노트 public/icon.svg · 스크립타 public/icon.png ·
+   * 보이스카드는 iOS AppIcon 의 ItunesArtwork 에서 흰 바탕을 빼 막대만 남겼다
+   * (랜딩 로고는 워드마크까지 든 락업이라 이 크기에서 뭉갠다).
    */
   mark?: string
   tag?: string
@@ -61,7 +66,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '앱서비스 - 금융',
     orderKey: 'sidebar-app-finance-order',
     items: [
-      { id: 'portle',     href: '/portle',     label: 'Portle',     tag: 'Calculator', dot: '#E8927C' },
+      { id: 'portle',     href: '/portle',     label: 'Portle',     tag: 'Calculator', dot: '#E8927C', mark: '/portle-mark.png' },
       { id: 'valuechain', href: '/valuechain', label: 'ValueChain', tag: 'Wiki',             dot: '#A392EC' },
     ],
   },
@@ -71,9 +76,9 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '앱서비스 - 교육',
     orderKey: 'sidebar-app-edu-order',
     items: [
-      { id: 'voicecards',  href: '/voicecards',  label: 'VoiceCards',  tag: 'Flashcards', dot: '#4FBE84' },
-      { id: 'reviewnotes', href: '/reviewnotes', label: 'ReviewNotes', tag: 'Notes',      dot: '#5FAFDF' },
-      { id: 'scripta',     href: '/scripta',     label: 'Scripta',     tag: 'Writing',    dot: '#E894B0' },
+      { id: 'voicecards',  href: '/voicecards',  label: 'VoiceCards',  tag: 'Flashcards', dot: '#4FBE84', mark: '/voicecards-mark.png' },
+      { id: 'reviewnotes', href: '/reviewnotes', label: 'ReviewNotes', tag: 'Notes',      dot: '#5FAFDF', mark: '/reviewnotes-mark.svg' },
+      { id: 'scripta',     href: '/scripta',     label: 'Scripta',     tag: 'Writing',    dot: '#E894B0', mark: '/scripta-mark.png' },
     ],
   },
   {

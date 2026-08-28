@@ -84,21 +84,23 @@ function RailTip({ label, sub, enabled, children }: {
 // 모듈 레벨 컴포넌트라 hover 상태가 부모 리렌더에도 안정적으로 유지됨.
 /**
  * 서비스 표식. 색점 하나로는 여덟 서비스가 서로 구분되지 않아, 로고가 있으면
- * 그 실루엣을, 없으면 이름 첫 글자를 서비스 색으로 찍는다.
+ * 그 실루엣을, 없으면 이름 첫 글자를 찍는다.
  *
- * 로고는 마스크로 칠한다 — 파일 원래 색을 그대로 쓰면 아크로스 마크(진회색)가
- * 네이비 사이드바에서 안 보이고, 텐소 마크(흰색)만 혼자 무채색으로 뜬다.
- * 실루엣만 빌려 쓰므로 여덟 자리가 같은 규칙으로 읽힌다.
+ * 로고는 파일을 그대로 얹지 않고 마스크로 칠한다. 아크로스 마크는 진회색이라
+ * 네이비 위에서 사라지고 텐소 마크만 흰색이라, 원본 색을 쓰면 둘이 따로 논다.
+ * 실루엣만 빌려 흰색으로 통일한다 — 로고는 제 형태로 읽히는 것이 먼저다.
+ * 글자 표식도 같은 흰색이다. 여덟 자리 중 여섯이 제 로고를 달고 나면 색을 남긴
+ * 둘만 튄다.
  */
-function ServiceMark({ color, mark, label, size }: {
-  color: string; mark?: string; label: string; size: number
+function ServiceMark({ mark, label, size }: {
+  mark?: string; label: string; size: number
 }) {
   if (mark) {
     return (
       <span
         aria-hidden
         style={{
-          width: size, height: size, flexShrink: 0, background: color,
+          width: size, height: size, flexShrink: 0, background: t.sidebar.text,
           WebkitMaskImage: `url(${mark})`, maskImage: `url(${mark})`,
           WebkitMaskSize: 'contain', maskSize: 'contain',
           WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
@@ -114,7 +116,7 @@ function ServiceMark({ color, mark, label, size }: {
     <span
       aria-hidden
       style={{
-        width: size, height: size, flexShrink: 0, color,
+        width: size, height: size, flexShrink: 0, color: t.sidebar.text,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: t.font.mono, fontSize: `calc(${Math.round(size * 0.82)}px * var(--fz, 1))`,
         fontWeight: t.weight.medium, lineHeight: 1, letterSpacing: 0,
@@ -156,7 +158,7 @@ function NavRow({ href, icon, label, dot, mark, tag, isActive, rail, onClose }: 
         {icon ? (
           <LIcon name={icon} size={rail ? 18 : 14} stroke={1.8} />
         ) : dot ? (
-          <ServiceMark color={dot} mark={mark} label={label} size={rail ? 18 : 14} />
+          <ServiceMark mark={mark} label={label} size={rail ? 18 : 14} />
         ) : null}
         {!rail && <span style={{ flex: tag ? 1 : undefined }}>{label}</span>}
         {!rail && tag && (
