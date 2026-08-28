@@ -279,18 +279,18 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {!rail && <GroupLabel label={willow.label} />}
         {willow.items.map(navLink)}
 
-        {sortableGroup(appsFinance.label, appsFinanceOrder)}
-        {sortableGroup(appsEdu.label, appsEduOrder)}
-        {sortableGroup(investees.label, investeesOrder)}
-        {sortableGroup(clients.label, clientsOrder)}
-
-        {/* 고객문의 — 네 앱을 가로지르는 화면이라 앱 그룹 바로 뒤에 선다. 관리자만. */}
+        {/* 앱서비스 통합관리 — 네 앱을 가로지르는 화면이라 앱 그룹들 앞에 선다. 관리자만. */}
         {isAdmin && (
           <>
             {!rail && <GroupLabel label={inquiries.label} />}
             {inquiries.items.map(navLink)}
           </>
         )}
+
+        {sortableGroup(appsFinance.label, appsFinanceOrder)}
+        {sortableGroup(appsEdu.label, appsEduOrder)}
+        {sortableGroup(investees.label, investeesOrder)}
+        {sortableGroup(clients.label, clientsOrder)}
 
         {isAdmin && (
           <>

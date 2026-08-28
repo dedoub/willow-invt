@@ -34,6 +34,18 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    // 앱서비스(통합) — 네 앱에 걸쳐 한 화면에서 보는 것들. 앱 안 1:1 문의가
+    // 여기 모이고, 자체 관리자 화면이 없는 보이스카드·포틀은 이곳이 유일한
+    // 답변 창구다. 고객 문의 본문이 걸린 자리라 관리자에게만 보인다
+    // (화면도 서버에서 따로 잠근다).
+    key: 'inquiries',
+    label: '앱서비스 - 통합관리',
+    adminOnly: true,
+    items: [
+      { id: 'inquiries', href: '/inquiries', label: '고객문의함', icon: 'message' },
+    ],
+  },
+  {
     // 앱서비스(금융) — 직접 운영하는 자체 서비스 중 금융 도메인
     key: 'apps-finance',
     label: '앱서비스 - 금융',
@@ -71,17 +83,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'akros', href: '/akros', label: '아크로스', tag: 'Indexing',     dot: '#5FAFDF' },
       { id: 'etc',   href: '/etc',   label: 'ETC',      tag: 'ETF Platform', dot: '#8FB6D8' },
-    ],
-  },
-  {
-    // 앱 문의 — 네 앱의 앱 안 1:1 문의를 한 화면에서 읽는다. 자체 관리자 화면이
-    // 없는 보이스카드·포틀은 여기가 유일한 답변 창구다. 고객 문의 본문이 걸린
-    // 자리라 관리자에게만 보인다(화면도 서버에서 따로 잠근다).
-    key: 'inquiries',
-    label: '고객문의',
-    adminOnly: true,
-    items: [
-      { id: 'inquiries', href: '/inquiries', label: '문의함', icon: 'message' },
     ],
   },
   {
