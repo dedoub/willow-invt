@@ -70,7 +70,7 @@ for lib in \
   finance-session.mjs finance-notify.mjs akros-invoice-sync.mjs \
   cert-dialog.mjs cert-sites.mjs cert-attempt-lock.mjs desktop.mjs \
   shinhan-bank.mjs wetax.mjs nhis.mjs secure-keypad.mjs \
-  hometax-session.mjs hometax-national-tax.mjs
+  hometax-session.mjs hometax-national-tax.mjs cert-cleanup.mjs
 do
   [ -f "$ROOT/scripts/lib/$lib" ] && cp "$ROOT/scripts/lib/$lib" "$RUNTIME/scripts/lib/"
 done
@@ -454,8 +454,17 @@ fi
 
 export TELEGRAM_BOT_TOKEN="$(env_value TELEGRAM_BOT_TOKEN)"
 
-if [ "$RETRY_MODE" = 1 ]; then
+# 재실행 목록을 다시 읽는다. 락을 기다리는 동안 앞 실행이 고쳐 놓았을 수 있다.
+reread_retry_list() {
+  RETRY_BEFORE=""
+  [ -s "$RETRY_FILE" ] && RETRY_BEFORE="$(tr '\n' ' ' < "$RETRY_FILE")"
+  RETRY_BEFORE="$(echo $RETRY_BEFORE)"
   ONLY="$(echo "$RETRY_BEFORE" | tr ' ' ',')"
+}
+
+# 돌릴 게 없으면 락도 잡지 않고 끝낸다 — 멀쩡한 날 30분씩 줄 서 있을 이유가 없다.
+if [ "$RETRY_MODE" = 1 ]; then
+  reread_retry_list
   if [ -z "$ONLY" ]; then
     echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] 다시 돌릴 묶음이 없어요." >> "$LOG_FILE"
     exit 0
@@ -468,6 +477,18 @@ if ! acquire_lock; then
   # 화면을 못 잡았으면 아무것도 돌리지 않는다. 겹친 채로 도는 것보다 낫다 —
   # 겹치면 엉뚱한 실패가 남아 진짜 원인을 가린다.
   FAILED_STEPS="다른 재무 실행과 겹쳐 건너뜀"
+else
+  # 줄 서 있는 동안 앞 실행이 고쳤을 수 있다. 목록을 다시 보고 남은 것만 돈다.
+  if [ "$RETRY_MODE" = 1 ]; then
+    reread_retry_list
+    if [ -z "$ONLY" ]; then
+      echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] 기다리는 사이 다 풀렸어요." >> "$LOG_FILE"
+      exit 0
+    fi
+  fi
+fi
+
+if [ -n "$FAILED_STEPS" ]; then :
 elif [ -n "$ONLY" ]; then run_only "$ONLY"
 elif [ "$COMPANY" = "tensw" ]; then run_tensw
 else run_willow; fi

@@ -24,6 +24,7 @@ import {
   countMaskedCharacters,
   findWooriGridOriginY,
 } from './lib/secure-keypad.mjs'
+import { dismissBlockingAlerts } from './lib/cert-cleanup.mjs'
 import {
   financeIdentity,
   parseWooriAccountCardText,
@@ -91,9 +92,25 @@ async function evidence(name) {
   return file
 }
 
+/**
+ * 모듈이 띄운 오류 알림을 치운다. 치웠으면 무슨 말이었는지 로그에 남긴다.
+ *
+ * 알림은 화면을 덮은 채 가만히 있으므로, 그냥 기다리면 이 단계는 타임아웃까지
+ * 멈춰 있다가 "인증서 창이 안 열렸어요"로 끝난다 — 진짜 원인은 로그에 없다.
+ * 2026-08-29 에 CEO 가 사람 손으로 닫아 줘야 했던 자리다.
+ */
+async function clearBlockingAlert() {
+  const dismissed = await dismissBlockingAlerts().catch(() => [])
+  for (const alert of dismissed) {
+    log(`가로막은 알림을 닫았어요: ${alert.message || alert.name}`)
+  }
+  return dismissed.length > 0
+}
+
 async function waitForCertificateModal(timeout = 50_000) {
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {
+    await clearBlockingAlert()
     const imagePath = await captureScreen()
     const { data, info } = await sharp(imagePath).raw().toBuffer({ resolveWithObject: true })
     const pixel = (x, y) => {
@@ -110,9 +127,20 @@ async function waitForCertificateModal(timeout = 50_000) {
 }
 
 /** 자판 배열을 읽고 잠긴 칸 4개·글쇠 36개가 맞는지 확인한다. 어긋나면 누르지 않는다. */
+/** 키패드를 못 읽으면 알림이 덮고 있는지 보고 한 번 더 본다. */
+async function gridOriginY() {
+  try {
+    return await findWooriGridOriginY(await captureScreen(), { minY: 800, maxY: 900 })
+  } catch (error) {
+    if (!await clearBlockingAlert()) throw error
+    await sleep(1_000)
+    return findWooriGridOriginY(await captureScreen(), { minY: 800, maxY: 900 })
+  }
+}
+
 async function validateMode(mode) {
   const imagePath = await captureScreen()
-  const originY = await findWooriGridOriginY(imagePath, { minY: 800, maxY: 900 })
+  const originY = await gridOriginY()
   const result = await analyzeWooriKeypadScreenshot(imagePath, mode, { originY })
   if (result.lockedCount !== 4 || result.unlockedCount !== 36) {
     throw new Error(`${mode} 키패드 배열 검증에 실패했어요. 증거=${await evidence(`keypad-${mode}`)}`)
@@ -146,8 +174,7 @@ async function enterCertificatePassword(password) {
   let latestOriginY
 
   for (const character of password) {
-    const imagePath = await captureScreen()
-    const originY = await findWooriGridOriginY(imagePath, { minY: 800, maxY: 900 })
+    const originY = await gridOriginY()
     const targetMode = modeForCharacter(character)
     currentMode = await switchMode(currentMode, targetMode, originY)
 
@@ -229,6 +256,24 @@ function dateText(date) {
   }).format(date).replaceAll('-', '.')
 }
 
+/**
+ * 조회 기간 칸이 생길 때까지 기다린다.
+ *
+ * 거래내역 화면은 계좌 카드의 "거래내역조회"를 누른 뒤에 그려지는데, 고정 5초를
+ * 세고 바로 칸을 채우려 들면 늦게 그려지는 날 date-missing 으로 넘어졌다. 그러면
+ * 그 계좌 하나가 아니라 8계좌 수집이 통째로 죽는다(08-29 08:57, 2번째 계좌).
+ */
+async function waitForDateFields(windowId, timeoutMs = 20_000) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const ready = await pageScript(windowId, "(()=>document.getElementById('startDate')&&document.getElementById('endDate')?'yes':'no')()")
+      .catch(() => 'no')
+    if (ready === 'yes') return true
+    await sleep(1_000)
+  }
+  return false
+}
+
 async function queryTransactionBody(windowId, startDate, endDate) {
   const start = JSON.stringify(startDate)
   const end = JSON.stringify(endDate)
@@ -247,6 +292,15 @@ async function collectTransactions(windowId, accounts) {
 
   for (const [index, account] of accounts.entries()) {
     await openTransactionPage(windowId, account.account_display)
+    // 칸이 안 보이면 화면을 잘못 짚었거나 아직 그려지는 중이다. 한 번 더 들어가
+    // 본다 — 여기서 포기하면 남은 계좌까지 함께 날아간다.
+    if (!await waitForDateFields(windowId)) {
+      log(`${account.account_display}: 조회 기간 칸이 늦어 다시 들어가요.`)
+      await openTransactionPage(windowId, account.account_display)
+      if (!await waitForDateFields(windowId)) {
+        throw new Error(`${account.account_display} 거래내역 화면에 조회 기간 칸이 없어요. 증거=${await evidence('no-date-fields')}`)
+      }
+    }
     const body = await queryTransactionBody(windowId, startDate, endDate)
     const rows = parseWooriTransactionBodyText(body).map(row => ({
       organization: '0020',
