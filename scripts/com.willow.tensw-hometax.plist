@@ -3,9 +3,12 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.willow.tensw-national-tax</string>
-  <!-- 홈택스는 23:30~06:59 사이 납부할세액 화면을 닫아 둔다. 새벽 4시 배치에서는
-       매일 블록페이지만 받았으므로 국세만 떼어 서비스가 열린 뒤에 돈다.
+  <string>com.willow.tensw-hometax</string>
+  <!-- 홈택스는 23:30~06:59 서비스를 닫는다. 새벽 4시 배치에서 국세는 매일 블록페이지만
+       받았고 세금계산서 화면도 뜨다 말다 했다(08-29 04:00 타임아웃). 그래서 홈택스는
+       4시 턴에서 빼고 서비스가 열린 뒤 여기서만 돈다.
+       계산서를 뒤가 쓰는 매칭·자동 분류·수금 대사도 함께 붙였다 — 4시에 돌면
+       하루 묵은 계산서를 보게 된다.
        두 회사가 같은 Chrome 과 같은 포인터를 쓰므로 시간을 겹치지 않게 띄운다. -->
   <key>ProgramArguments</key>
   <array>
@@ -14,7 +17,7 @@
     <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-local-finance.sh</string>
     <string>tensw</string>
     <string>--only</string>
-    <string>national-tax,match</string>
+    <string>tax-invoices,national-tax,match,classify,reconcile</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/Users/dongwookkim</string>

@@ -36,11 +36,14 @@ export function artifactLabels(config) {
 }
 
 /**
- * 소스마다 도는 시각이 다르다. 국세는 홈택스가 23:30~06:59 서비스를 닫아 새벽
- * 배치에서는 받을 수 없어 07시에 따로 돈다. 그래서 04시 알림이 보는 파일은 늘
- * 21시간 전 것이고, 12시간 기준으로는 매일 "오래됨"이 뜬다.
+ * 소스마다 도는 시각이 다르다. 홈택스는 23:30~06:59 서비스를 닫아 새벽 배치에서는
+ * 국세도 세금계산서도 받을 수 없어 07시에 따로 돈다. 그래서 04시 알림이 보는 두
+ * 파일은 늘 21시간 전 것이고, 12시간 기준으로는 매일 "오래됨"이 뜬다.
  */
-const FRESH_HOURS = { 'latest-hometax-national-tax.json': 30 }
+const FRESH_HOURS = {
+  'latest-hometax-national-tax.json': 30,
+  'latest-tax-invoices.json': 30,
+}
 
 /**
  * 어느 수집 단계가 오늘 결과를 내놓지 못했는지 가린다.
