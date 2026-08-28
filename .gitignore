@@ -78,3 +78,6 @@ prod.env
 
 # Supabase CLI 가 자기 최신 버전을 적어 두는 임시 파일. 돌릴 때마다 바뀐다.
 supabase/.temp/
+
+# 서브에이전트 작업 보고. 도구가 만든 기록이지 소스가 아니다.
+.superpowers/
