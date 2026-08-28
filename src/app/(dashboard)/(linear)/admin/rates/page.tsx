@@ -14,6 +14,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsAdmin } from '@/lib/auth-context'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
@@ -73,6 +74,7 @@ export default function RatesPage() {
   const router = useRouter()
   const isAdmin = useIsAdmin()
   const mobile = useIsMobile()
+  const cols = useDashCols()
 
   const [apps, setApps] = useState<AppView[]>([])
   const [loading, setLoading] = useState(true)
@@ -144,6 +146,14 @@ export default function RatesPage() {
 
       {error && <LNotice tone="danger" text={error} />}
 
+      {/* 앱 카드만 2열로 눕는다. 머리말과 오류는 폭을 다 쓰는 편이 읽기 쉽다.
+          뼈대도 같은 그리드 안에 둔다 — 밖에 두면 로딩이 끝나는 순간 1열에서
+          2열로 접히며 화면이 튄다. */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+        gap: t.density.blockGap, alignItems: 'start',
+      }}>
       {/* 첫 조회만 뼈대를 세운다. 다시 읽기는 이미 있는 표를 두고 헤더만 돈다. */}
       {loading && apps.length === 0 && <RatesSkeleton />}
 
@@ -255,6 +265,7 @@ export default function RatesPage() {
           </div>
         </LCard>
       ))}
+      </div>
     </div>
   )
 }
