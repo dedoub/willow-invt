@@ -34,15 +34,19 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    // 앱서비스(통합) — 네 앱에 걸쳐 한 화면에서 보는 것들. 앱 안 1:1 문의가
-    // 여기 모이고, 자체 관리자 화면이 없는 보이스카드·포틀은 이곳이 유일한
-    // 답변 창구다. 고객 문의 본문이 걸린 자리라 관리자에게만 보인다
+    // 앱서비스(통합) — 앱 하나가 아니라 네 앱에 걸쳐 보는 화면들. 앱 안 1:1
+    // 문의가 여기 모이고(자체 관리자 화면이 없는 보이스카드·포틀은 이곳이
+    // 유일한 답변 창구다), 크레딧 요율도 같은 판매가를 쓰는 앱들을 나란히
+    // 놓고 본다. 고객 문의 본문이 걸린 자리라 관리자에게만 보인다
     // (화면도 서버에서 따로 잠근다).
     key: 'inquiries',
     label: '앱서비스 - 통합관리',
     adminOnly: true,
     items: [
       { id: 'inquiries', href: '/inquiries', label: '고객문의함', icon: 'message' },
+      // 세 앱 요율을 한 화면에서. 각 앱의 자체 화면은 그대로 두고, 여기는 같은
+      // 판매가를 쓰는 셋을 나란히 놓고 보는 자리다.
+      { id: 'rates', href: '/admin/rates', label: '크레딧 요율', icon: 'tag' },
     ],
   },
   {
@@ -91,9 +95,6 @@ export const NAV_GROUPS: NavGroup[] = [
     adminOnly: true,
     items: [
       { id: 'users', href: '/admin/users', label: '사용자 관리', icon: 'user' },
-      // 세 앱 요율을 한 화면에서. 각 앱의 자체 화면은 그대로 두고, 여기는 같은
-      // 판매가를 쓰는 셋을 나란히 놓고 보는 자리다.
-      { id: 'rates', href: '/admin/rates', label: '크레딧 요율', icon: 'tag' },
     ],
   },
 ]
