@@ -9,7 +9,8 @@
        4시 턴에서 빼고 서비스가 열린 뒤 여기서만 돈다.
        계산서를 뒤가 쓰는 매칭·자동 분류·수금 대사도 함께 붙였다 — 4시에 돌면
        하루 묵은 계산서를 보게 된다.
-       두 회사가 같은 Chrome 과 같은 포인터를 쓰므로 시간을 겹치지 않게 띄운다. -->
+       두 회사가 같은 Chrome 과 같은 포인터를 쓰므로 시간을 겹치지 않게 띄운다.
+       --notify: 하루치 요약은 여기서 한 통만 나간다. 04시 턴이 남긴 실패도 합쳐서. -->
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
@@ -18,6 +19,7 @@
     <string>tensw</string>
     <string>--only</string>
     <string>tax-invoices,national-tax,match,classify,reconcile</string>
+    <string>--notify</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/Users/dongwookkim</string>

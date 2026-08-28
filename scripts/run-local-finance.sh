@@ -4,6 +4,10 @@
 #   scripts/run-local-finance.sh tensw
 #   scripts/run-local-finance.sh willow
 #
+# 하루 수집은 두 턴으로 갈라져 있다(04시 은행·카드·지방세·4대보험, 07시 홈택스).
+# 요약 알림은 앞 턴에서 --defer-notify 로 미뤘다가 뒤 턴의 --notify 에서 한 통으로
+# 나간다. 손으로 돌릴 때는 두 플래그 없이 쓰면 그 자리에서 알린다.
+#
 # 텐소프트웍스: 홈택스 · 우리은행 · 신한은행 · 우리카드 · 위택스 · 4대보험
 # 윌로우인베스트먼트: 홈택스 · 신한은행 · KB카드 · 위택스 · 4대보험
 set -uo pipefail
@@ -290,6 +294,18 @@ if [ "${2:-}" = "--only" ] && [ -z "$ONLY" ]; then
   exit 2
 fi
 
+# 하루치 요약은 한 통이면 된다. 수집이 04시·07시 두 턴으로 갈라져 있으므로 앞 턴은
+# --defer-notify 로 조용히 끝내고, 홈택스까지 받은 뒤 턴이 --notify 로 몰아 보낸다.
+# 사람이 손으로 돌리는 실행은 둘 다 없이 지금까지처럼 그 자리에서 알린다.
+DEFER_NOTIFY=0
+NOTIFY_NOW=0
+for arg in "$@"; do
+  case "$arg" in
+    --defer-notify) DEFER_NOTIFY=1 ;;
+    --notify) NOTIFY_NOW=1 ;;
+  esac
+done
+
 # --sync-only: 런타임 동기화까지만 하고 수집은 돌리지 않는다. 스크립트가 빠졌는지
 # 새벽까지 기다리지 않고 확인하려고 둔다.
 if [ "${2:-}" = "--sync-only" ]; then
@@ -330,18 +346,43 @@ if [ -n "$ONLY" ]; then run_only "$ONLY"
 elif [ "$COMPANY" = "tensw" ]; then run_tensw
 else run_willow; fi
 
-# 성공이든 실패든 CEO 봇으로 알린다. 조용히 실패하면 며칠이 지나도 모른다.
-# 이제 한 묶음이 막혀도 나머지는 도니, 실패한 묶음을 모아서 알린다.
 if [ -z "$FAILED_STEPS" ]; then
   echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance success${ONLY:+ (only: $ONLY)}" >> "$LOG_FILE"
-  # 묶음 하나만 돈 실행은 일일 요약을 다시 보내지 않는다. 07시 국세 잡이 성공할
-  # 때마다 새벽 알림과 같은 내용이 한 번 더 가면 정작 실패 알림이 묻힌다.
-  [ -n "$ONLY" ] && exit 0
-  $NODE "$RUNTIME/scripts/notify-local-finance.mjs" --company "$COMPANY" --status ok >> "$LOG_FILE" 2>&1
+else
+  echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance failed: $FAILED_STEPS" >> "$LOG_FILE"
+fi
+
+# 앞 턴이 막힌 묶음을 적어 두는 곳. 뒤 턴이 이걸 읽어 한 통에 합치고 지운다.
+PENDING_FILE="$RUNTIME/pending-failures"
+
+# 앞 턴(04시)은 여기서 끝난다. 실패해도 그 자리에서 알리지 않는다 — 3시간 뒤
+# 하루치 한 통에 실려 나간다. 어느 턴이 막혔는지 알 수 있게 시각을 함께 적는다.
+if [ "$DEFER_NOTIFY" = 1 ]; then
+  [ -n "$FAILED_STEPS" ] && printf '%s %s\n' "$(date '+%H시')" "$FAILED_STEPS" >> "$PENDING_FILE"
+  [ -n "$FAILED_STEPS" ] && exit 1
   exit 0
 fi
 
-echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance failed: $FAILED_STEPS" >> "$LOG_FILE"
+# 성공이든 실패든 CEO 봇으로 알린다. 조용히 실패하면 며칠이 지나도 모른다.
+# 한 묶음이 막혀도 나머지는 도니, 실패한 묶음을 모아서 알린다.
+CARRIED=""
+if [ "$NOTIFY_NOW" = 1 ] && [ -s "$PENDING_FILE" ]; then
+  CARRIED="$(awk 'NR>1{printf ", "}{printf "%s", $0}' "$PENDING_FILE")"
+fi
+ALL_FAILED="$CARRIED"
+[ -n "$FAILED_STEPS" ] && ALL_FAILED="${ALL_FAILED:+$ALL_FAILED, }$FAILED_STEPS"
+
+if [ -z "$ALL_FAILED" ]; then
+  # 묶음 하나만 돈 실행은 일일 요약을 다시 보내지 않는다. 사람이 손으로 되돌린
+  # 실행마다 같은 요약이 한 번 더 가면 정작 실패 알림이 묻힌다. 하루치 한 통은
+  # --notify 를 단 턴만 맡는다.
+  if [ -n "$ONLY" ] && [ "$NOTIFY_NOW" != 1 ]; then exit 0; fi
+  $NODE "$RUNTIME/scripts/notify-local-finance.mjs" --company "$COMPANY" --status ok >> "$LOG_FILE" 2>&1
+  [ "$NOTIFY_NOW" = 1 ] && rm -f "$PENDING_FILE"
+  exit 0
+fi
+
 $NODE "$RUNTIME/scripts/notify-local-finance.mjs" \
-  --company "$COMPANY" --status fail --step "$FAILED_STEPS" >> "$LOG_FILE" 2>&1
+  --company "$COMPANY" --status fail --step "$ALL_FAILED" >> "$LOG_FILE" 2>&1
+[ "$NOTIFY_NOW" = 1 ] && rm -f "$PENDING_FILE"
 exit 1

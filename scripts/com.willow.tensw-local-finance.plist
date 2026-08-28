@@ -5,13 +5,16 @@
   <key>Label</key>
   <string>com.willow.tensw-local-finance</string>
   <!-- 인증서 로그인이 마우스·화면을 점유하므로 CEO가 쓰지 않는 새벽에 돈다.
-       두 회사가 같은 Chrome과 같은 포인터를 쓰므로 시간을 겹치지 않게 띄운다. -->
+       두 회사가 같은 Chrome과 같은 포인터를 쓰므로 시간을 겹치지 않게 띄운다.
+       --defer-notify: 여기서는 알리지 않는다. 하루치 요약은 07시 홈택스 턴이
+       끝난 뒤 한 통으로 나간다. 이 턴에서 막힌 묶음은 적어 뒀다가 거기 실린다. -->
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
     <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
     <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-local-finance.sh</string>
     <string>tensw</string>
+    <string>--defer-notify</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/Users/dongwookkim</string>
