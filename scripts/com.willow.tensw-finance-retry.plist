@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.willow.tensw-finance-retry</string>
+  <!-- 막힌 묶음만 다시 돈다. 인증서 거부·보안키패드·사이트 점검처럼 다시 하면 되는
+       실패가 대부분이라 그대로 두면 하루가 통째로 빈다. 실제로 CEO 가 매일 아침
+       로그를 보고 손으로 --only 를 쳐서 되돌리고 있었다(08-28 06:37, 08-29 07:14).
+       돌릴 게 없으면 화면도 Chrome 도 건드리지 않고 곧장 끝나므로, 멀쩡한 날에는
+       도는 줄도 모른다. 인증서 로그인이 마우스를 쓰는 건 실패가 남은 날뿐이다.
+       두 번 준다: 아침에 한 번, 점심에 한 번. 그래도 안 되면 사람이 볼 일이다. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
+    <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-local-finance.sh</string>
+    <string>tensw</string>
+    <string>--retry</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/dongwookkim</string>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>30</integer></dict>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/dongwookkim/logs/tensw-local-finance/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/dongwookkim/logs/tensw-local-finance/launchd.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/dongwookkim</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

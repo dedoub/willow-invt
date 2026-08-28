@@ -8,6 +8,12 @@
 # 요약 알림은 앞 턴에서 --defer-notify 로 미뤘다가 뒤 턴의 --notify 에서 한 통으로
 # 나간다. 손으로 돌릴 때는 두 플래그 없이 쓰면 그 자리에서 알린다.
 #
+#   scripts/run-local-finance.sh tensw --retry
+#
+# --retry 는 아직 막혀 있는 묶음만 다시 돈다. 인증서 거부·보안키패드·사이트 점검처럼
+# 다시 하면 되는 실패가 대부분이라 그대로 두면 하루가 빈다. 돌릴 게 없으면 화면도
+# 건드리지 않고 곧장 끝나므로, 멀쩡한 날에는 있는 줄도 모른다.
+#
 # 텐소프트웍스: 홈택스 · 우리은행 · 신한은행 · 우리카드 · 위택스 · 4대보험
 # 윌로우인베스트먼트: 홈택스 · 신한은행 · KB카드 · 위택스 · 4대보험
 set -uo pipefail
@@ -46,6 +52,7 @@ for script in \
   match-finance-tax-obligations.mjs \
   sync-akros-invoices.mjs \
   notify-local-finance.mjs \
+  close-cert-dialogs.sh \
   login-native-cert.mjs \
   login-nhis-si4n.mjs \
   woori-card-certificate-login.mjs \
@@ -125,7 +132,16 @@ run_step() {
 # 다음 화면을 막는 일이 잦았다 — 위택스는 살아 있는 세션 위에 다시 로그인하려다
 # 인증서 창을 못 띄웠고, KB카드는 이어받은 세션에서 승인내역 화면이 열리지 않았다.
 # 세션 쿠키까지 함께 사라지므로 매 단계가 같은 자리에서 출발한다.
+# 인증서 모듈 창은 Chrome 것이 아니라 별도 프로세스 것이라, Chrome 을 내렸다 올려도
+# 화면에 그대로 남아 다음 단계를 막는다. 08-29 에 신한은행 인증서선택 창이 남아
+# 재실행 자체를 막았다. 확인은 절대 누르지 않는다 — 확인은 제출이고 제출은 인증서
+# 오류 횟수를 태운다(자세한 규칙은 close-cert-dialogs.sh).
+close_cert_dialogs() {
+  bash "$RUNTIME/scripts/close-cert-dialogs.sh" >> "$LOG_FILE" 2>&1
+}
+
 restart_chrome() {
+  close_cert_dialogs
   /usr/bin/osascript -e 'tell application "Google Chrome" to quit' >/dev/null 2>&1
   for _ in 1 2 3 4 5 6 7 8 9 10; do
     /usr/bin/pgrep -x 'Google Chrome' >/dev/null || break
@@ -147,14 +163,27 @@ run_browser_step() {
 # 한 묶음이 막혀도 나머지 묶음은 계속 돈다. 카드 인증서 하나가 거부되면 위택스·
 # 4대보험·자동 분류까지 통째로 건너뛰던 구조라, 하루치 재무가 통째로 비었다.
 # 묶음 안에서는 앞 단계 산출물을 뒤가 쓰므로 여전히 && 로 묶는다.
+#
+# 첫 인자는 --only 가 받는 묶음 키다. 사람에게 보이는 이름("우리카드")과 다시 부를
+# 때 쓰는 키("card")가 달라서, 실패한 것을 모아 재실행하려면 키를 함께 들고 있어야
+# 한다. ATTEMPTED_BUNDLES 는 이번 실행이 손댄 묶음이다 — 재실행 목록에서 무엇을
+# 지워도 되는지 가리는 데 쓴다(안 돌린 묶음의 실패는 남겨야 하므로).
+ATTEMPTED_BUNDLES=""
+FAILED_BUNDLES=""
 group() {
-  local name="$1"; shift
+  local bundle="$1" name="$2"; shift 2
+  ATTEMPTED_BUNDLES="${ATTEMPTED_BUNDLES:+$ATTEMPTED_BUNDLES }$bundle"
   if "$@"; then return 0; fi
   local stopped
   stopped="$(cat "$STEP_FILE" 2>/dev/null)"
   [ -n "$stopped" ] || stopped="$name"
   FAILED_STEPS="${FAILED_STEPS:+$FAILED_STEPS, }$stopped"
+  FAILED_BUNDLES="${FAILED_BUNDLES:+$FAILED_BUNDLES }$bundle"
   echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] $stopped 실패, 다음 묶음으로 계속" >> "$LOG_FILE"
+  # 막힌 자리에 인증서 창이 남아 있으면 다음 묶음이 그 창에 대고 클릭한다. 실제로
+  # 우리카드가 커밋에 실패한 뒤 남은 창 때문에 그 다음 단계가 탭조차 열지 못했다.
+  # 화면을 깨끗이 되돌리고 넘어간다.
+  close_cert_dialogs
   return 1
 }
 
@@ -171,7 +200,12 @@ LOCK_WAIT_SECONDS="${FINANCE_LOCK_WAIT_SECONDS:-1800}"
 LOCK_HELD=0
 
 release_lock() {
-  [ "$LOCK_HELD" = 1 ] && rm -f "$LOCK_FILE"
+  # 내 것일 때만 지운다. 남의 락을 지우면 두 실행이 화면을 나눠 쓰게 되고, 그러면
+  # 락이 없느니만 못하다 — 08-29 07:41 에 사람이 락을 지우고 실행을 하나 더 띄워
+  # 우리카드가 커밋하는 중에 홈택스가 같은 Chrome 을 끌고 갔다.
+  if [ "$LOCK_HELD" = 1 ] && [ "$(tr -d ' \n' < "$LOCK_FILE" 2>/dev/null)" = "$$" ]; then
+    rm -f "$LOCK_FILE"
+  fi
   LOCK_HELD=0
 }
 trap release_lock EXIT
@@ -221,8 +255,8 @@ collect_national_tax() {
 # 국세와 세금계산서를 통째로 07시 잡(com.willow.*-hometax)으로 넘겼다.
 # 계산서를 뒤가 쓰는 매칭·분류·수금 대사·아크로스 반영도 같은 잡에 붙어 있다.
 collect_shared_taxes() {
-  group "위택스" collect_wetax
-  group "4대보험" collect_nhis
+  group wetax "위택스" collect_wetax
+  group nhis "4대보험" collect_nhis
 }
 
 tensw_tax_invoices() {
@@ -252,13 +286,13 @@ tensw_bank() {
 }
 
 run_tensw() {
-  group "우리카드" tensw_card
-  group "우리은행" tensw_woori_bank
-  group "신한은행" tensw_bank
+  group card "우리카드" tensw_card
+  group woori-bank "우리은행" tensw_woori_bank
+  group bank "신한은행" tensw_bank
   collect_shared_taxes
-  group "세금 지급 매칭" run_step "세금 지급 매칭" \
+  group match "세금 지급 매칭" run_step "세금 지급 매칭" \
     $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs"
-  group "자동 분류" run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company tensw
+  group classify "자동 분류" run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company tensw
 }
 
 willow_tax_invoices() {
@@ -279,12 +313,12 @@ willow_card() {
 }
 
 run_willow() {
-  group "신한은행" willow_bank
-  group "KB카드" willow_card
+  group bank "신한은행" willow_bank
+  group card "KB카드" willow_card
   collect_shared_taxes
-  group "세금 지급 매칭" run_step "세금 지급 매칭" \
+  group match "세금 지급 매칭" run_step "세금 지급 매칭" \
     $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs"
-  group "자동 분류" run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company willow
+  group classify "자동 분류" run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company willow
 }
 
 # --only <묶음[,묶음...]>: 지정한 묶음만 돈다. 홈택스처럼 다른 시각에 도는 잡이 쓰고,
@@ -298,25 +332,25 @@ run_only() {
   for name in "${requested[@]}"; do
     case "$name" in
       tax-invoices)
-        if [ "$COMPANY" = tensw ]; then group "세금계산서" tensw_tax_invoices
-        else group "세금계산서" willow_tax_invoices; fi ;;
+        if [ "$COMPANY" = tensw ]; then group tax-invoices "세금계산서" tensw_tax_invoices
+        else group tax-invoices "세금계산서" willow_tax_invoices; fi ;;
       bank)
-        if [ "$COMPANY" = tensw ]; then group "신한은행" tensw_bank
-        else group "신한은행" willow_bank; fi ;;
-      woori-bank) group "우리은행" tensw_woori_bank ;;
+        if [ "$COMPANY" = tensw ]; then group bank "신한은행" tensw_bank
+        else group bank "신한은행" willow_bank; fi ;;
+      woori-bank) group woori-bank "우리은행" tensw_woori_bank ;;
       card)
-        if [ "$COMPANY" = tensw ]; then group "우리카드" tensw_card
-        else group "KB카드" willow_card; fi ;;
-      wetax) group "위택스" collect_wetax ;;
-      nhis) group "4대보험" collect_nhis ;;
-      national-tax) group "국세" collect_national_tax ;;
-      match) group "세금 지급 매칭" run_step "세금 지급 매칭" \
+        if [ "$COMPANY" = tensw ]; then group card "우리카드" tensw_card
+        else group card "KB카드" willow_card; fi ;;
+      wetax) group wetax "위택스" collect_wetax ;;
+      nhis) group nhis "4대보험" collect_nhis ;;
+      national-tax) group national-tax "국세" collect_national_tax ;;
+      match) group match "세금 지급 매칭" run_step "세금 지급 매칭" \
         $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs" ;;
-      classify) group "자동 분류" run_step "자동 분류" \
+      classify) group classify "자동 분류" run_step "자동 분류" \
         npx tsx "$ROOT/scripts/local-finance-classify.ts" --company "$COMPANY" ;;
-      reconcile) group "수금 대사" run_step "수금 대사" \
+      reconcile) group reconcile "수금 대사" run_step "수금 대사" \
         npx tsx "$ROOT/scripts/tensw-reconcile-payments.ts" ;;
-      akros) group "아크로스 인보이스 반영" run_step "아크로스 인보이스 반영" \
+      akros) group akros "아크로스 인보이스 반영" run_step "아크로스 인보이스 반영" \
         $NODE "$RUNTIME/scripts/sync-akros-invoices.mjs" ;;
       *)
         echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] 알 수 없는 묶음이에요: $name" >> "$LOG_FILE"
@@ -337,12 +371,54 @@ fi
 # 사람이 손으로 돌리는 실행은 둘 다 없이 지금까지처럼 그 자리에서 알린다.
 DEFER_NOTIFY=0
 NOTIFY_NOW=0
+RETRY_MODE=0
 for arg in "$@"; do
   case "$arg" in
     --defer-notify) DEFER_NOTIFY=1 ;;
     --notify) NOTIFY_NOW=1 ;;
+    --retry) RETRY_MODE=1 ;;
   esac
 done
+
+# 막힌 묶음을 모아 두는 곳. 인증서 거부·보안키패드·사이트 점검처럼 다시 하면 되는
+# 실패가 대부분인데, 지금까지는 CEO 가 로그를 보고 손으로 --only 를 쳐서 되돌렸다.
+# --retry 가 이 파일을 읽어 그것만 다시 돈다.
+RETRY_FILE="$RUNTIME/pending-retry"
+RETRY_BEFORE=""
+RETRY_REMAINING=""
+
+# 이번 실행이 손댄 묶음은 결과로 덮고, 손대지 않은 묶음의 실패는 남긴다. 07시 턴이
+# 04시 턴의 미해결분을 지워 버리면 안 되기 때문이다.
+update_retry_list() {
+  local kept="" merged="" bundle
+  for bundle in $RETRY_BEFORE; do
+    case " $ATTEMPTED_BUNDLES " in
+      *" $bundle "*) ;;
+      *) kept="${kept:+$kept }$bundle" ;;
+    esac
+  done
+  merged="$kept"
+  for bundle in $FAILED_BUNDLES; do
+    case " $merged " in
+      *" $bundle "*) ;;
+      *) merged="${merged:+$merged }$bundle" ;;
+    esac
+  done
+  RETRY_REMAINING="$merged"
+  if [ -n "$merged" ]; then printf '%s\n' "$merged" > "$RETRY_FILE"; else rm -f "$RETRY_FILE"; fi
+}
+
+# 재실행으로 되살아난 묶음 수. 0 이면 상황이 그대로라 다시 알리지 않는다.
+recovered_count() {
+  local n=0 bundle
+  for bundle in $RETRY_BEFORE; do
+    case " $RETRY_REMAINING " in *" $bundle "*) ;; *) n=$((n + 1)) ;; esac
+  done
+  echo "$n"
+}
+
+[ -s "$RETRY_FILE" ] && RETRY_BEFORE="$(tr '\n' ' ' < "$RETRY_FILE")"
+RETRY_BEFORE="$(echo $RETRY_BEFORE)"
 
 # --sync-only: 런타임 동기화까지만 하고 수집은 돌리지 않는다. 스크립트가 빠졌는지
 # 새벽까지 기다리지 않고 확인하려고 둔다.
@@ -378,6 +454,14 @@ fi
 
 export TELEGRAM_BOT_TOKEN="$(env_value TELEGRAM_BOT_TOKEN)"
 
+if [ "$RETRY_MODE" = 1 ]; then
+  ONLY="$(echo "$RETRY_BEFORE" | tr ' ' ',')"
+  if [ -z "$ONLY" ]; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] 다시 돌릴 묶음이 없어요." >> "$LOG_FILE"
+    exit 0
+  fi
+fi
+
 echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance start${ONLY:+ (only: $ONLY)}" >> "$LOG_FILE"
 rm -f "$STEP_FILE"
 if ! acquire_lock; then
@@ -392,6 +476,29 @@ if [ -z "$FAILED_STEPS" ]; then
   echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance success${ONLY:+ (only: $ONLY)}" >> "$LOG_FILE"
 else
   echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance failed: $FAILED_STEPS" >> "$LOG_FILE"
+fi
+
+# 막힌 묶음을 재실행 목록에 반영한다. 성공했든 실패했든 매 실행에서 한다 —
+# 목록이 최신이어야 --retry 가 엉뚱한 걸 다시 돌리지 않는다.
+update_retry_list
+[ -n "$RETRY_REMAINING" ] \
+  && echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] 재실행 대기: $RETRY_REMAINING" >> "$LOG_FILE"
+
+# 재실행은 상황이 달라졌을 때만 알린다. 아침에 실패가 그대로면 하루치 알림이 이미
+# 그 사실을 전했고, 같은 내용을 잡이 돌 때마다 다시 보내면 정작 새 소식이 묻힌다.
+if [ "$RETRY_MODE" = 1 ]; then
+  RECOVERED="$(recovered_count)"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] 재실행 결과: 되살림 ${RECOVERED}개, 남음 ${RETRY_REMAINING:-없음}" >> "$LOG_FILE"
+  if [ "$RECOVERED" = 0 ]; then
+    exit 1
+  fi
+  if [ -z "$RETRY_REMAINING" ]; then
+    $NODE "$RUNTIME/scripts/notify-local-finance.mjs" --company "$COMPANY" --status ok >> "$LOG_FILE" 2>&1
+    exit 0
+  fi
+  $NODE "$RUNTIME/scripts/notify-local-finance.mjs" \
+    --company "$COMPANY" --status fail --step "$FAILED_STEPS" >> "$LOG_FILE" 2>&1
+  exit 1
 fi
 
 # 앞 턴이 막힌 묶음을 적어 두는 곳. 뒤 턴이 이걸 읽어 한 통에 합치고 지운다.

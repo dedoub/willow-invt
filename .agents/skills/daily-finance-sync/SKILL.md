@@ -54,6 +54,31 @@ scripts/run-local-finance.sh tensw --only tax-invoices,national-tax,match
 scripts/run-local-finance.sh tensw --only card,wetax
 ```
 
+### 실패분 재실행
+
+막힌 묶음은 회사별 `~/.willow/runtime/<회사>-local-finance/pending-retry` 에 묶음 키로 쌓인다. `--retry` 가 그것만 다시 돈다.
+
+```bash
+scripts/run-local-finance.sh tensw --retry
+```
+
+- `com.willow.<회사>-finance-retry` 가 08:30·12:30(텐소)/08:50·12:50(윌로우)에 돈다.
+- 돌릴 게 없으면 Chrome·마우스를 건드리지 않고 즉시 끝난다. 인증서 로그인이 화면을 잡는 건 실패가 남은 날뿐이다.
+- 앞 턴이 손대지 않은 묶음의 실패는 지우지 않는다(07시 턴이 04시 미해결분을 덮지 않게).
+- **상황이 달라졌을 때만 알린다.** 되살린 게 없으면 조용히 끝낸다 — 같은 실패 알림이 잡마다 반복되면 새 소식이 묻힌다.
+
+### 인증서 창 정리
+
+인증서 모듈 창은 Chrome 소유가 아니라 별도 프로세스(`INISAFECrossWebEXSvc` 등) 것이라 Chrome을 껐다 켜도 남아 다음 단계를 막는다. `scripts/close-cert-dialogs.sh` 가 Chrome 재시작 직전과 묶음 실패 직후에 돈다.
+
+> **확인 버튼은 절대 누르지 않는다.** 확인은 제출이고, 제출은 인증서 5회 오류 카운터를 태운다(5회면 인증서가 잠겨 홈택스까지 멈춘다). 취소가 있으면 취소만 누르고, 단추가 확인 하나뿐인 창(오류 알림)만 눌러 치운다.
+
+### 실행 락
+
+두 회사가 같은 Chrome·같은 포인터를 쓰므로 `~/.willow/runtime/local-finance.lock` 으로 한 번에 하나만 돈다(`shlock`, 죽은 PID는 자동 회수). 뒤에 온 실행은 최대 30분 기다린다.
+
+> 락 파일을 손으로 지우지 말 것. 돌고 있는 실행의 락을 지우면 두 실행이 화면을 나눠 쓰게 되어 락이 없느니만 못하다(08-29 실제 사고). 멈춘 실행은 프로세스를 먼저 죽이면 락은 알아서 풀린다.
+
 묶음 이름: `tax-invoices` `bank` `woori-bank`(텐소) `card` `wetax` `nhis` `national-tax` `match` `classify` `reconcile`(텐소 수금 대사) `akros`(윌로우 아크로스 반영)
 
 ## 검증
