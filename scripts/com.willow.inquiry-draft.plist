@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.willow.inquiry-draft</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
+    <string>--cwd</string>
+    <string>/Volumes/PRO-G40/app-dev/willow-invt</string>
+    <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/inquiry-draft.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/dongwookkim</string>
+
+  <!--
+    깨어 있는 시간에 2시간마다, :17 에. 세 가지를 저울질했다.
+
+    - 문의는 앱이 도착 즉시 따로 알린다. 이 잡은 그 다음 박자 — "답을 쓰기
+      시작할 때 빈 화면이 아니게" 하는 것이라 즉시성이 필요하지 않다.
+    - 하루 두 번(CEO 리포트 주기)이면 아침에 온 문의가 저녁까지 초안 없이 눕는다.
+      답장 속도가 이 기능의 전부인데 그건 너무 느리다.
+    - 30분마다면 대부분의 실행이 할 일 없이 도는 헛돌기다(할 일이 없으면 아무것도
+      보내지 않으니 시끄럽지는 않지만, 값을 치를 이유도 없다).
+
+    :17 은 정각을 피한 것이다 — 온 세상의 잡이 :00 에 몰린다.
+    맥이 자고 있으면 실행되지 않는다(다른 launchd 잡과 같은 전제).
+  -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>17</integer></dict>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>17</integer></dict>
+    <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>17</integer></dict>
+    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>17</integer></dict>
+    <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>17</integer></dict>
+    <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>17</integer></dict>
+    <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>17</integer></dict>
+    <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>17</integer></dict>
+  </array>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/dongwookkim/logs/inquiry-draft/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/dongwookkim/logs/inquiry-draft/launchd.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/dongwookkim</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>
