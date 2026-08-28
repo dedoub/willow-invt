@@ -17,6 +17,7 @@ import {
 } from './lib/cert-attempt-lock.mjs'
 import {
   captureScreen, clickSettled, nativeWindows, ocrScreenshot, selectEnglishInputSource,
+  waitForNativeWindow,
 } from './lib/desktop.mjs'
 import { anchoredPoint, buttonPoint, certificateRowPoint, windowRect } from './lib/cert-dialog.mjs'
 import { financeIdentity } from './lib/tensw-local-finance.mjs'
@@ -280,10 +281,14 @@ async function dismissModuleAlert() {
   console.log('[woori-card-login] 이전 오류 알림을 닫았어요.')
 }
 
-/** 인증서 창을 그림으로 읽는다. 창 위치가 바뀌어도 좌표가 따라간다. */
-async function readCertDialog() {
-  const window = (await nativeWindows('bizapp')).find(item => item.name === CERT_DIALOG_WINDOW)
-  if (!window) throw new Error('우리카드 인증서 창을 찾지 못했어요.')
+/**
+ * 인증서 창을 그림으로 읽는다. 창 위치가 바뀌어도 좌표가 따라간다.
+ *
+ * 창이 뜨기를 기다린다 — 로그인 단추를 누른 뒤 모듈이 창을 그리기까지 시간이
+ * 걸려서, 곧바로 목록을 훑으면 "창을 찾지 못했어요"로 헛되이 끝난다(08-29 08:00).
+ */
+async function readCertDialog({ timeoutMs = 20_000 } = {}) {
+  const window = await waitForNativeWindow('bizapp', CERT_DIALOG_WINDOW, timeoutMs)
   const items = await ocrScreenshot(await captureScreen(SCREENSHOT))
   return { within: windowRect(window), items }
 }
