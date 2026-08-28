@@ -19,7 +19,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
-import { MARGIN_BAND, MICROS_PER_CREDIT, pct, type RateUnit } from '@/lib/credit-rates-core'
+import { MARGIN_BAND, pct, type RateUnit } from '@/lib/credit-rates-core'
 
 interface Verdict {
   mark: string
@@ -129,42 +129,22 @@ export default function RatesPage() {
 
   if (!isAdmin) return null
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-      <LCard>
-        <LSectionHead
-          eyebrow="CREDITS"
-          title="AI 크레딧"
-          meta={`판매가 크레딧당 $${(MICROS_PER_CREDIT / 1_000_000).toFixed(4)} · 목표 마진 ${MARGIN_BAND[0] * 100}~${MARGIN_BAND[1] * 100}%`}
-          note="저장하면 배포 없이 그 앱에 바로 걸린다"
-          action={<LHeadBtn icon="refresh" title="다시 읽기" onClick={load} busy={refreshing} />}
-        />
-        <div style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.muted, lineHeight: 1.6, wordBreak: 'keep-all' }}>
-          세 앱이 같은 판매가를 쓴다. 값을 비우고 저장하면 그 앱 코드의 기본값으로 돌아간다 —
-          같은 수를 적어 두는 것과 다르다(코드가 바뀌어도 DB 값이 앱을 옛 값에 묶는다).
-        </div>
-      </LCard>
+  // 2열에서 어느 쪽에 설지. 리뷰노트만 요율이 13개라 혼자 한 열을 채우고,
+  // 다섯 개짜리 둘이 반대쪽에 쌓이면 두 열의 길이가 얼추 맞는다.
+  const RIGHT_COLUMN = new Set(['reviewnotes'])
+  const leftApps = apps.filter(a => !RIGHT_COLUMN.has(a.key))
+  const rightApps = apps.filter(a => RIGHT_COLUMN.has(a.key))
 
-      {error && <LNotice tone="danger" text={error} />}
-
-      {/* 앱 카드만 2열로 눕는다. 머리말과 오류는 폭을 다 쓰는 편이 읽기 쉽다.
-          뼈대도 같은 그리드 안에 둔다 — 밖에 두면 로딩이 끝나는 순간 1열에서
-          2열로 접히며 화면이 튄다. */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
-        gap: t.density.blockGap, alignItems: 'start',
-      }}>
-      {/* 첫 조회만 뼈대를 세운다. 다시 읽기는 이미 있는 표를 두고 헤더만 돈다. */}
-      {loading && apps.length === 0 && <RatesSkeleton />}
-
-      {apps.map((app) => (
+  // 카드 한 장을 그리는 함수. 1열일 때는 그대로 쌓고, 2열일 때는 두 열이
+  // 각자 이 함수를 부른다 — 같은 JSX 를 두 번 적지 않으려고 뺐다.
+  const renderApp = (app: AppView) => (
         <LCard key={app.key}>
           <LSectionHead
             eyebrow="RATES"
             title={app.label}
             meta={app.costSource ? `실측 ${app.costSource}` : '실측 없음 — 공급가 정가로 판정'}
             note={app.table}
+            action={<LHeadBtn icon="refresh" title="다시 읽기" onClick={load} busy={refreshing} />}
           />
           {app.error && <LNotice tone="danger" text={app.error} />}
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
@@ -266,7 +246,36 @@ export default function RatesPage() {
             })}
           </div>
         </LCard>
-      ))}
+  )
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+
+      {error && <LNotice tone="danger" text={error} />}
+
+      {/* 앱 카드만 2열로 눕는다. 머리말과 오류는 폭을 다 쓰는 편이 읽기 쉽다.
+          뼈대도 같은 그리드 안에 둔다 — 밖에 두면 로딩이 끝나는 순간 1열에서
+          2열로 접히며 화면이 튄다. */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: cols === 2 && !mobile ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
+        gap: t.density.blockGap, alignItems: 'start',
+      }}>
+      {/* 첫 조회만 뼈대를 세운다. 다시 읽기는 이미 있는 표를 두고 헤더만 돈다. */}
+      {loading && apps.length === 0 && <RatesSkeleton />}
+
+      {cols === 2 && !mobile ? (
+        // 진짜 두 열로 나눈다. 그리드에 흘려 보내면 리뷰노트(요율 13개)가 있는
+        // 줄의 높이에 보이스카드가 묶여 그 아래가 통째로 빈다.
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+            {leftApps.map(renderApp)}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+            {rightApps.map(renderApp)}
+          </div>
+        </>
+      ) : apps.map(renderApp)}
       </div>
     </div>
   )
