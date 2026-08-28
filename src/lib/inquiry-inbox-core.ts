@@ -498,3 +498,36 @@ export const PUBLISH_GUARD_STATUS: Record<Exclude<PublishGuard, 'ok'>, number> =
   'empty-body': 400,
   'legacy-email': 409,
 }
+
+/**
+ * 발행 뒤 초안 비우기.
+ *
+ * `publish_inquiry_reply` 는 초안을 안 건드린다. 그래서 운영자가 <b>초안을
+ * 고쳐</b> 보내면 고치기 전 원본이 DB 에 남고, 텔레그램에 승인 버튼이 붙는
+ * 순간(`publish_inquiry_draft` 는 이미 DB 에 있고 부르는 곳만 없다) 그 낡은
+ * 원본이 <b>두 번째 메시지로</b> 고객에게 간다 — 고친 이유가 있어서 고쳤는데.
+ *
+ * 클라이언트를 <b>인자로 받는다.</b> 모듈 수준 클라이언트를 쓰면 어느 표의
+ * 어느 칸을 어떤 필터로 지우는지가 시험에 안 보이고, 앱마다 칸 이름이 다른
+ * 곳(`draft_body` vs `"draftBody"`)에서 한 앱만 조용히 안 지워져도 모른다.
+ */
+export type DraftClearClient = {
+  from(table: string): {
+    update(values: Record<string, unknown>): {
+      eq(column: string, value: string): PromiseLike<{ error: { message: string } | null }>
+    }
+  }
+}
+
+export async function clearDraft(
+  spec: InquiryAppSpec,
+  threadId: string,
+  client: DraftClearClient | null,
+): Promise<boolean> {
+  if (!client) return false
+  const { error } = await client
+    .from(spec.threadTable)
+    .update({ [spec.draft.body]: null })
+    .eq(spec.thread.id, threadId)
+  return !error
+}

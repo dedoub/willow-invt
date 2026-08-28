@@ -10,6 +10,8 @@ import {
   INQUIRY_APPS, loadAppThreads, loadThreadDraft, loadThreadMessages,
   type InquiryAppKey, type InquiryAppResult, type InquiryAppSpec,
   type InquiryDraftDto, type InquiryMessageDto, type SelectPage,
+  clearDraft,
+  type DraftClearClient,
 } from '@/lib/inquiry-inbox-core'
 
 export * from '@/lib/inquiry-inbox-core'
@@ -140,5 +142,22 @@ export async function publishInquiryReply(
     p_source: 'willow-dashboard',
   })
   if (error) throw new Error(`${spec.key} 답변 발행 실패 (${error.code ?? '?'}): ${error.message}`)
+
+  // 발행한 뒤 초안 칸을 비운다. `publish_inquiry_reply` 는 초안을 건드리지
+  // 않아서, 운영자가 <b>초안을 고쳐</b> 보내면 고치기 전 원본이 DB 에 그대로
+  // 남는다. 텔레그램에 승인 버튼이 붙는 순간(`publish_inquiry_draft` 는 이미
+  // DB 에 있고 부르는 곳만 없다) 그 낡은 원본이 <b>두 번째 메시지로</b>
+  // 고객에게 간다 — 고친 이유가 있어서 고쳤는데.
+  //
+  // 실패해도 <b>던지지 않는다.</b> 답변은 이미 고객에게 갔고, 초안을 못
+  // 지웠다고 성공을 실패로 보고하면 운영자가 같은 답을 한 번 더 보낸다.
+  // 크게 로그만 남긴다 — 안 보이는 고장을 만들지 않는다.
+  const cleared = await clearDraft(spec, threadId, CLIENTS[spec.key] as DraftClearClient | null)
+  if (!cleared) {
+    console.error(`[inquiry] ${spec.key} ${threadId}: 발행은 됐는데 초안을 못 지웠다`)
+  }
+
   return { channel: typeof data === 'string' ? data : null }
 }
+
+
