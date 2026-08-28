@@ -182,6 +182,7 @@ export function InquiryInbox() {
       {/* ── 목록 ─────────────────────────────────────────────────────────── */}
       <LCard>
         <LSectionHead
+          eyebrow="INBOX"
           title="고객문의함"
           meta={loading ? '불러오는 중' : `${threads.length}건 · 미답변 ${unanswered}건`}
           note="네 앱 · 미답변 먼저"

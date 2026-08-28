@@ -133,6 +133,7 @@ export default function RatesPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       <LCard>
         <LSectionHead
+          eyebrow="CREDITS"
           title="AI 크레딧"
           meta={`판매가 크레딧당 $${(MICROS_PER_CREDIT / 1_000_000).toFixed(4)} · 목표 마진 ${MARGIN_BAND[0] * 100}~${MARGIN_BAND[1] * 100}%`}
           note="저장하면 배포 없이 그 앱에 바로 걸린다"
@@ -160,6 +161,7 @@ export default function RatesPage() {
       {apps.map((app) => (
         <LCard key={app.key}>
           <LSectionHead
+            eyebrow="RATES"
             title={app.label}
             meta={app.costSource ? `실측 ${app.costSource}` : '실측 없음 — 공급가 정가로 판정'}
             note={app.table}
