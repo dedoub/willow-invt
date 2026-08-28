@@ -22,12 +22,27 @@ echo "===== $(date '+%Y-%m-%d %H:%M:%S %Z') toss-portle start =====" >> scripts/
 # Transactions 탭을 통째로 다시 써서 사용자가 손으로 적은 줄이 사라진다.
 # 그럴 때는 돌리지 않고 건너뛴다 — 하루 거르는 편이 원장을 잃는 것보다 낫다.
 PORTLE_DIR=/Users/dongwookkim/app-dev-old/port-ledger
+PORTLE_LOG=/Volumes/PRO-G40/app-dev/willow-invt/scripts/logs/toss-portle.log
+export PORTLE_TOSS_CHANGES_FILE=/Volumes/PRO-G40/app-dev/willow-invt/scripts/logs/toss-portle.changes
+: > "$PORTLE_TOSS_CHANGES_FILE"
+
+# 알림은 세 경우에만 간다: 실패, 건너뜀, 그리고 실제로 바뀐 것이 있을 때.
+# 매매 없는 날이 대부분이라 "0줄" 을 매번 보내면 1년에 700통이 넘고,
+# 그러면 정작 진짜 알림을 못 본다. 조용한 것이 "새 거래가 없었다" 는 뜻이다.
 if [ ! -f "$PORTLE_DIR/scripts/toss-ledger-sync.ts" ]; then
-  echo "SKIP: $PORTLE_DIR 에 증분 코드가 없다 (브랜치 확인 필요). 재구성기는 돌리지 않는다." \
-    >> scripts/logs/toss-portle.log
+  echo "SKIP: $PORTLE_DIR 에 증분 코드가 없다 (브랜치 확인 필요). 재구성기는 돌리지 않는다." >> "$PORTLE_LOG"
+  node scripts/notify-job.mjs --job "Portle 토스 원장" --status fail \
+    --detail "증분 코드가 없는 브랜치라 건너뛰었습니다. port-ledger 브랜치를 확인하세요.
+원장은 안전하지만 오늘 갱신은 없었습니다." >> "$PORTLE_LOG" 2>&1
+elif (cd "$PORTLE_DIR" && npx tsx scripts/import-toss-to-portle-ledger.ts) >> "$PORTLE_LOG" 2>&1; then
+  if [ -s "$PORTLE_TOSS_CHANGES_FILE" ]; then
+    node scripts/notify-job.mjs --job "Portle 토스 원장" --status ok \
+      --detail "$(cat "$PORTLE_TOSS_CHANGES_FILE")" >> "$PORTLE_LOG" 2>&1
+  fi
 else
-  (cd "$PORTLE_DIR" && npx tsx scripts/import-toss-to-portle-ledger.ts) \
-    >> /Volumes/PRO-G40/app-dev/willow-invt/scripts/logs/toss-portle.log 2>&1 \
-    || echo "toss-portle FAILED" >> scripts/logs/toss-portle.log
+  echo "toss-portle FAILED" >> "$PORTLE_LOG"
+  node scripts/notify-job.mjs --job "Portle 토스 원장" --status fail \
+    --detail "원장 갱신이 실패했습니다. 토스가 403 이면 이 맥의 IP 가 허용 목록에서 빠진 것입니다." \
+    --log "$PORTLE_LOG" >> "$PORTLE_LOG" 2>&1
 fi
 echo "===== $(date '+%Y-%m-%d %H:%M:%S %Z') toss-portle done =====" >> scripts/logs/toss-portle.log
