@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
-  EMPTY_COMPOSE, composeKey, createLatestOnly, draftOf, errorOf,
-  publishFailed, publishSucceeded, setDraft,
+  EMPTY_COMPOSE, composeKey, createLatestOnly, draftOf, errorOf, isSeeded,
+  publishFailed, publishSucceeded, seedDraft, setDraft,
 } from '../inquiry-compose'
 
 const A = composeKey('voicecards', 'thread-A')
@@ -115,4 +115,83 @@ test('세 번 겹쳐도 마지막 하나만 남는다', async () => {
   }
   await Promise.all([load('A', 30), load('B', 20), load('C', 1)])
   assert.deepEqual(committed, ['C'])
+})
+
+// ─── 봇 초안 채우기 ────────────────────────────────────────────────────────────
+//
+// 채우기는 편의지 권리가 아니다. 사람이 그 칸에 손을 댄 적이 있으면 봇은 물러난다.
+
+test('빈 스레드는 봇 초안으로 채워진다', () => {
+  const s = seedDraft(EMPTY_COMPOSE, A, '봇이 쓴 초안')
+  assert.equal(draftOf(s, A), '봇이 쓴 초안')
+  assert.equal(isSeeded(s, A), true)
+})
+
+test('사람이 쓰던 글을 봇 초안이 덮지 않는다', () => {
+  let s = setDraft(EMPTY_COMPOSE, A, '내가 쓰던 답변')
+  s = seedDraft(s, A, '봇이 쓴 초안')
+  assert.equal(draftOf(s, A), '내가 쓰던 답변')
+  assert.equal(isSeeded(s, A), false)
+})
+
+test('지워서 비워 둔 것도 사람의 결정이다 — 덮지 않는다', () => {
+  // drafts[key] 가 '' 인 것과 키가 아예 없는 것은 다르다. 값으로만 보면
+  // (`draftOf(s, key) === ''`) 일부러 비운 칸에 봇 초안이 들어온다.
+  let s = setDraft(EMPTY_COMPOSE, A, '쓰다가')
+  s = setDraft(s, A, '')
+  s = seedDraft(s, A, '봇이 쓴 초안')
+  assert.equal(draftOf(s, A), '')
+  assert.equal(isSeeded(s, A), false)
+})
+
+test('같은 스레드를 두 번 열어도 두 번 채우지 않는다', () => {
+  let s = seedDraft(EMPTY_COMPOSE, A, '봇 초안')
+  s = setDraft(s, A, '봇 초안 + 내가 고친 부분')
+  s = seedDraft(s, A, '봇 초안')          // 다시 열었다
+  assert.equal(draftOf(s, A), '봇 초안 + 내가 고친 부분')
+})
+
+test('빈 초안으로는 채우지 않는다 — 채운 흔적도 남기지 않는다', () => {
+  const s = seedDraft(EMPTY_COMPOSE, A, '   \n ')
+  assert.equal(draftOf(s, A), '')
+  assert.equal(isSeeded(s, A), false)
+})
+
+test('봇 초안 표시는 사람이 한 글자만 고쳐도 걷힌다', () => {
+  let s = seedDraft(EMPTY_COMPOSE, A, '봇 초안')
+  assert.equal(isSeeded(s, A), true)
+  s = setDraft(s, A, '봇 초안!')
+  assert.equal(isSeeded(s, A), false, '사람이 손댄 글을 봇 초안이라 부르면 안 된다')
+})
+
+test('발행이 실패하면 아직 봇 초안이다 — 그 글은 여전히 아무도 승인하지 않았다', () => {
+  let s = seedDraft(EMPTY_COMPOSE, A, '봇 초안')
+  s = publishFailed(s, A, 'HTTP 500')
+  assert.equal(draftOf(s, A), '봇 초안')
+  assert.equal(isSeeded(s, A), true)
+})
+
+test('발행에 성공하면 봇 표시도 함께 걷힌다', () => {
+  let s = seedDraft(EMPTY_COMPOSE, A, '봇 초안')
+  s = publishSucceeded(s, A)
+  assert.equal(draftOf(s, A), '')
+  assert.equal(isSeeded(s, A), false)
+})
+
+test('채우기도 스레드마다 따로다', () => {
+  let s = seedDraft(EMPTY_COMPOSE, A, 'A 초안')
+  s = setDraft(s, B, '내가 쓴 B')
+  s = seedDraft(s, B, 'B 초안')
+  assert.equal(draftOf(s, A), 'A 초안')
+  assert.equal(isSeeded(s, A), true)
+  assert.equal(draftOf(s, B), '내가 쓴 B')
+  assert.equal(isSeeded(s, B), false)
+})
+
+test('상태를 갈아끼우지 않는다 — 채우기 전 상태가 그대로 남는다', () => {
+  const before = EMPTY_COMPOSE
+  const after = seedDraft(before, A, '봇 초안')
+  assert.equal(draftOf(before, A), '')
+  assert.equal(isSeeded(before, A), false)
+  assert.equal(draftOf(after, A), '봇 초안')
 })

@@ -8,12 +8,13 @@ import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import {
-  sortThreads,
-  type InquiryAppKey, type InquiryAppResult, type InquiryMessageDto, type InquiryThreadDto,
+  shouldSeedDraft, sortThreads,
+  type InquiryAppKey, type InquiryAppResult, type InquiryDraftDto,
+  type InquiryMessageDto, type InquiryThreadDto,
 } from '@/lib/inquiry-inbox-core'
 import {
-  composeKey, createLatestOnly, draftOf, errorOf,
-  publishFailed, publishSucceeded, setDraft,
+  composeKey, createLatestOnly, draftOf, errorOf, isSeeded,
+  publishFailed, publishSucceeded, seedDraft, setDraft,
   EMPTY_COMPOSE, type ComposeState,
 } from '@/lib/inquiry-compose'
 
@@ -29,6 +30,10 @@ interface Conversation {
   app: InquiryAppKey
   threadId: string
   messages: InquiryMessageDto[]
+  /** CEO 봇이 써 둔 초안. 없으면 null. */
+  draft: InquiryDraftDto | null
+  /** 초안을 **못 읽은** 경우의 사유. null 인 초안과 구별해야 한다. */
+  draftError: string | null
 }
 
 const fmt = (iso: string) => {
@@ -91,7 +96,18 @@ export function InquiryInbox() {
       const data = await res.json()
       if (!latest.current.isCurrent(ticket)) return   // 그 사이 다른 스레드를 골랐다 — 버린다
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
-      setConvo({ app: data.app, threadId: data.threadId, messages: data.messages ?? [] })
+      const messages: InquiryMessageDto[] = data.messages ?? []
+      const draft: InquiryDraftDto | null = data.draft ?? null
+      setConvo({
+        app: data.app, threadId: data.threadId, messages,
+        draft, draftError: data.draftError ?? null,
+      })
+      // 입력창을 빈 칸이 아니라 고칠 초안으로 연다. 키는 **응답이 말하는 스레드**로
+      // 만든다 — 지금 고른 것(selected)이 아니라. 두 값은 같아야 하고 위 가드가
+      // 그걸 보장하지만, 채우는 글의 주소는 그 글이 온 곳에서 가져오는 게 맞다.
+      if (shouldSeedDraft(draft, messages) && draft) {
+        setCompose(s => seedDraft(s, composeKey(data.app, data.threadId), draft.body))
+      }
     } catch (err) {
       if (!latest.current.isCurrent(ticket)) return
       setConvoError(err instanceof Error ? err.message : String(err))
@@ -150,6 +166,10 @@ export function InquiryInbox() {
 
   const draft = draftOf(compose, key)
   const composeError = errorOf(compose, key)
+  /** 입력창의 글이 아무도 손대지 않은 봇 초안인가 — 화면이 그렇게 말해야 한다. */
+  const seeded = isSeeded(compose, key)
+  /** 읽기 전용 앱(스크립타·리뷰노트)에 보여줄 초안. 낡은 초안은 안 보여준다. */
+  const botDraft = convo && shouldSeedDraft(convo.draft, convo.messages) ? convo.draft : null
 
   return (
     <div style={{
@@ -186,7 +206,10 @@ export function InquiryInbox() {
           {threads.map(th => {
             const meta = appMeta.get(th.app)
             const on = selected?.app === th.app && selected?.id === th.id
-            const hasDraft = draftOf(compose, composeKey(th.app, th.id)).trim() !== ''
+            const rowKey = composeKey(th.app, th.id)
+            const hasDraft = draftOf(compose, rowKey).trim() !== ''
+            // 봇이 써 둔 것과 사람이 쓰던 것을 같은 말로 부르지 않는다.
+            const rowSeeded = isSeeded(compose, rowKey)
             return (
               <button
                 key={`${th.app}:${th.id}`}
@@ -210,7 +233,7 @@ export function InquiryInbox() {
                   }}>{meta?.label ?? th.app}</span>
                   {th.unreadForAdmin && <LBadge tone="warn">미답변</LBadge>}
                   {th.channel === 'email' && <LBadge tone="neutral">구버전</LBadge>}
-                  {hasDraft && <LBadge tone="info">작성중</LBadge>}
+                  {hasDraft && <LBadge tone="info">{rowSeeded ? '봇 초안' : '작성중'}</LBadge>}
                   <span style={{
                     marginLeft: 'auto', fontSize: `calc(${t.type.helper}px * var(--fz, 1))`,
                     color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0,
@@ -253,6 +276,12 @@ export function InquiryInbox() {
 
             {convoError && <Notice tone="danger" text={`대화를 불러오지 못했다 — ${convoError}`} />}
             {convoLoading && <Notice tone="info" text="대화를 불러오는 중" />}
+
+            {/* 초안을 못 읽은 것은 초안이 없는 것과 다르다. 조용히 빈 칸을 주면
+                사람은 초안이 없는 줄 알고 처음부터 다시 쓴다. */}
+            {convo?.draftError && (
+              <Notice tone="warn" text={`봇 초안을 불러오지 못했다 — ${convo.draftError}. 초안이 없는 게 아니라 못 읽은 것이다.`} />
+            )}
 
             {convo && convo.messages.length === 0 && !convoLoading && (
               <Notice tone="neutral" text="이 스레드에는 메시지가 없다" />
@@ -297,6 +326,16 @@ export function InquiryInbox() {
                 />
               ) : (
                 <div>
+                  {/* 채워져 있는 글이 **이미 보낸 답**으로 보이면, 사람은 창을 닫고
+                      고객은 아무 답도 못 받는다. 그래서 채운 즉시 그렇게 말한다. */}
+                  {seeded && (
+                    <Notice
+                      tone="warn"
+                      text={`✍️ CEO 봇이 써 둔 초안이다 — 아직 고객에게 나가지 않았다. 읽고 고쳐서 '보내기'를 눌러야 나간다.${
+                        convo?.draft?.at ? ` (${fmt(convo.draft.at)} 작성)` : ''
+                      }`}
+                    />
+                  )}
                   <textarea
                     value={draft}
                     onChange={e => setCompose(s => setDraft(s, key, e.target.value))}
@@ -334,10 +373,30 @@ export function InquiryInbox() {
                 </div>
               )
             ) : (
-              <Notice
-                tone="info"
-                text={`${selectedMeta?.label ?? selectedThread.app}는 자체 관리자 화면에서 답한다 — 여기서는 읽기만 한다`}
-              />
+              <>
+                <Notice
+                  tone="info"
+                  text={`${selectedMeta?.label ?? selectedThread.app}는 자체 관리자 화면에서 답한다 — 여기서는 읽기만 한다`}
+                />
+                {/* 여기서 보낼 수는 없지만, 초안을 숨길 이유는 없다. 이게 없으면
+                    사람이 텔레그램을 뒤져 같은 글을 찾아 옮긴다. */}
+                {botDraft && (
+                  <div>
+                    <Notice
+                      tone="warn"
+                      text={`✍️ CEO 봇이 써 둔 초안이다 — 아직 안 나갔다. 복사해서 ${selectedMeta?.label ?? ''} 관리자 화면에서 보낸다.${
+                        botDraft.at ? ` (${fmt(botDraft.at)} 작성)` : ''
+                      }`}
+                    />
+                    <div style={{
+                      background: t.neutrals.inner, border: `1px solid ${t.neutrals.line}`,
+                      borderRadius: t.radius.md, padding: t.density.gapMd,
+                      fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.text,
+                      lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                    }}>{botDraft.body}</div>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

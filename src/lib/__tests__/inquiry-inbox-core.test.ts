@@ -2,10 +2,11 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
-  ADMIN_GATE_STATUS, INQUIRY_APPS, MAX_PAGES, PAGE_SIZE, THREAD_DTO_KEYS,
-  adminGate, appSpec, loadAppThreads, loadThreadMessages, messageColumns,
-  publishGuard, selectAllPages, sortThreads, toInstant, toMessageDto, toThreadDto,
-  type InquiryRow, type SelectPageArgs, type InquiryThreadDto,
+  ADMIN_GATE_STATUS, DRAFT_DTO_KEYS, INQUIRY_APPS, MAX_PAGES, PAGE_SIZE, THREAD_DTO_KEYS,
+  adminGate, appSpec, draftColumns, loadAppThreads, loadThreadDraft, loadThreadMessages,
+  messageColumns, publishGuard, selectAllPages, shouldSeedDraft, sortThreads, toDraftDto,
+  toInstant, toMessageDto, toThreadDto,
+  type InquiryRow, type SelectPageArgs, type InquiryThreadDto, type InquiryMessageDto,
 } from '../inquiry-inbox-core'
 
 const spec = (key: string) => {
@@ -362,4 +363,131 @@ test('빈 답변은 보내지 않는다', () => {
 test('모르는 앱은 400', () => {
   assert.equal(publishGuard(null, { channel: 'app' }, '답변'), 'unknown-app')
   assert.equal(appSpec('willow'), null)
+})
+
+// ─── 봇 초안 ──────────────────────────────────────────────────────────────────
+//
+// 초안은 대화 화면에서만 나간다. 목록에 실리면 스레드 한 줄마다 초안 본문이
+// 브라우저로 나가고, 그건 "큐"인 목록에 아무 쓸모가 없다.
+
+const DRAFT_ROW: InquiryRow = {
+  draft_body: '확인하고 내일 중으로 다시 알려 드리겠습니다.',
+  draft_at: '2026-08-28T05:00:00+00:00',
+  // 초안 칸 바로 옆에 있는 값들. 행을 펼치면 이것들이 같이 나간다.
+  access_token: 'SECRET-TOKEN-abc123',
+  drafted_by: 'ceo-bot',
+  account_id: '107821687966181028778',
+}
+
+test('목록 조회는 초안 칸을 아예 요청하지 않는다', async () => {
+  // 나가지 않는 가장 확실한 방법은 묻지 않는 것이다. 네 앱 전부 확인한다.
+  for (const app of INQUIRY_APPS) {
+    const { select, calls } = recordingSelect(() => [])
+    await loadAppThreads(app, select)
+    const cols = calls[0].columns.split(',')
+    assert.ok(!cols.includes(app.draft.body), `${app.key} 목록이 ${app.draft.body} 를 물었다`)
+    assert.ok(!cols.includes(app.draft.at), `${app.key} 목록이 ${app.draft.at} 를 물었다`)
+  }
+})
+
+test('초안 DTO 는 행을 펼치지 않는다 — 토큰도 작성자도 신원도 따라오지 않는다', () => {
+  const dto = toDraftDto(spec('voicecards'), DRAFT_ROW)
+  assert.ok(dto)
+  assert.deepEqual(Object.keys(dto).sort(), [...DRAFT_DTO_KEYS].sort())
+  // 키 이름만 보면 다른 칸에 담아 내보내도 통과한다. 값도 확인한다.
+  const serialized = JSON.stringify(dto)
+  assert.ok(!serialized.includes('SECRET-TOKEN-abc123'))
+  assert.ok(!serialized.includes('ceo-bot'))
+  assert.ok(!serialized.includes('107821687966181028778'))
+})
+
+test('초안 DTO 가 본문과 작성 시각을 제 자리에 옮긴다', () => {
+  const dto = toDraftDto(spec('voicecards'), DRAFT_ROW)
+  assert.equal(dto?.body, '확인하고 내일 중으로 다시 알려 드리겠습니다.')
+  assert.equal(dto?.at, '2026-08-28T05:00:00+00:00')
+})
+
+test('초안이 없거나 빈 글이면 null — 빈 칸을 초안이라고 부르지 않는다', () => {
+  const vc = spec('voicecards')
+  assert.equal(toDraftDto(vc, null), null)
+  assert.equal(toDraftDto(vc, undefined), null)
+  assert.equal(toDraftDto(vc, { draft_body: null, draft_at: null }), null)
+  assert.equal(toDraftDto(vc, { draft_body: '   \n ', draft_at: null }), null)
+})
+
+test('리뷰노트 초안은 Prisma 대소문자 칸으로 조회하고 시간대를 붙여 돌려준다', async () => {
+  const rn = spec('reviewnotes')
+  assert.deepEqual(draftColumns(rn).split(','), ['draftBody', 'draftAt'])
+
+  const { select, calls } = recordingSelect(() => [{
+    draftBody: '초안입니다',
+    // Prisma DateTime 은 timestamp(3) 라 오프셋 없이 온다. 그대로 두면 KST 기기가
+    // 로컬 시각으로 읽어 아홉 시간 어긋난다.
+    draftAt: '2026-08-28T05:00:00',
+  }])
+  const dto = await loadThreadDraft(rn, 'cmtc94mbc0007jp04lvopybea', select)
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].table, 'InquiryThread')
+  assert.deepEqual(calls[0].columns.split(','), ['draftBody', 'draftAt'])
+  assert.equal(calls[0].filterColumn, 'id')
+  assert.equal(calls[0].filterValue, 'cmtc94mbc0007jp04lvopybea')
+  assert.equal(dto?.at, '2026-08-28T05:00:00Z')
+})
+
+test('세 앱의 초안 칸은 스네이크다', () => {
+  for (const key of ['voicecards', 'portle', 'scripta']) {
+    assert.deepEqual(draftColumns(spec(key)).split(','), ['draft_body', 'draft_at'], key)
+  }
+})
+
+test('초안 조회는 그 스레드 한 줄만 가져온다', async () => {
+  const { select, calls } = recordingSelect(() => [])
+  await loadThreadDraft(spec('voicecards'), 'thread-1', select)
+  assert.equal(calls[0].from, 0)
+  assert.equal(calls[0].to, 0)
+})
+
+// ─── 채울 것인가 ──────────────────────────────────────────────────────────────
+
+const msg = (sender: 'user' | 'support', at: string): InquiryMessageDto =>
+  ({ id: `${sender}-${at}`, sender, body: 'x', createdAt: at })
+
+test('우리가 마지막으로 답한 뒤에 쓰인 초안만 채운다', () => {
+  const draft = { body: '초안', at: '2026-08-28T05:00:00+00:00' }
+  assert.equal(shouldSeedDraft(draft, [
+    msg('user', '2026-08-28T01:00:00+00:00'),
+    msg('support', '2026-08-28T02:00:00+00:00'),
+    msg('user', '2026-08-28T03:00:00+00:00'),
+  ]), true)
+})
+
+test('발행한 뒤에는 같은 초안이 다시 채워지지 않는다 — 두 번 보내기 방지', () => {
+  // 발행해도 draft_body 는 DB 에 남는다. 그 뒤 대화를 다시 불러오면 우리 답변이
+  // 초안보다 나중이므로 낡은 것으로 판정돼야 한다.
+  const draft = { body: '초안', at: '2026-08-28T05:00:00+00:00' }
+  assert.equal(shouldSeedDraft(draft, [
+    msg('user', '2026-08-28T03:00:00+00:00'),
+    msg('support', '2026-08-28T06:00:00+00:00'),
+  ]), false)
+})
+
+test('고객이 답장을 더 보내도, 우리 답이 초안보다 나중이면 여전히 낡았다', () => {
+  const draft = { body: '초안', at: '2026-08-28T05:00:00+00:00' }
+  assert.equal(shouldSeedDraft(draft, [
+    msg('support', '2026-08-28T06:00:00+00:00'),
+    msg('user', '2026-08-28T07:00:00+00:00'),
+  ]), false)
+})
+
+test('초안이 없으면 채우지 않는다', () => {
+  assert.equal(shouldSeedDraft(null, []), false)
+  assert.equal(shouldSeedDraft({ body: '  ', at: null }, []), false)
+})
+
+test('작성 시각을 모르면 채운다 — 낡았다고 단정할 근거가 없다', () => {
+  assert.equal(shouldSeedDraft({ body: '초안', at: null }, [
+    msg('support', '2026-08-28T06:00:00+00:00'),
+  ]), true)
+  assert.equal(shouldSeedDraft({ body: '초안', at: '말이 안 되는 값' }, []), true)
 })

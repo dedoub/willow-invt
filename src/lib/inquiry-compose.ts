@@ -18,15 +18,54 @@ export interface ComposeState {
   drafts: Record<string, string>
   /** 스레드별 마지막 발행 실패 사유. */
   errors: Record<string, string>
+  /**
+   * 봇이 쓴 초안을 **한 글자도 고치지 않고** 들고 있는 스레드.
+   *
+   * 입력창의 진실은 여전히 `drafts` 하나다 — 이건 그 글이 어디서 왔는지를 적어
+   * 두는 표시일 뿐이다. 화면이 "아직 아무도 승인 안 한 봇 초안"이라고 말하려면
+   * 이 구별이 필요하다. 사람이 고치는 순간 걷힌다.
+   */
+  seeded: Record<string, true>
 }
 
-export const EMPTY_COMPOSE: ComposeState = { drafts: {}, errors: {} }
+export const EMPTY_COMPOSE: ComposeState = { drafts: {}, errors: {}, seeded: {} }
 
-/** 입력. 그 스레드에 남아 있던 실패 표시는 다시 쓰기 시작하면 걷는다. */
+/**
+ * 입력. 그 스레드에 남아 있던 실패 표시는 다시 쓰기 시작하면 걷는다.
+ * 사람이 손을 댄 순간부터는 봇 초안이 아니므로 seeded 표시도 걷는다.
+ */
 export function setDraft(state: ComposeState, key: string, text: string): ComposeState {
   const errors = { ...state.errors }
   delete errors[key]
-  return { drafts: { ...state.drafts, [key]: text }, errors }
+  const seeded = { ...state.seeded }
+  delete seeded[key]
+  return { drafts: { ...state.drafts, [key]: text }, errors, seeded }
+}
+
+/**
+ * 봇이 써 둔 초안을 입력창에 채운다.
+ *
+ * **그 스레드에 입력 이력이 있으면 아무것도 하지 않는다.** 사람이 쓰던 글은
+ * 물론이고, 지워서 비워 둔 것도 사람의 결정이다 — 나중에 도착한 초안이 그걸
+ * 덮으면 남의 글을 지우는 것이다. `key in drafts` 로 보는 이유가 이것이다
+ * (`drafts[key]` 가 빈 문자열인 것과 아예 없는 것은 다르다).
+ *
+ * 같은 스레드를 다시 열어도 두 번 채우지 않는다 — 첫 채움으로 키가 생기므로
+ * 그다음부터는 위 조건에 걸린다.
+ */
+export function seedDraft(state: ComposeState, key: string, text: string): ComposeState {
+  if (key in state.drafts) return state
+  if (text.trim() === '') return state
+  return {
+    drafts: { ...state.drafts, [key]: text },
+    errors: state.errors,
+    seeded: { ...state.seeded, [key]: true },
+  }
+}
+
+/** 지금 입력창에 있는 글이 아무도 손대지 않은 봇 초안인가. */
+export function isSeeded(state: ComposeState, key: string): boolean {
+  return state.seeded[key] === true
 }
 
 /**
@@ -34,16 +73,20 @@ export function setDraft(state: ComposeState, key: string, text: string): Compos
  * 전까지 우리 것이 아니다. 사유는 그 스레드 칸에만 적는다.
  */
 export function publishFailed(state: ComposeState, key: string, message: string): ComposeState {
-  return { drafts: state.drafts, errors: { ...state.errors, [key]: message } }
+  // seeded 도 그대로다. 발행이 실패했으면 그 글은 여전히 아무도 승인 안 한
+  // 봇 초안이고, 화면은 계속 그렇게 말해야 한다.
+  return { drafts: state.drafts, errors: { ...state.errors, [key]: message }, seeded: state.seeded }
 }
 
 /** 발행 성공(서버 확인 뒤에만 호출). 이때 비로소 그 스레드의 초안과 실패를 지운다. */
 export function publishSucceeded(state: ComposeState, key: string): ComposeState {
   const drafts = { ...state.drafts }
   const errors = { ...state.errors }
+  const seeded = { ...state.seeded }
   delete drafts[key]
   delete errors[key]
-  return { drafts, errors }
+  delete seeded[key]
+  return { drafts, errors, seeded }
 }
 
 export function draftOf(state: ComposeState, key: string): string {

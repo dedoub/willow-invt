@@ -62,6 +62,18 @@ interface MessageColumns {
   createdAt: string
 }
 
+/**
+ * CEO 봇이 써 둔 답변 초안이 들어오는 칸(scripts/inquiry-draft-prompt.md).
+ *
+ * **`ThreadColumns` 와 일부러 갈라 놓았다.** 목록 조회는 `threadColumns()` 로
+ * 컬럼을 세는데, 초안을 거기 넣으면 스레드 한 줄마다 초안 본문이 브라우저로
+ * 나간다. 초안이 필요한 곳은 대화 화면 하나뿐이라, 조회도 거기서만 한다.
+ */
+interface DraftColumns {
+  body: string
+  at: string
+}
+
 export interface InquiryAppSpec {
   key: InquiryAppKey
   label: string
@@ -78,6 +90,8 @@ export interface InquiryAppSpec {
   adminUrl: string | null
   thread: ThreadColumns
   message: MessageColumns
+  /** 봇 초안 칸. 대화 화면에서만 조회한다 — 목록에는 싣지 않는다. */
+  draft: DraftColumns
   /** DB에 저장된 sender 값. 리뷰노트만 대문자다. */
   senderValues: Record<InquirySender, string>
 }
@@ -86,6 +100,11 @@ const SNAKE_MESSAGE: MessageColumns = {
   id: 'id', threadId: 'thread_id', sender: 'sender', body: 'body', createdAt: 'created_at',
 }
 
+// 보이스카드·포틀·스크립타가 같다. 리뷰노트만 Prisma 라 대소문자가 섞인다.
+// 보이스카드·포틀에는 drafted_by 도 있지만 화면이 쓰지 않으니 조회하지 않는다 —
+// 안 부르는 칸은 안 나간다.
+const SNAKE_DRAFT: DraftColumns = { body: 'draft_body', at: 'draft_at' }
+
 export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
   {
     key: 'voicecards',
@@ -93,6 +112,7 @@ export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
     dot: '#4FBE84',
     threadTable: 'inquiry_threads',
     messageTable: 'inquiry_messages',
+    draft: SNAKE_DRAFT,
     writable: true,
     adminUrl: null,
     thread: {
@@ -110,6 +130,7 @@ export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
     dot: '#E8927C',
     threadTable: 'inquiry_threads',
     messageTable: 'inquiry_messages',
+    draft: SNAKE_DRAFT,
     writable: true,
     adminUrl: null,
     thread: {
@@ -128,6 +149,7 @@ export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
     dot: '#E894B0',
     threadTable: 'scripta_inquiry_threads',
     messageTable: 'scripta_inquiry_messages',
+    draft: SNAKE_DRAFT,
     writable: false,
     adminUrl: 'https://scripta.quest/admin/inquiries',
     thread: {
@@ -148,6 +170,9 @@ export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
     // "InquiryThread" 처럼 큰따옴표가 필요하다.
     threadTable: 'InquiryThread',
     messageTable: 'InquiryMessage',
+    // 초안 칸도 Prisma 이름 그대로다. "draftAt" 은 timestamp without time zone 이라
+    // toInstant 로 UTC 를 붙여야 KST 화면에서 아홉 시간 어긋나지 않는다.
+    draft: { body: 'draftBody', at: 'draftAt' },
     writable: false,
     adminUrl: 'https://reviewnotes.app/admin/inquiries',
     thread: {
@@ -273,6 +298,76 @@ export function toMessageDto(spec: InquiryAppSpec, row: InquiryRow): InquiryMess
     body: str(row[c.body]) ?? '',
     createdAt: toInstant(req(row[c.createdAt], `${spec.key} 메시지 created_at`)),
   }
+}
+
+// ─── 초안 ─────────────────────────────────────────────────────────────────────
+//
+// CEO 봇이 미리 써 둔 답변. **대화 화면에서만** 나가고 목록에는 안 나간다.
+// 스레드 DTO 와 같은 방식으로 한 칸씩 옮겨 적는다 — 초안 칸 옆에 access_token 이
+// 있으므로 행을 펼치면 그게 같이 나간다.
+
+export interface InquiryDraftDto {
+  /** 봇이 쓴 답변 본문. 아직 고객에게 나가지 않았다. */
+  body: string
+  /** 초안을 쓴 시각(ISO, 시간대 포함). 모르면 null. */
+  at: string | null
+}
+
+/** 초안 DTO 가 가진 키의 전부. 시험이 이 목록과 정확히 대조한다. */
+export const DRAFT_DTO_KEYS: readonly string[] = ['body', 'at']
+
+export function draftColumns(spec: InquiryAppSpec): string {
+  return [spec.draft.body, spec.draft.at].join(',')
+}
+
+/** 초안 행 → DTO. 초안이 없거나 빈 글이면 null(= 채울 것이 없다). */
+export function toDraftDto(spec: InquiryAppSpec, row: InquiryRow | null | undefined): InquiryDraftDto | null {
+  if (!row) return null
+  const body = str(row[spec.draft.body])
+  if (body === null || body.trim() === '') return null
+  const at = str(row[spec.draft.at])
+  return { body, at: at === null ? null : toInstant(at) }
+}
+
+/** 한 스레드의 초안. 실패하면 던진다 — 못 읽은 것과 없는 것은 다른 사실이다. */
+export async function loadThreadDraft(
+  spec: InquiryAppSpec,
+  threadId: string,
+  select: SelectPage,
+): Promise<InquiryDraftDto | null> {
+  const rows = await select({
+    table: spec.threadTable,
+    columns: draftColumns(spec),
+    orderBy: spec.thread.id,
+    ascending: true,
+    from: 0,
+    to: 0,
+    filterColumn: spec.thread.id,
+    filterValue: threadId,
+  })
+  return toDraftDto(spec, rows[0])
+}
+
+/**
+ * 이 초안을 입력창에 채울 것인가.
+ *
+ * **우리가 마지막으로 답을 보낸 뒤에 쓰인 초안만** 채운다. 답을 발행해도
+ * `draft_body` 는 DB 에 그대로 남는다(초안을 지우는 것은 발행 RPC 의 일이 아니다).
+ * 이 검사가 없으면 답을 보내고 화면이 다시 그려질 때 방금 보낸 글이 입력창에
+ * 도로 채워진다 — 두 번 보내기 딱 좋다. 다른 화면(스크립타·리뷰노트 관리자)에서
+ * 답한 경우도 같은 규칙으로 걸린다.
+ *
+ * 시각을 모르면(null·파싱 불가) 채운다. 낡았다고 단정할 근거가 없고, 안 채우면
+ * 초안이 있는데도 빈 칸이 뜬다.
+ */
+export function shouldSeedDraft(
+  draft: InquiryDraftDto | null,
+  messages: readonly InquiryMessageDto[],
+): boolean {
+  if (!draft || draft.body.trim() === '') return false
+  const at = Date.parse(draft.at ?? '')
+  if (Number.isNaN(at)) return true
+  return !messages.some(m => m.sender === 'support' && Date.parse(m.createdAt) >= at)
 }
 
 // ─── 정렬 ─────────────────────────────────────────────────────────────────────

@@ -7,9 +7,9 @@ import { portleSupabase } from '@/lib/portle-supabase'
 import { scriptaSupabase } from '@/lib/scripta-supabase'
 import { reviewnotesSupabase } from '@/lib/reviewnotes-supabase'
 import {
-  INQUIRY_APPS, loadAppThreads, loadThreadMessages,
+  INQUIRY_APPS, loadAppThreads, loadThreadDraft, loadThreadMessages,
   type InquiryAppKey, type InquiryAppResult, type InquiryAppSpec,
-  type InquiryMessageDto, type SelectPage,
+  type InquiryDraftDto, type InquiryMessageDto, type SelectPage,
 } from '@/lib/inquiry-inbox-core'
 
 export * from '@/lib/inquiry-inbox-core'
@@ -79,6 +79,19 @@ export async function loadInquiryConversation(
   const db = CLIENTS[spec.key]
   if (!db) throw new Error(`${spec.label} Supabase 미설정 (${ENV_HINT[spec.key]})`)
   return loadThreadMessages(spec, threadId, selectPageVia(spec.key, db))
+}
+
+/**
+ * 한 스레드의 봇 초안. 실패는 던진다(라우트가 draftError 로 옮긴다 — 못 읽은 것을
+ * "초안 없음"으로 그리면 사람이 빈 칸 앞에서 처음부터 다시 쓴다).
+ */
+export async function loadInquiryDraft(
+  spec: InquiryAppSpec,
+  threadId: string,
+): Promise<InquiryDraftDto | null> {
+  const db = CLIENTS[spec.key]
+  if (!db) throw new Error(`${spec.label} Supabase 미설정 (${ENV_HINT[spec.key]})`)
+  return loadThreadDraft(spec, threadId, selectPageVia(spec.key, db))
 }
 
 /** 발행 전 채널 확인용 — 스레드 한 줄. 없으면 null. */
