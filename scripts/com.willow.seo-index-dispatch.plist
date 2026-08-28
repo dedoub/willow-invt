@@ -16,10 +16,8 @@
   <string>/Users/dongwookkim</string>
   <key>StartCalendarInterval</key>
   <dict>
-    <key>Hour</key>
-    <integer>17</integer>
     <key>Minute</key>
-    <integer>5</integer>
+    <integer>15</integer>
   </dict>
   <key>StandardOutPath</key>
   <string>/Users/dongwookkim/logs/seo-index-dispatch/launchd.log</string>

@@ -1,5 +1,5 @@
 #!/bin/bash
-# VoiceCards + ReviewNotes GSC 일일 색인 요청 디스패치 (launchd 전용)
+# VoiceCards + ReviewNotes + Portle + Scripta GSC 25시간 간격 디스패치 (launchd 전용)
 set -euo pipefail
 
 PROJECT_DIR="/Volumes/PRO-G40/app-dev/willow-invt"

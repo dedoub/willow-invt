@@ -24,6 +24,14 @@
       "schedule": "45 21 * * *"
     },
     {
+      "path": "/api/cron/seo-index-scan?site=portle",
+      "schedule": "50 21 * * *"
+    },
+    {
+      "path": "/api/cron/seo-index-scan?site=scripta",
+      "schedule": "55 21 * * *"
+    },
+    {
       "path": "/api/cron/indexnow",
       "schedule": "10 22 * * *"
     },
