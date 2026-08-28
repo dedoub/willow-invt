@@ -1,0 +1,209 @@
+---
+name: update-cash-transactions
+description: 은행계좌내역 파일을 받아 각사별 현금관리 테이블(tensw_mgmt_cash/willow_mgmt_cash)에 업데이트. "계좌내역 정리", "현금관리 업데이트", "은행 거래내역", "계좌 업데이트" 시 사용.
+---
+
+# Update Cash Transactions
+
+은행 계좌 거래내역(Excel/CSV)을 받아서 기존 인보이스 테이블에 직접 업데이트하는 워크플로우.
+별도 테이블 없이 프론트엔드가 읽는 테이블에 바로 넣는다.
+
+## ⚠️ 작성 원칙 (CEO 지시 2026-06-19)
+1. **description(적요)을 상세히 작성한다.** 단순히 거래처명만 쓰지 말고, 무슨 거래인지 알 수 있게.
+   - 나쁨: "비블로 이체" / 좋음: "비블로 외주 개발비" 처럼 거래 성격까지.
+   - 적요/내용/품목 등 파일에 있는 정보를 최대한 살려서 구체적으로.
+2. **모르는 거래는 추측하지 말고 CEO에게 물어본다.** (거래처·분류·성격이 불확실하면 임의 분류 금지)
+   - 잔액은 파일의 '거래후 잔액'으로 먼저 맞추고, 분류가 애매한 건은 질문 후 입력.
+
+## 미지급급여 처리 (CEO 지시 2026-07-08)
+- **윌로우 김동욱 미지급급여 지급**: `expense` (지급시점 비용인식, +금액). 과거 발생시점에 비용 미인식했으므로 지급시점에라도 비용으로 잡는다.
+- **텐소프트웍스 급여/미지급급여**: 현행 유지 (`liability` −금액, 비용 미인식). 윌로우 규칙을 텐소에 적용하지 말 것.
+- 주의: 김동욱 **대여상환**(대여금 상환)은 급여와 무관 — 그대로 `liability` −금액 유지. 급여와 혼동 금지.
+
+## KB포인트리(카드 포인트 환급) 처리
+- `expense` **마이너스**(−금액), description "포인트 환급 (KB포인트리, 비용조정)". 매출(revenue) 아님. 부가세 환급과 동일한 비용조정 패턴.
+
+## 대상 테이블
+
+| 회사 | 테이블 | 프론트엔드 |
+|------|--------|-----------|
+| 텐소프트웍스 | `tensw_mgmt_cash` | /tensoftworks/management → 현금관리 |
+| 윌로우 | `willow_mgmt_cash` | /willow-investment/management → 현금관리 |
+
+**Supabase 프로젝트**: experiment-apps (`axcfvieqsaphhvbkyzzv`)
+
+## 인보이스 테이블 구조
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| type | text | 'revenue' / 'expense' / 'asset' / 'liability' / 'exchange' |
+| counterparty | text | 거래 상대방 |
+| description | text | 거래 내용 |
+| amount | numeric | 금액 (음수 가능 — 환급, 상환 등) |
+| payment_date | date | 거래일 |
+| status | text | 'completed' (은행 거래는 항상 완료) |
+| account_number | text | 계좌 표시 (예: '우리 1005-403-461450') |
+| **balance_after** | numeric | **거래후 잔액 (필수! 파일의 '거래후 잔액' 그대로). 총잔고 스파크라인이 이 값으로 그려짐 — 누락하면 최근 구간 선이 멈춤** |
+| **transaction_time** | text | **거래시각 'HH:MM:SS' (파일에 있으면). 같은 날 여러 거래 시 일별 종가를 정확히 고르는 데 사용** |
+| notes | text | 메모 (선택) |
+
+> ⚠️ **balance_after / transaction_time 필수** (2026-07-16 재확인): 총잔고 스파크라인(`tenswGetBalanceHistory`/willow 동일)은 `balance_after`가 있는 거래만 일별 점으로 쓴다. SQL INSERT로 넣을 때 이 두 컬럼을 빠뜨리면 스파크라인이 마지막 파싱 시점에서 멈추고 최근 데이터가 안 보인다. **모든 은행 거래는 파일의 거래후잔액·거래시각을 반드시 함께 넣는다.**
+
+## 거래 분류 규칙
+
+### 입금 (credit)
+| 패턴 | type | amount | counterparty |
+|------|------|--------|-------------|
+| 용역비, 수수료수입 | revenue | +금액 | 발주처명 |
+| 부가세 환급 (삼성세무서 등) | expense | -금액 | 국세 |
+| 대여금 상환 (윌로우→텐소프트) | asset | -금액 | 상대 법인명 |
+| 대표 대여상환 (김동욱→회사) | liability | -금액 | 김동욱 |
+| 대표 대여상환 (김철형→텐소프트) | liability | -금액 | 김철형 |
+| 외화수익 입금 (EXCHANGE TRADE) | **revenue(원화 환산)** | +원화 | Exchange Traded Concepts (아래 외화 처리 참조) |
+| 외화환전(USD→원화) | **exchange (수익 아님!)** | 금액 | 외화환전 |
+
+### 출금 (debit)
+| 패턴 | type | amount | counterparty |
+|------|------|--------|-------------|
+| 카드결제, 전기요금, AWS, 수수료 | expense | +금액 | 업체명 |
+| 대출이자 | expense | +금액 | 은행명 |
+| 대출상환 (원금) | expense | +금액 | 은행명 (SBI, 하나캐피탈 등) |
+| 국세/지방세 | expense | +금액 | 국세/지방세 |
+| 대여금 지급 (텐소프트→윌로우) | liability | -금액 | 윌로우인베스트먼트 |
+| 대여금 지급 (윌로우→텐소프트) | asset | +금액 | 텐소프트웍스 |
+| 4대보험 | expense | +금액 | 국민연금/건강보험 |
+
+### 부가세 환급 처리 (중요!)
+- type: `expense` (매출 아님!)
+- amount: `-금액` (마이너스 비용)
+- description: "부가세 환급 (비용조정)"
+- notes: "매출이 아닌 비용 환급으로 처리"
+
+## 계좌 정보
+
+### 텐소프트웍스
+| 은행 | 계좌번호 | account_number 표기 |
+|------|----------|-------------------|
+| 우리은행 | 1005403461450 | 우리 1005-403-461450 |
+| 우리은행 | 1005704524272 | 우리 1005-704-524272 |
+| 신한은행 | 140013150883 | 신한 140-013-150883 |
+
+### 윌로우인베스트먼트
+| 은행 | 계좌번호 | account_number 표기 |
+|------|----------|-------------------|
+| 신한은행 | (원화) | 신한 (원화) |
+| 신한은행 | (외화 USD) | 신한 (외화 USD) |
+
+### 외화 계좌 처리 (⚠️ 2026-06 CEO 정정)
+**핵심 원칙: 매출은 "입금(EXCHANGE TRADE)" 시점에 인식. 외화환전(USD→원화)은 절대 매출 아님(exchange).**
+
+대시보드(`cash-block`)는 ① `exchange` 타입을 매출 합계에서 제외하고 ② `revenue`는 통화 구분 없이 금액을 그대로 원화 합산함. 따라서:
+
+1. **EXCHANGE TRADE 입금(USD)** → `exchange` 행으로 기록(달러 금액, 외화 잔고 추적용). 매출 합계엔 안 잡힘.
+2. **매출 인식** → 별도 `revenue` 행을 **원화 환산액**으로 기록. counterparty=Exchange Traded Concepts.
+   - 환산 기준: 해당 입금분이 환전되어 실현된 원화액.
+   - 여러 입금이 한 번에 환전됐으면, **실현 원화액을 입금 건별 USD 비례로 배분**해 입금일자에 각각 매출 행 생성 (account='신한 (외화 USD)', balance_after=null).
+3. **외화환전(USD 출금 / 원화 입금)** → 양쪽 다 `exchange` (수익 아님, 단순 통화 전환). 원화 입금 leg가 원화 계좌 잔고를 올림.
+- ❌ 절대 금지: 외화환전 자체를 revenue로 잡기 / 같은 돈을 USD입금+원화매출 둘 다 revenue로 잡기(이중계상).
+- 외화계좌 Excel 컬럼: 거래일 | 적요 | 찾으신금액 | 맡기신금액 | 잔액 | 거래점
+
+### 잔고 테이블 갱신 (필수 — 거래 입력 후 항상)
+거래 입력 후 **`tensw_mgmt_bank_balances` / `willow_mgmt_bank_balances`** 의 계좌별 `balance`·`balance_date`를 파일 최신 거래의 "거래후 잔액"으로 UPDATE.
+- 외화 계좌는 USD 잔액 그대로 (대시보드가 usdRate로 환산 표시).
+
+## 입력 소스
+
+거래내역은 두 경로로 들어온다. 둘 다 이후 Step 2~6은 동일하다.
+
+### A. CODEF API (텐소프트웍스, 권장)
+`npm run tensw:bank:sync` 이 은행 원본을 `tensw_codef_transactions` 스테이징에 적재한다.
+분류 대상은 `status='new'` 인 행:
+
+```sql
+select id, account_label, tr_date, tr_time, amount_in, amount_out, balance_after, desc1, desc2, desc3
+from tensw_codef_transactions where status = 'new' order by tr_date, tr_time;
+```
+
+컬럼 매핑: `amount_in`>0 → 입금, `amount_out`>0 → 출금, `desc1`=보낸분/받는분,
+`desc3`=적요, `balance_after`=거래후 잔액, `tr_time`=거래시각.
+`tensw_mgmt_cash` INSERT 후 스테이징 행을 반드시 마감한다:
+
+```sql
+update tensw_codef_transactions set status='classified', cash_id='<새 cash id>' where id='<staging id>';
+-- 자사간 이체 등 넣지 않는 건
+update tensw_codef_transactions set status='ignored' where id='<staging id>';
+```
+
+중복은 `fingerprint` 유니크 인덱스가 막으므로 같은 기간을 다시 동기화해도 안전하다.
+설정·주의사항은 `docs/codef.md`.
+
+### B. Excel/CSV 파일 (윌로우, 외화계좌, CODEF 미연동 계좌)
+
+## Workflow
+
+### Step 1: 파일 파싱 (소스 B)
+1. CEO가 Excel 파일 전달 (텔레그램 → `scripts/logs/tmp/`)
+2. Node.js로 Excel 파싱 (xlsx 라이브러리)
+3. 은행별 컬럼 매핑:
+
+**우리은행**: No. | 거래일시 | 적요 | 기재내용 | 지급(원) | 입금(원) | 거래후 잔액(원) | 취급점 | 메모
+**신한은행**: No | 전체선택 | 거래일시 | 적요 | 입금액 | 출금액 | 내용 | 잔액 | 거래점명 | 입금인코드 | 메모
+
+> 주의: 신한은행은 입금/출금 순서가 우리은행과 반대!
+
+### Step 2: 거래 분류
+각 거래를 위 분류 규칙에 따라 type/amount/counterparty 결정.
+자사 계좌간 이체(운영비이체 등)는 **스킵** (프론트에 불필요).
+
+### Step 3: 중복 체크 후 INSERT
+```sql
+-- 같은 날짜 + 같은 금액 + 같은 거래처가 있으면 스킵. balance_after/transaction_time 반드시 포함!
+INSERT INTO tensw_mgmt_cash (type, counterparty, description, amount, payment_date, status, account_number, balance_after, transaction_time)
+SELECT v.type, v.counterparty, v.description, v.amount, v.payment_date::date, 'completed', v.account_number, v.balance_after, v.transaction_time
+FROM (VALUES (...)) AS v(type, counterparty, description, amount, payment_date, account_number, balance_after, transaction_time)
+WHERE NOT EXISTS (
+  SELECT 1 FROM tensw_mgmt_cash
+  WHERE counterparty = v.counterparty AND amount = v.amount AND payment_date = v.payment_date::date
+);
+```
+> 과거에 balance_after 없이 넣은 행이 있으면 파일의 거래후잔액으로 백필: (payment_date, abs(amount)) 매칭 UPDATE.
+
+### Step 4: 미수금 인보이스 매칭
+입금 내역 중 매출(revenue)로 분류된 건이 있으면, 같은 테이블에서 `status='issued'`인 기존 인보이스와 매칭하여 `status='completed'`로 업데이트.
+```sql
+-- 매칭 기준: counterparty 유사 + amount 일치 + status='issued'
+UPDATE tensw_mgmt_cash SET status = 'completed', payment_date = '입금일'
+WHERE status = 'issued' AND counterparty ILIKE '%거래처%' AND amount = 입금액;
+```
+> 세금계산서(invoice_number 있는 건)도 함께 확인. 오늘 발견한 이슈: 현금관리와 세금계산서가 같은 테이블이지만, 세금계산서 쪽 미수금 처리를 놓칠 수 있음.
+
+### Step 5: Playwright 검증
+DB 업데이트 후 반드시 프론트엔드에서 실제 반영 여부를 확인:
+1. 해당 회사 현금관리 페이지 열기
+2. 추가한 거래가 표시되는지 확인
+3. 표 뷰에서 합계 금액이 정확한지 확인
+4. 미수금 뱃지가 사라졌는지 확인 (Step 4에서 처리한 경우)
+
+### Step 6: 검증 & 보고
+1. 추가된 건수 / 스킵된 건수 보고
+2. 계좌별 잔액 요약
+3. 주요 입출금 하이라이트
+4. 윌로우 ↔ 텐소프트웍스 자금 흐름
+5. 미수금 → 수금완료 처리 건수
+
+## 자주 나오는 거래 패턴
+
+| 키워드 | 분류 | type | 비고 |
+|--------|------|------|------|
+| SBI, CMS | 대출상환 | expense | SBI저축은행 4.8억 |
+| 하나캐피탈 | 리스료 | expense | |
+| 대출이자 + 대출번호 | 이자비용 | expense | account_number에 대출번호 표시 |
+| 김철형대여상환 | 대표 대여금 상환 | liability (-) | |
+| 윌로우대여금/상환 | 관계사 자금 | asset/liability | |
+| 우리카드 | 카드결제 | expense | |
+| 부가세, I-지로 | 세금 | expense | |
+| 삼성세무서 환급 | 부가세 환급 | expense (-) | 비용조정 |
+| 서울특별시체육회 | 용역비 수입 | revenue | |
+| 운영비이체 | 자사간 이체 | **스킵** | 프론트 불필요 |
+| 발급수수료 | 은행 수수료 | expense | |
+| EXCHANGE TRADE | 외화 환전 | 별도 처리 | 외화 계좌 전용 |

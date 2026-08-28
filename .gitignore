@@ -69,3 +69,9 @@ doc/
 __MACOSX
 credentials/
 prod.env
+
+# Codex MCP 설정에 실제 Supabase 액세스 토큰이 들어 있다.
+.codex/
+
+# 외장 exFAT 볼륨에서 macOS 가 만드는 리소스 포크.
+._*
