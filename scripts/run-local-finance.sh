@@ -158,6 +158,44 @@ group() {
   return 1
 }
 
+# 두 회사가 같은 Chrome 과 같은 포인터를 쓴다. 두 실행이 겹치면 뒤엣것이 앞엣것의
+# 화면을 가로챈다 — 08-29 07:20 에 윌로우 홈택스가 텐소 우리은행 보안키패드를 덮어써
+# 인증서 창을 못 찾고 끝났고, 알림은 우리은행 탓으로 보고했다. 예약 시각을 벌려 두는
+# 것만으로는 부족하다: 손으로 되돌리는 실행은 아무 때나 들어오고, 잡이 길어지면
+# 예약 간격도 먹는다. 그래서 회사를 가리지 않고 한 번에 하나만 돈다.
+#
+# shlock 은 락 파일에 PID 를 적고 그 PID 가 죽어 있으면 알아서 뺏는다. 실행이
+# 중간에 죽어도 다음 턴이 영영 막히지 않는다.
+LOCK_FILE="$HOME/.willow/runtime/local-finance.lock"
+LOCK_WAIT_SECONDS="${FINANCE_LOCK_WAIT_SECONDS:-1800}"
+LOCK_HELD=0
+
+release_lock() {
+  [ "$LOCK_HELD" = 1 ] && rm -f "$LOCK_FILE"
+  LOCK_HELD=0
+}
+trap release_lock EXIT
+
+# 앞 실행이 돌고 있으면 기다린다. 건너뛰면 그날 그 소스가 통째로 빈다 — 겹치는
+# 시간은 길어야 몇 분이라 기다리는 편이 싸다.
+acquire_lock() {
+  mkdir -p "$(dirname "$LOCK_FILE")"
+  local waited=0 holder
+  while ! /usr/bin/shlock -f "$LOCK_FILE" -p $$; do
+    holder="$(tr -d ' \n' < "$LOCK_FILE" 2>/dev/null)"
+    if [ "$waited" -ge "$LOCK_WAIT_SECONDS" ]; then
+      echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] 다른 재무 실행(pid ${holder:-?})이 ${LOCK_WAIT_SECONDS}초 안에 끝나지 않았어요." >> "$LOG_FILE"
+      return 1
+    fi
+    [ "$waited" = 0 ] && echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] 다른 재무 실행(pid ${holder:-?})이 끝나기를 기다려요." >> "$LOG_FILE"
+    sleep 20
+    waited=$((waited + 20))
+  done
+  LOCK_HELD=1
+  [ "$waited" -gt 0 ] && echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] ${waited}초 기다린 뒤 시작해요." >> "$LOG_FILE"
+  return 0
+}
+
 # 국세·지방세·4대보험은 회사 공통 원장으로 들어가므로 --company 로 구분한다.
 # 세 곳은 서로 다른 사이트라 하나가 막혀도 나머지는 받을 수 있다.
 collect_wetax() {
@@ -342,7 +380,11 @@ export TELEGRAM_BOT_TOKEN="$(env_value TELEGRAM_BOT_TOKEN)"
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance start${ONLY:+ (only: $ONLY)}" >> "$LOG_FILE"
 rm -f "$STEP_FILE"
-if [ -n "$ONLY" ]; then run_only "$ONLY"
+if ! acquire_lock; then
+  # 화면을 못 잡았으면 아무것도 돌리지 않는다. 겹친 채로 도는 것보다 낫다 —
+  # 겹치면 엉뚱한 실패가 남아 진짜 원인을 가린다.
+  FAILED_STEPS="다른 재무 실행과 겹쳐 건너뜀"
+elif [ -n "$ONLY" ]; then run_only "$ONLY"
 elif [ "$COMPANY" = "tensw" ]; then run_tensw
 else run_willow; fi
 

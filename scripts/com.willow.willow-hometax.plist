@@ -10,6 +10,8 @@
        계산서를 뒤가 쓰는 매칭·자동 분류·아크로스 인보이스 반영도 함께 붙였다 — 4시에 돌면
        하루 묵은 계산서를 보게 된다.
        두 회사가 같은 Chrome 과 같은 포인터를 쓰므로 시간을 겹치지 않게 띄운다.
+       텐소 잡에 세금계산서가 붙으면서 07:00 턴이 13분까지 늘어 07:20 과의 간격이
+       얇아졌다(08-29 실제 충돌). 40분으로 벌린다 — 겹쳐도 러너의 락이 받아 준다.
        --notify: 하루치 요약은 여기서 한 통만 나간다. 04시 턴이 남긴 실패도 합쳐서. -->
   <key>ProgramArguments</key>
   <array>
@@ -28,7 +30,7 @@
     <key>Hour</key>
     <integer>7</integer>
     <key>Minute</key>
-    <integer>20</integer>
+    <integer>40</integer>
   </dict>
   <key>StandardOutPath</key>
   <string>/Users/dongwookkim/logs/willow-local-finance/launchd.log</string>
