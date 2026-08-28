@@ -333,9 +333,9 @@ test('role 이 비어 있으면 관리자가 아니다', () => {
 
 // ─── 발행 판정 ─────────────────────────────────────────────────────────────────
 
-test('자체 관리자 화면이 있는 앱에는 여기서 쓰지 않는다', () => {
-  assert.equal(publishGuard(spec('scripta'), { channel: null }, '답변'), 'read-only-app')
-  assert.equal(publishGuard(spec('reviewnotes'), { channel: null }, '답변'), 'read-only-app')
+test('네 앱 모두 여기서 답한다', () => {
+  assert.equal(publishGuard(spec('scripta'), { channel: null }, '답변'), 'ok')
+  assert.equal(publishGuard(spec('reviewnotes'), { channel: null }, '답변'), 'ok')
   assert.equal(publishGuard(spec('voicecards'), { channel: 'app' }, '답변'), 'ok')
   assert.equal(publishGuard(spec('portle'), { channel: 'app' }, '답변'), 'ok')
 })
@@ -343,12 +343,21 @@ test('자체 관리자 화면이 있는 앱에는 여기서 쓰지 않는다', (
 test('spec 목록이 쓰기 권한을 그대로 들고 있다', () => {
   assert.deepEqual(
     INQUIRY_APPS.map(a => [a.key, a.writable]),
-    [['voicecards', true], ['portle', true], ['scripta', false], ['reviewnotes', false]],
+    [['voicecards', true], ['portle', true], ['scripta', true], ['reviewnotes', true]],
   )
-  // 읽기 전용 앱에는 나가는 길이 반드시 있어야 한다 — 없으면 답할 곳이 사라진다.
+  // 자체 화면이 있는 앱은 그 주소를 들고 있어야 한다 — 여기서 답할 수 있게 된
+  // 뒤에도, 같은 문의를 그쪽에서 보고 있을 수 있으니 건너갈 길은 남는다.
   for (const a of INQUIRY_APPS) {
-    if (!a.writable) assert.ok(a.adminUrl && a.adminUrl.startsWith('https://'), a.key)
+    if (a.adminUrl !== null) assert.ok(a.adminUrl.startsWith('https://'), a.key)
   }
+})
+
+test('읽기 전용 판정은 남아 있다 — 앱이 다시 닫힐 수 있다', () => {
+  // writable 을 끄면 곧바로 막혀야 한다. 판정 자체를 지우면 그 스위치가 죽는다.
+  assert.equal(
+    publishGuard({ ...spec('scripta'), writable: false }, { channel: null }, '답변'),
+    'read-only-app',
+  )
 })
 
 test('구버전 이메일 스레드에는 쓰지 않는다 — 써도 고객이 못 본다', () => {

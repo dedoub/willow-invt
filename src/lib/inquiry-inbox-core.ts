@@ -82,11 +82,19 @@ export interface InquiryAppSpec {
   threadTable: string
   messageTable: string
   /**
-   * 여기서 답을 쓸 수 있는가. 자체 관리자 화면이 없는 앱(보이스카드·포틀)만 true.
-   * 스크립타·리뷰노트는 이미 발행 경로가 하나 있고, 두 번째 필자는 언젠가 갈라진다.
+   * 여기서 답을 쓸 수 있는가. 네 앱 모두 true 다.
+   *
+   * 스크립타·리뷰노트에도 보이스카드와 같은 `publish_inquiry_reply` 를 만들어
+   * 두고 대시보드는 그것만 부른다 — 메시지 삽입과 미읽음 플래그가 한 트랜잭션
+   * 안에서 함께 서거나 함께 되돌아간다.
+   *
+   * 다만 두 앱의 자체 관리자 화면은 아직 제 코드로 쓴다(리뷰노트는 Prisma
+   * create + update 두 문장, 스크립타는 inquiry-writers). 그래서 지금 이 두 앱에는
+   * 필자가 둘이다. 발행 순서가 갈라지면 한쪽만 낡는다 — 두 앱의 발행 라우트를
+   * 이 함수로 옮기는 것이 남은 일이다.
    */
   writable: boolean
-  /** 자체 관리자 화면 주소 — 읽기 전용 앱의 나가는 길 */
+  /** 자체 관리자 화면 주소. 답은 여기서도 되지만, 그쪽으로 건너갈 길은 남긴다. */
   adminUrl: string | null
   thread: ThreadColumns
   message: MessageColumns
@@ -150,7 +158,7 @@ export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
     threadTable: 'scripta_inquiry_threads',
     messageTable: 'scripta_inquiry_messages',
     draft: SNAKE_DRAFT,
-    writable: false,
+    writable: true,
     adminUrl: 'https://scripta.quest/admin/inquiries',
     thread: {
       id: 'id', person: 'user_id', channel: null,
@@ -173,7 +181,7 @@ export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
     // 초안 칸도 Prisma 이름 그대로다. "draftAt" 은 timestamp without time zone 이라
     // toInstant 로 UTC 를 붙여야 KST 화면에서 아홉 시간 어긋나지 않는다.
     draft: { body: 'draftBody', at: 'draftAt' },
-    writable: false,
+    writable: true,
     adminUrl: 'https://reviewnotes.app/admin/inquiries',
     thread: {
       id: 'id', person: 'userId', channel: null,
