@@ -90,6 +90,9 @@ export const NAV_GROUPS: NavGroup[] = [
     adminOnly: true,
     items: [
       { id: 'users', href: '/admin/users', label: '사용자 관리', icon: 'user' },
+      // 세 앱 요율을 한 화면에서. 각 앱의 자체 화면은 그대로 두고, 여기는 같은
+      // 판매가를 쓰는 셋을 나란히 놓고 보는 자리다.
+      { id: 'rates', href: '/admin/rates', label: '크레딧 요율', icon: 'tag' },
     ],
   },
 ]
