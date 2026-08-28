@@ -7,7 +7,8 @@ import { portleSupabase } from '@/lib/portle-supabase'
 import { scriptaSupabase } from '@/lib/scripta-supabase'
 import { reviewnotesSupabase } from '@/lib/reviewnotes-supabase'
 import {
-  INQUIRY_APPS, loadAppThreads, loadThreadDraft, loadThreadMessages,
+  INQUIRY_APPS, attachPeople, loadAppThreads, loadThreadDraft, loadThreadMessages,
+  type PersonInfo,
   type InquiryAppKey, type InquiryAppResult, type InquiryAppSpec,
   type InquiryDraftDto, type InquiryMessageDto, type SelectPage,
   clearDraft,
@@ -64,12 +65,67 @@ function missingClient(spec: InquiryAppSpec): InquiryAppResult {
   return { app: spec.key, status: 'error', message: `${spec.label} Supabase 미설정 (${ENV_HINT[spec.key]})` }
 }
 
+/**
+ * 문의자의 이름·이메일. 스레드에는 id 만 있어 화면에 짧은 해시가 뜨는데, 그것만
+ * 보고는 누구에게 답하는지 알 수 없다.
+ *
+ * <b>실패해도 던지지 않는다.</b> 신원을 못 읽은 것과 문의를 못 읽은 것은 무게가
+ * 다르다 — 여기서 던지면 이름을 못 찾았다는 이유로 문의함 전체가 빈다.
+ */
+async function loadPeople(
+  spec: InquiryAppSpec,
+  db: SupabaseClient,
+  ids: readonly string[],
+): Promise<Map<string, PersonInfo>> {
+  const found = new Map<string, PersonInfo>()
+  if (!spec.people || ids.length === 0) return found
+
+  try {
+    if (spec.people === 'auth') {
+      // 인증 사용자는 표가 아니라 관리 API 로 읽는다(auth 스키마는 PostgREST 에
+      // 열려 있지 않다). 한 명씩 부르지만 문의를 연 사람 수만큼이라 몇 건이다.
+      const users = await Promise.all(ids.map(id => db.auth.admin.getUserById(id)))
+      users.forEach(({ data, error }, i) => {
+        if (error || !data?.user) return
+        const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>
+        const name = meta.full_name ?? meta.name
+        found.set(ids[i], {
+          name: typeof name === 'string' ? name : null,
+          email: data.user.email ?? null,
+        })
+      })
+      return found
+    }
+
+    const { table, idColumn, emailColumn, nameColumn } = spec.people
+    const columns = [idColumn, emailColumn, nameColumn].filter(Boolean).join(',')
+    const { data, error } = await db.from(table).select(columns).in(idColumn, [...ids])
+    if (error) throw new Error(`${error.code ?? '?'}: ${error.message}`)
+    for (const row of (data ?? []) as unknown as Record<string, unknown>[]) {
+      const id = row[idColumn]
+      if (typeof id !== 'string') continue
+      const name = nameColumn ? row[nameColumn] : null
+      const email = row[emailColumn]
+      found.set(id, {
+        name: typeof name === 'string' ? name : null,
+        email: typeof email === 'string' ? email : null,
+      })
+    }
+  } catch (err) {
+    console.error(`[inquiry] ${spec.key} 문의자 신원을 못 읽었다:`, err)
+  }
+  return found
+}
+
 /** 네 앱 전부. 한 앱이 깨져도 나머지는 나온다 — 깨진 앱은 error 로 표시된다. */
 export async function loadInquiryInbox(): Promise<InquiryAppResult[]> {
-  return Promise.all(INQUIRY_APPS.map(spec => {
+  return Promise.all(INQUIRY_APPS.map(async spec => {
     const db = CLIENTS[spec.key]
-    if (!db) return Promise.resolve(missingClient(spec))
-    return loadAppThreads(spec, selectPageVia(spec.key, db))
+    if (!db) return missingClient(spec)
+    const result = await loadAppThreads(spec, selectPageVia(spec.key, db))
+    if (result.status !== 'ok') return result
+    const ids = [...new Set(result.threads.map(t => t.personId).filter((v): v is string => !!v))]
+    return { ...result, threads: attachPeople(result.threads, await loadPeople(spec, db, ids)) }
   }))
 }
 

@@ -74,6 +74,11 @@ interface DraftColumns {
   at: string
 }
 
+/** 신원을 어느 표의 어느 칸에서 읽는지. 'auth' 는 Supabase 인증 사용자. */
+export type PeopleSource =
+  | 'auth'
+  | { table: string; idColumn: string; emailColumn: string; nameColumn: string | null }
+
 export interface InquiryAppSpec {
   key: InquiryAppKey
   label: string
@@ -102,6 +107,15 @@ export interface InquiryAppSpec {
   draft: DraftColumns
   /** DB에 저장된 sender 값. 리뷰노트만 대문자다. */
   senderValues: Record<InquirySender, string>
+  /**
+   * 문의자가 누구인지 찾는 곳. 스레드에는 id 만 있어 화면에 짧은 해시가 뜨는데,
+   * 그것만 보고는 누구에게 답하는지 알 수 없다.
+   *
+   * `'auth'` 는 Supabase 인증 사용자에서 찾는다는 뜻이다 — 스크립타는 제 users
+   * 표가 없다. `null` 은 찾을 곳이 없다는 뜻이고(포틀의 subject 는 그 자체가
+   * 신원이다), 그때는 화면이 id 를 그대로 보여 준다.
+   */
+  people: PeopleSource | null
 }
 
 const SNAKE_MESSAGE: MessageColumns = {
@@ -131,6 +145,8 @@ export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
     },
     message: SNAKE_MESSAGE,
     senderValues: { user: 'user', support: 'support' },
+    // 보이스카드 계정 id 가 users.user_id 다.
+    people: { table: 'users', idColumn: 'user_id', emailColumn: 'email', nameColumn: 'nickname' },
   },
   {
     key: 'portle',
@@ -150,6 +166,8 @@ export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
     },
     message: SNAKE_MESSAGE,
     senderValues: { user: 'user', support: 'support' },
+    // subject 자체가 신원이다(google:… / device:…). 이메일을 둔 표가 없다.
+    people: null,
   },
   {
     key: 'scripta',
@@ -168,6 +186,8 @@ export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
     },
     message: SNAKE_MESSAGE,
     senderValues: { user: 'user', support: 'support' },
+    // 스크립타는 제 users 표가 없다 — 인증 사용자에서 찾는다.
+    people: 'auth',
   },
   {
     key: 'reviewnotes',
@@ -194,6 +214,7 @@ export const INQUIRY_APPS: readonly InquiryAppSpec[] = [
     },
     // Prisma enum "InquirySender" — 대문자다. 라이브 조회로 확인(소문자는 22P02).
     senderValues: { user: 'USER', support: 'SUPPORT' },
+    people: { table: 'User', idColumn: 'id', emailColumn: 'email', nameColumn: 'name' },
   },
 ] as const
 
@@ -211,6 +232,9 @@ export interface InquiryThreadDto {
   id: string
   /** 스키마가 이미 들고 있는 신원값. 이메일이 아니다. */
   personId: string | null
+  /** 사람이 읽을 이름·이메일. 찾지 못하면 null 이고 화면은 id 로 되돌아간다. */
+  personName: string | null
+  personEmail: string | null
   channel: string | null
   createdAt: string
   lastMessageAt: string
@@ -230,7 +254,7 @@ export interface InquiryMessageDto {
 
 /** DTO 가 가진 키의 전부. 시험이 이 목록과 정확히 대조한다. */
 export const THREAD_DTO_KEYS: readonly string[] = [
-  'app', 'id', 'personId', 'channel', 'createdAt', 'lastMessageAt',
+  'app', 'id', 'personId', 'personName', 'personEmail', 'channel', 'createdAt', 'lastMessageAt',
   'unreadForAdmin', 'unreadForUser', 'appVersion', 'platform', 'locale',
 ]
 
@@ -277,6 +301,9 @@ export function toThreadDto(spec: InquiryAppSpec, row: InquiryRow): InquiryThrea
     app: spec.key,
     id: req(row[c.id], `${spec.key} 스레드 id`),
     personId: str(row[c.person]),
+    // 신원은 다른 표에 있다. 목록을 받은 뒤 attachPeople 이 채운다.
+    personName: null,
+    personEmail: null,
     channel: c.channel ? str(row[c.channel]) : null,
     createdAt: toInstant(req(row[c.createdAt], `${spec.key} created_at`)),
     lastMessageAt: toInstant(req(row[c.lastMessageAt], `${spec.key} last_message_at`)),
@@ -433,6 +460,36 @@ export async function loadAppThreads(
   } catch (err) {
     return { app: spec.key, status: 'error', message: err instanceof Error ? err.message : String(err) }
   }
+}
+
+/** 찾아낸 신원. 둘 다 없으면 그 사람은 표에서 사라진 것이다. */
+export interface PersonInfo {
+  name: string | null
+  email: string | null
+}
+
+/**
+ * 스레드에 신원을 붙인다. 조회는 부르는 쪽이 하고 여기서는 붙이기만 한다 —
+ * 붙이는 규칙(빈 문자열은 없는 것과 같다, 못 찾으면 그대로 둔다)이 시험 대상이다.
+ */
+export function attachPeople(
+  threads: readonly InquiryThreadDto[],
+  people: ReadonlyMap<string, PersonInfo>,
+): InquiryThreadDto[] {
+  return threads.map(thread => {
+    const found = thread.personId ? people.get(thread.personId) : undefined
+    if (!found) return thread
+    const clean = (v: string | null) => {
+      const trimmed = (v ?? '').trim()
+      return trimmed === '' ? null : trimmed
+    }
+    return { ...thread, personName: clean(found.name), personEmail: clean(found.email) }
+  })
+}
+
+/** 화면에 세울 이름. 이름 → 이메일 → id 순으로 물러난다. */
+export function personLabel(thread: InquiryThreadDto): string {
+  return thread.personName ?? thread.personEmail ?? thread.personId ?? '—'
 }
 
 /** 한 스레드의 메시지 전량 — 오래된 것부터. */

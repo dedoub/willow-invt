@@ -8,7 +8,7 @@ import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import {
-  shouldSeedDraft, sortThreads,
+  personLabel, shouldSeedDraft, sortThreads,
   type InquiryAppKey, type InquiryAppResult, type InquiryDraftDto,
   type InquiryMessageDto, type InquiryThreadDto,
 } from '@/lib/inquiry-inbox-core'
@@ -243,7 +243,7 @@ export function InquiryInbox() {
                   fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.muted,
                   fontFamily: t.font.mono, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
-                  {shortId(th.personId)}
+                  {personLabel(th) === th.personId ? shortId(th.personId) : personLabel(th)}
                   {th.platform ? ` · ${th.platform}` : ''}
                   {th.appVersion ? ` ${th.appVersion}` : ''}
                   {th.locale ? ` · ${th.locale}` : ''}
@@ -267,8 +267,17 @@ export function InquiryInbox() {
           <>
             <LSectionHead
               eyebrow={selectedMeta?.label ?? selectedThread.app}
-              title={shortId(selectedThread.personId)}
-              meta={`${fmt(selectedThread.createdAt)} 시작 · 마지막 ${fmt(selectedThread.lastMessageAt)}`}
+              title={personLabel(selectedThread) === selectedThread.personId
+                ? shortId(selectedThread.personId)
+                : personLabel(selectedThread)}
+              // 이름을 세웠으면 이메일이 그 다음 단서다. 이름이 없어 이메일이
+              // 이미 제목이면 두 번 적지 않는다. id 는 항상 남긴다 — 지원 문의를
+              // DB 에서 되짚을 때 쓰는 건 결국 id 다.
+              meta={[
+                selectedThread.personEmail && selectedThread.personName ? selectedThread.personEmail : null,
+                shortId(selectedThread.personId),
+                `${fmt(selectedThread.createdAt)} 시작 · 마지막 ${fmt(selectedThread.lastMessageAt)}`,
+              ].filter(Boolean).join(' · ')}
               action={selectedMeta?.adminUrl
                 ? <LHeadBtn icon="forward" label="자체 관리자" title={`${selectedMeta.label} 관리자 화면에서 답한다`} href={selectedMeta.adminUrl} />
                 : undefined}

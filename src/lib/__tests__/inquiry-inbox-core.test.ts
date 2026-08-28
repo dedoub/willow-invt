@@ -3,7 +3,8 @@ import test from 'node:test'
 
 import {
   ADMIN_GATE_STATUS, DRAFT_DTO_KEYS, INQUIRY_APPS, MAX_PAGES, PAGE_SIZE, THREAD_DTO_KEYS,
-  adminGate, appSpec, draftColumns, loadAppThreads, loadThreadDraft, loadThreadMessages,
+  adminGate, appSpec, attachPeople, draftColumns, loadAppThreads, loadThreadDraft, loadThreadMessages,
+  personLabel,
   messageColumns, publishGuard, selectAllPages, shouldSeedDraft, sortThreads, toDraftDto,
   toInstant, toMessageDto, toThreadDto,
   type InquiryRow, type SelectPageArgs, type InquiryThreadDto, type InquiryMessageDto,
@@ -177,7 +178,7 @@ test('모르는 sender 는 기본값으로 접지 않고 던진다', () => {
 // ─── 정렬 ─────────────────────────────────────────────────────────────────────
 
 const th = (id: string, unread: boolean, at: string): InquiryThreadDto => ({
-  app: 'voicecards', id, personId: 'p', channel: 'app',
+  app: 'voicecards', id, personId: 'p', personName: null, personEmail: null, channel: 'app',
   createdAt: at, lastMessageAt: at,
   unreadForAdmin: unread, unreadForUser: false,
   appVersion: null, platform: null, locale: null,
@@ -329,6 +330,34 @@ test('role 이 비어 있으면 관리자가 아니다', () => {
   assert.equal(adminGate({ role: '' }), 'forbidden')
   assert.equal(adminGate({ role: undefined }), 'forbidden')
   assert.equal(adminGate({ role: null }), 'forbidden')
+})
+
+// ─── 문의자 신원 ───────────────────────────────────────────────────────────────
+
+const T0 = '2026-08-28T01:00:00+00:00'
+
+test('신원을 찾으면 붙이고, 못 찾으면 그대로 둔다', () => {
+  const rows = [th('a', false, T0), { ...th('b', false, T0), personId: 'other' }]
+  const found = attachPeople(rows, new Map([['p', { name: '김동욱', email: 'dw@example.com' }]]))
+  assert.equal(found[0].personName, '김동욱')
+  assert.equal(found[0].personEmail, 'dw@example.com')
+  // 표에서 사라진 사람은 id 만 남는다 — 빈 이름을 지어내지 않는다.
+  assert.equal(found[1].personName, null)
+  assert.equal(found[1].personEmail, null)
+})
+
+test('빈 문자열은 없는 것과 같다 — 공백 이름을 화면에 세우지 않는다', () => {
+  const found = attachPeople([th('a', false, T0)], new Map([['p', { name: '  ', email: '' }]]))
+  assert.equal(found[0].personName, null)
+  assert.equal(found[0].personEmail, null)
+})
+
+test('이름 → 이메일 → id 순으로 물러난다', () => {
+  const base = th('a', false, T0)
+  assert.equal(personLabel({ ...base, personName: '김동욱', personEmail: 'dw@example.com' }), '김동욱')
+  assert.equal(personLabel({ ...base, personEmail: 'dw@example.com' }), 'dw@example.com')
+  assert.equal(personLabel(base), 'p')
+  assert.equal(personLabel({ ...base, personId: null }), '—')
 })
 
 // ─── 발행 판정 ─────────────────────────────────────────────────────────────────

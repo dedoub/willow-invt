@@ -129,7 +129,7 @@ export default function RatesPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       <LCard>
         <LSectionHead
-          title="크레딧 요율"
+          title="AI 크레딧"
           meta={`판매가 크레딧당 $${(MICROS_PER_CREDIT / 1_000_000).toFixed(4)} · 목표 마진 ${MARGIN_BAND[0] * 100}~${MARGIN_BAND[1] * 100}%`}
           note="저장하면 배포 없이 그 앱에 바로 걸린다"
           action={<LHeadBtn icon="refresh" title="다시 읽기" onClick={load} busy={refreshing} />}

@@ -57,7 +57,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'inquiries', href: '/inquiries', label: '고객문의함', icon: 'message' },
       // 세 앱 요율을 한 화면에서. 각 앱의 자체 화면은 그대로 두고, 여기는 같은
       // 판매가를 쓰는 셋을 나란히 놓고 보는 자리다.
-      { id: 'rates', href: '/admin/rates', label: '크레딧 요율', icon: 'coin' },
+      { id: 'rates', href: '/admin/rates', label: 'AI 크레딧', icon: 'coin' },
     ],
   },
   {
