@@ -24,7 +24,7 @@ export interface VoicecardsDeviceJourneyMeta {
 }
 
 // Next의 persistent unstable_cache는 배포 사이에도 남을 수 있어 응답 스키마 변경 시 키를 올린다.
-export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v7'
+export const VOICECARDS_USER_STATS_CACHE_KEY = 'voicecards-user-stats-v8'
 
 export interface VoicecardsAnonymousLearningRow {
   device_id: string | null

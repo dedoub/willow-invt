@@ -23,6 +23,7 @@ import {
   type VoicecardsLocalAssets,
   type VoicecardsLocalSheetRow,
 } from '@/lib/voicecards-local-assets'
+import { buildVoicecardsCurrentCardMaps } from '@/lib/voicecards-current-inventory'
 
 // Supabase 클라이언트 (service_role) — willow-dash credentials/cache 저장
 const supabase = createClient(
@@ -1158,14 +1159,9 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // total_cards 100을 만들어 "활성화"로 과대 분류되는 것을 막는다(예: sollunamola).
   // '카드' 컬럼/총계는 기존 정의(데모 포함) 유지.
   const userAttemptsMap = new Map<string, number>()
-  const userCardsMap = new Map<string, number>()
-  const userOwnCardsMap = new Map<string, number>()
+  const { cards: userCardsMap, ownCards: userOwnCardsMap } = buildVoicecardsCurrentCardMaps(users, analytics)
   for (const a of analytics) {
     userAttemptsMap.set(a.user_id, (userAttemptsMap.get(a.user_id) || 0) + (Number(a.total_attempts) || 0))
-    userCardsMap.set(a.user_id, (userCardsMap.get(a.user_id) || 0) + (Number(a.total_cards) || 0))
-    if (!String(a.sheet_id || '').startsWith('demo-')) {
-      userOwnCardsMap.set(a.user_id, (userOwnCardsMap.get(a.user_id) || 0) + (Number(a.total_cards) || 0))
-    }
   }
 
   const totalCredits = users.reduce((sum, u) => sum + (u.credits || 0), 0)
@@ -1194,7 +1190,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, v]) => ({ date, cardsLearned: v.cardsLearned, attempts: v.attempts }))
 
-  // 보유 카드 합계 (user_analytics.total_cards 사용자별 합산)
+  // 보유 카드 합계 (현재 users.sheet_ids에 남아 있는 user_analytics 행만 합산)
   let totalCards = Array.from(userCardsMap.values()).reduce((sum, n) => sum + n, 0)
   // 누적 말하기 시도 (user_analytics.total_attempts 합) — 사용자 리스트 "말하기" 합과 일치
   let totalAttempts = Array.from(userAttemptsMap.values()).reduce((sum, n) => sum + n, 0)

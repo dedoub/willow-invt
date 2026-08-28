@@ -79,7 +79,7 @@ test('device account display name uses the UUID rather than the device prefix', 
 
 test('user stats cache key is versioned when the response schema changes', async () => {
   const helpers = await loadJourneyHelpers()
-  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v7')
+  assert.equal(helpers.VOICECARDS_USER_STATS_CACHE_KEY, 'voicecards-user-stats-v8')
 })
 
 test('device learning activation uses the local deck creation time', async () => {
