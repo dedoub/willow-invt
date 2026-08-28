@@ -73,8 +73,14 @@ export const APPS: AppRates[] = [
     key: 'voicecards',
     label: 'VoiceCards',
     table: 'public.ai_rates',
-    // 원가 로그가 없다. 대신 Google TTS 공급가가 문자·바이트당으로 공개돼 있어
+    // TTS 는 원가 로그가 없다. 대신 Google 공급가가 문자·바이트당으로 공개돼 있어
     // 요율에서 바로 원가가 나온다 — 실측보다 약하지만 띠를 벗어나면 보인다.
+    // 카드 생성·AI 채점은 Gemini 원가라 정가를 못 쓴다. 생성 쪽은 원장에 토큰이
+    // 쌓이고 있으니(generate-cards 가 tokens_in/out 을 남긴다) 실측을 붙일 수 있다.
+    //
+    // 세 요율이 붙는 자리가 서로 다르다. TTS 는 앱이 시작할 때 읽어가므로 새 빌드가
+    // 나가야 바뀌고, 생성·채점은 엣지 함수가 차감 직전에 읽으므로 표만 고치면
+    // 5분 안에 붙는다(각 함수의 rateRules.ts).
     entries: [
       {
         key: 'ttsUnits.premium',
@@ -91,6 +97,27 @@ export const APPS: AppRates[] = [
         fallback: 50,
         hint: 'Chirp3-HD. 이 <b>바이트</b> 수당 1크레딧(한글 한 자는 3바이트). 공급가 $30/100만.',
         listMicrosPerCredit: (units) => units * 30,
+      },
+      {
+        key: 'generation.creditsPerCard',
+        label: '카드 생성',
+        unit: 'credits',
+        fallback: 1,
+        hint: 'AI 로 카드를 만든다. 요청한 장당. 적게 나오면 그만큼 돌려준다.',
+      },
+      {
+        key: 'grading.creditsPerMinute',
+        label: 'AI 채점',
+        unit: 'credits',
+        fallback: 1,
+        hint: '말하기 답을 채점한다. 시작된 1분당.',
+      },
+      {
+        key: 'grading.maxCredits',
+        label: 'AI 채점 상한',
+        unit: 'credits',
+        fallback: 3,
+        hint: '한 번 채점에 이보다 더 받지 않는다. 옛 180초 녹음 때문에 둔 상한이다.',
       },
     ],
   },
