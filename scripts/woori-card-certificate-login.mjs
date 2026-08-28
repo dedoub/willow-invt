@@ -18,7 +18,8 @@ import {
 import {
   captureScreen, clickSettled, nativeWindows, ocrScreenshot, selectEnglishInputSource,
 } from './lib/desktop.mjs'
-import { buttonPoint, windowRect } from './lib/cert-dialog.mjs'
+import { anchoredPoint, buttonPoint, certificateRowPoint, windowRect } from './lib/cert-dialog.mjs'
+import { financeIdentity } from './lib/tensw-local-finance.mjs'
 
 const execFileAsync = promisify(execFile)
 const CLICLICK = '/opt/homebrew/bin/cliclick'
@@ -153,9 +154,19 @@ const KEYPAD_CLEAR = { x: 1205, y: 485 }
 const KEYPAD_CLOSE = { x: 1252, y: 416 }
 // The keypad has a Shift at each end; the left one is the one that works.
 const SHIFT_KEY = { x: 1205, y: 644 }
-const CERT_DIALOG_BANNER = { x: 938, y: 300 }
-const CERT_ROW_TENSW = { x: 938, y: 575 }
-const PASSWORD_FIELD = { x: 938, y: 727 }
+const IDENTITY = financeIdentity()
+// 인증서 줄과 암호 칸은 좌표로 잡지 않는다. 창이 조금만 밀려도 윗줄(윌로우)을 눌러
+// 남의 인증서에 텐소 암호를 넣게 되고, 그건 거부 한 번 = 5회 잠금에 한 칸 다가서는
+// 일이다. 실제로 08-29 목록에서 두 줄은 30px 간격인데 고정 y=575 는 텐소 줄 위아래로
+// 9px 여유밖에 없었다. 같은 파일 안에서도 키패드 좌표는 keypadOffset() 으로 창 위치를
+//따라가는데 이 좌표들만 절대값이었다 — 어긋남이 간헐적 거부로 나타났다.
+// 다른 사이트(login-native-cert.mjs)가 쓰는 방법 그대로, 화면을 읽어 소유자 이름으로
+// 줄을 고른다. 두 줄이 걸리면 certificateRowPoint 가 찍지 않고 멈춘다.
+const CERT_DIALOG_WINDOW = 'Form'
+// 창을 세우는 데 버리는 첫 클릭. 창 안 배너 자리라 창을 따라 움직인다.
+const BANNER_OFFSET = { dx: 0, dy: 85 }
+// "인증서 암호를 입력해 주세요" 안내 문구에서 암호 칸까지의 거리.
+const PASSWORD_FIELD_ANCHOR = { anchor: '인증서 암호', dx: 196, dy: 46 }
 // The commit key is the right-hand ENTER.
 const KEYPAD_ENTER = { x: 705, y: 602 }
 const CERT_CANCEL = { x: 1014, y: 821 }
@@ -267,6 +278,32 @@ async function dismissModuleAlert() {
   await clickSettled(point.x, point.y)
   await sleep(1_200)
   console.log('[woori-card-login] 이전 오류 알림을 닫았어요.')
+}
+
+/** 인증서 창을 그림으로 읽는다. 창 위치가 바뀌어도 좌표가 따라간다. */
+async function readCertDialog() {
+  const window = (await nativeWindows('bizapp')).find(item => item.name === CERT_DIALOG_WINDOW)
+  if (!window) throw new Error('우리카드 인증서 창을 찾지 못했어요.')
+  const items = await ocrScreenshot(await captureScreen(SCREENSHOT))
+  return { within: windowRect(window), items }
+}
+
+function bannerPoint(rect) {
+  return {
+    x: Math.round(rect.x + rect.w / 2 + BANNER_OFFSET.dx),
+    y: Math.round(rect.y + BANNER_OFFSET.dy),
+  }
+}
+
+/**
+ * 텐소프트웍스 인증서 줄을 눌러 고른다. 목록에 윌로우 인증서가 함께 있으므로
+ * 자리가 아니라 이름으로 찾는다 — 잘못 고르면 암호가 맞아도 거부되고, 거부는
+ * 인증서 5회 잠금 카운터를 태운다.
+ */
+async function clickCertificateRow(dialog) {
+  const row = certificateRowPoint(dialog.items, IDENTITY.certificateRowKeywords, { within: dialog.within })
+  console.log(`[woori-card-login] 인증서 줄 선택: ${IDENTITY.certificateRowKeywords.join('/')} (${row.x},${row.y})`)
+  await clickSettled(row.x, row.y)
 }
 
 async function typeCertificatePassword({ dryRun = false } = {}) {
@@ -425,9 +462,11 @@ async function run() {
 
   // The dialog swallows the first click raising itself, so it is spent on the
   // banner. Then the Tensoftworks row, then the field that opens the keypad.
-  await clickSettled(CERT_DIALOG_BANNER.x, CERT_DIALOG_BANNER.y)
+  let dialog = await readCertDialog()
+  await clickSettled(...Object.values(bannerPoint(dialog.within)))
   await sleep(400)
-  await clickSettled(CERT_ROW_TENSW.x, CERT_ROW_TENSW.y)
+  dialog = await readCertDialog()
+  await clickCertificateRow(dialog)
   await sleep(600)
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -439,13 +478,16 @@ async function run() {
       await dismissModuleAlert()
       await closeCertificateDialog()
       await openCertificateDialog()
-      await clickSettled(CERT_DIALOG_BANNER.x, CERT_DIALOG_BANNER.y)
+      dialog = await readCertDialog()
+      await clickSettled(...Object.values(bannerPoint(dialog.within)))
       await sleep(400)
-      await clickSettled(CERT_ROW_TENSW.x, CERT_ROW_TENSW.y)
+      dialog = await readCertDialog()
+      await clickCertificateRow(dialog)
       await sleep(600)
     }
 
-    await clickSettled(PASSWORD_FIELD.x, PASSWORD_FIELD.y)
+    const field = anchoredPoint(dialog.items, PASSWORD_FIELD_ANCHOR, { within: dialog.within })
+    await clickSettled(field.x, field.y)
     await sleep(2_500)
 
     const result = await typeCertificatePassword({ dryRun: DRY_RUN })
