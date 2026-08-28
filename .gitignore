@@ -75,3 +75,6 @@ prod.env
 
 # 외장 exFAT 볼륨에서 macOS 가 만드는 리소스 포크.
 ._*
+
+# Supabase CLI 가 자기 최신 버전을 적어 두는 임시 파일. 돌릴 때마다 바뀐다.
+supabase/.temp/
