@@ -7,6 +7,8 @@ import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-sec
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
+import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import {
   personLabel, shouldSeedDraft, sortThreads,
   type InquiryAppKey, type InquiryAppResult, type InquiryDraftDto,
@@ -186,11 +188,11 @@ export function InquiryInbox() {
           action={<LHeadBtn icon="refresh" title="새로고침" onClick={loadList} busy={loading} />}
         />
 
-        {loadError && <Notice tone="danger" text={`목록을 불러오지 못했다 — ${loadError}`} />}
+        {loadError && <LNotice tone="danger" text={`목록을 불러오지 못했다 — ${loadError}`} />}
 
         {/* 깨진 조회는 절대 0건으로 그리지 않는다. 앱별로 따로 말한다. */}
         {broken.map(b => (
-          <Notice key={b.app} tone="danger" text={`${b.app} 조회 실패 — ${b.message}`} />
+          <LNotice key={b.app} tone="danger" text={`${b.app} 조회 실패 — ${b.message}`} />
         ))}
 
         {!loading && !loadError && threads.length === 0 && broken.length === 0 && (
@@ -201,6 +203,10 @@ export function InquiryInbox() {
             네 앱 모두 조회에 성공했고, 문의는 아직 없다
           </div>
         )}
+
+        {/* 첫 조회는 뼈대로 기다린다. 다시 읽기는 이미 있는 목록을 그대로 두고
+            헤더의 회전만 돈다 — 목록이 사라졌다 나타나면 읽던 자리를 잃는다. */}
+        {loading && threads.length === 0 && <InboxSkeleton />}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
           {threads.map(th => {
@@ -224,7 +230,7 @@ export function InquiryInbox() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: 3 }}>
                   <span style={{
-                    width: 6, height: 6, borderRadius: 999, flexShrink: 0,
+                    width: 6, height: 6, borderRadius: t.radius.pill, flexShrink: 0,
                     background: meta?.dot ?? t.neutrals.subtle,
                   }} />
                   <span style={{
@@ -283,17 +289,17 @@ export function InquiryInbox() {
                 : undefined}
             />
 
-            {convoError && <Notice tone="danger" text={`대화를 불러오지 못했다 — ${convoError}`} />}
-            {convoLoading && <Notice tone="info" text="대화를 불러오는 중" />}
+            {convoError && <LNotice tone="danger" text={`대화를 불러오지 못했다 — ${convoError}`} />}
+            {convoLoading && <ConvoSkeleton />}
 
             {/* 초안을 못 읽은 것은 초안이 없는 것과 다르다. 조용히 빈 칸을 주면
                 사람은 초안이 없는 줄 알고 처음부터 다시 쓴다. */}
             {convo?.draftError && (
-              <Notice tone="warn" text={`봇 초안을 불러오지 못했다 — ${convo.draftError}. 초안이 없는 게 아니라 못 읽은 것이다.`} />
+              <LNotice tone="warn" text={`봇 초안을 불러오지 못했다 — ${convo.draftError}. 초안이 없는 게 아니라 못 읽은 것이다.`} />
             )}
 
             {convo && convo.messages.length === 0 && !convoLoading && (
-              <Notice tone="neutral" text="이 스레드에는 메시지가 없다" />
+              <LNotice tone="neutral" text="이 스레드에는 메시지가 없다" />
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapMd, marginBottom: t.density.gapLg }}>
@@ -329,7 +335,7 @@ export function InquiryInbox() {
             {/* ── 답변 ─────────────────────────────────────────────────── */}
             {selectedMeta?.writable ? (
               selectedThread.channel === 'email' ? (
-                <Notice
+                <LNotice
                   tone="warn"
                   text="구버전(이메일) 문의라 앱 안 문의함이 없다 — 여기서 답을 써도 고객은 못 본다"
                 />
@@ -338,7 +344,7 @@ export function InquiryInbox() {
                   {/* 채워져 있는 글이 **이미 보낸 답**으로 보이면, 사람은 창을 닫고
                       고객은 아무 답도 못 받는다. 그래서 채운 즉시 그렇게 말한다. */}
                   {seeded && (
-                    <Notice
+                    <LNotice
                       tone="warn"
                       text={`✍️ CEO 봇이 써 둔 초안이다 — 아직 고객에게 나가지 않았다. 읽고 고쳐서 '보내기'를 눌러야 나간다.${
                         convo?.draft?.at ? ` (${fmt(convo.draft.at)} 작성)` : ''
@@ -358,7 +364,7 @@ export function InquiryInbox() {
                       color: t.neutrals.text, lineHeight: 1.55,
                     }}
                   />
-                  {composeError && <Notice tone="danger" text={`보내지 못했다 — ${composeError}`} />}
+                  {composeError && <LNotice tone="danger" text={`보내지 못했다 — ${composeError}`} />}
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: t.density.gapMd,
                     marginTop: t.density.gapSm,
@@ -383,7 +389,7 @@ export function InquiryInbox() {
               )
             ) : (
               <>
-                <Notice
+                <LNotice
                   tone="info"
                   text={`${selectedMeta?.label ?? selectedThread.app}는 자체 관리자 화면에서 답한다 — 여기서는 읽기만 한다`}
                 />
@@ -391,7 +397,7 @@ export function InquiryInbox() {
                     사람이 텔레그램을 뒤져 같은 글을 찾아 옮긴다. */}
                 {botDraft && (
                   <div>
-                    <Notice
+                    <LNotice
                       tone="warn"
                       text={`✍️ CEO 봇이 써 둔 초안이다 — 아직 안 나갔다. 복사해서 ${selectedMeta?.label ?? ''} 관리자 화면에서 보낸다.${
                         botDraft.at ? ` (${fmt(botDraft.at)} 작성)` : ''
@@ -414,24 +420,40 @@ export function InquiryInbox() {
   )
 }
 
-function Notice({ tone, text }: { tone: 'danger' | 'warn' | 'info' | 'neutral'; text: string }) {
-  const palette = {
-    danger: { bg: '#F3DADA', fg: '#8A2A2A', icon: 'info' },
-    warn: { bg: '#F9E8D0', fg: '#8A5A1A', icon: 'info' },
-    info: { bg: '#DCE8F5', fg: '#1F4E79', icon: 'info' },
-    neutral: { bg: t.neutrals.inner, fg: t.neutrals.muted, icon: 'info' },
-  }[tone]
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+// 목록 줄과 말풍선의 실제 배치를 그대로 흉내낸다. 뼈대가 실물과 다른 자리에
+// 있으면 로딩이 끝나는 순간 화면이 튄다.
+
+function InboxSkeleton() {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'flex-start', gap: t.density.gapSm,
-      background: palette.bg, color: palette.fg,
-      borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.gapMd}px`,
-      marginBottom: t.density.gapSm,
-      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, lineHeight: 1.5,
-      wordBreak: 'break-word',
-    }}>
-      <LIcon name={palette.icon} size={13} stroke={1.8} />
-      <span>{text}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
+      {[0, 1, 2, 3, 4].map(i => (
+        <div key={i} style={{ padding: `${t.density.gapSm}px ${t.density.tableRowPadX}px` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: 5 }}>
+            <Bone w={6} h={6} r={t.radius.pill} />
+            <Bone w={64} h={9} />
+            <Bone w={38} h={12} r={t.radius.sm} />
+            <div style={{ marginLeft: 'auto' }}><Bone w={52} h={9} /></div>
+          </div>
+          <Bone w={i % 2 ? 168 : 132} h={9} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ConvoSkeleton() {
+  // 사용자 왼쪽, 우리 오른쪽. 폭을 번갈아 줘 실제 대화처럼 읽힌다.
+  const rows: { mine: boolean; w: number }[] = [
+    { mine: false, w: 220 }, { mine: true, w: 180 }, { mine: false, w: 150 },
+  ]
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapMd, padding: `${t.density.gapSm}px 0` }}>
+      {rows.map((r, i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: r.mine ? 'flex-end' : 'flex-start' }}>
+          <Bone w={r.w} h={38} r={t.radius.md} />
+        </div>
+      ))}
     </div>
   )
 }

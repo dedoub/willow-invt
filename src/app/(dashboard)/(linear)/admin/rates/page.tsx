@@ -16,6 +16,8 @@ import { useIsAdmin } from '@/lib/auth-context'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
+import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { MARGIN_BAND, MICROS_PER_CREDIT, pct, type RateUnit } from '@/lib/credit-rates-core'
 
 interface Verdict {
@@ -140,13 +142,10 @@ export default function RatesPage() {
         </div>
       </LCard>
 
-      {error && (
-        <LCard style={{ borderLeft: `3px solid ${t.accent.neg}` }}>
-          <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.accent.neg }}>{error}</div>
-        </LCard>
-      )}
+      {error && <LNotice tone="danger" text={error} />}
 
-      {loading && <LCard><div style={{ color: t.neutrals.subtle }}>읽는 중…</div></LCard>}
+      {/* 첫 조회만 뼈대를 세운다. 다시 읽기는 이미 있는 표를 두고 헤더만 돈다. */}
+      {loading && apps.length === 0 && <RatesSkeleton />}
 
       {apps.map((app) => (
         <LCard key={app.key}>
@@ -155,9 +154,7 @@ export default function RatesPage() {
             meta={app.costSource ? `실측 ${app.costSource}` : '실측 없음 — 공급가 정가로 판정'}
             note={app.table}
           />
-          {app.error && (
-            <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.accent.neg }}>{app.error}</div>
-          )}
+          {app.error && <LNotice tone="danger" text={app.error} />}
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
             {app.rows.map((row) => {
               const id = `${app.key}:${row.key}`
@@ -171,8 +168,10 @@ export default function RatesPage() {
                   gridTemplateColumns: mobile ? '1fr' : 'minmax(0,1.4fr) auto minmax(0,1.3fr)',
                   gap: t.density.gapMd,
                   alignItems: 'center',
-                  padding: `${t.density.gapSm}px 0`,
-                  borderTop: `1px solid ${t.neutrals.line}`,
+                  // 줄마다 선을 긋지 않는다. 행은 내부 패널 면으로 구분한다.
+                  background: t.neutrals.inner,
+                  borderRadius: t.radius.sm,
+                  padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
                 }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium }}>
@@ -257,5 +256,39 @@ export default function RatesPage() {
         </LCard>
       ))}
     </div>
+  )
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+// 앱 카드 셋과 그 안의 요율 행을 실제 배치대로 세운다.
+
+function RatesSkeleton() {
+  return (
+    <>
+      {[0, 1, 2].map(card => (
+        <LCard key={card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.gapMd }}>
+            <Bone w={92} h={13} />
+            <Bone w={140} h={9} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
+            {[0, 1, 2].map(row => (
+              <div key={row} style={{
+                background: t.neutrals.inner, borderRadius: t.radius.sm,
+                padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
+                display: 'flex', alignItems: 'center', gap: t.density.gapMd,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Bone w={80} h={11} style={{ marginBottom: 5 }} />
+                  <Bone w={'70%'} h={9} />
+                </div>
+                <Bone w={72} h={t.density.controlHSm} r={t.radius.sm} />
+                <Bone w={96} h={9} />
+              </div>
+            ))}
+          </div>
+        </LCard>
+      ))}
+    </>
   )
 }

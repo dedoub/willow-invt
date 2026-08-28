@@ -60,6 +60,8 @@
 
 - `Bone`: 단일 스켈레톤 primitive
 - 페이지별 skeleton: `MgmtSkeleton`, `InvestSkeleton`, 도메인 전용 skeleton
+- `LNotice`: 카드 안 한 줄 알림(danger/warn/info/neutral). 색은 `tonePalettes` 에서 읽는다.
+  오류를 카드 테두리나 본문 빨간 글씨로 표시하지 말 것
 - `LTableEmpty`, `EmptyLine`: 표/패널 빈 상태
 - `Loader2`: 로그인, 인증, 레거시 shadcn 영역에서만 유지
 
