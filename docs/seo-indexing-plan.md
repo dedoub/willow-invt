@@ -89,6 +89,7 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 - 기본 원본: `/en` 프리픽스, 13개 언어 변형 전수 추적
 - 2026-08-27 첫 스냅샷: 52쪽 검사, 실패 0, 색인 5, unknown 47.
 - 첫 배치(08-27): ~~`/en/pricing`~~·~~`/de`~~ 요청 완료. `/en/privacy`·`/en/terms`는 수동 요청에서 제외한다.
+- 08-28: `/en/guides`·`/en/samples` 요청 완료.
 - 다음 후보: `/ko`·`/ja`·`/es`·`/fr`·`/it` 등 미색인 로케일 루트 → 각 로케일 `/pricing`. `/privacy`·`/terms`는 계속 제외.
 
 ### Portle 초기 대기열 (2026-08-20 추가)
@@ -111,8 +112,8 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 6. ~~`/guides/duplicate-missing-trade-checks`~~ (08-22 요청)
 7. `/ko`
 8. `/ja`
-9. `/ko/guides`
-10. `/ja/guides`
+9. ~~`/ko/guides`~~ (08-28 요청)
+10. ~~`/ja/guides`~~ (08-28 요청)
 
 `/privacy`·`/terms`는 검색 가치가 낮고 canonical/정책성 페이지라 2026-08-27부터 수동 요청 후보에서 제외한다.
 08-22 요청은 과거 실행 기록으로만 유지한다.
@@ -120,6 +121,7 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 08-25에 신규 EN 가이드 `/guides/canada-stock-sale-tax-estimate`·
 `/guides/australia-stock-sale-tax-estimate`·`/guides/currency-impact-on-investment-return` 요청 완료.
 08-27에 `/guides/duplicate-missing-trade-checks`(Discovered 재요청)·`/ja/faq`·`/ko/faq` 요청 완료.
+08-28에 `/ja/guides`·`/ko/guides`·`/ja/guides/long-term-investing-rules` 요청 완료.
 Portle 권한은 08-21에 붙었고 GSC URL Inspection 요청까지 검증됐다.
 
 ### 보이스카드 독일어권 (신규 클러스터, 최우선)
@@ -287,6 +289,7 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 | 08-25 | VC 4: `/it/privacy`, `/ko/faq`, `/pl/memorization`, `/pt/faq` · RN 4: `/de/practice/grade-4-rules`, `/es/practice/grade-4-2-line-graphs`, `/es/practice/grade-4-multiplication`, `/fr/practice/grade-4-large-numbers` · Portle 3: `/guides/canada-stock-sale-tax-estimate`, `/guides/australia-stock-sale-tax-estimate`, `/guides/currency-impact-on-investment-return` | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:19 KST. Portle 08-25 스냅샷을 수동 생성하고 최근 요청 URL을 제외해 신규 후보로 실행. 08-23 요청분 VC 4건·RN 3건·Portle 3건 색인 확인, RN `/de/templates/mistake-notebook`은 08-25 스냅샷에서 누락 |
 | 08-26 | VC `/fr/memorization` 1건 시도 · RN 0 · Portle 0 | ❌ 첫 요청부터 Quota Exceeded — 성공 0건. 17:09 KST. 같은 날 재시도하지 않고 대기열 유지. 08-26 스냅샷에서 08-25 요청분 VC 3건·RN 1건·Portle 3건 색인 확인 |
 | 08-27 | VC 3: `/fr/memorization`·`/it/voice-flashcard-apps`·`/ja/memorization` · RN 3: `/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`·`/de/practice/grade-4-bar-graph` · Portle 3: `/guides/duplicate-missing-trade-checks`·`/ja/faq`·`/ko/faq` · Scripta 2: `/en/pricing`·`/de` | ✅ 11건 전부 요청 완료, quota 초과 없음. 18:15~18:32 KST. Scripta 첫 배치. 디스패처 상한 15분에 codex가 잘려 보고·문서 갱신만 사라졌다 — 10건은 실행 로그의 `Indexing requested` 확인분이고, 마지막 `/de`는 18:32 크롤(아침 스냅샷 unknown → Crawled)로 확인해 재요청하지 않았다. 상한은 60분으로 올렸다. Scripta 08-27 첫 스냅샷(52쪽, 색인 5)에서 `/en/pricing`·`/de`를 골랐고 `/privacy`·`/terms`는 제외 |
+| 08-28 | VC 3: `/pt/voice-flashcard-apps`·`/ru/faq`·`/zh/language-learning` · RN 3: `/de/practice/grade-4-2-polygons`·`/de/practice/grade-4-angles`·`/de/practice/linear-function` · Portle 3: `/ja/guides`·`/ko/guides`·`/ja/guides/long-term-investing-rules` · Scripta 2: `/en/guides`·`/en/samples` | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 20:18~20:25 KST. 당일 스냅샷이 없던 Portle·Scripta를 수동 생성하고, 브리프에 재등장한 RN 08-27 요청분 2건을 제외해 대체 후보로 실행. 08-27 요청분 신규 색인 VC 2건·RN 1건·Portle 3건·Scripta 2건, 미색인 VC 1건·RN 2건 |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ### 08-07 배치 결과 (08-08 스냅샷)
@@ -496,6 +499,7 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 08-25 | VC 4(`/it/privacy`·`/ko/faq`·`/pl/memorization`·`/pt/faq`) + RN 4(`/de/practice/grade-4-rules`·`/es/practice/grade-4-2-line-graphs`·`/es/practice/grade-4-multiplication`·`/fr/practice/grade-4-large-numbers`) + Portle 3(`/guides/canada-stock-sale-tax-estimate`·`/guides/australia-stock-sale-tax-estimate`·`/guides/currency-impact-on-investment-return`) | ✅ 11건 전부 "Indexing requested", quota 초과 없음. 17:19 KST | 08-25 스냅샷에서 08-23 요청분 신규 색인: VC 4건(`/fr/privacy`·`/pl/faq`·`/pl/voice-flashcard-apps`·`/pt/language-learning`), RN 3건(`/de/practice/linear-system`·`/es/practice/factor-trinomial`·`/es/practice/grade-4-2-triangles`), Portle 3건(`/guides/tax-country-portfolio-tracking`·`/guides/stock-sale-tax-estimate`·`/guides/long-term-investing-rules`). 미색인: RN `/de/templates/mistake-notebook` 1건(08-25 스냅샷 누락, 08-23 최종 상태 unknown) |
 | 08-26 | VC `/fr/memorization` 1건 시도 · RN 0 · Portle 0 | ❌ 첫 요청에서 Quota Exceeded. 성공 URL 없음, 막힌 URL `https://voicecards.quest/fr/memorization`. 17:09 KST. 같은 날 재시도하지 않음 | 08-26 스냅샷 신규 색인: VC 3건(`/it/privacy`·`/ko/faq`·`/pl/memorization`), RN 1건(`/de/practice/grade-4-rules`), Portle 3건(`/guides/canada-stock-sale-tax-estimate`·`/guides/australia-stock-sale-tax-estimate`·`/guides/currency-impact-on-investment-return`). 미색인: VC `/pt/faq`; RN `/es/practice/grade-4-2-line-graphs`·`/es/practice/grade-4-multiplication`·`/fr/practice/grade-4-large-numbers`; Portle 0건 |
 | 08-27 | VC 3(`/fr/memorization`·`/it/voice-flashcard-apps`·`/ja/memorization`) + RN 3(`/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`·`/de/practice/grade-4-bar-graph`) + Portle 3(`/guides/duplicate-missing-trade-checks`·`/ja/faq`·`/ko/faq`) + Scripta 2(`/en/pricing`·`/de`) | ✅ 11건 전부 요청 완료, quota 초과 없음. 18:15~18:32 KST. Scripta 첫 배치. 디스패처 상한 15분에 codex가 잘려 보고·문서 갱신만 사라졌다 — 10건은 실행 로그의 `Indexing requested` 확인분이고, 마지막 `/de`는 18:32 크롤(아침 스냅샷 unknown → Crawled)로 확인해 재요청하지 않았다. 상한은 60분으로 올렸다 | 08-26은 성공 0건이라 추적할 전일 요청분이 없다. 08-25 요청분 잔여 4건은 08-27 스냅샷에서도 미색인: VC `/pt/faq`(Crawled - currently not indexed), RN `/es/practice/grade-4-2-line-graphs`·`/es/practice/grade-4-multiplication`(Duplicate without user-selected canonical)·`/fr/practice/grade-4-large-numbers`(Discovered) |
+| 08-28 | VC 3(`/pt/voice-flashcard-apps`·`/ru/faq`·`/zh/language-learning`) + RN 3(`/de/practice/grade-4-2-polygons`·`/de/practice/grade-4-angles`·`/de/practice/linear-function`) + Portle 3(`/ja/guides`·`/ko/guides`·`/ja/guides/long-term-investing-rules`) + Scripta 2(`/en/guides`·`/en/samples`) | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 20:18~20:25 KST. Portle·Scripta 08-28 스냅샷 수동 생성 후 실행. RN 브리프의 08-27 요청분 2건은 제외하고 대체 후보 사용 | 08-27 요청분 신규 색인: VC `/fr/memorization`·`/it/voice-flashcard-apps`, RN `/de/practice/grade-4-bar-graph`, Portle `/guides/duplicate-missing-trade-checks`·`/ja/faq`·`/ko/faq`, Scripta `/en/pricing`·`/de`. 미색인: VC `/ja/memorization`(Crawled), RN `/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`(Discovered) |
 
 ### 노출은 느는데 클릭이 안 는다 (2026-08-11 측정)
 
