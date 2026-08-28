@@ -15,6 +15,7 @@ import { LStat } from './linear-stat'
 import { useDashCols } from './cols-toggle'
 import { useIsMobile } from './linear-tokens'
 import { DataTable, panelStyle, EmptyLine } from './linear-data-table'
+import { Bone } from './linear-skeleton'
 import { CAUSE_LABEL, STAGE_LABEL, type GeoAnswerStats, type GeoCause, type GeoStage } from '@/lib/geo-types'
 
 const mono = (size: number): React.CSSProperties => ({
@@ -128,6 +129,11 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
             AI 답변 측정 조회 실패 — {error}
           </div>
         )}
+
+        {/* 첫 조회는 뼈대로 기다린다. 여기만 뼈대가 없어 제목만 뜬 채 비어 있다가
+            숫자가 튀어나왔다 — 카드가 고장 난 것처럼 보인다. 다시 조회는 이미
+            있는 값을 두고 헤더 버튼만 돈다. */}
+        {loading && !data && <GeoSkeleton statCols={statCols} panelCols={panelCols} />}
 
         {!error && !loading && data && data.latest.runs === 0 && (
           <div style={{ ...panelStyle, minHeight: 96 }}>
@@ -272,5 +278,38 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
         )}
       </div>
     </LCard>
+  )
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+// 실물과 같은 자리에 세운다 — KPI 다섯 장과 그 아래 표 패널들. 뼈대가 다른
+// 자리에 있으면 로딩이 끝나는 순간 화면이 튄다.
+
+function GeoSkeleton({ statCols, panelCols }: { statCols: string; panelCols: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 8 }}>
+        {[0, 1, 2, 3, 4].map(i => (
+          <div key={i} style={{ ...panelStyle, minHeight: 72, gap: 6 }}>
+            <Bone w={64} h={9} />
+            <Bone w={52} h={16} />
+            <Bone w={'85%'} h={9} />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: 8, alignItems: 'stretch' }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ ...panelStyle, minHeight: 132, gap: 6 }}>
+            <Bone w={72} h={9} style={{ marginBottom: 2 }} />
+            {[0, 1, 2, 3].map(row => (
+              <div key={row} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Bone w={'100%'} h={9} />
+                <Bone w={28} h={9} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }

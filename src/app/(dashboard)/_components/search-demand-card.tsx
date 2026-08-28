@@ -14,6 +14,7 @@ import { LSectionHead, LHeadBtn } from './linear-section-head'
 import { LSegmented } from './linear-segmented'
 import { LStat } from './linear-stat'
 import { DataTable, type TableRow, panelStyle, panelTitle, EmptyLine } from './linear-data-table'
+import { Bone } from './linear-skeleton'
 import { formatCountryName } from '@/lib/country-format'
 import { useDashCols } from './cols-toggle'
 import type { SearchDemandStats, Channel, UmamiSiteKey } from '@/lib/umami'
@@ -487,15 +488,14 @@ function Delta({ now, prev }: { now: number; prev: number }) {
 // ─── 스켈레톤 ─────────────────────────────────────────────────────────────────
 
 function Skeleton({ mobile }: { mobile: boolean }) {
-  const pulse = { borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' } as const
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
-        {[0, 1, 2, 3, 4, 5].map(i => <div key={i} style={{ ...pulse, height: 64 }} />)}
+        {[0, 1, 2, 3, 4, 5].map(i => <Bone key={i} h={64} />)}
       </div>
-      <div style={{ ...pulse, height: 132 }} />
+      <Bone h={132} />
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 8 }}>
-        {[0, 1, 2].map(i => <div key={i} style={{ ...pulse, height: 168 }} />)}
+        {[0, 1, 2].map(i => <Bone key={i} h={168} />)}
       </div>
     </div>
   )

@@ -13,6 +13,7 @@ import type { RnAiFeatureUse } from '@/lib/reviewnotes-types'
 import { kstDateKey, kstToday, kstDaysAgo, kstWeekday, kstTime } from '@/lib/kst'
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-types'
 import { formatCountryName, codeToFlag, COUNTRY_NAMES } from '@/lib/country-format'
+import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -405,21 +406,20 @@ export function ReviewnotesBlock({
 
         {loading && (() => {
           const splitLayout = !mobile && dashCols === 1
-          const pulse = { borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' } as const
           return (
             <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
                 {/* 퍼널 6카드 */}
                 <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
-                  {[0, 1, 2, 3, 4, 5].map(i => <div key={i} style={{ ...pulse, height: 64 }} />)}
+                  {[0, 1, 2, 3, 4, 5].map(i => <Bone key={i} h={64} />)}
                 </div>
                 {/* 분포 파이 3 */}
                 <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
-                  {[0, 1, 2].map(i => <div key={i} style={{ ...pulse, height: 150 }} />)}
+                  {[0, 1, 2].map(i => <Bone key={i} h={150} />)}
                 </div>
               </div>
               {/* 일별 활동자(DAU) */}
-              <div style={{ ...pulse, minWidth: 0, minHeight: splitLayout ? undefined : 190 }} />
+              <Bone h={splitLayout ? undefined : 190} style={{ minWidth: 0, height: splitLayout ? '100%' : 190 }} />
             </div>
           )
         })()}
@@ -742,7 +742,7 @@ export function ReviewnotesBlock({
           <LSectionHead eyebrow="USERS" title="사용자" mb={8} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
-              <div key={i} style={{ height: 40, borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <Bone key={i} h={40} />
             ))}
           </div>
         </div>
@@ -1007,10 +1007,7 @@ function SkeletonRow({ count }: { count: number }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count}, 1fr)`, gap: 8 }}>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} style={{
-          height: t.density.statH, borderRadius: t.radius.sm, background: t.neutrals.inner,
-          animation: 'pulse 1.5s ease-in-out infinite',
-        }} />
+        <Bone key={i} h={t.density.statH} />
       ))}
     </div>
   )

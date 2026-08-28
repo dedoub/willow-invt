@@ -8,6 +8,7 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import type { PortleStats, PortleUserRow } from '@/lib/portle-types'
 import { PORTLE_KIND_LABELS } from '@/lib/portle-types'
 import { kstDateKey, kstToday, kstWeekday, kstTime } from '@/lib/kst'
+import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -305,13 +306,12 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
         )}
 
         {loading && (() => {
-          const pulse = { borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' } as const
           return (
             <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
               <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
-                {[0, 1, 2, 3, 4, 5].map(i => <div key={i} style={{ ...pulse, height: 64 }} />)}
+                {[0, 1, 2, 3, 4, 5].map(i => <Bone key={i} h={64} />)}
               </div>
-              <div style={{ ...pulse, minWidth: 0, minHeight: splitLayout ? undefined : 190 }} />
+              <Bone h={splitLayout ? undefined : 190} style={{ minWidth: 0, height: splitLayout ? '100%' : 190 }} />
             </div>
           )
         })()}
@@ -491,7 +491,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {[0, 1, 2].map(i => (
-              <div key={i} style={{ height: 36, borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <Bone key={i} h={36} />
             ))}
           </div>
         )}
@@ -610,7 +610,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {[0, 1, 2, 3, 4, 5].map(i => (
-              <div key={i} style={{ height: 40, borderRadius: t.radius.sm, background: t.neutrals.inner, animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <Bone key={i} h={40} />
             ))}
           </div>
         </div>
