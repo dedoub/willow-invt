@@ -82,8 +82,51 @@ function RailTip({ label, sub, enabled, children }: {
 
 // 사이드바 행(메뉴/프로젝트 공용) — hover/active 상태 + 활성 좌측 액센트 바.
 // 모듈 레벨 컴포넌트라 hover 상태가 부모 리렌더에도 안정적으로 유지됨.
-function NavRow({ href, icon, label, dot, tag, isActive, rail, onClose }: {
-  href?: string; icon?: string; label: string; dot?: string; tag?: string
+/**
+ * 서비스 표식. 색점 하나로는 여덟 서비스가 서로 구분되지 않아, 로고가 있으면
+ * 그 실루엣을, 없으면 이름 첫 글자를 서비스 색으로 찍는다.
+ *
+ * 로고는 마스크로 칠한다 — 파일 원래 색을 그대로 쓰면 아크로스 마크(진회색)가
+ * 네이비 사이드바에서 안 보이고, 텐소 마크(흰색)만 혼자 무채색으로 뜬다.
+ * 실루엣만 빌려 쓰므로 여덟 자리가 같은 규칙으로 읽힌다.
+ */
+function ServiceMark({ color, mark, label, size }: {
+  color: string; mark?: string; label: string; size: number
+}) {
+  if (mark) {
+    return (
+      <span
+        aria-hidden
+        style={{
+          width: size, height: size, flexShrink: 0, background: color,
+          WebkitMaskImage: `url(${mark})`, maskImage: `url(${mark})`,
+          WebkitMaskSize: 'contain', maskSize: 'contain',
+          WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+          WebkitMaskPosition: 'center', maskPosition: 'center',
+        }}
+      />
+    )
+  }
+  // 한글 이름은 첫 글자가 알파벳이 아니다(텐소프트웍스·아크로스). 라벨에서 첫
+  // 알파벳을 찾고, 없으면 태그에서 — 그것도 없으면 라벨 첫 글자를 그대로 쓴다.
+  const letter = (label.match(/[A-Za-z]/)?.[0] ?? label.trim().charAt(0)).toUpperCase()
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: size, height: size, flexShrink: 0, color,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: t.font.mono, fontSize: `calc(${Math.round(size * 0.82)}px * var(--fz, 1))`,
+        fontWeight: t.weight.medium, lineHeight: 1, letterSpacing: 0,
+      }}
+    >
+      {letter}
+    </span>
+  )
+}
+
+function NavRow({ href, icon, label, dot, mark, tag, isActive, rail, onClose }: {
+  href?: string; icon?: string; label: string; dot?: string; mark?: string; tag?: string
   isActive: boolean; rail: boolean; onClose?: () => void
 }) {
   const [hover, setHover] = useState(false)
@@ -113,7 +156,7 @@ function NavRow({ href, icon, label, dot, tag, isActive, rail, onClose }: {
         {icon ? (
           <LIcon name={icon} size={rail ? 18 : 14} stroke={1.8} />
         ) : dot ? (
-          <span style={{ width: rail ? 9 : 7, height: rail ? 9 : 7, borderRadius: 2, background: dot, flexShrink: 0 }} />
+          <ServiceMark color={dot} mark={mark} label={label} size={rail ? 18 : 14} />
         ) : null}
         {!rail && <span style={{ flex: tag ? 1 : undefined }}>{label}</span>}
         {!rail && tag && (
@@ -156,7 +199,7 @@ function SortableRow({ c, isActive, onClose }: { c: NavItem; isActive: boolean; 
   }
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <NavRow href={c.href} dot={c.dot} label={c.label} tag={c.tag}
+      <NavRow href={c.href} dot={c.dot} mark={c.mark} label={c.label} tag={c.tag}
         isActive={isActive} rail={false} onClose={onClose} />
     </div>
   )
@@ -229,7 +272,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
       {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
       {rail ? (
         group.ordered.map(c => (
-          <NavRow key={c.id} href={c.href} dot={c.dot} label={c.label} tag={c.tag}
+          <NavRow key={c.id} href={c.href} dot={c.dot} mark={c.mark} label={c.label} tag={c.tag}
             isActive={isActiveHref(c.href)} rail={rail} onClose={onClose} />
         ))
       ) : (

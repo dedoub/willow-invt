@@ -7,7 +7,13 @@ export interface NavItem {
   href: string
   label: string
   icon?: string   // 아이콘 메뉴(윌로우/관리자)
-  dot?: string    // 색점 메뉴(앱서비스/관계회사/컨설팅). 네이비 면 위에서 읽히는 라이트 톤.
+  dot?: string    // 서비스 색. 네이비 면 위에서 읽히는 라이트 톤.
+  /**
+   * 서비스 로고 파일. 있으면 이 색으로 실루엣을 찍고, 없으면 이름 첫 글자를
+   * 같은 색으로 쓴다. 14px 자리라 정사각 단색 마크만 넣는다 — 리뷰노트 로고는
+   * 가로로 긴 두 색 워드마크라 이 크기에서 뭉개져 글자를 쓴다.
+   */
+  mark?: string
   tag?: string
 }
 
@@ -46,7 +52,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'inquiries', href: '/inquiries', label: '고객문의함', icon: 'message' },
       // 세 앱 요율을 한 화면에서. 각 앱의 자체 화면은 그대로 두고, 여기는 같은
       // 판매가를 쓰는 셋을 나란히 놓고 보는 자리다.
-      { id: 'rates', href: '/admin/rates', label: '크레딧 요율', icon: 'tag' },
+      { id: 'rates', href: '/admin/rates', label: '크레딧 요율', icon: 'coin' },
     ],
   },
   {
@@ -76,7 +82,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '관계회사',
     orderKey: 'sidebar-investee-order',
     items: [
-      { id: 'tensw', href: '/tensw', label: '텐소프트웍스', tag: 'AI Search', dot: '#D9A63F' },
+      { id: 'tensw', href: '/tensw', label: '텐소프트웍스', tag: 'AI Search', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
     ],
   },
   {
@@ -85,7 +91,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '컨설팅',
     orderKey: 'sidebar-project-order',
     items: [
-      { id: 'akros', href: '/akros', label: '아크로스', tag: 'Indexing',     dot: '#5FAFDF' },
+      { id: 'akros', href: '/akros', label: '아크로스', tag: 'Indexing',     dot: '#5FAFDF', mark: '/akros-icon.png' },
       { id: 'etc',   href: '/etc',   label: 'ETC',      tag: 'ETF Platform', dot: '#8FB6D8' },
     ],
   },
