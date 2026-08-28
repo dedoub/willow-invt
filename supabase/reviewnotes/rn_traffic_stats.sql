@@ -10,6 +10,9 @@
 -- 통계 제외(2026-07-16): role=ADMIN + 스토어 심사용 test@reviewnotes.app.
 --   방문(PageView)은 익명이라 직접 귀속이 안 되므로, EventLog에서 관리자 userId가 쓴
 --   방문자 ID(sessionId)의 방문을 통째로 제외 (voicecards excluded_devices 패턴).
+-- 자동화 제외(2026-08-23): 같은 날 동일 국가·기기·유입에서 10개 이상 몰린 익명 세션 중
+--   체류 10초 이하·스크롤 0·핵심 행동 0인 군집을 제외한다. 단일 짧은 방문은 유지해
+--   실제 사용자의 이탈을 봇으로 오인하지 않는다.
 --   JS 쪽 동일 규칙: src/lib/reviewnotes-supabase.ts isExcludedReviewNotesUser().
 -- 소비처: src/lib/reviewnotes-supabase.ts getReviewNotesTrafficStats()
 -- ============================================================================
@@ -27,9 +30,48 @@ admin_sessions as (
   select distinct "sessionId" from "EventLog"
   where "userId" in (select id from admins) and coalesce("sessionId", '') <> ''
 ),
+linked_sessions as (
+  select distinct "sessionId" from "EventLog"
+  where "userId" is not null and coalesce("sessionId", '') <> ''
+),
+session_quality as (
+  select "sessionId",
+    count(*) filter (where name = 'section_view' and meta->>'section' = 'hero') as hero_events,
+    max(coalesce((meta->>'seconds')::int, 0)) filter (where name = 'page_engage') as max_seconds,
+    max(coalesce((meta->>'maxScrollPct')::int, 0)) filter (where name = 'page_engage') as max_scroll,
+    count(*) filter (where name not in ('page_view', 'section_view', 'page_engage')) as meaningful_events
+  from "EventLog"
+  group by 1
+),
+low_quality_sessions as (
+  select distinct pv."sessionId",
+    ((pv."createdAt" at time zone 'UTC') at time zone 'Asia/Seoul')::date as kdate,
+    coalesce(pv.country, 'Unknown') as country,
+    coalesce(pv.device, 'unknown') as device,
+    coalesce(nullif(pv.referrer, ''), 'direct') as referrer
+  from "PageView" pv
+  join session_quality sq using ("sessionId")
+  where pv."sessionId" not in (select "sessionId" from linked_sessions)
+    and sq.hero_events > 0
+    and sq.meaningful_events = 0
+    and coalesce(sq.max_scroll, 0) = 0
+    and coalesce(sq.max_seconds, 0) <= 10
+),
+automation_groups as (
+  select kdate, country, device, referrer
+  from low_quality_sessions
+  group by 1, 2, 3, 4
+  having count(*) >= 10
+),
+automated_sessions as (
+  select distinct lqs."sessionId"
+  from low_quality_sessions lqs
+  join automation_groups ag using (kdate, country, device, referrer)
+),
 base as (
   select * from "PageView"
   where "sessionId" not in (select "sessionId" from admin_sessions)
+    and "sessionId" not in (select "sessionId" from automated_sessions)
 ),
 cur as (
   select * from base
@@ -41,13 +83,13 @@ prev as (
     and "createdAt" < now() - make_interval(days => range_days)
 ),
 daily as (
-  select ("createdAt" at time zone 'Asia/Seoul')::date as kdate,
+  select (("createdAt" at time zone 'UTC') at time zone 'Asia/Seoul')::date as kdate,
          count(*) as views, count(distinct "sessionId") as visitors
   from cur group by 1
 ),
 -- 회원 로그인 연인원: 하루에 유저당 1회만 카운트 (EventLog, KST)
 login_daily as (
-  select ("createdAt" at time zone 'Asia/Seoul')::date as kdate,
+  select (("createdAt" at time zone 'UTC') at time zone 'Asia/Seoul')::date as kdate,
          count(distinct "userId") as users
   from "EventLog"
   where "userId" is not null

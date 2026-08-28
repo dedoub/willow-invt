@@ -49,6 +49,7 @@
 
 -- ── 합성 기기 ID 목록 ────────────────────────────────────────────────────
 --   00000000-0000-4000-8000-000000000000   Google Play 심사/프리런치 폴백 (2026-08-04 추가)
+--   385d63e1-9315-4e5d-9404-220732aa926d   Google Play v1.1.146 심사 기기 (2026-08-26 추가)
 --
 -- 근거: IP로는 못 잡는 케이스다. 위 CIDR들과 달리 이 기기는 출구 IP가 매번 다른 나라의
 -- 일반 회선이다 (MY 203.82 / GB 62.254 / PL 77.237 / GB 82.15 / PH 1.37 ×2 / PT 212.113).
@@ -63,6 +64,10 @@
 --
 -- 실기기가 같은 폴백값을 쓸 가능성은 남는다. 그래도 여러 기기가 한 행으로 뭉치는 데이터라
 -- 어차피 해석이 안 된다. 빼는 쪽이 맞다.
+--
+-- 385d... 근거: Play 심사 중인 미공개 Android v1.1.146으로 2026-08-25 20:24~20:27 KST
+-- AWS us-west-2(35.82.126.240)에서만 34개 이벤트를 실행하고 종료됐다. AWS 대역 전체를 막으면
+-- 정상 사용자까지 제외할 수 있어 확인된 심사 기기 ID만 차단한다.
 
 -- ① 트리거
 create or replace function public.capture_anonymous_event_ip()
@@ -98,7 +103,10 @@ begin
   end if;
 
   -- 합성 기기 ID는 IP와 무관하게 봇 (출구 IP가 매번 다른 일반 회선이라 CIDR로 못 잡는다)
-  if new.device_id = '00000000-0000-4000-8000-000000000000'::uuid then
+  if new.device_id in (
+    '00000000-0000-4000-8000-000000000000'::uuid,
+    '385d63e1-9315-4e5d-9404-220732aa926d'::uuid
+  ) then
     new.is_likely_bot := true;
     return new;
   end if;
@@ -133,6 +141,10 @@ $function$;
 -- update anonymous_events
 -- set is_likely_bot = true
 -- where device_id = '00000000-0000-4000-8000-000000000000'::uuid and is_likely_bot is not true;
+--
+-- update anonymous_events
+-- set is_likely_bot = true
+-- where device_id = '385d63e1-9315-4e5d-9404-220732aa926d'::uuid and is_likely_bot is not true;
 
 -- ③ 뷰
 create or replace view public.anonymous_events_real_users as
@@ -140,6 +152,7 @@ create or replace view public.anonymous_events_real_users as
         properties, app_version, platform, locale, ip_address, country, is_likely_bot
    from anonymous_events_deduped
   where device_id is distinct from '00000000-0000-4000-8000-000000000000'::uuid
+    and device_id is distinct from '385d63e1-9315-4e5d-9404-220732aa926d'::uuid
     and (ip_address is null
      or not (ip_address <<= '17.0.0.0/8'::inet
           or ip_address <<= '144.178.0.0/16'::inet
@@ -168,3 +181,8 @@ create or replace view public.anonymous_events_real_users as
 --   (select count(*) from anonymous_events where device_id = '00000000-0000-4000-8000-000000000000'::uuid and is_likely_bot is not true) as trigger_leftover,
 --   (select count(*) from anonymous_events_real_users where device_id = '00000000-0000-4000-8000-000000000000'::uuid) as view_leftover,
 --   (select count(*) from mv_real_users where device_id = '00000000-0000-4000-8000-000000000000'::uuid) as mv_leftover;
+--
+-- select
+--   (select count(*) from anonymous_events where device_id = '385d63e1-9315-4e5d-9404-220732aa926d'::uuid and is_likely_bot is not true) as trigger_leftover,
+--   (select count(*) from anonymous_events_real_users where device_id = '385d63e1-9315-4e5d-9404-220732aa926d'::uuid) as view_leftover,
+--   (select count(*) from mv_real_users where device_id = '385d63e1-9315-4e5d-9404-220732aa926d'::uuid) as mv_leftover;
