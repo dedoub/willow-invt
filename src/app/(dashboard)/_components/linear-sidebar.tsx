@@ -24,13 +24,43 @@ function orderItems(items: NavItem[], order: string[]): NavItem[] {
   return out
 }
 
-function GroupLabel({ label }: { label: string }) {
+const GROUP_LABEL_STYLE: CSSProperties = {
+  fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, letterSpacing: 0.8,
+  textTransform: 'uppercase' as const, color: t.sidebar.subtle,
+  padding: '12px 8px 4px',
+}
+
+// 섹션 머리글. onToggle이 있으면 통째로 누를 수 있는 접기 버튼이 된다.
+// 쉐브론은 아래(펼침)를 기본으로 두고 접히면 왼쪽으로 눕는다 — 목록이 그 아래
+// 있다가 사라지는 방향과 같아야 어디로 접히는지 읽힌다.
+function GroupLabel({ label, collapsed, onToggle }: {
+  label: string
+  collapsed?: boolean
+  onToggle?: () => void
+}) {
+  if (!onToggle) return <div style={GROUP_LABEL_STYLE}>{label}</div>
   return (
-    <div style={{
-      fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, letterSpacing: 0.8,
-      textTransform: 'uppercase' as const, color: t.sidebar.subtle,
-      padding: '12px 8px 4px',
-    }}>{label}</div>
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={!collapsed}
+      title={collapsed ? `${label} 펼치기` : `${label} 접기`}
+      style={{
+        ...GROUP_LABEL_STYLE,
+        display: 'flex', alignItems: 'center', gap: 4, width: '100%',
+        background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+        fontFamily: 'inherit',
+      }}
+    >
+      <span style={{
+        display: 'inline-flex', flexShrink: 0,
+        transform: collapsed ? 'rotate(-90deg)' : 'none',
+        transition: 'transform 0.12s ease',
+      }}>
+        <LIcon name="chevronDown" size={11} stroke={2.2} />
+      </span>
+      {label}
+    </button>
   )
 }
 
@@ -207,6 +237,32 @@ function SortableRow({ c, isActive, onClose }: { c: NavItem; isActive: boolean; 
   )
 }
 
+// 접어 둔 섹션 (localStorage 영속, 기기별). 기본은 전부 펼침 — 처음 보는 사람에게
+// 메뉴가 숨어 있으면 안 된다. 사이드바 열림 상태와 같은 방식으로 첫 렌더에서 바로
+// 읽는다: useEffect 로 미루면 접어 둔 섹션이 한 번 펼쳐졌다 접히는 게 보인다.
+const COLLAPSED_GROUPS_KEY = 'sidebar-collapsed-groups'
+
+function useCollapsedGroups() {
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    try {
+      const raw = localStorage.getItem(COLLAPSED_GROUPS_KEY)
+      const arr = raw ? JSON.parse(raw) : null
+      return Array.isArray(arr) ? new Set<string>(arr) : new Set<string>()
+    } catch { return new Set() }
+  })
+
+  const toggle = (key: string) => setCollapsed(prev => {
+    const next = new Set(prev)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    try { localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify([...next])) } catch { /* 저장 실패 무시 */ }
+    return next
+  })
+
+  return { collapsed, toggle }
+}
+
 // 그룹 하나의 드래그 정렬 상태 (localStorage 영속) — 앱서비스/관계회사/컨설팅이 각각 사용
 function useOrderedGroup(items: NavItem[], storageKey: string) {
   const [order, setOrder] = useState<string[]>(() => items.map(c => c.id))
@@ -261,6 +317,13 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   const investees = navGroup('investees')
   const clients = navGroup('clients')
   const inquiries = navGroup('inquiries')
+  // 섹션 접기 — rail(아이콘 전용)에서는 머리글이 없으므로 접기도 없다.
+  const { collapsed: collapsedGroups, toggle: toggleGroup } = useCollapsedGroups()
+  const isFolded = (key: string) => !rail && collapsedGroups.has(key)
+  const groupHead = (key: string, label: string) => (
+    <GroupLabel label={label} collapsed={collapsedGroups.has(key)} onToggle={() => toggleGroup(key)} />
+  )
+
   const appsFinanceOrder = useOrderedGroup(appsFinance.items, appsFinance.orderKey!)
   const appsEduOrder = useOrderedGroup(appsEdu.items, appsEdu.orderKey!)
   const investeesOrder = useOrderedGroup(investees.items, investees.orderKey!)
@@ -268,16 +331,16 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   // 그룹 렌더 — rail(접힘)에서는 드래그 없이 아이콘만
-  const sortableGroup = (label: string, group: ReturnType<typeof useOrderedGroup>) => (
+  const sortableGroup = (key: string, label: string, group: ReturnType<typeof useOrderedGroup>) => (
     <>
-      {!rail && <GroupLabel label={label} />}
+      {!rail && groupHead(key, label)}
       {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
       {rail ? (
         group.ordered.map(c => (
           <NavRow key={c.id} href={c.href} dot={c.dot} mark={c.mark} label={c.label} tag={c.tag}
             isActive={isActiveHref(c.href)} rail={rail} onClose={onClose} />
         ))
-      ) : (
+      ) : isFolded(key) ? null : (
         <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={group.onDragEnd}>
           <SortableContext items={group.ordered.map(c => c.id)} strategy={verticalListSortingStrategy}>
             {group.ordered.map(c => (
@@ -321,27 +384,27 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '4px 8px', overflowY: 'auto', overflowX: 'hidden' }}>
-        {!rail && <GroupLabel label={willow.label} />}
-        {willow.items.map(navLink)}
+        {!rail && groupHead(willow.key, willow.label)}
+        {!isFolded(willow.key) && willow.items.map(navLink)}
 
         {/* 앱서비스 통합관리 — 네 앱을 가로지르는 화면이라 앱 그룹들 앞에 선다. 관리자만. */}
         {isAdmin && (
           <>
-            {!rail && <GroupLabel label={inquiries.label} />}
-            {inquiries.items.map(navLink)}
+            {!rail && groupHead(inquiries.key, inquiries.label)}
+            {!isFolded(inquiries.key) && inquiries.items.map(navLink)}
           </>
         )}
 
-        {sortableGroup(appsFinance.label, appsFinanceOrder)}
-        {sortableGroup(appsEdu.label, appsEduOrder)}
-        {sortableGroup(investees.label, investeesOrder)}
-        {sortableGroup(clients.label, clientsOrder)}
+        {sortableGroup(appsFinance.key, appsFinance.label, appsFinanceOrder)}
+        {sortableGroup(appsEdu.key, appsEdu.label, appsEduOrder)}
+        {sortableGroup(investees.key, investees.label, investeesOrder)}
+        {sortableGroup(clients.key, clients.label, clientsOrder)}
 
         {isAdmin && (
           <>
-            {!rail && <GroupLabel label={admin.label} />}
+            {!rail && groupHead(admin.key, admin.label)}
             {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
-            {admin.items.map(navLink)}
+            {!isFolded(admin.key) && admin.items.map(navLink)}
           </>
         )}
       </nav>
