@@ -68,31 +68,6 @@ chunks: [
 
 ${OUTPUT_SPEC}`
 
-const RYUHA_WRITTEN_SYSTEM = `You create English WRITING practice items for Ryuha, an 11-year-old Korean girl preparing for UK senior school entrance written exams (Wycombe Abbey 11+ written papers, ISEB English) — reading comprehension answers and composition.
-
-## English style (write this FIRST)
-1. Write ONE well-formed WRITTEN British English sentence (10-20 words) of the kind that earns marks in an 11+ English paper: a descriptive sentence with vivid vocabulary, a narrative sentence in past tense, a comprehension-style answer with justification ("... because ..."), or an opinion with a formal connective (However / Although / Furthermore).
-1b. Include CE comprehension ANSWER FRAMES regularly — the sentence shapes she must write in the real paper: quote-and-effect ("I think this simile is effective because it shows how ..."), inference with evidence ("I think ... will ..., because the text says that ..."), character judgement ("In my opinion, ... would not enjoy ..., as he loves ..."), and prediction ("I expect the documents will contain ...").
-2. WRITTEN register: no contractions, precise Year 6-7 vocabulary, correct punctuation, occasionally a simile or an adverbial opener ("Reluctantly, ..."). British spelling throughout.
-3. Ground topics in the notes and ISEB problems: the texts, vocabulary, and themes she is studying — plus timeless 11+ composition themes (nature, a journey, a memorable day, a description of a place or person). Never turn a quiz question itself into the sentence, and never make her recite admin facts.
-4. HARD quotas per batch of 10: at most 2 sentences mention exams at all; vary frames — at least 2 descriptive, 2 narrative past, 2 opinion/justification; no two sentences share the same opening word.
-5. Do NOT mirror Korean sentence structure. Write the English thought first.
-
-${CHUNKING_RULES}
-- All Korean is 문어체 ("~했다/~이다/~것이다") — 시험 답안을 쓰듯, not spoken style.
-
-Example:
-reference_english: "Although the rain fell heavily, the children continued their journey across the windswept moor."
-korean_full: "비가 세차게 내렸지만, 아이들은 바람이 몰아치는 황무지를 가로지르는 여정을 계속했다."
-chunks: [
-  {"en": "Although the rain fell heavily,", "ko": "비록 비가 세차게 내렸지만,"},
-  {"en": "the children continued their journey", "ko": "아이들은 여정을 계속했다,"},
-  {"en": "across the windswept moor.", "ko": "바람이 몰아치는 황무지를 가로질러."}
-]
-- topic: 2-4 word Korean label (예: "묘사문", "서사문", "독해 답안").
-
-${OUTPUT_SPEC}`
-
 // 소재를 뽑아 구어체 영작 문제를 배치 생성해 문제은행에 저장.
 // count(기본 10, 최대 50)만큼 10개 단위로 나눠 생성 — 회차마다 중복 방지 목록을 누적한다.
 // profile: ceo(미국식 비즈니스, 위키+이메일 소재) / ryuha(영국식 ISEB 인터뷰, 류하 노트 소재)
@@ -162,7 +137,7 @@ export async function POST(req: NextRequest) {
     .map(e => `- ${e.label}: ${JSON.stringify(e.analysis_data).slice(0, 400)}`)
     .join('\n')
   const existing = (recentRes.data ?? []).map(r => r.reference_english)
-  const system = profile === 'ryuha' ? RYUHA_SYSTEM : profile === 'ryuha_written' ? RYUHA_WRITTEN_SYSTEM : CEO_SYSTEM
+  const system = profile === 'ryuha' ? RYUHA_SYSTEM : CEO_SYSTEM
 
   interface GenChunk { en: string; ko: string }
   interface GenItem { korean_full: string; reference_english: string; chunks: GenChunk[]; topic?: string }

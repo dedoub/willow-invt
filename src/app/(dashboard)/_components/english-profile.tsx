@@ -6,7 +6,7 @@ import { LSegmented } from './linear-segmented'
 // 영작 연습(/english) 프로필 선택 — 상단바(LinearHeader actions)의 토글과 페이지가
 // localStorage + 커스텀 이벤트로 동기화된다 (cols-toggle과 같은 패턴).
 
-export type EnglishProfile = 'ceo' | 'ryuha' | 'ryuha_written' | 'ryuha_ce'
+export type EnglishProfile = 'ceo' | 'ryuha'
 
 const KEY = 'english-profile'
 const EVT = 'english-profile-change'
@@ -14,7 +14,8 @@ const EVT = 'english-profile-change'
 function read(): EnglishProfile {
   if (typeof window === 'undefined') return 'ceo'
   const v = localStorage.getItem(KEY)
-  return v === 'ryuha' || v === 'ryuha_written' || v === 'ryuha_ce' ? v : 'ceo'
+  // 지워진 프로필(ryuha_written·ryuha_ce)이 저장돼 있던 브라우저도 ceo 로 돌아온다.
+  return v === 'ryuha' ? 'ryuha' : 'ceo'
 }
 
 export function useEnglishProfile(): EnglishProfile {
@@ -39,9 +40,7 @@ export function EnglishProfileToggle() {
       }}
       options={[
         { value: 'ceo', label: '아빠' },
-        { value: 'ryuha', label: '류하 구어' },
-        { value: 'ryuha_written', label: '류하 문어' },
-        { value: 'ryuha_ce', label: '기출 작문' },
+        { value: 'ryuha', label: '류하' },
       ]}
     />
   )

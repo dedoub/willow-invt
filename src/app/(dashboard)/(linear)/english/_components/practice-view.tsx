@@ -15,7 +15,7 @@ import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-sec
 type Mode = 'new_heavy' | 'balanced' | 'review_heavy'
 
 export interface PracticeViewProps {
-  profile: 'ceo' | 'ryuha' | 'ryuha_written'
+  profile: 'ceo' | 'ryuha'
   eyebrow: string
   title: string
   meta: string
