@@ -14,9 +14,18 @@ import { CardApproval, CardBilling } from '@/types/finance-card'
 const COLUMNS: LColumn<CardApproval>[] = [
   { key: 'category', label: '구분', width: '72px', sortValue: a => classify(a.store_name, a.store_type).label },
   { key: 'date', label: '날짜', width: '46px', sortValue: a => a.used_date, sortFirst: 'desc' },
+  // 카드가 여러 장이라 같은 가맹점이라도 어느 카드로 긁었는지가 갈린다.
+  // card_no 는 '5532********7149' 처럼 가운데가 가려져 오므로 끝 네 자리만 쓴다.
+  { key: 'card', label: '카드', width: '44px', sortValue: a => cardTail(a.card_no) },
   { key: 'store', label: '가맹점', width: 'minmax(130px,1.6fr)', sortValue: a => a.store_name ?? '' },
   { key: 'amount', label: '금액', width: 'minmax(96px,1fr)', align: 'right', sortValue: a => a.krw, sortFirst: 'desc' },
 ]
+
+/** 마스킹된 카드번호에서 끝 네 자리. 자릿수가 모자라면 있는 만큼만. */
+function cardTail(cardNo: string | null | undefined): string {
+  const digits = (cardNo ?? '').replace(/\D/g, '')
+  return digits.slice(-4)
+}
 
 const DEFAULT_PAGE_SIZE = 8
 // 두 회사가 같은 화면을 쓰므로 행수·정렬 기억은 회사별로 나눈다.
@@ -378,6 +387,9 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
               <LTableBadge tone={CATEGORY_TONES[cat.key]}>{cat.label}</LTableBadge>
               <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
                 {a.used_date.slice(5)}
+              </span>
+              <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>
+                {cardTail(a.card_no) || '—'}
               </span>
               <span style={{
                 fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
