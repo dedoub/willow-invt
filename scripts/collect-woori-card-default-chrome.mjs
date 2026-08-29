@@ -28,7 +28,10 @@ function extractionJavascript() {
       target.value = JSON.stringify({
         source: 'woori-local-chrome',
         source_url: location.href,
-        captured_at: new Date().toISOString(),
+        // collected_at — 다른 수집기와 같은 이름을 쓴다. 여기만 captured_at 이라
+        // 알림의 신선도 검사(collectionGaps)가 값을 못 찾아, 매일 정상 수집하고도
+        // "오늘 못 가져온 항목: 우리카드 승인내역"이 붙어 나갔다(08-30 확인).
+        collected_at: new Date().toISOString(),
         search_date: document.getElementById('searchDate')?.innerText || '',
         ui_count: numberText(document.getElementById('totCn')?.innerText),
         ui_net_krw_amount: numberText(document.getElementById('apvAm')?.innerText),
