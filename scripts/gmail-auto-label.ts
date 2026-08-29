@@ -1,10 +1,10 @@
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
-import { google } from 'googleapis'
+import { google, type gmail_v1 } from 'googleapis'
 import { createClient } from '@supabase/supabase-js'
 import { runAgent } from './lib/agent-cli'
-import { markdownToTelegramHtml, normalizeTelegramOutboundText } from './telegram-utils'
+import { markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
 import os from 'os'
 
 // ============================================================
@@ -17,6 +17,9 @@ import os from 'os'
 // ============================================================
 
 const LOG_PREFIX = '[gmail-auto-label]'
+// --dry-run: 분류까지만 하고 라벨을 붙이지도, 알림을 보내지도 않는다. 요약 문구를
+// 실제 메일로 확인하려면 이게 없으면 CEO 텔레그램에 시험 발송이 그대로 간다.
+const DRY_RUN = process.argv.includes('--dry-run')
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SECRET_KEY!
@@ -134,6 +137,7 @@ interface EmailSummary {
   subject: string
   snippet: string
   labels: string[]
+  body: string
   isSent: boolean
 }
 
@@ -187,6 +191,54 @@ interface ClassificationResult {
   email_id: string
   label: string | null
   reason: string
+  /** 메일이 무슨 말을 하는지 한 줄. CEO 봇 알림에 그대로 실린다. */
+  summary?: string
+}
+
+/** 본문 글자 수 상한. 프롬프트가 불어나면 분류까지 느려진다. */
+const BODY_CHARS = 1200
+
+function decodeBase64Url(data: string): string {
+  return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
+}
+
+/**
+ * 메일 본문을 평문으로 뽑는다. text/plain 을 먼저 찾고 없으면 HTML 에서 태그를 벗긴다.
+ *
+ * 스니펫만으로는 "무슨 메일인지"까지밖에 안 된다 — 첫 200자는 대개 인사말이라
+ * 요약이 제목을 되풀이하는 데서 끝난다. 본문을 봐야 요청·기한·금액이 잡힌다.
+ */
+function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): string {
+  if (!payload) return ''
+
+  const collect = (part: gmail_v1.Schema$MessagePart, mime: string): string[] => {
+    const out: string[] = []
+    if (part.mimeType === mime && part.body?.data) out.push(decodeBase64Url(part.body.data))
+    for (const child of part.parts || []) out.push(...collect(child, mime))
+    return out
+  }
+
+  const plain = collect(payload, 'text/plain').join('\n').trim()
+  const raw = plain || collect(payload, 'text/html').join('\n')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+
+  // 인용부(> ...)와 서명 아래는 요약에 도움이 안 되면서 자리만 차지한다.
+  const trimmed = raw
+    .split(/^-{2,}\s*$|^________+$/m)[0]
+    .split('\n')
+    .filter(line => !/^\s*>/.test(line))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
+
+  return trimmed.length > BODY_CHARS ? `${trimmed.slice(0, BODY_CHARS)}…` : trimmed
 }
 
 function askClaude(prompt: string): Promise<string> {
@@ -205,10 +257,11 @@ async function classifyEmails(emails: EmailSummary[], labels: LabelInfo[]): Prom
   const emailList = emails.map((e, i) => {
     const direction = e.isSent ? '[보낸메일]' : '[받은메일]'
     const counterpart = e.isSent ? `to: ${e.to}` : `from: ${e.from}`
-    return `[${i + 1}] ${direction} id: ${e.id}\n    ${counterpart}\n    subject: ${e.subject}\n    snippet: ${e.snippet}`
+    const body = e.body || e.snippet
+    return `[${i + 1}] ${direction} id: ${e.id}\n    ${counterpart}\n    subject: ${e.subject}\n    body:\n${body.split('\n').map(l => `      ${l}`).join('\n')}`
   }).join('\n\n')
 
-  const prompt = `당신은 이메일 분류 전문가입니다. 아래 이메일들을 적절한 라벨로 분류해주세요.
+  const prompt = `당신은 이메일 분류 전문가입니다. 아래 이메일들을 적절한 라벨로 분류하고, 각 메일이 무슨 말을 하는지 한 줄로 정리해주세요.
 
 ## 사용 가능한 라벨
 ${labelList}
@@ -237,14 +290,21 @@ ${labelList}
 2. 어떤 라벨에도 해당하지 않는 일반 이메일(뉴스레터, 광고, 알림)은 null
 3. 확신이 낮으면 null (잘못된 라벨보다 미분류가 나음)
 
+## 요약(summary) 작성 기준
+CEO가 아침에 이 줄만 읽고 무슨 일이 있었는지 알아야 한다. 제목을 다시 쓰지 말고 본문에서 실제로 무엇을 요구·통지하는지 적는다.
+1. 한국어 평서문 한 줄, 80자 이내. 인사말·서명은 버린다.
+2. 기한·금액·수량·일정처럼 행동을 정하는 숫자는 반드시 남긴다 (예: "9/5까지", "1,200만원").
+3. 회신·서명·자료 제출처럼 CEO가 해야 할 일이 있으면 그것으로 끝맺는다.
+4. 광고·뉴스레터는 한 줄로 무엇을 파는/알리는 메일인지만.
+
 ## 이메일 목록
 ${emailList}
 
 ## 출력 형식
 순수 JSON 배열만 출력하세요. 설명 텍스트 없이:
 [
-  {"email_id": "...", "label": "Akros/PR지원", "reason": "아크로스 PR 관련 이메일"},
-  {"email_id": "...", "label": null, "reason": "일반 뉴스레터"}
+  {"email_id": "...", "label": "Akros/PR지원", "reason": "아크로스 PR 관련 이메일", "summary": "9/5 상장 기념 보도자료 초안 검토를 요청, 회신 필요."},
+  {"email_id": "...", "label": null, "reason": "일반 뉴스레터", "summary": "주간 ETF 시장 동향 뉴스레터."}
 ]`
 
   try {
@@ -333,9 +393,20 @@ async function applyLabels(
 // ============================================================
 // 텔레그램 알림 (분류 결과 요약)
 // ============================================================
-async function sendTelegramNotification(results: ClassificationResult[], applied: number) {
+/** "이름 <주소>" 에서 사람이 읽는 쪽만. 없으면 주소의 앞부분. */
+function cleanName(address: string): string {
+  const named = address.match(/^\s*"?([^"<]+?)"?\s*</)
+  if (named) return named[1].trim()
+  return address.replace(/[<>]/g, '').split('@')[0].trim() || address.trim()
+}
+
+async function sendTelegramNotification(
+  results: ClassificationResult[],
+  applied: number,
+  emails: Map<string, EmailSummary>,
+) {
   const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
-  if (!BOT_TOKEN) return
+  if (!BOT_TOKEN && !DRY_RUN) return
 
   const labeled = results.filter(r => r.label)
   if (labeled.length === 0) return // 분류된 것 없으면 알림 불필요
@@ -348,28 +419,57 @@ async function sendTelegramNotification(results: ClassificationResult[], applied
     .limit(1)
     .maybeSingle()
 
-  if (!data?.chat_id) return
+  if (!data?.chat_id && !DRY_RUN) return
 
-  const lines = labeled.map(r => `  🏷️ ${r.label}: ${r.reason}`).join('\n')
-  const text = normalizeTelegramOutboundText(`📧 이메일 자동 분류 (${applied}건)\n\n${lines}`)
+  // 라벨별로 묶는다. 같은 건이 흩어져 있으면 아침에 훑기 어렵다.
+  const byLabel = new Map<string, ClassificationResult[]>()
+  for (const r of labeled) {
+    const key = r.label!
+    if (!byLabel.has(key)) byLabel.set(key, [])
+    byLabel.get(key)!.push(r)
+  }
 
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: data.chat_id, text: markdownToTelegramHtml(text), parse_mode: 'HTML' }),
-  })
+  const sections = [...byLabel.entries()].map(([label, rows]) => {
+    const items = rows.map(r => {
+      const mail = emails.get(r.email_id)
+      const who = mail ? (mail.isSent ? `→ ${cleanName(mail.to)}` : cleanName(mail.from)) : ''
+      const subject = mail?.subject || '(제목 없음)'
+      const head = who ? `· ${who} — ${subject}` : `· ${subject}`
+      // 요약이 없으면(모델이 빠뜨렸거나 옛 형식) 분류 근거라도 보여 준다.
+      const detail = (r.summary || r.reason || '').trim()
+      return detail ? `${head}\n  ${detail}` : head
+    }).join('\n')
+    return `🏷️ ${label}\n${items}`
+  }).join('\n\n')
+
+  const text = normalizeTelegramOutboundText(`📧 아침 이메일 정리 (${applied}건)\n\n${sections}`)
+
+  if (DRY_RUN) {
+    log('🧪 dry-run — 아래 내용을 보내지 않았어요.\n')
+    console.log(text)
+    return
+  }
+
+  // 본문 요약이 붙으면 한 통에 안 들어가는 날이 있다.
+  for (const chunk of splitTelegramMessage(text)) {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: data.chat_id, text: markdownToTelegramHtml(chunk), parse_mode: 'HTML' }),
+    })
+  }
 }
 
 // ============================================================
 // 컨텍스트별 라벨 분류 실행
 // ============================================================
-async function processContext(context: string, excludeLabels: string[]): Promise<{ applied: number; classifications: ClassificationResult[] }> {
+async function processContext(context: string, excludeLabels: string[]): Promise<{ applied: number; classifications: ClassificationResult[]; emails: EmailSummary[] }> {
   log(`\n📧 [${context}] 컨텍스트 처리 시작`)
 
   const gmail = await getGmailClientForScript(context)
   if (!gmail) {
     log(`  ⚠️ [${context}] Gmail 클라이언트 생성 실패 — 스킵`)
-    return { applied: 0, classifications: [] }
+    return { applied: 0, classifications: [], emails: [] }
   }
 
   // 1. 라벨 목록 조회
@@ -387,17 +487,18 @@ async function processContext(context: string, excludeLabels: string[]): Promise
   const messages = res.data.messages || []
   if (messages.length === 0) {
     log(`  ✅ 분류할 이메일 없음`)
-    return { applied: 0, classifications: [] }
+    return { applied: 0, classifications: [], emails: [] }
   }
 
   const emails: EmailSummary[] = []
   for (const msg of messages) {
     if (!msg.id) continue
+    // format: 'full' — 요청 수는 metadata 때와 같고 본문만 더 받는다. 요약이 제목의
+    // 되풀이가 되지 않으려면 본문이 있어야 한다.
     const detail = await gmail.users.messages.get({
       userId: 'me',
       id: msg.id,
-      format: 'metadata',
-      metadataHeaders: ['From', 'To', 'Subject'],
+      format: 'full',
     })
     const headers = detail.data.payload?.headers || []
     const from = headers.find(h => h.name === 'From')?.value || ''
@@ -405,7 +506,12 @@ async function processContext(context: string, excludeLabels: string[]): Promise
     const subject = headers.find(h => h.name === 'Subject')?.value || ''
     const labelIds = detail.data.labelIds || []
     const isSent = labelIds.includes('SENT')
-    emails.push({ id: msg.id, from, to, subject, snippet: detail.data.snippet || '', labels: labelIds, isSent })
+    emails.push({
+      id: msg.id, from, to, subject,
+      snippet: detail.data.snippet || '',
+      body: extractBody(detail.data.payload),
+      labels: labelIds, isSent,
+    })
   }
 
   // 자동 발송 메일 제외 (분류 불필요)
@@ -425,15 +531,19 @@ async function processContext(context: string, excludeLabels: string[]): Promise
   log(`  📊 분류 결과: ${toLabel.length}/${emailsToClassify.length}건 라벨 할당`)
 
   if (toLabel.length === 0) {
-    return { applied: 0, classifications }
+    return { applied: 0, classifications, emails: emailsToClassify }
   }
 
   // 4. 라벨 적용
+  if (DRY_RUN) {
+    log(`  🧪 dry-run — 라벨 ${toLabel.length}건을 붙이지 않았어요.`)
+    return { applied: toLabel.length, classifications, emails: emailsToClassify }
+  }
   log(`  🏷️ 라벨 적용 중...`)
   const applied = await applyLabels(gmail, classifications, labels)
   log(`  ✅ ${applied}건 라벨 적용 완료`)
 
-  return { applied, classifications }
+  return { applied, classifications, emails: emailsToClassify }
 }
 
 // ============================================================
@@ -444,22 +554,26 @@ async function main() {
 
   let totalApplied = 0
   let allClassifications: ClassificationResult[] = []
+  // 알림에 제목·상대를 적으려면 분류 결과를 원래 메일과 다시 이어야 한다.
+  const emailById = new Map<string, EmailSummary>()
 
   // 1. default (willowinvt) 컨텍스트
   const defaultResult = await processContext('default', ['Akros', 'ETC', 'Willow'])
   totalApplied += defaultResult.applied
   allClassifications = allClassifications.concat(defaultResult.classifications)
+  for (const e of defaultResult.emails) emailById.set(e.id, e)
 
   // 2. tensoftworks 컨텍스트
   const tenswResult = await processContext('tensoftworks', ['TENSW'])
   totalApplied += tenswResult.applied
   allClassifications = allClassifications.concat(tenswResult.classifications)
+  for (const e of tenswResult.emails) emailById.set(e.id, e)
 
   log(`\n📊 전체 결과: ${totalApplied}건 라벨 적용`)
 
   // 텔레그램 알림
   if (totalApplied > 0) {
-    await sendTelegramNotification(allClassifications, totalApplied)
+    await sendTelegramNotification(allClassifications, totalApplied, emailById)
   }
 }
 
