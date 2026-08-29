@@ -940,10 +940,6 @@ export function VoicecardsBlock({
 
           // 누적 매출을 크레딧 볼륨으로 표시 (k 단위 축약)
           const creditsSold = stats?.combined.totalCreditsSold ?? 0
-          const creditsToday = creditsByDate.get(revTodayKey) ?? 0
-          const credits7d = Array.from(creditsByDate.entries())
-            .filter(([date]) => date >= rev7AgoKey)
-            .reduce((sum, [, v]) => sum + v, 0)
           let runningCredits = 0
           const cumulativeCreditsByDate = new Map<string, number>()
           for (const d of Array.from(creditsByDate.keys()).sort()) {
@@ -957,6 +953,31 @@ export function VoicecardsBlock({
             }
             return { date, value: total }
           })
+          // ARPMAU — 최근 30일 매출 ÷ MAU. 분자와 분모를 같은 30일 창에 맞춘다.
+          // 누적 매출을 30일 활동자로 나누면 서로 다른 기간을 나눈 수가 되어 뜻이 없다.
+          //
+          // 점선(결제율)을 이 값으로 바꾸지 않은 이유: 이 행의 점선은 카드마다
+          // "직전 퍼널 단계 대비 전환율"이라는 한 규칙을 쓴다(설치%→로그인%→연동%→
+          // 활성%→결제%). 한 칸만 뜻을 바꾸면 행을 훑는 사람이 예외를 외워야 한다.
+          // 대신 값 옆 배지가 결제%를 되풀이하고 있었으므로(점선과 같은 지표) 그 자리를 쓴다.
+          const rev30AgoKey = kstDaysAgo(29)
+          const revenue30d = (chartData ?? [])
+            .filter(r => r.date >= rev30AgoKey)
+            .reduce((sum, r) => sum + (r.total ?? 0), 0)
+          const mauCutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000
+          // 기기 계정도 센다 — 로그인 없이 크레딧을 쓰고 매출을 내므로 분모에서 빼면
+          // ARPMAU 가 부풀려진다. 다른 카드와 같은 userStats.users 모집단이다.
+          const mau = (userStats?.users ?? []).filter(u => {
+            const t = u.lastActiveAt ? new Date(u.lastActiveAt).getTime() : 0
+            return t >= mauCutoffMs
+          }).length
+          const arpmau = mau > 0 ? revenue30d / mau : 0
+          const totalRevenue = stats?.combined.totalRevenue ?? 0
+          const fmtUsd = (v: number): string => {
+            if (v >= 100) return `$${Math.round(v).toLocaleString()}`
+            if (v >= 10) return `$${v.toFixed(1)}`
+            return `$${v.toFixed(2)}`
+          }
           const fmtK = (v: number): string => {
             if (v >= 1000) {
               const k = v / 1000
@@ -1099,17 +1120,19 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="판매 크레딧"
-                    title="판매 크레딧 누적(정가 그로스, 환불·수수료 미반영). 점선 = 결제율(활성 대비)."
+                    title={`판매 크레딧 누적(정가 그로스, 환불·수수료 미반영). ARPMAU = 최근 30일 매출 ${fmtUsd(revenue30d)} ÷ MAU ${mau}명(최근 30일 활동). 점선 = 결제율(활성 대비).`}
                     value={fmtK(creditsSold)}
                     valueExtra={(
                       <span style={{
                         fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                         color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                       }}>
-                        결제 {payRate}%
+                        ARPMAU {fmtUsd(arpmau)}
                       </span>
                     )}
-                    sub={creditsSold > 0 ? `오늘 ${fmtK(creditsToday)} · 7일 ${fmtK(credits7d)}` : '아직 없음'}
+                    sub={creditsSold > 0
+                      ? `결제 ${payRate}% · 매출 ${fmtUsd(totalRevenue)} · MAU ${mau.toLocaleString()}`
+                      : '아직 없음'}
                     tone={creditsSold > 0 ? 'pos' : 'default'}
                     sparkline={compact ? undefined : creditsData}
                     sparkline2={compact ? undefined : payRateData}
