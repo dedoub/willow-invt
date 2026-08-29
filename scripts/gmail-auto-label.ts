@@ -138,6 +138,8 @@ interface EmailSummary {
   snippet: string
   labels: string[]
   body: string
+  threadId: string
+  internalDate: string
   isSent: boolean
 }
 
@@ -193,6 +195,12 @@ interface ClassificationResult {
   reason: string
   /** 메일이 무슨 말을 하는지 한 줄. CEO 봇 알림에 그대로 실린다. */
   summary?: string
+  /** 상대가 답을 기다리는가. 미회신 팔로업이 이 값으로 스레드를 고른다. */
+  requires_reply?: boolean
+  /** High | Medium | Low — 팔로업 우선순위로 옮겨진다. */
+  priority?: string
+  /** 이 메일이 남기는 할 일. email_todos 로 쌓여 기한 팔로업이 된다. */
+  action_items?: string[]
 }
 
 /** 본문 글자 수 상한. 프롬프트가 불어나면 분류까지 느려진다. */
@@ -290,6 +298,12 @@ ${labelList}
 2. 어떤 라벨에도 해당하지 않는 일반 이메일(뉴스레터, 광고, 알림)은 null
 3. 확신이 낮으면 null (잘못된 라벨보다 미분류가 나음)
 
+## 함께 판단할 것
+라벨과 별개로, 이 메일이 나중에 챙겨야 할 일을 남기는지 본다. CEO 봇이 이 값으로 미회신·기한 팔로업을 만든다.
+- requires_reply: 상대가 내 답을 기다리면 true. 통지·뉴스레터·영수증처럼 답이 필요 없으면 false. 내가 보낸 메일(보낸메일)은 항상 false.
+- priority: High(기한이 임박하거나 돈·계약이 걸림) / Medium(업무상 필요) / Low(참고).
+- action_items: 이 메일 때문에 내가 해야 할 일. 한 건당 한 줄, 기한이 있으면 문장에 넣는다. 없으면 빈 배열.
+
 ## 요약(summary) 작성 기준
 CEO가 아침에 이 줄만 읽고 무슨 일이 있었는지 알아야 한다. 제목을 다시 쓰지 말고 본문에서 실제로 무엇을 요구·통지하는지 적는다.
 1. 한국어 평서문 한 줄, 80자 이내. 인사말·서명은 버린다.
@@ -303,8 +317,8 @@ ${emailList}
 ## 출력 형식
 순수 JSON 배열만 출력하세요. 설명 텍스트 없이:
 [
-  {"email_id": "...", "label": "Akros/PR지원", "reason": "아크로스 PR 관련 이메일", "summary": "9/5 상장 기념 보도자료 초안 검토를 요청, 회신 필요."},
-  {"email_id": "...", "label": null, "reason": "일반 뉴스레터", "summary": "주간 ETF 시장 동향 뉴스레터."}
+  {"email_id": "...", "label": "Akros/PR지원", "reason": "아크로스 PR 관련 이메일", "summary": "9/5 상장 기념 보도자료 초안 검토를 요청, 회신 필요.", "requires_reply": true, "priority": "High", "action_items": ["9/5까지 보도자료 초안 검토 회신"]},
+  {"email_id": "...", "label": null, "reason": "일반 뉴스레터", "summary": "주간 ETF 시장 동향 뉴스레터.", "requires_reply": false, "priority": "Low", "action_items": []}
 ]`
 
   try {
@@ -350,6 +364,99 @@ ${emailList}
     log(`⚠️ 이메일 분류 실패: ${err}`)
     return []
   }
+}
+
+// ============================================================
+// 분석 결과 적재 — 여기서 쌓인 것이 CEO 봇의 팔로업 재료가 된다
+// ============================================================
+// telegram-bot.ts 의 scanAutoFollowUps 가 30분마다 email_metadata·email_todos 를
+// 읽어 미회신 스레드와 기한 지난 할 일을 agent_follow_ups 로 올린다. 그 엔진은
+// 계속 돌고 있었는데 email_metadata 가 2026-04-26 이후로 비어 있었다 — 유일한
+// 적재 경로가 브라우저 로그인이 필요한 /api/gmail/ingest 였고 아무도 부르지
+// 않았다. 아침 분류가 이미 본문까지 읽으므로, 여기서 같이 남긴다.
+const ANALYSIS_USER_ID = process.env.GMAIL_ANALYSIS_USER_ID || 'dw.kim@willowinvt.com'
+
+function normalisePriority(value: string | undefined): string {
+  const v = (value || '').toLowerCase()
+  if (v.startsWith('h') || v === 'critical') return 'High'
+  if (v.startsWith('l')) return 'Low'
+  return 'Medium'
+}
+
+async function saveAnalysis(emails: EmailSummary[], classifications: ClassificationResult[]) {
+  if (emails.length === 0) return { metadata: 0, todos: 0 }
+  if (DRY_RUN) {
+    const c = classifications.filter(x => x.action_items?.length)
+    return { metadata: emails.length, todos: c.reduce((n, x) => n + (x.action_items?.length || 0), 0) }
+  }
+  const byId = new Map(classifications.map(c => [c.email_id, c]))
+
+  // gmail_message_id 에 유니크 제약이 없다(현재 589개 중 중복 83). upsert 로 맡기면
+  // 행이 늘기만 하므로, 이미 있는 건 건너뛰고 없는 것만 넣는다.
+  const ids = emails.map(e => e.id)
+  const { data: existing } = await supabase
+    .from('email_metadata')
+    .select('gmail_message_id')
+    .in('gmail_message_id', ids)
+  const known = new Set((existing || []).map(r => r.gmail_message_id))
+
+  const now = new Date().toISOString()
+  const rows = emails.filter(e => !known.has(e.id)).map(e => {
+    const c = byId.get(e.id)
+    // 보낸메일은 요약하지 않는다. 미회신 판정에 "내가 답했다"는 사실만 있으면 되고,
+    // 그 한 줄을 위해 AI를 부르면 매일 값을 두 배로 치른다.
+    return {
+      user_id: ANALYSIS_USER_ID,
+      gmail_message_id: e.id,
+      gmail_thread_id: e.threadId,
+      subject: e.subject || '(제목 없음)',
+      from_email: e.from,
+      from_name: cleanName(e.from),
+      to_email: e.to,
+      date: new Date(Number(e.internalDate) || Date.now()).toISOString(),
+      direction: e.isSent ? 'outbound' : 'inbound',
+      gmail_labels: e.labels,
+      summary: e.isSent ? (e.subject || '') : (c?.summary || e.snippet || ''),
+      requires_reply: e.isSent ? false : Boolean(c?.requires_reply),
+      priority: normalisePriority(c?.priority),
+      action_items: (c?.action_items || []).map(task => ({ task })),
+      category: c?.label || null,
+      is_analyzed: true,
+      analyzed_at: now,
+      trigger_source: 'auto-label',
+    }
+  })
+
+  let metadata = 0
+  if (rows.length > 0) {
+    const { error } = await supabase.from('email_metadata').insert(rows)
+    if (error) log(`  ⚠️ email_metadata 적재 실패: ${error.message}`)
+    else metadata = rows.length
+  }
+
+  // 할 일은 따로 쌓는다 — 기한 팔로업이 email_todos 를 본다.
+  const todoRows = emails.flatMap(e => {
+    if (e.isSent || known.has(e.id)) return []
+    const c = byId.get(e.id)
+    return (c?.action_items || []).filter(t => t && t.trim()).map(task => ({
+      user_id: ANALYSIS_USER_ID,
+      label: c?.label || 'Uncategorized',
+      category: c?.label || 'Uncategorized',
+      task: task.trim().slice(0, 300),
+      priority: normalisePriority(c?.priority).toLowerCase(),
+      related_email_ids: [e.id],
+      completed: false,
+    }))
+  })
+
+  let todos = 0
+  if (todoRows.length > 0) {
+    const { error } = await supabase.from('email_todos').insert(todoRows)
+    if (error) log(`  ⚠️ email_todos 적재 실패: ${error.message}`)
+    else todos = todoRows.length
+  }
+
+  return { metadata, todos }
 }
 
 // ============================================================
@@ -476,11 +583,13 @@ async function processContext(context: string, excludeLabels: string[]): Promise
   const labels = await getUserLabels(gmail)
   log(`  📋 사용 가능한 라벨: ${labels.length}개`)
 
-  // 2. 미분류 이메일 조회
-  const excludeQuery = excludeLabels.map(l => `-label:${l}`).join(' ')
+  // 2. 최근 메일 조회 — 라벨이 붙은 것까지 포함한다.
+  //
+  // 라벨 붙은 메일을 빼면 내가 보낸 답장이 기록에서 사라지고, 미회신 판정이
+  // "아직 답 안 했다"로 잘못 남는다. 라벨을 붙일 대상은 아래에서 따로 가린다.
   const res = await gmail.users.messages.list({
     userId: 'me',
-    q: `newer_than:${process.env.GMAIL_LABEL_RANGE || '25h'} {in:inbox in:sent} ${excludeQuery}`,
+    q: `newer_than:${process.env.GMAIL_LABEL_RANGE || '25h'} {in:inbox in:sent}`,
     maxResults: 50,
   })
 
@@ -511,6 +620,8 @@ async function processContext(context: string, excludeLabels: string[]): Promise
       snippet: detail.data.snippet || '',
       body: extractBody(detail.data.payload),
       labels: labelIds, isSent,
+      threadId: detail.data.threadId || msg.id,
+      internalDate: detail.data.internalDate || '',
     })
   }
 
@@ -522,28 +633,46 @@ async function processContext(context: string, excludeLabels: string[]): Promise
   }
   const emailsToClassify = filtered
 
-  log(`  📨 미분류 이메일: ${emailsToClassify.length}건`)
+  // 이미 우리 라벨이 붙은 메일은 다시 붙일 게 없다. 다만 기록에는 남긴다.
+  const labelNameById = new Map(labels.map(l => [l.id, l.name]))
+  const alreadyLabeled = (e: EmailSummary) => e.labels.some(id => {
+    const name = labelNameById.get(id)
+    return !!name && excludeLabels.some(prefix => name === prefix || name.startsWith(`${prefix}/`))
+  })
 
-  // 3. Claude로 분류
+  // AI는 받은메일에만 쓴다. 보낸메일은 "내가 답했다"는 사실만 있으면 되고,
+  // 그 한 줄에 값을 치를 이유가 없다.
+  const toAnalyse = emailsToClassify.filter(e => !e.isSent)
+  log(`  📨 최근 메일 ${emailsToClassify.length}건 (분석 대상 ${toAnalyse.length}건)`)
+
+  // 3. 분류 + 내용 정리
   log(`  🤖 이메일 분류 중...`)
-  const classifications = await classifyEmails(emailsToClassify, labels)
-  const toLabel = classifications.filter(c => c.label)
-  log(`  📊 분류 결과: ${toLabel.length}/${emailsToClassify.length}건 라벨 할당`)
+  const classifications = await classifyEmails(toAnalyse, labels)
+
+  // 4. 분석 결과 적재 — 팔로업 엔진이 읽을 자리
+  const saved = await saveAnalysis(emailsToClassify, classifications)
+  log(`  🗂️ 기록: 메일 ${saved.metadata}건, 할 일 ${saved.todos}건`)
+
+  // 라벨은 아직 안 붙은 것에만
+  const needsLabel = new Set(emailsToClassify.filter(e => !alreadyLabeled(e)).map(e => e.id))
+  const labelTargets = classifications.filter(c => c.label && needsLabel.has(c.email_id))
+  const toLabel = labelTargets
+  log(`  📊 분류 결과: ${toLabel.length}건 라벨 할당`)
 
   if (toLabel.length === 0) {
-    return { applied: 0, classifications, emails: emailsToClassify }
+    return { applied: 0, classifications: labelTargets, emails: emailsToClassify }
   }
 
   // 4. 라벨 적용
   if (DRY_RUN) {
     log(`  🧪 dry-run — 라벨 ${toLabel.length}건을 붙이지 않았어요.`)
-    return { applied: toLabel.length, classifications, emails: emailsToClassify }
+    return { applied: toLabel.length, classifications: labelTargets, emails: emailsToClassify }
   }
   log(`  🏷️ 라벨 적용 중...`)
-  const applied = await applyLabels(gmail, classifications, labels)
+  const applied = await applyLabels(gmail, labelTargets, labels)
   log(`  ✅ ${applied}건 라벨 적용 완료`)
 
-  return { applied, classifications, emails: emailsToClassify }
+  return { applied, classifications: labelTargets, emails: emailsToClassify }
 }
 
 // ============================================================
