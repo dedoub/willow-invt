@@ -961,9 +961,6 @@ export function VoicecardsBlock({
           // 활성%→결제%). 한 칸만 뜻을 바꾸면 행을 훑는 사람이 예외를 외워야 한다.
           // 대신 값 옆 배지가 결제%를 되풀이하고 있었으므로(점선과 같은 지표) 그 자리를 쓴다.
           const rev30AgoKey = kstDaysAgo(29)
-          const revenue30d = (chartData ?? [])
-            .filter(r => r.date >= rev30AgoKey)
-            .reduce((sum, r) => sum + (r.total ?? 0), 0)
           const mauCutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000
           // 기기 계정도 센다 — 로그인 없이 크레딧을 쓰고 매출을 내므로 분모에서 빼면
           // ARPMAU 가 부풀려진다. 다른 카드와 같은 userStats.users 모집단이다.
@@ -971,7 +968,7 @@ export function VoicecardsBlock({
             const t = u.lastActiveAt ? new Date(u.lastActiveAt).getTime() : 0
             return t >= mauCutoffMs
           }).length
-          // 배지는 달러가 아니라 크레딧으로 낸다. 달러 매출은 product_id 를 정가표에
+          // CPMAU(credits per MAU) — 배지는 달러가 아니라 크레딧으로 낸다. 달러 매출은 product_id 를 정가표에
           // 대입한 추정치라(지역가·환불·스토어 수수료 미반영) 1인당으로 나누면 오차가
           // 그대로 실린다. 크레딧은 결제 이벤트의 delta(실제 지급량)로 세는 값이라
           // 환율·수수료를 타지 않고, 카드 머리값(판매 크레딧)과 단위도 같다.
@@ -979,13 +976,7 @@ export function VoicecardsBlock({
             .filter(r => r.date >= rev30AgoKey)
             .reduce((sum, r) => sum + (r.credits ?? 0), 0)
           const creditsPerMau = mau > 0 ? credits30d / mau : 0
-          const totalRevenue = stats?.combined.totalRevenue ?? 0
           const fmtPerMau = (v: number): string => (v >= 100 ? String(Math.round(v)) : v >= 10 ? v.toFixed(1) : v.toFixed(2))
-          const fmtUsd = (v: number): string => {
-            if (v >= 100) return `$${Math.round(v).toLocaleString()}`
-            if (v >= 10) return `$${v.toFixed(1)}`
-            return `$${v.toFixed(2)}`
-          }
           const fmtK = (v: number): string => {
             if (v >= 1000) {
               const k = v / 1000
@@ -1128,18 +1119,18 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="판매 크레딧"
-                    title={`판매 크레딧 누적. 크레딧/MAU = 최근 30일 판매 ${fmtK(credits30d)} ÷ MAU ${mau}명(최근 30일 활동). 매출은 product_id 정가표 기준 그로스 추정 ${fmtUsd(revenue30d)}(30일) · ${fmtUsd(totalRevenue)}(누적) — 지역가·환불·스토어 수수료 미반영이라 정산액이 아니다. 점선 = 결제율(활성 대비).`}
+                    title={`판매 크레딧 누적. CPMAU(크레딧/MAU) = 최근 30일 판매 ${fmtK(credits30d)} ÷ MAU ${mau}명(최근 30일 활동). 달러 매출은 정가표 대입 추정이라(지역가·환불·스토어 수수료 미반영) 정산액이 아니어서 1인당 지표는 크레딧으로 낸다. 점선 = 결제율(활성 대비).`}
                     value={fmtK(creditsSold)}
                     valueExtra={(
                       <span style={{
                         fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                         color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                       }}>
-                        크레딧/MAU {fmtPerMau(creditsPerMau)}
+                        CPMAU {fmtPerMau(creditsPerMau)}
                       </span>
                     )}
                     sub={creditsSold > 0
-                      ? `결제 ${payRate}% · 매출 ${fmtUsd(totalRevenue)}(정가) · MAU ${mau.toLocaleString()}`
+                      ? `결제 ${payRate}% · MAU ${mau.toLocaleString()}`
                       : '아직 없음'}
                     tone={creditsSold > 0 ? 'pos' : 'default'}
                     sparkline={compact ? undefined : creditsData}
@@ -1147,7 +1138,10 @@ export function VoicecardsBlock({
                     spark2Color={t.brand[600]}
                     sparkFormat={(v) => fmtK(v)}
                     sparkFormat2={(v) => `${v}%`}
-                    spark2Domain={[0, 100]}
+                    // 이 카드만 점선을 [0,100]에 고정하지 않는다(우측 축 = 자기 범위).
+                    // 결제율은 10%대라 0~100 안에서는 바닥에 눌려 움직임이 안 보인다.
+                    // 대신 폭이 좁아 변화가 실제보다 커 보이므로, 기울기가 아니라
+                    // 툴팁 숫자로 읽을 것. 좌표는 스파크라인 쪽에서 클램프된다.
                     dualScale
                   />
                 )}
