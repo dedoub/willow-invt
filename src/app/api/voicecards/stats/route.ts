@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { unstable_cache } from 'next/cache'
+import { revalidateTag, unstable_cache } from 'next/cache'
 import {
   getCombinedStats,
   getConnectionStatus,
@@ -15,8 +15,7 @@ export const revalidate = 0
 // ⚠️ appRevenue.*ByDate 는 Map 이라 unstable_cache(JSON)에서 살아남지 못한다 → chartData 생성을
 //    캐시 함수 '안'에서 끝내 배열로 반환. 캐시-히트 시 stats.appRevenue Map 은 비지만 클라이언트는
 //    chartData(배열)로 자체 집계하므로 무관.
-const getCachedStatsPayload = unstable_cache(
-  async (startDate: string, endDate: string) => {
+const buildStatsPayload = async (startDate: string, endDate: string) => {
     const stats = await getCombinedStats(startDate, endDate)
     const appRevenue = stats.appRevenue
     const dateMap = new Map<string, { ios: number; android: number; total: number; credits: number; paidUsers?: number }>()
@@ -49,7 +48,10 @@ const getCachedStatsPayload = unstable_cache(
       .map(([date, values]) => ({ date, ...values }))
 
     return { stats, chartData }
-  },
+}
+
+const getCachedStatsPayload = unstable_cache(
+  buildStatsPayload,
   ['voicecards-combined-stats'],
   { revalidate: 3600, tags: ['voicecards-stats'] }
 )
@@ -62,10 +64,13 @@ export async function GET(request: Request) {
     // 날짜 범위 파라미터 (기본: 올해 1/1 ~ 오늘, KST 기준)
     const endDate = searchParams.get('endDate') || kstToday()
     const startDate = searchParams.get('startDate') || `${kstToday().slice(0, 4)}-01-01`
+    // 새로고침 버튼(?refresh=1)은 1시간 캐시를 건너뛴다 — /users, /events 와 같은 규칙.
+    const refresh = searchParams.get('refresh') === '1'
+    if (refresh) revalidateTag('voicecards-stats', { expire: 0 })
     // 연결 상태(가벼움, 매요청) + 통합 통계(1시간 캐시)를 병렬 조회
     const [connectionStatus, { stats, chartData }] = await Promise.all([
       getConnectionStatus(),
-      getCachedStatsPayload(startDate, endDate),
+      refresh ? buildStatsPayload(startDate, endDate) : getCachedStatsPayload(startDate, endDate),
     ])
 
     return NextResponse.json({

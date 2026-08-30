@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { unstable_cache } from 'next/cache'
+import { revalidateTag, unstable_cache } from 'next/cache'
 import { getAnonymousEventStats } from '@/lib/voicecards-server'
 
 export const maxDuration = 300
@@ -17,9 +17,13 @@ const getCachedAnonStats = unstable_cache(
   { revalidate: 3600, tags: ['voicecards-stats'] }
 )
 
-export async function GET() {
+// ?refresh=1 이면 1시간 캐시를 건너뛴다 (users 라우트와 같은 규칙).
+export async function GET(request: Request) {
+  const refresh = new URL(request.url).searchParams.get('refresh') === '1'
   try {
-    const anonymousStats = await getCachedAnonStats()
+    if (refresh) revalidateTag('voicecards-stats', { expire: 0 })
+    const anonymousStats = refresh ? await getAnonymousEventStats() : await getCachedAnonStats()
+    if (!anonymousStats) throw new Error('vc_event_stats returned null (transient RPC failure)')
     return NextResponse.json({ success: true, anonymousStats })
   } catch (error) {
     console.error('Error fetching voicecards anonymous events:', error)

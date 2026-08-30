@@ -169,7 +169,9 @@ export default function VoicecardsPage() {
     const start = `${end.slice(0, 4)}-01-01`
 
     // 3개 API 병렬 호출 — 각 응답이 도착하는 대로 즉시 화면 반영
-    const usersP = fetch('/api/voicecards/stats/users', { cache: 'no-store' })
+    // 새로고침 버튼은 서버 캐시(1시간)까지 건너뛰게 ?refresh=1 을 붙인다.
+    const q = refresh ? '?refresh=1' : ''
+    const usersP = fetch(`/api/voicecards/stats/users${q}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) setVcUserStats(data.userStats || null)
@@ -177,7 +179,7 @@ export default function VoicecardsPage() {
       .catch(err => console.error('VoiceCards users load error:', err))
       .finally(() => setVcUsersLoading(false))
 
-    const eventsP = fetch('/api/voicecards/stats/events', { cache: 'no-store' })
+    const eventsP = fetch(`/api/voicecards/stats/events${q}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) setVcAnonStats(data.anonymousStats || null)
@@ -185,7 +187,7 @@ export default function VoicecardsPage() {
       .catch(err => console.error('VoiceCards events load error:', err))
       .finally(() => setVcEventsLoading(false))
 
-    const revenueP = fetch(`/api/voicecards/stats?startDate=${start}&endDate=${end}`, { cache: 'no-store' })
+    const revenueP = fetch(`/api/voicecards/stats?startDate=${start}&endDate=${end}${refresh ? '&refresh=1' : ''}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { unstable_cache } from 'next/cache'
+import { revalidateTag, unstable_cache } from 'next/cache'
 import { getVoicecardsUserStats } from '@/lib/voicecards-server'
 import { VOICECARDS_USER_STATS_CACHE_KEY } from '@/lib/voicecards-device-journey'
 
@@ -18,9 +18,13 @@ const getCachedUserStats = unstable_cache(
   { revalidate: 3600, tags: ['voicecards-stats'] }
 )
 
-export async function GET() {
+// 새로고침 버튼(?refresh=1)은 1시간 캐시를 건너뛴다. 그냥 재요청만 하면 같은 캐시가
+// 그대로 돌아와서 버튼이 아무것도 안 하는 것처럼 보였다 — 지표 정의를 고친 직후 특히.
+export async function GET(request: Request) {
+  const refresh = new URL(request.url).searchParams.get('refresh') === '1'
   try {
-    const userStats = await getCachedUserStats()
+    if (refresh) revalidateTag('voicecards-stats', { expire: 0 })
+    const userStats = refresh ? await getVoicecardsUserStats() : await getCachedUserStats()
     return NextResponse.json({ success: true, userStats })
   } catch (error) {
     console.error('Error fetching voicecards user stats:', error)
