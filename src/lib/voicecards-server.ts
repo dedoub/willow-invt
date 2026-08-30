@@ -946,10 +946,11 @@ export interface VoicecardsUserStats {
     cardsLearned: number
     attempts: number
   }>
-  // 일별 보유 카드 스냅샷 (daily_inventory_snapshots 테이블 기반, 아직 없으면 빈 배열)
+  // 일별 보유 카드·덱 스냅샷 (daily_inventory_snapshots 테이블 기반, 아직 없으면 빈 배열)
   dailyCardInventory: Array<{
     date: string
     totalCards: number
+    totalSheets: number
   }>
   users: Array<{
     id: string
@@ -1170,10 +1171,11 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   // 일별 보유 카드 스냅샷 — daily_inventory_snapshots(관리자 제외 시리즈, liveCards=userStats.totalCards
   // 와 같은 모집단이라 sparkline 끝점·7일 추세가 헤더와 정합). sparkline·7일 추세용.
   // (오늘/전일 diff 는 클라이언트에서 테이블 per-user 델타 합으로 별도 계산.)
-  const inventorySnapRes = await vc.from('daily_inventory_snapshots').select('date, total_cards').order('date', { ascending: true })
+  const inventorySnapRes = await vc.from('daily_inventory_snapshots').select('date, total_cards, total_sheets').order('date', { ascending: true })
   const dailyCardInventory = (inventorySnapRes.data || []).map(r => ({
     date: r.date as string,
     totalCards: Number(r.total_cards) || 0,
+    totalSheets: Number(r.total_sheets) || 0,
   }))
 
   // 일별 학습 활동 (내부 계정 제외, 날짜별 합산)

@@ -34,6 +34,7 @@ interface UserStats {
   dailyCardInventory: Array<{
     date: string
     totalCards: number
+    totalSheets: number
   }>
   users: Array<{
     id: string
@@ -1283,24 +1284,36 @@ export function VoicecardsBlock({
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6) // 오늘 포함 7일
             const sevenDaysAgoStr = toKst(sevenDaysAgo)
 
-            // 보유 시트: 사용자 createdAt 기준 sheetCount 누적 (createdAt → KST 날짜로 변환)
-            const sortedUsersByDate = [...userStats.users].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-            let runningSheets = 0
-            const sheetTrajectory = sortedUsersByDate.map(u => {
-              runningSheets += u.sheetCount
-              return { date: toKst(u.createdAt), value: runningSheets }
-            })
+            // 보유 덱 추이: 일별 스냅샷(daily_inventory_snapshots.total_sheets)을 헤더 값에 맞춰 재척도.
+            // 예전엔 '가입일에 그 사람의 현재 덱 수를 얹는' 코호트 누적이라, 어제 만든 덱도 작년 가입일에
+            // 꽂혀서 선이 실제 증가 시점과 무관했다(끝점만 우연히 헤더와 같았다). 보유 카드와 같은 소스로.
             // 오늘 시트 증가분 = 사용자 테이블 per-user 델타(sheetsDeltaToday) 합 — 헤더 '오늘'과
             // 테이블 diff 열이 항상 일치하도록 같은 소스로 계산(신규유저 시트만 세던 옛 정의는 기존 유저의
-            // 시트 추가를 놓쳐 테이블 합과 어긋났음, 2026-07-19). 7일은 테이블 대응열이 없어 신규 기준 유지.
+            // 시트 추가를 놓쳐 테이블 합과 어긋났음, 2026-07-19).
             const todaySheets = userStats.users.reduce((sum, u) => sum + (u.sheetsDeltaToday || 0), 0)
-            const last7Sheets = sortedUsersByDate
-              .filter(u => toKst(u.createdAt) >= sevenDaysAgoStr)
-              .reduce((sum, u) => sum + u.sheetCount, 0)
+            // 7일도 같은 뜻(증가분)으로 낸다. 예전엔 '최근 7일 가입자가 지금 들고 있는 덱 수'라
+            // 오늘 옆에 서로 다른 뜻의 두 수가 붙어 있었다(2026-08-30 실측 오늘 11 vs 7일 92 —
+            // 92는 증가분이 아니라 신규 가입자의 보유량이었다). 보유 카드와 같은 방식으로
+            // live − 7일 전 스냅샷을 쓴다. 스냅샷 스케일 보정은 아래 invScale 과 같은 이유.
+            const rawInv = userStats.dailyCardInventory ?? []
+            const latestSnapSheets = rawInv.length ? rawInv[rawInv.length - 1].totalSheets : 0
+            const sheetScale = latestSnapSheets > 0 ? userStats.totalSheets / latestSnapSheets : 1
+            const sheetTrajectory = rawInv.map(d => ({ date: d.date, value: Math.round(d.totalSheets * sheetScale) }))
+            const sheetsBeforeSeven = rawInv.filter(d => d.date <= sevenDaysAgoStr)
+            const sevenAgoSheets = Math.round(
+              ((sheetsBeforeSeven.length ? sheetsBeforeSeven[sheetsBeforeSeven.length - 1].totalSheets : rawInv[0]?.totalSheets) ?? latestSnapSheets) * sheetScale
+            )
+            const last7Sheets = latestSnapSheets > 0 ? userStats.totalSheets - sevenAgoSheets : 0
 
-            // 말하기 학습: time_series_analytics 일별 → running sum
+            // 말하기 학습: time_series_analytics 일별 → running sum.
+            // 헤드라인은 user_analytics.total_attempts 합(=사용자 테이블 '말하기' 열 합)이고
+            // 이 시리즈는 time_series_analytics 라 총량이 다르다(2026-08-30 실측 4,233 vs 4,088).
+            // 차이는 일별 행이 안 남은 옛 시도·삭제된 시트의 시도라 시작 시점의 기준선으로 본다.
+            // 그만큼을 시리즈 전체에 더해 실선이 헤드라인에서 끝나게 한다.
             const activity = userStats.dailyLearnActivity ?? []
-            let runningAttempts = 0
+            const attemptSeriesTotal = activity.reduce((s, d) => s + d.attempts, 0)
+            const attemptBaseline = Math.max(0, userStats.totalAttempts - attemptSeriesTotal)
+            let runningAttempts = attemptBaseline
             const attemptTrajectory = activity.map(d => {
               runningAttempts += d.attempts
               return { date: d.date, value: runningAttempts }
@@ -1322,10 +1335,9 @@ export function VoicecardsBlock({
             // 같은 날 두 정의를 재서 나온 비율로 과거를 맞추면 끝점이 항상 헤더와 일치한다.
             // (과거를 정확히 복원할 수는 없다 — 어느 시트가 언제 지워졌는지 기록이 없다. 시계열이 내부적으로
             //  일관되므로 읽는 쪽에서 맞춘다. DB 함수를 고치면 그날부터 정의가 섞이니 과거 행 재작성까지 같이 할 것.)
-            const rawInventory = userStats.dailyCardInventory ?? []
-            const latestSnapCards = rawInventory.length ? rawInventory[rawInventory.length - 1].totalCards : 0
+            const latestSnapCards = rawInv.length ? rawInv[rawInv.length - 1].totalCards : 0
             const invScale = latestSnapCards > 0 ? liveCards / latestSnapCards : 1
-            const inventory = rawInventory.map(d => ({ date: d.date, totalCards: Math.round(d.totalCards * invScale) }))
+            const inventory = rawInv.map(d => ({ date: d.date, totalCards: Math.round(d.totalCards * invScale) }))
             const cardTrajectory = inventory.map(d => ({ date: d.date, value: d.totalCards }))
             // 오늘 카드 증가분 = 사용자 테이블 per-user 델타(cardsToday) 합 — 헤더 '오늘'과 테이블 diff 열이
             // 항상 일치. (live − 오늘 스냅샷 집계는 user_analytics orphan 행(users 테이블에 없는 계정)을

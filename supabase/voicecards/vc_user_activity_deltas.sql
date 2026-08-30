@@ -24,11 +24,18 @@ tsa_today as (
 ),
 -- 오늘 듣기/뒤집기/구매와 7일 활동일을 한 번의 MV 스캔으로 계산한다.
 -- created_at 자체에 범위를 걸어 event_name, created_at 인덱스를 모두 사용한다.
+--
+-- 로그인 없이 쓰는 기기(user_id null)는 device:<device_id> 계정으로 돌린다 — 대시보드가
+-- 소유자를 정하는 규칙과 같다(voicecards-device-journey.ts voicecardsLocalActivationOwnerId).
+-- user_id is not null 로 걸러내던 동안 기기 계정 행은 듣기·뒤집기·활동일이 늘 0이었다:
+-- 2026-08-30 하루만 봐도 듣기 이벤트 2,718건 중 1,281건(기기 7대, 전부 사용자표에 있는
+-- device: 계정)이 통째로 빠져 헤더 '오늘'이 1,435 로 나왔다(이벤트 시리즈는 2,604).
 event_rows as materialized (
-  select e.user_id, e.event_name, e.properties, e.is_likely_bot,
+  select coalesce(e.user_id, 'device:' || e.device_id) as user_id,
+         e.event_name, e.properties, e.is_likely_bot,
          (e.created_at at time zone 'Asia/Seoul')::date as event_date
   from mv_real_users e, td
-  where e.user_id is not null
+  where (e.user_id is not null or e.device_id is not null)
     and e.event_name in (
       'tts_played','voice_preview_played','device_tts_played',
       'card_flipped_manual','card_attempted','credits_changed',

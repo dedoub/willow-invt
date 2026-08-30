@@ -39,6 +39,7 @@ interface UserStats {
   dailyCardInventory: Array<{
     date: string
     totalCards: number
+    totalSheets: number
   }>
   users: Array<{
     id: string

@@ -51,7 +51,11 @@ as $function$
     where properties ? 'fractional_cost' and app_version is not null
   ),
   ev as (
-    select m.user_id,
+    -- 로그인 없이 쓰는 기기(user_id null)는 device:<device_id> 계정으로 돌린다 —
+    -- vc_user_activity_deltas 와 같은 규칙(2026-08-30). user_id is not null 로 걸러내던 동안
+    -- 사용자표의 기기 계정 행은 듣기·뒤집기가 0이라 카드 헤드라인(이벤트 전량)과 열 합이
+    -- 어긋났다(실측 듣기 57,065 vs 열 합 53,346 / 뒤집기 13,238 vs 12,298).
+    select coalesce(m.user_id, 'device:' || m.device_id) as user_id,
       -- 듣기 = 재생 엔진 무관 학습량. 무료 헤비 리스너가 "듣기 0" 으로 보이면 이탈처럼 읽힌다.
       count(*) filter (where m.event_name in ('tts_played','voice_preview_played','device_tts_played'))::bigint as listen_count,
       -- 크레딧이 실제로 나갈 수 있는 재생.
@@ -101,7 +105,7 @@ as $function$
       max(m.created_at) filter (where m.event_name = 'credits_changed'
                                   and m.properties->>'reason' = 'purchase') as last_purchase
     from mv_real_users m
-    where m.is_likely_bot = false and m.user_id is not null
+    where m.is_likely_bot = false and (m.user_id is not null or m.device_id is not null)
       and m.event_name in (
         'tts_played','voice_preview_played','device_tts_played','card_flipped_manual','credits_changed',
         'tts_premium_toggle_changed','voice_settings_opened',
@@ -109,7 +113,7 @@ as $function$
         'credit_banner_tapped',
         'add_sheet_opened_anonymous','add_sheet_signin_and_create_clicked','prompt_signin_clicked'
       )
-    group by m.user_id
+    group by coalesce(m.user_id, 'device:' || m.device_id)
   ),
   spend as (
     -- 환불(tts_refund·ai_refund·ai_grading_refund)은 차감을 되돌린 것이므로 실사용에서 뺀다.
