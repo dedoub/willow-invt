@@ -824,8 +824,9 @@ export function VoicecardsBlock({
           const signedUp = activatedUsers.length
           const paidUsers = stats?.combined.totalPaidUsers ?? 0
 
-          // 활성화 전환율 = 구글연동 대비 (퍼널: 기기 → 연동 → 활성화)
-          const signupConv = linkedUsers > 0 ? (signedUp / linkedUsers) * 100 : 0
+          // 활성화 전환율 = 구글연동 대비 (퍼널: 기기 → 연동 → 활성화).
+          // 배지(activeRate)와 같은 구글 경로 기준 — signedUp 은 기기 계정을 포함해서
+          // 분모(연동)에 없는 사람까지 세고 105% 로 부풀던 값을 톤 판정에 쓰고 있었다.
           // 결제율 = 유료 / 활성 사용자
           const payRate = signedUp > 0 ? Math.round((paidUsers / signedUp) * 100) : 0
 
@@ -1109,18 +1110,26 @@ export function VoicecardsBlock({
                   title={`첫 덱을 만든 사용자(데모 체험 제외). 구글 경로 ${googleActivated.toLocaleString()}명`
                     + (deviceActivated > 0 ? ` + 기기 계정 ${deviceActivated.toLocaleString()}명` : '')
                     + '. 기기 계정은 구글 로그인·드라이브를 거치지 않고 바로 여기로 들어오므로'
-                    + ' 이 칸만은 앞 단계의 부분집합이 아니다. 점선 = 활성화율(구글 경로만, 드라이브 연동 대비).'}
+                    + ' 이 칸만은 앞 단계의 부분집합이 아니다.'
+                    + ` 전환 ${activeRate}% = 구글 활성화 ${googleActivated.toLocaleString()} ÷ 드라이브 연동 ${linkedUsers.toLocaleString()}`
+                    + ' — 기기 계정은 분모(연동)에 없으니 분자에서도 뺀다. 점선도 같은 구글 경로 비율.'}
                   value={signedUp.toLocaleString()}
                   valueExtra={(
                     <span style={{
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
+                      {/* 헤드라인(200)에는 기기 계정이 들어 있는데 전환율 분자는 구글 경로(173)뿐이라,
+                          화면의 두 숫자만으로는 91%가 어디서 나왔는지 되짚을 수 없었다(2026-08-30 CEO).
+                          분자를 값 옆에 같이 적어 앞 칸(드라이브 연동)과 나눠떨어지게 한다. */}
+                      {deviceActivated > 0 && (
+                        <span style={{ color: t.neutrals.muted, marginRight: 4 }}>구글 {googleActivated.toLocaleString()}</span>
+                      )}
                       <span>전환 {activeRate}%</span>
                     </span>
                   )}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
-                  tone={linkedUsers > 0 && signupConv >= 50 ? 'pos' : 'warn'}
+                  tone={linkedUsers > 0 && activeRate >= 50 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}
                   sparkline2={compact ? undefined : activeRateData}
                   sparkFormat2={(v) => `${v}%`}
