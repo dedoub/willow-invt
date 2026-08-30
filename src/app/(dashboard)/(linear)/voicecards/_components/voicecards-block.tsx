@@ -1115,20 +1115,17 @@ export function VoicecardsBlock({
                     + ` 전환 ${activeRate}% = 구글 활성화 ${googleActivated.toLocaleString()} ÷ 드라이브 연동 ${linkedUsers.toLocaleString()}`
                     + ' — 기기 계정은 분모(연동)에 없으니 분자에서도 뺀다. 점선도 같은 구글 경로 비율.'}
                   value={signedUp.toLocaleString()}
-                  valueExtra={(
+                  // 이 칸만 배지가 둘이라 좁았다 — 전환율은 뺀다(2026-08-30 CEO). 점선이 같은 값을
+                  // 그리고 툴팁에 나눗셈이 적혀 있다. 남기는 건 구성(구글 경로 몇 명)뿐 —
+                  // 헤드라인에는 기기 계정이 섞여 있어서 이게 없으면 앞 칸과 어떻게 이어지는지 알 수 없다.
+                  valueExtra={deviceActivated > 0 ? (
                     <span style={{
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
-                      color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+                      color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
-                      {/* 헤드라인(200)에는 기기 계정이 들어 있는데 전환율 분자는 구글 경로(173)뿐이라,
-                          화면의 두 숫자만으로는 91%가 어디서 나왔는지 되짚을 수 없었다(2026-08-30 CEO).
-                          분자를 값 옆에 같이 적어 앞 칸(드라이브 연동)과 나눠떨어지게 한다. */}
-                      {deviceActivated > 0 && (
-                        <span style={{ color: t.neutrals.muted, marginRight: 4 }}>구글 {googleActivated.toLocaleString()}</span>
-                      )}
-                      <span>전환 {activeRate}%</span>
+                      구글 {googleActivated.toLocaleString()}
                     </span>
-                  )}
+                  ) : undefined}
                   sub={`오늘 ${signupToday.toLocaleString()}명 · 7일 ${signup7.toLocaleString()}명`}
                   tone={linkedUsers > 0 && activeRate >= 50 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}
