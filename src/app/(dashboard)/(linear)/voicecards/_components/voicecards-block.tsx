@@ -114,6 +114,9 @@ interface AnonymousEventStats {
     newLoggedDevices?: number
     memberLoggedDevices?: number
     anonDevices: number
+    // 직전 30일(당일 포함) 활동 회원 디바이스 distinct = 롤링 MAU.
+    // vc_event_stats 가 예전부터 내려주고 있었는데 이 인터페이스에만 빠져 있었다.
+    memberActive30?: number
   }>
   cumulativeDistinct: Array<{
     date: string
@@ -917,20 +920,9 @@ export function VoicecardsBlock({
 
           // 크레딧 판매/유료전환 누적 (매출은 크레딧 볼륨으로 표시)
           const creditsByDate = new Map<string, number>()
-          const paidUsersByDate = new Map<string, number>()
           for (const row of (chartData ?? [])) {
             creditsByDate.set(row.date, (creditsByDate.get(row.date) ?? 0) + (row.credits ?? 0))
-            if (typeof row.paidUsers === 'number') paidUsersByDate.set(row.date, row.paidUsers)
           }
-          const paidUsersData = allDates.map(date => {
-            let total = 0
-            for (const [paidDate, val] of paidUsersByDate) {
-              if (paidDate <= date) total = val
-            }
-            return { date, value: total }
-          })
-          // 결제율(%) 추이 = 유료 누적 / 활성화 누적 — 매출 카드 점선 (0~100% 고정 스케일)
-          const payRateData = allDates.map((date, i) => ({ date, value: pct(paidUsersData[i]?.value ?? 0, signupData[i]?.value ?? 0) }))
 
           // 오늘 / 최근 7일 컷오프 (KST 기준)
           const revTodayKey = kstToday()
@@ -959,13 +951,16 @@ export function VoicecardsBlock({
           // 활성%→결제%). 한 칸만 뜻을 바꾸면 행을 훑는 사람이 예외를 외워야 한다.
           // 대신 값 옆 배지가 결제%를 되풀이하고 있었으므로(점선과 같은 지표) 그 자리를 쓴다.
           const rev30AgoKey = kstDaysAgo(29)
-          const mauCutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000
-          // 기기 계정도 센다 — 로그인 없이 크레딧을 쓰고 매출을 내므로 분모에서 빼면
-          // ARPMAU 가 부풀려진다. 다른 카드와 같은 userStats.users 모집단이다.
-          const mau = (userStats?.users ?? []).filter(u => {
-            const t = u.lastActiveAt ? new Date(u.lastActiveAt).getTime() : 0
-            return t >= mauCutoffMs
-          }).length
+          // MAU 는 서버 집계(vc_event_stats)의 롤링 30일 활동자를 그대로 쓴다.
+          // users.lastActiveAt 로 세면 "마지막 활동"만 남아 과거 시점의 MAU 를 복원할 수
+          // 없다 — 점선이 날짜별 CPMAU 를 그리려면 분모도 날짜별로 있어야 하고, 배지와
+          // 점선이 서로 다른 분모를 쓰면 같은 이름의 두 값이 어긋난다.
+          const mauByDate = new Map<string, number>()
+          for (const r of (anonymousStats.daily ?? [])) {
+            if (typeof r.memberActive30 === 'number' && r.memberActive30 > 0) mauByDate.set(r.date, r.memberActive30)
+          }
+          const mauDates = [...mauByDate.keys()].sort()
+          const mau = mauDates.length ? (mauByDate.get(mauDates[mauDates.length - 1]) ?? 0) : 0
           // CPMAU(credits per MAU) — 배지는 달러가 아니라 크레딧으로 낸다. 달러 매출은 product_id 를 정가표에
           // 대입한 추정치라(지역가·환불·스토어 수수료 미반영) 1인당으로 나누면 오차가
           // 그대로 실린다. 크레딧은 결제 이벤트의 delta(실제 지급량)로 세는 값이라
@@ -974,6 +969,22 @@ export function VoicecardsBlock({
             .filter(r => r.date >= rev30AgoKey)
             .reduce((sum, r) => sum + (r.credits ?? 0), 0)
           const creditsPerMau = mau > 0 ? credits30d / mau : 0
+
+          // CPMAU 추이(점선) — 날짜마다 "그날까지의 최근 30일 판매 ÷ 그날의 MAU".
+          // 분자도 30일 창으로 굴린다. 누적 크레딧을 그날 MAU 로 나누면 시간이 갈수록
+          // 기계적으로 올라가는 선이 되어 최근 판매가 붙었는지 알 수 없다.
+          const rollingCredits30 = (endDate: string): number => {
+            const start = new Date(`${endDate}T00:00:00+09:00`)
+            start.setDate(start.getDate() - 29)
+            const startKey = kstDateKey(start.toISOString())
+            let sum = 0
+            for (const [d, v] of creditsByDate) if (d >= startKey && d <= endDate) sum += v
+            return sum
+          }
+          const cpmauData = allDates.map(date => {
+            const m = mauByDate.get(date) ?? 0
+            return { date, value: m > 0 ? rollingCredits30(date) / m : 0 }
+          })
           const fmtPerMau = (v: number): string => (v >= 100 ? String(Math.round(v)) : v >= 10 ? v.toFixed(1) : v.toFixed(2))
           const fmtK = (v: number): string => {
             if (v >= 1000) {
@@ -1117,7 +1128,7 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="판매 크레딧"
-                    title={`판매 크레딧 누적. CPMAU(크레딧/MAU) = 최근 30일 판매 ${fmtK(credits30d)} ÷ MAU ${mau}명(최근 30일 활동). 달러 매출은 정가표 대입 추정이라(지역가·환불·스토어 수수료 미반영) 정산액이 아니어서 1인당 지표는 크레딧으로 낸다. 점선 = 결제율(활성 대비).`}
+                    title={`판매 크레딧 누적(실선). 점선 = CPMAU(크레딧/MAU) 추이 — 그날까지 최근 30일 판매 ÷ 그날의 MAU. 지금은 ${fmtK(credits30d)} ÷ ${mau}명 = ${fmtPerMau(creditsPerMau)}. MAU 는 직전 30일 활동 회원(vc_event_stats). 달러 매출은 정가표 대입 추정이라(지역가·환불·스토어 수수료 미반영) 정산액이 아니어서 1인당 지표는 크레딧으로 낸다.`}
                     value={fmtK(creditsSold)}
                     valueExtra={(
                       <span style={{
@@ -1132,14 +1143,13 @@ export function VoicecardsBlock({
                       : '아직 없음'}
                     tone={creditsSold > 0 ? 'pos' : 'default'}
                     sparkline={compact ? undefined : creditsData}
-                    sparkline2={compact ? undefined : payRateData}
+                    sparkline2={compact ? undefined : cpmauData}
                     spark2Color={t.brand[600]}
                     sparkFormat={(v) => fmtK(v)}
-                    sparkFormat2={(v) => `${v}%`}
-                    // 이 카드만 점선을 [0,100]에 고정하지 않는다(우측 축 = 자기 범위).
-                    // 결제율은 10%대라 0~100 안에서는 바닥에 눌려 움직임이 안 보인다.
-                    // 대신 폭이 좁아 변화가 실제보다 커 보이므로, 기울기가 아니라
-                    // 툴팁 숫자로 읽을 것. 좌표는 스파크라인 쪽에서 클램프된다.
+                    sparkFormat2={(v) => fmtPerMau(v)}
+                    // 점선은 배지와 같은 CPMAU 다 — 값과 그 값이 걸어온 길을 한 카드에서
+                    // 같이 읽는다. 비율이 아니므로 [0,100] 고정 도메인을 쓰지 않고
+                    // 우측 축에서 자기 범위로 그린다(좌표는 스파크라인 쪽에서 클램프).
                     dualScale
                   />
                 )}

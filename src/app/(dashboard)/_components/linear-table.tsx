@@ -336,7 +336,7 @@ export function LTableAmount({
  * 입력칸이라 타이핑이 막히지 않는다. 팝오버를 직접 만들지 않으므로 바깥 클릭·키보드
  * 조작·모바일 휠은 브라우저가 알아서 처리한다.
  */
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+const PAGE_SIZE_OPTIONS = [5, 10, 25, 50, 100]
 
 export function LPageSize({ value, onChange, min = 1, max = 100, options = PAGE_SIZE_OPTIONS }: {
   value: number
