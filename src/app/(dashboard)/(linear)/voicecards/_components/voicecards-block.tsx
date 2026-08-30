@@ -1301,12 +1301,23 @@ export function VoicecardsBlock({
             const last7Attempts = activity.filter(d => d.date >= sevenDaysAgoStr).reduce((s, d) => s + d.attempts, 0)
 
             // 보유 카드: daily_inventory_snapshots 일별 스냅샷 → 일별 증감(diff)으로 추세 표시
-            const inventory = userStats.dailyCardInventory ?? []
-            const cardTrajectory = inventory.map(d => ({ date: d.date, value: d.totalCards }))
             // 오늘 = live 합계 − 오늘 00:05 스냅샷 = 자정 이후 실제 증가분.
             // (스냅샷은 KST 자정에 찍혀서 '오늘 스냅샷 − 어제 스냅샷'은 전날 증가분을 오늘로 표기하던 문제.
             //  live와 오늘 스냅샷을 비교해야 '오늘 실제로 늘어난 카드'가 나온다. 오늘 스냅샷 없으면 0.)
             const liveCards = userStats.totalCards
+            // 스냅샷 시리즈를 헤더의 live 값에 맞춰 재척도한다.
+            // record_daily_inventory_snapshot()은 user_analytics 전체 합(삭제된 시트 포함)에 닉네임 2개만
+            // 제외하는 반면, live 보유 카드는 현재 sheet_ids에 남은 시트만 세고 봇/내부 계정을 더 걸러내며
+            // 기기 로컬 자산까지 더한다. 2026-08-30 실측 24,716 vs 18,094 — 스냅샷이 36% 부풀어 있어
+            // 카드 스파크라인 끝점·7일 증감·배수 점선이 전부 헤더와 어긋났다(듣기 배지 3.1x, 점선 끝 2.3x).
+            // 같은 날 두 정의를 재서 나온 비율로 과거를 맞추면 끝점이 항상 헤더와 일치한다.
+            // (과거를 정확히 복원할 수는 없다 — 어느 시트가 언제 지워졌는지 기록이 없다. 시계열이 내부적으로
+            //  일관되므로 읽는 쪽에서 맞춘다. DB 함수를 고치면 그날부터 정의가 섞이니 과거 행 재작성까지 같이 할 것.)
+            const rawInventory = userStats.dailyCardInventory ?? []
+            const latestSnapCards = rawInventory.length ? rawInventory[rawInventory.length - 1].totalCards : 0
+            const invScale = latestSnapCards > 0 ? liveCards / latestSnapCards : 1
+            const inventory = rawInventory.map(d => ({ date: d.date, totalCards: Math.round(d.totalCards * invScale) }))
+            const cardTrajectory = inventory.map(d => ({ date: d.date, value: d.totalCards }))
             // 오늘 카드 증가분 = 사용자 테이블 per-user 델타(cardsToday) 합 — 헤더 '오늘'과 테이블 diff 열이
             // 항상 일치. (live − 오늘 스냅샷 집계는 user_analytics orphan 행(users 테이블에 없는 계정)을
             // 포함해 매일 수십장 부풀던 문제, 2026-07-19.) 7일은 테이블 대응열이 없어 스냅샷 집계 유지.
