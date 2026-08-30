@@ -4,7 +4,7 @@
 --   attempts: 말하기 오늘 증가분 = live(user_analytics.total_attempts 합) − 자정 스냅샷(attempt_count).
 --     카드와 같은 방식. time_series_analytics 는 date 가 단말 로컬 날짜라 폴백으로만 쓴다(아래 주석).
 --   listen/flips/purchased: mv_real_users (이벤트 로그, 오늘 필터)
---     flips = card_flipped_manual, purchased = credits_changed/purchase 상품매핑
+--     flips = card_flipped_manual(데모 제외), purchased = credits_changed/purchase 상품매핑
 --   active_days_7d 핵심 활동일: 학습 또는 시트·카드 생성 완료 이벤트의 KST 날짜 수
 --   spent: credit_transactions net (음수 delta 합 − 환불) (완전 원장, 2026-07-22; 상세는 spent_today CTE 주석)
 --   반환 컬럼 변경 시에만 drop 후 재생성 필요 (return type replace 불가).
@@ -50,8 +50,11 @@ event_activity as (
       where e.event_date = td.d
         and e.event_name in ('tts_played','voice_preview_played','device_tts_played')
     )::bigint as listen,
+    -- 데모 덱 뒤집기는 뺀다 — 사용자표 '뒤집기' 열(vc_user_rollup)과 같은 규칙(2026-08-10).
+    -- 열은 데모를 빼는데 오늘 델타만 넣고 있어 '오늘 +N'이 열 증가분과 안 맞았다.
     count(*) filter (
       where e.event_date = td.d and e.event_name = 'card_flipped_manual'
+        and coalesce(e.properties->>'sheet_id','') not like 'demo-%'
     )::bigint as fc,
     count(distinct e.event_date) filter (
       where e.event_name in (
@@ -75,8 +78,8 @@ event_activity as (
 ),
 -- 오늘 실사용과 잔액 변동도 원장을 한 번만 읽어 함께 계산한다.
 credit_today as (
+  -- 환불은 차감을 되돌린 것이라 실사용에서 뺀다(vc_user_rollup.credits_spent 와 같은 규칙).
   select c.user_id,
-    -- 환불은 차감을 되돌린 것이라 실사용에서 뺀다(vc_user_rollup.credits_spent 와 같은 규칙).
     greatest(0, coalesce(sum(case when c.delta < 0 then -c.delta
                                   when c.reason in ('tts_refund','ai_refund','ai_grading_refund') then -c.delta
                                   else 0 end), 0))::bigint as sc,
@@ -89,11 +92,18 @@ credit_today as (
 ),
 live_sheets as (select user_id, coalesce(array_length(sheet_ids,1),0) as sc from users where user_id is not null),
 -- 현재 보유 카드·누적 말하기. 둘 다 자정 스냅샷과 빼서 오늘 증가분을 만든다.
+--
+-- 카드는 **지금 sheet_ids 에 남아 있는 시트만** 센다 — 스냅샷(user_sheet_snapshots.card_count)이
+-- 2026-08-29 부터 같은 규칙(buildVoicecardsCurrentCardMaps)으로 찍히는데 여기만 user_analytics
+-- 전량을 더하고 있어, 지운 덱의 카드가 매일 '오늘 증가분'으로 잡혔다(2026-08-30 실측 오늘 8,346장).
+-- 말하기(ta)는 스냅샷의 attempt_count 가 지운 덱까지 누적으로 유지하므로 전량 합이 맞다.
 live_cards as (
   select ua.user_id,
-         coalesce(sum(ua.total_cards),0)::bigint as tc,
+         coalesce(sum(ua.total_cards) filter (where ua.sheet_id = any(u.sheet_ids)),0)::bigint as tc,
          coalesce(sum(ua.total_attempts),0)::bigint as ta
-  from user_analytics ua group by ua.user_id
+  from user_analytics ua
+  join users u on u.user_id = ua.user_id
+  group by ua.user_id
 ),
 sheet_snap as (select s.user_id, s.sheet_count, s.card_count, s.attempt_count from user_sheet_snapshots s, td where s.date = td.d),
 u_created as (select u.user_id, (u.created_at at time zone 'Asia/Seoul')::date as cdate from users u where u.user_id is not null),

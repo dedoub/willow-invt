@@ -1348,6 +1348,25 @@ export function VoicecardsBlock({
             const sevenAgoCards = (beforeSeven.length ? beforeSeven[beforeSeven.length - 1].totalCards : inventory[0]?.totalCards) ?? liveCards
             const last7CardsDelta = liveCards - sevenAgoCards
 
+            // 일별 이벤트 시리즈를 사용자표 열 합계에 맞춘다 (2026-08-30 CEO: 사용자표 중심).
+            // 카드 헤드라인은 사용자표의 열 합이고, 이벤트 시리즈에는 표에 없는 계정(봇으로 뺀 기기 등)이나
+            // 표에서 빼는 데모 학습이 섞여 총량이 다르다 — 실측 뒤집기 13,238 vs 12,466(데모 772),
+            // 듣기 57,065 vs 56,891, 크레딧 8,942(이벤트) vs 8,695(원장). 같은 날 두 총량의 비로
+            // 시리즈를 맞추면 실선 끝점·7일·배수 점선이 전부 표 기준 위에 선다.
+            // (일별 배분까지 바로잡으려면 이벤트 쪽 정의를 표와 같게 고쳐야 한다 — 데모 제외, 원장 기준.
+            //  지금은 총량만 맞추고 하루하루의 모양은 이벤트 시리즈를 그대로 쓴다.)
+            const alignToTable = (daily: Array<{ date: string; value: number }>, tableTotal: number) => {
+              const seriesTotal = daily.reduce((sum, d) => sum + d.value, 0)
+              const k = seriesTotal > 0 ? tableTotal / seriesTotal : 1
+              let running = 0
+              const cumulative = daily.map(d => {
+                running += d.value * k
+                return { date: d.date, value: Math.round(running) }
+              })
+              const last7 = Math.round(daily.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + d.value, 0) * k)
+              return { cumulative, last7, k }
+            }
+
             // 학습량(뒤집기/말하기/듣기)이 보유 카드의 몇 배수인지 — 카드당 반복 학습 강도
             const cardRatioExtra = (n: number) => userStats.totalCards > 0 ? (
               <span style={{
@@ -1383,23 +1402,22 @@ export function VoicecardsBlock({
               sub={inventory.length > 0 ? `오늘 ${formatNumber(todayCardsDelta)}개 · 7일 ${formatNumber(last7CardsDelta)}개` : undefined}
               sparkline={compact ? undefined : (cardTrajectory.length > 1 ? cardTrajectory : undefined)}
             />
-            {/* 카드 뒤집기 — 말하기/듣기 없이 눈으로만 넘기는 학습 볼륨 (card_flipped_manual, 듣기와 동일한 이벤트 통계 소스) */}
+            {/* 카드 뒤집기 — 말하기/듣기 없이 눈으로만 넘기는 학습 볼륨 (card_flipped_manual) */}
             {eventsLoading && !anonymousStats ? (
               <SkelStat compact={!!mobile} />
             ) : (() => {
+              // 헤드라인 = 사용자표 '뒤집기' 열 합. 이벤트 시리즈는 데모 덱 뒤집기를 포함하는데
+              // 표의 열은 2026-08-10 결정대로 데모를 뺀다 — 그 차이(실측 772회)만큼 카드가 표보다 컸다.
+              const totalFlips = userStats.users.reduce((s, u) => s + (u.flips || 0), 0)
               const flips = anonymousStats?.dailyFlips ?? []
               const todayFlips = userStats.users.reduce((s, u) => s + (u.flipsToday || 0), 0)
-              const last7Flips = flips.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + d.flips, 0)
-              const totalFlips = flips.reduce((sum, d) => sum + d.flips, 0)
-              let runningFlips = 0
-              const flipSpark = flips.map(d => {
-                runningFlips += d.flips
-                return { date: d.date, value: runningFlips }
-              })
+              const { cumulative: flipSpark, last7: last7Flips } = alignToTable(
+                flips.map(d => ({ date: d.date, value: d.flips })), totalFlips
+              )
               return (
                 <LStat
                   label="카드 뒤집기"
-                  title="카드를 수동으로 앞뒤 전환한 횟수. 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
+                  title="카드를 수동으로 앞뒤 전환한 횟수(데모 덱 제외 — 사용자표 '뒤집기' 열과 같은 기준). 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
                   value={formatNumber(totalFlips)}
                   valueExtra={cardRatioExtra(totalFlips)}
                   sub={`오늘 ${formatNumber(todayFlips)}회 · 7일 ${formatNumber(last7Flips)}회`}
@@ -1426,23 +1444,20 @@ export function VoicecardsBlock({
             {eventsLoading && !anonymousStats ? (
               <SkelStat compact={!!mobile} />
             ) : (() => {
+              // 헤드라인 = 사용자표 '듣기' 열 합. 이벤트 시리즈에는 표에서 봇으로 뺀 기기의 재생이
+              // 남아 있어 총량이 조금 크다(실측 57,065 vs 56,891).
+              const totalUsed = userStats.users.reduce((s, u) => s + (u.creditsUsed || 0), 0)
               const usage = anonymousStats?.dailyCreditUsage ?? []
-              // 오늘/7일은 날짜 매칭으로 계산 (말하기 학습과 동일). dailyCreditUsage는
-              // 활동 있는 날만 행이 있어 배열 마지막 원소가 '오늘'이 아닐 수 있음(오늘 0건이면
-              // 직전 활동일이 마지막). slice(-7)도 날짜 갭 시 7일 초과 집계됨.
+              // 오늘은 사용자표 per-user 델타 합. dailyCreditUsage 는 활동 있는 날만 행이 있어
+              // 배열 마지막 원소가 '오늘'이 아닐 수 있으므로 7일도 날짜 매칭으로 낸다(slice(-7) 금지).
               const todayUsage = userStats.users.reduce((s, u) => s + (u.listenToday || 0), 0)
-              const last7Sum = usage.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + d.credits, 0)
-              const totalUsed = usage.reduce((sum, d) => sum + d.credits, 0)
-              // 누적 sparkline
-              let running = 0
-              const sparkData = usage.map(d => {
-                running += d.credits
-                return { date: d.date, value: running }
-              })
+              const { cumulative: sparkData, last7: last7Sum } = alignToTable(
+                usage.map(d => ({ date: d.date, value: d.credits })), totalUsed
+              )
               return (
                 <LStat
                   label="듣기 학습"
-                  title="TTS·미리듣기·기기음성 재생 횟수 누적 (재생 엔진 무관). 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
+                  title="TTS·미리듣기·기기음성 재생 횟수 누적 (재생 엔진 무관, 사용자표 '듣기' 열과 같은 기준). 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
                   value={formatNumber(totalUsed)}
                   valueExtra={cardRatioExtra(totalUsed)}
                   sub={`오늘 ${formatNumber(todayUsage)}회 · 7일 ${formatNumber(last7Sum)}회`}
@@ -1454,27 +1469,29 @@ export function VoicecardsBlock({
                 />
               )
             })()}
-            {/* 실제 크레딧 소진 (TTS 차감 + AI 생성) — 듣기 학습과 같은 이벤트 통계 소스 */}
+            {/* 실제 크레딧 소진 (TTS 차감 + AI 생성) */}
             {eventsLoading && !anonymousStats ? (
               <SkelStat compact={!!mobile} />
             ) : (() => {
+              // 헤드라인 = 사용자표 '사용' 열 합 = credit_transactions 원장(환불 차감 후).
+              // 이벤트 집계(credits_changed/tts_premium + ai_generation_success)는 환불을 되돌리지
+              // 않고 표에 없는 계정도 섞여 조금 크다(실측 8,942 vs 8,695). 원장이 정본이다.
+              const totalSpent = userStats.users.reduce((s, u) => s + (u.creditsSpent || 0), 0)
               const spend = anonymousStats?.dailyCreditSpend ?? []
               const dayTotal = (d: { tts: number; ai: number }) => (d.tts || 0) + (d.ai || 0)
               const todaySpend = userStats.users.reduce((s, u) => s + (u.spentToday || 0), 0)
-              const last7Spend = spend.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + dayTotal(d), 0)
-              const totalTts = spend.reduce((sum, d) => sum + (d.tts || 0), 0)
-              const totalAi = spend.reduce((sum, d) => sum + (d.ai || 0), 0)
-              let runningSpend = 0
-              const spendSpark = spend.map(d => {
-                runningSpend += dayTotal(d)
-                return { date: d.date, value: runningSpend }
-              })
+              const { cumulative: spendSpark, last7: last7Spend, k: spendK } = alignToTable(
+                spend.map(d => ({ date: d.date, value: dayTotal(d) })), totalSpent
+              )
+              // TTS/AI 내역도 같은 비율로 맞춰 둘의 합이 헤드라인과 같게 한다.
+              const totalTts = Math.round(spend.reduce((sum, d) => sum + (d.tts || 0), 0) * spendK)
+              const totalAi = totalSpent - totalTts
               return (
                 <LStat
                   label="크레딧 사용"
-                  title={`실제 소진된 크레딧 누적 (TTS 차감 ${formatNumber(totalTts)} + AI 생성 ${formatNumber(totalAi)}). 유저의 크레딧 소진 속도 = 구매 압력. 점선 = 보유 카드 대비 배수 — 카드가 늘수록 소진도 빨라진다.`}
-                  value={formatNumber(totalTts + totalAi)}
-                  valueExtra={cardRatioExtra(totalTts + totalAi)}
+                  title={`실제 소진된 크레딧 누적 — credit_transactions 원장 기준(환불 차감 후), 사용자표 '사용' 열과 같은 기준. 대략 TTS 차감 ${formatNumber(totalTts)} + AI 생성 ${formatNumber(totalAi)}. 유저의 크레딧 소진 속도 = 구매 압력. 점선 = 보유 카드 대비 배수 — 카드가 늘수록 소진도 빨라진다.`}
+                  value={formatNumber(totalSpent)}
+                  valueExtra={cardRatioExtra(totalSpent)}
                   sub={`오늘 ${formatNumber(todaySpend)} · 7일 ${formatNumber(last7Spend)}`}
                   sparkline={compact ? undefined : (spendSpark.length > 1 ? spendSpark : undefined)}
                   sparkline2={compact ? undefined : (spendSpark.length > 1 ? ratioSpark(spendSpark) : undefined)}
