@@ -7,6 +7,7 @@ import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-sec
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import type { ETFDisplayData } from '@/lib/etf-types'
+import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 interface ProductBlockProps {
   etfs: ETFDisplayData[]
@@ -47,13 +48,10 @@ function fmtFlow(v: number | null): string {
 export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRefresh }: ProductBlockProps) {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
   const totalPages = Math.max(1, Math.ceil(etfs.length / pageSize))
   const paged = etfs.slice(page * pageSize, (page + 1) * pageSize)
 
-  const commitPageSize = () => {
-    const n = Math.max(1, Math.min(50, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     localStorage.setItem(PAGE_SIZE_KEY, String(n))
@@ -169,18 +167,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input value={pageSizeInput}
-            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitPageSize}
-            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-            style={{
-              width: 32, textAlign: 'center', border: 'none',
-              background: t.neutrals.inner, borderRadius: t.radius.sm,
-              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
         {totalPages > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

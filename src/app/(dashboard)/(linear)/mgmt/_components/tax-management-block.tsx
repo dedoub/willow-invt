@@ -6,7 +6,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LTableScroll, LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableScroll, LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import type { FinanceTaxObligation, TaxObligationSource, TaxObligationStatus } from '@/types/finance-tax'
 
@@ -67,7 +67,6 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(storedPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(() => String(storedPageSize()))
 
   const yearScoped = useMemo(
     () => obligations.filter(item => obligationYear(item) === String(year)),
@@ -92,12 +91,10 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
   const safePage = Math.min(page, totalPages - 1)
   const paged = rows.slice(safePage * pageSize, (safePage + 1) * pageSize)
 
-  const commitPageSize = () => {
-    const next = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
-    setPageSizeInput(String(next))
-    setPageSize(next)
+  const applyPageSize = (n: number) => {
+    setPageSize(n)
     setPage(0)
-    localStorage.setItem(PAGE_SIZE_KEY, String(next))
+    localStorage.setItem(PAGE_SIZE_KEY, String(n))
   }
 
   const handleSourceChange = (next: SourceFilter) => {
@@ -234,19 +231,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            value={pageSizeInput}
-            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitPageSize}
-            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-            style={{
-              width: 32, textAlign: 'center', border: 'none',
-              background: t.neutrals.inner, borderRadius: t.radius.sm,
-              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (

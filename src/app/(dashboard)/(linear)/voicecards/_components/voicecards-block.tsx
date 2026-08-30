@@ -11,6 +11,7 @@ import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
 import { COUNTRY_NAMES, codeToFlag, formatCountryName } from '@/lib/country-format'
 import { voicecardsDeviceDisplayName, voicecardsLearningActivationDate } from '@/lib/voicecards-device-journey'
+import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -543,11 +544,8 @@ export function VoicecardsBlock({
   const [userSorts, setUserSorts] = useState<SortCrit[]>([{ key: 'created', dir: 'desc' }])
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(() => getStoredPageSize('voicecards-users'))
-  const [userPerPageInput, setUserPerPageInput] = useState(() => String(getStoredPageSize('voicecards-users')))
 
-  const commitUserPerPage = () => {
-    const n = Math.max(1, Math.min(100, Number(userPerPageInput) || 10))
-    setUserPerPageInput(String(n))
+  const applyUserPerPage = (n: number) => {
     setUserPerPage(n)
     setUserPage(1)
     savePageSize('voicecards-users', n)
@@ -1722,19 +1720,7 @@ export function VoicecardsBlock({
             }}>
               {/* Page size input */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <input
-                  value={userPerPageInput}
-                  onChange={e => setUserPerPageInput(e.target.value.replace(/\D/g, ''))}
-                  onBlur={commitUserPerPage}
-                  onKeyDown={e => { if (e.key === 'Enter') commitUserPerPage() }}
-                  style={{
-                    width: 32, textAlign: 'center', border: 'none',
-                    background: t.neutrals.inner, borderRadius: t.radius.sm,
-                    fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                    padding: '2px 0', outline: 'none',
-                  }}
-                />
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+                <LPageSize value={userPerPage} onChange={applyUserPerPage} />
               </div>
 
               {/* Page navigation */}

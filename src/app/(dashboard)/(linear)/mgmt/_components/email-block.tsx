@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FullEmail } from './email-detail-dialog'
+import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 interface EmailBlockProps {
   emails: FullEmail[]
@@ -67,7 +68,6 @@ export function EmailBlock({
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
 
   // Count emails per source
   const sourceCounts = useMemo(() => {
@@ -99,9 +99,7 @@ export function EmailBlock({
     setPage(0)
   }
 
-  const commitPageSize = () => {
-    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     localStorage.setItem(EMAIL_PAGE_KEY, String(n))
@@ -264,19 +262,7 @@ export function EmailBlock({
       }}>
         {/* Page size input */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            value={pageSizeInput}
-            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitPageSize}
-            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-            style={{
-              width: 32, textAlign: 'center', border: 'none',
-              background: t.neutrals.inner, borderRadius: t.radius.sm,
-              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {/* Page navigation */}

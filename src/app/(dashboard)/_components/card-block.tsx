@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LPageSize, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { CardApproval, CardBilling } from '@/types/finance-card'
 
 // 구분 배지가 늘 1열이다. 다른 표들과 배지 열 위치를 맞춘다.
@@ -166,13 +166,10 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(() => getStoredPageSize(storageKey))
-  const [pageSizeInput, setPageSizeInput] = useState(() => String(getStoredPageSize(storageKey)))
   const [category, setCategory] = useState<string>('all')
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<CardApproval>(storageKey, COLUMNS)
 
-  const commitPageSize = () => {
-    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     localStorage.setItem(pageSizeKeyFor(storageKey), String(n))
@@ -418,22 +415,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            value={pageSizeInput}
-            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitPageSize}
-            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-            style={{
-              width: 32, textAlign: 'center',
-              border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
-              fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
-        </div>
+        <LPageSize value={pageSize} onChange={applyPageSize} />
 
         {totalPages > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

@@ -11,6 +11,7 @@ import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
 import type { ValueChainStats } from '@/lib/valuechain-supabase'
+import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 const SITE_URL = 'https://valuechain.wiki'
 
@@ -44,10 +45,8 @@ export default function ValueChainPage() {
   const [articleSort, setArticleSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'updated', dir: 'desc' })
   const [updatePage, setUpdatePage] = useState(1)
   const [updatePerPage, setUpdatePerPage] = useState(8)
-  const [updatePerPageInput, setUpdatePerPageInput] = useState('8')
   const [articlePage, setArticlePage] = useState(1)
   const [articlePerPage, setArticlePerPage] = useState(8)
-  const [articlePerPageInput, setArticlePerPageInput] = useState('8')
 
   const load = useCallback(async (refresh = false) => {
     if (!refresh) setLoading(true)
@@ -103,13 +102,9 @@ export default function ValueChainPage() {
   const numDescKeys = new Set(['date', 'created', 'tier', 'axis', 'seg', 'rev', 'cost', 'inv', 'research', 'linked', 'src', 'verified', 'f_train', 'f_index', 'f_cite', 'f_visit', 'changelog', 'published', 'updated'])
   const defaultDir = (key: string): 'asc' | 'desc' => (numDescKeys.has(key) ? 'desc' : 'asc')
   const onUpdateSort = (key: string) => { setUpdatePage(1); setUpdateSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: defaultDir(key) }) }
-  const commitUpdatePerPage = () => {
-    const n = Math.max(1, Math.min(100, Number(updatePerPageInput) || 8))
-    setUpdatePerPageInput(String(n)); setUpdatePerPage(n); setUpdatePage(1)
+  const applyUpdatePerPage = (n: number) => {; setUpdatePerPage(n); setUpdatePage(1)
   }
-  const commitArticlePerPage = () => {
-    const n = Math.max(1, Math.min(100, Number(articlePerPageInput) || 8))
-    setArticlePerPageInput(String(n)); setArticlePerPage(n); setArticlePage(1)
+  const applyArticlePerPage = (n: number) => {; setArticlePerPage(n); setArticlePage(1)
   }
   const sortHead = (colKey: string, label: string, align: 'left' | 'center' | 'right', sortState: { key: string; dir: 'asc' | 'desc' }, onSort: (k: string) => void) => {
     const active = sortState.key === colKey
@@ -360,14 +355,7 @@ export default function ValueChainPage() {
           {/* 페이저 — N개씩 보기(좌) + 페이지 이동(우), 다른 테이블과 동일 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '8px 8px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <input
-                value={updatePerPageInput}
-                onChange={e => setUpdatePerPageInput(e.target.value.replace(/\D/g, ''))}
-                onBlur={commitUpdatePerPage}
-                onKeyDown={e => { if (e.key === 'Enter') commitUpdatePerPage() }}
-                style={{ width: 32, textAlign: 'center', border: 'none', background: t.neutrals.inner, borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, padding: '2px 0', outline: 'none' }}
-              />
-              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+              <LPageSize value={updatePerPage} onChange={applyUpdatePerPage} />
             </div>
             {updatePages > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -408,14 +396,7 @@ export default function ValueChainPage() {
           {/* 페이저 — N개씩(좌) + 이동(우), 업데이트 테이블과 동일 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '8px 8px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <input
-                value={articlePerPageInput}
-                onChange={e => setArticlePerPageInput(e.target.value.replace(/\D/g, ''))}
-                onBlur={commitArticlePerPage}
-                onKeyDown={e => { if (e.key === 'Enter') commitArticlePerPage() }}
-                style={{ width: 32, textAlign: 'center', border: 'none', background: t.neutrals.inner, borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, padding: '2px 0', outline: 'none' }}
-              />
-              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+              <LPageSize value={articlePerPage} onChange={applyArticlePerPage} />
             </div>
             {articlePages > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

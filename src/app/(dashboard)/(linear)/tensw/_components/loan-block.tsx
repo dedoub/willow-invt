@@ -6,7 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
-import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableDate, LTableMono, LTableNumber, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableDate, LTableMono, LTableNumber, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswLoan } from '@/types/tensw-mgmt'
 
 interface LoanBlockProps {
@@ -85,7 +85,6 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswLoan>('tensw-loan', COLUMNS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Summary KPIs (active loans only)
@@ -112,9 +111,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
   const sorted = useMemo(() => sortApply(filtered), [filtered, sortApply])
   const paged = sorted.slice(page * pageSize, (page + 1) * pageSize)
 
-  const commitPageSize = () => {
-    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     localStorage.setItem(PAGE_SIZE_KEY, String(n))
@@ -299,20 +296,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            value={pageSizeInput}
-            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitPageSize}
-            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-            style={{
-              width: 32, textAlign: 'center',
-              border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
-              fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (

@@ -14,6 +14,7 @@ import { kstDateKey, kstToday, kstDaysAgo, kstWeekday, kstTime } from '@/lib/kst
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-types'
 import { formatCountryName, codeToFlag, COUNTRY_NAMES } from '@/lib/country-format'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
+import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -292,7 +293,6 @@ export function ReviewnotesBlock({
   const dashCols = cols
   const [userPage, setUserPage] = useState(1)
   const [userPerPage, setUserPerPage] = useState(10)
-  const [userPerPageInput, setUserPerPageInput] = useState('10')
   const initialUserSort = (): { key: UserSortKey; dir: SortDir } => {
     if (typeof window === 'undefined') return { key: 'created', dir: 'desc' }
     const stored = window.localStorage.getItem(USER_SORT_STORAGE_KEY)
@@ -308,9 +308,7 @@ export function ReviewnotesBlock({
   const [userSort, setUserSort] = useState<UserSortKey>(() => initialUserSort().key)
   const [userSortDir, setUserSortDir] = useState<SortDir>(() => initialUserSort().dir)
 
-  const commitUserPerPage = () => {
-    const n = Math.max(1, Math.min(100, Number(userPerPageInput) || 10))
-    setUserPerPageInput(String(n))
+  const applyUserPerPage = (n: number) => {
     setUserPerPage(n)
     setUserPage(1)
   }
@@ -942,19 +940,7 @@ export function ReviewnotesBlock({
               }}>
                 {/* Page size input */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <input
-                    value={userPerPageInput}
-                    onChange={e => setUserPerPageInput(e.target.value.replace(/\D/g, ''))}
-                    onBlur={commitUserPerPage}
-                    onKeyDown={e => { if (e.key === 'Enter') commitUserPerPage() }}
-                    style={{
-                      width: 32, textAlign: 'center', border: 'none',
-                      background: t.neutrals.inner, borderRadius: t.radius.sm,
-                      fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                      padding: '2px 0', outline: 'none',
-                    }}
-                  />
-                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+                  <LPageSize value={userPerPage} onChange={applyUserPerPage} />
                 </div>
 
                 {/* Page navigation */}

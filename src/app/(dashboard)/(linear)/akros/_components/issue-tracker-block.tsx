@@ -8,6 +8,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { kstToday } from '@/lib/kst'
 import type { AkrosEmailIssue, AkrosEmailDeadline } from '@/lib/supabase-etf'
+import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 // 상태 → 배지 톤/라벨 + 정렬 우선순위(작을수록 위)
 const STATUS_META: Record<string, { label: string; bg: string; fg: string; rank: number }> = {
@@ -52,11 +53,8 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
   const [filter, setFilter] = useState<StatusFilter>('needs-action')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
 
-  const commitPageSize = () => {
-    const n = Math.max(1, Math.min(50, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     localStorage.setItem(PAGE_SIZE_KEY, String(n))
@@ -279,19 +277,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
         }}>
           {/* 페이지당 개수 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <input
-              value={pageSizeInput}
-              onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-              onBlur={commitPageSize}
-              onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-              style={{
-                width: 32, textAlign: 'center', border: 'none',
-                background: t.neutrals.inner, borderRadius: t.radius.sm,
-                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                padding: '2px 0', outline: 'none',
-              }}
-            />
-            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+            <LPageSize value={pageSize} onChange={applyPageSize} />
           </div>
 
           {/* 범위 + 네비게이션 */}

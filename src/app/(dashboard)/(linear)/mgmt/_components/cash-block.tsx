@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LTableDate, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
@@ -135,7 +135,6 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredCashPageSize()))
 
   const [rangeStart, rangeEnd] = useMemo(() => getDateRange(baseDate, periodMode), [baseDate, periodMode])
   const periodLabel = useMemo(() => getPeriodLabel(baseDate, periodMode), [baseDate, periodMode])
@@ -178,13 +177,11 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
   const totalPages = Math.max(1, Math.ceil(sortedList.length / pageSize))
   const paged = sortedList.slice(page * pageSize, (page + 1) * pageSize)
 
-  const commitPageSize = useCallback(() => {
-    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_CASH_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     localStorage.setItem(CASH_PAGE_SIZE_KEY, String(n))
-  }, [pageSizeInput])
+  }
 
   useEffect(() => { setPage(0) }, [typeFilter, periodMode, baseDate, searchQuery])
 
@@ -453,20 +450,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            value={pageSizeInput}
-            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitPageSize}
-            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-            style={{
-              width: 32, textAlign: 'center',
-              border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
-              fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (

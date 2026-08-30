@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -227,7 +228,6 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
   const [filter, setFilter] = useState<FilterKey>('전체')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const filters = buildFilters(projects)
@@ -247,9 +247,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
     return d > 0 ? `${Math.round((totalCompleted / d) * 100)}%` : '-'
   }, [totalTodos, totalCompleted, totalDiscarded])
 
-  const commitPageSize = () => {
-    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     localStorage.setItem(PAGE_SIZE_KEY, String(n))
@@ -432,20 +430,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            value={pageSizeInput}
-            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitPageSize}
-            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-            style={{
-              width: 32, textAlign: 'center',
-              border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
-              fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (

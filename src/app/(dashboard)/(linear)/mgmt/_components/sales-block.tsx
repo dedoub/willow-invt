@@ -9,8 +9,7 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import {
   LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber,
-  LTableRow, LTableScroll, useTableSort, type LColumn,
-} from '@/app/(dashboard)/_components/linear-table'
+  LTableRow, LTableScroll, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import type { WillowInvoice, WillowTaxInvoice } from '@/types/willow-mgmt'
 
 // 윌로우 매출은 두 갈래다.
@@ -77,7 +76,6 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(() => String(getStoredPageSize()))
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<SalesRow>('willow-sales', COLUMNS)
 
@@ -152,9 +150,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
   const etcTotal = yearFiltered.filter(row => row.source === 'etc').reduce((sum, row) => sum + row.amount, 0)
   const grandTotal = yearFiltered.reduce((sum, row) => sum + row.krw, 0)
 
-  const commitPageSize = () => {
-    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     localStorage.setItem(PAGE_SIZE_KEY, String(n))
@@ -323,19 +319,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            value={pageSizeInput}
-            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitPageSize}
-            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-            style={{
-              width: 32, textAlign: 'center', border: 'none',
-              background: t.neutrals.inner, borderRadius: t.radius.sm,
-              fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (

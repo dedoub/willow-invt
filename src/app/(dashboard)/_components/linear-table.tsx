@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { t } from './linear-tokens'
+import { LIcon } from './linear-icons'
 import { getStoredSort, saveSort } from './linear-page-size'
 
 /**
@@ -319,6 +320,80 @@ export function LTableAmount({
       whiteSpace: 'nowrap',
     }}>
       {muted ? '' : positive ? '+' : '-'}{Math.abs(Math.round(value)).toLocaleString()}
+    </span>
+  )
+}
+
+/**
+ * 표 아래 "N개씩" 행수 조절.
+ *
+ * 스무 개 넘는 표가 저마다 같은 입력칸을 손으로 복사해 두고 있었다. 한 군데로 모아
+ * 두면 행수를 고르는 방식이 표마다 갈리지 않는다.
+ *
+ * 입력과 드롭다운을 함께 둔다 — 흔히 쓰는 값은 목록에서 한 번에 고르고, 목록에 없는
+ * 수(예: 17)는 그대로 쳐 넣을 수 있어야 한다. 그래서 select 를 입력칸 오른쪽 끝에
+ * 투명하게 겹쳐 둔다. 쉐브론 자리를 누르면 네이티브 메뉴가 열리고, 그 왼쪽은 여전히
+ * 입력칸이라 타이핑이 막히지 않는다. 팝오버를 직접 만들지 않으므로 바깥 클릭·키보드
+ * 조작·모바일 휠은 브라우저가 알아서 처리한다.
+ */
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+
+export function LPageSize({ value, onChange, min = 1, max = 100, options = PAGE_SIZE_OPTIONS }: {
+  value: number
+  onChange: (n: number) => void
+  min?: number
+  max?: number
+  options?: number[]
+}) {
+  const [draft, setDraft] = useState(String(value))
+  // 바깥에서 값이 바뀌면(다른 기기의 저장값 복원 등) 입력칸도 따라간다.
+  useEffect(() => { setDraft(String(value)) }, [value])
+
+  const commit = (raw: string) => {
+    const n = Math.max(min, Math.min(max, Number(raw) || value))
+    setDraft(String(n))
+    if (n !== value) onChange(n)
+  }
+
+  // 지금 값이 목록에 없으면(직접 친 수) 함께 넣는다 — 없으면 select 가 빈칸으로 보인다.
+  const items = Array.from(new Set([...options, value])).filter(n => n >= min && n <= max).sort((a, b) => a - b)
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs }}>
+      <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <input
+          value={draft}
+          onChange={e => setDraft(e.target.value.replace(/\D/g, ''))}
+          onBlur={() => commit(draft)}
+          onKeyDown={e => { if (e.key === 'Enter') commit(draft) }}
+          aria-label="한 페이지에 보일 행 수"
+          style={{
+            width: 42, paddingLeft: 4, paddingRight: 14, textAlign: 'center',
+            border: 'none', background: t.neutrals.inner, borderRadius: t.radius.sm,
+            fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono,
+            color: t.neutrals.muted, paddingTop: 2, paddingBottom: 2, outline: 'none',
+          }}
+        />
+        <span style={{
+          position: 'absolute', right: 3, top: '50%', transform: 'translateY(-50%)',
+          display: 'inline-flex', color: t.neutrals.subtle, pointerEvents: 'none',
+        }}>
+          <LIcon name="chevronDown" size={10} stroke={2} />
+        </span>
+        {/* 쉐브론 자리에만 겹치는 투명 select — 왼쪽은 입력칸으로 남는다 */}
+        <select
+          value={value}
+          onChange={e => commit(e.target.value)}
+          aria-label="행 수 고르기"
+          style={{
+            position: 'absolute', right: 0, top: 0, height: '100%', width: 16,
+            opacity: 0, cursor: 'pointer', border: 'none', padding: 0, margin: 0,
+          }}
+        >
+          {items.map(n => <option key={n} value={n}>{n}개씩</option>)}
+        </select>
+      </span>
+      <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>개씩</span>
     </span>
   )
 }

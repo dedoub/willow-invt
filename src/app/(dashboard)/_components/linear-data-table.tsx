@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { t } from './linear-tokens'
 import { LIcon } from './linear-icons'
 import { getStoredPageSize, savePageSize, getStoredSort, saveSort } from './linear-page-size'
+import { LPageSize } from './linear-table'
 
 // 검색 수요 카드에서 쓰던 표를 공용으로 뺐다. GEO 답변 점유 섹션도 같은 표를 쓰기 때문에,
 // 한쪽만 고쳐 두 화면이 어긋나는 걸 막는다. 스타일 토큰은 원본 그대로 옮겨왔다.
@@ -111,10 +112,7 @@ export function DataTable({
   // 사용자 테이블과 동일한 페이지네이션 — 개수 입력 + 쉐브론 네비게이션.
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(() => getStoredPageSize(title))
-  const [perPageInput, setPerPageInput] = useState(() => String(getStoredPageSize(title)))
-  const commitPerPage = () => {
-    const n = Math.max(1, Math.min(100, Number(perPageInput) || 10))
-    setPerPageInput(String(n))
+  const applyPerPage = (n: number) => {
     setPerPage(n)
     setPage(1)
     savePageSize(title, n)
@@ -218,19 +216,7 @@ export function DataTable({
           marginTop: t.density.gapSm, paddingTop: t.density.gapSm, borderTop: `1px solid ${t.neutrals.line}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-            <input
-              value={perPageInput}
-              onChange={e => setPerPageInput(e.target.value.replace(/\D/g, ''))}
-              onBlur={commitPerPage}
-              onKeyDown={e => { if (e.key === 'Enter') commitPerPage() }}
-              style={{
-                width: 30, textAlign: 'center', border: 'none',
-                background: t.neutrals.card, borderRadius: t.radius.sm,
-                fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
-                padding: '2px 0', outline: 'none',
-              }}
-            />
-            <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>개씩</span>
+            <LPageSize value={perPage} onChange={applyPerPage} />
           </div>
           {totalPages > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>

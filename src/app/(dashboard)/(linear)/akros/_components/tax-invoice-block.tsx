@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 export interface AkrosTaxInvoice {
   id: string
@@ -53,7 +54,6 @@ function getStoredTaxInvoicePageSize(): number {
 export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockProps) {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredTaxInvoicePageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredTaxInvoicePageSize()))
   const [addOpen, setAddOpen] = useState(false)
   const [editInv, setEditInv] = useState<AkrosTaxInvoice | null>(null)
   const [saving, setSaving] = useState(false)
@@ -72,13 +72,11 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
   const totalPages = Math.max(1, Math.ceil(invoices.length / pageSize))
   const paged = invoices.slice(page * pageSize, (page + 1) * pageSize)
 
-  const commitPageSize = useCallback(() => {
-    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_TAX_INVOICE_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     if (typeof window !== 'undefined') localStorage.setItem(TAX_INVOICE_PAGE_SIZE_KEY, String(n))
-  }, [pageSizeInput])
+  }
 
   const resetAdd = () => { setAddDate(''); setAddAmount(''); setAddNotes(''); setAddFile(null); setAddOpen(false) }
 
@@ -253,20 +251,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            value={pageSizeInput}
-            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitPageSize}
-            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-            style={{
-              width: 32, textAlign: 'center',
-              border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
-              fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (

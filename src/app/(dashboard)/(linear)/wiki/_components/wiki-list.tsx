@@ -11,6 +11,7 @@ import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { WikiNote, WikiMemo } from './wiki-note-row'
 import { WikiNoteForm } from './wiki-note-form'
 import { htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/components/ui/tiptap-editor'
+import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 type SectionFilter = 'all' | 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
@@ -97,7 +98,6 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   const [adding, setAdding] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredPageSize()))
 
   // 섹션 높이를 브라우저(뷰포트)에 맞춰 동적 조정. 컨테이너 top을 측정해
   // 카드 하단이 뷰포트 하단에 닿도록 높이를 계산하고, 리사이즈 시 갱신한다.
@@ -166,9 +166,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
     setPage(0)
   }
 
-  const commitPageSize = () => {
-    const n = Math.max(1, Math.min(50, Number(pageSizeInput) || DEFAULT_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     localStorage.setItem(PAGE_SIZE_KEY, String(n))
@@ -376,19 +374,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           }}>
             {/* Page size input */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <input
-                value={pageSizeInput}
-                onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-                onBlur={commitPageSize}
-                onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-                style={{
-                  width: 32, textAlign: 'center', border: 'none',
-                  background: t.neutrals.inner, borderRadius: t.radius.sm,
-                  fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
-                  padding: '2px 0', outline: 'none',
-                }}
-              />
-              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+              <LPageSize value={pageSize} onChange={applyPageSize} />
             </div>
 
             {/* Page navigation */}

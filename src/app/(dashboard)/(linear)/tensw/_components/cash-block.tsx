@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LTableDate, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 
 interface BankBalance {
@@ -126,7 +126,6 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
-  const [pageSizeInput, setPageSizeInput] = useState(String(getStoredCashPageSize()))
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswCashItem>('tensw-cash', COLUMNS)
   // 은행별 잔고 타일을 누르면 그 은행의 계좌별 내역을 띄운다. 타일은 은행 합계만 보여줘서
   // 어느 계좌에 얼마가 있는지는 여기 아니면 볼 곳이 없다.
@@ -174,13 +173,11 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
   const totalPages = Math.max(1, Math.ceil(sortedList.length / pageSize))
   const paged = sortedList.slice(page * pageSize, (page + 1) * pageSize)
 
-  const commitPageSize = useCallback(() => {
-    const n = Math.max(1, Math.min(100, Number(pageSizeInput) || DEFAULT_CASH_PAGE_SIZE))
-    setPageSizeInput(String(n))
+  const applyPageSize = (n: number) => {
     setPageSize(n)
     setPage(0)
     localStorage.setItem(CASH_PAGE_SIZE_KEY, String(n))
-  }, [pageSizeInput])
+  }
 
   useEffect(() => { setPage(0) }, [typeFilter, periodMode, baseDate, searchQuery])
 
@@ -448,20 +445,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
         padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            value={pageSizeInput}
-            onChange={e => setPageSizeInput(e.target.value.replace(/\D/g, ''))}
-            onBlur={commitPageSize}
-            onKeyDown={e => { if (e.key === 'Enter') commitPageSize() }}
-            style={{
-              width: 32, textAlign: 'center',
-              border: 'none', background: t.neutrals.inner,
-              borderRadius: t.radius.sm, fontSize: 'calc(11px * var(--fz, 1))',
-              fontFamily: t.font.mono, color: t.neutrals.muted,
-              padding: '2px 0', outline: 'none',
-            }}
-          />
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.sans }}>개씩</span>
+          <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (
