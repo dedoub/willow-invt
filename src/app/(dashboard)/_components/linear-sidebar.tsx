@@ -118,9 +118,11 @@ function RailTip({ label, sub, enabled, children }: {
  *
  * 로고는 파일을 그대로 얹지 않고 마스크로 칠한다. 아크로스 마크는 진회색이라
  * 네이비 위에서 사라지고 텐소 마크만 흰색이라, 원본 색을 쓰면 둘이 따로 논다.
- * 실루엣만 빌려 흰색으로 통일한다 — 로고는 제 형태로 읽히는 것이 먼저다.
- * 글자 표식도 같은 흰색이다. 여덟 자리 중 여섯이 제 로고를 달고 나면 색을 남긴
- * 둘만 튄다.
+ * 실루엣만 빌려 한 가지 색으로 통일한다 — 로고는 제 형태로 읽히는 것이 먼저다.
+ * 다만 그 색을 여기서 정하지는 않는다. NavRow 가 행 상태로 정한 currentColor 를
+ * 물려받아, 일반 아이콘과 똑같이 쉴 때 muted(72%), hover·active 에서 text(100%)
+ * 가 된다. 흰색을 박아두면 로고 달린 행만 늘 순백이라, 쉬는 줄에서 그 여섯만
+ * 도드라진다. 글자 표식도 같은 규칙을 따른다.
  */
 function ServiceMark({ mark, label, size }: {
   mark?: string; label: string; size: number
@@ -130,7 +132,7 @@ function ServiceMark({ mark, label, size }: {
       <span
         aria-hidden
         style={{
-          width: size, height: size, flexShrink: 0, background: t.sidebar.text,
+          width: size, height: size, flexShrink: 0, background: 'currentColor',
           WebkitMaskImage: `url(${mark})`, maskImage: `url(${mark})`,
           WebkitMaskSize: 'contain', maskSize: 'contain',
           WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
@@ -146,7 +148,7 @@ function ServiceMark({ mark, label, size }: {
     <span
       aria-hidden
       style={{
-        width: size, height: size, flexShrink: 0, color: t.sidebar.text,
+        width: size, height: size, flexShrink: 0,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: t.font.mono, fontSize: `calc(${Math.round(size * 0.82)}px * var(--fz, 1))`,
         fontWeight: t.weight.medium, lineHeight: 1, letterSpacing: 0,
