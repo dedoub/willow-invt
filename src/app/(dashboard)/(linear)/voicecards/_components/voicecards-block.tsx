@@ -114,8 +114,12 @@ interface AnonymousEventStats {
     newLoggedDevices?: number
     memberLoggedDevices?: number
     anonDevices: number
-    // 직전 30일(당일 포함) 활동 회원 디바이스 distinct = 롤링 MAU.
-    // vc_event_stats 가 예전부터 내려주고 있었는데 이 인터페이스에만 빠져 있었다.
+    // 직전 30일(당일 포함) 활동 디바이스 distinct = 롤링 MAU.
+    // active30 은 로그인 없이 쓰는 기기 계정까지 포함하고, memberActive30 은 로그인한
+    // 디바이스만 센다(로그인율 분모). 보이스카드는 로그인 없이도 쓸 수 있고 그 사용자도
+    // 크레딧을 사므로 1인당 지표의 분모는 active30 이 맞다 — 학습 활성화 카드가 구글
+    // 경로와 기기 계정을 합산하는 것과 같은 이유다.
+    active30?: number
     memberActive30?: number
   }>
   cumulativeDistinct: Array<{
@@ -951,13 +955,14 @@ export function VoicecardsBlock({
           // 활성%→결제%). 한 칸만 뜻을 바꾸면 행을 훑는 사람이 예외를 외워야 한다.
           // 대신 값 옆 배지가 결제%를 되풀이하고 있었으므로(점선과 같은 지표) 그 자리를 쓴다.
           const rev30AgoKey = kstDaysAgo(29)
-          // MAU 는 서버 집계(vc_event_stats)의 롤링 30일 활동자를 그대로 쓴다.
+          // MAU 는 서버 집계(vc_event_stats)의 롤링 30일 활동자(active30)를 쓴다 —
+          // 로그인 없이 기기로만 쓰는 사용자를 포함한다.
           // users.lastActiveAt 로 세면 "마지막 활동"만 남아 과거 시점의 MAU 를 복원할 수
           // 없다 — 점선이 날짜별 CPMAU 를 그리려면 분모도 날짜별로 있어야 하고, 배지와
           // 점선이 서로 다른 분모를 쓰면 같은 이름의 두 값이 어긋난다.
           const mauByDate = new Map<string, number>()
           for (const r of (anonymousStats.daily ?? [])) {
-            if (typeof r.memberActive30 === 'number' && r.memberActive30 > 0) mauByDate.set(r.date, r.memberActive30)
+            if (typeof r.active30 === 'number' && r.active30 > 0) mauByDate.set(r.date, r.active30)
           }
           const mauDates = [...mauByDate.keys()].sort()
           const mau = mauDates.length ? (mauByDate.get(mauDates[mauDates.length - 1]) ?? 0) : 0
@@ -1128,7 +1133,7 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="판매 크레딧"
-                    title={`판매 크레딧 누적(실선). 점선 = CPMAU(크레딧/MAU) 추이 — 그날까지 최근 30일 판매 ÷ 그날의 MAU. 지금은 ${fmtK(credits30d)} ÷ ${mau}명 = ${fmtPerMau(creditsPerMau)}. MAU 는 직전 30일 활동 회원(vc_event_stats). 달러 매출은 정가표 대입 추정이라(지역가·환불·스토어 수수료 미반영) 정산액이 아니어서 1인당 지표는 크레딧으로 낸다.`}
+                    title={`판매 크레딧 누적(실선). 점선 = CPMAU(크레딧/MAU) 추이 — 그날까지 최근 30일 판매 ÷ 그날의 MAU. 지금은 ${fmtK(credits30d)} ÷ ${mau}명 = ${fmtPerMau(creditsPerMau)}. MAU 는 직전 30일 활동자(기기 계정 포함, vc_event_stats). 달러 매출은 정가표 대입 추정이라(지역가·환불·스토어 수수료 미반영) 정산액이 아니어서 1인당 지표는 크레딧으로 낸다.`}
                     value={fmtK(creditsSold)}
                     valueExtra={(
                       <span style={{

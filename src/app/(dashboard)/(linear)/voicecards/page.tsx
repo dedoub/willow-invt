@@ -107,6 +107,11 @@ interface AnonymousEventStats {
     signinCompleted: number
     loggedDevices: number
     anonDevices: number
+    // 롤링 30일 활동자. active30 은 기기 계정 포함, memberActive30 은 로그인한 것만.
+    // 서버(vc_event_stats)가 내려주는데 이 타입에 없으면 블록에서 optional 로 보여
+    // 값이 흐르는 줄 모른 채 지나간다 — memberActive30 이 그래서 오래 잠들어 있었다.
+    active30?: number
+    memberActive30?: number
   }>
   cumulativeDistinct: Array<{
     date: string
