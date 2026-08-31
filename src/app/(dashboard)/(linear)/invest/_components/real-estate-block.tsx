@@ -75,6 +75,12 @@ interface ReTrend {
 interface ReJeonseRatio {
   month: string
   ratio: number | null
+  /** 그 달의 매매·전세 실거래 건수와 짝(단지×평형밴드) 수 — 툴팁에서 표본 두께를 같이 읽는다. */
+  trades?: number
+  jeonse?: number
+  pairs?: number
+  /** 실거래 신고 지연(평균 17~19일)으로 아직 채워지는 중인 달. 확정 구간과 나눠 그린다. */
+  provisional?: boolean
 }
 
 interface ReMarketCapPoint {
@@ -159,10 +165,16 @@ function SortIndicator({ active, dir }: { active: boolean; dir: SortDir }) {
   return <span style={{ marginLeft: 2 }}>{dir === 'asc' ? '↑' : '↓'}</span>
 }
 
-function ChartHeader({ title, momPct }: { title: string; momPct?: number | null }) {
+function ChartHeader({ title, momPct, titleHint }: { title: string; momPct?: number | null; titleHint?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.muted }}>{title}</span>
+      <span
+        title={titleHint}
+        style={{
+          fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.muted,
+          cursor: titleHint ? 'help' : undefined,
+        }}
+      >{title}</span>
       {momPct !== undefined && momPct !== null && (
         <span style={{
           fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, borderRadius: t.radius.sm,
@@ -1233,8 +1245,14 @@ export function RealEstateBlock() {
             {/* 전세가율 추이 */}
             {loadingJeonseRatio ? <ChartSkeleton /> : (
             <div style={innerCard}>
-              <ChartHeader title="전세가율 추이" />
-              {reJeonseRatio.length > 0 ? (
+              <ChartHeader
+                title="전세가율 추이"
+                titleHint="같은 단지·같은 평형밴드 안에서 전세 평당보증금 ÷ 매매 평당가. 짝의 무게는 매매·전세 중 건수가 적은 쪽. 국토부 실거래는 신고까지 평균 17~19일 걸려서, 세로 점선 오른쪽은 표본이 아직 채워지는 중이다 — 확정치로 읽지 말 것."
+              />
+              {reJeonseRatio.length > 0 ? (() => {
+                // 확정 구간과 진행중 구간의 경계. 값이 있는 달 중 첫 provisional 달에 선을 세운다.
+                const firstProvisionalMonth = reJeonseRatio.find(r => r.provisional && r.ratio != null)?.month
+                return (
                 <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={reJeonseRatio} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
@@ -1252,18 +1270,40 @@ export function RealEstateBlock() {
                     <Tooltip
                       contentStyle={tooltipStyle}
                       labelFormatter={(v) => String(v)}
-                      formatter={(value) => [`${Number(value).toFixed(1)}%`, '전세가율']}
+                      // 비율만 보여주면 매매 4건으로 만든 점과 94건으로 만든 점이 똑같이 생겼다.
+                      // 표본 두께를 같은 줄에 적어야 어느 점을 믿을지 판단이 선다.
+                      formatter={(value, _name, item) => {
+                        const p = (item?.payload ?? {}) as ReJeonseRatio
+                        const parts = [`매매 ${(p.trades ?? 0).toLocaleString()}건`, `전세 ${(p.jeonse ?? 0).toLocaleString()}건`]
+                        if (p.provisional) parts.push('신고 진행중')
+                        return [`${Number(value).toFixed(1)}% (${parts.join(' · ')})`, '전세가율']
+                      }}
                     />
                     <ReferenceLine y={40} stroke={t.neutrals.subtle} strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }} />
                     <ReferenceLine y={60} stroke={t.neutrals.subtle} strokeDasharray="3 3" label={{ value: '60%', position: 'right', fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }} />
+                    {/*
+                      신고가 아직 채워지는 구간의 시작점에 세로선을 세운다. 오른쪽은 확정치가
+                      아니다 — 2026-08 은 추적 단지 매매가 15건뿐인데(7월 88건) 선만 보면
+                      앞의 달들과 똑같이 생겨서 추세로 읽혔다.
+                      점을 채움/빈원으로 가르는 방법도 있지만 Recharts 3 은 UMD 빌드가 없어
+                      커스텀 dot 렌더를 이 저장소에서 실행 검증할 방법이 없었다. ReferenceLine
+                      은 바로 위 40%·60% 선이 이미 쓰고 있어 확실하다.
+                    */}
+                    {firstProvisionalMonth && (
+                      <ReferenceLine
+                        x={firstProvisionalMonth} stroke={t.neutrals.subtle} strokeDasharray="2 3"
+                        label={{ value: '신고 진행중', position: 'insideTopRight', fontSize: 'calc(9px * var(--fz, 1))', fill: t.neutrals.subtle }}
+                      />
+                    )}
                     <Area
                       type="monotone" dataKey="ratio" name="전세가율"
                       stroke="#6366f1" fill="#6366f1" fillOpacity={0.1}
-                      strokeWidth={1.5} connectNulls
+                      strokeWidth={1.5} connectNulls dot={false}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
-              ) : (
+                )
+              })() : (
                 <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
               )}
             </div>

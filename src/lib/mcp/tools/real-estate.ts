@@ -594,30 +594,43 @@ export function registerRealEstateTools(server: McpServer) {
       const { data: trackedData } = await supabase.from('re_complexes').select('name').eq('is_tracked', true)
       const complexNames = trackedData?.map(c => c.name) || []
 
+      // 계산 규칙은 대시보드 jeonse-ratio 라우트와 같다 — 두 곳이 다른 답을 내면
+      // 봇이 화면과 어긋난 숫자로 답한다. 근거 주석은 그쪽에 있다:
+      // src/app/api/willow-mgmt/real-estate/route.ts, type === 'jeonse-ratio'.
+      // 요지: (단지 × 10평 밴드) 안에서 평당가끼리 비교하고, 짝의 무게는
+      // min(매매건수, 전세건수). 평형을 안 맞추면 그 달에 어떤 평형이 팔렸는지가
+      // 곧 전세가율이 된다.
       const trades = await fetchAll(
-        supabase.from('re_trades').select('complex_name, deal_date, deal_amount')
+        supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_pyeong')
           .gte('deal_date', cutoffDate).eq('cancel_yn', 'N').in('complex_name', complexNames)
       )
       const rentals = await fetchAll(
-        supabase.from('re_rentals').select('complex_name, deal_date, deposit')
+        supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_pyeong')
           .gte('deal_date', cutoffDate).eq('rent_type', '전세').in('complex_name', complexNames)
       )
 
-      const tradeMonthly: Record<string, Record<string, number[]>> = {}
-      for (const t of trades) {
-        const month = t.deal_date.slice(0, 7)
-        if (!tradeMonthly[month]) tradeMonthly[month] = {}
-        if (!tradeMonthly[month][t.complex_name]) tradeMonthly[month][t.complex_name] = []
-        tradeMonthly[month][t.complex_name].push(Number(t.deal_amount))
+      // 전용 평 기준 밴드. 대시보드는 공급 평(re_complex_pyeongs 매핑)을 쓰지만 여기서는
+      // 그 매핑을 안 읽으므로 전용으로 나눈다 — 밴드 경계만 다르고, 짝을 같은 기준으로
+      // 맞춘다는 성질은 같다. 밴드 라벨을 밖으로 내보내지 않는 이유이기도 하다.
+      const bandOf = (py: number): number => Math.floor(py / 10) * 10
+      type Buckets = Record<string, Record<string, number[]>>
+      const bucket = (rows: Array<Record<string, unknown>>, amountKey: string): Buckets => {
+        const out: Buckets = {}
+        for (const row of rows) {
+          const py = Number(row.area_pyeong)
+          const amount = Number(row[amountKey])
+          if (!(py > 0) || !(amount > 0)) continue
+          const month = String(row.deal_date).slice(0, 7)
+          const key = `${String(row.complex_name)}|${bandOf(py)}`
+          if (!out[month]) out[month] = {}
+          if (!out[month][key]) out[month][key] = []
+          out[month][key].push(amount / py)
+        }
+        return out
       }
 
-      const rentalMonthly: Record<string, Record<string, number[]>> = {}
-      for (const r of rentals) {
-        const month = r.deal_date.slice(0, 7)
-        if (!rentalMonthly[month]) rentalMonthly[month] = {}
-        if (!rentalMonthly[month][r.complex_name]) rentalMonthly[month][r.complex_name] = []
-        rentalMonthly[month][r.complex_name].push(Number(r.deposit))
-      }
+      const tradeMonthly = bucket(trades as Array<Record<string, unknown>>, 'deal_amount')
+      const rentalMonthly = bucket(rentals as Array<Record<string, unknown>>, 'deposit')
 
       const median = (arr: number[]) => {
         const sorted = [...arr].sort((a, b) => a - b)
@@ -625,25 +638,48 @@ export function registerRealEstateTools(server: McpServer) {
         return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
       }
 
+      // 실거래 신고 지연(추적 단지 실측 평균 17~19일) 때문에 이번 달·지난달은 아직
+      // 채워지는 중이다. 봇이 "8월에 올랐다"고 단정하지 않도록 건수와 함께 표시를 준다.
+      const nowKst = new Date(Date.now() + 9 * 3600_000)
+      const curMonth = nowKst.toISOString().slice(0, 7)
+      const prevMonth = new Date(Date.UTC(nowKst.getUTCFullYear(), nowKst.getUTCMonth() - 1, 1)).toISOString().slice(0, 7)
+
       const allMonths = [...new Set([...Object.keys(tradeMonthly), ...Object.keys(rentalMonthly)])].sort()
       const trend = allMonths.map(month => {
         const tData = tradeMonthly[month] || {}
         const rData = rentalMonthly[month] || {}
-        const ratios: number[] = []
-        for (const name of Object.keys(tData)) {
-          if (rData[name]?.length) {
-            const medTrade = median(tData[name])
-            const medRental = median(rData[name])
-            if (medTrade > 0) ratios.push((medRental / medTrade) * 100)
-          }
+        let weighted = 0
+        let weight = 0
+        let pairs = 0
+        for (const key of Object.keys(tData)) {
+          const tp = tData[key]
+          const rp = rData[key]
+          if (!rp?.length || !tp.length) continue
+          const medTrade = median(tp)
+          if (!(medTrade > 0)) continue
+          const w = Math.min(tp.length, rp.length)
+          weighted += (median(rp) / medTrade) * 100 * w
+          weight += w
+          pairs += 1
         }
-        return ratios.length > 0
-          ? { month, ratio: Math.round(ratios.reduce((s, v) => s + v, 0) / ratios.length * 10) / 10 }
-          : null
+        if (weight === 0) return null
+        return {
+          month,
+          ratio: Math.round((weighted / weight) * 10) / 10,
+          trades: Object.values(tData).reduce((s, v) => s + v.length, 0),
+          jeonse: Object.values(rData).reduce((s, v) => s + v.length, 0),
+          pairs,
+          provisional: month === curMonth || month === prevMonth,
+        }
       }).filter(Boolean)
 
       await logMcpAction({ userId: user!.userId, action: 'tool_call', toolName: 're_get_jeonse_ratio', inputParams: { months } })
-      return { content: [{ type: 'text' as const, text: JSON.stringify({ unit: '%', trend }, null, 2) }] }
+      return { content: [{ type: 'text' as const, text: JSON.stringify({
+        unit: '%',
+        method: '(단지 × 10평 밴드) 평당가 중앙값 비교, 짝 가중치 = min(매매건수, 전세건수)',
+        note: 'provisional=true 인 달은 실거래 신고 지연(평균 17~19일)으로 표본이 아직 채워지는 중이라 추세로 읽지 말 것',
+        trend,
+      }, null, 2) }] }
     } catch (e) {
       return { content: [{ type: 'text' as const, text: `Error: ${(e as Error).message}` }], isError: true }
     }

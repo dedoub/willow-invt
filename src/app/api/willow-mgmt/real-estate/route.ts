@@ -755,6 +755,21 @@ export async function GET(request: Request) {
     }
 
     if (type === 'jeonse-ratio') {
+      // 전세가율 = 전세보증금 / 매매가. 나누는 두 값이 **같은 집**을 가리켜야 뜻이 선다.
+      //
+      // 예전엔 단지별로 그 달의 매매 총액 중앙값과 전세 총액 중앙값을 그냥 나눴다. 평형을
+      // 안 맞췄으므로 그 달에 어떤 평형이 팔렸는지가 곧 전세가율이었다. 2026-08 실측:
+      // 추적 단지 매매 16건 평균 24.9평 / 7월 94건 평균 29.1평 — 작은 집만 팔린 달이라
+      // 매매 중앙값이 내려가고 전세가율이 33.1% → 36.8% 로 올랐다. 같은 기간 전세·매매
+      // 호가(평당·평형대별)는 둘 다 소폭 하락이라 방향이 정반대였다. 2025-11 은 이 방식이
+      // 46.8%, 평당 기준으로는 36.5% 로 10%p 가 순전히 표본 구성이었다.
+      //
+      // 그래서 (단지 × 평형밴드) 안에서 **평당가끼리** 비교한다. 밴드는 화면 필터와 같은
+      // 10평 단위다. 정확히 같은 평형만 짝지으면 8월 짝이 10개까지 줄어 달마다 표본이
+      // 튀므로, 평당으로 정규화한 뒤 밴드로 묶는 선에서 멈춘다.
+      //
+      // 짝의 가중치는 min(매매건수, 전세건수) — 얇은 쪽이 그 짝의 신뢰도를 정한다.
+      // 단순 평균이면 매매 1건짜리 짝이 40건짜리 짝과 같은 표를 갖는다.
       const areaMapping = await getAreaMapping()
       const trades = await fetchAll(applyFilters(
         supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_sqm').gte('deal_date', cutoffDate),
@@ -766,29 +781,31 @@ export async function GET(request: Request) {
         'rentals'
       ))
 
-      const tradeMonthly: Record<string, Record<string, number[]>> = {}
-      for (const t of trades || []) {
-        const sqm = Number(t.area_sqm)
-        if (sqm <= 0) continue
-        const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
-        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
-        const month = t.deal_date.slice(0, 7)
-        if (!tradeMonthly[month]) tradeMonthly[month] = {}
-        if (!tradeMonthly[month][t.complex_name]) tradeMonthly[month][t.complex_name] = []
-        tradeMonthly[month][t.complex_name].push(Number(t.deal_amount))
+      // 화면 필터와 같은 10평 밴드. 60평 이상은 한 칸(표본이 얇아 더 쪼개면 짝이 안 생긴다).
+      const bandOf = (py: number): number => (py < 30 ? 20 : py < 40 ? 30 : py < 50 ? 40 : py < 60 ? 50 : 60)
+      // month → "단지|밴드" → 평당가 목록
+      type Buckets = Record<string, Record<string, number[]>>
+      const bucket = (rows: Array<Record<string, unknown>>, dateKey: string, amountKey: string): Buckets => {
+        const out: Buckets = {}
+        for (const row of rows || []) {
+          const sqm = Number(row.area_sqm)
+          if (!(sqm > 0)) continue
+          const name = String(row.complex_name)
+          const supplyPy = getSupplyPyeong(areaMapping, name, sqm)
+          if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
+          const amount = Number(row[amountKey])
+          if (!(amount > 0)) continue
+          const month = String(row[dateKey]).slice(0, 7)
+          const key = `${name}|${bandOf(supplyPy)}`
+          if (!out[month]) out[month] = {}
+          if (!out[month][key]) out[month][key] = []
+          out[month][key].push(amount / supplyPy)
+        }
+        return out
       }
 
-      const rentalMonthly: Record<string, Record<string, number[]>> = {}
-      for (const r of rentals || []) {
-        const sqm = Number(r.area_sqm)
-        if (sqm <= 0) continue
-        const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
-        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
-        const month = r.deal_date.slice(0, 7)
-        if (!rentalMonthly[month]) rentalMonthly[month] = {}
-        if (!rentalMonthly[month][r.complex_name]) rentalMonthly[month][r.complex_name] = []
-        rentalMonthly[month][r.complex_name].push(Number(r.deposit))
-      }
+      const tradeMonthly = bucket(trades as Array<Record<string, unknown>>, 'deal_date', 'deal_amount')
+      const rentalMonthly = bucket(rentals as Array<Record<string, unknown>>, 'deal_date', 'deposit')
 
       const median = (arr: number[]) => {
         const sorted = [...arr].sort((a, b) => a - b)
@@ -798,45 +815,48 @@ export async function GET(request: Request) {
 
       const allMonths = [...new Set([...Object.keys(tradeMonthly), ...Object.keys(rentalMonthly)])].sort()
 
-      // Strategy: for each month, try per-complex matching first (same complex has both trade & jeonse).
-      // If no per-complex matches exist, fall back to aggregate median trade vs aggregate median jeonse.
       const monthlyRatios: Record<string, number | null> = {}
+      const monthlySamples: Record<string, { trades: number; jeonse: number; pairs: number }> = {}
       for (const month of allMonths) {
         const tData = tradeMonthly[month] || {}
         const rData = rentalMonthly[month] || {}
-
-        // Per-complex matching
-        const perComplexRatios: number[] = []
-        for (const name of Object.keys(tData)) {
-          if (rData[name]?.length) {
-            const medTrade = median(tData[name])
-            const medRental = median(rData[name])
-            if (medTrade > 0) {
-              perComplexRatios.push((medRental / medTrade) * 100)
-            }
-          }
+        let weighted = 0
+        let weight = 0
+        let pairs = 0
+        for (const key of Object.keys(tData)) {
+          const tp = tData[key]
+          const rp = rData[key]
+          if (!rp?.length || !tp.length) continue
+          const medTrade = median(tp)
+          if (!(medTrade > 0)) continue
+          const w = Math.min(tp.length, rp.length)
+          weighted += (median(rp) / medTrade) * 100 * w
+          weight += w
+          pairs += 1
         }
-
-        if (perComplexRatios.length > 0) {
-          monthlyRatios[month] = Math.round((perComplexRatios.reduce((s, v) => s + v, 0) / perComplexRatios.length) * 10) / 10
-        } else {
-          // Fallback: aggregate all trades and all rentals for the month
-          const allTrades = Object.values(tData).flat()
-          const allRentals = Object.values(rData).flat()
-          if (allTrades.length > 0 && allRentals.length > 0) {
-            const medTrade = median(allTrades)
-            const medRental = median(allRentals)
-            if (medTrade > 0) {
-              monthlyRatios[month] = Math.round((medRental / medTrade) * 1000) / 10
-            }
-          }
+        monthlyRatios[month] = weight > 0 ? Math.round((weighted / weight) * 10) / 10 : null
+        monthlySamples[month] = {
+          trades: Object.values(tData).reduce((s, v) => s + v.length, 0),
+          jeonse: Object.values(rData).reduce((s, v) => s + v.length, 0),
+          pairs,
         }
       }
+
+      // 국토부 실거래는 계약 후 신고까지 걸린다 — 추적 단지 실측 평균 17~19일(2026-08 기준).
+      // 그래서 이번 달과 지난달은 아직 채워지는 중이고, 다 찬 달과 나란히 놓으면 표본이
+      // 6분의 1인 점이 추세처럼 읽힌다. 화면이 점선으로 구분할 수 있게 표시만 내려보낸다.
+      const nowKst = new Date(Date.now() + 9 * 3600_000)
+      const curMonth = nowKst.toISOString().slice(0, 7)
+      const prevMonth = new Date(Date.UTC(nowKst.getUTCFullYear(), nowKst.getUTCMonth() - 1, 1)).toISOString().slice(0, 7)
 
       const trendMonths = expectedMonths.length > 0 ? expectedMonths : allMonths
       const trend = trendMonths.map(m => ({
         month: m,
         ratio: monthlyRatios[m] ?? null,
+        trades: monthlySamples[m]?.trades ?? 0,
+        jeonse: monthlySamples[m]?.jeonse ?? 0,
+        pairs: monthlySamples[m]?.pairs ?? 0,
+        provisional: m === curMonth || m === prevMonth,
       }))
 
       return NextResponse.json({ trend })
