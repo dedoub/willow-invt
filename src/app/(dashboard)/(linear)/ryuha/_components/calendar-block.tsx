@@ -6,11 +6,10 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { RyuhaSchedule, RyuhaSubject, RyuhaDailyMemo } from '@/types/ryuha'
+import { RyuhaSchedule, RyuhaDailyMemo } from '@/types/ryuha'
 
 interface CalendarBlockProps {
   schedules: RyuhaSchedule[]
-  subjects: RyuhaSubject[]
   selectedDate: string
   onSelectDate: (date: string) => void
   onAddSchedule: (date: string) => void
@@ -315,7 +314,7 @@ function DayCell({
 }
 
 export function CalendarBlock({
-  schedules, subjects, selectedDate, onSelectDate,
+  schedules, selectedDate, onSelectDate,
   onAddSchedule, onEditSchedule, onToggleComplete,
   memos, onSaveMemo,
 }: CalendarBlockProps) {

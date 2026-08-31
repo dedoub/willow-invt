@@ -4,15 +4,12 @@ import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { RyuhaSchedule, RyuhaSubject, RyuhaTextbook, RyuhaChapter } from '@/types/ryuha'
+import { RyuhaSchedule } from '@/types/ryuha'
 
 interface ScheduleDialogProps {
   open: boolean
   schedule: RyuhaSchedule | null  // null = 추가 모드
   initialDate?: string
-  subjects: RyuhaSubject[]
-  textbooks: RyuhaTextbook[]
-  chapters: RyuhaChapter[]
   onSave: (data: ScheduleFormData) => Promise<void>
   onDelete?: (id: string) => Promise<void>
   onClose: () => void
@@ -27,6 +24,8 @@ export interface ScheduleFormData {
   start_time: string
   end_time: string
   type: 'school' | 'academy' | 'arts' | 'homework' | 'etc'
+  // 과목·단원 UI 는 뺐지만(2026-08-31) 필드는 남긴다 — 기존 일정에 붙어 있던 값을
+  // 수정 저장할 때 통째로 날리지 않기 위해서다. 류하봇이 아직 이 값을 읽어 쓴다.
   subject_id: string
   chapter_ids: string[]
   color: string
@@ -45,7 +44,7 @@ const inputBase: React.CSSProperties = {
 }
 
 export function ScheduleDialog({
-  open, schedule, initialDate, subjects, textbooks, chapters,
+  open, schedule, initialDate,
   onSave, onDelete, onClose,
 }: ScheduleDialogProps) {
   const [form, setForm] = useState<ScheduleFormData>({
@@ -116,23 +115,6 @@ export function ScheduleDialog({
   const handleCopy = () => {
     setForm(f => ({ ...f, id: undefined, title: f.title ? `${f.title} (복사)` : '' }))
     setCopyMode(true)
-  }
-
-  const filteredTextbooks = form.subject_id
-    ? textbooks.filter(tb => tb.subject_id === form.subject_id)
-    : textbooks
-
-  const filteredChapters = chapters.filter(ch =>
-    filteredTextbooks.some(tb => tb.id === ch.textbook_id)
-  )
-
-  const toggleChapter = (chId: string) => {
-    setForm(f => ({
-      ...f,
-      chapter_ids: f.chapter_ids.includes(chId)
-        ? f.chapter_ids.filter(id => id !== chId)
-        : [...f.chapter_ids, chId],
-    }))
   }
 
   if (!open) return null
@@ -234,60 +216,6 @@ export function ScheduleDialog({
                 style={inputBase} />
             </div>
           </div>
-
-          {/* Subject chips */}
-          <div>
-            <Label>과목</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              <ChipBtn active={!form.subject_id} onClick={() => setForm({ ...form, subject_id: '', chapter_ids: [] })}>
-                전체
-              </ChipBtn>
-              {subjects.map(s => (
-                <button key={s.id} onClick={() => setForm({ ...form, subject_id: s.id, chapter_ids: [] })}
-                  style={{
-                    border: 'none', cursor: 'pointer',
-                    padding: '5px 12px', fontSize: 'calc(12px * var(--fz, 1))', borderRadius: t.radius.pill,
-                    fontFamily: t.font.sans, fontWeight: form.subject_id === s.id ? t.weight.medium : t.weight.regular,
-                    background: form.subject_id === s.id ? `${s.color}25` : t.neutrals.inner,
-                    color: form.subject_id === s.id ? s.color : t.neutrals.muted,
-                    transition: 'all .12s',
-                  }}>{s.name}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* Chapters */}
-          {filteredChapters.length > 0 && (
-            <div>
-              <Label>단원 연결</Label>
-              <div style={{
-                maxHeight: 120, overflow: 'auto', borderRadius: t.radius.sm,
-                background: t.neutrals.inner, padding: 8,
-              }}>
-                {filteredTextbooks.map(tb => {
-                  const tbChapters = filteredChapters.filter(ch => ch.textbook_id === tb.id)
-                  if (tbChapters.length === 0) return null
-                  return (
-                    <div key={tb.id} style={{ marginBottom: 6 }}>
-                      <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: 2 }}>
-                        {tb.name}
-                      </div>
-                      {tbChapters.map(ch => (
-                        <label key={ch.id} style={{
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          padding: '3px 4px', cursor: 'pointer', fontSize: 'calc(12px * var(--fz, 1))',
-                        }}>
-                          <input type="checkbox" checked={form.chapter_ids.includes(ch.id)}
-                            onChange={() => toggleChapter(ch.id)} />
-                          {ch.name}
-                        </label>
-                      ))}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Color */}
           <div>

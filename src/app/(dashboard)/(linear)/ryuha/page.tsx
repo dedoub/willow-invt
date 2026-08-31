@@ -2,15 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
-import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
+import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { RyuhaSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
-import { RyuhaSubject, RyuhaTextbook, RyuhaChapter, RyuhaSchedule, RyuhaDailyMemo, RyuhaBodyRecord } from '@/types/ryuha'
+import { RyuhaSchedule, RyuhaDailyMemo, RyuhaBodyRecord } from '@/types/ryuha'
 import { CalendarBlock } from './_components/calendar-block'
 import { ScheduleDialog, ScheduleFormData } from './_components/schedule-dialog'
-import { TextbookBlock } from './_components/textbook-block'
-import { SubjectDialog, TextbookDialog, ChapterDialog } from './_components/textbook-dialog'
-import { ProgressBlock } from './_components/progress-block'
 import { NotebookBlock } from './_components/notebook-block'
 import { GrowthBlock } from './_components/growth-block'
 
@@ -26,12 +22,7 @@ interface RyuhaNote {
 }
 
 export default function RyuhaPage() {
-  const mobile = useIsMobile()
-  const cols = useDashCols()
   const [loading, setLoading] = useState(true)
-  const [subjects, setSubjects] = useState<RyuhaSubject[]>([])
-  const [textbooks, setTextbooks] = useState<RyuhaTextbook[]>([])
-  const [chapters, setChapters] = useState<RyuhaChapter[]>([])
   const [schedules, setSchedules] = useState<RyuhaSchedule[]>([])
   const [memos, setMemos] = useState<RyuhaDailyMemo[]>([])
   const [notes, setNotes] = useState<RyuhaNote[]>([])
@@ -46,15 +37,6 @@ export default function RyuhaPage() {
   const [editingSchedule, setEditingSchedule] = useState<RyuhaSchedule | null>(null)
   const [addScheduleDate, setAddScheduleDate] = useState('')
 
-  const [subjectDialogOpen, setSubjectDialogOpen] = useState(false)
-
-  const [textbookDialogOpen, setTextbookDialogOpen] = useState(false)
-  const [editingTextbook, setEditingTextbook] = useState<RyuhaTextbook | null>(null)
-
-  const [chapterDialogOpen, setChapterDialogOpen] = useState(false)
-  const [editingChapter, setEditingChapter] = useState<RyuhaChapter | null>(null)
-  const [chapterTextbookId, setChapterTextbookId] = useState('')
-
   // ── Data loading ──────────────────────────────────────────────
   const loadData = useCallback(async () => {
     // 재로드 시 loading 유지 — 달력 등 자식 상태 보존 (초기 스켈레톤은 useState(true) 기본값으로 표시됨)
@@ -65,9 +47,6 @@ export default function RyuhaPage() {
       const res = await fetch('/api/ryuha/bootstrap')
       if (res.ok) {
         const data = await res.json()
-        setSubjects(data.subjects)
-        setTextbooks(data.textbooks)
-        setChapters(data.chapters)
         setSchedules(data.schedules)
         setMemos(data.memos)
         setNotes(data.notes)
@@ -161,91 +140,6 @@ export default function RyuhaPage() {
     await loadData()
   }
 
-  // ── Subject handlers ──────────────────────────────────────────
-  const handleSaveSubject = async (data: { id?: string; name: string; color: string }) => {
-    if (data.id) {
-      await fetch('/api/ryuha/subjects', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-    } else {
-      await fetch('/api/ryuha/subjects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, icon: 'default', order_index: 0 }),
-      })
-    }
-    await loadData()
-  }
-
-  const handleDeleteSubject = async (id: string) => {
-    await fetch(`/api/ryuha/subjects?id=${id}`, { method: 'DELETE' })
-    await loadData()
-  }
-
-  // ── Textbook handlers ─────────────────────────────────────────
-  const handleSaveTextbook = async (data: { id?: string; subject_id: string; name: string; publisher: string; description: string }) => {
-    if (data.id) {
-      await fetch('/api/ryuha/textbooks', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-    } else {
-      await fetch('/api/ryuha/textbooks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-    }
-    await loadData()
-  }
-
-  const handleDeleteTextbook = async (id: string) => {
-    await fetch(`/api/ryuha/textbooks?id=${id}`, { method: 'DELETE' })
-    await loadData()
-  }
-
-  // ── Chapter handlers ──────────────────────────────────────────
-  const handleSaveChapter = async (data: { id?: string; textbook_id: string; name: string; description: string; target_date: string }) => {
-    if (data.id) {
-      await fetch('/api/ryuha/chapters', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-    } else {
-      await fetch('/api/ryuha/chapters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-    }
-    await loadData()
-  }
-
-  const handleDeleteChapter = async (id: string) => {
-    await fetch(`/api/ryuha/chapters?id=${id}`, { method: 'DELETE' })
-    await loadData()
-  }
-
-  const handleToggleChapterStatus = async (chapter: RyuhaChapter) => {
-    const cycle: Record<string, string> = {
-      pending: 'in_progress',
-      in_progress: 'review_notes_pending',
-      review_notes_pending: 'completed',
-      completed: 'pending',
-    }
-    const nextStatus = cycle[chapter.status] ?? 'pending'
-    await fetch('/api/ryuha/chapters', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: chapter.id, status: nextStatus }),
-    })
-    await loadData()
-  }
-
   // ── Note handlers ─────────────────────────────────────────────
   const handleCreateNote = async (data: { title: string; content: string; attachments?: { name: string; url: string }[] }) => {
     await fetch('/api/ryuha/notes', {
@@ -305,29 +199,6 @@ export default function RyuhaPage() {
     setScheduleDialogOpen(true)
   }
 
-  // ── TextbookBlock event handlers ──────────────────────────────
-  const handleAddTextbook = () => {
-    setEditingTextbook(null)
-    setTextbookDialogOpen(true)
-  }
-
-  const handleEditTextbook = (textbook: RyuhaTextbook) => {
-    setEditingTextbook(textbook)
-    setTextbookDialogOpen(true)
-  }
-
-  const handleAddChapter = (textbookId: string) => {
-    setEditingChapter(null)
-    setChapterTextbookId(textbookId)
-    setChapterDialogOpen(true)
-  }
-
-  const handleEditChapter = (chapter: RyuhaChapter) => {
-    setEditingChapter(chapter)
-    setChapterTextbookId(chapter.textbook_id)
-    setChapterDialogOpen(true)
-  }
-
   return (
     <>
       {loading ? <RyuhaSkeleton /> : (
@@ -335,7 +206,6 @@ export default function RyuhaPage() {
           {/* Calendar */}
           <CalendarBlock
             schedules={schedules}
-            subjects={subjects}
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
             onAddSchedule={handleAddSchedule}
@@ -360,28 +230,6 @@ export default function RyuhaPage() {
             onDelete={handleDeleteBodyRecord}
           />
 
-          {/* Textbook + Progress 2-col grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
-            gap: t.density.blockGap,
-          }}>
-            <TextbookBlock
-              subjects={subjects}
-              textbooks={textbooks}
-              chapters={chapters}
-              onManageSubjects={() => setSubjectDialogOpen(true)}
-              onAddTextbook={handleAddTextbook}
-              onEditTextbook={handleEditTextbook}
-              onAddChapter={handleAddChapter}
-              onEditChapter={handleEditChapter}
-              onToggleChapterStatus={handleToggleChapterStatus}
-            />
-            <ProgressBlock
-              subjects={subjects}
-              chapters={chapters}
-            />
-          </div>
         </div>
       )}
 
@@ -390,39 +238,11 @@ export default function RyuhaPage() {
         open={scheduleDialogOpen}
         schedule={editingSchedule}
         initialDate={addScheduleDate}
-        subjects={subjects}
-        textbooks={textbooks}
-        chapters={chapters}
         onSave={handleSaveSchedule}
         onDelete={handleDeleteSchedule}
         onClose={() => setScheduleDialogOpen(false)}
       />
 
-      <SubjectDialog
-        open={subjectDialogOpen}
-        subjects={subjects}
-        onSave={handleSaveSubject}
-        onDelete={handleDeleteSubject}
-        onClose={() => setSubjectDialogOpen(false)}
-      />
-
-      <TextbookDialog
-        open={textbookDialogOpen}
-        textbook={editingTextbook}
-        subjects={subjects}
-        onSave={handleSaveTextbook}
-        onDelete={handleDeleteTextbook}
-        onClose={() => setTextbookDialogOpen(false)}
-      />
-
-      <ChapterDialog
-        open={chapterDialogOpen}
-        chapter={editingChapter}
-        textbookId={chapterTextbookId}
-        onSave={handleSaveChapter}
-        onDelete={handleDeleteChapter}
-        onClose={() => setChapterDialogOpen(false)}
-      />
     </>
   )
 }
