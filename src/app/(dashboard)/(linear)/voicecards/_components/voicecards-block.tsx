@@ -968,6 +968,13 @@ export function VoicecardsBlock({
           }
           const mauDates = [...mauByDate.keys()].sort()
           const mau = mauDates.length ? (mauByDate.get(mauDates[mauDates.length - 1]) ?? 0) : 0
+          // 30일 평균 DAU — '일별 활동자' 바의 합(daily.devices)과 같은 값을 평균한 것이라
+          // 옆 차트와 같은 모집단이다(봇·관리자 제외, 기기 계정 포함).
+          // 오늘은 아직 안 끝난 하루라 뺀다 — 30분의 1이 반쪽이면 평균이 그만큼 낮게 나온다.
+          const dauRows = (anonymousStats.daily ?? []).filter(r => r.date < revTodayKey).slice(-30)
+          const avgDau30 = dauRows.length
+            ? Math.round(dauRows.reduce((s, r) => s + (r.devices ?? 0), 0) / dauRows.length)
+            : 0
           // CPMAU(credits per MAU) — 배지는 달러가 아니라 크레딧으로 낸다. 달러 매출은 product_id 를 정가표에
           // 대입한 추정치라(지역가·환불·스토어 수수료 미반영) 1인당으로 나누면 오차가
           // 그대로 실린다. 크레딧은 결제 이벤트의 delta(실제 지급량)로 세는 값이라
@@ -1140,7 +1147,7 @@ export function VoicecardsBlock({
                 ) : (
                   <LStat
                     label="판매 크레딧"
-                    title={`판매 크레딧 누적(실선). 점선 = CPMAU(크레딧/MAU) 추이 — 그날까지 최근 30일 판매 ÷ 그날의 MAU. 지금은 ${fmtK(credits30d)} ÷ ${mau}명 = ${fmtPerMau(creditsPerMau)}. MAU 는 직전 30일 활동자(기기 계정 포함, vc_event_stats). 달러 매출은 정가표 대입 추정이라(지역가·환불·스토어 수수료 미반영) 정산액이 아니어서 1인당 지표는 크레딧으로 낸다.`}
+                    title={`판매 크레딧 누적(실선). 점선 = CPMAU(크레딧/MAU) 추이 — 그날까지 최근 30일 판매 ÷ 그날의 MAU. 지금은 ${fmtK(credits30d)} ÷ ${mau}명 = ${fmtPerMau(creditsPerMau)}. MAU 는 직전 30일 활동자(기기 계정 포함, vc_event_stats). DAU 는 오늘을 뺀 최근 ${dauRows.length}일 활동 기기의 평균으로, 옆 '일별 활동자' 바와 같은 모집단이다. 결제율 ${payRate}% = 유료 ${paidUsers.toLocaleString()}명 ÷ 학습 활성화 ${signedUp.toLocaleString()}명. 달러 매출은 정가표 대입 추정이라(지역가·환불·스토어 수수료 미반영) 정산액이 아니어서 1인당 지표는 크레딧으로 낸다.`}
                     value={fmtK(creditsSold)}
                     valueExtra={(
                       <span style={{
@@ -1150,8 +1157,10 @@ export function VoicecardsBlock({
                         CPMAU {fmtPerMau(creditsPerMau)}
                       </span>
                     )}
+                    // 결제율은 툴팁으로 내렸다(CEO) — 이 자리에서는 DAU·MAU 가 붙어 있어야
+                    // 둘의 비(끈적임)를 눈으로 바로 잡는다. 결제율은 퍼널 마지막 칸이 이미 센다.
                     sub={creditsSold > 0
-                      ? `결제 ${payRate}% · MAU ${mau.toLocaleString()}`
+                      ? `DAU ${avgDau30.toLocaleString()} · MAU ${mau.toLocaleString()}`
                       : '아직 없음'}
                     tone={creditsSold > 0 ? 'pos' : 'default'}
                     sparkline={compact ? undefined : creditsData}
