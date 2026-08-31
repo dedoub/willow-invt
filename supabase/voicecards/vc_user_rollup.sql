@@ -30,8 +30,18 @@
 --   사용자 표의 '구매일' 열. 스캔에 이미 들어와 있는 credits_changed 행에서 max 만 더 뽑는다 —
 --   구매 크레딧과 같은 소스라 두 열이 어긋날 수 없다.
 -- ============================================================================
-drop function if exists public.vc_user_rollup();
-create or replace function public.vc_user_rollup()
+-- ── 배선 (2026-08-31) ────────────────────────────────────────────────────────
+-- 이 파일은 **_live 계산 + MV + 얇은 래퍼**를 한 세트로 정의한다.
+-- 예전엔 여기서 vc_user_rollup() 자체를 무거운 계산으로 만들었는데, 그러면 이 파일을
+-- 적용할 때마다 mv_dashboard_aggregates.sql 이 깔아둔 MV 래퍼가 조용히 덮여
+-- 대시보드가 다시 매 호출마다 mv_real_users 11만행을 재집계했다(2026-08-30 재발, 콜드 13초).
+-- 계산식을 고칠 일이 있으면 아래 _live 본문만 고치고 파일 전체를 그대로 다시 적용하면 된다.
+
+-- MV 가 _live 를 참조하므로 드롭 순서는 MV → 함수.
+drop materialized view if exists public.mv_user_rollup;
+drop function if exists public.vc_user_rollup_live();
+
+create function public.vc_user_rollup_live()
  returns table(
    user_id text,
    listen_count bigint, premium_listen_count bigint, free_listen_count bigint,
@@ -43,6 +53,7 @@ create or replace function public.vc_user_rollup()
  )
  language sql
  stable
+ set search_path = public, pg_temp
 as $function$
   with cost_aware_versions as (
     -- 과금 신호를 보낼 줄 아는 앱 버전. 여기 없는 버전의 재생은 판정 자체가 불가능하다.
@@ -151,5 +162,27 @@ as $function$
   left join spend s using(user_id)
 $function$;
 
+-- 시간마다 refresh_vc_mvs() 가 갱신한다. CONCURRENTLY 전제조건이 유니크 인덱스다.
+create materialized view public.mv_user_rollup as select * from public.vc_user_rollup_live();
+create unique index mv_user_rollup_user_id_idx on public.mv_user_rollup (user_id);
+
+-- 대시보드가 실제로 부르는 것. MV 한 번 읽고 끝난다.
+drop function if exists public.vc_user_rollup();
+create function public.vc_user_rollup()
+ returns table(
+   user_id text,
+   listen_count bigint, premium_listen_count bigint, free_listen_count bigint,
+   unclassified_listen_count bigint, flip_count bigint, credits_spent bigint,
+   purchased_credits bigint,
+   premium_voice boolean, ai_feature boolean, banner_tap boolean, gated boolean,
+   last_intent timestamptz,
+   last_purchase timestamptz
+ )
+ language sql
+ stable
+ set search_path = public, pg_temp
+as $wrapper$ select r.* from public.mv_user_rollup r $wrapper$;
+
 grant execute on function public.vc_user_rollup() to public;
 grant execute on function public.vc_user_rollup() to anon, authenticated, service_role;
+grant select on public.mv_user_rollup to anon, authenticated, service_role;

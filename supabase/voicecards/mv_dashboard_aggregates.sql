@@ -26,6 +26,14 @@
 --
 -- 되돌리려면: vc_* 껍데기를 drop 하고 *_live 를 원래 이름으로 rename 하면 된다.
 
+-- ⚠️ 2026-08-31 — 이 파일은 **1회성 이관 기록**이다. 다시 적용하지 말 것 (RENAME 이 실패한다).
+--   여기서 세운 배선이 조용히 풀린 적이 있다: vc_user_rollup.sql / vc_user_activity_deltas.sql 이
+--   자기 이름의 함수를 무거운 계산으로 create or replace 하고 있어서, 지표를 고치려고 그 파일을
+--   적용할 때마다 껍데기가 통째로 덮였다(2026-08-30). 대시보드는 다시 매 호출마다 mv_real_users
+--   11만행을 재집계했고 vc_user_rollup() 은 콜드 12.8초 / 웜 2.9초로 돌아갔다.
+--   그래서 두 파일이 이제 _live + MV + 껍데기를 한 세트로 정의한다 — 파일 하나만 적용해도
+--   배선이 유지된다. 계산식은 그 파일에서 고치고, 이 파일은 읽기 전용 기록으로 둔다.
+
 -- ── vc_device_journeys ───────────────────────────────────────────────────────
 ALTER VIEW public.vc_device_journeys RENAME TO vc_device_journeys_live;
 

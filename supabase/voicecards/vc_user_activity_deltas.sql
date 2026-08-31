@@ -8,10 +8,23 @@
 --   active_days_7d 핵심 활동일: 학습 또는 시트·카드 생성 완료 이벤트의 KST 날짜 수
 --   spent: credit_transactions net (음수 delta 합 − 환불) (완전 원장, 2026-07-22; 상세는 spent_today CTE 주석)
 --   반환 컬럼 변경 시에만 drop 후 재생성 필요 (return type replace 불가).
-create or replace function public.vc_user_activity_deltas()
+-- ── 배선 (2026-08-31) ────────────────────────────────────────────────────────
+-- vc_user_rollup.sql 과 같은 구조: **_live 계산 + MV + 얇은 래퍼**를 한 세트로 정의한다.
+-- 예전엔 여기서 vc_user_activity_deltas() 자체를 무거운 계산으로 만들어서, 이 파일을
+-- 적용할 때마다 mv_dashboard_aggregates.sql 의 MV 래퍼가 조용히 덮였다(2026-08-30 재발).
+-- 계산식을 고칠 일이 있으면 아래 _live 본문만 고치고 파일 전체를 그대로 다시 적용한다.
+--
+-- 오늘 증가분이 최대 1시간(refresh_vc_mvs 주기)까지 늦다. 대시보드 자체가 1시간 캐시라
+-- 실효 지연은 같고, 새로고침 버튼은 캐시만 건너뛴다.
+
+drop materialized view if exists public.mv_user_activity_deltas;
+drop function if exists public.vc_user_activity_deltas_live();
+
+create function public.vc_user_activity_deltas_live()
  returns table(user_id text, cards_today bigint, attempts_today bigint, listen_today bigint, flips_today bigint, spent_today bigint, active_days_7d integer, purchased_today bigint, balance_delta_today bigint, sheets_delta_today bigint)
  language sql
  stable
+ set search_path = public, pg_temp
 as $function$
 with td as (select (now() at time zone 'Asia/Seoul')::date as d),
 tsa_today as (
@@ -140,3 +153,20 @@ left join live_cards lc using(user_id)
 left join sheet_snap ss using(user_id)
 left join u_created uc using(user_id);
 $function$;
+
+create materialized view public.mv_user_activity_deltas as
+  select * from public.vc_user_activity_deltas_live();
+create unique index mv_user_activity_deltas_user_id_idx on public.mv_user_activity_deltas (user_id);
+
+-- 대시보드가 실제로 부르는 것.
+drop function if exists public.vc_user_activity_deltas();
+create function public.vc_user_activity_deltas()
+ returns table(user_id text, cards_today bigint, attempts_today bigint, listen_today bigint, flips_today bigint, spent_today bigint, active_days_7d integer, purchased_today bigint, balance_delta_today bigint, sheets_delta_today bigint)
+ language sql
+ stable
+ set search_path = public, pg_temp
+as $wrapper$ select d.* from public.mv_user_activity_deltas d $wrapper$;
+
+grant execute on function public.vc_user_activity_deltas() to public;
+grant execute on function public.vc_user_activity_deltas() to anon, authenticated, service_role;
+grant select on public.mv_user_activity_deltas to anon, authenticated, service_role;
