@@ -122,11 +122,26 @@ type Classifier = (path: string) => { key: string; label: string }
  * 들고 있다. 새 클러스터는 두 곳 다 넣어야 색인률 표와 요청 대기열이 같은 세계를 본다.
  */
 const VC_DECK_CLUSTERS: Array<{ prefix: string; key: string; label: string }> = [
-  { prefix: 'english-japanese', key: 'japanese-audience', label: '일본 사용자 덱' },
-  { prefix: 'daily-english-chunks-ja', key: 'japanese-audience', label: '일본 사용자 덱' },
-  { prefix: 'instant-response-english-phrases-ja', key: 'japanese-audience', label: '일본 사용자 덱' },
-  { prefix: 'korean-kpop-fan-phrases-ja', key: 'japanese-audience', label: '일본 사용자 덱' },
-  { prefix: 'korean-travel-phrases-ja', key: 'japanese-audience', label: '일본 사용자 덱' },
+  // 묶는 단위는 허브다. 하위 덱은 허브가 색인돼야 크롤 경로가 생기므로(허브 색인 → 하위
+  // 자연 크롤은 bible·quran·civics·cdl에서 네 번 재현됐다), 막힌 곳을 찾는 단위도 허브여야
+  // 처방으로 이어진다. seo-daily-brief.mjs 의 COVERED_BY_HUB 와 같은 세계관이다.
+  //
+  // 2026-08-31: 예전엔 셋을 '일본 사용자 덱' 한 칸에 몰아 놨는데, 그 사이 한국어 허브가
+  // korean-japanese·korean-english 둘로 갈렸다. 실제 링크를 보면 korean-kpop-fan-phrases-ja 와
+  // korean-travel-phrases-ja 는 english-japanese 가 아니라 korean-japanese 하위다.
+  { prefix: 'english-japanese', key: 'english-japanese', label: '영어 덱(일본어권)' },
+  { prefix: 'daily-english-chunks-ja', key: 'english-japanese', label: '영어 덱(일본어권)' },
+  { prefix: 'instant-response-english-phrases-ja', key: 'english-japanese', label: '영어 덱(일본어권)' },
+  { prefix: 'korean-japanese', key: 'korean-japanese', label: '한국어 덱(일본어권)' },
+  { prefix: 'korean-daily-life-ja', key: 'korean-japanese', label: '한국어 덱(일본어권)' },
+  { prefix: 'korean-kpop-fan-phrases-ja', key: 'korean-japanese', label: '한국어 덱(일본어권)' },
+  { prefix: 'korean-social-chat-ja', key: 'korean-japanese', label: '한국어 덱(일본어권)' },
+  { prefix: 'korean-travel-phrases-ja', key: 'korean-japanese', label: '한국어 덱(일본어권)' },
+  { prefix: 'korean-work-school-ja', key: 'korean-japanese', label: '한국어 덱(일본어권)' },
+  { prefix: 'korean-english', key: 'korean-english', label: '한국어 덱(영어권)' },
+  { prefix: 'korean-daily-life-en', key: 'korean-english', label: '한국어 덱(영어권)' },
+  { prefix: 'korean-social-chat-en', key: 'korean-english', label: '한국어 덱(영어권)' },
+  { prefix: 'korean-travel-phrases-en', key: 'korean-english', label: '한국어 덱(영어권)' },
   { prefix: 'einbuergerungstest', key: 'einbuergerungstest', label: '독일 귀화시험' },
   { prefix: 'deutsch-a1', key: 'deutsch-a1', label: '독일어 A1' },
   { prefix: 'cdl', key: 'cdl', label: 'CDL 상용면허' },
@@ -151,7 +166,13 @@ const CLASSIFIERS: Record<string, Classifier> = {
       if (slug.startsWith('memorize-') || slug.includes('bible') || slug.includes('verse')) {
         return { key: 'bible', label: '성경' }
       }
-      return { key: 'templates', label: '기타 덱' }
+      // 여기 떨어졌다는 건 위 목록에 줄을 안 넣었다는 뜻이다. '기타'라고 쓰면 정상적인
+      // 잔여 칸처럼 보여서 아무도 안 보고 쌓인다 — 08-05·08-15·08-31 세 번 반복됐다.
+      // 이름을 '미분류'로 두고, 슬러그 끝의 대상 언어로라도 갈라서 어느 허브에 붙일지
+      // 표에서 바로 보이게 한다.
+      if (slug.endsWith('-ja')) return { key: 'unclassified-ja', label: '미분류 덱(일본어권)' }
+      if (slug.endsWith('-en')) return { key: 'unclassified-en', label: '미분류 덱(영어권)' }
+      return { key: 'templates', label: '미분류 덱' }
     }
     if (path.startsWith('/methods')) return { key: 'methods', label: '학습법' }
     return { key: 'core', label: '코어' }

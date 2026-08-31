@@ -145,7 +145,12 @@ const COVERED_BY_HUB = {
     [/^\/templates\/deutsch-a1-/, '/templates/deutsch-a1'],
     [/^\/templates\/spanish-/, '/templates/spanish'],
     [/^\/templates\/opic-/, '/templates/opic'],
-    [/^\/templates\/(daily-english-chunks-ja|instant-response-english-phrases-ja|korean-kpop-fan-phrases-ja|korean-travel-phrases-ja)$/, '/templates/english-japanese'],
+    // 덮는 허브는 **그 덱을 실제로 링크하는 허브**여야 한다. 넷을 english-japanese 로 몰아
+    // 놨었는데, korean-*-ja 는 korean-japanese 하위다(2026-08-31 허브 페이지 링크 확인).
+    // 잘못 매달면 english-japanese 가 색인된 순간 아직 길이 없는 덱까지 대기열에서 빠진다.
+    [/^\/templates\/(daily-english-chunks-ja|instant-response-english-phrases-ja)$/, '/templates/english-japanese'],
+    [/^\/templates\/korean-(daily-life|kpop-fan-phrases|social-chat|travel-phrases|work-school)-ja$/, '/templates/korean-japanese'],
+    [/^\/templates\/korean-(daily-life|social-chat|travel-phrases)-en$/, '/templates/korean-english'],
   ],
   reviewnotes: [],
   portle: [],
