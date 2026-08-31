@@ -4,78 +4,22 @@ import { getUserFromAuthInfo } from '../auth'
 import { checkToolPermission } from '../permissions'
 import { logMcpAction } from '../audit'
 import { getServiceSupabase } from '@/lib/supabase'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function fetchAll(query: any, pageSize = 1000): Promise<any[]> {
-  const all: any[] = []
-  let from = 0
-  while (true) {
-    const { data } = await query.range(from, from + pageSize - 1)
-    if (!data || data.length === 0) break
-    all.push(...data)
-    if (data.length < pageSize) break
-    from += pageSize
-  }
-  return all
-}
-
-// Extract supply-area pyeong from listing (area1 from Naver = 공급면적)
-function getListingPyeong(l: { area_supply_sqm?: any; area_type?: any }): number {
-  const supply = Number(l.area_supply_sqm)
-  if (supply > 0) return supply / 3.3058
-  const typeNum = parseFloat(l.area_type || '0')
-  if (typeNum > 0) return typeNum / 3.3058
-  return 0
-}
-
-// Mapping: exclusive area (전용면적 ㎡) → supply area (공급면적 ㎡) per complex
-type AreaMapping = { exclusive: number; supply: number }[]
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function buildAreaMapping(supabase: any, complexNames: string[]): Promise<Record<string, AreaMapping>> {
-  const { data } = await supabase
-    .from('re_naver_listings')
-    .select('complex_name, area_exclusive_sqm, area_supply_sqm')
-    .in('complex_name', complexNames)
-    .gt('area_exclusive_sqm', '0')
-    .gt('area_supply_sqm', '0')
-  if (!data) return {}
-  const map: Record<string, Map<number, number>> = {}
-  for (const row of data) {
-    const excl = Number(row.area_exclusive_sqm)
-    const supp = Number(row.area_supply_sqm)
-    if (excl <= 0 || supp <= 0) continue
-    if (!map[row.complex_name]) map[row.complex_name] = new Map()
-    map[row.complex_name].set(excl, supp)
-  }
-  const result: Record<string, AreaMapping> = {}
-  for (const [name, m] of Object.entries(map)) {
-    result[name] = [...m.entries()].map(([exclusive, supply]) => ({ exclusive, supply })).sort((a, b) => a.exclusive - b.exclusive)
-  }
-  return result
-}
-
-// Convert trade/rental exclusive area (㎡) to supply pyeong using area mapping
-function getSupplyPyeong(areaMapping: Record<string, AreaMapping>, complexName: string, exclusiveSqm: number): number {
-  const mapping = areaMapping[complexName]
-  if (!mapping || mapping.length === 0) {
-    return (exclusiveSqm / 0.75) / 3.3058
-  }
-  let closest = mapping[0]
-  let minDiff = Math.abs(exclusiveSqm - closest.exclusive)
-  for (const entry of mapping) {
-    const diff = Math.abs(exclusiveSqm - entry.exclusive)
-    if (diff < minDiff) { closest = entry; minDiff = diff }
-  }
-  return closest.supply / 3.3058
-}
-
-function getBand(supplyPy: number): number {
-  if (supplyPy < 30) return 20
-  if (supplyPy < 40) return 30
-  if (supplyPy < 50) return 40
-  if (supplyPy < 60) return 50
-  return 60
-}
+import {
+  GAP_BACKFILL_LAG_DAYS,
+  buildAreaMapping,
+  buildBandFloorArea,
+  computeBasketPpp,
+  computeJeonseRatio,
+  computeListingGap,
+  fetchAll,
+  gapFilingWindow,
+  getFilteredActualAverage,
+  getListingPyeong,
+  getSupplyPyeong,
+  isFiledWithin,
+  shiftDays,
+  supplyBand,
+} from '@/lib/real-estate-metrics'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function authGuard(toolName: string, authInfo: any) {
@@ -140,27 +84,17 @@ export function registerRealEstateTools(server: McpServer) {
       // Build area mapping (exclusive → supply) for consistent PPP calculation
       const areaMap = await buildAreaMapping(supabase, complexNames)
 
-      // 시세 창은 대시보드와 같은 '신고일 90일'. 근거 주석은 그쪽에 있다:
-      // src/app/api/willow-mgmt/real-estate/route.ts, GAP_FILING_WINDOW_DAYS.
-      const shiftDays = (date: string, days: number) => {
-        const d = new Date(`${date}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - days)
-        return d.toISOString().slice(0, 10)
-      }
+      // 시세·괴리율 창은 대시보드와 같은 '신고일 90일'.
       const asOf = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
-      const pppWindowStart = shiftDays(asOf, 90)
-      const filingDate = (row: { created_at?: string | null; deal_date: string }) => {
-        const synth = shiftDays(row.deal_date, -20)
-        const created = row.created_at ? String(row.created_at).slice(0, 10) : ''
-        return created && created < synth ? created : synth
-      }
+      const win = gapFilingWindow(asOf)
 
       const recentTrades = await fetchAll(
         supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date, created_at')
-          .gte('deal_date', shiftDays(pppWindowStart, 50)).eq('cancel_yn', 'N').in('complex_name', complexNames)
+          .gte('deal_date', shiftDays(win.start, GAP_BACKFILL_LAG_DAYS + 30)).eq('cancel_yn', 'N').in('complex_name', complexNames)
       )
       const recentRentals = await fetchAll(
         supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date, created_at')
-          .gte('deal_date', shiftDays(pppWindowStart, 50)).eq('rent_type', '전세').in('complex_name', complexNames)
+          .gte('deal_date', shiftDays(win.start, GAP_BACKFILL_LAG_DAYS + 30)).eq('rent_type', '전세').in('complex_name', complexNames)
       )
       // 시세 바스켓의 고정 가중치 (세대수 × 공급면적)
       const { data: pyeongRows } = await supabase
@@ -189,106 +123,76 @@ export function registerRealEstateTools(server: McpServer) {
       }
       const listings = allSummaryListings.filter(l => l.snapshot_date === summaryComplexLatest[l.complex_name])
 
-      /*
-       * 평균 평당가 = 시세. 대시보드 summary 와 같은 규칙이라야 봇이 화면과 같은 숫자를 말한다.
-       * (단지 × 평형밴드)별 중앙값을 총 공급면적으로 가중한 고정 바스켓. 그냥 평균 내면
-       * 그 달에 어떤 평형이 팔렸는지가 값을 움직인다 — 2026-08 실측 매매 11건에 +15.8%.
-       * 근거 주석은 route.ts 의 '평균 평당가 = 추적 단지의 시세 수준' 블록에 있다.
-       */
-      const bandFloorArea: Record<string, number> = {}
-      for (const row of pyeongRows || []) {
-        const supplyPy = Number(row.supply_sqm) / 3.3058
-        const households = Number(row.household_count)
-        if (!(supplyPy > 0) || !(households > 0) || supplyPy < 20) continue
-        const k = `${row.complex_name}|${getBand(supplyPy)}`
-        bandFloorArea[k] = (bandFloorArea[k] ?? 0) + supplyPy * households
-      }
-      const basketPpp = (rows: Array<Record<string, unknown>>, amountKey: string): number => {
-        const byBand: Record<string, number[]> = {}
+      // 시세·괴리율 — 계산은 전부 real-estate-metrics 에 있다(대시보드와 같은 함수).
+      const bandFloorArea = buildBandFloorArea(pyeongRows, py => py >= 20)
+      const collectPpp = (rows: Array<Record<string, unknown>>, amountKey: string): Record<string, number[]> => {
+        const out: Record<string, number[]> = {}
         for (const row of rows) {
-          const filed = filingDate(row as { created_at?: string | null; deal_date: string })
-          if (filed <= pppWindowStart || filed > asOf) continue
+          if (!isFiledWithin(row as { created_at?: string | null; deal_date: string }, win)) continue
           const sqm = Number(row.area_sqm)
           if (!(sqm > 0)) continue
           const supplyPy = getSupplyPyeong(areaMap, String(row.complex_name), sqm)
-          if (supplyPy <= 0 || supplyPy < 20) continue
+          if (supplyPy < 20) continue
           const amount = Number(row[amountKey])
           if (!(amount > 0)) continue
-          ;(byBand[`${String(row.complex_name)}|${getBand(supplyPy)}`] ??= []).push(amount / supplyPy)
+          ;(out[`${String(row.complex_name)}|${supplyBand(supplyPy)}`] ??= []).push(amount / supplyPy)
         }
-        let num = 0, den = 0
-        for (const [k, values] of Object.entries(byBand)) {
-          const w = bandFloorArea[k]
-          if (!w) continue
-          const sorted = [...values].sort((a, b) => a - b)
-          const mid = Math.floor(sorted.length / 2)
-          num += (sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2) * w
-          den += w
-        }
-        return den > 0 ? Math.round(num / den) : 0
+        return out
       }
-      const avgTradePppValue = basketPpp(recentTrades as Array<Record<string, unknown>>, 'deal_amount')
-      const avgJeonsePppValue = basketPpp(recentRentals as Array<Record<string, unknown>>, 'deposit')
+      const tradePppByKey = collectPpp(recentTrades as Array<Record<string, unknown>>, 'deal_amount')
+      const jeonsePppByKey = collectPpp(recentRentals as Array<Record<string, unknown>>, 'deposit')
+      const tradeBasket = computeBasketPpp(tradePppByKey, bandFloorArea)
+      const jeonseBasket = computeBasketPpp(jeonsePppByKey, bandFloorArea)
 
-      // Listing gaps — grouped by complex+평형대 (matching dashboard logic)
-      type BandKey = string
-      const listingBands: Record<BandKey, { trade: number[]; jeonse: number[] }> = {}
-      for (const l of listings) {
-        const py = getListingPyeong(l)
-        if (py <= 0 || py < 20) continue
-        const key = `${l.complex_name}|${getBand(py)}`
-        if (!listingBands[key]) listingBands[key] = { trade: [], jeonse: [] }
-        const ppp = Number(l.price) / py
-        if (l.trade_type === '매매') listingBands[key].trade.push(ppp)
-        else if (l.trade_type === '전세') listingBands[key].jeonse.push(ppp)
+      /*
+       * 괴리율 — 대시보드와 같은 소스·같은 함수를 쓴다.
+       *
+       * 예전엔 여기만 re_naver_listings 원본을 직접 읽고, 이상치 필터 없이 단순 평균을 내고,
+       * 짝을 건수로 가중하지 않았다. 그래서 봇이 화면과 다른 숫자를 말했다. 호가는 화면과 같은
+       * re_listing_daily_summary(밴드별 최저 평당호가), 실거래는 위에서 만든 신고일 90일 창을
+       * 그대로 쓰고, 계산은 computeListingGap 하나로 모은다.
+       */
+      const gapSnapDate = async (tradeType: string): Promise<string | undefined> => {
+        const { data } = await supabase.from('re_listing_daily_summary').select('snapshot_date')
+          .eq('trade_type', tradeType).in('complex_name', complexNames)
+          .order('snapshot_date', { ascending: false }).limit(1)
+        return data?.[0]?.snapshot_date
       }
-
-      // Actuals grouped by complex+band (supply-area based)
-      const tradeActuals: Record<BandKey, number[]> = {}
-      for (const t of recentTrades) {
-        const sqm = Number(t.area_sqm)
-        if (sqm <= 0) continue
-        const supplyPy = getSupplyPyeong(areaMap, t.complex_name, sqm)
-        if (supplyPy <= 0 || supplyPy < 20) continue
-        const key = `${t.complex_name}|${getBand(supplyPy)}`
-        if (!tradeActuals[key]) tradeActuals[key] = []
-        tradeActuals[key].push(Number(t.deal_amount) / supplyPy)
-      }
-      const jeonseActuals: Record<BandKey, number[]> = {}
-      for (const r of recentRentals) {
-        const sqm = Number(r.area_sqm)
-        if (sqm <= 0) continue
-        const supplyPy = getSupplyPyeong(areaMap, r.complex_name, sqm)
-        if (supplyPy <= 0 || supplyPy < 20) continue
-        const key = `${r.complex_name}|${getBand(supplyPy)}`
-        if (!jeonseActuals[key]) jeonseActuals[key] = []
-        jeonseActuals[key].push(Number(r.deposit) / supplyPy)
-      }
-
-      // Gap per complex+band → average
-      const tradeGaps: number[] = []
-      const jeonseGaps: number[] = []
-      for (const [key, li] of Object.entries(listingBands)) {
-        if (li.trade.length > 0 && tradeActuals[key]?.length > 0) {
-          const minListing = Math.min(...li.trade)
-          const avgActual = tradeActuals[key].reduce((s, v) => s + v, 0) / tradeActuals[key].length
-          if (avgActual > 0) tradeGaps.push(((minListing - avgActual) / avgActual) * 100)
+      const gapListings = async (tradeType: string): Promise<Record<string, number>> => {
+        const snapDate = await gapSnapDate(tradeType)
+        if (!snapDate) return {}
+        const { data } = await supabase.from('re_listing_daily_summary')
+          .select('complex_name, area_band, min_ppp')
+          .eq('snapshot_date', snapDate).eq('trade_type', tradeType)
+          .in('complex_name', complexNames).gte('area_band', 20)
+        const out: Record<string, number> = {}
+        for (const row of data ?? []) {
+          const key = `${row.complex_name}|${row.area_band}`
+          if (out[key] === undefined || row.min_ppp < out[key]) out[key] = row.min_ppp
         }
-        if (li.jeonse.length > 0 && jeonseActuals[key]?.length > 0) {
-          const minListing = Math.min(...li.jeonse)
-          const avgActual = jeonseActuals[key].reduce((s, v) => s + v, 0) / jeonseActuals[key].length
-          if (avgActual > 0) jeonseGaps.push(((minListing - avgActual) / avgActual) * 100)
-        }
+        return out
       }
+      const [tradeListingByKey, jeonseListingByKey] = await Promise.all([
+        gapListings('매매'), gapListings('전세'),
+      ])
+      const tradeGap = computeListingGap(tradeListingByKey, tradePppByKey)
+      const jeonseGap = computeListingGap(jeonseListingByKey, jeonsePppByKey)
 
       const summary = {
         trackedComplexes: complexNames.length,
         districts: [...new Set(trackedData?.map(c => c.district_name))],
-        avgTradePpp: avgTradePppValue,
-        avgJeonsePpp: avgJeonsePppValue,
-        pppBasis: '(단지×평형밴드) 평당가 중앙값을 총 공급면적으로 가중한 고정 바스켓, 신고일 최근 90일',
-        tradeListingGap: tradeGaps.length ? Math.round(tradeGaps.reduce((s, v) => s + v, 0) / tradeGaps.length * 10) / 10 : 0,
-        jeonseListingGap: jeonseGaps.length ? Math.round(jeonseGaps.reduce((s, v) => s + v, 0) / jeonseGaps.length * 10) / 10 : 0,
+        avgTradePpp: tradeBasket.ppp,
+        avgJeonsePpp: jeonseBasket.ppp,
+        tradePppCoverage: tradeBasket.coverage,
+        jeonsePppCoverage: jeonseBasket.coverage,
+        tradeListingGap: tradeGap.gap ?? 0,
+        jeonseListingGap: jeonseGap.gap ?? 0,
+        tradeGapPairs: tradeGap.pairs,
+        tradeGapDeals: tradeGap.deals,
+        jeonseGapPairs: jeonseGap.pairs,
+        jeonseGapDeals: jeonseGap.deals,
+        window: { start: win.start, end: win.end, basis: 'filed' },
+        basis: '시세=(단지×평형밴드) 평당가 중앙값을 총 공급면적으로 가중한 고정 바스켓. 괴리율=밴드별 최저 평당호가 vs 같은 밴드 실거래 평당가, 실거래 건수 가중. 둘 다 신고일 최근 90일. 대시보드와 같은 계산(real-estate-metrics).',
         totalTradeListings: listings.filter(l => l.trade_type === '매매').length,
         totalJeonseListings: listings.filter(l => l.trade_type === '전세').length,
         unit: '만원/평',
@@ -467,13 +371,13 @@ export function registerRealEstateTools(server: McpServer) {
       }
       const listings = allListings.filter(l => l.snapshot_date === complexLatest[l.complex_name])
 
-      // 1 month window (matching dashboard)
-      const now = new Date()
-      const oma = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const oneMonthAgo = `${oma.getFullYear()}-${String(oma.getMonth() + 1).padStart(2, '0')}-01`
-      const actuals = tradeType === '매매'
-        ? await fetchAll(supabase.from('re_trades').select('complex_name, deal_amount, area_sqm').gte('deal_date', oneMonthAgo).eq('cancel_yn', 'N').in('complex_name', complexNames))
-        : await fetchAll(supabase.from('re_rentals').select('complex_name, deposit, area_sqm').gte('deal_date', oneMonthAgo).eq('rent_type', '전세').in('complex_name', complexNames))
+      // 실거래 창은 대시보드와 같은 '신고일 90일' (real-estate-metrics.gapFilingWindow).
+      const gapWin = gapFilingWindow(new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10))
+      const fetchFrom = shiftDays(gapWin.start, GAP_BACKFILL_LAG_DAYS + 30)
+      const allActuals = tradeType === '매매'
+        ? await fetchAll(supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date, created_at').gte('deal_date', fetchFrom).eq('cancel_yn', 'N').in('complex_name', complexNames))
+        : await fetchAll(supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date, created_at').gte('deal_date', fetchFrom).eq('rent_type', '전세').in('complex_name', complexNames))
+      const actuals = allActuals.filter(a => isFiledWithin(a, gapWin))
 
       // Group by complex + area band (matching dashboard)
       type RowKey = string
@@ -489,7 +393,7 @@ export function registerRealEstateTools(server: McpServer) {
         if (py <= 0 || py < 20) continue
         const ppp = Number(l.price) / py
         if (ppp <= 0) continue
-        const band = getBand(py)
+        const band = supplyBand(py)
         const key = `${l.complex_name}|${band}`
         if (!rowMap[key]) rowMap[key] = { complexName: l.complex_name, areaBand: band, listingMinPpp: Infinity, listingMaxPpp: 0, listingCount: 0, actualAvgPpp: 0, actualCount: 0 }
         if (!listingPpps[key]) listingPpps[key] = []
@@ -513,7 +417,7 @@ export function registerRealEstateTools(server: McpServer) {
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMap, a.complex_name, sqm)
         if (supplyPy < 20) continue
-        const band = getBand(supplyPy)
+        const band = supplyBand(supplyPy)
         const key = `${a.complex_name}|${band}`
         if (!rowMap[key]) continue
         const price = tradeType === '매매' ? Number(a.deal_amount) : Number(a.deposit)
@@ -522,19 +426,14 @@ export function registerRealEstateTools(server: McpServer) {
         actualPpps[key].push(ppp)
       }
 
-      // Filter outliers and compute average
-      // 1) Median-based: exclude >50% deviation from median
-      // 2) Listing cross-check: exclude trades below 40% of listing min PPP
+      // 이상치 제거는 화면과 같은 함수(getFilteredActualAverage) — 중앙값에서 50% 초과
+      // 이탈, 그리고 최저 호가의 절반 미만을 버린다.
       for (const [key, ppps] of Object.entries(actualPpps)) {
-        if (ppps.length === 0) continue
         const r = rowMap[key]
-        const sorted = [...ppps].sort((a, b) => a - b)
-        const median = sorted[Math.floor(sorted.length / 2)]
-        const listingFloor = r.listingMinPpp !== Infinity ? r.listingMinPpp * 0.5 : 0
-        const filtered = ppps.filter(p => Math.abs(p - median) / median <= 0.5 && p >= listingFloor)
-        if (filtered.length === 0) continue
-        r.actualAvgPpp = filtered.reduce((s, p) => s + p, 0) / filtered.length
-        r.actualCount = filtered.length
+        const actual = getFilteredActualAverage(ppps, r.listingMinPpp !== Infinity ? r.listingMinPpp : null)
+        if (!actual) continue
+        r.actualAvgPpp = actual.avg
+        r.actualCount = actual.count
       }
 
       const rows = Object.values(rowMap)
@@ -551,7 +450,12 @@ export function registerRealEstateTools(server: McpServer) {
         .sort((a, b) => a.complexName.localeCompare(b.complexName, 'ko') || a.areaBand - b.areaBand)
 
       await logMcpAction({ userId: user!.userId, action: 'tool_call', toolName: 're_get_listing_gap', inputParams: { trade_type } })
-      return { content: [{ type: 'text' as const, text: JSON.stringify({ tradeType, unit: '만원/평', rows }, null, 2) }] }
+      return { content: [{ type: 'text' as const, text: JSON.stringify({
+        tradeType, unit: '만원/평',
+        window: { start: gapWin.start, end: gapWin.end, basis: 'filed' },
+        note: '단지×평형밴드 분해표. listingMinPpp 는 현재 매물 평당호가의 P10 이라, 밴드별 최저가(re_listing_daily_summary)를 쓰는 화면의 합계 괴리율과 행별 값이 정확히 같지는 않다. 합계는 re_get_summary 를 쓸 것.',
+        rows,
+      }, null, 2) }] }
     } catch (e) {
       return { content: [{ type: 'text' as const, text: `Error: ${(e as Error).message}` }], isError: true }
     }
@@ -630,37 +534,33 @@ export function registerRealEstateTools(server: McpServer) {
       const { data: trackedData } = await supabase.from('re_complexes').select('name').eq('is_tracked', true)
       const complexNames = trackedData?.map(c => c.name) || []
 
-      // 계산 규칙은 대시보드 jeonse-ratio 라우트와 같다 — 두 곳이 다른 답을 내면
-      // 봇이 화면과 어긋난 숫자로 답한다. 근거 주석은 그쪽에 있다:
-      // src/app/api/willow-mgmt/real-estate/route.ts, type === 'jeonse-ratio'.
-      // 요지: (단지 × 10평 밴드) 안에서 평당가끼리 비교하고, 짝의 무게는
-      // min(매매건수, 전세건수). 평형을 안 맞추면 그 달에 어떤 평형이 팔렸는지가
-      // 곧 전세가율이 된다.
+      // 계산은 대시보드 jeonse-ratio 라우트와 같은 함수(computeJeonseRatio)를 쓴다.
+      // 밴드도 대시보드처럼 **공급 평** 기준이라야 화면과 같은 답이 나온다 — 예전엔 여기만
+      // 전용 평으로 나눠서 짝이 다르게 묶였다.
+      const areaMap = await buildAreaMapping(supabase, complexNames)
       const trades = await fetchAll(
-        supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_pyeong')
+        supabase.from('re_trades').select('complex_name, deal_date, deal_amount, area_sqm')
           .gte('deal_date', cutoffDate).eq('cancel_yn', 'N').in('complex_name', complexNames)
       )
       const rentals = await fetchAll(
-        supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_pyeong')
+        supabase.from('re_rentals').select('complex_name, deal_date, deposit, area_sqm')
           .gte('deal_date', cutoffDate).eq('rent_type', '전세').in('complex_name', complexNames)
       )
 
-      // 전용 평 기준 밴드. 대시보드는 공급 평(re_complex_pyeongs 매핑)을 쓰지만 여기서는
-      // 그 매핑을 안 읽으므로 전용으로 나눈다 — 밴드 경계만 다르고, 짝을 같은 기준으로
-      // 맞춘다는 성질은 같다. 밴드 라벨을 밖으로 내보내지 않는 이유이기도 하다.
-      const bandOf = (py: number): number => Math.floor(py / 10) * 10
+      // month → "단지|밴드" → 평당가 목록
       type Buckets = Record<string, Record<string, number[]>>
       const bucket = (rows: Array<Record<string, unknown>>, amountKey: string): Buckets => {
         const out: Buckets = {}
         for (const row of rows) {
-          const py = Number(row.area_pyeong)
+          const sqm = Number(row.area_sqm)
+          if (!(sqm > 0)) continue
+          const name = String(row.complex_name)
+          const supplyPy = getSupplyPyeong(areaMap, name, sqm)
+          if (supplyPy < 20) continue
           const amount = Number(row[amountKey])
-          if (!(py > 0) || !(amount > 0)) continue
+          if (!(amount > 0)) continue
           const month = String(row.deal_date).slice(0, 7)
-          const key = `${String(row.complex_name)}|${bandOf(py)}`
-          if (!out[month]) out[month] = {}
-          if (!out[month][key]) out[month][key] = []
-          out[month][key].push(amount / py)
+          ;((out[month] ??= {})[`${name}|${supplyBand(supplyPy)}`] ??= []).push(amount / supplyPy)
         }
         return out
       }
@@ -668,43 +568,22 @@ export function registerRealEstateTools(server: McpServer) {
       const tradeMonthly = bucket(trades as Array<Record<string, unknown>>, 'deal_amount')
       const rentalMonthly = bucket(rentals as Array<Record<string, unknown>>, 'deposit')
 
-      const median = (arr: number[]) => {
-        const sorted = [...arr].sort((a, b) => a - b)
-        const mid = Math.floor(sorted.length / 2)
-        return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
-      }
-
-      // 실거래 신고 지연(추적 단지 실측 평균 17~19일) 때문에 이번 달·지난달은 아직
-      // 채워지는 중이다. 봇이 "8월에 올랐다"고 단정하지 않도록 건수와 함께 표시를 준다.
+      // 실거래 신고 지연 때문에 이번 달·지난달은 아직 채워지는 중이다. 봇이 "8월에 올랐다"고
+      // 단정하지 않도록 건수와 함께 표시를 준다.
       const nowKst = new Date(Date.now() + 9 * 3600_000)
       const curMonth = nowKst.toISOString().slice(0, 7)
       const prevMonth = new Date(Date.UTC(nowKst.getUTCFullYear(), nowKst.getUTCMonth() - 1, 1)).toISOString().slice(0, 7)
 
       const allMonths = [...new Set([...Object.keys(tradeMonthly), ...Object.keys(rentalMonthly)])].sort()
       const trend = allMonths.map(month => {
-        const tData = tradeMonthly[month] || {}
-        const rData = rentalMonthly[month] || {}
-        let weighted = 0
-        let weight = 0
-        let pairs = 0
-        for (const key of Object.keys(tData)) {
-          const tp = tData[key]
-          const rp = rData[key]
-          if (!rp?.length || !tp.length) continue
-          const medTrade = median(tp)
-          if (!(medTrade > 0)) continue
-          const w = Math.min(tp.length, rp.length)
-          weighted += (median(rp) / medTrade) * 100 * w
-          weight += w
-          pairs += 1
-        }
-        if (weight === 0) return null
+        const r = computeJeonseRatio(tradeMonthly[month] || {}, rentalMonthly[month] || {})
+        if (r.ratio === null) return null
         return {
           month,
-          ratio: Math.round((weighted / weight) * 10) / 10,
-          trades: Object.values(tData).reduce((s, v) => s + v.length, 0),
-          jeonse: Object.values(rData).reduce((s, v) => s + v.length, 0),
-          pairs,
+          ratio: r.ratio,
+          trades: r.trades,
+          jeonse: r.jeonse,
+          pairs: r.pairs,
           provisional: month === curMonth || month === prevMonth,
         }
       }).filter(Boolean)
