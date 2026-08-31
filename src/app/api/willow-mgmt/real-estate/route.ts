@@ -19,6 +19,55 @@ function subtractCalendarMonth(date: string): string {
   return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`
 }
 
+/**
+ * 괴리율이 호가와 견줄 실거래 창.
+ *
+ * 국토부 실거래는 계약 후 신고까지 걸린다 — 추적 단지 실측 평균 17~19일. 그래서 "그날까지의
+ * 1개월"을 그대로 쓰면 창의 뒤쪽 3주가 거의 비어 있고, 날짜가 오늘에 가까울수록 기준선이
+ * 무너진다. 2026-08-31 실측(전체 평형): 호가 짝은 82개 그대로인데 실거래가 붙는 짝이
+ * 37 → 15개, 창 안 매매가 92 → 18건, 남은 15짝 중 13짝이 매매 1건짜리였다. 그 구간의
+ * 괴리율 하락(-2.7% → -6.4%)은 시장이 아니라 사라진 표본이다.
+ *
+ * 창을 신고지연만큼 뒤로 밀고 3개월로 넓히면 짝 구성이 거의 고정된다 — 실측으로 매매
+ * 61 → 59개, 전세 63 → 58개(현재는 37 → 15, 54 → 45). 평형 필터를 안 걸었을 때
+ * (전체 = 공급 20평 이상)가 밴드가 많아 이 왜곡이 가장 크게 나오므로 그 경우를 기준으로 잡았다.
+ *
+ * 대신 이 창은 뒤를 본다. 호가는 그날 값이고 실거래 기준선은 3주 전에서 끝나므로,
+ * 빠르게 움직이는 시장에서는 괴리가 실제보다 크게 잡힌다. 모든 날짜에 같은 규칙이 걸려
+ * 추이 비교는 성립한다 — 기준선이 날마다 흔들리는 쪽이 추이를 훨씬 크게 망가뜨린다.
+ */
+const GAP_WINDOW_MONTHS = 3
+const GAP_REPORTING_LAG_DAYS = 18
+
+function shiftDays(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - days)
+  return d.toISOString().slice(0, 10)
+}
+
+/** asOf(스냅샷일) 기준으로 괴리율이 쓸 실거래 구간 [start, end]. */
+function gapTradeWindow(asOf: string): { start: string; end: string } {
+  const end = shiftDays(asOf, GAP_REPORTING_LAG_DAYS)
+  let start = end
+  for (let i = 0; i < GAP_WINDOW_MONTHS; i++) start = subtractCalendarMonth(start)
+  return { start, end }
+}
+
+/**
+ * 짝(단지×평형밴드)별 괴리율을 실거래 건수로 가중 평균한다.
+ *
+ * 단순 평균이면 매매 1건으로 만든 짝이 40건짜리 짝과 같은 표를 갖는다. 전체 평형에서는
+ * 밴드가 많아 1건짜리 짝이 늘 절반 가까이라 이게 그대로 헤드라인을 흔든다 —
+ * 전세 실측으로 단순평균과 건수가중이 최대 2.7%p 벌어졌다(2026-07-23: 2.2% vs 4.9%).
+ */
+function weightedGap(gaps: Array<{ gap: number; count: number }>): number | null {
+  if (!gaps.length) return null
+  let sum = 0, weight = 0
+  for (const g of gaps) { sum += g.gap * g.count; weight += g.count }
+  if (weight <= 0) return null
+  return Math.round((sum / weight) * 10) / 10
+}
+
 function getFilteredActualAverage(
   values: number[] | undefined,
   listingMinPpp: number | null | undefined,
@@ -231,18 +280,23 @@ export async function GET(request: Request) {
       const districtSet = new Set(trackedData?.map(c => c.district_name))
 
       const oneMonthAgo = subtractCalendarMonth(currentDate)
+      // 평균 평당가는 지금까지처럼 '최근 1개월', 괴리율은 신고지연을 뺀 3개월 창을 쓴다.
+      // 한 번에 넓게 받아 두고 아래에서 각자 자기 구간만 센다.
+      const gapWin = gapTradeWindow(currentDate)
 
       // Fetch trades & rentals (no DB area filter — filter by supply pyeong in code).
       // These are independent of each other and of the area mapping → run in parallel.
       const [areaMapping, recentTrades, recentRentals, { data: latestTrade }] = await Promise.all([
         getAreaMapping(),
         fetchAll(
-          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm')
-            .gte('deal_date', oneMonthAgo).eq('cancel_yn', 'N').in('complex_name', complexNames)
+          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date')
+            .gte('deal_date', gapWin.start < oneMonthAgo ? gapWin.start : oneMonthAgo)
+            .eq('cancel_yn', 'N').in('complex_name', complexNames)
         ),
         fetchAll(
-          supabase.from('re_rentals').select('complex_name, deposit, area_sqm')
-            .gte('deal_date', oneMonthAgo).eq('rent_type', '전세').in('complex_name', complexNames)
+          supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date')
+            .gte('deal_date', gapWin.start < oneMonthAgo ? gapWin.start : oneMonthAgo)
+            .eq('rent_type', '전세').in('complex_name', complexNames)
         ),
         supabase
           .from('re_trades').select('deal_date').in('complex_name', complexNames).eq('cancel_yn', 'N')
@@ -258,9 +312,10 @@ export async function GET(request: Request) {
         return 60
       }
 
-      // Average PPP (supply-area based, filtered)
+      // Average PPP (supply-area based, filtered) — 지금까지와 같은 '최근 1개월' 기준.
       let tradePppSum = 0, tradePppCount = 0
       for (const t of recentTrades || []) {
+        if (t.deal_date < oneMonthAgo) continue
         const sqm = Number(t.area_sqm)
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
@@ -270,6 +325,7 @@ export async function GET(request: Request) {
       }
       let jeonsePppSum = 0, jeonsePppCount = 0
       for (const r of recentRentals || []) {
+        if (r.deal_date < oneMonthAgo) continue
         const sqm = Number(r.area_sqm)
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
@@ -321,9 +377,10 @@ export async function GET(request: Request) {
         else if (row.trade_type === '전세') listingBands[key].jeonse = row.min_ppp
       }
 
-      // Actuals grouped by complex+band
+      // Actuals grouped by complex+band — 괴리율 창(신고지연 보정 3개월)만 센다.
       const tradeActuals: Record<BandKey, number[]> = {}
       for (const t of recentTrades || []) {
+        if (t.deal_date < gapWin.start || t.deal_date > gapWin.end) continue
         const sqm = Number(t.area_sqm)
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
@@ -334,6 +391,7 @@ export async function GET(request: Request) {
       }
       const jeonseActuals: Record<BandKey, number[]> = {}
       for (const r of recentRentals || []) {
+        if (r.deal_date < gapWin.start || r.deal_date > gapWin.end) continue
         const sqm = Number(r.area_sqm)
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
@@ -343,17 +401,17 @@ export async function GET(request: Request) {
         jeonseActuals[key].push(Number(r.deposit) / supplyPy)
       }
 
-      // Gap per complex+band → average
-      const tradeGaps: number[] = []
-      const jeonseGaps: number[] = []
+      // Gap per complex+band → 실거래 건수로 가중 평균 (weightedGap 주석 참조)
+      const tradeGaps: Array<{ gap: number; count: number }> = []
+      const jeonseGaps: Array<{ gap: number; count: number }> = []
       for (const [key, li] of Object.entries(listingBands)) {
         if (li.trade !== null) {
           const actual = getFilteredActualAverage(tradeActuals[key], li.trade)
-          if (actual) tradeGaps.push(((li.trade - actual.avg) / actual.avg) * 100)
+          if (actual) tradeGaps.push({ gap: ((li.trade - actual.avg) / actual.avg) * 100, count: actual.count })
         }
         if (li.jeonse !== null) {
           const actual = getFilteredActualAverage(jeonseActuals[key], li.jeonse)
-          if (actual) jeonseGaps.push(((li.jeonse - actual.avg) / actual.avg) * 100)
+          if (actual) jeonseGaps.push({ gap: ((li.jeonse - actual.avg) / actual.avg) * 100, count: actual.count })
         }
       }
 
@@ -365,8 +423,14 @@ export async function GET(request: Request) {
           districtCount: districtSet.size,
           avgTradePpp: tradePppCount > 0 ? Math.round(tradePppSum / tradePppCount) : 0,
           avgJeonsePpp: jeonsePppCount > 0 ? Math.round(jeonsePppSum / jeonsePppCount) : 0,
-          tradeListingGap: tradeGaps.length ? Math.round(tradeGaps.reduce((s, v) => s + v, 0) / tradeGaps.length * 10) / 10 : 0,
-          jeonseListingGap: jeonseGaps.length ? Math.round(jeonseGaps.reduce((s, v) => s + v, 0) / jeonseGaps.length * 10) / 10 : 0,
+          tradeListingGap: weightedGap(tradeGaps) ?? 0,
+          jeonseListingGap: weightedGap(jeonseGaps) ?? 0,
+          // 괴리율이 실제로 무엇과 견줬는지 — 창 구간과 짝·건수. 화면 툴팁이 이걸 적는다.
+          gapWindow: { start: gapWin.start, end: gapWin.end },
+          tradeGapPairs: tradeGaps.length,
+          tradeGapDeals: tradeGaps.reduce((s, g) => s + g.count, 0),
+          jeonseGapPairs: jeonseGaps.length,
+          jeonseGapDeals: jeonseGaps.reduce((s, g) => s + g.count, 0),
           lastListingDate: summarySnapshotDate || null,
           lastTradeDate: latestTrade?.[0]?.deal_date || null,
         }
@@ -663,9 +727,9 @@ export async function GET(request: Request) {
       }
 
       const dates = [...dateSet].sort()
-      // Fetch trades from (earliest snapshot - 1 month) to cover all windows
+      // Fetch trades far enough back to cover every date's gap window
       const earliestDate = dates[0] || now.toISOString().slice(0, 10)
-      const tradeCutoff = subtractCalendarMonth(earliestDate)
+      const tradeCutoff = gapTradeWindow(earliestDate).start
 
       // Pre-load all trades/rentals with deal_date for per-date windowing
       type TradeRow = { complex_name: string; deal_amount?: number; deposit?: number; area_sqm: number; deal_date: string }
@@ -697,28 +761,32 @@ export async function GET(request: Request) {
         return { key, ppp, dealDate: t.deal_date }
       }).filter((e): e is { key: string; ppp: number; dealDate: string } => e !== null)
 
-      // 3. Compute daily gap rate: each date uses trades from [date - 1 month, date]
-      const trend: { date: string; gapRate: number | null }[] = dates.map(d => {
-        // Compute 1-month window for this snapshot date
-        const windowStart = subtractCalendarMonth(d)
+      // 3. Compute daily gap rate — 날짜마다 gapTradeWindow(그 날짜)의 실거래를 기준선으로 쓴다.
+      //    (창 정의와 그 근거는 GAP_WINDOW_MONTHS 위 주석에 있다)
+      const trend: { date: string; gapRate: number | null; pairs: number; deals: number }[] = dates.map(d => {
+        const win = gapTradeWindow(d)
 
         // Build actualBands for this date's window
         const dateBands: Record<string, number[]> = {}
         for (const e of tradeEntries) {
-          if (e.dealDate >= windowStart && e.dealDate <= d) {
+          if (e.dealDate >= win.start && e.dealDate <= win.end) {
             if (!dateBands[e.key]) dateBands[e.key] = []
             dateBands[e.key].push(e.ppp)
           }
         }
 
-        const gaps: number[] = []
+        const gaps: Array<{ gap: number; count: number }> = []
         for (const [key, minPpp] of Object.entries(dateListings[d] || {})) {
           const actual = getFilteredActualAverage(dateBands[key], minPpp)
-          if (actual) gaps.push(((minPpp - actual.avg) / actual.avg) * 100)
+          if (actual) gaps.push({ gap: ((minPpp - actual.avg) / actual.avg) * 100, count: actual.count })
         }
         return {
           date: d,
-          gapRate: gaps.length > 0 ? Math.round(gaps.reduce((s, v) => s + v, 0) / gaps.length * 10) / 10 : null,
+          gapRate: weightedGap(gaps),
+          // 짝·건수를 같이 내려보낸다. 호가 수집이 부분 실패한 날(2026-08-02 호가 짝 38개,
+          // 08-09 48개 — 평소 82개)은 값이 튀는데, 선만 보면 그날도 정상처럼 생겼다.
+          pairs: gaps.length,
+          deals: gaps.reduce((s, g) => s + g.count, 0),
         }
       })
 

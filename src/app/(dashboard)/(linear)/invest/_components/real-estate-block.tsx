@@ -62,6 +62,9 @@ interface ReListingRow {
 interface ReTrendPoint {
   date: string
   gapRate: number | null
+  /** 그날 괴리율을 만든 짝(단지×평형밴드) 수와 그 안의 실거래 건수. 얇은 날을 툴팁에서 알아본다. */
+  pairs?: number
+  deals?: number
 }
 
 interface ReTrend {
@@ -340,7 +343,13 @@ function GapChart({ data, height = 200 }: { data: ReTrendPoint[]; height?: numbe
         <Tooltip
           contentStyle={tooltipStyle}
           labelFormatter={(v) => String(v)}
-          formatter={(value) => [`${Number(value).toFixed(1)}%`, '괴리율']}
+          // 호가 수집이 부분 실패한 날은 짝이 절반으로 줄면서 값이 튄다(2026-08-02·08-09 실측).
+          // 비율만 보이면 그런 날도 정상처럼 생겨서, 무엇으로 만든 값인지 같이 적는다.
+          formatter={(value, _name, item) => {
+            const p = (item?.payload ?? {}) as ReTrendPoint
+            const meta = p.pairs ? ` (${p.pairs}짝 · 실거래 ${(p.deals ?? 0).toLocaleString()}건)` : ''
+            return [`${Number(value).toFixed(1)}%${meta}`, '괴리율']
+          }}
         />
         <ReferenceLine y={0} stroke={t.neutrals.subtle} strokeDasharray="3 3" />
         <Line
@@ -1129,7 +1138,7 @@ export function RealEstateBlock() {
             {/* 매매 괴리율 추이 */}
             {loadingTrendTrade ? <ChartSkeleton /> : (
             <div style={innerCard}>
-              <ChartHeader title="매매 괴리율 추이" />
+              <ChartHeader title="매매 괴리율 추이" titleHint="호가(그날 최저 평당호가)를 같은 단지·같은 평형밴드의 실거래 평당가와 견준다. 짝의 무게는 실거래 건수. 실거래 기준선은 신고지연(평균 17~19일)을 뺀 직전 3개월 — 그날까지의 1개월로 잡으면 창 뒤쪽이 비어 최근 며칠일수록 기준선이 무너진다(전체 평형 실측 짝 37→15개, 매매 92→18건)." />
               <GapChart data={reListingTrend?.trend || []} />
             </div>
             )}
@@ -1218,7 +1227,7 @@ export function RealEstateBlock() {
             {/* 전세 괴리율 추이 */}
             {loadingTrendJeonse ? <ChartSkeleton /> : (
             <div style={innerCard}>
-              <ChartHeader title="전세 괴리율 추이" />
+              <ChartHeader title="전세 괴리율 추이" titleHint="호가(그날 최저 평당호가)를 같은 단지·같은 평형밴드의 실거래 평당가와 견준다. 짝의 무게는 실거래 건수. 실거래 기준선은 신고지연(평균 17~19일)을 뺀 직전 3개월 — 그날까지의 1개월로 잡으면 창 뒤쪽이 비어 최근 며칠일수록 기준선이 무너진다(전체 평형 실측 짝 37→15개, 매매 92→18건)." />
               <GapChart data={reListingTrendJeonse?.trend || []} />
             </div>
             )}
