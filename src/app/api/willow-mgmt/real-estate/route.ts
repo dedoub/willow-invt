@@ -20,24 +20,32 @@ function subtractCalendarMonth(date: string): string {
 }
 
 /**
- * 괴리율이 호가와 견줄 실거래 창.
+ * 괴리율이 호가와 견줄 실거래 기준선 — **최근 "신고된" 거래**.
  *
- * 국토부 실거래는 계약 후 신고까지 걸린다 — 추적 단지 실측 평균 17~19일. 그래서 "그날까지의
- * 1개월"을 그대로 쓰면 창의 뒤쪽 3주가 거의 비어 있고, 날짜가 오늘에 가까울수록 기준선이
- * 무너진다. 2026-08-31 실측(전체 평형): 호가 짝은 82개 그대로인데 실거래가 붙는 짝이
- * 37 → 15개, 창 안 매매가 92 → 18건, 남은 15짝 중 13짝이 매매 1건짜리였다. 그 구간의
- * 괴리율 하락(-2.7% → -6.4%)은 시장이 아니라 사라진 표본이다.
+ * 이 지표의 쓸모는 지금 호가가 최근 신고 실거래보다 얼마나 위/아래인지를 보고 가격이
+ * 어디로 가는지 읽는 것이다(CEO). 그래서 기준선은 "언제 계약됐나"가 아니라 "언제 신고돼
+ * 우리가 알게 됐나"로 잘라야 한다. 새 실거래가 신고되는 날 바로 기준선에 들어와야
+ * 선행 지표가 된다.
  *
- * 창을 신고지연만큼 뒤로 밀고 3개월로 넓히면 짝 구성이 거의 고정된다 — 실측으로 매매
- * 61 → 59개, 전세 63 → 58개(현재는 37 → 15, 54 → 45). 평형 필터를 안 걸었을 때
- * (전체 = 공급 20평 이상)가 밴드가 많아 이 왜곡이 가장 크게 나오므로 그 경우를 기준으로 잡았다.
+ * 계약일로 자르면 그게 안 된다. 국토부 신고는 계약 뒤에 오므로(추적 단지 실측 평균
+ * 17~19일) "그날까지의 1개월"은 뒤쪽 3주가 비어 있고, 오늘에 가까울수록 더 빈다.
+ * 2026-08-31 실측(전체 평형): 호가 짝 82개는 그대로인데 실거래가 붙는 짝이 37 → 15개,
+ * 창 안 매매가 92 → 18건, 남은 15짝 중 13짝이 매매 1건짜리였다. 그 구간의 괴리율
+ * 하락(-2.7% → -6.4%)은 시장이 아니라 사라진 표본이다.
  *
- * 대신 이 창은 뒤를 본다. 호가는 그날 값이고 실거래 기준선은 3주 전에서 끝나므로,
- * 빠르게 움직이는 시장에서는 괴리가 실제보다 크게 잡힌다. 모든 날짜에 같은 규칙이 걸려
- * 추이 비교는 성립한다 — 기준선이 날마다 흔들리는 쪽이 추이를 훨씬 크게 망가뜨린다.
+ * 신고일 창으로 바꾸면 짝 구성이 안정된다 — 실측 47 → 55개, 실거래 189 → 266건.
+ * 평형 필터를 안 걸었을 때(전체 = 공급 20평 이상)가 밴드가 많아 왜곡이 가장 크게 나오므로
+ * 그 경우를 기준으로 90일을 골랐다. 30·60일도 재봤지만 신고 건수 자체가 줄어든 구간
+ * (2026-05 254건 → 08 72건)에서 짝당 2~3건까지 얇아진다.
  */
-const GAP_WINDOW_MONTHS = 3
-const GAP_REPORTING_LAG_DAYS = 18
+const GAP_FILING_WINDOW_DAYS = 90
+/**
+ * created_at 이 신고 시점이 아닌 행을 되살리는 데 쓰는 표준 지연.
+ * 2026-03 초기 적재분 2,095건은 created_at 이 전부 그 달이라(계약은 2025-01부터, 평균
+ * 지연 276일) 그대로 쓰면 그 시기 창에 과거 거래가 통째로 쏟아진다. 계약일 + 이 값과
+ * 비교해 이른 쪽을 신고일로 본다 — 정상 수집분은 created_at 이, 백필분은 합성값이 이긴다.
+ */
+const GAP_BACKFILL_LAG_DAYS = 20
 
 function shiftDays(date: string, days: number): string {
   const d = new Date(`${date}T00:00:00Z`)
@@ -45,12 +53,16 @@ function shiftDays(date: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-/** asOf(스냅샷일) 기준으로 괴리율이 쓸 실거래 구간 [start, end]. */
-function gapTradeWindow(asOf: string): { start: string; end: string } {
-  const end = shiftDays(asOf, GAP_REPORTING_LAG_DAYS)
-  let start = end
-  for (let i = 0; i < GAP_WINDOW_MONTHS; i++) start = subtractCalendarMonth(start)
-  return { start, end }
+/** 이 거래가 '신고돼 보이게 된' 날. 위 GAP_BACKFILL_LAG_DAYS 주석 참조. */
+function filingDate(row: { created_at?: string | null; deal_date: string }): string {
+  const synth = shiftDays(row.deal_date, -GAP_BACKFILL_LAG_DAYS)
+  const created = row.created_at ? String(row.created_at).slice(0, 10) : ''
+  return created && created < synth ? created : synth
+}
+
+/** asOf(스냅샷일) 기준으로 괴리율이 쓸 신고일 구간 (start, end]. */
+function gapFilingWindow(asOf: string): { start: string; end: string } {
+  return { start: shiftDays(asOf, GAP_FILING_WINDOW_DAYS), end: asOf }
 }
 
 /**
@@ -280,22 +292,24 @@ export async function GET(request: Request) {
       const districtSet = new Set(trackedData?.map(c => c.district_name))
 
       const oneMonthAgo = subtractCalendarMonth(currentDate)
-      // 평균 평당가는 지금까지처럼 '최근 1개월', 괴리율은 신고지연을 뺀 3개월 창을 쓴다.
+      // 평균 평당가는 지금까지처럼 '최근 1개월', 괴리율은 신고일 90일 창을 쓴다.
       // 한 번에 넓게 받아 두고 아래에서 각자 자기 구간만 센다.
-      const gapWin = gapTradeWindow(currentDate)
+      const gapWin = gapFilingWindow(currentDate)
+      // 신고일 ≈ 계약일 + 지연이라, 창 시작보다 더 이전 계약까지 받아야 창이 안 빈다.
+      const tradeFetchFrom = shiftDays(gapWin.start, GAP_BACKFILL_LAG_DAYS + 30)
 
       // Fetch trades & rentals (no DB area filter — filter by supply pyeong in code).
       // These are independent of each other and of the area mapping → run in parallel.
       const [areaMapping, recentTrades, recentRentals, { data: latestTrade }] = await Promise.all([
         getAreaMapping(),
         fetchAll(
-          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date')
-            .gte('deal_date', gapWin.start < oneMonthAgo ? gapWin.start : oneMonthAgo)
+          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date, created_at')
+            .gte('deal_date', tradeFetchFrom < oneMonthAgo ? tradeFetchFrom : oneMonthAgo)
             .eq('cancel_yn', 'N').in('complex_name', complexNames)
         ),
         fetchAll(
-          supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date')
-            .gte('deal_date', gapWin.start < oneMonthAgo ? gapWin.start : oneMonthAgo)
+          supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date, created_at')
+            .gte('deal_date', tradeFetchFrom < oneMonthAgo ? tradeFetchFrom : oneMonthAgo)
             .eq('rent_type', '전세').in('complex_name', complexNames)
         ),
         supabase
@@ -377,10 +391,11 @@ export async function GET(request: Request) {
         else if (row.trade_type === '전세') listingBands[key].jeonse = row.min_ppp
       }
 
-      // Actuals grouped by complex+band — 괴리율 창(신고지연 보정 3개월)만 센다.
+      // Actuals grouped by complex+band — 최근 90일 안에 '신고된' 거래만 센다.
       const tradeActuals: Record<BandKey, number[]> = {}
       for (const t of recentTrades || []) {
-        if (t.deal_date < gapWin.start || t.deal_date > gapWin.end) continue
+        const filed = filingDate(t)
+        if (filed <= gapWin.start || filed > gapWin.end) continue
         const sqm = Number(t.area_sqm)
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
@@ -391,7 +406,8 @@ export async function GET(request: Request) {
       }
       const jeonseActuals: Record<BandKey, number[]> = {}
       for (const r of recentRentals || []) {
-        if (r.deal_date < gapWin.start || r.deal_date > gapWin.end) continue
+        const filed = filingDate(r)
+        if (filed <= gapWin.start || filed > gapWin.end) continue
         const sqm = Number(r.area_sqm)
         if (sqm <= 0) continue
         const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
@@ -425,8 +441,8 @@ export async function GET(request: Request) {
           avgJeonsePpp: jeonsePppCount > 0 ? Math.round(jeonsePppSum / jeonsePppCount) : 0,
           tradeListingGap: weightedGap(tradeGaps) ?? 0,
           jeonseListingGap: weightedGap(jeonseGaps) ?? 0,
-          // 괴리율이 실제로 무엇과 견줬는지 — 창 구간과 짝·건수. 화면 툴팁이 이걸 적는다.
-          gapWindow: { start: gapWin.start, end: gapWin.end },
+          // 괴리율이 실제로 무엇과 견줬는지 — 신고일 창과 짝·건수. 화면 툴팁이 이걸 적는다.
+          gapWindow: { start: gapWin.start, end: gapWin.end, basis: 'filed' },
           tradeGapPairs: tradeGaps.length,
           tradeGapDeals: tradeGaps.reduce((s, g) => s + g.count, 0),
           jeonseGapPairs: jeonseGaps.length,
@@ -729,20 +745,20 @@ export async function GET(request: Request) {
       const dates = [...dateSet].sort()
       // Fetch trades far enough back to cover every date's gap window
       const earliestDate = dates[0] || now.toISOString().slice(0, 10)
-      const tradeCutoff = gapTradeWindow(earliestDate).start
+      const tradeCutoff = shiftDays(gapFilingWindow(earliestDate).start, GAP_BACKFILL_LAG_DAYS + 30)
 
       // Pre-load all trades/rentals with deal_date for per-date windowing
-      type TradeRow = { complex_name: string; deal_amount?: number; deposit?: number; area_sqm: number; deal_date: string }
+      type TradeRow = { complex_name: string; deal_amount?: number; deposit?: number; area_sqm: number; deal_date: string; created_at?: string | null }
       const allActuals: TradeRow[] = []
       if (tradeType === '매매') {
         const actuals = await fetchAll(
-          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date')
+          supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date, created_at')
             .gte('deal_date', tradeCutoff).eq('cancel_yn', 'N').in('complex_name', complexNames)
         )
         allActuals.push(...actuals)
       } else {
         const actuals = await fetchAll(
-          supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date')
+          supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date, created_at')
             .gte('deal_date', tradeCutoff).eq('rent_type', '전세').in('complex_name', complexNames)
         )
         allActuals.push(...actuals)
@@ -758,18 +774,18 @@ export async function GET(request: Request) {
         const ppp = tradeType === '매매'
           ? Number(t.deal_amount) / supplyPy
           : Number(t.deposit) / supplyPy
-        return { key, ppp, dealDate: t.deal_date }
-      }).filter((e): e is { key: string; ppp: number; dealDate: string } => e !== null)
+        return { key, ppp, filed: filingDate(t) }
+      }).filter((e): e is { key: string; ppp: number; filed: string } => e !== null)
 
-      // 3. Compute daily gap rate — 날짜마다 gapTradeWindow(그 날짜)의 실거래를 기준선으로 쓴다.
-      //    (창 정의와 그 근거는 GAP_WINDOW_MONTHS 위 주석에 있다)
+      // 3. Compute daily gap rate — 날짜마다 '그날까지 최근 90일 안에 신고된' 실거래를
+      //    기준선으로 쓴다. (창 정의와 근거는 GAP_FILING_WINDOW_DAYS 위 주석)
       const trend: { date: string; gapRate: number | null; pairs: number; deals: number }[] = dates.map(d => {
-        const win = gapTradeWindow(d)
+        const win = gapFilingWindow(d)
 
         // Build actualBands for this date's window
         const dateBands: Record<string, number[]> = {}
         for (const e of tradeEntries) {
-          if (e.dealDate >= win.start && e.dealDate <= win.end) {
+          if (e.filed > win.start && e.filed <= win.end) {
             if (!dateBands[e.key]) dateBands[e.key] = []
             dateBands[e.key].push(e.ppp)
           }
