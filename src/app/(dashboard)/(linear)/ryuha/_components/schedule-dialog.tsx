@@ -24,10 +24,6 @@ export interface ScheduleFormData {
   start_time: string
   end_time: string
   type: 'school' | 'academy' | 'arts' | 'homework' | 'etc'
-  // 과목·단원 UI 는 뺐지만(2026-08-31) 필드는 남긴다 — 기존 일정에 붙어 있던 값을
-  // 수정 저장할 때 통째로 날리지 않기 위해서다. 류하봇이 아직 이 값을 읽어 쓴다.
-  subject_id: string
-  chapter_ids: string[]
   color: string
   email_reminder: boolean
   homework_items: { content: string; deadline: string }[]
@@ -50,7 +46,7 @@ export function ScheduleDialog({
   const [form, setForm] = useState<ScheduleFormData>({
     title: '', description: '', schedule_date: '', end_date: '',
     start_time: '', end_time: '', type: 'etc',
-    subject_id: '', chapter_ids: [], color: '',
+    color: '',
     email_reminder: false, homework_items: [],
   })
   const [saving, setSaving] = useState(false)
@@ -71,8 +67,6 @@ export function ScheduleDialog({
         start_time: schedule.start_time || '',
         end_time: schedule.end_time || '',
         type: schedule.type,
-        subject_id: schedule.subject_id || '',
-        chapter_ids: schedule.chapter_ids || [],
         color: schedule.color || '',
         email_reminder: schedule.email_reminder,
         homework_items: schedule.homework_items?.map(h => ({
@@ -84,7 +78,7 @@ export function ScheduleDialog({
         title: '', description: '',
         schedule_date: initialDate || '',
         end_date: '', start_time: '', end_time: '',
-        type: 'etc', subject_id: '', chapter_ids: [],
+        type: 'etc',
         color: '', email_reminder: false, homework_items: [],
       })
     }

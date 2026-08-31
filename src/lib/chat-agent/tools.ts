@@ -39,9 +39,6 @@ import {
 import { getGmailClient, parseEmail, createMimeMessage, GmailContext } from '@/lib/gmail-server'
 import { analyzeEmails as geminiAnalyzeEmails, type EmailForAnalysis } from '@/lib/gemini-server'
 import {
-  ryuhaListSubjects, ryuhaCreateSubject, ryuhaUpdateSubject, ryuhaDeleteSubject,
-  ryuhaListTextbooks, ryuhaCreateTextbook, ryuhaUpdateTextbook, ryuhaDeleteTextbook,
-  ryuhaListChapters, ryuhaCreateChapter, ryuhaUpdateChapter, ryuhaDeleteChapter,
   ryuhaListSchedules, ryuhaCreateSchedule, ryuhaUpdateSchedule, ryuhaDeleteSchedule,
   ryuhaListHomework, ryuhaCreateHomework, ryuhaUpdateHomework, ryuhaDeleteHomework,
   ryuhaListMemos, ryuhaUpsertMemo, ryuhaDeleteMemo,
@@ -84,9 +81,6 @@ const ALLOWED_TABLES: Record<string, string> = {
   'email_todos': '이메일 TODO',
   'gmail_scheduled_emails': '예약발송 이메일',
   // 류하 학습관리
-  'ryuha_subjects': '류하 과목',
-  'ryuha_textbooks': '류하 교재',
-  'ryuha_chapters': '류하 챕터',
   'ryuha_schedules': '류하 스케줄',
   'ryuha_homework_items': '류하 과제',
   'ryuha_daily_memos': '류하 일일메모',
@@ -780,24 +774,12 @@ export const agentTools = [
   // ---- 류하 학습관리 전용 도구 ----
   { name: 'ryuha_get_dashboard', description: '[류하] 학습 대시보드 — 이번주 일정, 미완료 숙제, 최근 신체기록', parameters: { type: 'object' as const, properties: {} } },
   // -- Subjects --
-  { name: 'ryuha_list_subjects', description: '[류하] 과목 목록', parameters: { type: 'object' as const, properties: {} } },
-  { name: 'ryuha_create_subject', description: '[류하] 과목 생성', parameters: { type: 'object' as const, properties: { name: { type: 'string', description: '과목명 (필수)' }, color: { type: 'string', description: '색상 hex' }, icon: { type: 'string', description: '아이콘' } }, required: ['name'] } },
-  { name: 'ryuha_update_subject', description: '[류하] 과목 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, name: { type: 'string', description: '이름' }, color: { type: 'string', description: '색상' }, icon: { type: 'string', description: '아이콘' } }, required: ['id'] } },
-  { name: 'ryuha_delete_subject', description: '[류하] 과목 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
   // -- Textbooks --
-  { name: 'ryuha_list_textbooks', description: '[류하] 교재 목록 (과목 관계 포함)', parameters: { type: 'object' as const, properties: { subject_id: { type: 'string', description: '과목 ID 필터' } } } },
-  { name: 'ryuha_create_textbook', description: '[류하] 교재 생성', parameters: { type: 'object' as const, properties: { subject_id: { type: 'string', description: '과목 ID (필수)' }, name: { type: 'string', description: '교재명 (필수)' }, publisher: { type: 'string', description: '출판사' }, description: { type: 'string', description: '설명' } }, required: ['subject_id', 'name'] } },
-  { name: 'ryuha_update_textbook', description: '[류하] 교재 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, name: { type: 'string', description: '이름' }, publisher: { type: 'string', description: '출판사' }, description: { type: 'string', description: '설명' } }, required: ['id'] } },
-  { name: 'ryuha_delete_textbook', description: '[류하] 교재 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
   // -- Chapters --
-  { name: 'ryuha_list_chapters', description: '[류하] 챕터 목록 (교재/과목 관계 포함)', parameters: { type: 'object' as const, properties: { textbook_id: { type: 'string', description: '교재 ID 필터' } } } },
-  { name: 'ryuha_create_chapter', description: '[류하] 챕터 생성', parameters: { type: 'object' as const, properties: { textbook_id: { type: 'string', description: '교재 ID (필수)' }, name: { type: 'string', description: '챕터명 (필수)' }, description: { type: 'string', description: '설명' }, status: { type: 'string', description: 'pending|in_progress|review_notes_pending|completed' }, target_date: { type: 'string', description: '목표일' } }, required: ['textbook_id', 'name'] } },
-  { name: 'ryuha_update_chapter', description: '[류하] 챕터 수정 (completed 시 completed_at 자동)', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, name: { type: 'string', description: '이름' }, description: { type: 'string', description: '설명' }, status: { type: 'string', description: 'pending|in_progress|review_notes_pending|completed' }, target_date: { type: 'string', description: '목표일' }, review_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
-  { name: 'ryuha_delete_chapter', description: '[류하] 챕터 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
   // -- Schedules --
-  { name: 'ryuha_list_schedules', description: '[류하] 학습 일정 목록 (과목/숙제 포함, 날짜/과목 필터)', parameters: { type: 'object' as const, properties: { start_date: { type: 'string', description: '시작일' }, end_date: { type: 'string', description: '종료일' }, subject_id: { type: 'string', description: '과목 ID' } } } },
-  { name: 'ryuha_create_schedule', description: '[류하] 학습 일정 생성', parameters: { type: 'object' as const, properties: { title: { type: 'string', description: '제목 (필수)' }, schedule_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, end_date: { type: 'string', description: '종료일' }, start_time: { type: 'string', description: '시작 시간 HH:MM' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'school|academy|homework|etc' }, subject_id: { type: 'string', description: '과목 ID' }, description: { type: 'string', description: '설명' }, color: { type: 'string', description: '색상' }, homework_content: { type: 'string', description: '숙제 내용' }, homework_deadline: { type: 'string', description: '숙제 마감일' } }, required: ['title', 'schedule_date'] } },
-  { name: 'ryuha_update_schedule', description: '[류하] 학습 일정 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, title: { type: 'string', description: '제목' }, schedule_date: { type: 'string', description: '날짜' }, start_time: { type: 'string', description: '시작 시간' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'school|academy|homework|etc' }, subject_id: { type: 'string', description: '과목 ID' }, description: { type: 'string', description: '설명' }, is_completed: { type: 'string', description: 'true/false' }, homework_content: { type: 'string', description: '숙제 내용' }, homework_deadline: { type: 'string', description: '숙제 마감일' }, homework_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
+  { name: 'ryuha_list_schedules', description: '[류하] 학습 일정 목록 (과목/숙제 포함, 날짜/과목 필터)', parameters: { type: 'object' as const, properties: { start_date: { type: 'string', description: '시작일' }, end_date: { type: 'string', description: '종료일' } } } },
+  { name: 'ryuha_create_schedule', description: '[류하] 학습 일정 생성', parameters: { type: 'object' as const, properties: { title: { type: 'string', description: '제목 (필수)' }, schedule_date: { type: 'string', description: '날짜 YYYY-MM-DD (필수)' }, end_date: { type: 'string', description: '종료일' }, start_time: { type: 'string', description: '시작 시간 HH:MM' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'school|academy|homework|etc' }, description: { type: 'string', description: '설명' }, color: { type: 'string', description: '색상' }, homework_content: { type: 'string', description: '숙제 내용' }, homework_deadline: { type: 'string', description: '숙제 마감일' } }, required: ['title', 'schedule_date'] } },
+  { name: 'ryuha_update_schedule', description: '[류하] 학습 일정 수정', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' }, title: { type: 'string', description: '제목' }, schedule_date: { type: 'string', description: '날짜' }, start_time: { type: 'string', description: '시작 시간' }, end_time: { type: 'string', description: '종료 시간' }, type: { type: 'string', description: 'school|academy|homework|etc' }, description: { type: 'string', description: '설명' }, is_completed: { type: 'string', description: 'true/false' }, homework_content: { type: 'string', description: '숙제 내용' }, homework_deadline: { type: 'string', description: '숙제 마감일' }, homework_completed: { type: 'string', description: 'true/false' } }, required: ['id'] } },
   { name: 'ryuha_delete_schedule', description: '[류하] 학습 일정 삭제', parameters: { type: 'object' as const, properties: { id: { type: 'string', description: 'ID (필수)' } }, required: ['id'] } },
   // -- Homework --
   { name: 'ryuha_list_homework', description: '[류하] 숙제 목록', parameters: { type: 'object' as const, properties: { schedule_id: { type: 'string', description: '일정 ID 필터' } } } },
@@ -1660,21 +1642,9 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
 
     // ---- 류하 학습관리 도구 ----
     case 'ryuha_get_dashboard': return await ryuhaGetDashboard()
-    case 'ryuha_list_subjects': return await ryuhaListSubjects()
-    case 'ryuha_create_subject': return await ryuhaCreateSubject({ name: args.name as string, color: args.color as string | undefined, icon: args.icon as string | undefined })
-    case 'ryuha_update_subject': return await ryuhaUpdateSubject({ id: args.id as string, name: args.name as string | undefined, color: args.color as string | undefined, icon: args.icon as string | undefined })
-    case 'ryuha_delete_subject': return await ryuhaDeleteSubject(args.id as string)
-    case 'ryuha_list_textbooks': return await ryuhaListTextbooks({ subject_id: args.subject_id as string | undefined })
-    case 'ryuha_create_textbook': return await ryuhaCreateTextbook({ subject_id: args.subject_id as string, name: args.name as string, publisher: args.publisher as string | undefined, description: args.description as string | undefined })
-    case 'ryuha_update_textbook': return await ryuhaUpdateTextbook({ id: args.id as string, name: args.name as string | undefined, publisher: args.publisher as string | undefined, description: args.description as string | undefined })
-    case 'ryuha_delete_textbook': return await ryuhaDeleteTextbook(args.id as string)
-    case 'ryuha_list_chapters': return await ryuhaListChapters({ textbook_id: args.textbook_id as string | undefined })
-    case 'ryuha_create_chapter': return await ryuhaCreateChapter({ textbook_id: args.textbook_id as string, name: args.name as string, description: args.description as string | undefined, status: args.status as string | undefined, target_date: args.target_date as string | undefined })
-    case 'ryuha_update_chapter': return await ryuhaUpdateChapter({ id: args.id as string, name: args.name as string | undefined, description: args.description as string | undefined, status: args.status as string | undefined, target_date: args.target_date as string | undefined, review_completed: args.review_completed === 'true' ? true : args.review_completed === 'false' ? false : undefined })
-    case 'ryuha_delete_chapter': return await ryuhaDeleteChapter(args.id as string)
-    case 'ryuha_list_schedules': return await ryuhaListSchedules({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined, subject_id: args.subject_id as string | undefined })
-    case 'ryuha_create_schedule': return await ryuhaCreateSchedule({ title: args.title as string, schedule_date: args.schedule_date as string, end_date: args.end_date as string | undefined, start_time: args.start_time as string | undefined, end_time: args.end_time as string | undefined, type: args.type as string | undefined, subject_id: args.subject_id as string | undefined, description: args.description as string | undefined, color: args.color as string | undefined, homework_content: args.homework_content as string | undefined, homework_deadline: args.homework_deadline as string | undefined })
-    case 'ryuha_update_schedule': return await ryuhaUpdateSchedule({ id: args.id as string, title: args.title as string | undefined, schedule_date: args.schedule_date as string | undefined, start_time: args.start_time as string | undefined, end_time: args.end_time as string | undefined, type: args.type as string | undefined, subject_id: args.subject_id as string | undefined, description: args.description as string | undefined, is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined, homework_content: args.homework_content as string | undefined, homework_deadline: args.homework_deadline as string | undefined, homework_completed: args.homework_completed === 'true' ? true : args.homework_completed === 'false' ? false : undefined })
+    case 'ryuha_list_schedules': return await ryuhaListSchedules({ start_date: args.start_date as string | undefined, end_date: args.end_date as string | undefined })
+    case 'ryuha_create_schedule': return await ryuhaCreateSchedule({ title: args.title as string, schedule_date: args.schedule_date as string, end_date: args.end_date as string | undefined, start_time: args.start_time as string | undefined, end_time: args.end_time as string | undefined, type: args.type as string | undefined, description: args.description as string | undefined, color: args.color as string | undefined, homework_content: args.homework_content as string | undefined, homework_deadline: args.homework_deadline as string | undefined })
+    case 'ryuha_update_schedule': return await ryuhaUpdateSchedule({ id: args.id as string, title: args.title as string | undefined, schedule_date: args.schedule_date as string | undefined, start_time: args.start_time as string | undefined, end_time: args.end_time as string | undefined, type: args.type as string | undefined, description: args.description as string | undefined, is_completed: args.is_completed === 'true' ? true : args.is_completed === 'false' ? false : undefined, homework_content: args.homework_content as string | undefined, homework_deadline: args.homework_deadline as string | undefined, homework_completed: args.homework_completed === 'true' ? true : args.homework_completed === 'false' ? false : undefined })
     case 'ryuha_delete_schedule': return await ryuhaDeleteSchedule(args.id as string)
     case 'ryuha_list_homework': return await ryuhaListHomework({ schedule_id: args.schedule_id as string | undefined })
     case 'ryuha_create_homework': return await ryuhaCreateHomework({ schedule_id: args.schedule_id as string, content: args.content as string, deadline: args.deadline as string | undefined })

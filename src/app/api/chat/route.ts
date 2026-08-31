@@ -137,7 +137,7 @@ async function buildSystemPrompt(): Promise<string> {
 6. **업무위키**: 위키 노트 작성/조회/수정
 7. **이메일 관리**: Gmail 조회/검색/분석/발송 (willow, tensoftworks 컨텍스트)
 8. **온톨로지**: 지식 엔티티/관계/인사이트 관리
-9. **류하 학습관리**: 류하 일정, 숙제, 교재, 수첩 관리
+9. **류하 학습관리**: 류하 일정, 숙제, 수첩 관리
 10. **투자관리**: 주식 매매기록 CRUD, 거래내역 이미지 파싱 후 자동 등록
 
 ## 도구 사용법
@@ -197,9 +197,6 @@ async function buildSystemPrompt(): Promise<string> {
 
 ### 류하 학습관리 전용 도구 (ryuha_*)
 - **ryuha_get_dashboard**: 학습 대시보드 (이번주 일정, 미완료 숙제, 신체기록)
-- **ryuha_list/create/update/delete_subjects**: 과목 CRUD
-- **ryuha_list/create/update/delete_textbooks**: 교재 CRUD
-- **ryuha_list/create/update/delete_chapters**: 챕터 CRUD (completed_at 자동)
 - **ryuha_list/create/update/delete_schedules**: 학습 일정 CRUD
 - **ryuha_list/create/update/delete_homework**: 숙제 CRUD (completed_at 자동)
 - **ryuha_upsert_memo / delete_memo**: 일일 메모
@@ -301,9 +298,6 @@ willow_mgmt_*와 동일 구조. 테이블명만 tensw_mgmt_. 메모는 tensw_mgm
 - **work_wiki**: id, title, content, section(akros|etf-etc|willow-mgmt|tensw-mgmt|invest-mgmt), category, is_pinned, attachments
 
 ### 류하 학습관리 (ryuha_*)
-- **ryuha_subjects**: id, name, color, icon, order_index
-- **ryuha_textbooks**: id, subject_id(FK), title, publisher, is_active
-- **ryuha_chapters**: id, textbook_id(FK), name, order_index, is_completed
 - **ryuha_schedules**: id, subject_id, title, schedule_date, start_time, end_time, color, homework_content, homework_deadline, homework_completed, is_completed
 - **ryuha_homework_items**: id, schedule_id(FK), content, deadline, order_index, is_completed
 - **ryuha_daily_memos**: id, memo_date(unique), content

@@ -4,206 +4,22 @@
 import { getServiceSupabase } from '@/lib/supabase'
 
 // ============================================================
-// Subjects
-// ============================================================
-
-export async function ryuhaListSubjects() {
-  const sb = getServiceSupabase()
-  const { data, error } = await sb
-    .from('ryuha_subjects')
-    .select('*')
-    .order('order_index')
-  if (error) return { error: error.message }
-  return { data: data || [] }
-}
-
-export async function ryuhaCreateSubject(params: {
-  name: string
-  color?: string
-  icon?: string
-  order_index?: number
-}) {
-  const sb = getServiceSupabase()
-  const { data, error } = await sb
-    .from('ryuha_subjects')
-    .insert(params)
-    .select()
-    .single()
-  if (error) return { error: error.message }
-  return { success: true, data }
-}
-
-export async function ryuhaUpdateSubject(params: {
-  id: string
-  name?: string
-  color?: string
-  icon?: string
-  order_index?: number
-}) {
-  const { id, ...updates } = params
-  const sb = getServiceSupabase()
-  const { data, error } = await sb
-    .from('ryuha_subjects')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) return { error: error.message }
-  return { success: true, data }
-}
-
-export async function ryuhaDeleteSubject(id: string) {
-  const sb = getServiceSupabase()
-  const { error } = await sb.from('ryuha_subjects').delete().eq('id', id)
-  if (error) return { error: error.message }
-  return { success: true }
-}
-
-// ============================================================
-// Textbooks
-// ============================================================
-
-export async function ryuhaListTextbooks(params?: { subject_id?: string }) {
-  const sb = getServiceSupabase()
-  let query = sb
-    .from('ryuha_textbooks')
-    .select('*, subject:ryuha_subjects(id, name, color, icon)')
-    .order('order_index')
-  if (params?.subject_id) query = query.eq('subject_id', params.subject_id)
-  const { data, error } = await query
-  if (error) return { error: error.message }
-  return { data: data || [] }
-}
-
-export async function ryuhaCreateTextbook(params: {
-  subject_id: string
-  name: string
-  publisher?: string
-  description?: string
-  order_index?: number
-}) {
-  const sb = getServiceSupabase()
-  const { data, error } = await sb
-    .from('ryuha_textbooks')
-    .insert(params)
-    .select('*, subject:ryuha_subjects(id, name, color, icon)')
-    .single()
-  if (error) return { error: error.message }
-  return { success: true, data }
-}
-
-export async function ryuhaUpdateTextbook(params: {
-  id: string
-  name?: string
-  publisher?: string
-  description?: string
-  order_index?: number
-}) {
-  const { id, ...updates } = params
-  const sb = getServiceSupabase()
-  const { data, error } = await sb
-    .from('ryuha_textbooks')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select('*, subject:ryuha_subjects(id, name, color, icon)')
-    .single()
-  if (error) return { error: error.message }
-  return { success: true, data }
-}
-
-export async function ryuhaDeleteTextbook(id: string) {
-  const sb = getServiceSupabase()
-  const { error } = await sb.from('ryuha_textbooks').delete().eq('id', id)
-  if (error) return { error: error.message }
-  return { success: true }
-}
-
-// ============================================================
-// Chapters
-// ============================================================
-
-export async function ryuhaListChapters(params?: { textbook_id?: string }) {
-  const sb = getServiceSupabase()
-  let query = sb
-    .from('ryuha_chapters')
-    .select('*, textbook:ryuha_textbooks(id, name, subject:ryuha_subjects(id, name, color))')
-    .order('order_index')
-  if (params?.textbook_id) query = query.eq('textbook_id', params.textbook_id)
-  const { data, error } = await query
-  if (error) return { error: error.message }
-  return { data: data || [] }
-}
-
-export async function ryuhaCreateChapter(params: {
-  textbook_id: string
-  name: string
-  description?: string
-  order_index?: number
-  status?: string
-  target_date?: string
-}) {
-  const sb = getServiceSupabase()
-  const { data, error } = await sb
-    .from('ryuha_chapters')
-    .insert(params)
-    .select('*, textbook:ryuha_textbooks(id, name, subject:ryuha_subjects(id, name, color))')
-    .single()
-  if (error) return { error: error.message }
-  return { success: true, data }
-}
-
-export async function ryuhaUpdateChapter(params: {
-  id: string
-  name?: string
-  description?: string
-  order_index?: number
-  status?: string
-  target_date?: string
-  review_completed?: boolean
-}) {
-  const { id, ...updates } = params
-  // Business logic: set completed_at when status becomes 'completed'
-  const enriched: Record<string, unknown> = { ...updates, updated_at: new Date().toISOString() }
-  if (updates.status === 'completed') {
-    enriched.completed_at = new Date().toISOString()
-  }
-  const sb = getServiceSupabase()
-  const { data, error } = await sb
-    .from('ryuha_chapters')
-    .update(enriched)
-    .eq('id', id)
-    .select('*, textbook:ryuha_textbooks(id, name, subject:ryuha_subjects(id, name, color))')
-    .single()
-  if (error) return { error: error.message }
-  return { success: true, data }
-}
-
-export async function ryuhaDeleteChapter(id: string) {
-  const sb = getServiceSupabase()
-  const { error } = await sb.from('ryuha_chapters').delete().eq('id', id)
-  if (error) return { error: error.message }
-  return { success: true }
-}
-
-// ============================================================
 // Schedules
 // ============================================================
 
 export async function ryuhaListSchedules(params?: {
   start_date?: string
   end_date?: string
-  subject_id?: string
 }) {
   const sb = getServiceSupabase()
   let query = sb
     .from('ryuha_schedules')
-    .select('*, subject:ryuha_subjects(id, name, color, icon), homework_items:ryuha_homework_items(*)')
+    .select('*, homework_items:ryuha_homework_items(*)')
     .order('schedule_date')
     .order('start_time')
 
   if (params?.start_date) query = query.gte('schedule_date', params.start_date)
   if (params?.end_date) query = query.lte('schedule_date', params.end_date)
-  if (params?.subject_id) query = query.eq('subject_id', params.subject_id)
 
   const { data, error } = await query
   if (error) return { error: error.message }
@@ -217,8 +33,6 @@ export async function ryuhaCreateSchedule(params: {
   start_time?: string
   end_time?: string
   type?: string
-  subject_id?: string
-  chapter_ids?: string[]
   description?: string
   color?: string
   homework_content?: string
@@ -228,7 +42,7 @@ export async function ryuhaCreateSchedule(params: {
   const { data, error } = await sb
     .from('ryuha_schedules')
     .insert(params)
-    .select('*, subject:ryuha_subjects(id, name, color, icon)')
+    .select('*')
     .single()
   if (error) return { error: error.message }
   return { success: true, data }
@@ -242,8 +56,6 @@ export async function ryuhaUpdateSchedule(params: {
   start_time?: string
   end_time?: string
   type?: string
-  subject_id?: string
-  chapter_ids?: string[]
   description?: string
   color?: string
   is_completed?: boolean
@@ -257,7 +69,7 @@ export async function ryuhaUpdateSchedule(params: {
     .from('ryuha_schedules')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
-    .select('*, subject:ryuha_subjects(id, name, color, icon)')
+    .select('*')
     .single()
   if (error) return { error: error.message }
   return { success: true, data }
@@ -496,9 +308,9 @@ export async function ryuhaGetDashboard() {
   const today = now.toISOString().split('T')[0]
   const nextWeek = new Date(now.getTime() + 7 * 86400000).toISOString().split('T')[0]
 
-  const [schedRes, homeworkRes, bodyRes, subjectRes] = await Promise.all([
+  const [schedRes, homeworkRes, bodyRes] = await Promise.all([
     sb.from('ryuha_schedules')
-      .select('id, title, schedule_date, start_time, end_time, type, is_completed, subject:ryuha_subjects(id, name, color, icon)')
+      .select('id, title, schedule_date, start_time, end_time, type, is_completed')
       .gte('schedule_date', today)
       .lte('schedule_date', nextWeek)
       .order('schedule_date')
@@ -512,15 +324,12 @@ export async function ryuhaGetDashboard() {
       .select('*')
       .order('record_date', { ascending: false })
       .limit(1),
-    sb.from('ryuha_subjects')
-      .select('id', { count: 'exact', head: true }),
   ])
 
   return {
     upcoming_schedules: schedRes.data || [],
     pending_homework: homeworkRes.data || [],
     latest_body_record: bodyRes.data?.[0] || null,
-    subject_count: subjectRes.count || 0,
     as_of: today,
   }
 }

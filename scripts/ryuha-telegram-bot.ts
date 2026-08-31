@@ -53,12 +53,11 @@ const RINA_WORKSPACE_LABEL = 'Rina Learning'
 const RYUHA_DASHBOARD_STRUCTURE = `## 류하 학습관리 구조
 - 일정: 학교, 학원, 숙제, 기타 일정
 - 숙제: 일정과 연결된 해야 할 일과 마감
-- 과목/교재/챕터: 과목별 학습 진도
 - 메모: 날짜별 짧은 기록
 - 수첩 노트: 기억해둘 내용, 일기, 공부 메모
 - 체형 기록: 키와 몸무게 변화
 
-질문을 받으면 먼저 "일정 / 숙제 / 진도 / 수첩 / 생활기록 / 일반 대화" 중 어디에 속하는지 파악하고,
+질문을 받으면 먼저 "일정 / 숙제 / 수첩 / 생활기록 / 일반 대화" 중 어디에 속하는지 파악하고,
 관련 데이터가 있으면 그 축을 우선 참고해 답해.`
 
 installRuntimeConsoleCapture({ botKey: 'rina-bot', jsonlPath: BOT_RUNTIME_JSONL_FILE })
@@ -598,7 +597,7 @@ function buildSystemPrompt(context: string, history: Message[], runtimeContext: 
 - 류하가 뭔가 재미있는 걸 말하면 같이 재미있어해줘
 
 ## 역할
-1. **학습 매니저**: 일정, 숙제, 교재 진도 관리
+1. **학습 매니저**: 일정과 숙제 관리 (교재·진도는 다루지 않는다 — 리뷰노트에서 본다)
 2. **응원단**: 공부하면 칭찬, 완료하면 축하 🎉
 3. **공부 도우미**: 모르는 거 물어보면 초등학생 눈높이에 맞게 설명
 4. **생활 친구**: 체형 기록, 일상 대화도 OK
@@ -608,7 +607,7 @@ function buildSystemPrompt(context: string, history: Message[], runtimeContext: 
 ${RYUHA_DASHBOARD_STRUCTURE}
 
 ## MCP 도구
-류하가 일정/숙제/교재/체형 관련 요청을 하면 MCP 도구를 사용해.
+류하가 일정/숙제/체형 관련 요청을 하면 MCP 도구를 사용해.
 도구 이름은 모두 ryuha_ 접두사.
 
 ### 일정 관리
@@ -622,13 +621,6 @@ ${RYUHA_DASHBOARD_STRUCTURE}
 - ryuha_create_homework: 숙제 추가 (schedule_id, content, deadline)
 - ryuha_update_homework: 숙제 완료 (is_completed: true)
 - ryuha_delete_homework: 숙제 삭제
-
-### 교재 & 진도
-- ryuha_list_subjects: 과목 목록
-- ryuha_list_textbooks: 교재 목록 (subject_id로 필터)
-- ryuha_list_chapters: 챕터 목록 (textbook_id로 필터)
-- ryuha_update_chapter: 챕터 상태 변경 (status: pending/in_progress/completed)
-- ryuha_create_subject/textbook/chapter: 새로 추가
 
 ### 체형 기록
 - ryuha_list_body_records: 기록 조회
@@ -649,7 +641,8 @@ ryuha_* MCP 도구로 안 되는 복잡한 작업은 Supabase MCP 도구로 직�
 - mcp__supabase__execute_sql: SQL 직접 실행 (SELECT/INSERT/UPDATE/DELETE)
 - mcp__supabase__list_tables: 테이블 목록 확인
 
-**주요 테이블**: ryuha_schedules, ryuha_homework_items, ryuha_subjects, ryuha_textbooks, ryuha_chapters, ryuha_body_records, ryuha_notes
+**주요 테이블**: ryuha_schedules, ryuha_homework_items, ryuha_body_records, ryuha_notes
+**진도·교재는 이제 여기서 안 다룬다**(2026-08-31, CEO). 류하가 물어보면 리뷰노트에서 직접 본다고 안내할 것.
 **주의**: ryuha_* 테이블만 접근할 것. 다른 테이블은 건드리지 마.
 
 ## 응답 규칙
@@ -702,7 +695,7 @@ async function buildContext(): Promise<string> {
     try {
       const { data: schedules } = await supabase
         .from('ryuha_schedules')
-        .select('*, subject:ryuha_subjects(*)')
+        .select('*')
         .gte('schedule_date', todayStr)
         .lte('schedule_date', weekEndStr)
         .order('schedule_date')
@@ -717,8 +710,7 @@ async function buildContext(): Promise<string> {
           for (const s of todaySchedules) {
             const status = s.is_completed ? '✅' : '⬜'
             const time = s.start_time ? ` ${s.start_time}` : ''
-            const subject = s.subject?.name ? ` [${s.subject.name}]` : ''
-            parts.push(`${status}${time}${subject} ${s.title}`)
+            parts.push(`${status}${time} ${s.title}`)
           }
         } else {
           parts.push(`### 오늘 일정: 없음`)
@@ -728,8 +720,7 @@ async function buildContext(): Promise<string> {
           parts.push(`\n### 이번주 예정`)
           for (const s of upcomingSchedules.slice(0, 10)) {
             const status = s.is_completed ? '✅' : '⬜'
-            const subject = s.subject?.name ? ` [${s.subject.name}]` : ''
-            parts.push(`${status} ${s.schedule_date}${subject} ${s.title}`)
+            parts.push(`${status} ${s.schedule_date} ${s.title}`)
           }
         }
       } else {
@@ -743,7 +734,7 @@ async function buildContext(): Promise<string> {
     try {
       const { data: homework } = await supabase
         .from('ryuha_homework_items')
-        .select('*, schedule:ryuha_schedules(title, subject:ryuha_subjects(name))')
+        .select('*, schedule:ryuha_schedules(title)')
         .eq('is_completed', false)
         .gte('deadline', todayStr)
         .order('deadline')
@@ -752,39 +743,11 @@ async function buildContext(): Promise<string> {
       if (homework?.length) {
         parts.push(`\n### 미완료 숙제`)
         for (const h of homework) {
-          const subjectName = h.schedule?.subject?.name || ''
-          parts.push(`⬜ [${h.deadline}]${subjectName ? ` ${subjectName}` : ''}: ${h.content}`)
+          parts.push(`⬜ [${h.deadline}]: ${h.content}`)
         }
       }
     } catch (e) {
       console.error('[context] homework error:', e)
-    }
-
-    // 과목별 진도
-    try {
-      const { data: subjects } = await supabase
-        .from('ryuha_subjects')
-        .select('id, name')
-        .order('order_index')
-
-      const { data: chapters } = await supabase
-        .from('ryuha_chapters')
-        .select('textbook_id, status, textbook:ryuha_textbooks(subject_id)')
-
-      if (subjects?.length && chapters?.length) {
-        parts.push(`\n### 과목별 진도`)
-        for (const subj of subjects) {
-          const subjChapters = chapters.filter((c: any) => c.textbook?.subject_id === subj.id)
-          const completed = subjChapters.filter(c => c.status === 'completed').length
-          const total = subjChapters.length
-          if (total > 0) {
-            const pct = Math.round((completed / total) * 100)
-            parts.push(`${subj.name}: ${completed}/${total} (${pct}%)`)
-          }
-        }
-      }
-    } catch (e) {
-      console.error('[context] progress error:', e)
     }
 
     // 최근 체형 기록
@@ -1099,7 +1062,7 @@ async function handleMessage(chatId: number, userText: string, abortSignal?: Abo
       return
     }
 
-    await addProgress('일정 · 숙제 · 진도 · 최근 대화를 읽는 중', {
+    await addProgress('일정 · 숙제 · 최근 대화를 읽는 중', {
       percent: 28,
       stage: '컨텍스트 로드',
       current: '학습 현황과 대화 맥락을 모으고 있어.',

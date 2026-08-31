@@ -42,22 +42,13 @@ export async function POST(request: Request) {
         is_completed: allCompleted,
       })
       .eq('id', schedule_id)
-      .select('*, subject:ryuha_subjects(*), chapter:ryuha_chapters(*, textbook:ryuha_textbooks(*)), homework_items:ryuha_homework_items(*)')
+      .select('*, homework_items:ryuha_homework_items(*)')
       .single()
 
     if (error) throw error
 
-    // Fetch chapters for chapter_ids
-    let chapters: unknown[] = []
-    if (data.chapter_ids?.length > 0) {
-      const { data: chapterData } = await supabase
-        .from('ryuha_chapters')
-        .select('*, textbook:ryuha_textbooks(*, subject:ryuha_subjects(*))')
-        .in('id', data.chapter_ids)
-      chapters = chapterData || []
-    }
 
-    return NextResponse.json({ ...data, chapters })
+    return NextResponse.json(data)
   } catch (error) {
     console.error('Error toggling date completion:', error)
     return NextResponse.json({ error: 'Failed to toggle date completion' }, { status: 500 })

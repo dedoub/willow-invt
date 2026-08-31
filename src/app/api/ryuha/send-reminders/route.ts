@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     // 오늘 날짜의 미완료 스케줄 중 이메일 알림이 활성화되고 아직 발송되지 않은 것
     const { data: schedules, error } = await supabase
       .from('ryuha_schedules')
-      .select('*, subject:ryuha_subjects(*), study_range:ryuha_study_ranges(*)')
+      .select('*')
       .eq('schedule_date', today)
       .eq('email_reminder', true)
       .eq('reminder_sent', false)
@@ -51,8 +51,6 @@ export async function POST(request: Request) {
 
     for (const schedule of schedules) {
       const subject = `[류하 학습] 오늘 할 일: ${schedule.title}`
-      const subjectName = schedule.subject?.name || '미지정'
-      const rangeName = schedule.study_range?.name || ''
       const timeInfo = schedule.start_time ? `${schedule.start_time.slice(0, 5)}` : '시간 미정'
       const typeLabel = schedule.type === 'homework' ? '학원숙제' : '자기학습'
 
@@ -62,8 +60,6 @@ export async function POST(request: Request) {
 오늘의 학습 일정을 알려드립니다.
 
 📚 제목: ${schedule.title}
-📖 과목: ${subjectName}
-${rangeName ? `📑 범위: ${rangeName}` : ''}
 ⏰ 시간: ${timeInfo}
 🏷️ 유형: ${typeLabel}
 ${schedule.description ? `\n📝 메모: ${schedule.description}` : ''}
@@ -80,17 +76,7 @@ ${schedule.description ? `\n📝 메모: ${schedule.description}` : ''}
 
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #64748b; width: 80px;">과목</td>
-        <td style="padding: 8px 0; color: #1e293b; font-weight: 500;">${subjectName}</td>
-      </tr>
-      ${rangeName ? `
-      <tr>
-        <td style="padding: 8px 0; color: #64748b;">범위</td>
-        <td style="padding: 8px 0; color: #1e293b;">${rangeName}</td>
-      </tr>
-      ` : ''}
-      <tr>
-        <td style="padding: 8px 0; color: #64748b;">시간</td>
+        <td style="padding: 8px 0; color: #64748b; width: 80px;">시간</td>
         <td style="padding: 8px 0; color: #1e293b;">${timeInfo}</td>
       </tr>
       <tr>
