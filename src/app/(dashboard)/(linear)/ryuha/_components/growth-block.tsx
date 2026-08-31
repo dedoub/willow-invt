@@ -19,13 +19,13 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
   if (sorted.length < 2) {
     return (
       <div style={{
-        height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: t.neutrals.subtle, fontSize: 'calc(12px * var(--fz, 1))',
       }}>데이터가 부족합니다 (2개 이상 필요)</div>
     )
   }
 
-  const W = 300, H = 140, PX = 30, PY = 15
+  const W = 720, H = 260, PX = 42, PY = 26
   const chartW = W - PX * 2, chartH = H - PY * 2
 
   const heights = sorted.map(r => r.height_cm).filter((v): v is number => v !== null)
@@ -53,16 +53,19 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
   }).filter(Boolean).join(' ')
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 160 }}>
+    // viewBox 비율대로 높이가 정해지게 둔다(height:auto). 고정 높이를 주면 비율이 안 맞는
+    // 만큼 좌우가 레터박스로 비어 카드 안에 흰 띠가 생긴다 — 예전 300x140 을 160px 높이에
+    // 넣어서 그랬다. display:block 은 인라인 요소의 baseline 여백을 없앤다.
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
       {/* Grid lines */}
       {[0, 0.25, 0.5, 0.75, 1].map(pct => (
         <line key={pct} x1={PX} x2={W - PX} y1={PY + chartH * (1 - pct)} y2={PY + chartH * (1 - pct)}
-          stroke={t.neutrals.line} strokeWidth={0.5} />
+          stroke={t.neutrals.line} strokeWidth={1} />
       ))}
       {/* Height line */}
-      {hPoints && <polyline points={hPoints} fill="none" stroke="#6366F1" strokeWidth={1.5} />}
+      {hPoints && <polyline points={hPoints} fill="none" stroke="#6366F1" strokeWidth={2.5} />}
       {/* Weight line */}
-      {wPoints && <polyline points={wPoints} fill="none" stroke="#F97316" strokeWidth={1.5} />}
+      {wPoints && <polyline points={wPoints} fill="none" stroke="#F97316" strokeWidth={2.5} />}
       {/* Dots */}
       {sorted.map((r, i) => {
         const x = PX + i * xStep
@@ -70,13 +73,13 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
           <g key={i}>
             {r.height_cm !== null && (
               <circle cx={x} cy={PY + chartH - ((r.height_cm - hMin) / (hMax - hMin)) * chartH}
-                r={2.5} fill="#6366F1" />
+                r={4} fill="#6366F1" />
             )}
             {r.weight_kg !== null && (
               <circle cx={x} cy={PY + chartH - ((r.weight_kg - wMin) / (wMax - wMin)) * chartH}
-                r={2.5} fill="#F97316" />
+                r={4} fill="#F97316" />
             )}
-            <text x={x} y={H - 2} textAnchor="middle" fontSize={7} fill={t.neutrals.subtle}
+            <text x={x} y={H - 5} textAnchor="middle" fontSize={11} fill={t.neutrals.subtle}
               fontFamily={t.font.mono}>
               {r.record_date.slice(5)}
             </text>
@@ -84,15 +87,15 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
         )
       })}
       {/* Y axis labels */}
-      <text x={PX - 4} y={PY + 4} textAnchor="end" fontSize={7} fill="#6366F1">{Math.round(hMax)}</text>
-      <text x={PX - 4} y={PY + chartH + 4} textAnchor="end" fontSize={7} fill="#6366F1">{Math.round(hMin)}</text>
-      <text x={W - PX + 4} y={PY + 4} textAnchor="start" fontSize={7} fill="#F97316">{Math.round(wMax)}</text>
-      <text x={W - PX + 4} y={PY + chartH + 4} textAnchor="start" fontSize={7} fill="#F97316">{Math.round(wMin)}</text>
+      <text x={PX - 6} y={PY + 5} textAnchor="end" fontSize={11} fill="#6366F1">{Math.round(hMax)}</text>
+      <text x={PX - 6} y={PY + chartH + 5} textAnchor="end" fontSize={11} fill="#6366F1">{Math.round(hMin)}</text>
+      <text x={W - PX + 6} y={PY + 5} textAnchor="start" fontSize={11} fill="#F97316">{Math.round(wMax)}</text>
+      <text x={W - PX + 6} y={PY + chartH + 5} textAnchor="start" fontSize={11} fill="#F97316">{Math.round(wMin)}</text>
       {/* Legend */}
-      <circle cx={PX} cy={6} r={3} fill="#6366F1" />
-      <text x={PX + 6} y={9} fontSize={7} fill={t.neutrals.muted}>키(cm)</text>
-      <circle cx={PX + 45} cy={6} r={3} fill="#F97316" />
-      <text x={PX + 51} y={9} fontSize={7} fill={t.neutrals.muted}>몸무게(kg)</text>
+      <circle cx={PX} cy={10} r={4} fill="#6366F1" />
+      <text x={PX + 9} y={14} fontSize={11} fill={t.neutrals.muted}>키(cm)</text>
+      <circle cx={PX + 78} cy={10} r={4} fill="#F97316" />
+      <text x={PX + 87} y={14} fontSize={11} fill={t.neutrals.muted}>몸무게(kg)</text>
     </svg>
   )
 }
@@ -154,34 +157,34 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
 
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
-        {/* Chart */}
-        <LCard>
+      {/*
+        성장기록과 측정 기록은 같은 걸 두 방식으로 보는 것이라 한 카드에 둔다(2026-08-31, CEO).
+        차트는 카드 폭을 그대로 쓰고(pad=0 + 좌우 패딩 없음), 표는 그 아래에 붙는다.
+      */}
+      <LCard pad={0}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: 4 }}>
           <LSectionHead eyebrow="GROWTH" title="성장기록" action={
-            <LHeadBtn icon="plus" label="기록" title="측정 기록 추가" onClick={() => openDialog()} />
-          } />
-          <SvgLineChart records={records} />
-        </LCard>
-
-        {/* Table */}
-        <LCard pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
-            <LSectionHead eyebrow="RECORDS" title="측정 기록" action={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
                 {records.length}건
               </span>
-            } />
-          </div>
-          {/* Header — 본문과 함께 가로 스크롤시켜야 좁은 화면에서 열이 어긋나지 않는다 */}
-          <LTableScroll minWidth={420}>
+              <LHeadBtn icon="plus" label="기록" title="측정 기록 추가" onClick={() => openDialog()} />
+            </div>
+          } />
+        </div>
+
+        <SvgLineChart records={records} />
+
+        {/* 표 — 헤더는 본문과 함께 가로 스크롤시켜야 좁은 화면에서 열이 어긋나지 않는다 */}
+        <LTableScroll minWidth={420}>
           <div style={{
             display: 'grid', gridTemplateColumns: '80px 60px 60px 1fr',
-            gap: 8, padding: '6px 14px', fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.semibold,
+            gap: 8, padding: '8px 14px 6px', fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.semibold,
             color: t.neutrals.subtle, fontFamily: t.font.mono, textTransform: 'uppercase' as const,
           }}>
             <span>날짜</span><span>키</span><span>몸무게</span><span>메모</span>
           </div>
-          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+          <div style={{ maxHeight: mobile ? 200 : 260, overflowY: 'auto' }}>
             {sorted.slice(0, 20).map(r => (
               <div key={r.id} onClick={() => openDialog(r)} style={{
                 display: 'grid', gridTemplateColumns: '80px 60px 60px 1fr',
@@ -204,9 +207,8 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               </div>
             ))}
           </div>
-          </LTableScroll>
-        </LCard>
-      </div>
+        </LTableScroll>
+      </LCard>
 
       {/* Dialog */}
       {dialogOpen && (
