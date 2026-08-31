@@ -25,7 +25,7 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
     )
   }
 
-  const W = 720, H = 260, PX = 42, PY = 26
+  const W = 520, H = 280, PX = 40, PY = 16
   const chartW = W - PX * 2, chartH = H - PY * 2
 
   const heights = sorted.map(r => r.height_cm).filter((v): v is number => v !== null)
@@ -91,11 +91,6 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
       <text x={PX - 6} y={PY + chartH + 5} textAnchor="end" fontSize={11} fill="#6366F1">{Math.round(hMin)}</text>
       <text x={W - PX + 6} y={PY + 5} textAnchor="start" fontSize={11} fill="#F97316">{Math.round(wMax)}</text>
       <text x={W - PX + 6} y={PY + chartH + 5} textAnchor="start" fontSize={11} fill="#F97316">{Math.round(wMin)}</text>
-      {/* Legend */}
-      <circle cx={PX} cy={10} r={4} fill="#6366F1" />
-      <text x={PX + 9} y={14} fontSize={11} fill={t.neutrals.muted}>키(cm)</text>
-      <circle cx={PX + 78} cy={10} r={4} fill="#F97316" />
-      <text x={PX + 87} y={14} fontSize={11} fill={t.neutrals.muted}>몸무게(kg)</text>
     </svg>
   )
 }
@@ -110,6 +105,8 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
   const sorted = useMemo(() =>
     [...records].sort((a, b) => b.record_date.localeCompare(a.record_date)),
     [records])
+  // 범례 칩에 붙일 최신 측정치 (sorted 는 최신순)
+  const latest = sorted[0] ?? null
 
   const openDialog = (record?: RyuhaBodyRecord) => {
     if (record) {
@@ -159,55 +156,114 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
     <>
       {/*
         성장기록과 측정 기록은 같은 걸 두 방식으로 보는 것이라 한 카드에 둔다(2026-08-31, CEO).
-        차트는 카드 폭을 그대로 쓰고(pad=0 + 좌우 패딩 없음), 표는 그 아래에 붙는다.
+        구조는 보이스카드 페이지와 같은 축이다 — LCard(pad 0) > 섹션 헤드 > inner 패널들.
+        PC 는 좌 차트 / 우 표, 모바일은 세로로 쌓는다.
       */}
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 4 }}>
-          <LSectionHead eyebrow="GROWTH" title="성장기록" action={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
-                {records.length}건
-              </span>
-              <LHeadBtn icon="plus" label="기록" title="측정 기록 추가" onClick={() => openDialog()} />
-            </div>
-          } />
-        </div>
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <LSectionHead
+            eyebrow="GROWTH"
+            title="성장기록"
+            mb={10}
+            action={<LHeadBtn icon="plus" label="기록" title="측정 기록 추가" onClick={() => openDialog()} />}
+          />
 
-        <SvgLineChart records={records} />
-
-        {/* 표 — 헤더는 본문과 함께 가로 스크롤시켜야 좁은 화면에서 열이 어긋나지 않는다 */}
-        <LTableScroll minWidth={420}>
           <div style={{
-            display: 'grid', gridTemplateColumns: '80px 60px 60px 1fr',
-            gap: 8, padding: '8px 14px 6px', fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.semibold,
-            color: t.neutrals.subtle, fontFamily: t.font.mono, textTransform: 'uppercase' as const,
+            display: 'grid',
+            gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
+            gap: 8, alignItems: 'stretch',
           }}>
-            <span>날짜</span><span>키</span><span>몸무게</span><span>메모</span>
-          </div>
-          <div style={{ maxHeight: mobile ? 200 : 260, overflowY: 'auto' }}>
-            {sorted.slice(0, 20).map(r => (
-              <div key={r.id} onClick={() => openDialog(r)} style={{
-                display: 'grid', gridTemplateColumns: '80px 60px 60px 1fr',
-                gap: 8, padding: '7px 14px', alignItems: 'center',
-                borderTop: `1px solid ${t.neutrals.line}`,
-                fontSize: 'calc(12px * var(--fz, 1))', cursor: 'pointer',
+            {/* 좌: 추이 */}
+            <div style={{
+              background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px',
+              height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3,
               }}>
-                <span style={{ fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>
-                  {r.record_date.slice(5)}
-                </span>
-                <span style={{ fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}>
-                  {r.height_cm ?? '-'}
-                </span>
-                <span style={{ fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}>
-                  {r.weight_kg ?? '-'}
-                </span>
-                <span style={{ color: t.neutrals.subtle, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {r.notes || ''}
+                <div style={{
+                  fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+                  textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
+                }}>
+                  성장 추이
+                </div>
+                {/* 범례는 SVG 밖 칩으로 — 최신값을 같이 읽고, 차트는 그만큼 넓게 쓴다 */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0,
+                  fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono,
+                }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+                    <span style={{ width: 10, height: 2, borderRadius: 1, background: '#6366F1' }} />
+                    키 {latest?.height_cm ?? '-'}cm
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+                    <span style={{ width: 10, height: 2, borderRadius: 1, background: '#F97316' }} />
+                    몸무게 {latest?.weight_kg ?? '-'}kg
+                  </span>
+                </div>
+              </div>
+              <SvgLineChart records={records} />
+            </div>
+
+            {/* 우: 측정 기록 */}
+            <div style={{
+              background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 0 0',
+              height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: 4, marginBottom: 6, padding: '0 10px',
+              }}>
+                <div style={{
+                  fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+                  textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
+                }}>
+                  측정 기록
+                </div>
+                <span style={{ fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                  {records.length}건
                 </span>
               </div>
-            ))}
+
+              {/* 헤더는 본문과 함께 가로 스크롤시켜야 좁은 화면에서 열이 어긋나지 않는다 */}
+              <LTableScroll minWidth={360}>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '72px 56px 56px 1fr',
+                  gap: 8, padding: '0 10px 5px', fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.semibold,
+                  color: t.neutrals.subtle, fontFamily: t.font.mono, textTransform: 'uppercase' as const,
+                }}>
+                  <span>날짜</span><span>키</span><span>몸무게</span><span>메모</span>
+                </div>
+                <div style={{ maxHeight: mobile ? 200 : 232, overflowY: 'auto' }}>
+                  {sorted.slice(0, 20).map(r => (
+                    <div key={r.id} onClick={() => openDialog(r)} style={{
+                      display: 'grid', gridTemplateColumns: '72px 56px 56px 1fr',
+                      gap: 8, padding: '6px 10px', alignItems: 'center',
+                      borderTop: `1px solid ${t.neutrals.line}`,
+                      fontSize: 'calc(11.5px * var(--fz, 1))', cursor: 'pointer',
+                    }}>
+                      <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.muted }}>
+                        {r.record_date.slice(5)}
+                      </span>
+                      <span style={{ fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}>
+                        {r.height_cm ?? '-'}
+                      </span>
+                      <span style={{ fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}>
+                        {r.weight_kg ?? '-'}
+                      </span>
+                      <span style={{ color: t.neutrals.subtle, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {r.notes || ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </LTableScroll>
+            </div>
           </div>
-        </LTableScroll>
+        </div>
       </LCard>
 
       {/* Dialog */}
