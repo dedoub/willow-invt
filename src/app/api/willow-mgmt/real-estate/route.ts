@@ -291,30 +291,31 @@ export async function GET(request: Request) {
       const complexCount = allTrackedNames.length
       const districtSet = new Set(trackedData?.map(c => c.district_name))
 
-      const oneMonthAgo = subtractCalendarMonth(currentDate)
-      // 평균 평당가는 지금까지처럼 '최근 1개월', 괴리율은 신고일 90일 창을 쓴다.
-      // 한 번에 넓게 받아 두고 아래에서 각자 자기 구간만 센다.
+      // 시세(평균 평당가)와 괴리율이 같은 신고일 90일 창을 쓴다 — 나란히 놓고 읽는 두 숫자다.
       const gapWin = gapFilingWindow(currentDate)
       // 신고일 ≈ 계약일 + 지연이라, 창 시작보다 더 이전 계약까지 받아야 창이 안 빈다.
       const tradeFetchFrom = shiftDays(gapWin.start, GAP_BACKFILL_LAG_DAYS + 30)
 
       // Fetch trades & rentals (no DB area filter — filter by supply pyeong in code).
       // These are independent of each other and of the area mapping → run in parallel.
-      const [areaMapping, recentTrades, recentRentals, { data: latestTrade }] = await Promise.all([
+      const [areaMapping, recentTrades, recentRentals, { data: latestTrade }, { data: pyeongRows }] = await Promise.all([
         getAreaMapping(),
         fetchAll(
           supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date, created_at')
-            .gte('deal_date', tradeFetchFrom < oneMonthAgo ? tradeFetchFrom : oneMonthAgo)
+            .gte('deal_date', tradeFetchFrom)
             .eq('cancel_yn', 'N').in('complex_name', complexNames)
         ),
         fetchAll(
           supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date, created_at')
-            .gte('deal_date', tradeFetchFrom < oneMonthAgo ? tradeFetchFrom : oneMonthAgo)
+            .gte('deal_date', tradeFetchFrom)
             .eq('rent_type', '전세').in('complex_name', complexNames)
         ),
         supabase
           .from('re_trades').select('deal_date').in('complex_name', complexNames).eq('cancel_yn', 'N')
           .order('deal_date', { ascending: false }).limit(1),
+        // 시세 바스켓의 고정 가중치 원본 (세대수 × 공급면적).
+        supabase.from('re_complex_pyeongs').select('complex_name, supply_sqm, household_count')
+          .in('complex_name', complexNames).gt('household_count', 0),
       ])
 
       // Use shared matchesSupplyArea for consistent filtering
@@ -326,27 +327,68 @@ export async function GET(request: Request) {
         return 60
       }
 
-      // Average PPP (supply-area based, filtered) — 지금까지와 같은 '최근 1개월' 기준.
-      let tradePppSum = 0, tradePppCount = 0
-      for (const t of recentTrades || []) {
-        if (t.deal_date < oneMonthAgo) continue
-        const sqm = Number(t.area_sqm)
-        if (sqm <= 0) continue
-        const supplyPy = getSupplyPyeong(areaMapping, t.complex_name, sqm)
-        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
-        tradePppSum += Number(t.deal_amount) / supplyPy
-        tradePppCount++
+      /*
+       * 평균 평당가 = 추적 단지의 시세 수준.
+       *
+       * 평당가는 평형이 달라도 아파트끼리 비교되게 만드는 정규화다. 그런데 그렇게 정규화해
+       * 놓고 그 달 거래를 그냥 평균 내면, 어떤 평형이 팔렸는지가 도로 값을 움직인다 —
+       * 정규화한 이유가 없어진다. 2026-08-31 실측(전체 평형): 매매 11건, 평균 24.9평이
+       * 잡히면서 11,053 → 12,802 만원/평, 한 달에 +15.8%. 시세가 그만큼 오른 게 아니다.
+       *
+       * 그래서 (단지 × 평형밴드)별 평당가 중앙값을 내고, **고정 가중치**로 합친다.
+       * 가중치는 그 칸의 총 공급면적(세대수 × 공급평, re_complex_pyeongs) — 시가총액 차트와
+       * 같은 기준이고, Σ(평당가 × 면적) / Σ면적 이라 곧 총액 ÷ 총면적이다. 거래가 어느
+       * 평형에 몰렸는지로는 움직이지 않고, 평당가 자체가 움직여야 움직인다.
+       * 같은 창으로 실측하면 10,901 → 10,981 (+0.7%).
+       *
+       * 창은 괴리율과 같은 신고일 90일이다. 두 숫자가 같은 표본을 봐야 나란히 놓고 읽을 수 있다.
+       */
+      const bandFloorArea: Record<string, number> = {}
+      for (const row of pyeongRows || []) {
+        const supplyPy = Number(row.supply_sqm) / 3.3058
+        const households = Number(row.household_count)
+        if (!(supplyPy > 0) || !(households > 0) || !matchesSupplyArea(supplyPy)) continue
+        const key = `${row.complex_name}|${getBandS(supplyPy)}`
+        bandFloorArea[key] = (bandFloorArea[key] ?? 0) + supplyPy * households
       }
-      let jeonsePppSum = 0, jeonsePppCount = 0
-      for (const r of recentRentals || []) {
-        if (r.deal_date < oneMonthAgo) continue
-        const sqm = Number(r.area_sqm)
-        if (sqm <= 0) continue
-        const supplyPy = getSupplyPyeong(areaMapping, r.complex_name, sqm)
-        if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
-        jeonsePppSum += Number(r.deposit) / supplyPy
-        jeonsePppCount++
+      const totalFloorArea = Object.values(bandFloorArea).reduce((s, v) => s + v, 0)
+
+      const bandPpp = (
+        rows: Array<Record<string, unknown>>,
+        amountKey: string,
+      ): { ppp: number; pairs: number; deals: number; coverage: number } => {
+        const byBand: Record<string, number[]> = {}
+        for (const row of rows) {
+          const filed = filingDate(row as { created_at?: string | null; deal_date: string })
+          if (filed <= gapWin.start || filed > gapWin.end) continue
+          const sqm = Number(row.area_sqm)
+          if (!(sqm > 0)) continue
+          const supplyPy = getSupplyPyeong(areaMapping, String(row.complex_name), sqm)
+          if (supplyPy <= 0 || !matchesSupplyArea(supplyPy)) continue
+          const amount = Number(row[amountKey])
+          if (!(amount > 0)) continue
+          const key = `${String(row.complex_name)}|${getBandS(supplyPy)}`
+          ;(byBand[key] ??= []).push(amount / supplyPy)
+        }
+        let num = 0, den = 0, pairs = 0, deals = 0
+        for (const [key, values] of Object.entries(byBand)) {
+          const weight = bandFloorArea[key]
+          if (!weight) continue
+          const sorted = [...values].sort((a, b) => a - b)
+          const mid = Math.floor(sorted.length / 2)
+          const med = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+          num += med * weight; den += weight; pairs++; deals += values.length
+        }
+        return {
+          ppp: den > 0 ? Math.round(num / den) : 0,
+          pairs, deals,
+          // 거래가 없어 바스켓에서 빠진 칸이 얼마나 되는지. 낮으면 그만큼 덜 대표한다.
+          coverage: totalFloorArea > 0 ? Math.round((den / totalFloorArea) * 100) : 0,
+        }
       }
+
+      const tradePpp = bandPpp((recentTrades || []) as Array<Record<string, unknown>>, 'deal_amount')
+      const jeonsePpp = bandPpp((recentRentals || []) as Array<Record<string, unknown>>, 'deposit')
 
       // Listing gaps — from daily summary table (consistent with listing-trend chart)
       // trade_type별로 최신 snapshot_date를 따로 조회해야 차트와 일치
@@ -437,8 +479,15 @@ export async function GET(request: Request) {
         summary: {
           trackedComplexes: complexCount,
           districtCount: districtSet.size,
-          avgTradePpp: tradePppCount > 0 ? Math.round(tradePppSum / tradePppCount) : 0,
-          avgJeonsePpp: jeonsePppCount > 0 ? Math.round(jeonsePppSum / jeonsePppCount) : 0,
+          avgTradePpp: tradePpp.ppp,
+          avgJeonsePpp: jeonsePpp.ppp,
+          // 시세가 무엇으로 만들어졌는지 — 바스켓 칸 수·거래 수·면적 커버율.
+          tradePppPairs: tradePpp.pairs,
+          tradePppDeals: tradePpp.deals,
+          tradePppCoverage: tradePpp.coverage,
+          jeonsePppPairs: jeonsePpp.pairs,
+          jeonsePppDeals: jeonsePpp.deals,
+          jeonsePppCoverage: jeonsePpp.coverage,
           tradeListingGap: weightedGap(tradeGaps) ?? 0,
           jeonseListingGap: weightedGap(jeonseGaps) ?? 0,
           // 괴리율이 실제로 무엇과 견줬는지 — 신고일 창과 짝·건수. 화면 툴팁이 이걸 적는다.

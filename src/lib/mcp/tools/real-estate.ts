@@ -140,18 +140,32 @@ export function registerRealEstateTools(server: McpServer) {
       // Build area mapping (exclusive → supply) for consistent PPP calculation
       const areaMap = await buildAreaMapping(supabase, complexNames)
 
-      const now = new Date()
-      const oma = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const oneMonthAgo = `${oma.getFullYear()}-${String(oma.getMonth() + 1).padStart(2, '0')}-01`
+      // 시세 창은 대시보드와 같은 '신고일 90일'. 근거 주석은 그쪽에 있다:
+      // src/app/api/willow-mgmt/real-estate/route.ts, GAP_FILING_WINDOW_DAYS.
+      const shiftDays = (date: string, days: number) => {
+        const d = new Date(`${date}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - days)
+        return d.toISOString().slice(0, 10)
+      }
+      const asOf = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
+      const pppWindowStart = shiftDays(asOf, 90)
+      const filingDate = (row: { created_at?: string | null; deal_date: string }) => {
+        const synth = shiftDays(row.deal_date, -20)
+        const created = row.created_at ? String(row.created_at).slice(0, 10) : ''
+        return created && created < synth ? created : synth
+      }
 
       const recentTrades = await fetchAll(
-        supabase.from('re_trades').select('complex_name, deal_amount, area_sqm')
-          .gte('deal_date', oneMonthAgo).eq('cancel_yn', 'N').in('complex_name', complexNames)
+        supabase.from('re_trades').select('complex_name, deal_amount, area_sqm, deal_date, created_at')
+          .gte('deal_date', shiftDays(pppWindowStart, 50)).eq('cancel_yn', 'N').in('complex_name', complexNames)
       )
       const recentRentals = await fetchAll(
-        supabase.from('re_rentals').select('complex_name, deposit, area_sqm')
-          .gte('deal_date', oneMonthAgo).eq('rent_type', '전세').in('complex_name', complexNames)
+        supabase.from('re_rentals').select('complex_name, deposit, area_sqm, deal_date, created_at')
+          .gte('deal_date', shiftDays(pppWindowStart, 50)).eq('rent_type', '전세').in('complex_name', complexNames)
       )
+      // 시세 바스켓의 고정 가중치 (세대수 × 공급면적)
+      const { data: pyeongRows } = await supabase
+        .from('re_complex_pyeongs').select('complex_name, supply_sqm, household_count')
+        .in('complex_name', complexNames).gt('household_count', 0)
       // Use per-complex latest snapshot (complexes may be scraped on different dates)
       const { data: summarySnap } = await supabase
         .from('re_naver_listings').select('snapshot_date')
@@ -175,25 +189,46 @@ export function registerRealEstateTools(server: McpServer) {
       }
       const listings = allSummaryListings.filter(l => l.snapshot_date === summaryComplexLatest[l.complex_name])
 
-      // Compute PPP averages (supply-area based)
-      let tradePppSum = 0, tradePppCount = 0
-      for (const t of recentTrades) {
-        const sqm = Number(t.area_sqm)
-        if (sqm <= 0) continue
-        const supplyPy = getSupplyPyeong(areaMap, t.complex_name, sqm)
-        if (supplyPy <= 0) continue
-        tradePppSum += Number(t.deal_amount) / supplyPy
-        tradePppCount++
+      /*
+       * 평균 평당가 = 시세. 대시보드 summary 와 같은 규칙이라야 봇이 화면과 같은 숫자를 말한다.
+       * (단지 × 평형밴드)별 중앙값을 총 공급면적으로 가중한 고정 바스켓. 그냥 평균 내면
+       * 그 달에 어떤 평형이 팔렸는지가 값을 움직인다 — 2026-08 실측 매매 11건에 +15.8%.
+       * 근거 주석은 route.ts 의 '평균 평당가 = 추적 단지의 시세 수준' 블록에 있다.
+       */
+      const bandFloorArea: Record<string, number> = {}
+      for (const row of pyeongRows || []) {
+        const supplyPy = Number(row.supply_sqm) / 3.3058
+        const households = Number(row.household_count)
+        if (!(supplyPy > 0) || !(households > 0) || supplyPy < 20) continue
+        const k = `${row.complex_name}|${getBand(supplyPy)}`
+        bandFloorArea[k] = (bandFloorArea[k] ?? 0) + supplyPy * households
       }
-      let jeonsePppSum = 0, jeonsePppCount = 0
-      for (const r of recentRentals) {
-        const sqm = Number(r.area_sqm)
-        if (sqm <= 0) continue
-        const supplyPy = getSupplyPyeong(areaMap, r.complex_name, sqm)
-        if (supplyPy <= 0) continue
-        jeonsePppSum += Number(r.deposit) / supplyPy
-        jeonsePppCount++
+      const basketPpp = (rows: Array<Record<string, unknown>>, amountKey: string): number => {
+        const byBand: Record<string, number[]> = {}
+        for (const row of rows) {
+          const filed = filingDate(row as { created_at?: string | null; deal_date: string })
+          if (filed <= pppWindowStart || filed > asOf) continue
+          const sqm = Number(row.area_sqm)
+          if (!(sqm > 0)) continue
+          const supplyPy = getSupplyPyeong(areaMap, String(row.complex_name), sqm)
+          if (supplyPy <= 0 || supplyPy < 20) continue
+          const amount = Number(row[amountKey])
+          if (!(amount > 0)) continue
+          ;(byBand[`${String(row.complex_name)}|${getBand(supplyPy)}`] ??= []).push(amount / supplyPy)
+        }
+        let num = 0, den = 0
+        for (const [k, values] of Object.entries(byBand)) {
+          const w = bandFloorArea[k]
+          if (!w) continue
+          const sorted = [...values].sort((a, b) => a - b)
+          const mid = Math.floor(sorted.length / 2)
+          num += (sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2) * w
+          den += w
+        }
+        return den > 0 ? Math.round(num / den) : 0
       }
+      const avgTradePppValue = basketPpp(recentTrades as Array<Record<string, unknown>>, 'deal_amount')
+      const avgJeonsePppValue = basketPpp(recentRentals as Array<Record<string, unknown>>, 'deposit')
 
       // Listing gaps — grouped by complex+평형대 (matching dashboard logic)
       type BandKey = string
@@ -249,8 +284,9 @@ export function registerRealEstateTools(server: McpServer) {
       const summary = {
         trackedComplexes: complexNames.length,
         districts: [...new Set(trackedData?.map(c => c.district_name))],
-        avgTradePpp: tradePppCount > 0 ? Math.round(tradePppSum / tradePppCount) : 0,
-        avgJeonsePpp: jeonsePppCount > 0 ? Math.round(jeonsePppSum / jeonsePppCount) : 0,
+        avgTradePpp: avgTradePppValue,
+        avgJeonsePpp: avgJeonsePppValue,
+        pppBasis: '(단지×평형밴드) 평당가 중앙값을 총 공급면적으로 가중한 고정 바스켓, 신고일 최근 90일',
         tradeListingGap: tradeGaps.length ? Math.round(tradeGaps.reduce((s, v) => s + v, 0) / tradeGaps.length * 10) / 10 : 0,
         jeonseListingGap: jeonseGaps.length ? Math.round(jeonseGaps.reduce((s, v) => s + v, 0) / jeonseGaps.length * 10) / 10 : 0,
         totalTradeListings: listings.filter(l => l.trade_type === '매매').length,
