@@ -91,6 +91,8 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 - 첫 배치(08-27): ~~`/en/pricing`~~·~~`/de`~~ 요청 완료. `/en/privacy`·`/en/terms`는 수동 요청에서 제외한다.
 - 08-28: `/en/guides`·`/en/samples` 요청 완료.
 - 08-29: `/en/templates`·`/en/guides/academic-writing` 요청 완료.
+- 08-30: `/en/guides/business-writing`·`/en/guides/choose-text-and-language-pair` 요청 완료.
+- 09-01: `/en/guides/exam-writing`·`/en/guides/grading-hints-and-passing` 요청 완료.
 - 다음 후보: `/ko`·`/ja`·`/es`·`/fr`·`/it` 등 미색인 로케일 루트 → 각 로케일 `/pricing`. `/privacy`·`/terms`는 계속 제외.
 
 ### Portle 초기 대기열 (2026-08-20 추가)
@@ -125,6 +127,9 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 08-28에 `/ja/guides`·`/ko/guides`·`/ja/guides/long-term-investing-rules` 요청 완료.
 08-29에 `/guides/broker-api-to-google-sheet`·`/ja/guides/stock-sale-tax-estimate`·
 `/ko/guides/long-term-investing-rules` 요청 완료.
+08-30에 `/ko/guides/duplicate-missing-trade-checks`·`/ko/guides/stock-sale-tax-estimate`·
+`/ko/guides/currency-impact-on-investment-return` 요청 완료.
+09-01에 신규 Bridge 수요 조사 페이지 `/bridge`·`/ja/bridge`·`/ko/bridge` 요청 완료.
 Portle 권한은 08-21에 붙었고 GSC URL Inspection 요청까지 검증됐다.
 
 ### 보이스카드 독일어권 (신규 클러스터, 최우선)
@@ -165,6 +170,11 @@ Discovered·Duplicate). 원본 우선 규칙을 지킬 대상이 더 없으므�
 
 08-29에는 최근 요청인 영어 원본 2건을 제외하고 `/de/practice/grade-4-large-numbers`·
 `/de/practice/grade-5-number-operations`·`/es/practice/grade-4-bar-graph`를 요청 완료했다.
+08-30에는 신규 영어 가이드 `/en/guides/ai-credits-explained`·
+`/en/guides/import-problems-from-pdf-and-images`·`/en/guides/multiple-study-plans`를 요청 완료했다.
+09-01에는 `/en/practice/grade-4-large-numbers`·`/en/guides/schedule-scope-explained`·
+`/es/practice/pythagorean` 요청 완료. `/en/practice/grade-5-number-operations`는 GSC 제출 오류로
+실패해 대기열에 유지한다.
 
 > 브리프가 낸 후보를 그대로 태우면 안 되는 경우가 있다. 08-09 브리프는
 > `/en/practice/grade-4-large-numbers`·`grade-5-number-operations`·`/en/templates/mistake-notebook`을
@@ -233,6 +243,10 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 08-20에 `/de/privacy`, `/es/methods`, `/fr/voice-flashcard-apps`, `/it/faq`,
 `/ja/voice-flashcard-apps` 요청 완료.
 08-29에 `/ru/language-learning`·`/vi/language-learning` 요청 완료.
+08-30에 `/ja/language-learning`·`/zh/voice-flashcard-apps`·`/de/exam-prep` 요청 완료.
+09-01에 신규 Ham Radio 허브·콘텐츠 `/templates/ham-radio-technician`·
+`/templates/ham-radio-technician-circuits-signals-2026-2030`·
+`/templates/ham-radio-technician-electrical-components-2026-2030` 요청 완료.
 남은 것: `/uk/voice-flashcard-apps`.
 
 ### 리뷰노트 로케일 허브 (08-15 소진)
@@ -302,6 +316,8 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 | 08-27 | VC 3: `/fr/memorization`·`/it/voice-flashcard-apps`·`/ja/memorization` · RN 3: `/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`·`/de/practice/grade-4-bar-graph` · Portle 3: `/guides/duplicate-missing-trade-checks`·`/ja/faq`·`/ko/faq` · Scripta 2: `/en/pricing`·`/de` | ✅ 11건 전부 요청 완료, quota 초과 없음. 18:15~18:32 KST. Scripta 첫 배치. 디스패처 상한 15분에 codex가 잘려 보고·문서 갱신만 사라졌다 — 10건은 실행 로그의 `Indexing requested` 확인분이고, 마지막 `/de`는 18:32 크롤(아침 스냅샷 unknown → Crawled)로 확인해 재요청하지 않았다. 상한은 60분으로 올렸다. Scripta 08-27 첫 스냅샷(52쪽, 색인 5)에서 `/en/pricing`·`/de`를 골랐고 `/privacy`·`/terms`는 제외 |
 | 08-28 | VC 3: `/pt/voice-flashcard-apps`·`/ru/faq`·`/zh/language-learning` · RN 3: `/de/practice/grade-4-2-polygons`·`/de/practice/grade-4-angles`·`/de/practice/linear-function` · Portle 3: `/ja/guides`·`/ko/guides`·`/ja/guides/long-term-investing-rules` · Scripta 2: `/en/guides`·`/en/samples` | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 20:18~20:25 KST. 당일 스냅샷이 없던 Portle·Scripta를 수동 생성하고, 브리프에 재등장한 RN 08-27 요청분 2건을 제외해 대체 후보로 실행. 08-27 요청분 신규 색인 VC 2건·RN 1건·Portle 3건·Scripta 2건, 미색인 VC 1건·RN 2건 |
 | 08-29 | VC 3: `/templates/korean-english`·`/ru/language-learning`·`/vi/language-learning` · RN 3: `/de/practice/grade-4-large-numbers`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-4-bar-graph` · Portle 3: `/guides/broker-api-to-google-sheet`·`/ja/guides/stock-sale-tax-estimate`·`/ko/guides/long-term-investing-rules` · Scripta 2: `/en/templates`·`/en/guides/academic-writing` | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 21:18~21:29 KST. VC 브리프 상위 2건은 GSC 검사 시 이미 색인돼 제외하고 다음 후보로 교체. RN 08-27 최근 요청 2건도 제외. 08-28 요청분은 VC 3건·RN 3건·Portle 3건·Scripta 2건 전부 신규 색인 확인 |
+| 08-30 | VC 3: `/ja/language-learning`·`/zh/voice-flashcard-apps`·`/de/exam-prep` · RN 3: `/en/guides/ai-credits-explained`·`/en/guides/import-problems-from-pdf-and-images`·`/en/guides/multiple-study-plans` · Portle 3: `/ko/guides/duplicate-missing-trade-checks`·`/ko/guides/stock-sale-tax-estimate`·`/ko/guides/currency-impact-on-investment-return` · Scripta 2: `/en/guides/business-writing`·`/en/guides/choose-text-and-language-pair` | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 23:18~23:24 KST. 08-29 요청분 신규 색인 VC 2건·RN 0건·Portle 3건·Scripta 1건, 미색인 VC 1건·RN 3건·Portle 0건·Scripta 1건 |
+| 09-01 | VC 3: `/templates/ham-radio-technician`·`/templates/ham-radio-technician-circuits-signals-2026-2030`·`/templates/ham-radio-technician-electrical-components-2026-2030` · RN 4 시도: `/en/practice/grade-4-large-numbers`·`/en/guides/schedule-scope-explained`·`/en/practice/grade-5-number-operations`(제출 오류)·`/es/practice/pythagorean` · Portle 3: `/bridge`·`/ja/bridge`·`/ko/bridge` · Scripta 2: `/en/guides/exam-writing`·`/en/guides/grading-hints-and-passing` | ✅ 11건 `Indexing requested`, 제출 오류 1건, quota 초과 없음. 00:24~00:33 KST. 09-01 당일 스냅샷 수동 생성 후 실행. RN `/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`는 08-27 요청 후 7일 이내 재시도. 08-30 요청분은 10건 색인, RN `/en/guides/ai-credits-explained` 1건 미색인(Duplicate without user-selected canonical) |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ### 08-07 배치 결과 (08-08 스냅샷)
@@ -513,6 +529,8 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 08-27 | VC 3(`/fr/memorization`·`/it/voice-flashcard-apps`·`/ja/memorization`) + RN 3(`/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`·`/de/practice/grade-4-bar-graph`) + Portle 3(`/guides/duplicate-missing-trade-checks`·`/ja/faq`·`/ko/faq`) + Scripta 2(`/en/pricing`·`/de`) | ✅ 11건 전부 요청 완료, quota 초과 없음. 18:15~18:32 KST. Scripta 첫 배치. 디스패처 상한 15분에 codex가 잘려 보고·문서 갱신만 사라졌다 — 10건은 실행 로그의 `Indexing requested` 확인분이고, 마지막 `/de`는 18:32 크롤(아침 스냅샷 unknown → Crawled)로 확인해 재요청하지 않았다. 상한은 60분으로 올렸다 | 08-26은 성공 0건이라 추적할 전일 요청분이 없다. 08-25 요청분 잔여 4건은 08-27 스냅샷에서도 미색인: VC `/pt/faq`(Crawled - currently not indexed), RN `/es/practice/grade-4-2-line-graphs`·`/es/practice/grade-4-multiplication`(Duplicate without user-selected canonical)·`/fr/practice/grade-4-large-numbers`(Discovered) |
 | 08-28 | VC 3(`/pt/voice-flashcard-apps`·`/ru/faq`·`/zh/language-learning`) + RN 3(`/de/practice/grade-4-2-polygons`·`/de/practice/grade-4-angles`·`/de/practice/linear-function`) + Portle 3(`/ja/guides`·`/ko/guides`·`/ja/guides/long-term-investing-rules`) + Scripta 2(`/en/guides`·`/en/samples`) | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 20:18~20:25 KST. Portle·Scripta 08-28 스냅샷 수동 생성 후 실행. RN 브리프의 08-27 요청분 2건은 제외하고 대체 후보 사용 | 08-27 요청분 신규 색인: VC `/fr/memorization`·`/it/voice-flashcard-apps`, RN `/de/practice/grade-4-bar-graph`, Portle `/guides/duplicate-missing-trade-checks`·`/ja/faq`·`/ko/faq`, Scripta `/en/pricing`·`/de`. 미색인: VC `/ja/memorization`(Crawled), RN `/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`(Discovered) |
 | 08-29 | VC 3(`/templates/korean-english`·`/ru/language-learning`·`/vi/language-learning`) + RN 3(`/de/practice/grade-4-large-numbers`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-4-bar-graph`) + Portle 3(`/guides/broker-api-to-google-sheet`·`/ja/guides/stock-sale-tax-estimate`·`/ko/guides/long-term-investing-rules`) + Scripta 2(`/en/templates`·`/en/guides/academic-writing`) | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 21:18~21:29 KST. VC 브리프 상위 2건은 GSC 검사 시 이미 색인돼 제외하고 다음 후보로 교체. RN 08-27 최근 요청 2건도 제외 | 08-28 요청분 신규 색인: VC `/pt/voice-flashcard-apps`·`/ru/faq`·`/zh/language-learning`, RN `/de/practice/grade-4-2-polygons`·`/de/practice/grade-4-angles`·`/de/practice/linear-function`, Portle `/ja/guides`·`/ko/guides`·`/ja/guides/long-term-investing-rules`, Scripta `/en/guides`·`/en/samples`. 미색인 0건 |
+| 08-30 | VC 3(`/ja/language-learning`·`/zh/voice-flashcard-apps`·`/de/exam-prep`) + RN 3(`/en/guides/ai-credits-explained`·`/en/guides/import-problems-from-pdf-and-images`·`/en/guides/multiple-study-plans`) + Portle 3(`/ko/guides/duplicate-missing-trade-checks`·`/ko/guides/stock-sale-tax-estimate`·`/ko/guides/currency-impact-on-investment-return`) + Scripta 2(`/en/guides/business-writing`·`/en/guides/choose-text-and-language-pair`) | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 23:18~23:24 KST | 08-29 요청분 신규 색인: VC `/templates/korean-english`·`/vi/language-learning`, RN 0건, Portle `/guides/broker-api-to-google-sheet`·`/ja/guides/stock-sale-tax-estimate`·`/ko/guides/long-term-investing-rules`, Scripta `/en/templates`. 미색인: VC `/ru/language-learning`(Crawled), RN `/de/practice/grade-4-large-numbers`·`/de/practice/grade-5-number-operations`(Discovered)·`/es/practice/grade-4-bar-graph`(Crawled), Portle 0건, Scripta `/en/guides/academic-writing`(Crawled) |
+| 09-01 | VC 3(`/templates/ham-radio-technician`·`/templates/ham-radio-technician-circuits-signals-2026-2030`·`/templates/ham-radio-technician-electrical-components-2026-2030`) + RN 4 시도(`/en/practice/grade-4-large-numbers`·`/en/guides/schedule-scope-explained`·`/en/practice/grade-5-number-operations` 실패·`/es/practice/pythagorean`) + Portle 3(`/bridge`·`/ja/bridge`·`/ko/bridge`) + Scripta 2(`/en/guides/exam-writing`·`/en/guides/grading-hints-and-passing`) | ✅ 성공 11건, 실패 1건(`We had a problem submitting your indexing request`), quota 초과 없음. 00:24~00:33 KST. 당일 스냅샷 수동 생성 후 실행. RN 2건은 08-27 요청 후 7일 이내 재시도 | 08-30 요청분 신규 색인: VC `/ja/language-learning`·`/zh/voice-flashcard-apps`·`/de/exam-prep`, RN `/en/guides/import-problems-from-pdf-and-images`·`/en/guides/multiple-study-plans`, Portle `/ko/guides/duplicate-missing-trade-checks`·`/ko/guides/stock-sale-tax-estimate`·`/ko/guides/currency-impact-on-investment-return`, Scripta `/en/guides/business-writing`·`/en/guides/choose-text-and-language-pair`. 미색인: RN `/en/guides/ai-credits-explained`(Duplicate without user-selected canonical) |
 
 ### 노출은 느는데 클릭이 안 는다 (2026-08-11 측정)
 

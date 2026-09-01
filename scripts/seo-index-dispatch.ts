@@ -5,6 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { scheduledReportChatId } from './lib/scheduled-report-policy'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SOURCE = 'scheduled:gsc-indexing'
@@ -106,8 +107,7 @@ async function main() {
     return
   }
 
-  // 일요일에도 작업은 실행하되 sunday_no_message 정책에 따라 텔레그램 결과 전송은 생략한다.
-  const sourceChatId = weekday === 'Sun' ? null : defaultChatId
+  const sourceChatId = scheduledReportChatId(defaultChatId, weekday)
   const instruction = `docs/seo-indexing-plan.md의 실행 프로토콜에 따라 오늘(${date}, KST) VoiceCards, ReviewNotes, Portle, Scripta GSC 색인 요청 배치를 실제로 실행하세요.
 
 필수 절차:
@@ -138,7 +138,7 @@ async function main() {
 - 없음 | <수치와 URL만 포함한 이상 항목>`
 
   if (process.env.SEO_INDEX_DISPATCH_DRY_RUN === '1') {
-    console.log(`GSC 색인 스케줄 점검: ${date} 등록 가능 · 다음 간격 25시간${sourceChatId ? '' : ' (일요일 무알림)'}`)
+    console.log(`GSC 색인 스케줄 점검: ${date} 등록 가능 · 다음 간격 25시간`)
     return
   }
 
@@ -155,7 +155,7 @@ async function main() {
     }),
   })
   saveScheduleState({ lastRunAt: now.toISOString(), nextRunAt: new Date(now.getTime() + INTERVAL_MS).toISOString() })
-  console.log(`GSC 색인 스케줄: ${date} 명령 등록 완료${sourceChatId ? '' : ' (일요일 무알림)'}`)
+  console.log(`GSC 색인 스케줄: ${date} 명령 등록 완료`)
 }
 
 main().catch(error => {

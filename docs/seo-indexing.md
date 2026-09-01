@@ -216,6 +216,8 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 | 2026-08-27 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 18:15~18:32 KST. Scripta 첫 배치(`/en/pricing`·`/de`). 디스패처가 15분 상한에 잘려 codex는 보고를 못 냈고, 10건 성공은 실행 로그로, `/de`는 18:32 크롤(스냅샷 시점 unknown → Crawled)로 확인. 08-25 요청분 잔여 4건은 여전히 미색인(VC `/pt/faq` Crawled, RN 3건 Duplicate·Discovered) |
 | 2026-08-28 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 20:18~20:25 KST. Portle·Scripta 당일 스냅샷 수동 생성 후 최근 요청·색인 URL을 제외해 실행. 08-27 요청분 신규 색인 VC 2건·RN 1건·Portle 3건·Scripta 2건, 미색인 VC 1건·RN 2건 |
 | 2026-08-29 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 21:18~21:29 KST. VC 브리프 상위 2건은 GSC 검사 시 이미 색인돼 제외하고 다음 후보로 교체했으며 RN 08-27 최근 요청 2건도 제외. 08-28 요청분 VC 3건·RN 3건·Portle 3건·Scripta 2건 전부 신규 색인 확인, 미색인 0건 |
+| 2026-08-30 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 11건 모두 priority crawl queue 등록 확인. Quota Exceeded 없음. 23:18~23:24 KST. 08-29 요청분 신규 색인 VC 2건·RN 0건·Portle 3건·Scripta 1건, 미색인 VC 1건·RN 3건·Portle 0건·Scripta 1건 |
+| 2026-09-01 | 보이스카드 3건, 리뷰노트 4건 시도, Portle 3건, Scripta 2건 색인 요청 | 성공 11건, 실패 1건(RN `/en/practice/grade-5-number-operations` GSC 제출 오류), Quota Exceeded 없음. 00:24~00:33 KST. 네 서비스 당일 스냅샷 수동 생성 후 실행. RN `/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`는 08-27 요청 후 7일 이내 재시도. 08-30 요청분 신규 색인 VC 3건·RN 2건·Portle 3건·Scripta 2건, 미색인 RN 1건(`/en/guides/ai-credits-explained`, Duplicate without user-selected canonical) |
 
 색인 요청한 URL:
 
