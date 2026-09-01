@@ -128,13 +128,14 @@ export async function getReviewNotesTrafficStats(): Promise<ReviewNotesTrafficSt
       .map(r => ({ userId: r.user_id, paidAt: r.paid_at })),
     mrrHistory: ((mrrHistRes.data ?? []) as Array<{ date: string; mrr: number; active_subs: number }>)
       .map(r => ({ date: r.date, mrr: Number(r.mrr) || 0, activeSubs: Number(r.active_subs) || 0 })),
-    dailyActive: ((dailyActiveRes.data ?? []) as Array<{ date: string; active: number; new_users: number; member: number; anon: number }>)
+    dailyActive: ((dailyActiveRes.data ?? []) as Array<{ date: string; active: number; new_users: number; member: number; anon: number; active30: number }>)
       .map(r => ({
         date: r.date,
         active: Number(r.active) || 0,
         newUsers: Number(r.new_users) || 0,
         member: Number(r.member) || 0,
         anon: Number(r.anon) || 0,
+        active30: Number(r.active30) || 0,
       })),
     memberReferrers: stats.memberReferrers ?? [],
     memberCountries: stats.memberCountries ?? [],

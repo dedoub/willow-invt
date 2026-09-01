@@ -102,8 +102,10 @@ export interface ReviewNotesTrafficStats {
   // 일별 회원 로그인 — 하루에 유저당 1회만 카운트 (연인원 집계용)
   dailyLogins: Array<{ date: string; users: number }>
   // 일별 활동 사용자 — 회원(기존 가입자)/신규(그날 가입) 분리 (일별 활동자 차트용)
-  /** anon은 비로그인 세션 수 — 로그인 활동자(active)와 세는 단위가 달라 합산하지 않는다 */
-  dailyActive: Array<{ date: string; active: number; newUsers: number; member: number; anon: number }>
+  /** anon은 비로그인 세션 수 — 로그인 활동자(active)와 세는 단위가 달라 합산하지 않는다.
+   *  active30 = 그날을 포함한 직전 30일 순 활동 회원(MAU). active를 30일 더한 값이 아니라
+   *  창 안에서 distinct로 다시 센 값이다 — 여러 날 온 사람이 겹쳐 잡히면 MAU가 부풀려진다. */
+  dailyActive: Array<{ date: string; active: number; newUsers: number; member: number; anon: number; active30: number }>
   topReferrers: Array<{ referrer: string; count: number }>
   topCountries: Array<{ country: string; count: number }>
   // 기기 분포 (mobile/tablet/desktop, 방문자 기준) — 2026-07-15부터 수집, 이전 방문은 unknown

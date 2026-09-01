@@ -11,6 +11,9 @@
 -- 사용자 테이블에는 그대로 보이고(관리자 배지) 숫자에서만 빠진다 — 리뷰노트와 같은 규칙.
 -- TS 쪽 동일 목록: src/lib/scripta-types.ts 의 SC_EXCLUDED_EMAILS — 두 곳이 항상 일치해야 함.
 --
+-- 2026-09-01: dailyActive에 날짜 축을 채우고 active30(롤링 30일 순 활동자 = MAU)을 추가.
+--   MAU·ARPMAU 추이선이 날짜별 분모를 필요로 한다. 반환은 jsonb라 시그니처는 그대로다.
+--
 -- 리뷰노트와 다른 점: Scripta는 랜딩 트래픽(PageView)·결제 원장이 아직 없다.
 -- 그래서 퍼널은 방문이 아니라 가입에서 시작하고, 활성화는 "글 등록", 그 다음
 -- 단계는 "연습 시작"이다. 트래픽이 붙으면 앞단에 방문·유입을 덧대면 된다.
@@ -82,13 +85,33 @@ activity as (
   ) x where x.user_id not in (select sc__admin_ids())
 ),
 signup as (select id, (created_at at time zone 'Asia/Seoul')::date as d from auth.users),
+act_day as (select distinct user_id, d from activity),
+-- 날짜 축을 채운다. 활동이 있은 날만 내보내면 조용한 날이 통째로 빠져서 (1) 차트 막대가
+-- 연속된 날인 척 붙어 서고 (2) DAU 평균의 분모가 실제보다 작아져 부풀려진다.
+sc_axis as (
+  select generate_series(
+    coalesce((select min(d) from act_day), (now() at time zone 'Asia/Seoul')::date),
+    (now() at time zone 'Asia/Seoul')::date,
+    interval '1 day'
+  )::date as d
+),
 daily_active as (
-  select act.d,
-         count(*)::int as active,
-         count(*) filter (where s.d = act.d)::int as new_users
-  from (select distinct user_id, d from activity) act
-  left join signup s on s.id = act.user_id
-  group by act.d
+  select ax.d,
+         coalesce(cnt.active, 0) as active,
+         coalesce(cnt.new_users, 0) as new_users,
+         -- 롤링 30일 순 활동자(MAU) — 그날을 포함한 직전 30일 창의 distinct user_id.
+         -- 일별 active를 30일 더하면 여러 날 온 사람이 겹쳐 잡혀 MAU가 부풀려진다.
+         (select count(distinct a.user_id)::int from act_day a
+           where a.d > ax.d - 30 and a.d <= ax.d) as active30
+  from sc_axis ax
+  left join (
+    select act.d,
+           count(*)::int as active,
+           count(*) filter (where s.d = act.d)::int as new_users
+    from act_day act
+    left join signup s on s.id = act.user_id
+    group by act.d
+  ) cnt on cnt.d = ax.d
 )
 select jsonb_build_object(
   'users', sc__metric(array(select (created_at at time zone 'Asia/Seoul')::date from auth.users
@@ -172,7 +195,8 @@ select jsonb_build_object(
   'dailyActive', coalesce((
     select jsonb_agg(jsonb_build_object(
       'date', to_char(d, 'YYYY-MM-DD'), 'active', active,
-      'newUsers', new_users, 'member', active - new_users) order by d)
+      'newUsers', new_users, 'member', active - new_users,
+      'active30', active30) order by d)
     from daily_active), '[]'::jsonb)
 )
 $$;

@@ -257,10 +257,21 @@ export interface CreditSalesStats {
   monthOrders: number
   /** 구매한 고객 수 (이메일 기준 distinct) */
   buyers: number
+  /** 판매한 크레딧 누적 — 변형 이름의 팩 크기 합 */
+  creditsSold: number
+  monthCreditsSold: number
   /** 팩별 판매 — 변형(40/440/2,300/4,800 크레딧) 단위 */
-  byVariant: Array<{ variant: string; orders: number; revenueUsd: number }>
+  byVariant: Array<{ variant: string; credits: number; orders: number; revenueUsd: number }>
   /** 일별 매출 (KST) — 스파크라인용 */
-  daily: Array<{ date: string; orders: number; revenueUsd: number }>
+  daily: Array<{ date: string; orders: number; revenueUsd: number; credits: number }>
+}
+
+// 변형 이름이 팩 크기를 담고 있다 — "230 Credits", "1,200 Credits", "40 Credits · Trial".
+// 앞머리 숫자를 크레딧으로 읽으면 팩을 새로 만들어도 이름 꼴만 같으면 자동으로 잡힌다.
+// 못 읽으면 0으로 둔다 — 크레딧 수량만 모르는 것이지 매출은 그대로 센다.
+function variantCredits(variantName: string): number {
+  const m = variantName.replace(/,/g, '').match(/(\d+)\s*credits?/i)
+  return m ? Number(m[1]) : 0
 }
 
 export async function getCreditSalesStats(
@@ -282,17 +293,19 @@ export async function getCreditSalesStats(
   const paid = orders.filter(o => o.attributes.status === 'paid')
   const monthPaid = paid.filter(o => kstDateKey(o.attributes.created_at) >= monthStartKst)
 
-  const byVariant = new Map<string, { variant: string; orders: number; revenueUsd: number }>()
-  const daily = new Map<string, { date: string; orders: number; revenueUsd: number }>()
+  const byVariant = new Map<string, { variant: string; credits: number; orders: number; revenueUsd: number }>()
+  const daily = new Map<string, { date: string; orders: number; revenueUsd: number; credits: number }>()
+  const creditsOf = (o: typeof paid[number]) => variantCredits(o.attributes.first_order_item?.variant_name || '')
   for (const o of paid) {
     const variant = o.attributes.first_order_item?.variant_name || '기본'
-    const v = byVariant.get(variant) ?? { variant, orders: 0, revenueUsd: 0 }
-    v.orders++; v.revenueUsd += o.attributes.total_usd
+    const credits = creditsOf(o)
+    const v = byVariant.get(variant) ?? { variant, credits: 0, orders: 0, revenueUsd: 0 }
+    v.orders++; v.revenueUsd += o.attributes.total_usd; v.credits += credits
     byVariant.set(variant, v)
 
     const day = kstDateKey(o.attributes.created_at)
-    const d = daily.get(day) ?? { date: day, orders: 0, revenueUsd: 0 }
-    d.orders++; d.revenueUsd += o.attributes.total_usd
+    const d = daily.get(day) ?? { date: day, orders: 0, revenueUsd: 0, credits: 0 }
+    d.orders++; d.revenueUsd += o.attributes.total_usd; d.credits += credits
     daily.set(day, d)
   }
 
@@ -304,6 +317,8 @@ export async function getCreditSalesStats(
     monthRevenueUsd: monthPaid.reduce((sum, o) => sum + o.attributes.total_usd, 0),
     monthOrders: monthPaid.length,
     buyers: new Set(paid.map(o => o.attributes.user_email)).size,
+    creditsSold: paid.reduce((sum, o) => sum + creditsOf(o), 0),
+    monthCreditsSold: monthPaid.reduce((sum, o) => sum + creditsOf(o), 0),
     byVariant: Array.from(byVariant.values()).sort((a, b) => b.revenueUsd - a.revenueUsd),
     daily: Array.from(daily.values()).sort((a, b) => a.date.localeCompare(b.date)),
   }

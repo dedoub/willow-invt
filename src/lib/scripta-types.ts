@@ -104,8 +104,9 @@ export interface ScriptaStats {
   activation: Array<{ userId: string; at: string }>
   /** 연습 시작 = 첫 연습 시도 시각 */
   practiceStart: Array<{ userId: string; at: string }>
-  /** 일별 활동자 — 활동 = 글 등록·연습·크레딧 사용 (비로그인 트래킹 없음) */
-  dailyActive: Array<{ date: string; active: number; newUsers: number; member: number }>
+  /** 일별 활동자 — 활동 = 글 등록·연습·크레딧 사용 (비로그인 트래킹 없음). 날짜 축은 조용한
+   *  날까지 채워져 있다. active30 = 그날 포함 직전 30일 순 활동자(MAU) — 창 안에서 distinct. */
+  dailyActive: Array<{ date: string; active: number; newUsers: number; member: number; active30: number }>
 }
 
 export interface ScriptaPayload {

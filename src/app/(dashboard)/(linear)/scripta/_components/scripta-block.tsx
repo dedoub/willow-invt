@@ -53,6 +53,11 @@ function formatUsd(cents: number): string {
   }).format(cents / 100)
 }
 
+// ARPMAU는 보통 1달러 미만이라 formatUsd(정수 달러)로 내면 전부 $0이 된다 — 센트까지 낸다.
+function fmtArpu(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`
+}
+
 // 전환율 계산 + 값 뒤 주황 보조라벨 (리뷰노트·보이스카드 퍼널 문법)
 const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
@@ -431,12 +436,49 @@ export function ScriptaBlock({
 
         const activationDaily = toDaily(stats.activation)
         const practiceDaily = toDaily(stats.practiceStart)
-        const spent = stats.credits.dailySpent
 
         const attemptsTotal = stats.attempts.total
         const passRate = rate(stats.practice.passed, attemptsTotal)
 
         const subOf = (m: ScMetric, unit: string) => `오늘 ${m.today.toLocaleString()}${unit} · 7일 ${m.d7.toLocaleString()}${unit}`
+
+        // 판매 크레딧 — 팩 크기(주문의 변형 이름)를 합산한 값. 앱 원장의 purchased 와 같은
+        // 사건을 다른 쪽에서 센 것이라 둘이 벌어지면 웹훅이 크레딧을 못 넣은 것이다.
+        const salesDaily = sales?.daily ?? []
+        const creditsSoldSpark = cumOf(salesDaily.map(d => ({ date: d.date, n: d.credits })), win)
+
+        // MAU / DAU / ARPMAU — 크레딧 팩 단건 결제라 MRR이 없다. 사용자당 매출은 30일 창으로 잰다.
+        // MAU 는 RPC(sc_dashboard_stats)의 active30 — 그날 포함 직전 30일 순 활동자다.
+        // 일별 활동자를 30일 더하면 여러 날 온 사람이 겹쳐 잡혀 부풀고, users.lastActivity 로
+        // 세면 '마지막' 활동만 남아 과거 시점의 MAU 를 복원할 수 없다 — 점선이 날짜별 ARPMAU 를
+        // 그리려면 분모도 날짜별로 있어야 한다.
+        const activeRows = stats.dailyActive ?? []
+        const mau = activeRows.length ? activeRows[activeRows.length - 1].active30 : 0
+        // DAU — 오늘은 아직 안 끝난 하루라 빼고 직전 30일 평균. 날짜 축은 RPC 에서 조용한
+        // 날까지 채워 보내므로(sc_axis) 여기서 달력 보정을 따로 하지 않는다.
+        const todayActiveKey = kstToday()
+        const dauRows = activeRows.filter(r => r.date < todayActiveKey).slice(-30)
+        const avgDau = dauRows.length
+          ? Math.round(dauRows.reduce((sum, r) => sum + r.active, 0) / dauRows.length)
+          : 0
+        const stickiness = rate(avgDau, mau)
+        // ARPMAU — 최근 30일 매출 ÷ MAU. 분자·분모를 같은 30일 창에 맞춘다. 누적 매출을
+        // 30일 활동자로 나누면 서로 다른 기간을 나눈 수가 되어 뜻이 없다.
+        const mauFromKey = kstDaysAgo(29)
+        const revenueByDay = new Map(salesDaily.map(d => [d.date, d.revenueUsd]))
+        const revenue30 = salesDaily
+          .filter(d => d.date >= mauFromKey)
+          .reduce((sum, d) => sum + d.revenueUsd, 0)
+        const arpmau = mau > 0 ? revenue30 / mau : 0
+        // ARPMAU 추이(점선) — 날짜마다 "그날까지 최근 30일 매출 ÷ 그날의 MAU". 분자도 30일
+        // 창으로 굴린다. 누적 매출을 그날 MAU 로 나누면 시간이 갈수록 기계적으로 올라가는
+        // 선이 되어 최근 결제가 붙었는지 알 수 없다.
+        const mauSpark = activeRows.map(r => ({ date: r.date, value: r.active30 }))
+        const arpmauSpark = activeRows.map((r, i) => {
+          const w = activeRows.slice(Math.max(0, i - 29), i + 1)
+          const rev = w.reduce((sum, x) => sum + (revenueByDay.get(x.date) ?? 0), 0)
+          return { date: r.date, value: r.active30 > 0 ? rev / r.active30 / 100 : 0 }
+        })
 
         return (
           <div>
@@ -482,49 +524,56 @@ export function ScriptaBlock({
               ) : undefined}
               sparkline={mobile ? undefined : cumOf(stats.attempts.daily, win)}
             />
+            {/* 팔린 크레딧과 그 대금은 같은 주문에서 나오는 한 사건이라 카드를 가르면 같은 걸
+                두 번 읽게 된다 — 수량을 머리값, 금액을 그 옆에 붙인다 (보이스카드 '판매 크레딧'
+                과 같은 문법). 정본은 LemonSqueezy 주문이고, 앱이 크레딧을 실제로 넣었는지는
+                원장(purchased)으로 대조한다 — 둘이 벌어지면 웹훅 문제다. */}
             <LStat
-              label="크레딧 소진"
-              title="구조 생성·채점·필기 인식으로 차감된 크레딧 누적 (실패 환불 전 총 차감)."
-              value={stats.credits.spent.toLocaleString()}
-              valueExtra={stats.credits.refunded > 0 ? (
+              label="판매 크레딧"
+              title="'Scripta Credits' 팩으로 팔린 크레딧 누적(실선)과 그 대금. 크레딧 수량은 주문의 팩 이름(40/440/2,300/4,800 Credits)에서 읽는다. 스토어는 리뷰노트와 공유하고 상품으로 가른다. 단건 결제라 MRR은 없다. 원장 유입은 앱이 실제로 지급한 크레딧이라 판매 수량과 같아야 한다."
+              value={sales ? sales.creditsSold.toLocaleString() : '—'}
+              valueExtra={sales ? (
                 <span style={{
                   fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
-                  fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                  color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                 }}>
-                  환불 {stats.credits.refunded.toLocaleString()}
+                  {formatUsd(sales.revenueUsd)}
                 </span>
               ) : undefined}
-              sub={`오늘 ${countOn(spent, todayKey).toLocaleString()} · 7일 ${countSince(spent, sevenAgoKey).toLocaleString()}`}
+              sub={sales
+                ? `이번 달 ${sales.monthCreditsSold.toLocaleString()} · ${formatUsd(sales.monthRevenueUsd)}`
+                : '결제 데이터 없음'}
               subExtra={
                 <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
-                  잔액 {stats.credits.balance.toLocaleString()}
+                  구매자 {sales ? sales.buyers.toLocaleString() : 0}명
+                  {sales && sales.paidOrders > 0 ? ` · ${sales.paidOrders.toLocaleString()}건` : ''}
+                  {` · 원장 유입 ${stats.credits.purchased.toLocaleString()}`}
                 </span>
               }
-              sparkline={mobile ? undefined : cumOf(spent, win)}
+              tone={sales && sales.creditsSold > 0 ? 'pos' : 'default'}
+              sparkline={mobile ? undefined : creditsSoldSpark}
             />
-            {/* 결제 — 정본은 LemonSqueezy 주문이다. 크레딧 팩 단건 결제라 MRR이 아니라 누적 매출을 본다.
-                앱이 크레딧을 실제로 넣었는지는 원장(purchased)으로 대조한다 — 둘이 벌어지면 웹훅 문제다. */}
+            {/* 퍼널 마지막 칸은 "그래서 남은 사람이 얼마를 쓰나" — 단건 결제라 MRR이 없어
+                사용자당 매출은 ARPMAU로 본다. DAU·MAU가 한 자리에 붙어야 끈적임이 바로 읽힌다. */}
             <LStat
-              label="결제"
-              title="LemonSqueezy 'Scripta Credits' 상품 누적 매출(결제 완료분). 스토어는 리뷰노트와 공유하고 상품으로 가른다."
-              value={sales ? formatUsd(sales.revenueUsd) : '—'}
-              valueExtra={sales && sales.paidOrders > 0 ? (
+              label="MAU"
+              title={`직전 30일 순 활동자 수 (활동 = 글 등록·연습·크레딧 사용, 운영 계정 제외). 창 안에서 distinct로 세므로 여러 날 온 사람이 겹쳐 잡히지 않는다. DAU ${avgDau.toLocaleString()} 는 오늘을 뺀 직전 ${dauRows.length}일 평균 활동자로 옆 '일별 활동자' 바와 같은 모집단이다(활동 없는 날도 분모에 넣는다). 끈적임 ${stickiness}% = DAU ÷ MAU — 한 달에 온 사람 중 하루에 오는 비율. ARPMAU = 최근 30일 매출 ${formatUsd(revenue30)} ÷ MAU ${mau.toLocaleString()}명. 실선은 MAU 추이, 점선은 ARPMAU 추이(그날까지 최근 30일 매출 ÷ 그날의 MAU) — 이 행의 다른 카드는 누적이지만 두 지표 모두 누적이 뜻이 없어 롤링 30일로 그린다.`}
+              value={mau.toLocaleString()}
+              valueExtra={(
                 <span style={{
                   fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
-                  fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                  color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                 }}>
-                  {sales.paidOrders.toLocaleString()}건
+                  ARPMAU {fmtArpu(arpmau)}
                 </span>
-              ) : undefined}
-              sub={sales ? `이번 달 ${formatUsd(sales.monthRevenueUsd)} · ${sales.monthOrders}건` : '결제 데이터 없음'}
-              subExtra={
-                <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
-                  구매자 {sales ? sales.buyers.toLocaleString() : 0}명 · 원장 유입 {stats.credits.purchased.toLocaleString()}
-                </span>
-              }
-              tone={sales && sales.revenueUsd > 0 ? 'pos' : 'default'}
-              sparkline={mobile ? undefined : cumOf((sales?.daily ?? []).map(d => ({ date: d.date, n: Math.round(d.revenueUsd / 100) })), win)}
-              sparkFormat={(v) => `$${v.toLocaleString()}`}
+              )}
+              sub={`DAU ${avgDau.toLocaleString()} · 끈적임 ${stickiness}%`}
+              tone={mau > 0 ? 'info' : 'default'}
+              sparkline={mobile ? undefined : mauSpark}
+              sparkline2={mobile ? undefined : arpmauSpark}
+              spark2Color={t.brand[600]}
+              sparkFormat2={(v) => `$${v.toFixed(2)}`}
+              dualScale
             />
           </div>
           {/* 연습 단위 / 크레딧 사용처 / 목표 언어 — 리뷰노트의 유입경로·국가·기기 자리 */}
@@ -580,12 +629,17 @@ export function ScriptaBlock({
             mb={10}
             action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
           />
-          <SkeletonRow count={mobile ? 2 : (dashCols === 2 ? 3 : 5)} />
+          <SkeletonRow count={mobile ? 2 : (dashCols === 2 ? 3 : 6)} />
         </div>
       )}
       {!loading && stats && (() => {
         const win = buildWindow(stats)
         const c = stats.content
+        // 크레딧 소진은 퍼널이 아니라 여기 있다 — 결제 전 단계가 아니라 학습을 얼마나 돌렸는지의
+        // 결과값이고, 옆의 Cortex·글·문장 카운트와 같은 "무엇을 얼마나 만들고 썼나" 묶음이다.
+        const spent = stats.credits.dailySpent
+        const todayKey = kstToday()
+        const sevenAgoKey = kstDaysAgo(6)
         const card = (label: string, m: ScMetric, unit: string, title?: string) => (
           <LStat
             label={label}
@@ -604,13 +658,33 @@ export function ScriptaBlock({
               mb={10}
               action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
             />
-            {/* Cortex → 글 → 문단 → 문장 → 청크. 와이드(1열) 한 줄, 2열 모드 3+2, 모바일 2열. */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8 }}>
+            {/* Cortex → 글 → 문단 → 문장 → 청크 + 크레딧 소진. 와이드(1열) 한 줄, 2열 모드 3+3, 모바일 2열. */}
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
               {card('Cortex', c.cortices, '개', '하나의 쓰기 목표와 채점 기준을 공유하는 학습 컨테이너.')}
               {card('글', c.texts, '개', '사용자가 등록한 목표 글(Text) 누적.')}
               {card('문단', c.paragraphs, '개')}
               {card('문장', c.sentences, '개', '반복 학습과 취약도 계산의 기본 단위.')}
               {card('청크', c.chunks, '개', '외국어 문장의 의미와 어순을 복원하는 보조 단위.')}
+              <LStat
+                label="크레딧 소진"
+                title="구조 생성·채점·필기 인식으로 차감된 크레딧 누적 (실패 환불 전 총 차감). 판매가 아니라 사용량이라 퍼널이 아니라 이 묶음에 둔다 — 사용처 분해는 퍼널 섹션의 '크레딧 사용처' 파이."
+                value={stats.credits.spent.toLocaleString()}
+                valueExtra={stats.credits.refunded > 0 ? (
+                  <span style={{
+                    fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                    fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                  }}>
+                    환불 {stats.credits.refunded.toLocaleString()}
+                  </span>
+                ) : undefined}
+                sub={`오늘 ${countOn(spent, todayKey).toLocaleString()} · 7일 ${countSince(spent, sevenAgoKey).toLocaleString()}`}
+                subExtra={
+                  <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                    잔액 {stats.credits.balance.toLocaleString()}
+                  </span>
+                }
+                sparkline={mobile ? undefined : cumOf(spent, win)}
+              />
             </div>
           </div>
         )

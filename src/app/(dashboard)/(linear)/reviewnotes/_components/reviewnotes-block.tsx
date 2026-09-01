@@ -39,6 +39,11 @@ function formatCurrency(value: number): string {
   }).format(value / 100)
 }
 
+// ARPMAU는 보통 1달러 미만이라 formatCurrency(정수 달러)로 내면 전부 $0이 된다 — 센트까지 낸다.
+function fmtArpu(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
@@ -474,22 +479,50 @@ export function ReviewnotesBlock({
             }
             let runAct = actBaseline
             const cumActivated = daily.map(d => ({ date: d.date, value: (runAct += actByDay.get(d.date) ?? 0) }))
-            // 구매자·매출 누적 — LemonSqueezy 주문 기준(첫 구매일에 한 번). 활성화와 같은 베이스라인 방식.
+            // 판매 크레딧 누적 — LemonSqueezy 주문 기준. 팩 크기(변형 이름)를 합산한 값이라
+            // 결제 금액과 같은 원장에서 나온다 — 두 수가 어긋나면 웹훅이나 팩 이름 문제다.
             const salesDaily = sales?.daily ?? []
-            const buyersByDay = new Map<string, number>()
-            const revenueByDay = new Map<string, number>()
-            for (const d of salesDaily) {
-              buyersByDay.set(d.date, (buyersByDay.get(d.date) ?? 0) + d.orders)
-              revenueByDay.set(d.date, (revenueByDay.get(d.date) ?? 0) + d.revenueUsd)
-            }
-            let runBuyers = 0
-            const cumBuyers = salesDaily.length
-              ? daily.map(d => ({ date: d.date, value: (runBuyers += buyersByDay.get(d.date) ?? 0) }))
+            const creditsByDay = new Map<string, number>()
+            for (const d of salesDaily) creditsByDay.set(d.date, (creditsByDay.get(d.date) ?? 0) + d.credits)
+            let runCredits = 0
+            const cumCreditsSold = salesDaily.length
+              ? daily.map(d => ({ date: d.date, value: (runCredits += creditsByDay.get(d.date) ?? 0) }))
               : undefined
-            let runRevenue = 0
-            const revenueSpark = salesDaily.length
-              ? daily.map(d => ({ date: d.date, value: Math.round((runRevenue += revenueByDay.get(d.date) ?? 0) / 100) }))
-              : undefined
+
+            // MAU / DAU / ARPMAU — 구독을 접어 MRR이 없으니 사용자당 매출은 30일 창으로 잰다.
+            // MAU 는 RPC(rn_daily_active)의 active30 — 그날 포함 직전 30일 순 활동 회원이다.
+            // 일별 활동자를 30일 더하면 여러 날 온 사람이 겹쳐 잡혀 부풀고, users.lastActiveAt
+            // 으로 세면 '마지막' 활동만 남아 과거 시점의 MAU 를 복원할 수 없다 — 점선이 날짜별
+            // ARPMAU 를 그리려면 분모도 날짜별로 있어야 하고, 배지와 점선이 서로 다른 분모를
+            // 쓰면 같은 이름의 두 값이 어긋난다.
+            const activeRows = trafficStats.dailyActive ?? []
+            const mau = activeRows.length ? activeRows[activeRows.length - 1].active30 : 0
+            // DAU — 오늘은 아직 안 끝난 하루라 빼고 직전 30일 평균. 옆 '일별 활동자' 바와 같은 모집단.
+            // 컷은 트래픽 축의 마지막 날(todayKey)이 아니라 실제 오늘로 잡는다 — 두 축은 서로
+            // 다른 RPC에서 오고, 트래픽이 비면 todayKey가 빈 문자열이라 전부 걸러진다.
+            const dauRows = activeRows.filter(r => r.date < kstToday()).slice(-30)
+            const avgDau = dauRows.length
+              ? Math.round(dauRows.reduce((sum, r) => sum + r.active, 0) / dauRows.length)
+              : 0
+            const stickiness = rate(avgDau, mau)
+            // ARPMAU — 최근 30일 매출 ÷ MAU. 분자·분모를 같은 30일 창에 맞춘다.
+            // 누적 매출을 30일 활동자로 나누면 서로 다른 기간을 나눈 수가 되어 뜻이 없다.
+            const mauFromKey = kstDaysAgo(29)
+            const revenueByDay = new Map(salesDaily.map(d => [d.date, d.revenueUsd]))
+            const revenue30 = salesDaily
+              .filter(d => d.date >= mauFromKey)
+              .reduce((sum, d) => sum + d.revenueUsd, 0)
+            const arpmau = mau > 0 ? revenue30 / mau : 0
+            // ARPMAU 추이(점선) — 날짜마다 "그날까지 최근 30일 매출 ÷ 그날의 MAU". 분자도 30일
+            // 창으로 굴린다. 누적 매출을 그날 MAU 로 나누면 시간이 갈수록 기계적으로 올라가는
+            // 선이 되어 최근 결제가 붙었는지 알 수 없다. 날짜 축이 조용한 날까지 채워져 있어
+            // (rn_daily_active의 generate_series) 인덱스 30칸이 곧 달력 30일이다.
+            const mauSpark = activeRows.map(r => ({ date: r.date, value: r.active30 }))
+            const arpmauSpark = activeRows.map((r, i) => {
+              const win = activeRows.slice(Math.max(0, i - 29), i + 1)
+              const rev = win.reduce((sum, x) => sum + (revenueByDay.get(x.date) ?? 0), 0)
+              return { date: r.date, value: r.active30 > 0 ? rev / r.active30 / 100 : 0 }
+            })
 
             const splitLayout = !mobile && dashCols === 1
             return (
@@ -537,38 +570,56 @@ export function ReviewnotesBlock({
               tone={users.length > 0 && activatedTotal / users.length >= 0.5 ? 'pos' : 'warn'}
               sparkline={mobile ? undefined : cumActivated}
             />
-            {/* 구독을 접고 크레딧 팩으로 갔다(2026-08-24). 유료 사용자 = 플랜 보유자가 아니라
-                실제로 팩을 산 사람이고, MRR이라는 숫자는 더 이상 존재하지 않는다. */}
+            {/* 구독을 접고 크레딧 팩으로 갔다(2026-08-24). 팔린 크레딧과 그 대금은 같은 주문에서
+                나오는 한 사건이라 카드를 가르면 같은 걸 두 번 읽게 된다 — 수량을 머리값,
+                금액을 그 옆에 붙여 한 장으로 본다 (보이스카드 '판매 크레딧'과 같은 문법). */}
             <LStat
-              label="크레딧 구매자"
-              title="'ReviewNotes Credits' 팩을 실제로 결제한 사람 (LemonSqueezy 주문, 이메일 기준). 전환 = 구매자 ÷ 활성화."
-              value={sales ? sales.buyers.toLocaleString() : '—'}
-              valueExtra={sales && sales.buyers > 0 ? rateExtra('전환', rate(sales.buyers, activatedTotal)) : undefined}
-              sub={sales ? `구매 ${sales.paidOrders.toLocaleString()}건 · 이번 달 ${sales.monthOrders.toLocaleString()}건` : '결제 데이터 없음'}
-              tone={sales && sales.buyers > 0 ? 'pos' : 'default'}
-              sparkline={mobile ? undefined : cumBuyers}
-            />
-            <LStat
-              label="결제"
-              title="크레딧 팩 누적 매출(결제 완료분). 스토어는 Scripta와 공유하고 상품으로 가른다. 구독이 아니라 단건 결제라 MRR은 없다."
-              value={sales ? formatCurrency(sales.revenueUsd) : '—'}
-              valueExtra={sales && sales.paidOrders > 0 ? (
+              label="판매 크레딧"
+              title={`'ReviewNotes Credits' 팩으로 팔린 크레딧 누적(실선)과 그 대금. 크레딧 수량은 주문의 팩 이름(50/230/1,200/2,500 Credits)에서 읽는다. 스토어는 Scripta와 공유하고 상품으로 가른다. 단건 결제라 MRR은 없다. 전환 = 구매자 ÷ 활성화.`}
+              value={sales ? sales.creditsSold.toLocaleString() : '—'}
+              valueExtra={sales ? (
                 <span style={{
                   fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
-                  fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                  color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                 }}>
-                  {sales.paidOrders.toLocaleString()}건
+                  {formatCurrency(sales.revenueUsd)}
                 </span>
               ) : undefined}
-              sub={sales ? `이번 달 ${formatCurrency(sales.monthRevenueUsd)}` : '누적 매출'}
-              subExtra={sales && sales.refundedOrders > 0 ? (
+              sub={sales
+                ? `이번 달 ${sales.monthCreditsSold.toLocaleString()} · ${formatCurrency(sales.monthRevenueUsd)}`
+                : '결제 데이터 없음'}
+              subExtra={sales ? (
                 <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
-                  환불 {sales.refundedOrders.toLocaleString()}건
+                  구매자 {sales.buyers.toLocaleString()}명
+                  {sales.buyers > 0 ? ` (전환 ${rate(sales.buyers, activatedTotal)}%)` : ''}
+                  {` · ${sales.paidOrders.toLocaleString()}건`}
+                  {sales.refundedOrders > 0 ? ` · 환불 ${sales.refundedOrders.toLocaleString()}건` : ''}
                 </span>
               ) : undefined}
-              tone="info"
-              sparkline={mobile ? undefined : revenueSpark}
-              sparkFormat={(v) => `$${v.toLocaleString()}`}
+              tone={sales && sales.creditsSold > 0 ? 'pos' : 'default'}
+              sparkline={mobile ? undefined : cumCreditsSold}
+            />
+            {/* 퍼널 마지막 칸은 "그래서 남은 사람이 얼마를 쓰나" — 단건 결제라 MRR이 없어
+                사용자당 매출은 ARPMAU로 본다. DAU·MAU가 한 자리에 붙어야 끈적임이 바로 읽힌다. */}
+            <LStat
+              label="MAU"
+              title={`직전 30일 활동 회원 수 (EventLog 마지막 활동 기준, 관리자 제외). DAU ${avgDau.toLocaleString()} 는 오늘을 뺀 최근 ${dauRows.length}일 평균 활동자로 옆 '일별 활동자' 바와 같은 모집단이다. 끈적임 ${stickiness}% = DAU ÷ MAU — 한 달에 온 사람 중 하루에 오는 비율. ARPMAU = 최근 30일 매출 ${formatCurrency(revenue30)} ÷ MAU ${mau.toLocaleString()}명. 실선은 MAU 추이, 점선은 ARPMAU 추이(그날까지 최근 30일 매출 ÷ 그날의 MAU) — 이 행의 다른 카드는 누적이지만 두 지표 모두 누적이 뜻이 없어 롤링 30일로 그린다.`}
+              value={mau.toLocaleString()}
+              valueExtra={(
+                <span style={{
+                  fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                  color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
+                }}>
+                  ARPMAU {fmtArpu(arpmau)}
+                </span>
+              )}
+              sub={`DAU ${avgDau.toLocaleString()} · 끈적임 ${stickiness}%`}
+              tone={mau > 0 ? 'info' : 'default'}
+              sparkline={mobile ? undefined : mauSpark}
+              sparkline2={mobile ? undefined : arpmauSpark}
+              spark2Color={t.brand[600]}
+              sparkFormat2={(v) => `$${v.toFixed(2)}`}
+              dualScale
             />
           </div>
           {/* 유입 경로 / 국가 / 기기 — 보이스카드와 동일한 파이 + 탭 (2026-07-15 사용자 구성 파이는 제거).
