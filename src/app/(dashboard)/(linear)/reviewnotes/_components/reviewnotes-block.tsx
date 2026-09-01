@@ -489,11 +489,11 @@ export function ReviewnotesBlock({
               ? daily.map(d => ({ date: d.date, value: (runCredits += creditsByDay.get(d.date) ?? 0) }))
               : undefined
 
-            // MAU / DAU / ARPMAU — 구독을 접어 MRR이 없으니 사용자당 매출은 30일 창으로 잰다.
+            // MAU / DAU/MAU / ARPMAU — 구독을 접어 MRR이 없으니 사용자당 매출은 30일 창으로 잰다.
             // MAU 는 RPC(rn_daily_active)의 active30 — 그날 포함 직전 30일 순 활동 회원이다.
             // 일별 활동자를 30일 더하면 여러 날 온 사람이 겹쳐 잡혀 부풀고, users.lastActiveAt
             // 으로 세면 '마지막' 활동만 남아 과거 시점의 MAU 를 복원할 수 없다 — 점선이 날짜별
-            // ARPMAU 를 그리려면 분모도 날짜별로 있어야 하고, 배지와 점선이 서로 다른 분모를
+            // DAU/MAU 를 그리려면 분모도 날짜별로 있어야 하고, 배지와 점선이 서로 다른 분모를
             // 쓰면 같은 이름의 두 값이 어긋난다.
             const activeRows = trafficStats.dailyActive ?? []
             const mau = activeRows.length ? activeRows[activeRows.length - 1].active30 : 0
@@ -508,20 +508,19 @@ export function ReviewnotesBlock({
             // ARPMAU — 최근 30일 매출 ÷ MAU. 분자·분모를 같은 30일 창에 맞춘다.
             // 누적 매출을 30일 활동자로 나누면 서로 다른 기간을 나눈 수가 되어 뜻이 없다.
             const mauFromKey = kstDaysAgo(29)
-            const revenueByDay = new Map(salesDaily.map(d => [d.date, d.revenueUsd]))
             const revenue30 = salesDaily
               .filter(d => d.date >= mauFromKey)
               .reduce((sum, d) => sum + d.revenueUsd, 0)
             const arpmau = mau > 0 ? revenue30 / mau : 0
-            // ARPMAU 추이(점선) — 날짜마다 "그날까지 최근 30일 매출 ÷ 그날의 MAU". 분자도 30일
-            // 창으로 굴린다. 누적 매출을 그날 MAU 로 나누면 시간이 갈수록 기계적으로 올라가는
-            // 선이 되어 최근 결제가 붙었는지 알 수 없다. 날짜 축이 조용한 날까지 채워져 있어
+            // DAU/MAU 추이(점선) — 날짜마다 "그날까지 30일 평균 DAU ÷ 그날의 MAU". 배지와 같은
+            // 셈을 날짜마다 되풀이한 것이라 두 값이 어긋나지 않는다. 하루치 DAU 를 그대로 나누면
+            // 요일 진폭이 그대로 튀어 추세가 안 보인다. 날짜 축이 조용한 날까지 채워져 있어
             // (rn_daily_active의 generate_series) 인덱스 30칸이 곧 달력 30일이다.
             const mauSpark = activeRows.map(r => ({ date: r.date, value: r.active30 }))
-            const arpmauSpark = activeRows.map((r, i) => {
-              const win = activeRows.slice(Math.max(0, i - 29), i + 1)
-              const rev = win.reduce((sum, x) => sum + (revenueByDay.get(x.date) ?? 0), 0)
-              return { date: r.date, value: r.active30 > 0 ? rev / r.active30 / 100 : 0 }
+            const stickinessSpark = activeRows.map((r, i) => {
+              const w30 = activeRows.slice(Math.max(0, i - 29), i + 1)
+              const avg = w30.reduce((sum, x) => sum + x.active, 0) / w30.length
+              return { date: r.date, value: r.active30 > 0 ? Math.round((avg / r.active30) * 100) : 0 }
             })
 
             const splitLayout = !mobile && dashCols === 1
@@ -601,29 +600,21 @@ export function ReviewnotesBlock({
               tone={sales && sales.creditsSold > 0 ? 'pos' : 'default'}
               sparkline={mobile ? undefined : cumCreditsSold}
             />
-            {/* 퍼널 마지막 칸은 "그래서 남은 사람이 얼마를 쓰나" — 단건 결제라 MRR이 없어
-                사용자당 매출은 ARPMAU로 본다. DAU·MAU가 한 자리에 붙어야 둘의 비가 바로 읽힌다. */}
+            {/* 퍼널 마지막 칸은 "그래서 남은 사람이 얼마나 붙어 있나" — 머리값 MAU 옆에 DAU/MAU를
+                붙여 잔존을 먼저 읽고, 단건 결제라 MRR이 없어 대신 쓰는 ARPMAU는 아래 줄로 내린다.
+                DAU 절대값은 옆 '일별 활동자' 바가 이미 날짜별로 보여주므로 여기서 되풀이하지 않는다. */}
             <LStat
               label="MAU"
-              title={`직전 30일 활동 회원 수 (EventLog 마지막 활동 기준, 관리자 제외). DAU ${avgDau.toLocaleString()} 는 오늘을 뺀 최근 ${dauRows.length}일 평균 활동자로 옆 '일별 활동자' 바와 같은 모집단이다. DAU/MAU ${stickiness}% — 한 달에 한 번이라도 온 사람 중 하루에 오는 비율. 높을수록 매일 쓰는 제품에 가깝다. ARPMAU = 최근 30일 매출 ${formatCurrency(revenue30)} ÷ MAU ${mau.toLocaleString()}명. 실선은 MAU 추이, 점선은 ARPMAU 추이(그날까지 최근 30일 매출 ÷ 그날의 MAU) — 이 행의 다른 카드는 누적이지만 두 지표 모두 누적이 뜻이 없어 롤링 30일로 그린다.`}
+              title={`직전 30일 활동 회원 수 (EventLog 마지막 활동 기준, 관리자 제외). DAU/MAU ${stickiness}% — 한 달에 한 번이라도 온 사람 중 하루에 오는 비율로, 분자는 오늘을 뺀 최근 ${dauRows.length}일 평균 활동자 ${avgDau.toLocaleString()}명(옆 '일별 활동자' 바와 같은 모집단)이다. 높을수록 매일 쓰는 제품에 가깝다. ARPMAU = 최근 30일 매출 ${formatCurrency(revenue30)} ÷ MAU ${mau.toLocaleString()}명. 실선은 MAU 추이, 점선은 DAU/MAU 추이(그날까지 30일 평균 DAU ÷ 그날의 MAU) — 이 행의 다른 카드는 누적이지만 두 지표 모두 누적이 뜻이 없어 롤링 30일로 그린다.`}
               value={mau.toLocaleString()}
-              valueExtra={(
-                <span style={{
-                  fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
-                  color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
-                }}>
-                  ARPMAU {fmtArpu(arpmau)}
-                </span>
-              )}
               // MAU가 0이면 DAU/MAU는 0으로 나눈 자리라 0%가 아니라 '아직 잴 수 없음'이다.
-              sub={mau > 0
-                ? `DAU ${avgDau.toLocaleString()} · DAU/MAU ${stickiness}%`
-                : `DAU ${avgDau.toLocaleString()}`}
+              valueExtra={mau > 0 ? rateExtra('DAU/MAU', stickiness) : undefined}
+              sub={`ARPMAU ${fmtArpu(arpmau)}`}
               tone={mau > 0 ? 'info' : 'default'}
               sparkline={mobile ? undefined : mauSpark}
-              sparkline2={mobile ? undefined : arpmauSpark}
-              spark2Color={t.brand[600]}
-              sparkFormat2={(v) => `$${v.toFixed(2)}`}
+              sparkline2={mobile ? undefined : stickinessSpark}
+              spark2Color={t.accent.warn}
+              sparkFormat2={(v) => `${v}%`}
               dualScale
             />
           </div>
