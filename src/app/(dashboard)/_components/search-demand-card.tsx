@@ -85,6 +85,11 @@ function fmtDuration(sec: number): string {
   return s ? `${m}분 ${s}초` : `${m}분`
 }
 
+// 예시 경로에 UUID 세그먼트가 끼면 한 줄을 통째로 잡아먹는다
+function fmtPathSample(path: string): string {
+  return path.length > 28 ? `${path.slice(0, 27)}…` : path
+}
+
 const mono = (size: number): React.CSSProperties => ({
   fontSize: `calc(${size}px * var(--fz, 1))`, fontFamily: t.font.mono,
   fontVariantNumeric: 'tabular-nums' as const,
@@ -950,7 +955,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
               }}>
                 {data.notes.map((n, i) => <div key={i}>· {n}</div>)}
                 {cov && cov.orphanPaths.length > 0 && (
-                  <div>· 사이트맵에 없는데 유입이 잡힌 경로 {cov.orphanPaths.length}개 (예: {cov.orphanPaths.slice(0, 3).join(', ')})</div>
+                  <div>· 사이트맵 밖 유입 경로 {cov.orphanPaths.length}개 (예: {cov.orphanPaths.slice(0, 2).map(fmtPathSample).join(', ')})</div>
                 )}
               </div>
             </div>
