@@ -3,6 +3,7 @@ config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import { countKstDailyReviewnotesActivations } from './lib/reviewnotes-activation-alert'
+import { reviewNotesServiceCredentials } from '../src/lib/reviewnotes-credentials'
 import { execSync, spawn } from 'child_process'
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, statSync, unlinkSync, writeFileSync, readdirSync } from 'fs'
 import { join, basename, relative } from 'path'
@@ -47,12 +48,11 @@ const voicecardsSupabase = process.env.VOICECARDS_SUPABASE_URL && process.env.VO
 const voicecardsAdminSupabase = process.env.VOICECARDS_SUPABASE_URL && process.env.VOICECARDS_SUPABASE_SERVICE_KEY
   ? createClient(process.env.VOICECARDS_SUPABASE_URL, process.env.VOICECARDS_SUPABASE_SERVICE_KEY)
   : null
-// 시크릿 키 우선. 리뷰노트 쪽 anon 접근(User 정책·rn_* RPC)을 잠갔으므로 퍼블리셔블 키로는
-// 더 이상 읽히지 않는다. 보는 데이터 자체는 전환 전후가 같다(User는 anon도 전수 조회였고,
-// activated_users 뷰는 RLS 없음, WebhookEvent는 비어 있음 — 전환 전 실측 확인).
-const reviewnotesKey = process.env.REVIEWNOTES_SUPABASE_SERVICE_KEY || process.env.REVIEWNOTES_SUPABASE_KEY
-const reviewnotesSupabase = process.env.REVIEWNOTES_SUPABASE_URL && reviewnotesKey
-  ? createClient(process.env.REVIEWNOTES_SUPABASE_URL, reviewnotesKey)
+// 리뷰노트 운영 집계는 service_role 전용이다. 레거시/퍼블리셔블 키 폴백은 권한 회귀를
+// 숨기므로 허용하지 않는다.
+const reviewNotesCredentials = reviewNotesServiceCredentials(process.env)
+const reviewnotesSupabase = reviewNotesCredentials
+  ? createClient(reviewNotesCredentials.url, reviewNotesCredentials.serviceKey)
   : null
 
 const MAX_HISTORY = 50 // 대화 기록 최대 보관 수

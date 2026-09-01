@@ -63,7 +63,7 @@ tail -f scripts/logs/telegram-bot.log
 | `VOICECARDS_SUPABASE_URL` |  | VoiceCards 사용자 이벤트 모니터링용 Supabase URL |
 | `VOICECARDS_SUPABASE_KEY` |  | VoiceCards 사용자 이벤트 모니터링용 service_role 키 |
 | `REVIEWNOTES_SUPABASE_URL` |  | ReviewNotes 시스템 버그 모니터링용 Supabase URL |
-| `REVIEWNOTES_SUPABASE_KEY` |  | ReviewNotes 시스템 버그 모니터링용 service_role 키 |
+| `REVIEWNOTES_SUPABASE_SERVICE_KEY` |  | ReviewNotes 시스템 버그·활성화 모니터링용 service_role 키 |
 | `GITHUB_TOKEN` | | 위클리 브리핑 커밋 조회용 |
 
 모든 변수는 `.env.local`에서 로드한다.

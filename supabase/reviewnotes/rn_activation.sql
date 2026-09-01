@@ -13,7 +13,7 @@ create or replace function public.rn_activation()
 returns table(user_id text, first_problem_at timestamptz)
 language sql
 stable
-security definer
+security invoker
 set search_path = public
 as $$
   select n."userId" as user_id, min(p."createdAt") as first_problem_at
@@ -26,5 +26,5 @@ as $$
     and lower(u.email) <> 'test@reviewnotes.app'
   group by n."userId"
 $$;
-revoke all on function public.rn_activation() from public;
-grant execute on function public.rn_activation() to anon, authenticated, service_role;
+revoke all on function public.rn_activation() from public, anon, authenticated;
+grant execute on function public.rn_activation() to service_role;

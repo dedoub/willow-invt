@@ -5,6 +5,7 @@ import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 import { kstDateKey, kstMonthStart, kstDaysAgo } from '@/lib/kst'
 import { isExcludedReviewNotesUser } from '@/lib/reviewnotes-types'
+import { reviewNotesServiceCredentials } from '@/lib/reviewnotes-credentials'
 import type {
   ReviewNotesUser, ReviewNotesUserStats, ReviewNotesTrafficStats,
   ReviewNotesContentStats, RnAiFeatureUse,
@@ -13,18 +14,16 @@ import type {
 // 기존 소비처(서버 라우트)가 한 곳에서 계속 가져올 수 있게 재수출
 export * from '@/lib/reviewnotes-types'
 
-// ReviewNotes Supabase 클라이언트
-// 서버 전용 — 시크릿 키 우선. 퍼블리셔블 키는 anon 역할이라 User 전체 열람이 RLS 정책에
-// 의존하는데, 그 정책을 잠그려면 여기가 먼저 시크릿 키로 붙어야 한다(voicecards 와 같은 패턴).
-const supabaseUrl = process.env.REVIEWNOTES_SUPABASE_URL
-const supabaseKey = process.env.REVIEWNOTES_SUPABASE_SERVICE_KEY || process.env.REVIEWNOTES_SUPABASE_KEY
+// ReviewNotes Supabase 클라이언트. 운영 집계는 service_role 전용 뷰·RPC를 사용하므로
+// 퍼블리셔블/레거시 키로 조용히 폴백하지 않는다.
+const reviewNotesCredentials = reviewNotesServiceCredentials(process.env)
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('ReviewNotes Supabase credentials not configured')
+if (!reviewNotesCredentials) {
+  console.warn('ReviewNotes Supabase service credentials not configured')
 }
 
-export const reviewnotesSupabase = supabaseUrl && supabaseKey
-  ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
+export const reviewnotesSupabase = reviewNotesCredentials
+  ? createClient(reviewNotesCredentials.url, reviewNotesCredentials.serviceKey, { auth: { persistSession: false } })
   : null
 
 function pctChange(current: number, previous: number): number {
