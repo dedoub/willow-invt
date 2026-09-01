@@ -2,6 +2,7 @@ import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
+import { countKstDailyReviewnotesActivations } from './lib/reviewnotes-activation-alert'
 import { execSync, spawn } from 'child_process'
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, statSync, unlinkSync, writeFileSync, readdirSync } from 'fs'
 import { join, basename, relative } from 'path'
@@ -3326,6 +3327,8 @@ async function monitorReviewnotesActivations() {
   if (userError) throw userError
 
   const usersById = new Map((userRows || []).map(user => [user.id, user]))
+  const dailyCumulative = countKstDailyReviewnotesActivations(activatedUsers)
+
   for (const activated of freshUsers) {
     const user = usersById.get(activated.user_id)
     const label = user?.name?.trim() || user?.email || activated.user_id
@@ -3340,12 +3343,14 @@ async function monitorReviewnotesActivations() {
       '- 활성화: 가입 후 첫 문제 등록 완료',
       elapsedMinutes !== null ? `- 가입→활성화: 약 ${elapsedMinutes}분` : '',
       `- 문제 등록: ${formatKstShort(activated.first_problem_at)}`,
+      `- 오늘 누적 활성화: ${dailyCumulative}명`,
     ].filter(Boolean).join('\n'), {
       issue: 'activated_new_user',
       userId: activated.user_id,
       email: user?.email || null,
       firstProblemAt: activated.first_problem_at,
       elapsedMinutes,
+      dailyCumulative,
     })
   }
 

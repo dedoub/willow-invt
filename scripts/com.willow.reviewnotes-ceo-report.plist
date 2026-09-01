@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.willow.reviewnotes-ceo-report</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
+    <string>--cwd</string>
+    <string>/Volumes/PRO-G40/app-dev/willow-invt</string>
+    <string>/opt/homebrew/bin/npx</string>
+    <string>tsx</string>
+    <string>scripts/product-ceo-report.ts</string>
+    <string>reviewnotes</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/dongwookkim</string>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>10</integer></dict>
+  </array>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardOutPath</key>
+  <string>/Users/dongwookkim/logs/reviewnotes-ceo-report/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/dongwookkim/logs/reviewnotes-ceo-report/launchd.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key><string>/Users/dongwookkim</string>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>
