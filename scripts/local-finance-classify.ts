@@ -10,7 +10,7 @@
  *   - 매입 세금계산서와 금액이 맞는 출금(±이체수수료 500원) → expense
  *   - 매출 세금계산서와 금액이 맞는 입금 → revenue
  *   - 반복 고정 패턴(카드대금·리스료·대출·4대보험·세금·공과금 등) → expense
- * 그 외(대여금·급여·처음 보는 거래처 등 회계 판단이 필요한 건)는 'new'로 남기고
+ * 그 외(새로운 대여금·급여·처음 보는 거래처 등 회계 판단이 필요한 건)는 'new'로 남기고
  * ⚠ 로그를 남긴다 → 러너가 실행 끝에 CEO 봇으로 결과를 함께 알린다.
  *
  *   npx tsx scripts/local-finance-classify.ts --company tensw
@@ -70,7 +70,7 @@ type Pattern = {
 /** 어느 회사든 같은 뜻인 출금 패턴. */
 const SHARED_EXPENSE_PATTERNS: Pattern[] = [
   { re: /국민연금/, counterparty: '국민연금', description: '4대보험 (국민연금)' },
-  { re: /건강보험/, counterparty: '건강보험', description: '4대보험 (건강보험)' },
+  { re: /건강보험|국민건강|의보/, counterparty: '국민건강보험', description: '4대보험 (건강보험)' },
   { re: /고용보험|산재보험|근로복지공단/, counterparty: '근로복지공단', description: '4대보험 (고용·산재)' },
   { re: /국세|I-지로|인터넷지로/, counterparty: '국세', description: '국세 납부' },
   { re: /지방세|위택스/, counterparty: '지방세', description: '지방세 납부' },
@@ -83,8 +83,8 @@ const SHARED_EXPENSE_PATTERNS: Pattern[] = [
  * 회사별 설정. 패턴은 실제 거래내역에서 확인된 것만 넣는다 — 잘못 자동분류되면
  * 사람이 되돌려야 하므로, 애매한 건 보류(hold)로 남기는 편이 낫다.
  *
- * 윌로우는 김동욱 대여금·외화환전·TSW대여금처럼 회계 판단이 필요한 거래가 많아
- * 카드대금과 공과금만 자동으로 넘긴다.
+ * 윌로우는 기존 장부에서 처리 기준이 확인된 TSW 대여금 회수·카드대금·공과금만
+ * 자동으로 넘기고, 새로운 대여금과 외화환전은 보류한다.
  */
 const COMPANIES = {
   tensw: {
@@ -127,8 +127,10 @@ const COMPANIES = {
       { re: /발급수수료|타행수수료|송금수수료|제증명수수료/, counterparty: '은행수수료', description: '은행 수수료' },
       // 은행은 서울특별시를 '서울특징'으로 줄여 찍는다. 지방소득세가 이렇게 온다.
       { re: /서울특별시|서울특징/, counterparty: '지방세', description: '지방세 (서울시)' },
-      // 대여금 상환과 급여는 같은 이름으로 오므로 적요로 가른다.
-      { re: /김동욱대여|대여상환/, counterparty: '김동욱', description: '대여금 상환', type: 'liability' },
+      // TSW 대여금 회수는 매출이 아니라 채권 감소·현금 증가 대체항목이다.
+      { re: /TSW대여상환/, counterparty: '텐소프트웍스', description: 'TSW대여상환', type: 'transfer', direction: 'in' },
+      // 김동욱 대여금 상환과 급여는 같은 이름으로 오므로 적요로 가른다.
+      { re: /김동욱대여|김동욱.*대여상환/, counterparty: '김동욱', description: '대여금 상환', type: 'liability' },
       { re: /김동욱급여/, counterparty: '김동욱', description: '김동욱 미지급급여 지급 (지급시점 비용인식)' },
       { re: /세무법인/, counterparty: '세무법인 형운', description: '기장수수료' },
       { re: /KR-GOOGLE/, counterparty: 'Google', description: '구글 수입 (KR-GOOGLE)', type: 'revenue', direction: 'in' },

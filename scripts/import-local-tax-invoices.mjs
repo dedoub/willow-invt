@@ -39,7 +39,10 @@ async function run() {
   const invoices = [...(payload.sales ?? []), ...(payload.purchases ?? [])]
   const rows = invoices.map(localTaxInvoiceRow)
 
-  if (rows.length === 0) throw new Error('홈택스 로컬 수집 결과가 비어 있어요.')
+  if (rows.length === 0) {
+    console.log(`[local-tax-import] company=${company}, invoices=0, newly_inserted=0`)
+    return
+  }
   if (rows.some(row => !row.reporting_date || !row.transe_type)) {
     throw new Error('홈택스 로컬 수집 결과 검증에 실패했어요.')
   }
