@@ -2,7 +2,8 @@
 -- ReviewNotes 활성화 집계 (source of truth)
 -- ----------------------------------------------------------------------------
 -- 대상 프로젝트: review-notes (kumaqaizejnjrvfqhahu) — 메인 willow-invt DB 아님.
--- 활성화 정의(2026-07-15 CEO): 문제를 하나라도 등록한 유저. Problem→Note→userId 경유.
+-- 활성화 정의(2026-09-02 CEO): 샘플이 아닌 문제를 하나라도 등록한 유저.
+--   Problem→Note→userId 경유. 자동 생성된 origin='sample' 노트는 제외한다.
 -- 통계 제외(2026-07-16): role=ADMIN + 스토어 심사용 test@reviewnotes.app —
 --   JS 쪽 동일 규칙: src/lib/reviewnotes-supabase.ts isExcludedReviewNotesUser().
 -- Problem/Note는 RLS로 raw 접근 불가 → 유저별 첫 문제 등록 시각만 SECURITY DEFINER로 노출.
@@ -19,7 +20,10 @@ as $$
   from "Problem" p
   join "Note" n on n.id = p."noteId"
   join "User" u on u.id = n."userId"
-  where n."userId" is not null and u.role <> 'ADMIN' and u.email <> 'test@reviewnotes.app'
+  where n."userId" is not null
+    and n.origin is distinct from 'sample'
+    and u.role <> 'ADMIN'
+    and lower(u.email) <> 'test@reviewnotes.app'
   group by n."userId"
 $$;
 revoke all on function public.rn_activation() from public;
