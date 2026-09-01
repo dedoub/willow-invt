@@ -588,7 +588,9 @@ export function ReviewnotesBlock({
               sub={sales
                 ? `이번 달 ${sales.monthCreditsSold.toLocaleString()} · ${formatCurrency(sales.monthRevenueUsd)}`
                 : '결제 데이터 없음'}
-              subExtra={sales ? (
+              // 아직 아무도 안 샀으면 "구매자 0명 · 0건"은 머리값의 0을 세 번째로 되풀이할 뿐이다.
+              // 셀 게 생겼을 때만 줄을 낸다.
+              subExtra={sales && (sales.buyers > 0 || sales.paidOrders > 0 || sales.refundedOrders > 0) ? (
                 <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                   구매자 {sales.buyers.toLocaleString()}명
                   {sales.buyers > 0 ? ` (전환 ${rate(sales.buyers, activatedTotal)}%)` : ''}
@@ -600,10 +602,10 @@ export function ReviewnotesBlock({
               sparkline={mobile ? undefined : cumCreditsSold}
             />
             {/* 퍼널 마지막 칸은 "그래서 남은 사람이 얼마를 쓰나" — 단건 결제라 MRR이 없어
-                사용자당 매출은 ARPMAU로 본다. DAU·MAU가 한 자리에 붙어야 끈적임이 바로 읽힌다. */}
+                사용자당 매출은 ARPMAU로 본다. DAU·MAU가 한 자리에 붙어야 둘의 비가 바로 읽힌다. */}
             <LStat
               label="MAU"
-              title={`직전 30일 활동 회원 수 (EventLog 마지막 활동 기준, 관리자 제외). DAU ${avgDau.toLocaleString()} 는 오늘을 뺀 최근 ${dauRows.length}일 평균 활동자로 옆 '일별 활동자' 바와 같은 모집단이다. 끈적임 ${stickiness}% = DAU ÷ MAU — 한 달에 온 사람 중 하루에 오는 비율. ARPMAU = 최근 30일 매출 ${formatCurrency(revenue30)} ÷ MAU ${mau.toLocaleString()}명. 실선은 MAU 추이, 점선은 ARPMAU 추이(그날까지 최근 30일 매출 ÷ 그날의 MAU) — 이 행의 다른 카드는 누적이지만 두 지표 모두 누적이 뜻이 없어 롤링 30일로 그린다.`}
+              title={`직전 30일 활동 회원 수 (EventLog 마지막 활동 기준, 관리자 제외). DAU ${avgDau.toLocaleString()} 는 오늘을 뺀 최근 ${dauRows.length}일 평균 활동자로 옆 '일별 활동자' 바와 같은 모집단이다. DAU/MAU ${stickiness}% — 한 달에 한 번이라도 온 사람 중 하루에 오는 비율. 높을수록 매일 쓰는 제품에 가깝다. ARPMAU = 최근 30일 매출 ${formatCurrency(revenue30)} ÷ MAU ${mau.toLocaleString()}명. 실선은 MAU 추이, 점선은 ARPMAU 추이(그날까지 최근 30일 매출 ÷ 그날의 MAU) — 이 행의 다른 카드는 누적이지만 두 지표 모두 누적이 뜻이 없어 롤링 30일로 그린다.`}
               value={mau.toLocaleString()}
               valueExtra={(
                 <span style={{
@@ -613,7 +615,10 @@ export function ReviewnotesBlock({
                   ARPMAU {fmtArpu(arpmau)}
                 </span>
               )}
-              sub={`DAU ${avgDau.toLocaleString()} · 끈적임 ${stickiness}%`}
+              // MAU가 0이면 DAU/MAU는 0으로 나눈 자리라 0%가 아니라 '아직 잴 수 없음'이다.
+              sub={mau > 0
+                ? `DAU ${avgDau.toLocaleString()} · DAU/MAU ${stickiness}%`
+                : `DAU ${avgDau.toLocaleString()}`}
               tone={mau > 0 ? 'info' : 'default'}
               sparkline={mobile ? undefined : mauSpark}
               sparkline2={mobile ? undefined : arpmauSpark}
