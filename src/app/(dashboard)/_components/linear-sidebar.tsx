@@ -134,7 +134,10 @@ function ServiceMark({ mark, label, size }: {
         style={{
           width: size, height: size, flexShrink: 0, background: 'currentColor',
           WebkitMaskImage: `url(${mark})`, maskImage: `url(${mark})`,
-          WebkitMaskSize: 'contain', maskSize: 'contain',
+          // 로고 실루엣은 캔버스를 꽉 채우지만 Lucide 아이콘은 24 그리드 안에 여백이
+          // 있어, 같은 박스에 contain 으로 얹으면 로고만 한 치수 커 보인다. 75%로
+          // 줄여 시각 크기를 맞춘다(아이콘 경로가 24 그리드의 3~21을 쓴다). 박스는 그대로라 행 높이·정렬은 안 바뀐다.
+          WebkitMaskSize: '75%', maskSize: '75%',
           WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
           WebkitMaskPosition: 'center', maskPosition: 'center',
         }}
@@ -150,7 +153,7 @@ function ServiceMark({ mark, label, size }: {
       style={{
         width: size, height: size, flexShrink: 0,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: t.font.mono, fontSize: `calc(${Math.round(size * 0.82)}px * var(--fz, 1))`,
+        fontFamily: t.font.mono, fontSize: `calc(${Math.round(size * 0.72)}px * var(--fz, 1))`,
         fontWeight: t.weight.medium, lineHeight: 1, letterSpacing: 0,
       }}
     >
