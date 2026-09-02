@@ -357,3 +357,21 @@ test('transactionIdentity matches the same transaction across providers', async 
   assert.equal(transactionIdentity(local), transactionIdentity(codef))
   assert.notEqual(transactionIdentity(local), transactionIdentity({ ...codef, amount_out: 287069 }))
 })
+
+test('taxInvoiceMonths lists every month between two YYYY-MM bounds', async () => {
+  const { taxInvoiceMonths } = await loadSubject()
+
+  assert.deepEqual(taxInvoiceMonths('2026-01', '2026-03'), [
+    { year: '2026', month: '01' },
+    { year: '2026', month: '02' },
+    { year: '2026', month: '03' },
+  ])
+  assert.deepEqual(taxInvoiceMonths('2025-11', '2026-01'), [
+    { year: '2025', month: '11' },
+    { year: '2025', month: '12' },
+    { year: '2026', month: '01' },
+  ])
+  assert.deepEqual(taxInvoiceMonths('2026-09', '2026-09'), [{ year: '2026', month: '09' }])
+  assert.throws(() => taxInvoiceMonths('2026-10', '2026-09'))
+  assert.throws(() => taxInvoiceMonths('2026-1', '2026-09'))
+})

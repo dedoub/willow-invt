@@ -403,6 +403,23 @@ export function accountLabelForTransaction(transaction, accounts) {
   return account.account_label
 }
 
+// The 홈택스 목록조회 screen only answers one month at a time (월별). A backfill
+// walks every month between two YYYY-MM bounds, inclusive.
+export function taxInvoiceMonths(from, to) {
+  const pattern = /^(\d{4})-(\d{2})$/
+  const start = pattern.exec(from)
+  const end = pattern.exec(to)
+  if (!start || !end) throw new Error('조회 월은 YYYY-MM 형식이어야 해요.')
+  let cursor = Number(start[1]) * 12 + Number(start[2]) - 1
+  const last = Number(end[1]) * 12 + Number(end[2]) - 1
+  if (cursor > last) throw new Error('조회 시작 월이 종료 월보다 늦어요.')
+  const months = []
+  for (; cursor <= last; cursor += 1) {
+    months.push({ year: String(Math.floor(cursor / 12)), month: String((cursor % 12) + 1).padStart(2, '0') })
+  }
+  return months
+}
+
 export function taxInvoiceFromCells(cells, transeType) {
   if (cells.length < 22) throw new Error('홈택스 세금계산서 행 형식이 달라졌어요.')
   const isPurchase = transeType === 'purchase'
