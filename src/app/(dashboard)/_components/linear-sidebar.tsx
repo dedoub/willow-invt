@@ -393,6 +393,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {isAdmin && (
           <>
             {!rail && groupHead(inquiries.key, inquiries.label)}
+            {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
             {!isFolded(inquiries.key) && inquiries.items.map(navLink)}
           </>
         )}
