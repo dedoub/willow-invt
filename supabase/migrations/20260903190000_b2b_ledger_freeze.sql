@@ -1,7 +1,10 @@
--- B2B 원장 최종 방어선
+-- B2B 원장 최종 방어선 2종
 --   (A) b2b_reconcile: 문서번호가 걸려 있는데 서류함에 그 문서가 없으면(dangling) 대사를 통과시키지 않는다.
 --       기존 식은 status가 null이면 결과가 null이 되어 `if not v_documents_final`이 거짓이 되고
 --       documents_not_final이 붙지 않았다. coalesce(..., false)로 막는다.
+--   (B) 마감(closed) 정산 동결: closed 정산에 딸린 업무기록·산정·증빙은 수정·삭제할 수 없고,
+--       closed 정산에 업무기록을 새로 붙일 수도 없다. closed 이후 허용되는 전이는 disputed 하나뿐이며,
+--       disputed에서 closed로 돌아갈 때는 기존 close 가드(재대사)를 다시 통과해야 한다.
 -- spec: docs/superpowers/specs/2026-09-03-b2b-service-ledger-design.md §5.5, §8
 
 -- ─── (A) 대사 함수: documents_final을 coalesce로 감싼다 (나머지는 20260903170000과 동일) ───
@@ -131,3 +134,139 @@ begin
   );
 end;
 $$;
+
+-- ─── (B-1) 마감 정산에 딸린 행 동결 ───
+create or replace function public.b2b_guard_frozen_work()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_settlement_id uuid;
+  v_status        text;
+  v_ref           text;
+begin
+  if tg_table_name = 'b2b_work_records' then
+    v_settlement_id := old.settlement_id;
+  else
+    select w.settlement_id into v_settlement_id
+    from public.b2b_work_records w where w.id = old.work_record_id;
+  end if;
+
+  if v_settlement_id is null then
+    if tg_op = 'DELETE' then return old; end if;
+    return new;
+  end if;
+
+  select status, ref_no into v_status, v_ref
+  from public.b2b_settlements where id = v_settlement_id;
+
+  if v_status = 'closed' then
+    -- updated_at만 바뀌는 업데이트(touch 트리거)는 통과시킨다.
+    if tg_op = 'UPDATE'
+       and tg_table_name = 'b2b_work_records'
+       and (to_jsonb(old) - 'updated_at') = (to_jsonb(new) - 'updated_at') then
+      return new;
+    end if;
+    raise exception '% belongs to closed settlement %', tg_table_name, v_ref;
+  end if;
+
+  if tg_op = 'DELETE' then return old; end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists b2b_pricings_freeze on public.b2b_pricings;
+create trigger b2b_pricings_freeze
+  before update or delete on public.b2b_pricings
+  for each row execute function public.b2b_guard_frozen_work();
+
+drop trigger if exists b2b_work_evidence_freeze on public.b2b_work_evidence;
+create trigger b2b_work_evidence_freeze
+  before update or delete on public.b2b_work_evidence
+  for each row execute function public.b2b_guard_frozen_work();
+
+drop trigger if exists b2b_work_records_freeze on public.b2b_work_records;
+create trigger b2b_work_records_freeze
+  before update or delete on public.b2b_work_records
+  for each row execute function public.b2b_guard_frozen_work();
+
+-- ─── (B-2) 업무기록 부착 가드: 마감 정산으로 새로 붙이는 것도 막는다 (insert 포함) ───
+create or replace function public.b2b_guard_work_attach()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_old_settlement_id     uuid;
+  v_old_settlement_status text;
+  v_new_settlement_status text;
+  v_new_settlement_ref    text;
+  v_settlement_agreement  uuid;
+begin
+  if tg_op = 'UPDATE' then
+    v_old_settlement_id := old.settlement_id;
+  end if;
+
+  if v_old_settlement_id is not null and new.settlement_id is distinct from v_old_settlement_id then
+    select status into v_old_settlement_status from public.b2b_settlements where id = v_old_settlement_id;
+    if v_old_settlement_status = 'closed' then
+      raise exception 'work % is attached to closed settlement', old.ref_no;
+    end if;
+  end if;
+
+  if new.settlement_id is not null then
+    select agreement_id, status, ref_no
+      into v_settlement_agreement, v_new_settlement_status, v_new_settlement_ref
+    from public.b2b_settlements where id = new.settlement_id;
+    if v_settlement_agreement is distinct from new.agreement_id then
+      raise exception 'work % agreement mismatch', new.ref_no;
+    end if;
+    if new.settlement_id is distinct from v_old_settlement_id and v_new_settlement_status = 'closed' then
+      raise exception 'settlement % is closed', v_new_settlement_ref;
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists b2b_work_records_attach_guard on public.b2b_work_records;
+create trigger b2b_work_records_attach_guard
+  before insert or update on public.b2b_work_records
+  for each row execute function public.b2b_guard_work_attach();
+
+-- ─── (B-3) 마감 이후 허용 전이는 disputed 하나뿐 ───
+create or replace function public.b2b_guard_settlement_close()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_result jsonb;
+  old_j    jsonb;
+  new_j    jsonb;
+begin
+  if new.status = 'closed' and old.status <> 'closed' then
+    v_result := public.b2b_reconcile(new.id);
+    if (v_result->>'ok') is distinct from 'true' then
+      raise exception 'settlement % cannot close: %', old.ref_no, (v_result->'diffs')::text;
+    end if;
+    new.reconciliation := v_result;
+  end if;
+
+  if old.status = 'closed' then
+    if new.status not in ('closed', 'disputed') then
+      raise exception 'b2b_settlements %: closed settlement can only move to disputed (got %)', old.ref_no, new.status;
+    end if;
+    old_j := to_jsonb(old) - 'status' - 'bundle_doc_no' - 'updated_at';
+    new_j := to_jsonb(new) - 'status' - 'bundle_doc_no' - 'updated_at';
+    if old_j <> new_j then
+      raise exception 'b2b_settlements %: closed settlement is immutable except status/bundle_doc_no', old.ref_no;
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+drop trigger if exists b2b_settlements_close_guard on public.b2b_settlements;
+create trigger b2b_settlements_close_guard
+  before update on public.b2b_settlements
+  for each row execute function public.b2b_guard_settlement_close();

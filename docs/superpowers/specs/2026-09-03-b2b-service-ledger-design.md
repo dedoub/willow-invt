@@ -152,7 +152,7 @@ DB와 법률 사실을 확인한 결과 초안에 없던 요건 네 가지를 �
 | status | open(세금계산서에서 생성) \| evidence_drafted(업무기록·산정 초안) \| confirmed(CEO 확인) \| documents_ready(업무확인서·정산서 서명 완료) \| paid(현금 매칭) \| closed(대사 통과) \| disputed |
 | opened_from | `tax_invoice` \| `work_records` (어느 방향으로 열렸는지) |
 
-트리거 제약: `closed`로 바꾸려면 `work_sum = supply_amount`, 문서 2종 final, 세금계산서 양측 매칭, 현금 = total, engagement 정산 누계 ≤ fee_amount 이어야 한다.
+트리거 제약: `closed`로 바꾸려면 `work_sum = supply_amount`, 문서 2종 final, 세금계산서 양측 매칭, 현금 = total, engagement 정산 누계 ≤ fee_amount 이어야 한다. `closed` 이후에는 `disputed`로만 전이할 수 있고, `disputed`에서 다시 `closed`로 갈 때 재대사한다.
 
 ### 5.6 `b2b_events` — 감사 로그
 서류함의 `willow_corp_events`를 그대로 쓴다(`entity_type='b2b_settlement'` 등). 별도 테이블 없음.
