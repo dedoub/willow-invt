@@ -90,7 +90,15 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
     const versionNo = nextVersionNo(existing)
     const storagePath = buildStoragePath({ company: doc.company, docNo, versionNo, sha256, mime })
     await ensureBucket()
-    unwrap(await sb.storage.from(BUCKET).upload(storagePath, buffer, { contentType: mime, upsert: false }), 'upload')
+    const up = await sb.storage.from(BUCKET).upload(storagePath, buffer, { contentType: mime, upsert: false })
+    if (up.error) {
+      // 앞선 실행이 업로드까지만 하고 죽었을 수 있다. 같은 경로에 같은 내용이면 올린 셈 치고 진행한다.
+      if (!/already exists|Duplicate|409/i.test(`${up.error.message ?? ''}`)) throw new Error(`upload: ${up.error.message}`)
+      const stored = unwrap(await sb.storage.from(BUCKET).download(storagePath), `download ${storagePath}`)
+      if (sha256Hex(Buffer.from(await stored.arrayBuffer())) !== sha256) {
+        throw new Error(`storage object exists with different content: ${storagePath}`)
+      }
+    }
     const rows = unwrap(await sb.from('willow_corp_document_versions').insert({
       document_id: doc.id, version_no: versionNo, kind, storage_path: storagePath, mime, size_bytes: buffer.length,
       sha256, content_text: contentText ? maskResidentNumbers(contentText) : null, generated_by: generatedBy, note, created_by: actor,
@@ -130,16 +138,23 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
     if (!contentText) throw new Error('contentText required')
     const masked = maskResidentNumbers(contentText)
     const articles = parseArticles(masked)
-    const prev = unwrap(await sb.from('willow_corp_rules').select('id, version_no, effective_to').eq('company', company).eq('rule_type', ruleType).is('effective_to', null).order('version_no', { ascending: false }).limit(1), 'previous rule')
+    // 열려 있는 이전 버전을 먼저 읽고 검증한다. insert 뒤에 실패하면 이벤트 체인에 되돌릴 수 없는 행이 남는다.
+    const prevRows = unwrap(await sb.from('willow_corp_rules').select('id, version_no, effective_from, effective_to').eq('company', company).eq('rule_type', ruleType).is('effective_to', null).order('version_no', { ascending: false }).limit(1), 'previous rule')
+    const prev = prevRows[0] ?? null
+    let closeAt = null
+    if (prev) {
+      if (versionNo <= prev.version_no) throw new Error(`version_no must exceed the open version ${prev.version_no}`)
+      const d = new Date(effectiveFrom)
+      d.setUTCDate(d.getUTCDate() - 1)
+      closeAt = d.toISOString().slice(0, 10)
+      if (closeAt < prev.effective_from) throw new Error('effective_from must be after the previous version effective_from')
+    }
     const rows = unwrap(await sb.from('willow_corp_rules').insert({
       company, rule_type: ruleType, title, version_no: versionNo, effective_from: effectiveFrom, effective_to: effectiveTo,
       parent_rule_id: parentRuleId, document_id: documentId, content_text: masked, articles, note, source_key: sourceKey,
     }).select(), 'insert rule')
     const rule = rows[0]
-    if (prev[0] && prev[0].version_no < versionNo) {
-      const closeAt = new Date(effectiveFrom); closeAt.setUTCDate(closeAt.getUTCDate() - 1)
-      unwrap(await sb.from('willow_corp_rules').update({ effective_to: closeAt.toISOString().slice(0, 10) }).eq('id', prev[0].id), 'close previous rule')
-    }
+    if (prev) unwrap(await sb.from('willow_corp_rules').update({ effective_to: closeAt }).eq('id', prev.id), 'close previous rule')
     await appendEvent({ company, entityType: 'rule', entityId: rule.id, event: 'rule_registered', payload: { rule_type: ruleType, version_no: versionNo, effective_from: effectiveFrom, effective_to: effectiveTo, articles: articles.length } })
     return rule
   }
@@ -175,8 +190,13 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
   }
 
   async function doneAction(id, result = null) {
-    const rows = unwrap(await sb.from('willow_corp_actions').update({ status: 'done', done_at: new Date().toISOString(), result }).eq('id', id).select(), 'done action')
-    if (!rows[0]) throw new Error(`action not found: ${id}`)
+    // pending인 행만 닫는다. 이미 done인 액션을 다시 닫으면 이벤트만 중복으로 쌓인다.
+    const rows = unwrap(await sb.from('willow_corp_actions').update({ status: 'done', done_at: new Date().toISOString(), result }).eq('id', id).eq('status', 'pending').select(), 'done action')
+    if (!rows[0]) {
+      const found = unwrap(await sb.from('willow_corp_actions').select('status').eq('id', id).limit(1), 'action status')
+      if (!found[0]) throw new Error(`action not found: ${id}`)
+      throw new Error(`action ${id} is ${found[0].status}, not pending`)
+    }
     await appendEvent({ company: rows[0].company, entityType: 'action', entityId: id, event: 'action_done', payload: { result } })
     return rows[0]
   }
@@ -199,12 +219,60 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
     return out
   }
 
+  // 버킷을 회사 폴더 → 문서 폴더 2단으로 훑는다(스토리지에는 재귀 list가 없다).
+  async function listStorageFiles(company) {
+    const out = []
+    const folders = unwrap(await sb.storage.from(BUCKET).list(company, { limit: 1000 }), `list ${company}`)
+    for (const folder of folders) {
+      if (folder.name.startsWith('.')) continue
+      if (folder.id) { out.push(`${company}/${folder.name}`); continue }
+      const files = unwrap(await sb.storage.from(BUCKET).list(`${company}/${folder.name}`, { limit: 1000 }), `list ${company}/${folder.name}`)
+      for (const f of files) {
+        if (!f.id || f.name.startsWith('.')) continue
+        out.push(`${company}/${folder.name}/${f.name}`)
+      }
+    }
+    return out
+  }
+
+  // 스토리지와 version 행을 양방향으로 대조한다. orphan = 행 없는 파일, missing = 파일 없는 행.
+  async function verifyOrphans(company = 'willow') {
+    const known = new Set()
+    for (const doc of await listDocuments({ company })) {
+      for (const v of await listVersions(doc.id)) known.add(v.storage_path)
+    }
+    const stored = new Set(await listStorageFiles(company))
+    return {
+      orphans: [...stored].filter(p => !known.has(p)).sort(),
+      missing: [...known].filter(p => !stored.has(p)).sort(),
+    }
+  }
+
+  // 모든 문서·버전·규정이 이벤트 체인에 실제로 기록됐는지 확인한다.
+  async function verifyChainCoverage(company = 'willow') {
+    const events = unwrap(await sb.from('willow_corp_events').select('entity_type, entity_id, event, payload').eq('company', company), 'events')
+    const docCreated = new Set(events.filter(e => e.entity_type === 'document' && e.event === 'created').map(e => e.entity_id))
+    const versionAdded = new Set(events.filter(e => e.entity_type === 'document' && e.event === 'version_added').map(e => `${e.entity_id}#${e.payload?.version_no}`))
+    const ruleRegistered = new Set(events.filter(e => e.entity_type === 'rule' && e.event === 'rule_registered').map(e => e.entity_id))
+    const unchained = []
+    for (const doc of await listDocuments({ company })) {
+      if (!docCreated.has(doc.doc_no)) unchained.push(`document ${doc.doc_no}`)
+      for (const v of await listVersions(doc.id)) {
+        if (!versionAdded.has(`${doc.doc_no}#${v.version_no}`)) unchained.push(`version ${doc.doc_no} v${v.version_no}`)
+      }
+    }
+    for (const r of await listRules(company)) {
+      if (!ruleRegistered.has(r.id)) unchained.push(`rule ${r.id}`)
+    }
+    return { unchained }
+  }
+
   return {
     client: sb, ensureBucket, nextRefNo, appendEvent,
     getDocumentByKey, getDocument, listDocuments, createDocument, listVersions, addVersion, signedUrl,
     getRuleByKey, listRules, rulesEffectiveAt, registerRule,
     snapshotProfile, latestProfile, getByKey,
     addAction, listActions, doneAction,
-    verifyChain: verifyChainFor, verifyStoredVersions,
+    verifyChain: verifyChainFor, verifyStoredVersions, verifyOrphans, verifyChainCoverage,
   }
 }

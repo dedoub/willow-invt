@@ -98,9 +98,11 @@ async function main() {
     case 'verify': {
       const chain = await db.verifyChain(company)
       const files = await db.verifyStoredVersions(company)
-      const bad = files.filter(f => !f.ok)
-      out({ chain, versions: files.length, corrupted: bad })
-      if (!chain.ok || bad.length) process.exit(1)
+      const bad = files.filter((f: any) => !f.ok)
+      const { orphans, missing } = await db.verifyOrphans(company)
+      const { unchained } = await db.verifyChainCoverage(company)
+      out({ chain, versions: files.length, corrupted: bad, orphans, missing, unchained })
+      if (!chain.ok || bad.length || orphans.length || missing.length || unchained.length) process.exit(1)
       return
     }
     case 'seed': return out(await runSeed({ db, manifestPath: need('manifest'), root: ROOT, log: console.log }))
