@@ -36,6 +36,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '윌로우인베스트먼트',
     items: [
       { id: 'mgmt',       href: '/mgmt',       label: '사업관리',  icon: 'briefcase' },
+      { id: 'corp',       href: '/corp',       label: '법인 서류함', icon: 'file' },
       { id: 'email',      href: '/email',      label: '이메일',    icon: 'mail' },
       { id: 'wiki',       href: '/wiki',       label: '업무위키',  icon: 'book' },
       { id: 'invest',     href: '/invest',     label: '주식투자',  icon: 'trending' },

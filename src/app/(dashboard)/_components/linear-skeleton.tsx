@@ -785,3 +785,38 @@ export function WikiSkeleton() {
     </CardSkel>
   )
 }
+
+/* 법인 서류함 — 상단 KPI 카드 + 표 카드 */
+export function CorpSkeleton() {
+  const mobile = useIsMobile()
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+      <CardSkel>
+        <Bone w={110} h={8} />
+        <Bone w={90} h={14} style={{ marginTop: 6 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginTop: 14 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Bone key={i} h={t.density.statH} r={t.radius.md} />
+          ))}
+        </div>
+      </CardSkel>
+      <CardSkel>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Bone w={60} h={14} />
+          <Bone w={150} h={t.density.controlH} r={t.radius.sm} />
+        </div>
+        <div style={{ display: 'flex', gap: 5, marginTop: 12 }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Bone key={i} w={i === 0 ? 40 : 64} h={22} r={t.radius.pill} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Bone key={i} h={t.density.rowH - 8} r={3} />
+          ))}
+        </div>
+      </CardSkel>
+    </div>
+  )
+}
