@@ -24,9 +24,12 @@
 - 상시 서류(등기부등본, 사업자등록증, 주주명부, 계약서, 세무 신고·납부 증빙) 등록과 재발급 버전 관리
 - 문서·의사결정 고유 ID, 다른 업무 기록(현금관리, 세금관리 등)에서의 참조 링크
 - 변조 검출 가능한 감사 로그(해시 체인)
-- 웹 UI(linear 대시보드) + 텔레그램 윌리 두 입구, MCP 도구
+- 입구 둘: 편집기 CLI 세션(Claude Code·Codex)과 텔레그램 윌리. 둘 다 같은 스킬과 CLI 스크립트로 전 과정을 수행
+- 웹 `/corp` 페이지는 열람 전용 서류함(의사결정·문서·규정·대기 액션 조회, 문서 열기)
+- MCP 도구(`willow_corp_*`)로 윌리·Codex 세션이 서류함을 조회·기록
 
 제외(YAGNI):
+- 웹 입력창. CEO가 편집기나 윌리에서 자연어로 지시하므로 GUI 접수 폼은 두지 않는다
 - 전자서명·공인인증 연동. 서명은 출력 → 자필서명·날인 → 스캔 업로드로 처리
 - 등기소·홈택스에 대한 자동 신청·제출. 등기 필요 여부 판단과 서류 준비까지만
 - 텐소프트웍스 전용 UI(스키마의 `company` 컬럼으로 준비만)
@@ -38,31 +41,34 @@
 2. **추가 전용(append-only)**: 확정된 문서 버전과 감사 이벤트는 수정·삭제하지 않는다. 변경은 새 버전 또는 새 건(대체)으로만.
 3. **절차는 회사 사실에서 도출**: 주주 수, 이사 수, 자본금 같은 회사 기본정보를 등기부·주주명부에서 추출해 저장하고, 에이전트는 이를 근거로 소집 생략·서면결의·이사회 부존재 여부를 판단한다.
 4. **사용자 행동 최소화**: 시스템이 요청하는 것은 확인(confirm), 서명·날인 후 업로드(sign), 정보 제공(provide) 세 가지뿐.
-5. **기존 시스템 재사용**: 실행은 로컬 Codex 디스패처, 저장은 Supabase(주 프로젝트), UI는 linear 컴포넌트, 도구는 MCP 모듈 관례를 따른다.
+5. **기존 시스템 재사용**: 실행은 편집기 CLI 세션 + `scripts/` 관례(tsx 스크립트, `scripts/lib/*.mjs` 순수 로직 + node:test), 저장은 Supabase(주 프로젝트), UI는 linear 컴포넌트.
 
 ## 4. 아키텍처
 
 ```
-[입구] 웹 /corp 입력창  ──┐
-       텔레그램 윌리      ──┤→ willow_corp_decisions(status=intake) + ws_commands(source='corp')
-                              ↓ (30초 주기, scripts/ws-dispatcher.ts)
-[두뇌] codex exec (cwd=willow-invt, 스킬 .claude/skills/corp-records)
-       1. 회사 사실(profile) + 의사결정일 기준 시행 규정(rules) 로드
-       2. 절차 판단 → agent_plan 기록 (근거 조항 인용)
-       3. 템플릿으로 문서 초안(md) 생성 → Playwright HTML→PDF → corp-records 버킷 업로드(v1 draft)
-       4. actions(sign/confirm/provide) 생성, 텔레그램 보고
+[입구 A] 편집기 CLI 세션 (Claude Code 또는 Codex, cwd=willow-invt)
+         CEO: "내 연봉을 2억원으로 변경해"
+[입구 B] 텔레그램 윌리 → dispatch_command → ws_commands(project=willow-invt, source='corp')
+         → scripts/ws-dispatcher.ts (30초 주기) → codex exec (cwd=willow-invt) → 결과 텔레그램 보고
+                              ↓ 두 입구 모두 스킬 .claude/skills/corp-records/SKILL.md (Codex는 AGENTS.md에서 같은 파일을 가리킴)
+[두뇌] 세션 에이전트가 스킬 절차대로 CLI 스크립트를 호출
+       1. corp profile + corp rules --at <의사결정일>  → 회사 사실·시행 규정 로드
+       2. 절차 판단 (6절) → corp decision new --plan <json>  → 건 생성, 근거·계획 기록
+       3. 템플릿 채움 → corp doc render → Playwright HTML→PDF → corp doc add-version (draft) → 버킷 업로드
+       4. corp action add (sign/confirm/provide) → 세션에서 CEO에게 요청 사항 출력
                               ↓
-[사용자] 웹/텔레그램에서 확인 → 출력·서명·날인 → 스캔 PDF 업로드
+[사용자] 초안 PDF 열어 확인(웹 /corp 또는 윌리가 보낸 파일) → 출력·서명·날인 → 스캔 PDF를 세션 또는 윌리에게 건네며 "서명본이야"
+         (윌리 경로: 텔레그램 파일 수신 → 로컬 저장 → dispatch_command에 파일 경로 포함)
                               ↓
-[확정] API가 sha256·텍스트 추출 → final_signed 버전 append → decision.finalized
-       → events 해시체인 기록 → 급여/현금 기록에서 참조 가능
+[확정] corp doc add-version --kind final_signed <file> → sha256·텍스트 추출 → 버전 append
+       corp decision finalize → 모든 sign 완료 검증 → finalized → events 해시체인 기록
+                              ↓
+[열람] 웹 /corp (읽기 전용) · 급여/현금 기록에서 ref_no로 참조
 ```
 
-에이전트 실행을 Vercel(`/api/chat`)이 아니라 로컬 Codex로 두는 이유:
-- CEO 정책(AI 기능은 Codex CLI) 준수
-- 한국어 법률 문서 초안 품질과 긴 컨텍스트(정관 전문 + 템플릿) 필요
-- PDF 렌더링에 한글 폰트가 필요한데 Vercel 런타임에는 없고, 로컬 macOS + Playwright에는 있음
-- 디스패처가 이미 30초 주기로 돌고 있어 체감 지연이 1분 내외
+로컬(편집기 세션 또는 디스패처 Codex)에서 실행하는 이유: CEO 정책(AI 기능은 Codex CLI) 준수, 한국어 법률 문서 초안에 긴 컨텍스트(정관 전문 + 템플릿)가 필요, PDF 렌더링의 한글 폰트가 macOS에 있음. 디스패처는 이미 30초 주기로 돌고 있어 윌리 경로도 체감 지연이 1분 내외다. 디스패처 변경은 `source='corp'`의 타임아웃 분기(`timeoutForSource`)뿐이다.
+
+CLI 진입점은 `scripts/corp-records.ts` 하나(서브커맨드: `profile`, `rules`, `decision`, `doc`, `action`, `verify`, `seed`). 모든 쓰기는 이 스크립트를 통해서만 하고, 스킬은 SQL 직접 실행을 금지한다.
 
 ## 5. 데이터 모델 (주 프로젝트 `axcfvieqsaphhvbkyzzv`, 접두사 `willow_corp_`)
 
@@ -109,7 +115,7 @@
 | parties jsonb | `[{ role:'대표이사', name:'김동욱' }, { role:'주주', name:'...' }]` |
 | basis jsonb | `[{ rule_id, article_no, quote }]` 근거 정관·규정 조항 |
 | agent_plan jsonb | 판단한 절차: `{ resolution_type:'shareholders_written', needs_board:false, needs_registration:false, documents:[...], reasoning }` |
-| status | `intake` → `planning` → `draft` → `awaiting_signature` → `finalized`; 종료계 `superseded` \| `void` |
+| status | `draft` → `awaiting_signature` → `finalized`; 종료계 `superseded` \| `void` |
 | supersedes_id | 이 건이 대체하는 이전 건 |
 | finalized_at, created_at, created_by | |
 
@@ -229,34 +235,49 @@ UPDATE·DELETE 차단 트리거. `willow_corp_verify_chain(company)` 함수로 �
 - 초안 PDF에는 "DRAFT" 표시. 서명본 업로드 시 draft 표시 없는 원본은 사용자가 출력한 것이므로, 확정본은 업로드된 스캔 PDF 그대로다.
 - 파일명·경로에 sha256 앞 8자리를 넣어 동일 내용 중복 저장을 막는다.
 
-## 8. UI (`/corp`, linear 대시보드, 윌로우 그룹 사이드바에 "법인 서류함")
+## 8. CLI 스크립트와 스킬 (쓰기 경로의 전부)
 
-디자인은 `docs/design-system/*` 공식 컴포넌트만 사용한다. 새 카드·버튼 체계 금지.
+`scripts/corp-records.ts` (tsx) + 순수 로직 `scripts/lib/corp-records/*.mjs`. `.env.local`의 service key로 주 프로젝트에 접근한다(`ws-dispatcher.ts`의 `loadEnv` 관례).
 
-- **상단 입력**: "하려는 일을 입력" 한 줄 입력 + `LBtn` 접수. 접수 즉시 decision(intake) 생성, 목록에 "판단 중" 상태로 표시.
-- **`LStat` 4개**: 진행 중 건, 서명 대기 action, 확정 문서 수, 현행 정관 시행일.
+| 서브커맨드 | 역할 |
+|---|---|
+| `profile show` / `profile snapshot --as-of D --source <doc_no> --facts <json>` | 회사 사실 조회·스냅샷 |
+| `rules list --at D` / `rules register --type articles --file <pdf> --text <txt> --from D [--to D] [--parent <rule_id>] [--adopted-by <ref_no>]` | 시행 규정 조회, 규정 버전 등록(조 단위 파싱, 주민번호 마스킹) |
+| `decision new --category .. --title .. --date D --plan <json> --basis <json> [--amount N] [--parties <json>] [--request "원문"]` | 건 생성, ref_no 발급 |
+| `decision show <ref_no>` / `decision list [--status ..]` | |
+| `decision finalize <ref_no>` | 모든 sign 액션 done + final_signed 버전 존재 검증 후 확정 |
+| `decision supersede <ref_no> --by <ref_no>` / `decision void <ref_no> --reason ..` | |
+| `doc new --type .. --title .. [--decision <ref_no>] [--issued D --valid-to D --counterparty ..]` | 문서 생성, doc_no 발급 |
+| `doc render --template <name> --vars <json> --out <pdf>` | md 템플릿 → HTML → Playwright PDF(초안 워터마크) |
+| `doc add-version <doc_no> --kind draft\|final_signed\|reissue --file <pdf> [--note ..]` | sha256, 중복 거부, 텍스트 추출(텍스트 PDF는 pdf-parse, 이미지 PDF는 `--text <txt>`로 세션이 판독한 텍스트를 넘김), 업로드, 이벤트 |
+| `doc url <doc_no> [--version N]` | 서명 URL 출력 |
+| `action add --decision <ref_no> --kind sign\|confirm\|provide --desc .. [--doc <doc_no>] [--due D]` / `action done <id>` / `action list` | |
+| `link add --decision <ref_no> --table willow_mgmt_cash --id <uuid> --relation evidence_of` | |
+| `verify` | 해시체인 검증 + 확정 건의 버전 무결성(storage sha256 재계산) |
+| `seed` | 12절 초기 등록을 idempotent하게 실행 |
+
+스킬 `.claude/skills/corp-records/SKILL.md`: 6절의 판정 규칙, 서브커맨드 사용 순서, 템플릿 변수 규약, "규정에 근거가 없으면 묻는다" 원칙, 서명본 수령 시 확정 절차. `AGENTS.md`에 같은 스킬 경로를 적어 Codex 세션도 동일 절차를 따른다.
+
+## 9. 웹 열람 페이지 (`/corp`, linear 대시보드, 윌로우 그룹 사이드바 "법인 서류함")
+
+읽기 전용. 디자인은 `docs/design-system/*` 공식 컴포넌트만 사용한다.
+
+- **`LStat` 4개**: 진행 중 건, 대기 액션, 확정 문서 수, 현행 정관 시행일.
 - **`LSegmented`** 3모드:
-  1. **의사결정** — `LFilterChip`(카테고리) + `DataTable`(ref_no, 안건, 의사결정일, 금액, 상태 `LBadge`). 행 클릭 → 상세 다이얼로그(기존 `invoice-detail-dialog` 패턴): 결정 내용, 적용기간, 관련자, 근거 조항(인용문), 문서 목록(버전 접기), 요청된 행동(서명 업로드 버튼 = `provide/sign` 완료 처리), 감사 이벤트 타임라인.
-  2. **문서** — 상시 서류 우선 필터(등기부등본·사업자등록증·주주명부·계약서·세무). 각 문서는 최신 버전과 발급일·유효기간, 만료 임박 `LBadge`. 업로드 버튼으로 재발급본 추가(새 버전). 계약서는 상대방·기간·금액 표시.
-  3. **규정** — 정관·사규를 시행기간 타임라인으로. "이 날짜 기준 규정 보기" 날짜 입력 → 해당 버전 조문 목록.
-- 문서 열람은 서명 URL(1시간)로 새 탭.
-- 페이지는 `useAgentRefresh(['willow_corp'])`로 에이전트 진행에 따라 자동 갱신.
+  1. **의사결정** — `LFilterChip`(카테고리) + `DataTable`(ref_no, 안건, 의사결정일, 금액, 상태 `LBadge`). 행 클릭 → 상세 다이얼로그(`invoice-detail-dialog` 패턴): 결정 내용, 적용기간, 관련자, 근거 조항 인용, 문서·버전 목록(열기 링크), 대기 액션, 이벤트 타임라인.
+  2. **문서** — 상시 서류 필터(등기부등본·사업자등록증·인허가·주주명부·계약서·세무). 최신 버전, 발급일·유효기간, 만료 임박 `LBadge`. 계약서는 상대방·기간·금액.
+  3. **규정** — 정관·사규 시행기간 타임라인. 날짜 입력 → 그 시점 시행 버전의 조문 목록.
+- 문서 열기는 서명 URL(1시간) 새 탭.
 
-## 9. API
+읽기 API `src/app/api/willow-corp/`: `GET decisions`, `GET decisions/[ref]`, `GET documents`, `GET documents/[doc]/url`, `GET rules?at=`, `GET actions`, `GET events?entity=`. 쓰기 라우트는 두지 않는다.
 
-`src/app/api/willow-corp/`
-- `POST decisions` (접수: request_text → decision + ws_commands enqueue), `GET decisions`, `GET decisions/[id]`
-- `GET documents`, `POST documents` (상시 서류 등록: 메타 + 파일), `POST documents/[id]/versions` (재발급·서명본 업로드: sha256, pdf-parse 텍스트, 이벤트 기록, sign action 완료, 모든 sign 완료 시 decision finalize)
-- `GET documents/[id]/url` (서명 URL)
-- `GET rules?at=YYYY-MM-DD`, `POST rules` (규정 등록·개정 버전)
-- `POST actions/[id]/done`
-- `GET events?entity=`
+## 10. MCP 도구와 공유 로직
 
-공통 로직은 `src/lib/willow-corp/` (ID 발급, 해시체인, 버전 append, 확정 규칙)에 두고 API·MCP·스크립트가 공유한다.
+`src/lib/mcp/tools/willow-corp.ts` (접두사 `willow_corp_`, 관례대로 `checkToolPermission` + `logMcpAction`):
+`list_decisions`, `get_decision`, `list_documents`, `get_document_url`, `list_rules_effective_at`, `get_profile`, `list_pending_actions`, `add_document_version`(파일 경로 또는 base64), `record_plan`, `finalize_decision`, `link_record`.
+윌리(텔레그램)는 "서명 대기 뭐 있어?" 같은 조회에 이 도구를 직접 쓰고, 문서 생성 같은 긴 작업은 `dispatch_command`로 세션에 넘긴다. 디스패처 Codex 세션은 CLI 스크립트를 우선 쓰고 MCP는 조회에만 쓴다.
 
-## 10. MCP 도구 `src/lib/mcp/tools/willow-corp.ts` (접두사 `willow_corp_`)
-
-`list_decisions`, `get_decision`, `record_plan`, `add_document_version`, `list_rules_effective_at`, `get_profile`, `list_pending_actions`, `finalize_decision`, `link_record`. 디스패처의 Codex는 willow-dashboard MCP를 쓸 수 있으므로 스킬은 이 도구로 DB에 읽고 쓴다. 텔레그램 윌리는 `dispatch_command`로 같은 큐에 넣는다.
+DB 접근과 규칙은 `scripts/lib/corp-records/`(mjs)에 두고 CLI가 쓴다. 웹 읽기 API와 MCP 도구는 `src/lib/willow-corp/queries.ts`·`mutations.ts`를 쓴다. 두 곳이 공유하는 상수(enum, ref_no 형식)와 해시체인 함수는 `src/lib/willow-corp/`에 두고 스크립트에서 import한다.
 
 ## 11. 기존 기록과의 연결
 
@@ -275,16 +296,16 @@ UPDATE·DELETE 차단 트리거. `willow_corp_verify_chain(company)` 함수로 �
 
 ## 13. 테스트
 
-- `src/lib/willow-corp/*.test.mjs`(node:test): ID 시퀀스, 해시체인 생성·검증, 동일 sha256 중복 거부, 확정 후 수정 차단, `rules_effective_at` 경계(개정일 당일).
-- 마이그레이션 적용 후 `execute_sql`로 트리거 동작 확인(확정 버전 UPDATE 시 에러).
-- 에이전트 스킬: 예시 3건(연봉 변경, 상여 5천만원, 사업목적 추가)에 대해 agent_plan이 기대 문서 세트를 내는지 스크립트로 검증.
-- UI: 페이지 렌더·접수·업로드 흐름을 브라우저에서 1회 확인.
+- `scripts/lib/corp-records/*.test.mjs`(node:test): ref_no 시퀀스, 해시체인 생성·검증, 동일 sha256 중복 거부, 확정 조건(sign 미완료 시 거부), 조문 파서(`제N조(제목)` 분리, 별첨 경계), 주민번호 마스킹, 정기상여 200% 상한·성과상여 50% 상한 계산.
+- 마이그레이션 적용 후 `execute_sql`로 트리거 동작 확인(확정 버전 UPDATE 시 에러, `rules_effective_at` 개정일 당일 경계).
+- 스킬: 예시 3건(연봉 2억 변경, 상여 5천만원, 사업목적 추가)을 실제 세션에서 돌려 agent_plan과 문서 세트가 6절과 일치하는지 확인.
+- 웹: `/corp` 세 모드 렌더와 문서 열기를 브라우저에서 1회 확인.
 
 ## 14. 구현 단계
 
-1. **기반**: 마이그레이션 8개 테이블 + 함수·트리거, 버킷, `src/lib/willow-corp`, API, `/corp` UI(문서·규정 모드), 상시 서류 시드
-2. **에이전트**: 스킬 + 템플릿 + PDF 렌더 + 디스패처 source 분기 + 의사결정 모드 UI + 서명본 확정 흐름
-3. **연결**: MCP 도구, 텔레그램 입구, 현금·세금 기록 링크 표시
+1. **기반**: 마이그레이션 8개 테이블 + 함수·트리거, 버킷, `scripts/lib/corp-records` + `scripts/corp-records.ts`(profile·rules·doc·verify·seed), 정관·상시 서류 시드
+2. **의사결정**: 스킬 + 템플릿 + PDF 렌더 + decision·action 서브커맨드 + 서명본 확정 흐름. 첫 실전 건으로 대표이사 연봉 변경 처리
+3. **열람·연결**: `/corp` 읽기 페이지 + 읽기 API, MCP 도구, 윌리 입구(디스패처 `source='corp'` + 텔레그램 파일 수신 → 서명본 경로 전달), 현금·세금 기록 링크 표시
 
 ## 15. 확인이 필요한 사항 (가정하고 진행, 다르면 알려줄 것)
 
