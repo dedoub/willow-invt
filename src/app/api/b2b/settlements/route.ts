@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
-import type { B2bCompany, B2bReconciliation, B2bSettlement, B2bSettlementListItem } from '@/types/b2b'
+import type { B2bCompany, B2bSettlement, B2bSettlementListItem } from '@/types/b2b'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +12,9 @@ function companyParam(url: URL, key: string): B2bCompany | null {
   return v && (COMPANIES as readonly string[]).includes(v) ? (v as B2bCompany) : null
 }
 
-// 정산 목록. 약정 제목·업무기록 건수·묶음 문서·대사 결과를 곁들여 돌려준다. 읽기 전용.
+// 정산 목록. 약정 제목·업무기록 건수·묶음 문서·대사 결과(저장된 값)를 곁들여 돌려준다. 읽기 전용.
+// 대사는 저장된 reconciliation 컬럼만 읽는다 — 행마다 b2b_reconcile을 라이브로 돌리지 않는다(N회 RPC 왕복 방지).
+// 최신 결과가 필요하면 상세 API(/api/b2b/settlements/[ref])가 열람 시점에 라이브로 계산한다.
 export async function GET(request: Request) {
   const denied = await denyUnlessDashboardAccess(request)
   if (denied) return denied
@@ -36,13 +38,12 @@ export async function GET(request: Request) {
     const engagementIds = [...new Set(settlements.map(s => s.engagement_id).filter((v): v is string => !!v))]
     const settlementIds = settlements.map(s => s.id)
 
-    const [agreementsRes, engagementsRes, workRowsRes, reconciliations] = await Promise.all([
+    const [agreementsRes, engagementsRes, workRowsRes] = await Promise.all([
       supabase.from('b2b_agreements').select('id, title').in('id', agreementIds),
       engagementIds.length
         ? supabase.from('b2b_engagements').select('id, ref_no').in('id', engagementIds)
         : Promise.resolve({ data: [] as { id: string; ref_no: string }[], error: null }),
       supabase.from('b2b_work_records').select('settlement_id').in('settlement_id', settlementIds),
-      Promise.all(settlements.map(s => supabase.rpc('b2b_reconcile', { p_settlement: s.id }))),
     ])
     if (agreementsRes.error) throw agreementsRes.error
     if (engagementsRes.error) throw engagementsRes.error
@@ -55,17 +56,12 @@ export async function GET(request: Request) {
       workCount.set(w.settlement_id, (workCount.get(w.settlement_id) ?? 0) + 1)
     }
 
-    const settlementList: B2bSettlementListItem[] = settlements.map((s, i) => {
-      const reconRes = reconciliations[i]
-      const reconciliation = (reconRes.error ? s.reconciliation : reconRes.data) as B2bReconciliation | null
-      return {
-        ...s,
-        reconciliation,
-        agreement_title: agreementTitle.get(s.agreement_id) ?? '',
-        engagement_ref: s.engagement_id ? engagementRef.get(s.engagement_id) ?? null : null,
-        work_count: workCount.get(s.id) ?? 0,
-      }
-    })
+    const settlementList: B2bSettlementListItem[] = settlements.map(s => ({
+      ...s,
+      agreement_title: agreementTitle.get(s.agreement_id) ?? '',
+      engagement_ref: s.engagement_id ? engagementRef.get(s.engagement_id) ?? null : null,
+      work_count: workCount.get(s.id) ?? 0,
+    }))
 
     return NextResponse.json({ settlements: settlementList })
   } catch (error) {

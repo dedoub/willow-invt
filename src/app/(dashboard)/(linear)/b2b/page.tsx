@@ -77,7 +77,7 @@ export default function B2bPage() {
   const stats = useMemo(() => {
     const currentYear = new Date().getFullYear()
     const open = settlements.filter(s => s.status !== 'closed').length
-    const mismatched = settlements.filter(s => s.reconciliation && !s.reconciliation.ok).length
+    const mismatched = settlements.filter(s => (s.reconciliation && !s.reconciliation.ok) || s.status === 'disputed').length
     const yearSupply = settlements
       .filter(s => new Date(s.created_at).getFullYear() === currentYear)
       .reduce((sum, s) => sum + Number(s.supply_amount), 0)
@@ -86,6 +86,10 @@ export default function B2bPage() {
   }, [settlements])
 
   const closeDialog = useCallback(() => setSelectedRef(null), [])
+  const selectedRow = useMemo(
+    () => settlements.find(s => s.ref_no === selectedRef) ?? null,
+    [settlements, selectedRef],
+  )
 
   if (!loaded) return <B2bSkeleton />
 
@@ -117,7 +121,12 @@ export default function B2bPage() {
         <SettlementsTable settlements={settlements} status={status} onSelect={s => setSelectedRef(s.ref_no)} />
       </LCard>
 
-      <SettlementDialog refNo={selectedRef} onClose={closeDialog} />
+      <SettlementDialog
+        refNo={selectedRef}
+        storedReconciliation={selectedRow?.reconciliation ?? null}
+        storedUpdatedAt={selectedRow?.updated_at ?? null}
+        onClose={closeDialog}
+      />
     </div>
   )
 }

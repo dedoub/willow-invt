@@ -8,12 +8,21 @@ import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import { LTableBadge } from '@/app/(dashboard)/_components/linear-table'
 import {
   B2B_COMPANY_LABEL, B2B_DIFF_LABEL, B2B_SETTLEMENT_STATUS_LABEL,
-  type B2bSettlementDetail, type B2bWorkRecordDetail,
+  type B2bReconciliation, type B2bSettlementDetail, type B2bWorkRecordDetail,
 } from '@/types/b2b'
 
 interface Props {
   refNo: string | null
+  /** 목록에 저장된 대사 결과(라이브 재계산 아님). 상세의 "현재 대사"와 다를 때만 참고용으로 함께 보여준다. */
+  storedReconciliation?: B2bReconciliation | null
+  storedUpdatedAt?: string | null
   onClose: () => void
+}
+
+function formatTimestamp(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 const FEE_BASIS_LABEL: Record<string, string> = {
@@ -25,7 +34,7 @@ const EVIDENCE_KIND_LABEL: Record<string, string> = {
   file: '파일', commit: '커밋', meeting: '회의', doc: '문서', other: '기타',
 }
 
-export function SettlementDialog({ refNo, onClose }: Props) {
+export function SettlementDialog({ refNo, storedReconciliation = null, storedUpdatedAt = null, onClose }: Props) {
   const [detail, setDetail] = useState<B2bSettlementDetail | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [openingDoc, setOpeningDoc] = useState<string | null>(null)
@@ -191,6 +200,7 @@ export function SettlementDialog({ refNo, onClose }: Props) {
               </Section>
 
               <Section title="대사 결과">
+                <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>현재 대사</div>
                 {s.reconciliation == null && (
                   <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.subtle, padding: '6px 0' }}>대사 결과가 없습니다.</div>
                 )}
@@ -204,6 +214,18 @@ export function SettlementDialog({ refNo, onClose }: Props) {
                         <LTableBadge tone={tonePalettes.danger}>{B2B_DIFF_LABEL[code] ?? code}</LTableBadge>
                       </div>
                     ))}
+                  </div>
+                )}
+                {storedReconciliation != null && storedReconciliation.ok !== s.reconciliation?.ok && (
+                  <div style={{ marginTop: 4, paddingTop: 8, borderTop: `1px solid ${t.neutrals.line}` }}>
+                    <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>
+                      저장된 대사{storedUpdatedAt ? ` · ${formatTimestamp(storedUpdatedAt)}` : ''}
+                    </div>
+                    <div style={{ padding: '2px 0' }}>
+                      <LTableBadge tone={storedReconciliation.ok ? tonePalettes.done : tonePalettes.danger}>
+                        {storedReconciliation.ok ? '일치' : '불일치'}
+                      </LTableBadge>
+                    </div>
                   </div>
                 )}
               </Section>
