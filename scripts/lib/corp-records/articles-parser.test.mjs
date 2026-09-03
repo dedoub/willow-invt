@@ -58,6 +58,13 @@ test('parseArticles stops the last article before 부칙', () => {
   assert.doesNotMatch(body[2].text, /부\s+칙/)
 })
 
+test('parseArticles labels addendum clauses so they do not collide with main articles', () => {
+  const text = `제 1 조 [목적]\n 본 규정은 목적을 정한다.\n제 2 조 [적용범위]\n 적용한다.\n부 칙\n제 1 조 [시행일] 본 규정은 2021년 월 일부터 시행한다.\n제 2 조 [경과규정] 이전 임원도 적용한다.\n`
+  const out = parseArticles(text)
+  assert.deepEqual(out.map(a => a.no), ['제1조', '제2조', '부칙 제1조', '부칙 제2조'])
+  assert.match(out[2].text, /2021년/)
+})
+
 test('replaceArticleBody swaps one article and keeps the rest intact', () => {
   const { body } = splitRegulationSections(SAMPLE)
   const out = replaceArticleBody(body, '제2조', '회사는 다음의 사업을 영위함을 목적으로 한다.\n1. 정보통신업')

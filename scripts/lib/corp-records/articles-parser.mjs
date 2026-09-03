@@ -35,12 +35,14 @@ export function parseArticles(text) {
   const lines = String(text ?? '').split('\n')
   const out = []
   let current = null
+  let addendum = false
   for (const raw of lines) {
     const line = raw.trim()
-    if (ADDENDUM_RE.test(line)) { current = null; continue }
+    if (ADDENDUM_RE.test(line)) { current = null; addendum = true; continue }
     const m = ARTICLE_HEAD_RE.exec(line)
     if (m) {
-      current = { no: `제${m[1]}조`, title: m[2].trim(), lines: [line.slice(m[0].length)] }
+      const no = addendum ? `부칙 제${m[1]}조` : `제${m[1]}조`
+      current = { no, title: m[2].trim(), lines: [line.slice(m[0].length)] }
       out.push(current)
       continue
     }
