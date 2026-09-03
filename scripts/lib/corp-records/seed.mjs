@@ -52,11 +52,17 @@ export async function runSeed({ db, manifestPath, root, log = () => {} }) {
     docNoByKey[d.key] = doc.doc_no
     const existing = await db.listVersions(doc.id)
     for (const v of d.versions ?? []) {
+      const srcName = v.file ?? v.localName ?? (v.url ? basename(new URL(v.url).pathname) : '?')
+      // 선언된 sha가 이미 있으면 파일에 손대지 않는다. 원본이 없는 머신에서도 시드가 그냥 지나간다.
+      if (v.sha256 && existing.some(x => x.sha256 === v.sha256)) { skipped.push(`version ${d.key}/${srcName}`); continue }
+      // 변환본은 다시 변환할 때마다 바이트가 달라진다(생성 타임스탬프). 같은 note의 PDF가 이미 있으면 그게 그 변환본이다.
+      if (v.convert && existing.some(x => x.mime === 'application/pdf' && x.note === (v.note ?? null))) { skipped.push(`version ${d.key}/${srcName}`); continue }
       const srcPath = await materialize(dir, v)
       let path = srcPath
       if (v.convert && /\.docx$/i.test(path)) path = convertDocxToPdf(path, dirname(path))
       const buffer = readFileSync(path)
       const mime = guessMime(path)
+      if (v.sha256 && sha256Hex(buffer) !== v.sha256) throw new Error(`sha256 mismatch for ${d.key}/${srcName}`)
       if (existing.some(x => x.sha256 === sha256Hex(buffer))) { skipped.push(`version ${d.key}/${basename(srcPath)}`); continue }
       let contentText = v.textFile ? readFileSync(join(dir, v.textFile), 'utf8') : null
       if (!contentText && mime === 'application/pdf') contentText = await extractPdfText(buffer)

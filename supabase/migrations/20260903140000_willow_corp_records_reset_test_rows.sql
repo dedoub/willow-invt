@@ -1,3 +1,9 @@
+-- ONE-TIME RESET. Applied 2026-09-03 before the first seed. Never re-run: it disables the immutability guards.
+do $$ begin
+  if exists (select 1 from public.willow_corp_documents where source_key is not null) then
+    raise exception 'willow_corp reset refused: seeded data present';
+  end if;
+end $$;
 -- 법인 서류함 시드 전 초기화: 스키마 검증·CLI 왕복 테스트로 생긴 행만 존재한다.
 -- 가드 트리거를 잠시 끄고 전부 비운 뒤 다시 켠다. 이후 시드는 무결한 체인에서 시작한다.
 alter table public.willow_corp_events            disable trigger willow_corp_events_guard;

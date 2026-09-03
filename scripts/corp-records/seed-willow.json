@@ -45,6 +45,7 @@
     { "key": "act-officer-term-2027", "kind": "confirm", "due": "2027-02-28", "desc": "사내이사 김동욱(임기 2027-04-05)·감사 김철형(2027 정기주총 종결) 중임 결의 준비 — 2027년 3월 정기주주총회 안건, 결의 후 등기" },
     { "key": "act-backfill-ceo-salary", "kind": "provide", "due": "2026-09-30", "desc": "현행 대표이사 기본연봉 8,800만원을 정한 주주총회 결의 문서 제출 (없으면 다음 연봉 변경 건에서 소급 확인 결의)" },
     { "key": "act-akros-2026-original", "kind": "provide", "document": "contract-akros-2026", "due": "2026-09-30", "desc": "아크로스 자문계약서(2026-04-01) 서명본 PDF 제출 — 위키에는 요약만 있음" },
-    { "key": "act-akros-2023-original", "kind": "provide", "document": "contract-akros-2023", "due": "2026-09-30", "desc": "아크로스 구 자문계약서(2023-12-29)와 2026-03-31 합의해지 문서 제출" }
+    { "key": "act-akros-2023-original", "kind": "provide", "document": "contract-akros-2023", "due": "2026-09-30", "desc": "아크로스 구 자문계약서(2023-12-29)와 2026-03-31 합의해지 문서 제출" },
+    { "key": "act-bizreg-20260610", "kind": "provide", "document": "biz-reg", "due": "2026-09-30", "desc": "사업자등록증 2026-06-10 발급본(종목에 응용 소프트웨어 개발 및 공급업 추가) 업로드 — ~/Downloads 접근 차단으로 시드에서 누락" }
   ]
 }
