@@ -1749,7 +1749,11 @@ cp "/Volumes/PRO-G40/Downloads/2-1. 계약서-AI 융합 탐방 퀴즈 콘텐츠 
       "versions": [{ "kind": "reissue", "file": "텐소프트웍스_법인등기부등본_20260203.pdf", "textFile": "텐소프트웍스_법인등기부등본_20260203.txt", "note": "이미지 스캔 3쪽, 텍스트는 판독본" }] },
     { "key": "tensw-shareholders-20260310", "type": "shareholder_list", "category": "shareholders_meeting", "title": "주주명부 (2026-03-10)", "issued": "2026-03-10", "issuedBy": "주식회사 텐소프트웍스",
       "versions": [{ "kind": "final_signed", "file": "텐소프트웍스_주주명부_20260310.docx", "convert": true }] },
+    { "key": "tensw-seal", "type": "other", "category": "other", "title": "법인인감 인영 (대표이사 인, 이미지 날인용)", "issued": "2026-09-03", "issuedBy": "주식회사 텐소프트웍스", "tags": ["seal"],
+      "versions": [{ "kind": "final_signed", "file": "텐소프트웍스_인감.png", "note": "CEO 제공 원본(234x249)에서 배경 제거한 투명 PNG. 확정 문서 이미지 날인에 사용" }] },
 ```
+
+인감 PNG는 `image/png`로 업로드되며 텍스트 추출은 건너뛴다(`extractPdfText`는 PDF에만 호출됨). 시드 러너는 mime이 `image/*`이면 `contentText`를 null로 둔다.
 
 `scripts/logs/corp-records/tensw-profile-20260203.json` (등기부 2026-02-03 + 주주명부 2026-03-10 기준):
 
