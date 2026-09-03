@@ -92,8 +92,12 @@ export async function GET(request: Request, ctx: { params: Promise<{ ref: string
     if (cashWillowRes.error) throw cashWillowRes.error
     if (cashTenswRes.error) throw cashTenswRes.error
 
-    const { data: reconData, error: reconErr } = await supabase.rpc('b2b_reconcile', { p_settlement: settlement.id })
-    const reconciliation = (reconErr ? settlement.reconciliation : reconData) as B2bReconciliation | null
+    // 마감된 정산은 마감 시점에 얼린 대사 결과가 정본이다. 열려 있는 정산만 지금 값으로 다시 계산한다.
+    let reconciliation = settlement.reconciliation as B2bReconciliation | null
+    if (settlement.status !== 'closed') {
+      const { data: reconData, error: reconErr } = await supabase.rpc('b2b_reconcile', { p_settlement: settlement.id })
+      if (!reconErr) reconciliation = reconData as B2bReconciliation | null
+    }
 
     return NextResponse.json({
       settlement: { ...settlement, reconciliation },

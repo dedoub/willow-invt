@@ -56,8 +56,10 @@ async function resolveDocument(corp, docNo) {
   let doc
   try {
     doc = await corp.getDocument(docNo)
-  } catch {
-    return null
+  } catch (err) {
+    // 서류함에 없는 문서번호만 "문서 없음"으로 접는다. 네트워크·권한 오류까지 삼키면 안 된다.
+    if (/not found/i.test(err?.message ?? '')) return null
+    throw err
   }
   const versions = await corp.listVersions(doc.id)
   const version = pickLatestVersion(versions)
@@ -134,11 +136,14 @@ function renderIndexHtml({ settlement, agreement, engagement, works, invoices, c
     '연결된 업무기록 없음',
   )
 
+  // 서류함에서 실제로 읽어온 문서 상태(draft/final)를 쓴다. 못 찾은 문서번호는 '없음'으로 남는다.
+  const statusByDocNo = new Map(docRows.filter((d) => d.docNo).map((d) => [d.docNo, d.status]))
+  const docStatus = (docNo) => (docNo ? (statusByDocNo.get(docNo) ?? '없음') : '-')
   const docStatusTable = table(
     ['구분', '문서번호', '상태'],
     [
-      ['업무확인서', esc(settlement.confirmation_doc_no ?? '없음'), esc(settlement.confirmation_doc_no ? 'linked' : '-')],
-      ['정산서', esc(settlement.statement_doc_no ?? '없음'), esc(settlement.statement_doc_no ? 'linked' : '-')],
+      ['업무확인서', esc(settlement.confirmation_doc_no ?? '없음'), esc(docStatus(settlement.confirmation_doc_no))],
+      ['정산서', esc(settlement.statement_doc_no ?? '없음'), esc(docStatus(settlement.statement_doc_no))],
     ],
   )
 
@@ -260,7 +265,10 @@ export async function buildBundle(db, settlementRef, outDir) {
     }
   }
 
-  const reconciliation = settlement.reconciliation ?? (await db.previewReconcile(settlementRef))
+  // 마감된 정산은 얼린 대사 결과가 정본, 그 외에는 저장값이 낡았을 수 있으므로 지금 값으로 다시 계산한다.
+  const reconciliation = settlement.status === 'closed'
+    ? (settlement.reconciliation ?? (await db.previewReconcile(settlementRef)))
+    : await db.previewReconcile(settlementRef)
 
   const manifest = {
     settlement: {
