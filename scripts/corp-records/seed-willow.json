@@ -3,7 +3,10 @@
   "localDir": "scripts/logs/corp-records",
   "documents": [
     { "key": "articles-2021", "type": "regulation", "category": "articles_rules", "title": "정관 (2021년 제정, 별첨 임원퇴직금·상여금·유족보상금 규정 포함)", "issued": "2021-04-05", "issuedBy": "윌로우인베스트먼트 주식회사",
-      "versions": [{ "kind": "final_signed", "file": "윌로우인베스트먼트_정관_2021.docx", "textFile": "윌로우인베스트먼트_정관_2021.txt", "note": "원시정관 docx 원본 (soffice/LibreOffice 미설치로 PDF 변환 보류)" }] },
+      "versions": [
+        { "kind": "final_signed", "file": "윌로우인베스트먼트_정관_2021.docx", "textFile": "윌로우인베스트먼트_정관_2021.txt", "note": "원시정관 docx 원본" },
+        { "kind": "final_signed", "file": "윌로우인베스트먼트_정관_2021.docx", "convert": true, "textFile": "윌로우인베스트먼트_정관_2021.txt", "note": "docx → PDF 변환본 (LibreOffice 26.8)" }
+      ] },
     { "key": "registry-20260604", "type": "registry_extract", "category": "registration", "title": "법인등기부등본 (등기사항전부증명서, 2026-06-04 발급)", "issued": "2026-06-04", "issuedBy": "법원행정처 등기정보중앙관리소", "validTo": "2026-09-04",
       "versions": [{ "kind": "reissue", "file": "윌로우인베스트먼트_법인등기부등본_20260604.pdf", "textFile": "윌로우인베스트먼트_법인등기부등본_20260604.txt", "note": "이미지 스캔, 텍스트는 판독본" }] },
     { "key": "biz-reg", "type": "business_registration", "category": "registration", "title": "사업자등록증 (205-88-01897)", "issued": "2025-09-08", "issuedBy": "삼성세무서",
@@ -13,7 +16,10 @@
     { "key": "mail-order-20260714", "type": "license_permit", "category": "registration", "title": "통신판매업신고증 (제2026-서울강남-03934호)", "issued": "2026-07-14", "issuedBy": "강남구청",
       "versions": [{ "kind": "reissue", "file": "윌로우인베스트먼트_통신판매업신고증_20260714.pdf", "textFile": "윌로우인베스트먼트_통신판매업신고증_20260714.txt" }] },
     { "key": "shareholders-20260717", "type": "shareholder_list", "category": "shareholders_meeting", "title": "주주명부 (2026-07-17)", "issued": "2026-07-17", "issuedBy": "윌로우인베스트먼트 주식회사",
-      "versions": [{ "kind": "final_signed", "file": "윌로우인베스트먼트_주주명부_20260717.docx", "note": "PDF 원본(~/Downloads) 샌드박스 차단 + soffice/LibreOffice 미설치로 docx 원본 그대로 사용" }] },
+      "versions": [
+        { "kind": "final_signed", "file": "윌로우인베스트먼트_주주명부_20260717.docx", "note": "docx 원본 (서명본 PDF는 ~/Downloads 접근 차단으로 미등록)" },
+        { "kind": "final_signed", "file": "윌로우인베스트먼트_주주명부_20260717.docx", "convert": true, "note": "docx → PDF 변환본 (LibreOffice 26.8)" }
+      ] },
     { "key": "contract-akros-2026", "type": "contract", "category": "contract", "title": "자문계약서 — (주)아크로스테크놀로지스 (2026-04-01 체결, 월 ₩12,500,000, 1년 자동연장)", "issued": "2026-04-01", "counterparty": "(주)아크로스테크놀로지스", "contractStart": "2026-04-01", "contractEnd": "2027-03-31", "tags": ["auto-renew", "wiki:91ed9629-e931-4ca1-a57f-bd99348227da"],
       "versions": [] },
     { "key": "contract-akros-2023", "type": "contract", "category": "contract", "title": "자문계약서 — (주)아크로스테크놀로지스 (2023-12-29 체결, 2026-03-31 합의 해지)", "issued": "2023-12-29", "counterparty": "(주)아크로스테크놀로지스", "contractStart": "2023-12-29", "contractEnd": "2026-03-31", "tags": ["terminated", "wiki:91ed9629-e931-4ca1-a57f-bd99348227da"],
