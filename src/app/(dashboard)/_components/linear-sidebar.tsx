@@ -236,7 +236,7 @@ function SortableRow({ c, isActive, onClose }: { c: NavItem; isActive: boolean; 
   }
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <NavRow href={c.href} dot={c.dot} mark={c.mark} label={c.label} tag={c.tag}
+      <NavRow href={c.href} icon={c.icon} dot={c.dot} mark={c.mark} label={c.label} tag={c.tag}
         isActive={isActive} rail={false} onClose={onClose} />
     </div>
   )
@@ -316,6 +316,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
 
   // 앱서비스/관계회사/컨설팅 메뉴 순서 — 드래그로 변경, localStorage에 저장(기기별)
   const willow = navGroup('willow')
+  const assets = navGroup('assets')
   const admin = navGroup('admin')
   const appsFinance = navGroup('apps-finance')
   const appsEdu = navGroup('apps-edu')
@@ -342,7 +343,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
       {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
       {rail ? (
         group.ordered.map(c => (
-          <NavRow key={c.id} href={c.href} dot={c.dot} mark={c.mark} label={c.label} tag={c.tag}
+          <NavRow key={c.id} href={c.href} icon={c.icon} dot={c.dot} mark={c.mark} label={c.label} tag={c.tag}
             isActive={isActiveHref(c.href)} rail={rail} onClose={onClose} />
         ))
       ) : isFolded(key) ? null : (
@@ -392,7 +393,18 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {!rail && groupHead(willow.key, willow.label)}
         {!isFolded(willow.key) && willow.items.map(navLink)}
 
-        {/* 앱서비스 통합관리 — 네 앱을 가로지르는 화면이라 앱 그룹들 앞에 선다. 관리자만. */}
+        {/* 관계회사 — 회사 자체 다음에 바로. 관계사간 거래 원장도 여기 */}
+        {sortableGroup(investees.key, investees.label, investeesOrder)}
+
+        {/* 자산관리 — 윌로우 명의 투자자산 */}
+        {!rail && groupHead(assets.key, assets.label)}
+        {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
+        {!isFolded(assets.key) && assets.items.map(navLink)}
+
+        {sortableGroup(appsFinance.key, appsFinance.label, appsFinanceOrder)}
+        {sortableGroup(appsEdu.key, appsEdu.label, appsEduOrder)}
+
+        {/* 앱서비스 통합관리 — 네 앱을 가로지르는 화면. 앱 그룹들 뒤에 선다. 관리자만. */}
         {isAdmin && (
           <>
             {!rail && groupHead(inquiries.key, inquiries.label)}
@@ -401,9 +413,6 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
           </>
         )}
 
-        {sortableGroup(appsFinance.key, appsFinance.label, appsFinanceOrder)}
-        {sortableGroup(appsEdu.key, appsEdu.label, appsEduOrder)}
-        {sortableGroup(investees.key, investees.label, investeesOrder)}
         {sortableGroup(clients.key, clients.label, clientsOrder)}
 
         {isAdmin && (

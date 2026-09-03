@@ -37,13 +37,27 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'mgmt',       href: '/mgmt',       label: '사업관리',  icon: 'briefcase' },
       { id: 'corp',       href: '/corp',       label: '법인 서류함', icon: 'file' },
-      { id: 'b2b',        href: '/b2b',        label: '용역 거래',  icon: 'coin' },
       { id: 'email',      href: '/email',      label: '이메일',    icon: 'mail' },
       { id: 'wiki',       href: '/wiki',       label: '업무위키',  icon: 'book' },
+    ],
+  },
+  {
+    // 관계회사 — 투자·지분 관계로 관리하는 회사와, 그 회사들과 윌로우 사이의 거래 원장
+    key: 'investees',
+    label: '관계회사',
+    orderKey: 'sidebar-investee-order',
+    items: [
+      { id: 'tensw', href: '/tensw', label: '텐소프트웍스', tag: 'AI Search', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
+      { id: 'b2b',   href: '/b2b',   label: '관계사간 거래', icon: 'coin' },
+    ],
+  },
+  {
+    // 자산관리 — 윌로우 명의 투자자산(주식·부동산)
+    key: 'assets',
+    label: '자산관리',
+    items: [
       { id: 'invest',     href: '/invest',     label: '주식투자',  icon: 'trending' },
       { id: 'realestate', href: '/realestate', label: '부동산',    icon: 'building' },
-      { id: 'ryuha',      href: '/ryuha',      label: '류하일정',  icon: 'calendar' },
-      { id: 'english',    href: '/english',    label: '영작연습',  icon: 'pencil' },
     ],
   },
   {
@@ -84,15 +98,6 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    // 관계회사 — 투자·지분 관계로 관리하는 회사
-    key: 'investees',
-    label: '관계회사',
-    orderKey: 'sidebar-investee-order',
-    items: [
-      { id: 'tensw', href: '/tensw', label: '텐소프트웍스', tag: 'AI Search', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
-    ],
-  },
-  {
     // 컨설팅 — 클라이언트/파트너 단위 업무
     key: 'clients',
     label: '컨설팅',
@@ -103,11 +108,14 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    // 기타 — 개인 일정·학습과 관리자 화면. 관리자에게만 보인다.
     key: 'admin',
-    label: '관리자',
+    label: '기타',
     adminOnly: true,
     items: [
-      { id: 'users', href: '/admin/users', label: '사용자 관리', icon: 'user' },
+      { id: 'ryuha',   href: '/ryuha',       label: '류하일정',  icon: 'calendar' },
+      { id: 'english', href: '/english',     label: '영작연습',  icon: 'pencil' },
+      { id: 'users',   href: '/admin/users', label: '사용자 관리', icon: 'user' },
     ],
   },
 ]
